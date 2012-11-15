@@ -10,8 +10,7 @@
   (syntax->datum (my-read-syntax #f in)))
 
 (define (my-read-syntax src in)
-  (get-syntax src in))
-  #;(with-syntax ([str (get-syntax src in)])
+  (with-syntax ([str (get-syntax src in)])
     (strip-context
      #'(module anything "../src/lang/pyret.rkt"
-          str)))
+         str))))
