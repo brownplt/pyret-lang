@@ -1,0 +1,5 @@
+#lang reader "../src/lang/reader.rkt"
+
+def x: 5
+
+x

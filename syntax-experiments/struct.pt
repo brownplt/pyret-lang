@@ -1,0 +1,41 @@
+#lang pyret
+
+structs Animal [
+  boa: length;
+  dillo: length, weight
+]
+
+;; desugars to
+
+def Animal-brand, Animal-brand?: make-brand()
+
+fun Animal?(maybe-animal):
+  Animal-brand?(maybe-animal)
+
+;; destructuring assignment
+def boa-brand, boa-brand?: make-brand()
+
+fun boa(length):
+  ;; boa-brand is a functional brander - you get back a new version of
+  ;; the value that's wrapped in a recognizable brand
+  ;; The order of branding shouldn't matter
+  Animal-brand(boa-brand({
+    length: length,
+  }))
+
+fun boa?(maybe-boa):
+  ;; you can check these with the detector for the brand
+  boa-brand?(maybe-boa)
+
+
+def dillo-brand, dillo-brand?: make-brand()
+
+fun dillo(length, weight):
+  Animal-brand(dillo-brand({
+    length: length,
+    weight: weight
+  }))
+
+fun dillo?(maybe-dillo):
+  dillo-brand?(maybe-dillo)
+
