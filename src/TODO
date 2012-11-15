@@ -1,0 +1,19 @@
+[] seal(obj, fields)
+   - all of names must exist on obj
+   - result is a seal(obj, fields), which is a mutable proxy to obj
+
+[] make-brand()
+   - produces brander and checker
+   - brander used on any value, produces a brand(this-gensym, value) where
+     value is a copy (of a reference to an object, or a prim)
+   - checker recognizes any nested brand|seal(... brand(this-gensym, value))
+     and returns true, false if it hits a non-brand value
+
+[] consistent naming in grammar for lists of things
+[] bug report on module docs
+
+[] make a real AST (in pyret.rkt?  before or after it?)
+
+[] figure out what define-syntax is less boilerplate
+
+[] keep seal() consistent with initialization/new object fields?
