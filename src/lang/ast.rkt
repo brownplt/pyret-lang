@@ -26,8 +26,8 @@
 
 The concrete AST for surface Pyret.
 
-Each syntactic form has a syntax object associated with it, for error
-reporting and keeping track of source locations.  The syntax object
+Each syntactic form has a srclo object associated with it, for error
+reporting and keeping track of source locations.  The srcloc object
 should not be required for evaluating the ast node, and only used for
 these metadata purposes.
 

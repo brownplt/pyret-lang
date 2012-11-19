@@ -1,9 +1,9 @@
 #lang racket
 
-(require "../src/parser.rkt" rackunit "../src/values.rkt")
+(require "../lang/compile-pyret.rkt" "../parser.rkt" rackunit "../values.rkt")
 
-(dynamic-require "../src/lang/pyret.rkt" 0)
-(define ns (module->namespace "../src/lang/pyret.rkt"))
+(dynamic-require "../lang/pyret.rkt" 0)
+(define ns (module->namespace "../lang/pyret.rkt"))
 
 ;; note - using eval-syntax below misses an important "enrichment" step:
 ;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
@@ -11,15 +11,21 @@
 ;; NB(joe):  I have no idea what that means
 (define (pyret-eval str)
   (eval
-   (get-syntax "cmdline" (open-input-string str))
-   ns))
+    (compile-pyret
+      (eval
+       (get-syntax "cmdline" (open-input-string str))
+       ns))
+    ns))
 
 (define (check-pyret str expected)
   (check-equal? (pyret-eval str) expected))
 
+(define (check-pyret-fail str expected)
+  (check-not-equal? (pyret-eval str) expected))
+
 (define (check-pyret-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (pyret-eval str))))
-#|
+
 
 (define (mk-num n)
   (p-num n (none) (make-hash)))
@@ -31,9 +37,17 @@
 (define two (mk-num 2))
 (define ten (mk-num 10))
 
+(check-pyret "5" five)
+
+(check-pyret "fun f(): 2 end f()" two)
+
+(check-pyret "fun f(x): x end f(2)" two)
+
+(check-pyret-fail "fun f(x): x end f(3)" two)
+
+
 (check-pyret "{}" (p-object (none) (make-hash)))
 
-(check-pyret "5" five)
 
 (check-pyret "'5'" (mk-str "5"))
 
@@ -64,10 +78,5 @@
 
 (check-pyret-exn "seal(5, ['y'])" "seal")
 
-#;(parameterize ([current-namespace
-                ns])
-(display (expand (get-syntax "cmdline" (open-input-string "fun foo(): 5 end foo()")))))
+(check-pyret "fun foo(): 5 end foo()" five)
 
-#;(check-pyret "fun foo(): 5 end foo()" five)
-
-|#

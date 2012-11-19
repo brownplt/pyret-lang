@@ -70,6 +70,7 @@
      (with-syntax ([x-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'x)))])
        #`(s-id #,(srcloc-of-syntax stx) 'x-id))]))
 
+;; TODO(joe): there's extra crap in here
 (define-syntax (app-expr stx)
   (syntax-case stx (app-arg-elt)
     [(_ fun-expr (app-args "(" (app-arg-elt arg ",") ... lastarg ")"))
