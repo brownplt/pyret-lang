@@ -1,6 +1,8 @@
 #lang reader "../lib/autogrammar/lalr/lang/reader.rkt"
 
-program: stmt* ENDMARKER
+program: block ENDMARKER
+
+block: stmt*
 
 stmt: def-expr | fun-expr | expr
 
@@ -21,7 +23,7 @@ app-expr: expr app-args
 arg-elt: NAME ","
 args: "(" arg-elt* NAME ")" | "(" ")"
 fun-expr:
-   "fun" NAME args ":" stmt "end"
+   "fun" NAME args ":" block "end"
    
 field: NAME ":" expr | NAME args ":" stmt | NAME args ":" stmt "end"
 list-field: field ","
@@ -36,4 +38,3 @@ list-expr: "[" list-elt* expr "]" | "[" "]"
 dot-expr: expr "." NAME
 bracket-expr: expr "." "(" expr ")"
 
-                                   

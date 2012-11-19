@@ -64,3 +64,4 @@
           (when (not (subset? fields-seal effective-seal))
             (error "seal: cannot seal unmentionable fields"))
           (reseal object (set-intersect fields-seal effective-seal))))))
+
