@@ -70,6 +70,12 @@
      (with-syntax ([x-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'x)))])
        #`(s-id #,(srcloc-of-syntax stx) 'x-id))]))
 
+(define-syntax (assign-expr stx)
+  (syntax-case stx ()
+    [(_ x "=" expr)
+     (with-syntax ([x-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'x)))])
+       #`(s-assign #,(srcloc-of-syntax stx) 'x-id expr))]))
+
 ;; TODO(joe): there's extra crap in here
 (define-syntax (app-expr stx)
   (syntax-case stx (app-arg-elt)
@@ -98,3 +104,16 @@
 (define-syntax (dot-expr stx)
   (syntax-case stx ()
     [(_ obj "." field) #`(s-dot #,(srcloc-of-syntax stx) obj '#,(string->symbol (syntax->datum #'field)))]))
+
+(define-syntax (bracket-expr stx)
+  (syntax-case stx ()
+    [(_ obj "." "(" field ")") #`(s-bracket #,(srcloc-of-syntax stx) obj field)]))
+
+(define-syntax (dot-assign-expr stx)
+  (syntax-case stx ()
+    [(_ obj "." field "=" expr) 
+        #`(s-dot-assign #,(srcloc-of-syntax stx) obj '#,(string->symbol (syntax->datum #'field)) expr)]))
+
+(define-syntax (bracket-assign-expr stx)
+  (syntax-case stx ()
+    [(_ obj "." "(" field ")" "=" expr) #`(s-bracket-assign #,(srcloc-of-syntax stx) obj field expr)]))

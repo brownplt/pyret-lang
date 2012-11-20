@@ -10,6 +10,7 @@
   (struct-out s-obj)
 
   (struct-out s-id)
+  (struct-out s-assign)
   (struct-out s-app)
 
   (struct-out s-list)
@@ -19,6 +20,8 @@
 
   (struct-out s-dot)
   (struct-out s-bracket)
+  (struct-out s-dot-assign)
+  (struct-out s-bracket-assign)
 
 )
 
@@ -40,7 +43,8 @@ these metadata purposes.
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof Symbol)) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : Symbol) (value : Expr)) #:transparent)
 
-(define-type Expr (U s-obj s-list s-app s-id s-num s-str s-dot s-bracket))
+(define-type Expr (U s-obj s-list s-app s-id s-assign s-num s-str s-dot 
+                     s-bracket s-dot-assign s-bracket-assign))
 
 (define-type Member (U s-data s-method))
 (struct: s-data ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
@@ -53,11 +57,16 @@ these metadata purposes.
 
 (struct: s-id ((syntax : srcloc) (id : Symbol)) #:transparent)
 
+(struct: s-assign ((syntax : srcloc) (id : Symbol) (value : Expr)) #:transparent)
+
 (struct: s-num ((syntax : srcloc) (n : Number)) #:transparent)
 (struct: s-str ((syntax : srcloc) (s : String)) #:transparent)
 
 (struct: s-dot ((syntax : srcloc) (obj : Expr) (field : Symbol)) #:transparent)
 (struct: s-bracket ((syntax : srcloc) (obj : Expr) (field : Expr)) #:transparent)
+
+(struct: s-dot-assign ((syntax : srcloc) (obj : Expr) (field : Symbol) (value : Expr)) #:transparent)
+(struct: s-bracket-assign ((syntax : srcloc) (obj : Expr) (field : Expr) (value : Expr)) #:transparent)
 
 ;; used for creating ad hoc AST nodes that didn't come from surface
 ;; syntax

@@ -1,6 +1,9 @@
 #lang racket
 
-(require "../lang/compile-pyret.rkt" "../parser.rkt" rackunit "../values.rkt")
+(require rackunit
+         "../lang/compile-pyret.rkt" 
+         "../lang/parser.rkt" 
+         "../lang/values.rkt")
 
 (dynamic-require "../lang/pyret.rkt" 0)
 (define ns (module->namespace "../lang/pyret.rkt"))
@@ -11,11 +14,14 @@
 ;; NB(joe):  I have no idea what that means
 (define (pyret-eval str)
   (eval
-    (compile-pyret
-      (eval
-       (get-syntax "cmdline" (open-input-string str))
-       ns))
+    (compile-str str)
     ns))
+
+(define (compile-str str)
+  (compile-pyret
+   (eval
+    (get-syntax "cmdline" (open-input-string str))
+    ns)))
 
 (define (check-pyret str expected)
   (check-equal? (pyret-eval str) expected))
@@ -72,16 +78,39 @@
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
              (p-object (set "y" "z") (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
-(check-pyret-exn "seal(seal({x:5, y:2}, ['y']), ['x'])" "seal")
+(check-pyret-exn "seal(seal({x:5, y:2}, ['y']), ['x'])" "seal:")
 
-(check-pyret-exn "seal({x:5}, ['y'])" "seal")
+(check-pyret-exn "seal({x:5}, ['y'])" "seal:")
 
-(check-pyret-exn "seal({x:5}, 'y')" "seal")
+(check-pyret-exn "seal({x:5}, 'y')" "seal:")
 
-(check-pyret-exn "seal({}, ['y'])" "seal")
+(check-pyret-exn "seal({}, ['y'])" "seal:")
 
-(check-pyret-exn "seal(5, ['y'])" "seal")
+(check-pyret-exn "seal(5, ['y'])" "seal:")
 
 (check-pyret "fun foo(): 5 end foo()" five)
 
+(check-pyret-exn "seal({x:5}, []).x" "get-field:")
+(check-pyret "seal({x:5}, ['x']).x" five)
+(check-pyret "{x:5}.x" five)
+(check-pyret-exn "{x:5}.y" "get-field:")
+(check-pyret-exn "seal(seal({x:5, y:5}, ['y']), ['y']).x" "get-field:")
+(check-pyret "seal(seal({x:5, y:5}, ['x', 'y']), ['y']).y" five)
+(check-pyret-exn "seal(seal({x:5, y:5, z:5}, ['x', 'y']), ['y']).z" "get-field:")
 
+(check-pyret "fun f(x): x = 2 x end f(1)" two)
+(check-pyret "fun f(x): x = 2 x = 5 x end f(1)" five)
+(check-pyret-exn "fun f(x): y = 2 x end f(1)" "set!:")
+(check-pyret "fun f(x): fun g(): x = 2 end g() x end f(1)" two)
+(check-pyret "fun f(x): fun g(x): x = 2 end g(1) x end f(5)" five)
+(check-pyret "fun do(o):
+                fun f(x):
+                  fun g(): x = 2 end
+                  fun h(): x end
+                  {g: g, h: h} 
+                end
+                o = f(1)
+                o.g()
+                o.h()
+              end 
+              do({})" two)

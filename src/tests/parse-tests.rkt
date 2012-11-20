@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../parser.rkt" rackunit "../lang/ast.rkt")
+(require "../lang/parser.rkt" rackunit "../lang/ast.rkt")
 
 (dynamic-require "../lang/pyret.rkt" 0)
 (define ns (module->namespace "../lang/pyret.rkt"))
@@ -67,4 +67,17 @@
 (test/match "[5]" (s-block _ (list (s-list _ (list (s-num _ 5))))))
 
 (test/match "o.x" (s-block _ (list (s-dot _ (s-id _ 'o) 'x))))
+(test/match "seal({x:5}, []).x" 
+            (s-block _ (list
+                        (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data _ "x" (s-num _ 5))))
+                                                               (s-list _ empty)))
+                               'x))))
 
+(test/match "o.('x')" (s-block _ (list (s-bracket _ (s-id _ 'o) (s-str _ "x")))))
+
+(test/match "x = 1" (s-block _ (list (s-assign _ 'x (s-num _ 1)))))
+
+(test/match "o.x = 1" (s-block _ (list (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))))
+
+(test/match "o.('x') = 1" 
+            (s-block _ (list (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))))

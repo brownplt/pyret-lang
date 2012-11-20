@@ -1,14 +1,18 @@
-#lang reader "../lib/autogrammar/lalr/lang/reader.rkt"
+#lang reader "../../lib/autogrammar/lalr/lang/reader.rkt"
 
 program: block ENDMARKER
 
 block: stmt*
 
-stmt: def-expr | fun-expr | expr
+stmt: def-expr | fun-expr | expr | assign-expr | dot-assign-expr |
+      bracket-assign-expr
 
-expr: obj-expr | list-expr | app-expr | id-expr | prim-expr | dot-expr | bracket-expr
+expr: obj-expr | list-expr | app-expr | id-expr | prim-expr | 
+      dot-expr | bracket-expr
 
 id-expr: NAME
+
+assign-expr: NAME "=" expr
 
 prim-expr: num-expr | string-expr
 num-expr: NUMBER
@@ -38,3 +42,5 @@ list-expr: "[" list-elt* expr "]" | "[" "]"
 dot-expr: expr "." NAME
 bracket-expr: expr "." "(" expr ")"
 
+dot-assign-expr: expr "." NAME = expr
+bracket-assign-expr: expr "." "(" expr ")" "=" expr

@@ -1,7 +1,7 @@
 #lang racket
 
 (require "grammar.rkt" rackunit racket/match racket/generator parser-tools/lex
-         "../lib/python-tokenizer/main.rkt")
+         "../../lib/python-tokenizer/main.rkt")
 (provide get-syntax)
 
 (define (adapt-python-tokenizer ip)
