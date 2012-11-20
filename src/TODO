@@ -17,3 +17,25 @@
 [] figure out what define-syntax is less boilerplate
 
 [] keep seal() consistent with initialization/new object fields?
+
+[] make helper for id-parsing and str-parsing in pyret.rkt
+
+[] ordering of things in grammar vs pyret.rkt
+
+[] decide on a line length and enforce
+
+[] make seal into a built-in method
+
+
+[x] no seal success
+[x] no seal fnf
+[x] 2 seals success
+[x] 2 seals caught by first
+[x] 2 seals caught by second
+
+[] assignment success
+[] assignment fail
+[] 
+
+[] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
+[] applicaiton should check type better
