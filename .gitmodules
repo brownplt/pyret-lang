@@ -1,0 +1,7 @@
+[submodule "autogrammar"]
+path = lib/autogrammar
+url = git@github.com:dyoo/autogrammar.git
+
+[submodule "python-tokenizer"]
+path = lib/python-tokenizer
+url = git@github.com:dyoo/python-tokenizer.git
