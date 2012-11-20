@@ -23,7 +23,7 @@
 (define-syntax test/match
   (syntax-rules ()
     [(test/match actual expected pred)
-     (let ([actual-val (pyret-eval actual)])
+     (let ([actual-val (pyret-parse actual)])
        (with-check-info* (list (make-check-actual actual-val)
                                (make-check-expected 'expected))
                          (thunk (check-equal? (match actual-val
@@ -65,3 +65,6 @@
 
 (test/match "[]" (s-block _ (list (s-list _ empty))))
 (test/match "[5]" (s-block _ (list (s-list _ (list (s-num _ 5))))))
+
+(test/match "o.x" (s-block _ (list (s-dot _ (s-id _ 'o) 'x))))
+

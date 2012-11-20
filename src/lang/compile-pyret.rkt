@@ -22,13 +22,13 @@
        #`(begin stmt ...))]
 
     [(s-fun _ name args body)
-     (with-syntax ([name-stx (datum->syntax #'#%module-begin name)]
-                   [(arg ...) (datum->syntax #'#%module-begin args)]
+     (with-syntax ([name-stx (d->stx name)]
+                   [(arg ...) (d->stx args)]
                    [body-stx (compile-pyret body)])
        #`(define (name-stx arg ...) body-stx))]
 
     [(s-id _ name)
-     (with-syntax ([name-stx (datum->syntax #'#%module-begin name)])
+     (with-syntax ([name-stx (d->stx name)])
        #`name-stx)]
 
     [(s-app _ fun args)

@@ -94,3 +94,7 @@
     [(_ "[" (list-elt expr ",") ... lastexpr "]")
      #`(s-list #,(srcloc-of-syntax stx) (list expr ... lastexpr))]
     [(_ "[" "]") #`(s-list #,(srcloc-of-syntax stx) empty)]))
+
+(define-syntax (dot-expr stx)
+  (syntax-case stx ()
+    [(_ obj "." field) #`(s-dot #,(srcloc-of-syntax stx) obj '#,(string->symbol (syntax->datum #'field)))]))

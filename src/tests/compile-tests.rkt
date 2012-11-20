@@ -39,15 +39,19 @@
 
 (check-pyret "5" five)
 
+(check-pyret-fail "2" five)
+
 (check-pyret "fun f(): 2 end f()" two)
 
 (check-pyret "fun f(x): x end f(2)" two)
 
+(check-pyret "fun f(x): x end fun g(x): x end f(2) g(10) f(2)" two)
+
+(check-pyret "fun f(x): fun g(x): x end g(x) end f(5)" five)
+
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
-
 (check-pyret "{}" (p-object (none) (make-hash)))
-
 
 (check-pyret "'5'" (mk-str "5"))
 
@@ -79,4 +83,5 @@
 (check-pyret-exn "seal(5, ['y'])" "seal")
 
 (check-pyret "fun foo(): 5 end foo()" five)
+
 
