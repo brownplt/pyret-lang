@@ -1,4 +1,4 @@
-[] seal(obj, fields)
+[x] seal(obj, fields)
    - all of names must exist on obj
    - result is a seal(obj, fields), which is a mutable proxy to obj
 
@@ -12,7 +12,7 @@
 [] consistent naming in grammar for lists of things
 [] bug report on module docs
 
-[] make a real AST (in pyret.rkt?  before or after it?)
+[x] make a real AST (in pyret.rkt?  before or after it?)
 
 [] figure out what define-syntax is less boilerplate
 
@@ -24,18 +24,26 @@
 
 [] decide on a line length and enforce
 
-[] make seal into a built-in method
+[] make seal into a built-in method?
 
+Seal/lookup tests
+  [x] no seal success
+  [x] no seal field not found
+  [x] 2 seals success
+  [x] 2 seals caught by first
+  [x] 2 seals caught by second
 
-[x] no seal success
-[x] no seal fnf
-[x] 2 seals success
-[x] 2 seals caught by first
-[x] 2 seals caught by second
-
-[] assignment success
-[] assignment fail
-[] 
+Assignment tests
+  [] assignment success
+  [] assignment fail
+  [] assignment seal fail
+  [] assignment seal success
+  [] 2 seals success
+  [] 2 seals caught by first
+  [] 2 seals caught by second
 
 [] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
 [] applicaiton should check type better
+
+[] resolve submoduley things with tokens and dedent errors
+   - just have a pyret-tokenizer.rkt
