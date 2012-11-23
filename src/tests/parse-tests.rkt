@@ -14,70 +14,71 @@
    (get-syntax "parse-tests.rkt" (open-input-string str))
    ns))
 
-(define (check-pyret str expected)
-  (check-equal? (pyret-parse str) expected))
-
 (define (check-pyret-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (pyret-parse str))))
 
 (define-syntax test/match
   (syntax-rules ()
-    [(test/match actual expected pred)
-     (let ([actual-val (pyret-parse actual)])
+    [(_ actual expected pred)
+     (let ([actual-val actual])
        (with-check-info* (list (make-check-actual actual-val)
                                (make-check-expected 'expected))
                          (thunk (check-equal? (match actual-val
                                                 [expected pred]
                                                 [_ false])
                                               true))))]
-    [(test/match actual expected)
+    [(_ actual expected)
      (test/match actual expected true)]))
 
-(test/match "'str'" (s-block _ (list (s-str _ "str"))))
-(test/match "5" (s-block _ (list (s-num _ 5))))
+(define-syntax check/block
+  (syntax-rules ()
+    [(_ str stmt ...)
+     (test/match (pyret-parse str) (s-block _ (list stmt ...)))]))
 
-(test/match "5 'foo'" (s-block _ (list (s-num _ 5) (s-str _ "foo"))))
+(check/block "'str'" (s-str _ "str"))
+(check/block "5" (s-num _ 5))
 
-(test/match "{}" (s-block _ (list (s-obj _ empty))))
-(test/match "{x:5}" (s-block _ (list (s-obj _ (list (s-data _ "x" (s-num _ 5)))))))
-(test/match "{x:5,y:'foo'}" (s-block _ (list (s-obj _ (list (s-data _ "x" (s-num _ 5))
-                                                            (s-data _ "y" (s-str _ "foo")))))))
-(test/match "{x:{}}" (s-block _ (list (s-obj _ (list (s-data _ "x" (s-obj _ empty)))))))
+(check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
 
-(test/match "x" (s-block _ (list (s-id _ 'x))))
-(test/match "{x:x}" (s-block _ (list (s-obj _ (list (s-data _ "x" (s-id _ 'x)))))))
+(check/block "{}" (s-obj _ empty))
+(check/block "{x:5}" (s-obj _ (list (s-data _ "x" (s-num _ 5)))))
+(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data _ "x" (s-num _ 5))
+                                                            (s-data _ "y" (s-str _ "foo")))))
+(check/block "{x:{}}" (s-obj _ (list (s-data _ "x" (s-obj _ empty)))))
 
-(test/match "f()" (s-block _ (list (s-app _ (s-id _ 'f) empty))))
-(test/match "f(5)" (s-block _ (list (s-app _ (s-id _ 'f) (list (s-num _ 5))))))
+(check/block "x" (s-id _ 'x))
+(check/block "{x:x}" (s-obj _ (list (s-data _ "x" (s-id _ 'x)))))
 
-(test/match "f(5,'foo')" (s-block _ (list (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))))
+(check/block "f()" (s-app _ (s-id _ 'f) empty))
+(check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
 
-(test/match "fun f(): 5 end"
-            (s-block _ (list (s-fun _ 'f empty (s-block _ (list (s-num _ 5)))))))
+(check/block "f(5,'foo')" (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))
 
-(test/match "fun g(g): 5 end"
-            (s-block _ (list (s-fun _ 'g (list 'g)
-                                    (s-block _ (list (s-num _ 5)))))))
+(check/block "fun f(): 5 end"
+            (s-fun _ 'f empty (s-block _ (list (s-num _ 5)))))
 
-(test/match "fun g(g,f,x): 5 end"
-            (s-block _ (list (s-fun _ 'g (list 'g 'f 'x)
-                                    (s-block _ (list (s-num _ 5)))))))
+(check/block "fun g(g): 5 end"
+            (s-fun _ 'g (list 'g)
+                   (s-block _ (list (s-num _ 5)))))
 
-(test/match "[]" (s-block _ (list (s-list _ empty))))
-(test/match "[5]" (s-block _ (list (s-list _ (list (s-num _ 5))))))
+(check/block "fun g(g,f,x): 5 end"
+             (s-fun _ 'g (list 'g 'f 'x)
+                    (s-block _ (list (s-num _ 5)))))
 
-(test/match "o.x" (s-block _ (list (s-dot _ (s-id _ 'o) 'x))))
-(test/match "seal({x:5}, []).x" 
-            (s-block _ (list
-                        (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data _ "x" (s-num _ 5))))
-                                                               (s-list _ empty)))
-                               'x))))
+(check/block "[]" (s-list _ empty))
+(check/block "[5]" (s-list _ (list (s-num _ 5))))
 
-(test/match "o.('x')" (s-block _ (list (s-bracket _ (s-id _ 'o) (s-str _ "x")))))
+(check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
+(check/block "seal({x:5}, []).x"
+             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data _ "x" (s-num _ 5))))
+                                                    (s-list _ empty)))
+                    'x))
 
-(test/match "x = 1" (s-block _ (list (s-assign _ 'x (s-num _ 1)))))
+(check/block "o.('x')" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
 
-(test/match "o.x = 1" (s-block _ (list (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))))
+(check/block "x = 1" (s-assign _ 'x (s-num _ 1)))
 
-(test/match "o.('x') = 1" 
-            (s-block _ (list (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))))
+(check/block "o.x = 1" (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))
+
+(check/block "o.('x') = 1" 
+            (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))
