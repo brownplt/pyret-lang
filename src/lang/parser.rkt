@@ -1,10 +1,12 @@
 #lang racket
 
+;; NOTE(joe): This has been ripped from Danny's test cases for
+;; autogrammar
 (require "grammar.rkt" rackunit racket/match racket/generator parser-tools/lex
-         "../../lib/python-tokenizer/main.rkt")
+         "../../lib/pyret-tokenizer/main.rkt")
 (provide get-syntax)
 
-(define (adapt-python-tokenizer ip)
+(define (adapt-pyret-tokenizer ip)
   (define tokens (sequence->generator (generate-tokens ip)))
   (lambda ()
     (let loop ()
@@ -40,7 +42,7 @@
          (token-EOF eof)]))))
 
 (define (get-syntax name input-port)
-  (parse name (adapt-python-tokenizer input-port)))
+  (parse name (adapt-pyret-tokenizer input-port)))
 
 (define (get-string-syntax str)
   (get-syntax str (open-input-string str)))

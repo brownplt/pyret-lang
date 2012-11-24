@@ -81,7 +81,7 @@
 (check-pyret-exn "fun f(x): y = 2 x end f(1)" "set!:")
 (check-pyret "fun f(x): fun g(): x = 2 end g() x end f(1)" two)
 (check-pyret "fun f(x): fun g(x): x = 2 end g(1) x end f(5)" five)
-(check-pyret "fun do(o):
+(check-pyret "fun fundo(o):
                 fun f(x):
                   fun g(): x = 2 end
                   fun h(): x end
@@ -90,5 +90,5 @@
                 o = f(1)
                 o.g()
                 o.h()
-              end 
-              do({})" two)
+              end
+              fundo({})" two)
