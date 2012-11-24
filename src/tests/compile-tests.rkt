@@ -1,37 +1,15 @@
 #lang racket
 
-(require rackunit
-         "../lang/compile-pyret.rkt" 
-         "../lang/parser.rkt" 
-         "../lang/values.rkt")
-
-(dynamic-require "../lang/pyret.rkt" 0)
-(define ns (module->namespace "../lang/pyret.rkt"))
-
-;; note - using eval-syntax below misses an important "enrichment" step:
-;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
-;;
-;; NB(joe):  I have no idea what that means
-(define (pyret-eval str)
-  (eval
-    (compile-str str)
-    ns))
-
-(define (compile-str str)
-  (compile-pyret
-   (eval
-    (get-syntax "cmdline" (open-input-string str))
-    ns)))
+(require rackunit "test-utils.rkt" "../lang/values.rkt")
 
 (define (check-pyret str expected)
-  (check-equal? (pyret-eval str) expected))
+  (check-equal? (eval-pyret str) expected))
 
 (define (check-pyret-fail str expected)
-  (check-not-equal? (pyret-eval str) expected))
+  (check-not-equal? (eval-pyret str) expected))
 
 (define (check-pyret-exn str message)
-  (check-exn (regexp (regexp-quote message)) (lambda () (pyret-eval str))))
-
+  (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
 
 (define (mk-num n)
   (p-num n (none) (make-hash)))

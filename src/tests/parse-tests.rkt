@@ -1,39 +1,11 @@
 #lang racket
 
-(require "../lang/parser.rkt" rackunit "../lang/ast.rkt")
-
-(dynamic-require "../lang/pyret.rkt" 0)
-(define ns (module->namespace "../lang/pyret.rkt"))
-
-;; note - using eval-syntax below misses an important "enrichment" step:
-;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
-;;
-;; NB(joe):  I have no idea what that means
-(define (pyret-parse str)
-  (eval
-   (get-syntax "parse-tests.rkt" (open-input-string str))
-   ns))
-
-(define (check-pyret-exn str message)
-  (check-exn (regexp (regexp-quote message)) (lambda () (pyret-parse str))))
-
-(define-syntax test/match
-  (syntax-rules ()
-    [(_ actual expected pred)
-     (let ([actual-val actual])
-       (with-check-info* (list (make-check-actual actual-val)
-                               (make-check-expected 'expected))
-                         (thunk (check-equal? (match actual-val
-                                                [expected pred]
-                                                [_ false])
-                                              true))))]
-    [(_ actual expected)
-     (test/match actual expected true)]))
+(require "test-utils.rkt" "../lang/ast.rkt")
 
 (define-syntax check/block
   (syntax-rules ()
     [(_ str stmt ...)
-     (test/match (pyret-parse str) (s-block _ (list stmt ...)))]))
+     (check-match (parse-pyret str) (s-block _ (list stmt ...)))]))
 
 (check/block "'str'" (s-str _ "str"))
 (check/block "5" (s-num _ 5))
