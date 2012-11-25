@@ -1,6 +1,6 @@
 #lang racket
 
-(provide parse-pyret eval-pyret check-match)
+(provide parse-pyret eval-pyret check-match check-pyret-match)
 (require rackunit
          "../lang/compile-pyret.rkt"
          "../lang/parser.rkt")
@@ -41,3 +41,8 @@
                                               true))))]
     [(_ actual expected)
      (check-match actual expected true)]))
+
+(define-syntax check-pyret-match
+  (syntax-rules ()
+    [(_ str expected)
+      (check-match (eval-pyret str) expected)]))
