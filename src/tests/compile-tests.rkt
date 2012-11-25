@@ -12,10 +12,10 @@
   (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
 
 (define (mk-num n)
-  (p-num n (none) (make-hash)))
+  (p-num n (none) (set) (make-hash)))
 
 (define (mk-str s)
-  (p-str s (none) (make-hash)))
+  (p-str s (none) (set) (make-hash)))
 
 (define five (mk-num 5))
 (define two (mk-num 2))
@@ -35,26 +35,26 @@
 
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
-(check-pyret "{}" (p-object (none) (make-hash)))
+(check-pyret "{}" (p-object (none) (set) (make-hash)))
 
 (check-pyret "'5'" (mk-str "5"))
 
-(check-pyret "{x:5}" (p-object (none) (make-hash (list (cons "x" five)))))
+(check-pyret "{x:5}" (p-object (none) (set) (make-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p-list (list) (none) (make-hash)))
+(check-pyret "[]" (p-list (list) (none) (set) (make-hash)))
 
-(check-pyret "seal({}, [])" (p-object (set) (make-hash)))
+(check-pyret "seal({}, [])" (p-object (set) (set) (make-hash)))
 
-(check-pyret "seal({x:5}, ['x'])" (p-object (set "x") (make-hash (list (cons "x" five)))))
+(check-pyret "seal({x:5}, ['x'])" (p-object (set "x") (set) (make-hash (list (cons "x" five)))))
 
 (check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
-             (p-object (set "y") (make-hash `(("x" . ,five) ("y" . ,two)))))
+             (p-object (set "y") (set) (make-hash `(("x" . ,five) ("y" . ,two)))))
 
 (check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
-             (p-object (set "y") (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p-object (set "y") (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
-             (p-object (set "y" "z") (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p-object (set "y" "z") (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
 (check-pyret-exn "seal(seal({x:5, y:2}, ['y']), ['x'])" "seal:")
 

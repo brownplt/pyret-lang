@@ -14,8 +14,8 @@
          #'(cons name-stx val-stx))]))
   (match ast-node
 
-    [(s-num _ n) #`(p-num #,(d->stx n) (none) (make-hash))]
-    [(s-str _ s) #`(p-str #,(d->stx s) (none) (make-hash))]
+    [(s-num _ n) #`(p-num #,(d->stx n) (none) (set) (make-hash))]
+    [(s-str _ s) #`(p-str #,(d->stx s) (none) (set) (make-hash))]
 
     [(s-block _ l)
      (with-syntax ([(stmt ...) (map compile-pyret l)])
@@ -25,7 +25,7 @@
      (with-syntax ([name-stx (d->stx name)]
                    [(arg ...) (d->stx args)]
                    [body-stx (compile-pyret body)])
-       #`(define name-stx (p-fun (lambda (arg ...) body-stx) (none) (make-hash))))]
+       #`(define name-stx (p-fun (lambda (arg ...) body-stx) (none) (set) (make-hash))))]
 
     [(s-id _ name)
      (with-syntax ([name-stx (d->stx name)])
@@ -42,11 +42,11 @@
 
     [(s-obj _ fields)
      (with-syntax ([(member ...) (map compile-member fields)])
-       #'(p-object (none) (make-hash (list member ...))))]
+       #'(p-object (none) (set) (make-hash (list member ...))))]
     
     [(s-list _ elts)
      (with-syntax ([(elt ...) (map compile-pyret elts)])
-       #'(p-list (list elt ...) (none) (make-hash)))]
+       #'(p-list (list elt ...) (none) (set) (make-hash)))]
     
     [(s-dot _ val field)
      #`(get-field #,(compile-pyret val) #,(d->stx (symbol->string field)))]
