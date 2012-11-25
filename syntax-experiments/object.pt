@@ -1,4 +1,4 @@
-#lang reader "../src/lang/reader.rkt"
+#lang reader "../src/lang/pyret-mlang.rkt"
 
 {x:5}
 
