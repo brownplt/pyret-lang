@@ -19,7 +19,8 @@
 
 [] keep seal() consistent with initialization/new object fields?
 
-[] make helper for id-parsing and str-parsing in pyret.rkt
+[x] make helper for id-parsing
+[]  and str-parsing in pyret.rkt
 
 [] ordering of things in grammar vs pyret.rkt
 
