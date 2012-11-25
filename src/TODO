@@ -46,5 +46,5 @@ Assignment tests
 [] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
 [] applicaiton should check type better
 
-[] resolve submoduley things with tokens and dedent errors
+[x] resolve submoduley things with tokens and dedent errors
    - just have a pyret-tokenizer.rkt
