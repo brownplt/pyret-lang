@@ -11,7 +11,16 @@
             '#,(syntax-column stx)
             '#,(syntax-position stx)
             '#,(syntax-span stx))))
-  
+
+(define-for-syntax (parse-name stx)
+  (string->symbol (syntax->datum stx)))
+
+(define-for-syntax (parse-id stx)
+  (datum->syntax #'#%module-begin (string->symbol (syntax->datum stx))))
+
+(define-for-syntax (parse-ids stx)
+  (datum->syntax #'#%module-begin (map string->symbol (syntax->datum stx))))
+
 (define-syntax (program stx)
   (syntax-case stx ()
     [(_ block endmarker-ignored)
@@ -67,13 +76,13 @@
 (define-syntax (id-expr stx)
   (syntax-case stx ()
     [(_ x)
-     (with-syntax ([x-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'x)))])
+     (with-syntax ([x-id (parse-id #'x)])
        #`(s-id #,(srcloc-of-syntax stx) 'x-id))]))
 
 (define-syntax (assign-expr stx)
   (syntax-case stx ()
     [(_ x "=" expr)
-     (with-syntax ([x-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'x)))])
+     (with-syntax ([x-id (parse-id #'x)])
        #`(s-assign #,(srcloc-of-syntax stx) 'x-id expr))]))
 
 ;; TODO(joe): there's extra crap in here
@@ -87,12 +96,12 @@
 (define-syntax (fun-expr stx)
   (syntax-case stx (args arg-elt)
     [(_ "fun" fun-name (args "(" (arg-elt arg ",") ... lastarg ")") ":" body "end")
-      (with-syntax ([f-id (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'fun-name)))]
-                    [(the-args ...) (datum->syntax #'#%module-begin (map string->symbol (syntax->datum #'(arg ...))))]
-                    [the-last-arg (datum->syntax #'#%module-begin (string->symbol (syntax->datum #'lastarg)))])
+      (with-syntax ([f-id (parse-id #'fun-name)]
+                    [(the-args ...) (parse-ids #'(arg ...))]
+                    [the-last-arg (parse-id #'lastarg)])
         #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list 'the-args ... 'the-last-arg) body))]
     [(_ "fun" fun-name (args "(" ")") ":" body "end")
-      (with-syntax ([f-id (datum->syntax #'fun-expr (string->symbol (syntax->datum #'fun-name)))])
+      (with-syntax ([f-id (parse-id #'fun-name)])
         #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty body))]))
 
 (define-syntax (list-expr stx)
@@ -103,7 +112,7 @@
 
 (define-syntax (dot-expr stx)
   (syntax-case stx ()
-    [(_ obj "." field) #`(s-dot #,(srcloc-of-syntax stx) obj '#,(string->symbol (syntax->datum #'field)))]))
+    [(_ obj "." field) #`(s-dot #,(srcloc-of-syntax stx) obj '#,(parse-name #'field))]))
 
 (define-syntax (bracket-expr stx)
   (syntax-case stx ()
@@ -112,7 +121,7 @@
 (define-syntax (dot-assign-expr stx)
   (syntax-case stx ()
     [(_ obj "." field "=" expr) 
-        #`(s-dot-assign #,(srcloc-of-syntax stx) obj '#,(string->symbol (syntax->datum #'field)) expr)]))
+        #`(s-dot-assign #,(srcloc-of-syntax stx) obj '#,(parse-name #'field) expr)]))
 
 (define-syntax (bracket-assign-expr stx)
   (syntax-case stx ()

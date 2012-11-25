@@ -35,10 +35,9 @@
      (let ([actual-val actual])
        (with-check-info* (list (make-check-actual actual-val)
                                (make-check-expected 'expected))
-                         (thunk (check-equal? (match actual-val
-                                                [expected pred]
-                                                [_ false])
-                                              true))))]
+                         (thunk (check-true (match actual-val
+                                              [expected pred]
+                                              [_ false])))))]
     [(_ actual expected)
      (check-match actual expected true)]))
 
