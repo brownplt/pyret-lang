@@ -16,7 +16,7 @@
 (define two (mk-num 2))
 (define ten (mk-num 10))
 
-(check-pyret-match "5" (p-num _ (set) x 5))
+(check-pyret-match "5" (p-num _ _ (set) x 5))
 
 (check-pyret "5" five)
 
@@ -32,30 +32,30 @@
 
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
-(check-pyret "{}" (p-object (none) (set) (make-hash)))
+(check-pyret "{}" (p-object (none) meta-null (set) (make-hash)))
 
 (check-pyret "'5'" (mk-str "5"))
 
-(check-pyret-match "true" (p-bool _ _ _ #t))
+(check-pyret-match "true" (p-bool _ _ _ _ #t))
 
-(check-pyret-match "false" (p-bool _ _ _ #f))
+(check-pyret-match "false" (p-bool _ _ _ _ #f))
 
-(check-pyret "{x:5}" (p-object (none) (set) (make-hash (list (cons "x" five)))))
+(check-pyret "{x:5}" (p-object (none) meta-null (set) (make-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p-list (none) (set) (make-hash) (list)))
+(check-pyret "[]" (p-list (none) meta-null (set) (make-hash) (list)))
 
-(check-pyret "seal({}, [])" (p-object (set) (set) (make-hash)))
+(check-pyret "seal({}, [])" (p-object (set) meta-null (set) (make-hash)))
 
-(check-pyret "seal({x:5}, ['x'])" (p-object (set "x") (set) (make-hash (list (cons "x" five)))))
+(check-pyret "seal({x:5}, ['x'])" (p-object (set "x") meta-null (set) (make-hash (list (cons "x" five)))))
 
 (check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
-             (p-object (set "y") (set) (make-hash `(("x" . ,five) ("y" . ,two)))))
+             (p-object (set "y") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two)))))
 
 (check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
-             (p-object (set "y") (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p-object (set "y") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
-             (p-object (set "y" "z") (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p-object (set "y" "z") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
 (check-pyret-exn "seal(seal({x:5, y:2}, ['y']), ['x'])" "seal:")
 
@@ -94,18 +94,18 @@
               end
               fundo({})" two)
 
-(check-pyret-match "brander()" (p-object _ (set) (hash-table ("brand" _) ("check" _))))
+(check-pyret-match "brander()" (p-object _ _ (set) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
-    (p-num _ (set _) _ 2))
+    (p-num _ _ (set _) _ 2))
 (check-pyret-match "fun f(x,y): x = brander() y = x.brand(y) x.check(y) end f(1,2)"
-    (p-bool _ _ _ #t))
+    (p-bool _ _ _ _ #t))
 (check-pyret-match "fun f(x,y): x = brander() x.check(y) end f(1,2)"
-    (p-bool _ _ _ #f))
+    (p-bool _ _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) y.check(z) end f(1,2,3)"
-    (p-bool _ _ _ #f))
+    (p-bool _ _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
-    (p-bool _ _ _ #t))
+    (p-bool _ _ _ _ #t))
 
-(check-pyret "3.add(2)" five)
-(check-pyret "10.subtract(5)" five)
+(check-pyret "3.add(3, 2)" five)
+(check-pyret "10.subtract(10, 5)" five)
 

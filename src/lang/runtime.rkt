@@ -14,6 +14,7 @@
  mk-bool
  mk-str
  mk-fun
+ meta-null
  get-dict
  get-seal
  get-field
@@ -31,6 +32,7 @@
 (struct: none () #:transparent)
 ;; Everything has a seal, a set of brands, and a dict
 (struct: p-base ((seal : Seal)
+                 (meta : Dict)
                  (brands : (Setof Symbol))
                  (dict : Dict)) #:transparent)
 (struct: p-object p-base () #:transparent)
@@ -40,84 +42,97 @@
 (struct: p-str p-base ((s : String)) #:transparent)
 (struct: p-fun p-base ((f : Procedure)) #:transparent)
 
+(define meta-null ((inst make-immutable-hash String Value) '()))
+
 (define: (mk-object (dict : Dict)) : Value
-  (p-object (none) (set) dict))
+  (p-object (none) meta-null (set) dict))
 
 (define: (mk-list (l : (Listof Value))) : Value
-  (p-list (none) (set) (make-hash) l))
+  (p-list (none) meta-null (set) (make-hash) l))
 
 (define: (mk-num (n : Number)) : Value
-  (p-num (none) (set) (make-hash) n))
+  (p-num (none) meta-num (set) (make-hash) n))
 
 (define: (mk-bool (b : Boolean)) : Value
-  (p-bool (none) (set) (make-hash) b))
+  (p-bool (none) meta-null (set) (make-hash) b))
 
 (define: (mk-str (s : String)) : Value
-  (p-str (none) (set) (make-hash) s))
+  (p-str (none) meta-null (set) (make-hash) s))
 
 (define: (mk-fun (f : Procedure)) : Value
-  (p-fun (none) (set) (make-hash) f))
+  (p-fun (none) meta-null (set) (make-hash) f))
 
 (define: (get-dict (v : Value)) : Dict
   (match v
-    [(p-object _ _ h) h]
-    [(p-list _ _ h _) h]
-    [(p-num _ _ h _) h]
-    [(p-bool _ _ h _) h]
-    [(p-str _ _ h _) h]
-    [(p-fun _ _ h _) h]))
+    [(p-object _ _ _ h) h]
+    [(p-list _ _ _ h _) h]
+    [(p-num _ _ _ h _) h]
+    [(p-bool _ _ _ h _) h]
+    [(p-str _ _ _ h _) h]
+    [(p-fun _ _ _ h _) h]))
+
+(define: (get-meta (v : Value)) : Dict
+  (match v
+    [(p-object _ m _ _) m]
+    [(p-list _ m _ _ _) m]
+    [(p-num _ m _ _ _) m]
+    [(p-bool _ m _ _ _) m]
+    [(p-str _ m _ _ _) m]
+    [(p-fun _ m _ _ _) m]))
 
 (define: (get-seal (v : Value)) : Seal
   (match v
-    [(p-object s _ _) s]
-    [(p-list s _ _ _) s]
-    [(p-num s _ _ _) s]
-    [(p-bool s _ _ _) s]
-    [(p-str s _ _ _) s]
-    [(p-fun s _ _ _) s]))
+    [(p-object s _ _ _) s]
+    [(p-list s _ _ _ _) s]
+    [(p-num s _ _ _ _) s]
+    [(p-bool s _ _ _ _) s]
+    [(p-str s _ _ _ _) s]
+    [(p-fun s _ _ _ _) s]))
 
 (define: (get-brands (v : Value)) : (Setof Symbol)
   (match v
-    [(p-object _ b _) b]
-    [(p-list _ b _ _) b]
-    [(p-num _ b _ _) b]
-    [(p-bool _ b _ _) b]
-    [(p-str _ b _ _) b]
-    [(p-fun _ b _ _) b]))
+    [(p-object _ _ b _) b]
+    [(p-list _ _ b _ _) b]
+    [(p-num _ _ b _ _) b]
+    [(p-bool _ _ b _ _) b]
+    [(p-str _ _ b _ _) b]
+    [(p-fun _ _ b _ _) b]))
 
 (define: (get-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
-      (hash-ref (get-dict v) f)
+      (hash-ref (get-dict v) f (thunk (hash-ref (get-meta v) f)))
       (error (string-append "get-field: field not found: " f))))
 
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
-    [(p-object _ b h) (p-object new-seal b h)]
-    [(p-list _ b h l) (p-list new-seal b h l)]
-    [(p-num _ b h n) (p-num new-seal b h n)]
-    [(p-bool _ b h t) (p-bool new-seal b h t)]
-    [(p-str _ b h s) (p-str new-seal b h s)]
-    [(p-fun _ b h f) (p-fun new-seal b h f)]))
+    [(p-object _ m b h) (p-object new-seal m b h)]
+    [(p-list _ m b h l) (p-list new-seal m b h l)]
+    [(p-num _ m b h n) (p-num new-seal m b h n)]
+    [(p-bool _ m b h t) (p-bool new-seal m b h t)]
+    [(p-str _ m b h s) (p-str new-seal m b h s)]
+    [(p-fun _ m b h f) (p-fun new-seal m b h f)]))
 
 (define: (add-brand (v : Value) (new-brand : Symbol)) : Value
   (define: bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
   (match v
-    [(p-object s _ h) (p-object s bs h)]
-    [(p-list s _ h l) (p-list s bs h l)]
-    [(p-num s _ h n) (p-num s bs h n)]
-    [(p-bool s _ h b) (p-bool s bs h b)]
-    [(p-str sl _ h s) (p-str sl bs h s)]
-    [(p-fun s _ h f) (p-fun s bs h f)]))
+    [(p-object s m _ h) (p-object s m bs h)]
+    [(p-list s m _ h l) (p-list s m bs h l)]
+    [(p-num s m _ h n) (p-num s m bs h n)]
+    [(p-bool s m _ h b) (p-bool s m bs h b)]
+    [(p-str sl m _ h s) (p-str sl m bs h s)]
+    [(p-fun s m _ h f) (p-fun s m bs h f)]))
 
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
   (set-member? (get-brands v) brand))
 
 (define: (has-field? (v : Value) (f : String)) : Boolean
   (define d (get-dict v))
+  (define m (get-meta v))
   (define s (get-seal v))
   (and (or (none? s)
            (set-member? s f))
-       (hash-has-key? d f)))
+       (or (hash-has-key? d f)
+           (hash-has-key? m f))))
 
 (define: (seal (object : Value) (fields : Value)) : Value
   (define: (get-strings (strs : (Listof Value))) : (Setof String)
@@ -154,4 +169,22 @@
                  (mk-bool (has-brand? v sym)))))))))
 
 (define brander-pfun (mk-fun brander))
+
+(define: (mk-num-impl (op : (Number Number -> Number)))
+         : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-num _ _ _ _ n1) (p-num _ _ _ _ n2))
+       (mk-num (op n1 n2))]
+      [(cons _ _)
+       (error (format "num: cannot ~a ~a and ~a" op v1 v2))])))
+
+(define: (mk-num-fun (op : (Number Number -> Number))) : Value
+  (mk-fun (mk-num-impl op)))
+
+(define meta-num
+  (make-immutable-hash
+    `(("add" . ,(mk-num-fun +))
+      ("subtract" . ,(mk-num-fun -)))))
+
 
