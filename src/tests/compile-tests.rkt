@@ -1,6 +1,6 @@
 #lang racket
 
-(require rackunit "test-utils.rkt" "../lang/values.rkt")
+(require rackunit "test-utils.rkt" "../lang/values.rkt" "match-set.rkt")
 
 (define (check-pyret str expected)
   (check-equal? (eval-pyret str) expected))
@@ -20,6 +20,8 @@
 (define five (mk-num 5))
 (define two (mk-num 2))
 (define ten (mk-num 10))
+
+(check-pyret-match "5" (p-num 5 _ (set) x))
 
 (check-pyret "5" five)
 
