@@ -11,17 +11,12 @@
 (define (check-pyret-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
 
-(define (mk-num n)
-  (p-num n (none) (set) (make-hash)))
-
-(define (mk-str s)
-  (p-str s (none) (set) (make-hash)))
 
 (define five (mk-num 5))
 (define two (mk-num 2))
 (define ten (mk-num 10))
 
-(check-pyret-match "5" (p-num 5 _ (set) x))
+(check-pyret-match "5" (p-num _ (set) x 5))
 
 (check-pyret "5" five)
 
@@ -41,13 +36,13 @@
 
 (check-pyret "'5'" (mk-str "5"))
 
-(check-pyret-match "true" (p-bool #t _ _ _))
+(check-pyret-match "true" (p-bool _ _ _ #t))
 
-(check-pyret-match "false" (p-bool #f _ _ _))
+(check-pyret-match "false" (p-bool _ _ _ #f))
 
 (check-pyret "{x:5}" (p-object (none) (set) (make-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p-list (list) (none) (set) (make-hash)))
+(check-pyret "[]" (p-list (none) (set) (make-hash) (list)))
 
 (check-pyret "seal({}, [])" (p-object (set) (set) (make-hash)))
 
@@ -101,12 +96,16 @@
 
 (check-pyret-match "brander()" (p-object _ (set) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
-    (p-num 2 _ (set _) _))
+    (p-num _ (set _) _ 2))
 (check-pyret-match "fun f(x,y): x = brander() y = x.brand(y) x.check(y) end f(1,2)"
-    (p-bool #t _ _ _))
+    (p-bool _ _ _ #t))
 (check-pyret-match "fun f(x,y): x = brander() x.check(y) end f(1,2)"
-    (p-bool #f _ _ _))
+    (p-bool _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) y.check(z) end f(1,2,3)"
-    (p-bool #f _ _ _))
+    (p-bool _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
-    (p-bool #t _ _ _))
+    (p-bool _ _ _ #t))
+
+(check-pyret "3.add(2)" five)
+(check-pyret "10.subtract(5)" five)
+
