@@ -1,6 +1,6 @@
 #lang racket
 
-(require rackunit "test-utils.rkt" "../lang/values.rkt" "match-set.rkt")
+(require rackunit "test-utils.rkt" "../lang/runtime.rkt" "match-set.rkt")
 
 (define (check-pyret str expected)
   (check-equal? (eval-pyret str) expected))

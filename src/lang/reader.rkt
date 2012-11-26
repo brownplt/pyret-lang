@@ -3,7 +3,7 @@
 (provide (rename-out [my-read read]
                      [my-read-syntax read-syntax]))
 
-(require "../parser.rkt")
+(require "../tokenizer.rkt")
 (require syntax/strip-context racket/pretty racket/port)
 
 (define (my-read in)

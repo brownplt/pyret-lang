@@ -2,12 +2,12 @@
 
 (provide parse-pyret eval-pyret check-match check-pyret-match)
 (require rackunit
-         "../lang/compile-pyret.rkt"
-         "../lang/parser.rkt")
+         "../lang/compile.rkt"
+         "../lang/tokenizer.rkt")
 
 
-(dynamic-require "../lang/pyret.rkt" 0)
-(define ns (module->namespace "../lang/pyret.rkt"))
+(dynamic-require "../lang/parser.rkt" 0)
+(define ns (module->namespace "../lang/parser.rkt"))
 
 (define (eval-pyret str)
   (eval

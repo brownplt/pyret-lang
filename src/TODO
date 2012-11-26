@@ -3,7 +3,7 @@
    - result is an obj with the fields as its seal, which is a mutable proxy 
      to the original obj
 
-[] brander()
+[X] brander()
    - produces brander object with brand() and check() methods
    - brand() used on any value, produces a copy of the value (either reference
      or prim) where this-gensym has been added to the set of brands.
