@@ -48,6 +48,24 @@
                 (brands : (Setof Symbol)) 
                 (dict : Dict)) #:transparent)
 
+(define: (mk-object (dict : Dict)) : Value
+  (p-object (none) (set) dict))
+
+(define: (mk-list (l : (Listof Value))) : Value
+  (p-list l (none) (set) (make-hash)))
+
+(define: (mk-num (n : Number)) : Value
+  (p-num n (none) (set) (make-hash)))
+
+(define: (mk-bool (b : Boolean)) : Value
+  (p-bool b (none) (set) (make-hash)))
+
+(define: (mk-str (s : String)) : Value
+  (p-str s (none) (set) (make-hash)))
+
+(define: (mk-fun (f : Procedure)) : Value
+  (p-fun f (none) (set) (make-hash)))
+
 (define: (get-dict (v : Value)) : Dict
   (match v
     [(p-object _ _ h) h]
@@ -129,27 +147,19 @@
             (error "seal: cannot seal unmentionable fields"))
           (reseal object (set-intersect fields-seal effective-seal))))))
 
-(define seal-pfun (p-fun seal (none) (set) (make-hash)))
+(define seal-pfun (mk-fun seal))
 
 
 (define: (brander) : Value
   (define: sym : Symbol (gensym))
-  (p-object 
-   (none) 
-   (set) 
+  (mk-object 
    (make-hash 
-    `(("brand" . ,(p-fun (lambda: ((v : Value)) 
-                           (add-brand v sym)) 
-                         (none)
-                         (set)
-                         (make-hash)))
-      ("check" . ,(p-fun (lambda: ((v : Value)) 
-                           (p-bool (has-brand? v sym)
-                                   (none) 
-                                   (set) 
-                                   (make-hash)))
-                         (none) 
-                         (set) 
-                         (make-hash)))))))
+    `(("brand" .
+       ,(mk-fun (lambda: ((v : Value))
+                 (add-brand v sym))))
+      ("check" .
+       ,(mk-fun (lambda: ((v : Value))
+                 (mk-bool (has-brand? v sym)))))))))
 
-(define brander-pfun (p-fun brander (none) (set) (make-hash)))
+(define brander-pfun (mk-fun brander))
+

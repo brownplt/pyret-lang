@@ -60,3 +60,5 @@
 
 (check/block "brander()"
              (s-app _ (s-id _ 'brander) (list)))
+
+(check/block "3.add" (s-dot _ (s-num _ 3) 'add))

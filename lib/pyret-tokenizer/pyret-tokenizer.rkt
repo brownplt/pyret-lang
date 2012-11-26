@@ -197,7 +197,7 @@
 (define Intnumber (group Hexnumber Binnumber Octnumber Decnumber))
 (define Exponent  @r{[eE][-+]?\d+})
 (define Pointfloat (string-append
-                    (group @r{\d+\.\d*} @r{\.\d+}) 
+                    (group @r{\d+\.\d+} @r{\.\d+}) 
                     (maybe Exponent)))
 (define Expfloat (string-append @r{\d+} Exponent))
 (define Floatnumber (group Pointfloat Expfloat))
