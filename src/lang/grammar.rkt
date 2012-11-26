@@ -14,8 +14,9 @@ id-expr: NAME
 
 assign-expr: NAME "=" expr
 
-prim-expr: num-expr | string-expr
+prim-expr: num-expr | bool-expr | string-expr
 num-expr: NUMBER
+bool-expr: "true" | "false"
 string-expr: STRING
                     
 def-expr: "def" NAME ":" expr

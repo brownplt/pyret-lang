@@ -41,6 +41,10 @@
 
 (check-pyret "'5'" (mk-str "5"))
 
+(check-pyret-match "true" (p-bool #t _ _ _))
+
+(check-pyret-match "false" (p-bool #f _ _ _))
+
 (check-pyret "{x:5}" (p-object (none) (set) (make-hash (list (cons "x" five)))))
 
 (check-pyret "[]" (p-list (list) (none) (set) (make-hash)))

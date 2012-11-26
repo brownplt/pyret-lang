@@ -16,6 +16,7 @@
   (struct-out s-list)
 
   (struct-out s-num)
+  (struct-out s-bool)
   (struct-out s-str)
 
   (struct-out s-dot)
@@ -43,7 +44,7 @@ these metadata purposes.
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof Symbol)) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : Symbol) (value : Expr)) #:transparent)
 
-(define-type Expr (U s-obj s-list s-app s-id s-assign s-num s-str s-dot 
+(define-type Expr (U s-obj s-list s-app s-id s-assign s-num s-bool s-str s-dot 
                      s-bracket s-dot-assign s-bracket-assign))
 
 (define-type Member (U s-data s-method))
@@ -60,6 +61,7 @@ these metadata purposes.
 (struct: s-assign ((syntax : srcloc) (id : Symbol) (value : Expr)) #:transparent)
 
 (struct: s-num ((syntax : srcloc) (n : Number)) #:transparent)
+(struct: s-bool ((syntax : srcloc) (b : Boolean)) #:transparent)
 (struct: s-str ((syntax : srcloc) (s : String)) #:transparent)
 
 (struct: s-dot ((syntax : srcloc) (obj : Expr) (field : Symbol)) #:transparent)

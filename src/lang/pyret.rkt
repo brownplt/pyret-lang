@@ -58,6 +58,11 @@
     [(_ num) (with-syntax ([n (datum->syntax #'id-expr (string->number (syntax->datum #'num)))])
                #`(s-num #,(srcloc-of-syntax stx) n))]))
 
+(define-syntax (bool-expr stx)
+  (syntax-case stx ()
+    [(_ "true") #`(s-bool #,(srcloc-of-syntax stx) #t)]
+    [(_ "false") #`(s-bool #,(srcloc-of-syntax stx) #f)]))
+
 ;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)
   (syntax-case stx (field list-field)

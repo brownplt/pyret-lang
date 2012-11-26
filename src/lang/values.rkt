@@ -5,6 +5,7 @@
  (struct-out p-object)
  (struct-out p-list)
  (struct-out p-num)
+ (struct-out p-bool)
  (struct-out p-str)
  (struct-out p-fun)
  get-dict
@@ -15,7 +16,7 @@
  (rename-out [seal-pfun seal]))
 
 
-(define-type Value (U p-object p-list p-num p-str p-fun))
+(define-type Value (U p-object p-list p-num p-bool p-str p-fun))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -33,6 +34,10 @@
                 (seal : Seal) 
                 (brands : (Setof Symbol)) 
                 (dict : Dict)) #:transparent)
+(struct: p-bool ((b : Boolean) 
+                 (seal : Seal) 
+                 (brands : (Setof Symbol)) 
+                 (dict : Dict)) #:transparent)                
 (struct: p-str ((s : String) 
                 (seal : Seal) 
                 (brands : (Setof Symbol)) 
@@ -47,6 +52,7 @@
     [(p-object _ _ h) h]
     [(p-list _ _ _ h) h]
     [(p-num _ _ _ h) h]
+    [(p-bool _ _ _ h) h]
     [(p-str _ _ _ h) h]
     [(p-fun _ _ _ h) h]))
 
@@ -55,6 +61,7 @@
     [(p-object s _ _) s]
     [(p-list _ s _ _) s]
     [(p-num _ s _ _) s]
+    [(p-bool _ s _ _) s]
     [(p-str _ s _ _) s]
     [(p-fun _ s _ _) s]))
 
@@ -68,6 +75,7 @@
     [(p-object _ b h) (p-object new-seal b h)]
     [(p-list l _ b h) (p-list l new-seal b h)]
     [(p-num n _ b h) (p-num n new-seal b h)]
+    [(p-bool t _ b h) (p-bool t new-seal b h)]
     [(p-str s _ b h) (p-str s new-seal b h)]
     [(p-fun f _ b h) (p-fun f new-seal b h)]))
 

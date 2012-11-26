@@ -15,6 +15,7 @@
   (match ast-node
 
     [(s-num _ n) #`(p-num #,(d->stx n) (none) (set) (make-hash))]
+    [(s-bool _ b) #`(p-bool #,(d->stx b) (none) (set) (make-hash))]
     [(s-str _ s) #`(p-str #,(d->stx s) (none) (set) (make-hash))]
 
     [(s-block _ l)
