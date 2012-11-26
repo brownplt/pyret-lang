@@ -55,3 +55,5 @@ Assignment tests
 [] Think about self-reference/method invocation
 [] Where do built-in number methods go?
 
+[] Brackets for expr-based lookup
+[] See what we can share from p-base
