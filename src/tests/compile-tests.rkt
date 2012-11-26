@@ -98,3 +98,15 @@
                 o.h()
               end
               fundo({})" two)
+
+(check-pyret-match "brander()" (p-object _ (set) (hash-table ("brand" _) ("check" _))))
+(check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
+    (p-num 2 _ (set _) _))
+(check-pyret-match "fun f(x,y): x = brander() y = x.brand(y) x.check(y) end f(1,2)"
+    (p-bool #t _ _ _))
+(check-pyret-match "fun f(x,y): x = brander() x.check(y) end f(1,2)"
+    (p-bool #f _ _ _))
+(check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) y.check(z) end f(1,2,3)"
+    (p-bool #f _ _ _))
+(check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
+    (p-bool #t _ _ _))

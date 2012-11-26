@@ -13,7 +13,8 @@
  get-field
  has-field?
  reseal
- (rename-out [seal-pfun seal]))
+ (rename-out [seal-pfun seal])
+ (rename-out [brander-pfun brander]))
 
 
 (define-type Value (U p-object p-list p-num p-bool p-str p-fun))
@@ -65,6 +66,15 @@
     [(p-str _ s _ _) s]
     [(p-fun _ s _ _) s]))
 
+(define: (get-brands (v : Value)) : (Setof Symbol)
+  (match v
+    [(p-object _ b _) b]
+    [(p-list _ _ b _) b]
+    [(p-num _ _ b _) b]
+    [(p-bool _ _ b _) b]
+    [(p-str _ _ b _) b]
+    [(p-fun _ _ b _) b]))
+
 (define: (get-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
       (hash-ref (get-dict v) f)
@@ -78,6 +88,19 @@
     [(p-bool t _ b h) (p-bool t new-seal b h)]
     [(p-str s _ b h) (p-str s new-seal b h)]
     [(p-fun f _ b h) (p-fun f new-seal b h)]))
+
+(define: (add-brand (v : Value) (new-brand : Symbol)) : Value
+  (define: bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
+  (match v
+    [(p-object s _ h) (p-object s bs h)]
+    [(p-list l s _ h) (p-list l s bs h)]
+    [(p-num n s _ h) (p-num n s bs h)]
+    [(p-bool t s _ h) (p-bool t s bs h)]
+    [(p-str s sl _ h) (p-str s sl bs h)]
+    [(p-fun f s _ h) (p-fun f s bs h)]))
+
+(define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
+  (set-member? (get-brands v) brand))
 
 (define: (has-field? (v : Value) (f : String)) : Boolean
   (define d (get-dict v))
@@ -108,3 +131,25 @@
 
 (define seal-pfun (p-fun seal (none) (set) (make-hash)))
 
+
+(define: (brander) : Value
+  (define: sym : Symbol (gensym))
+  (p-object 
+   (none) 
+   (set) 
+   (make-hash 
+    `(("brand" . ,(p-fun (lambda: ((v : Value)) 
+                           (add-brand v sym)) 
+                         (none)
+                         (set)
+                         (make-hash)))
+      ("check" . ,(p-fun (lambda: ((v : Value)) 
+                           (p-bool (has-brand? v sym)
+                                   (none) 
+                                   (set) 
+                                   (make-hash)))
+                         (none) 
+                         (set) 
+                         (make-hash)))))))
+
+(define brander-pfun (p-fun brander (none) (set) (make-hash)))

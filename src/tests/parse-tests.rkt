@@ -57,3 +57,6 @@
 
 (check/block "o.('x') = 1" 
             (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))
+
+(check/block "brander()"
+             (s-app _ (s-id _ 'brander) (list)))
