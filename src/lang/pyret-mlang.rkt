@@ -4,18 +4,21 @@
                      [my-read-syntax read-syntax]))
 
 (require "parser.rkt" "compile-pyret.rkt")
-(require (for-syntax "pyret.rkt"))
-(require syntax/strip-context racket/pretty racket/port)
+(require racket/runtime-path)
 
-(dynamic-require "../src/lang/pyret.rkt" 0)
-(define ns (module->namespace "../src/lang/pyret.rkt"))
+(define-runtime-module-path pyret "pyret.rkt")
+(define-runtime-module-path values "values.rkt")
+
+(dynamic-require pyret 0)
+(define ns (module->namespace (resolved-module-path-name pyret)))
 
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
 
 (define (my-read-syntax src in)
-  (with-syntax ([stx (compile-pyret (eval (get-syntax src in) ns))])
+  (with-syntax ([stx (compile-pyret (eval (get-syntax src in) ns))]
+                [values-stx (path->string (resolved-module-path-name values))])
     #'(module src racket
-        (require "../src/lang/values.rkt")
-        stx)))
-        
+        (require (file values-stx))
+        stx
+        )))
