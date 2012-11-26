@@ -11,7 +11,8 @@
      and returns true, false if it does not have the brand.
 
 [] consistent naming in grammar for lists of things
-[] bug report on module docs
+[] bug report on module docs for language definitions
+[] bug report on resolved-module-path? docs
 
 [x] make a real AST (in pyret.rkt?  before or after it?)
 
@@ -49,3 +50,8 @@ Assignment tests
 
 [x] resolve submoduley things with tokens and dedent errors
    - just have a pyret-tokenizer.rkt
+
+[] Redex the initial semantics
+[] Think about self-reference/method invocation
+[] Where do built-in number methods go?
+
