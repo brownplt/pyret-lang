@@ -63,40 +63,16 @@
   (p-fun (none) meta-null (set) (make-hash) f))
 
 (define: (get-dict (v : Value)) : Dict
-  (match v
-    [(p-object _ _ _ h) h]
-    [(p-list _ _ _ h _) h]
-    [(p-num _ _ _ h _) h]
-    [(p-bool _ _ _ h _) h]
-    [(p-str _ _ _ h _) h]
-    [(p-fun _ _ _ h _) h]))
+  (p-base-dict v))
 
 (define: (get-meta (v : Value)) : Dict
-  (match v
-    [(p-object _ m _ _) m]
-    [(p-list _ m _ _ _) m]
-    [(p-num _ m _ _ _) m]
-    [(p-bool _ m _ _ _) m]
-    [(p-str _ m _ _ _) m]
-    [(p-fun _ m _ _ _) m]))
+  (p-base-meta v))
 
 (define: (get-seal (v : Value)) : Seal
-  (match v
-    [(p-object s _ _ _) s]
-    [(p-list s _ _ _ _) s]
-    [(p-num s _ _ _ _) s]
-    [(p-bool s _ _ _ _) s]
-    [(p-str s _ _ _ _) s]
-    [(p-fun s _ _ _ _) s]))
+  (p-base-seal v))
 
 (define: (get-brands (v : Value)) : (Setof Symbol)
-  (match v
-    [(p-object _ _ b _) b]
-    [(p-list _ _ b _ _) b]
-    [(p-num _ _ b _ _) b]
-    [(p-bool _ _ b _ _) b]
-    [(p-str _ _ b _ _) b]
-    [(p-fun _ _ b _ _) b]))
+  (p-base-brands v))
 
 (define: (get-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
