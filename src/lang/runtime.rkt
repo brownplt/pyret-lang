@@ -122,10 +122,10 @@
       (error "seal: found non-list as constraint")
       (local [(define current-seal (get-seal object))
               (define fields-seal (get-strings (p-list-l fields)))
-              (define effective-seal (if (none? current-seal)
-                                         fields-seal
-                                         current-seal))]
-        (reseal object (set-intersect fields-seal effective-seal)))))
+              (define new-seal (if (none? current-seal)
+                                   fields-seal
+                                   (set-intersect fields-seal current-seal)))]
+        (reseal object new-seal))))
 
 (define seal-pfun (mk-fun seal))
 
