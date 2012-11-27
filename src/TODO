@@ -18,7 +18,8 @@
 
 [] figure out what define-syntax is less boilerplate
 
-[] keep seal() consistent with initialization/new object fields?
+[x] keep seal() consistent with initialization/new object fields?
+    - seal doesn't care about new object fields
 
 [x] make helper for id-parsing
 []  and str-parsing in pyret.rkt
@@ -27,7 +28,8 @@
 
 [] decide on a line length and enforce
 
-[] make seal into a built-in method?
+[x] make seal into a built-in method?
+  - no, too easy to forge.  should be built-in (Discussion Nov 26)
 
 Seal/lookup tests
   [x] no seal success
@@ -45,15 +47,18 @@ Assignment tests
   [] 2 seals caught by first
   [] 2 seals caught by second
 
-[] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
-[] applicaiton should check type better
+[x] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
+[] application should check type better?
 
 [x] resolve submoduley things with tokens and dedent errors
    - just have a pyret-tokenizer.rkt
 
 [] Redex the initial semantics
 [] Think about self-reference/method invocation
-[] Where do built-in number methods go?
+[x] Where do built-in number methods go?
+    -meta-number
 
 [] Brackets for expr-based lookup
-[] See what we can share from p-base
+[x] See what we can share from p-base
+    - A fair amount; updated definitions of get-dict, get-seal, etc.
+
