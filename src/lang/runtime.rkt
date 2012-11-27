@@ -121,14 +121,11 @@
   (if (not (p-list? fields))
       (error "seal: found non-list as constraint")
       (local [(define current-seal (get-seal object))
+              (define fields-seal (get-strings (p-list-l fields)))
               (define effective-seal (if (none? current-seal)
-                                         (apply set (hash-keys (get-dict object)))
-                                         current-seal))
-              (define fields-seal (get-strings (p-list-l fields)))]
-        (begin 
-          (when (not (subset? fields-seal effective-seal))
-            (error "seal: cannot seal unmentionable fields"))
-          (reseal object (set-intersect fields-seal effective-seal))))))
+                                         fields-seal
+                                         current-seal))]
+        (reseal object (set-intersect fields-seal effective-seal)))))
 
 (define seal-pfun (mk-fun seal))
 

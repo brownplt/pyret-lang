@@ -57,15 +57,15 @@
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
              (p-object (set "y" "z") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 
-(check-pyret-exn "seal(seal({x:5, y:2}, ['y']), ['x'])" "seal:")
+(check-pyret-match "seal({x:5}, ['y'])" (p-object (set "y") _ _ (hash-table ("x" _))))
 
-(check-pyret-exn "seal({x:5}, ['y'])" "seal:")
+(check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p-object (set) _ _ (hash-table ("x" _) ("y" _))))
+
+(check-pyret-match "seal({}, ['y'])" (p-object (set "y") _ _ (hash-table)))
+
+(check-pyret-match "seal(5, ['y'])" (p-num (set "y") _ _ (hash-table) 5))
 
 (check-pyret-exn "seal({x:5}, 'y')" "seal:")
-
-(check-pyret-exn "seal({}, ['y'])" "seal:")
-
-(check-pyret-exn "seal(5, ['y'])" "seal:")
 
 (check-pyret "fun foo(): 5 end foo()" five)
 

@@ -29,17 +29,31 @@
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
 
-(define-syntax check-match
-  (syntax-rules ()
+;; NOTE(jpolitz): This match form isn't eager like the others, hence the
+;; define-syntax and the need to carry around location information
+(define-syntax (check-match stx)
+  (syntax-case stx ()
     [(_ actual expected pred)
-     (let ([actual-val actual])
-       (with-check-info* (list (make-check-actual actual-val)
-                               (make-check-expected 'expected))
-                         (thunk (check-true (match actual-val
-                                              [expected pred]
-                                              [_ false])))))]
+     (quasisyntax
+      (let ([actual-val actual])
+       (with-check-info*
+        (list (make-check-name 'check-match)
+              (make-check-location
+               (list '(unsyntax (syntax-source stx))
+                     '(unsyntax (syntax-line stx))
+                     '(unsyntax (syntax-column stx))
+                     '(unsyntax (syntax-position stx))
+                     '(unsyntax (syntax-span stx))))
+              (make-check-expression '#,(syntax->datum stx))
+              (make-check-actual actual-val)
+              (make-check-expected 'expected))
+        (lambda ()
+         (check-true (match actual-val
+                       [expected pred]
+                       [_ #f]))))))]
     [(_ actual expected)
-     (check-match actual expected true)]))
+     (syntax/loc stx (check-match actual expected #t))]))
+
 
 (define-syntax check-pyret-match
   (syntax-rules ()
