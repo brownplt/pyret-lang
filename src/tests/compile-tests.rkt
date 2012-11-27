@@ -120,18 +120,22 @@
 (check-pyret "3.add(3, 2)" five)
 (check-pyret "10.subtract(10, 5)" five)
 
-(check-pyret-exn "seal({x:5},[]) << {y:6}.x" "get-field:")
-(check-pyret-match "{x:2} << { y:10 }" (p-object _ (hash-table ("x" (p-num _ _ _ _ 2))) _ (hash-table ("y" (p-num _ _ _ _ 10)))))
-(check-pyret "{x:5} << { y:6 }.x" five)
-(check-pyret "5 << {y:6}.add(2,3)" five)
-(check-pyret "seal({x:5}, []) << { x:10 }.x" ten)
-(check-pyret-match "seal({x:5},[]) << { x:10 }"
+(check-pyret-exn "{extend seal({x:5},[]) with y:6}.x" "get-field:")
+
+(check-pyret-match "{extend {x:2} with y:10 }"
+                   (p-object _ (hash-table ("x" (p-num _ _ _ _ 2))) _ (hash-table ("y" (p-num _ _ _ _ 10)))))
+
+
+(check-pyret "{extend {x:5} with y:6 }.x" five)
+(check-pyret "{extend 5 with y:6}.add(2,3)" five)
+(check-pyret "{extend seal({x:5}, []) with x:10 }.x" ten)
+(check-pyret-match "{extend seal({x:5},[]) with x:10 }"
                    (p-object _ (hash-table) _ (hash-table ("x" (p-num _ _ _ _ 10)))))
-(check-pyret "{x:5} << { x:10 }.x" ten)
-(check-pyret-match "{x:1} << {y:2} << {z:7}"
+(check-pyret "{extend {x:5} with x:10 }.x" ten)
+(check-pyret-match "{extend {extend {x:1} with y:2} with z:7}"
                    (p-object _
                              (hash-table ("x" (p-num _ _ _ _ 1)) ("y" (p-num _ _ _ _ 2)))
                              _
                              (hash-table ("z" (p-num _ _ _ _ 7)))))
-(check-pyret-exn "def o: seal({x:1} << {x:2}, []) o.x" "get-field:")
+(check-pyret-exn "def o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
 
