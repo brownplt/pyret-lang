@@ -8,7 +8,7 @@ stmt: def-expr | fun-expr | expr | assign-expr | dot-assign-expr |
       bracket-assign-expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr | 
-      dot-expr | bracket-expr
+      dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
 
 id-expr: NAME
 
@@ -48,7 +48,7 @@ bracket-expr: expr "." "[" expr "]"
 dot-assign-expr: expr "." NAME = expr
 bracket-assign-expr: expr "." "[" expr "]" "=" expr
 
-# dot-method-expr: expr ":" NAME app-args
-# bracket-method-expr: expr ":" "(" expr ")" app-args
+dot-method-expr: expr ":" NAME app-args
+bracket-method-expr: expr ":" "[" expr "]" app-args
 
 

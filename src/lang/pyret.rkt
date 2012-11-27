@@ -6,19 +6,19 @@
 (require "tokenizer.rkt" "compile.rkt")
 (require racket/runtime-path)
 
-(define-runtime-module-path pyret "pyret.rkt")
-(define-runtime-module-path values "values.rkt")
+(define-runtime-module-path parser "parser.rkt")
+(define-runtime-module-path runtime "runtime.rkt")
 
-(dynamic-require pyret 0)
-(define ns (module->namespace (resolved-module-path-name pyret)))
+(dynamic-require parser 0)
+(define ns (module->namespace (resolved-module-path-name parser)))
 
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
 
 (define (my-read-syntax src in)
   (with-syntax ([stx (compile-pyret (eval (get-syntax src in) ns))]
-                [values-stx (path->string (resolved-module-path-name values))])
+                [runtime-stx (path->string (resolved-module-path-name runtime))])
     #'(module src racket
-        (require (file values-stx))
+        (require (file runtime-stx))
         stx
         )))

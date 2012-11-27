@@ -58,3 +58,4 @@ Assignment tests
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] s-data and s-dot should agree on symbol vs. string
+[] make the empty file be a valid program

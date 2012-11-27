@@ -24,6 +24,8 @@
   (struct-out s-bracket)
   (struct-out s-dot-assign)
   (struct-out s-bracket-assign)
+  (struct-out s-dot-method)
+  (struct-out s-bracket-method)
 
 )
 
@@ -46,7 +48,8 @@ these metadata purposes.
 (struct: s-def ((syntax : srcloc) (name : Symbol) (value : Expr)) #:transparent)
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id s-assign s-num s-bool s-str
-                     s-dot s-bracket s-dot-assign s-bracket-assign))
+                     s-dot s-bracket s-dot-assign s-bracket-assign
+                     s-dot-method s-bracket-method))
 
 (define-type Member (U s-data s-method))
 (struct: s-data ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
@@ -72,6 +75,9 @@ these metadata purposes.
 
 (struct: s-dot-assign ((syntax : srcloc) (obj : Expr) (field : Symbol) (value : Expr)) #:transparent)
 (struct: s-bracket-assign ((syntax : srcloc) (obj : Expr) (field : Expr) (value : Expr)) #:transparent)
+
+(struct: s-dot-method ((syntax : srcloc) (obj : Expr) (field : Symbol) (args : (Listof Expr))) #:transparent)
+(struct: s-bracket-method ((syntax : srcloc) (obj : Expr) (field : Expr) (args : (Listof Expr))) #:transparent)
 
 ;; used for creating ad hoc AST nodes that didn't come from surface
 ;; syntax

@@ -79,3 +79,15 @@
                       (list (s-data _ "length" (s-num _ 0))
                             (s-data _ "width" (s-num _ 0)))))
 
+(check/block "o:f()"
+             (s-dot-method _
+                           (s-id _ 'o)
+                           'f
+                           (list)))
+
+(check/block "{f:4}:f(2)"
+             (s-dot-method _
+                           (s-obj _ (list (s-data _ "f" (s-num _ 4))))
+                           'f
+                           (list (s-num _ 2))))
+

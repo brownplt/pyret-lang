@@ -120,6 +120,11 @@
 (check-pyret "3.add(3, 2)" five)
 (check-pyret "10.subtract(10, 5)" five)
 
+(check-pyret "3:add(2)" five)
+
+;; two not three because side effects should happen only once
+(check-pyret "def x: 0 fun f(): x = x:add(1) x end f():add(1)" two)
+
 (check-pyret-exn "{extend seal({x:5},[]) with y:6}.x" "get-field:")
 
 (check-pyret-match "{extend {x:2} with y:10 }"

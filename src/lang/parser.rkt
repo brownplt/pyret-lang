@@ -145,3 +145,17 @@
 (define-syntax (bracket-assign-expr stx)
   (syntax-case stx ()
     [(_ obj "." "[" field "]" "=" expr) #`(s-bracket-assign #,(srcloc-of-syntax stx) obj field expr)]))
+
+(define-syntax (dot-method-expr stx)
+  (syntax-case stx ()
+   [(_ obj ":" field (app-args "(" ")"))
+    #`(s-dot-method #,(srcloc-of-syntax stx)
+                    obj
+                    '#,(parse-name #'field)
+                    empty)]
+    [(_ obj ":" field (app-args "(" (app-arg-elt arg ",") ... lastarg ")"))
+     #`(s-dot-method #,(srcloc-of-syntax stx)
+                     obj
+                     '#,(parse-name #'field)
+                     (list arg ... lastarg))]))
+

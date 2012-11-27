@@ -65,5 +65,11 @@
                   #,(d->stx (symbol->string field))
                   #,(compile-pyret val))]
 
+    [(s-dot-method _ obj field args)
+     (with-syntax ([(arg ...) (map compile-pyret args)])
+       #`(let ((^obj #,(compile-pyret obj)))
+          (apply (p-fun-f (get-field ^obj #,(d->stx (symbol->string field))))
+                 (list ^obj arg ...))))]
+
     [else (error (format "Missed a case: ~a" ast-node))]))
 
