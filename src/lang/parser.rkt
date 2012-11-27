@@ -98,6 +98,11 @@
     [(_ fun-expr (app-args "(" ")"))
      #`(s-app #,(srcloc-of-syntax stx) fun-expr empty)]))
 
+(define-syntax (def-expr stx)
+  (syntax-case stx ()
+    [(_ "def" id ":" value-expr)
+     #`(s-def #,(srcloc-of-syntax stx) '#,(parse-id #'id) value-expr)]))
+
 (define-syntax (fun-expr stx)
   (syntax-case stx (args arg-elt)
     [(_ "fun" fun-name (args "(" (arg-elt arg ",") ... lastarg ")") ":" body "end")

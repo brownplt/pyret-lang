@@ -20,13 +20,16 @@
 
     [(s-block _ l)
      (with-syntax ([(stmt ...) (map compile-pyret l)])
-       #`(begin stmt ...))]
+       #`(let () stmt ...))]
 
     [(s-fun _ name args body)
      (with-syntax ([name-stx (d->stx name)]
                    [(arg ...) (d->stx args)]
                    [body-stx (compile-pyret body)])
        #`(define name-stx (mk-fun (lambda (arg ...) body-stx))))]
+
+    [(s-def _ name val)
+     #`(define #,(d->stx name) #,(compile-pyret val))]
 
     [(s-id _ name)
      (with-syntax ([name-stx (d->stx name)])

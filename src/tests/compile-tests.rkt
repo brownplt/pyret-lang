@@ -94,6 +94,14 @@
               end
               fundo({})" two)
 
+(check-pyret "def x: 5 x" five)
+(check-pyret "def x: 5 def y: x y" five)
+(check-pyret-exn "def x: 5 def x: 10 x" "duplicate")
+; TODO(joe): Why don't unassigned variables work the way I want?  I expect
+; this to say "undefined identifier used before defined", but it just evaluates
+; to <#undefined>
+;(check-pyret-exn "def w: zoot def zoot: 5 w" "undefined")
+
 (check-pyret-match "brander()" (p-object _ _ (set) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
     (p-num _ _ (set _) _ 2))

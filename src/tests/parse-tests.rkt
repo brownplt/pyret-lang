@@ -40,6 +40,9 @@
              (s-fun _ 'g (list 'g 'f 'x)
                     (s-block _ (list (s-num _ 5)))))
 
+(check/block "def g: 5"
+             (s-def _ 'g (s-num _ 5)))
+
 (check/block "[]" (s-list _ empty))
 (check/block "[5]" (s-list _ (list (s-num _ 5))))
 
