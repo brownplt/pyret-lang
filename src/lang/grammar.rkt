@@ -36,7 +36,7 @@ list-field: field ","
 # list-field is here because it works better with syntax-matching -
 # there's a syntax sub-list for list-field that we can grab hold of
 obj-expr:
-   "{" "[" expr "]" list-field* field "}" | "{" "[" expr "]" "}"
+    expr "<<" "{" list-field* field "}" | expr "<<" "{" "}"
   | "{" list-field* field "}" | "{" "}"
 
 list-elt: expr ","

@@ -72,14 +72,14 @@
                       (list (data-field lastkey lastvalue))))]
     [(_ "{" "}") #`(s-obj #,(srcloc-of-syntax stx)
                           empty)]
-    [(_ "{" "[" super-expr "]"
+    [(_ super-expr "<<" "{"
             (list-field (field key ":" value) ",") ...
             (field lastkey ":" lastvalue) "}")
      #`(s-onion #,(srcloc-of-syntax stx)
                 super-expr
                 (append (list (data-field key value) ...)
                         (list (data-field lastkey lastvalue))))]
-    [(_ "{" "[" super-expr "]" "}")
+    [(_ super-expr "<<" "{" "}")
      #`(s-onion #,(srcloc-of-syntax stx) super-expr empty)]))
 
 (define-syntax (data-field stx)

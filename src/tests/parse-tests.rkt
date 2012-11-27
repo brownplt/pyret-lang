@@ -63,17 +63,17 @@
 
 (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 
-(check/block "{[{x:5}] y: 3}"
+(check/block "{x : 5} << {y: 3}"
              (s-onion _
                       (s-obj _ (list (s-data _ "x" (s-num _ 5))))
                       (list (s-data _ "y" (s-num _ 3)))))
 
-(check/block "{[5] foo: 12}"
+(check/block "5 << {foo: 12}"
              (s-onion _
                       (s-num _ 5)
                       (list (s-data _ "foo" (s-num _ 12)))))
 
-(check/block "{[List] length: 0, width: 0}"
+(check/block "List << {length: 0, width: 0}"
              (s-onion _
                       (s-id _ 'List)
                       (list (s-data _ "length" (s-num _ 0))
