@@ -8,6 +8,7 @@
   (struct-out s-data)
   (struct-out s-method)
   (struct-out s-obj)
+  (struct-out s-onion)
 
   (struct-out s-id)
   (struct-out s-assign)
@@ -30,7 +31,7 @@
 
 The concrete AST for surface Pyret.
 
-Each syntactic form has a srclo object associated with it, for error
+Each syntactic form has a srcloc object associated with it, for error
 reporting and keeping track of source locations.  The srcloc object
 should not be required for evaluating the ast node, and only used for
 these metadata purposes.
@@ -44,12 +45,14 @@ these metadata purposes.
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof Symbol)) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : Symbol) (value : Expr)) #:transparent)
 
-(define-type Expr (U s-obj s-list s-app s-id s-assign s-num s-bool s-str s-dot 
-                     s-bracket s-dot-assign s-bracket-assign))
+(define-type Expr (U s-obj s-onion s-list s-app s-id s-assign s-num s-bool s-str
+                     s-dot s-bracket s-dot-assign s-bracket-assign))
 
 (define-type Member (U s-data s-method))
 (struct: s-data ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
 (struct: s-method ((syntax : srcloc) (name : String) (args : (Listof Symbol)) (body : Block)) #:transparent)
+
+(struct: s-onion ((syntax : srcloc) (super : Expr) (fields : (Listof Member))) #:transparent)
 (struct: s-obj ((syntax : srcloc) (fields : (Listof Member))) #:transparent)
 
 (struct: s-list ((syntax : srcloc) (values : (Listof Expr))) #:transparent)

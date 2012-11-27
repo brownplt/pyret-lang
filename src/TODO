@@ -57,5 +57,4 @@ Assignment tests
 [] figure out what define-syntax is less boilerplate
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
-
-
+[] s-data and s-dot should agree on symbol vs. string

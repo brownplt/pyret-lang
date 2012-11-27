@@ -44,6 +44,11 @@
                    [(arg ...) (map compile-pyret args)])
        #'((p-fun-f fun) arg ...))]
 
+    [(s-onion _ super fields)
+     (with-syntax ([(member ...) (map compile-member fields)]
+                   [super (compile-pyret super)])
+      #'(flatten super (make-hash (list member ...))))]
+
     [(s-obj _ fields)
      (with-syntax ([(member ...) (map compile-member fields)])
        #'(mk-object (make-hash (list member ...))))]

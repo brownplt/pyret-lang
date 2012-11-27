@@ -21,6 +21,7 @@
  set-field
  has-field?
  reseal
+ flatten
  (rename-out [seal-pfun seal])
  (rename-out [brander-pfun brander]))
 
@@ -137,6 +138,25 @@
 
 (define seal-pfun (mk-fun seal))
 
+(define: (flatten (base : Value)
+                  (extension : Dict))
+         : Value
+  (define m (get-meta base))
+  (define d (get-dict base))
+  (define s (get-seal base))
+  (define existing-keys
+    (set-union (list->set (hash-keys m))
+               (list->set (hash-keys d))))
+  (define keys
+    (if (none? s)
+        existing-keys
+        (set-intersect existing-keys s)))
+  (define: (create-member (key : String)) : (Pairof String Value)
+    (cons key (hash-ref d key (thunk (hash-ref m key)))))
+  (define new-meta
+    ((inst make-immutable-hash String Value)
+     (set-map keys create-member)))
+  (p-object (none) new-meta (set) extension))
 
 (define: (brander) : Value
   (define: sym : Symbol (gensym))
