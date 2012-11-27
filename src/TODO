@@ -10,23 +10,10 @@
    - check() recognizes any object with this-gensym in its set of brands
      and returns true, false if it does not have the brand.
 
-[] consistent naming in grammar for lists of things
-[] bug report on module docs for language definitions
-[] bug report on resolved-module-path? docs
-
 [x] make a real AST (in pyret.rkt?  before or after it?)
-
-[] figure out what define-syntax is less boilerplate
 
 [x] keep seal() consistent with initialization/new object fields?
     - seal doesn't care about new object fields
-
-[x] make helper for id-parsing
-[]  and str-parsing in pyret.rkt
-
-[] ordering of things in grammar vs pyret.rkt
-
-[] decide on a line length and enforce
 
 [x] make seal into a built-in method?
   - no, too easy to forge.  should be built-in (Discussion Nov 26)
@@ -61,4 +48,14 @@ Assignment tests
 [] Brackets for expr-based lookup
 [x] See what we can share from p-base
     - A fair amount; updated definitions of get-dict, get-seal, etc.
+
+[x] make helper for id-parsing
+[]  and str-parsing in pyret.rkt
+[] decide on a line length and enforce
+[] ordering of things in grammar vs pyret.rkt
+[] consistent naming in grammar for lists of things
+[] figure out what define-syntax is less boilerplate
+[] bug report on module docs for language definitions
+[] bug report on resolved-module-path? docs
+
 
