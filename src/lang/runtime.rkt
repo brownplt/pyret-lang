@@ -22,6 +22,7 @@
  has-field?
  reseal
  flatten
+ (rename-out [p-pi pi])
  (rename-out [seal-pfun seal])
  (rename-out [brander-pfun brander]))
 
@@ -59,7 +60,7 @@
   (p-bool (none) meta-null (set) (make-hash) b))
 
 (define: (mk-str (s : String)) : Value
-  (p-str (none) meta-null (set) (make-hash) s))
+  (p-str (none) meta-str (set) (make-hash) s))
 
 (define: (mk-fun (f : Procedure)) : Value
   (p-fun (none) meta-null (set) (make-hash) f))
@@ -180,12 +181,74 @@
       [(cons _ _)
        (error (format "num: cannot ~a ~a and ~a" op v1 v2))])))
 
+(define: (mk-single-num-impl (op : (Number -> Value)))
+         : (Value -> Value)
+  (lambda (v)
+    (match v
+      [(p-num _ _ _ _ n) (op n)]
+      [_
+       (error (format "num: cannot ~a ~a" op v))])))
+
 (define: (mk-num-fun (op : (Number Number -> Number))) : Value
   (mk-fun (mk-num-impl op)))
+
+(define: (mk-single-num-fun (op : (Number -> Value))) : Value
+  (mk-fun (mk-single-num-impl op)))
+
+(define: (numify (f : (Number -> Number)))
+         : (Number -> Value)
+  (lambda (n) (mk-num (f n))))
+
+(define: (stringify (f : (Number -> String)))
+         : (Number -> Value)
+  (lambda (n) (mk-str (f n))))
 
 (define meta-num
   (make-immutable-hash
     `(("add" . ,(mk-num-fun +))
-      ("subtract" . ,(mk-num-fun -)))))
+      ("minus" . ,(mk-num-fun -))
+      ("divide" . ,(mk-num-fun /))
+      ("times" . ,(mk-num-fun *))
+      ("sin" . ,(mk-single-num-fun (numify sin)))
+      ("cos" . ,(mk-single-num-fun (numify cos)))
+      ("sqr" . ,(mk-single-num-fun (numify sqr)))
+      ("tostring" . ,(mk-single-num-fun (stringify number->string)))
+      ("expt" . ,(mk-num-fun expt)))))
 
+(define p-pi (mk-num pi))
+
+(define: (mk-str-impl (op : (String String -> String)))
+         : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-str _ _ _ _ s1) (p-str _ _ _ _ s2))
+       (mk-str (op s1 s2))]
+      [(cons _ _)
+       (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
+
+(define: (mk-single-str-impl (op : (String -> Value)))
+         : (Value -> Value)
+  (lambda (v)
+    (match v
+      [(p-str _ _ _ _ s) (op s)]
+      [_
+       (error (format "str: cannot ~a ~a" op v))])))
+
+(define: (mk-str-fun (op : (String String -> String))) : Value
+  (mk-fun (mk-str-impl op)))
+
+(define: (mk-single-str-fun (op : (String -> Value))) : Value
+  (mk-fun (mk-single-str-impl op)))
+
+(define meta-str
+  (make-immutable-hash
+    `(("append" . ,(mk-str-fun string-append))
+      ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
+      ("tonumber" . ,(mk-single-str-fun
+        (lambda (s)
+          (define n (string->number s))
+          (if (false? n)
+              (error (format "str: non-numeric string ~a" s))
+              (mk-num n)))))
+  )))
 

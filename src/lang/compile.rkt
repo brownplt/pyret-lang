@@ -20,7 +20,7 @@
 
     [(s-block _ l)
      (with-syntax ([(stmt ...) (map compile-pyret l)])
-       #`(let () stmt ...))]
+       #`(begin stmt ...))]
 
     [(s-fun _ name args body)
      (with-syntax ([name-stx (d->stx name)]

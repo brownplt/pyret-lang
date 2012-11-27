@@ -1,0 +1,6 @@
+#lang reader "../src/lang/pyret.rkt"
+
+3:sqr()
+2:expt(3)
+0:sin()
+pi:cos()

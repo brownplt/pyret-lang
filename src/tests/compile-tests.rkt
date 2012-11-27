@@ -118,7 +118,7 @@
                    (p-bool _ _ _ _ #t))
 
 (check-pyret "3.add(3, 2)" five)
-(check-pyret "10.subtract(10, 5)" five)
+(check-pyret "10.minus(10, 5)" five)
 
 (check-pyret "3:add(2)" five)
 

@@ -59,3 +59,4 @@ Assignment tests
 [] bug report on resolved-module-path? docs
 [] s-data and s-dot should agree on symbol vs. string
 [] make the empty file be a valid program
+[] hook up to top level better, and drracket's repl
