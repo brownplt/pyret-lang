@@ -55,5 +55,10 @@
     [(s-dot _ val field)
      #`(get-field #,(compile-pyret val) #,(d->stx (symbol->string field)))]
 
+    [(s-dot-assign _ obj field val)
+     #`(set-field #,(compile-pyret obj)
+                  #,(d->stx (symbol->string field))
+                  #,(compile-pyret val))]
+
     [else (error (format "Missed a case: ~a" ast-node))]))
 

@@ -126,7 +126,7 @@
 
 (define-syntax (bracket-expr stx)
   (syntax-case stx ()
-    [(_ obj "." "(" field ")") #`(s-bracket #,(srcloc-of-syntax stx) obj field)]))
+    [(_ obj "." "[" field "]") #`(s-bracket #,(srcloc-of-syntax stx) obj field)]))
 
 (define-syntax (dot-assign-expr stx)
   (syntax-case stx ()
@@ -135,4 +135,4 @@
 
 (define-syntax (bracket-assign-expr stx)
   (syntax-case stx ()
-    [(_ obj "." "(" field ")" "=" expr) #`(s-bracket-assign #,(srcloc-of-syntax stx) obj field expr)]))
+    [(_ obj "." "[" field "]" "=" expr) #`(s-bracket-assign #,(srcloc-of-syntax stx) obj field expr)]))

@@ -52,13 +52,13 @@
                                                     (s-list _ empty)))
                     'x))
 
-(check/block "o.('x')" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
+(check/block "o.['x']" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
 
 (check/block "x = 1" (s-assign _ 'x (s-num _ 1)))
 
 (check/block "o.x = 1" (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))
 
-(check/block "o.('x') = 1" 
+(check/block "o.['x'] = 1" 
             (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))
 
 (check/block "brander()"

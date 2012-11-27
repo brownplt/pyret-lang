@@ -19,17 +19,13 @@
 (check-pyret-match "5" (p-num _ _ (set) x 5))
 
 (check-pyret "5" five)
-
 (check-pyret-fail "2" five)
 
 (check-pyret "fun f(): 2 end f()" two)
-
 (check-pyret "fun f(x): x end f(2)" two)
-
 (check-pyret "fun f(x): x end fun g(x): x end f(2) g(10) f(2)" two)
-
 (check-pyret "fun f(x): fun g(x): x end g(x) end f(5)" five)
-
+(check-pyret "fun foo(): 5 end foo()" five)
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
 (check-pyret "{}" (p-object (none) meta-null (set) (make-hash)))
@@ -37,7 +33,6 @@
 (check-pyret "'5'" (mk-str "5"))
 
 (check-pyret-match "true" (p-bool _ _ _ _ #t))
-
 (check-pyret-match "false" (p-bool _ _ _ _ #f))
 
 (check-pyret "{x:5}" (p-object (none) meta-null (set) (make-hash (list (cons "x" five)))))
@@ -45,29 +40,19 @@
 (check-pyret "[]" (p-list (none) meta-null (set) (make-hash) (list)))
 
 (check-pyret "seal({}, [])" (p-object (set) meta-null (set) (make-hash)))
-
 (check-pyret "seal({x:5}, ['x'])" (p-object (set "x") meta-null (set) (make-hash (list (cons "x" five)))))
-
 (check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
              (p-object (set "y") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two)))))
-
 (check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
              (p-object (set "y") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
-
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
              (p-object (set "y" "z") meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
-
 (check-pyret-match "seal({x:5}, ['y'])" (p-object (set "y") _ _ (hash-table ("x" _))))
-
 (check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p-object (set) _ _ (hash-table ("x" _) ("y" _))))
-
 (check-pyret-match "seal({}, ['y'])" (p-object (set "y") _ _ (hash-table)))
-
 (check-pyret-match "seal(5, ['y'])" (p-num (set "y") _ _ (hash-table) 5))
 
 (check-pyret-exn "seal({x:5}, 'y')" "seal:")
-
-(check-pyret "fun foo(): 5 end foo()" five)
 
 (check-pyret-exn "seal({x:5}, []).x" "get-field:")
 (check-pyret "seal({x:5}, ['x']).x" five)
@@ -76,6 +61,24 @@
 (check-pyret-exn "seal(seal({x:5, y:5}, ['y']), ['y']).x" "get-field:")
 (check-pyret "seal(seal({x:5, y:5}, ['x', 'y']), ['y']).y" five)
 (check-pyret-exn "seal(seal({x:5, y:5, z:5}, ['x', 'y']), ['y']).z" "get-field:")
+
+(check-pyret-exn "seal(2, ['subtract']).add(2, 3)" "get-field:")
+
+(check-pyret "def o: {} o.x = 5 o.x" five)
+(check-pyret "def o: {x:2} o.x = 5 o.x" five)
+(check-pyret "fun f(o): o.x = 5 end def o2: {} f(o2) o2.x" five)
+(check-pyret-exn "def sealed: seal({}, []) sealed.x = 4" "set-field:")
+(check-pyret-exn "def sealed: seal({x:37}, []) sealed.x = 4" "set-field:")
+(check-pyret "def sealed: seal({}, ['x']) sealed.x = 2 sealed.x" two)
+(check-pyret "def sealed: seal({x:37}, ['x']) sealed.x = 5 sealed.x" five)
+;; you can add fields that overwrite meta-fields (though this use of
+;; number-objects is dubious).  Perhaps number-objects should be frozen
+;; by default to not allow this.  For now, using this as a test of a 
+;; non-number-specific property
+(check-pyret "fun badadd(n1, n2): 2 end
+              def snum: 5
+              snum.add = badadd
+              snum.add(snum, 3)" two)
 
 (check-pyret "fun f(x): x = 2 x end f(1)" two)
 (check-pyret "fun f(x): x = 2 x = 5 x end f(1)" five)

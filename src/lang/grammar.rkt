@@ -41,7 +41,12 @@ list-elt: expr ","
 list-expr: "[" list-elt* expr "]" | "[" "]"
 
 dot-expr: expr "." NAME
-bracket-expr: expr "." "(" expr ")"
+bracket-expr: expr "." "[" expr "]"
 
 dot-assign-expr: expr "." NAME = expr
-bracket-assign-expr: expr "." "(" expr ")" "=" expr
+bracket-assign-expr: expr "." "[" expr "]" "=" expr
+
+# dot-method-expr: expr ":" NAME app-args
+# bracket-method-expr: expr ":" "(" expr ")" app-args
+
+

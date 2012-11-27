@@ -18,6 +18,7 @@
  get-dict
  get-seal
  get-field
+ set-field
  has-field?
  reseal
  (rename-out [seal-pfun seal])
@@ -77,7 +78,12 @@
 (define: (get-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
       (hash-ref (get-dict v) f (thunk (hash-ref (get-meta v) f)))
-      (error (string-append "get-field: field not found: " f))))
+      (error (format "get-field: field not found: ~a" f))))
+
+(define: (set-field (o : Value) (f : String) (v : Value)) : Value
+  (if (in-seal? o f)
+      (begin (hash-set! (get-dict o) f v) v)
+      (error (format "set-field: assigned outside seal: ~a" f))))
 
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
@@ -101,12 +107,14 @@
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
   (set-member? (get-brands v) brand))
 
+(define: (in-seal? (v : Value) (f : String)) : Boolean
+  (define s (get-seal v))
+  (or (none? s) (set-member? s f)))
+
 (define: (has-field? (v : Value) (f : String)) : Boolean
   (define d (get-dict v))
   (define m (get-meta v))
-  (define s (get-seal v))
-  (and (or (none? s)
-           (set-member? s f))
+  (and (in-seal? v f)
        (or (hash-has-key? d f)
            (hash-has-key? m f))))
 
