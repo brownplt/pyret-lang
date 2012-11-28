@@ -57,7 +57,7 @@
   (p-num (none) meta-num (set) (make-hash) n))
 
 (define: (mk-bool (b : Boolean)) : Value
-  (p-bool (none) meta-null (set) (make-hash) b))
+  (p-bool (none) meta-bool (set) (make-hash) b))
 
 (define: (mk-str (s : String)) : Value
   (p-str (none) meta-str (set) (make-hash) s))
@@ -181,6 +181,15 @@
       [(cons _ _)
        (error (format "num: cannot ~a ~a and ~a" op v1 v2))])))
 
+(define: (mk-num-bool-impl (op : (Number Number -> Boolean)))
+          : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-num _ _ _ _ n1) (p-num _ _ _ _ n2))
+       (mk-bool (op n1 n2))]
+      [(cons _ _)
+       (error (format "num cannot ~a ~a and ~a" op v1 v2))])))
+
 (define: (mk-single-num-impl (op : (Number -> Value)))
          : (Value -> Value)
   (lambda (v)
@@ -213,7 +222,22 @@
       ("cos" . ,(mk-single-num-fun (numify cos)))
       ("sqr" . ,(mk-single-num-fun (numify sqr)))
       ("tostring" . ,(mk-single-num-fun (stringify number->string)))
-      ("expt" . ,(mk-num-fun expt)))))
+      ("expt" . ,(mk-num-fun expt))
+      ("equals" . ,(mk-fun
+                   (mk-num-bool-impl
+                    (cast = (Number Number -> Boolean)))))
+      ("lessthan" . ,(mk-fun 
+                      (mk-num-bool-impl 
+                       (cast < (Number Number -> Boolean)))))
+      ("greaterthan" . ,(mk-fun 
+                      (mk-num-bool-impl 
+                       (cast > (Number Number -> Boolean)))))
+      ("lessequal" . ,(mk-fun 
+                      (mk-num-bool-impl 
+                       (cast <= (Number Number -> Boolean)))))
+      ("greaterequal" . ,(mk-fun 
+                      (mk-num-bool-impl 
+                       (cast >= (Number Number -> Boolean))))))))
 
 (define p-pi (mk-num pi))
 
@@ -223,6 +247,15 @@
     (match (cons v1 v2)
       [(cons (p-str _ _ _ _ s1) (p-str _ _ _ _ s2))
        (mk-str (op s1 s2))]
+      [(cons _ _)
+       (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
+
+(define: (mk-str-bool-impl (op : (String String -> Boolean)))
+          : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-str _ _ _ _ s1) (p-str _ _ _ _ s2))
+       (mk-bool (op s1 s2))]
       [(cons _ _)
        (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
 
@@ -250,5 +283,39 @@
           (if (false? n)
               (error (format "str: non-numeric string ~a" s))
               (mk-num n)))))
+      ("equals" . ,(mk-fun (mk-str-bool-impl string=?)))
   )))
 
+(define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
+         : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-bool _ _ _ _ b1) (p-bool _ _ _ _ b2))
+       (mk-bool (op b1 b2))]
+      [(cons _ _)
+       (error (format "bool: cannot ~a ~a and ~a" op v1 v2))])))
+
+(define: (mk-single-bool-impl (op : (Boolean -> Boolean)))
+         : (Value -> Value)
+  (lambda (v)
+    (match v
+      [(p-bool _ _ _ _ b) (mk-bool (op b))]
+      [_
+       (error (format "bool: cannot ~a ~a" op v))])))
+
+(define: (mk-bool-fun (op : (Boolean Boolean -> Boolean))) : Value
+  (mk-fun (mk-bool-impl op)))
+
+(define: (mk-single-bool-fun (op : (Boolean -> Boolean))) : Value
+  (mk-fun (mk-single-bool-impl op)))
+
+(define meta-bool
+  ;; this is silly, but I don't know how to convince typed-racket
+  ;; that the types are correct! @dbp
+  (let [(my-and (lambda (x y) (if x (if y #t #f) #f)))
+        (my-or (lambda (x y) (if x #t (if y #t #f))))]
+    (make-immutable-hash
+     `(("and" . ,(mk-bool-fun my-and))
+       ("or" . ,(mk-bool-fun my-or))
+       ("not" . ,(mk-single-bool-fun 
+                  (cast not (Boolean -> Boolean))))))))
