@@ -49,6 +49,11 @@ Assignment tests
 [x] See what we can share from p-base
     - A fair amount; updated definitions of get-dict, get-seal, etc.
 
+HTDP:
+[] How should short-circuiting booleans work?
+[] We need if
+[] allow hyphens in identifiers
+
 [x] make helper for id-parsing
 []  and str-parsing in pyret.rkt
 [] decide on a line length and enforce
@@ -58,5 +63,7 @@ Assignment tests
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] s-data and s-dot should agree on symbol vs. string
-[] make the empty file be a valid program
-[] hook up to top level better, and drracket's repl
+
+[x] make the empty file be a valid program
+[x] hook up to top level better, and drracket's repl
+[] make the definitions show up in the repl window
