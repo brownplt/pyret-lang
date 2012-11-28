@@ -19,16 +19,18 @@ num-expr: NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-def-expr: "def" NAME ":" expr
+def-expr: "def" NAME ":" expr | "def" NAME "::" type ":" expr
 
 app-arg-elt: expr ","
 app-args: "(" app-arg-elt* expr ")" | "(" ")"
 app-expr: expr app-args
 
 arg-elt: NAME ","
-args: "(" arg-elt* NAME ")" | "(" ")"
+type-arg-elt: NAME "::" type ","
+args: "(" (arg-elt|type-arg-elt)* (NAME | (NAME "::" type)) ")" | "(" ")"
 fun-expr:
-   "fun" NAME args ":" block "end"
+   "fun" NAME args ":" block "end" |
+   "fun" NAME args "::" type ":" block "end"
    
 field: NAME ":" expr | NAME args ":" stmt | NAME args ":" stmt "end"
 list-field: field ","
@@ -52,3 +54,11 @@ dot-method-expr: expr ":" NAME app-args
 bracket-method-expr: expr ":" "[" expr "]" app-args
 
 
+
+type: "Number" | "Bool" | "String" | record-type | arrow-type
+
+record-type: "{" list-type-field* type-field "}" 
+type-field: NAME ":" type
+list-type-field: type-field ","
+
+arrow-type: "(" type* "->" type ")"

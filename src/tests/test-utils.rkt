@@ -3,19 +3,25 @@
 (provide parse-pyret eval-pyret check-match check-pyret-match)
 (require rackunit
          "../lang/compile.rkt"
-         "../lang/tokenizer.rkt")
+         "../lang/tokenizer.rkt"
+         "../lang/typecheck.rkt"
+         "../lang/desugar.rkt"
+         "../lang/runtime.rkt")
 
 
 (dynamic-require "../lang/parser.rkt" 0)
 (define ns (module->namespace "../lang/parser.rkt"))
 
+(define-namespace-anchor rt-anchor)
+(define rt-ns (namespace-anchor->namespace rt-anchor))
+
 (define (eval-pyret str)
   (eval
     (compile-str str)
-    ns))
+    rt-ns))
 
 (define (compile-str str)
-  (compile-pyret (parse-pyret str)))
+  (compile-pyret (typecheck-pyret (desugar-pyret (parse-pyret str)))))
 
 ;; note - using eval-syntax below misses an important "enrichment" step:
 ;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))

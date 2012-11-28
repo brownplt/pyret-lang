@@ -99,7 +99,8 @@
 
 (check-pyret "def x: 5 x" five)
 (check-pyret "def x: 5 def y: x y" five)
-(check-pyret-exn "def x: 5 def x: 10 x" "duplicate")
+;(check-pyret-exn "def x: 5 def x: 10 x" "duplicate")
+
 ; TODO(joe): Why don't unassigned variables work the way I want?  I expect
 ; this to say "undefined identifier used before defined", but it just evaluates
 ; to <#undefined>
