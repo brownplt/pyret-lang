@@ -26,13 +26,13 @@ Seal/lookup tests
   [x] 2 seals caught by second
 
 Assignment tests
-  [] assignment success
-  [] assignment fail
-  [] assignment seal fail
-  [] assignment seal success
-  [] 2 seals success
-  [] 2 seals caught by first
-  [] 2 seals caught by second
+  [x] assignment success
+  [x] assignment fail
+  [x] assignment seal fail
+  [x] assignment seal success
+  [x] 2 seals success
+  [x] 2 seals caught by first
+  [x] 2 seals caught by second
 
 [x] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
 [] application should check type better?
@@ -41,11 +41,12 @@ Assignment tests
    - just have a pyret-tokenizer.rkt
 
 [] Redex the initial semantics
-[] Think about self-reference/method invocation
+[x] Think about self-reference/method invocation
+  - Colon syntax for self-passing
 [x] Where do built-in number methods go?
     -meta-number
 
-[] Brackets for expr-based lookup
+[x] Brackets for expr-based lookup
 [x] See what we can share from p-base
     - A fair amount; updated definitions of get-dict, get-seal, etc.
 
@@ -54,6 +55,7 @@ HTDP:
 [] We need if
 [] allow hyphens in identifiers
 
+Cleanup:
 [x] make helper for id-parsing
 []  and str-parsing in pyret.rkt
 [] decide on a line length and enforce
@@ -63,7 +65,13 @@ HTDP:
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] s-data and s-dot should agree on symbol vs. string
+[] clean up runtime.rkt into sanity
+[] stop using typed racket except for data definition
+[] figure out duplicate identifiers
 
 [x] make the empty file be a valid program
 [x] hook up to top level better, and drracket's repl
-[] make the definitions show up in the repl window
+[x] make the definitions show up in the repl window
+
+[] syntax / checking for rudimentary types ::
+
