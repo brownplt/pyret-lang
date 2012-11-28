@@ -1,11 +1,12 @@
 #lang racket
 
-(require racket/match)
+(require racket/match racket/splicing)
 (require "ast.rkt" "runtime.rkt")
 (provide compile-pyret)
 
+
 (define (compile-pyret ast-node)
-  (define (d->stx stx) (datum->syntax #'compile-pyret stx))
+  (define (d->stx stx) (datum->syntax #f stx))
   (define (compile-member ast-node)
     (match ast-node
       [(s-data _ name value)

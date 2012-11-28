@@ -21,5 +21,6 @@
   (match val
     [(p-num _ _ _ _ n) (pretty-write n)]
     [(p-str _ _ _ _ s) (pretty-write s)]
-    [_ (pretty-write val)]))
+    [(? p-base?) (pretty-write val)]
+    [_ (void)]))
 

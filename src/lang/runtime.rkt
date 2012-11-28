@@ -2,6 +2,7 @@
 
 (provide
  (struct-out none)
+ (struct-out p-base)
  (struct-out p-object)
  (struct-out p-list)
  (struct-out p-num)
@@ -25,7 +26,6 @@
  (rename-out [p-pi pi])
  (rename-out [seal-pfun seal])
  (rename-out [brander-pfun brander]))
-
 
 (define-type Value (U p-object p-list p-num p-bool p-str p-fun))
 
