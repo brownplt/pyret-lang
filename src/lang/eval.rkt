@@ -21,5 +21,6 @@
   (match val
     [(p-num _ _ _ _ n) (pretty-write n)]
     [(p-str _ _ _ _ s) (pretty-write s)]
+    [(p-bool _ _ _ _ b) (pretty-write b)]
     [_ (pretty-write val)]))
 

@@ -57,7 +57,7 @@
   (p-num (none) meta-num (set) (make-hash) n))
 
 (define: (mk-bool (b : Boolean)) : Value
-  (p-bool (none) meta-null (set) (make-hash) b))
+  (p-bool (none) meta-bool (set) (make-hash) b))
 
 (define: (mk-str (s : String)) : Value
   (p-str (none) meta-str (set) (make-hash) s))
@@ -252,3 +252,36 @@
               (mk-num n)))))
   )))
 
+(define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
+         : (Value Value -> Value)
+  (lambda (v1 v2)
+    (match (cons v1 v2)
+      [(cons (p-bool _ _ _ _ b1) (p-bool _ _ _ _ b2))
+       (mk-bool (op b1 b2))]
+      [(cons _ _)
+       (error (format "bool: cannot ~a ~a and ~a" op v1 v2))])))
+
+(define: (mk-single-bool-impl (op : (Boolean -> Boolean)))
+         : (Value -> Value)
+  (lambda (v)
+    (match v
+      [(p-bool _ _ _ _ b) (mk-bool (op b))]
+      [_
+       (error (format "bool: cannot ~a ~a" op v))])))
+
+(define: (mk-bool-fun (op : (Boolean Boolean -> Boolean))) : Value
+  (mk-fun (mk-bool-impl op)))
+
+(define: (mk-single-bool-fun (op : (Boolean -> Boolean))) : Value
+  (mk-fun (mk-single-bool-impl op)))
+
+(define meta-bool
+  ;; this is silly, but I don't know how to convince typed-racket
+  ;; that the types are correct! @dbp
+  (let [(my-and (lambda (x y) (if x (if y #t #f) #f)))
+        (my-or (lambda (x y) (if x #t (if y #t #f))))
+        (my-not (lambda (x) (if x #f #t)))]
+    (make-immutable-hash
+     `(("and" . ,(mk-bool-fun my-and))
+       ("or" . ,(mk-bool-fun my-or))
+       ("not" . ,(mk-single-bool-fun my-not))))))

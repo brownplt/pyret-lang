@@ -1,0 +1,7 @@
+#lang reader "../src/lang/pyret.rkt"
+
+true:and(true)
+true:and(false)
+true:or(false)
+false:or(false)
+false:not()
