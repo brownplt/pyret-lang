@@ -24,4 +24,3 @@
     [(p-bool _ _ _ _ b) (pretty-write b)]
     [(? p-base?) (pretty-write val)]
     [_ (void)]))
-

@@ -91,3 +91,14 @@
                            'f
                            (list (s-num _ 2))))
 
+(check/block "def x :: Number: 5" (s-def _ (s-ann-bind _ 'x (t-num _))
+                                         (s-num _ 5)))
+(check/block "def x :: Number: 'hello'" (s-def _ (s-ann-bind _ 'x (t-num _))
+                                         (s-str _ "hello")))
+
+(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
+             (s-fun _ 'foo (list (s-bind _ 'x)) (t-arrow _ (list (t-num _)) (t-num _))
+                    (s-block _ (list (s-str _ _)))))
+(check/block "fun foo(x :: Bool) :: Bool: x end" 
+             (s-fun _ 'foo (list (s-ann-bind _ 'x (t-bool _))) (t-bool _)
+                    (s-block _ (list (s-id _ 'x)))))
