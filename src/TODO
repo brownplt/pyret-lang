@@ -33,3 +33,5 @@ Cleanup:
 
 [] Think MOAR about self-reference/method invocation
   - first class methods
+
+[] add s-let and pyret compile let

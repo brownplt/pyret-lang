@@ -66,7 +66,7 @@
 (define-metafunction πret
   obj-lookup : ref Σ -> objval
   [(obj-lookup ref ((ref_1 objval_1) ... (ref objval) (ref_2 objval_2) ...)) objval])
-  
+
 
 (define eval-πret
   (reduction-relation
