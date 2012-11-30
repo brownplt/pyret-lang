@@ -67,11 +67,17 @@ Cleanup:
 [] s-data and s-dot should agree on symbol vs. string
 [] clean up runtime.rkt into sanity
 [] stop using typed racket except for data definition
-[] figure out duplicate identifiers
+[] figure out duplicate identifiers with (define)
+[] can we use ()? instead of multiple arms in grammar.rkt?
 
 [x] make the empty file be a valid program
 [x] hook up to top level better, and drracket's repl
 [x] make the definitions show up in the repl window
 
 [] syntax / checking for rudimentary types ::
+
+[] Escape into Racket with peglegs:
+    !(display (current-namespace))!
+[] Racket.builtin for convenient libraries
+
 
