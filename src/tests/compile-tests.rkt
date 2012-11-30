@@ -145,3 +145,6 @@
                              (hash-table ("z" (p-num _ _ _ _ 7)))))
 (check-pyret-exn "def o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
 
+(check-pyret "cond: | true => 2 | false => 1 end" two)
+(check-pyret "cond: | true => 2 | true => 1 end" two)
+(check-pyret "cond: | 3:lessthan(2) => 10 | true => 2 end" ten)

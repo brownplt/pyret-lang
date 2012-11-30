@@ -116,6 +116,6 @@
                     (s-num _ 4)))
 
 
-#;(check/block "cond: | true => 1 | false => 2 end" 
+(check/block "cond: | true => 1 | false => 2 end" 
              (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
                              (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))

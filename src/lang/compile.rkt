@@ -31,6 +31,13 @@
 
     [(s-def _ bind val)
      #`(define #,(compile-pyret bind) #,(compile-pyret val))]
+    
+    [(s-cond _ c-bs)
+     (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs))])
+       #`(cond branch ...))]
+    
+    [(s-cond-branch _ tst blk)
+     #`(#,(compile-pyret tst) #,(compile-pyret blk))]
 
     [(s-bind _ name ann)
      (with-syntax ([name-stx (d->stx name)])

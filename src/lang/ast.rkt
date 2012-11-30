@@ -60,7 +60,7 @@ these metadata purposes.
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : s-bind) (value : Expr)) #:transparent)
 (struct: s-cond ((syntax : srcloc) (branches : (Listof s-cond-branch))) #:transparent)
-(struct: s-cond-branch ((syntax : srcloc) (expr : Expr) (body : Block)) #:transparent)
+(struct: s-cond-branch ((syntax : srcloc) (expr : Expr) (body : s-block)) #:transparent)
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
