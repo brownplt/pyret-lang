@@ -30,18 +30,20 @@
 (check/block "f(5,'foo')" (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))
 
 (check/block "fun f(): 5 end"
-            (s-fun _ 'f empty (s-block _ (list (s-num _ 5)))))
+            (s-fun _ 'f empty (a-blank) (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g): 5 end"
-            (s-fun _ 'g (list 'g)
+            (s-fun _ 'g (list (s-bind _ 'g (a-blank))) (a-blank)
                    (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g,f,x): 5 end"
-             (s-fun _ 'g (list 'g 'f 'x)
+             (s-fun _ 'g (list (s-bind _ 'g (a-blank)) 
+                               (s-bind _ 'f (a-blank)) 
+                               (s-bind _ 'x (a-blank))) (a-blank)
                     (s-block _ (list (s-num _ 5)))))
 
 (check/block "def g: 5"
-             (s-def _ 'g (s-num _ 5)))
+             (s-def _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
 
 (check/block "[]" (s-list _ empty))
 (check/block "[5]" (s-list _ (list (s-num _ 5))))
@@ -91,14 +93,29 @@
                            'f
                            (list (s-num _ 2))))
 
-(check/block "def x :: Number: 5" (s-def _ (s-ann-bind _ 'x (t-num _))
+#;(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-num _))
                                          (s-num _ 5)))
-(check/block "def x :: Number: 'hello'" (s-def _ (s-ann-bind _ 'x (t-num _))
+#;(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
                                          (s-str _ "hello")))
 
-(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
-             (s-fun _ 'foo (list (s-bind _ 'x)) (t-arrow _ (list (t-num _)) (t-num _))
+#;(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
+             (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-num _)) (a-num _))
                     (s-block _ (list (s-str _ _)))))
-(check/block "fun foo(x :: Bool) :: Bool: x end" 
-             (s-fun _ 'foo (list (s-ann-bind _ 'x (t-bool _))) (t-bool _)
+#;(check/block "fun foo(x :: Bool) :: Bool: x end" 
+             (s-fun _ 'foo (list (s-bind _ 'x (a-bool _))) (a-bool _)
                     (s-block _ (list (s-id _ 'x)))))
+
+#;(check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
+#;(check/block "def x :: {foo: Number}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo Number)))) (s-num _ 4)))
+#;(check/block "def x :: {foo: Number}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo Number)))) (s-num _ 4)))
+#;(check/block "def x :: {foo: Number, a: Bool}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo (a-num _)) 
+                                                     (a-field _ 'a (a-bool _)))))
+                    (s-num _ 4)))
+
+
+#;(check/block "cond: | true => 1 | false => 2 end" 
+             (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
+                             (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))

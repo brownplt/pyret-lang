@@ -4,11 +4,12 @@ program: block ENDMARKER
 
 block: stmt*
 
-stmt: def-expr | fun-expr | expr | assign-expr | dot-assign-expr |
-      bracket-assign-expr
+stmt: def-expr | fun-expr | expr | assign-expr | dot-assign-expr
+    | bracket-assign-expr
 
-expr: obj-expr | list-expr | app-expr | id-expr | prim-expr | 
-      dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
+expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
+      | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
+      | cond-expr
 
 id-expr: NAME
 
@@ -19,7 +20,7 @@ num-expr: NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-def-expr: "def" NAME ":" expr | "def" NAME "::" type ":" expr
+def-expr: "def" NAME "::" type ":" expr | "def" NAME ":" expr
 
 app-arg-elt: expr ","
 app-args: "(" app-arg-elt* expr ")" | "(" ")"
@@ -27,10 +28,15 @@ app-expr: expr app-args
 
 arg-elt: NAME ","
 type-arg-elt: NAME "::" type ","
-args: "(" (arg-elt|type-arg-elt)* (NAME | (NAME "::" type)) ")" | "(" ")"
+last-arg-elt: NAME
+type-last-arg-elt: NAME "::" type
+args: "(" (arg-elt|type-arg-elt)* (last-arg-elt|type-last-arg-elt) ")" | "(" ")"
 fun-expr:
    "fun" NAME args ":" block "end" |
    "fun" NAME args "::" type ":" block "end"
+ 
+cond-branch: "|" expr "=>" block
+cond-expr: "cond" ":" cond-branch* "end"
    
 field: NAME ":" expr | NAME args ":" stmt | NAME args ":" stmt "end"
 list-field: field ","
