@@ -93,26 +93,26 @@
                            'f
                            (list (s-num _ 2))))
 
-#;(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-num _))
-                                         (s-num _ 5)))
-#;(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
+(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-num _))
+                                           (s-num _ 5)))
+(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
                                          (s-str _ "hello")))
 
-#;(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
+(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
              (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-num _)) (a-num _))
                     (s-block _ (list (s-str _ _)))))
-#;(check/block "fun foo(x :: Bool) :: Bool: x end" 
+(check/block "fun foo(x :: Bool) :: Bool: x end" 
              (s-fun _ 'foo (list (s-bind _ 'x (a-bool _))) (a-bool _)
                     (s-block _ (list (s-id _ 'x)))))
 
-#;(check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
-#;(check/block "def x :: {foo: Number}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo Number)))) (s-num _ 4)))
-#;(check/block "def x :: {foo: Number}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo Number)))) (s-num _ 4)))
-#;(check/block "def x :: {foo: Number, a: Bool}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ 'foo (a-num _)) 
-                                                     (a-field _ 'a (a-bool _)))))
+(check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
+(check/block "def x :: {foo: Number}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+(check/block "def x :: {foo: Number}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+(check/block "def x :: {foo: Number, a: Bool}: 4" 
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-num _)) 
+                                                     (a-field _ "a" (a-bool _)))))
                     (s-num _ 4)))
 
 

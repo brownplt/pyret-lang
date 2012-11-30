@@ -20,20 +20,20 @@ num-expr: NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-def-expr: "def" NAME "::" type ":" expr | "def" NAME ":" expr
+def-expr: "def" NAME "::" ann ":" expr | "def" NAME ":" expr
 
 app-arg-elt: expr ","
 app-args: "(" app-arg-elt* expr ")" | "(" ")"
 app-expr: expr app-args
 
 arg-elt: NAME ","
-type-arg-elt: NAME "::" type ","
+ann-arg-elt: NAME "::" ann ","
 last-arg-elt: NAME
-type-last-arg-elt: NAME "::" type
-args: "(" (arg-elt|type-arg-elt)* (last-arg-elt|type-last-arg-elt) ")" | "(" ")"
+ann-last-arg-elt: NAME "::" ann
+args: "(" (arg-elt|ann-arg-elt)* (last-arg-elt|ann-last-arg-elt) ")" | "(" ")"
 fun-expr:
    "fun" NAME args ":" block "end" |
-   "fun" NAME args "::" type ":" block "end"
+   "fun" NAME args "::" ann ":" block "end"
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
@@ -61,10 +61,11 @@ bracket-method-expr: expr ":" "[" expr "]" app-args
 
 
 
-type: "Number" | "Bool" | "String" | record-type | arrow-type
+ann: "Number" | "Bool" | "String" | record-ann | arrow-ann
 
-record-type: "{" list-type-field* type-field "}" 
-type-field: NAME ":" type
-list-type-field: type-field ","
+record-ann: "{" list-ann-field* ann-field "}" | "{" "}"
+ann-field: NAME ":" ann
+list-ann-field: ann-field ","
 
-arrow-type: "(" type* "->" type ")"
+arrow-ann: "(" ann* "->" ann ")"
+

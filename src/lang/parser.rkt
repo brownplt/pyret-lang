@@ -113,9 +113,9 @@
      #`(s-def #,(srcloc-of-syntax stx) 
               (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) (a-blank)) 
               value-expr)]
-    [(_ "def" id "::" type ":" value-expr)
+    [(_ "def" id "::" ann ":" value-expr)
      #`(s-def #,(srcloc-of-syntax stx) 
-              (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) type) 
+              (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) ann) 
               value-expr)]))
 
 (define-syntax (fun-expr stx)
@@ -145,13 +145,13 @@
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-bind #,(srcloc-of-syntax stx) 'x-id (a-blank)))]))
 
-(define-syntax (type-arg-elt stx)
+(define-syntax (ann-arg-elt stx)
   (syntax-case stx (arg-elt)
     [(_ x "::" ann ",")
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-bind #,(srcloc-of-syntax stx) 'x-id ann))]))
 
-(define-syntax (type-last-arg-elt stx)
+(define-syntax (ann-last-arg-elt stx)
   (syntax-case stx (last-arg-elt)
     [(_ x "::" ann)
      (with-syntax ([x-id (parse-id #'x)])
@@ -200,4 +200,29 @@
                      obj
                      '#,(parse-name #'field)
                      (list arg ... lastarg))]))
+
+(define-syntax (ann stx)
+  (syntax-case stx ()
+    [(_ "Number") #`(a-num #,(srcloc-of-syntax stx))]
+    [(_ "Bool") #`(a-bool #,(srcloc-of-syntax stx))]
+    [(_ "String") #`(a-str #,(srcloc-of-syntax stx))]
+    [(_ constructed-ann) #'constructed-ann]))
+
+(define-syntax (ann-field stx)
+  (syntax-case stx ()
+    [(_ key ":" value)
+     #`(a-field #,(srcloc-of-syntax stx) key value)]))
+
+(define-syntax (record-ann stx)
+  (syntax-case stx ()
+    [(_ "{" (list-ann-field field ",") ... lastfield "}")
+     #`(a-record #,(srcloc-of-syntax stx)
+                 (list field ... lastfield))]
+    [( _ "{" "}")
+     #`(a-record #,(srcloc-of-syntax stx) (list))]))
+
+(define-syntax (arrow-ann stx)
+  (syntax-case stx ()
+    [(_ "(" arg ... "->" result ")")
+     #`(a-arrow #,(srcloc-of-syntax stx) (list arg ...) result)]))
 
