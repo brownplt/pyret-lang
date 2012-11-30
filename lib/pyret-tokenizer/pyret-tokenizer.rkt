@@ -235,7 +235,7 @@
                         @r{~}))
 
 (define Bracket "[][(){}]")
-(define Special (group "\r?\n" @r|{[:;.,`@]}|))
+(define Special (group "\r?\n" @r{::} @r|{[:;.,`@]}|))
 (define Funny (group Operator Bracket Special))
 
 (define PlainToken (group Number Funny String Name))
