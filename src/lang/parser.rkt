@@ -110,24 +110,66 @@
 (define-syntax (def-expr stx)
   (syntax-case stx ()
     [(_ "def" id ":" value-expr)
-     #`(s-def #,(srcloc-of-syntax stx) '#,(parse-id #'id) value-expr)]))
+     #`(s-def #,(srcloc-of-syntax stx) 
+              (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) (a-blank)) 
+              value-expr)]
+    [(_ "def" id "::" type ":" value-expr)
+     #`(s-def #,(srcloc-of-syntax stx) 
+              (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) type) 
+              value-expr)]))
 
 (define-syntax (fun-expr stx)
   (syntax-case stx (args arg-elt)
-    [(_ "fun" fun-name (args "(" (arg-elt arg ",") ... lastarg ")") ":" body "end")
-      (with-syntax ([f-id (parse-id #'fun-name)]
-                    [(the-args ...) (parse-ids #'(arg ...))]
-                    [the-last-arg (parse-id #'lastarg)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list 'the-args ... 'the-last-arg) body))]
+    [(_ "fun" fun-name (args "(" arg ... lastarg ")") ":" body "end")
+      (with-syntax ([f-id (parse-id #'fun-name)])
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list arg ... lastarg) (a-blank) body))]
     [(_ "fun" fun-name (args "(" ")") ":" body "end")
       (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty body))]))
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty (a-blank) body))]
+    [(_ "fun" fun-name (args "(" arg ... lastarg ")") "::" ann ":" body "end")
+      (with-syntax ([f-id (parse-id #'fun-name)])
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list arg ... lastarg) ann body))]
+    [(_ "fun" fun-name (args "(" ")") "::" ann ":" body "end")
+      (with-syntax ([f-id (parse-id #'fun-name)])
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty ann body))]))
+
+(define-syntax (arg-elt stx)
+  (syntax-case stx (arg-elt)
+    [(_ x ",")
+     (with-syntax ([x-id (parse-id #'x)])
+       #`(s-bind #,(srcloc-of-syntax stx) 'x-id (a-blank)))]))
+
+(define-syntax (last-arg-elt stx)
+  (syntax-case stx (last-arg-elt)
+    [(_ x)
+     (with-syntax ([x-id (parse-id #'x)])
+       #`(s-bind #,(srcloc-of-syntax stx) 'x-id (a-blank)))]))
+
+(define-syntax (type-arg-elt stx)
+  (syntax-case stx (arg-elt)
+    [(_ x "::" ann ",")
+     (with-syntax ([x-id (parse-id #'x)])
+       #`(s-bind #,(srcloc-of-syntax stx) 'x-id ann))]))
+
+(define-syntax (type-last-arg-elt stx)
+  (syntax-case stx (last-arg-elt)
+    [(_ x "::" ann)
+     (with-syntax ([x-id (parse-id #'x)])
+       #`(s-bind #,(srcloc-of-syntax stx) 'x-id ann))]))
 
 (define-syntax (list-expr stx)
   (syntax-case stx (list-elt)
     [(_ "[" (list-elt expr ",") ... lastexpr "]")
      #`(s-list #,(srcloc-of-syntax stx) (list expr ... lastexpr))]
     [(_ "[" "]") #`(s-list #,(srcloc-of-syntax stx) empty)]))
+
+(define-syntax (cond-expr stx)
+  (syntax-case stx (cond-branch)
+    [(_ "cond" ":" (cond-branch _ exp _ blck) ... "end")
+     #`(s-cond #,(srcloc-of-syntax stx) 
+               ;; FIXME(dbp): the srcloc should be of the exp, not stx, but my macro-foo
+               ;; is not sufficient to pull this off.
+               (list (s-cond-branch #,(srcloc-of-syntax stx) exp blck) ...))]))
 
 (define-syntax (dot-expr stx)
   (syntax-case stx ()

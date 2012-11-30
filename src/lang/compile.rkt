@@ -23,15 +23,19 @@
      (with-syntax ([(stmt ...) (map compile-pyret l)])
        #`(begin stmt ...))]
 
-    [(s-fun _ name args body)
+    [(s-fun _ name args ann body)
      (with-syntax ([name-stx (d->stx name)]
-                   [(arg ...) (d->stx args)]
+                   [(arg ...) (d->stx (map compile-pyret args))]
                    [body-stx (compile-pyret body)])
        #`(define name-stx (mk-fun (lambda (arg ...) body-stx))))]
 
-    [(s-def _ name val)
-     #`(define #,(d->stx name) #,(compile-pyret val))]
+    [(s-def _ bind val)
+     #`(define bind #,(compile-pyret val))]
 
+    [(s-bind _ name ann)
+     (with-syntax ([name-stx (d->stx name)])
+       #`name-stx)]
+    
     [(s-id _ name)
      (with-syntax ([name-stx (d->stx name)])
        #`name-stx)]

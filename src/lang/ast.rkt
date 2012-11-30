@@ -4,6 +4,9 @@
   (struct-out s-block)
   (struct-out s-fun)
   (struct-out s-def)
+  (struct-out s-bind)
+  (struct-out s-cond)
+  (struct-out s-cond-branch)
 
   (struct-out s-data)
   (struct-out s-method)
@@ -26,7 +29,15 @@
   (struct-out s-bracket-assign)
   (struct-out s-dot-method)
   (struct-out s-bracket-method)
-
+  
+  (struct-out a-blank)
+  (struct-out a-any)
+  (struct-out a-num)
+  (struct-out a-bool)
+  (struct-out a-str)
+  (struct-out a-arrow)
+  (struct-out a-record)
+  (struct-out a-field)
 )
 
 #|
@@ -43,9 +54,13 @@ these metadata purposes.
 (define-type Block (Listof Stmt))
 (struct: s-block ((syntax : srcloc) (stmts : Block)) #:transparent)
 
-(define-type Stmt (U s-fun s-def Expr))
-(struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof Symbol)) (body : s-block)) #:transparent)
-(struct: s-def ((syntax : srcloc) (name : Symbol) (value : Expr)) #:transparent)
+(struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann)) #:transparent)
+
+(define-type Stmt (U s-fun s-def s-cond Expr))
+(struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
+(struct: s-def ((syntax : srcloc) (name : s-bind) (value : Expr)) #:transparent)
+(struct: s-cond ((syntax : srcloc) (branches : (Listof s-cond-branch))) #:transparent)
+(struct: s-cond-branch ((syntax : srcloc) (expr : Expr) (body : Block)) #:transparent)
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
@@ -78,6 +93,16 @@ these metadata purposes.
 
 (struct: s-dot-method ((syntax : srcloc) (obj : Expr) (field : Symbol) (args : (Listof Expr))) #:transparent)
 (struct: s-bracket-method ((syntax : srcloc) (obj : Expr) (field : Expr) (args : (Listof Expr))) #:transparent)
+
+(define-type Ann (U a-blank a-any a-num a-bool a-str a-arrow a-record))
+(struct: a-blank () #:transparent)
+(struct: a-any () #:transparent)
+(struct: a-num ((syntax : srcloc)) #:transparent)
+(struct: a-bool ((syntax : srcloc)) #:transparent)
+(struct: a-str ((syntax : srcloc)) #:transparent)
+(struct: a-arrow ((syntax : srcloc) (args : (Listof Ann)) (ret : Ann)) #:transparent)
+(struct: a-field ((syntax : srcloc) (name : String) (ann : Ann))  #:transparent)
+(struct: a-record ((syntax : srcloc) (fields : (Listof a-field))) #:transparent)
 
 ;; used for creating ad hoc AST nodes that didn't come from surface
 ;; syntax
