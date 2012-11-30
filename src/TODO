@@ -1,83 +1,35 @@
-[x] seal(obj, fields)
-   - all of names must exist on obj
-   - result is an obj with the fields as its seal, which is a mutable proxy 
-     to the original obj
-
-[X] brander()
-   - produces brander object with brand() and check() methods
-   - brand() used on any value, produces a copy of the value (either reference
-     or prim) where this-gensym has been added to the set of brands.
-   - check() recognizes any object with this-gensym in its set of brands
-     and returns true, false if it does not have the brand.
-
-[x] make a real AST (in pyret.rkt?  before or after it?)
-
-[x] keep seal() consistent with initialization/new object fields?
-    - seal doesn't care about new object fields
-
-[x] make seal into a built-in method?
-  - no, too easy to forge.  should be built-in (Discussion Nov 26)
-
-Seal/lookup tests
-  [x] no seal success
-  [x] no seal field not found
-  [x] 2 seals success
-  [x] 2 seals caught by first
-  [x] 2 seals caught by second
-
-Assignment tests
-  [x] assignment success
-  [x] assignment fail
-  [x] assignment seal fail
-  [x] assignment seal success
-  [x] 2 seals success
-  [x] 2 seals caught by first
-  [x] 2 seals caught by second
-
-[x] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
-[] application should check type better?
-
-[x] resolve submoduley things with tokens and dedent errors
-   - just have a pyret-tokenizer.rkt
-
 [] Redex the initial semantics
-[x] Think about self-reference/method invocation
-  - Colon syntax for self-passing
-[x] Where do built-in number methods go?
-    -meta-number
-
-[x] Brackets for expr-based lookup
-[x] See what we can share from p-base
-    - A fair amount; updated definitions of get-dict, get-seal, etc.
 
 HTDP:
 [] How should short-circuiting booleans work?
-[] We need if
 [] allow hyphens in identifiers
 
 Cleanup:
 [x] make helper for id-parsing
-[]  and str-parsing in pyret.rkt
+[] and str-parsing in pyret.rkt
 [] decide on a line length and enforce
 [] ordering of things in grammar vs pyret.rkt
 [] consistent naming in grammar for lists of things
 [] figure out what define-syntax is less boilerplate
-[] bug report on module docs for language definitions
-[] bug report on resolved-module-path? docs
 [] s-data and s-dot should agree on symbol vs. string
 [] clean up runtime.rkt into sanity
-[] stop using typed racket except for data definition
+[] stop using typed racket except for data definitions
 [] figure out duplicate identifiers with (define)
 [] can we use ()? instead of multiple arms in grammar.rkt?
+[] bug report on module docs for language definitions
+[] bug report on resolved-module-path? docs
 
-[x] make the empty file be a valid program
-[x] hook up to top level better, and drracket's repl
-[x] make the definitions show up in the repl window
+[] application should check type better?
 
-[] syntax / checking for rudimentary types ::
+[x] syntax for rudimentary types ::
+[] checking for rudimentary types
 
 [] Escape into Racket with peglegs:
     !(display (current-namespace))!
+  - wrapping where possible?
 [] Racket.builtin for convenient libraries
+  - e.g. Racket.string-append(pyval, pyval)
+  - unwrapping and wrapping of pyret constants to Racket #'s and str's
 
-
+[] Think MOAR about self-reference/method invocation
+  - first class methods

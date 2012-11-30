@@ -1,0 +1,57 @@
+[x] Where do built-in number methods go?
+    -meta-number
+
+[x] Think about self-reference/method invocation
+  - Colon syntax for self-passing
+
+[x] conditionals
+[x] We need if
+
+[x] Brackets for expr-based lookup
+[x] See what we can share from p-base
+    - A fair amount; updated definitions of get-dict, get-seal, etc.
+
+[x] make the empty file be a valid program
+[x] hook up to top level better, and drracket's repl
+[x] make the definitions show up in the repl window
+
+[x] resolve submoduley things with tokens and dedent errors
+   - just have a pyret-tokenizer.rkt
+
+[x] seal(obj, fields)
+   - all of names must exist on obj
+   - result is an obj with the fields as its seal, which is a mutable proxy 
+     to the original obj
+
+[X] brander()
+   - produces brander object with brand() and check() methods
+   - brand() used on any value, produces a copy of the value (either reference
+     or prim) where this-gensym has been added to the set of brands.
+   - check() recognizes any object with this-gensym in its set of brands
+     and returns true, false if it does not have the brand.
+
+[x] make a real AST (in pyret.rkt?  before or after it?)
+
+[x] keep seal() consistent with initialization/new object fields?
+    - seal doesn't care about new object fields
+
+[x] make seal into a built-in method?
+  - no, too easy to forge.  should be built-in (Discussion Nov 26)
+
+Seal/lookup tests
+  [x] no seal success
+  [x] no seal field not found
+  [x] 2 seals success
+  [x] 2 seals caught by first
+  [x] 2 seals caught by second
+
+Assignment tests
+  [x] assignment success
+  [x] assignment fail
+  [x] assignment seal fail
+  [x] assignment seal success
+  [x] 2 seals success
+  [x] 2 seals caught by first
+  [x] 2 seals caught by second
+
+[x] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
