@@ -30,7 +30,7 @@
        #`(define name-stx (mk-fun (lambda (arg ...) body-stx))))]
 
     [(s-def _ bind val)
-     #`(define bind #,(compile-pyret val))]
+     #`(define #,(compile-pyret bind) #,(compile-pyret val))]
 
     [(s-bind _ name ann)
      (with-syntax ([name-stx (d->stx name)])
