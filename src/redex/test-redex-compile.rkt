@@ -9,3 +9,5 @@
 (define (compile-to-redex str)
   (redex-compile-pyret (parse-pyret str)))
 
+(compile-to-redex "{}")
+
