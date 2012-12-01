@@ -5,6 +5,8 @@
 [] Come up with a define-split-test form that makes a test run on both
    the Redex semantics and the Racket interpreter (may require a
    compile-value function over answers & exceptions...)
+[] Go from Redex-generated terms to AST so we can randomly test the
+   Racket implementation as well
 
 HTDP:
 [] How should short-circuiting booleans work?
