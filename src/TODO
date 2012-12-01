@@ -1,4 +1,10 @@
 [] Redex the initial semantics
+  [] basic objects
+  [] seals
+  [] extending
+[] Come up with a define-split-test form that makes a test run on both
+   the Redex semantics and the Racket interpreter (may require a
+   compile-value function over answers & exceptions...)
 
 HTDP:
 [] How should short-circuiting booleans work?
@@ -32,6 +38,6 @@ Cleanup:
   - unwrapping and wrapping of pyret constants to Racket #'s and str's
 
 [] Think MOAR about self-reference/method invocation
-  - first class methods
+  [] first class methods
 
 [] add s-let and pyret compile let
