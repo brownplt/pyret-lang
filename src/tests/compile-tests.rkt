@@ -2,11 +2,11 @@
 
 (require rackunit "test-utils.rkt" "../lang/runtime.rkt" "match-set.rkt")
 
-(define (check-pyret str expected)
-  (check-equal? (eval-pyret str) expected))
+(define-simple-check (check-pyret str expected)
+  (equal? (eval-pyret str) expected))
 
-(define (check-pyret-fail str expected)
-  (check-not-equal? (eval-pyret str) expected))
+(define-simple-check (check-pyret-fail str expected)
+  (not (equal? (eval-pyret str) expected)))
 
 (define (check-pyret-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
