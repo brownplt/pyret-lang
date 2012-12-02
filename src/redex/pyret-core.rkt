@@ -23,6 +23,7 @@
   (v (vref ref))
   
   (e
+   (seq e ...)
    (get-field e e)
    (set-field e e e)
    (app e e ...)
@@ -38,6 +39,7 @@
   
   (E
    hole
+   (seq v ... E e ...)
    (object ((string_1 v) ...
             (string_e E)
             (string_2 e) ...))
@@ -71,6 +73,11 @@
 (define eval-πret
   (reduction-relation
    πret
+   [==> (seq v e_next e ...) (seq e_next e ...)
+        "E-SeqPop"]
+   [==> (seq v) v
+        "E-SeqFinish"]
+   
    [--> (σ Σ (in-hole E (object ((string v) ...))))
         (σ Σ_new (in-hole E (vref ref_new)))
         (where (ref_new Σ_new)
@@ -87,6 +94,10 @@
         (σ Σ (in-hole E (obj-get-field (obj-get-dict (obj-lookup ref_obj Σ))
                                         (obj-lookup ref_str Σ))))
         "E-GetField"]
+   
+   with
+   [(--> (σ Σ (in-hole E e_1)) (σ Σ (in-hole E e_2)))
+    (==> e_1 e_2)]
    ))
         
         
