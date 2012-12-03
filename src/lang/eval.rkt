@@ -17,10 +17,17 @@
         eof
         (compile-pyret (eval (get-syntax src in) ns)))))
 
-(define (print-pyret val)
+(define (simplify-pyret val)
   (match val
-    [(p-num _ _ _ _ n) (pretty-write n)]
-    [(p-str _ _ _ _ s) (pretty-write s)]
-    [(p-bool _ _ _ _ b) (pretty-write b)]
-    [(? p-base?) (pretty-write val)]
+    [(p-num _ _ _ _ n) n]
+    [(p-str _ _ _ _ s) s]
+    [(p-bool _ _ _ _ b) b]
+    [(p-object (none) _ _ d)
+     (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
+    [(p-object (? set? s) _ _ d)
+     (make-hash (set-map s (lambda (s) (cons s(simplify-pyret (hash-ref d s))))))]
+    [(? p-base?) val]
     [_ (void)]))
+
+(define (print-pyret val)
+  (pretty-write (simplify-pyret val)))

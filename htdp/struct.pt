@@ -8,7 +8,7 @@ end
 empty()
 cons(4,empty())
 
-fun length(l):
+fun length(l :: NumList) :: Number:
   cond:
     | is_cons(l) => 1:add(length(l.rest))
     | is_empty(l) => 0
@@ -17,5 +17,6 @@ end
 
 length(cons(4,empty()))
 length(cons(4,cons(3,empty())))
-# this line throws an error
+
+# this line throws an error, since is_cons and is_empty use brands
 length({first: {}, rest: {}})
