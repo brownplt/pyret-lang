@@ -2,9 +2,13 @@
 
 (require
   redex/reduction-semantics
-  "../lang/ast.rkt")
+  "../lang/ast.rkt"
+  "../lang/runtime.rkt"
+  "pyret-core.rkt")
 
-(provide redex-compile-pyret)
+(provide
+ redex-compile-pyret
+ redex-compile-answer)
 
 (define (redex-compile-pyret ast-node)
   (define rcp redex-compile-pyret)
@@ -24,3 +28,51 @@
     [_ (error (format "redex-compile: Haven't handled a case yet: ~a"
                       ast-node))]))
 
+(define (redex-compile-answer val)
+  (match val
+    [(p-str _ _ _ _ s)
+     (term-match πret
+                 [(side-condition (σ Σ (vref ref))
+                                  (redex-match? πret
+                                                (side-condition (str-obj (()) string)
+                                                                (equal? (term string)
+                                                                        s))
+                                                (term (obj-lookup ref Σ))))
+                  (term (σ Σ (vref ref)))])]
+    [(p-num _ _ _ _ n)
+     (term-match πret
+                 [(side-condition
+                   (σ
+                    (name Σ ((ref_1 any_1) ...
+                             (ref (num-obj (()) number))
+                             (ref_2 any_2) ...))
+                    (vref ref))
+                   (= n (term number)))
+                  (term (σ Σ (vref ref)))])]
+    
+    [(p-object _ _ _ dict)
+     ;; well-formedness assumptions:
+     ;; - objects have only one of each field
+     (term-match πret
+                 [(side-condition
+                   (σ
+                    (name Σ ((ref_1 any_1) ...
+                             (ref (obj-obj (((string_1 v_1) ...))))
+                             (ref_2 any_2) ...))
+                    (vref ref))
+                   (let* ([dict-keys (hash-keys dict)]
+                          [semantic-keys (term (string_1 ...))]
+                          [semantic-dict (make-hash (map cons semantic-keys (term (v_1 ...))))])
+                     (and (equal? (length dict-keys) (length semantic-keys))
+                          (andmap
+                           (lambda (d-key)
+                             (define other-val (hash-ref semantic-dict d-key #f))
+                             (if other-val
+                                 (let [(result ((redex-compile-answer (hash-ref dict d-key))
+                                                (term (σ Σ ,other-val))))]
+                                   (= (length result) 1))
+                                 #f))
+                           dict-keys))))
+                  (term (σ Σ (vref ref)))])]
+     
+    ))

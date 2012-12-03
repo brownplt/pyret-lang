@@ -90,6 +90,12 @@
                (obj-alloc (str-obj ([]) string) Σ))
         "E-String"]
    
+   [--> (σ Σ (in-hole E number))
+        (σ Σ_new (in-hole E (vref ref_new)))
+        (where (ref_new Σ_new)
+               (obj-alloc (num-obj ([]) number) Σ))
+        "E-Number"]
+   
    [--> (σ Σ (in-hole E (get-field (vref ref_obj) (vref ref_str))))
         (σ Σ (in-hole E (obj-get-field (obj-get-dict (obj-lookup ref_obj Σ))
                                         (obj-lookup ref_str Σ))))
