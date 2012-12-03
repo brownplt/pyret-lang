@@ -16,13 +16,13 @@
 (check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
 
 (check/block "{}" (s-obj _ empty))
-(check/block "{x:5}" (s-obj _ (list (s-data _ "x" (s-num _ 5)))))
-(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data _ "x" (s-num _ 5))
-                                                            (s-data _ "y" (s-str _ "foo")))))
-(check/block "{x:{}}" (s-obj _ (list (s-data _ "x" (s-obj _ empty)))))
+(check/block "{x:5}" (s-obj _ (list (s-field _ "x" (s-num _ 5)))))
+(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-field _ "x" (s-num _ 5))
+                                                            (s-field _ "y" (s-str _ "foo")))))
+(check/block "{x:{}}" (s-obj _ (list (s-field _ "x" (s-obj _ empty)))))
 
 (check/block "x" (s-id _ 'x))
-(check/block "{x:x}" (s-obj _ (list (s-data _ "x" (s-id _ 'x)))))
+(check/block "{x:x}" (s-obj _ (list (s-field _ "x" (s-id _ 'x)))))
 
 (check/block "f()" (s-app _ (s-id _ 'f) empty))
 (check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
@@ -50,7 +50,7 @@
 
 (check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
 (check/block "seal({x:5}, []).x"
-             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data _ "x" (s-num _ 5))))
+             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-field _ "x" (s-num _ 5))))
                                                     (s-list _ empty)))
                     'x))
 
@@ -67,19 +67,19 @@
 
 (check/block "{extend {x:5} with y:3}"
              (s-onion _
-                      (s-obj _ (list (s-data _ "x" (s-num _ 5))))
-                      (list (s-data _ "y" (s-num _ 3)))))
+                      (s-obj _ (list (s-field _ "x" (s-num _ 5))))
+                      (list (s-field _ "y" (s-num _ 3)))))
 
 (check/block "{extend 5 with foo: 12}"
              (s-onion _
                       (s-num _ 5)
-                      (list (s-data _ "foo" (s-num _ 12)))))
+                      (list (s-field _ "foo" (s-num _ 12)))))
 
 (check/block "{extend List with length: 0, width: 0}"
              (s-onion _
                       (s-id _ 'List)
-                      (list (s-data _ "length" (s-num _ 0))
-                            (s-data _ "width" (s-num _ 0)))))
+                      (list (s-field _ "length" (s-num _ 0))
+                            (s-field _ "width" (s-num _ 0)))))
 
 (check/block "o:f()"
              (s-dot-method _
@@ -89,7 +89,7 @@
 
 (check/block "{f:4}:f(2)"
              (s-dot-method _
-                           (s-obj _ (list (s-data _ "f" (s-num _ 4))))
+                           (s-obj _ (list (s-field _ "f" (s-num _ 4))))
                            'f
                            (list (s-num _ 2))))
 
@@ -119,3 +119,14 @@
 (check/block "cond: | true => 1 | false => 2 end" 
              (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
                              (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
+
+(check/block "  data Foo | bar end"
+             (s-data _ 'Foo (list (s-variant _ 'bar (list)))))
+
+(check/block "data NumList
+  | empty
+  | cons: first :: Number, rest :: NumList
+end"
+             (s-data _ 'NumList (list (s-variant _ 'empty (list))
+                                      (s-variant _ 'cons (list (s-member _ 'first (a-num _))
+                                                               (s-member _ 'rest (a-name _ 'NumList)))))))

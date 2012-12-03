@@ -9,7 +9,7 @@
   (define (d->stx stx) (datum->syntax #f stx))
   (define (compile-member ast-node)
     (match ast-node
-      [(s-data _ name value)
+      [(s-field _ name value)
        (with-syntax ([name-stx (d->stx name)]
                      [val-stx (compile-pyret value)]) 
          #'(cons name-stx val-stx))]))

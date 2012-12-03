@@ -85,7 +85,7 @@
 (define-syntax (data-field stx)
   (syntax-case stx ()
     [(_ key value)
-     #`(s-data #,(srcloc-of-syntax stx) key value)]))
+     #`(s-field #,(srcloc-of-syntax stx) key value)]))
 
 (define-syntax (id-expr stx)
   (syntax-case stx ()
@@ -201,12 +201,44 @@
                      '#,(parse-name #'field)
                      (list arg ... lastarg))]))
 
+(define-syntax (data-member stx)
+  (syntax-case stx ()
+    [(_ member-name)
+     #`(s-member #,(srcloc-of-syntax stx)
+                 '#,(parse-name #'member-name)
+                 (a-blank))]
+    [(_ member-name "::" ann)
+     #`(s-member #,(srcloc-of-syntax stx)
+                 '#,(parse-name #'member-name)
+                 ann)]))
+
+(define-syntax (data-variant stx)
+  (syntax-case stx (data-member-elt)
+    [(_ "|" variant-name)
+     #`(s-variant #,(srcloc-of-syntax stx)
+                  '#,(parse-name #'variant-name)
+                  (list))]
+    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member)
+     #`(s-variant #,(srcloc-of-syntax stx)
+                  '#,(parse-name #'variant-name)
+                  (list member ... last-member))]))
+
+(define-syntax (data-expr stx)
+  (syntax-case stx ()
+    [(_ "data" data-name variant ... "end")
+     #`(s-data #,(srcloc-of-syntax stx) '#,(parse-name #'data-name) (list variant ...))]))
+
 (define-syntax (ann stx)
   (syntax-case stx ()
     [(_ "Number") #`(a-num #,(srcloc-of-syntax stx))]
     [(_ "Bool") #`(a-bool #,(srcloc-of-syntax stx))]
     [(_ "String") #`(a-str #,(srcloc-of-syntax stx))]
     [(_ constructed-ann) #'constructed-ann]))
+
+(define-syntax (name-ann stx)
+  (syntax-case stx ()
+    [(_ name)
+     #`(a-name #,(srcloc-of-syntax stx) '#,(parse-name #'name))]))
 
 (define-syntax (ann-field stx)
   (syntax-case stx ()

@@ -4,8 +4,8 @@ program: block ENDMARKER
 
 block: stmt*
 
-stmt: def-expr | fun-expr | expr | assign-expr | dot-assign-expr
-    | bracket-assign-expr
+stmt: def-expr | fun-expr | data-expr | expr
+    | assign-expr | dot-assign-expr | bracket-assign-expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
       | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -59,10 +59,15 @@ bracket-assign-expr: expr "." "[" expr "]" "=" expr
 dot-method-expr: expr ":" NAME app-args
 bracket-method-expr: expr ":" "[" expr "]" app-args
 
+data-member: NAME | NAME "::" ann
+data-member-elt: data-member ","
+data-variant: "|" NAME ":" data-member-elt* data-member
+       | "|" NAME
+data-expr: "data" NAME data-variant+ "end"
 
+ann: "Number" | "Bool" | "String" | name-ann | record-ann | arrow-ann
 
-ann: "Number" | "Bool" | "String" | record-ann | arrow-ann
-
+name-ann: NAME
 record-ann: "{" list-ann-field* ann-field "}" | "{" "}"
 ann-field: NAME ":" ann
 list-ann-field: ann-field ","

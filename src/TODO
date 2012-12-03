@@ -1,3 +1,4 @@
+Redex
 [] Redex the initial semantics
   [] basic objects
   [] seals
@@ -7,10 +8,19 @@
    compile-value function over answers & exceptions...)
 [] Go from Redex-generated terms to AST so we can randomly test the
    Racket implementation as well
+[] add s-let and pyret compile let
 
 HTDP:
 [] How should short-circuiting booleans work?
 [] allow hyphens in identifiers
+[] surface syntax for operators?
+[] Think MOAR about self-reference/method invocation
+  [] first class methods
+[] Desugar data
+  [] Lock operator for immutability
+  [] Brand checks on struct creation
+  [] Annotations actually checked
+
 
 Cleanup:
 [x] make helper for id-parsing
@@ -39,7 +49,3 @@ Cleanup:
   - e.g. Racket.string-append(pyval, pyval)
   - unwrapping and wrapping of pyret constants to Racket #'s and str's
 
-[] Think MOAR about self-reference/method invocation
-  [] first class methods
-
-[] add s-let and pyret compile let

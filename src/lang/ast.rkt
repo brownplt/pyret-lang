@@ -8,7 +8,7 @@
   (struct-out s-cond)
   (struct-out s-cond-branch)
 
-  (struct-out s-data)
+  (struct-out s-field)
   (struct-out s-method)
   (struct-out s-obj)
   (struct-out s-onion)
@@ -29,9 +29,14 @@
   (struct-out s-bracket-assign)
   (struct-out s-dot-method)
   (struct-out s-bracket-method)
+
+  (struct-out s-data)
+  (struct-out s-variant)
+  (struct-out s-member)
   
   (struct-out a-blank)
   (struct-out a-any)
+  (struct-out a-name)
   (struct-out a-num)
   (struct-out a-bool)
   (struct-out a-str)
@@ -56,7 +61,7 @@ these metadata purposes.
 
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann)) #:transparent)
 
-(define-type Stmt (U s-fun s-def s-cond Expr))
+(define-type Stmt (U s-fun s-def s-cond s-data Expr))
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : s-bind) (value : Expr)) #:transparent)
 (struct: s-cond ((syntax : srcloc) (branches : (Listof s-cond-branch))) #:transparent)
@@ -66,8 +71,8 @@ these metadata purposes.
                      s-dot s-bracket s-dot-assign s-bracket-assign
                      s-dot-method s-bracket-method))
 
-(define-type Member (U s-data s-method))
-(struct: s-data ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
+(define-type Member (U s-field s-method))
+(struct: s-field ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
 (struct: s-method ((syntax : srcloc) (name : String) (args : (Listof Symbol)) (body : Block)) #:transparent)
 
 (struct: s-onion ((syntax : srcloc) (super : Expr) (fields : (Listof Member))) #:transparent)
@@ -94,9 +99,25 @@ these metadata purposes.
 (struct: s-dot-method ((syntax : srcloc) (obj : Expr) (field : Symbol) (args : (Listof Expr))) #:transparent)
 (struct: s-bracket-method ((syntax : srcloc) (obj : Expr) (field : Expr) (args : (Listof Expr))) #:transparent)
 
-(define-type Ann (U a-blank a-any a-num a-bool a-str a-arrow a-record))
+(struct: s-data ((syntax : srcloc)
+                 (name : Symbol)
+                 (variants : (Listof s-variant)))
+                #:transparent)
+
+(struct: s-variant ((syntax : srcloc)
+                    (name : Symbol)
+                    (members : (Listof s-member)))
+                   #:transparent)
+
+(struct: s-member ((syntax : srcloc)
+                   (name : Symbol)
+                   (ann : Ann))
+                  #:transparent)
+
+(define-type Ann (U a-blank a-any a-name a-num a-bool a-str a-arrow a-record))
 (struct: a-blank () #:transparent)
 (struct: a-any () #:transparent)
+(struct: a-name ((syntax : srcloc) (id : Symbol)) #:transparent)
 (struct: a-num ((syntax : srcloc)) #:transparent)
 (struct: a-bool ((syntax : srcloc)) #:transparent)
 (struct: a-str ((syntax : srcloc)) #:transparent)
