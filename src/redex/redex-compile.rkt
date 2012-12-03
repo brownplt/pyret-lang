@@ -8,7 +8,8 @@
 
 (provide
  redex-compile-pyret
- redex-compile-answer)
+ redex-compile-answer
+ extract-pyret-val)
 
 (define (redex-compile-pyret ast-node)
   (define rcp redex-compile-pyret)
@@ -76,3 +77,20 @@
                   (term (σ Σ (vref ref)))])]
      
     ))
+
+(define extract-pyret-val
+  (term-match πret
+              [(σ (name Σ ((ref_1 any_1) ...
+                             (ref (num-obj (()) number))
+                             (ref_2 any_2) ...)) (vref ref))
+               (mk-num (term number))]
+              [(σ (name Σ ((ref_1 any_1) ...
+                             (ref (str-obj (()) string))
+                             (ref_2 any_2) ...)) (vref ref))
+               (mk-str (term string))]
+              [(σ (name Σ ((ref_1 any_1) ...
+                             (ref (obj-obj (((string_1 v_1) ...))))
+                             (ref_2 any_2) ...)) (vref ref))
+               (mk-object (make-hash (map (lambda (s v) (cons s (first (extract-pyret-val (term (σ Σ ,v))))))
+                                          (term (string_1 ...)) (term (v_1 ...)))))]))
+               

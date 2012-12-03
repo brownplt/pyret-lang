@@ -38,13 +38,20 @@
 
 "Should not match"
 (check-answer (mk-object (make-hash)) "{x:5}")
+"Should not match"
+(check-answer (mk-object (make-hash (list (cons "x" (mk-num 5))))) "{}")
 "Should match"
 (check-answer (mk-object (make-hash)) "{}")
 "Should match"
+(check-answer (mk-object (make-hash (list (cons "x" (mk-num 5))))) "{x:5}")
+"Should match"
 (check-answer (mk-object (make-hash (list (cons "nested" (mk-object (make-hash)))))) "{nested:{}}")
 "Should match"
-(check-answer (mk-object (make-hash (list (cons "nested" (mk-object (make-hash)))
-                                          (cons "bested" (mk-object (make-hash))))))
-              "{bested:{}, nested:{}}")
+(check-answer (mk-object (make-hash (list (cons "first" (mk-object (make-hash)))
+                                          (cons "second" (mk-object (make-hash))))))
+              "{second:{}, first:{}}")
 "Should match"
 (check-answer (mk-object (make-hash)) "{} {}")
+
+
+(extract-pyret-val (get-answer "{nested:{}}"))
