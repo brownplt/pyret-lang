@@ -61,7 +61,7 @@ these metadata purposes.
 
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann)) #:transparent)
 
-(define-type Stmt (U s-fun s-def s-cond s-data Expr))
+(define-type Stmt (U s-fun s-def s-cond s-data s-block Expr))
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : s-bind) (value : Expr)) #:transparent)
 (struct: s-cond ((syntax : srcloc) (branches : (Listof s-cond-branch))) #:transparent)

@@ -34,10 +34,10 @@
     
     [(s-cond _ c-bs)
      (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs))])
-       #`(cond branch ...))]
+       #`(cond branch ... [else (error "cond: no cases matched")]))]
     
     [(s-cond-branch _ tst blk)
-     #`(#,(compile-pyret tst) #,(compile-pyret blk))]
+     #`((pyret-true? #,(compile-pyret tst)) #,(compile-pyret blk))]
 
     [(s-bind _ name ann)
      (with-syntax ([name-stx (d->stx name)])

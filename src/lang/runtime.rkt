@@ -23,6 +23,7 @@
  has-field?
  reseal
  flatten
+ pyret-true?
  (rename-out [p-pi pi])
  (rename-out [seal-pfun seal])
  (rename-out [brander-pfun brander]))
@@ -171,6 +172,11 @@
                  (mk-bool (has-brand? v sym)))))))))
 
 (define brander-pfun (mk-fun brander))
+
+(define (pyret-true? v)
+  (match v
+    [(p-bool _ _ _ _ #t) #t]
+    [else #f]))
 
 (define: (mk-num-impl (op : (Number Number -> Number)))
          : (Value Value -> Value)

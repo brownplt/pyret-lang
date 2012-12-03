@@ -1,0 +1,21 @@
+#lang reader "../src/lang/pyret.rkt"
+
+data NumList
+  | empty
+  | cons: first :: Number, rest :: NumList
+end
+
+empty()
+cons(4,empty())
+
+fun length(l):
+  cond:
+    | is_cons(l) => 1:add(length(l.rest))
+    | is_empty(l) => 0
+  end
+end
+
+length(cons(4,empty()))
+length(cons(4,cons(3,empty())))
+# this line throws an error
+length({first: {}, rest: {}})
