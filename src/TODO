@@ -20,7 +20,10 @@ HTDP:
   [] Lock operator for immutability
   [] Brand checks on struct creation
   [] Annotations actually checked
+  [x] Skeleton of struct/data desugaring
 [] anonymous functions... :-)
+[] brand names for debugging and general user-friendliness
+[] pretty-printing objects
 
 
 Cleanup:
