@@ -162,3 +162,9 @@
 (check-pyret "cond: | 3:lessthan(2) => 10 | true => 2 end" two)
 (check-pyret "cond: | 2:lessthan(3) => 10 end" ten)
 (check-pyret-exn "cond: | 4:lessthan(3) => 10 end" "cond:")
+
+#;(check-pyret-exn "def x :: Number: true" "type:")
+#;(check-pyret "def x :: Number: 5 x" five)
+#;(check-pyret-exn "def x :: Number: 5 x = 'not-a-num'" "type:")
+
+
