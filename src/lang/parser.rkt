@@ -121,20 +121,25 @@
               (s-bind #,(srcloc-of-syntax #'id) '#,(parse-id #'id) ann) 
               value-expr)]))
 
+(define-syntax (args stx)
+  (syntax-case stx ()
+    [(_ "(" arg ... lastarg ")") #'(list arg ... lastarg)]
+    [(_ "(" ")") #'empty]))
+
 (define-syntax (fun-expr stx)
-  (syntax-case stx (args arg-elt)
-    [(_ "fun" fun-name (args "(" arg ... lastarg ")") ":" body "end")
+  (syntax-case stx ()
+    [(_ "fun" fun-name args ":" body "end")
       (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list arg ... lastarg) (a-blank) body))]
-    [(_ "fun" fun-name (args "(" ")") ":" body "end")
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id args (a-blank) body))]
+    [(_ "fun" fun-name args "->" ann ":" body "end")
       (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty (a-blank) body))]
-    [(_ "fun" fun-name (args "(" arg ... lastarg ")") "->" ann ":" body "end")
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id args ann body))]
+    [(_ "fun" fun-name args ":" "(" body ")")
       (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id (list arg ... lastarg) ann body))]
-    [(_ "fun" fun-name (args "(" ")") "->" ann ":" body "end")
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id args (a-blank) body))]
+    [(_ "fun" fun-name args "->" ann ":" "(" body ")")
       (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(srcloc-of-syntax stx) 'f-id empty ann body))]))
+        #`(s-fun #,(srcloc-of-syntax stx) 'f-id args ann body))]))
 
 (define-syntax (lambda-expr stx)
   (syntax-case stx (lambda-args)

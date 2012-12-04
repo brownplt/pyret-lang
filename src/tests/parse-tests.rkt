@@ -31,12 +31,20 @@
 
 (check/block "fun f(): 5 end"
             (s-fun _ 'f empty (a-blank) (s-block _ (list (s-num _ 5)))))
+(check/block "fun f(): (5)"
+            (s-fun _ 'f empty (a-blank) (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g): 5 end"
             (s-fun _ 'g (list (s-bind _ 'g (a-blank))) (a-blank)
                    (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g,f,x): 5 end"
+             (s-fun _ 'g (list (s-bind _ 'g (a-blank)) 
+                               (s-bind _ 'f (a-blank)) 
+                               (s-bind _ 'x (a-blank))) (a-blank)
+                    (s-block _ (list (s-num _ 5)))))
+
+(check/block "fun g(g,f,x): (5)"
              (s-fun _ 'g (list (s-bind _ 'g (a-blank)) 
                                (s-bind _ 'f (a-blank)) 
                                (s-bind _ 'x (a-blank))) (a-blank)
