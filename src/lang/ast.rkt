@@ -45,6 +45,7 @@
   (struct-out a-arrow)
   (struct-out a-record)
   (struct-out a-field)
+  (struct-out a-app)
 )
 
 #|
@@ -105,6 +106,7 @@ these metadata purposes.
 
 (struct: s-data ((syntax : srcloc)
                  (name : Symbol)
+                 (params : (Listof Symbol))
                  (variants : (Listof s-variant)))
                 #:transparent)
 
@@ -118,7 +120,7 @@ these metadata purposes.
                    (ann : Ann))
                   #:transparent)
 
-(define-type Ann (U a-blank a-any a-name a-num a-bool a-str a-arrow a-record))
+(define-type Ann (U a-blank a-any a-name a-num a-bool a-str a-arrow a-record a-app))
 (struct: a-blank () #:transparent)
 (struct: a-any () #:transparent)
 (struct: a-name ((syntax : srcloc) (id : Symbol)) #:transparent)
@@ -128,6 +130,7 @@ these metadata purposes.
 (struct: a-arrow ((syntax : srcloc) (args : (Listof Ann)) (ret : Ann)) #:transparent)
 (struct: a-field ((syntax : srcloc) (name : String) (ann : Ann))  #:transparent)
 (struct: a-record ((syntax : srcloc) (fields : (Listof a-field))) #:transparent)
+(struct: a-app ((syntax : srcloc) (name : Symbol) (parameters : (Listof Ann))) #:transparent)
 
 ;; used for creating ad hoc AST nodes that didn't come from surface
 ;; syntax

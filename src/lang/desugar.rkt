@@ -49,7 +49,7 @@
   (match ast
     [(s-block s stmts)
      (s-block s (map desugar-pyret stmts))]
-    [(s-data s name variants)
+    [(s-data s name params variants)
      (define brander-name (gensym name))
      (s-block s
        (cons

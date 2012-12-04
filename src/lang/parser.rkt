@@ -15,6 +15,9 @@
 (define-for-syntax (parse-name stx)
   (string->symbol (syntax->datum stx)))
 
+(define-for-syntax (parse-names stx)
+  (map string->symbol (syntax->datum stx)))
+
 (define-for-syntax (parse-id stx)
   (datum->syntax #'#%module-begin (string->symbol (syntax->datum stx))))
 
@@ -236,9 +239,17 @@
                   (list member ... last-member))]))
 
 (define-syntax (data-expr stx)
-  (syntax-case stx ()
+  (syntax-case stx (data-param-elt data-params)
+    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")") variant ... "end")
+     #`(s-data #,(srcloc-of-syntax stx) 
+               '#,(parse-name #'data-name)
+               '#,(parse-names #'(name ... last-name))
+               (list variant ...))]
     [(_ "data" data-name variant ... "end")
-     #`(s-data #,(srcloc-of-syntax stx) '#,(parse-name #'data-name) (list variant ...))]))
+     #`(s-data #,(srcloc-of-syntax stx) 
+               '#,(parse-name #'data-name) 
+               (list)
+               (list variant ...))]))
 
 (define-syntax (ann stx)
   (syntax-case stx ()
@@ -259,14 +270,20 @@
 
 (define-syntax (record-ann stx)
   (syntax-case stx ()
-    [(_ "{" (list-ann-field field ",") ... lastfield "}")
+    [(_ "{" (list-ann-field field ",") ... last-field "}")
      #`(a-record #,(srcloc-of-syntax stx)
-                 (list field ... lastfield))]
+                 (list field ... last-field))]
     [( _ "{" "}")
      #`(a-record #,(srcloc-of-syntax stx) (list))]))
 
 (define-syntax (arrow-ann stx)
-  (syntax-case stx ()
-    [(_ "(" arg ... "->" result ")")
-     #`(a-arrow #,(srcloc-of-syntax stx) (list arg ...) result)]))
+  (syntax-case stx (arrow-ann-elt)
+    [(_ "(" (arrow-ann-elt arg ",") ... last-arg "->" result ")")
+     #`(a-arrow #,(srcloc-of-syntax stx) (list arg ... last-arg) result)]))
+
+(define-syntax (app-ann stx)
+  (syntax-case stx (name-ann)
+    [(_ (name-ann name) "(" (app-ann-elt param ",") ... last-param ")")
+     #`(a-app #,(srcloc-of-syntax stx) '#,(parse-name #'name) (list param ... last-param))]))
+     
 

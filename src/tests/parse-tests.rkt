@@ -98,6 +98,12 @@
 (check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
                                          (s-str _ "hello")))
 
+(check/block "def f :: (Number, Number -> Number): plus"
+	     (s-def _ (s-bind _ 'f (a-arrow _
+					    (list (a-num _) (a-num _))
+					    (a-num _)))
+		    (s-id _ 'plus)))
+
 (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
              (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-num _)) (a-num _))
                     (s-block _ (list (s-str _ _)))))
@@ -145,15 +151,27 @@
                              (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
 
 (check/block "  data Foo | bar end"
-             (s-data _ 'Foo (list (s-variant _ 'bar (list)))))
+             (s-data _ 'Foo empty (list (s-variant _ 'bar (list)))))
 
 (check/block "data NumList
   | empty
   | cons: first :: Number, rest :: NumList
 end"
-             (s-data _ 'NumList (list (s-variant _ 'empty (list))
+             (s-data _ 'NumList empty (list (s-variant _ 'empty (list))
                                       (s-variant _ 'cons (list (s-member _ 'first (a-num _))
                                                                (s-member _ 'rest (a-name _ 'NumList)))))))
 
 (check/block "def my-hypthen-y-ident-i-fier: 10"
              (s-def _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
+
+(check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list)))))
+
+(check/block 
+ "data List(a) | cons: field, l :: List(a) end" 
+ (s-data _ 'List (list 'a) 
+         (list (s-variant 
+                _ 
+                'cons 
+                (list (s-member _ 'field (a-blank)) 
+                      (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))))))
+

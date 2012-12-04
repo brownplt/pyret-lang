@@ -70,14 +70,20 @@ data-member: NAME | NAME "::" ann
 data-member-elt: data-member ","
 data-variant: "|" NAME ":" data-member-elt* data-member
        | "|" NAME
+data-param-elt: NAME ","
+data-params: "(" data-param-elt* NAME ")"
 data-expr: "data" NAME data-variant+ "end"
+         | "data" NAME data-params data-variant+ "end"
 
-ann: "Number" | "Bool" | "String" | name-ann | record-ann | arrow-ann
+           
+ann: "Number" | "Bool" | "String" | name-ann | record-ann | arrow-ann | app-ann
 
 name-ann: NAME
 record-ann: "{" list-ann-field* ann-field "}" | "{" "}"
 ann-field: NAME ":" ann
 list-ann-field: ann-field ","
 
-arrow-ann: "(" ann* "->" ann ")"
-
+arrow-ann-elt: ann ","
+arrow-ann: "(" arrow-ann-elt* ann "->" ann ")"
+app-ann-elt: ann ","
+app-ann: name-ann "(" app-ann-elt* ann ")"
