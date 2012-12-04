@@ -28,6 +28,11 @@
 (check-pyret "fun foo(): 5 end foo()" five)
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
+(check-pyret "\\x: (x)(2)" two)
+(check-pyret "def x: 2 \\(x = 10)() x" ten)
+(check-pyret "def x: 2 \\x: (x = 10)(5) x" two)
+(check-pyret "def x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
+
 (check-pyret "{}" (p-object (none) meta-null (set) (make-hash)))
 
 (check-pyret "'5'" (mk-str "5"))

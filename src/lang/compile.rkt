@@ -29,6 +29,11 @@
                    [body-stx (compile-pyret body)])
        #`(define name-stx (mk-fun (lambda (arg ...) body-stx))))]
 
+    [(s-lam _ args ann body)
+     (with-syntax ([(arg ...) (d->stx (map compile-pyret args))]
+                   [body-stx (compile-pyret body)])
+       #`(mk-fun (lambda (arg ...) body-stx)))]
+
     [(s-def _ bind val)
      #`(define #,(compile-pyret bind) #,(compile-pyret val))]
     
@@ -71,7 +76,7 @@
     
     [(s-dot _ val field)
      #`(get-field #,(compile-pyret val) #,(d->stx (symbol->string field)))]
-
+    
     [(s-dot-assign _ obj field val)
      #`(set-field #,(compile-pyret obj)
                   #,(d->stx (symbol->string field))
