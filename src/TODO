@@ -11,11 +11,12 @@ Redex
 [] add s-let and pyret compile let
 
 HTDP:
-[] How should short-circuiting booleans work?
 [] allow hyphens in identifiers
-[] surface syntax for operators?
+[] constructed types
 [] Think MOAR about self-reference/method invocation
   [] first class methods
+
+[] surface syntax for operators?
 [] Desugar data
   [] Lock operator for immutability
   [] Brand checks on struct creation
@@ -24,6 +25,12 @@ HTDP:
 [] anonymous functions... :-)
 [] brand names for debugging and general user-friendliness
 [] pretty-printing objects
+   - Take brands into account (names for them)
+[] None/null/nothing value built in
+[] Lists built in
+[] How should short-circuiting booleans work?
+
+
 
 
 Cleanup:

@@ -21,7 +21,7 @@
 
     [(s-block _ l)
      (with-syntax ([(stmt ...) (map compile-pyret l)])
-       #`(begin stmt ...))]
+       #`(begin (void) stmt ...))]
 
     [(s-fun _ name args ann body)
      (with-syntax ([name-stx (d->stx name)]
