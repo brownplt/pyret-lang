@@ -11,7 +11,7 @@ Redex
 [] add s-let and pyret compile let
 
 HTDP:
-[] allow hyphens in identifiers
+[x] allow hyphens in identifiers
 [] constructed types
 [] Think MOAR about self-reference/method invocation
   [] first class methods
@@ -29,8 +29,6 @@ HTDP:
 [] None/null/nothing value built in
 [] Lists built in
 [] How should short-circuiting booleans work?
-
-
 
 
 Cleanup:
