@@ -76,7 +76,7 @@ data-expr: "data" NAME data-variant+ "end"
          | "data" NAME data-params data-variant+ "end"
 
            
-ann: "Number" | "Bool" | "String" | name-ann | record-ann | arrow-ann | app-ann
+ann: name-ann | record-ann | arrow-ann | app-ann
 
 name-ann: NAME
 record-ann: "{" list-ann-field* ann-field "}" | "{" "}"

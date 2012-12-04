@@ -93,22 +93,22 @@
                            'f
                            (list (s-num _ 2))))
 
-(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-num _))
+(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-name _ 'Number))
                                            (s-num _ 5)))
-(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
+(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-name _ 'Number))
                                          (s-str _ "hello")))
 
 (check/block "def f :: (Number, Number -> Number): plus"
 	     (s-def _ (s-bind _ 'f (a-arrow _
-					    (list (a-num _) (a-num _))
-					    (a-num _)))
+					    (list (a-name _ 'Number) (a-name _ 'Number))
+					    (a-name _ 'Number)))
 		    (s-id _ 'plus)))
 
 (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
-             (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-num _)) (a-num _))
+             (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
                     (s-block _ (list (s-str _ _)))))
 (check/block "fun foo(x :: Bool) -> Bool: x end" 
-             (s-fun _ 'foo (list (s-bind _ 'x (a-bool _))) (a-bool _)
+             (s-fun _ 'foo (list (s-bind _ 'x (a-name _ 'Bool))) (a-name _ 'Bool)
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
@@ -117,8 +117,8 @@
 (check/block "def x :: {foo: Number}: 4" 
              (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
 (check/block "def x :: {foo: Number, a: Bool}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-num _)) 
-                                                     (a-field _ "a" (a-bool _)))))
+             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
+                                                     (a-field _ "a" (a-name _ 'Bool)))))
                     (s-num _ 4)))
 
 (check/block " \\(x)"
@@ -128,13 +128,13 @@
 
 (check/block " \\-> Number: (x)"
              (s-lam _ (list)
-                    (a-num _)
+                    (a-name _ 'Number)
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
-             (s-lam _ (list (s-bind _ 'x (a-num _))
-                            (s-bind _ 'y (a-bool _)))
-                    (a-num _)
+             (s-lam _ (list (s-bind _ 'x (a-name _ 'Number))
+                            (s-bind _ 'y (a-name _ 'Bool)))
+                    (a-name _ 'Number)
                     (s-block _ (list (s-app _
                                             (s-dot _ (s-id _ 'x) 'send)
                                             (list (s-id _ 'y)))))))
@@ -158,7 +158,7 @@
   | cons: first :: Number, rest :: NumList
 end"
              (s-data _ 'NumList empty (list (s-variant _ 'empty (list))
-                                      (s-variant _ 'cons (list (s-member _ 'first (a-num _))
+                                      (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
                                                                (s-member _ 'rest (a-name _ 'NumList)))))))
 
 (check/block "def my-hypthen-y-ident-i-fier: 10"

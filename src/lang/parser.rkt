@@ -253,9 +253,6 @@
 
 (define-syntax (ann stx)
   (syntax-case stx ()
-    [(_ "Number") #`(a-num #,(srcloc-of-syntax stx))]
-    [(_ "Bool") #`(a-bool #,(srcloc-of-syntax stx))]
-    [(_ "String") #`(a-str #,(srcloc-of-syntax stx))]
     [(_ constructed-ann) #'constructed-ann]))
 
 (define-syntax (name-ann stx)

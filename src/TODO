@@ -15,6 +15,10 @@ HTDP:
 [x] constructed types
 [] Think MOAR about self-reference/method invocation
   [] first class methods
+[x] Change Number/String/Bool into a-names
+[] Have mk-num/str/bool brand
+[] Have global brand checkers for num/str/bool
+[] Desugar function annotations into checks for these brands
 [] Actually compile annotations to checks
 
 [] surface syntax for operators?
