@@ -12,9 +12,10 @@ Redex
 
 HTDP:
 [x] allow hyphens in identifiers
-[] constructed types
+[x] constructed types
 [] Think MOAR about self-reference/method invocation
   [] first class methods
+[] Actually compile annotations to checks
 
 [] surface syntax for operators?
 [] Desugar data
