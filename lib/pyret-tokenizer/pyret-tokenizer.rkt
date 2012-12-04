@@ -189,7 +189,7 @@
 (define Ignore (string-append Whitespace 
                               (any (string-append "\\\r?\n"  Whitespace))
                               (maybe Comment)))
-(define Name @r{[a-zA-Z_\-][a-zA-Z_\-]*})
+(define Name @r{[a-zA-Z_][a-zA-Z0-9$_\-]*})
 
 (define Hexnumber @r{0[xX][\da-fA-F]+[lL]?})
 (define Octnumber @r{(0[oO][0-7]+)|(0[0-7]*)[lL]?})
