@@ -98,10 +98,10 @@
 (check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-num _))
                                          (s-str _ "hello")))
 
-(check/block "fun foo(x) :: (Number -> Number): 'should return a function from num to num' end" 
+(check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
              (s-fun _ 'foo (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-num _)) (a-num _))
                     (s-block _ (list (s-str _ _)))))
-(check/block "fun foo(x :: Bool) :: Bool: x end" 
+(check/block "fun foo(x :: Bool) -> Bool: x end" 
              (s-fun _ 'foo (list (s-bind _ 'x (a-bool _))) (a-bool _)
                     (s-block _ (list (s-id _ 'x)))))
 
@@ -115,6 +115,30 @@
                                                      (a-field _ "a" (a-bool _)))))
                     (s-num _ 4)))
 
+(check/block " \\(x)"
+             (s-lam _ (list)
+                    (a-blank)
+                    (s-block _ (list (s-id _ 'x)))))
+
+(check/block " \\-> Number: (x)"
+             (s-lam _ (list)
+                    (a-num _)
+                    (s-block _ (list (s-id _ 'x)))))
+
+(check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
+             (s-lam _ (list (s-bind _ 'x (a-num _))
+                            (s-bind _ 'y (a-bool _)))
+                    (a-num _)
+                    (s-block _ (list (s-app _
+                                            (s-dot _ (s-id _ 'x) 'send)
+                                            (list (s-id _ 'y)))))))
+
+(check/block "\\x,y,z: (x)"
+             (s-lam _ (list (s-bind _ 'x (a-blank))
+                            (s-bind _ 'y (a-blank))
+                            (s-bind _ 'z (a-blank)))
+                    (a-blank)
+                    (s-block _ (list (s-id _ 'x)))))
 
 (check/block "cond: | true => 1 | false => 2 end" 
              (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))

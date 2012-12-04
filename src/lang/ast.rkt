@@ -8,6 +8,8 @@
   (struct-out s-cond)
   (struct-out s-cond-branch)
 
+  (struct-out s-lam)
+
   (struct-out s-field)
   (struct-out s-method)
   (struct-out s-obj)
@@ -69,7 +71,9 @@ these metadata purposes.
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
-                     s-dot-method s-bracket-method))
+                     s-dot-method s-bracket-method s-lam))
+
+(struct: s-lam ((syntax : srcloc) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
 
 (define-type Member (U s-field s-method))
 (struct: s-field ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)

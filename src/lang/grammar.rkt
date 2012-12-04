@@ -9,7 +9,7 @@ stmt: def-expr | fun-expr | data-expr | expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
       | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-      | cond-expr
+      | cond-expr | lambda-expr
 
 id-expr: NAME
 
@@ -33,7 +33,14 @@ ann-last-arg-elt: NAME "::" ann
 args: "(" (arg-elt|ann-arg-elt)* (last-arg-elt|ann-last-arg-elt) ")" | "(" ")"
 fun-expr:
    "fun" NAME args ":" block "end" |
-   "fun" NAME args "::" ann ":" block "end"
+   "fun" NAME args "->" ann ":" block "end"
+
+lambda-args: (arg-elt|ann-arg-elt)* (last-arg-elt|ann-last-arg-elt)
+lambda-expr:
+   BACKSLASH lambda-args ":" "(" block ")"
+ | BACKSLASH lambda-args "->" ann ":" "(" block ")"
+ | BACKSLASH "(" block ")"
+ | BACKSLASH "->" ann ":" "(" block ")"
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"

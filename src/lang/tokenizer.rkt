@@ -29,6 +29,8 @@
               (pt (token-NUMBER text))]
              [(STRING) 
               (pt (token-STRING text))]
+             [(BACKSLASH)
+              (pt (token-BACKSLASH "\\"))]
              [(COMMENT) (loop)]
              [(NL) (loop)]
              [(NEWLINE) (loop)]

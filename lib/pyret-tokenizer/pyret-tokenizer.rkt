@@ -157,6 +157,7 @@
 (define NEWLINE 'NEWLINE)
 (define DEDENT 'DEDENT)
 (define INDENT 'INDENT)
+(define BACKSLASH 'BACKSLASH)
 (define ERRORTOKEN 'ERRORTOKEN)
 (define ENDMARKER 'ENDMARKER)
 
@@ -237,7 +238,7 @@
                         @r{~}))
 
 (define Bracket "[][(){}]")
-(define Special (group "\r?\n" @r{::} @r|{[:;.,`@]}|))
+(define Special (group @r{\\} "\r?\n" @r{::} @r|{[:;.,`@]}|))
 (define Funny (group Operator Bracket Special))
 
 (define PlainToken (group Number Funny String Name))
@@ -562,8 +563,9 @@
                       (yield-list STRING token spos epos line)])]
                   [(set-member? namechars initial)                  ;; ordinary name
                    (yield-list NAME token spos epos line)]               
+                  ;; NOTE(joe): altered for Pyret, which uses \\ for lambda
                   [(char=? initial #\\)                             ;; continued stmt
-                   (set! continued? #t)]
+                   (yield-list BACKSLASH token spos epos line)]
                   [else
                    (cond [(or (char=? initial #\() (char=? initial #\[) (char=? initial #\{))
                           (++ parenlev)]
