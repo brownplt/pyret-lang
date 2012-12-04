@@ -154,3 +154,6 @@ end"
              (s-data _ 'NumList (list (s-variant _ 'empty (list))
                                       (s-variant _ 'cons (list (s-member _ 'first (a-num _))
                                                                (s-member _ 'rest (a-name _ 'NumList)))))))
+
+(check/block "def my-hypthen-y-ident-i-fier: 10"
+             (s-def _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))

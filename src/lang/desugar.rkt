@@ -5,7 +5,7 @@
 
 (define (variant-defs/list super-brand variants)
   (define (make-checker-name s)
-    (string->symbol (string-append "is_" (symbol->string s))))
+    (string->symbol (string-append "is-" (symbol->string s))))
   (define (member->field m val)
     (s-field (s-member-syntax m)
              (symbol->string (s-member-name m))
