@@ -11,10 +11,15 @@
 (define (check-pyret-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
 
+(define-syntax check-pyret-match
+  (syntax-rules ()
+    [(_ str expected)
+      (check-match (eval-pyret str) expected)]))
 
 (define five (mk-num 5))
 (define two (mk-num 2))
 (define ten (mk-num 10))
+
 
 (check-pyret-match "5" (p-num _ _ (set) x 5))
 
@@ -76,6 +81,7 @@
 (check-pyret-exn "def sealed: seal({x:37}, []) sealed.x = 4" "set-field:")
 (check-pyret "def sealed: seal({}, ['x']) sealed.x = 2 sealed.x" two)
 (check-pyret "def sealed: seal({x:37}, ['x']) sealed.x = 5 sealed.x" five)
+
 ;; you can add fields that overwrite meta-fields (though this use of
 ;; number-objects is dubious).  Perhaps number-objects should be frozen
 ;; by default to not allow this.  For now, using this as a test of a 

@@ -1,6 +1,6 @@
 #lang racket
 
-(provide parse-pyret eval-pyret check-match check-pyret-match)
+(provide parse-pyret eval-pyret check-match)
 (require rackunit
          "../lang/compile.rkt"
          "../lang/tokenizer.rkt"
@@ -61,7 +61,4 @@
      (syntax/loc stx (check-match actual expected #t))]))
 
 
-(define-syntax check-pyret-match
-  (syntax-rules ()
-    [(_ str expected)
-      (check-match (eval-pyret str) expected)]))
+
