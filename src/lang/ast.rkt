@@ -126,7 +126,3 @@ these metadata purposes.
 (struct: a-record ((syntax : srcloc) (fields : (Listof a-field))) #:transparent)
 (struct: a-app ((syntax : srcloc) (name : Symbol) (parameters : (Listof Ann))) #:transparent)
 
-;; used for creating ad hoc AST nodes that didn't come from surface
-;; syntax
-(define dummy #'dummy-syntax)
-
