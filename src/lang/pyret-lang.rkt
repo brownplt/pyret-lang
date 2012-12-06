@@ -5,7 +5,7 @@
   #%top-interaction
   #%datum
   #%top
-  eval-pyret
+  repl-eval-pyret
   print-pyret
   (all-from-out "runtime.rkt"))
 (require "eval.rkt" "runtime.rkt")

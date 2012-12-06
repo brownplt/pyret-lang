@@ -50,6 +50,7 @@ Cleanup:
 [] can we use ()? instead of multiple arms in grammar.rkt?
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
+[] in compile-tests, ensure a fresh namespace before each run
 
 [] application should check type better?
 

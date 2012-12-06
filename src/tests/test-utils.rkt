@@ -6,7 +6,8 @@
          "../lang/tokenizer.rkt"
          "../lang/typecheck.rkt"
          "../lang/desugar.rkt"
-         "../lang/runtime.rkt")
+         "../lang/runtime.rkt"
+         "../lang/eval.rkt")
 
 
 (dynamic-require "../lang/parser.rkt" 0)
@@ -21,7 +22,7 @@
     rt-ns))
 
 (define (compile-str str)
-  (compile-pyret (typecheck-pyret (desugar-pyret (parse-pyret str)))))
+  (pyret->racket "test-utils" (open-input-string str)))
 
 ;; note - using eval-syntax below misses an important "enrichment" step:
 ;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
