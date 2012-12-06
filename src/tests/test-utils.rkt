@@ -1,13 +1,17 @@
 #lang racket
 
-(provide parse-pyret eval-pyret check-match)
-(require rackunit
-         "../lang/compile.rkt"
-         "../lang/tokenizer.rkt"
-         "../lang/typecheck.rkt"
-         "../lang/desugar.rkt"
-         "../lang/runtime.rkt"
-         "../lang/eval.rkt")
+(provide
+  parse-pyret
+  eval-pyret
+  check-match)
+(require
+  rackunit
+  "../lang/compile.rkt"
+  "../lang/tokenizer.rkt"
+  "../lang/typecheck.rkt"
+  "../lang/desugar.rkt"
+  "../lang/runtime.rkt"
+  "../lang/eval.rkt")
 
 
 (dynamic-require "../lang/parser.rkt" 0)

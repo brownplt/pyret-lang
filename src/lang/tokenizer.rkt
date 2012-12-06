@@ -2,9 +2,15 @@
 
 ;; NOTE(joe): This has been ripped from Danny's test cases for
 ;; autogrammar
-(require "grammar.rkt" rackunit racket/match racket/generator parser-tools/lex
-         "../../lib/pyret-tokenizer/main.rkt")
-(provide get-syntax)
+(provide
+  get-syntax)
+(require
+  rackunit
+  racket/match
+  racket/generator
+  parser-tools/lex
+  "../../lib/pyret-tokenizer/main.rkt"
+  "grammar.rkt")
 
 (define (adapt-pyret-tokenizer ip)
   (define tokens (sequence->generator (generate-tokens ip)))

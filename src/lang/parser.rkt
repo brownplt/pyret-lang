@@ -1,7 +1,10 @@
 #lang racket
 
-(require "ast.rkt")
-(provide (all-from-out racket) (all-defined-out))
+(provide
+  (all-from-out racket)
+  (all-defined-out))
+(require
+  "ast.rkt")
 
 ;; borrowed from dyoo's brainfudge
 (define-for-syntax (srcloc-of-syntax stx)
@@ -19,10 +22,10 @@
   (map string->symbol (syntax->datum stx)))
 
 (define-for-syntax (parse-id stx)
-  (datum->syntax #'#%module-begin (string->symbol (syntax->datum stx))))
+  (datum->syntax #f (string->symbol (syntax->datum stx))))
 
 (define-for-syntax (parse-ids stx)
-  (datum->syntax #'#%module-begin (map string->symbol (syntax->datum stx))))
+  (datum->syntax #f (map string->symbol (syntax->datum stx))))
 
 (define-syntax (program stx)
   (syntax-case stx ()
@@ -53,12 +56,12 @@
     [(_ str)
      (let* [(str-val (syntax->datum #'str))
             (real-str (substring str-val 1 (sub1 (string-length str-val))))]
-       (with-syntax ([s (datum->syntax #'id-expr real-str)])
+       (with-syntax ([s (datum->syntax #'string-expr real-str)])
          #`(s-str #,(srcloc-of-syntax stx) s)))]))
 
 (define-syntax (num-expr stx)
   (syntax-case stx ()
-    [(_ num) (with-syntax ([n (datum->syntax #'id-expr (string->number (syntax->datum #'num)))])
+    [(_ num) (with-syntax ([n (datum->syntax #'num-expr (string->number (syntax->datum #'num)))])
                #`(s-num #,(srcloc-of-syntax stx) n))]))
 
 (define-syntax (bool-expr stx)

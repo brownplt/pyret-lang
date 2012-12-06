@@ -1,7 +1,9 @@
 #lang racket
 
-(require "ast.rkt")
-(provide desugar-pyret)
+(provide
+  desugar-pyret)
+(require
+  "ast.rkt")
 
 (define (variant-defs/list super-brand variants)
   (define (make-checker-name s)

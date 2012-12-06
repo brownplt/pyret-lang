@@ -1,10 +1,16 @@
 #lang racket
 
-(provide (rename-out [my-read read]
-                     [my-read-syntax read-syntax]))
+(provide
+  (rename-out [my-read read]
+              [my-read-syntax read-syntax]))
 
-(require "tokenizer.rkt" "compile.rkt" "desugar.rkt" "typecheck.rkt" "eval.rkt")
-(require racket/runtime-path)
+(require
+  racket/runtime-path
+  "tokenizer.rkt"
+  "compile.rkt"
+  "desugar.rkt"
+  "typecheck.rkt"
+  "eval.rkt")
 
 (define-runtime-module-path parser "parser.rkt")
 (define-runtime-module-path pyret-lang "pyret-lang.rkt")

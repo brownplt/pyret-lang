@@ -1,8 +1,12 @@
 #lang racket
 
-(require racket/match racket/splicing)
-(require "ast.rkt" "runtime.rkt")
-(provide compile-pyret)
+(provide
+  compile-pyret)
+(require
+  racket/match
+  racket/splicing
+  "ast.rkt"
+  "runtime.rkt")
 
 
 (define (compile-pyret ast-node)

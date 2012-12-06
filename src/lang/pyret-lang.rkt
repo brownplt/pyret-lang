@@ -8,6 +8,8 @@
   repl-eval-pyret
   print-pyret
   (all-from-out "runtime.rkt"))
-(require "eval.rkt" "runtime.rkt")
+(require
+  "eval.rkt"
+  "runtime.rkt")
 
 

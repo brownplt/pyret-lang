@@ -1,8 +1,16 @@
 #lang racket
 
-(provide repl-eval-pyret print-pyret pyret->racket)
-(require "tokenizer.rkt" "desugar.rkt" "typecheck.rkt" "compile.rkt" "runtime.rkt")
-(require racket/runtime-path)
+(provide
+  repl-eval-pyret
+  print-pyret
+  pyret->racket)
+(require
+  racket/runtime-path
+  "tokenizer.rkt"
+  "desugar.rkt"
+  "typecheck.rkt"
+  "compile.rkt"
+  "runtime.rkt")
 
 (define-runtime-module-path parser "parser.rkt")
 (dynamic-require parser 0)

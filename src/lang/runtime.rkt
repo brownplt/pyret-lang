@@ -1,32 +1,32 @@
 #lang typed/racket
 
 (provide
- (struct-out none)
- (struct-out p-base)
- (struct-out p-object)
- (struct-out p-list)
- (struct-out p-num)
- (struct-out p-bool)
- (struct-out p-str)
- (struct-out p-fun)
- mk-object
- mk-list
- mk-num
- mk-bool
- mk-str
- mk-fun
- meta-null
- get-dict
- get-seal
- get-field
- set-field
- has-field?
- reseal
- flatten
- pyret-true?
- (rename-out [p-pi pi])
- (rename-out [seal-pfun seal])
- (rename-out [brander-pfun brander]))
+  (struct-out none)
+  (struct-out p-base)
+  (struct-out p-object)
+  (struct-out p-list)
+  (struct-out p-num)
+  (struct-out p-bool)
+  (struct-out p-str)
+  (struct-out p-fun)
+  mk-object
+  mk-list
+  mk-num
+  mk-bool
+  mk-str
+  mk-fun
+  meta-null
+  get-dict
+  get-seal
+  get-field
+  set-field
+  has-field?
+  reseal
+  flatten
+  pyret-true?
+  (rename-out [p-pi pi])
+  (rename-out [seal-pfun seal])
+  (rename-out [brander-pfun brander]))
 
 (define-type Value (U p-object p-list p-num p-bool p-str p-fun))
 
