@@ -1,8 +1,6 @@
 #lang racket
 
-(provide
-  (all-from-out racket)
-  (all-defined-out))
+(provide (all-defined-out))
 (require
   "ast.rkt")
 
