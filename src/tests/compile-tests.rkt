@@ -163,6 +163,9 @@
 (check-pyret "cond: | 2:lessthan(3) => 10 end" ten)
 (check-pyret-exn "cond: | 4:lessthan(3) => 10 end" "cond:")
 
+;; shouldn't lift defs out of cond
+(check-pyret-exn "cond: | true => def zed: 5 zed end zed" "undefined")
+
 #;(check-pyret-exn "def x :: Number: true" "type:")
 #;(check-pyret "def x :: Number: 5 x" five)
 #;(check-pyret-exn "def x :: Number: 5 x = 'not-a-num'" "type:")
