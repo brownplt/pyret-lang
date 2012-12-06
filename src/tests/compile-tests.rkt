@@ -129,13 +129,14 @@
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
                    (p-bool _ _ _ _ #t))
 
-(check-pyret "3.add(3, 2)" five)
-(check-pyret "10.minus(10, 5)" five)
+;; TODO(joe): turn these into tests for : when you can
+#;(check-pyret "3.add(3, 2)" five)
+#;(check-pyret "10.minus(10, 5)" five)
 
-(check-pyret "3:add(2)" five)
+(check-pyret "3.add(2)" five)
 
 ;; two not three because side effects should happen only once
-(check-pyret "def x: 0 fun f(): x = x:add(1) x end f():add(1)" two)
+(check-pyret "def x: 0 fun f(): x = x.add(1) x end f().add(1)" two)
 
 (check-pyret-exn "{extend seal({x:5},[]) with y:6}.x" "get-field:")
 
@@ -144,7 +145,8 @@
 
 
 (check-pyret "{extend {x:5} with y:6 }.x" five)
-(check-pyret "{extend 5 with y:6}.add(2,3)" five)
+;; TODO(joe): change this to use : for method extraction
+#;(check-pyret "{extend 5 with y:6}.add(2,3)" five)
 (check-pyret "{extend seal({x:5}, []) with x:10 }.x" ten)
 (check-pyret-match "{extend seal({x:5},[]) with x:10 }"
                    (p-object _ (hash-table) _ (hash-table ("x" (p-num _ _ _ _ 10)))))
@@ -159,9 +161,9 @@
 (check-pyret "cond: | true => 2 | false => 1 end" two)
 (check-pyret "cond: | false => 2 | true => 10 end" ten)
 (check-pyret "cond: | true => 2 | true => 1 end" two)
-(check-pyret "cond: | 3:lessthan(2) => 10 | true => 2 end" two)
-(check-pyret "cond: | 2:lessthan(3) => 10 end" ten)
-(check-pyret-exn "cond: | 4:lessthan(3) => 10 end" "cond:")
+(check-pyret "cond: | 3.lessthan(2) => 10 | true => 2 end" two)
+(check-pyret "cond: | 2.lessthan(3) => 10 end" ten)
+(check-pyret-exn "cond: | 4.lessthan(3) => 10 end" "cond:")
 
 ;; shouldn't lift defs out of cond
 (check-pyret-exn "cond: | true => def zed: 5 zed end zed" "undefined")
@@ -170,4 +172,7 @@
 #;(check-pyret "def x :: Number: 5 x" five)
 #;(check-pyret-exn "def x :: Number: 5 x = 'not-a-num'" "type:")
 
+(check-pyret "{f(self): self.x, x:5}.f()" five)
+(check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
+(check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
 

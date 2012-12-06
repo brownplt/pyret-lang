@@ -75,7 +75,7 @@ these metadata purposes.
 
 (define-type Member (U s-field s-method))
 (struct: s-field ((syntax : srcloc) (name : String) (value : Expr)) #:transparent)
-(struct: s-method ((syntax : srcloc) (name : String) (args : (Listof Symbol)) (body : Block)) #:transparent)
+(struct: s-method ((syntax : srcloc) (name : String) (args : (Listof s-bind)) (body : s-block)) #:transparent)
 
 (struct: s-onion ((syntax : srcloc) (super : Expr) (fields : (Listof Member))) #:transparent)
 (struct: s-obj ((syntax : srcloc) (fields : (Listof Member))) #:transparent)

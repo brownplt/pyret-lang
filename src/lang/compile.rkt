@@ -16,7 +16,13 @@
       [(s-field _ name value)
        (with-syntax ([name-stx (d->stx name)]
                      [val-stx (compile-pyret value)]) 
-         #'(cons name-stx val-stx))]))
+         #'(cons name-stx val-stx))]
+      [(s-method _ name args body)
+       (with-syntax ([name-stx (d->stx name)]
+                     [(arg ...) (d->stx (map compile-pyret args))]
+                     [body-stx (compile-pyret body)]) 
+         #'(cons name-stx
+                 (mk-method (lambda (arg ...) body-stx))))]))
   (match ast-node
 
     [(s-num _ n) #`(mk-num #,(d->stx n))]

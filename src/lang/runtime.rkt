@@ -15,6 +15,7 @@
   mk-bool
   mk-str
   mk-fun
+  mk-method
   meta-null
   get-dict
   get-seal
@@ -28,7 +29,7 @@
   (rename-out [seal-pfun seal])
   (rename-out [brander-pfun brander]))
 
-(define-type Value (U p-object p-list p-num p-bool p-str p-fun))
+(define-type Value (U p-object p-list p-num p-bool p-str p-fun p-method))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -45,6 +46,7 @@
 (struct: p-bool p-base ((b : Boolean)) #:transparent)                
 (struct: p-str p-base ((s : String)) #:transparent)
 (struct: p-fun p-base ((f : Procedure)) #:transparent)
+(struct: p-method p-base ((f : Procedure)) #:transparent)
 
 (define meta-null ((inst make-immutable-hash String Value) '()))
 
@@ -66,6 +68,9 @@
 (define: (mk-fun (f : Procedure)) : Value
   (p-fun (none) meta-null (set) (make-hash) f))
 
+(define: (mk-method (f : Procedure)) : Value
+  (p-method (none) meta-null (set) (make-hash) f))
+
 (define: (get-dict (v : Value)) : Dict
   (p-base-dict v))
 
@@ -80,7 +85,15 @@
 
 (define: (get-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
-      (hash-ref (get-dict v) f (thunk (hash-ref (get-meta v) f)))
+      (let [(field (hash-ref (get-dict v)
+                             f
+                             (thunk (hash-ref (get-meta v) f))))]
+        (match field
+         [(p-method _ _ _ _ f)
+          (mk-fun (lambda: (args : Value *)
+            ;; TODO(joe): Can this by typechecked?  I think maybe
+            (cast (apply f (cons v args)) Value )))]
+         [_ field]))
       (error (format "get-field: field not found: ~a" f))))
 
 (define: (set-field (o : Value) (f : String) (v : Value)) : Value
@@ -95,7 +108,8 @@
     [(p-num _ m b h n) (p-num new-seal m b h n)]
     [(p-bool _ m b h t) (p-bool new-seal m b h t)]
     [(p-str _ m b h s) (p-str new-seal m b h s)]
-    [(p-fun _ m b h f) (p-fun new-seal m b h f)]))
+    [(p-fun _ m b h f) (p-fun new-seal m b h f)]
+    [(p-method _ m b h f) (p-method new-seal m b h f)]))
 
 (define: (add-brand (v : Value) (new-brand : Symbol)) : Value
   (define: bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
@@ -105,7 +119,8 @@
     [(p-num s m _ h n) (p-num s m bs h n)]
     [(p-bool s m _ h b) (p-bool s m bs h b)]
     [(p-str sl m _ h s) (p-str sl m bs h s)]
-    [(p-fun s m _ h f) (p-fun s m bs h f)]))
+    [(p-fun s m _ h f) (p-fun s m bs h f)]
+    [(p-method s m _ h f) (p-method s m bs h f)]))
 
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
   (set-member? (get-brands v) brand))
@@ -205,10 +220,10 @@
        (error (format "num: cannot ~a ~a" op v))])))
 
 (define: (mk-num-fun (op : (Number Number -> Number))) : Value
-  (mk-fun (mk-num-impl op)))
+  (mk-method (mk-num-impl op)))
 
 (define: (mk-single-num-fun (op : (Number -> Value))) : Value
-  (mk-fun (mk-single-num-impl op)))
+  (mk-method (mk-single-num-impl op)))
 
 (define: (numify (f : (Number -> Number)))
          : (Number -> Value)
@@ -229,19 +244,19 @@
       ("sqr" . ,(mk-single-num-fun (numify sqr)))
       ("tostring" . ,(mk-single-num-fun (stringify number->string)))
       ("expt" . ,(mk-num-fun expt))
-      ("equals" . ,(mk-fun
+      ("equals" . ,(mk-method
                    (mk-num-bool-impl
                     (cast = (Number Number -> Boolean)))))
-      ("lessthan" . ,(mk-fun 
+      ("lessthan" . ,(mk-method 
                       (mk-num-bool-impl 
                        (cast < (Number Number -> Boolean)))))
-      ("greaterthan" . ,(mk-fun 
+      ("greaterthan" . ,(mk-method 
                       (mk-num-bool-impl 
                        (cast > (Number Number -> Boolean)))))
-      ("lessequal" . ,(mk-fun 
+      ("lessequal" . ,(mk-method 
                       (mk-num-bool-impl 
                        (cast <= (Number Number -> Boolean)))))
-      ("greaterequal" . ,(mk-fun 
+      ("greaterequal" . ,(mk-method 
                       (mk-num-bool-impl 
                        (cast >= (Number Number -> Boolean))))))))
 
@@ -274,10 +289,10 @@
        (error (format "str: cannot ~a ~a" op v))])))
 
 (define: (mk-str-fun (op : (String String -> String))) : Value
-  (mk-fun (mk-str-impl op)))
+  (mk-method (mk-str-impl op)))
 
 (define: (mk-single-str-fun (op : (String -> Value))) : Value
-  (mk-fun (mk-single-str-impl op)))
+  (mk-method (mk-single-str-impl op)))
 
 (define meta-str
   (make-immutable-hash
@@ -289,7 +304,7 @@
           (if (false? n)
               (error (format "str: non-numeric string ~a" s))
               (mk-num n)))))
-      ("equals" . ,(mk-fun (mk-str-bool-impl string=?)))
+      ("equals" . ,(mk-method (mk-str-bool-impl string=?)))
   )))
 
 (define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
@@ -310,10 +325,10 @@
        (error (format "bool: cannot ~a ~a" op v))])))
 
 (define: (mk-bool-fun (op : (Boolean Boolean -> Boolean))) : Value
-  (mk-fun (mk-bool-impl op)))
+  (mk-method (mk-bool-impl op)))
 
 (define: (mk-single-bool-fun (op : (Boolean -> Boolean))) : Value
-  (mk-fun (mk-single-bool-impl op)))
+  (mk-method (mk-single-bool-impl op)))
 
 (define meta-bool
   ;; this is silly, but I don't know how to convince typed-racket

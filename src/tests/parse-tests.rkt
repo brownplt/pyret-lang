@@ -24,6 +24,11 @@
 (check/block "x" (s-id _ 'x))
 (check/block "{x:x}" (s-obj _ (list (s-field _ "x" (s-id _ 'x)))))
 
+(check/block "{f(): x}"
+             (s-obj _ (list (s-method _ "f" (list) (s-block _ (list (s-id _ 'x)))))))
+(check/block "{f(): x end}"
+             (s-obj _ (list (s-method _ "f" (list) (s-block _ (list (s-id _ 'x)))))))
+
 (check/block "f()" (s-app _ (s-id _ 'f) empty))
 (check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
 

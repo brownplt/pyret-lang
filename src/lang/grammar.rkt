@@ -58,8 +58,8 @@ cond-expr: "cond" ":" cond-branch* "end"
    
 field:
    NAME ":" expr
- | NAME args ":" stmt
- | NAME args ":" stmt "end"
+ | NAME args ":" block
+ | NAME args ":" block "end"
 list-field: field ","
 
 # list-field is here because it works better with syntax-matching -

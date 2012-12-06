@@ -67,29 +67,25 @@
     [(_ "true") #`(s-bool #,(loc stx) #t)]
     [(_ "false") #`(s-bool #,(loc stx) #f)]))
 
+(define-syntax (field stx)
+  (syntax-case stx ()
+    [(_ key ":" value) #`(s-field #,(loc stx) key value)]
+    [(_ key args ":" body)
+     #`(s-method #,(loc stx) key args body)]
+    [(_ key args ":" body "end")
+     #`(s-method #,(loc stx) key args body)]))
+
 ;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)
-  (syntax-case stx (field list-field)
-    [(_ "{" (list-field (field key ":" value) ",") ... (field lastkey ":" lastvalue) "}")
-     #`(s-obj #,(loc stx)
-              (append (list (data-field key value) ...)
-                      (list (data-field lastkey lastvalue))))]
+  (syntax-case stx (list-field)
+    [(_ "{" (list-field field ",") ... lastfield "}")
+     #`(s-obj #,(loc stx) (list field ... lastfield))]
     [(_ "{" "}") #`(s-obj #,(loc stx)
                           empty)]
-    [(_ "{" "extend" super-expr "with"
-            (list-field (field key ":" value) ",") ...
-            (field lastkey ":" lastvalue) "}")
-     #`(s-onion #,(loc stx)
-                super-expr
-                (append (list (data-field key value) ...)
-                        (list (data-field lastkey lastvalue))))]
+    [(_ "{" "extend" super-expr "with" (list-field field ",") ...  lastfield "}")
+     #`(s-onion #,(loc stx) super-expr (list field ... lastfield))]
     [(_ "{" "extend" super-expr "}")
      #`(s-onion #,(loc stx) super-expr empty)]))
-
-(define-syntax (data-field stx)
-  (syntax-case stx ()
-    [(_ key value)
-     #`(s-field #,(loc stx) key value)]))
 
 (define-syntax (id-expr stx)
   (syntax-case stx ()
