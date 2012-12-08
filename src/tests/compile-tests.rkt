@@ -177,5 +177,5 @@
 (check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
 
 (check-pyret "Racket.['+'](2, 3)" five)
-(check-pyret-match "Racket.string-append('four', 'tytwo')" (p-str _ _ _ _ "fourtytwo"))
-
+(check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p-str _ _ _ _ "fourtytwo"))
+(check-pyret-exn "Racket.map(4,5)" "map")
