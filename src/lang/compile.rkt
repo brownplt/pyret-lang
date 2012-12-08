@@ -87,6 +87,9 @@
     [(s-dot _ val field)
      #`(get-field #,(compile-pyret val) #,(d->stx (symbol->string field)))]
     
+    [(s-bracket _ val field)
+     #`(get-field #,(compile-pyret val) (p-str-s #,(compile-pyret field)))]
+    
     [(s-dot-assign _ obj field val)
      #`(set-field #,(compile-pyret obj)
                   #,(d->stx (symbol->string field))

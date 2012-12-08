@@ -25,7 +25,9 @@
   reseal
   flatten
   pyret-true?
+  Racket
   (rename-out [p-pi pi])
+  (rename-out [print-pfun print])
   (rename-out [seal-pfun seal])
   (rename-out [brander-pfun brander]))
 
@@ -83,19 +85,28 @@
 (define: (get-brands (v : Value)) : (Setof Symbol)
   (p-base-brands v))
 
-(define: (get-field (v : Value) (f : String)) : Value
-  (if (has-field? v f)
-      (let [(field (hash-ref (get-dict v)
-                             f
-                             (thunk (hash-ref (get-meta v) f))))]
-        (match field
-         [(p-method _ _ _ _ f)
-          (mk-fun (lambda: (args : Value *)
-            ;; TODO(joe): Can this by typechecked?  I think maybe
-            (cast (apply f (cons v args)) Value )))]
-         [_ field]))
-      (error (format "get-field: field not found: ~a" f))))
+(define Racket (mk-object (make-hash)))
 
+(define: (get-racket-fun (f : String)) : Value
+  (define fun (cast (dynamic-require 'racket (string->symbol f)) (Any * -> Any)))
+  (mk-fun (lambda: (args : Value *)
+            (wrap (apply fun (map unwrap args))))))
+
+(define: (get-field (v : Value) (f : String)) : Value
+  (if (eq? v Racket)
+      (get-racket-fun f)
+      (if (has-field? v f)
+          (let [(field (hash-ref (get-dict v)
+                                 f
+                                 (thunk (hash-ref (get-meta v) f))))]
+            (match field
+              [(p-method _ _ _ _ f)
+               (mk-fun (lambda: (args : Value *)
+                         ;; TODO(joe): Can this by typechecked?  I think maybe
+                         (cast (apply f (cons v args)) Value )))]
+              [_ field]))
+          (error (format "get-field: field not found: ~a" f)))))
+  
 (define: (set-field (o : Value) (f : String) (v : Value)) : Value
   (if (in-seal? o f)
       (begin (hash-set! (get-dict o) f v) v)
@@ -340,3 +351,24 @@
        ("or" . ,(mk-bool-fun my-or))
        ("not" . ,(mk-single-bool-fun 
                   (cast not (Boolean -> Boolean))))))))
+
+
+
+
+(define print-pfun (mk-fun pretty-write))
+
+(define: (unwrap (v : Value)) : Any
+  (match v
+    [(p-list s m _ h l) (map unwrap l)]
+    [(p-num s m _ h n) n]
+    [(p-bool s m _ h b) b]
+    [(p-str sl m _ h s) s]
+    [_ (error (format "unwrap: cannot unwrap ~a for Racket" v))]))
+
+(define: (wrap (v : Any)) : Value
+  (cond
+    [(number? v) (mk-num v)]
+    [(string? v) (mk-str v)]
+    [(boolean? v) (mk-bool v)]
+    [(list? v) (mk-list (map wrap v))]
+    [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))

@@ -176,3 +176,6 @@
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
 (check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
 
+(check-pyret "Racket.['+'](2, 3)" five)
+(check-pyret-match "Racket.string-append('four', 'tytwo')" (p-str _ _ _ _ "fourtytwo"))
+
