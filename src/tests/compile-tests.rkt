@@ -179,3 +179,52 @@
 (check-pyret "Racket.['+'](2, 3)" five)
 (check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p-str _ _ _ _ "fourtytwo"))
 (check-pyret-exn "Racket.map(4,5)" "map")
+
+(check-pyret
+ "def x:0
+  do \\f,g: (f() g()) x = 5; x end" five)
+
+;; check expansions of or and and with do
+(check-pyret
+ "fun or(a,b):
+    cond:
+      | a() => true
+      | true => b()
+    end
+  end
+  def x: 5
+  do or true; x = 2 end
+  x" five)
+
+(check-pyret
+ "fun and(a,b):
+    cond:
+      | a() => b()
+      | true => false
+    end
+  end
+  def x: 5
+  do and false; x = 2 end
+  x" five)
+
+(check-pyret
+ "fun and(a,b):
+    cond:
+      | a() => b()
+      | true => false
+    end
+  end
+  def x: 5
+  do and true; x = 2 end
+  x" two)
+
+(check-pyret
+ "fun while(test, body):
+    cond:
+      | test() => body() while(test, body)
+      | true => 'while base case'
+    end
+  end
+  def x: 0
+  do while x.lessthan(10); x = x.add(1) end
+  x" ten)

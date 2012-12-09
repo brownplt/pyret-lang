@@ -36,6 +36,8 @@
   (struct-out s-variant)
   (struct-out s-member)
   
+  (struct-out s-do)
+  
   (struct-out a-blank)
   (struct-out a-any)
   (struct-out a-name)
@@ -61,7 +63,7 @@ these metadata purposes.
 
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann)) #:transparent)
 
-(define-type Stmt (U s-fun s-def s-cond s-data s-block Expr))
+(define-type Stmt (U s-fun s-def s-cond s-data s-block s-do Expr))
 (struct: s-fun ((syntax : srcloc) (name : Symbol) (args : (Listof s-bind)) (ann : Ann) (body : s-block)) #:transparent)
 (struct: s-def ((syntax : srcloc) (name : s-bind) (value : Expr)) #:transparent)
 (struct: s-cond ((syntax : srcloc) (branches : (Listof s-cond-branch))) #:transparent)
@@ -116,6 +118,11 @@ these metadata purposes.
                    (name : Symbol)
                    (ann : Ann))
                   #:transparent)
+
+(struct: s-do ((syntax : srcloc)
+               (init : Stmt)
+               (args : (Listof Stmt)))
+              #:transparent)
 
 (define-type Ann (U a-blank a-any a-name a-arrow a-record a-app))
 (struct: a-blank () #:transparent)

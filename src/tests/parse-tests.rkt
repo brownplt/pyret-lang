@@ -188,3 +188,15 @@ end"
                 (list (s-member _ 'field (a-blank)) 
                       (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))))))
 
+
+(check/block
+ "do while x.lessthan(10); x.add(1) end"
+ (s-do _
+       (s-id _ 'while)
+       (list (s-block _ (list
+                         (s-app _
+                                (s-dot _ (s-id _ 'x) 'lessthan)
+                                (list (s-num _ 10)))))
+             (s-block _ (list (s-app _
+                                     (s-dot _ (s-id _ 'x) 'add)
+                                     (list (s-num _ 1))))))))
