@@ -16,6 +16,9 @@
   mk-str
   mk-fun
   mk-method
+  Number?
+  String?
+  Bool?
   meta-null
   get-dict
   get-seal
@@ -29,9 +32,11 @@
   (rename-out [p-pi pi])
   (rename-out [print-pfun print])
   (rename-out [seal-pfun seal])
-  (rename-out [brander-pfun brander]))
+  (rename-out [brander-pfun brander])
+  (rename-out [check-pfun check]))
 
-(define-type Value (U p-object p-list p-num p-bool p-str p-fun p-method))
+(define-type Value (U p-object p-list p-num p-bool
+		      p-str p-fun p-method))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -86,6 +91,18 @@
   (p-base-brands v))
 
 (define Racket (mk-object (make-hash)))
+
+(define Number?
+  (mk-fun (lambda (n)
+	    (mk-bool (p-num? n)))))
+
+(define String?
+  (mk-fun (lambda (n)
+	    (mk-bool (p-str? n)))))
+
+(define Bool?
+  (mk-fun (lambda (n)
+	    (mk-bool (p-bool? n)))))
 
 (define: (get-racket-fun (f : String)) : Value
   (define fun (cast (dynamic-require 'racket (string->symbol f)) (Any * -> Any)))
@@ -198,6 +215,20 @@
                  (mk-bool (has-brand? v sym)))))))))
 
 (define brander-pfun (mk-fun brander))
+
+(define: (check (ck : Value) (o : Value)) : Value
+  (match ck
+    [(p-fun _ _ _ _ f)
+     (let ((check-v ((cast f (Value -> Value)) o)))
+       (if (and (p-bool? check-v)
+		(p-bool-b check-v))
+	   o
+	   ;; NOTE(dbp): not sure how to give good reporting
+	   (error (format "runtime: check failed on ~a"
+			  (unwrap o)))))]
+    [else (error "runtime: can not check with non-function")]))
+
+(define check-pfun (mk-fun check))
 
 (define (pyret-true? v)
   (match v

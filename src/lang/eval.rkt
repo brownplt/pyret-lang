@@ -1,3 +1,4 @@
+
 #lang racket
 
 (provide
@@ -18,9 +19,9 @@
 
 (define (pyret->racket src in)
   (compile-pyret
-    (typecheck-pyret
-      (desugar-pyret
-        (eval (get-syntax src in) ns)))))
+   (typecheck-pyret
+    (desugar-pyret
+     (eval (get-syntax src in) ns)))))
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from 
