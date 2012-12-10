@@ -117,7 +117,7 @@ these metadata purposes.
 
 (struct: s-app ((syntax : srcloc)
 		(fun : Expr)
-		(args : (Listof Expr)))
+		(args : (Listof Stmt)))
 	 #:transparent)
 
 (struct: s-id ((syntax : srcloc)

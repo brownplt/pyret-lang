@@ -5,7 +5,7 @@
   eval-pyret
   check-match)
 (require
-  rackunit
+  (except-in rackunit check)
   "../lang/compile.rkt"
   "../lang/tokenizer.rkt"
   "../lang/typecheck.rkt"
