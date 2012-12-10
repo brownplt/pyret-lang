@@ -58,4 +58,8 @@
          (s-def s (s-bind s brander-name (a-blank))
                   (s-app s (s-id s 'brander) (list)))
          (variant-defs/list brander-name variants)))]
+    [(s-do s fun args)
+     (define (functionize b)
+       (s-lam s (list) (a-blank) b))
+     (s-app s fun (map functionize args))]
     [else ast]))

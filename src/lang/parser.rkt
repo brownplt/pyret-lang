@@ -253,6 +253,11 @@
                (list)
                (list variant ...))]))
 
+(define-syntax (do-expr stx)
+  (syntax-case stx (do-stmt)
+    [(_ "do" fun-stmt (do-stmt stmt ";") ... last-stmt "end")
+     #`(s-do #,(loc stx) fun-stmt (list stmt ... last-stmt))]))
+
 (define-syntax (ann stx)
   (syntax-case stx ()
     [(_ constructed-ann) #'constructed-ann]))

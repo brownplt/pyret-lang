@@ -4,7 +4,7 @@ program: block ENDMARKER
 
 block: stmt*
 
-stmt: def-expr | fun-expr | data-expr | expr
+stmt: def-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | dot-assign-expr | bracket-assign-expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
@@ -92,6 +92,8 @@ data-expr:
    "data" NAME data-variant+ "end"
  | "data" NAME data-params data-variant+ "end"
 
+do-stmt: block ";"
+do-expr: "do" stmt do-stmt* block "end"
            
 ann: name-ann | record-ann | arrow-ann | app-ann
 
