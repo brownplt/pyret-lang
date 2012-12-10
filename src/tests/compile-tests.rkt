@@ -1,6 +1,9 @@
 #lang racket
 
-(require rackunit "test-utils.rkt" "../lang/runtime.rkt" "match-set.rkt")
+(require rackunit
+	 "test-utils.rkt"
+	 "../lang/runtime.rkt"
+	 "match-set.rkt")
 
 (define-simple-check (check-pyret str expected)
   (equal? (eval-pyret str) expected))
@@ -9,7 +12,8 @@
   (not (equal? (eval-pyret str) expected)))
 
 (define (check-pyret-exn str message)
-  (check-exn (regexp (regexp-quote message)) (lambda () (eval-pyret str))))
+  (check-exn (regexp (regexp-quote message))
+	     (lambda () (eval-pyret str))))
 
 (define-syntax check-pyret-match
   (syntax-rules ()
@@ -228,3 +232,12 @@
   def x: 0
   do while x.lessthan(10); x = x.add(1) end
   x" ten)
+
+;; tests for type annotation runtime checks
+(check-pyret-exn
+ "def x :: Number: 'hello'"
+ "runtime:")
+
+(check-pyret
+ "def x :: String: 'hello'"
+ (void))

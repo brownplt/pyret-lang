@@ -120,7 +120,7 @@ these metadata purposes.
 
 (struct: s-app ((syntax : srcloc)
 		(fun : Expr)
-		(args : (Listof Stmt)))
+		(args : (Listof Expr)))
 	 #:transparent)
 
 (struct: s-id ((syntax : srcloc)

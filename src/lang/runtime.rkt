@@ -16,6 +16,7 @@
   mk-str
   mk-fun
   mk-method
+  Any?
   Number?
   String?
   Bool?
@@ -33,7 +34,7 @@
   (rename-out [print-pfun print])
   (rename-out [seal-pfun seal])
   (rename-out [brander-pfun brander])
-  (rename-out [check-pfun check]))
+  (rename-out [check-brand-pfun check-brand]))
 
 (define-type Value (U p-object p-list p-num p-bool
 		      p-str p-fun p-method))
@@ -91,6 +92,9 @@
   (p-base-brands v))
 
 (define Racket (mk-object (make-hash)))
+
+(define Any?
+  (mk-fun (lambda (o) (mk-bool #t))))
 
 (define Number?
   (mk-fun (lambda (n)
@@ -216,7 +220,7 @@
 
 (define brander-pfun (mk-fun brander))
 
-(define: (check (ck : Value) (o : Value)) : Value
+(define: (check-brand (ck : Value) (o : Value)) : Value
   (match ck
     [(p-fun _ _ _ _ f)
      (let ((check-v ((cast f (Value -> Value)) o)))
@@ -224,11 +228,11 @@
 		(p-bool-b check-v))
 	   o
 	   ;; NOTE(dbp): not sure how to give good reporting
-	   (error (format "runtime: check failed on ~a"
+	   (error (format "runtime: check-brand failed on ~a"
 			  (unwrap o)))))]
-    [else (error "runtime: can not check with non-function")]))
+    [else (error "runtime: can not check-brand with non-function")]))
 
-(define check-pfun (mk-fun check))
+(define check-brand-pfun (mk-fun check-brand))
 
 (define (pyret-true? v)
   (match v
