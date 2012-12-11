@@ -3,12 +3,14 @@
 (provide
   (struct-out none)
   (struct-out p-base)
+  (struct-out p-nothing)
   (struct-out p-object)
   (struct-out p-list)
   (struct-out p-num)
   (struct-out p-bool)
   (struct-out p-str)
   (struct-out p-fun)
+  nothing
   mk-object
   mk-list
   mk-num
@@ -48,6 +50,7 @@
                  (meta : Dict)
                  (brands : (Setof Symbol))
                  (dict : Dict)) #:transparent)
+(struct: p-nothing p-base () #:transparent)
 (struct: p-object p-base () #:transparent)
 (struct: p-list p-base ((l : (Listof Value))) #:transparent)
 (struct: p-num p-base ((n : Number)) #:transparent)
@@ -57,6 +60,8 @@
 (struct: p-method p-base ((f : Procedure)) #:transparent)
 
 (define meta-null ((inst make-immutable-hash String Value) '()))
+
+(define nothing (p-nothing (set) ((inst make-immutable-hash String Value) '()) (set) (make-hash)))
 
 (define: (mk-object (dict : Dict)) : Value
   (p-object (none) meta-null (set) dict))
@@ -141,7 +146,8 @@
     [(p-bool _ m b h t) (p-bool new-seal m b h t)]
     [(p-str _ m b h s) (p-str new-seal m b h s)]
     [(p-fun _ m b h f) (p-fun new-seal m b h f)]
-    [(p-method _ m b h f) (p-method new-seal m b h f)]))
+    [(p-method _ m b h f) (p-method new-seal m b h f)]
+    [(p-nothing _ m b h) (error "seal: Cannot seal nothing")]))
 
 (define: (add-brand (v : Value) (new-brand : Symbol)) : Value
   (define: bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
@@ -152,7 +158,8 @@
     [(p-bool s m _ h b) (p-bool s m bs h b)]
     [(p-str sl m _ h s) (p-str sl m bs h s)]
     [(p-fun s m _ h f) (p-fun s m bs h f)]
-    [(p-method s m _ h f) (p-method s m bs h f)]))
+    [(p-method s m _ h f) (p-method s m bs h f)]
+    [(p-nothing _ m b h) (error "brand: Cannot brand nothing")]))
 
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
   (set-member? (get-brands v) brand))

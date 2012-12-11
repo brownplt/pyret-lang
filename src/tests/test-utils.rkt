@@ -1,6 +1,11 @@
 #lang racket
 
 (provide
+  check-pyret-fail
+  check-pyret-exn
+  check-pyret-match
+  check-pyret
+  compile-str
   parse-pyret
   eval-pyret
   check-match)
@@ -66,4 +71,18 @@
      (syntax/loc stx (check-match actual expected #t))]))
 
 
+(define-simple-check (check-pyret str expected)
+  (equal? (eval-pyret str) expected))
+
+(define-simple-check (check-pyret-fail str expected)
+  (not (equal? (eval-pyret str) expected)))
+
+(define (check-pyret-exn str message)
+  (check-exn (regexp (regexp-quote message))
+	     (lambda () (eval-pyret str))))
+
+(define-syntax check-pyret-match
+  (syntax-rules ()
+    [(_ str expected)
+      (check-match (eval-pyret str) expected)]))
 

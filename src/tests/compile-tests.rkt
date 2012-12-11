@@ -5,25 +5,10 @@
 	 "../lang/runtime.rkt"
 	 "match-set.rkt")
 
-(define-simple-check (check-pyret str expected)
-  (equal? (eval-pyret str) expected))
-
-(define-simple-check (check-pyret-fail str expected)
-  (not (equal? (eval-pyret str) expected)))
-
-(define (check-pyret-exn str message)
-  (check-exn (regexp (regexp-quote message))
-	     (lambda () (eval-pyret str))))
-
-(define-syntax check-pyret-match
-  (syntax-rules ()
-    [(_ str expected)
-      (check-match (eval-pyret str) expected)]))
 
 (define five (mk-num 5))
 (define two (mk-num 2))
 (define ten (mk-num 10))
-
 
 (check-pyret-match "5" (p-num _ _ (set) x 5))
 
@@ -97,7 +82,7 @@
 
 (check-pyret "fun f(x): x = 2 x end f(1)" two)
 (check-pyret "fun f(x): x = 2 x = 5 x end f(1)" five)
-(check-pyret-exn "fun f(x): y = 2 x end f(1)" "set!:")
+(check-pyret-exn "fun f(x): y = 2 x end f(1)" "Unbound id")
 (check-pyret "fun f(x): fun g(): x = 2 end g() x end f(1)" two)
 (check-pyret "fun f(x): fun g(x): x = 2 end g(1) x end f(5)" five)
 (check-pyret "fun fundo(o):
@@ -172,10 +157,6 @@
 ;; shouldn't lift defs out of cond
 (check-pyret-exn "cond: | true => def zed: 5 zed end zed" "undefined")
 
-#;(check-pyret-exn "def x :: Number: true" "type:")
-#;(check-pyret "def x :: Number: 5 x" five)
-#;(check-pyret-exn "def x :: Number: 5 x = 'not-a-num'" "type:")
-
 (check-pyret "{f(self): self.x, x:5}.f()" five)
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
 (check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
@@ -233,11 +214,3 @@
   do while x.lessthan(10); x = x.add(1) end
   x" ten)
 
-;; tests for type annotation runtime checks
-(check-pyret-exn
- "def x :: Number: 'hello'"
- "runtime:")
-
-(check-pyret
- "def x :: String: 'hello'"
- (void))

@@ -13,11 +13,12 @@ Redex
 HTDP:
 [x] allow hyphens in identifiers
 [x] constructed types
-[] Think MOAR about self-reference/method invocation
-  [] first class methods
+[x] Think MOAR about self-reference/method invocation
+[] first class methods
 [x] Change Number/String/Bool into a-names
 [] Have mk-num/str/bool brand
 [] Have global brand checkers for num/str/bool
+
 [] Desugar function annotations into checks for these brands
 [] Actually compile annotations to checks
 
@@ -35,6 +36,8 @@ HTDP:
 [] Lists built in
 [] How should short-circuiting booleans work?
 
+[] currying
+[] srcloc for a-any
 
 Cleanup:
 [x] make helper for id-parsing
@@ -51,6 +54,7 @@ Cleanup:
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] in compile-tests, ensure a fresh namespace before each run
+[] cond implicit else should be in desugar, not compile
 
 [] application should check type better?
 

@@ -48,6 +48,47 @@
 )
 
 #|
+(define (f-member ast-node)
+    (match ast-node
+      [(s-field _ name value) ]
+      [(s-method _ name args body) ]))
+  (match ast-node
+    
+    [(s-block _ l) ]
+
+    [(s-num _ n) ]
+    [(s-bool _ b) ]
+    [(s-str _ s) ]
+
+    [(s-lam _ args ann body) ]
+    
+    [(s-cond _ c-bs) ]
+    
+    [(s-cond-branch _ tst blk) ]
+    
+    [(s-id _ name) ]
+    
+    [(s-assign _ name expr) ]
+
+    [(s-app _ fun args) ]
+
+    [(s-onion _ super fields) ]
+
+    [(s-obj _ fields) ]
+    
+    [(s-list _ elts) ]
+    
+    [(s-dot _ val field) ]
+    
+    [(s-bracket _ val field) ]
+    
+    [(s-dot-assign _ obj field val) ]
+
+    [(s-dot-method _ obj field args) ]
+    
+|#
+
+#|
 
 The concrete AST for surface Pyret.
 
@@ -65,7 +106,7 @@ these metadata purposes.
 	 #:transparent)
 
 
-(define-type Stmt (U s-fun s-def s-cond s-data s-block s-do Expr))
+(define-type Stmt (U s-fun s-def s-cond s-data s-do Expr))
 (struct: s-fun ((syntax : srcloc)
 		(name : Symbol)
 		(args : (Listof s-bind))
@@ -87,7 +128,8 @@ these metadata purposes.
 (define-type Expr (U s-obj s-onion s-list s-app s-id
 		     s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
-                     s-dot-method s-bracket-method s-lam))
+                     s-dot-method s-bracket-method s-lam
+                     s-block))
 
 (struct: s-lam ((syntax : srcloc)
 		(args : (Listof s-bind))
@@ -188,13 +230,17 @@ these metadata purposes.
                (args : (Listof Stmt)))
               #:transparent)
 
-(define-type Ann (U a-blank a-any a-name a-arrow a-record a-app))
+(define-type Ann (U a-blank a-any a-name a-arrow a-method a-record a-app))
 (struct: a-blank () #:transparent)
 (struct: a-any () #:transparent)
 (struct: a-name ((syntax : srcloc) (id : Symbol)) #:transparent)
 (struct: a-arrow ((syntax : srcloc)
 		  (args : (Listof Ann))
 		  (ret : Ann))
+	 #:transparent)
+(struct: a-method ((syntax : srcloc)
+                   (args : (Listof Ann))
+                   (ret : Ann))
 	 #:transparent)
 (struct: a-field ((syntax : srcloc)
 		  (name : String)

@@ -48,18 +48,55 @@
   (map variant-defs variants))
 
 (define (desugar-pyret ast)
+  (define ds desugar-pyret)
+  (define (ds-member ast-node)
+    (match ast-node
+      [(s-field s name value) (s-field s name (ds value))]
+      [(s-method s name args body) (s-method s name args (ds body))]))
   (match ast
     [(s-block s stmts)
-     (s-block s (map desugar-pyret stmts))]
+     (s-block s (map ds stmts))]
+    ;; NOTE(joe): generative...
     [(s-data s name params variants)
      (define brander-name (gensym name))
-     (s-block s
-       (cons
-         (s-def s (s-bind s brander-name (a-blank))
-                  (s-app s (s-id s 'brander) (list)))
-         (variant-defs/list brander-name variants)))]
+     (ds (s-block s
+                  (cons
+                   (s-def s (s-bind s brander-name (a-blank))
+                          (s-app s (s-id s 'brander) (list)))
+                   (variant-defs/list brander-name variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s (list) (a-blank) b))
+       (s-lam s (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
+    [(s-fun s name args ann body)
+     (s-def s
+            (s-bind s name (a-arrow s (map s-bind-ann args) ann))
+            (s-lam s args ann (ds body)))]
+
+    [(s-lam s args ann body)
+     (s-lam s args ann (ds body))]
+    
+    [(s-cond s c-bs)
+     (define (ds-cond branch)
+       (match branch
+         [(s-cond-branch s tst blk) (s-cond-branch s (ds tst) (ds blk))]))
+     (s-cond s (map ds-cond c-bs))]
+
+    [(s-assign s name expr) (s-assign s name (ds expr))]
+
+    [(s-app s fun args) (s-app s (ds fun) (map ds args))]
+
+    [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
+
+    [(s-obj s fields) (s-obj s (map ds-member fields))]
+    
+    [(s-list s elts) (s-list s (map ds elts))]
+    
+    [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
+    
+    [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
+    
+    [(s-dot-assign s obj field val) (s-dot-assign s (ds obj) field (ds val))]
+
+    [(s-dot-method s obj field args) (s-dot-method s (ds obj) field (map ds args))]
     [else ast]))
