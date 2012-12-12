@@ -5,9 +5,29 @@
 (require
   "ast.rkt")
 
-(define (variant-defs/list super-brand variants)
-  (define (make-checker-name s)
+;; internal name
+(define (make-checker-type-name s)
+    (string->symbol (string-append (symbol->string s) "?")))
+;; user-visible name
+(define (make-checker-name s)
     (string->symbol (string-append "is-" (symbol->string s))))
+
+(define (make-checker s name brander)
+  (s-block
+   s
+   (list
+    (s-fun s (make-checker-name name)
+           (list (s-bind s 'specimen (a-any)))
+           (a-blank)
+           (s-block s
+                    (list
+                     (s-app s (s-dot s brander 'check)
+                            (list (s-id s 'specimen))))))
+    (s-def s
+           (s-bind s (make-checker-type-name name) (a-blank))
+           (s-id s (make-checker-name name))))))
+           
+(define (variant-defs/list super-brand variants)
   (define (member->field m val)
     (s-field (s-member-syntax m)
              (symbol->string (s-member-name m))
@@ -30,13 +50,7 @@
          (list 
            (s-def s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
-           (s-fun s (make-checker-name name)
-                    (list (s-bind s 'specimen (a-any)))
-                    (a-blank)
-                    (s-block s
-                     (list
-                      (s-app s (s-dot s (s-id s brander-name) 'check)
-                               (list (s-id s 'specimen))))))
+           (make-checker s name (s-id s brander-name))
            (s-fun s name
                     constructor-args
                     (a-blank)
@@ -47,6 +61,14 @@
                         obj)))))))]))
   (map variant-defs variants))
 
+(define (flatten-blocks maybe-blocks)
+  (foldr (λ (stmt block-stmts)
+           (match stmt
+             [(s-block s stmts) (append (flatten-blocks stmts) block-stmts)]
+             [else (cons stmt block-stmts)]))
+         empty
+         maybe-blocks))
+
 (define (desugar-pyret ast)
   (define ds desugar-pyret)
   (define (ds-member ast-node)
@@ -55,14 +77,15 @@
       [(s-method s name args body) (s-method s name args (ds body))]))
   (match ast
     [(s-block s stmts)
-     (s-block s (map ds stmts))]
+     (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
     [(s-data s name params variants)
      (define brander-name (gensym name))
      (ds (s-block s
-                  (cons
-                   (s-def s (s-bind s brander-name (a-blank))
-                          (s-app s (s-id s 'brander) (list)))
+                  (append
+                   (list (s-def s (s-bind s brander-name (a-blank))
+                                (s-app s (s-id s 'brander) (list)))
+                         (make-checker s name (s-id s brander-name)))
                    (variant-defs/list brander-name variants))))]
     [(s-do s fun args)
      (define (functionize b)
