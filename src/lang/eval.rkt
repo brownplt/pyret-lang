@@ -32,7 +32,19 @@
         eof
         (pyret->racket src in))))
 
-
+(define (simplify-pyret val)
+  (match val
+    [(? (λ (v) (eq? v nothing))) (void)]
+    [(p:p-num _ _ _ _ n) n]
+    [(p:p-str _ _ _ _ s) s]
+    [(p:p-bool _ _ _ _ b) b]
+    [(p:p-object (p:none) _ _ d)
+     (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
+    [(p:p-object (? set? s) _ _ d)
+     (make-hash (set-map s (lambda (s) (cons s (simplify-pyret (hash-ref d s))))))]
+    [(? p:p-base?) val]
+    [_ (void)]))
 
 (define (print-pyret val)
-  (pretty-write (p:simplify-pyret val)))
+  (when (not (equal? val (void)))
+    (pretty-write (simplify-pyret val))))

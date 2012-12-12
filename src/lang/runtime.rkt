@@ -25,7 +25,6 @@
               [has-field? p:has-field?]
               [reseal p:reseal]
               [flatten p:flatten]
-              [simplify-pyret p:simplify-pyret]
               [pyret-true? p:pyret-true?])
   (rename-out [p-pi pi]
               [print-pfun print]
@@ -40,7 +39,7 @@
   nothing)
 
 (define-type Value (U p-object p-list p-num p-bool
-		      p-str p-fun p-method))
+		      p-str p-fun p-method p-nothing))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -396,9 +395,17 @@
                   (cast not (Boolean -> Boolean))))))))
 
 
+(define: (to-string (v : Value)) : String
+  (match v
+    [(or (p-num _ _ _ _ p)
+         (p-bool _ _ _ _ p)
+         (p-str _ _ _ _ p))
+     (format "~a" p)]
+    [v (format "~a" v)]))
+
+(define print-pfun (mk-fun (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
 
 
-(define print-pfun (mk-fun pretty-write))
 
 (define: (unwrap (v : Value)) : Any
   (match v
@@ -416,16 +423,4 @@
     [(list? v) (mk-list (map wrap v))]
     [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))
 
-(define: (simplify-pyret (val : Value)) : Any
-  (cast
-   (match val
-     [(p-num _ _ _ _ n) n]
-     [(p-str _ _ _ _ s) s]
-     [(p-bool _ _ _ _ b) b]
-     [(p-object (none) _ _ d)
-      (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
-     [(p-object (? set? s) _ _ d)
-      (make-hash (set-map s (lambda (s) (cons s (simplify-pyret (hash-ref d s))))))]
-     [(? p-base?) val]
-     [_ (void)])
-   Any))
+
