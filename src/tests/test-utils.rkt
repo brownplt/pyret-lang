@@ -10,7 +10,8 @@
   eval-pyret
   check-match)
 (require
-  (except-in rackunit check)
+ (except-in rackunit check)
+   racket/runtime-path
   "../lang/compile.rkt"
   "../lang/tokenizer.rkt"
   "../lang/typecheck.rkt"
@@ -22,13 +23,20 @@
 (dynamic-require "../lang/parser.rkt" 0)
 (define ns (module->namespace "../lang/parser.rkt"))
 
-(define-namespace-anchor rt-anchor)
-(define rt-ns (namespace-anchor->namespace rt-anchor))
+
+;; this insanity is needed in order to get the namespace for pyret
+;; (with r: and p: prefixed identifiers) into eval
+(module m "../lang/pyret-lang.rkt"
+  (r:define-namespace-anchor in-the-module)
+  (r:provide in-the-module))
+(require 'm)
+
+(define eval-ns (namespace-anchor->namespace in-the-module))
 
 (define (eval-pyret str)
   (eval
-    (compile-str str)
-    rt-ns))
+   (compile-str str)
+    eval-ns))
 
 (define (compile-str str)
   (pyret->racket "test-utils" (open-input-string str)))

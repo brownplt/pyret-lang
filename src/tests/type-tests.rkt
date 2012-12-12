@@ -6,9 +6,9 @@
   "../lang/runtime.rkt"
   "match-set.rkt")
 
-(define six (mk-num 6))
-(define eight (mk-num 8))
-(define forty8 (mk-num 48))
+(define six (p:mk-num 6))
+(define eight (p:mk-num 8))
+(define forty8 (p:mk-num 48))
 
 ;; tests for type annotation runtime checks
 (check-pyret-exn
@@ -44,4 +44,43 @@
  "fun f(x :: Number) -> String: x.tostring() end
   f = \\x :: String -> String: (x)
   f(6)"
+ "runtime:")
+
+(check-pyret
+ "fun f(g :: (Number -> String)): g(10) end
+  f(\n: (n.tostring()))"
+ ten)
+
+(check-pyret-exn
+ "fun f(g :: (Number -> String)): g('hello') end
+  f(\n: (n.tostring()))"
+ "runtime:")
+
+(check-pyret-exn
+ "fun f(g :: (Number -> String)): g(10) end
+  f(\n: n)"
+ "runtime:")
+
+(check-pyret
+ "data Maybe(a) | some: value :: a end
+  fun f(x :: Maybe(Number)) -> Number: x.value end
+  f(some(10))"
+ ten)
+
+(check-pyret
+ "data Maybe(a) | some: value :: a end
+  fun f(x :: (Maybe(Number) -> Number)) -> Number: x(some(10)) end
+  f(\m: (m.value))"
+ ten)
+
+(check-pyret-exn
+  "data Maybe(a) | some: value :: a end
+  fun f(x :: Maybe(Number)) -> Number: x.value end
+  f(some('hello'))"
+  "runtime:")
+
+(check-pyret
+ "data Maybe(a) | some: value :: a end
+  fun f(x :: (Maybe(Number) -> Number)) -> Number: x(some('string')) end
+  f(\m: (m.value))"
  "runtime:")

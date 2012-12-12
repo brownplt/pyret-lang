@@ -29,7 +29,7 @@
   (with-syntax
      ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))]
       [full-eval-stx (path->string (resolved-module-path-name full-eval))]
-      [stx (strip-context (pyret->racket src in))])
+      [stx (pyret->racket src in)])
         #'(module src (file pyret-lang-stx)
             (require (file full-eval-stx))
             (current-read-interaction repl-eval-pyret)

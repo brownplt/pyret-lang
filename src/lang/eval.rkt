@@ -7,6 +7,7 @@
   pyret->racket)
 (require
   racket/runtime-path
+  syntax/strip-context
   "tokenizer.rkt"
   "desugar.rkt"
   "typecheck.rkt"
@@ -18,10 +19,11 @@
 (define ns (module->namespace (resolved-module-path-name parser)))
 
 (define (pyret->racket src in)
-  (compile-pyret
-   (typecheck-pyret
-    (desugar-pyret
-     (eval (get-syntax src in) ns)))))
+  (strip-context
+   (compile-pyret
+    (typecheck-pyret
+     (desugar-pyret
+      (eval (get-syntax src in) ns))))))
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from 

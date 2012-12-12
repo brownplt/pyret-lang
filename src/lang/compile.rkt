@@ -64,7 +64,7 @@
     [(s-assign _ name expr)
      (with-syntax ([name-stx (d->stx name)]
                    [temp (gensym name)])
-       #`(let [(temp #,(compile-pyret expr))]
+       #`(r:let [(temp #,(compile-pyret expr))]
            (r:set! name-stx temp)
            temp))]
 
