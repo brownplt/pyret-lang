@@ -6,6 +6,7 @@
 
 (require
   racket/runtime-path
+  syntax/strip-context
   "tokenizer.rkt"
   "compile.rkt"
   "desugar.rkt"
@@ -28,7 +29,7 @@
   (with-syntax
      ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))]
       [full-eval-stx (path->string (resolved-module-path-name full-eval))]
-      [stx (pyret->racket src in)])
+      [stx (strip-context (pyret->racket src in))])
         #'(module src (file pyret-lang-stx)
             (require (file full-eval-stx))
             (current-read-interaction repl-eval-pyret)

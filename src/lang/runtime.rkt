@@ -1,42 +1,43 @@
 #lang typed/racket
 
 (provide
-  (struct-out none)
-  (struct-out p-base)
-  (struct-out p-nothing)
-  (struct-out p-object)
-  (struct-out p-list)
-  (struct-out p-num)
-  (struct-out p-bool)
-  (struct-out p-str)
-  (struct-out p-fun)
-  nothing
-  mk-object
-  mk-list
-  mk-num
-  mk-bool
-  mk-str
-  mk-fun
-  mk-method
+  (prefix-out p: (struct-out none))
+  (prefix-out p: (struct-out p-base))
+  (prefix-out p: (struct-out p-nothing))
+  (prefix-out p: (struct-out p-object))
+  (prefix-out p: (struct-out p-list))
+  (prefix-out p: (struct-out p-num))
+  (prefix-out p: (struct-out p-bool))
+  (prefix-out p: (struct-out p-str))
+  (prefix-out p: (struct-out p-fun))
+  (rename-out [mk-object p:mk-object]
+              [mk-list p:mk-list]
+              [mk-num p:mk-num]
+              [mk-bool p:mk-bool]
+              [mk-str p:mk-str]
+              [mk-fun p:mk-fun]
+              [mk-method p:mk-method]
+              [meta-null p:meta-null]
+              [get-dict p:get-dict]
+              [get-seal p:get-seal]
+              [get-field p:get-field]
+              [set-field p:set-field]
+              [has-field? p:has-field?]
+              [reseal p:reseal]
+              [flatten p:flatten]
+              [simplify-pyret p:simplify-pyret]
+              [pyret-true? p:pyret-true?])
+  (rename-out [p-pi pi]
+              [print-pfun print]
+              [seal-pfun seal]
+              [brander-pfun brander]
+              [check-brand-pfun check-brand])
   Any?
   Number?
   String?
   Bool?
-  meta-null
-  get-dict
-  get-seal
-  get-field
-  set-field
-  has-field?
-  reseal
-  flatten
-  pyret-true?
   Racket
-  (rename-out [p-pi pi])
-  (rename-out [print-pfun print])
-  (rename-out [seal-pfun seal])
-  (rename-out [brander-pfun brander])
-  (rename-out [check-brand-pfun check-brand]))
+  nothing)
 
 (define-type Value (U p-object p-list p-num p-bool
 		      p-str p-fun p-method))
@@ -236,7 +237,7 @@
 	   o
 	   ;; NOTE(dbp): not sure how to give good reporting
 	   (error (format "runtime: check-brand failed on ~a"
-			  (unwrap o)))))]
+			  o))))]
     [else (error "runtime: can not check-brand with non-function")]))
 
 (define check-brand-pfun (mk-fun check-brand))
@@ -414,3 +415,17 @@
     [(boolean? v) (mk-bool v)]
     [(list? v) (mk-list (map wrap v))]
     [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))
+
+(define: (simplify-pyret (val : Value)) : Any
+  (cast
+   (match val
+     [(p-num _ _ _ _ n) n]
+     [(p-str _ _ _ _ s) s]
+     [(p-bool _ _ _ _ b) b]
+     [(p-object (none) _ _ d)
+      (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
+     [(p-object (? set? s) _ _ d)
+      (make-hash (set-map s (lambda (s) (cons s (simplify-pyret (hash-ref d s))))))]
+     [(? p-base?) val]
+     [_ (void)])
+   Any))
