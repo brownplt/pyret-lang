@@ -1,4 +1,3 @@
-
 #lang racket
 
 (provide
