@@ -62,7 +62,7 @@
     [(s-bool _ b) ]
     [(s-str _ s) ]
 
-    [(s-lam _ args ann body) ]
+    [(s-lam _ typarams args ann body) ]
     
     [(s-cond _ c-bs) ]
     
@@ -107,10 +107,10 @@ these metadata purposes.
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann))
 	 #:transparent)
 
-
 (define-type Stmt (U s-fun s-def s-cond s-data s-do Expr))
 (struct: s-fun ((syntax : srcloc)
 		(name : Symbol)
+		(params : (Listof Symbol))
 		(args : (Listof s-bind))
 		(ann : Ann)
 		(body : s-block))
@@ -134,6 +134,7 @@ these metadata purposes.
                      s-block s-method))
 
 (struct: s-lam ((syntax : srcloc)
+		(typarams : (Listof Symbol))
 		(args : (Listof s-bind))
 		(ann : Ann)
 		(body : s-block))

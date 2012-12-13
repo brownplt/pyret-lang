@@ -39,7 +39,7 @@
     [(s-bool _ b) #`(p:mk-bool #,(d->stx b))]
     [(s-str _ s) #`(p:mk-str #,(d->stx s))]
 
-    [(s-lam _ args ann body)
+    [(s-lam _ params args ann body)
      (with-syntax ([(arg ...) (d->stx (map s-bind-id args))]
                    [body-stx (compile-pyret body)])
        #`(p:mk-fun (r:λ (arg ...) body-stx)))]

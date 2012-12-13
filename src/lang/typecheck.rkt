@@ -38,78 +38,6 @@
       (mk-lam s wrapargs result
        (wrap-ann-check s result 
         (s-app s (s-id s funname) (map check-arg wrapargs)))))]
-
-#|    [(a-app s name params)
-     (define (define-parameter-brands s params)
-  (s-block s (map (λ (p) (s-def s (symbol-append '%t- p)
-				(s-app s (s-id s 'brander) empty))))))
-
-(define (parametrize-brand-fn s name params)
-  (define fun-name (symbol-append name '-brand-data))
-  (cond
-   [(empty? params) empty]
-   [else
-    (list
-     (s-fun s fun-name
-	    (cons (s-bind s '%value (a-blank))
-		  (map (λ (p) (s-bind s p (a-blank))) params))
-	    (a-blank)
-	    (s-cond
-	     s
-	     (append
-	      (map
-	      (λ (v)
-		 (s-cond-branch
-		  s (s-app s (s-id s (symbol-append
-				      (s-variant-name v)
-				      '?))
-			   (list (s-id s '%value)))
-		  (s-block
-		   s
-		   (append
-		    (map
-		    (λ (m)
-		       (let ((ann (s-member-ann m)))
-			 (if (and (a-app? ann)
-				  (not (empty? (list-intersect
-						(a-app-parameters ann)
-						params))))
-			     (list
-			      (s-app
-			       s
-			       (s-dot
-				(s-app
-				 s
-				 (s-dot
-				  (s-id s name)
-				  'combine)
-				 (map
-				  (λ (p)
-				     (s-id s (symbol-append '%t- p)))
-				  (filter
-				   (λ (p)
-				      (member
-				       p
-				       (a-app-parameters ann)))
-				   params)))
-				'brand)
-			       (s-dot s (s-id s '%value)
-				      (s-member-name m)))
-			      ;; call recursively
-			      (s-app
-			       s
-			       (s-id s fun-name)
-			       (cons (s-dot s (s-id s '%value)
-					    (s-member-name m))
-				     params)))
-			     empty)
-		    (s-variant-members v)))))
-		   variants)))
-	      (list (s-cond-branch s
-				   (s-bool s #t)
-				   (s-block s empty))))))))])
-		 
-|#
     
     [else
      (error
@@ -144,7 +72,7 @@
     [(s-def s bnd val)
      (s-def s bnd (wrap-ann-check s (s-bind-ann bnd) (tc val)))]
 
-    [(s-lam s args ann body)
+    [(s-lam s typarams args ann body)
      (define body-env (foldr update env args))
      (wrap-ann-check s
                      (get-arrow s args ann)

@@ -91,13 +91,13 @@
      (define (functionize b)
        (s-lam s (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
-    [(s-fun s name args ann body)
+    [(s-fun s name typarams args ann body)
      (s-def s
             (s-bind s name (a-arrow s (map s-bind-ann args) ann))
-            (s-lam s args ann (ds body)))]
+            (s-lam s typarams args ann (ds body)))]
 
-    [(s-lam s args ann body)
-     (s-lam s args ann (ds body))]
+    [(s-lam s typarams args ann body)
+     (s-lam s typarams args ann (ds body))]
     
     [(s-method s args body)
      (s-method s args (ds body))]

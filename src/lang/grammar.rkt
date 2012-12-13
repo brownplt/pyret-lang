@@ -40,12 +40,24 @@ ann-last-arg-elt: NAME "::" ann
 args:
    "(" (arg-elt|ann-arg-elt)* (last-arg-elt|ann-last-arg-elt) ")"
  | "(" ")"
-fun-expr:
-   "fun" NAME args ":" block "end"
- | "fun" NAME args "->" ann ":" block "end"
- | "fun" NAME args ":" "(" block ")"
- | "fun" NAME args "->" ann ":" "(" block ")"
 
+fun-body: block "end"
+        | "(" block ")"
+
+fun-ty-param-elt: NAME
+fun-ty-param: fun-ty-param-elt ","
+fun-ty-params:
+  "(" fun-ty-param* fun-ty-param-elt ")"
+
+fun-header: NAME args
+          | NAME args "->" ann
+          | fun-ty-params NAME args
+          | fun-ty-params NAME args "->" ann
+
+fun-expr: 
+   "fun" fun-header ":" fun-body
+ 
+ 
 lambda-args: (arg-elt|ann-arg-elt)* (last-arg-elt|ann-last-arg-elt)
 lambda-expr:
    BACKSLASH lambda-args ":" "(" block ")"
