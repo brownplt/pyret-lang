@@ -10,10 +10,12 @@
 
   (struct-out s-lam)
 
-  (struct-out s-field)
-  (struct-out s-method)
+  (struct-out s-data-field)
+  (struct-out s-method-field)
   (struct-out s-obj)
   (struct-out s-onion)
+  
+  (struct-out s-method)
 
   (struct-out s-id)
   (struct-out s-assign)
@@ -50,8 +52,8 @@
 #|
 (define (f-member ast-node)
     (match ast-node
-      [(s-field _ name value) ]
-      [(s-method _ name args body) ]))
+      [(s-data-field _ name value) ]
+      [(s-method-field _ name args body) ]))
   (match ast-node
     
     [(s-block _ l) ]
@@ -137,12 +139,18 @@ these metadata purposes.
 		(body : s-block))
 	 #:transparent)
 
-(define-type Member (U s-field s-method))
-(struct: s-field ((syntax : srcloc)
+(struct: s-method ((syntax : srcloc)
+                   (args : (Listof s-bind))
+                   (ann : Ann)
+                   (body : s-block))
+	 #:transparent)
+
+(define-type Member (U s-data-field s-method-field))
+(struct: s-data-field ((syntax : srcloc)
 		  (name : String)
 		  (value : Expr))
 	 #:transparent)
-(struct: s-method ((syntax : srcloc)
+(struct: s-method-field ((syntax : srcloc)
 		   (name : String)
 		   (args : (Listof s-bind))
 		   (body : s-block))
