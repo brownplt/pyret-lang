@@ -35,7 +35,7 @@
 
 (define (simplify-pyret val)
   (match val
-    [(? (λ (v) (eq? v nothing))) (void)]
+    [(? (λ (v) (eq? v nothing))) nothing]
     [(p:p-num _ _ _ _ n) n]
     [(p:p-str _ _ _ _ s) s]
     [(p:p-bool _ _ _ _ b) b]
@@ -47,5 +47,5 @@
     [_ (void)]))
 
 (define (print-pyret val)
-  (when (not (equal? val (void)))
+  (when (not (equal? val nothing))
     (pretty-write (simplify-pyret val))))
