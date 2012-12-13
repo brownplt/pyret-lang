@@ -11,37 +11,28 @@ Redex
 [] add s-let and pyret compile let
 
 HTDP:
-[x] allow hyphens in identifiers
-[x] constructed types
-[x] Think MOAR about self-reference/method invocation
 [] first class methods
-[x] Change Number/String/Bool into a-names
-[] Have mk-num/str/bool brand
-[] Have global brand checkers for num/str/bool
-
-[] Desugar function annotations into checks for these brands
-[] Actually compile annotations to checks
-
+[] Constructed types and brands
 [] surface syntax for operators?
 [] Desugar data
   [] Lock operator for immutability
   [] Brand checks on struct creation
-  [] Annotations actually checked
+  [x] Annotations actually checked
+  [] constructed annotations actually checked
   [x] Skeleton of struct/data desugaring
-[] anonymous functions... :-)
+[x] anonymous functions... :-)
 [] brand names for debugging and general user-friendliness
 [] pretty-printing objects
    - Take brands into account (names for them)
-[] None/null/nothing value built in
+[x] None/null/nothing value built in
 [] Lists built in
-[] How should short-circuiting booleans work?
+[x] How should short-circuiting booleans work?
+  - do!
 
 [] currying
 [] srcloc for a-any
 
 Cleanup:
-[x] make helper for id-parsing
-[] and str-parsing in pyret.rkt
 [] decide on a line length and enforce
 [] ordering of things in grammar vs pyret.rkt
 [] consistent naming in grammar for lists of things
@@ -49,22 +40,12 @@ Cleanup:
 [] s-data and s-dot should agree on symbol vs. string
 [] clean up runtime.rkt into sanity
 [] stop using typed racket except for data definitions
-[] figure out duplicate identifiers with (define)
-[] can we use ()? instead of multiple arms in grammar.rkt?
+[] cond implicit else should be in desugar, not compile
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
-[] in compile-tests, ensure a fresh namespace before each run
-[] cond implicit else should be in desugar, not compile
 
 [] application should check type better?
-
-[x] syntax for rudimentary types ::
-[] checking for rudimentary types
 
 [] Escape into Racket with peglegs:
     !(display (current-namespace))!
   - wrapping where possible?
-[] Racket.builtin for convenient libraries
-  - e.g. Racket.string-append(pyval, pyval)
-  - unwrapping and wrapping of pyret constants to Racket #'s and str's
-

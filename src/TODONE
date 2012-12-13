@@ -55,3 +55,31 @@ Assignment tests
   [x] 2 seals caught by second
 
 [x] add default initiliazers for all values in pyret.rkt e.g. (mknum 5)
+
+[x] allow hyphens in identifiers
+[x] constructed types
+[x] Think MOAR about self-reference/method invocation
+
+[x] figure out duplicate identifiers with (define)
+  - fixed with letrec
+[x] can we use ()? instead of multiple arms in grammar.rkt?
+  - NO
+[x] in compile-tests, ensure a fresh namespace before each run
+[x] Change Number/String/Bool into a-names
+[x] Have mk-num/str/bool brand
+[x] Have global brand checkers for num/str/bool
+  - We have Number?, etc, with implicit brands on creation
+
+[x] Desugar function annotations into checks for these brands
+[x] Actually compile annotations to checks
+
+[x] syntax for rudimentary types ::
+[x] checking for rudimentary types
+
+[x] make helper for id-parsing
+[x] and str-parsing in pyret.rkt
+
+[x] Racket.builtin for convenient libraries
+  - e.g. Racket.string-append(pyval, pyval)
+  - unwrapping and wrapping of pyret constants to Racket #'s and str's
+
