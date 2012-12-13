@@ -21,16 +21,10 @@
 (define (compile-expr ast-node)
   (define (compile-member ast-node)
     (match ast-node
-      [(s-field _ name value)
+      [(s-data-field _ name value)
        (with-syntax ([name-stx (d->stx name)]
                      [val-stx (compile-pyret value)]) 
-         #'(r:cons name-stx val-stx))]
-      [(s-method _ name args body)
-       (with-syntax ([name-stx (d->stx name)]
-                     [(arg ...) (d->stx (map s-bind-id args))]
-                     [body-stx (compile-pyret body)]) 
-         #'(r:cons name-stx
-                 (p:mk-method (r:λ (arg ...) body-stx))))]))
+         #'(r:cons name-stx val-stx))]))
   (match ast-node
     
     [(s-block _ l)
@@ -48,7 +42,12 @@
     [(s-lam _ args ann body)
      (with-syntax ([(arg ...) (d->stx (map s-bind-id args))]
                    [body-stx (compile-pyret body)])
-       #`(p:mk-fun (r:lambda (arg ...) body-stx)))]
+       #`(p:mk-fun (r:λ (arg ...) body-stx)))]
+    
+    [(s-method _ args body)
+     (with-syntax ([(arg ...) (d->stx (map s-bind-id args))]
+                   [body-stx (compile-pyret body)]) 
+       #'(p:mk-method (r:λ (arg ...) body-stx)))]
     
     [(s-cond _ c-bs)
      (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs))])

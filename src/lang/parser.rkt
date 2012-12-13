@@ -69,11 +69,11 @@
 
 (define-syntax (field stx)
   (syntax-case stx ()
-    [(_ key ":" value) #`(s-field #,(loc stx) key value)]
+    [(_ key ":" value) #`(s-data-field #,(loc stx) key value)]
     [(_ key args ":" body)
-     #`(s-method #,(loc stx) key args body)]
+     #`(s-method-field #,(loc stx) key args body)]
     [(_ key args ":" body "end")
-     #`(s-method #,(loc stx) key args body)]))
+     #`(s-method-field #,(loc stx) key args body)]))
 
 ;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)

@@ -29,7 +29,7 @@
            
 (define (variant-defs/list super-brand variants)
   (define (member->field m val)
-    (s-field (s-member-syntax m)
+    (s-data-field (s-member-syntax m)
              (symbol->string (s-member-name m))
              val))
   (define (apply-brand s brander-name arg)
@@ -73,8 +73,8 @@
   (define ds desugar-pyret)
   (define (ds-member ast-node)
     (match ast-node
-      [(s-field s name value) (s-field s name (ds value))]
-      [(s-method s name args body) (s-method s name args (ds body))]))
+      [(s-data-field s name value) (s-data-field s name (ds value))]
+      [(s-method-field s name args body) (s-data-field s name (s-method s args (ds body)))]))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -98,6 +98,9 @@
 
     [(s-lam s args ann body)
      (s-lam s args ann (ds body))]
+    
+    [(s-method s args body)
+     (s-method s args (ds body))]
     
     [(s-cond s c-bs)
      (define (ds-cond branch)

@@ -136,8 +136,7 @@
   (define tc (curryr tc-env env))
   (define (tc-member ast env)
     (match ast
-      [(s-field s name value) (s-field s name (tc-env value env))]
-      [(s-method s name args body) ast]))
+      [(s-data-field s name value) (s-data-field s name (tc-env value env))]))
   (match ast
     [(s-block s stmts)
      (define new-env (tc-block-env stmts env))
@@ -150,6 +149,11 @@
      (wrap-ann-check s
                      (get-arrow s args ann)
                      (s-lam s args ann (tc-env body body-env)))]
+    
+    ;; TODO(joe): give methods an annotation position for result
+    [(s-method s args body)
+     (define body-env (foldr update env args))
+     (s-method s args (tc-env body body-env))]
     
     [(s-cond s c-bs)
      (define (tc-branch branch)

@@ -131,7 +131,7 @@ these metadata purposes.
 		     s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
                      s-dot-method s-bracket-method s-lam
-                     s-block))
+                     s-block s-method))
 
 (struct: s-lam ((syntax : srcloc)
 		(args : (Listof s-bind))
@@ -141,7 +141,6 @@ these metadata purposes.
 
 (struct: s-method ((syntax : srcloc)
                    (args : (Listof s-bind))
-                   (ann : Ann)
                    (body : s-block))
 	 #:transparent)
 
