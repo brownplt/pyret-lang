@@ -16,7 +16,7 @@
   (s-block
    s
    (list
-    (s-fun s (make-checker-name name)
+    (s-fun s (make-checker-name name) (list) 
            (list (s-bind s 'specimen (a-any)))
            (a-blank)
            (s-block s
@@ -52,6 +52,7 @@
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
            (s-fun s name
+                    (list)
                     constructor-args
                     (a-blank)
                     (s-block s
