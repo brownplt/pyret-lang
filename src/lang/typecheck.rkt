@@ -1,13 +1,13 @@
 #lang racket
 
 (require "ast.rkt")
-(provide typecheck-pyret)
+(provide contract-check-pyret)
 
 (define (wrap-ann-check loc ann e)
   (s-app loc (ann-check loc ann) (list e)))
 
 (define (mk-lam loc args result body)
-  (s-lam loc args result (s-block loc (list body))))
+  (s-lam loc empty args result (s-block loc (list body))))
 
 (define (ann-check loc ann)
   (define (mk-flat-checker checker)
@@ -54,68 +54,68 @@
      (hash-set env id ann)]))
 
 
-(define (tc-block-env stmts env)
+(define (cc-block-env stmts env)
   (foldr update env (map s-def-name (filter s-def? stmts))))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
   
-(define (tc-env ast env)
-  (define tc (curryr tc-env env))
-  (define (tc-member ast env)
+(define (cc-env ast env)
+  (define cc (curryr cc-env env))
+  (define (cc-member ast env)
     (match ast
-      [(s-data-field s name value) (s-data-field s name (tc-env value env))]))
+      [(s-data-field s name value) (s-data-field s name (cc-env value env))]))
   (match ast
     [(s-block s stmts)
-     (define new-env (tc-block-env stmts env))
-     (s-block s (map (curryr tc-env new-env) stmts))]
+     (define new-env (cc-block-env stmts env))
+     (s-block s (map (curryr cc-env new-env) stmts))]
     [(s-def s bnd val)
-     (s-def s bnd (wrap-ann-check s (s-bind-ann bnd) (tc val)))]
+     (s-def s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann body)
      (define body-env (foldr update env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
-                     (s-lam s args ann (tc-env body body-env)))]
+                     (s-lam s typarams args ann (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args body)
      (define body-env (foldr update env args))
-     (s-method s args (tc-env body body-env))]
+     (s-method s args (cc-env body body-env))]
     
     [(s-cond s c-bs)
-     (define (tc-branch branch)
+     (define (cc-branch branch)
        (match branch
          [(s-cond-branch s test expr)
-          (s-cond-branch s (tc test) (tc expr))]))
-     (s-cond s (map tc-branch c-bs))]
+          (s-cond-branch s (cc test) (cc expr))]))
+     (s-cond s (map cc-branch c-bs))]
     
     [(s-assign s name expr)
-     (s-assign s name (wrap-ann-check s (lookup env name) (tc expr)))]
+     (s-assign s name (wrap-ann-check s (lookup env name) (cc expr)))]
 
     [(s-app s fun args)
-     (s-app s (tc fun) (map tc args))]
+     (s-app s (cc fun) (map cc args))]
 
     [(s-onion s super fields)
-     (s-onion s (tc super) (map (curryr tc-member env) fields))]
+     (s-onion s (cc super) (map (curryr cc-member env) fields))]
 
     [(s-obj s fields)
-     (s-obj s (map (curryr tc-member env) fields))]
+     (s-obj s (map (curryr cc-member env) fields))]
     
     [(s-list s elts)
-     (s-list s (map tc elts))]
+     (s-list s (map cc elts))]
     
     [(s-dot s val field)
-     (s-dot s (tc val) field)]
+     (s-dot s (cc val) field)]
     
     [(s-bracket s val field)
-     (s-bracket s (tc val) (tc field))]
+     (s-bracket s (cc val) (cc field))]
     
     [(s-dot-assign s obj field val)
-     (s-dot-assign s (tc obj) field (tc val))]
+     (s-dot-assign s (cc obj) field (cc val))]
 
     [(s-dot-method s obj field)
-     (s-dot-method s (tc obj) field)]
+     (s-dot-method s (cc obj) field)]
 
     [(or (s-num _ _)
          (s-bool _ _)
@@ -124,6 +124,6 @@
     
     [else (error (format "Missed a case in type-checking: ~a" ast))]))
 
-(define (typecheck-pyret ast)
-  (tc-env ast (make-immutable-hash)))
+(define (contract-check-pyret ast)
+  (cc-env ast (make-immutable-hash)))
   

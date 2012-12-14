@@ -20,7 +20,7 @@
 (define (pyret->racket src in)
   (strip-context
    (compile-pyret
-    (typecheck-pyret
+    (contract-check-pyret
      (desugar-pyret
       (eval (get-syntax src in) ns))))))
 

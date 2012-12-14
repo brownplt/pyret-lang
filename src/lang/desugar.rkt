@@ -16,7 +16,7 @@
   (s-block
    s
    (list
-    (s-fun s (make-checker-name name)
+    (s-fun s (make-checker-name name) empty
            (list (s-bind s 'specimen (a-any)))
            (a-blank)
            (s-block s
@@ -51,7 +51,7 @@
            (s-def s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
-           (s-fun s name
+           (s-fun s name empty
                     constructor-args
                     (a-blank)
                     (s-block s
@@ -89,7 +89,7 @@
                    (variant-defs/list brander-name variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s (list) (a-blank) (ds b)))
+       (s-lam s empty (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
         
     [(s-def s name val)

@@ -7,6 +7,7 @@
   "match-set.rkt")
 
 (define six (p:mk-num 6))
+(define ten (p:mk-num 10))
 (define eight (p:mk-num 8))
 (define forty8 (p:mk-num 48))
 
@@ -17,7 +18,7 @@
 
 (check-pyret
  "def x :: String: 'hello'"
- (mk-str "hello"))
+ (p:mk-str "hello"))
 
 
 (check-pyret-exn "def x :: Number: true" "runtime:")
@@ -25,7 +26,7 @@
 (check-pyret-exn "def x :: Number: 37 x = 'not-a-num'" "runtime:")
 
 (check-pyret "def x :: Number: 23 x = 6" six)
-(check-pyret "fun f(x :: Number) -> String: (def x :: String: 'daniel' x) f(42)" (mk-str "daniel"))
+(check-pyret "fun f(x :: Number) -> String: (def x :: String: 'daniel' x) f(42)" (p:mk-str "daniel"))
 (check-pyret-exn "fun f(x :: Number) -> String: (def x :: String: 'daniel' x = 6) f(42)"
                  "runtime:")
 (check-pyret "def x :: Number: 6 fun f(): (def x :: String: 'daniel' x = 'bobby') f() x"
@@ -48,17 +49,16 @@
 
 (check-pyret
  "fun f(g :: (Number -> String)): g(10) end
-  f(\n: (n.tostring()))"
- ten)
+  f(\\m: (m.tostring()))"
+ (p:mk-str "10"))
 
 (check-pyret-exn
  "fun f(g :: (Number -> String)): g('hello') end
-  f(\n: (n.tostring()))"
+  f(\\m: (m.tostring()))"
  "runtime:")
 
 (check-pyret-exn
- "fun f(g :: (Number -> String)): g(10) end
-  f(\n: n)"
+ "fun f(g :: (Number -> String)): g(10) end f(\\m: (m))"
  "runtime:")
 
 (check-pyret
@@ -70,7 +70,7 @@
 (check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: (Maybe(Number) -> Number)) -> Number: x(some(10)) end
-  f(\m: (m.value))"
+  f(\\m: (m.value))"
  ten)
 
 (check-pyret-exn
@@ -82,5 +82,5 @@
 (check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: (Maybe(Number) -> Number)) -> Number: x(some('string')) end
-  f(\m: (m.value))"
+  f(\\m: (m.value))"
  "runtime:")
