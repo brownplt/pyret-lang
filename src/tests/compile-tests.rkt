@@ -118,9 +118,16 @@
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
                    (p:p-bool _ _ _ _ #t))
 
-;; TODO(joe): turn these into tests for : when you can
-#;(check-pyret "3.add(3, 2)" five)
-#;(check-pyret "10.minus(10, 5)" five)
+;; can extract raw methods
+(check-pyret-match "3:add" (p:p-method _ _ _ _ (? procedure?)))
+(check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ _ (? procedure?)))
+
+;; can put raw methods on other objects and use them
+(check-pyret "def o: {x:5} def o2: {f(self): self.x} o.g = o2:f o.g()" five)
+
+;; cannot apply raw methods (better error messages plz)
+(check-pyret-exn "3:add()" "violation")
+
 
 (check-pyret "3.add(2)" five)
 

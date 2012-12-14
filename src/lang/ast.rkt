@@ -86,7 +86,7 @@
     
     [(s-dot-assign _ obj field val) ]
 
-    [(s-dot-method _ obj field args) ]
+    [(s-dot-method _ obj field) ]
     
 |#
 
@@ -208,13 +208,11 @@ these metadata purposes.
 
 (struct: s-dot-method ((syntax : srcloc)
 		       (obj : Expr)
-		       (field : Symbol)
-		       (args : (Listof Expr)))
+		       (field : Symbol))
 	 #:transparent)
 (struct: s-bracket-method ((syntax : srcloc)
 			   (obj : Expr)
-			   (field : Expr)
-			   (args : (Listof Expr)))
+			   (field : Expr))
 	 #:transparent)
 
 (struct: s-data ((syntax : srcloc)

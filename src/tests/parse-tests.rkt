@@ -94,17 +94,15 @@
                       (list (s-data-field _ "length" (s-num _ 0))
                             (s-data-field _ "width" (s-num _ 0)))))
 
-(check/block "o:f()"
+(check/block "o:f"
              (s-dot-method _
                            (s-id _ 'o)
-                           'f
-                           (list)))
+                           'f))
 
-(check/block "{f:4}:f(2)"
+(check/block "{f:4}:f"
              (s-dot-method _
                            (s-obj _ (list (s-data-field _ "f" (s-num _ 4))))
-                           'f
-                           (list (s-num _ 2))))
+                           'f))
 
 (check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-name _ 'Number))
                                            (s-num _ 5)))

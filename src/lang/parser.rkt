@@ -221,16 +221,14 @@
 
 (define-syntax (dot-method-expr stx)
   (syntax-case stx ()
-   [(_ obj ":" field (app-args "(" ")"))
+   [(_ obj ":" field)
     #`(s-dot-method #,(loc stx)
                     obj
-                    '#,(parse-name #'field)
-                    empty)]
-    [(_ obj ":" field (app-args "(" (app-arg-elt arg ",") ... lastarg ")"))
+                    '#,(parse-name #'field))]
+    [(_ obj ":" field)
      #`(s-dot-method #,(loc stx)
                      obj
-                     '#,(parse-name #'field)
-                     (list arg ... lastarg))]))
+                     '#,(parse-name #'field))]))
 
 (define-syntax (data-member stx)
   (syntax-case stx ()

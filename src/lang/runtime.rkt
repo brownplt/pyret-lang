@@ -10,6 +10,7 @@
   (prefix-out p: (struct-out p-bool))
   (prefix-out p: (struct-out p-str))
   (prefix-out p: (struct-out p-fun))
+  (prefix-out p: (struct-out p-method))
   (rename-out [mk-object p:mk-object]
               [mk-list p:mk-list]
               [mk-num p:mk-num]
@@ -21,6 +22,7 @@
               [get-dict p:get-dict]
               [get-seal p:get-seal]
               [get-field p:get-field]
+              [get-raw-field p:get-raw-field]
               [set-field p:set-field]
               [has-field? p:has-field?]
               [reseal p:reseal]
@@ -118,20 +120,22 @@
   (mk-fun (lambda: (args : Value *)
             (wrap (apply fun (map unwrap args))))))
 
+(define: (get-raw-field (v : Value) (f : String)) : Value
+  (if (has-field? v f)
+      (hash-ref (get-dict v)
+                f
+                (thunk (hash-ref (get-meta v) f)))
+      (error (format "get-field: field not found: ~a" f))))
+
 (define: (get-field (v : Value) (f : String)) : Value
   (if (eq? v Racket)
       (get-racket-fun f)
-      (if (has-field? v f)
-          (let [(field (hash-ref (get-dict v)
-                                 f
-                                 (thunk (hash-ref (get-meta v) f))))]
-            (match field
-              [(p-method _ _ _ _ f)
+      (match (get-raw-field v f)
+        [(p-method _ _ _ _ f)
                (mk-fun (lambda: (args : Value *)
                          ;; TODO(joe): Can this by typechecked?  I think maybe
                          (cast (apply f (cons v args)) Value )))]
-              [_ field]))
-          (error (format "get-field: field not found: ~a" f)))))
+        [non-method non-method])))
   
 (define: (set-field (o : Value) (f : String) (v : Value)) : Value
   (if (in-seal? o f)

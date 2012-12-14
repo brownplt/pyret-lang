@@ -91,6 +91,10 @@
      (define (functionize b)
        (s-lam s (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
+        
+    [(s-def s name val)
+     (s-def s name (ds val))]
+
     [(s-fun s name typarams args ann body)
      (s-def s
             (s-bind s name (a-arrow s (map s-bind-ann args) ann))
@@ -124,5 +128,5 @@
     
     [(s-dot-assign s obj field val) (s-dot-assign s (ds obj) field (ds val))]
 
-    [(s-dot-method s obj field args) (s-dot-method s (ds obj) field (map ds args))]
+    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
     [else ast]))

@@ -90,8 +90,8 @@ bracket-expr: expr "." "[" expr "]"
 dot-assign-expr: expr "." NAME = expr
 bracket-assign-expr: expr "." "[" expr "]" "=" expr
 
-dot-method-expr: expr ":" NAME app-args
-bracket-method-expr: expr ":" "[" expr "]" app-args
+dot-method-expr: expr ":" NAME
+bracket-method-expr: expr ":" "[" expr "]"
 
 data-member: NAME | NAME "::" ann
 data-member-elt: data-member ","

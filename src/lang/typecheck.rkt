@@ -114,8 +114,8 @@
     [(s-dot-assign s obj field val)
      (s-dot-assign s (tc obj) field (tc val))]
 
-    [(s-dot-method s obj field args)
-     (s-dot-method s (tc obj) (tc field) (map tc args))]
+    [(s-dot-method s obj field)
+     (s-dot-method s (tc obj) field)]
 
     [(or (s-num _ _)
          (s-bool _ _)
