@@ -89,7 +89,7 @@
                    (variant-defs/list brander-name variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s (list) (a-blank) (ds b)))
+       (s-lam s (list) (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
         
     [(s-def s name val)
@@ -129,4 +129,10 @@
     [(s-dot-assign s obj field val) (s-dot-assign s (ds obj) field (ds val))]
 
     [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
-    [else ast]))
+    
+    [(or (s-num _ _)
+         (s-bool _ _)
+         (s-str _ _)
+         (s-id _ _)) ast]
+    
+    [else (error (format "Missed a case in desugaring: ~a" ast))]))

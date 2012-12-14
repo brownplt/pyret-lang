@@ -7,7 +7,7 @@
   (s-app loc (ann-check loc ann) (list e)))
 
 (define (mk-lam loc args result body)
-  (s-lam loc args result (s-block loc (list body))))
+  (s-lam loc empty args result (s-block loc (list body))))
 
 (define (ann-check loc ann)
   (define (mk-flat-checker checker)
@@ -76,7 +76,7 @@
      (define body-env (foldr update env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
-                     (s-lam s args ann (tc-env body body-env)))]
+                     (s-lam s typarams args ann (tc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args body)
