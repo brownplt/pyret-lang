@@ -168,22 +168,16 @@
   (syntax-case stx (arg-elt)
     [(_ x ",")
      (with-syntax ([x-id (parse-id #'x)])
-       #`(s-bind #,(loc stx) 'x-id (a-blank)))]))
+       #`(s-bind #,(loc stx) 'x-id (a-blank)))]
+    [(_ x "::" ann ",")
+     (with-syntax ([x-id (parse-id #'x)])
+       #`(s-bind #,(loc stx) 'x-id ann))]))
 
 (define-syntax (last-arg-elt stx)
   (syntax-case stx (last-arg-elt)
     [(_ x)
      (with-syntax ([x-id (parse-id #'x)])
-       #`(s-bind #,(loc stx) 'x-id (a-blank)))]))
-
-(define-syntax (ann-arg-elt stx)
-  (syntax-case stx (arg-elt)
-    [(_ x "::" ann ",")
-     (with-syntax ([x-id (parse-id #'x)])
-       #`(s-bind #,(loc stx) 'x-id ann))]))
-
-(define-syntax (ann-last-arg-elt stx)
-  (syntax-case stx (last-arg-elt)
+       #`(s-bind #,(loc stx) 'x-id (a-blank)))]
     [(_ x "::" ann)
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-bind #,(loc stx) 'x-id ann))]))
