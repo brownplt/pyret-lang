@@ -16,7 +16,7 @@
   (s-block
    s
    (list
-    (s-fun s (make-checker-name name) empty
+    (s-fun s (make-checker-name name) (list) 
            (list (s-bind s 'specimen (a-any)))
            (a-blank)
            (s-block s
@@ -51,7 +51,8 @@
            (s-def s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
-           (s-fun s name empty
+           (s-fun s name
+                    (list)
                     constructor-args
                     (a-blank)
                     (s-block s
@@ -89,7 +90,7 @@
                    (variant-defs/list brander-name variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s empty (list) (a-blank) (ds b)))
+       (s-lam s (list) (list) (a-blank) (ds b)))
      (s-app s fun (map functionize args))]
         
     [(s-def s name val)
@@ -129,4 +130,10 @@
     [(s-dot-assign s obj field val) (s-dot-assign s (ds obj) field (ds val))]
 
     [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
-    [else ast]))
+    
+    [(or (s-num _ _)
+         (s-bool _ _)
+         (s-str _ _)
+         (s-id _ _)) ast]
+    
+    [else (error (format "Missed a case in desugaring: ~a" ast))]))
