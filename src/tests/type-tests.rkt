@@ -55,11 +55,11 @@
 (check-pyret-exn
  "fun f(g :: (Number -> String)): g('hello') end
   f(\\m: (m.tostring()))"
- "runtime:")
+ "expected Number")
 
 (check-pyret-exn
  "fun f(g :: (Number -> String)): g(10) end f(\\m: (m))"
- "runtime:")
+ "expected String")
 
 (check-pyret
  "data Maybe(a) | some: value :: a end

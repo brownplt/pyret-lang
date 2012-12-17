@@ -231,17 +231,20 @@
 
 (define brander-pfun (mk-fun brander))
 
-(define: (check-brand (ck : Value) (o : Value)) : Value
-  (match ck
-    [(p-fun _ _ _ _ f)
+(define: (check-brand (ck : Value) (o : Value) (s : Value)) : Value
+  (match (cons ck s)
+    [(cons (p-fun _ _ _ _ f) (p-str _ _ _ _ typname))
      (let ((check-v ((cast f (Value -> Value)) o)))
        (if (and (p-bool? check-v)
 		(p-bool-b check-v))
 	   o
 	   ;; NOTE(dbp): not sure how to give good reporting
-	   (error (format "runtime: check-brand failed on ~a"
-			  o))))]
-    [else (error "runtime: can not check-brand with non-function")]))
+	   (error (format "runtime: typecheck failed; expected ~a and got\n~a"
+                          typname o))))]
+    [(cons _ (p-str _ _ _ _ _))
+     (error "runtime: cannot check-brand with non-function")]
+    [(cons (p-fun _ _ _ _ _) _)
+     (error "runtime: cannot check-brand with non-string")]))
 
 (define check-brand-pfun (mk-fun check-brand))
 

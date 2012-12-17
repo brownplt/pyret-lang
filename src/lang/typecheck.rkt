@@ -9,7 +9,16 @@
 (define (mk-lam loc args result body)
   (s-lam loc empty args result (s-block loc (list body))))
 
+(define (string-of-ann ann)
+  (match ann
+    [(a-name _ id) (symbol->string id)]
+    [(a-arrow _ t1 t2) (format "~a -> ~a" (map string-of-ann t1) (string-of-ann t2))]
+    [(a-blank) "Any"]
+    [(a-any) "Any"]
+    [(a-app _ base args) (format "~a~a" base (map string-of-ann args))]))
+
 (define (ann-check loc ann)
+  (define ann-str (s-str loc (string-of-ann ann)))
   (define (mk-flat-checker checker)
     (define argname (gensym))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
@@ -17,7 +26,8 @@
              loc
              (s-id loc 'check-brand)
              (list checker
-                   (s-id loc argname)))))
+                   (s-id loc argname)
+                   ann-str))))
   (match ann
     [(a-name s id)
      (mk-flat-checker
