@@ -221,3 +221,20 @@
   do while x.lessthan(10); x = x.add(1) end
   x" ten)
 
+(check-pyret
+ "fun for(init, test, update, body):
+    init()
+    cond:
+      | test() =>
+          body()
+          update()
+          for(\\(), test, update, body)
+      | true => 'for base case'
+    end
+  end
+  def x: 0
+  def sum: 0
+  do for x = 0; x.lessthan(5); x = x.add(1);
+    sum = sum.add(x)
+  end
+  sum" ten)
