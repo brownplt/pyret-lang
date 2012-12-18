@@ -11,7 +11,8 @@ Redex
 [] add s-let and pyret compile let
 
 HTDP:
-[] first class methods
+[x] first class methods
+[] surface syntax for first-class methods
 [] Constructed types and brands
 [] surface syntax for operators?
 [] Desugar data
@@ -25,9 +26,12 @@ HTDP:
 [] pretty-printing objects
    - Take brands into account (names for them)
 [x] None/null/nothing value built in
-[] Lists built in
+[] Lists built in?
 [x] How should short-circuiting booleans work?
   - do!
+[] Testing libs (check/expect)
+[] Form for throwing errors (syntax & ast/semantics)
+[] module system?
 
 [] currying
 [] srcloc for a-any
@@ -43,6 +47,9 @@ Cleanup:
 [] cond implicit else should be in desugar, not compile
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
+
+[] Should use a stable paren-based syntax in compile-tests rather than
+   needing to update that on syntax changes
 
 [] application should check type better?
 

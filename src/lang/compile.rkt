@@ -8,7 +8,17 @@
   "ast.rkt"
   "runtime.rkt")
 
-(define (d->stx stx) (datum->syntax #f stx))
+(define (loc-list loc)
+  (list (srcloc-source loc)
+        (srcloc-line loc)
+        (srcloc-column loc)
+        (srcloc-position loc)
+        (srcloc-span loc)))
+
+(define (d->stx stx loc) (datum->syntax #f stx (loc-list loc)))
+
+(define (attach loc stx)
+  (datum->syntax #f (syntax-e stx) (loc-list loc)))
 
 ;; Stmt -> letrec-clause
 ;; Does special work for creating def bindings, others get gensymed names.
@@ -21,84 +31,101 @@
 (define (compile-expr ast-node)
   (define (compile-member ast-node)
     (match ast-node
-      [(s-data-field _ name value)
-       (with-syntax ([name-stx (d->stx name)]
-                     [val-stx (compile-pyret value)]) 
-         #'(r:cons name-stx val-stx))]))
+      [(s-data-field l name value)
+       (attach l
+         (with-syntax ([name-stx (d->stx name l)]
+                       [val-stx (compile-pyret value)]) 
+           #'(r:cons name-stx val-stx)))]))
   (match ast-node
     
-    [(s-block _ l)
-     (define id-expr-pairs (map compile-stmt l))
+    [(s-block l stmts)
+     (define id-expr-pairs (map compile-stmt stmts))
      (define ids (map car id-expr-pairs))
      (with-syntax ([(id ...) ids]
-                   [body-id (d->stx (if (cons? ids) (last ids) 'nothing))]
+                   [body-id (d->stx (if (cons? ids) (last ids) 'nothing) l)]
                    [(expr ...) (map cdr id-expr-pairs)])
-       #`(r:letrec [(id expr) ...] body-id))]
+      (attach l
+       #`(r:letrec [(id expr) ...] body-id)))]
 
-    [(s-num _ n) #`(p:mk-num #,(d->stx n))]
-    [(s-bool _ b) #`(p:mk-bool #,(d->stx b))]
-    [(s-str _ s) #`(p:mk-str #,(d->stx s))]
+    [(s-num l n) #`(p:mk-num #,(d->stx n l))]
+    [(s-bool l b) #`(p:mk-bool #,(d->stx b l))]
+    [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
-    [(s-lam _ params args ann body)
-     (with-syntax ([(arg ...) (d->stx (map s-bind-id args))]
-                   [body-stx (compile-pyret body)])
-       #`(p:mk-fun (r:λ (arg ...) body-stx)))]
+    [(s-lam l params args ann body)
+     (attach l
+       (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
+                     [body-stx (compile-pyret body)])
+         #`(p:mk-fun (r:λ (arg ...) body-stx))))]
     
-    [(s-method _ args body)
-     (with-syntax ([(arg ...) (d->stx (map s-bind-id args))]
-                   [body-stx (compile-pyret body)]) 
-       #'(p:mk-method (r:λ (arg ...) body-stx)))]
+    [(s-method l args body)
+     (attach l
+       (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
+                     [body-stx (compile-pyret body)]) 
+         #'(p:mk-method (r:λ (arg ...) body-stx))))]
     
-    [(s-cond _ c-bs)
-     (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs))])
-       #`(r:cond branch ... [r:else (r:error "cond: no cases matched")]))]
+    [(s-cond l c-bs)
+     (attach l
+       (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs) l)])
+         #`(r:cond branch ... [r:else (r:error "cond: no cases matched")])))]
     
-    [(s-cond-branch _ tst blk)
-     #`((p:pyret-true? #,(compile-pyret tst)) #,(compile-pyret blk))]
+    [(s-cond-branch l tst blk)
+     (attach l
+       #`((p:pyret-true? #,(compile-pyret tst)) #,(compile-pyret blk)))]
     
-    [(s-id _ name)
-     (with-syntax ([name-stx (d->stx name)])
-       #`name-stx)]
+    [(s-id l name)
+     (attach l
+       (with-syntax ([name-stx (d->stx name l)])
+         #`name-stx))]
     
-    [(s-assign _ name expr)
-     (with-syntax ([name-stx (d->stx name)]
-                   [temp (gensym name)])
-       #`(r:let [(temp #,(compile-pyret expr))]
-           (r:set! name-stx temp)
-           temp))]
+    [(s-assign l name expr)
+     (attach l
+       (with-syntax ([name-stx (d->stx name l)]
+                     [temp (gensym name)])
+         #`(r:let [(temp #,(compile-pyret expr))]
+             (r:set! name-stx temp)
+             temp)))]
 
-    [(s-app _ fun args)
-     (with-syntax ([fun (compile-pyret fun)]
-                   [(arg ...) (map compile-pyret args)])
-       #'((p:p-fun-f fun) arg ...))]
+    [(s-app l fun args)
+     (attach l
+        (with-syntax ([fun (compile-pyret fun)]
+                      [(arg ...) (map compile-pyret args)])
+          #'((p:p-fun-f fun) arg ...)))]
 
-    [(s-onion _ super fields)
-     (with-syntax ([(member ...) (map compile-member fields)]
-                   [super (compile-pyret super)])
-      #'(p:flatten super (r:make-hash (r:list member ...))))]
+    [(s-onion l super fields)
+     (attach l
+       (with-syntax ([(member ...) (map compile-member fields)]
+                     [super (compile-pyret super)])
+        #'(p:flatten super (r:make-hash (r:list member ...)))))]
 
-    [(s-obj _ fields)
-     (with-syntax ([(member ...) (map compile-member fields)])
-       #'(p:mk-object (r:make-hash (r:list member ...))))]
+    [(s-obj l fields)
+     (attach l
+       (with-syntax ([(member ...) (map compile-member fields)])
+         #'(p:mk-object (r:make-hash (r:list member ...)))))]
     
-    [(s-list _ elts)
-     (with-syntax ([(elt ...) (map compile-pyret elts)])
-       #'(p:mk-list (r:list elt ...)))]
+    [(s-list l elts)
+     (attach l
+       (with-syntax ([(elt ...) (map compile-pyret elts)])
+         #'(p:mk-list (r:list elt ...))))]
     
-    [(s-dot _ val field)
-     #`(p:get-field #,(compile-pyret val) #,(d->stx (symbol->string field)))]
+    [(s-dot l val field)
+     (attach l
+       #`(p:get-field #,(compile-pyret val) #,(d->stx (symbol->string field) l)))]
     
-    [(s-bracket _ val field)
-     #`(p:get-field #,(compile-pyret val) (p:p-str-s #,(compile-pyret field)))]
+    [(s-bracket l val field)
+     (attach l
+       #`(p:get-field #,(compile-pyret val) (p:p-str-s #,(compile-pyret field))))]
     
-    [(s-dot-assign _ obj field val)
-     #`(p:set-field #,(compile-pyret obj)
-                    #,(d->stx (symbol->string field))
-                    #,(compile-pyret val))]
+    [(s-dot-assign l obj field val)
+     (attach l
+       #`(p:set-field #,(compile-pyret obj)
+                      #,(d->stx (symbol->string field) l)
+                      #,(compile-pyret val)))]
 
-    [(s-dot-method _ obj field)
-     #`(p:get-raw-field #,(compile-pyret obj) #,(d->stx (symbol->string field)))]
+    [(s-dot-method l obj field)
+     (attach l
+       #`(p:get-raw-field #,(compile-pyret obj) #,(d->stx (symbol->string field) l)))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
 (define compile-pyret compile-expr)
+

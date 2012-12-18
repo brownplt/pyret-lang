@@ -18,10 +18,10 @@
     (let loop ()
       (define next-token (tokens))
       (match next-token
-        [(list type text (list start-line start-col) (list end-line end-col) rest-string)
+        [(list type text (list start-line start-col) (list end-line end-col) rest-string (list offset span))
          ;; FIXME: improve the Python tokenizer to hold offsets too.
-         (define start-pos (position #f start-line start-col))
-         (define end-pos (position #f end-line end-col))
+         (define start-pos (position offset start-line start-col))
+         (define end-pos (position (+ offset span) end-line end-col))
          (define (pt token) (position-token token start-pos end-pos))
          (case type
              [(NAME) 

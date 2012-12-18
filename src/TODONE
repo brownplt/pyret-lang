@@ -64,6 +64,7 @@ Assignment tests
   - fixed with letrec
 [x] can we use ()? instead of multiple arms in grammar.rkt?
   - NO
+  - but we can use []
 [x] in compile-tests, ensure a fresh namespace before each run
 [x] Change Number/String/Bool into a-names
 [x] Have mk-num/str/bool brand
