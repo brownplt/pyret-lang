@@ -238,3 +238,12 @@
     sum = sum.add(x)
   end
   sum" ten)
+
+
+(check-pyret-exn
+ "raise('error')"
+ "'error'")
+
+(check-pyret-exn
+ "raise(2)"
+ "2")

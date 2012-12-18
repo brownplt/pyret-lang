@@ -32,7 +32,8 @@
               [print-pfun print]
               [seal-pfun seal]
               [brander-pfun brander]
-              [check-brand-pfun check-brand])
+              [check-brand-pfun check-brand]
+	      [raise-pfun raise])
   Any?
   Number?
   String?
@@ -42,6 +43,9 @@
 
 (define-type Value (U p-object p-list p-num p-bool
 		      p-str p-fun p-method p-nothing))
+
+(define-type-alias Loc
+  (List String Number Number Number Number))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -81,6 +85,10 @@
   (p-str (none) meta-str (set) (make-hash) s))
 
 (define: (mk-fun (f : Procedure)) : Value
+  (p-fun (none) meta-null (set) (make-hash)
+	 (λ (_) f)))
+
+(define: (mk-internal-fun (f : Procedure)) : Value
   (p-fun (none) meta-null (set) (make-hash) f))
 
 (define: (mk-method (f : Procedure)) : Value
@@ -231,10 +239,14 @@
 
 (define brander-pfun (mk-fun brander))
 
-(define: (check-brand (ck : Value) (o : Value) (s : Value)) : Value
+(define check-brand
+  (λ: ((loc : Loc))
+      (λ: ((ck : Value)
+	   (o : Value)
+	   (s : Value))
   (match (cons ck s)
     [(cons (p-fun _ _ _ _ f) (p-str _ _ _ _ typname))
-     (let ((check-v ((cast f (Value -> Value)) o)))
+     (let ((check-v (((cast f (Loc -> (Value -> Value))) loc) o)))
        (if (and (p-bool? check-v)
 		(p-bool-b check-v))
 	   o
@@ -244,9 +256,9 @@
     [(cons _ (p-str _ _ _ _ _))
      (error "runtime: cannot check-brand with non-function")]
     [(cons (p-fun _ _ _ _ _) _)
-     (error "runtime: cannot check-brand with non-string")]))
+     (error "runtime: cannot check-brand with non-string")]))))
 
-(define check-brand-pfun (mk-fun check-brand))
+(define check-brand-pfun (mk-internal-fun check-brand))
 
 (define (pyret-true? v)
   (match v
@@ -413,7 +425,6 @@
 (define print-pfun (mk-fun (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
 
 
-
 (define: (unwrap (v : Value)) : Any
   (match v
     [(p-list s m _ h l) (map unwrap l)]
@@ -431,3 +442,7 @@
     [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))
 
 
+(define raise-pfun
+  (mk-internal-fun
+   (λ: ([loc : Loc])
+      (λ: ([o : Value]) (raise o)))))

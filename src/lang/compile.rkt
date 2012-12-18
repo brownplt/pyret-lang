@@ -88,8 +88,9 @@
     [(s-app l fun args)
      (attach l
         (with-syntax ([fun (compile-pyret fun)]
-                      [(arg ...) (map compile-pyret args)])
-          #'((p:p-fun-f fun) arg ...)))]
+                      [(arg ...) (map compile-pyret args)]
+		      [(loc-param ...) (loc-list l)])
+          #'(((p:p-fun-f fun) (r:list loc-param ...)) arg ...)))]
 
     [(s-onion l super fields)
      (attach l
