@@ -242,7 +242,7 @@
 
 (check-pyret-exn
  "raise('error')"
- "'error'")
+ "error")
 
 (check-pyret-exn
  "raise(2)"

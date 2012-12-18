@@ -1,5 +1,8 @@
 #lang typed/racket
 
+(require/typed "untyped-runtime.rkt"
+  [mk-pyret-exn (String Loc -> Any)])
+
 (provide
   (prefix-out p: (struct-out none))
   (prefix-out p: (struct-out p-base))
@@ -45,7 +48,7 @@
 		      p-str p-fun p-method p-nothing))
 
 (define-type-alias Loc
-  (List String Number Number Number Number))
+  (List Path Number Number Number Number))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -445,4 +448,5 @@
 (define raise-pfun
   (mk-internal-fun
    (λ: ([loc : Loc])
-      (λ: ([o : Value]) (raise o)))))
+      (λ: ([o : Value]) (raise (mk-pyret-exn (to-string o) loc))))))
+
