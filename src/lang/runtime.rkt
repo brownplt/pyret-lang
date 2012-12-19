@@ -444,9 +444,16 @@
     [(list? v) (mk-list (map wrap v))]
     [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))
 
+(define: (exn+loc->message [v : Value] [l : Loc]) : String
+  (format
+    "~a:~a:~a: Uncaught exception ~a\n"
+    (first l)
+    (second l)
+    (third l)
+    (to-string v)))
 
 (define raise-pfun
   (mk-internal-fun
    (λ: ([loc : Loc])
-      (λ: ([o : Value]) (raise (mk-pyret-exn (to-string o) loc))))))
+      (λ: ([o : Value]) (raise (mk-pyret-exn (exn+loc->message o loc) loc))))))
 
