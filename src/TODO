@@ -1,6 +1,6 @@
 Redex
 [] Redex the initial semantics
-  [] basic objects
+  [x] basic objects
   [] seals
   [] extending
 [] Come up with a define-split-test form that makes a test run on both
