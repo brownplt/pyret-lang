@@ -241,28 +241,6 @@
                  (mk-bool (has-brand? v sym)))))))))
 
 (define brander-pfun (mk-fun brander))
-
-(define check-brand
-  (λ: ((loc : Loc))
-      (λ: ((ck : Value)
-	   (o : Value)
-	   (s : Value))
-  (match (cons ck s)
-    [(cons (p-fun _ _ _ _ f) (p-str _ _ _ _ typname))
-     (let ((check-v (((cast f (Loc -> (Value -> Value))) loc) o)))
-       (if (and (p-bool? check-v)
-		(p-bool-b check-v))
-	   o
-	   ;; NOTE(dbp): not sure how to give good reporting
-	   (error (format "runtime: typecheck failed; expected ~a and got\n~a"
-                          typname o))))]
-    [(cons _ (p-str _ _ _ _ _))
-     (error "runtime: cannot check-brand with non-function")]
-    [(cons (p-fun _ _ _ _ _) _)
-     (error "runtime: cannot check-brand with non-string")]))))
-
-(define check-brand-pfun (mk-internal-fun check-brand))
-
 (define (pyret-true? v)
   (match v
     [(p-bool _ _ _ _ #t) #t]
@@ -423,6 +401,7 @@
          (p-bool _ _ _ _ p)
          (p-str _ _ _ _ p))
      (format "~a" p)]
+    [(p-method _ _ _ _ f) "[[code]]"]
     [(p-object _ _ _ h)
      (define: (field-to-string (f : String) (v : Value)) : String
       (format "~a : ~a" f (to-string v)))
@@ -430,6 +409,28 @@
     [v (format "~a" v)]))
 
 (define print-pfun (mk-fun (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
+
+
+(define check-brand
+  (λ: ((loc : Loc))
+      (λ: ((ck : Value)
+	   (o : Value)
+	   (s : Value))
+  (match (cons ck s)
+    [(cons (p-fun _ _ _ _ f) (p-str _ _ _ _ typname))
+     (let ((check-v (((cast f (Loc -> (Value -> Value))) loc) o)))
+       (if (and (p-bool? check-v)
+		(p-bool-b check-v))
+	   o
+	   ;; NOTE(dbp): not sure how to give good reporting
+	   (error (format "runtime: typecheck failed; expected ~a and got\n~a"
+                          typname (to-string o)))))]
+    [(cons _ (p-str _ _ _ _ _))
+     (error "runtime: cannot check-brand with non-function")]
+    [(cons (p-fun _ _ _ _ _) _)
+     (error "runtime: cannot check-brand with non-string")]))))
+
+(define check-brand-pfun (mk-internal-fun check-brand))
 
 
 (define: (unwrap (v : Value)) : Any
