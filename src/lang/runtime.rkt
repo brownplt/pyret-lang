@@ -423,6 +423,10 @@
          (p-bool _ _ _ _ p)
          (p-str _ _ _ _ p))
      (format "~a" p)]
+    [(p-object _ _ _ h)
+     (define: (field-to-string (f : String) (v : Value)) : String
+      (format "~a : ~a" f (to-string v)))
+     (format "{ ~a }" (string-join (hash-map h field-to-string) ", "))]
     [v (format "~a" v)]))
 
 (define print-pfun (mk-fun (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
