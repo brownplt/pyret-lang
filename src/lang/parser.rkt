@@ -60,7 +60,9 @@
 (define-syntax (num-expr stx)
   (syntax-case stx ()
     [(_ num) (with-syntax ([n (datum->syntax #'num-expr (string->number (syntax->datum #'num)))])
-               #`(s-num #,(loc stx) n))]))
+               #`(s-num #,(loc stx) n))]
+    [(_ "-" num) (with-syntax ([n (datum->syntax #'num-expr (string->number (syntax->datum #'num)))])
+               #`(s-num #,(loc stx) (- n)))]))
 
 (define-syntax (bool-expr stx)
   (syntax-case stx ()

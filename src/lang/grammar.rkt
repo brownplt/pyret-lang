@@ -19,7 +19,7 @@ prim-expr:
    num-expr
  | bool-expr
  | string-expr
-num-expr: NUMBER
+num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     

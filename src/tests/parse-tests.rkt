@@ -9,6 +9,7 @@
 
 (check/block "'str'" (s-str _ "str"))
 (check/block "5" (s-num _ 5))
+(check/block "-5" (s-num _ -5))
 
 (check/block "true" (s-bool _ #t))
 (check/block "false" (s-bool _ #f))
