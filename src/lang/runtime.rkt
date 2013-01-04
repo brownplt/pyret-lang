@@ -47,8 +47,9 @@
 (define-type Value (U p-object p-list p-num p-bool
 		      p-str p-fun p-method p-nothing))
 
+(define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
-  (List Path Number Number Number Number))
+  (List (U Path String) MaybeNum MaybeNum MaybeNum MaybeNum))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
