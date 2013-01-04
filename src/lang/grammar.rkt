@@ -1,4 +1,4 @@
-#lang reader "../../lib/autogrammar/lalr/lang/reader.rkt"
+#lang ragg
 
 program: block ENDMARKER
 

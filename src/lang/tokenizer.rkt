@@ -9,6 +9,7 @@
   racket/match
   racket/generator
   parser-tools/lex
+  ragg/support
   "../../lib/pyret-tokenizer/main.rkt"
   "grammar.rkt")
 
@@ -26,17 +27,16 @@
          (case type
              [(NAME) 
               (cond [(hash-has-key? all-tokens-hash (string->symbol text))
-                     (pt ((hash-ref all-tokens-hash (string->symbol text)) text))]
+                     (pt (token (string->symbol text) text))]
                     [else
-                     (pt (token-NAME text))])]
-             [(OP)
-              (pt ((hash-ref all-tokens-hash (string->symbol text)) text))]
+                     (pt (token 'NAME text))])]
+             [(OP) (pt (token (string->symbol text) text))]
              [(NUMBER) 
-              (pt (token-NUMBER text))]
+              (pt (token 'NUMBER text))]
              [(STRING) 
-              (pt (token-STRING text))]
+              (pt (token 'STRING text))]
              [(BACKSLASH)
-              (pt (token-BACKSLASH "\\"))]
+              (pt (token 'BACKSLASH "\\"))]
              [(COMMENT) (loop)]
              [(NL) (loop)]
              [(NEWLINE) (loop)]
@@ -45,9 +45,9 @@
              [(ERRORTOKEN)
               (error 'uh-oh)]
              [(ENDMARKER) 
-              (token-ENDMARKER text)])]
+              (token 'ENDMARKER text)])]
         [(? void)
-         (token-EOF eof)]))))
+         (token 'EOF eof)]))))
 
 (define (get-syntax name input-port)
   (parse name (adapt-pyret-tokenizer input-port)))
