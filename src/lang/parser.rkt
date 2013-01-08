@@ -238,15 +238,27 @@
                  ann)]))
 
 (define-syntax (data-variant stx)
-  (syntax-case stx (data-member-elt)
+  (syntax-case stx (data-member-elt data-members)
     [(_ "|" variant-name)
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
+                  (list)
                   (list))]
+    [(_ "|" variant-name "with" (data-with-members (list-field field ",") ... lastfield))
+     #`(s-variant #,(loc stx)
+                  '#,(parse-name #'variant-name)
+                  (list)
+                  (list field ... lastfield))]
     [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member)
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
-                  (list member ... last-member))]))
+                  (list member ... last-member)
+                  (list))]
+    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member "with" (data-with-members (list-field field ",") ... lastfield))
+     #`(s-variant #,(loc stx)
+                  '#,(parse-name #'variant-name)
+                  (list member ... last-member)
+                  (list field ... lastfield))]))
 
 (define-syntax (data-expr stx)
   (syntax-case stx (data-param-elt data-params)
@@ -254,12 +266,14 @@
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
                '#,(parse-names #'(name ... last-name))
-               (list variant ...))]
+               (list variant ...)
+               (list))]
     [(_ "data" data-name variant ... "end")
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name) 
                (list)
-               (list variant ...))]))
+               (list variant ...)
+               (list))]))
 
 (define-syntax (do-expr stx)
   (syntax-case stx (do-stmt)

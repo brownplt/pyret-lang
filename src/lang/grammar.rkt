@@ -81,11 +81,12 @@ bracket-method-expr: expr ":" "[" expr "]"
 
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
+data-with-members: list-field* field [","]
 data-variant:
-   "|" NAME [":" data-member-elt* data-member]
+   "|" NAME [":" data-member-elt* data-member] ["with" data-with-members]
 data-param-elt: NAME ","
 data-params: "(" data-param-elt* NAME ")"
-data-expr: "data" NAME [data-params] data-variant+ "end"
+data-expr: "data" NAME [data-params] data-variant+ ("end"|"sharing" data-with-members "end")
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"

@@ -45,7 +45,7 @@
   nothing)
 
 (define-type Value (U p-object p-list p-num p-bool
-		      p-str p-fun p-method p-nothing))
+		      p-str p-fun p-method p-nothing p-opaque))
 
 (define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
@@ -68,6 +68,7 @@
 (struct: p-str p-base ((s : String)) #:transparent)
 (struct: p-fun p-base ((f : Procedure)) #:transparent)
 (struct: p-method p-base ((f : Procedure)) #:transparent)
+(struct: p-opaque p-base ((v : Any)) #:transparent)
 
 (define meta-null ((inst make-immutable-hash String Value) '()))
 
@@ -91,6 +92,9 @@
 (define: (mk-fun (f : Procedure)) : Value
   (p-fun (none) meta-null (set) (make-hash)
 	 (λ (_) f)))
+
+(define: (mk-opaque (v : Any)) : Value
+  (p-opaque (none) meta-null (set) (make-hash) v))
 
 (define: (mk-internal-fun (f : Procedure)) : Value
   (p-fun (none) meta-null (set) (make-hash) f))
@@ -128,9 +132,9 @@
 	    (mk-bool (p-bool? n)))))
 
 (define: (get-racket-fun (f : String)) : Value
-  (define fun (cast (dynamic-require 'racket (string->symbol f)) (Any * -> Any)))
+  (define fun (dynamic-require 'racket (string->symbol f)))
   (mk-fun (lambda: (args : Value *)
-            (wrap (apply fun (map unwrap args))))))
+            (wrap (cast (apply fun (map unwrap args)) Any)))))
 
 (define: (get-raw-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
@@ -163,6 +167,7 @@
     [(p-str _ m b h s) (p-str new-seal m b h s)]
     [(p-fun _ m b h f) (p-fun new-seal m b h f)]
     [(p-method _ m b h f) (p-method new-seal m b h f)]
+    [(p-opaque _ m b h v) (error "seal: Cannot seal opaque")]
     [(p-nothing _ m b h) (error "seal: Cannot seal nothing")]))
 
 (define: (add-brand (v : Value) (new-brand : Symbol)) : Value
@@ -175,6 +180,7 @@
     [(p-str sl m _ h s) (p-str sl m bs h s)]
     [(p-fun s m _ h f) (p-fun s m bs h f)]
     [(p-method s m _ h f) (p-method s m bs h f)]
+    [(p-opaque _ m b h v) (error "brand: Cannot brand opaque")]
     [(p-nothing _ m b h) (error "brand: Cannot brand nothing")]))
 
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
@@ -440,6 +446,7 @@
     [(p-num s m _ h n) n]
     [(p-bool s m _ h b) b]
     [(p-str sl m _ h s) s]
+    [(p-opaque _ _ _ _ v) v]
     [_ (error (format "unwrap: cannot unwrap ~a for Racket" v))]))
 
 (define: (wrap (v : Any)) : Value
@@ -448,7 +455,7 @@
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
     [(list? v) (mk-list (map wrap v))]
-    [else (error (format "wrap: cannot wrap ~a for Pyret" v))]))
+    [else (mk-opaque v)]))
 
 (define: (exn+loc->message [v : Value] [l : Loc]) : String
   (format

@@ -30,7 +30,8 @@ HTDP:
 [x] How should short-circuiting booleans work?
   - do!
 [] Testing libs (check/expect)
-[] Form for throwing errors (syntax & ast/semantics)
+[x] Form for throwing errors (syntax & ast/semantics)
+[] Form for catching errors
 [] module system?
 
 [] currying
@@ -48,11 +49,11 @@ Cleanup:
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] letrec* for sequences
-[] negative numbers
-
+[x] negative numbers
+[] unsaved-editor symbol showing up as an identifier
 [] Should use a stable paren-based syntax in compile-tests rather than
    needing to update that on syntax changes
-
+[] optional trailing commas everywhere
 [] application should check type better?
 
 [] Escape into Racket with peglegs:

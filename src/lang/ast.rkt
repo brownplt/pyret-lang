@@ -218,12 +218,14 @@ these metadata purposes.
 (struct: s-data ((syntax : srcloc)
                  (name : Symbol)
                  (params : (Listof Symbol))
-                 (variants : (Listof s-variant)))
+                 (variants : (Listof s-variant))
+                 (shared-members : (Listof Member)))
                 #:transparent)
 
 (struct: s-variant ((syntax : srcloc)
                     (name : Symbol)
-                    (members : (Listof s-member)))
+                    (members : (Listof s-member))
+                    (with-members : (Listof Member)))
                    #:transparent)
 
 (struct: s-member ((syntax : srcloc)
