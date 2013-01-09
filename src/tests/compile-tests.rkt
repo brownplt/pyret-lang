@@ -252,7 +252,8 @@
  "data List
     | cons : first, rest with
         length(self): 1.add(self.rest.length())
-    | empty with length(self): 0
+    | empty with
+        length(self): 0
   end
   cons(1, cons(2, empty())).length()"
  two
