@@ -219,4 +219,17 @@ end"
                                                                             (s-block _ (list (s-id _ 'self)))))))
          (list)))
 
+(check/block
+ "data Foo | bar with x(self): self
+  sharing
+    z: 10
+  end"
+ (s-data _ 'Foo (list) (list (s-variant _
+                                        'bar
+                                        (list)
+                                        (list (s-method-field _
+                                                              "x"
+                                                              (list (s-bind _ 'self (a-blank)))
+                                                              (s-block _ (list (s-id _ 'self)))))))
+         (list (s-data-field _ "z" (s-num _ 10)))))
 

@@ -59,11 +59,12 @@ field:
    NAME ":" expr
  | NAME args ":" block ["end"]
 list-field: field ","
+fields: list-field* field [","]
 
 # list-field is here because it works better with syntax-matching -
 # there's a syntax sub-list for list-field that we can grab hold of
 obj-expr:
-   "{" ["extend" expr "with"] list-field* field "}"
+   "{" ["extend" expr "with"] fields "}"
  | "{" "extend" expr "}"
  | "{" "}"
 
@@ -81,12 +82,11 @@ bracket-method-expr: expr ":" "[" expr "]"
 
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
-data-with-members: list-field* field [","]
 data-variant:
-   "|" NAME [":" data-member-elt* data-member] ["with" data-with-members]
+   "|" NAME [":" data-member-elt* data-member] ["with" fields]
 data-param-elt: NAME ","
 data-params: "(" data-param-elt* NAME ")"
-data-expr: "data" NAME [data-params] data-variant+ ("end"|"sharing" data-with-members "end")
+data-expr: "data" NAME [data-params] data-variant+ ("end"|("sharing" fields "end"))
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
