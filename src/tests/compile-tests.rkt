@@ -247,3 +247,27 @@
 (check-pyret-exn
  "raise(2)"
  "2")
+
+(check-pyret
+ "data List
+    | cons : first, rest with
+        length(self): 1.add(self.rest.length())
+    | empty with length(self): 0
+  end
+  cons(1, cons(2, empty())).length()"
+ two
+ )
+
+(check-pyret
+ "data List
+    | cons : first, rest
+    | empty
+  sharing
+    length(self):
+      cond:
+        | is-cons(self) => 1.add(self.rest.length())
+        | is-empty(self) => 0
+      end
+  end
+  cons(1, cons(2, empty())).length()"
+  two)
