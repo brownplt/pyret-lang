@@ -233,3 +233,13 @@ end"
                                                               (s-block _ (list (s-id _ 'self)))))))
          (list (s-data-field _ "z" (s-num _ 10)))))
 
+(check/block
+ "o.{x : 5}"
+ (s-onion _ (s-id _ 'o) (list (s-data-field _ "x" (s-num _ 5)))))
+
+(check/block
+ "{x : 5}.{x : 10, y : 6}"
+ (s-onion _ (s-obj _ (list (s-data-field _ "x" (s-num _ 5))))
+          (list (s-data-field _ "x" (s-num _ 10))
+                (s-data-field _ "y" (s-num _ 6)))))
+

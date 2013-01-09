@@ -9,7 +9,7 @@ stmt: def-expr | fun-expr | data-expr | do-expr | expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-    | cond-expr | lambda-expr
+    | cond-expr | lambda-expr | extend-expr
 
 id-expr: NAME
 
@@ -71,6 +71,8 @@ obj-expr:
 list-elt: expr ","
 list-expr: "[" [list-elt* expr] "]"
 
+extend-expr: expr "." "{" fields "}"
+             # if we want it, we can add | expr "." "{" expr "}"
 dot-expr: expr "." NAME
 bracket-expr: expr "." "[" expr "]"
 

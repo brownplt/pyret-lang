@@ -144,15 +144,18 @@
 ;; TODO(joe): change this to use : for method extraction
 #;(check-pyret "{extend 5 with y:6}.add(2,3)" five)
 (check-pyret "{extend seal({x:5}, []) with x:10 }.x" ten)
+(check-pyret "seal({x:5}, []).{ x:10 }.x" ten)
 (check-pyret-match "{extend seal({x:5},[]) with x:10 }"
                    (p:p-object _ (hash-table) _ (hash-table ("x" (p:p-num _ _ _ _ 10)))))
 (check-pyret "{extend {x:5} with x:10 }.x" ten)
+(check-pyret "{x:5}.{x:10}.x" ten)
 (check-pyret-match "{extend {extend {x:1} with y:2} with z:7}"
                    (p:p-object _
                              (hash-table ("x" (p:p-num _ _ _ _ 1)) ("y" (p:p-num _ _ _ _ 2)))
                              _
                              (hash-table ("z" (p:p-num _ _ _ _ 7)))))
 (check-pyret-exn "def o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
+(check-pyret-exn "def o: seal({x:1}.{x:2}, []) o.x" "get-field:")
 
 (check-pyret "cond: | true => 2 | false => 1 end" two)
 (check-pyret "cond: | false => 2 | true => 10 end" ten)
@@ -167,6 +170,8 @@
 (check-pyret "{f(self): self.x, x:5}.f()" five)
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
 (check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
+
+(check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
 
 (check-pyret "Racket.['+'](2, 3)" five)
 (check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p:p-str _ _ _ _ "fourtytwo"))
@@ -256,8 +261,7 @@
         length(self): 0
   end
   cons(1, cons(2, empty())).length()"
- two
- )
+ two)
 
 (check-pyret
  "data List

@@ -203,6 +203,11 @@
                ;; is not sufficient to pull this off.
                (list (s-cond-branch #,(loc stx) exp blck) ...))]))
 
+(define-syntax (extend-expr stx)
+  (syntax-case stx ()
+    [(_ obj "." "{" fields "}")
+     #`(s-onion #,(loc stx) obj fields)]))
+
 (define-syntax (dot-expr stx)
   (syntax-case stx ()
     [(_ obj "." field) #`(s-dot #,(loc stx) obj '#,(parse-name #'field))]))
