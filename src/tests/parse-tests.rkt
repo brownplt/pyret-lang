@@ -5,7 +5,7 @@
 (define-syntax check/block
   (syntax-rules ()
     [(_ str stmt ...)
-     (check-match (parse-pyret str) (s-block _ (list stmt ...)))]))
+     (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))]))
 
 (check/block "'str'" (s-str _ "str"))
 (check/block "5" (s-num _ 5))
@@ -243,3 +243,6 @@ end"
           (list (s-data-field _ "x" (s-num _ 10))
                 (s-data-field _ "y" (s-num _ 6)))))
 
+
+(check-match (parse-pyret "import 'file.arr' as file")
+ (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ empty)))

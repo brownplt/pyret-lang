@@ -1,6 +1,8 @@
 #lang typed/racket
 
 (provide
+  (struct-out s-prog)
+  (struct-out s-import)
   (struct-out s-block)
   (struct-out s-fun)
   (struct-out s-def)
@@ -50,47 +52,6 @@
 )
 
 #|
-(define (f-member ast-node)
-    (match ast-node
-      [(s-data-field _ name value) ]
-      [(s-method-field _ name args body) ]))
-  (match ast-node
-    
-    [(s-block _ l) ]
-
-    [(s-num _ n) ]
-    [(s-bool _ b) ]
-    [(s-str _ s) ]
-
-    [(s-lam _ typarams args ann body) ]
-    
-    [(s-cond _ c-bs) ]
-    
-    [(s-cond-branch _ tst blk) ]
-    
-    [(s-id _ name) ]
-    
-    [(s-assign _ name expr) ]
-
-    [(s-app _ fun args) ]
-
-    [(s-onion _ super fields) ]
-
-    [(s-obj _ fields) ]
-    
-    [(s-list _ elts) ]
-    
-    [(s-dot _ val field) ]
-    
-    [(s-bracket _ val field) ]
-    
-    [(s-dot-assign _ obj field val) ]
-
-    [(s-dot-method _ obj field) ]
-    
-|#
-
-#|
 
 The concrete AST for surface Pyret.
 
@@ -101,13 +62,15 @@ these metadata purposes.
 
 |#
 
+(struct: s-prog ((syntax : srcloc) (imports : (Listof s-import)) (block : s-block)) #:transparent)
+
 (define-type Block (Listof Stmt))
 (struct: s-block ((syntax : srcloc) (stmts : Block)) #:transparent)
 
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann))
    #:transparent)
 
-(define-type Stmt (U s-fun s-def s-cond s-data s-do Expr))
+(define-type Stmt (U s-fun s-def s-cond s-data s-do s-import Expr))
 (struct: s-fun ((syntax : srcloc)
     (name : Symbol)
     (params : (Listof Symbol))
@@ -126,6 +89,9 @@ these metadata purposes.
       (expr : Expr)
       (body : s-block))
    #:transparent)
+
+(struct: s-import ((syntax : srcloc) (file : String) (name : Symbol)) #:transparent)
+
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id
          s-assign s-num s-bool s-str

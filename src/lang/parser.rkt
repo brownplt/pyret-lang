@@ -25,10 +25,14 @@
 (define-for-syntax (parse-ids stx)
   (datum->syntax #f (map string->symbol (syntax->datum stx))))
 
+(define-for-syntax (parse-string stx)
+  (let [(str-val (syntax->datum stx))]
+    (substring str-val 1 (sub1 (string-length str-val)))))
+
 (define-syntax (program stx)
   (syntax-case stx ()
-    [(_ block endmarker-ignored)
-     #'block]))
+    [(_ (imports import ...) block endmarker-ignored)
+     #`(s-prog #,(loc stx) (list import ...) block)]))
 
 (define-syntax (block stx)
   (syntax-case stx ()
@@ -43,6 +47,11 @@
   (syntax-case stx ()
     [(_ stmt) #'stmt]))
 
+(define-syntax (import-stmt stx)
+  (syntax-case stx ()
+    [(_ "import" file "as" name)
+      #`(s-import #,(loc stx) #,(parse-string #'file) '#,(parse-name #'name))]))
+
 (define-syntax (prim-expr stx)
   (syntax-case stx ()
     [(_ expr) #'expr]))
@@ -52,10 +61,8 @@
 (define-syntax (string-expr stx)
   (syntax-case stx ()
     [(_ str)
-     (let* [(str-val (syntax->datum #'str))
-            (real-str (substring str-val 1 (sub1 (string-length str-val))))]
-       (with-syntax ([s (datum->syntax #'string-expr real-str)])
-         #`(s-str #,(loc stx) s)))]))
+     (with-syntax ([s (datum->syntax #'string-expr (parse-string #'str))])
+       #`(s-str #,(loc stx) s))]))
 
 (define-syntax (num-expr stx)
   (syntax-case stx ()

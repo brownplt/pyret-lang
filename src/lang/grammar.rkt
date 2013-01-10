@@ -1,6 +1,10 @@
 #lang ragg
 
-program: block ENDMARKER
+program: imports block ENDMARKER
+
+imports: import-stmt*
+
+import-stmt: "import" STRING "as" NAME
 
 block: stmt*
 

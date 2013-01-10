@@ -3,7 +3,8 @@
 data File
   | fd: inner-file :: Any with
     read-line(self): Racket.read-line(self.inner-file),
-    read-file(self): Racket.["port->string"](self.inner-file)
+    read-file(self): Racket.["port->string"](self.inner-file),
+    close-file(self): Racket.close-input-port(self.inner-file)
 end
 
 fun file(path :: String):
