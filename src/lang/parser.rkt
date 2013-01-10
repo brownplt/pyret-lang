@@ -52,6 +52,11 @@
     [(_ "import" file "as" name)
       #`(s-import #,(loc stx) #,(parse-string #'file) '#,(parse-name #'name))]))
 
+(define-syntax (provide-stmt stx)
+  (syntax-case stx ()
+    [(_ "provide" stmt "end")
+     #`(s-provide #,(loc stx) stmt)]))
+
 (define-syntax (prim-expr stx)
   (syntax-case stx ()
     [(_ expr) #'expr]))

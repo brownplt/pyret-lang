@@ -281,5 +281,5 @@
 (check-pyret-match
  "import '../lang/pyret-lib/file.arr' as file
   file.file"
- (p-fun _ _ _ _ _))
+ (p:p-fun _ _ _ _ _))
  

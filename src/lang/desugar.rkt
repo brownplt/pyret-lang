@@ -3,7 +3,8 @@
 (provide
   desugar-pyret)
 (require
-  "ast.rkt")
+  "ast.rkt"
+  "load.rkt")
 
 ;; internal name
 (define (make-checker-type-name s)
@@ -75,11 +76,11 @@
 
 (define (ds-member ast-node)
     (match ast-node
-      [(s-data-field s name value) (s-data-field s name (desugar-pyret value))]
-      [(s-method-field s name args body) (s-data-field s name (s-method s args (desugar-pyret body)))]))
+      [(s-data-field s name value) (s-data-field s name (desugar-internal value))]
+      [(s-method-field s name args body) (s-data-field s name (s-method s args (desugar-internal body)))]))
 
-(define (desugar-pyret ast)
-  (define ds desugar-pyret) 
+(define (desugar-internal ast)
+  (define ds desugar-internal) 
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -142,3 +143,25 @@
          (s-id _ _)) ast]
     
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
+
+(define (desugar-pyret ast)
+  (match ast
+    [(s-prog s imps block)
+     (s-block s (flatten-blocks
+     	      	  (append (map (compose desugar-internal desugar-header) imps) 
+                          (map desugar-internal (s-block-stmts block)))))]))
+
+(define (desugar-header hd)
+  (define (desugar-module ast)
+    (match ast
+      [(s-prog s imps block)
+        (match (desugar-pyret ast)
+          [(s-block s stmts)
+            (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))])]))
+  (match hd
+    [(s-provide s exp)
+      (s-fun s '%provide (list) (list) (a-blank) (s-block s (list exp)))]
+    [(s-import s file name)
+      (let [(mod-ast (parse-pyret (file->string (path->complete-path file))))]
+        (s-def s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+

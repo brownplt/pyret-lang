@@ -3,6 +3,7 @@
 (provide
   (struct-out s-prog)
   (struct-out s-import)
+  (struct-out s-provide)
   (struct-out s-block)
   (struct-out s-fun)
   (struct-out s-def)
@@ -62,7 +63,12 @@ these metadata purposes.
 
 |#
 
-(struct: s-prog ((syntax : srcloc) (imports : (Listof s-import)) (block : s-block)) #:transparent)
+(struct: s-prog ((syntax : srcloc) (imports : (Listof Header)) (block : s-block)) #:transparent)
+
+(define-type Header (U s-import s-provide))
+(struct: s-import ((syntax : srcloc) (file : String) (name : Symbol)) #:transparent)
+(struct: s-provide ((syntax : srcloc) (expr : Stmt)) #:transparent)
+
 
 (define-type Block (Listof Stmt))
 (struct: s-block ((syntax : srcloc) (stmts : Block)) #:transparent)
@@ -89,8 +95,6 @@ these metadata purposes.
       (expr : Expr)
       (body : s-block))
    #:transparent)
-
-(struct: s-import ((syntax : srcloc) (file : String) (name : Symbol)) #:transparent)
 
 
 (define-type Expr (U s-obj s-onion s-list s-app s-id

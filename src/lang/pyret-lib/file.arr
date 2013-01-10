@@ -1,5 +1,7 @@
 #lang pyret
 
+provide {file : file} end
+
 data File
   | fd: inner-file :: Any with
     read-line(self): Racket.read-line(self.inner-file),
@@ -11,5 +13,5 @@ fun file(path :: String):
   fd(Racket.open-input-file(path))
 end
 
-file("file.arr").read-line()
-file("file.arr").read-file()
+#file("file.arr").read-line()
+#file("file.arr").read-file()

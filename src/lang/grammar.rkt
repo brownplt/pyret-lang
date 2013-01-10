@@ -2,9 +2,10 @@
 
 program: imports block ENDMARKER
 
-imports: import-stmt*
+imports: (import-stmt|provide-stmt)*
 
 import-stmt: "import" STRING "as" NAME
+provide-stmt: "provide" stmt "end"
 
 block: stmt*
 

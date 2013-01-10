@@ -245,4 +245,8 @@ end"
 
 
 (check-match (parse-pyret "import 'file.arr' as file")
- (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ empty)))
+ (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
+
+(check-match (parse-pyret "provide {a: 1} end")
+ (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ "a" (s-num _ 1))))))
+ 	   (s-block _ (list))))
