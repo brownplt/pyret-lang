@@ -14,10 +14,10 @@ fun extract(input-path :: String, output-path :: String):
   def reading-doc: false
   fun process-lines(): # should be file.File
     def l: f.read-line()
-    cond
+    cond:
       | l.equals("") => ""
       | true =>
-        cond
+        cond:
           | l.starts-with("#--|") =>
 						reading-doc = true
 						# add some space
@@ -26,7 +26,7 @@ fun extract(input-path :: String, output-path :: String):
 						l = l.from(3)
 				  | reading-doc.and(l.starts-with("#").not()) =>
 						reading-doc = false
-          | else => false
+          | true => false
 		    end
 				out.append(l.from(1))
 				out.append("\n")
@@ -36,3 +36,4 @@ fun extract(input-path :: String, output-path :: String):
   process-lines()
 	file(output-path).write-file(out)
 end
+

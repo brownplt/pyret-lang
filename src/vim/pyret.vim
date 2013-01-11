@@ -15,7 +15,16 @@ syn match op '=>'
 
 syn match comment '\#.*$'
 
+syn match string '"[^"]*"'
+syn match string "'[^']*'"
+
+syn match int "\d+"
+
 hi def link comment Comment
 hi def link op PreProc
 hi def link basic Label
+hi def link string Constant
+hi def link int Constant
+
+se iskeyword=-
 
