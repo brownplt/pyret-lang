@@ -1,7 +1,3 @@
-[submodule "autogrammar"]
-path = lib/autogrammar
-url = git@github.com:dyoo/autogrammar.git
-
-[submodule "pyret-tokenizer"]
-path = lib/pyret-tokenizer
-url = git@github.com:jpolitz/pyret-tokenizer.git
+[submodule "lib/ragg"]
+	path = lib/ragg
+	url = git@github.com:dyoo/ragg

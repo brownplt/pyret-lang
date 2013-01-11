@@ -1,15 +1,20 @@
-#lang reader "../../lib/autogrammar/lalr/lang/reader.rkt"
+#lang ragg
 
-program: block ENDMARKER
+program: imports block ENDMARKER
+
+imports: (import-stmt|provide-stmt)*
+
+import-stmt: "import" STRING "as" NAME
+provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: def-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | dot-assign-expr | bracket-assign-expr
+stmt: (def-expr | fun-expr | data-expr | do-expr | expr
+    | assign-expr | dot-assign-expr | bracket-assign-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-    | cond-expr | lambda-expr
+    | cond-expr | lambda-expr | extend-expr
 
 id-expr: NAME
 
@@ -19,7 +24,7 @@ prim-expr:
    num-expr
  | bool-expr
  | string-expr
-num-expr: NUMBER
+num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
@@ -59,17 +64,20 @@ field:
    NAME ":" expr
  | NAME args ":" block ["end"]
 list-field: field ","
+fields: list-field* field [","]
 
 # list-field is here because it works better with syntax-matching -
 # there's a syntax sub-list for list-field that we can grab hold of
 obj-expr:
-   "{" ["extend" expr "with"] list-field* field "}"
+   "{" ["extend" expr "with"] fields "}"
  | "{" "extend" expr "}"
  | "{" "}"
 
 list-elt: expr ","
 list-expr: "[" [list-elt* expr] "]"
 
+extend-expr: expr "." "{" fields "}"
+             # if we want it, we can add | expr "." "{" expr "}"
 dot-expr: expr "." NAME
 bracket-expr: expr "." "[" expr "]"
 
@@ -82,10 +90,10 @@ bracket-method-expr: expr ":" "[" expr "]"
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
 data-variant:
-   "|" NAME [":" data-member-elt* data-member]
+   "|" NAME [":" data-member-elt* data-member] ["with" fields]
 data-param-elt: NAME ","
 data-params: "(" data-param-elt* NAME ")"
-data-expr: "data" NAME [data-params] data-variant+ "end"
+data-expr: "data" NAME [data-params] data-variant+ ("end"|("sharing" fields "end"))
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"

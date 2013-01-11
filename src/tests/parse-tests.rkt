@@ -5,10 +5,11 @@
 (define-syntax check/block
   (syntax-rules ()
     [(_ str stmt ...)
-     (check-match (parse-pyret str) (s-block _ (list stmt ...)))]))
+     (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))]))
 
 (check/block "'str'" (s-str _ "str"))
 (check/block "5" (s-num _ 5))
+(check/block "-5" (s-num _ -5))
 
 (check/block "true" (s-bool _ #t))
 (check/block "false" (s-bool _ #f))
@@ -162,20 +163,22 @@
                              (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
 
 (check/block "  data Foo | bar end"
-             (s-data _ 'Foo empty (list (s-variant _ 'bar (list)))))
+             (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list)))
 
 (check/block "data NumList
   | empty
   | cons: first :: Number, rest :: NumList
 end"
-             (s-data _ 'NumList empty (list (s-variant _ 'empty (list))
-                                      (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
-                                                               (s-member _ 'rest (a-name _ 'NumList)))))))
+             (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
+                                             (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
+                                                                      (s-member _ 'rest (a-name _ 'NumList)))
+                                                        (list)))
+                     (list)))
 
 (check/block "def my-hypthen-y-ident-i-fier: 10"
              (s-def _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
 
-(check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list)))))
+(check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 
 (check/block 
  "data List(a) | cons: field, l :: List(a) end" 
@@ -184,7 +187,8 @@ end"
                 _ 
                 'cons 
                 (list (s-member _ 'field (a-blank)) 
-                      (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))))))
+                      (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))
+                (list))) (list)))
 
 
 (check/block
@@ -209,4 +213,40 @@ end"
  (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
 	(s-block _ (list (s-id _ 'x)))))
 
+(check/block
+ "data Foo | bar with x(self): self end"
+ (s-data _ 'Foo (list) (list (s-variant _ 'bar (list) (list (s-method-field _ "x" (list (s-bind _ 'self (a-blank)))
+                                                                            (s-block _ (list (s-id _ 'self)))))))
+         (list)))
 
+(check/block
+ "data Foo | bar with x(self): self
+  sharing
+    z: 10
+  end"
+ (s-data _ 'Foo (list) (list (s-variant _
+                                        'bar
+                                        (list)
+                                        (list (s-method-field _
+                                                              "x"
+                                                              (list (s-bind _ 'self (a-blank)))
+                                                              (s-block _ (list (s-id _ 'self)))))))
+         (list (s-data-field _ "z" (s-num _ 10)))))
+
+(check/block
+ "o.{x : 5}"
+ (s-onion _ (s-id _ 'o) (list (s-data-field _ "x" (s-num _ 5)))))
+
+(check/block
+ "{x : 5}.{x : 10, y : 6}"
+ (s-onion _ (s-obj _ (list (s-data-field _ "x" (s-num _ 5))))
+          (list (s-data-field _ "x" (s-num _ 10))
+                (s-data-field _ "y" (s-num _ 6)))))
+
+
+(check-match (parse-pyret "import 'file.arr' as file")
+ (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
+
+(check-match (parse-pyret "provide {a: 1} end")
+ (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ "a" (s-num _ 1))))))
+ 	   (s-block _ (list))))

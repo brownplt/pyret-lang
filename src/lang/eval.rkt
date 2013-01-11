@@ -17,12 +17,19 @@
 (dynamic-require parser 0)
 (define ns (module->namespace (resolved-module-path-name parser)))
 
-(define (pyret->racket src in)
+(define (stx->racket stx)
   (strip-context
    (compile-pyret
     (contract-check-pyret
      (desugar-pyret
-      (eval (get-syntax src in) ns))))))
+      (eval stx ns))))))
+
+(define (pyret->racket src in)
+  (stx->racket (get-syntax src in)))
+
+;; for the repl, we parse statement by statement
+(define (pyret->racket-repl src in)
+  (stx->racket (get-stmt-syntax src in)))
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from 
@@ -31,7 +38,7 @@
                  [read-accept-lang #f])
     (if (eof-object? (peek-char in))
         eof
-        (pyret->racket src in))))
+        (pyret->racket-repl src in))))
 
 (define (simplify-pyret val)
   (match val

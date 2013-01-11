@@ -3,7 +3,8 @@
 (provide
   desugar-pyret)
 (require
-  "ast.rkt")
+  "ast.rkt"
+  "load.rkt")
 
 ;; internal name
 (define (make-checker-type-name s)
@@ -27,7 +28,7 @@
            (s-bind s (make-checker-type-name name) (a-blank))
            (s-id s (make-checker-name name))))))
            
-(define (variant-defs/list super-brand variants)
+(define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
     (s-data-field (s-member-syntax m)
              (symbol->string (s-member-name m))
@@ -36,16 +37,19 @@
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
     (match v
-      [(s-variant s name members)
+      [(s-variant s name members with-members)
        (define brander-name (gensym name))
+       (define dsg-with-members (map ds-member with-members))
        (define args (map s-member-name members))
        ;; TODO(joe): annotations on args
        (define constructor-args
         (map (lambda (id) (s-bind s id (a-blank))) args))
        (define obj
-        (s-obj s (map member->field
-                      members
-                      (map (lambda (id) (s-id s id)) args))))
+         (s-onion s
+                  (s-obj s (map member->field
+                                members
+                                (map (lambda (id) (s-id s id)) args)))
+                  (append super-fields dsg-with-members)))
        (s-block s
          (list 
            (s-def s (s-bind s brander-name (a-blank))
@@ -70,24 +74,26 @@
          empty
          maybe-blocks))
 
-(define (desugar-pyret ast)
-  (define ds desugar-pyret)
-  (define (ds-member ast-node)
+(define (ds-member ast-node)
     (match ast-node
-      [(s-data-field s name value) (s-data-field s name (ds value))]
-      [(s-method-field s name args body) (s-data-field s name (s-method s args (ds body)))]))
+      [(s-data-field s name value) (s-data-field s name (desugar-internal value))]
+      [(s-method-field s name args body) (s-data-field s name (s-method s args (desugar-internal body)))]))
+
+(define (desugar-internal ast)
+  (define ds desugar-internal) 
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params variants)
+    [(s-data s name params variants share-members)
      (define brander-name (gensym name))
+     (define super-fields (map ds-member share-members))
      (ds (s-block s
                   (append
                    (list (s-def s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                          (make-checker s name (s-id s brander-name)))
-                   (variant-defs/list brander-name variants))))]
+                   (variant-defs/list brander-name super-fields variants))))]
     [(s-do s fun args)
      (define (functionize b)
        (s-lam s (list) (list) (a-blank) (ds b)))
@@ -137,3 +143,25 @@
          (s-id _ _)) ast]
     
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
+
+(define (desugar-pyret ast)
+  (match ast
+    [(s-prog s imps block)
+     (s-block s (flatten-blocks
+     	      	  (append (map (compose desugar-internal desugar-header) imps) 
+                          (map desugar-internal (s-block-stmts block)))))]))
+
+(define (desugar-header hd)
+  (define (desugar-module ast)
+    (match ast
+      [(s-prog s imps block)
+        (match (desugar-pyret ast)
+          [(s-block s stmts)
+            (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))])]))
+  (match hd
+    [(s-provide s exp)
+      (s-fun s '%provide (list) (list) (a-blank) (s-block s (list exp)))]
+    [(s-import s file name)
+      (let [(mod-ast (parse-pyret (file->string (path->complete-path file))))]
+        (s-def s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+
