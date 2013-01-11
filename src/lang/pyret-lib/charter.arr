@@ -27,9 +27,13 @@ fun extract(input-path :: String, output-path :: String):
 				  | reading-doc.and(l.starts-with("#").not()) =>
 						reading-doc = false
           | true => false
-		    end
-				out.append(l.from(1))
-				out.append("\n")
+        end
+        cond
+          | reading-doc =>
+            out.append(l.from(1))
+					  out.append("\n")
+					| true => false
+				end
 				process-lines()
     end
   end
