@@ -7,7 +7,8 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword basic def fun end cond with sharing data do
+syn keyword basic def fun end cond with sharing data do import provide as
+
 syn match op '|'
 syn match op ':'
 syn match op '->'
@@ -18,13 +19,11 @@ syn match comment '\#.*$'
 syn match string '"[^"]*"'
 syn match string "'[^']*'"
 
-syn match int "\d+"
-
 hi def link comment Comment
-hi def link op PreProc
 hi def link basic Label
+hi def link op PreProc
 hi def link string Constant
-hi def link int Constant
 
-se iskeyword=-
+" This hilarious line is *adding* hyphens as a non-word separator
+se iskeyword+=-
 
