@@ -1,6 +1,6 @@
 #lang reader "../src/lang/pyret.rkt"
 
-fun y(x): x:times(x) end
+fun y(x): x.times(x) end
 
 y(1)
 y(2)

@@ -1,3 +1,18 @@
+Release
+[] Documentation
+  [] Extract docs from code
+[] Type-checking up to List(a) and arrows/records
+  [] "Also, we've been talking about and working on the untyped to typed contract installation - do we want to have some version of that working?"
+     - contracts up to monomorphic structures and polymorphic functions
+[] better error reporting / pretty printing / support for debugging. For example, printing out names for brands (where appropriate) would be a start.
+[] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
+[] Some sort of module system for sane libraries
+  [] Cyclic modules
+[] support for infix operators
+[] Functionalize objects
+[] Indentation enforcement?
+
+
 Redex
 [] Redex the initial semantics
   [x] basic objects
@@ -55,7 +70,23 @@ Cleanup:
    needing to update that on syntax changes
 [] optional trailing commas everywhere
 [] application should check type better?
+[] cleanup test-utils
 
 [] Escape into Racket with peglegs:
     !(display (current-namespace))!
   - wrapping where possible?
+
+TODO templates:
+
+  Adding a new piece of syntax:
+  [] Add it to ast.rkt, and export it
+  [] Write parser tests for the new form
+  [] Add it to grammar.rkt
+  [] Modify parser.rkt to parse the new syntax from grammar.rkt
+
+  Making your new syntax functional:
+  [] Write compile-tests for your new syntax (see adding new syntax)
+  [] If you can desugar it entirely (this is way better):
+    [] Make your changes to desugar.rkt
+  [] If you cannot desugar it entirely:
+    [] Figure out how to split it between desugar.rkt and compile.rkt

@@ -9,8 +9,8 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: def-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | dot-assign-expr | bracket-assign-expr
+stmt: (def-expr | fun-expr | data-expr | do-expr | expr
+    | assign-expr | dot-assign-expr | bracket-assign-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr

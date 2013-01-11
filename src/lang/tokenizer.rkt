@@ -3,7 +3,8 @@
 ;; NOTE(joe): This has been ripped from Danny's test cases for
 ;; autogrammar
 (provide
-  get-syntax)
+ get-syntax
+ get-stmt-syntax)
 (require
   rackunit
   racket/match
@@ -51,6 +52,10 @@
 
 (define (get-syntax name input-port)
   (parse name (adapt-pyret-tokenizer input-port)))
+
+(define (get-stmt-syntax name input-port)
+  (define parse-stmt (make-rule-parser stmt))
+  (parse-stmt (adapt-pyret-tokenizer input-port)))
 
 (define (get-string-syntax str)
   (get-syntax str (open-input-string str)))
