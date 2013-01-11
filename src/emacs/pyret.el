@@ -16,6 +16,8 @@
     ("\\" . 'font-lock-builtin)
     (";" .  'font-lock-builtin))
   '("\\.arr$")                            ;; files for which to activate this mode 
-   nil                                    ;; other functions to call
+   (list (lambda () (set (make-local-variable 'comment-start) "#"))
+	 (lambda () (set (make-local-variable 'tab-width) 2))
+	 (lambda () (set (make-local-variable indent-tabs-mode) nil)))
   "A mode for Pyret files"                ;; doc string for this mode
 )

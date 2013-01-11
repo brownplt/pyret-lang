@@ -365,6 +365,11 @@
               (error (format "str: non-numeric string ~a" s))
               (mk-num n)))))
       ("equals" . ,(mk-method (mk-str-bool-impl string=?)))
+      ;; NOTE(dbp): this process of writing library code is ridiculous.
+      ;; We need to put this elsewhere.
+      ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
+      ;("from" . ,(mk-method ,(mk-str-fun (lambda (s n) (substring s n (string-length s))))))
+      ;("trim" . ,(mk-method ,(mk-single-str-fun (lambda (s) (mk-str (string-trim s))))))
   )))
 
 (define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
