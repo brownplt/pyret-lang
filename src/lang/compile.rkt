@@ -64,13 +64,14 @@
          #'(p:mk-method (r:λ (arg ...) body-stx))))]
     
     [(s-cond l c-bs)
+     (define (compile-cond-branch b)
+       (match b
+         [(s-cond-branch s test block)
+          (attach l
+                  #`((p:pyret-true? #,(compile-pyret test)) #,(compile-pyret block)))]))
      (attach l
-       (with-syntax ([(branch ...) (d->stx (map compile-pyret c-bs) l)])
-         #`(r:cond branch ... [r:else (r:error "cond: no cases matched")])))]
-    
-    [(s-cond-branch l tst blk)
-     (attach l
-       #`((p:pyret-true? #,(compile-pyret tst)) #,(compile-pyret blk)))]
+       (with-syntax ([(branch ...) (d->stx (map compile-cond-branch c-bs) l)])
+         #`(r:cond branch ...)))]
     
     [(s-id l name)
      (attach l

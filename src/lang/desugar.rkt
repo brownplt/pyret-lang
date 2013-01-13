@@ -117,7 +117,15 @@
      (define (ds-cond branch)
        (match branch
          [(s-cond-branch s tst blk) (s-cond-branch s (ds tst) (ds blk))]))
-     (s-cond s (map ds-cond c-bs))]
+     (define cond-fallthrough
+       (s-block s
+                (list
+                 (s-app s
+                        (s-id s 'raise)
+                        (list (s-str s "cond: no cases matched"))))))
+     (s-cond s
+             (append (map ds-cond c-bs)
+                     (list (s-cond-branch s (s-bool s #t) cond-fallthrough))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 

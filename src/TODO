@@ -60,7 +60,7 @@ Cleanup:
 [] s-data and s-dot should agree on symbol vs. string
 [] clean up runtime.rkt into sanity
 [] stop using typed racket except for data definitions
-[] cond implicit else should be in desugar, not compile
+[x] cond implicit else should be in desugar, not compile
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] letrec* for sequences
