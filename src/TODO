@@ -6,7 +6,7 @@ Release
      - contracts up to monomorphic structures and polymorphic functions
 [] better error reporting / pretty printing / support for debugging. For example, printing out names for brands (where appropriate) would be a start.
 [] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
-[] Some sort of module system for sane libraries
+[x] Some sort of module system for sane libraries
   [] Cyclic modules
 [] support for infix operators
 [] Functionalize objects
@@ -47,7 +47,7 @@ HTDP:
 [] Testing libs (check/expect)
 [x] Form for throwing errors (syntax & ast/semantics)
 [] Form for catching errors
-[] module system?
+[x] module system?
 
 [] currying
 [] srcloc for a-any
@@ -70,7 +70,7 @@ Cleanup:
    needing to update that on syntax changes
 [] optional trailing commas everywhere
 [] application should check type better?
-[] cleanup test-utils
+[x] cleanup test-utils
 
 [] Escape into Racket with peglegs:
     !(display (current-namespace))!
@@ -90,3 +90,4 @@ TODO templates:
     [] Make your changes to desugar.rkt
   [] If you cannot desugar it entirely:
     [] Figure out how to split it between desugar.rkt and compile.rkt
+

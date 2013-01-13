@@ -17,12 +17,8 @@
   "../lang/typecheck.rkt"
   "../lang/desugar.rkt"
   "../lang/runtime.rkt"
+  "../lang/load.rkt"
   "../lang/eval.rkt")
-
-
-(dynamic-require "../lang/parser.rkt" 0)
-(define ns (module->namespace "../lang/parser.rkt"))
-
 
 ;; this insanity is needed in order to get the namespace for pyret
 ;; (with r: and p: prefixed identifiers) into eval
@@ -40,15 +36,6 @@
 
 (define (compile-str str)
   (pyret->racket "test-utils" (open-input-string str)))
-
-;; note - using eval-syntax below misses an important "enrichment" step:
-;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
-;;
-;; NB(joe):  I have no idea what that means
-(define (parse-pyret str)
-  (eval
-   (get-syntax "parse-tests.rkt" (open-input-string str))
-   ns))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
