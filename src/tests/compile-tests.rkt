@@ -282,4 +282,22 @@
  "import '../lang/pyret-lib/file.arr' as file
   file.file"
  (p:p-fun _ _ _ _ _))
+
+(check-pyret
+ "def x: 5
+  def y: x
+  y"
+ five)
+
+(check-pyret-exn
+ "def x: 5
+  def x: x
+  y"
+ "duplicate")
+
+;; two nested directories deep, the string "inner" is provided
+(check-pyret
+ "import 'modules/nested-dir.arr' as result
+  result"
+ (p:mk-str "inner"))
  

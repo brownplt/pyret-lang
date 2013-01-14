@@ -170,6 +170,9 @@
     [(s-provide s exp)
       (s-fun s '%provide (list) (list) (a-blank) (s-block s (list exp)))]
     [(s-import s file name)
-      (let [(mod-ast (parse-pyret (file->string (path->complete-path file))))]
-        (s-def s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+     (define full-path (path->complete-path file))
+     (define-values (base relative-file root?) (split-path full-path))
+     (define mod-ast (parse-pyret (file->string full-path)))
+     (parameterize [(current-directory base)]
+       (s-def s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
 
