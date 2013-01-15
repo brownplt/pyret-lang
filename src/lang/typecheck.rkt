@@ -121,9 +121,6 @@
     [(s-bracket s val field)
      (s-bracket s (cc val) (cc field))]
     
-    [(s-dot-assign s obj field val)
-     (s-dot-assign s (cc obj) field (cc val))]
-
     [(s-dot-method s obj field)
      (s-dot-method s (cc obj) field)]
 

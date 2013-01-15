@@ -141,8 +141,6 @@
     
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
     
-    [(s-dot-assign s obj field val) (s-dot-assign s (ds obj) field (ds val))]
-
     [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
     
     [(or (s-num _ _)

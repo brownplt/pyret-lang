@@ -8,8 +8,7 @@ Release
 [] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
 [x] Some sort of module system for sane libraries
   [] Cyclic modules
-[] support for infix operators
-[] Functionalize objects
+[x] Functionalize objects
 [] Indentation enforcement?
 
 

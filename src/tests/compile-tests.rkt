@@ -27,25 +27,30 @@
 (check-pyret "def x: 2 \\x: (x = 10)(5) x" two)
 (check-pyret "def x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
 
-(check-pyret "{}" (p:p-object (p:none) p:meta-null (set) (make-hash)))
+(check-pyret "{}" (p:p-object (p:none) p:meta-null (set) p:empty-dict))
 
 (check-pyret "'5'" (p:mk-str "5"))
 
 (check-pyret-match "true" (p:p-bool _ _ _ _ #t))
 (check-pyret-match "false" (p:p-bool _ _ _ _ #f))
 
-(check-pyret "{x:5}" (p:p-object (p:none) p:meta-null (set) (make-hash (list (cons "x" five)))))
+(check-pyret "{x:5}" (p:p-object (p:none) p:meta-null (set)
+                                 (make-immutable-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p:p-list (p:none) p:meta-null (set) (make-hash) (list)))
+(check-pyret "[]" (p:p-list (p:none) p:meta-null (set) p:empty-dict (list)))
 
-(check-pyret "seal({}, [])" (p:p-object (set) p:meta-null (set) (make-hash)))
-(check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") p:meta-null (set) (make-hash (list (cons "x" five)))))
+(check-pyret "seal({}, [])" (p:p-object (set) p:meta-null (set) p:empty-dict))
+(check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") p:meta-null (set)
+                                              (make-immutable-hash (list (cons "x" five)))))
 (check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
-             (p:p-object (set "y") p:meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two)))))
+             (p:p-object (set "y") p:meta-null (set)
+                         (make-immutable-hash `(("x" . ,five) ("y" . ,two)))))
 (check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
-             (p:p-object (set "y") p:meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p:p-object (set "y") p:meta-null (set)
+                         (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
-             (p:p-object (set "y" "z") p:meta-null (set) (make-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
+             (p:p-object (set "y" "z") p:meta-null (set)
+                         (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 (check-pyret-match "seal({x:5}, ['y'])" (p:p-object (set "y") _ _ (hash-table ("x" _))))
 (check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p:p-object (set) _ _ (hash-table ("x" _) ("y" _))))
 (check-pyret-match "seal({}, ['y'])" (p:p-object (set "y") _ _ (hash-table)))
@@ -62,23 +67,6 @@
 (check-pyret-exn "seal(seal({x:5, y:5, z:5}, ['x', 'y']), ['y']).z" "get-field:")
 
 (check-pyret-exn "seal(2, ['subtract']).add(2, 3)" "get-field:")
-
-(check-pyret "def o: {} o.x = 5 o.x" five)
-(check-pyret "def o: {x:2} o.x = 5 o.x" five)
-(check-pyret "fun f(o): o.x = 5 end def o2: {} f(o2) o2.x" five)
-(check-pyret-exn "def sealed: seal({}, []) sealed.x = 4" "set-field:")
-(check-pyret-exn "def sealed: seal({x:37}, []) sealed.x = 4" "set-field:")
-(check-pyret "def sealed: seal({}, ['x']) sealed.x = 2 sealed.x" two)
-(check-pyret "def sealed: seal({x:37}, ['x']) sealed.x = 5 sealed.x" five)
-
-;; you can add fields that overwrite meta-fields (though this use of
-;; number-objects is dubious).  Perhaps number-objects should be frozen
-;; by default to not allow this.  For now, using this as a test of a 
-;; non-number-specific property
-(check-pyret "fun badadd(n1, n2): 2 end
-              def snum: 5
-              snum.add = badadd
-              snum.add(snum, 3)" two)
 
 (check-pyret "fun f(x): x = 2 x end f(1)" two)
 (check-pyret "fun f(x): x = 2 x = 5 x end f(1)" five)
@@ -123,7 +111,7 @@
 (check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ _ (? procedure?)))
 
 ;; can put raw methods on other objects and use them
-(check-pyret "def o: {x:5} def o2: {f(self): self.x} o.g = o2:f o.g()" five)
+(check-pyret "def o: {x:5} def o2: {f(self): self.x} o = o.{g : o2:f} o.g()" five)
 
 ;; cannot apply raw methods (better error messages plz)
 (check-pyret-exn "3:add()" "violation")

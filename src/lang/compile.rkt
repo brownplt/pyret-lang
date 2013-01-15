@@ -102,7 +102,7 @@
     [(s-obj l fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)])
-         #'(p:mk-object (r:make-hash (r:list member ...)))))]
+         #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
     
     [(s-list l elts)
      (attach l
@@ -117,12 +117,6 @@
      (attach l
        #`(p:get-field #,(compile-pyret val) (p:p-str-s #,(compile-pyret field))))]
     
-    [(s-dot-assign l obj field val)
-     (attach l
-       #`(p:set-field #,(compile-pyret obj)
-                      #,(d->stx (symbol->string field) l)
-                      #,(compile-pyret val)))]
-
     [(s-dot-method l obj field)
      (attach l
        #`(p:get-raw-field #,(compile-pyret obj) #,(d->stx (symbol->string field) l)))]

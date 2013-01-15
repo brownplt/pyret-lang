@@ -22,11 +22,11 @@
               [mk-fun p:mk-fun]
               [mk-method p:mk-method]
               [meta-null p:meta-null]
+              [empty-dict p:empty-dict]
               [get-dict p:get-dict]
               [get-seal p:get-seal]
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
-              [set-field p:set-field]
               [has-field? p:has-field?]
               [reseal p:reseal]
               [flatten p:flatten]
@@ -71,36 +71,37 @@
 (struct: p-opaque p-base ((v : Any)) #:transparent)
 
 (define meta-null ((inst make-immutable-hash String Value) '()))
+(define empty-dict ((inst make-immutable-hash String Value) '()))
 
-(define nothing (p-nothing (set) ((inst make-immutable-hash String Value) '()) (set) (make-hash)))
+(define nothing (p-nothing (set) meta-null (set) empty-dict))
 
 (define: (mk-object (dict : Dict)) : Value
   (p-object (none) meta-null (set) dict))
 
 (define: (mk-list (l : (Listof Value))) : Value
-  (p-list (none) meta-null (set) (make-hash) l))
+  (p-list (none) meta-null (set) empty-dict l))
 
 (define: (mk-num (n : Number)) : Value
-  (p-num (none) meta-num (set) (make-hash) n))
+  (p-num (none) meta-num (set) empty-dict n))
 
 (define: (mk-bool (b : Boolean)) : Value
-  (p-bool (none) meta-bool (set) (make-hash) b))
+  (p-bool (none) meta-bool (set) empty-dict b))
 
 (define: (mk-str (s : String)) : Value
-  (p-str (none) meta-str (set) (make-hash) s))
+  (p-str (none) meta-str (set) empty-dict s))
 
 (define: (mk-fun (f : Procedure)) : Value
-  (p-fun (none) meta-null (set) (make-hash)
+  (p-fun (none) meta-null (set) empty-dict
 	 (λ (_) f)))
 
 (define: (mk-opaque (v : Any)) : Value
-  (p-opaque (none) meta-null (set) (make-hash) v))
+  (p-opaque (none) meta-null (set) empty-dict v))
 
 (define: (mk-internal-fun (f : Procedure)) : Value
-  (p-fun (none) meta-null (set) (make-hash) f))
+  (p-fun (none) meta-null (set) empty-dict f))
 
 (define: (mk-method (f : Procedure)) : Value
-  (p-method (none) meta-null (set) (make-hash) f))
+  (p-method (none) meta-null (set) empty-dict f))
 
 (define: (get-dict (v : Value)) : Dict
   (p-base-dict v))
@@ -114,7 +115,7 @@
 (define: (get-brands (v : Value)) : (Setof Symbol)
   (p-base-brands v))
 
-(define Racket (mk-object (make-hash)))
+(define Racket (mk-object empty-dict))
 
 (define Any?
   (mk-fun (lambda (o) (mk-bool #t))))
@@ -152,11 +153,6 @@
                          ;; TODO(joe): Can this by typechecked?  I think maybe
                          (cast (apply f (cons v args)) Value )))]
         [non-method non-method])))
-  
-(define: (set-field (o : Value) (f : String) (v : Value)) : Value
-  (if (in-seal? o f)
-      (begin (hash-set! (get-dict o) f v) v)
-      (error (format "set-field: assigned outside seal: ~a" f))))
 
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
@@ -239,7 +235,7 @@
 (define: (brander) : Value
   (define: sym : Symbol (gensym))
   (mk-object 
-   (make-hash 
+   (make-immutable-hash 
     `(("brand" .
        ,(mk-fun (lambda: ((v : Value))
                  (add-brand v sym))))
