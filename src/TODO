@@ -1,8 +1,10 @@
 Release
 [] Documentation
-  [] Extract docs from code
+  [x] Extract docs from code
 [] Type-checking up to List(a) and arrows/records
-  [] "Also, we've been talking about and working on the untyped to typed contract installation - do we want to have some version of that working?"
+  [] "Also, we've been talking about and working on the untyped to typed
+      contract installation - do we want to have some version of that
+      working?"
      - contracts up to monomorphic structures and polymorphic functions
 [] better error reporting / pretty printing / support for debugging. For example, printing out names for brands (where appropriate) would be a start.
 [] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)

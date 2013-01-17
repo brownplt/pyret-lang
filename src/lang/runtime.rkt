@@ -38,7 +38,8 @@
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun keys]
-              [raise-pfun raise])
+              [raise-pfun raise]
+              [p-else else])
   Any?
   Number?
   String?
@@ -419,6 +420,7 @@
        ("not" . ,(mk-single-bool-fun 
                   (cast not (Boolean -> Boolean))))))))
 
+(define p-else (mk-bool #t))
 
 (define: (to-string (v : Value)) : String
   (match v
