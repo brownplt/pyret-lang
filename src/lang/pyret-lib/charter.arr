@@ -5,10 +5,10 @@
 import "file.arr" as file
 import "directory.arr" as directory
 
-#--| extract takes as input a path to a .arr file, and the path to an
-#    file where it will write the formatted documentation (just html
-#    for now)
 fun extract(input-path :: String, output-path :: String):
+  """extract takes as input a path to a .arr file, and
+     the path to an file where it will write the formatted
+     documentation (just html for now)"""
   def out: ""
 	def f: file.file(input-path)
   def reading-doc: false
@@ -28,7 +28,7 @@ fun extract(input-path :: String, output-path :: String):
 						reading-doc = false
           | true => false
         end
-        cond
+        cond:
           | reading-doc =>
             out.append(l.from(1))
 					  out.append("\n")

@@ -36,24 +36,27 @@
 (check/block "f(5,'foo')" (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))
 
 (check/block "fun f(): 5 end"
-            (s-fun _ 'f empty empty (a-blank) (s-block _ (list (s-num _ 5)))))
+            (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
 (check/block "fun f(): (5)"
-            (s-fun _ 'f empty empty (a-blank) (s-block _ (list (s-num _ 5)))))
+            (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g): 5 end"
             (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))) (a-blank)
+                   _
                    (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g,f,x): 5 end"
              (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
                                      (s-bind _ 'f (a-blank)) 
                                      (s-bind _ 'x (a-blank))) (a-blank)
+                    _
                     (s-block _ (list (s-num _ 5)))))
 
 (check/block "fun g(g,f,x): (5)"
              (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
                                (s-bind _ 'f (a-blank)) 
                                (s-bind _ 'x (a-blank))) (a-blank)
+                    _
                     (s-block _ (list (s-num _ 5)))))
 
 (check/block "def g: 5"
@@ -118,9 +121,11 @@
 
 (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
              (s-fun _ 'foo empty (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
+                    _
                     (s-block _ (list (s-str _ _)))))
 (check/block "fun foo(x :: Bool) -> Bool: x end" 
              (s-fun _ 'foo empty (list (s-bind _ 'x (a-name _ 'Bool))) (a-name _ 'Bool)
+                    _
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
@@ -136,17 +141,20 @@
 (check/block " \\(x)"
              (s-lam _ empty (list)
                     (a-blank)
+                    _
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block " \\-> Number: (x)"
              (s-lam _ empty (list)
                     (a-name _ 'Number)
+                    _
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
              (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number))
                             (s-bind _ 'y (a-name _ 'Bool)))
                     (a-name _ 'Number)
+                    _
                     (s-block _ (list (s-app _
                                             (s-dot _ (s-id _ 'x) 'send)
                                             (list (s-id _ 'y)))))))
@@ -156,6 +164,7 @@
                             (s-bind _ 'y (a-blank))
                             (s-bind _ 'z (a-blank)))
                     (a-blank)
+                    _
                     (s-block _ (list (s-id _ 'x)))))
 
 (check/block "cond: | true => 1 | false => 2 end" 
@@ -206,12 +215,22 @@ end"
 (check/block
  "fun (a) f(x :: a) -> a: x end"
  (s-fun _ 'f (list 'a) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'a)
+  _
 	(s-block _ (list (s-id _ 'x)))))
 
 (check/block
  "fun (a,b) f(x :: a) -> b: x end"
  (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
+  _
 	(s-block _ (list (s-id _ 'x)))))
+
+
+(check/block
+ "fun (a,b) f(x :: a) -> b: 'doc' x end"
+ (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
+  "doc"
+	(s-block _ (list (s-id _ 'x)))))
+
 
 (check/block
  "data Foo | bar with x(self): self end"

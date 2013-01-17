@@ -20,6 +20,7 @@
               [mk-bool p:mk-bool]
               [mk-str p:mk-str]
               [mk-fun p:mk-fun]
+              [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-method p:mk-method]
               [meta-null p:meta-null]
               [empty-dict p:empty-dict]
@@ -36,7 +37,8 @@
               [seal-pfun seal]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
-	      [raise-pfun raise])
+              [keys-pfun keys]
+              [raise-pfun raise])
   Any?
   Number?
   String?
@@ -90,8 +92,12 @@
 (define: (mk-str (s : String)) : Value
   (p-str (none) meta-str (set) empty-dict s))
 
-(define: (mk-fun (f : Procedure)) : Value
-  (p-fun (none) meta-null (set) empty-dict
+(define: (mk-fun (f : Procedure) (s : String)) : Value
+  (p-fun (none) meta-null (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
+	 (λ (_) f)))
+
+(define: (mk-fun-nodoc (f : Procedure)) : Value
+  (p-fun (none) meta-null (set) (make-immutable-hash `(("doc" . ,nothing)))
 	 (λ (_) f)))
 
 (define: (mk-opaque (v : Any)) : Value
@@ -118,23 +124,23 @@
 (define Racket (mk-object empty-dict))
 
 (define Any?
-  (mk-fun (lambda (o) (mk-bool #t))))
+  (mk-fun-nodoc (lambda (o) (mk-bool #t))))
 
 (define Number?
-  (mk-fun (lambda (n)
+  (mk-fun-nodoc (lambda (n)
 	    (mk-bool (p-num? n)))))
 
 (define String?
-  (mk-fun (lambda (n)
+  (mk-fun-nodoc (lambda (n)
 	    (mk-bool (p-str? n)))))
 
 (define Bool?
-  (mk-fun (lambda (n)
+  (mk-fun-nodoc (lambda (n)
 	    (mk-bool (p-bool? n)))))
 
 (define: (get-racket-fun (f : String)) : Value
   (define fun (dynamic-require 'racket (string->symbol f)))
-  (mk-fun (lambda: (args : Value *)
+  (mk-fun-nodoc (lambda: (args : Value *)
             (wrap (cast (apply fun (map unwrap args)) Any)))))
 
 (define: (get-raw-field (v : Value) (f : String)) : Value
@@ -149,7 +155,7 @@
       (get-racket-fun f)
       (match (get-raw-field v f)
         [(p-method _ _ _ _ f)
-               (mk-fun (lambda: (args : Value *)
+               (mk-fun-nodoc (lambda: (args : Value *)
                          ;; TODO(joe): Can this by typechecked?  I think maybe
                          (cast (apply f (cons v args)) Value )))]
         [non-method non-method])))
@@ -210,7 +216,16 @@
                                    (set-intersect fields-seal current-seal)))]
         (reseal object new-seal))))
 
-(define seal-pfun (mk-fun seal))
+(define seal-pfun (mk-fun-nodoc seal))
+
+
+(define: (get-visible-keys (m : Dict) (d : Dict) (s : Seal)) : (Setof String)
+  (define existing-keys
+    (set-union (list->set (hash-keys m))
+               (list->set (hash-keys d))))
+  (if (none? s)
+      existing-keys
+      (set-intersect existing-keys s)))
 
 (define: (flatten (base : Value)
                   (extension : Dict))
@@ -218,13 +233,7 @@
   (define m (get-meta base))
   (define d (get-dict base))
   (define s (get-seal base))
-  (define existing-keys
-    (set-union (list->set (hash-keys m))
-               (list->set (hash-keys d))))
-  (define keys
-    (if (none? s)
-        existing-keys
-        (set-intersect existing-keys s)))
+  (define keys (get-visible-keys m d s))
   (define: (create-member (key : String)) : (Pairof String Value)
     (cons key (hash-ref d key (thunk (hash-ref m key)))))
   (define new-meta
@@ -232,18 +241,26 @@
      (set-map keys create-member)))
   (p-object (none) new-meta (set) extension))
 
+(define: (keys (obj : Value)) : Value
+  (define m (get-meta obj))
+  (define d (get-dict obj))
+  (define s (get-seal obj))
+  (mk-list (set-map (get-visible-keys m d s) mk-str)))
+
+(define keys-pfun (mk-fun-nodoc keys))
+
 (define: (brander) : Value
   (define: sym : Symbol (gensym))
   (mk-object 
    (make-immutable-hash 
     `(("brand" .
-       ,(mk-fun (lambda: ((v : Value))
+       ,(mk-fun-nodoc (lambda: ((v : Value))
                  (add-brand v sym))))
       ("check" .
-       ,(mk-fun (lambda: ((v : Value))
+       ,(mk-fun-nodoc (lambda: ((v : Value))
                  (mk-bool (has-brand? v sym)))))))))
 
-(define brander-pfun (mk-fun brander))
+(define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
   (match v
     [(p-bool _ _ _ _ #t) #t]
@@ -416,7 +433,7 @@
      (format "{ ~a }" (string-join (hash-map h field-to-string) ", "))]
     [v (format "~a" v)]))
 
-(define print-pfun (mk-fun (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
+(define print-pfun (mk-fun-nodoc (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
 
 
 (define check-brand

@@ -289,3 +289,10 @@
   result"
  (p:mk-str "inner"))
  
+(check-pyret-match
+  "data Foo | bar end bar.doc"
+  (p:p-str _ _ _ _ _))
+
+(check-pyret-match
+  "keys({x : 5})"
+  (p:p-list _ _ _ _ (list (p:p-str _ _ _ _ "x"))))

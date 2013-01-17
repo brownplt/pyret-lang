@@ -44,9 +44,11 @@ fun-body: block "end"
 fun-ty-param-elt: NAME
 fun-ty-param: fun-ty-param-elt ","
 fun-ty-params:
-  "(" fun-ty-param* fun-ty-param-elt ")"
+  ["(" fun-ty-param* fun-ty-param-elt ")"]
 
-fun-header: [fun-ty-params] NAME args ["->" ann]
+return-ann: ["->" ann]
+
+fun-header: fun-ty-params NAME args return-ann
 
 fun-expr: "fun" fun-header ":" fun-body
  

@@ -151,36 +151,42 @@
 
 (define-syntax (fun-ty-params stx)
   (syntax-case stx (fun-ty-param fun-ty-param-elt)
+    [(_) #'(list)]
     [(_ "(" (fun-ty-param
 	     (fun-ty-param-elt param) ",") ...
 	     (fun-ty-param-elt last) ")")
      #`(quote #,(parse-names #'(param ... last)))]))
 
-(define-syntax (fun-expr stx)
+(define-syntax (return-ann stx)
   (syntax-case stx ()
-    [(_ "fun" (fun-header fun-name args) ":" body )
-      (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(loc stx) 'f-id (list) args (a-blank) body))]
-    [(_ "fun" (fun-header fun-name args "->" ann) ":" body)
-      (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(loc stx) 'f-id (list) args ann body))]
-    [(_ "fun" (fun-header params fun-name args) ":" body)
-      (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(loc stx) 'f-id params args (a-blank) body))]
-    [(_ "fun" (fun-header params fun-name args "->" ann) ":" body)
-      (with-syntax ([f-id (parse-id #'fun-name)])
-        #`(s-fun #,(loc stx) 'f-id params args ann body))]))
+    [(_) #'(a-blank)]
+    [(_ "->" ann) #'ann]))
+
+(define-syntax (fun-expr stx)
+  (syntax-case stx (block stmt expr prim-expr string-expr)
+    [(_ "fun" (fun-header params fun-name args return) ":"
+        (fun-body (block (stmt (expr (prim-expr (string-expr s))))
+                         stmt2
+                         stmts ...)
+                  "end"))
+     (with-syntax ([f-id (parse-id #'fun-name)])
+        #`(s-fun #,(loc stx) 'f-id params args return
+                 #,(parse-string #'s)
+                 (s-block #,(loc stx) (list stmt2 stmts ...))))]
+    [(_ "fun" (fun-header params fun-name args return) ":" body)
+     (with-syntax ([f-id (parse-id #'fun-name)])
+        #`(s-fun #,(loc stx) 'f-id params args return "" body))]))
 
 (define-syntax (lambda-expr stx)
   (syntax-case stx (lambda-args)
     [(_ "\\" (lambda-args arg ... lastarg) ":" "(" body ")")
-      #`(s-lam #,(loc stx) empty (list arg ... lastarg) (a-blank) body)]
+      #`(s-lam #,(loc stx) empty (list arg ... lastarg) (a-blank) "" body)]
     [(_ "\\" "(" body ")")
-     #`(s-lam #,(loc stx) empty empty (a-blank) body)]
+     #`(s-lam #,(loc stx) empty empty (a-blank) "" body)]
     [(_ "\\" (lambda-args arg ... lastarg) "->" ann ":" "(" body ")")
-     #`(s-lam #,(loc stx) empty (list arg ... lastarg) ann body)]
+     #`(s-lam #,(loc stx) empty (list arg ... lastarg) ann "" body)]
     [(_ "\\" "->" ann ":" "(" body ")")
-     #`(s-lam #,(loc stx) empty empty ann body)]))
+     #`(s-lam #,(loc stx) empty empty ann "" body)]))
 
 
 (define-syntax (arg-elt stx)

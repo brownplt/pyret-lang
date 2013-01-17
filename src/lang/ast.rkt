@@ -82,6 +82,7 @@ these metadata purposes.
     (params : (Listof Symbol))
     (args : (Listof s-bind))
     (ann : Ann)
+    (doc : String)
     (body : s-block))
    #:transparent)
 (struct: s-def ((syntax : srcloc)
@@ -107,6 +108,7 @@ these metadata purposes.
     (typarams : (Listof Symbol))
     (args : (Listof s-bind))
     (ann : Ann)
+    (doc : String)
     (body : s-block))
    #:transparent)
 
@@ -231,3 +233,4 @@ these metadata purposes.
     (name : Symbol)
     (parameters : (Listof Ann)))
    #:transparent)
+

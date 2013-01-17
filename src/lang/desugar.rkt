@@ -20,6 +20,11 @@
     (s-fun s (make-checker-name name) (list) 
            (list (s-bind s 'specimen (a-any)))
            (a-blank)
+           (format
+            "~a: This function checks that its argument is an
+             instance of the ~a type."
+            (symbol->string (make-checker-name name))
+            (symbol->string name))
            (s-block s
                     (list
                      (s-app s (s-dot s brander 'check)
@@ -59,6 +64,10 @@
                     (list)
                     constructor-args
                     (a-blank)
+                    (format
+                     "~a: Creates an instance of ~a"
+                     (symbol->string name)
+                     (symbol->string name))
                     (s-block s
                      (list
                       (apply-brand s super-brand
@@ -96,19 +105,19 @@
                    (variant-defs/list brander-name super-fields variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s (list) (list) (a-blank) (ds b)))
+       (s-lam s (list) (list) (a-blank) "" (ds b)))
      (s-app s fun (map functionize args))]
         
     [(s-def s name val)
      (s-def s name (ds val))]
 
-    [(s-fun s name typarams args ann body)
+    [(s-fun s name typarams args ann doc body)
      (s-def s
             (s-bind s name (a-arrow s (map s-bind-ann args) ann))
-            (s-lam s typarams args ann (ds body)))]
+            (s-lam s typarams args ann doc (ds body)))]
 
-    [(s-lam s typarams args ann body)
-     (s-lam s typarams args ann (ds body))]
+    [(s-lam s typarams args ann doc body)
+     (s-lam s typarams args ann doc (ds body))]
     
     [(s-method s args body)
      (s-method s args (ds body))]
@@ -166,7 +175,7 @@
             (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))])]))
   (match hd
     [(s-provide s exp)
-      (s-fun s '%provide (list) (list) (a-blank) (s-block s (list exp)))]
+      (s-fun s '%provide (list) (list) (a-blank) "" (s-block s (list exp)))]
     [(s-import s file name)
      (define full-path (path->complete-path file))
      (define-values (base relative-file root?) (split-path full-path))

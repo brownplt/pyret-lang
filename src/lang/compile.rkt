@@ -51,11 +51,11 @@
     [(s-bool l b) #`(p:mk-bool #,(d->stx b l))]
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
-    [(s-lam l params args ann body)
+    [(s-lam l params args ann doc body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-pyret body)])
-         #`(p:mk-fun (r:λ (arg ...) body-stx))))]
+         #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
     
     [(s-method l args body)
      (attach l

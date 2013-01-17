@@ -75,6 +75,9 @@ Cleanup:
     !(display (current-namespace))!
   - wrapping where possible?
 
+Invariants
+[] Make objects retain order w.r.t syntax of literal and update
+
 TODO templates:
 
   Adding a new piece of syntax:

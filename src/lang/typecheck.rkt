@@ -6,8 +6,8 @@
 (define (wrap-ann-check loc ann e)
   (s-app loc (ann-check loc ann) (list e)))
 
-(define (mk-lam loc args result body)
-  (s-lam loc empty args result (s-block loc (list body))))
+(define (mk-lam loc args result doc body)
+  (s-lam loc empty args result doc (s-block loc (list body))))
 
 (define (string-of-ann ann)
   (match ann
@@ -18,10 +18,13 @@
     [(a-app _ base args) (format "~a~a" base (map string-of-ann args))]))
 
 (define (ann-check loc ann)
+  (define (mk-contract-doc ann)
+    (format "internal contract for ~a" ann))
   (define ann-str (s-str loc (string-of-ann ann)))
   (define (mk-flat-checker checker)
     (define argname (gensym))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
+            (mk-contract-doc ann)
             (s-app
              loc
              (s-id loc 'check-brand)
@@ -45,7 +48,9 @@
        (match bind
          [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
      (mk-lam s (list (s-bind s funname ann)) ann
+      (mk-contract-doc ann)
       (mk-lam s wrapargs result
+       (mk-contract-doc ann)
        (wrap-ann-check s result 
         (s-app s (s-id s funname) (map check-arg wrapargs)))))]
     
@@ -82,11 +87,11 @@
     [(s-def s bnd val)
      (s-def s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
-    [(s-lam s typarams args ann body)
+    [(s-lam s typarams args ann doc body)
      (define body-env (foldr update env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
-                     (s-lam s typarams args ann (cc-env body body-env)))]
+                     (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args body)
