@@ -72,12 +72,15 @@
 (define-simple-check (check-pyret-fail str expected)
   (not (equal? (eval-pyret str) expected)))
 
-(define (check-pyret-exn str message)
-  (check-exn (regexp (regexp-quote message))
-	     (lambda () (eval-pyret str))))
+(define-syntax (check-pyret-exn stx)
+  (syntax-case stx ()
+    [(_ str message)
+     (syntax/loc stx
+       (check-exn (regexp (regexp-quote message))
+            (lambda () (eval-pyret str))))]))
 
-(define-syntax check-pyret-match
-  (syntax-rules ()
+(define-syntax (check-pyret-match stx)
+  (syntax-case stx ()
     [(_ str expected)
-      (check-match (eval-pyret str) expected)]))
+      (syntax/loc stx (check-match (eval-pyret str) expected))]))
 
