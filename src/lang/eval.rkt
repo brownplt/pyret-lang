@@ -43,12 +43,12 @@
 (define (simplify-pyret val)
   (match val
     [(? (λ (v) (eq? v nothing))) nothing]
-    [(p:p-num _ _ _ _ n) n]
-    [(p:p-str _ _ _ _ s) s]
-    [(p:p-bool _ _ _ _ b) b]
-    [(p:p-object (p:none) _ _ d)
+    [(p:p-num _ _ _ n) n]
+    [(p:p-str _ _ _ s) s]
+    [(p:p-bool _ _ _ b) b]
+    [(p:p-object (p:none) _ d)
      (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
-    [(p:p-object (? set? s) _ _ d)
+    [(p:p-object (? set? s) _ d)
      (make-hash (set-map s (lambda (s) (cons s (simplify-pyret (hash-ref d s))))))]
     [(? p:p-base?) val]
     [_ (void)]))

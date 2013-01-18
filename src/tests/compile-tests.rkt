@@ -10,7 +10,7 @@
 (define two (p:mk-num 2))
 (define ten (p:mk-num 10))
 
-(check-pyret-match "5" (p:p-num _ _ (set) x 5))
+(check-pyret-match "5" (p:p-num _ (set) x 5))
 
 (check-pyret "5" five)
 (check-pyret-fail "2" five)
@@ -27,34 +27,34 @@
 (check-pyret "def x: 2 \\x: (x = 10)(5) x" two)
 (check-pyret "def x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
 
-(check-pyret "{}" (p:p-object (p:none) p:meta-null (set) p:empty-dict))
+(check-pyret "{}" (p:p-object (p:none) (set) p:empty-dict))
 
 (check-pyret "'5'" (p:mk-str "5"))
 
-(check-pyret-match "true" (p:p-bool _ _ _ _ #t))
-(check-pyret-match "false" (p:p-bool _ _ _ _ #f))
+(check-pyret-match "true" (p:p-bool _ _ _ #t))
+(check-pyret-match "false" (p:p-bool _ _ _ #f))
 
-(check-pyret "{x:5}" (p:p-object (p:none) p:meta-null (set)
+(check-pyret "{x:5}" (p:p-object (p:none) (set)
                                  (make-immutable-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p:p-list (p:none) p:meta-null (set) p:empty-dict (list)))
+(check-pyret "[]" (p:p-list (p:none) (set) p:empty-dict (list)))
 
-(check-pyret "seal({}, [])" (p:p-object (set) p:meta-null (set) p:empty-dict))
-(check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") p:meta-null (set)
+(check-pyret "seal({}, [])" (p:p-object (set) (set) p:empty-dict))
+(check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") (set)
                                               (make-immutable-hash (list (cons "x" five)))))
 (check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
-             (p:p-object (set "y") p:meta-null (set)
+             (p:p-object (set "y") (set)
                          (make-immutable-hash `(("x" . ,five) ("y" . ,two)))))
 (check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
-             (p:p-object (set "y") p:meta-null (set)
+             (p:p-object (set "y") (set)
                          (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
 (check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
-             (p:p-object (set "y" "z") p:meta-null (set)
+             (p:p-object (set "y" "z") (set)
                          (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
-(check-pyret-match "seal({x:5}, ['y'])" (p:p-object (set "y") _ _ (hash-table ("x" _))))
-(check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p:p-object (set) _ _ (hash-table ("x" _) ("y" _))))
-(check-pyret-match "seal({}, ['y'])" (p:p-object (set "y") _ _ (hash-table)))
-(check-pyret-match "seal(5, ['y'])" (p:p-num (set "y") _ _ (hash-table) 5))
+(check-pyret-match "seal({x:5}, ['y'])" (p:p-object (set "y") _ (hash-table ("x" _))))
+(check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p:p-object (set) _ (hash-table ("x" _) ("y" _))))
+(check-pyret-match "seal({}, ['y'])" (p:p-object (set "y") _ (hash-table)))
+(check-pyret-match "seal(5, ['y'])" (p:p-num (set "y") _ _ 5))
 
 (check-pyret-exn "seal({x:5}, 'y')" "seal:")
 
@@ -94,21 +94,21 @@
 ; to <#undefined>
 ;(check-pyret-exn "def w: zoot def zoot: 5 w" "undefined")
 
-(check-pyret-match "brander()" (p:p-object _ _ (set) (hash-table ("brand" _) ("check" _))))
+(check-pyret-match "brander()" (p:p-object _ (set) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
-                   (p:p-num _ _ (set _) _ 2))
+                   (p:p-num _ (set _) _ 2))
 (check-pyret-match "fun f(x,y): x = brander() y = x.brand(y) x.check(y) end f(1,2)"
-                   (p:p-bool _ _ _ _ #t))
+                   (p:p-bool _ _ _ #t))
 (check-pyret-match "fun f(x,y): x = brander() x.check(y) end f(1,2)"
-                   (p:p-bool _ _ _ _ #f))
+                   (p:p-bool _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) y.check(z) end f(1,2,3)"
-                   (p:p-bool _ _ _ _ #f))
+                   (p:p-bool _ _ _ #f))
 (check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
-                   (p:p-bool _ _ _ _ #t))
+                   (p:p-bool _ _ _ #t))
 
 ;; can extract raw methods
-(check-pyret-match "3:add" (p:p-method _ _ _ _ (? procedure?)))
-(check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ _ (? procedure?)))
+(check-pyret-match "3:add" (p:p-method _ _ _ (? procedure?)))
+(check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ (? procedure?)))
 
 ;; can put raw methods on other objects and use them
 (check-pyret "def o: {x:5} def o2: {f(self): self.x} o = o.{g : o2:f} o.g()" five)
@@ -122,26 +122,26 @@
 ;; two not three because side effects should happen only once
 (check-pyret "def x: 0 fun f(): x = x.add(1) x end f().add(1)" two)
 
-(check-pyret-exn "{extend seal({x:5},[]) with y:6}.x" "get-field:")
+(check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extend:")
 
 (check-pyret-match "{extend {x:2} with y:10 }"
-                   (p:p-object _ (hash-table ("x" (p:p-num _ _ _ _ 2))) _ (hash-table ("y" (p:p-num _ _ _ _ 10)))))
+                   (p:p-object _ _ (hash-table ("x" (p:p-num _ _ _ 2))("y" (p:p-num _ _ _ 10)))))
 
 
 (check-pyret "{extend {x:5} with y:6 }.x" five)
 ;; TODO(joe): change this to use : for method extraction
 #;(check-pyret "{extend 5 with y:6}.add(2,3)" five)
-(check-pyret "{extend seal({x:5}, []) with x:10 }.x" ten)
-(check-pyret "seal({x:5}, []).{ x:10 }.x" ten)
-(check-pyret-match "{extend seal({x:5},[]) with x:10 }"
-                   (p:p-object _ (hash-table) _ (hash-table ("x" (p:p-num _ _ _ _ 10)))))
+(check-pyret-exn "{extend seal({x:5}, []) with x:10 }" "extend:")
+(check-pyret-exn "seal({x:5}, []).{ x:10 }" "extend:")
 (check-pyret "{extend {x:5} with x:10 }.x" ten)
 (check-pyret "{x:5}.{x:10}.x" ten)
 (check-pyret-match "{extend {extend {x:1} with y:2} with z:7}"
-                   (p:p-object _
-                             (hash-table ("x" (p:p-num _ _ _ _ 1)) ("y" (p:p-num _ _ _ _ 2)))
-                             _
-                             (hash-table ("z" (p:p-num _ _ _ _ 7)))))
+                   (p:p-object
+                     _
+                     _
+                     (hash-table ("x" (p:p-num _ _ _ 1))
+                                 ("y" (p:p-num _ _ _ 2))
+                                 ("z" (p:p-num _ _ _ 7)))))
 (check-pyret-exn "def o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
 (check-pyret-exn "def o: seal({x:1}.{x:2}, []) o.x" "get-field:")
 
@@ -164,7 +164,7 @@
 (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
 
 (check-pyret "Racket.['+'](2, 3)" five)
-(check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p:p-str _ _ _ _ "fourtytwo"))
+(check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
 (check-pyret-exn "Racket.map(4,5)" "map")
 
 (check-pyret
@@ -271,7 +271,7 @@
 (check-pyret-match
  "import '../lang/pyret-lib/file.arr' as file
   file.file"
- (p:p-fun _ _ _ _ _))
+ (p:p-fun _ _ _ _))
 
 (check-pyret
  "def x: 5
@@ -293,8 +293,8 @@
  
 (check-pyret-match
   "data Foo | bar end bar.doc"
-  (p:p-str _ _ _ _ _))
+  (p:p-str _ _ _ _))
 
 (check-pyret-match
   "keys({x : 5})"
-  (p:p-list _ _ _ _ (list (p:p-str _ _ _ _ "x"))))
+  (p:p-list _ _ _ (list (p:p-str _ _ _ "x"))))
