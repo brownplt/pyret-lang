@@ -37,6 +37,7 @@
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun keys]
+              [is-empty-pfun is-empty]
               [raise-pfun raise]
               [p-else else])
   Any?
@@ -79,7 +80,7 @@
   (p-object (none) (set) dict))
 
 (define: (mk-list (l : (Listof Value))) : Value
-  (p-list (none) (set) empty-dict l))
+  (p-list (none) (set) meta-list l))
 
 (define: (mk-num (n : Number)) : Value
   (p-num (none) (set) meta-num n))
@@ -223,11 +224,10 @@
     (error "extend: extending outside seal"))
   (define d (get-dict base))
   (define s (get-seal base))
-  (define new-map (foldr (lambda: ([k : String] [v : Value] [d : Dict])
-                            (hash-set d k v))
+  (define new-map (foldr (lambda: ([k : String] [d : Dict])
+                            (hash-set d k (hash-ref extension k)))
                          d
-                         (hash-keys extension)
-                         (hash-values extension)))
+                         (hash-keys extension)))
   (p-object (none) (set) new-map))
 
 (define: (keys (obj : Value)) : Value
@@ -323,6 +323,33 @@
 
 (define p-pi (mk-num pi))
 
+(define: (mk-list-method [name : String]
+                         [func : ((Listof Value) -> Value)])
+       : Value
+  (mk-method (lambda: ([self : Value])
+    (match self
+     [(p-list _ _ _ l) (func l)]
+     [_ (error (format "list: cannot do ~a of ~a" name self))]))))
+
+(define: (is-empty [l : Value]) : Value
+  (match l
+    [(p-list _ _ _ elts) (mk-bool (empty? elts))]
+    [_ (mk-bool #f)]))
+
+(define is-empty-pfun (mk-fun-nodoc is-empty))
+
+(define meta-list
+  (make-immutable-hash
+    `(("first" . ,(mk-list-method "first" first))
+      ("push" .
+      ,(mk-method (lambda: ([self : Value] [elt : Value])
+         (match self
+          [(p-list _ _ _ l) (mk-list (cons elt l))]
+          [_ (error (format "list: cannot push onto ~a" self))]))))
+      ("rest" . ,(mk-list-method "rest"
+                    (lambda: ([l : (Listof Value)])
+                      (mk-list (rest l))))))))
+                
 (define: (mk-str-impl (op : (String String -> String)))
          : (Value Value -> Value)
   (lambda (v1 v2)

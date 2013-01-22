@@ -23,6 +23,7 @@
   (struct-out s-id)
   (struct-out s-assign)
   (struct-out s-app)
+  (struct-out s-left-app)
 
   (struct-out s-list)
 
@@ -98,7 +99,7 @@ these metadata purposes.
    #:transparent)
 
 
-(define-type Expr (U s-obj s-onion s-list s-app s-id
+(define-type Expr (U s-obj s-onion s-list s-app s-left-app s-id
          s-assign s-num s-bool s-str
                      s-dot s-bracket s-dot-assign s-bracket-assign
                      s-dot-method s-bracket-method s-lam
@@ -143,6 +144,12 @@ these metadata purposes.
 (struct: s-app ((syntax : srcloc)
     (fun : Expr)
     (args : (Listof Expr)))
+   #:transparent)
+
+(struct: s-left-app ((syntax : srcloc)
+           (obj : Expr)
+           (fun : Expr)
+           (args : (Listof Expr)))
    #:transparent)
 
 (struct: s-id ((syntax : srcloc)

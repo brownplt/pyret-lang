@@ -4,7 +4,9 @@
   check-pyret-fail
   check-pyret-exn
   check-pyret-match
+  check-pyret-match/libs
   check-pyret
+  check-pyret/libs
   compile-str
   parse-pyret
   eval-pyret
@@ -34,8 +36,16 @@
    (compile-str str)
     eval-ns))
 
+(define (eval-pyret/libs str)
+  (eval
+   (compile-str/libs str)
+    eval-ns))
+
 (define (compile-str str)
   (pyret->racket "test-utils" (open-input-string str)))
+
+(define (compile-str/libs str)
+  (pyret->racket/libs "test-utils" (open-input-string str)))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
@@ -69,6 +79,9 @@
 (define-simple-check (check-pyret str expected)
   (equal? (eval-pyret str) expected))
 
+(define-simple-check (check-pyret/libs str expected)
+  (equal? (eval-pyret/libs str) expected))
+
 (define-simple-check (check-pyret-fail str expected)
   (not (equal? (eval-pyret str) expected)))
 
@@ -82,5 +95,10 @@
 (define-syntax (check-pyret-match stx)
   (syntax-case stx ()
     [(_ str expected)
-      (syntax/loc stx (check-match (eval-pyret str) expected))]))
+     (syntax/loc stx (check-match (eval-pyret str) expected))]))
+
+(define-syntax (check-pyret-match/libs stx)
+  (syntax-case stx ()
+    [(_ str expected)
+     (syntax/loc stx (check-match (eval-pyret/libs str) expected))]))
 

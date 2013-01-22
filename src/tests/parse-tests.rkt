@@ -269,3 +269,19 @@ end"
 (check-match (parse-pyret "provide {a: 1} end")
  (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ "a" (s-num _ 1))))))
  	   (s-block _ (list))))
+
+(check/block "o^f()"
+ (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list)))
+
+(check/block "o^f.g()()"
+ (s-app _ (s-left-app _ (s-id _ 'o) (s-dot _ (s-id _ 'f) 'g) (list))
+          (list)))
+
+(check/block "o^f()^g()"
+ (s-left-app _
+             (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list))
+             (s-id _ 'g)
+             (list)))
+
+(check-pyret-exn "o^o2.f.g()" "parsing error")
+

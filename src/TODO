@@ -1,4 +1,7 @@
 Release
+[x] ^ for mortar-firing style
+[] implicit cond if you start fun with a |
+[] provide Data
 [] Documentation
   [x] Extract docs from code
 [] Type-checking up to List(a) and arrows/records

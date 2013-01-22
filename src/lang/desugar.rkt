@@ -1,8 +1,10 @@
 #lang racket
 
 (provide
-  desugar-pyret)
+  desugar-pyret
+  desugar-pyret/libs)
 (require
+  racket/runtime-path
   "ast.rkt"
   "load.rkt")
 
@@ -140,6 +142,9 @@
 
     [(s-app s fun args) (s-app s (ds fun) (map ds args))]
 
+    [(s-left-app s target fun args)
+     (s-app s (ds fun) (cons (ds target) (map ds args)))]
+
     [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
@@ -159,12 +164,31 @@
     
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
 
+(define (desugar-pyret/libs ast)
+  (match ast
+    [(s-prog s imps block)
+     (define imps-with-libs (append (get-prelude s) imps))
+     (desugar-pyret (s-prog s imps-with-libs block))]))
+
 (define (desugar-pyret ast)
   (match ast
     [(s-prog s imps block)
      (s-block s (flatten-blocks
-     	      	  (append (map (compose desugar-internal desugar-header) imps) 
+                  (append (map (compose desugar-internal desugar-header)
+                               imps)
                           (map desugar-internal (s-block-stmts block)))))]))
+
+(define (get-prelude s)
+  (define (mk-import p)
+    (define-values (_ filename __) (split-path p))
+    (define modname (string->symbol
+                     (first
+                      (string-split
+                       (path->string filename) "."))))
+    (s-import s (path->string (path->complete-path p)) modname))
+  (map mk-import libs))
+
+(define-runtime-path-list libs '("pyret-lib/list.arr"))
 
 (define (desugar-header hd)
   (define (desugar-module ast)

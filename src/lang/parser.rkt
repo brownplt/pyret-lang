@@ -118,13 +118,27 @@
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-assign #,(loc stx) 'x-id expr))]))
 
-;; TODO(joe): there's extra crap in here
+(define-syntax (app-args stx)
+  (syntax-case stx (app-arg-elt)
+    [(_ "(" ")") #'empty]
+    [(_ "(" (app-arg-elt arg ",") ... lastarg ")")
+     #'(list arg ... lastarg)]))
+
 (define-syntax (app-expr stx)
   (syntax-case stx (app-arg-elt)
-    [(_ fun-expr (app-args "(" (app-arg-elt arg ",") ... lastarg ")"))
-     #`(s-app #,(loc stx) fun-expr (list arg ... lastarg))]
-    [(_ fun-expr (app-args "(" ")"))
-     #`(s-app #,(loc stx) fun-expr empty)]))
+    [(_ fun-expr app-args)
+     #`(s-app #,(loc stx) fun-expr app-args)]))
+
+(define-syntax (left-app-fun-expr stx)
+  (syntax-case stx ()
+    [(_ id-expr) #'id-expr]
+    [(_ id-expr "." name)
+     #`(s-dot #,(loc stx) id-expr '#,(parse-name #'name))]))
+
+(define-syntax (left-app-expr stx)
+  (syntax-case stx ()
+    [(_ target-expr "^" fun-expr app-args)
+     #`(s-left-app #,(loc stx) target-expr fun-expr app-args)]))
 
 (define-syntax (def-expr stx)
   (syntax-case stx ()

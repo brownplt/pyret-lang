@@ -14,7 +14,7 @@ stmt: (def-expr | fun-expr | data-expr | do-expr | expr
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-    | cond-expr | lambda-expr | extend-expr
+    | cond-expr | lambda-expr | extend-expr | left-app-expr
 
 id-expr: NAME
 
@@ -85,6 +85,9 @@ bracket-expr: expr "." "[" expr "]"
 
 dot-assign-expr: expr "." NAME = expr
 bracket-assign-expr: expr "." "[" expr "]" "=" expr
+
+left-app-fun-expr: id-expr | id-expr "." NAME
+left-app-expr: expr "^" left-app-fun-expr app-args
 
 dot-method-expr: expr ":" NAME
 bracket-method-expr: expr ":" "[" expr "]"

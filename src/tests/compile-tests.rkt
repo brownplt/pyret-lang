@@ -37,7 +37,7 @@
 (check-pyret "{x:5}" (p:p-object (p:none) (set)
                                  (make-immutable-hash (list (cons "x" five)))))
 
-(check-pyret "[]" (p:p-list (p:none) (set) p:empty-dict (list)))
+(check-pyret-match "[]" (p:p-list (p:none) (set) _ (list)))
 
 (check-pyret "seal({}, [])" (p:p-object (set) (set) p:empty-dict))
 (check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") (set)
@@ -298,3 +298,67 @@
 (check-pyret-match
   "keys({x : 5})"
   (p:p-list _ _ _ (list (p:p-str _ _ _ "x"))))
+
+(check-pyret
+  "[5].first()"
+  five)
+
+(check-pyret
+  "[5].push(4).first()"
+  (p:mk-num 4))
+
+(check-pyret
+  "[5,6].rest().first()"
+  (p:mk-num 6))
+
+(check-pyret
+  "is-empty([])"
+  (p:mk-bool #t))
+
+(check-pyret
+  "is-empty([5])"
+  (p:mk-bool #f))
+
+(check-pyret
+  "
+  fun map(l, f):
+    cond:
+      | is-empty(l) => []
+      | else => map(l.rest(), f).push(f(l.first()))
+    end
+  end
+  def l1: map([5], \\x: (x.add(1))).first()
+  def l2: map([5,6,7], \\x: (x.add(1))).rest().rest().first()
+  l1.add(l2)" (p:mk-num 14))
+
+(check-pyret
+  "
+fun mklist(l):
+  l.{
+    is-empty(self): is-empty(l),
+    rest(self): mklist(l.rest()),
+    first(self): l.first(),
+    push(self, elt): mklist(l.push(elt)),
+    map(self, f):
+      cond:
+        | self.is-empty() => mklist([])
+        | else => self.rest().map(f).push(f(l.first()))
+      end
+  }
+end
+def l1: mklist([5]).map(\\x :: Number: (x.add(1))).first()
+def l2: mklist([5,6,7]).map(\\x :: Number: (x.add(1))).rest().rest().first()
+l1.add(l2)
+  " (p:mk-num 14))
+
+(check-pyret
+  "
+  import '../lang/pyret-lib/list.arr' as L
+  5^L.link(L.empty()).first
+  "
+  five)
+
+(check-pyret-match/libs
+  "list.empty()"
+  (p:p-object _ _ _))
+
