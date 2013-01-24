@@ -7,7 +7,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword basic def fun end cond with sharing data do import provide as
+syn keyword basic var fun end cond with sharing data do import provide as
 
 syn match op '|'
 syn match op '('

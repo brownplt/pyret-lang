@@ -140,14 +140,14 @@
     [(_ target-expr "^" fun-expr app-args)
      #`(s-left-app #,(loc stx) target-expr fun-expr app-args)]))
 
-(define-syntax (def-expr stx)
+(define-syntax (var-expr stx)
   (syntax-case stx ()
-    [(_ "def" id ":" value-expr)
-     #`(s-def #,(loc stx) 
+    [(_ "var" id ":" value-expr)
+     #`(s-var #,(loc stx) 
               (s-bind #,(loc #'id) '#,(parse-id #'id) (a-blank)) 
               value-expr)]
-    [(_ "def" id "::" ann ":" value-expr)
-     #`(s-def #,(loc stx) 
+    [(_ "var" id "::" ann ":" value-expr)
+     #`(s-var #,(loc stx) 
               (s-bind #,(loc #'id) '#,(parse-id #'id) ann) 
               value-expr)]))
 

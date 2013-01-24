@@ -24,9 +24,9 @@
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
 (check-pyret "\\x: (x)(2)" two)
-(check-pyret "def x: 2 \\(x = 10)() x" ten)
-(check-pyret "def x: 2 \\x: (x = 10)(5) x" two)
-(check-pyret "def x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
+(check-pyret "var x: 2 \\(x = 10)() x" ten)
+(check-pyret "var x: 2 \\x: (x = 10)(5) x" two)
+(check-pyret "var x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
 
 (check-pyret "{}" (p:p-object (p:none) (set) p:empty-dict))
 
@@ -38,7 +38,6 @@
 (check-pyret "{x:5}" (p:p-object (p:none) (set)
                                  (make-immutable-hash (list (cons "x" five)))))
 
-;; TODO(joe): This was the old style of checking lists
 #;(check-pyret-match/libs "[]" (p:p-list (p:none) (set) _ (list)))
 (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
                         (p:p-bool _ _ _ #t))
@@ -91,14 +90,14 @@
               end
               fundo({})" two)
 
-(check-pyret "def x: 5 x" five)
-(check-pyret "def x: 5 def y: x y" five)
-;(check-pyret-exn "def x: 5 def x: 10 x" "duplicate")
+(check-pyret "var x: 5 x" five)
+(check-pyret "var x: 5 var y: x y" five)
+;(check-pyret-exn "var x: 5 var x: 10 x" "duplicate")
 
 ; TODO(joe): Why don't unassigned variables work the way I want?  I expect
 ; this to say "undefined identifier used before defined", but it just evaluates
 ; to <#undefined>
-;(check-pyret-exn "def w: zoot def zoot: 5 w" "undefined")
+;(check-pyret-exn "var w: zoot var zoot: 5 w" "undefined")
 
 (check-pyret-match "brander()" (p:p-object _ (set) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
@@ -117,7 +116,7 @@
 (check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ (? procedure?)))
 
 ;; can put raw methods on other objects and use them
-(check-pyret "def o: {x:5} def o2: {f(self): self.x} o = o.{g : o2:f} o.g()" five)
+(check-pyret "var o: {x:5} var o2: {f(self): self.x} o = o.{g : o2:f} o.g()" five)
 
 ;; cannot apply raw methods (better error messages plz)
 (check-pyret-exn "3:add()" "violation")
@@ -126,7 +125,7 @@
 (check-pyret "3.add(2)" five)
 
 ;; two not three because side effects should happen only once
-(check-pyret "def x: 0 fun f(): x = x.add(1) x end f().add(1)" two)
+(check-pyret "var x: 0 fun f(): x = x.add(1) x end f().add(1)" two)
 
 (check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extend:")
 
@@ -148,8 +147,8 @@
                      (hash-table ("x" (p:p-num _ _ _ 1))
                                  ("y" (p:p-num _ _ _ 2))
                                  ("z" (p:p-num _ _ _ 7)))))
-(check-pyret-exn "def o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
-(check-pyret-exn "def o: seal({x:1}.{x:2}, []) o.x" "get-field:")
+(check-pyret-exn "var o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
+(check-pyret-exn "var o: seal({x:1}.{x:2}, []) o.x" "get-field:")
 
 (check-pyret "cond: | true => 2 | false => 1 end" two)
 (check-pyret "cond: | false => 1 | else => 2 end" two) 
@@ -160,8 +159,8 @@
 (check-pyret "cond: | 2.lessthan(3) => 10 end" ten)
 (check-pyret-exn "cond: | 4.lessthan(3) => 10 end" "cond:")
 
-;; shouldn't lift defs out of cond
-(check-pyret-exn "cond: | true => def zed: 5 zed end zed" "undefined")
+;; shouldn't lift vars out of cond
+(check-pyret-exn "cond: | true => var zed: 5 zed end zed" "undefined")
 
 (check-pyret "{f(self): self.x, x:5}.f()" five)
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
@@ -174,7 +173,7 @@
 (check-pyret-exn "Racket.map(4,5)" "map")
 
 (check-pyret
- "def x:0
+ "var x:0
   do \\f,g: (f() g()) x = 5; x end" five)
 
 ;; check expansions of or and and with do
@@ -185,7 +184,7 @@
       | true => b()
     end
   end
-  def x: 5
+  var x: 5
   do or true; x = 2 end
   x" five)
 
@@ -196,7 +195,7 @@
       | true => false
     end
   end
-  def x: 5
+  var x: 5
   do and false; x = 2 end
   x" five)
 
@@ -207,7 +206,7 @@
       | true => false
     end
   end
-  def x: 5
+  var x: 5
   do and true; x = 2 end
   x" two)
 
@@ -218,7 +217,7 @@
       | true => 'while base case'
     end
   end
-  def x: 0
+  var x: 0
   do while x.lessthan(10); x = x.add(1) end
   x" ten)
 
@@ -233,8 +232,8 @@
       | true => 'for base case'
     end
   end
-  def x: 0
-  def sum: 0
+  var x: 0
+  var sum: 0
   do for x = 0; x.lessthan(5); x = x.add(1);
     sum = sum.add(x)
   end
@@ -280,8 +279,8 @@
  (p:p-fun _ _ _ _))
 
 (check-pyret
- "def x: 5
-  def y: x
+ "var x: 5
+  var y: x
   y"
  five)
 
@@ -289,8 +288,8 @@
 ;; better way to encapsulate test runs/not lift defines.
 ;; The test env is just different than what you get running a file
 #;(check-pyret-exn
- "def x: 5
-  def x: x
+ "var x: 5
+  var x: x
   y"
  "duplicate")
 
@@ -336,8 +335,8 @@
       | else => map(l.rest, f).push(f(l.first))
     end
   end
-  def l1: map([5], \\x: (x.add(1))).first
-  def l2: map([5,6,7], \\x: (x.add(1))).rest.rest.first
+  var l1: map([5], \\x: (x.add(1))).first
+  var l2: map([5,6,7], \\x: (x.add(1))).rest.rest.first
   l1.add(l2)" (p:mk-num 14))
 
 ;; TODO(joe): this doesn't work because first and rest are fields
@@ -357,8 +356,8 @@ fun mklist(l):
       end
   }
 end
-def l1: mklist([5]).map(\\x :: Number: (x.add(1))).first()
-def l2: mklist([5,6,7]).map(\\x :: Number: (x.add(1))).rest().rest().first()
+var l1: mklist([5]).map(\\x :: Number: (x.add(1))).first()
+var l2: mklist([5,6,7]).map(\\x :: Number: (x.add(1))).rest().rest().first()
 l1.add(l2)
   " (p:mk-num 14))
 
@@ -378,8 +377,16 @@ l1.add(l2)
  (p:mk-str "x"))
 
 (check-pyret
- "def x: 1
+ "var x: 1
   fun f(): x = x.add(1) end
-  def l: [f(), f(), f()]
+  var l: [f(), f(), f()]
   l.equals([2,3,4])"
  (p:mk-bool #t))
+
+(check-pyret
+ "seal([1], ['first']).{first: 2}.first"
+ two)
+
+(check-pyret-exn
+ "seal([1], ['first']).{rest: 2}.rest"
+ "extend:")

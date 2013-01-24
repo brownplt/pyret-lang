@@ -9,7 +9,7 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (def-expr | fun-expr | data-expr | do-expr | expr
+stmt: (var-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | dot-assign-expr | bracket-assign-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
@@ -28,7 +28,7 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-def-expr: "def" NAME ["::" ann] ":" expr
+var-expr: "var" NAME ["::" ann] ":" expr
 
 app-arg-elt: expr ","
 app-args: "(" [app-arg-elt* expr] ")"

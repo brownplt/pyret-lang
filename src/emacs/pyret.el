@@ -3,7 +3,7 @@
 (define-generic-mode 
   'pyret-mode
   '("#")                                  ;; comments start with #
-  '("fun" "def" "cond" "import" "provide"
+  '("fun" "var" "cond" "import" "provide"
     "data" "end" "true" "false" "do"
     "as" "with" "sharing")    ;; keywords
   '(("=" .  'font-lock-operator)

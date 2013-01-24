@@ -59,8 +59,8 @@
                     _
                     (s-block _ (list (s-num _ 5)))))
 
-(check/block "def g: 5"
-             (s-def _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
+(check/block "var g: 5"
+             (s-var _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
 
 (check/block "[]" (s-list _ empty))
 (check/block "[5]" (s-list _ (list (s-num _ 5))))
@@ -108,13 +108,13 @@
                            (s-obj _ (list (s-data-field _ "f" (s-num _ 4))))
                            'f))
 
-(check/block "def x :: Number: 5" (s-def _ (s-bind _ 'x (a-name _ 'Number))
+(check/block "var x :: Number: 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
                                            (s-num _ 5)))
-(check/block "def x :: Number: 'hello'" (s-def _ (s-bind _ 'x (a-name _ 'Number))
+(check/block "var x :: Number: 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number))
                                          (s-str _ "hello")))
 
-(check/block "def f :: (Number, Number -> Number): plus"
-	     (s-def _ (s-bind _ 'f (a-arrow _
+(check/block "var f :: (Number, Number -> Number): plus"
+	     (s-var _ (s-bind _ 'f (a-arrow _
 					    (list (a-name _ 'Number) (a-name _ 'Number))
 					    (a-name _ 'Number)))
 		    (s-id _ 'plus)))
@@ -128,13 +128,13 @@
                     _
                     (s-block _ (list (s-id _ 'x)))))
 
-(check/block "def x :: {}: 4" (s-def _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
-(check/block "def x :: {foo: Number}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "def x :: {foo: Number}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "def x :: {foo: Number, a: Bool}: 4" 
-             (s-def _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
+(check/block "var x :: {}: 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
+(check/block "var x :: {foo: Number}: 4" 
+             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+(check/block "var x :: {foo: Number}: 4" 
+             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+(check/block "var x :: {foo: Number, a: Bool}: 4" 
+             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
                                                      (a-field _ "a" (a-name _ 'Bool)))))
                     (s-num _ 4)))
 
@@ -184,8 +184,8 @@ end"
                                                         (list)))
                      (list)))
 
-(check/block "def my-hypthen-y-ident-i-fier: 10"
-             (s-def _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
+(check/block "var my-hypthen-y-ident-i-fier: 10"
+             (s-var _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
 
 (check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 

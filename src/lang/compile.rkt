@@ -32,7 +32,7 @@
 ;; Does special work for creating def bindings, others get gensymed names.
 (define (compile-stmt ast-node)
   (match ast-node
-    [(s-def s (s-bind _ id _) val)
+    [(s-var s (s-bind _ id _) val)
        (cons id (compile-expr val))]
     [_ (cons (gensym) (compile-expr ast-node))]))
 

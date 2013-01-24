@@ -76,7 +76,7 @@
 
 
 (define (cc-block-env stmts env)
-  (foldr update env (map s-def-name (filter s-def? stmts))))
+  (foldr update env (map s-var-name (filter s-var? stmts))))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
@@ -90,8 +90,8 @@
     [(s-block s stmts)
      (define new-env (cc-block-env stmts env))
      (s-block s (map (curryr cc-env new-env) stmts))]
-    [(s-def s bnd val)
-     (s-def s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
+    [(s-var s bnd val)
+     (s-var s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann doc body)
      (define body-env (foldr update env args))

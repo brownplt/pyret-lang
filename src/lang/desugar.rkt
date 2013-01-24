@@ -31,7 +31,7 @@
                     (list
                      (s-app s (s-dot s brander 'check)
                             (list (s-id s 'specimen))))))
-    (s-def s
+    (s-var s
            (s-bind s (make-checker-type-name name) (a-blank))
            (s-id s (make-checker-name name))))))
            
@@ -59,7 +59,7 @@
                   (append super-fields dsg-with-members)))
        (s-block s
          (list 
-           (s-def s (s-bind s brander-name (a-blank))
+           (s-var s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
            (s-fun s name
@@ -101,7 +101,7 @@
      (define super-fields (map ds-member share-members))
      (ds (s-block s
                   (append
-                   (list (s-def s (s-bind s brander-name (a-blank))
+                   (list (s-var s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                          (make-checker s name (s-id s brander-name)))
                    (variant-defs/list brander-name super-fields variants))))]
@@ -110,11 +110,11 @@
        (s-lam s (list) (list) (a-blank) "" (ds b)))
      (s-app s fun (map functionize args))]
         
-    [(s-def s name val)
-     (s-def s name (ds val))]
+    [(s-var s name val)
+     (s-var s name (ds val))]
 
     [(s-fun s name typarams args ann doc body)
-     (s-def s
+     (s-var s
             (s-bind s name (a-arrow s (map s-bind-ann args) ann))
             (s-lam s typarams args ann doc (ds body)))]
 
@@ -217,5 +217,5 @@
      (define-values (base relative-file root?) (split-path full-path))
      (define mod-ast (parse-pyret (file->string full-path)))
      (parameterize [(current-directory base)]
-       (s-def s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+       (s-var s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
 
