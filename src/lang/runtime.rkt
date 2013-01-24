@@ -36,8 +36,7 @@
               [seal-pfun seal]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
-              [keys-pfun keys]
-              [is-empty-pfun is-empty]
+              [keys-pfun prim-keys]
               [raise-pfun raise]
               [p-else else])
   Any?
@@ -196,17 +195,15 @@
     (foldr (lambda: ((v : Value) (s : (Setof String)))
              (if (p-str? v)
                  (set-add s (p-str-s v))
-                 (error "seal: found non-string in constraint list")))
+                 (error (format "seal: found non-string in constraint list: ~a" v))))
            ((inst set String))
            strs))
-  (if (not (p-list? fields))
-      (error "seal: found non-list as constraint")
-      (local [(define current-seal (get-seal object))
-              (define fields-seal (get-strings (p-list-l fields)))
-              (define new-seal (if (none? current-seal)
-                                   fields-seal
-                                   (set-intersect fields-seal current-seal)))]
-        (reseal object new-seal))))
+  (define fields-seal (get-strings (structural-list->list fields)))
+  (local [(define current-seal (get-seal object))
+          (define new-seal (if (none? current-seal)
+                               fields-seal
+                               (set-intersect fields-seal current-seal)))]
+    (reseal object new-seal)))
 
 (define seal-pfun (mk-fun-nodoc seal))
 
@@ -228,12 +225,39 @@
                             (hash-set d k (hash-ref extension k)))
                          d
                          (hash-keys extension)))
-  (p-object (none) (set) new-map))
+  (match base
+    [(p-object s _ _) (p-object s (set) new-map)]
+    [(p-fun s _ _ f) (p-fun s (set) new-map f)]
+    [(p-num s _ _ n) (p-num s (set) new-map n)]
+    [(p-str s _ _ str) (p-str s (set) new-map str)]
+    [(p-method s _ _ m) (p-method s (set) new-map m)]
+    [(p-list s _ _ l) (p-list s (set) new-map l)]
+    [(p-bool s _ _ t) (p-bool s (set) new-map t)]
+    [(p-opaque _ _ _ v) (error "update: Cannot update opaque")]
+    [(p-nothing _ _ _) (error "update: Cannot update nothing")]))
+
+(define: (structural-list->list (lst : Value)) : (Listof Value)
+  (define d (get-dict lst))
+  (cond
+    [(and (hash-has-key? d "first")
+          (hash-has-key? d "rest"))
+     (cons (hash-ref d "first")
+           (structural-list->list (hash-ref d "rest")))]
+    [else empty]))
+
+(define: (mk-structural-list (lst : (Listof Value))) : Value
+  (cond
+    [(empty? lst) (mk-object (make-immutable-hash
+        `(("is-empty" . ,(mk-bool #t)))))]
+    [(cons? lst) (mk-object (make-immutable-hash
+        `(("first" . ,(first lst))
+          ("is-empty" . ,(mk-bool #f))
+          ("rest" . ,(mk-structural-list (rest lst))))))]))
 
 (define: (keys (obj : Value)) : Value
   (define d (get-dict obj))
   (define s (get-seal obj))
-  (mk-list (set-map (get-visible-keys d s) mk-str)))
+  (mk-structural-list (set-map (get-visible-keys d s) mk-str)))
 
 (define keys-pfun (mk-fun-nodoc keys))
 

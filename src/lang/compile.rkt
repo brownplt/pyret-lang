@@ -1,7 +1,8 @@
 #lang racket
 
 (provide
-  compile-pyret)
+  compile-pyret
+  compile-expr)
 (require
   racket/match
   racket/splicing
@@ -9,7 +10,14 @@
   "runtime.rkt")
 
 (define (loc-list loc)
-  (list (srcloc-source loc)
+  (define (serialize-source e)
+    (cond
+      [(symbol? e) (symbol->string e)]
+      [(string? e) e]
+      [(path? e) e]
+      [else (error (format "Non-symbol, non-string, non-path value for
+                            source: ~a" e))]))
+  (list (serialize-source (srcloc-source loc))
         (srcloc-line loc)
         (srcloc-column loc)
         (srcloc-position loc)
@@ -34,7 +42,7 @@
       [(s-data-field l name value)
        (attach l
          (with-syntax ([name-stx (d->stx name l)]
-                       [val-stx (compile-pyret value)]) 
+                       [val-stx (compile-expr value)]) 
            #'(r:cons name-stx val-stx)))]))
   (match ast-node
     
@@ -54,13 +62,13 @@
     [(s-lam l params args ann doc body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
-                     [body-stx (compile-pyret body)])
+                     [body-stx (compile-expr body)])
          #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
     
     [(s-method l args body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
-                     [body-stx (compile-pyret body)]) 
+                     [body-stx (compile-expr body)]) 
          #'(p:mk-method (r:λ (arg ...) body-stx))))]
     
     [(s-cond l c-bs)
@@ -68,7 +76,7 @@
        (match b
          [(s-cond-branch s test block)
           (attach l
-                  #`((p:pyret-true? #,(compile-pyret test)) #,(compile-pyret block)))]))
+                  #`((p:pyret-true? #,(compile-expr test)) #,(compile-expr block)))]))
      (attach l
        (with-syntax ([(branch ...) (d->stx (map compile-cond-branch c-bs) l)])
          #`(r:cond branch ...)))]
@@ -82,21 +90,21 @@
      (attach l
        (with-syntax ([name-stx (d->stx name l)]
                      [temp (gensym name)])
-         #`(r:let [(temp #,(compile-pyret expr))]
+         #`(r:let [(temp #,(compile-expr expr))]
              (r:set! name-stx temp)
              temp)))]
 
     [(s-app l fun args)
      (attach l
-        (with-syntax ([fun (compile-pyret fun)]
-                      [(arg ...) (map compile-pyret args)]
+        (with-syntax ([fun (compile-expr fun)]
+                      [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
           #'(((p:p-fun-f fun) (r:list loc-param ...)) arg ...)))]
 
     [(s-onion l super fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)]
-                     [super (compile-pyret super)])
+                     [super (compile-expr super)])
         #'(p:flatten super (r:make-hash (r:list member ...)))))]
 
     [(s-obj l fields)
@@ -106,22 +114,32 @@
     
     [(s-list l elts)
      (attach l
-       (with-syntax ([(elt ...) (map compile-pyret elts)])
+       (with-syntax ([(elt ...) (map compile-expr elts)])
          #'(p:mk-list (r:list elt ...))))]
     
     [(s-dot l val field)
      (attach l
-       #`(p:get-field #,(compile-pyret val) #,(d->stx (symbol->string field) l)))]
+       #`(p:get-field #,(compile-expr val) #,(d->stx (symbol->string field) l)))]
     
     [(s-bracket l val field)
      (attach l
-       #`(p:get-field #,(compile-pyret val) (p:p-str-s #,(compile-pyret field))))]
+       #`(p:get-field #,(compile-expr val) (p:p-str-s #,(compile-expr field))))]
     
     [(s-dot-method l obj field)
      (attach l
-       #`(p:get-raw-field #,(compile-pyret obj) #,(d->stx (symbol->string field) l)))]
+       #`(p:get-raw-field #,(compile-expr obj) #,(d->stx (symbol->string field) l)))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
-(define compile-pyret compile-expr)
+(define (compile-pyret ast)
+  (match ast
+    [(s-block l stmts)
+     (define id-expr-pairs (map compile-stmt stmts))
+     (define ids (map car id-expr-pairs))
+     (with-syntax ([(id ...) ids]
+                   [body-id (d->stx (if (cons? ids) (last ids) 'nothing) l)]
+                   [(expr ...) (map cdr id-expr-pairs)])
+      (attach l
+       #`(r:begin (r:define id expr) ... body-id)))]
+    [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 

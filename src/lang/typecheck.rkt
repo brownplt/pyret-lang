@@ -49,10 +49,16 @@
          [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
      (mk-lam s (list (s-bind s funname ann)) ann
       (mk-contract-doc ann)
-      (mk-lam s wrapargs result
-       (mk-contract-doc ann)
-       (wrap-ann-check s result 
-        (s-app s (s-id s funname) (map check-arg wrapargs)))))]
+      (s-onion
+        s
+        (mk-lam s wrapargs result
+         (mk-contract-doc ann)
+         (wrap-ann-check s result 
+          (s-app s (s-id s funname) (map check-arg wrapargs))))
+        (list (s-data-field s "doc"
+                              (s-bracket s
+                                         (s-id s funname)
+                                         (s-str s "doc"))))))]
     
     [else
      (error

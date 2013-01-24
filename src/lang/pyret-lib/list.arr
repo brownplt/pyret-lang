@@ -30,6 +30,9 @@ data List
         | n.greaterthan(0) => raise('drop: dropped too many')
         | else => raise('drop: invalid argument')
       end
+    end,
+    equals(self, other):
+      is-empty(other)
     end
   | link: first :: Any, rest :: List with
     length(self): 1.add(self.rest.length()),
@@ -55,8 +58,14 @@ data List
         | n.greaterthan(0) => self.rest.drop(n.minus(1))
         | else => raise('drop: invalid argument')
       end
+    end,
+    equals(self, other):
+      cond:
+        | is-link(other) => self.first.equals(other.first).and(self.rest.equals(other.rest))
+        | else => false
+      end
     end
 sharing
-  push(self, elt): cons(elt, self),
+  push(self, elt): link(elt, self)
 end
 

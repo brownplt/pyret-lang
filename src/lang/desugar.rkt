@@ -149,7 +149,15 @@
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
     
-    [(s-list s elts) (s-list s (map ds elts))]
+    [(s-list s elts)
+     (define (get-lib name)
+       (s-bracket s (s-id s 'list) (s-str s name)))
+     (define (make-link elt acc)
+       (s-app s (get-lib "link") (list elt acc)))
+      
+     (foldr make-link
+            (s-app s (get-lib "empty") (list))
+            (map ds elts))]
     
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
     
@@ -188,7 +196,11 @@
     (s-import s (path->string (path->complete-path p)) modname))
   (map mk-import libs))
 
-(define-runtime-path-list libs '("pyret-lib/list.arr"))
+(define-runtime-path-list libs
+  '(
+    "pyret-lib/list.arr"
+    "pyret-lib/builtins.arr"
+   ))
 
 (define (desugar-header hd)
   (define (desugar-module ast)

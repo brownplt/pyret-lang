@@ -1,6 +1,5 @@
 Release
 [x] ^ for mortar-firing style
-[] implicit cond if you start fun with a |
 [] provide Data
 [] Documentation
   [x] Extract docs from code
@@ -14,7 +13,11 @@ Release
 [x] Some sort of module system for sane libraries
   [] Cyclic modules
 [x] Functionalize objects
+[] Make everything with methods consistent with functions
 [] Indentation enforcement?
+[] implicit cond if you start fun with a |
+[] Write some tests for extending with seals
+[] More tests for keys/builtins
 
 
 Redex

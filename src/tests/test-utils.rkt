@@ -1,6 +1,7 @@
 #lang racket
 
 (provide
+  verbose!
   check-pyret-fail
   check-pyret-exn
   check-pyret-match
@@ -31,21 +32,33 @@
 
 (define eval-ns (namespace-anchor->namespace in-the-module))
 
+(define verbose #f)
+(define (verbose! v) (set! verbose v))
+(define (print-test str)
+  (when verbose
+    (printf "------------------------------------------------------\n")
+    (printf "Test for:\n")
+    (printf "~a\n" str)))
+
 (define (eval-pyret str)
+  (print-test str)
   (eval
    (compile-str str)
     eval-ns))
 
 (define (eval-pyret/libs str)
+  (print-test str)
   (eval
    (compile-str/libs str)
     eval-ns))
 
+(define-runtime-path utils-path "test-utils.rkt")
+
 (define (compile-str str)
-  (pyret->racket "test-utils" (open-input-string str)))
+  (pyret->racket utils-path (open-input-string str)))
 
 (define (compile-str/libs str)
-  (pyret->racket/libs "test-utils" (open-input-string str)))
+  (pyret->racket/libs utils-path (open-input-string str)))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
