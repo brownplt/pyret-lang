@@ -1,5 +1,7 @@
 Release
 [x] ^ for mortar-firing style
+[] implicit cond if you start fun with a |
+[] rename 'def' to 'var'
 [] provide Data
 [] Documentation
   [x] Extract docs from code
