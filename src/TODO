@@ -20,7 +20,7 @@ Release
 [] implicit cond if you start fun with a |
 [x] Write some tests for extending with seals
 [] More tests for keys/builtins
-
+[] Figure out how to/if we can use list.arr lists in runtime.rkt
 
 Redex
 [] Redex the initial semantics
