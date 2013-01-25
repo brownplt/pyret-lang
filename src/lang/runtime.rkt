@@ -8,14 +8,12 @@
   (prefix-out p: (struct-out p-base))
   (prefix-out p: (struct-out p-nothing))
   (prefix-out p: (struct-out p-object))
-  (prefix-out p: (struct-out p-list))
   (prefix-out p: (struct-out p-num))
   (prefix-out p: (struct-out p-bool))
   (prefix-out p: (struct-out p-str))
   (prefix-out p: (struct-out p-fun))
   (prefix-out p: (struct-out p-method))
   (rename-out [mk-object p:mk-object]
-              [mk-list p:mk-list]
               [mk-num p:mk-num]
               [mk-bool p:mk-bool]
               [mk-str p:mk-str]
@@ -33,6 +31,7 @@
               [pyret-true? p:pyret-true?])
   (rename-out [p-pi pi]
               [print-pfun print]
+              [tostring-pfun tostring]
               [seal-pfun seal]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
@@ -46,8 +45,8 @@
   Racket
   nothing)
 
-(define-type Value (U p-object p-list p-num p-bool
-		      p-str p-fun p-method p-nothing p-opaque))
+(define-type Value (U p-object p-num p-bool
+                      p-str p-fun p-method p-nothing p-opaque))
 
 (define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
@@ -63,7 +62,6 @@
                  (dict : Dict)) #:transparent)
 (struct: p-nothing p-base () #:transparent)
 (struct: p-object p-base () #:transparent)
-(struct: p-list p-base ((l : (Listof Value))) #:transparent)
 (struct: p-num p-base ((n : Number)) #:transparent)
 (struct: p-bool p-base ((b : Boolean)) #:transparent)                
 (struct: p-str p-base ((s : String)) #:transparent)
@@ -78,9 +76,6 @@
 (define: (mk-object (dict : Dict)) : Value
   (p-object (none) (set) dict))
 
-(define: (mk-list (l : (Listof Value))) : Value
-  (p-list (none) (set) meta-list l))
-
 (define: (mk-num (n : Number)) : Value
   (p-num (none) (set) meta-num n))
 
@@ -92,11 +87,11 @@
 
 (define: (mk-fun (f : Procedure) (s : String)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
-	 (λ (_) f)))
+         (λ (_) f)))
 
 (define: (mk-fun-nodoc (f : Procedure)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)))
-	 (λ (_) f)))
+         (λ (_) f)))
 
 (define: (mk-opaque (v : Any)) : Value
   (p-opaque (none) (set) empty-dict v))
@@ -123,15 +118,15 @@
 
 (define Number?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-num? n)))))
+            (mk-bool (p-num? n)))))
 
 (define String?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-str? n)))))
+            (mk-bool (p-str? n)))))
 
 (define Bool?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-bool? n)))))
+            (mk-bool (p-bool? n)))))
 
 (define: (get-racket-fun (f : String)) : Value
   (define fun (dynamic-require 'racket (string->symbol f)))
@@ -156,7 +151,6 @@
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
     [(p-object _ b h) (p-object new-seal b h)]
-    [(p-list _ b h l) (p-list new-seal b h l)]
     [(p-num _ b h n) (p-num new-seal b h n)]
     [(p-bool _ b h t) (p-bool new-seal b h t)]
     [(p-str _ b h s) (p-str new-seal b h s)]
@@ -169,7 +163,6 @@
   (define: bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
   (match v
     [(p-object s _ h) (p-object s bs h)]
-    [(p-list s _ h l) (p-list s bs h l)]
     [(p-num s _ h n) (p-num s bs h n)]
     [(p-bool s _ h b) (p-bool s bs h b)]
     [(p-str sl _ h s) (p-str sl bs h s)]
@@ -231,7 +224,6 @@
     [(p-num s _ _ n) (p-num s (set) new-map n)]
     [(p-str s _ _ str) (p-str s (set) new-map str)]
     [(p-method s _ _ m) (p-method s (set) new-map m)]
-    [(p-list s _ _ l) (p-list s (set) new-map l)]
     [(p-bool s _ _ t) (p-bool s (set) new-map t)]
     [(p-opaque _ _ _ v) (error "update: Cannot update opaque")]
     [(p-nothing _ _ _) (error "update: Cannot update nothing")]))
@@ -347,33 +339,6 @@
 
 (define p-pi (mk-num pi))
 
-(define: (mk-list-method [name : String]
-                         [func : ((Listof Value) -> Value)])
-       : Value
-  (mk-method (lambda: ([self : Value])
-    (match self
-     [(p-list _ _ _ l) (func l)]
-     [_ (error (format "list: cannot do ~a of ~a" name self))]))))
-
-(define: (is-empty [l : Value]) : Value
-  (match l
-    [(p-list _ _ _ elts) (mk-bool (empty? elts))]
-    [_ (mk-bool #f)]))
-
-(define is-empty-pfun (mk-fun-nodoc is-empty))
-
-(define meta-list
-  (make-immutable-hash
-    `(("first" . ,(mk-list-method "first" first))
-      ("push" .
-      ,(mk-method (lambda: ([self : Value] [elt : Value])
-         (match self
-          [(p-list _ _ _ l) (mk-list (cons elt l))]
-          [_ (error (format "list: cannot push onto ~a" self))]))))
-      ("rest" . ,(mk-list-method "rest"
-                    (lambda: ([l : (Listof Value)])
-                      (mk-list (rest l))))))))
-                
 (define: (mk-str-impl (op : (String String -> String)))
          : (Value Value -> Value)
   (lambda (v1 v2)
@@ -463,15 +428,30 @@
 (define: (to-string (v : Value)) : String
   (match v
     [(or (p-num _ _ _ p)
-         (p-bool _ _ _ p)
          (p-str _ _ _ p))
      (format "~a" p)]
+    [(p-bool _ _ _ p)
+     (if p "true" "false")]
     [(p-method _ _ _ f) "[[code]]"]
     [(p-object _ _ h)
-     (define: (field-to-string (f : String) (v : Value)) : String
-      (format "~a : ~a" f (to-string v)))
-     (format "{ ~a }" (string-join (hash-map h field-to-string) ", "))]
+     (define: (to-string-raw-object (h : Dict)) : String
+       (define: (field-to-string (f : String) (v : Value)) : String
+      (format "~a: ~a" f (to-string v)))
+       (format "{ ~a }"
+               (string-join (hash-map h field-to-string) ", ")))
+     (if (has-field? v "tostring")
+         (let [(m (get-raw-field v "tostring"))]
+           (if (p-method? m)
+               ;; NOTE(dbp): this will fail if tostring isn't defined
+               ;; as taking only self.
+               (match ((cast (p-method-f m) (Value -> Value)) v)
+                 [(p-str _ _ _ s) s]
+                 [else (to-string-raw-object h)])
+               (to-string-raw-object h)))
+         (to-string-raw-object h))]
     [v (format "~a" v)]))
+
+(define tostring-pfun (mk-fun-nodoc (λ: ([o : Value]) (mk-str (to-string o)))))
 
 (define print-pfun (mk-fun-nodoc (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
 
@@ -500,7 +480,6 @@
 
 (define: (unwrap (v : Value)) : Any
   (match v
-    [(p-list s _ h l) (map unwrap l)]
     [(p-num s _ h n) n]
     [(p-bool s _ h b) b]
     [(p-str sl _ h s) s]
@@ -512,7 +491,7 @@
     [(number? v) (mk-num v)]
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
-    [(list? v) (mk-list (map wrap v))]
+    [(list? v) (mk-structural-list (map wrap v))]
     [else (mk-opaque v)]))
 
 (define: (exn+loc->message [v : Value] [l : Loc]) : String
