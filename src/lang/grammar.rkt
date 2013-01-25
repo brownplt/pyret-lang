@@ -65,6 +65,8 @@ cond-expr: "cond" ":" cond-branch* "end"
 field:
    NAME ":" expr
  | NAME args return-ann ":" block ["end"]
+ | "[" expr "]" ":" expr
+ | "[" expr "]" args return-ann ":" block ["end"]
 list-field: field ","
 fields: list-field* field [","]
 

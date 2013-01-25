@@ -37,6 +37,12 @@
 
 (check-pyret "{x:5}" (p:p-object (p:none) (set)
                                  (make-immutable-hash (list (cons "x" five)))))
+(check-pyret "{['x']:5}" (p:p-object (p:none) (set)
+                                 (make-immutable-hash (list (cons "x" five)))))
+(check-pyret "{['x'.append('y')]:5}" (p:p-object (p:none) (set)
+                                                 (make-immutable-hash (list (cons "xy" five)))))
+(check-pyret "var f: 'x' {[f]:5}" (p:p-object (p:none) (set)
+                                              (make-immutable-hash (list (cons "x" five)))))
 
 #;(check-pyret-match/libs "[]" (p:p-list (p:none) (set) _ (list)))
 (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
