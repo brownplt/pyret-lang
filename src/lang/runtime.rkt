@@ -31,6 +31,7 @@
               [pyret-true? p:pyret-true?])
   (rename-out [p-pi pi]
               [print-pfun print]
+              [tostring-pfun tostring]
               [seal-pfun seal]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
@@ -45,7 +46,7 @@
   nothing)
 
 (define-type Value (U p-object p-num p-bool
-		      p-str p-fun p-method p-nothing p-opaque))
+                      p-str p-fun p-method p-nothing p-opaque))
 
 (define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
@@ -95,11 +96,11 @@
 
 (define: (mk-fun (f : Procedure) (s : String)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
-	 (λ (_) f)))
+         (λ (_) f)))
 
 (define: (mk-fun-nodoc (f : Procedure)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)))
-	 (λ (_) f)))
+         (λ (_) f)))
 
 (define: (mk-opaque (v : Any)) : Value
   (p-opaque (none) (set) empty-dict v))
@@ -120,15 +121,15 @@
 
 (define Number?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-num? n)))))
+            (mk-bool (p-num? n)))))
 
 (define String?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-str? n)))))
+            (mk-bool (p-str? n)))))
 
 (define Bool?
   (mk-fun-nodoc (lambda (n)
-	    (mk-bool (p-bool? n)))))
+            (mk-bool (p-bool? n)))))
 
 (define: (get-racket-fun (f : String)) : Value
   (define fun (dynamic-require 'racket (string->symbol f)))
@@ -442,15 +443,30 @@
 (define: (to-string (v : Value)) : String
   (match v
     [(or (p-num _ _ _ p)
-         (p-bool _ _ _ p)
          (p-str _ _ _ p))
      (format "~a" p)]
+    [(p-bool _ _ _ p)
+     (if p "true" "false")]
     [(p-method _ _ _ f) "[[code]]"]
     [(p-object _ _ h)
-     (define: (field-to-string (f : String) (v : Value)) : String
-      (format "~a : ~a" f (to-string v)))
-     (format "{ ~a }" (string-join (hash-map h field-to-string) ", "))]
+     (define: (to-string-raw-object (h : Dict)) : String
+       (define: (field-to-string (f : String) (v : Value)) : String
+      (format "~a: ~a" f (to-string v)))
+       (format "{ ~a }"
+               (string-join (hash-map h field-to-string) ", ")))
+     (if (has-field? v "tostring")
+         (let [(m (get-raw-field v "tostring"))]
+           (if (p-method? m)
+               ;; NOTE(dbp): this will fail if tostring isn't defined
+               ;; as taking only self.
+               (match ((cast (p-method-f m) (Value -> Value)) v)
+                 [(p-str _ _ _ s) s]
+                 [else (to-string-raw-object h)])
+               (to-string-raw-object h)))
+         (to-string-raw-object h))]
     [v (format "~a" v)]))
+
+(define tostring-pfun (mk-fun-nodoc (λ: ([o : Value]) (mk-str (to-string o)))))
 
 (define print-pfun (mk-fun-nodoc (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
 

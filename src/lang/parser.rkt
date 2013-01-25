@@ -96,7 +96,6 @@
     [(_ (list-field field ",") ... lastfield ",")
      #'(list field ... lastfield)]))
 
-;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)
   (syntax-case stx (list-field)
     [(_ "{" fields "}") #`(s-obj #,(loc stx) fields)]
@@ -259,10 +258,6 @@
 
 (define-syntax (dot-method-expr stx)
   (syntax-case stx ()
-   [(_ obj ":" field)
-    #`(s-dot-method #,(loc stx)
-                    obj
-                    '#,(parse-name #'field))]
     [(_ obj ":" field)
      #`(s-dot-method #,(loc stx)
                      obj
@@ -279,69 +274,45 @@
                  '#,(parse-name #'member-name)
                  ann)]))
 
+(define-syntax (data-with stx)
+  (syntax-case stx ()
+    [(_ "with" fields) #'fields]
+    [(_) #'(list)]))
+
+(define-syntax (data-fields stx)
+  (syntax-case stx ()
+    [(_ ":" (data-member-elt member ",") ... last-member)
+     #'(list member ... last-member)]
+    [(_) #'(list)]))
+
 (define-syntax (data-variant stx)
   (syntax-case stx (data-member-elt data-members)
-    [(_ "|" variant-name)
+    [(_ "|" variant-name fields-part with-part)
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
-                  (list)
-                  (list))]
-    [(_ "|" variant-name "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list)
-                  fields)]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  (list))]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  fields)]))
+                  fields-part
+                  with-part)]))
+
+(define-syntax (data-params stx)
+  (syntax-case stx (data-param-elt)
+    [(_ "(" (data-param-elt name ",") ... last-name ")")
+     #`(quote #,(parse-names #'(name ... last-name)))]
+    [(_) #'(list)]))
+      
+
+(define-syntax (data-sharing stx)
+  (syntax-case stx ()
+    [(_ "sharing" fields "end") #'fields]
+    [(_ "end") #'(list)]))
 
 (define-syntax (data-expr stx)
-  (syntax-case stx (data-param-elt data-params)
-    ; NOTE(joe): there's a weird ordering dependency here that can cause "sharing"
-    ; to be parsed as a variant, since this macro doesn't know better than to just
-    ; gobble up all the terms it sees until "end", so the two "sharing" cases
-    ; *must* come first
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "sharing"
-        fields
-        "end")
+  (syntax-case stx ()
+    [(_ "data" data-name data-params variant ...  sharing-part)
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
+               data-params
                (list variant ...)
-               fields)]
-    [(_ "data" data-name
-        variant ...
-        "sharing"
-        fields
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               fields)]
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
-               (list variant ...)
-               (list))]
-    [(_ "data" data-name variant ... "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               (list))]))
+               sharing-part)]))
 
 (define-syntax (do-expr stx)
   (syntax-case stx (do-stmt)

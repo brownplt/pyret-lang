@@ -33,7 +33,8 @@ data List
     end,
     equals(self, other):
       is-empty(other)
-    end
+    end,
+    tostring(self): "[]"
   | link: first :: Any, rest :: List with
     length(self): 1.add(self.rest.length()),
     map(self, f): f(self.first)^link(self.rest.map(f)),
@@ -64,7 +65,13 @@ data List
         | is-link(other) => self.first.equals(other.first).and(self.rest.equals(other.rest))
         | else => false
       end
-    end
+    end,
+    tostring(self):
+    "[".append(
+      self.rest.foldl(
+        \elt, s: (s.append(", ").append(tostring(elt))),
+				tostring(self.first))
+		).append("]")
 sharing
   push(self, elt): link(elt, self)
 end

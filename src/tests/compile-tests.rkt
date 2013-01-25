@@ -397,3 +397,9 @@ l1.add(l2)
    m._fun(5)"
   five)
 
+(check-pyret "tostring(1)" (p:mk-str "1"))
+(check-pyret "[1,2,3].tostring()" (p:mk-str "[1, 2, 3]"))
+(check-pyret "tostring('hello')" (p:mk-str "hello"))
+(check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
+(check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
+	     (p:mk-str "hello!"))

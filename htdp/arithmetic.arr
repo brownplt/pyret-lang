@@ -1,4 +1,4 @@
-#lang reader "../src/lang/pyret.rkt"
+#lang pyret
 
 2.add(2)
 3.times(3)

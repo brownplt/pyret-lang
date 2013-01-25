@@ -1,4 +1,4 @@
-#lang reader "../src/lang/pyret.rkt"
+#lang pyret
 
 def five :: Number: 5
 def x :: String: "hello"
