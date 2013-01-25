@@ -294,46 +294,26 @@
                   fields-part
                   with-part)]))
 
+(define-syntax (data-params stx)
+  (syntax-case stx (data-param-elt)
+    [(_ "(" (data-param-elt name ",") ... last-name ")")
+     #`(quote #,(parse-names #'(name ... last-name)))]
+    [(_) #'(list)]))
+      
+
+(define-syntax (data-sharing stx)
+  (syntax-case stx ()
+    [(_ "sharing" fields "end") #'fields]
+    [(_ "end") #'(list)]))
+
 (define-syntax (data-expr stx)
-  (syntax-case stx (data-param-elt data-params)
-    ; NOTE(joe): there's a weird ordering dependency here that can cause "sharing"
-    ; to be parsed as a variant, since this macro doesn't know better than to just
-    ; gobble up all the terms it sees until "end", so the two "sharing" cases
-    ; *must* come first
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "sharing"
-        fields
-        "end")
+  (syntax-case stx ()
+    [(_ "data" data-name data-params variant ...  sharing-part)
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
+               data-params
                (list variant ...)
-               fields)]
-    [(_ "data" data-name
-        variant ...
-        "sharing"
-        fields
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               fields)]
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
-               (list variant ...)
-               (list))]
-    [(_ "data" data-name variant ... "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               (list))]))
+               sharing-part)]))
 
 (define-syntax (do-expr stx)
   (syntax-case stx (do-stmt)

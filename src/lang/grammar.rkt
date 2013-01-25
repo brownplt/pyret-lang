@@ -98,8 +98,9 @@ data-with: ["with" fields]
 data-fields: [":" data-member-elt* data-member]
 data-variant: "|" NAME data-fields data-with
 data-param-elt: NAME ","
-data-params: "(" data-param-elt* NAME ")"
-data-expr: "data" NAME [data-params] data-variant+ ("end"|("sharing" fields "end"))
+data-params: ["(" data-param-elt* NAME ")"]
+data-sharing: "end"|("sharing" fields "end")
+data-expr: "data" NAME data-params data-variant+ data-sharing 
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
