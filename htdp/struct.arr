@@ -1,4 +1,4 @@
-#lang reader "../src/lang/pyret.rkt"
+#lang pyret
 
 data NumList
   | empty
@@ -18,5 +18,5 @@ end
 length(cons(4,empty()))
 length(cons(4,cons(3,empty())))
 
-"should be: cond: no cases matched"
+print("should be: runtime typecheck failed")
 length({first: {}, rest: {}})

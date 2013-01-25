@@ -1,4 +1,4 @@
-#lang reader "../src/lang/pyret.rkt"
+#lang pyret
 
-5:tostring()
-"5":tonumber()
+5.tostring()
+"5".tonumber()

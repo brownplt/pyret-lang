@@ -1,4 +1,4 @@
-#lang reader "../src/lang/pyret.rkt"
+#lang pyret
 
 fun y(x): x.times(x) end
 
