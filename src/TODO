@@ -1,6 +1,4 @@
 Release
-[x] ^ for mortar-firing style
-[] implicit cond if you start fun with a |
 [x] rename 'def' to 'var'
 [] provide Data
 [] Documentation
@@ -10,17 +8,22 @@ Release
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[] better error reporting / pretty printing / support for debugging. For example, printing out names for brands (where appropriate) would be a start.
+[] better error reporting / pretty printing / support for debugging.
+   For example, printing out names for brands (where appropriate)
+   would be a start.
 [] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
 [x] Some sort of module system for sane libraries
   [] Cyclic modules
 [x] Functionalize objects
 [] Make everything with methods consistent with functions
+  [] doc
+  [] type variable declaration
 [] Indentation enforcement?
 [] implicit cond if you start fun with a |
 [x] Write some tests for extending with seals
 [] More tests for keys/builtins
 [] Figure out how to/if we can use list.arr lists in runtime.rkt
+[] DrRacket syntax highlighting
 
 Redex
 [] Redex the initial semantics
@@ -60,6 +63,10 @@ HTDP:
 
 [] currying
 [] srcloc for a-any
+
+Bonus Funtimes:
+[x] ^ for mortar-firing style
+[] implicit cond if you start fun with a |
 
 Cleanup:
 [] decide on a line length and enforce

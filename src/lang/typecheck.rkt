@@ -8,6 +8,8 @@
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body))))
+(define (mk-method loc args result doc-unused body)
+  (s-method loc args result (s-block loc (list body))))
 
 (define (string-of-ann ann)
   (match ann
@@ -18,6 +20,24 @@
     [(a-app _ base args) (format "~a~a" base (map string-of-ann args))]))
 
 (define (ann-check loc ann)
+  (define (code-wrapper s args result type get-fun)
+    (define funname (gensym))
+    (define wrapargs (map (lambda (a) (s-bind s (gensym) a)) args))
+    (define (check-arg bind)
+      (match bind
+        [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
+    (mk-lam s (list (s-bind s funname ann)) ann
+     (mk-contract-doc ann)
+     (s-onion
+       s
+       (type s wrapargs result
+        (mk-contract-doc ann)
+        (wrap-ann-check s result 
+         (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
+       (list (s-data-field s "doc"
+                             (s-bracket s
+                                        (s-id s funname)
+                                        (s-str s "doc")))))))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" ann))
   (define ann-str (s-str loc (string-of-ann ann)))
@@ -42,24 +62,11 @@
     [(a-any)
      (mk-flat-checker (s-id loc 'Any?))]
     [(a-arrow s args result)
-     (define funname (gensym))
-     (define wrapargs (map (lambda (a) (s-bind s (gensym) a)) args))
-     (define (check-arg bind)
-       (match bind
-         [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
-     (mk-lam s (list (s-bind s funname ann)) ann
-      (mk-contract-doc ann)
-      (s-onion
-        s
-        (mk-lam s wrapargs result
-         (mk-contract-doc ann)
-         (wrap-ann-check s result 
-          (s-app s (s-id s funname) (map check-arg wrapargs))))
-        (list (s-data-field s "doc"
-                              (s-bracket s
-                                         (s-id s funname)
-                                         (s-str s "doc"))))))]
-    
+     (code-wrapper s args result mk-lam (λ (e) e))]
+    [(a-method s args result)
+     (define (get-fun e)
+       (s-bracket s e (s-str s "_fun")))
+     (code-wrapper s args result mk-method get-fun)]
     [else
      (error
       (format "typecheck: don't know how to check ann: ~a"
@@ -100,9 +107,9 @@
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
-    [(s-method s args body)
+    [(s-method s args ann body)
      (define body-env (foldr update env args))
-     (s-method s args (cc-env body body-env))]
+     (s-method s args ann (cc-env body body-env))]
     
     [(s-cond s c-bs)
      (define (cc-branch branch)

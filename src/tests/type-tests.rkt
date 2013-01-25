@@ -13,27 +13,27 @@
 
 ;; tests for type annotation runtime checks
 (check-pyret-exn
- "def x :: Number: 'hello'"
+ "var x :: Number: 'hello'"
  "runtime:")
 
 (check-pyret
- "def x :: String: 'hello'"
+ "var x :: String: 'hello'"
  (p:mk-str "hello"))
 
 
-(check-pyret-exn "def x :: Number: true" "runtime:")
-(check-pyret "def x :: Number: 48 x" forty8)
-(check-pyret-exn "def x :: Number: 37 x = 'not-a-num'" "runtime:")
+(check-pyret-exn "var x :: Number: true" "runtime:")
+(check-pyret "var x :: Number: 48 x" forty8)
+(check-pyret-exn "var x :: Number: 37 x = 'not-a-num'" "runtime:")
 
-(check-pyret "def x :: Number: 23 x = 6" six)
-(check-pyret "fun f(x :: Number) -> String: (def x :: String: 'daniel' x) f(42)" (p:mk-str "daniel"))
-(check-pyret-exn "fun f(x :: Number) -> String: (def x :: String: 'daniel' x = 6) f(42)"
+(check-pyret "var x :: Number: 23 x = 6" six)
+(check-pyret "fun f(x :: Number) -> String: (var x :: String: 'daniel' x) f(42)" (p:mk-str "daniel"))
+(check-pyret-exn "fun f(x :: Number) -> String: (var x :: String: 'daniel' x = 6) f(42)"
                  "runtime:")
-(check-pyret "def x :: Number: 6 fun f(): (def x :: String: 'daniel' x = 'bobby') f() x"
+(check-pyret "var x :: Number: 6 fun f(): (var x :: String: 'daniel' x = 'bobby') f() x"
              six)
-(check-pyret-exn "def x :: Number: 6 fun f(): (x = 'bobby') f() x"
+(check-pyret-exn "var x :: Number: 6 fun f(): (x = 'bobby') f() x"
                  "runtime:")
-(check-pyret-exn "fun g(h): h() end def x :: Number: 6 fun f(): (x = 'bobby') g(f) x"
+(check-pyret-exn "fun g(h): h() end var x :: Number: 6 fun f(): (x = 'bobby') g(f) x"
                  "runtime:")
 
 (check-pyret-exn

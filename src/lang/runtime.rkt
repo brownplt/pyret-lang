@@ -72,17 +72,26 @@
 
 (define nothing (p-nothing (set) (set) empty-dict))
 
+(define: (get-dict (v : Value)) : Dict
+  (p-base-dict v))
+
+(define: (get-seal (v : Value)) : Seal
+  (p-base-seal v))
+
+(define: (get-brands (v : Value)) : (Setof Symbol)
+  (p-base-brands v))
+
 (define: (mk-object (dict : Dict)) : Value
   (p-object (none) (set) dict))
 
 (define: (mk-num (n : Number)) : Value
-  (p-num (none) (set) meta-num n))
+  (p-num (none) (set) meta-num-store n))
 
 (define: (mk-bool (b : Boolean)) : Value
-  (p-bool (none) (set) meta-bool b))
+  (p-bool (none) (set) meta-bool-store b))
 
 (define: (mk-str (s : String)) : Value
-  (p-str (none) (set) meta-str s))
+  (p-str (none) (set) meta-str-store s))
 
 (define: (mk-fun (f : Procedure) (s : String)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
@@ -99,16 +108,10 @@
   (p-fun (none) (set) empty-dict f))
 
 (define: (mk-method (f : Procedure)) : Value
-  (p-method (none) (set) empty-dict f))
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-nodoc f))
+                                   ("doc" . ,(mk-str "method")))))
+  (p-method (none) (set) d f))
 
-(define: (get-dict (v : Value)) : Dict
-  (p-base-dict v))
-
-(define: (get-seal (v : Value)) : Seal
-  (p-base-seal v))
-
-(define: (get-brands (v : Value)) : (Setof Symbol)
-  (p-base-brands v))
 
 (define Racket (mk-object empty-dict))
 
@@ -309,32 +312,36 @@
          : (Number -> Value)
   (lambda (n) (mk-str (f n))))
 
-(define meta-num
-  (make-immutable-hash
-    `(("add" . ,(mk-num-fun +))
-      ("minus" . ,(mk-num-fun -))
-      ("divide" . ,(mk-num-fun /))
-      ("times" . ,(mk-num-fun *))
-      ("sin" . ,(mk-single-num-fun (numify sin)))
-      ("cos" . ,(mk-single-num-fun (numify cos)))
-      ("sqr" . ,(mk-single-num-fun (numify sqr)))
-      ("tostring" . ,(mk-single-num-fun (stringify number->string)))
-      ("expt" . ,(mk-num-fun expt))
-      ("equals" . ,(mk-method
-                   (mk-num-bool-impl
-                    (cast = (Number Number -> Boolean)))))
-      ("lessthan" . ,(mk-method 
-                      (mk-num-bool-impl 
-                       (cast < (Number Number -> Boolean)))))
-      ("greaterthan" . ,(mk-method 
-                      (mk-num-bool-impl 
-                       (cast > (Number Number -> Boolean)))))
-      ("lessequal" . ,(mk-method 
-                      (mk-num-bool-impl 
-                       (cast <= (Number Number -> Boolean)))))
-      ("greaterequal" . ,(mk-method 
-                      (mk-num-bool-impl 
-                       (cast >= (Number Number -> Boolean))))))))
+(define meta-num-store ((inst make-immutable-hash String Value) '()))
+(define (meta-num)
+  (when (= (hash-count meta-num-store) 0)
+    (set! meta-num-store
+      (make-immutable-hash
+        `(("add" . ,(mk-num-fun +))
+          ("minus" . ,(mk-num-fun -))
+          ("divide" . ,(mk-num-fun /))
+          ("times" . ,(mk-num-fun *))
+          ("sin" . ,(mk-single-num-fun (numify sin)))
+          ("cos" . ,(mk-single-num-fun (numify cos)))
+          ("sqr" . ,(mk-single-num-fun (numify sqr)))
+          ("tostring" . ,(mk-single-num-fun (stringify number->string)))
+          ("expt" . ,(mk-num-fun expt))
+          ("equals" . ,(mk-method
+                       (mk-num-bool-impl
+                        (cast = (Number Number -> Boolean)))))
+          ("lessthan" . ,(mk-method 
+                          (mk-num-bool-impl 
+                           (cast < (Number Number -> Boolean)))))
+          ("greaterthan" . ,(mk-method 
+                          (mk-num-bool-impl 
+                           (cast > (Number Number -> Boolean)))))
+          ("lessequal" . ,(mk-method 
+                          (mk-num-bool-impl 
+                           (cast <= (Number Number -> Boolean)))))
+          ("greaterequal" . ,(mk-method 
+                          (mk-num-bool-impl 
+                           (cast >= (Number Number -> Boolean)))))))))
+  meta-num-store)
 
 (define p-pi (mk-num pi))
 
@@ -370,23 +377,27 @@
 (define: (mk-single-str-fun (op : (String -> Value))) : Value
   (mk-method (mk-single-str-impl op)))
 
-(define meta-str
-  (make-immutable-hash
-    `(("append" . ,(mk-str-fun string-append))
-      ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
-      ("tonumber" . ,(mk-single-str-fun
-        (lambda (s)
-          (define n (string->number s))
-          (if (false? n)
-              (error (format "str: non-numeric string ~a" s))
-              (mk-num n)))))
-      ("equals" . ,(mk-method (mk-str-bool-impl string=?)))
-      ;; NOTE(dbp): this process of writing library code is ridiculous.
-      ;; We need to put this elsewhere.
-      ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
-      ;("from" . ,(mk-method ,(mk-str-fun (lambda (s n) (substring s n (string-length s))))))
-      ;("trim" . ,(mk-method ,(mk-single-str-fun (lambda (s) (mk-str (string-trim s))))))
-  )))
+(define meta-str-store ((inst make-immutable-hash String Value) '()))
+(define (meta-str)
+  (when (= 0 (hash-count meta-str-store))
+    (set! meta-str-store
+      (make-immutable-hash
+        `(("append" . ,(mk-str-fun string-append))
+          ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
+          ("tonumber" . ,(mk-single-str-fun
+            (lambda (s)
+              (define n (string->number s))
+              (if (false? n)
+                  (error (format "str: non-numeric string ~a" s))
+                  (mk-num n)))))
+          ("equals" . ,(mk-method (mk-str-bool-impl string=?)))
+          ;; NOTE(dbp): this process of writing library code is ridiculous.
+          ;; We need to put this elsewhere.
+          ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
+          ;("from" . ,(mk-method ,(mk-str-fun (lambda (s n) (substring s n (string-length s))))))
+          ;("trim" . ,(mk-method ,(mk-single-str-fun (lambda (s) (mk-str (string-trim s))))))
+      ))))
+  meta-str-store)
 
 (define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
          : (Value Value -> Value)
@@ -411,16 +422,20 @@
 (define: (mk-single-bool-fun (op : (Boolean -> Boolean))) : Value
   (mk-method (mk-single-bool-impl op)))
 
-(define meta-bool
-  ;; this is silly, but I don't know how to convince typed-racket
-  ;; that the types are correct! @dbp
-  (let [(my-and (lambda (x y) (if x (if y #t #f) #f)))
-        (my-or (lambda (x y) (if x #t (if y #t #f))))]
-    (make-immutable-hash
-     `(("and" . ,(mk-bool-fun my-and))
-       ("or" . ,(mk-bool-fun my-or))
-       ("not" . ,(mk-single-bool-fun 
-                  (cast not (Boolean -> Boolean))))))))
+(define meta-bool-store ((inst make-immutable-hash String Value) '()))
+(define (meta-bool)
+  (when (= (hash-count meta-bool-store) 0)
+    (set! meta-bool-store
+      ;; this is silly, but I don't know how to convince typed-racket
+      ;; that the types are correct! @dbp
+      (let [(my-and (lambda (x y) (if x (if y #t #f) #f)))
+            (my-or (lambda (x y) (if x #t (if y #t #f))))]
+        (make-immutable-hash
+         `(("and" . ,(mk-bool-fun my-and))
+           ("or" . ,(mk-bool-fun my-or))
+           ("not" . ,(mk-single-bool-fun 
+                      (cast not (Boolean -> Boolean)))))))))
+  meta-bool-store)
 
 (define p-else (mk-bool #t))
 
@@ -491,3 +506,8 @@
    (λ: ([loc : Loc])
       (λ: ([o : Value]) (raise (mk-pyret-exn (exn+loc->message o loc) loc))))))
 
+;; tie the knot of mutual state problems
+(void
+  (meta-num)
+  (meta-bool)
+  (meta-str))

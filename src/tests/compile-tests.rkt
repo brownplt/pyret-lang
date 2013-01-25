@@ -390,3 +390,10 @@ l1.add(l2)
 (check-pyret-exn
  "seal([1], ['first']).{rest: 2}.rest"
  "extend:")
+
+(check-pyret
+  "var o: { m(self): self }
+   var m: o:m
+   m._fun(5)"
+  five)
+

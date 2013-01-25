@@ -65,7 +65,7 @@
                      [body-stx (compile-expr body)])
          #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
     
-    [(s-method l args body)
+    [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)]) 

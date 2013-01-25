@@ -87,8 +87,10 @@
 
 (define (ds-member ast-node)
     (match ast-node
-      [(s-data-field s name value) (s-data-field s name (desugar-internal value))]
-      [(s-method-field s name args body) (s-data-field s name (s-method s args (desugar-internal body)))]))
+      [(s-data-field s name value)
+       (s-data-field s name (desugar-internal value))]
+      [(s-method-field s name args ann body)
+       (s-data-field s name (s-method s args ann (desugar-internal body)))]))
 
 (define (desugar-internal ast)
   (define ds desugar-internal) 
@@ -121,8 +123,8 @@
     [(s-lam s typarams args ann doc body)
      (s-lam s typarams args ann doc (ds body))]
     
-    [(s-method s args body)
-     (s-method s args (ds body))]
+    [(s-method s args ann body)
+     (s-method s args ann (ds body))]
     
     [(s-cond s c-bs)
      (define (ds-cond branch)

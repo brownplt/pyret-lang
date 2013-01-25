@@ -48,6 +48,7 @@
   (struct-out a-any)
   (struct-out a-name)
   (struct-out a-arrow)
+  (struct-out a-method)
   (struct-out a-record)
   (struct-out a-field)
   (struct-out a-app)
@@ -115,6 +116,7 @@ these metadata purposes.
 
 (struct: s-method ((syntax : srcloc)
                    (args : (Listof s-bind))
+                   (ann : Ann)
                    (body : s-block))
    #:transparent)
 
@@ -124,9 +126,10 @@ these metadata purposes.
       (value : Expr))
    #:transparent)
 (struct: s-method-field ((syntax : srcloc)
-       (name : String)
-       (args : (Listof s-bind))
-       (body : s-block))
+      (name : String)
+      (args : (Listof s-bind))
+      (ann : Ann)
+      (body : s-block))
    #:transparent)
 
 (struct: s-onion ((syntax : srcloc)

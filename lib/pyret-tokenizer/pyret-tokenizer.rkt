@@ -384,7 +384,7 @@
    (define parenlev 0)
    (define continued? #f)
    ;; Slight deviation: rather than represent namechars as a string, use a set.
-   (define namechars (apply set (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")))
+   (define namechars (apply set (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")))
    ;; Slight deviation: rather than represent numchars as a string, use a set.
    (define numchars (apply set (string->list "0123456789")))
    (define contstr "")

@@ -26,9 +26,9 @@
 (check/block "{x:x}" (s-obj _ (list (s-data-field _ "x" (s-id _ 'x)))))
 
 (check/block "{f(): x}"
-             (s-obj _ (list (s-method-field _ "f" (list) (s-block _ (list (s-id _ 'x)))))))
+             (s-obj _ (list (s-method-field _ "f" (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 (check/block "{f(): x end}"
-             (s-obj _ (list (s-method-field _ "f" (list) (s-block _ (list (s-id _ 'x)))))))
+             (s-obj _ (list (s-method-field _ "f" (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 
 (check/block "f()" (s-app _ (s-id _ 'f) empty))
 (check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
@@ -234,12 +234,17 @@ end"
 
 (check/block
  "data Foo | bar with x(self): self end"
- (s-data _ 'Foo (list) (list (s-variant _ 'bar (list) (list (s-method-field _ "x" (list (s-bind _ 'self (a-blank)))
-                                                                            (s-block _ (list (s-id _ 'self)))))))
+ (s-data _ 'Foo (list)
+         (list (s-variant _ 'bar (list)
+                          (list (s-method-field _
+                                                "x"
+                                                (list (s-bind _ 'self (a-blank)))
+                                                (a-blank)
+                                                (s-block _ (list (s-id _ 'self)))))))
          (list)))
 
 (check/block
- "data Foo | bar with x(self): self
+ "data Foo | bar with x(self) -> Num: self
   sharing
     z: 10
   end"
@@ -249,6 +254,7 @@ end"
                                         (list (s-method-field _
                                                               "x"
                                                               (list (s-bind _ 'self (a-blank)))
+                                                              (a-name _ 'Num)
                                                               (s-block _ (list (s-id _ 'self)))))))
          (list (s-data-field _ "z" (s-num _ 10)))))
 
