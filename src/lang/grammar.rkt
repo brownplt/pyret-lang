@@ -94,8 +94,9 @@ bracket-method-expr: expr ":" "[" expr "]"
 
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
-data-variant:
-   "|" NAME [":" data-member-elt* data-member] ["with" fields]
+data-with: ["with" fields]
+data-fields: [":" data-member-elt* data-member]
+data-variant: "|" NAME data-fields data-with
 data-param-elt: NAME ","
 data-params: "(" data-param-elt* NAME ")"
 data-expr: "data" NAME [data-params] data-variant+ ("end"|("sharing" fields "end"))

@@ -275,28 +275,24 @@
                  '#,(parse-name #'member-name)
                  ann)]))
 
+(define-syntax (data-with stx)
+  (syntax-case stx ()
+    [(_ "with" fields) #'fields]
+    [(_) #'(list)]))
+
+(define-syntax (data-fields stx)
+  (syntax-case stx ()
+    [(_ ":" (data-member-elt member ",") ... last-member)
+     #'(list member ... last-member)]
+    [(_) #'(list)]))
+
 (define-syntax (data-variant stx)
   (syntax-case stx (data-member-elt data-members)
-    [(_ "|" variant-name)
+    [(_ "|" variant-name fields-part with-part)
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
-                  (list)
-                  (list))]
-    [(_ "|" variant-name "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list)
-                  fields)]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  (list))]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  fields)]))
+                  fields-part
+                  with-part)]))
 
 (define-syntax (data-expr stx)
   (syntax-case stx (data-param-elt data-params)
