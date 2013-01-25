@@ -37,6 +37,7 @@
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
               [raise-pfun raise]
+              [is-nothing-pfun is-nothing]
               [p-else else])
   Any?
   Number?
@@ -430,10 +431,12 @@
       ;; this is silly, but I don't know how to convince typed-racket
       ;; that the types are correct! @dbp
       (let [(my-and (lambda (x y) (if x (if y #t #f) #f)))
-            (my-or (lambda (x y) (if x #t (if y #t #f))))]
+            (my-or (lambda (x y) (if x #t (if y #t #f))))
+            (my-equals (lambda (x y) (equal? x y)))]
         (make-immutable-hash
          `(("and" . ,(mk-bool-fun my-and))
            ("or" . ,(mk-bool-fun my-or))
+           ("equals" . ,(mk-bool-fun my-equals))
            ("not" . ,(mk-single-bool-fun 
                       (cast not (Boolean -> Boolean)))))))))
   meta-bool-store)
@@ -521,6 +524,12 @@
   (mk-internal-fun
    (λ: ([loc : Loc])
       (λ: ([o : Value]) (raise (mk-pyret-exn (exn+loc->message o loc) loc))))))
+
+(define is-nothing-pfun
+  (mk-internal-fun
+    (λ: ([loc : Loc])
+      (λ: ([specimen : Value])
+        (mk-bool (equal? specimen nothing))))))
 
 ;; tie the knot of mutual state problems
 (void

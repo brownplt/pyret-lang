@@ -24,7 +24,10 @@ Release
 [] More tests for keys/builtins
 [] Figure out how to/if we can use list.arr lists in runtime.rkt
 [] DrRacket syntax highlighting
-
+[] mis-applied function error message is poopface:
+    p-fun-f823: contract violation
+     expected: p-fun?
+     given: (p-bool ...
 Redex
 [] Redex the initial semantics
   [x] basic objects
