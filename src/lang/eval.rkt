@@ -6,6 +6,7 @@
   pyret->racket
   pyret->racket/libs)
 (require
+  racket/sandbox
   racket/runtime-path
   syntax/strip-context
   "tokenizer.rkt"
@@ -14,16 +15,21 @@
   "compile.rkt"
   "runtime.rkt")
 
-(define-runtime-module-path parser "parser.rkt")
-(dynamic-require parser 0)
-(define ns (module->namespace (resolved-module-path-name parser)))
+(define-runtime-path parser "parser.rkt")
+(define-runtime-path ast "ast.rkt")
+
+(define py-eval
+  (let ([specs (sandbox-namespace-specs)])
+    (parameterize [(sandbox-namespace-specs (cons make-base-namespace
+                                                  (list ast)))]
+      (make-evaluator 'racket/base #:requires (list ast parser)))))
 
 (define (stx->racket stx desugar)
   (strip-context
    (compile-pyret
     (contract-check-pyret
      (desugar
-      (eval stx ns))))))
+      (py-eval stx))))))
 
 (define (pyret->racket src in)
   (stx->racket (get-syntax src in) desugar-pyret))

@@ -96,7 +96,6 @@
     [(_ (list-field field ",") ... lastfield ",")
      #'(list field ... lastfield)]))
 
-;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)
   (syntax-case stx (list-field)
     [(_ "{" fields "}") #`(s-obj #,(loc stx) fields)]

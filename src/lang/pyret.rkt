@@ -17,10 +17,6 @@
 (define-runtime-module-path pyret-lang "pyret-lang.rkt")
 (define-runtime-module-path full-eval "eval.rkt")
 
-(dynamic-require parser 0)
-(define ns (module->namespace (resolved-module-path-name parser)))
-
-(dynamic-require pyret-lang 0)
 
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
