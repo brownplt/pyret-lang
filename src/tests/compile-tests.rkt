@@ -382,6 +382,12 @@ l1.add(l2)
  "builtins.keys({x:5}).first"
  (p:mk-str "x"))
 
+;; NOTE(dbp): this is just testing that what we get back is
+;; a proper list, which means it can .tostring() without erroring!
+(check-pyret-match/libs
+ "builtins.keys({x:5, y:6}).rest.tostring()"
+ (p:p-str _ _ _ _))
+
 (check-pyret
  "var x: 1
   fun f(): x = x.add(1) end
