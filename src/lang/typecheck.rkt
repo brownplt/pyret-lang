@@ -34,7 +34,7 @@
         (mk-contract-doc ann)
         (wrap-ann-check s result 
          (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
-       (list (s-data-field s "doc"
+       (list (s-data-field s (s-str s "doc")
                              (s-bracket s
                                         (s-id s funname)
                                         (s-str s "doc")))))))

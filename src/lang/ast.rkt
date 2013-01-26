@@ -122,11 +122,11 @@ these metadata purposes.
 
 (define-type Member (U s-data-field s-method-field))
 (struct: s-data-field ((syntax : srcloc)
-      (name : String)
+      (name : Expr)
       (value : Expr))
    #:transparent)
 (struct: s-method-field ((syntax : srcloc)
-      (name : String)
+      (name : Expr)
       (args : (Listof s-bind))
       (ann : Ann)
       (body : s-block))

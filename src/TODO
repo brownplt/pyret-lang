@@ -28,6 +28,8 @@ Release
     p-fun-f823: contract violation
      expected: p-fun?
      given: (p-bool ...
+[x] Allow exprs for object literal field names
+
 Redex
 [] Redex the initial semantics
   [x] basic objects

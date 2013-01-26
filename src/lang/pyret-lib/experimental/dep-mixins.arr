@@ -1,5 +1,7 @@
 #lang pyret
 
+import "src/lang/pyret-lib/list.arr" as List
+
 # Examples as a user
 var todo1: {
   due: "25 January 2012",
@@ -30,18 +32,18 @@ fun make-mutable(obj):
   var names: builtins.keys(obj)
   fun make-mutable-field(name, new-obj):
     var field-val: obj.[name]
-    fun field-method(self, new-val):
+    new-obj.{ [name](self, new-val):
       cond:
         | is-nothing(new-val) => field-val
         | else => field-val = new-val      
       end
-    end
-    new-obj.[name] = field-method._method
+    }
   end
   names.foldr(make-mutable-field, {})
 end
 
-var mutabletodo1: doable(make-mutable(todo1))
-mutabletodo1.complete()
-mutabletodo1.done()
+var mutabletodo1: make-mutable(todo1)
+mutabletodo1.done(true)
+# need some way to distinguish b/w nothing and optional arguments
+check(true, mutabletodo1.done(nothing), "mutable worked")
 
