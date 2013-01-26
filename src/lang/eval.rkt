@@ -21,7 +21,8 @@
 (define py-eval
   (let ([specs (sandbox-namespace-specs)])
     (parameterize [(sandbox-namespace-specs (cons make-base-namespace
-                                                  (list ast)))]
+                                                  (list ast)))
+                   (sandbox-path-permissions `((exists "./")))]
       (make-evaluator 'racket/base #:requires (list ast parser)))))
 
 (define (stx->racket stx desugar)
