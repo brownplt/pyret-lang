@@ -18,6 +18,8 @@
 (define-runtime-path parser "parser.rkt")
 (define-runtime-path ast "ast.rkt")
 
+(define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
+
 (define py-eval
   (let ([specs (sandbox-namespace-specs)])
     (parameterize [(sandbox-namespace-specs (cons make-base-namespace
