@@ -83,11 +83,16 @@
 
 (define-syntax (field stx)
   (syntax-case stx ()
-    [(_ key ":" value) #`(s-data-field #,(loc stx) key value)]
+    [(_ key ":" value) #`(s-data-field #,(loc stx) (s-str #,(loc stx) key) value)]
+    [(_ "[" key "]" ":" value) #`(s-data-field #,(loc stx) key value)]
     [(_ key args ret ":" body)
-     #`(s-method-field #,(loc stx) key args ret body)]
+     #`(s-method-field #,(loc stx) (s-str #,(loc stx) key) args ret body)]
     [(_ key args ret ":" body "end")
-     #`(s-method-field #,(loc stx) key args ret body)]))
+     #`(s-method-field #,(loc stx) (s-str #,(loc stx) key) args ret body)]
+    [(_ "[" key "]" args ret ":" body)
+     #`(s-method-field #,(loc stx) key args ret body)]
+    [(_ "[" key "]" args ret ":" body "end")
+     #`(s-method-field #,(loc stx) #,(loc stx) args ret body)]))
 
 (define-syntax (fields stx)
   (syntax-case stx ()

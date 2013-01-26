@@ -17,18 +17,28 @@
 (check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
 
 (check/block "{}" (s-obj _ empty))
-(check/block "{x:5}" (s-obj _ (list (s-data-field _ "x" (s-num _ 5)))))
-(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data-field _ "x" (s-num _ 5))
-                                                            (s-data-field _ "y" (s-str _ "foo")))))
-(check/block "{x:{}}" (s-obj _ (list (s-data-field _ "x" (s-obj _ empty)))))
+(check/block "{x:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))
+                                                            (s-data-field _ (s-str _ "y") (s-str _ "foo")))))
+(check/block "{x:{}}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-obj _ empty)))))
+
+(check/block "{[x]:5}" (s-obj _ (list (s-data-field _ (s-id _ 'x) (s-num _ 5)))))
+(check/block "{['x']:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
 (check/block "x" (s-id _ 'x))
-(check/block "{x:x}" (s-obj _ (list (s-data-field _ "x" (s-id _ 'x)))))
+(check/block "{x:x}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-id _ 'x)))))
 
 (check/block "{f(): x}"
-             (s-obj _ (list (s-method-field _ "f" (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+             (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 (check/block "{f(): x end}"
-             (s-obj _ (list (s-method-field _ "f" (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+             (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+
+(check/block "{[f](): x}"
+             (s-obj _ (list (s-method-field _ (s-id _ 'f)
+                                            (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+(check/block "{['f'](): x}"
+             (s-obj _ (list (s-method-field _ (s-str _ "f")
+                                            (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 
 (check/block "f()" (s-app _ (s-id _ 'f) empty))
 (check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
@@ -67,7 +77,7 @@
 
 (check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
 (check/block "seal({x:5}, []).x"
-             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data-field _ "x" (s-num _ 5))))
+             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
                                                     (s-list _ empty)))
                     'x))
 
@@ -84,19 +94,19 @@
 
 (check/block "{extend {x:5} with y:3}"
              (s-onion _
-                      (s-obj _ (list (s-data-field _ "x" (s-num _ 5))))
-                      (list (s-data-field _ "y" (s-num _ 3)))))
+                      (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+                      (list (s-data-field _ (s-str _ "y") (s-num _ 3)))))
 
 (check/block "{extend 5 with foo: 12}"
              (s-onion _
                       (s-num _ 5)
-                      (list (s-data-field _ "foo" (s-num _ 12)))))
+                      (list (s-data-field _ (s-str _ "foo") (s-num _ 12)))))
 
 (check/block "{extend List with length: 0, width: 0}"
              (s-onion _
                       (s-id _ 'List)
-                      (list (s-data-field _ "length" (s-num _ 0))
-                            (s-data-field _ "width" (s-num _ 0)))))
+                      (list (s-data-field _ (s-str _ "length") (s-num _ 0))
+                            (s-data-field _ (s-str _ "width") (s-num _ 0)))))
 
 (check/block "o:f"
              (s-dot-method _
@@ -105,7 +115,7 @@
 
 (check/block "{f:4}:f"
              (s-dot-method _
-                           (s-obj _ (list (s-data-field _ "f" (s-num _ 4))))
+                           (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
                            'f))
 
 (check/block "var x :: Number: 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
@@ -237,7 +247,7 @@ end"
  (s-data _ 'Foo (list)
          (list (s-variant _ 'bar (list)
                           (list (s-method-field _
-                                                "x"
+                                                (s-str _ "x")
                                                 (list (s-bind _ 'self (a-blank)))
                                                 (a-blank)
                                                 (s-block _ (list (s-id _ 'self)))))))
@@ -252,28 +262,28 @@ end"
                                         'bar
                                         (list)
                                         (list (s-method-field _
-                                                              "x"
+                                                              (s-str _ "x")
                                                               (list (s-bind _ 'self (a-blank)))
                                                               (a-name _ 'Num)
                                                               (s-block _ (list (s-id _ 'self)))))))
-         (list (s-data-field _ "z" (s-num _ 10)))))
+         (list (s-data-field _ (s-str _ "z") (s-num _ 10)))))
 
 (check/block
  "o.{x : 5}"
- (s-onion _ (s-id _ 'o) (list (s-data-field _ "x" (s-num _ 5)))))
+ (s-onion _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
 (check/block
  "{x : 5}.{x : 10, y : 6}"
- (s-onion _ (s-obj _ (list (s-data-field _ "x" (s-num _ 5))))
-          (list (s-data-field _ "x" (s-num _ 10))
-                (s-data-field _ "y" (s-num _ 6)))))
+ (s-onion _ (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+          (list (s-data-field _ (s-str _ "x") (s-num _ 10))
+                (s-data-field _ (s-str _ "y") (s-num _ 6)))))
 
 
 (check-match (parse-pyret "import 'file.arr' as file")
  (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
 
 (check-match (parse-pyret "provide {a: 1} end")
- (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ "a" (s-num _ 1))))))
+ (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
  	   (s-block _ (list))))
 
 (check/block "o^f()"

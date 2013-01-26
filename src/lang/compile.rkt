@@ -41,9 +41,9 @@
     (match ast-node
       [(s-data-field l name value)
        (attach l
-         (with-syntax ([name-stx (d->stx name l)]
+         (with-syntax ([name-stx (compile-expr name)]
                        [val-stx (compile-expr value)]) 
-           #'(r:cons name-stx val-stx)))]))
+           #'(r:cons (p:p-str-s name-stx) val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)

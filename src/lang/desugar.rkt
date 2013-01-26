@@ -38,7 +38,7 @@
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
     (s-data-field (s-member-syntax m)
-             (symbol->string (s-member-name m))
+             (s-str (s-member-syntax m) (symbol->string (s-member-name m)))
              val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
@@ -88,9 +88,9 @@
 (define (ds-member ast-node)
     (match ast-node
       [(s-data-field s name value)
-       (s-data-field s name (desugar-internal value))]
+       (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann body)
-       (s-data-field s name (s-method s args ann (desugar-internal body)))]))
+       (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body)))]))
 
 (define (desugar-internal ast)
   (define ds desugar-internal) 
