@@ -304,7 +304,32 @@
  "import 'modules/nested-dir.arr' as result
   result"
  (p:mk-str "inner"))
- 
+
+(check-pyret
+ "import 'modules/nested-uses-list.arr' as result
+  result"
+ (p:mk-str "list-exists"))
+
+(check-pyret
+ "import 'modules/importing-data.arr' as d1
+  import 'modules/importing-data.arr' as d2
+  var a-d: d1.d()
+  d2.is-d(a-d)"
+  (p:mk-bool #t))
+
+(check-pyret 
+  "import 'modules/dependency/B.arr' as b
+   import 'modules/dependency/C.arr' as c
+   import 'modules/dependency/F.arr' as f
+   var from-b: b.mk()
+   var from-c: c.mk()
+   var from-f: f.mk()
+   var check: [b.check(from-b), b.check(from-c), b.check(from-f)
+              ,c.check(from-b), c.check(from-c), c.check(from-f)
+              ,f.check(from-b), f.check(from-c), f.check(from-f)]
+   list.is-empty(check.filter(\\x:(x.not())))
+" (p:mk-bool #t))
+
 (check-pyret-match
   "data Foo | bar end bar.doc"
   (p:p-str _ _ _ _))
@@ -382,11 +407,9 @@ l1.add(l2)
  "builtins.keys({x:5}).first"
  (p:mk-str "x"))
 
-;; NOTE(dbp): this is just testing that what we get back is
-;; a proper list, which means it can .tostring() without erroring!
-(check-pyret-match/libs
- "builtins.keys({x:5, y:6}).rest.tostring()"
- (p:p-str _ _ _ _))
+(check-pyret/libs
+ "list.is-List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
+ (p:mk-bool #t))
 
 (check-pyret
  "var x: 1
@@ -415,3 +438,4 @@ l1.add(l2)
 (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
 (check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
 	     (p:mk-str "hello!"))
+
