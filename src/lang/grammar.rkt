@@ -18,7 +18,7 @@ expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
 
 id-expr: NAME
 
-assign-expr: NAME "=" expr
+assign-expr: NAME ":=" expr
 
 prim-expr:
    num-expr

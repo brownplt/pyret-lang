@@ -45,6 +45,7 @@
 
 (define-syntax (stmt stx)
   (syntax-case stx ()
+    [(_ stmt "") #'stmt]
     [(_ stmt) #'stmt]))
 
 (define-syntax (import-stmt stx)
@@ -118,7 +119,7 @@
 
 (define-syntax (assign-expr stx)
   (syntax-case stx ()
-    [(_ x "=" expr)
+    [(_ x ":=" expr)
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-assign #,(loc stx) 'x-id expr))]))
 
