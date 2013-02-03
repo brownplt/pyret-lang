@@ -354,7 +354,11 @@
 
 (define-syntax (app-ann stx)
   (syntax-case stx (name-ann)
-    [(_ (name-ann name) "(" (app-ann-elt param ",") ... last-param ")")
+    [(_ (name-ann name) "<" (app-ann-elt param ",") ... last-param ">")
      #`(a-app #,(loc stx) '#,(parse-name #'name) (list param ... last-param))]))
-     
+
+(define-syntax (pred-ann stx)
+  (syntax-case stx ()
+    [(_ ann "(" expr ")")
+     #`(a-pred #,(loc stx) ann expr)]))
 

@@ -4,6 +4,7 @@
   verbose!
   check-pyret-fail
   check-pyret-exn
+  check-pyret-exn/libs
   check-pyret-match
   check-pyret-match/libs
   check-pyret
@@ -104,6 +105,13 @@
      (syntax/loc stx
        (check-exn (regexp (regexp-quote message))
             (lambda () (eval-pyret str))))]))
+
+(define-syntax (check-pyret-exn/libs stx)
+  (syntax-case stx ()
+    [(_ str message)
+     (syntax/loc stx
+       (check-exn (regexp (regexp-quote message))
+            (lambda () (eval-pyret/libs str))))]))
 
 (define-syntax (check-pyret-match stx)
   (syntax-case stx ()
