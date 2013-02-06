@@ -1,7 +1,10 @@
 #lang typed/racket
 
 (require/typed "untyped-runtime.rkt"
-  [mk-pyret-exn (String Loc -> Any)])
+  [mk-pyret-exn (String Loc -> Any)]
+  [#:opaque p-opaque p-opaque?]
+  [mk-opaque (Any -> p-opaque)]
+  [get-opaque (p-opaque -> Any)])
 
 (provide
   (prefix-out p: (struct-out none))
@@ -55,6 +58,7 @@
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
+(define-type Proc (Value * -> Value))
 
 (struct: none () #:transparent)
 ;; Everything has a seal, a set of brands, and a dict
@@ -66,22 +70,26 @@
 (struct: p-num p-base ((n : Number)) #:transparent)
 (struct: p-bool p-base ((b : Boolean)) #:transparent)                
 (struct: p-str p-base ((s : String)) #:transparent)
-(struct: p-fun p-base ((f : Procedure)) #:transparent)
-(struct: p-method p-base ((f : Procedure)) #:transparent)
-(struct: p-opaque p-base ((v : Any)) #:transparent)
+(struct: p-fun p-base ((f : (Loc -> Proc))) #:transparent)
+(struct: p-method p-base ((f : Proc)) #:transparent)
 
 (define empty-dict ((inst make-immutable-hash String Value) '()))
 
 (define nothing (p-nothing (set) (set) empty-dict))
 
+(define: (filter-opaque (v : Value)) : p-base
+  (if (p-opaque? v)
+      (error (format "Got opaque: ~a" v))
+      v))
+
 (define: (get-dict (v : Value)) : Dict
-  (p-base-dict v))
+  (p-base-dict (filter-opaque v)))
 
 (define: (get-seal (v : Value)) : Seal
-  (p-base-seal v))
+  (p-base-seal (filter-opaque v)))
 
 (define: (get-brands (v : Value)) : (Setof Symbol)
-  (p-base-brands v))
+  (p-base-brands (filter-opaque v)))
 
 (define: (mk-object (dict : Dict)) : Value
   (p-object (none) (set) dict))
@@ -95,21 +103,18 @@
 (define: (mk-str (s : String)) : Value
   (p-str (none) (set) meta-str-store s))
 
-(define: (mk-fun (f : Procedure) (s : String)) : Value
+(define: (mk-fun (f : Proc) (s : String)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
-         (λ (_) f)))
+         (λ: ((a : Loc)) f)))
 
-(define: (mk-fun-nodoc (f : Procedure)) : Value
+(define: (mk-fun-nodoc (f : Proc)) : Value
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)))
-         (λ (_) f)))
+         (λ: ((a : Loc)) f)))
 
-(define: (mk-opaque (v : Any)) : Value
-  (p-opaque (none) (set) empty-dict v))
-
-(define: (mk-internal-fun (f : Procedure)) : Value
+(define: (mk-internal-fun (f : (Loc -> Proc))) : Value
   (p-fun (none) (set) empty-dict f))
 
-(define: (mk-method (f : Procedure)) : Value
+(define: (mk-method (f : Proc)) : Value
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-nodoc f))
                                    ("doc" . ,(mk-str "method")))))
   (p-method (none) (set) d f))
@@ -118,19 +123,20 @@
 (define Racket (mk-object empty-dict))
 
 (define Any?
-  (mk-fun-nodoc (lambda (o) (mk-bool #t))))
+  (mk-fun-nodoc (lambda: (o : Value *) (mk-bool #t))))
 
-(define Number?
-  (mk-fun-nodoc (lambda (n)
-            (mk-bool (p-num? n)))))
+(define: (is-number? n : Value *) : Value
+  (mk-bool (p-num? (first n))))  
+(define Number? (mk-fun-nodoc is-number?))
 
-(define String?
-  (mk-fun-nodoc (lambda (n)
-            (mk-bool (p-str? n)))))
+(define: (is-string? n : Value *) : Value
+  (mk-bool (p-str? (first n))))
+(define String? (mk-fun-nodoc is-string?))
 
-(define Bool?
-  (mk-fun-nodoc (lambda (n)
-            (mk-bool (p-bool? n)))))
+(define: (bool? n : Value *) : Value
+  (mk-bool (p-bool? (first n))))
+
+(define Bool? (mk-fun-nodoc bool?))
 
 (define: (get-racket-fun (f : String)) : Value
   (define fun (dynamic-require 'racket (string->symbol f)))
@@ -160,7 +166,7 @@
     [(p-str _ b h s) (p-str new-seal b h s)]
     [(p-fun _ b h f) (p-fun new-seal b h f)]
     [(p-method _ b h f) (p-method new-seal b h f)]
-    [(p-opaque _ b h v) (error "seal: Cannot seal opaque")]
+    [(? p-opaque?) (error "seal: Cannot seal opaque")]
     [(p-nothing _ b h) (error "seal: Cannot seal nothing")]))
 
 (define: (add-brand (v : Value) (new-brand : Symbol)) : Value
@@ -172,7 +178,7 @@
     [(p-str sl _ h s) (p-str sl bs h s)]
     [(p-fun s _ h f) (p-fun s bs h f)]
     [(p-method s _ h f) (p-method s bs h f)]
-    [(p-opaque _ b h v) (error "brand: Cannot brand opaque")]
+    [(? p-opaque?) (error "brand: Cannot brand opaque")]
     [(p-nothing _ b h) (error "brand: Cannot brand nothing")]))
 
 (define: (has-brand? (v : Value) (brand : Symbol)) : Boolean
@@ -187,7 +193,9 @@
   (and (in-seal? v f)
        (hash-has-key? d f)))
 
-(define: (seal (object : Value) (fields : Value)) : Value
+(define: (seal vs : Value *) : Value
+  (define object (first vs))
+  (define fields (second vs))
   (define: (get-strings (strs : (Listof Value))) : (Setof String)
     (foldr (lambda: ((v : Value) (s : (Setof String)))
              (if (p-str? v)
@@ -229,7 +237,7 @@
     [(p-str s _ _ str) (p-str s (set) new-map str)]
     [(p-method s _ _ m) (p-method s (set) new-map m)]
     [(p-bool s _ _ t) (p-bool s (set) new-map t)]
-    [(p-opaque _ _ _ v) (error "update: Cannot update opaque")]
+    [(? p-opaque?) (error "update: Cannot update opaque")]
     [(p-nothing _ _ _) (error "update: Cannot update nothing")]))
 
 (define: (structural-list->list (lst : Value)) : (Listof Value)
@@ -250,23 +258,30 @@
           ("is-empty" . ,(mk-bool #f))
           ("rest" . ,(mk-structural-list (rest lst))))))]))
 
-(define: (keys (obj : Value)) : Value
+(define: (keys vs : Value *) : Value
+  (define obj (first vs))
   (define d (get-dict obj))
   (define s (get-seal obj))
   (mk-structural-list (set-map (get-visible-keys d s) mk-str)))
 
 (define keys-pfun (mk-fun-nodoc keys))
 
-(define: (brander) : Value
+(define: (mk-brander [sym : Symbol]) : Proc
+  (lambda: (v : Value *)
+    (add-brand (first v) sym)))
+
+(define: (mk-checker [sym : Symbol]) : Proc
+  (lambda: (v : Value *)
+    (mk-bool (has-brand? (first v) sym))))
+
+(define: (brander _ : Value *) : Value
   (define: sym : Symbol (gensym))
-  (mk-object 
+  (mk-object
    (make-immutable-hash 
     `(("brand" .
-       ,(mk-fun-nodoc (lambda: ((v : Value))
-                 (add-brand v sym))))
+       ,(mk-fun-nodoc (mk-brander sym)))
       ("check" .
-       ,(mk-fun-nodoc (lambda: ((v : Value))
-                 (mk-bool (has-brand? v sym)))))))))
+       ,(mk-fun-nodoc (mk-checker sym)))))))
 
 (define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
@@ -275,26 +290,27 @@
     [else #f]))
 
 (define: (mk-num-impl (op : (Number Number -> Number)))
-         : (Value Value -> Value)
-  (lambda (v1 v2)
-    (match (cons v1 v2)
+         : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (match (cons (first vs) (second vs))
       [(cons (p-num _ _ _ n1) (p-num _ _ _ n2))
        (mk-num (op n1 n2))]
       [(cons _ _)
-       (error (format "num: cannot ~a ~a and ~a" op v1 v2))])))
+       (error (format "num: cannot ~a ~a and ~a" op (first vs) (second vs)))])))
 
 (define: (mk-num-bool-impl (op : (Number Number -> Boolean)))
-          : (Value Value -> Value)
-  (lambda (v1 v2)
-    (match (cons v1 v2)
+          : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (match (cons (first vs) (second vs))
       [(cons (p-num _ _ _ n1) (p-num _ _ _ n2))
        (mk-bool (op n1 n2))]
       [(cons _ _)
-       (error (format "num cannot ~a ~a and ~a" op v1 v2))])))
+       (error (format "num cannot ~a ~a and ~a" op (first vs) (second vs)))])))
 
 (define: (mk-single-num-impl (op : (Number -> Value)))
-         : (Value -> Value)
-  (lambda (v)
+         : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (define v (first vs))
     (match v
       [(p-num _ _ _ n) (op n)]
       [_
@@ -348,8 +364,10 @@
 (define p-pi (mk-num pi))
 
 (define: (mk-str-impl (op : (String String -> String)))
-         : (Value Value -> Value)
-  (lambda (v1 v2)
+         : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (define v1 (first vs))
+    (define v2 (second vs))
     (match (cons v1 v2)
       [(cons (p-str _ _ _ s1) (p-str _ _ _ s2))
        (mk-str (op s1 s2))]
@@ -357,8 +375,10 @@
        (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
 
 (define: (mk-str-bool-impl (op : (String String -> Boolean)))
-          : (Value Value -> Value)
-  (lambda (v1 v2)
+          : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (define v1 (first vs))
+    (define v2 (second vs))
     (match (cons v1 v2)
       [(cons (p-str _ _ _ s1) (p-str _ _ _ s2))
        (mk-bool (op s1 s2))]
@@ -366,8 +386,9 @@
        (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
 
 (define: (mk-single-str-impl (op : (String -> Value)))
-         : (Value -> Value)
-  (lambda (v)
+         : (Value * -> Value)
+  (lambda: (vs :  Value *)
+    (define v (first vs))
     (match v
       [(p-str _ _ _ s) (op s)]
       [_
@@ -402,8 +423,10 @@
   meta-str-store)
 
 (define: (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
-         : (Value Value -> Value)
-  (lambda (v1 v2)
+         : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (define v1 (first vs))
+    (define v2 (second vs))
     (match (cons v1 v2)
       [(cons (p-bool _ _ _ b1) (p-bool _ _ _ b2))
        (mk-bool (op b1 b2))]
@@ -411,8 +434,9 @@
        (error (format "bool: cannot ~a ~a and ~a" op v1 v2))])))
 
 (define: (mk-single-bool-impl (op : (Boolean -> Boolean)))
-         : (Value -> Value)
-  (lambda (v)
+         : (Value * -> Value)
+  (lambda: (vs : Value *)
+    (define v (first vs))
     (match v
       [(p-bool _ _ _ b) (mk-bool (op b))]
       [_
@@ -469,16 +493,17 @@
          (to-string-raw-object h))]
     [v (format "~a" v)]))
 
-(define tostring-pfun (mk-fun-nodoc (λ: ([o : Value]) (mk-str (to-string o)))))
+(define tostring-pfun (mk-fun-nodoc (λ: (o : Value *) (mk-str (to-string (first o))))))
 
-(define print-pfun (mk-fun-nodoc (λ: ([o : Value]) (begin (printf "~a\n" (to-string o)) nothing))))
-
+(define print-pfun (mk-fun-nodoc (λ: (o : Value *) (begin (printf "~a\n" (to-string (first o))) nothing)))
+)
 
 (define check-brand
   (λ: ((loc : Loc))
-      (λ: ((ck : Value)
-	   (o : Value)
-	   (s : Value))
+    (λ: (vs : Value *)
+      (define ck (first vs))
+      (define o (second vs))
+      (define s (third vs))
   (match (cons ck s)
     [(cons (p-fun _ _ _ f) (p-str _ _ _ typname))
      (let ((check-v (((cast f (Loc -> (Value -> Value))) loc) o)))
@@ -501,7 +526,7 @@
     [(p-num s _ h n) n]
     [(p-bool s _ h b) b]
     [(p-str sl _ h s) s]
-    [(p-opaque _ _ _ v) v]
+    [(? p-opaque?) (when (p-opaque? v) (get-opaque v))]
     [_ (error (format "unwrap: cannot unwrap ~a for Racket" v))]))
 
 (define: (wrap (v : Any)) : Value
@@ -523,13 +548,13 @@
 (define raise-pfun
   (mk-internal-fun
    (λ: ([loc : Loc])
-      (λ: ([o : Value]) (raise (mk-pyret-exn (exn+loc->message o loc) loc))))))
+      (λ: (o : Value *) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc))))))
 
 (define is-nothing-pfun
   (mk-internal-fun
     (λ: ([loc : Loc])
-      (λ: ([specimen : Value])
-        (mk-bool (equal? specimen nothing))))))
+      (λ: (specimens : Value *)
+        (mk-bool (equal? (first specimens) nothing))))))
 
 ;; tie the knot of mutual state problems
 (void

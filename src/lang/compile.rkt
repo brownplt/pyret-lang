@@ -63,13 +63,13 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
+         #`(p:mk-fun (r:λ args (r:apply (r:λ (arg ...) body-stx) args)) #,doc)))]
     
     [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)]) 
-         #'(p:mk-method (r:λ (arg ...) body-stx))))]
+         #'(p:mk-method (r:λ args (r:apply (r:λ (arg ...) body-stx) args)))))]
     
     [(s-cond l c-bs)
      (define (compile-cond-branch b)
@@ -101,21 +101,16 @@
 		      [(loc-param ...) (loc-list l)])
           #'(((p:p-fun-f fun) (r:list loc-param ...)) arg ...)))]
 
-    [(s-onion l super fields)
-     (attach l
-       (with-syntax ([(member ...) (map compile-member fields)]
-                     [super (compile-expr super)])
-        #'(p:flatten super (r:make-hash (r:list member ...)))))]
-
     [(s-obj l fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)])
          #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
     
-    [(s-list l elts)
+    [(s-onion l super fields)
      (attach l
-       (with-syntax ([(elt ...) (map compile-expr elts)])
-         #'(p:mk-list (r:list elt ...))))]
+       (with-syntax ([(member ...) (map compile-member fields)]
+                     [super (compile-expr super)])
+        #'(p:flatten super (r:make-hash (r:list member ...)))))]
     
     [(s-dot l val field)
      (attach l
