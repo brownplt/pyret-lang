@@ -269,6 +269,13 @@
                      obj
                      '#,(parse-name #'field))]))
 
+(define-syntax (bracket-method-expr stx)
+  (syntax-case stx ()
+    [(_ obj ":" "[" field "]")
+     #`(s-bracket-method #,(loc stx)
+                     obj
+                     field)]))
+
 (define-syntax (data-member stx)
   (syntax-case stx ()
     [(_ member-name)

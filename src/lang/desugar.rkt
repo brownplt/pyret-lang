@@ -165,7 +165,9 @@
     
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
     
-    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
+    [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
+    
+    [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
     
     [(or (s-num _ _)
          (s-bool _ _)

@@ -120,9 +120,9 @@
      (attach l
        #`(p:get-field #,(compile-expr val) (p:p-str-s #,(compile-expr field))))]
     
-    [(s-dot-method l obj field)
+    [(s-bracket-method l obj field)
      (attach l
-       #`(p:get-raw-field #,(compile-expr obj) #,(d->stx (symbol->string field) l)))]
+       #`(p:get-raw-field #,(compile-expr obj) (p:p-str-s #,(compile-expr field))))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 

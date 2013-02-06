@@ -441,3 +441,5 @@ l1.add(l2)
 (check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
 	     (p:mk-str "hello!"))
 
+(check-pyret "var o: {fff(self, x): x} o:['f'.append('ff')]._fun(nothing, 5)" five)
+

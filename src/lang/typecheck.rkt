@@ -169,6 +169,9 @@
     
     [(s-dot-method s obj field)
      (s-dot-method s (cc obj) field)]
+    
+    [(s-bracket-method s obj field)
+     (s-bracket-method s (cc obj) (cc field))]
 
     [(or (s-num _ _)
          (s-bool _ _)
