@@ -4,6 +4,7 @@ provide
   {
     equal: equal,
     tru: tru,
+    fals: fals,
     nothin: nothin,
     assert: assert,
   }
@@ -19,6 +20,10 @@ end
 
 fun tru(actual, message):
   assert(\(actual), "check.tru: ".append(message))
+end
+
+fun fals(actual, message):
+  assert(\(actual.not()), "check.fals: ".append(message))
 end
 
 fun nothin(actual, message):

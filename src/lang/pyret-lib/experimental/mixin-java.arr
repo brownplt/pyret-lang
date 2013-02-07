@@ -14,6 +14,7 @@ var todo-class-descr: {
     done: "Boolean"
   },
   methods: {
+    is-completed(self, _): self.get("done") end,
     complete(self, _): self.set("done", true) end
   },
   # Constructor should return an object to use as self
@@ -31,10 +32,19 @@ var assignee-ext-descr: {
     assignee: "String"
   },
   methods: {
+
     assign(self, person):
       cond:
         | self.get("done") => raise "Can't assign a completed task"
         | else => self.set("assignee", person)
+      end
+    end,
+
+    complete(self, _):
+      cond:
+        | is-nothing(self.get("assignee")) =>
+            raise "Can't complete an unassigned task"
+        | else => self.super(_)
       end
     end
   },
@@ -62,13 +72,16 @@ fun ext(parent-class, description):
       var fields: description.fields
       var methods: description.methods
       var parent-inst: nothing # to be init'd by super from constructor
+
       var instance: {
+
         get(_, name):
           cond:
             | builtins.has-field(fields, name) => fields.[name]
             | else => parent-inst.get(name)
           end
         end,
+
         set(_, name, val):
           cond:
             | builtins.has-field(fields, name) => 
@@ -76,22 +89,33 @@ fun ext(parent-class, description):
             | else => parent-inst.set(name, val)
           end
         end,
+
         # For now, only support one arg methods
-        invoke(self, name, arg):
+        invoke(inst, name, arg):
+
+          var inst-with-super: inst.{
+            super(inst, arg):
+              parent-inst.invoke(name, arg)
+            end
+          }
+
           cond:
             | builtins.has-field(methods, name) =>
-                methods:[name]._fun(self, arg)
+                methods:[name]._fun(inst-with-super, arg)
             | else => parent-inst.invoke(name, arg)
           end
         end
       }
+
       var inst-branded: self._brander.brand(instance)
+
       var inst-with-super: inst-branded.{
         super(inst, spec):
           parent-inst := parent-class.new(spec)
           inst
         end
       }
+
       var inst-constructed: description:constructor._fun(inst-with-super, spec)
       #drop-fields(inst-constructed, ["super"])
       inst-constructed
@@ -146,5 +170,8 @@ Check.tru(instance-of(todo2, AssignableTodo), "instance-of child")
 
 todo2.invoke("assign", "Jonah")
 Check.equal(todo2.get("assignee"), "Jonah", "invoke child method")
+todo2.invoke("is-complete", nothing)
+Check.fals(todo2.get("done"), "invoke parent method")
+
 todo2.invoke("complete", nothing)
-Check.equal(todo1.get("done"), true, "invoke parent method")
+Check.tru(todo2.get("done"), "invoke overridden method")
