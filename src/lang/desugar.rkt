@@ -165,7 +165,9 @@
     
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
     
-    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
+    [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
+    
+    [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
     
     [(or (s-num _ _)
          (s-bool _ _)
@@ -183,10 +185,19 @@
 (define (desugar-pyret ast)
   (match ast
     [(s-prog s imps block)
+     (define mod-mapping (create-header (prog->imports ast) empty))
+     (define inner (desugar-pyret/no-imports mod-mapping ast))
+     (s-block s
+        (append (create-inlined-imports mod-mapping) 
+			      		(s-block-stmts inner)))]))
+
+(define (desugar-pyret/no-imports mod-mapping ast)
+  (match ast
+    [(s-prog s imps block)
      (s-block s (flatten-blocks
-                  (append (map (compose desugar-internal desugar-header)
-                               imps)
-                          (map desugar-internal (s-block-stmts block)))))]))
+		 (append (map (compose desugar-internal (curryr desugar-header mod-mapping))
+			      imps)
+			 (map desugar-internal (s-block-stmts block)))))]))
 
 (define (get-prelude s)
   (define (mk-import p)
@@ -204,20 +215,52 @@
     "pyret-lib/builtins.arr"
    ))
 
-(define (desugar-header hd)
-  (define (desugar-module ast)
-    (match ast
-      [(s-prog s imps block)
-        (match (desugar-pyret ast)
-          [(s-block s stmts)
-            (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))])]))
+(define (create-inlined-imports mapping)
+  (define (mapping->var mod)
+    (define (desugar-module ast)
+      (match ast
+	    [(s-prog s imps block)
+	     (s-var s (s-bind s (cdr mod) (a-blank))
+           (match (desugar-pyret/no-imports mapping ast)
+	         [(s-block s stmts)
+	          (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))]))]))
+    (define mod-ast (parse-pyret (file->string (car mod))))
+    (define-values (base relative-file root?) (split-path (car mod)))
+    (parameterize [(current-directory base)]
+      (desugar-module mod-ast)))
+  (map mapping->var mapping))
+
+(define (create-header imports mapping)
+  (define (process-imp imp mapping)
+    (match imp
+      [(s-import s file name) 
+       (define full-path (path->complete-path file))
+       (define-values (base relative-file root?) (split-path full-path))
+       (define mod-name (gensym (string-append "module_" (path->string relative-file) "_" (symbol->string name))))
+       (define file-imports (file->imports full-path))
+       (define existing-mapping (assoc full-path mapping))
+       (define new-mapping
+	 (cond
+	  [existing-mapping (cons existing-mapping (remove existing-mapping mapping))]
+	  [else (cons (cons full-path mod-name) mapping)]))
+       (parameterize [(current-directory base)]
+	  (create-header file-imports new-mapping))]
+      [_ (error (format "process-imp: should have been an s-import: ~a" imp))]))
+  (foldr process-imp mapping imports))
+
+(define (prog->imports prog)
+  (filter s-import? (s-prog-imports prog)))
+
+(define (file->imports filename)
+  (define mod-ast (parse-pyret (file->string filename)))
+  (prog->imports mod-ast))
+  
+
+(define (desugar-header hd mapping)
   (match hd
     [(s-provide s exp)
       (s-fun s '%provide (list) (list) (a-blank) "" (s-block s (list exp)))]
     [(s-import s file name)
      (define full-path (path->complete-path file))
-     (define-values (base relative-file root?) (split-path full-path))
-     (define mod-ast (parse-pyret (file->string full-path)))
-     (parameterize [(current-directory base)]
-       (s-var s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+     (s-var s (s-bind s name (a-blank)) (s-id s (cdr (assoc full-path mapping))))]))
 

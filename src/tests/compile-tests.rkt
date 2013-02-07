@@ -24,9 +24,9 @@
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
 (check-pyret "\\x: (x)(2)" two)
-(check-pyret "var x: 2 \\(x = 10)() x" ten)
-(check-pyret "var x: 2 \\x: (x = 10)(5) x" two)
-(check-pyret "var x: 2 fun f(g): g() end f(\\(x = 10)) x" ten)
+(check-pyret "var x: 2 \\(x := 10)() x" ten)
+(check-pyret "var x: 2 \\x: (x := 10)(5) x" two)
+(check-pyret "var x: 2 fun f(g): g() end f(\\(x := 10)) x" ten)
 
 (check-pyret "{}" (p:p-object (p:none) (set) p:empty-dict))
 
@@ -79,18 +79,20 @@
 
 (check-pyret-exn "seal(2, ['subtract']).add(2, 3)" "get-field:")
 
-(check-pyret "fun f(x): x = 2 x end f(1)" two)
-(check-pyret "fun f(x): x = 2 x = 5 x end f(1)" five)
-(check-pyret-exn "fun f(x): y = 2 x end f(1)" "Unbound id")
-(check-pyret "fun f(x): fun g(): x = 2 end g() x end f(1)" two)
-(check-pyret "fun f(x): fun g(x): x = 2 end g(1) x end f(5)" five)
+(check-pyret "fun f(x): x := 2 x end f(1)" two)
+(check-pyret "fun f(x): x := 2 x := 5 x end f(1)" five)
+(check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
+(check-pyret "fun f(x): fun g(): x := 2 end g() x end f(1)" two)
+(check-pyret "fun f(x): fun g(x): x := 2 end g(1) x end f(5)" five)
+(check-pyret-exn "fun f(x, y): x end f(3,4,5)" "arity")
+(check-pyret-exn "fun f(x, y): x end f(3)" "arity")
 (check-pyret "fun fundo(o):
                 fun f(x):
-                  fun g(): x = 2 end
+                  fun g(): x := 2 end
                   fun h(): x end
                   {g: g, h: h} 
                 end
-                o = f(1)
+                o := f(1)
                 o.g()
                 o.h()
               end
@@ -106,15 +108,15 @@
 ;(check-pyret-exn "var w: zoot var zoot: 5 w" "undefined")
 
 (check-pyret-match "brander()" (p:p-object _ (set) (hash-table ("brand" _) ("check" _))))
-(check-pyret-match "fun f(x, y): x = brander() y = x.brand(y) y end f(1,2)"
+(check-pyret-match "fun f(x, y): x := brander() y := x.brand(y) y end f(1,2)"
                    (p:p-num _ (set _) _ 2))
-(check-pyret-match "fun f(x,y): x = brander() y = x.brand(y) x.check(y) end f(1,2)"
+(check-pyret-match "fun f(x,y): x := brander() y := x.brand(y) x.check(y) end f(1,2)"
                    (p:p-bool _ _ _ #t))
-(check-pyret-match "fun f(x,y): x = brander() x.check(y) end f(1,2)"
+(check-pyret-match "fun f(x,y): x := brander() x.check(y) end f(1,2)"
                    (p:p-bool _ _ _ #f))
-(check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) y.check(z) end f(1,2,3)"
+(check-pyret-match "fun f(x,y,z): x := brander() y := brander() z := x.brand(z) y.check(z) end f(1,2,3)"
                    (p:p-bool _ _ _ #f))
-(check-pyret-match "fun f(x,y,z): x = brander() y = brander() z = x.brand(z) z = y.brand(z) x.check(z) end f(1,2,3)"
+(check-pyret-match "fun f(x,y,z): x := brander() y := brander() z := x.brand(z) z := y.brand(z) x.check(z) end f(1,2,3)"
                    (p:p-bool _ _ _ #t))
 
 ;; can extract raw methods
@@ -122,7 +124,7 @@
 (check-pyret-match "{f(x): 5}:f" (p:p-method _ _ _ (? procedure?)))
 
 ;; can put raw methods on other objects and use them
-(check-pyret "var o: {x:5} var o2: {f(self): self.x} o = o.{g : o2:f} o.g()" five)
+(check-pyret "var o: {x:5} var o2: {f(self): self.x} o := o.{g : o2:f} o.g()" five)
 
 ;; cannot apply raw methods (better error messages plz)
 (check-pyret-exn "3:add()" "violation")
@@ -131,7 +133,7 @@
 (check-pyret "3.add(2)" five)
 
 ;; two not three because side effects should happen only once
-(check-pyret "var x: 0 fun f(): x = x.add(1) x end f().add(1)" two)
+(check-pyret "var x: 0 fun f(): x := x.add(1) x end f().add(1)" two)
 
 (check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extend:")
 
@@ -180,7 +182,7 @@
 
 (check-pyret
  "var x:0
-  do \\f,g: (f() g()) x = 5; x end" five)
+  do \\f,g: (f() g()) x := 5; x end" five)
 
 ;; check expansions of or and and with do
 (check-pyret
@@ -191,7 +193,7 @@
     end
   end
   var x: 5
-  do or true; x = 2 end
+  do or true; x := 2 end
   x" five)
 
 (check-pyret
@@ -202,7 +204,7 @@
     end
   end
   var x: 5
-  do and false; x = 2 end
+  do and false; x := 2 end
   x" five)
 
 (check-pyret
@@ -213,7 +215,7 @@
     end
   end
   var x: 5
-  do and true; x = 2 end
+  do and true; x := 2 end
   x" two)
 
 (check-pyret
@@ -224,7 +226,7 @@
     end
   end
   var x: 0
-  do while x.lessthan(10); x = x.add(1) end
+  do while x.lessthan(10); x := x.add(1) end
   x" ten)
 
 (check-pyret
@@ -240,8 +242,8 @@
   end
   var x: 0
   var sum: 0
-  do for x = 0; x.lessthan(5); x = x.add(1);
-    sum = sum.add(x)
+  do for x := 0; x.lessthan(5); x := x.add(1);
+    sum := sum.add(x)
   end
   sum" ten)
 
@@ -304,7 +306,32 @@
  "import 'modules/nested-dir.arr' as result
   result"
  (p:mk-str "inner"))
- 
+
+(check-pyret
+ "import 'modules/nested-uses-list.arr' as result
+  result"
+ (p:mk-str "list-exists"))
+
+(check-pyret
+ "import 'modules/importing-data.arr' as d1
+  import 'modules/importing-data.arr' as d2
+  var a-d: d1.d()
+  d2.is-d(a-d)"
+  (p:mk-bool #t))
+
+(check-pyret 
+  "import 'modules/dependency/B.arr' as b
+   import 'modules/dependency/C.arr' as c
+   import 'modules/dependency/F.arr' as f
+   var from-b: b.mk()
+   var from-c: c.mk()
+   var from-f: f.mk()
+   var check: [b.check(from-b), b.check(from-c), b.check(from-f)
+              ,c.check(from-b), c.check(from-c), c.check(from-f)
+              ,f.check(from-b), f.check(from-c), f.check(from-f)]
+   list.is-empty(check.filter(\\x:(x.not())))
+" (p:mk-bool #t))
+
 (check-pyret-match
   "data Foo | bar end bar.doc"
   (p:p-str _ _ _ _))
@@ -382,15 +409,13 @@ l1.add(l2)
  "builtins.keys({x:5}).first"
  (p:mk-str "x"))
 
-;; NOTE(dbp): this is just testing that what we get back is
-;; a proper list, which means it can .tostring() without erroring!
-(check-pyret-match/libs
- "builtins.keys({x:5, y:6}).rest.tostring()"
- (p:p-str _ _ _ _))
+(check-pyret/libs
+ "list.is-List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
+ (p:mk-bool #t))
 
 (check-pyret
  "var x: 1
-  fun f(): x = x.add(1) end
+  fun f(): x := x.add(1) end
   var l: [f(), f(), f()]
   l.equals([2,3,4])"
  (p:mk-bool #t))
@@ -415,3 +440,6 @@ l1.add(l2)
 (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
 (check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
 	     (p:mk-str "hello!"))
+
+(check-pyret "var o: {fff(self, x): x} o:['f'.append('ff')]._fun(nothing, 5)" five)
+

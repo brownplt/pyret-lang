@@ -82,7 +82,7 @@
                     'x))
 
 (check/block "o.['x']" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
-(check/block "x = 1" (s-assign _ 'x (s-num _ 1)))
+(check/block "x := 1" (s-assign _ 'x (s-num _ 1)))
 (check/block "o.x = 1" (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))
 (check/block "o.['x'] = 1" 
             (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))
@@ -200,7 +200,7 @@ end"
 (check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 
 (check/block 
- "data List(a) | cons: field, l :: List(a) end" 
+ "data List(a) | cons: field, l :: List<a> end" 
  (s-data _ 'List (list 'a) 
          (list (s-variant 
                 _ 
@@ -300,4 +300,25 @@ end"
              (list)))
 
 (check-pyret-exn "o^o2.f.g()" "parsing error")
+
+;; non-empty lists for x
+(check/block "var x :: List(list.is-cons): 4"
+  (s-var _
+         (s-bind _ 'x
+                   (a-pred _
+                           (a-name _ 'List)
+                           (s-dot _ (s-id _ 'list)
+                                    'is-cons)))
+         (s-num _ 4)))
+
+;; non-empty lists of strings for x
+(check/block "var x :: List<String>(list.is-cons): 4"
+  (s-var _
+         (s-bind _ 'x
+                   (a-pred _
+                           (a-app _ 'List
+                                    (list (a-name _ 'String)))
+                           (s-dot _ (s-id _ 'list)
+                                    'is-cons)))
+         (s-num _ 4)))
 

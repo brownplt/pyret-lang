@@ -11,7 +11,7 @@ Setting Sail
 ------------
 
 First, make sure ye've installed [Racket](http://racket-lang.org) (at least
-v5.3). Then run:
+v5.3.1). Then run:
 
     $ make
 
