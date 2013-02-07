@@ -104,21 +104,32 @@
   (p-str (none) (set) meta-str-store s))
 
 (define: (mk-fun (f : Proc) (s : String)) : Value
-  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))))
+  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))
+                                             ("_method" . ,(mk-method-method f))))
          (λ: ((a : Loc)) f)))
 
 (define: (mk-fun-nodoc (f : Proc)) : Value
-  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)))
+  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)
+                                             ("_method" . ,(mk-method-method f))))
          (λ: ((a : Loc)) f)))
 
 (define: (mk-internal-fun (f : (Loc -> Proc))) : Value
   (p-fun (none) (set) empty-dict f))
 
+(define: (mk-method-method [f : Proc]) : p-method
+  (p-method (none) (set)
+            (make-immutable-hash `(("doc" . ,nothing)))
+            (lambda: (v : Value *) (mk-method f))))
+
+(define: (mk-fun-method [f : Proc]) : p-method
+  (p-method (none) (set)
+            (make-immutable-hash `(("doc" . ,(mk-str "method"))))
+            (lambda: (v : Value *) (mk-fun f "method-fun"))))
+
 (define: (mk-method (f : Proc)) : Value
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-nodoc f))
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
                                    ("doc" . ,(mk-str "method")))))
   (p-method (none) (set) d f))
-
 
 (define Racket (mk-object empty-dict))
 

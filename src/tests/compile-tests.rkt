@@ -431,7 +431,7 @@ l1.add(l2)
 (check-pyret
   "var o: { m(self): self }
    var m: o:m
-   m._fun(5)"
+   m._fun()(5)"
   five)
 
 (check-pyret "tostring(1)" (p:mk-str "1"))
@@ -441,5 +441,7 @@ l1.add(l2)
 (check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
 	     (p:mk-str "hello!"))
 
-(check-pyret "var o: {fff(self, x): x} o:['f'.append('ff')]._fun(nothing, 5)" five)
+(check-pyret "var o: {fff(self, x): x} o:['f'.append('ff')]._fun()(nothing, 5)" five)
+
+(check-pyret "fun f(self): self.x end var o: { x: 5 }.{ m : f._method() } o.m()" five)
 
