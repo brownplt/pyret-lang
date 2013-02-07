@@ -2,7 +2,8 @@
 
 import "list.arr" as list
 provide {
-  keys: keys
+  keys: keys,
+  has-field: has-field
 } end
 
 fun mklist(obj):
@@ -16,4 +17,6 @@ fun keys(obj):
   mklist(prim-keys(obj))
 end
 
-
+fun has-field(obj, name):
+  keys(obj).member(name)
+end
