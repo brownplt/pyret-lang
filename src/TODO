@@ -29,6 +29,7 @@ Release
      expected: p-fun?
      given: (p-bool ...
 [x] Allow exprs for object literal field names
+[] := for assignment
 
 Redex
 [] Redex the initial semantics

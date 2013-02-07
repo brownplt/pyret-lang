@@ -45,6 +45,7 @@
 
 (define-syntax (stmt stx)
   (syntax-case stx ()
+    [(_ stmt "") #'stmt]
     [(_ stmt) #'stmt]))
 
 (define-syntax (import-stmt stx)
@@ -118,7 +119,7 @@
 
 (define-syntax (assign-expr stx)
   (syntax-case stx ()
-    [(_ x "=" expr)
+    [(_ x ":=" expr)
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-assign #,(loc stx) 'x-id expr))]))
 
@@ -268,6 +269,13 @@
                      obj
                      '#,(parse-name #'field))]))
 
+(define-syntax (bracket-method-expr stx)
+  (syntax-case stx ()
+    [(_ obj ":" "[" field "]")
+     #`(s-bracket-method #,(loc stx)
+                     obj
+                     field)]))
+
 (define-syntax (data-member stx)
   (syntax-case stx ()
     [(_ member-name)
@@ -353,7 +361,11 @@
 
 (define-syntax (app-ann stx)
   (syntax-case stx (name-ann)
-    [(_ (name-ann name) "(" (app-ann-elt param ",") ... last-param ")")
+    [(_ (name-ann name) "<" (app-ann-elt param ",") ... last-param ">")
      #`(a-app #,(loc stx) '#,(parse-name #'name) (list param ... last-param))]))
-     
+
+(define-syntax (pred-ann stx)
+  (syntax-case stx ()
+    [(_ ann "(" expr ")")
+     #`(a-pred #,(loc stx) ann expr)]))
 

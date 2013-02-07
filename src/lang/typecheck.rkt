@@ -17,7 +17,8 @@
     [(a-arrow _ t1 t2) (format "~a -> ~a" (map string-of-ann t1) (string-of-ann t2))]
     [(a-blank) "Any"]
     [(a-any) "Any"]
-    [(a-app _ base args) (format "~a~a" base (map string-of-ann args))]))
+    [(a-app _ base args) (format "~a<~a>" base (map string-of-ann args))]
+    [(a-pred _ ann _) (format "~a(?)" ann)]))
 
 (define (ann-check loc ann)
   (define (code-wrapper s args result type get-fun)
@@ -67,6 +68,33 @@
      (define (get-fun e)
        (s-bracket s e (s-str s "_fun")))
      (code-wrapper s args result mk-method get-fun)]
+    [(a-pred s ann pred)
+     (define ann-wrapper (ann-check s ann))
+     (define argname (gensym))
+     (define tempname (gensym))
+     (define result (gensym))
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-block s
+               (list
+                 (s-var s (s-bind s tempname (a-blank))
+                          (s-app loc
+                                 ann-wrapper
+                                 (list (s-id loc argname))))
+                 (s-var s (s-bind s result (a-blank))
+                          (s-app loc
+                                 pred
+                                 (list (s-id s tempname))))
+                 (s-cond s
+                    (list
+                      (s-cond-branch s (s-id s result)
+                        (s-block s (list (s-id s tempname))))
+                      (s-cond-branch s (s-id s 'else)
+                        (s-block s
+                          (list
+                            (s-app s (s-id s 'raise)
+                                     (list (s-str s "contract failure"))))))))
+               )))]
     [else
      (error
       (format "typecheck: don't know how to check ann: ~a"
@@ -141,6 +169,9 @@
     
     [(s-dot-method s obj field)
      (s-dot-method s (cc obj) field)]
+    
+    [(s-bracket-method s obj field)
+     (s-bracket-method s (cc obj) (cc field))]
 
     [(or (s-num _ _)
          (s-bool _ _)

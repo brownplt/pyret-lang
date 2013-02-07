@@ -1,6 +1,11 @@
 #lang racket/base
 
-(provide mk-pyret-exn)
+(provide
+ mk-pyret-exn
+ mk-opaque
+ get-opaque
+ p-opaque?
+ )
 
 (struct exn:fail:pyret exn:fail (srcloc)
   #:property prop:exn:srclocs
@@ -10,3 +15,10 @@
 (define (mk-pyret-exn str loc)
   (exn:fail:pyret str (current-continuation-marks) (apply srcloc loc)))
 
+(struct p-opaque (val))
+
+(define (mk-opaque val)
+  (p-opaque val))
+
+(define (get-opaque po)
+  (p-opaque-val po))
