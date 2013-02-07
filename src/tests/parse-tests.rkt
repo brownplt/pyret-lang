@@ -1,11 +1,30 @@
 #lang racket
 
-(require "test-utils.rkt" "../lang/ast.rkt")
+(require "test-utils.rkt"
+         "../lang/ast.rkt"
+         "../lang/pretty.rkt"
+         "../lang/desugar.rkt")
+
+(define verbose #f)
+(set! verbose #t)
+
+(define round-trip-test #f)
+(set! round-trip-test #f)
 
 (define-syntax check/block
   (syntax-rules ()
     [(_ str stmt ...)
-     (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))]))
+     (begin
+       (when verbose
+         (printf "Testing: \n~a\n\n" str))
+       (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))
+       (when round-trip-test
+           (check-not-exn
+            (lambda ()
+              (define pr (pretty (desugar-pyret (parse-pyret str))))
+              (when verbose
+                (printf "Printed to: \n~a\n\n" pr))
+              (parse-pyret pr)))))]))
 
 (check/block "'str'" (s-str _ "str"))
 (check/block "5" (s-num _ 5))
@@ -197,10 +216,10 @@ end"
 (check/block "var my-hypthen-y-ident-i-fier: 10"
              (s-var _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
 
-(check/block "data List(a) | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
+(check/block "data List<a> | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 
 (check/block 
- "data List(a) | cons: field, l :: List<a> end" 
+ "data List<a> | cons: field, l :: List<a> end" 
  (s-data _ 'List (list 'a) 
          (list (s-variant 
                 _ 
@@ -223,20 +242,20 @@ end"
                                      (list (s-num _ 1))))))))
 
 (check/block
- "fun (a) f(x :: a) -> a: x end"
+ "fun <a> f(x :: a) -> a: x end"
  (s-fun _ 'f (list 'a) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'a)
   _
 	(s-block _ (list (s-id _ 'x)))))
 
 (check/block
- "fun (a,b) f(x :: a) -> b: x end"
+ "fun <a,b> f(x :: a) -> b: x end"
  (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
   _
 	(s-block _ (list (s-id _ 'x)))))
 
 
 (check/block
- "fun (a,b) f(x :: a) -> b: 'doc' x end"
+ "fun <a,b> f(x :: a) -> b: 'doc' x end"
  (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
   "doc"
 	(s-block _ (list (s-id _ 'x)))))

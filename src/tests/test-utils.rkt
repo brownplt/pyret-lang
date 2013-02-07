@@ -12,7 +12,8 @@
   compile-str
   parse-pyret
   eval-pyret
-  check-match)
+  check-match
+  check-not-exn)
 (require
  (except-in rackunit check)
    racket/runtime-path

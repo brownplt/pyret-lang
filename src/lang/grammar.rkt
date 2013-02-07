@@ -44,7 +44,7 @@ fun-body: block "end"
 fun-ty-param-elt: NAME
 fun-ty-param: fun-ty-param-elt ","
 fun-ty-params:
-  ["(" fun-ty-param* fun-ty-param-elt ")"]
+  ["<" fun-ty-param* fun-ty-param-elt ">"]
 
 return-ann: ["->" ann]
 
@@ -54,10 +54,10 @@ fun-expr: "fun" fun-header ":" fun-body
  
 lambda-args: arg-elt* last-arg-elt
 lambda-expr:
-   BACKSLASH lambda-args ":" fun-body
- | BACKSLASH lambda-args "->" ann ":" fun-body
+   BACKSLASH fun-ty-params lambda-args ":" fun-body
+ | BACKSLASH fun-ty-params lambda-args "->" ann ":" fun-body
  | BACKSLASH fun-body
- | BACKSLASH "->" ann ":" fun-body
+ | BACKSLASH fun-ty-params "->" ann ":" fun-body
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
@@ -100,7 +100,7 @@ data-with: ["with" fields]
 data-fields: [":" data-member-elt* data-member]
 data-variant: "|" NAME data-fields data-with
 data-param-elt: NAME ","
-data-params: ["(" data-param-elt* NAME ")"]
+data-params: ["<" data-param-elt* NAME ">"]
 data-sharing: "end"|("sharing" fields "end")
 data-expr: "data" NAME data-params data-variant+ data-sharing 
 

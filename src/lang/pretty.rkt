@@ -4,6 +4,7 @@
   racket/match
   racket/string
   racket/function
+  racket/list
   "ast.rkt")
 
 (provide
@@ -31,11 +32,13 @@
     [(s-var s bnd val)
      (format "var ~a: ~a" (pretty-bind bnd) (pretty val))]
     [(s-lam s typarams args ann doc body)
-     (define s-typarams (string-join (map symbol->string typarams) ", "))
+     (define s-typarams
+       (cond [(cons? typarams) (format "<~a>" (string-join (map symbol->string typarams) ", "))]
+             [(empty? typarams) ""]))
      (define s-args (string-join (map pretty-bind args) ", "))
      (define s-ann (pretty-ann ann))
      (define s-body (vary-pretty (s-block s (cons (s-str s doc) (s-block-stmts body))) (increase-indent ind)))
-     (format "\\(~a) ~a -> ~a:\n~a~a\n~aend"
+     (format "\\~a ~a -> ~a:\n~a~a\n~aend"
              s-typarams
              s-args
              s-ann
@@ -97,7 +100,7 @@
     [(a-arrow _ t1 t2) (format "(~a -> ~a)" (string-join (map pretty-ann t1) ", ") (pretty-ann t2))]
     [(a-blank) "Any"]
     [(a-any) "Any"]
-    [(a-app _ base args) (format "~a<~a>" (pretty-ann base) (string-join (map pretty-ann args) ", "))]
+    [(a-app _ base args) (format "~a<~a>" (symbol->string base) (string-join (map pretty-ann args) ", "))]
     [(a-pred _ ann expr) (format "~a(~a)" (pretty-ann ann) (pretty expr))]))
 
 (define (pretty ast) (vary-pretty ast 0))

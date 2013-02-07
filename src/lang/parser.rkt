@@ -171,9 +171,9 @@
 (define-syntax (fun-ty-params stx)
   (syntax-case stx (fun-ty-param fun-ty-param-elt)
     [(_) #'(list)]
-    [(_ "(" (fun-ty-param
+    [(_ "<" (fun-ty-param
 	     (fun-ty-param-elt param) ",") ...
-	     (fun-ty-param-elt last) ")")
+	     (fun-ty-param-elt last) ">")
      #`(quote #,(parse-names #'(param ... last)))]))
 
 (define-syntax (return-ann stx)
@@ -198,14 +198,14 @@
 
 (define-syntax (lambda-expr stx)
   (syntax-case stx (lambda-args)
-    [(_ "\\" (lambda-args arg ... lastarg) ":" body)
-      #`(s-lam #,(loc stx) empty (list arg ... lastarg) (a-blank) "" body)]
-    [(_ "\\" body )
+    [(_ "\\" ty-params (lambda-args arg ... lastarg) ":" body)
+      #`(s-lam #,(loc stx) ty-params (list arg ... lastarg) (a-blank) "" body)]
+    [(_ "\\" body)
      #`(s-lam #,(loc stx) empty empty (a-blank) "" body)]
-    [(_ "\\" (lambda-args arg ... lastarg) "->" ann ":" body)
-     #`(s-lam #,(loc stx) empty (list arg ... lastarg) ann "" body)]
-    [(_ "\\" "->" ann ":" body)
-     #`(s-lam #,(loc stx) empty empty ann "" body)]))
+    [(_ "\\" ty-params (lambda-args arg ... lastarg) "->" ann ":" body)
+     #`(s-lam #,(loc stx) ty-params (list arg ... lastarg) ann "" body)]
+    [(_ "\\" ty-params "->" ann ":" body)
+     #`(s-lam #,(loc stx) ty-params empty ann "" body)]))
 
 
 (define-syntax (arg-elt stx)
@@ -308,7 +308,7 @@
 
 (define-syntax (data-params stx)
   (syntax-case stx (data-param-elt)
-    [(_ "(" (data-param-elt name ",") ... last-name ")")
+    [(_ "<" (data-param-elt name ",") ... last-name ">")
      #`(quote #,(parse-names #'(name ... last-name)))]
     [(_) #'(list)]))
       
