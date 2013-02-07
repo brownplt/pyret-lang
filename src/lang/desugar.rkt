@@ -188,8 +188,8 @@
      (define mod-mapping (create-header (prog->imports ast) empty))
      (define inner (desugar-pyret/no-imports mod-mapping ast))
      (s-block s
-        (append (create-inlined-imports mod-mapping) 
-			      		(s-block-stmts inner)))]))
+        (append (create-inlined-imports mod-mapping)
+                (s-block-stmts inner)))]))
 
 (define (desugar-pyret/no-imports mod-mapping ast)
   (match ast
