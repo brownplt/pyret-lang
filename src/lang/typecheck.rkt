@@ -1,6 +1,6 @@
 #lang racket
 
-(require "ast.rkt")
+(require "ast.rkt" "pretty.rkt")
 (provide contract-check-pyret)
 
 (define (wrap-ann-check loc ann e)
@@ -11,19 +11,10 @@
 (define (mk-method loc args result doc-unused body)
   (s-method loc args result (s-block loc (list body))))
 
-(define (string-of-ann ann)
-  (match ann
-    [(a-name _ id) (symbol->string id)]
-    [(a-arrow _ t1 t2) (format "~a -> ~a" (map string-of-ann t1) (string-of-ann t2))]
-    [(a-blank) "Any"]
-    [(a-any) "Any"]
-    [(a-app _ base args) (format "~a<~a>" base (map string-of-ann args))]
-    [(a-pred _ ann _) (format "~a(?)" ann)]))
-
 (define (ann-check loc ann)
   (define (code-wrapper s args result type get-fun)
-    (define funname (gensym))
-    (define wrapargs (map (lambda (a) (s-bind s (gensym) a)) args))
+    (define funname (gensym "contract"))
+    (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
     (define (check-arg bind)
       (match bind
         [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
@@ -40,10 +31,10 @@
                                         (s-id s funname)
                                         (s-str s "doc")))))))
   (define (mk-contract-doc ann)
-    (format "internal contract for ~a" ann))
-  (define ann-str (s-str loc (string-of-ann ann)))
+    (format "internal contract for ~a" (pretty-ann ann)))
+  (define ann-str (s-str loc (pretty-ann ann)))
   (define (mk-flat-checker checker)
-    (define argname (gensym))
+    (define argname (gensym "specimen"))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
             (mk-contract-doc ann)
             (s-app
@@ -70,9 +61,9 @@
      (code-wrapper s args result mk-method get-fun)]
     [(a-pred s ann pred)
      (define ann-wrapper (ann-check s ann))
-     (define argname (gensym))
-     (define tempname (gensym))
-     (define result (gensym))
+     (define argname (gensym "pred-arg"))
+     (define tempname (gensym "pred-temp"))
+     (define result (gensym "pred-result"))
      (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
              (mk-contract-doc ann)
              (s-block s

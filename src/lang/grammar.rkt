@@ -54,10 +54,10 @@ fun-expr: "fun" fun-header ":" fun-body
  
 lambda-args: arg-elt* last-arg-elt
 lambda-expr:
-   BACKSLASH lambda-args ":" "(" block ")"
- | BACKSLASH lambda-args "->" ann ":" "(" block ")"
- | BACKSLASH "(" block ")"
- | BACKSLASH "->" ann ":" "(" block ")"
+   BACKSLASH lambda-args ":" fun-body
+ | BACKSLASH lambda-args "->" ann ":" fun-body
+ | BACKSLASH fun-body
+ | BACKSLASH "->" ann ":" fun-body
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"

@@ -198,13 +198,13 @@
 
 (define-syntax (lambda-expr stx)
   (syntax-case stx (lambda-args)
-    [(_ "\\" (lambda-args arg ... lastarg) ":" "(" body ")")
+    [(_ "\\" (lambda-args arg ... lastarg) ":" body)
       #`(s-lam #,(loc stx) empty (list arg ... lastarg) (a-blank) "" body)]
-    [(_ "\\" "(" body ")")
+    [(_ "\\" body )
      #`(s-lam #,(loc stx) empty empty (a-blank) "" body)]
-    [(_ "\\" (lambda-args arg ... lastarg) "->" ann ":" "(" body ")")
+    [(_ "\\" (lambda-args arg ... lastarg) "->" ann ":" body)
      #`(s-lam #,(loc stx) empty (list arg ... lastarg) ann "" body)]
-    [(_ "\\" "->" ann ":" "(" body ")")
+    [(_ "\\" "->" ann ":" body)
      #`(s-lam #,(loc stx) empty empty ann "" body)]))
 
 
