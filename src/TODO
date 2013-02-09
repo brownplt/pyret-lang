@@ -1,5 +1,4 @@
-Release
-[] provide Data
+Need-to-have (soon):
 [] Documentation
   [x] Extract docs from code
 [] Type-checking up to List(a) and arrows/records
@@ -7,21 +6,22 @@ Release
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
-[] Cyclic modules check
 
-Nice-to-have (eventually):
-[] More tests for keys/builtins
-[] implicit cond if you start fun with a |
-[] DrRacket syntax highlighting
-[] Figure out how to/if we can use list.arr lists in runtime.rkt
-[] currying
-[] srcloc for a-any
-[] Make objects retain order w.r.t syntax of literal and update
-
-
+CS019 Assignments
+[] Flags
+[] Rocket
+[x] Filesystem
+[] Sortacle
+[] Oracle
+[] Brown Heaps
+[x] Updater
+[] ||ism
+[] Tour Guide
+[] Seam Carving (image libs)
 
 Need-to-have (eventually):
+[] Cyclic modules check
+[] provide Data
 [] Make everything with methods consistent with functions
   [] doc
   [] type variable declaration
@@ -34,6 +34,15 @@ Need-to-have (eventually):
 [] better error reporting / pretty printing / support for debugging.
    For example, printing out names for brands (where appropriate)
    would be a start.
+
+Nice-to-have (eventually):
+[] More tests for keys/builtins
+[] implicit cond if you start fun with a |
+[] DrRacket syntax highlighting
+[] Figure out how to/if we can use list.arr lists in runtime.rkt
+[] currying
+[] srcloc for a-any
+[] Make objects retain order w.r.t syntax of literal and update
 
 Redex
 [] Redex the initial semantics
