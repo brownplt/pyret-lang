@@ -240,6 +240,11 @@
                ;; is not sufficient to pull this off.
                (list (s-cond-branch #,(loc stx) exp blck) ...))]))
 
+(define-syntax (try-expr stx)
+  (syntax-case stx ()
+    [(_ "try" ":" t-block "except" "(" last-arg-elt ")" ":" e-block "end")
+     #`(s-try #,(loc stx) t-block last-arg-elt e-block)]))
+
 (define-syntax (extend-expr stx)
   (syntax-case stx ()
     [(_ obj "." "{" fields "}")

@@ -10,6 +10,7 @@
   (struct-out s-bind)
   (struct-out s-cond)
   (struct-out s-cond-branch)
+  (struct-out s-try)
 
   (struct-out s-lam)
 
@@ -79,7 +80,7 @@ these metadata purposes.
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann))
    #:transparent)
 
-(define-type Stmt (U s-fun s-var s-cond s-data s-do s-import Expr))
+(define-type Stmt (U s-fun s-var s-cond s-try s-data s-do s-import Expr))
 (struct: s-fun ((syntax : srcloc)
     (name : Symbol)
     (params : (Listof Symbol))
@@ -98,6 +99,11 @@ these metadata purposes.
 (struct: s-cond-branch ((syntax : srcloc)
       (expr : Expr)
       (body : s-block))
+   #:transparent)
+(struct: s-try ((syntax : srcloc)
+                (body : Expr)
+                (id : s-bind)
+                (except : Expr))
    #:transparent)
 
 

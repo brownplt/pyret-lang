@@ -1,11 +1,5 @@
 #lang typed/racket
 
-(require/typed "untyped-runtime.rkt"
-  [mk-pyret-exn (String Loc -> Any)]
-  [#:opaque p-opaque p-opaque?]
-  [mk-opaque (Any -> p-opaque)]
-  [get-opaque (p-opaque -> Any)])
-
 (provide
   (prefix-out p: (struct-out none))
   (prefix-out p: (struct-out p-base))
@@ -23,6 +17,8 @@
               [mk-fun p:mk-fun]
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-method p:mk-method]
+              [exn:fail:pyret? p:exn:fail:pyret?]
+              [mk-exn p:mk-exn]
               [empty-dict p:empty-dict]
               [get-dict p:get-dict]
               [get-seal p:get-seal]
@@ -72,6 +68,14 @@
 (struct: p-str p-base ((s : String)) #:transparent)
 (struct: p-fun p-base ((f : (Loc -> Proc))) #:transparent)
 (struct: p-method p-base ((f : Proc)) #:transparent)
+
+(require/typed "untyped-runtime.rkt"
+  [#:opaque p-exn exn:fail:pyret?]
+  [#:opaque p-opaque p-opaque?]
+  [mk-pyret-exn (String Loc Value -> p-exn)]
+  [pyret-exn-val (p-exn -> Value)]
+  [mk-opaque (Any -> p-opaque)]
+  [get-opaque (p-opaque -> Any)])
 
 (define empty-dict ((inst make-immutable-hash String Value) '()))
 
@@ -130,6 +134,11 @@
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
                                    ("doc" . ,(mk-str "method")))))
   (p-method (none) (set) d f))
+
+(define exn-brand (gensym 'exn))
+
+(define: (mk-exn (e : p-exn)) : Value
+  (pyret-exn-val e))
 
 (define Racket (mk-object empty-dict))
 
@@ -559,7 +568,7 @@
 (define raise-pfun
   (mk-internal-fun
    (λ: ([loc : Loc])
-      (λ: (o : Value *) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc))))))
+      (λ: (o : Value *) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o)))))))
 
 (define is-nothing-pfun
   (mk-internal-fun

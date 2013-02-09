@@ -10,7 +10,8 @@ provide-stmt: "provide" stmt "end"
 block: stmt*
 
 stmt: (var-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | dot-assign-expr | bracket-assign-expr) [ENDMARKER]
+    | assign-expr | dot-assign-expr | bracket-assign-expr
+    | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -61,6 +62,8 @@ lambda-expr:
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
+
+try-expr: "try" ":" block "except" "(" last-arg-elt ")" ":" block "end"
    
 field:
    NAME ":" expr

@@ -341,3 +341,22 @@ end"
                                     'is-cons)))
          (s-num _ 4)))
 
+(check/block "try: a b c except(e): 5 end"
+  (s-try _
+    (s-block _ (list (s-id _ 'a)
+                     (s-id _ 'b)
+                     (s-id _ 'c)))
+    (s-bind _ 'e (a-blank))
+    (s-block _ (list (s-num _ 5)))))
+
+(check/block "try: try: a except(e): 5 end b c except(e): 5 end"
+  (s-try _
+    (s-block _ (list
+      (s-try _ (s-block _ (list (s-id _ 'a)))
+               (s-bind _ 'e (a-blank))
+               (s-block _ (list (s-num _ 5))))
+      (s-id _ 'b)
+      (s-id _ 'c)))
+    (s-bind _ 'e (a-blank))
+    (s-block _ (list (s-num _ 5)))))
+

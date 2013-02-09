@@ -80,12 +80,23 @@
      (attach l
        (with-syntax ([(branch ...) (d->stx (map compile-cond-branch c-bs) l)])
          #`(r:cond branch ...)))]
-    
+
+    [(s-try l try bind catch)
+     (attach l
+       #`(r:with-handlers
+            ([p:exn:fail:pyret?
+              (r:lambda (exn)
+                (r:define exn-for-py (p:mk-exn exn))
+                #,(compile-expr
+                    (s-block l (list (s-var l bind (s-id l 'exn-for-py))
+                                     catch))))])
+             #,(compile-expr try)))]
+
     [(s-id l name)
      (attach l
        (with-syntax ([name-stx (d->stx name l)])
-         #`name-stx))]
-    
+         #'name-stx))]
+
     [(s-assign l name expr)
      (attach l
        (with-syntax ([name-stx (d->stx name l)]

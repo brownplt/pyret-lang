@@ -136,6 +136,10 @@
          [(s-cond-branch s test expr)
           (s-cond-branch s (cc test) (cc expr))]))
      (s-cond s (map cc-branch c-bs))]
+
+    [(s-try s try bind catch)
+     (define catch-env (update bind env))
+     (s-try s (cc try) bind (cc-env catch catch-env))]
     
     [(s-assign s name expr)
      (s-assign s name (wrap-ann-check s (lookup env name) (cc expr)))]

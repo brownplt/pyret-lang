@@ -140,6 +140,9 @@
              (append (map ds-cond c-bs)
                      (list (s-cond-branch s (s-bool s #t) cond-fallthrough))))]
 
+    [(s-try s try exn catch)
+     (s-try s (ds try) exn (ds catch))]
+
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
     [(s-app s fun args) (s-app s (ds fun) (map ds args))]
