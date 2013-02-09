@@ -4,7 +4,7 @@ import "src/lang/pyret-lib/experimental/check.arr" as Check
 
 provide {
   class: class,
-  instance-of: instance-of
+  Object: Object
 } end
 
 var todo-class-descr: {
@@ -65,8 +65,8 @@ var assignee-ext-descr: {
 
 # : Class -> ClassDescription -> Class
 fun ext(parent-class, description):
-  {
-    _brander: brander(),
+  var class-brander: brander()
+  class-brander.brand({
 
     new(self, spec): 
       var fields: description.fields
@@ -104,12 +104,14 @@ fun ext(parent-class, description):
                 methods:[name]._fun(inst-with-super, arg)
             | else => parent-inst.invoke(name, arg)
           end
-        end
+        end,
+
+        instance-of(_, class):
+          class-brander.check(class).or(parent-inst.instance-of(class))
+        end,
       }
 
-      var inst-branded: self._brander.brand(instance)
-
-      var inst-with-super: inst-branded.{
+      var inst-with-super: instance.{
         super(inst, spec):
           parent-inst := parent-class.new(spec)
           inst
@@ -122,24 +124,21 @@ fun ext(parent-class, description):
     end,
 
     ext(self, ext-descr): ext(self, ext-descr) end,
-
-  }
+  })
 end
 
-var Base: {
-  _brander: brander(),
-  new(self, spec): self._brander.brand({
+var object-brander: brander()
+var Object: object-brander.brand({
+  #_brander: brander(),
+  new(self, spec): object-brander.brand({
     get(_, name): raise "get: field not found: ".append(name) end,
     set(_, name, v): raise "set: field not found: ".append(name) end,
     invoke(_, name, a): raise "invoke: method not found: ".append(name) end,
+    instance-of(_, class): object-brander.check(class) end,
   }) end
-}
+})
 
-fun class(description): ext(Base, description) end
-
-fun instance-of(instance, class):
-  class._brander.check(instance)
-end
+fun class(description): ext(Object, description) end
 
 var Todo: class(todo-class-descr)
 var todo1: Todo.new({ due: "Feb 2", task: "do that thing"})
@@ -152,7 +151,7 @@ Check.equal(todo1.get("done"), false, "get done")
 todo1.invoke("complete", nothing)
 Check.equal(todo1.get("done"), true, "get done after invoke")
 
-Check.tru(instance-of(todo1, Todo), "instance-of")
+Check.tru(todo1.instance-of(Todo), "instance-of")
 
 var AssignableTodo: Todo.ext(assignee-ext-descr)
 var todo2: AssignableTodo.new({ due: "Feb 8", task: "assign someone" })
@@ -165,8 +164,9 @@ Check.equal(todo2.get("assignee"), "Joe", "set child field")
 todo2.set("due", "Feb 9")
 Check.equal(todo2.get("due"), "Feb 9", "set parent field")
 
-Check.tru(instance-of(todo2, Todo), "instance-of parent")
-Check.tru(instance-of(todo2, AssignableTodo), "instance-of child")
+Check.tru(todo2.instance-of(AssignableTodo), "instance-of child")
+Check.tru(todo2.instance-of(Todo), "instance-of parent")
+Check.tru(todo2.instance-of(Object), "instance-of Object")
 
 todo2.invoke("assign", "Jonah")
 Check.equal(todo2.get("assignee"), "Jonah", "invoke child method")
