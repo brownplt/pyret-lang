@@ -1,5 +1,4 @@
 Release
-[x] rename 'def' to 'var'
 [] provide Data
 [] Documentation
   [x] Extract docs from code
@@ -8,28 +7,33 @@ Release
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[] better error reporting / pretty printing / support for debugging.
-   For example, printing out names for brands (where appropriate)
-   would be a start.
 [] Enough API/Library support to do basic file tasks and CS019 assignments (we're generating/partially through this list)
-[x] Some sort of module system for sane libraries
-  [] Cyclic modules
-[x] Functionalize objects
+[] Cyclic modules check
+
+Nice-to-have (eventually):
+[] More tests for keys/builtins
+[] implicit cond if you start fun with a |
+[] DrRacket syntax highlighting
+[] Figure out how to/if we can use list.arr lists in runtime.rkt
+[] currying
+[] srcloc for a-any
+[] Make objects retain order w.r.t syntax of literal and update
+
+
+
+Need-to-have (eventually):
 [] Make everything with methods consistent with functions
   [] doc
   [] type variable declaration
-[] Indentation enforcement?
-[] implicit cond if you start fun with a |
-[x] Write some tests for extending with seals
-[] More tests for keys/builtins
-[] Figure out how to/if we can use list.arr lists in runtime.rkt
-[] DrRacket syntax highlighting
-[] mis-applied function error message is poopface:
+[] decide on built-in exception types
+[] mis-applied function error message is crap:
     p-fun-f823: contract violation
      expected: p-fun?
      given: (p-bool ...
-[x] Allow exprs for object literal field names
-[] := for assignment
+[] Indentation enforcement?
+[] better error reporting / pretty printing / support for debugging.
+   For example, printing out names for brands (where appropriate)
+   would be a start.
 
 Redex
 [] Redex the initial semantics
@@ -44,7 +48,6 @@ Redex
 [] add s-let and pyret compile let
 
 HTDP:
-[x] first class methods
 [] surface syntax for first-class methods
 [] Constructed types and brands
 [] surface syntax for operators?
@@ -54,52 +57,24 @@ HTDP:
   [x] Annotations actually checked
   [] constructed annotations actually checked
   [x] Skeleton of struct/data desugaring
-[x] anonymous functions... :-)
 [] brand names for debugging and general user-friendliness
 [] pretty-printing objects
    - Take brands into account (names for them)
-[x] None/null/nothing value built in
-[] Lists built in?
-[x] How should short-circuiting booleans work?
-  - do!
 [] Testing libs (check/expect)
-[x] Form for throwing errors (syntax & ast/semantics)
-[] Form for catching errors
-[x] module system?
-
-[] currying
-[] srcloc for a-any
-
-Bonus Funtimes:
-[x] ^ for mortar-firing style
-[] implicit cond if you start fun with a |
 
 Cleanup:
 [] decide on a line length and enforce
 [] ordering of things in grammar vs pyret.rkt
 [] consistent naming in grammar for lists of things
-[] figure out what define-syntax is less boilerplate
+[] figure out what define-syntax is less boilerplate in parser.rkt
 [] s-data and s-dot should agree on symbol vs. string
-[] clean up runtime.rkt into sanity
-[] stop using typed racket except for data definitions
-[x] cond implicit else should be in desugar, not compile
+[] clean up runtime.rkt into more .arr definitions
 [] bug report on module docs for language definitions
 [] bug report on resolved-module-path? docs
 [] letrec* for sequences
-[x] negative numbers
-[] unsaved-editor symbol showing up as an identifier
 [] Should use a stable paren-based syntax in compile-tests rather than
    needing to update that on syntax changes
 [] optional trailing commas everywhere
-[] application should check type better?
-[x] cleanup test-utils
-
-[] Escape into Racket with peglegs:
-    !(display (current-namespace))!
-  - wrapping where possible?
-
-Invariants
-[] Make objects retain order w.r.t syntax of literal and update
 
 TODO templates:
 
