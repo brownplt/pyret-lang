@@ -1,32 +1,19 @@
 #lang pyret
 
-import "src/lang/pyret-lib/list.arr" as List
+import "src/lang/pyret-lib/experimental/check.arr" as Check
 
-# Examples as a user
 var todo1: {
   due: "25 January 2012",
   task: "Write mixin examples",
   done: false
 }
 
-fun check(val, expected, message):
-  assert(\(val.equals(expected)), message)
-end
-
-fun assert(testfun, message):
-  var result: testfun()
-  cond:
-    | result => print(message.append(" passed"))
-    | else => print(message.append(" failed"))
-  end
-end
-
 fun doable(todo):
   todo.{ complete(self): self.{ done : true } end }
 end
 
 var todoable1: doable(todo1)
-check(true, todoable1.complete().done, "todoable worked")
+Check.equal(true, todoable1.complete().done, "todoable")
 
 fun make-mutable(obj):
   var names: builtins.keys(obj)
@@ -45,5 +32,5 @@ end
 var mutabletodo1: make-mutable(todo1)
 mutabletodo1.done(true)
 # need some way to distinguish b/w nothing and optional arguments
-check(true, mutabletodo1.done(nothing), "mutable worked")
+Check.equal(true, mutabletodo1.done(nothing), "mutable")
 
