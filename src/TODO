@@ -8,7 +8,7 @@ Need-to-have (soon):
      - contracts up to monomorphic structures and polymorphic functions
 
 CS019 Assignments
-[] Flags
+[x] Flags
 [] Rocket
 [x] Filesystem
 [] Sortacle
@@ -43,6 +43,7 @@ Nice-to-have (eventually):
 [] currying
 [] srcloc for a-any
 [] Make objects retain order w.r.t syntax of literal and update
+[] Vim highlight numbers
 
 Redex
 [] Redex the initial semantics
@@ -69,7 +70,7 @@ HTDP:
 [] brand names for debugging and general user-friendliness
 [] pretty-printing objects
    - Take brands into account (names for them)
-[] Testing libs (check/expect)
+[x] Testing libs (check/expect)
 
 Cleanup:
 [] decide on a line length and enforce
