@@ -1,9 +1,11 @@
 #lang pyret
 
-import "simple-tests.arr" as Simpl
+import "simple-tests.arr" as Simple
+import "seal-tests.arr" as Seal
 import "unittest.arr" as Test
 
-Simpl.run-tests()
+Simple.run-tests()
+Seal.run-tests()
 
 Test.format-results()
 ""

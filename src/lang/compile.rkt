@@ -119,9 +119,13 @@
     
     [(s-onion l super fields)
      (attach l
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
        (with-syntax ([(member ...) (map compile-member fields)]
                      [super (compile-expr super)])
-        #'(p:flatten super (r:make-hash (r:list member ...)))))]
+        #'(p:flatten (r:list loc-param ...)
+                     super
+                     (r:make-hash (r:list member ...))))))]
     
     [(s-dot l val field)
      (attach l

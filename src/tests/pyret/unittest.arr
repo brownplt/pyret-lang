@@ -2,6 +2,7 @@
 
 provide {
   check-equals: check-equals,
+  check-not-equals: check-not-equals,
   check-exn: check-exn,
   get-results: get-results,
   format-results: format-results
@@ -29,6 +30,19 @@ fun check-equals(message, thunk, value):
       results := results.push(c.{ passed: false, reason: "Values not equal" })
   end
 end
+
+fun check-not-equals(message, thunk, value):
+  var c: mk-checker(message, thunk, value)
+  cond:
+    | builtins.keys(c).member("exception") =>
+      results := results.push(c.{ passed: false, reason: "Exception" })
+    | c.actual.equals(value) =>
+      results := results.push(c.{ passed: false, reason: "Values equal" })
+    | else =>
+      results := results.push(c.{ passed: true })
+  end
+end
+
 
 fun check-exn(message, thunk, exn):
   var c: mk-checker(message, thunk, exn)
@@ -63,11 +77,11 @@ fun format-results():
   print(failedNum.tostring().append(" tests failed."))
 
   results.map(\r: (
-    print("===========================")
-    print("Test: ".append(r.message))
     cond:
-      | r.passed => print("Passed")
+      | r.passed => nothing
       | else =>
+        print("===========================")
+        print("Test: ".append(r.message))
         print("Failed because: ".append(r.reason))
         print("Expected:")
         print(r.expected)
@@ -79,7 +93,7 @@ fun format-results():
             print("Exception:")
             print(r.exception)
         end
+        print("")
     end
-    print("")
   ))
 end

@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (require/typed srfi/13
-  [string-contains (String String -> Boolean)])
+  [string-contains (String String -> (U Boolean Number))])
 
 (provide
   (prefix-out p: (struct-out none))
@@ -171,12 +171,15 @@
          (wrap (apply-racket-fun f s (map unwrap (rest args))))]
         [_ (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
 
+(define: (pyret-error [loc : Loc] [message : String]) : p-exn
+  (define full-error (exn+loc->message (mk-str message) loc))
+  (mk-pyret-exn full-error loc (mk-str full-error)))
+
 (define: (get-raw-field (loc : Loc) (v : Value) (f : String)) : Value
-  (define errorstr (mk-str (format "get-field: field not found: ~a" f)))
-  (define full-error (exn+loc->message errorstr loc))
+  (define errorstr (format "get-field: field not found: ~a" f))
   (if (has-field? v f)
       (hash-ref (get-dict v) f)
-      (raise (mk-pyret-exn full-error loc (mk-str full-error)))))
+      (raise (pyret-error loc errorstr))))
 
 (define: (get-field (loc : Loc) (v : Value) (f : String)) : Value
   (if (eq? v Racket)
@@ -256,11 +259,12 @@
       existing-keys
       (set-intersect existing-keys s)))
 
-(define: (flatten (base : Value)
+(define: (flatten (loc : Loc)
+                  (base : Value)
                   (extension : Dict))
          : Value
   (when (not (andmap (lambda: ([k : String]) (in-seal? base k)) (hash-keys extension)))
-    (error "extend: extending outside seal"))
+    (raise (pyret-error loc "extend: extending outside seal")))
   (define d (get-dict base))
   (define s (get-seal base))
   (define new-map (foldr (lambda: ([k : String] [d : Dict])
@@ -443,7 +447,8 @@
     (set! meta-str-store
       (make-immutable-hash
         `(("append" . ,(mk-str-fun string-append))
-          ("contains" . ,(mk-method (mk-str-bool-impl string-contains)))
+          ("contains" . ,(mk-method (mk-str-bool-impl
+            (lambda (s1 s2) (if (string-contains s1 s2) #t #f)))))
           ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
           ("tonumber" . ,(mk-single-str-fun
             (lambda (s)
