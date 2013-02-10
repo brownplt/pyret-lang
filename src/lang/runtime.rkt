@@ -24,6 +24,7 @@
               [get-seal p:get-seal]
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
+              [apply-fun p:apply-fun]
               [has-field? p:has-field?]
               [reseal p:reseal]
               [flatten p:flatten]
@@ -47,6 +48,7 @@
 
 (define-type Value (U p-object p-num p-bool
                       p-str p-fun p-method p-nothing p-opaque))
+(define-type RacketValue (U Number String Boolean p-opaque))
 
 (define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
@@ -74,8 +76,7 @@
   [#:opaque p-opaque p-opaque?]
   [mk-pyret-exn (String Loc Value -> p-exn)]
   [pyret-exn-val (p-exn -> Value)]
-  [mk-opaque (Any -> p-opaque)]
-  [get-opaque (p-opaque -> Any)])
+  [apply-racket-fun (String String (Listof RacketValue) -> RacketValue)])
 
 (define empty-dict ((inst make-immutable-hash String Value) '()))
 
@@ -158,10 +159,13 @@
 
 (define Bool? (mk-fun-nodoc bool?))
 
-(define: (get-racket-fun (f : String)) : Value
-  (define fun (dynamic-require 'racket (string->symbol f)))
-  (mk-fun-nodoc (lambda: (args : Value *)
-            (wrap (cast (apply fun (map unwrap args)) Any)))))
+(define: (mk-racket-fun (f : String)) : Value
+  (mk-fun-nodoc
+    (lambda: (args : Value *)
+      (match (first args)
+        [(p-str _ _ _ s)
+         (wrap (apply-racket-fun f s (map unwrap (rest args))))]
+        [_ (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
 
 (define: (get-raw-field (v : Value) (f : String)) : Value
   (if (has-field? v f)
@@ -170,13 +174,20 @@
 
 (define: (get-field (v : Value) (f : String)) : Value
   (if (eq? v Racket)
-      (get-racket-fun f)
+      (mk-racket-fun f)
       (match (get-raw-field v f)
         [(p-method _ _ _ f)
                (mk-fun-nodoc (lambda: (args : Value *)
                          ;; TODO(joe): Can this by typechecked?  I think maybe
                          (cast (apply f (cons v args)) Value )))]
         [non-method non-method])))
+
+(define: (apply-fun (v : Value) (l : Loc) args : Value *) : Value
+  (match v
+    [(p-fun _ _ _ f)
+     (apply (f l) args)]
+    [_
+     (error (format "apply-fun: expected function, got ~a" v))]))
 
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
@@ -541,21 +552,24 @@
 (define check-brand-pfun (mk-internal-fun check-brand))
 
 
-(define: (unwrap (v : Value)) : Any
+(define: (unwrap (v : Value)) : RacketValue
   (match v
-    [(p-num s _ h n) n]
-    [(p-bool s _ h b) b]
-    [(p-str sl _ h s) s]
-    [(? p-opaque?) (when (p-opaque? v) (get-opaque v))]
+    [(p-num s _ _ n) n]
+    [(p-bool s _ _ b) b]
+    [(p-str sl _ _ s) s]
+    [(? p-opaque?) (if (p-opaque? v) v (error "unreachable, just satisfying TR"))]
     [_ (error (format "unwrap: cannot unwrap ~a for Racket" v))]))
 
-(define: (wrap (v : Any)) : Value
+(define: (wrap (v : RacketValue)) : Value
   (cond
     [(number? v) (mk-num v)]
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
-    [(list? v) (mk-structural-list (map wrap v))]
-    [else (mk-opaque v)]))
+    ;; TODO(joe): do we need the list case right now? It's asymmetric
+    ;; with unwrap above
+    #;[(list? v) (mk-structural-list (map wrap v))]
+    [(p-opaque? v) v]
+    [else (error (format "wrap: Bad return value from Racket: ~a" v))]))
 
 (define: (exn+loc->message [v : Value] [l : Loc]) : String
   (format
@@ -581,3 +595,4 @@
   (meta-num)
   (meta-bool)
   (meta-str))
+

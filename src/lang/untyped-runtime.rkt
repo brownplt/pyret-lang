@@ -4,9 +4,8 @@
  mk-pyret-exn
  pyret-exn-val
  exn:fail:pyret?
- mk-opaque
- get-opaque
  p-opaque?
+ apply-racket-fun
  )
 
 (struct exn:fail:pyret exn:fail (srcloc val)
@@ -22,8 +21,24 @@
 
 (struct p-opaque (val))
 
-(define (mk-opaque val)
-  (p-opaque val))
+;; Primitives that are allowed from Pyret land.  Others must be
+;; wrapped in opaques.  This may be extended for lists and other
+;; Racket built-in types in the future.
+(define (allowed-prim? v)
+  (or (number? v)
+      (string? v)
+      (boolean? v)))
 
-(define (get-opaque po)
-  (p-opaque-val po))
+(define (apply-racket-fun package-name package-member args)
+  (define package (string->symbol package-name))
+  (define fun (dynamic-require package (string->symbol package-member)))
+  (define (get-val arg)
+    (cond
+      [(p-opaque? arg) (p-opaque-val arg)]
+      [(allowed-prim? arg) arg]
+      [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
+  (define result (apply fun (map get-val args)))
+  (cond
+    [(allowed-prim? result)  result]
+    [else (p-opaque result)]))
+

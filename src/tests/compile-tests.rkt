@@ -129,7 +129,7 @@
 (check-pyret "var o: {x:5} var o2: {f(self): self.x} o := o.{g : o2:f} o.g()" five)
 
 ;; cannot apply raw methods (better error messages plz)
-(check-pyret-exn "3:add()" "violation")
+(check-pyret-exn "3:add()" "expected function")
 
 
 (check-pyret "3.add(2)" five)
@@ -178,9 +178,13 @@
 
 (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
 
-(check-pyret "Racket.['+'](2, 3)" five)
-(check-pyret-match "Racket.string-append('four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
-(check-pyret-exn "Racket.map(4,5)" "map")
+(check-pyret "Racket.racket('+',2, 3)" five)
+(check-pyret-match "Racket.racket('string-append','four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
+(check-pyret-exn "Racket.racket('map',4,5)" "map")
+(check-pyret "var img: Racket.['2htdp/image']
+              var scene: img('empty-scene', 10, 10)
+              img('image-width', scene)"
+              ten)
 
 (check-pyret
  "var x:0
