@@ -29,6 +29,6 @@
         #'(module src (file pyret-lang-stx)
             (require (file full-eval-stx))
             (current-read-interaction repl-eval-pyret)
-            (void (current-print print-pyret))
+            (void (current-print (print-pyret (current-print))))
             stx)))
 

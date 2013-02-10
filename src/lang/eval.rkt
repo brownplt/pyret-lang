@@ -13,6 +13,7 @@
   "desugar.rkt"
   "typecheck.rkt"
   "compile.rkt"
+  "untyped-runtime.rkt"
   "runtime.rkt")
 
 (define-runtime-path parser "parser.rkt")
@@ -61,6 +62,8 @@
     [(? p:p-base?) val]
     [_ (void)]))
 
-(define (print-pyret val)
+(define ((print-pyret printer) val)
   (when (not (equal? val nothing))
-    (pretty-write (simplify-pyret val))))
+    (match val
+      [(p-opaque v) (printer v)]
+      [_ (pretty-write (simplify-pyret val))])))

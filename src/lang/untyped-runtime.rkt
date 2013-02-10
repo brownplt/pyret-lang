@@ -6,6 +6,7 @@
  exn:fail:pyret?
  p-opaque?
  apply-racket-fun
+ (struct-out p-opaque)
  )
 
 (struct exn:fail:pyret exn:fail (srcloc val)
