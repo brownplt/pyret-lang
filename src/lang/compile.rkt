@@ -125,11 +125,19 @@
     
     [(s-dot l val field)
      (attach l
-       #`(p:get-field #,(compile-expr val) #,(d->stx (symbol->string field) l)))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-field (r:list loc-param ...)
+                      #,(compile-expr val)
+                      (p:p-str-s #,(d->stx (symbol->string field) l)))))]
     
     [(s-bracket l val field)
      (attach l
-       #`(p:get-field #,(compile-expr val) (p:p-str-s #,(compile-expr field))))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-field (r:list loc-param ...)
+                      #,(compile-expr val)
+                      (p:p-str-s #,(compile-expr field)))))]
     
     [(s-bracket-method l obj field)
      (attach l

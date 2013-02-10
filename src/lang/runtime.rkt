@@ -1,5 +1,8 @@
 #lang typed/racket
 
+(require/typed srfi/13
+  [string-contains (String String -> Boolean)])
+
 (provide
   (prefix-out p: (struct-out none))
   (prefix-out p: (struct-out p-base))
@@ -53,6 +56,7 @@
 (define-type-alias MaybeNum (U Number #f))
 (define-type-alias Loc
   (List (U Path String) MaybeNum MaybeNum MaybeNum MaybeNum))
+(define dummy-loc (list "pyret-internal" #f #f #f #f))
 
 (define-type Dict (HashTable String Value))
 (define-type Seal (U (Setof String) none))
@@ -167,15 +171,17 @@
          (wrap (apply-racket-fun f s (map unwrap (rest args))))]
         [_ (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
 
-(define: (get-raw-field (v : Value) (f : String)) : Value
+(define: (get-raw-field (loc : Loc) (v : Value) (f : String)) : Value
+  (define errorstr (mk-str (format "get-field: field not found: ~a" f)))
+  (define full-error (exn+loc->message errorstr loc))
   (if (has-field? v f)
       (hash-ref (get-dict v) f)
-      (error (format "get-field: field not found: ~a" f))))
+      (raise (mk-pyret-exn full-error loc (mk-str full-error)))))
 
-(define: (get-field (v : Value) (f : String)) : Value
+(define: (get-field (loc : Loc) (v : Value) (f : String)) : Value
   (if (eq? v Racket)
       (mk-racket-fun f)
-      (match (get-raw-field v f)
+      (match (get-raw-field loc v f)
         [(p-method _ _ _ f)
                (mk-fun-nodoc (lambda: (args : Value *)
                          ;; TODO(joe): Can this by typechecked?  I think maybe
@@ -437,6 +443,7 @@
     (set! meta-str-store
       (make-immutable-hash
         `(("append" . ,(mk-str-fun string-append))
+          ("contains" . ,(mk-method (mk-str-bool-impl string-contains)))
           ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
           ("tonumber" . ,(mk-single-str-fun
             (lambda (s)
@@ -513,7 +520,7 @@
        (format "{ ~a }"
                (string-join (hash-map h field-to-string) ", ")))
      (if (has-field? v "tostring")
-         (let [(m (get-raw-field v "tostring"))]
+         (let [(m (get-raw-field dummy-loc v "tostring"))]
            (if (p-method? m)
                ;; NOTE(dbp): this will fail if tostring isn't defined
                ;; as taking only self.

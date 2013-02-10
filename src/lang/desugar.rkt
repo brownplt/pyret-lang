@@ -182,8 +182,8 @@
 (define (desugar-pyret/libs ast)
   (match ast
     [(s-prog s imps block)
-     (define imps-with-libs (append (get-prelude s) imps))
-     (desugar-pyret (s-prog s imps-with-libs block))]))
+     (define desugar1 (desugar-pyret ast))
+     (desugar-pyret (s-prog s (get-prelude s) desugar1))]))
 
 (define (desugar-pyret ast)
   (match ast
@@ -227,7 +227,7 @@
            (match (desugar-pyret/no-imports mapping ast)
 	         [(s-block s stmts)
 	          (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))]))]))
-    (define mod-ast (parse-pyret (file->string (car mod))))
+    (define mod-ast (parse-pyret (file->string (car mod)) (car mod)))
     (define-values (base relative-file root?) (split-path (car mod)))
     (parameterize [(current-directory base)]
       (desugar-module mod-ast)))
@@ -255,10 +255,9 @@
   (filter s-import? (s-prog-imports prog)))
 
 (define (file->imports filename)
-  (define mod-ast (parse-pyret (file->string filename)))
+  (define mod-ast (parse-pyret (file->string filename) filename))
   (prog->imports mod-ast))
   
-
 (define (desugar-header hd mapping)
   (match hd
     [(s-provide s exp)
