@@ -97,10 +97,6 @@ data List
 		).append("]")
 
 sharing
-  push(self, elt): link(elt, self),
-  member(self, elt):
-    var filtered: self.filter(\e: (e.equals(elt)))
-    filtered.length().greaterthan(0)
-  end
+  push(self, elt): link(elt, self)
 end
 
