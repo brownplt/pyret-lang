@@ -145,7 +145,11 @@
     
     [(s-bracket-method l obj field)
      (attach l
-       #`(p:get-raw-field #,(compile-expr obj) (p:p-str-s #,(compile-expr field))))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-raw-field (r:list loc-param ...)
+                          #,(compile-expr obj)
+                          (p:p-str-s #,(compile-expr field)))))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
