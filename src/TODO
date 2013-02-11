@@ -6,6 +6,7 @@ Need-to-have (soon):
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
+[] end syntax for lambdas?
 
 CS019 Assignments
 [x] Flags
@@ -36,6 +37,7 @@ Need-to-have (eventually):
    would be a start.
 [] seals should expand when fields are updated; otherwise you
    can tell what is hidden, which is potentially a Bad Thing
+[] Capture avoiding names in catch blocks
 
 Nice-to-have (eventually):
 [] More tests for keys/builtins

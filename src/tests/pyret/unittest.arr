@@ -44,12 +44,12 @@ fun check-not-equals(message, thunk, value):
 end
 
 
-fun check-exn(message, thunk, exn):
-  var c: mk-checker(message, thunk, exn)
+fun check-exn(message, thunk, exn-pred):
+  var c: mk-checker(message, thunk, exn-pred)
   cond:
     | builtins.keys(c).member("exception") =>
       cond:
-        | c.exception.contains(exn) =>
+        | exn-pred(c.exception) =>
           results := results.push(c.{ passed: true })
         | else => 
           results := results.push(c.{

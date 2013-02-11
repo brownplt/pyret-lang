@@ -140,8 +140,30 @@
              (append (map ds-cond c-bs)
                      (list (s-cond-branch s (s-bool s #t) cond-fallthrough))))]
 
+    ;; NOTE(joe): This is a hack that needs to be cleaned up. It avoids re-desugaring
+    ;; catch blocks that already have their call to "make-error" added
+    [(s-try _ _ _
+	    (s-block _
+		     (list
+		      (s-app _ _
+			     (list (s-app _ (s-bracket _ (s-id _ 'error)
+						       (s-str _ "make-error"))
+					  _))))))
+     ast]
+
     [(s-try s try exn catch)
-     (s-try s (ds try) exn (ds catch))]
+     ;; NOTE(joe & dbp): The identifier in the exn binding of the try is carefully
+     ;; shadowed here to avoid capturing any names in Pyret.  It is both
+     ;; the name that the compiler will use for the exception, and the name
+     ;; that desugaring uses to provide the wrapped exception from the error
+     ;; library.
+     (define make-error (s-app s (s-bracket s (s-id s 'error)
+			                      (s-str s "make-error"))
+			         (list (s-id s (s-bind-id exn)))))
+     (s-try s (ds try) exn
+	    (s-block s
+		     (list
+		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch)) (list make-error)))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
@@ -216,6 +238,7 @@
   '(
     "pyret-lib/list.arr"
     "pyret-lib/builtins.arr"
+    "pyret-lib/error.arr"
    ))
 
 (define (create-inlined-imports mapping)

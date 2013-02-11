@@ -2,23 +2,22 @@
 
 (provide
  mk-pyret-exn
- pyret-exn-val
- exn:fail:pyret?
+ (rename-out [exn:fail:pyret-val pyret-exn-val]
+	     [exn:fail:pyret-system? pyret-exn-system?]
+	     [exn:fail:pyret-srcloc pyret-exn-srcloc])
+ exn:fail:pyret? 
  p-opaque?
  apply-racket-fun
  (struct-out p-opaque)
  )
 
-(struct exn:fail:pyret exn:fail (srcloc val)
+(struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
     (lambda (a-struct)
       (list (exn:fail:pyret-srcloc a-struct))))
 
-(define (mk-pyret-exn str loc val)
-  (exn:fail:pyret str (current-continuation-marks) (apply srcloc loc) val))
-
-(define (pyret-exn-val e)
-  (exn:fail:pyret-val e))
+(define (mk-pyret-exn str loc val sys)
+  (exn:fail:pyret str (current-continuation-marks) (apply srcloc loc) sys val))
 
 (struct p-opaque (val))
 

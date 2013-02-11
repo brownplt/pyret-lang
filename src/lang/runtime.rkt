@@ -78,10 +78,31 @@
 (require/typed "untyped-runtime.rkt"
   [#:opaque p-exn exn:fail:pyret?]
   [#:opaque p-opaque p-opaque?]
-  [mk-pyret-exn (String Loc Value -> p-exn)]
+  [mk-pyret-exn (String Loc Value Boolean -> p-exn)]
   [pyret-exn-val (p-exn -> Value)]
+  [pyret-exn-system? (p-exn -> Boolean)]
+  [pyret-exn-srcloc (p-exn -> srcloc)]
   [apply-racket-fun (String String (Listof RacketValue) -> RacketValue)])
 
+(define: (mk-exn [e : p-exn]) : Value
+  (define loc (pyret-exn-srcloc e))
+  (define maybe-path (srcloc-source loc))
+  (define maybe-line (srcloc-line loc))
+  (define maybe-col (srcloc-column loc))
+  (define path (cond
+		[(string? maybe-path) maybe-path]
+		[(path? maybe-path) (path->string maybe-path)]
+		[else "unnamed-pyret-file"]))
+  (define line (if maybe-line maybe-line -1))
+  (define column (if maybe-col maybe-col -1))
+  (mk-object
+   (make-immutable-hash 
+    (list (cons "value" (pyret-exn-val e))
+	  (cons "system" (mk-bool (pyret-exn-system? e)))
+	  (cons "path" (mk-str path))
+	  (cons "line" (mk-num line))
+	  (cons "column" (mk-num column))))))
+	  
 (define empty-dict ((inst make-immutable-hash String Value) '()))
 
 (define nothing (p-nothing (set) (set) empty-dict))
@@ -142,9 +163,6 @@
 
 (define exn-brand (gensym 'exn))
 
-(define: (mk-exn (e : p-exn)) : Value
-  (pyret-exn-val e))
-
 (define Racket (mk-object empty-dict))
 
 (define Any?
@@ -171,15 +189,18 @@
          (wrap (apply-racket-fun f s (map unwrap (rest args))))]
         [_ (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
 
-(define: (pyret-error [loc : Loc] [message : String]) : p-exn
+(define: (pyret-error [loc : Loc] [type : String] [message : String]) : p-exn
   (define full-error (exn+loc->message (mk-str message) loc))
-  (mk-pyret-exn full-error loc (mk-str full-error)))
+  (define obj (mk-object (make-immutable-hash 
+		       (list (cons "message" (mk-str message))
+			     (cons "type" (mk-str type))))))
+  (mk-pyret-exn full-error loc obj #t))
 
 (define: (get-raw-field (loc : Loc) (v : Value) (f : String)) : Value
-  (define errorstr (format "get-field: field not found: ~a" f))
+  (define errorstr (format "~a was not found" f))
   (if (has-field? v f)
       (hash-ref (get-dict v) f)
-      (raise (pyret-error loc errorstr))))
+      (raise (pyret-error loc "field-not-found" errorstr))))
 
 (define: (get-field (loc : Loc) (v : Value) (f : String)) : Value
   (if (eq? v Racket)
@@ -264,7 +285,7 @@
                   (extension : Dict))
          : Value
   (when (not (andmap (lambda: ([k : String]) (in-seal? base k)) (hash-keys extension)))
-    (raise (pyret-error loc "extend: extending outside seal")))
+    (raise (pyret-error loc "extend" "extending outside seal")))
   (define d (get-dict base))
   (define s (get-seal base))
   (define new-map (foldr (lambda: ([k : String] [d : Dict])
@@ -594,7 +615,7 @@
 (define raise-pfun
   (mk-internal-fun
    (λ: ([loc : Loc])
-      (λ: (o : Value *) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o)))))))
+      (λ: (o : Value *) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o) #f))))))
 
 (define is-nothing-pfun
   (mk-internal-fun
