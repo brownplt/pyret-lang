@@ -46,6 +46,13 @@ Nice-to-have (eventually):
 [] srcloc for a-any
 [] Make objects retain order w.r.t syntax of literal and update
 [] Vim highlight numbers
+[x] Allow exprs for object literal field names
+[] := for assignment
+[] parse method() ... end syntax
+[] don't use ? in identifiers from data
+[] pretty-print a-record
+[] better pretty-printing libraries
+[] optional "," in object literals
 
 Redex
 [] Redex the initial semantics
