@@ -1,6 +1,6 @@
 #lang pyret
 
-import "src/lang/pyret-lib/experimental/check.arr" as Check
+import "check.arr" as Check
 
 provide {
   class: class,
@@ -21,12 +21,18 @@ var object-brander: brander()
 var Object: object-brander.brand({
   #_brander: brander(),
   new(self, spec): object-brander.brand({
-    get(_, name): raise "get: field not found: ".append(name) end,
-    set(_, name, v): raise "set: field not found: ".append(name) end,
-    invoke(_, name, a): raise "invoke: method not found: ".append(name) end,
+    get(_, name): raise("get: field not found: ".append(name)) end,
+    set(_, name, v): raise("set: field not found: ".append(name)) end,
+    invoke(_, name, a): raise("invoke: method not found: ".append(name)) end,
     instance-of(_, class): object-brander.check(class) end,
+    view-as(inst, class):
+      cond:
+        | object-brander.check(class) => inst
+        | else => raise("Incompatible cast in view-as")
+      end
+    end
   }) end,
-  ext(self, ext-descr): ext(self, ext-description) end,
+  ext(self, ext-descr): ext(self, ext-descr) end,
 })
 
 # : Class -> ClassDescription -> Class
@@ -65,14 +71,15 @@ fun ext(parent-class, description):
 
           var inst-with-super: inst.{
             super(inst, arg):
-              parent-inst.invoke(name, arg)
+              parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
             end
           }
 
           cond:
             | builtins.has-field(methods, name) =>
-                methods:[name]._fun(inst-with-super, arg)
-            | else => parent-inst.invoke(name, arg)
+              methods:[name]._fun()(inst-with-super, arg)
+            | else =>
+              parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
           end
         end,
 
@@ -80,6 +87,19 @@ fun ext(parent-class, description):
         instance-of(_, class):
           class-brander.check(class).or(parent-inst.instance-of(class))
         end,
+        
+        view-as(inst, class):
+          cond:
+            | class-brander.check(class) => inst
+            | else => parent-inst:view-as._fun()(inst.{
+                get: parent-inst:get,
+                set: parent-inst:set,
+                invoke(_, name, arg):
+                  inst.invoke(name, arg)
+                end
+              }, class)
+          end
+        end
       }
 
       var inst-with-super: instance.{
@@ -89,7 +109,7 @@ fun ext(parent-class, description):
         end
       }
 
-      var inst-constructed: description:constructor._fun(inst-with-super, spec)
+      var inst-constructed: description:constructor._fun()(inst-with-super, spec)
       #drop-fields(inst-constructed, ["super"])
       inst-constructed
     end,
@@ -116,7 +136,8 @@ var todo-class-descr: {
   },
   methods: {
     is-completed(self, _): self.get("done") end,
-    complete(self, _): self.set("done", true) end
+    complete(self, _):
+      self.set("done", true) end
   },
   # Constructor should return an object to use as self
   # : (Instance) -> Object -> Instance
@@ -136,7 +157,7 @@ var assignee-ext-descr: {
 
     assign(self, person):
       cond:
-        | self.get("done") => raise "Can't assign a completed task"
+        | self.get("done") => raise("Can't assign a completed task")
         | else => self.set("assignee", person)
       end
     end,
@@ -144,7 +165,7 @@ var assignee-ext-descr: {
     complete(self, _):
       cond:
         | is-nothing(self.get("assignee")) =>
-            raise "Can't complete an unassigned task"
+            raise("Can't complete an unassigned task")
         | else => self.super(_)
       end
     end
@@ -185,8 +206,9 @@ Check.tru(todo2.instance-of(Object), "instance-of Object")
 
 todo2.invoke("assign", "Jonah")
 Check.equal(todo2.get("assignee"), "Jonah", "invoke child method")
-todo2.invoke("is-complete", nothing)
+todo2.invoke("is-completed", nothing)
 Check.fals(todo2.get("done"), "invoke parent method")
 
 todo2.invoke("complete", nothing)
 Check.tru(todo2.get("done"), "invoke overridden method")
+
