@@ -51,3 +51,8 @@ Check.equal(c1.get("x"), 49, "inherited method uses parent class state")
 c1.invoke("proxy_add1", nothing)
 Check.equal(c2.get("x"), 45, "calling overridden method from parent method uses child method and state")
 Check.equal(c1.get("x"), 49, "calling overridden method from parent method uses ONLY child method and state")
+
+Check.tru(c1.instance-of(C2), "instance-of works after upcast")
+Check.tru(c2.instance-of(C1), "instance-of works after upcast")
+Check.tru(c1.instance-of(C1), "instance-of works after upcast")
+Check.tru(c2.instance-of(C2), "instance-of works after upcast")
