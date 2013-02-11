@@ -6,7 +6,7 @@
          "../lang/desugar.rkt")
 
 (define verbose #f)
-(set! verbose #t)
+(set! verbose #f)
 
 (define round-trip-test #f)
 (set! round-trip-test #f)

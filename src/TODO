@@ -34,6 +34,8 @@ Need-to-have (eventually):
 [] better error reporting / pretty printing / support for debugging.
    For example, printing out names for brands (where appropriate)
    would be a start.
+[] seals should expand when fields are updated; otherwise you
+   can tell what is hidden, which is potentially a Bad Thing
 
 Nice-to-have (eventually):
 [] More tests for keys/builtins
@@ -85,6 +87,8 @@ Cleanup:
 [] Should use a stable paren-based syntax in compile-tests rather than
    needing to update that on syntax changes
 [] optional trailing commas everywhere
+[] get rid of #<void> in output in DrRacket
+[] get rid of ugly value printing in output in DrRacket
 
 TODO templates:
 
