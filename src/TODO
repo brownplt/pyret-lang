@@ -6,7 +6,18 @@ Need-to-have (soon):
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[] end syntax for lambdas?
+
+15-minute tasks
+[] Make everything with methods consistent with functions
+  [] doc
+  [] type variable declaration
+[] parse method() ... end syntax
+[] find an error in runtime.rkt and give it a good error message:
+  - variant in Error error.arr
+  - case in error.make-error in error.arr
+  - appropriate label, srcloc, and message in runtime.rkt
+[] Move some compile-tests to pyret/ test directory and use unittest
+[] pretty-print a-record
 
 CS019 Assignments
 [x] Flags
@@ -23,11 +34,9 @@ CS019 Assignments
 Need-to-have (eventually):
 [] Cyclic modules check
 [] provide Data
-[] Make everything with methods consistent with functions
-  [] doc
-  [] type variable declaration
-[] decide on built-in exception types
-[] mis-applied function error message is crap:
+[x] decide on built-in exception types
+  - types in error.arr, desugar/compile to error.make-error
+[x] mis-applied function error message is crap:
     p-fun-f823: contract violation
      expected: p-fun?
      given: (p-bool ...
@@ -37,10 +46,9 @@ Need-to-have (eventually):
    would be a start.
 [] seals should expand when fields are updated; otherwise you
    can tell what is hidden, which is potentially a Bad Thing
-[] Capture avoiding names in catch blocks
+[x] Capture avoiding names in catch blocks
 
 Nice-to-have (eventually):
-[] More tests for keys/builtins
 [] implicit cond if you start fun with a |
 [] DrRacket syntax highlighting
 [] Figure out how to/if we can use list.arr lists in runtime.rkt
@@ -49,12 +57,11 @@ Nice-to-have (eventually):
 [] Make objects retain order w.r.t syntax of literal and update
 [] Vim highlight numbers
 [x] Allow exprs for object literal field names
-[] := for assignment
-[] parse method() ... end syntax
+[x] := for assignment
 [] don't use ? in identifiers from data
-[] pretty-print a-record
 [] better pretty-printing libraries
 [] optional "," in object literals
+[] (what's up with) end syntax for lambdas?
 
 Redex
 [] Redex the initial semantics
