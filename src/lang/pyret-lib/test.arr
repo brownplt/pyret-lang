@@ -96,4 +96,5 @@ fun format-results():
         print("")
     end
   ))
+  nothing
 end

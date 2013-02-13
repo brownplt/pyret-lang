@@ -1,6 +1,6 @@
 #lang pyret
 
-import "unittest.arr" as T
+import "test.arr" as T
 import "../../lang/pyret-lib/experimental/seal.arr" as S
 provide { run-tests: run-tests } end
 
@@ -20,19 +20,19 @@ fun run-tests():
 
   T.check-exn("seal block",
     \( S.seal({x:5}, []).x ),
-    "get-field: ")
+    error.is-field-not-found)
 
   T.check-exn("seal block 2",
     \( S.seal(S.seal({x:5, y:5}, ['y']), ['y']).x ),
-    "get-field: ")
+    error.is-field-not-found)
 
   T.check-exn("seal added doesn't re-access",
     \( {x:5, y:10}^S.seal(["x"])^S.seal(["y", "x"]).y ),
-    "get-field: ")
+    error.is-field-not-found)
 
   T.check-exn("builtin seal",
     \( S.seal(2, ['minus']).add(2, 3) ),
-    "get-field")
+    error.is-field-not-found)
 
   T.check-equals("builtin seal 2",
     \( S.seal(2, ['minus']).minus(2) ),
@@ -44,7 +44,7 @@ fun run-tests():
 
   T.check-exn("adding is an error outside the seal",
     \( {x:5}^S.seal([]).{x : 10} ),
-    "seal")
+    \e: (e.message.contains("seal")))
 
   T.check-equals("adding is OK inside",
     \( {x:5}^S.seal(["x", "y"]).{ y: 10 }.y ),
