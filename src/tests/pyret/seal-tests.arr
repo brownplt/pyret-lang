@@ -1,6 +1,6 @@
 #lang pyret
 
-import "unittest.arr" as T
+import "test.arr" as T
 provide { run-tests: run-tests } end
 
 fun run-tests():
