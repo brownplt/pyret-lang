@@ -50,37 +50,6 @@
 (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
                         (p:p-bool _ _ _ #t))
 
-(check-pyret "seal({}, [])" (p:p-object (set) (set) p:empty-dict))
-(check-pyret "seal({x:5}, ['x'])" (p:p-object (set "x") (set)
-                                              (make-immutable-hash (list (cons "x" five)))))
-(check-pyret "seal(seal({x:5, y:2}, ['y']), ['y'])"
-             (p:p-object (set "y") (set)
-                         (make-immutable-hash `(("x" . ,five) ("y" . ,two)))))
-(check-pyret "seal(seal({x:5, y:2, z:10}, ['y', 'z']), ['y'])"
-             (p:p-object (set "y") (set)
-                         (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
-(check-pyret "seal({x:5, y:2, z:10}, ['y', 'z'])"
-             (p:p-object (set "y" "z") (set)
-                         (make-immutable-hash `(("x" . ,five) ("y" . ,two) ("z" . ,ten)))))
-(check-pyret-match "seal({x:5}, ['y'])" (p:p-object (set "y") _ (hash-table ("x" _))))
-(check-pyret-match "seal(seal({x:5, y:2}, ['y']), ['x'])" (p:p-object (set) _ (hash-table ("x" _) ("y" _))))
-(check-pyret-match "seal({}, ['y'])" (p:p-object (set "y") _ (hash-table)))
-(check-pyret-match "seal(5, ['y'])" (p:p-num (set "y") _ _ 5))
-
-;; TODO(joe): we should make a wrapper for seal, the current implementation just
-;; checks if first and rest are present so 'y' appears to be empty
-#;(check-pyret-exn "seal({x:5}, 'y')" "seal:")
-
-(check-pyret-exn "seal({x:5}, []).x" "get-field:")
-(check-pyret "seal({x:5}, ['x']).x" five)
-(check-pyret "{x:5}.x" five)
-(check-pyret-exn "{x:5}.y" "get-field:")
-(check-pyret-exn "seal(seal({x:5, y:5}, ['y']), ['y']).x" "get-field:")
-(check-pyret "seal(seal({x:5, y:5}, ['x', 'y']), ['y']).y" five)
-(check-pyret-exn "seal(seal({x:5, y:5, z:5}, ['x', 'y']), ['y']).z" "get-field:")
-
-(check-pyret-exn "seal(2, ['subtract']).add(2, 3)" "get-field:")
-
 (check-pyret "fun f(x): x := 2 x end f(1)" two)
 (check-pyret "fun f(x): x := 2 x := 5 x end f(1)" five)
 (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
@@ -129,7 +98,7 @@
 (check-pyret "var o: {x:5} var o2: {f(self): self.x} o := o.{g : o2:f} o.g()" five)
 
 ;; cannot apply raw methods (better error messages plz)
-(check-pyret-exn "3:add()" "expected function")
+(check-pyret-exn "3:add()" "apply-fun: expected function")
 
 
 (check-pyret "3.add(2)" five)
@@ -137,7 +106,7 @@
 ;; two not three because side effects should happen only once
 (check-pyret "var x: 0 fun f(): x := x.add(1) x end f().add(1)" two)
 
-(check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extend:")
+(check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extending outside")
 
 (check-pyret-match "{extend {x:2} with y:10 }"
                    (p:p-object _ _ (hash-table ("x" (p:p-num _ _ _ 2))("y" (p:p-num _ _ _ 10)))))
@@ -146,8 +115,8 @@
 (check-pyret "{extend {x:5} with y:6 }.x" five)
 ;; TODO(joe): change this to use : for method extraction
 #;(check-pyret "{extend 5 with y:6}.add(2,3)" five)
-(check-pyret-exn "{extend seal({x:5}, []) with x:10 }" "extend:")
-(check-pyret-exn "seal({x:5}, []).{ x:10 }" "extend:")
+(check-pyret-exn "{extend seal({x:5}, []) with x:10 }" "extending outside")
+(check-pyret-exn "seal({x:5}, []).{ x:10 }" "extending outside")
 (check-pyret "{extend {x:5} with x:10 }.x" ten)
 (check-pyret "{x:5}.{x:10}.x" ten)
 (check-pyret-match "{extend {extend {x:1} with y:2} with z:7}"
@@ -157,8 +126,8 @@
                      (hash-table ("x" (p:p-num _ _ _ 1))
                                  ("y" (p:p-num _ _ _ 2))
                                  ("z" (p:p-num _ _ _ 7)))))
-(check-pyret-exn "var o: seal({extend {x:1} with x:2}, []) o.x" "get-field:")
-(check-pyret-exn "var o: seal({x:1}.{x:2}, []) o.x" "get-field:")
+(check-pyret-exn "var o: seal({extend {x:1} with x:2}, []) o.x" "not found")
+(check-pyret-exn "var o: seal({x:1}.{x:2}, []) o.x" "not found")
 
 (check-pyret "cond: | true => 2 | false => 1 end" two)
 (check-pyret "cond: | false => 1 | else => 2 end" two) 
@@ -432,7 +401,7 @@ l1.add(l2)
 
 (check-pyret-exn
  "seal([1], ['first']).{rest: 2}.rest"
- "extend:")
+ "extending outside")
 
 (check-pyret
   "var o: { m(self): self }

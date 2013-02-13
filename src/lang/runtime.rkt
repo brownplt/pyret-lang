@@ -217,7 +217,11 @@
     [(p-fun _ _ _ f)
      (apply (f l) args)]
     [_
-     (error (format "apply-fun: expected function, got ~a" v))]))
+     (raise
+      (pyret-error
+        l
+        "apply-non-function"
+        (format "apply-fun: expected function, got ~a" (to-string v))))]))
 
 (define: (reseal (v : Value) (new-seal : Seal)) : Value
   (match v
