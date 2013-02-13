@@ -1,3 +1,6 @@
 [submodule "lib/ragg"]
 	path = lib/ragg
 	url = git@github.com:dyoo/ragg
+[submodule "pyret-lang-private"]
+	path = lib/pyret-lang-private
+	url = git@github.com:brownplt/pyret-lang-private
