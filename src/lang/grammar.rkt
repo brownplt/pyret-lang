@@ -11,7 +11,7 @@ block: stmt*
 
 stmt: (var-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | dot-assign-expr | bracket-assign-expr
-    | try-expr) [ENDMARKER]
+    | try-expr | comment-expr ) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -30,6 +30,8 @@ bool-expr: "true" | "false"
 string-expr: STRING
                     
 var-expr: "var" NAME ["::" ann] ":" expr
+
+comment-expr: COMMENT
 
 app-arg-elt: expr ","
 app-args: "(" [app-arg-elt* expr] ")"

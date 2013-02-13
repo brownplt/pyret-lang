@@ -30,6 +30,8 @@
 (check/block "5" (s-num _ 5))
 (check/block "-5" (s-num _ -5))
 
+(check/block "52 #comment" (s-num _ 52) (s-comment _ "#comment"))
+
 (check/block "true" (s-bool _ #t))
 (check/block "false" (s-bool _ #f))
 
