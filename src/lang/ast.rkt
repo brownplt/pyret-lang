@@ -5,7 +5,6 @@
   (struct-out s-import)
   (struct-out s-provide)
   (struct-out s-block)
-  (struct-out s-comment)
   (struct-out s-fun)
   (struct-out s-var)
   (struct-out s-bind)
@@ -81,12 +80,7 @@ these metadata purposes.
 (struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann))
    #:transparent)
 
-(define-type Stmt (U s-fun s-var s-cond s-try s-data s-do s-import s-comment Expr))
-
-(struct: s-comment ((syntax : srcloc)
-                    (text : String))
-                   #:transparent)
-
+(define-type Stmt (U s-fun s-var s-cond s-try s-data s-do s-import Expr))
 (struct: s-fun ((syntax : srcloc)
     (name : Symbol)
     (params : (Listof Symbol))

@@ -38,7 +38,7 @@
               (pt (token 'STRING text))]
              [(BACKSLASH)
               (pt (token 'BACKSLASH "\\"))]
-             [(COMMENT) (token 'COMMENT text)]
+             [(COMMENT) (loop)]
              [(NL) (loop)]
              [(NEWLINE) (loop)]
              [(DEDENT) (loop)]

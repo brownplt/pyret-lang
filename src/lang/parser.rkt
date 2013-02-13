@@ -29,9 +29,6 @@
   (let [(str-val (syntax->datum stx))]
     (substring str-val 1 (sub1 (string-length str-val)))))
 
-(define-for-syntax (parse-comment stx)
-  (syntax->datum stx))
-
 (define-syntax (program stx)
   (syntax-case stx ()
     [(_ (imports import ...) block endmarker-ignored)
@@ -64,12 +61,6 @@
 (define-syntax (prim-expr stx)
   (syntax-case stx ()
     [(_ expr) #'expr]))
-
-(define-syntax (comment-expr stx)
-  (syntax-case stx ()
-    [(_ text)
-     (with-syntax ([s (datum->syntax #'comment-expr (parse-comment #'text))])
-       #`(s-comment #,(loc stx) s))]))
 
 ;; Amusingly, we get "'foo'" for the string 'foo' in the source, so cut off
 ;; the surrounding quotes
