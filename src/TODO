@@ -40,7 +40,10 @@ Need-to-have (eventually):
     p-fun-f823: contract violation
      expected: p-fun?
      given: (p-bool ...
-[] Indentation enforcement?
+[] Indentation enforcement
+  [] Need pyrfmt: a way to print out canonically correct pyret code
+    [] Keep track of comments in parsing
+    [] Decide on indentation conventions and implement
 [] better error reporting / pretty printing / support for debugging.
    For example, printing out names for brands (where appropriate)
    would be a start.

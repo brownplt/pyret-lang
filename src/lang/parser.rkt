@@ -105,11 +105,7 @@
 (define-syntax (obj-expr stx)
   (syntax-case stx (list-field)
     [(_ "{" fields "}") #`(s-obj #,(loc stx) fields)]
-    [(_ "{" "}") #`(s-obj #,(loc stx) empty)]
-    [(_ "{" "extend" super-expr "with" fields "}")
-     #`(s-onion #,(loc stx) super-expr fields)]
-    [(_ "{" "extend" super-expr "}")
-     #`(s-onion #,(loc stx) super-expr empty)]))
+    [(_ "{" "}") #`(s-obj #,(loc stx) empty)]))
 
 (define-syntax (id-expr stx)
   (syntax-case stx ()

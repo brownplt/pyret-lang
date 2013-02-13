@@ -106,27 +106,24 @@
 ;; two not three because side effects should happen only once
 (check-pyret "var x: 0 fun f(): x := x.add(1) x end f().add(1)" two)
 
-(check-pyret-exn "{extend seal({x:5},[]) with y:6}" "extending outside")
+(check-pyret-exn "seal({x:5},[]).{y:6}" "extending outside")
 
-(check-pyret-match "{extend {x:2} with y:10 }"
+(check-pyret-match "{x:2}.{ y:10 }"
                    (p:p-object _ _ (hash-table ("x" (p:p-num _ _ _ 2))("y" (p:p-num _ _ _ 10)))))
 
 
-(check-pyret "{extend {x:5} with y:6 }.x" five)
+(check-pyret "{x:5}.{ y:6 }.x" five)
 ;; TODO(joe): change this to use : for method extraction
 #;(check-pyret "{extend 5 with y:6}.add(2,3)" five)
-(check-pyret-exn "{extend seal({x:5}, []) with x:10 }" "extending outside")
 (check-pyret-exn "seal({x:5}, []).{ x:10 }" "extending outside")
-(check-pyret "{extend {x:5} with x:10 }.x" ten)
 (check-pyret "{x:5}.{x:10}.x" ten)
-(check-pyret-match "{extend {extend {x:1} with y:2} with z:7}"
+(check-pyret-match "{x:1}.{ y:2}.{z:7}"
                    (p:p-object
                      _
                      _
                      (hash-table ("x" (p:p-num _ _ _ 1))
                                  ("y" (p:p-num _ _ _ 2))
                                  ("z" (p:p-num _ _ _ 7)))))
-(check-pyret-exn "var o: seal({extend {x:1} with x:2}, []) o.x" "not found")
 (check-pyret-exn "var o: seal({x:1}.{x:2}, []) o.x" "not found")
 
 (check-pyret "cond: | true => 2 | false => 1 end" two)
@@ -143,8 +140,6 @@
 
 (check-pyret "{f(self): self.x, x:5}.f()" five)
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
-(check-pyret "{extend {f(s): s.x, x:10} with x:5}.f()" five)
-
 (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
 
 (check-pyret "Racket.racket('+',2, 3)" five)
