@@ -27,7 +27,7 @@
          (define (pt token) (position-token token start-pos end-pos))
          (case type
              [(NAME) 
-              (cond [(hash-has-key? all-token-types (string->symbol text))
+              (cond [(set-member? all-token-types (string->symbol text))
                      (pt (token (string->symbol text) text))]
                     [else
                      (pt (token 'NAME text))])]
