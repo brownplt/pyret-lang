@@ -1,7 +1,12 @@
 #lang racket/base
 
-(require/typed srfi/13
-  [string-contains (String String -> (U Boolean Number))])
+(require
+  racket/list
+  racket/match
+  (only-in racket/math sqr pi)
+  racket/set
+  (only-in racket/string string-join)
+  (only-in srfi/13 string-contains))
 
 (provide
   (prefix-out p: (struct-out none))
@@ -30,7 +35,7 @@
               [apply-fun p:apply-fun]
               [has-field? p:has-field?]
               [reseal p:reseal]
-              [flatten p:flatten]
+              [extend p:extend]
               [pyret-true? p:pyret-true?])
   (rename-out [p-pi pi]
               [print-pfun print]
@@ -63,22 +68,22 @@
 ;(define-type Seal (U (Setof String) none))
 ;(define-type Proc (Value * -> Value))
 
-(struct: none () #:transparent)
+(struct none () #:transparent)
 ;; Everything has a seal, a set of brands, and a dict
 ;; p-base: Seal SetOf Symbol Dict -> p-base
-(struct: p-base (seal brands dict) #:transparent)
-(struct: p-nothing p-base () #:transparent)
-(struct: p-object p-base () #:transparent)
+(struct p-base (seal brands dict) #:transparent)
+(struct p-nothing p-base () #:transparent)
+(struct p-object p-base () #:transparent)
 ;; p-num : p-base Number -> p-num
-(struct: p-num p-base (n) #:transparent)
+(struct p-num p-base (n) #:transparent)
 ;; p-bool : p-base Boolean -> p-bool
-(struct: p-bool p-base (b) #:transparent)
+(struct p-bool p-base (b) #:transparent)
 ;; p-str : p-base String -> p-str
-(struct: p-str p-base (s) #:transparent)
+(struct p-str p-base (s) #:transparent)
 ;; p-fun : p-base (Loc -> Proc) -> p-fun
-(struct: p-fun p-base (f) #:transparent)
+(struct p-fun p-base (f) #:transparent)
 ;; p-method: p-base Proc -> p-method
-(struct: p-method p-base (f) #:transparent)
+(struct p-method p-base (f) #:transparent)
 
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
@@ -114,7 +119,7 @@
 
 ;; mk-exn: p-exn -> Value
 (define (mk-exn e)
-  (define loc (pyret-exn-srcloc e))
+  (define loc (exn:fail:pyret-srcloc e))
   (define maybe-path (srcloc-source loc))
   (define maybe-line (srcloc-line loc))
   (define maybe-col (srcloc-column loc))
@@ -126,14 +131,14 @@
   (define column (if maybe-col maybe-col -1))
   (mk-object
    (make-immutable-hash 
-    (list (cons "value" (pyret-exn-val e))
-	  (cons "system" (mk-bool (pyret-exn-system? e)))
+    (list (cons "value" (exn:fail:pyret-val e))
+	  (cons "system" (mk-bool (exn:fail:pyret-system? e)))
 	  (cons "path" (mk-str path))
 	  (cons "line" (mk-num line))
 	  (cons "column" (mk-num column))))))
 
 ;; empty-dict: HashOf String Value
-(define empty-dict ((make-immutable-hash) '()))
+(define empty-dict (make-immutable-hash '()))
 
 (define nothing (p-nothing (set) (set) empty-dict))
 
@@ -144,7 +149,7 @@
       v))
 
 ;; get-dict : Value -> Dict
-(define: (get-dict v)
+(define (get-dict v)
   (p-base-dict (filter-opaque v)))
 
 ;; get-seal : Value -> Seal
@@ -175,7 +180,7 @@
 (define (mk-fun f s)
   (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))
                                              ("_method" . ,(mk-method-method f))))
-         (λ ((a : Loc)) f)))
+         (λ (_) f)))
 
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
@@ -191,13 +196,13 @@
 (define (mk-method-method f)
   (p-method (none) (set)
             (make-immutable-hash `(("doc" . ,nothing)))
-            (λ (v) (mk-method f))))
+            (λ _ (mk-method f))))
 
 ;; mk-fun-method : Proc -> p-method
 (define (mk-fun-method f)
   (p-method (none) (set)
             (make-immutable-hash `(("doc" . ,(mk-str "method"))))
-            (λ (v) (mk-fun f "method-fun"))))
+            (λ _ (mk-fun f "method-fun"))))
 
 ;; mk-method : Proc -> Value
 (define (mk-method f)
@@ -210,20 +215,20 @@
 (define Racket (mk-object empty-dict))
 
 (define Any?
-  (mk-fun-nodoc (λ (o) (mk-bool #t))))
+  (mk-fun-nodoc (λ o (mk-bool #t))))
 
 ;; is-number? : Value * -> Value
-(define (is-number? n)
+(define (is-number? . n)
   (mk-bool (p-num? (first n))))  
 (define Number? (mk-fun-nodoc is-number?))
 
 ;; is-string : Value * -> Value
-(define (is-string? n)
+(define (is-string? . n)
   (mk-bool (p-str? (first n))))
 (define String? (mk-fun-nodoc is-string?))
 
 ;; bool? : Value * -> Value
-(define (bool? n)
+(define (bool? . n)
   (mk-bool (p-bool? (first n))))
 
 (define Bool? (mk-fun-nodoc bool?))
@@ -231,7 +236,7 @@
 ;; mk-racket-fun : String -> Value
 (define (mk-racket-fun f)
   (mk-fun-nodoc
-    (λ (args)
+    (λ args
       (match (first args)
         [(p-str _ _ _ s)
          (wrap (apply-racket-fun f s (map unwrap (rest args))))]
@@ -258,13 +263,11 @@
       (mk-racket-fun f)
       (match (get-raw-field loc v f)
         [(p-method _ _ _ f)
-               (mk-fun-nodoc (λ (args : Value *)
-                         ;; TODO(joe): Can this by typechecked?  I think maybe
-                         (cast (apply f (cons v args)) Value )))]
+               (mk-fun-nodoc (λ args (apply f (cons v args))))]
         [non-method non-method])))
 
 ;; apply-fun : Value Loc Value * -> Values
-(define (apply-fun v l args)
+(define (apply-fun v l . args)
   (match v
     [(p-fun _ _ _ f)
      (apply (f l) args)]
@@ -289,7 +292,7 @@
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
-  (define bs : (Setof Symbol) (set-union (get-brands v) (set new-brand)))
+  (define bs (set-union (get-brands v) (set new-brand)))
   (match v
     [(p-object s _ h) (p-object s bs h)]
     [(p-num s _ h n) (p-num s bs h n)]
@@ -316,7 +319,7 @@
        (hash-has-key? d f)))
 
 ;; seal: Value * -> Value
-(define (seal vs)
+(define (seal . vs)
   (define object (first vs))
   (define fields (second vs))
   ;; get-strings : ListofValue -> Setof String
@@ -325,14 +328,14 @@
              (if (p-str? v)
                  (set-add s (p-str-s v))
                  (error (format "seal: found non-string in constraint list: ~a" v))))
-           ((inst set String))
+           (set)
            strs))
   (define fields-seal (get-strings (structural-list->list fields)))
-  (local [(define current-seal (get-seal object))
-          (define new-seal (if (none? current-seal)
-                               fields-seal
-                               (set-intersect fields-seal current-seal)))]
-    (reseal object new-seal)))
+  (define current-seal (get-seal object))
+  (define new-seal (if (none? current-seal)
+                       fields-seal
+                       (set-intersect fields-seal current-seal)))
+  (reseal object new-seal))
 
 (define seal-pfun (mk-fun-nodoc seal))
 
@@ -343,8 +346,8 @@
       existing-keys
       (set-intersect existing-keys s)))
 
-;; flatten : Loc Value Dict -> Value
-(define (flatten loc base extension)
+;; extend : Loc Value Dict -> Value
+(define (extend loc base extension)
   (when (not (andmap (λ (k) (in-seal? base k)) (hash-keys extension)))
     (raise (pyret-error loc "extend" "extending outside seal")))
   (define d (get-dict base))
@@ -384,7 +387,7 @@
           ("rest" . ,(mk-structural-list (rest lst))))))]))
 
 ;; keys : Value * -> Value
-(define (keys vs)
+(define (keys . vs)
   (define obj (first vs))
   (define d (get-dict obj))
   (define s (get-seal obj))
@@ -394,17 +397,17 @@
 
 ;; mk-brander : Symbol -> Proc
 (define (mk-brander sym)
-  (λ (v)
-    (add-brand (first v) sym)))
+  (λ vs
+    (add-brand (first vs) sym)))
 
 ;; mk-checker : Symbol -> Proc
 (define (mk-checker sym)
-  (λ (v)
-    (mk-bool (has-brand? (first v) sym))))
+  (λ vs
+    (mk-bool (has-brand? (first vs) sym))))
 
 ;; brander : Value * -> Value
-(define (brander _)
-  (define sym : Symbol (gensym))
+(define (brander . _)
+  (define sym (gensym))
   (mk-object
    (make-immutable-hash 
     `(("brand" .
@@ -418,133 +421,86 @@
     [(p-bool _ _ _ #t) #t]
     [else #f]))
 
-;; mk-num-impl : (Number Number -> Number) -> (Value * -> Value)
-(define (mk-num-impl op)
-  (λ (vs)
-    (match (cons (first vs) (second vs))
-      [(cons (p-num _ _ _ n1) (p-num _ _ _ n2))
-       (mk-num (op n1 n2))]
-      [(cons _ _)
-       (error (format "num: cannot ~a ~a and ~a" op (first vs) (second vs)))])))
+;; mk-prim-fun :
+;; ((a1 ... an) -> b)
+;; Symbol
+;; (b -> Value)
+;; (a1 -> Boolean ... am -> Boolean)
+;; ((U am+1 ... an) -> Boolean)
+;; (∩ (Value1 -> a1) ... (Valuen -> an))
+;; -> (Value1 ... Valuen -> Value)
+(define (mk-prim-fun op opname [pred-default p-base?] [preds (list)] [wrapper wrap] [unwrapper unwrap])
+  (mk-method
+    (λ args
+      (define args-len (length args))
+      (define preds-len (length preds))
+      (cond
+        [(<= preds-len args-len)
+         (define preds-passed (andmap (λ (pred arg) (pred arg)) preds (take args preds-len)))
+         (define pred-default-passed (andmap (λ (arg) (pred-default arg)) (drop args preds-len)))
+         (cond
+          [(and preds-passed pred-default-passed)
+           (wrapper (apply op (map unwrapper args)))]
+          [else
+           (define args-strs (map to-string args))
+           (define args-str (string-join args-strs ", "))
+           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
+           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])]
+        [else
+         (define args-strs (map to-string args))
+         (define args-str (string-join args-strs ", "))
+         (define error-val (mk-str (format "Too many args to prim: ~a : ~a" opname args-str)))
+         (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
 
-(define (mk-num-bool-impl (op : (Number Number -> Boolean)))
-          : (Value * -> Value)
-  (λ (vs : Value *)
-    (match (cons (first vs) (second vs))
-      [(cons (p-num _ _ _ n1) (p-num _ _ _ n2))
-       (mk-bool (op n1 n2))]
-      [(cons _ _)
-       (error (format "num cannot ~a ~a and ~a" op (first vs) (second vs)))])))
+(define (mk-prim-fixed op opname pred len)
+  (mk-prim-fun op opname (λ (v) #f) (build-list len (λ (n) pred))))
 
-(define (mk-single-num-impl (op : (Number -> Value)))
-         : (Value * -> Value)
-  (λ (vs : Value *)
-    (define v (first vs))
-    (match v
-      [(p-num _ _ _ n) (op n)]
-      [_
-       (error (format "num: cannot ~a ~a" op v))])))
 
-(define (mk-num-fun (op : (Number Number -> Number))) : Value
-  (mk-method (mk-num-impl op)))
+(define (mk-num-fun op name)
+  (mk-prim-fun op name p-num?))
 
-(define (mk-single-num-fun (op : (Number -> Value))) : Value
-  (mk-method (mk-single-num-impl op)))
+(define (mk-num-fixed op opname len)
+  (mk-prim-fixed op opname p-num? len))
 
-(define (numify (f : (Number -> Number)))
-         : (Number -> Value)
-  (lambda (n) (mk-num (f n))))
-
-(define (stringify (f : (Number -> String)))
-         : (Number -> Value)
-  (lambda (n) (mk-str (f n))))
-
-(define meta-num-store ((inst make-immutable-hash String Value) '()))
+;; meta-num-store (Hashof numing value)
+(define meta-num-store (make-immutable-hash '()))
 (define (meta-num)
   (when (= (hash-count meta-num-store) 0)
     (set! meta-num-store
       (make-immutable-hash
-        `(("add" . ,(mk-num-fun +))
-          ("minus" . ,(mk-num-fun -))
-          ("divide" . ,(mk-num-fun /))
-          ("times" . ,(mk-num-fun *))
-          ("sin" . ,(mk-single-num-fun (numify sin)))
-          ("cos" . ,(mk-single-num-fun (numify cos)))
-          ("sqr" . ,(mk-single-num-fun (numify sqr)))
-          ("tostring" . ,(mk-single-num-fun (stringify number->string)))
-          ("expt" . ,(mk-num-fun expt))
-          ("equals" . ,(mk-method
-                       (mk-num-bool-impl
-                        (cast = (Number Number -> Boolean)))))
-          ("lessthan" . ,(mk-method 
-                          (mk-num-bool-impl 
-                           (cast < (Number Number -> Boolean)))))
-          ("greaterthan" . ,(mk-method 
-                          (mk-num-bool-impl 
-                           (cast > (Number Number -> Boolean)))))
-          ("lessequal" . ,(mk-method 
-                          (mk-num-bool-impl 
-                           (cast <= (Number Number -> Boolean)))))
-          ("greaterequal" . ,(mk-method 
-                          (mk-num-bool-impl 
-                           (cast >= (Number Number -> Boolean)))))))))
+        `(("add" . ,(mk-num-fun + '+))
+          ("minus" . ,(mk-num-fun - '-))
+          ("divide" . ,(mk-num-fun / '/))
+          ("times" . ,(mk-num-fun * '*))
+          ("sin" . ,(mk-num-fixed sin 'sin 1))
+          ("cos" . ,(mk-num-fixed cos 'cos 1))
+          ("sqr" . ,(mk-num-fixed sqr 'sqr 1))
+          ("tostring" . ,(mk-num-fixed number->string 'tostring 1))
+          ("expt" . ,(mk-num-fixed expt 'expt 1))
+          ("equals" . ,(mk-num-fixed = 'equals 2))
+          ("lessthan" . ,(mk-num-fixed < 'lessthan 2)) 
+          ("greaterthan" . ,(mk-num-fixed > 'greaterthan 2)) 
+          ("lessequal" . ,(mk-num-fixed <= 'lessequal 2)) 
+          ("greaterequal" . ,(mk-num-fixed >= 'greaterequal 2))))))
   meta-num-store)
-
 (define p-pi (mk-num pi))
 
-(define (mk-str-impl (op : (String String -> String)))
-         : (Value * -> Value)
-  (λ (vs : Value *)
-    (define v1 (first vs))
-    (define v2 (second vs))
-    (match (cons v1 v2)
-      [(cons (p-str _ _ _ s1) (p-str _ _ _ s2))
-       (mk-str (op s1 s2))]
-      [(cons _ _)
-       (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
+(define (mk-str-fun op opname)
+  (mk-prim-fun op opname p-str?))
+(define (mk-str-fixed op opname len)
+  (mk-prim-fixed op opname p-str? len))
 
-(define (mk-str-bool-impl (op : (String String -> Boolean)))
-          : (Value * -> Value)
-  (λ (vs : Value *)
-    (define v1 (first vs))
-    (define v2 (second vs))
-    (match (cons v1 v2)
-      [(cons (p-str _ _ _ s1) (p-str _ _ _ s2))
-       (mk-bool (op s1 s2))]
-      [(cons _ _)
-       (error (format "str: cannot ~a ~a and ~a" op v1 v2))])))
-
-(define (mk-single-str-impl (op : (String -> Value)))
-         : (Value * -> Value)
-  (λ (vs :  Value *)
-    (define v (first vs))
-    (match v
-      [(p-str _ _ _ s) (op s)]
-      [_
-       (error (format "str: cannot ~a ~a" op v))])))
-
-(define (mk-str-fun (op : (String String -> String))) : Value
-  (mk-method (mk-str-impl op)))
-
-(define (mk-single-str-fun (op : (String -> Value))) : Value
-  (mk-method (mk-single-str-impl op)))
-
-(define meta-str-store ((inst make-immutable-hash String Value) '()))
+;; meta-str-store (Hashof String value)
+(define meta-str-store (make-immutable-hash '()))
 (define (meta-str)
   (when (= 0 (hash-count meta-str-store))
     (set! meta-str-store
       (make-immutable-hash
-        `(("append" . ,(mk-str-fun string-append))
-          ("contains" . ,(mk-method (mk-str-bool-impl
-            (lambda (s1 s2) (if (string-contains s1 s2) #t #f)))))
-          ("length" . ,(mk-single-str-fun (lambda (s) (mk-num (string-length s)))))
-          ("tonumber" . ,(mk-single-str-fun
-            (lambda (s)
-              (define n (string->number s))
-              (if (false? n)
-                  (error (format "str: non-numeric string ~a" s))
-                  (mk-num n)))))
-          ("equals" . ,(mk-method (mk-str-bool-impl string=?)))
+        `(("append" . ,(mk-str-fun string-append 'append))
+          ("contains" . ,(mk-str-fixed string-contains 'contains 2))
+          ("length" . ,(mk-str-fixed string-length 'length 1))
+          ("tonumber" . ,(mk-str-fixed string->number 'tonumber 1))
+          ("equals" . ,(mk-str-fixed string=? 'equals 2))
           ;; NOTE(dbp): this process of writing library code is ridiculous.
           ;; We need to put this elsewhere.
           ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
@@ -553,33 +509,13 @@
       ))))
   meta-str-store)
 
-(define (mk-bool-impl (op : (Boolean Boolean -> Boolean)))
-         : (Value * -> Value)
-  (λ (vs : Value *)
-    (define v1 (first vs))
-    (define v2 (second vs))
-    (match (cons v1 v2)
-      [(cons (p-bool _ _ _ b1) (p-bool _ _ _ b2))
-       (mk-bool (op b1 b2))]
-      [(cons _ _)
-       (error (format "bool: cannot ~a ~a and ~a" op v1 v2))])))
+(define (mk-bool-fun op opname)
+  (mk-prim-fun op opname p-bool?))
+(define (mk-bool-fixed op opname len)
+  (mk-prim-fixed op opname p-bool? len))
 
-(define (mk-single-bool-impl (op : (Boolean -> Boolean)))
-         : (Value * -> Value)
-  (λ (vs : Value *)
-    (define v (first vs))
-    (match v
-      [(p-bool _ _ _ b) (mk-bool (op b))]
-      [_
-       (error (format "bool: cannot ~a ~a" op v))])))
-
-(define (mk-bool-fun (op : (Boolean Boolean -> Boolean))) : Value
-  (mk-method (mk-bool-impl op)))
-
-(define (mk-single-bool-fun (op : (Boolean -> Boolean))) : Value
-  (mk-method (mk-single-bool-impl op)))
-
-(define meta-bool-store ((inst make-immutable-hash String Value) '()))
+;; meta-bool-store (Hashof String value)
+(define meta-bool-store (make-immutable-hash '()))
 (define (meta-bool)
   (when (= (hash-count meta-bool-store) 0)
     (set! meta-bool-store
@@ -589,11 +525,10 @@
             (my-or (lambda (x y) (if x #t (if y #t #f))))
             (my-equals (lambda (x y) (equal? x y)))]
         (make-immutable-hash
-         `(("and" . ,(mk-bool-fun my-and))
-           ("or" . ,(mk-bool-fun my-or))
-           ("equals" . ,(mk-bool-fun my-equals))
-           ("not" . ,(mk-single-bool-fun 
-                      (cast not (Boolean -> Boolean)))))))))
+         `(("and" . ,(mk-bool-fixed my-and 'and 2))
+           ("or" . ,(mk-bool-fixed my-or 'or 2))
+           ("equals" . ,(mk-bool-fixed equal? 'equals 2))
+           ("not" . ,(mk-bool-fixed not 'not 1))))))) 
   meta-bool-store)
 
 (define p-else (mk-bool #t))
@@ -608,8 +543,8 @@
      (if p "true" "false")]
     [(p-method _ _ _ f) "[[code]]"]
     [(p-object _ _ h)
-     (define (to-string-raw-object (h : Dict)) : String
-       (define (field-to-string (f : String) (v : Value)) : String
+     (define (to-string-raw-object h)
+       (define (field-to-string f v)
       (format "~a: ~a" f (to-string v)))
        (format "{ ~a }"
                (string-join (hash-map h field-to-string) ", ")))
@@ -618,28 +553,28 @@
            (if (p-method? m)
                ;; NOTE(dbp): this will fail if tostring isn't defined
                ;; as taking only self.
-               (match ((cast (p-method-f m) (Value -> Value)) v)
+               (match ((p-method-f m) v)
                  [(p-str _ _ _ s) s]
                  [else (to-string-raw-object h)])
                (to-string-raw-object h)))
          (to-string-raw-object h))]
     [v (format "~a" v)]))
 
-(define tostring-pfun (mk-fun-nodoc (λ (o) (mk-str (to-string (first o))))))
+(define tostring-pfun (mk-fun-nodoc (λ o (mk-str (to-string (first o))))))
 
-(define print-pfun (mk-fun-nodoc (λ (o) (begin (printf "~a\n" (to-string (first o))) nothing)))
+(define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing)))
 )
 
 ;; check-brand : Loc -> Value * -> Value
 (define check-brand
   (λ (loc)
-    (λ (vs)
+    (λ vs
       (define ck (first vs))
       (define o (second vs))
       (define s (third vs))
   (match (cons ck s)
     [(cons (p-fun _ _ _ f) (p-str _ _ _ typname))
-     (let ((check-v (((cast f (Loc -> (Value -> Value))) loc) o)))
+     (let ((check-v ((f loc) o)))
        (if (and (p-bool? check-v)
 		(p-bool-b check-v))
 	   o
@@ -687,7 +622,7 @@
 (define raise-pfun
   (mk-internal-fun
    (λ (loc)
-      (λ (o) (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o) #f))))))
+      (λ o (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o) #f))))))
 
 (define is-nothing-pfun
   (mk-internal-fun

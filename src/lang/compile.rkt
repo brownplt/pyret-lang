@@ -121,9 +121,9 @@
 		    ([(loc-param ...) (loc-list l)])
        (with-syntax ([(member ...) (map compile-member fields)]
                      [super (compile-expr super)])
-        #'(p:flatten (r:list loc-param ...)
-                     super
-                     (r:make-hash (r:list member ...))))))]
+        #'(p:extend (r:list loc-param ...)
+                    super
+                    (r:make-hash (r:list member ...))))))]
     
     [(s-dot l val field)
      (attach l
