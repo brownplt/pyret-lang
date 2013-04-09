@@ -1,4 +1,6 @@
-#lang racket/base
+#lang planet dyoo/whalesong
+
+(require (except-in "../../../whalesong/lang/whalesong.rkt" raise pi else))
 
 (provide
   #%module-begin
@@ -7,7 +9,7 @@
   #%top
   #%app
   (all-from-out "runtime.rkt")
-  [prefix-out r: (all-from-out racket/base)]
+  [prefix-out r: (all-from-out "../../../whalesong/lang/whalesong.rkt")]
   repl-eval-pyret
   print-pyret)
   

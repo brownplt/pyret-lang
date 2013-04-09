@@ -1,4 +1,4 @@
-#lang racket/base
+#lang planet dyoo/whalesong
 
 (require
   racket/list
@@ -106,7 +106,8 @@
 
 (define (apply-racket-fun package-name package-member args)
   (define package (string->symbol package-name))
-  (define fun (dynamic-require package (string->symbol package-member)))
+  (define fun (lambda _ (mk-str "No FFI")))
+  ;(dynamic-require package (string->symbol package-member)))
   (define (get-val arg)
     (cond
       [(p-opaque? arg) (p-opaque-val arg)]
@@ -125,7 +126,8 @@
   (define maybe-col (srcloc-column loc))
   (define path (cond
 		[(string? maybe-path) maybe-path]
-		[(path? maybe-path) (path->string maybe-path)]
+    ;; TODO(joe): removed for WS
+		;[(path? maybe-path) (path->string maybe-path)]
 		[else "unnamed-pyret-file"]))
   (define line (if maybe-line maybe-line -1))
   (define column (if maybe-col maybe-col -1))
