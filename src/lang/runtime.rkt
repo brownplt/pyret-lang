@@ -10,6 +10,7 @@
 
 (provide
   (prefix-out p: (struct-out none))
+  (prefix-out p: (struct-out p-opaque))
   (prefix-out p: (struct-out p-base))
   (prefix-out p: (struct-out p-nothing))
   (prefix-out p: (struct-out p-object))

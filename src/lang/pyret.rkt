@@ -26,9 +26,10 @@
      ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))]
       [full-eval-stx (path->string (resolved-module-path-name full-eval))]
       [stx (pyret->racket/libs src in)])
-        #'(module src (file pyret-lang-stx)
-            (require (file full-eval-stx))
-            (current-read-interaction repl-eval-pyret)
-            (void (current-print (print-pyret (current-print))))
-            stx)))
+        (strip-context
+          #'(module src (file pyret-lang-stx)
+              ;(require (file full-eval-stx))
+              ;(current-read-interaction repl-eval-pyret)
+              ;(void (current-print (print-pyret (current-print))))
+              stx))))
 

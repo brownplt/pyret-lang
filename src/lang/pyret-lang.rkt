@@ -10,10 +10,11 @@
   #%app
   (all-from-out "runtime.rkt")
   [prefix-out r: (all-from-out "../../../whalesong/lang/whalesong.rkt")]
-  repl-eval-pyret
-  print-pyret)
+  ;repl-eval-pyret
+  ;print-pyret
+  )
   
 (require
-  "eval.rkt"
+  ;"eval.rkt"
   "runtime.rkt")
 
