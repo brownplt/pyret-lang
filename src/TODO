@@ -6,6 +6,15 @@ Need-to-have (soon):
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
+[] Pyret on Whalesong
+  [x] Convert ast, runtime to racket/base
+  [] Remove all non-whalesong imports from runtime.rkt
+    [] match
+    [] list
+    [] srfi
+    [] string
+    [] math
+    [] set
 
 15-minute tasks
 [] Make everything with methods consistent with functions
