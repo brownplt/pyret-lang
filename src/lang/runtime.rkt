@@ -1,12 +1,45 @@
 #lang whalesong
 
-(require
-  racket/list
-  racket/match
-  (only-in racket/math sqr pi)
-  racket/set
-  (only-in racket/string string-join)
-  (only-in srfi/13 string-contains))
+;(require racket/set ;; set add union member intersect map)
+(require (for-syntax racket/base))
+
+(define (list->set lst)
+  (apply set lst))
+(define (set . args)
+  (make-immutable-hash (map (lambda (elt) (cons elt #t)) args)))
+(define (set-add s k)
+  (hash-set s k #t))
+(define (set-union s1 s2)
+  (list->set (hash-map s1 (lambda (k v) (hash-set s2 k #t)))))
+(define (set-member? s k)
+  (hash-has-key? s k))
+(define (set-intersect s1 s2)
+  (list->set (filter (lambda (elt) (set-member? s2 elt)) (hash-keys s1))))
+(define (set-map s f)
+  (map f (hash-keys s)))
+
+(define (sqr x) (* x x))
+
+(define pi 3.1415926) ;; NOTE(joe): good enough for government work
+
+;; NOTE(joe): slow enough for government work
+(define (string-contains str substr)
+  (define strlen (string-length str))
+  (define sublen (string-length substr))
+  (cond
+    [(> sublen strlen) #f]
+    [(string=? substr (substring str 0 sublen)) #t]
+    [else (string-contains (substring str 1 strlen) substr)]))
+
+
+(define (string-join strs sep)
+  (cond
+    [(empty? strs) ""]
+    [(empty? (rest strs)) (first strs)]
+    [(cons? (rest strs))
+     (string-append (first strs)
+      (string-append sep
+       (string-join strs sep)))]))
 
 (provide
   (prefix-out p: (struct-out none))
@@ -85,8 +118,75 @@
 (struct p-fun p-base (f) #:transparent)
 ;; p-method: p-base Proc -> p-method
 (struct p-method p-base (f) #:transparent)
+(struct p-opaque (val))
 
+(define (value-predicate-for typ)
+  (cond
+    [(eq? p-nothing typ) p-nothing?]
+    [(eq? p-object typ) p-object?]
+    [(eq? p-num typ) p-num?]
+    [(eq? p-bool typ) p-bool?]
+    [(eq? p-str typ) p-str?]
+    [(eq? p-fun typ) p-fun?]
+    [(eq? p-method typ) p-method?]
+    [else
+     (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
 
+;; Value -> Listof Any
+(define (type-specific-fields val)
+  (cond
+    [(p-nothing? val) '()]
+    [(p-object? val) '()]
+    [(p-num? val) `(,(p-num-n val))]
+    [(p-str? val) `(,(p-str-s val))]
+    [(p-bool? val) `(,(p-bool-b val))]
+    [(p-fun? val) `(,(p-fun-f val))]
+    [(p-method? val) `(,(p-method-f val))]
+    [else '()]))
+
+(define-syntax (py-match stx)
+  (syntax-case stx (default)
+    [(py-match val) #'(error 'py-match (format "py-match fell through on ~a" val))]
+    [(py-match val [(default v) body])
+     (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
+      #'(let ((v-id val))
+        body))]
+    [(py-match val [(typ s b d id ...) body] other ...)
+     (with-syntax [
+      (s-id (datum->syntax #'body (syntax->datum #'s)))
+      (b-id (datum->syntax #'body (syntax->datum #'b)))
+      (d-id (datum->syntax #'body (syntax->datum #'d)))
+      ((rest-id ...) (datum->syntax #'body (syntax->datum #'(id ...))))]
+
+     (syntax/loc #'body
+       (let ((matchval val))
+        (if ((value-predicate-for typ) matchval)
+            (apply
+              (lambda (s-id b-id d-id rest-id ...) body)
+              (append
+                (list
+                  (p-base-seal matchval)
+                  (p-base-brands matchval)
+                  (p-base-dict matchval))
+                (type-specific-fields matchval)))
+            (py-match matchval other ...)))))]))
+
+#|     
+(define-syntax-rule (py-match val [(typ s b d id ...) body] other ...)
+  (let ((matchval val))
+    (if ((value-predicate-for typ) matchval)
+        (if (p-base? matchval)
+            (apply
+              (lambda (s b d id ...) body)
+              (append
+                (list
+                  (p-base-seal matchval)
+                  (p-base-brands matchval)
+                  (p-base-brands matchval))
+                (type-specific-fields matchval)))
+            body)
+        (py-match matchval [other ...] body))))
+|#
 (struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
     (lambda (a-struct)
@@ -94,8 +194,6 @@
 
 (define (mk-pyret-exn str loc val sys)
   (exn:fail:pyret str (current-continuation-marks) (apply srcloc loc) sys val))
-
-(struct p-opaque (val))
 
 ;; Primitives that are allowed from Pyret land.  Others must be
 ;; wrapped in opaques.  This may be extended for lists and other
@@ -240,17 +338,18 @@
 (define (mk-racket-fun f)
   (mk-fun-nodoc
     (λ args
-      (match (first args)
-        [(p-str _ _ _ s)
+      (py-match (first args)
+        [(p-str _ __ ___ s)
          (wrap (apply-racket-fun f s (map unwrap (rest args))))]
-        [_ (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
+        [(default _)
+         (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
 
 ;; pyret-error : Loc STring String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
   (define obj (mk-object (make-immutable-hash 
-		       (list (cons "message" (mk-str message))
-			     (cons "type" (mk-str type))))))
+    (list (cons "message" (mk-str message))
+          (cons "type" (mk-str type))))))
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
@@ -264,17 +363,17 @@
 (define (get-field loc v f)
   (if (eq? v Racket)
       (mk-racket-fun f)
-      (match (get-raw-field loc v f)
-        [(p-method _ _ _ f)
-               (mk-fun-nodoc (λ args (apply f (cons v args))))]
-        [non-method non-method])))
+      (py-match (get-raw-field loc v f)
+        [(p-method _ __ ___ f)
+         (mk-fun-nodoc (λ args (apply f (cons v args))))]
+        [(default non-method) non-method])))
 
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
-  (match v
-    [(p-fun _ _ _ f)
+  (py-match v
+    [(p-fun _ __ ___ f)
      (apply (f l) args)]
-    [_
+    [(default _)
      (raise
       (pyret-error
         l
@@ -283,28 +382,28 @@
 
 ;; reseal : Value Seal -> Values
 (define (reseal v new-seal)
-  (match v
+  (py-match v
     [(p-object _ b h) (p-object new-seal b h)]
     [(p-num _ b h n) (p-num new-seal b h n)]
     [(p-bool _ b h t) (p-bool new-seal b h t)]
     [(p-str _ b h s) (p-str new-seal b h s)]
     [(p-fun _ b h f) (p-fun new-seal b h f)]
     [(p-method _ b h f) (p-method new-seal b h f)]
-    [(? p-opaque?) (error "seal: Cannot seal opaque")]
-    [(p-nothing _ b h) (error "seal: Cannot seal nothing")]))
+    [(p-nothing _ b h) (error "seal: Cannot seal nothing")]
+    [(default _) (error (format "seal: Cannot seal ~a" v))]))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
   (define bs (set-union (get-brands v) (set new-brand)))
-  (match v
+  (py-match v
     [(p-object s _ h) (p-object s bs h)]
     [(p-num s _ h n) (p-num s bs h n)]
     [(p-bool s _ h b) (p-bool s bs h b)]
     [(p-str sl _ h s) (p-str sl bs h s)]
     [(p-fun s _ h f) (p-fun s bs h f)]
     [(p-method s _ h f) (p-method s bs h f)]
-    [(? p-opaque?) (error "brand: Cannot brand opaque")]
-    [(p-nothing _ b h) (error "brand: Cannot brand nothing")]))
+    [(p-nothing _ b h) (error "brand: Cannot brand nothing")]
+    [(default _) (error (format "brand: Cannot brand ~a" v))]))
 
 ;; has-brand? : Value Symbol -> Boolean
 (define (has-brand? v brand)
@@ -359,15 +458,15 @@
                             (hash-set d k (hash-ref extension k)))
                          d
                          (hash-keys extension)))
-  (match base
-    [(p-object s _ _) (p-object s (set) new-map)]
-    [(p-fun s _ _ f) (p-fun s (set) new-map f)]
-    [(p-num s _ _ n) (p-num s (set) new-map n)]
-    [(p-str s _ _ str) (p-str s (set) new-map str)]
-    [(p-method s _ _ m) (p-method s (set) new-map m)]
-    [(p-bool s _ _ t) (p-bool s (set) new-map t)]
-    [(? p-opaque?) (error "update: Cannot update opaque")]
-    [(p-nothing _ _ _) (error "update: Cannot update nothing")]))
+  (py-match base
+    [(p-object s _ __) (p-object s (set) new-map)]
+    [(p-fun s _ __ f) (p-fun s (set) new-map f)]
+    [(p-num s _ __ n) (p-num s (set) new-map n)]
+    [(p-str s _ __ str) (p-str s (set) new-map str)]
+    [(p-method s _ __ m) (p-method s (set) new-map m)]
+    [(p-bool s _ __ t) (p-bool s (set) new-map t)]
+    [(p-nothing _ __ ___) (error "update: Cannot update nothing")]
+    [(default _) (error (format "update: Cannot update ~a" base))]))
 
 ;; structural-list->list : Value -> Listof Value
 (define (structural-list->list lst)
@@ -387,7 +486,8 @@
     [(cons? lst) (mk-object (make-immutable-hash
         `(("first" . ,(first lst))
           ("is-empty" . ,(mk-bool #f))
-          ("rest" . ,(mk-structural-list (rest lst))))))]))
+          ("rest" . ,(mk-structural-list (rest lst))))))]
+    [else (error 'mk-structural-list (format "mk-structural-list got ~a" lst))]))
 
 ;; keys : Value * -> Value
 (define (keys . vs)
@@ -420,9 +520,9 @@
 
 (define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
-  (match v
-    [(p-bool _ _ _ #t) #t]
-    [else #f]))
+  (py-match v
+    [(p-bool _ __ ___ b) b]
+    [(default _) #f]))
 
 ;; mk-prim-fun :
 ;; ((a1 ... an) -> b)
@@ -538,30 +638,29 @@
 
 ;; to-string : Value -> String
 (define (to-string v)
-  (match v
-    [(or (p-num _ _ _ p)
-         (p-str _ _ _ p))
-     (format "~a" p)]
-    [(p-bool _ _ _ p)
-     (if p "true" "false")]
-    [(p-method _ _ _ f) "[[code]]"]
-    [(p-object _ _ h)
-     (define (to-string-raw-object h)
-       (define (field-to-string f v)
-      (format "~a: ~a" f (to-string v)))
-       (format "{ ~a }"
-               (string-join (hash-map h field-to-string) ", ")))
-     (if (has-field? v "tostring")
-         (let [(m (get-raw-field dummy-loc v "tostring"))]
-           (if (p-method? m)
-               ;; NOTE(dbp): this will fail if tostring isn't defined
-               ;; as taking only self.
-               (match ((p-method-f m) v)
-                 [(p-str _ _ _ s) s]
-                 [else (to-string-raw-object h)])
-               (to-string-raw-object h)))
-         (to-string-raw-object h))]
-    [v (format "~a" v)]))
+  (py-match v
+    [(p-num _ __ ___ n) (format "~a" n)]
+    [(p-str _ __ ___ s) (format "~a" s)]
+    [(p-bool _ __ ___ b) (if b "true" "false")]
+    [(p-method _ __ ___ f) "[[code]]"]
+    [(p-object _ __ h)
+     (let ()
+       (define (to-string-raw-object h)
+         (define (field-to-string f v)
+        (format "~a: ~a" f (to-string v)))
+         (format "{ ~a }"
+                 (string-join (hash-map h field-to-string) ", ")))
+       (if (has-field? v "tostring")
+           (let [(m (get-raw-field dummy-loc v "tostring"))]
+             (if (p-method? m)
+                 ;; NOTE(dbp): this will fail if tostring isn't defined
+                 ;; as taking only self.
+                 (py-match ((p-method-f m) v)
+                   [(p-str _ __ ___ s) s]
+                   [(default _) (to-string-raw-object h)])
+                 (to-string-raw-object h)))
+           (to-string-raw-object h)))]
+    [(default _) (format "~a" v)]))
 
 (define tostring-pfun (mk-fun-nodoc (λ o (mk-str (to-string (first o))))))
 
@@ -575,31 +674,35 @@
       (define ck (first vs))
       (define o (second vs))
       (define s (third vs))
-  (match (cons ck s)
-    [(cons (p-fun _ _ _ f) (p-str _ _ _ typname))
-     (let ((check-v ((f loc) o)))
-       (if (and (p-bool? check-v)
-		(p-bool-b check-v))
-	   o
-	   ;; NOTE(dbp): not sure how to give good reporting
-	   (error (format "runtime: typecheck failed; expected ~a and got\n~a"
-                          typname (to-string o)))))]
-    [(cons _ (p-str _ _ _ _))
+  (cond
+    [(and (p-fun? ck) (p-str? s))
+     (define f (p-fun-f ck))
+     (define typname (p-str-s s))
+     (define check-v ((f loc) o))
+     (if (and (p-bool? check-v) (p-bool-b check-v))
+	       o
+         ;; NOTE(dbp): not sure how to give good reporting
+         (error (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-string o))))]
+    [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
-    [(cons (p-fun _ _ _ _) _)
-     (error "runtime: cannot check-brand with non-string")]))))
+    [(p-fun? ck)
+     (error "runtime: cannot check-brand with non-string")]
+    [else
+     (error "runtime: check-brand failed")]))))
 
 (define check-brand-pfun (mk-internal-fun check-brand))
 
-
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
-  (match v
-    [(p-num s _ _ n) n]
-    [(p-bool s _ _ b) b]
-    [(p-str sl _ _ s) s]
-    [(? p-opaque?) (if (p-opaque? v) v (error "unreachable, just satisfying TR"))]
-    [_ (error (format "unwrap: cannot unwrap ~a for Racket" v))]))
+  (py-match v
+    [(p-num _ __ ___ n) n]
+    [(p-bool _ __ ___ b) b]
+    [(p-str _ __ ___ s) s]
+    [(default _)
+     (if (p-opaque? v)
+         v
+         (error (format "unwrap: cannot unwrap ~a for Racket" v)))]))
 
 ;; wrap : RacketValue -> Value
 (define (wrap v)
@@ -607,9 +710,6 @@
     [(number? v) (mk-num v)]
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
-    ;; TODO(joe): do we need the list case right now? It's asymmetric
-    ;; with unwrap above
-    #;[(list? v) (mk-structural-list (map wrap v))]
     [(p-opaque? v) v]
     [else (error (format "wrap: Bad return value from Racket: ~a" v))]))
 
