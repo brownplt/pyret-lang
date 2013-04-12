@@ -3,6 +3,19 @@
 ;(require racket/set ;; set add union member intersect map)
 (require (for-syntax racket/base))
 
+(define (hash-fold f h init)
+  (when (not (hash? h)) (error (format "Bad fold: ~a ~a ~a" f h init)))
+  (define (_hash-fold f flds init)
+    (cond
+      [(empty? flds) init]
+      [(cons? flds)
+       (_hash-fold f
+                  (rest flds)
+                  (f (car (first flds))
+                     (cdr (first flds))
+                     init))]))
+  (_hash-fold f (hash-map h cons) init))
+
 (define (list->set lst)
   (apply set lst))
 (define (set . args)
@@ -10,7 +23,7 @@
 (define (set-add s k)
   (hash-set s k #t))
 (define (set-union s1 s2)
-  (list->set (hash-map s1 (lambda (k v) (hash-set s2 k #t)))))
+  (hash-fold (lambda (k v init) (hash-set init k #t)) s1 s2))
 (define (set-member? s k)
   (hash-has-key? s k))
 (define (set-intersect s1 s2)
@@ -39,7 +52,7 @@
     [(cons? (rest strs))
      (string-append (first strs)
       (string-append sep
-       (string-join strs sep)))]))
+       (string-join (rest strs) sep)))]))
 
 (provide
   (prefix-out p: (struct-out none))
@@ -643,11 +656,12 @@
     [(p-str _ __ ___ s) (format "~a" s)]
     [(p-bool _ __ ___ b) (if b "true" "false")]
     [(p-method _ __ ___ f) "[[code]]"]
+    [(p-fun _ __ ___ f) "[[code]]"]
     [(p-object _ __ h)
      (let ()
        (define (to-string-raw-object h)
          (define (field-to-string f v)
-        (format "~a: ~a" f (to-string v)))
+           (format "~a: ~a" f (to-string v)))
          (format "{ ~a }"
                  (string-join (hash-map h field-to-string) ", ")))
        (if (has-field? v "tostring")
@@ -656,8 +670,8 @@
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
                  (py-match ((p-method-f m) v)
-                   [(p-str _ __ ___ s) s]
-                   [(default _) (to-string-raw-object h)])
+                           [(p-str _ __ ___ s) s]
+                           [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
            (to-string-raw-object h)))]
     [(default _) (format "~a" v)]))
