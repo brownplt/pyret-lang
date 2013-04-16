@@ -1,6 +1,10 @@
 #lang whalesong
 
-(require (except-in whalesong/lang/whalesong raise pi else))
+(require
+  (except-in whalesong/lang/whalesong raise pi else)
+  "runtime.rkt"
+  ; "eval-removed-for-whalesong.rkt"
+  )
 
 (provide
   #%module-begin
@@ -14,7 +18,3 @@
   ;print-pyret
   )
   
-(require
-  ;"eval.rkt"
-  "runtime.rkt")
-
