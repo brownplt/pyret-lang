@@ -10,3 +10,4 @@ Seal.run-tests()
 LibSeal.run-tests()
 
 Test.format-results()
+

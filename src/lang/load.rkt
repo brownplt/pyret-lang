@@ -1,6 +1,6 @@
 #lang racket
 
-(provide parse-pyret)
+(provide parse-pyret (rename-out [py-eval parse-eval]))
 
 (require
   "tokenizer.rkt"

@@ -5,7 +5,7 @@
 	 "../lang/runtime.rkt"
 	 "match-set.rkt")
 
-(verbose! #f)
+(verbose! #t)
 
 (define five (p:mk-num 5))
 (define two (p:mk-num 2))
@@ -13,16 +13,18 @@
 
 (define true (p:mk-bool #t))
 
-(check-pyret-match "5" (p:p-num _ (set) x 5))
+(check-pyret-match "5" (p:p-num _ (hash-table) x 5))
 
 (check-pyret "5" five)
 (check-pyret-fail "2" five)
+
 
 (check-pyret "fun f(): 2 end f()" two)
 (check-pyret "fun f(x): x end f(2)" two)
 (check-pyret "fun f(x): x end fun g(x): x end f(2) g(10) f(2)" two)
 (check-pyret "fun f(x): fun g(x): x end g(x) end f(5)" five)
 (check-pyret "fun foo(): 5 end foo()" five)
+
 (check-pyret-fail "fun f(x): x end f(3)" two)
 
 (check-pyret "\\x: (x)(2)" two)
@@ -30,20 +32,20 @@
 (check-pyret "var x: 2 \\x: (x := 10)(5) x" two)
 (check-pyret "var x: 2 fun f(g): g() end f(\\(x := 10)) x" ten)
 
-(check-pyret "{}" (p:p-object (p:none) (set) p:empty-dict))
+(check-pyret "{}" (p:p-object (p:none) (make-immutable-hash '()) p:empty-dict))
 
 (check-pyret "'5'" (p:mk-str "5"))
 
 (check-pyret-match "true" (p:p-bool _ _ _ #t))
 (check-pyret-match "false" (p:p-bool _ _ _ #f))
 
-(check-pyret "{x:5}" (p:p-object (p:none) (set)
+(check-pyret "{x:5}" (p:p-object (p:none) (make-immutable-hash '())
                                  (make-immutable-hash (list (cons "x" five)))))
-(check-pyret "{['x']:5}" (p:p-object (p:none) (set)
+(check-pyret "{['x']:5}" (p:p-object (p:none) (make-immutable-hash '())
                                  (make-immutable-hash (list (cons "x" five)))))
-(check-pyret "{['x'.append('y')]:5}" (p:p-object (p:none) (set)
+(check-pyret "{['x'.append('y')]:5}" (p:p-object (p:none) (make-immutable-hash '())
                                                  (make-immutable-hash (list (cons "xy" five)))))
-(check-pyret "var f: 'x' {[f]:5}" (p:p-object (p:none) (set)
+(check-pyret "var f: 'x' {[f]:5}" (p:p-object (p:none) (make-immutable-hash '())
                                               (make-immutable-hash (list (cons "x" five)))))
 
 #;(check-pyret-match/libs "[]" (p:p-list (p:none) (set) _ (list)))
@@ -78,9 +80,9 @@
 ; to <#undefined>
 ;(check-pyret-exn "var w: zoot var zoot: 5 w" "undefined")
 
-(check-pyret-match "brander()" (p:p-object _ (set) (hash-table ("brand" _) ("check" _))))
+(check-pyret-match "brander()" (p:p-object _ (hash-table) (hash-table ("brand" _) ("check" _))))
 (check-pyret-match "fun f(x, y): x := brander() y := x.brand(y) y end f(1,2)"
-                   (p:p-num _ (set _) _ 2))
+                   (p:p-num _ (hash-table _) _ 2))
 (check-pyret-match "fun f(x,y): x := brander() y := x.brand(y) x.check(y) end f(1,2)"
                    (p:p-bool _ _ _ #t))
 (check-pyret-match "fun f(x,y): x := brander() x.check(y) end f(1,2)"
@@ -310,23 +312,23 @@
   "prim-keys({x : 5})"
   (p:p-object _ _ _))
 
-(check-pyret
+(check-pyret/libs
   "[5].first"
   five)
 
-(check-pyret
+(check-pyret/libs
   "[5].push(4).first"
   (p:mk-num 4))
 
-(check-pyret
+(check-pyret/libs
   "[5,6].rest.first"
   (p:mk-num 6))
 
-(check-pyret
+(check-pyret/libs
   "list.is-empty([])"
   (p:mk-bool #t))
 
-(check-pyret
+(check-pyret/libs
   "list.is-empty([5])"
   (p:mk-bool #f))
 

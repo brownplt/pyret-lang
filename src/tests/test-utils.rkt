@@ -10,8 +10,10 @@
   check-pyret
   check-pyret/libs
   compile-str
+  compile-str/libs
   parse-pyret
   eval-pyret
+  eval-pyret/libs
   check-match
   check-not-exn)
 (require
@@ -25,15 +27,6 @@
   "../lang/load.rkt"
   "../lang/eval.rkt")
 
-;; this insanity is needed in order to get the namespace for pyret
-;; (with r: and p: prefixed identifiers) into eval
-(module m "../lang/pyret-lang.rkt"
-  (r:define-namespace-anchor in-the-module)
-  (r:provide in-the-module))
-(require 'm)
-
-(define eval-ns (namespace-anchor->namespace in-the-module))
-
 (define verbose #f)
 (define (verbose! v) (set! verbose v))
 (define (print-test str)
@@ -44,15 +37,11 @@
 
 (define (eval-pyret str)
   (print-test str)
-  (eval
-   (compile-str str)
-    eval-ns))
+  ((py-eval) (compile-str str)))
 
 (define (eval-pyret/libs str)
   (print-test str)
-  (eval
-   (compile-str/libs str)
-    eval-ns))
+  ((py-eval) (compile-str/libs str)))
 
 (define-runtime-path utils-path "test-utils.rkt")
 
