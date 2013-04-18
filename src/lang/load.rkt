@@ -1,20 +1,24 @@
 #lang racket
 
-(provide parse-pyret)
+(provide parse-pyret (rename-out [py-eval parse-eval]))
 
 (require
   "tokenizer.rkt"
-  racket/runtime-path)
+  racket/runtime-path
+  racket/sandbox)
 
-(define-runtime-module-path parser "parser.rkt")
-(dynamic-require parser 0)
-(define ns (module->namespace (resolved-module-path-name parser)))
+(define-runtime-path parser "parser.rkt")
+(define-runtime-path ast "ast.rkt")
+(define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
 
-;; note - using eval-syntax below misses an important "enrichment" step:
-;; http://docs.racket-lang.org/reference/eval.html?q=eval-syntax&q=eval-syntax&q=%23%25datum#(def._((quote._~23~25kernel)._eval-syntax))
-;;
-;; NB(joe):  I have no idea what that means
+(define py-eval
+  (let ([specs (sandbox-namespace-specs)])
+    (parameterize [(sandbox-namespace-specs (cons make-base-namespace
+                                                  (list ast)))
+                   (sandbox-path-permissions `((exists ,pyret-base-path)))]
+      (make-evaluator 'racket/base #:requires (list ast parser)))))
+
+
 (define (parse-pyret str (name "unnamed-pyret-file"))
-  (eval
-   (get-syntax name (open-input-string str))
-   ns))
+  (py-eval (get-syntax name (open-input-string str))))
+

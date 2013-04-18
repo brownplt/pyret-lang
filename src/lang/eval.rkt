@@ -4,26 +4,55 @@
   repl-eval-pyret
   print-pyret
   pyret->racket
-  pyret->racket/libs)
+  pyret->racket/libs
+  pyret-eval
+  py-eval)
 (require
+  racket/sandbox
   racket/runtime-path
   syntax/strip-context
   "tokenizer.rkt"
   "desugar.rkt"
   "typecheck.rkt"
   "compile.rkt"
+  "load.rkt"
   "runtime.rkt")
 
-(define-runtime-module-path parser "parser.rkt")
-(dynamic-require parser 0)
-(define ns (module->namespace (resolved-module-path-name parser)))
+(define-runtime-path parser "parser.rkt")
+(define-runtime-path ast "ast.rkt")
+(define-runtime-path runtime "runtime.rkt")
+(define-runtime-module-path pyret-lang "pyret-lang.rkt")
+;(dynamic-require pyret-lang #f)
+(define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
+
+(define (py-eval)
+  (let ([specs (sandbox-namespace-specs)])
+    (parameterize [(sandbox-namespace-specs (cons make-base-namespace
+                                                  (list runtime)))
+                   (sandbox-path-permissions `((read ,pyret-base-path)))]
+    (define module-syntax
+     (with-syntax
+       ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))])
+        (strip-context #'(module src (file pyret-lang-stx) (r:begin)))))
+    (make-module-evaluator module-syntax))))
+
+(define (pyret-eval stx)
+  (define make-fresh-namespace (eval
+                              '(lambda ()
+                                 (variable-reference->empty-namespace
+                                  (#%variable-reference)))
+                              (make-base-namespace)))
+  (define ns (make-fresh-namespace))
+  (parameterize ([current-namespace ns])
+    (namespace-require pyret-lang))
+  (eval stx ns))
 
 (define (stx->racket stx desugar)
   (strip-context
    (compile-pyret
     (contract-check-pyret
      (desugar
-      (eval stx ns))))))
+      (parse-eval stx))))))
 
 (define (pyret->racket src in)
   (stx->racket (get-syntax src in) desugar-pyret))
@@ -53,6 +82,9 @@
     [(? p:p-base?) val]
     [_ (void)]))
 
-(define (print-pyret val)
+(define ((print-pyret printer) val)
   (when (not (equal? val nothing))
-    (pretty-write (simplify-pyret val))))
+    (match val
+      [(p:p-opaque v) (printer v)]
+      [_ (pretty-write (simplify-pyret val))])))
+

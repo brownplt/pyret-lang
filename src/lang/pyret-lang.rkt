@@ -1,4 +1,10 @@
-#lang racket/base
+#lang whalesong
+
+(require
+  (except-in whalesong/lang/whalesong raise pi else)
+  "runtime.rkt"
+  ; "eval-removed-for-whalesong.rkt"
+  )
 
 (provide
   #%module-begin
@@ -7,11 +13,8 @@
   #%top
   #%app
   (all-from-out "runtime.rkt")
-  [prefix-out r: (all-from-out racket/base)]
-  repl-eval-pyret
-  print-pyret)
+  [prefix-out r: (all-from-out whalesong/lang/whalesong)]
+  ;repl-eval-pyret
+  ;print-pyret
+  )
   
-(require
-  "eval.rkt"
-  "runtime.rkt")
-

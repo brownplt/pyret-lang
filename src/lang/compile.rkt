@@ -41,9 +41,9 @@
     (match ast-node
       [(s-data-field l name value)
        (attach l
-         (with-syntax ([name-stx (d->stx name l)]
+         (with-syntax ([name-stx (compile-expr name)]
                        [val-stx (compile-expr value)]) 
-           #'(r:cons name-stx val-stx)))]))
+           #'(r:cons (p:p-str-s name-stx) val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)
@@ -63,13 +63,13 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
+         #`(p:mk-fun (r:λ args (r:apply (r:λ (arg ...) body-stx) args)) #,doc)))]
     
-    [(s-method l args body)
+    [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)]) 
-         #'(p:mk-method (r:λ (arg ...) body-stx))))]
+         #'(p:mk-method (r:λ args (r:apply (r:λ (arg ...) body-stx) args)))))]
     
     [(s-cond l c-bs)
      (define (compile-cond-branch b)
@@ -80,12 +80,21 @@
      (attach l
        (with-syntax ([(branch ...) (d->stx (map compile-cond-branch c-bs) l)])
          #`(r:cond branch ...)))]
-    
+
+    [(s-try l try (s-bind l2 id ann) catch)
+     (attach l
+       #`(r:with-handlers
+            ([p:exn:fail:pyret?
+              (r:lambda (%exn)
+		 (r:define #,(d->stx id l2) (p:mk-exn %exn))
+		 #,(compile-expr catch))])
+             #,(compile-expr try)))]
+
     [(s-id l name)
      (attach l
        (with-syntax ([name-stx (d->stx name l)])
-         #`name-stx))]
-    
+         #'name-stx))]
+
     [(s-assign l name expr)
      (attach l
        (with-syntax ([name-stx (d->stx name l)]
@@ -99,35 +108,46 @@
         (with-syntax ([fun (compile-expr fun)]
                       [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
-          #'(((p:p-fun-f fun) (r:list loc-param ...)) arg ...)))]
-
-    [(s-onion l super fields)
-     (attach l
-       (with-syntax ([(member ...) (map compile-member fields)]
-                     [super (compile-expr super)])
-        #'(p:flatten super (r:make-hash (r:list member ...)))))]
+          #'(p:apply-fun fun (r:list loc-param ...) arg ...)))]
 
     [(s-obj l fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)])
          #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
     
-    [(s-list l elts)
+    [(s-onion l super fields)
      (attach l
-       (with-syntax ([(elt ...) (map compile-expr elts)])
-         #'(p:mk-list (r:list elt ...))))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       (with-syntax ([(member ...) (map compile-member fields)]
+                     [super (compile-expr super)])
+        #'(p:extend (r:list loc-param ...)
+                    super
+                    (r:make-hash (r:list member ...))))))]
     
     [(s-dot l val field)
      (attach l
-       #`(p:get-field #,(compile-expr val) #,(d->stx (symbol->string field) l)))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-field (r:list loc-param ...)
+                      #,(compile-expr val)
+                      (p:p-str-s #,(d->stx (symbol->string field) l)))))]
     
     [(s-bracket l val field)
      (attach l
-       #`(p:get-field #,(compile-expr val) (p:p-str-s #,(compile-expr field))))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-field (r:list loc-param ...)
+                      #,(compile-expr val)
+                      (p:p-str-s #,(compile-expr field)))))]
     
-    [(s-dot-method l obj field)
+    [(s-bracket-method l obj field)
      (attach l
-       #`(p:get-raw-field #,(compile-expr obj) #,(d->stx (symbol->string field) l)))]
+      (with-syntax
+		    ([(loc-param ...) (loc-list l)])
+       #`(p:get-raw-field (r:list loc-param ...)
+                          #,(compile-expr obj)
+                          (p:p-str-s #,(compile-expr field)))))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 

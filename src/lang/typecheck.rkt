@@ -1,6 +1,6 @@
 #lang racket
 
-(require "ast.rkt")
+(require "ast.rkt" "pretty.rkt")
 (provide contract-check-pyret)
 
 (define (wrap-ann-check loc ann e)
@@ -8,21 +8,33 @@
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body))))
-
-(define (string-of-ann ann)
-  (match ann
-    [(a-name _ id) (symbol->string id)]
-    [(a-arrow _ t1 t2) (format "~a -> ~a" (map string-of-ann t1) (string-of-ann t2))]
-    [(a-blank) "Any"]
-    [(a-any) "Any"]
-    [(a-app _ base args) (format "~a~a" base (map string-of-ann args))]))
+(define (mk-method loc args result doc-unused body)
+  (s-method loc args result (s-block loc (list body))))
 
 (define (ann-check loc ann)
+  (define (code-wrapper s args result type get-fun)
+    (define funname (gensym "contract"))
+    (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
+    (define (check-arg bind)
+      (match bind
+        [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
+    (mk-lam s (list (s-bind s funname ann)) ann
+     (mk-contract-doc ann)
+     (s-onion
+       s
+       (type s wrapargs result
+        (mk-contract-doc ann)
+        (wrap-ann-check s result 
+         (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
+       (list (s-data-field s (s-str s "doc")
+                             (s-bracket s
+                                        (s-id s funname)
+                                        (s-str s "doc")))))))
   (define (mk-contract-doc ann)
-    (format "internal contract for ~a" ann))
-  (define ann-str (s-str loc (string-of-ann ann)))
+    (format "internal contract for ~a" (pretty-ann ann)))
+  (define ann-str (s-str loc (pretty-ann ann)))
   (define (mk-flat-checker checker)
-    (define argname (gensym))
+    (define argname (gensym "specimen"))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
             (mk-contract-doc ann)
             (s-app
@@ -42,24 +54,38 @@
     [(a-any)
      (mk-flat-checker (s-id loc 'Any?))]
     [(a-arrow s args result)
-     (define funname (gensym))
-     (define wrapargs (map (lambda (a) (s-bind s (gensym) a)) args))
-     (define (check-arg bind)
-       (match bind
-         [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
-     (mk-lam s (list (s-bind s funname ann)) ann
-      (mk-contract-doc ann)
-      (s-onion
-        s
-        (mk-lam s wrapargs result
-         (mk-contract-doc ann)
-         (wrap-ann-check s result 
-          (s-app s (s-id s funname) (map check-arg wrapargs))))
-        (list (s-data-field s "doc"
-                              (s-bracket s
-                                         (s-id s funname)
-                                         (s-str s "doc"))))))]
-    
+     (code-wrapper s args result mk-lam (λ (e) e))]
+    [(a-method s args result)
+     (define (get-fun e)
+       (s-bracket s e (s-str s "_fun")))
+     (code-wrapper s args result mk-method get-fun)]
+    [(a-pred s ann pred)
+     (define ann-wrapper (ann-check s ann))
+     (define argname (gensym "pred-arg"))
+     (define tempname (gensym "pred-temp"))
+     (define result (gensym "pred-result"))
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-block s
+               (list
+                 (s-var s (s-bind s tempname (a-blank))
+                          (s-app loc
+                                 ann-wrapper
+                                 (list (s-id loc argname))))
+                 (s-var s (s-bind s result (a-blank))
+                          (s-app loc
+                                 pred
+                                 (list (s-id s tempname))))
+                 (s-cond s
+                    (list
+                      (s-cond-branch s (s-id s result)
+                        (s-block s (list (s-id s tempname))))
+                      (s-cond-branch s (s-id s 'else)
+                        (s-block s
+                          (list
+                            (s-app s (s-id s 'raise)
+                                     (list (s-str s "contract failure"))))))))
+               )))]
     [else
      (error
       (format "typecheck: don't know how to check ann: ~a"
@@ -100,9 +126,9 @@
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
-    [(s-method s args body)
+    [(s-method s args ann body)
      (define body-env (foldr update env args))
-     (s-method s args (cc-env body body-env))]
+     (s-method s args ann (cc-env body body-env))]
     
     [(s-cond s c-bs)
      (define (cc-branch branch)
@@ -110,6 +136,10 @@
          [(s-cond-branch s test expr)
           (s-cond-branch s (cc test) (cc expr))]))
      (s-cond s (map cc-branch c-bs))]
+
+    [(s-try s try bind catch)
+     (define catch-env (update bind env))
+     (s-try s (cc try) bind (cc-env catch catch-env))]
     
     [(s-assign s name expr)
      (s-assign s name (wrap-ann-check s (lookup env name) (cc expr)))]
@@ -134,6 +164,9 @@
     
     [(s-dot-method s obj field)
      (s-dot-method s (cc obj) field)]
+    
+    [(s-bracket-method s obj field)
+     (s-bracket-method s (cc obj) (cc field))]
 
     [(or (s-num _ _)
          (s-bool _ _)

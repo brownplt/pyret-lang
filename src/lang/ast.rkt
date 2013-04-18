@@ -1,57 +1,6 @@
-#lang typed/racket
+#lang whalesong
 
-(provide
-  (struct-out s-prog)
-  (struct-out s-import)
-  (struct-out s-provide)
-  (struct-out s-block)
-  (struct-out s-fun)
-  (struct-out s-var)
-  (struct-out s-bind)
-  (struct-out s-cond)
-  (struct-out s-cond-branch)
-
-  (struct-out s-lam)
-
-  (struct-out s-data-field)
-  (struct-out s-method-field)
-  (struct-out s-obj)
-  (struct-out s-onion)
-  
-  (struct-out s-method)
-
-  (struct-out s-id)
-  (struct-out s-assign)
-  (struct-out s-app)
-  (struct-out s-left-app)
-
-  (struct-out s-list)
-
-  (struct-out s-num)
-  (struct-out s-bool)
-  (struct-out s-str)
-
-  (struct-out s-dot)
-  (struct-out s-bracket)
-  (struct-out s-dot-assign)
-  (struct-out s-bracket-assign)
-  (struct-out s-dot-method)
-  (struct-out s-bracket-method)
-
-  (struct-out s-data)
-  (struct-out s-variant)
-  (struct-out s-member)
-  
-  (struct-out s-do)
-  
-  (struct-out a-blank)
-  (struct-out a-any)
-  (struct-out a-name)
-  (struct-out a-arrow)
-  (struct-out a-record)
-  (struct-out a-field)
-  (struct-out a-app)
-)
+(provide (all-defined-out))
 
 #|
 
@@ -64,180 +13,125 @@ these metadata purposes.
 
 |#
 
-(struct: s-prog ((syntax : srcloc) (imports : (Listof Header)) (block : s-block)) #:transparent)
+;; s-prog : srcloc (Listof Header) s-block -> s-prog
+(struct s-prog (syntax imports block) #:transparent)
 
-(define-type Header (U s-import s-provide))
-(struct: s-import ((syntax : srcloc) (file : String) (name : Symbol)) #:transparent)
-(struct: s-provide ((syntax : srcloc) (expr : Stmt)) #:transparent)
-
-
-(define-type Block (Listof Stmt))
-(struct: s-block ((syntax : srcloc) (stmts : Block)) #:transparent)
-
-(struct: s-bind ((syntax : srcloc) (id : Symbol) (ann : Ann))
-   #:transparent)
-
-(define-type Stmt (U s-fun s-var s-cond s-data s-do s-import Expr))
-(struct: s-fun ((syntax : srcloc)
-    (name : Symbol)
-    (params : (Listof Symbol))
-    (args : (Listof s-bind))
-    (ann : Ann)
-    (doc : String)
-    (body : s-block))
-   #:transparent)
-(struct: s-var ((syntax : srcloc)
-    (name : s-bind)
-    (value : Expr))
-   #:transparent)
-(struct: s-cond ((syntax : srcloc)
-     (branches : (Listof s-cond-branch)))
-   #:transparent)
-(struct: s-cond-branch ((syntax : srcloc)
-      (expr : Expr)
-      (body : s-block))
-   #:transparent)
+;; A Header is a (U s-import s-provide)
+;; s-import : srcloc String Symbol -> srcloc
+(struct s-import (syntax file name) #:transparent)
+;; s-provide : srcloc expr -> srcloc
+(struct s-provide (syntax expr) #:transparent)
 
 
-(define-type Expr (U s-obj s-onion s-list s-app s-left-app s-id
-         s-assign s-num s-bool s-str
-                     s-dot s-bracket s-dot-assign s-bracket-assign
-                     s-dot-method s-bracket-method s-lam
-                     s-block s-method))
+;; A Block is a (Listof Stmt)
+;; s-block : srcloc Block -> s-block
+(struct s-block (syntax stmts) #:transparent)
 
-(struct: s-lam ((syntax : srcloc)
-    (typarams : (Listof Symbol))
-    (args : (Listof s-bind))
-    (ann : Ann)
-    (doc : String)
-    (body : s-block))
-   #:transparent)
+;; s-bind : srcloc Symbol Ann -> s-bind
+(struct s-bind (syntax id ann) #:transparent)
 
-(struct: s-method ((syntax : srcloc)
-                   (args : (Listof s-bind))
-                   (body : s-block))
-   #:transparent)
+;; A Stmt is a (U s-fun s-var s-cond s-try s-data s-do s-import Expr)
+;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block
+(struct s-fun (syntax name params args ann doc body) #:transparent)
 
-(define-type Member (U s-data-field s-method-field))
-(struct: s-data-field ((syntax : srcloc)
-      (name : String)
-      (value : Expr))
-   #:transparent)
-(struct: s-method-field ((syntax : srcloc)
-       (name : String)
-       (args : (Listof s-bind))
-       (body : s-block))
-   #:transparent)
+;; s-var : srcloc Symbol Expr -> s-var
+(struct s-var (syntax name value) #:transparent)
+;; s-cond : srcloc (Listof s-cond-branch) -> s-cond
+(struct s-cond (syntax branches) #:transparent)
+;; s-cond-branch : srcloc Expr s-block -> s-cond-branch
+(struct s-cond-branch (syntax expr body) #:transparent)
+;; s-try : srcloc Expr s-bind Expr -> s-try
+(struct s-try (syntax body id except) #:transparent)
 
-(struct: s-onion ((syntax : srcloc)
-      (super : Expr)
-      (fields : (Listof Member)))
-   #:transparent)
-(struct: s-obj ((syntax : srcloc)
-    (fields : (Listof Member)))
-   #:transparent)
 
-(struct: s-list ((syntax : srcloc)
-     (values : (Listof Expr)))
-   #:transparent)
+;; An Expr is a
+;; (U s-obj s-onion s-list s-app s-left-app s-id
+;;    s-assign s-num s-bool s-str
+;;    s-dot s-bracket s-dot-assign s-bracket-assign
+;;    s-dot-method s-bracket-method s-lam
+;;    s-block s-method))
 
-(struct: s-app ((syntax : srcloc)
-    (fun : Expr)
-    (args : (Listof Expr)))
-   #:transparent)
+;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block -> s-lam
+(struct s-lam (syntax typarams args ann doc body) #:transparent)
 
-(struct: s-left-app ((syntax : srcloc)
-           (obj : Expr)
-           (fun : Expr)
-           (args : (Listof Expr)))
-   #:transparent)
+;; s-method : srcloc (Listof s-bind) Ann s-block
+(struct s-method (syntax args ann body) #:transparent)
 
-(struct: s-id ((syntax : srcloc)
-         (id : Symbol))
-   #:transparent)
+;; A Member is a (U s-data-field s-method-field)
+;; s-data-field : srcloc Expr Expr
+(struct s-data-field (syntax name value) #:transparent)
+;; s-method-field : srcloc Expr (Listof s-bind) Ann s-block
+(struct s-method-field (syntax name args ann body) #:transparent)
 
-(struct: s-assign ((syntax : srcloc)
-       (id : Symbol)
-       (value : Expr))
-   #:transparent)
+;; s-onion : srcloc Expr (Listof Member)
+(struct s-onion (syntax super fields) #:transparent)
+;; s-obj : srcloc (Listof Member)
+(struct s-obj (syntax fields) #:transparent)
 
-(struct: s-num ((syntax : srcloc) (n : Number)) #:transparent)
-(struct: s-bool ((syntax : srcloc) (b : Boolean)) #:transparent)
-(struct: s-str ((syntax : srcloc) (s : String)) #:transparent)
+;; s-list : srcloc (Listof Expr)
+(struct s-list (syntax values) #:transparent)
 
-(struct: s-dot ((syntax : srcloc)
-    (obj : Expr)
-    (field : Symbol))
-   #:transparent)
-(struct: s-bracket ((syntax : srcloc)
-        (obj : Expr)
-        (field : Expr))
-   #:transparent)
+;; s-app : srcloc Expr (Listof Expr)
+(struct s-app (syntax fun args) #:transparent)
 
-(struct: s-dot-assign ((syntax : srcloc)
-           (obj : Expr)
-           (field : Symbol)
-           (value : Expr))
-   #:transparent)
-(struct: s-bracket-assign ((syntax : srcloc)
-         (obj : Expr)
-         (field : Expr)
-         (value : Expr))
-   #:transparent)
+;; s-left-app : srcloc Expr Expr (Listof Expr)
+(struct s-left-app (syntax obj fun args) #:transparent)
 
-(struct: s-dot-method ((syntax : srcloc)
-           (obj : Expr)
-           (field : Symbol))
-   #:transparent)
-(struct: s-bracket-method ((syntax : srcloc)
-         (obj : Expr)
-         (field : Expr))
-   #:transparent)
+;; s-id : srcloc Symbol
+(struct s-id (syntax id) #:transparent)
 
-(struct: s-data ((syntax : srcloc)
-                 (name : Symbol)
-                 (params : (Listof Symbol))
-                 (variants : (Listof s-variant))
-                 (shared-members : (Listof Member)))
-                #:transparent)
+;; s-assign : srcloc Symbol Expr
+(struct s-assign (syntax id value) #:transparent)
 
-(struct: s-variant ((syntax : srcloc)
-                    (name : Symbol)
-                    (members : (Listof s-member))
-                    (with-members : (Listof Member)))
-                   #:transparent)
+;; s-num : srcloc Number
+(struct s-num (syntax n) #:transparent)
+;; s-bool : srcloc Boolean
+(struct s-bool (syntax b) #:transparent)
+;; s-str : srcloc String
+(struct s-str (syntax s) #:transparent)
 
-(struct: s-member ((syntax : srcloc)
-                   (name : Symbol)
-                   (ann : Ann))
-                  #:transparent)
+;; s-dot : srcloc Expr Symbol
+(struct s-dot (syntax obj field) #:transparent)
+;; s-bracket : srcloc Expr Expr
+(struct s-bracket (syntax obj field) #:transparent)
 
-(struct: s-do ((syntax : srcloc)
-               (init : Stmt)
-               (args : (Listof Stmt)))
-              #:transparent)
+;; s-dot-assign : srcloc Expr Symbol Expr
+(struct s-dot-assign (syntax obj field value) #:transparent)
+;; s-bracket-assign : srcloc Expr Expr Expr
+(struct s-bracket-assign (syntax obj field value) #:transparent)
 
-(define-type Ann (U a-blank a-any a-name a-arrow a-method a-record a-app))
-(struct: a-blank () #:transparent)
-(struct: a-any () #:transparent)
-(struct: a-name ((syntax : srcloc) (id : Symbol)) #:transparent)
-(struct: a-arrow ((syntax : srcloc)
-      (args : (Listof Ann))
-      (ret : Ann))
-   #:transparent)
-(struct: a-method ((syntax : srcloc)
-                   (args : (Listof Ann))
-                   (ret : Ann))
-   #:transparent)
-(struct: a-field ((syntax : srcloc)
-      (name : String)
-      (ann : Ann))
-   #:transparent)
-(struct: a-record ((syntax : srcloc)
-       (fields : (Listof a-field)))
-   #:transparent)
-(struct: a-app ((syntax : srcloc)
-    (name : Symbol)
-    (parameters : (Listof Ann)))
-   #:transparent)
+;; s-dot-method : srcloc Expr Symbol
+(struct s-dot-method (syntax obj field) #:transparent)
+;; s-bracket-method : srcloc Expr Expr
+(struct s-bracket-method (syntax obj field) #:transparent)
+
+;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member)
+(struct s-data (syntax name params variants shared-members) #:transparent)
+
+;; s-variant : srcloc Symbol (Listof s-member) (Listof Member)
+(struct s-variant (syntax name members with-members) #:transparent)
+
+;; s-member : srcloc Symbol Ann
+(struct s-member (syntax name ann) #:transparent)
+
+;; s-do : srcloc Stmt (Listof Stmt)
+(struct s-do (syntax init args) #:transparent)
+
+;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
+(struct a-blank () #:transparent)
+(struct a-any () #:transparent)
+;; a-name : srcloc Symbol
+(struct a-name (syntax id) #:transparent)
+;; a-arrow : srcloc (Listof Ann) Ann
+(struct a-arrow (syntax args ret) #:transparent)
+;; a-method : srcloc (Listof Ann) Ann
+(struct a-method (syntax args ret) #:transparent)
+;; a-field : srcloc String Ann
+(struct a-field (syntax name ann) #:transparent)
+;; a-record : srcloc (Listof a-field)
+(struct a-record (syntax fields) #:transparent)
+;; a-app : srcloc Symbol (Listof Ann)
+(struct a-app (syntax name parameters) #:transparent)
+;; a-pred : srcloc Ann Expr
+(struct a-pred (syntax ann exp) #:transparent)
 

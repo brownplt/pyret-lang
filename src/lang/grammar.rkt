@@ -10,7 +10,8 @@ provide-stmt: "provide" stmt "end"
 block: stmt*
 
 stmt: (var-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | dot-assign-expr | bracket-assign-expr) [ENDMARKER]
+    | assign-expr | dot-assign-expr | bracket-assign-expr
+    | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -18,7 +19,7 @@ expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
 
 id-expr: NAME
 
-assign-expr: NAME "=" expr
+assign-expr: NAME ":=" expr
 
 prim-expr:
    num-expr
@@ -44,7 +45,7 @@ fun-body: block "end"
 fun-ty-param-elt: NAME
 fun-ty-param: fun-ty-param-elt ","
 fun-ty-params:
-  ["(" fun-ty-param* fun-ty-param-elt ")"]
+  ["<" fun-ty-param* fun-ty-param-elt ">"]
 
 return-ann: ["->" ann]
 
@@ -54,25 +55,28 @@ fun-expr: "fun" fun-header ":" fun-body
  
 lambda-args: arg-elt* last-arg-elt
 lambda-expr:
-   BACKSLASH lambda-args ":" "(" block ")"
- | BACKSLASH lambda-args "->" ann ":" "(" block ")"
- | BACKSLASH "(" block ")"
- | BACKSLASH "->" ann ":" "(" block ")"
+   BACKSLASH fun-ty-params lambda-args ":" fun-body
+ | BACKSLASH fun-ty-params lambda-args "->" ann ":" fun-body
+ | BACKSLASH fun-body
+ | BACKSLASH fun-ty-params "->" ann ":" fun-body
  
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
+
+try-expr: "try" ":" block "except" "(" last-arg-elt ")" ":" block "end"
    
 field:
    NAME ":" expr
- | NAME args ":" block ["end"]
+ | NAME args return-ann ":" block ["end"]
+ | "[" expr "]" ":" expr
+ | "[" expr "]" args return-ann ":" block ["end"]
 list-field: field ","
 fields: list-field* field [","]
 
 # list-field is here because it works better with syntax-matching -
 # there's a syntax sub-list for list-field that we can grab hold of
 obj-expr:
-   "{" ["extend" expr "with"] fields "}"
- | "{" "extend" expr "}"
+   "{" fields "}"
  | "{" "}"
 
 list-elt: expr ","
@@ -80,6 +84,7 @@ list-expr: "[" [list-elt* expr] "]"
 
 extend-expr: expr "." "{" fields "}"
              # if we want it, we can add | expr "." "{" expr "}"
+
 dot-expr: expr "." NAME
 bracket-expr: expr "." "[" expr "]"
 
@@ -94,16 +99,18 @@ bracket-method-expr: expr ":" "[" expr "]"
 
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
-data-variant:
-   "|" NAME [":" data-member-elt* data-member] ["with" fields]
+data-with: ["with" fields]
+data-fields: [":" data-member-elt* data-member]
+data-variant: "|" NAME data-fields data-with
 data-param-elt: NAME ","
-data-params: "(" data-param-elt* NAME ")"
-data-expr: "data" NAME [data-params] data-variant+ ("end"|("sharing" fields "end"))
+data-params: ["<" data-param-elt* NAME ">"]
+data-sharing: "end"|("sharing" fields "end")
+data-expr: "data" NAME data-params data-variant+ data-sharing 
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
            
-ann: name-ann | record-ann | arrow-ann | app-ann
+ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann
 
 name-ann: NAME
 record-ann: "{" [list-ann-field* ann-field] "}"
@@ -113,4 +120,6 @@ list-ann-field: ann-field ","
 arrow-ann-elt: ann ","
 arrow-ann: "(" arrow-ann-elt* ann "->" ann ")"
 app-ann-elt: ann ","
-app-ann: name-ann "(" app-ann-elt* ann ")"
+app-ann: name-ann "<" app-ann-elt* ann ">"
+
+pred-ann: ann "(" expr ")"

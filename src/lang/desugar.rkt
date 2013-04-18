@@ -38,7 +38,7 @@
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
     (s-data-field (s-member-syntax m)
-             (symbol->string (s-member-name m))
+             (s-str (s-member-syntax m) (symbol->string (s-member-name m)))
              val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
@@ -87,8 +87,10 @@
 
 (define (ds-member ast-node)
     (match ast-node
-      [(s-data-field s name value) (s-data-field s name (desugar-internal value))]
-      [(s-method-field s name args body) (s-data-field s name (s-method s args (desugar-internal body)))]))
+      [(s-data-field s name value)
+       (s-data-field s (desugar-internal name) (desugar-internal value))]
+      [(s-method-field s name args ann body)
+       (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body)))]))
 
 (define (desugar-internal ast)
   (define ds desugar-internal) 
@@ -121,8 +123,8 @@
     [(s-lam s typarams args ann doc body)
      (s-lam s typarams args ann doc (ds body))]
     
-    [(s-method s args body)
-     (s-method s args (ds body))]
+    [(s-method s args ann body)
+     (s-method s args ann (ds body))]
     
     [(s-cond s c-bs)
      (define (ds-cond branch)
@@ -137,6 +139,31 @@
      (s-cond s
              (append (map ds-cond c-bs)
                      (list (s-cond-branch s (s-bool s #t) cond-fallthrough))))]
+
+    ;; NOTE(joe): This is a hack that needs to be cleaned up. It avoids re-desugaring
+    ;; catch blocks that already have their call to "make-error" added
+    [(s-try _ _ _
+	    (s-block _
+		     (list
+		      (s-app _ _
+			     (list (s-app _ (s-bracket _ (s-id _ 'error)
+						       (s-str _ "make-error"))
+					  _))))))
+     ast]
+
+    [(s-try s try exn catch)
+     ;; NOTE(joe & dbp): The identifier in the exn binding of the try is carefully
+     ;; shadowed here to avoid capturing any names in Pyret.  It is both
+     ;; the name that the compiler will use for the exception, and the name
+     ;; that desugaring uses to provide the wrapped exception from the error
+     ;; library.
+     (define make-error (s-app s (s-bracket s (s-id s 'error)
+			                      (s-str s "make-error"))
+			         (list (s-id s (s-bind-id exn)))))
+     (s-try s (ds try) exn
+	    (s-block s
+		     (list
+		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch)) (list make-error)))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
@@ -163,7 +190,9 @@
     
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
     
-    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
+    [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
+    
+    [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
     
     [(or (s-num _ _)
          (s-bool _ _)
@@ -175,16 +204,25 @@
 (define (desugar-pyret/libs ast)
   (match ast
     [(s-prog s imps block)
-     (define imps-with-libs (append (get-prelude s) imps))
-     (desugar-pyret (s-prog s imps-with-libs block))]))
+     (define desugar1 (desugar-pyret ast))
+     (desugar-pyret (s-prog s (get-prelude s) desugar1))]))
 
 (define (desugar-pyret ast)
   (match ast
     [(s-prog s imps block)
+     (define mod-mapping (create-header (prog->imports ast) empty))
+     (define inner (desugar-pyret/no-imports mod-mapping ast))
+     (s-block s
+        (append (create-inlined-imports mod-mapping)
+                (s-block-stmts inner)))]))
+
+(define (desugar-pyret/no-imports mod-mapping ast)
+  (match ast
+    [(s-prog s imps block)
      (s-block s (flatten-blocks
-                  (append (map (compose desugar-internal desugar-header)
-                               imps)
-                          (map desugar-internal (s-block-stmts block)))))]))
+		 (append (map (compose desugar-internal (curryr desugar-header mod-mapping))
+			      imps)
+			 (map desugar-internal (s-block-stmts block)))))]))
 
 (define (get-prelude s)
   (define (mk-import p)
@@ -200,22 +238,54 @@
   '(
     "pyret-lib/list.arr"
     "pyret-lib/builtins.arr"
+    "pyret-lib/error.arr"
    ))
 
-(define (desugar-header hd)
-  (define (desugar-module ast)
-    (match ast
-      [(s-prog s imps block)
-        (match (desugar-pyret ast)
-          [(s-block s stmts)
-            (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))])]))
+(define (create-inlined-imports mapping)
+  (define (mapping->var mod)
+    (define (desugar-module ast)
+      (match ast
+	    [(s-prog s imps block)
+	     (s-var s (s-bind s (cdr mod) (a-blank))
+           (match (desugar-pyret/no-imports mapping ast)
+	         [(s-block s stmts)
+	          (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))]))]))
+    (define mod-ast (parse-pyret (file->string (car mod)) (car mod)))
+    (define-values (base relative-file root?) (split-path (car mod)))
+    (parameterize [(current-directory base)]
+      (desugar-module mod-ast)))
+  (map mapping->var mapping))
+
+(define (create-header imports mapping)
+  (define (process-imp imp mapping)
+    (match imp
+      [(s-import s file name) 
+       (define full-path (path->complete-path file))
+       (define-values (base relative-file root?) (split-path full-path))
+       (define mod-name (gensym (string-append "module_" (path->string relative-file) "_" (symbol->string name))))
+       (define file-imports (file->imports full-path))
+       (define existing-mapping (assoc full-path mapping))
+       (define new-mapping
+	 (cond
+	  [existing-mapping (cons existing-mapping (remove existing-mapping mapping))]
+	  [else (cons (cons full-path mod-name) mapping)]))
+       (parameterize [(current-directory base)]
+	  (create-header file-imports new-mapping))]
+      [_ (error (format "process-imp: should have been an s-import: ~a" imp))]))
+  (foldr process-imp mapping imports))
+
+(define (prog->imports prog)
+  (filter s-import? (s-prog-imports prog)))
+
+(define (file->imports filename)
+  (define mod-ast (parse-pyret (file->string filename) filename))
+  (prog->imports mod-ast))
+  
+(define (desugar-header hd mapping)
   (match hd
     [(s-provide s exp)
       (s-fun s '%provide (list) (list) (a-blank) "" (s-block s (list exp)))]
     [(s-import s file name)
      (define full-path (path->complete-path file))
-     (define-values (base relative-file root?) (split-path full-path))
-     (define mod-ast (parse-pyret (file->string full-path)))
-     (parameterize [(current-directory base)]
-       (s-var s (s-bind s name (a-blank)) (desugar-module mod-ast)))]))
+     (s-var s (s-bind s name (a-blank)) (s-id s (cdr (assoc full-path mapping))))]))
 

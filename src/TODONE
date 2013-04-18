@@ -1,3 +1,28 @@
+[x] Some sort of module system for sane libraries
+  [x] nested modules graph
+[x] application should check type better?
+  - Used Value * everywhere to ensure only Pyret values come in
+[x] cleanup test-utils
+[x] stop using typed racket except for data definitions
+  - let's stick with TR for as long as we can
+[x] cond implicit else should be in desugar, not compile
+[x] negative numbers
+[x] unsaved-editor symbol showing up as an identifier
+[x] Form for catching errors
+[x] module system?
+[x] Form for throwing errors (syntax & ast/semantics)
+[x] None/null/nothing value built in
+[x] Lists built in?
+[x] How should short-circuiting booleans work?
+  - do!
+[x] anonymous functions... :-)
+[x] first class methods
+[x] Functionalize objects
+[x] Write some tests for extending with seals
+[x] Allow exprs for object literal field names
+[x] := for assignment
+
+[x] rename 'def' to 'var'
 [x] Where do built-in number methods go?
     -meta-number
 

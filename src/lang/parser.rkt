@@ -45,6 +45,7 @@
 
 (define-syntax (stmt stx)
   (syntax-case stx ()
+    [(_ stmt "") #'stmt]
     [(_ stmt) #'stmt]))
 
 (define-syntax (import-stmt stx)
@@ -83,11 +84,16 @@
 
 (define-syntax (field stx)
   (syntax-case stx ()
-    [(_ key ":" value) #`(s-data-field #,(loc stx) key value)]
-    [(_ key args ":" body)
-     #`(s-method-field #,(loc stx) key args body)]
-    [(_ key args ":" body "end")
-     #`(s-method-field #,(loc stx) key args body)]))
+    [(_ key ":" value) #`(s-data-field #,(loc stx) (s-str #,(loc stx) key) value)]
+    [(_ "[" key "]" ":" value) #`(s-data-field #,(loc stx) key value)]
+    [(_ key args ret ":" body)
+     #`(s-method-field #,(loc stx) (s-str #,(loc stx) key) args ret body)]
+    [(_ key args ret ":" body "end")
+     #`(s-method-field #,(loc stx) (s-str #,(loc stx) key) args ret body)]
+    [(_ "[" key "]" args ret ":" body)
+     #`(s-method-field #,(loc stx) key args ret body)]
+    [(_ "[" key "]" args ret ":" body "end")
+     #`(s-method-field #,(loc stx) #,(loc stx) args ret body)]))
 
 (define-syntax (fields stx)
   (syntax-case stx ()
@@ -96,15 +102,10 @@
     [(_ (list-field field ",") ... lastfield ",")
      #'(list field ... lastfield)]))
 
-;; We don't parse the special method sugar yet
 (define-syntax (obj-expr stx)
   (syntax-case stx (list-field)
     [(_ "{" fields "}") #`(s-obj #,(loc stx) fields)]
-    [(_ "{" "}") #`(s-obj #,(loc stx) empty)]
-    [(_ "{" "extend" super-expr "with" fields "}")
-     #`(s-onion #,(loc stx) super-expr fields)]
-    [(_ "{" "extend" super-expr "}")
-     #`(s-onion #,(loc stx) super-expr empty)]))
+    [(_ "{" "}") #`(s-obj #,(loc stx) empty)]))
 
 (define-syntax (id-expr stx)
   (syntax-case stx ()
@@ -114,7 +115,7 @@
 
 (define-syntax (assign-expr stx)
   (syntax-case stx ()
-    [(_ x "=" expr)
+    [(_ x ":=" expr)
      (with-syntax ([x-id (parse-id #'x)])
        #`(s-assign #,(loc stx) 'x-id expr))]))
 
@@ -166,9 +167,9 @@
 (define-syntax (fun-ty-params stx)
   (syntax-case stx (fun-ty-param fun-ty-param-elt)
     [(_) #'(list)]
-    [(_ "(" (fun-ty-param
+    [(_ "<" (fun-ty-param
 	     (fun-ty-param-elt param) ",") ...
-	     (fun-ty-param-elt last) ")")
+	     (fun-ty-param-elt last) ">")
      #`(quote #,(parse-names #'(param ... last)))]))
 
 (define-syntax (return-ann stx)
@@ -193,14 +194,14 @@
 
 (define-syntax (lambda-expr stx)
   (syntax-case stx (lambda-args)
-    [(_ "\\" (lambda-args arg ... lastarg) ":" "(" body ")")
-      #`(s-lam #,(loc stx) empty (list arg ... lastarg) (a-blank) "" body)]
-    [(_ "\\" "(" body ")")
+    [(_ "\\" ty-params (lambda-args arg ... lastarg) ":" body)
+      #`(s-lam #,(loc stx) ty-params (list arg ... lastarg) (a-blank) "" body)]
+    [(_ "\\" body)
      #`(s-lam #,(loc stx) empty empty (a-blank) "" body)]
-    [(_ "\\" (lambda-args arg ... lastarg) "->" ann ":" "(" body ")")
-     #`(s-lam #,(loc stx) empty (list arg ... lastarg) ann "" body)]
-    [(_ "\\" "->" ann ":" "(" body ")")
-     #`(s-lam #,(loc stx) empty empty ann "" body)]))
+    [(_ "\\" ty-params (lambda-args arg ... lastarg) "->" ann ":" body)
+     #`(s-lam #,(loc stx) ty-params (list arg ... lastarg) ann "" body)]
+    [(_ "\\" ty-params "->" ann ":" body)
+     #`(s-lam #,(loc stx) ty-params empty ann "" body)]))
 
 
 (define-syntax (arg-elt stx)
@@ -235,6 +236,11 @@
                ;; is not sufficient to pull this off.
                (list (s-cond-branch #,(loc stx) exp blck) ...))]))
 
+(define-syntax (try-expr stx)
+  (syntax-case stx ()
+    [(_ "try" ":" t-block "except" "(" last-arg-elt ")" ":" e-block "end")
+     #`(s-try #,(loc stx) t-block last-arg-elt e-block)]))
+
 (define-syntax (extend-expr stx)
   (syntax-case stx ()
     [(_ obj "." "{" fields "}")
@@ -259,14 +265,17 @@
 
 (define-syntax (dot-method-expr stx)
   (syntax-case stx ()
-   [(_ obj ":" field)
-    #`(s-dot-method #,(loc stx)
-                    obj
-                    '#,(parse-name #'field))]
     [(_ obj ":" field)
      #`(s-dot-method #,(loc stx)
                      obj
                      '#,(parse-name #'field))]))
+
+(define-syntax (bracket-method-expr stx)
+  (syntax-case stx ()
+    [(_ obj ":" "[" field "]")
+     #`(s-bracket-method #,(loc stx)
+                     obj
+                     field)]))
 
 (define-syntax (data-member stx)
   (syntax-case stx ()
@@ -279,69 +288,45 @@
                  '#,(parse-name #'member-name)
                  ann)]))
 
+(define-syntax (data-with stx)
+  (syntax-case stx ()
+    [(_ "with" fields) #'fields]
+    [(_) #'(list)]))
+
+(define-syntax (data-fields stx)
+  (syntax-case stx ()
+    [(_ ":" (data-member-elt member ",") ... last-member)
+     #'(list member ... last-member)]
+    [(_) #'(list)]))
+
 (define-syntax (data-variant stx)
   (syntax-case stx (data-member-elt data-members)
-    [(_ "|" variant-name)
+    [(_ "|" variant-name fields-part with-part)
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
-                  (list)
-                  (list))]
-    [(_ "|" variant-name "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list)
-                  fields)]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  (list))]
-    [(_ "|" variant-name ":" (data-member-elt member ",") ... last-member "with" fields)
-     #`(s-variant #,(loc stx)
-                  '#,(parse-name #'variant-name)
-                  (list member ... last-member)
-                  fields)]))
+                  fields-part
+                  with-part)]))
+
+(define-syntax (data-params stx)
+  (syntax-case stx (data-param-elt)
+    [(_ "<" (data-param-elt name ",") ... last-name ">")
+     #`(quote #,(parse-names #'(name ... last-name)))]
+    [(_) #'(list)]))
+      
+
+(define-syntax (data-sharing stx)
+  (syntax-case stx ()
+    [(_ "sharing" fields "end") #'fields]
+    [(_ "end") #'(list)]))
 
 (define-syntax (data-expr stx)
-  (syntax-case stx (data-param-elt data-params)
-    ; NOTE(joe): there's a weird ordering dependency here that can cause "sharing"
-    ; to be parsed as a variant, since this macro doesn't know better than to just
-    ; gobble up all the terms it sees until "end", so the two "sharing" cases
-    ; *must* come first
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "sharing"
-        fields
-        "end")
+  (syntax-case stx ()
+    [(_ "data" data-name data-params variant ...  sharing-part)
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
+               data-params
                (list variant ...)
-               fields)]
-    [(_ "data" data-name
-        variant ...
-        "sharing"
-        fields
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               fields)]
-    [(_ "data" data-name (data-params "(" (data-param-elt name ",") ... last-name ")")
-        variant ...
-        "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name)
-               '#,(parse-names #'(name ... last-name))
-               (list variant ...)
-               (list))]
-    [(_ "data" data-name variant ... "end")
-     #`(s-data #,(loc stx) 
-               '#,(parse-name #'data-name) 
-               (list)
-               (list variant ...)
-               (list))]))
+               sharing-part)]))
 
 (define-syntax (do-expr stx)
   (syntax-case stx (do-stmt)
@@ -377,7 +362,11 @@
 
 (define-syntax (app-ann stx)
   (syntax-case stx (name-ann)
-    [(_ (name-ann name) "(" (app-ann-elt param ",") ... last-param ")")
+    [(_ (name-ann name) "<" (app-ann-elt param ",") ... last-param ">")
      #`(a-app #,(loc stx) '#,(parse-name #'name) (list param ... last-param))]))
-     
+
+(define-syntax (pred-ann stx)
+  (syntax-case stx ()
+    [(_ ann "(" expr ")")
+     #`(a-pred #,(loc stx) ann expr)]))
 
