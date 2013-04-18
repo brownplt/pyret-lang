@@ -9,7 +9,7 @@
 (defconst pyret-font-lock-keywords-1
   (list
    '("->" . font-lock-builtin-face)
-   `(,(regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "." "\\" ";" "|" "=")) . font-lock-builtin-face)
+   `(,(regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "<" ">" "." "\\" ";" "|" "=")) . font-lock-builtin-face)
    `(,(concat 
        "\\<"
        (regexp-opt
