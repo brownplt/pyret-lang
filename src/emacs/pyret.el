@@ -8,7 +8,8 @@
 
 (defconst pyret-font-lock-keywords-1
   (list
-   `(,(regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "." "->" "\\" ";" "|" "=")) . font-lock-builtin-face)
+   '("->" . font-lock-builtin-face)
+   `(,(regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "." "\\" ";" "|" "=")) . font-lock-builtin-face)
    `(,(concat 
        "\\<"
        (regexp-opt
@@ -22,7 +23,7 @@
 
 (defconst pyret-font-lock-keywords-2
   (append
-   pyret-font-lock-keywords-1
+   (cdr pyret-font-lock-keywords-1)
    (let* ((ident "[a-zA-Z_][a-zA-Z0-9$_\\-]*"))
      (list
       '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-builtin-face))
@@ -32,6 +33,8 @@
         (1 font-lock-builtin-face) (2 font-lock-type-face))
       `(,(concat "\\(" ident "\\)[ \t]*::[ \t]*\\(" ident "\\)") 
         (1 font-lock-variable-name-face) (2 font-lock-type-face))
+      `(,(concat "\\(->\\)[ \t]*\\(" ident "\\)")
+        (1 font-lock-builtin-face) (2 font-lock-type-face))
       `(,(concat "\\(" ident "\\)[ \t]*\\((\\|:\\)")  (1 font-lock-function-name-face))
       `(,ident . font-lock-variable-name-face)
      )))
