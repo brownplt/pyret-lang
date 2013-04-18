@@ -4,3 +4,6 @@
 [submodule "examples/pyret-lang-private"]
 	path = examples/pyret-lang-private
 	url = git@github.com:brownplt/pyret-lang-private
+[submodule "lib/whalesong"]
+	path = lib/whalesong
+	url = git@github.com:jpolitz/whalesong
