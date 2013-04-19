@@ -1,4 +1,4 @@
-#lang pyret
+#lang pyret/whalesong
 
 data PyretData
   | pyret-string : s :: String with
