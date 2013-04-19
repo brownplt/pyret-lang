@@ -41,6 +41,8 @@ CS019 Assignments
 [] Seam Carving (image libs)
 
 Need-to-have (eventually):
+[] not before things as opposed to after?
+[] fulfills keyword for inline tests
 [] Cyclic modules check
 [] provide Data
 [x] decide on built-in exception types
@@ -59,6 +61,7 @@ Need-to-have (eventually):
 [] seals should expand when fields are updated; otherwise you
    can tell what is hidden, which is potentially a Bad Thing
 [x] Capture avoiding names in catch blocks
+[] Data urls for inline images
 
 Nice-to-have (eventually):
 [] implicit cond if you start fun with a |
