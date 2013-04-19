@@ -46,10 +46,10 @@
 (define-runtime-path utils-path "test-utils.rkt")
 
 (define (compile-str str)
-  (pyret->racket utils-path (open-input-string str)))
+  (pyret->racket utils-path (open-input-string str) #:libs #f))
 
 (define (compile-str/libs str)
-  (pyret->racket/libs utils-path (open-input-string str)))
+  (pyret->racket utils-path (open-input-string str) #:libs #t))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))

@@ -5,13 +5,24 @@
 	 "../lang/runtime.rkt"
 	 "match-set.rkt")
 
-(verbose! #t)
+(verbose! #f)
 
 (define five (p:mk-num 5))
 (define two (p:mk-num 2))
 (define ten (p:mk-num 10))
 
 (define true (p:mk-bool #t))
+
+(check-pyret/libs "try: raise(5) except(e): e end" five)
+(check-pyret/libs "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
+(check-pyret/libs "fun f(): g() end
+              fun g(): raise(5) end
+              fun h(): try: f() except(e): e end end
+              h()" five)
+(check-pyret/libs "fun f(): try: g() except(e): raise(e.add(5)) end end
+              fun g(): raise(5) end
+              fun h(): try: f() except(e): e end end
+              h()" ten)
 
 (check-pyret-match "5" (p:p-num _ (hash-table) x 5))
 
@@ -417,16 +428,6 @@ l1.add(l2)
 
 (check-pyret "fun f(self): self.x end var o: { x: 5 }.{ m : f._method() } o.m()" five)
 
-(check-pyret "try: raise(5) except(e): e end" five)
-(check-pyret "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
-(check-pyret "fun f(): g() end
-              fun g(): raise(5) end
-              fun h(): try: f() except(e): e end end
-              h()" five)
-(check-pyret "fun f(): try: g() except(e): raise(e.add(5)) end end
-              fun g(): raise(5) end
-              fun h(): try: f() except(e): e end end
-              h()" ten)
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: {}() except(e): builtins.is-exception(e)" true)

@@ -9,5 +9,6 @@
   (all-from-out "pyret-lang-whalesong.rkt")
   print-pyret
   repl-eval-pyret
+  (rename-out [with-handlers r:with-handlers])
   )
   

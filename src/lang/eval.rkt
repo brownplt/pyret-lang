@@ -10,6 +10,7 @@
 (require
   racket/sandbox
   racket/runtime-path
+  syntax/modresolve
   syntax/strip-context
   "tokenizer.rkt"
   "desugar.rkt"
@@ -21,22 +22,24 @@
 (define-runtime-path parser "parser.rkt")
 (define-runtime-path ast "ast.rkt")
 (define-runtime-path runtime "runtime.rkt")
-(define-runtime-module-path pyret-lang "pyret-lang-whalesong.rkt")
+(define-runtime-module-path-index pyret-lang-ix "pyret-lang-racket.rkt")
 ;(dynamic-require pyret-lang #f)
 (define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
 
 (define (py-eval)
+  (define pyret-lang (resolve-module-path-index pyret-lang-ix #f))
   (let ([specs (sandbox-namespace-specs)])
     (parameterize [(sandbox-namespace-specs (cons make-base-namespace
                                                   (list runtime)))
                    (sandbox-path-permissions `((read ,pyret-base-path)))]
     (define module-syntax
      (with-syntax
-       ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))])
+       ([pyret-lang-stx (path->string pyret-lang)])
         (strip-context #'(module src (file pyret-lang-stx) (r:begin)))))
     (make-module-evaluator module-syntax))))
 
 (define (pyret-eval stx)
+  (define pyret-lang (resolve-module-path-index pyret-lang-ix #f))
   (define make-fresh-namespace (eval
                               '(lambda ()
                                  (variable-reference->empty-namespace
