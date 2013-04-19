@@ -92,8 +92,18 @@
       [(s-method-field s name args ann body)
        (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body)))]))
 
+(define (desugar-ann ann)
+  (match ann
+    [(a-pred s a pred) (a-pred s (desugar-ann a) (desugar-internal pred))]
+    [(? a-ann?) ann]
+    [_ (error 'desugar-ann "Not an annotation: ~a" ann)]))
+
 (define (desugar-internal ast)
   (define ds desugar-internal) 
+  (define (ds-args binds)
+    (map (lambda (b)
+      (match b
+        [(s-bind s id a) (s-bind s id (desugar-ann a))])) binds))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -117,11 +127,11 @@
 
     [(s-fun s name typarams args ann doc body)
      (s-var s
-            (s-bind s name (a-arrow s (map s-bind-ann args) ann))
-            (s-lam s typarams args ann doc (ds body)))]
+            (s-bind s name (a-arrow s (map desugar-ann (map s-bind-ann args)) (desugar-ann ann)))
+            (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body)))]
 
     [(s-lam s typarams args ann doc body)
-     (s-lam s typarams args ann doc (ds body))]
+     (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body))]
     
     [(s-method s args ann body)
      (s-method s args ann (ds body))]

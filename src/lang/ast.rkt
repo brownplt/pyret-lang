@@ -118,20 +118,21 @@ these metadata purposes.
 (struct s-do (syntax init args) #:transparent)
 
 ;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
-(struct a-blank () #:transparent)
-(struct a-any () #:transparent)
+(struct a-ann () #:transparent)
+(struct a-blank a-ann () #:transparent)
+(struct a-any a-ann () #:transparent)
 ;; a-name : srcloc Symbol
-(struct a-name (syntax id) #:transparent)
-;; a-arrow : srcloc (Listof Ann) Ann
-(struct a-arrow (syntax args ret) #:transparent)
-;; a-method : srcloc (Listof Ann) Ann
-(struct a-method (syntax args ret) #:transparent)
-;; a-field : srcloc String Ann
-(struct a-field (syntax name ann) #:transparent)
+(struct a-name a-ann (syntax id) #:transparent)
+;; a-arrow : srcloc (Listof a-ann) a-ann
+(struct a-arrow a-ann (syntax args ret) #:transparent)
+;; a-method : srcloc (Listof a-ann) a-ann
+(struct a-method a-ann (syntax args ret) #:transparent)
+;; a-field : srcloc String a-ann
+(struct a-field a-ann (syntax name ann) #:transparent)
 ;; a-record : srcloc (Listof a-field)
-(struct a-record (syntax fields) #:transparent)
-;; a-app : srcloc Symbol (Listof Ann)
-(struct a-app (syntax name parameters) #:transparent)
-;; a-pred : srcloc Ann Expr
-(struct a-pred (syntax ann exp) #:transparent)
+(struct a-record a-ann (syntax fields) #:transparent)
+;; a-app : srcloc Symbol (Listof a-ann)
+(struct a-app a-ann (syntax name parameters) #:transparent)
+;; a-pred : srcloc a-ann Expr
+(struct a-pred a-ann (syntax ann exp) #:transparent)
 
