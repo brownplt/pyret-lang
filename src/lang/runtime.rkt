@@ -72,6 +72,8 @@
               [mk-fun p:mk-fun]
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-method p:mk-method]
+              [wrap p:wrap]
+              [unwrap p:unwrap]
               [exn:fail:pyret? p:exn:fail:pyret?]
               [mk-exn p:mk-exn]
               [empty-dict p:empty-dict]
@@ -98,7 +100,6 @@
   Number?
   String?
   Bool?
-  Racket
   nothing)
 
 ;(define-type Value (U p-object p-num p-bool
@@ -184,22 +185,6 @@
                 (type-specific-fields matchval)))
             (py-match matchval other ...)))))]))
 
-#|     
-(define-syntax-rule (py-match val [(typ s b d id ...) body] other ...)
-  (let ((matchval val))
-    (if ((value-predicate-for typ) matchval)
-        (if (p-base? matchval)
-            (apply
-              (lambda (s b d id ...) body)
-              (append
-                (list
-                  (p-base-seal matchval)
-                  (p-base-brands matchval)
-                  (p-base-brands matchval))
-                (type-specific-fields matchval)))
-            body)
-        (py-match matchval [other ...] body))))
-|#
 (struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
     (lambda (a-struct)
@@ -207,28 +192,6 @@
 
 (define (mk-pyret-exn str loc val sys)
   (exn:fail:pyret str (current-continuation-marks) (apply srcloc loc) sys val))
-
-;; Primitives that are allowed from Pyret land.  Others must be
-;; wrapped in opaques.  This may be extended for lists and other
-;; Racket built-in types in the future.
-(define (allowed-prim? v)
-  (or (number? v)
-      (string? v)
-      (boolean? v)))
-
-(define (apply-racket-fun package-name package-member args)
-  (define package (string->symbol package-name))
-  (define fun (lambda _ (mk-str "No FFI")))
-  ;(dynamic-require package (string->symbol package-member)))
-  (define (get-val arg)
-    (cond
-      [(p-opaque? arg) (p-opaque-val arg)]
-      [(allowed-prim? arg) arg]
-      [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
-  (define result (apply fun (map get-val args)))
-  (cond
-    [(allowed-prim? result)  result]
-    [else (p-opaque result)]))
 
 ;; mk-exn: p-exn -> Value
 (define (mk-exn e)
@@ -326,8 +289,6 @@
 
 (define exn-brand (gensym 'exn))
 
-(define Racket (mk-object empty-dict))
-
 (define Any?
   (mk-fun-nodoc (λ o (mk-bool #t))))
 
@@ -347,16 +308,6 @@
 
 (define Bool? (mk-fun-nodoc bool?))
 
-;; mk-racket-fun : String -> Value
-(define (mk-racket-fun f)
-  (mk-fun-nodoc
-    (λ args
-      (py-match (first args)
-        [(p-str _ __ ___ s)
-         (wrap (apply-racket-fun f s (map unwrap (rest args))))]
-        [(default _)
-         (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))
-
 ;; pyret-error : Loc STring String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
@@ -374,12 +325,10 @@
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
-  (if (eq? v Racket)
-      (mk-racket-fun f)
-      (py-match (get-raw-field loc v f)
-        [(p-method _ __ ___ f)
-         (mk-fun-nodoc (λ args (apply f (cons v args))))]
-        [(default non-method) non-method])))
+  (py-match (get-raw-field loc v f)
+    [(p-method _ __ ___ f)
+     (mk-fun-nodoc (λ args (apply f (cons v args))))]
+    [(default non-method) non-method]))
 
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)

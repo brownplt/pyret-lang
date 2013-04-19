@@ -11,8 +11,8 @@
   #%datum
   #%top
   #%app
-  (all-from-out "runtime.rkt")
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]
+  (all-from-out "runtime.rkt")
   )
   
