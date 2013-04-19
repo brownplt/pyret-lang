@@ -160,6 +160,6 @@
                    [body-id (d->stx (if (cons? ids) (last ids) 'nothing) l)]
                    [(expr ...) (map cdr id-expr-pairs)])
       (attach l
-       #`(r:begin (r:letrec [(id expr) ...] body-id))))]
+       #`(r:begin (r:define id expr) ... body-id)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 

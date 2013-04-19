@@ -15,10 +15,7 @@
   "typecheck.rkt"
   "eval.rkt")
 
-(define-runtime-module-path parser "parser.rkt")
-(define-runtime-module-path pyret-lang "pyret-lang.rkt")
-(define-runtime-module-path full-eval "eval.rkt")
-
+(define-runtime-module-path pyret-lang-racket "pyret-lang-racket.rkt")
 
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
@@ -26,19 +23,19 @@
 (define (bare-read-syntax src in)
   (cond
     [(port-eof? in) eof]
-    [else (strip-context (pyret->racket/libs src in))]))
+    [else (strip-context (pyret->racket src in #:libs #t))]))
 
 (define (my-read-syntax src in)
   (cond
     [(port-eof? in) eof]
     [else
       (with-syntax
-         ([pyret-lang-stx (path->string (resolved-module-path-name pyret-lang))]
-          [full-eval-stx (path->string (resolved-module-path-name full-eval))])
+         ([pyret-lang-racket-stx
+           (path->string (resolved-module-path-name pyret-lang-racket))])
             (strip-context
-              #`(module src (file pyret-lang-stx)
-                  ;(require (file full-eval-stx))
-                  ;(current-read-interaction repl-eval-pyret)
-                  ;(void (current-print (print-pyret (current-print))))
-                  #,(bare-read-syntax src in))))]))
+              #`(module src (file pyret-lang-racket-stx)
+                  (r:require (r:only-in racket/base current-read-interaction current-print void))
+                  (void (current-read-interaction repl-eval-pyret))
+                  (void (current-print (print-pyret (current-print))))
+                  #,(pyret->racket src in #:libs #t #:toplevel #t))))]))
 

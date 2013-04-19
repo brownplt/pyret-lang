@@ -21,7 +21,7 @@
 (define-runtime-path parser "parser.rkt")
 (define-runtime-path ast "ast.rkt")
 (define-runtime-path runtime "runtime.rkt")
-(define-runtime-module-path pyret-lang "pyret-lang.rkt")
+(define-runtime-module-path pyret-lang "pyret-lang-whalesong.rkt")
 ;(dynamic-require pyret-lang #f)
 (define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
 
@@ -49,16 +49,25 @@
 
 (define (stx->racket stx desugar)
   (strip-context
-   (compile-pyret
+   (compile-expr
     (contract-check-pyret
      (desugar
       (parse-eval stx))))))
 
-(define (pyret->racket src in)
-  (stx->racket (get-syntax src in) desugar-pyret))
 
 (define (pyret->racket/libs src in)
   (stx->racket (get-syntax src in) desugar-pyret/libs))
+
+(define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f])
+  (define desugar (if libs desugar-pyret/libs desugar-pyret))
+  (define compile (if toplevel compile-pyret compile-expr))
+  (strip-context
+    (compile
+      (contract-check-pyret
+        (desugar
+          (parse-eval
+            (get-syntax src in)))))))
+
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from 
@@ -67,7 +76,7 @@
                  [read-accept-lang #f])
     (if (eof-object? (peek-char in))
         eof
-        (pyret->racket src in))))
+        (pyret->racket src in #:toplevel #t))))
 
 (define (simplify-pyret val)
   (match val
@@ -86,5 +95,6 @@
   (when (not (equal? val nothing))
     (match val
       [(p:p-opaque v) (printer v)]
-      [_ (pretty-write (simplify-pyret val))])))
+      [(? p:p-base?) (pretty-write (simplify-pyret val))]
+      [_ (void)])))
 
