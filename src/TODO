@@ -8,13 +8,15 @@ Need-to-have (soon):
      - contracts up to monomorphic structures and polymorphic functions
 [] Pyret on Whalesong
   [x] Convert ast, runtime to racket/base
-  [] Remove all non-whalesong imports from runtime.rkt
-    [] match
-    [] list
-    [] srfi
-    [] string
-    [] math
-    [] set
+  [x] Remove all non-whalesong imports from runtime.rkt
+    [x] match
+    [x] list
+    [x] srfi
+    [x] string
+    [x] math
+    [x] set
+[] Performance
+[] Indentation enforcement
 
 15-minute tasks
 [] Make everything with methods consistent with functions

@@ -5,7 +5,6 @@
   print-pyret
   pyret->racket
   pyret->racket/libs
-  pyret-eval
   py-eval)
 (require
   racket/sandbox
@@ -38,17 +37,6 @@
         (strip-context #'(module src (file pyret-lang-stx) (r:begin)))))
     (make-module-evaluator module-syntax))))
 
-(define (pyret-eval stx)
-  (define pyret-lang (resolve-module-path-index pyret-lang-ix #f))
-  (define make-fresh-namespace (eval
-                              '(lambda ()
-                                 (variable-reference->empty-namespace
-                                  (#%variable-reference)))
-                              (make-base-namespace)))
-  (define ns (make-fresh-namespace))
-  (parameterize ([current-namespace ns])
-    (namespace-require pyret-lang))
-  (eval stx ns))
 
 (define (stx->racket stx desugar)
   (strip-context

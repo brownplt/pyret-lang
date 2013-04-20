@@ -13,17 +13,6 @@
 
 (define true (p:mk-bool #t))
 
-(check-pyret/libs "try: raise(5) except(e): e end" five)
-(check-pyret/libs "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
-(check-pyret/libs "fun f(): g() end
-              fun g(): raise(5) end
-              fun h(): try: f() except(e): e end end
-              h()" five)
-(check-pyret/libs "fun f(): try: g() except(e): raise(e.add(5)) end end
-              fun g(): raise(5) end
-              fun h(): try: f() except(e): e end end
-              h()" ten)
-
 (check-pyret-match "5" (p:p-num _ (hash-table) x 5))
 
 (check-pyret "5" five)
@@ -427,6 +416,17 @@ l1.add(l2)
 (check-pyret "var o: {fff(self, x): x} o:['f'.append('ff')]._fun()(nothing, 5)" five)
 
 (check-pyret "fun f(self): self.x end var o: { x: 5 }.{ m : f._method() } o.m()" five)
+
+(check-pyret/libs "try: raise(5) except(e): e end" five)
+(check-pyret/libs "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
+(check-pyret/libs "fun f(): g() end
+              fun g(): raise(5) end
+              fun h(): try: f() except(e): e end end
+              h()" five)
+(check-pyret/libs "fun f(): try: g() except(e): raise(e.add(5)) end end
+              fun g(): raise(5) end
+              fun h(): try: f() except(e): e end end
+              h()" ten)
 
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
