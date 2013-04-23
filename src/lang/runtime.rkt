@@ -648,8 +648,11 @@
      (if (and (p-bool? check-v) (p-bool-b check-v))
 	       o
          ;; NOTE(dbp): not sure how to give good reporting
-         (error (format "runtime: typecheck failed; expected ~a and got\n~a"
+         ;; NOTE(joe): This is better, but still would be nice to highlight
+         ;;  the call site as well as the destination
+         (let [(val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
                               typname (to-string o))))]
+         (raise (mk-pyret-exn (exn+loc->message val loc) loc val #f))))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
