@@ -17,7 +17,7 @@
          (on-tick    (hash-ref ht 'on-tick))
          (on-mouse   (hash-ref ht 'on-mouse void))
          (on-key     (hash-ref ht 'on-key void))
-         (record?    (hash-ref ht 'on-key #f))
+         (record?    (hash-ref ht 'record #f))
          (stop-when  (hash-ref ht 'stop-when (lambda _ (displayln _) (lambda _ #f))))
          (state      (hash-ref ht 'state #f))
          (check-with (hash-ref ht 'check-with (lambda _ (lambda _ #t))))

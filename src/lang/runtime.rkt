@@ -537,12 +537,14 @@
     (set! meta-num-store
       (make-immutable-hash
         `(("add" . ,(mk-num-fun + '+))
+          ("plus" . ,(mk-num-fun + '+))
           ("minus" . ,(mk-num-fun - '-))
           ("divide" . ,(mk-num-fun / '/))
           ("times" . ,(mk-num-fun * '*))
           ("sin" . ,(mk-num-fixed sin 'sin 1))
           ("cos" . ,(mk-num-fixed cos 'cos 1))
           ("sqr" . ,(mk-num-fixed sqr 'sqr 1))
+          ("sqrt" . ,(mk-num-fixed sqrt 'sqrt 1))
           ("tostring" . ,(mk-num-fixed number->string 'tostring 1))
           ("expt" . ,(mk-num-fixed expt 'expt 1))
           ("equals" . ,(mk-num-fixed = 'equals 2))

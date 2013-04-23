@@ -63,13 +63,13 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun (r:λ args (r:apply (r:λ (arg ...) body-stx) args)) #,doc)))]
+         #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
     
     [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)]) 
-         #'(p:mk-method (r:λ args (r:apply (r:λ (arg ...) body-stx) args)))))]
+         #'(p:mk-method (r:λ (arg ...) body-stx))))]
     
     [(s-cond l c-bs)
      (define (compile-cond-branch b)
