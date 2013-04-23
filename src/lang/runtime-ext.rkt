@@ -97,14 +97,15 @@
 (define (big-bang loc)
   (lambda args
     (define (wrap-for-racket-callback k f)
-      (define ((f-for-racket unwrapper) . callback-args)
-        (unwrapper
-          (apply p:apply-fun
-            (append (list f loc) callback-args))))
       (cond
-        [(equal? k "to-draw") (f-for-racket p:p-opaque-val)]
-        [(equal? k "stop-when") (f-for-racket p:unwrap)]
-        [else (f-for-racket (lambda (x) x))]))
+        [(equal? k "to-draw")
+         (lambda (world) (p:p-opaque-val ((p:check-fun f loc) world)))]
+        [(equal? k "stop-when")
+         (lambda (world) (p:unwrap ((p:check-fun f loc) world)))] 
+        [(equal? k "on-tick")
+         (lambda (world) ((p:check-fun f loc) world))]
+        [else (raise (p:pyret-error loc "big-bang-no-impl"
+                      (format "No implementation for big-bang handler ~a" k)))]))
     (match (second args)
       [(p:p-object _ _ d)
        (define hash-for-bb

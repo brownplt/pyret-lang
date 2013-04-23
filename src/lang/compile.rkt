@@ -108,7 +108,7 @@
         (with-syntax ([fun (compile-expr fun)]
                       [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
-          #'(p:apply-fun fun (r:list loc-param ...) arg ...)))]
+          #'((p:check-fun fun (r:list loc-param ...)) arg ...)))]
 
     [(s-obj l fields)
      (attach l

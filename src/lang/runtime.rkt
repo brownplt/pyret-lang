@@ -17,9 +17,9 @@
   (_hash-fold f (hash-map h cons) init))
 
 (define (list->set lst)
-  (apply set lst))
-(define (set . args)
-  (make-immutable-hash (map (lambda (elt) (cons elt #t)) args)))
+  (make-immutable-hash (map (lambda (elt) (cons elt #t)) lst)))
+(define (set)
+  (make-immutable-hash))
 (define (set-add s k)
   (hash-set s k #t))
 (define (set-union s1 s2)
@@ -84,6 +84,7 @@
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
               [apply-fun p:apply-fun]
+              [check-fun p:check-fun]
               [has-field? p:has-field?]
               [reseal p:reseal]
               [extend p:extend]
@@ -321,10 +322,9 @@
 
 ;; get-raw-field : Loc Value String -> Value
 (define (get-raw-field loc v f)
-  (define errorstr (format "~a was not found" f))
   (if (has-field? v f)
       (hash-ref (get-dict v) f)
-      (raise (pyret-error loc "field-not-found" errorstr))))
+      (raise (pyret-error loc "field-not-found" (format "~a was not found" f)))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -332,6 +332,17 @@
     [(p-method _ __ ___ f)
      (mk-fun-nodoc (λ args (apply f (cons v args))))]
     [(default non-method) non-method]))
+
+(define (check-fun v l)
+  (cond
+    [(p-fun? v) ((p-fun-f v) l)]
+    [else
+     (raise
+      (pyret-error
+        l
+        "apply-non-function"
+        (format "apply-fun: expected function, got ~a" (to-string v))))]))
+
 
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
@@ -359,7 +370,7 @@
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
-  (define bs (set-union (get-brands v) (set new-brand)))
+  (define bs (set-union (get-brands v) (list->set (list new-brand))))
   (py-match v
     [(p-object s _ h) (p-object s bs h)]
     [(p-num s _ h n) (p-num s bs h n)]
