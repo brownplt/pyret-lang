@@ -86,6 +86,6 @@
   (when (not (equal? val nothing))
     (match val
       [(p:p-opaque v) (printer v)]
-      [(? p:p-base?) (pretty-write (simplify-pyret val))]
+      [(? p:p-base?) (pretty-write (p:to-string val))]
       [_ (void)])))
 
