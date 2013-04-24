@@ -11,7 +11,7 @@ provide {
 data Location
   | location : file :: String, line :: Number, column :: Number with
     format(self):
-      file.append(": line ").append(line.tostring()).append(", column ").append(column.tostring())
+      self.file.append(": line ").append(self.line.tostring()).append(", column ").append(self.column.tostring())
 end
 
 data Error
