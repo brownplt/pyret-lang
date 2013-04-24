@@ -151,8 +151,31 @@
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
+(define (compile-header header)
+  (match header
+    [(s-import l file name)
+     (attach l
+       (with-syntax
+        ([file-stx file])
+       (with-syntax
+         ([name-stx name]
+          [req-stx (if (relative-path? file) #'file-stx #'(r:file file-stx))])
+        #`(r:require (r:rename-in req-stx [%PYRET-PROVIDE name-stx])))))]
+
+    [(s-provide l exp)
+     (attach l
+      (with-syntax [(temp-stx (gensym 'module-provide))]
+        #`(r:begin
+            (r:define temp-stx #,(compile-expr exp))
+            (r:provide (r:rename-out [temp-stx %PYRET-PROVIDE])))))]))
+
 (define (compile-pyret ast)
   (match ast
+    [(s-prog l headers blck)
+     (attach l
+      (with-syntax ([(req ...) (map compile-header (filter s-import? headers))]
+                    [(prov ...) (map compile-header (filter s-provide? headers))])
+        #`(r:begin req ... #,(compile-pyret blck) prov ...)))]
     [(s-block l stmts)
      (define (compile-top-stmt stmt)
       (match stmt

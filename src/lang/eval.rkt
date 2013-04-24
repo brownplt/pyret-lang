@@ -5,7 +5,7 @@
   print-pyret
   pyret->racket
   pyret->racket/libs
-  py-eval)
+  get-py-eval)
 (require
   racket/sandbox
   racket/runtime-path
@@ -23,19 +23,20 @@
 (define-runtime-path runtime "runtime.rkt")
 (define-runtime-module-path-index pyret-lang-ix "pyret-lang-racket.rkt")
 ;(dynamic-require pyret-lang #f)
-(define-runtime-path pyret-base-path (simplify-path (build-path "." 'up 'up)))
+(define-runtime-path read-root (simplify-path "/"))
 
-(define (py-eval)
+(define (get-py-eval) pyret-eval)
+(define (pyret-eval stx)
   (define pyret-lang (resolve-module-path-index pyret-lang-ix #f))
-  (let ([specs (sandbox-namespace-specs)])
-    (parameterize [(sandbox-namespace-specs (cons make-base-namespace
-                                                  (list runtime)))
-                   (sandbox-path-permissions `((read ,pyret-base-path)))]
-    (define module-syntax
-     (with-syntax
-       ([pyret-lang-stx (path->string pyret-lang)])
-        (strip-context #'(module src (file pyret-lang-stx) (r:begin)))))
-    (make-module-evaluator module-syntax))))
+  (define make-fresh-namespace (eval
+                              '(lambda ()
+                                 (variable-reference->empty-namespace
+                                  (#%variable-reference)))
+                              (make-base-namespace)))
+  (define ns (make-fresh-namespace))
+  (parameterize ([current-namespace ns])
+    (namespace-require pyret-lang))
+  (eval stx ns))
 
 
 (define (stx->racket stx desugar)
@@ -52,12 +53,11 @@
 (define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f])
   (define desugar (if libs desugar-pyret/libs desugar-pyret))
   (define compile (if toplevel compile-pyret compile-expr))
-  (strip-context
-    (compile
-      (contract-check-pyret
-        (desugar
-          (parse-eval
-            (get-syntax src in)))))))
+  (define pyret-stx (get-syntax src in))
+  (define parsed-stx (parse-eval pyret-stx))
+  (define desugared (desugar parsed-stx))
+  (define compiled (compile (contract-check-pyret desugared)))
+  (strip-context compiled))
 
 
 (define (repl-eval-pyret src in)

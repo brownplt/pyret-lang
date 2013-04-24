@@ -1,4 +1,4 @@
-#lang pyret
+#lang pyret/library
 
 import "list.arr" as list
 provide {

@@ -1,6 +1,6 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide (all-defined-out) #%datum)
 (require
   "ast.rkt")
 
@@ -28,6 +28,10 @@
 (define-for-syntax (parse-string stx)
   (let [(str-val (syntax->datum stx))]
     (substring str-val 1 (sub1 (string-length str-val)))))
+
+(define-syntax (#%top-interaction stx)
+  (syntax-case stx ()
+    [(_ exprs ...) #'(exprs ...)]))
 
 (define-syntax (program stx)
   (syntax-case stx ()

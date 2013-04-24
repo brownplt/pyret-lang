@@ -46,19 +46,21 @@
     (match v
       [(s-variant s name members with-members)
        (define brander-name (gensym name))
+       (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define dsg-with-members (map ds-member with-members))
        (define args (map s-member-name members))
        ;; TODO(joe): annotations on args
        (define constructor-args
         (map (lambda (id) (s-bind s id (a-blank))) args))
+       (define base-obj
+         (s-obj s (append super-fields dsg-with-members)))
        (define obj
-         (s-onion s
-                  (s-obj s (map member->field
+         (s-onion s base-obj (map member->field
                                 members
-                                (map (lambda (id) (s-id s id)) args)))
-                  (append super-fields dsg-with-members)))
+                                (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list 
+           (s-var s (s-bind s base-name (a-blank)) base-obj)
            (s-var s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
@@ -214,17 +216,24 @@
 (define (desugar-pyret/libs ast)
   (match ast
     [(s-prog s imps block)
-     (define desugar1 (desugar-pyret ast))
-     (desugar-pyret (s-prog s (get-prelude s) desugar1))]))
+     (desugar-pyret (s-prog s (append (get-prelude s) imps) block))]))
 
 (define (desugar-pyret ast)
+  (define (desugar-imp imp)
+    (match imp
+      [(s-import l f n) (s-import l f n)]
+      [_ imp]))
   (match ast
     [(s-prog s imps block)
+     (s-prog s (map desugar-imp imps) (desugar-internal block))]))
+
+     #| NOTE(joe): this may be useful in the future
      (define mod-mapping (create-header (prog->imports ast) empty))
      (define inner (desugar-pyret/no-imports mod-mapping ast))
      (s-block s
         (append (create-inlined-imports mod-mapping)
                 (s-block-stmts inner)))]))
+                |#
 
 (define (desugar-pyret/no-imports mod-mapping ast)
   (match ast

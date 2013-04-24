@@ -176,5 +176,9 @@
     [else (error (format "Missed a case in type-checking: ~a" ast))]))
 
 (define (contract-check-pyret ast)
-  (cc-env ast (make-immutable-hash)))
+  (match ast
+    ;; TODO(joe): typechecking provides expressions?
+    [(s-prog s imps ast)
+     (s-prog s imps (cc-env ast (make-immutable-hash)))]
+    [else (cc-env ast (make-immutable-hash))]))
   

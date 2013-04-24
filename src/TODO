@@ -15,8 +15,15 @@ Need-to-have (soon):
     [x] string
     [x] math
     [x] set
+  [] Blocked on Danny for:  with-handlers, REPL
 [] Performance
 [] Indentation enforcement
+[] Sensible story on importing libs like big-bang, image
+  [] Change desugaring of modules to use provide/require
+  [] Create a racket-ffi subdirectory of lang/
+  [] Create files in racket-ffi that implement e.g. big-bang
+  [] Register these files in desugar.rkt, and compile them
+     to require statements
 
 15-minute tasks
 [] Make everything with methods consistent with functions

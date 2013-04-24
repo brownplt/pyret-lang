@@ -35,13 +35,15 @@
     (printf "Test for:\n")
     (printf "~a\n" str)))
 
+(define py-eval (get-py-eval))
+
 (define (eval-pyret str)
   (print-test str)
-  ((py-eval) (compile-str str)))
+  (py-eval (compile-str str)))
 
 (define (eval-pyret/libs str)
   (print-test str)
-  ((py-eval) (compile-str/libs str)))
+  (py-eval (compile-str/libs str)))
 
 (define-runtime-path utils-path "test-utils.rkt")
 

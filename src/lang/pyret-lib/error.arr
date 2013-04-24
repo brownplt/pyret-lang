@@ -1,4 +1,4 @@
-#lang pyret
+#lang pyret/library
 
 provide {
   opaque-error: opaque-error,
