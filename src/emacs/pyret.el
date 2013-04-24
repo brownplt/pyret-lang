@@ -5,18 +5,23 @@
     map)
   "Keymap for Pyret major mode")
 
-
+(defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
+(defconst pyret-keywords-regex 
+  (regexp-opt
+   '("fun" "var" "cond" "import" "provide"
+     "data" "end" "do"
+     "as" "with" "sharing")))
+(defconst pyret-punctuation-regex
+  (regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "." "\\" ";" "|" "=")))
 (defconst pyret-font-lock-keywords-1
   (list
    '(,(regexp-opt '("->" "<" ">")) . font-lock-builtin-face)
-   `(,(regexp-opt '(":" "::" "=>" "," "^" "(" ")" "{" "}" "." "\\" ";" "|" "=")) . font-lock-builtin-face)
    `(,(concat 
-       "\\<"
-       (regexp-opt
-        '("fun" "var" "cond" "import" "provide"
-          "data" "end" "do"
-          "as" "with" "sharing") t)
-       "\\>") . font-lock-keyword-face)
+       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+       pyret-keywords-regex
+       "\\)\\($\\|[ \t]\\|" pyret-punctuation-regex "\\)") 
+     (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
+   `(,pyret-punctuation-regex . font-lock-builtin-face)
    `(,(concat "\\<" (regexp-opt '("true" "false") t) "\\>") . font-lock-constant-face)
    )
   "Minimal highlighting expressions for Pyret mode")
@@ -24,21 +29,20 @@
 (defconst pyret-font-lock-keywords-2
   (append
    (cdr pyret-font-lock-keywords-1)
-   (let* ((ident "[a-zA-Z_][a-zA-Z0-9$_\\-]*"))
-     (list
-      '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-builtin-face))
-      `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" ident "\\)") 
-        (1 font-lock-keyword-face) (2 font-lock-type-face))
-      `(,(concat "\\([|]\\)[ \t]+\\(" ident "\\)[ \t]*\\(?:::\\|with\\)") 
-        (1 font-lock-builtin-face) (2 font-lock-type-face))
-      `(,(concat "\\(" ident "\\)[ \t]*::[ \t]*\\(" ident "\\)") 
-        (1 font-lock-variable-name-face) (2 font-lock-type-face))
-      `(,(concat "\\(->\\)[ \t]*\\(" ident "\\)")
-        (1 font-lock-builtin-face) (2 font-lock-type-face))
-      `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
-      `(,(concat "\\(" ident "\\)[ \t]*\\((\\|:\\)")  (1 font-lock-function-name-face))
-      `(,ident . font-lock-variable-name-face)
-     )))
+   (list
+    '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-builtin-face))
+    `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
+      (1 font-lock-keyword-face) (2 font-lock-type-face))
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:::\\|with\\)") 
+      (1 font-lock-builtin-face) (2 font-lock-type-face))
+    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
+      (1 font-lock-variable-name-face) (2 font-lock-type-face))
+    `(,(concat "\\(->\\)[ \t]*\\(" pyret-ident-regex "\\)")
+      (1 font-lock-builtin-face) (2 font-lock-type-face))
+    `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
+    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\|:\\)")  (1 font-lock-function-name-face))
+    `(,pyret-ident-regex . font-lock-variable-name-face)
+    ))
   "Additional highlighting for Pyret mode")
 
 (defconst pyret-font-lock-keywords pyret-font-lock-keywords-2
@@ -67,146 +71,190 @@
   "Syntax table for pyret-mode")
 
 
-;; Experiments in getting indentation right...but this is HARD
 
-;; (defun pyret-get-depth-of-unmatched-line (str n)
-;;   (cond
-;;    ((< n 1)
-;;     (error "Infinite loop on %s" str))
-;;    ((string-match "^[ \t]*\\(\\(?:provide\\|data\\|cond\\).*\\(?:end\\)\\)[ \t]*$" str)
-;;     (message "Found matched pair; continuing on >>%s<<" (match-string 1 str))
-;;     (pyret-get-depth-of-unmatched-line (match-string 1 str) (- n 1)))
-;;    ((string-match ".*?\\(?:provide\\|data\\|cond\\)\\(.*\\)" str)
-;;     (message "Found unmatched open; +1; continuing on >>%s<<" (match-string 1 str))
-;;     (+ (pyret-get-depth-of-unmatched-line (match-string 1 str) (- n 1)) 1))
-;;    ((string-match "\\(.*\\)\\(?:end\\).*" str)
-;;     (message "Found unmatched close; -1; continuing on >>%s<<" (match-string 1 str))
-;;     (- (pyret-get-depth-of-unmatched-line (match-string 1 str) (- n 1)) 1))
-;;    (t
-;;     (message "Found no opens or closes; 0; remainder is >>%s<<" str)
-;;     0)))
+;; Eight (!) kinds of indentation:
+;; bodies of functions
+;; bodies of conditions (these indent twice, but lines beginning with a pipe indent once)
+;; bodies of data declarations (these also indent twice excepting the lines beginning with a pipe)
+;; bodies of sharing declarations
+;; additional lines inside unclosed parentheses
+;; bodies of objects (and list literals)
+;; unterminated variable declarations
+;; lines beginning with a period
 
-;; (defun pyret-get-depth-of-unmatched-open ()
-;;   (interactive)
-;;   (save-excursion
-;;     (let ((depth 0))
-;;       (forward-line -1)
-;;       (while (and (not (bobp)) (> (current-indentation) 0))
-;;         (cond
-;;          ((looking-at "^[ \t]*#")
-;;           ; ignore comment lines
-;;           )
-;;          (t
-;;           (message "Testing unmatched size for >>%s<<" (thing-at-point 'line))
-;;           (setq depth (+ depth (pyret-get-depth-of-unmatched-line (thing-at-point 'line) 5)))))
-;;         (forward-line -1))
-;;       (message "depth is %d" depth)
-;;       (max 0 depth))
-;;     ))
+(defvar nestings (vector))
+(defvar nestings-dirty t)
 
-;; (defun pyret-get-pipe-depth ()
-;;   (save-excursion
-;;     (let ((depth 0))
-;;       (forward-line -1)
-;;       (while (and (not (bobp)) (> (current-indentation) 0))
-;;         (cond
-;;          ((looking-at "^[ \t]*end")
-;;           (setq depth (- depth 1)))
-;;          ((looking-at "^[ \t]*provide[ \t]+{[^}]*}[ \t]+end$")
-;;           ; ignore a complete provide/end line
-;;           )
-;;          ((looking-at "^[ \t]*\\(data\\|cond\\|provide\\)")
-;;           (setq depth (+ depth 1))))
-;;         (forward-line -1))
-;;       (message "depth is %d" depth)
-;;       (max 0 depth))
-;;     ))
+(defun indent (funs conds datas shareds parens objects vars period)
+  (vector funs conds datas shareds parens objects vars period))
+
+(defun compute-nestings ()
+  (let ((nlen (if nestings (length nestings) 0))
+        (doclen (count-lines (point-min) (point-max))))
+    (cond 
+     ((>= (+ doclen 1) nlen)
+      (setq nestings (vconcat nestings (make-vector (+ 1 (- doclen nlen)) (indent 0 0 0 0 0 0 0 0)))))
+     (t nil)))
+  (let ((n 0)
+        (open-fun 0) (cur-opened-fun 0) (cur-closed-fun 0)
+        (open-cond 0) (cur-opened-cond 0) (cur-closed-cond 0)
+        (open-data 0) (cur-opened-data 0) (cur-closed-data 0)
+        (open-shared 0) (cur-opened-shared 0) (cur-closed-shared 0)
+        (open-parens 0) (cur-opened-parens 0) (cur-closed-parens 0)
+        (open-object 0) (cur-opened-object 0) (cur-closed-object 0)
+        (open-vars 0) (cur-opened-vars 0) (cur-closed-vars 0)
+        (initial-period 0)
+        (opens nil))
+    (save-excursion
+      (beginning-of-buffer)
+      (while (not (eobp))
+        (aset nestings n 
+              (indent open-fun open-cond open-data open-shared open-parens open-object open-vars initial-period))
+        (setq cur-opened-fun 0) (setq cur-opened-cond 0) (setq cur-opened-data 0)
+        (setq cur-opened-shared 0) (setq cur-opened-parens 0) (setq cur-opened-object 0)
+        (setq cur-closed-fun 0) (setq cur-closed-cond 0) (setq cur-closed-data 0)
+        (setq cur-closed-shared 0) (setq cur-closed-parens 0) (setq cur-closed-object 0)
+        (setq cur-opened-vars 0) (setq cur-closed-vars 0) (setq initial-period 0)
+        (while (not (eolp))
+          (cond
+           ((and (looking-at "[^ \t]") (equal (car-safe opens) 'needsomething))
+            (pop opens))
+           ((looking-at "^[ \t]*\\.") 
+            (setq initial-period 1)
+            (goto-char (match-end 0)))
+           ((looking-at "^[ \t]*.*?(.*)[ \t]*\\(->[^:]+\\)?:")
+            (incf open-fun) (incf cur-opened-fun)
+            (push 'fun opens)
+            (goto-char (match-end 0)))
+           ((looking-at ":")
+            (if (equal (car-safe opens) 'wantcolon)
+                (pop opens))
+            (forward-char))
+           ((looking-at "^[ \t]*var[ \t]+")
+            (incf open-vars) (incf cur-opened-vars)
+            (push 'var opens)
+            (push 'needsomething opens)
+            (push 'wantcolon opens)
+            (goto-char (match-end 0)))
+           ((looking-at "\\bfun\\b")
+            (incf open-fun) (incf cur-opened-fun)
+            (push 'fun opens)
+            (goto-char (match-end 0)))
+           ((looking-at "[ \t]+") (goto-char (match-end 0)))
+           ((looking-at "\\bcond:")
+            (incf open-cond) (incf cur-opened-cond)
+            (push 'cond opens)
+            (goto-char (match-end 0)))
+           ((looking-at "\\bdata\\b")
+            (incf open-data) (incf cur-opened-data)
+            (push 'data opens)
+            (goto-char (match-end 0)))
+           ((looking-at "\\bprovide\\b")
+            (push 'provide opens)
+            (goto-char (match-end 0)))
+           ((looking-at "\\bsharing\\b")
+            (decf open-data) (incf cur-closed-data)
+            (incf open-shared) (incf cur-opened-shared)
+            (cond 
+             ((equal (car opens) 'data)
+              (pop opens)
+              (push 'shared opens)))
+            (goto-char (match-end 0)))           
+           ((looking-at "{\\|\\[")
+            (incf open-object) (incf cur-opened-object)
+            (push 'object opens)
+            (forward-char))
+           ((looking-at "\\]\\|}")
+            (decf open-object) (incf cur-closed-object)
+            (if (equal (car-safe opens) 'object)
+                (pop opens))
+            (cond 
+             ((equal (car-safe opens) 'var)
+              (pop opens)
+              (incf cur-closed-vars)))
+            (forward-char))
+           ((looking-at "(")
+            (incf open-parens) (incf cur-opened-parens)
+            (push 'parens opens)
+            (forward-char))
+           ((looking-at ")")
+            (decf open-parens) (incf cur-closed-parens)
+            (if (equal (car-safe opens) 'parens)
+                (pop opens))
+            (cond 
+             ((equal (car-safe opens) 'var)
+              (pop opens)
+              (incf cur-closed-vars)))
+            (forward-char))
+           ((looking-at "\\bend\\b")
+            (let ((h (car-safe opens)))
+              (cond
+               ((equal h 'provide)
+                (pop opens))
+               ((equal h 'fun) 
+                (decf open-fun) (incf cur-closed-fun) 
+                (pop opens))
+               ((equal h 'cond)
+                (decf open-cond) (incf cur-closed-cond)
+                (pop opens))
+               ((equal h 'data)
+                (decf open-data) (incf cur-closed-data)
+                (pop opens))
+               ((equal h 'shared)
+                (decf open-shared) (incf-cur-closed-shared)
+                (pop opens))
+               (t nil)))
+            (let ((h (car-safe opens)))
+              (while (equal h 'var)
+                (pop opens)
+                (incf cur-closed-vars)
+                (setq h (car-safe opens))))
+            (goto-char (match-end 0)))
+           (t (if (not (eobp)) (forward-char)))))
+        (aset nestings n (indent (- open-fun (max 0 (- cur-opened-fun cur-closed-fun)))
+                                 (- open-cond cur-opened-cond)
+                                 (- open-data cur-opened-data)
+                                 (- open-shared cur-opened-shared)
+                                 (+ open-parens (- cur-closed-parens cur-opened-parens))
+                                 (- open-object (max 0 (- cur-opened-object cur-closed-object)))
+                                 (- open-vars cur-opened-vars)
+                                 initial-period))
+        (let ((h (car-safe opens)))
+          (while (equal h 'var)
+            (pop opens)
+            (incf cur-closed-vars)
+            (setq h (car-safe opens))))
+        (setq open-vars (- open-vars cur-closed-vars))
+        (incf n)
+        (if (not (eobp)) (forward-char))))
+    (aset nestings n 
+          (indent open-fun open-cond open-data open-shared open-parens open-object open-vars initial-period)))
+  (setq nestings-dirty nil))
 
 
 (defun pyret-indent-line ()
   "Indent current line as Pyret code"
   (interactive)
-  (beginning-of-line)
-  (indent-line-to (* (pyret-count-pipe-depth) tab-width)))
-
-(defun pyret-indent-line ()
-  "Indent current line as Pyret code"
-  (interactive)
-  (let ((prev-indent (current-indentation)))
+  (cond
+   (nestings-dirty
+    (compute-nestings)))
+  (let* ((indents (aref nestings (min (- (line-number-at-pos) 1) (length nestings))))
+         (open-fun    (elt indents 0))
+         (open-cond   (elt indents 1))
+         (open-data   (elt indents 2))
+         (open-shared (elt indents 3))
+         (open-parens (elt indents 4))
+         (open-object (elt indents 5))
+         (open-vars   (elt indents 6))
+         (initial-period (elt indents 7))
+         (total-indent (+ open-fun (* 2 open-cond) (* 2 open-data) open-shared open-object open-parens open-vars initial-period)))
     (save-excursion
       (beginning-of-line)
-      (if (bobp)  ; If at the beginning of the file, indent to column 0
-          (indent-line-to 0)
-        (let ((not-indented t) cur-indent)
-          (cond
-           ((looking-at "^[ \t]*provide[ \t]+{[^}]*}[ \t]+end$")
-            ; ignore a complete provide/end line
-            )
-           ((looking-at "^[ \t]*\\(end\\|}\\)") ; If we're at an "end" line, de-indent
-            (save-excursion
-              (forward-line -1)
-              (setq cur-indent (- (current-indentation) tab-width)))
-            (if (< cur-indent 0)
-                (setq cur-indent 0)))
-           ((looking-at "^[ \t]*sharing")
-            (save-excursion
-              (forward-line -1)
-              (while (and (not (bobp)) (looking-at "^[ \t]*#"))
-                (forward-line -1))
-              (cond
-               ((or (looking-at "^[ \t]*\\(end\\|}\\)") (looking-at ".*,$"))
-                (setq cur-indent (- (current-indentation) (* 2 tab-width))))
-               (t
-                (setq cur-indent (- (current-indentation) tab-width))))))
-           ((looking-at "^[ \t]*[|]")
-            (save-excursion
-              (forward-line -1)
-              (cond
-               ((or (looking-at "^[ \t]*end") (looking-at ".*,$"))
-                (setq cur-indent (- (current-indentation) tab-width))) ; (pyret-get-pipe-depth) tab-width))
-               ((looking-at "^[ \t]*\\(cond\\|data\\|provide\\|{\\)")
-                (setq cur-indent (+ (current-indentation) tab-width)))
-               (t
-                (setq cur-indent (current-indentation))))
-              (setq not-indented nil)))
-           (t
-            (save-excursion 
-              (while (and (not (bobp)) not-indented)
-                (forward-line -1)
-                (cond
-                 ((or (looking-at "^[ \t]*#") ; ignore comment lines
-                      (looking-at "^[ \t]*provide[ \t]+{[^}]*}[ \t]+end[ \t]*$")) ; ignore a complete provide/end line
-                  )
-                 ; If we see an "end" line before the current line, indent to that line
-                 ((looking-at "^[ \t]*\\(end\\|}\\)") 
-                  (setq cur-indent (current-indentation))
-                  (setq not-indented nil))
-                 ; If we see a "start" line, increase indentation relative to that line
-                 ((or (looking-at "^[ \t]*\\(data\\|provide\\|sharing\\|{\\)")
-                      (looking-at ".*\\<with[ \t]*$")
-                      (and (looking-at ".*:[ \t]*$") (not (looking-at ".*::[ \t]*$"))))
-                  (setq cur-indent (+ (current-indentation) tab-width))
-                  (setq not-indented nil))
-                 ((looking-at "^[ \t]*[|]")
-                  (save-excursion
-                    (forward-line -1)
-                    (cond
-                     ((looking-at "^[ \t]*\\(end\\|}\\)")
-                      (setq cur-indent (- (current-indentation) tab-width))) ; (pyret-get-pipe-depth) tab-width))
-                     ((looking-at ".*,[ \t]*$")
-                      (setq cur-indent (- (current-indentation) (* 2 tab-width))))
-                     ((looking-at "^[ \t]*\\(cond\\|data\\|provide\\|{\\)")
-                      (setq cur-indent (+ (current-indentation) tab-width)))
-                     (t
-                      (setq cur-indent (current-indentation))))
-                    (setq not-indented nil)))
-                 (t
-                  (if (bobp) ; If we've reached the beginning of the file, bail out
-                      (setq not-indented nil))))))))
-          (if cur-indent
-              (indent-line-to cur-indent)
-                                        ; If we didn't see an indentation hint, then allow no indentation
-            (indent-line-to 0)))))
+      (if (looking-at "^[ \t]*[|]")
+          (if (> total-indent 0)
+              (indent-line-to (* tab-width (- total-indent 1)))
+            (indent-line-to 0))
+        (indent-line-to (max 0 (* tab-width total-indent)))))
     (if (< (current-column) (current-indentation))
         (forward-char (- (current-indentation) (current-column))))
     ))
@@ -234,7 +282,15 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'indent-tabs-mode) nil)
   (setq major-mode 'pyret-mode)
   (setq mode-name "Pyret")
+  (set (make-local-variable 'nestings) nil)
+  (set (make-local-variable 'nestings-dirty) t)
+  (add-hook 'before-change-functions
+               (function (lambda (beg end) 
+                           (setq nestings-dirty t)))
+               nil t)
   (run-hooks 'pyret-mode-hook))
+
+
 
 (provide 'pyret-mode)
 
