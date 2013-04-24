@@ -154,12 +154,13 @@
 (define (compile-pyret ast)
   (match ast
     [(s-block l stmts)
-     (define id-expr-pairs (map compile-stmt stmts))
-     (define ids (map car id-expr-pairs))
-     (with-syntax ([(id ...) ids]
-                   [body-id (d->stx (if (cons? ids) (last ids) 'nothing) l)]
-                   [(expr ...) (map cdr id-expr-pairs)])
-      (attach l
-       #`(r:begin (r:define id expr) ... body-id)))]
+     (define (compile-top-stmt stmt)
+      (match stmt
+        [(s-var s (s-bind _ id _) val)
+         (with-syntax ([id-stx id])
+          #`(r:define id-stx #,(compile-expr val)))]
+        [else (compile-expr stmt)]))
+     (with-syntax ([(expr ...) (map compile-top-stmt stmts)])
+     (attach l #`(r:begin expr ...)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 
