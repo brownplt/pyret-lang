@@ -7,6 +7,7 @@
   pyret->racket/libs
   get-py-eval)
 (require
+  (only-in racket/base [print racket-print])
   racket/sandbox
   racket/runtime-path
   syntax/modresolve
@@ -85,7 +86,7 @@
 (define ((print-pyret printer) val)
   (when (not (equal? val nothing))
     (match val
-      [(p:p-opaque v) (printer v)]
+      [(p:p-opaque v) (racket-print v) (newline)]
       [(? p:p-base?) (pretty-write (p:to-string val))]
       [_ (void)])))
 

@@ -218,10 +218,16 @@
     [(s-prog s imps block)
      (desugar-pyret (s-prog s (append (get-prelude s) imps) block))]))
 
+(define-runtime-path FFI "racket-ffi/")
+
 (define (desugar-pyret ast)
+  ;; This is the magic that turns `import foo as bar` into
+  ;; `import "/path/to/racket-ffi/foo.rkt" as bar`
   (define (desugar-imp imp)
     (match imp
-      [(s-import l f n) (s-import l f n)]
+      [(s-import l (? symbol? f) n)
+       (s-import l (path->string (path->complete-path
+                      (build-path FFI (string-append (symbol->string f) ".rkt")))) n)]
       [_ imp]))
   (match ast
     [(s-prog s imps block)

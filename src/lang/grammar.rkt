@@ -4,7 +4,9 @@ program: imports block ENDMARKER
 
 imports: (import-stmt|provide-stmt)*
 
-import-stmt: "import" STRING "as" NAME
+import-name: NAME
+import-string: STRING
+import-stmt: "import" (import-name | import-string) "as" NAME
 provide-stmt: "provide" stmt "end"
 
 block: stmt*

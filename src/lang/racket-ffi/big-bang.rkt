@@ -1,0 +1,87 @@
+#lang racket/gui
+
+;; This sketch comes from Matthias Felleisen:
+;; http://lists.racket-lang.org/users/archive/2013-April/057407.html
+
+(require
+  2htdp/private/world
+  2htdp/image
+  "../runtime.rkt")
+(provide (rename-out [export %PYRET-PROVIDE]))
+
+;; -----------------------------------------------------------------------------
+;; small adapter 
+
+(define (my-bb world0 ht)
+  (lambda ()
+    (new world% 
+         (world0 world0)
+         (on-draw    (hash-ref ht 'to-draw))
+         (on-tick    (hash-ref ht 'on-tick))
+         (on-mouse   (hash-ref ht 'on-mouse void))
+         (on-key     (hash-ref ht 'on-key void))
+         (record?    (hash-ref ht 'record #f))
+         (stop-when  (hash-ref ht 'stop-when (lambda _ (displayln _) (lambda _ #f))))
+         (state      (hash-ref ht 'state #f))
+         (check-with (hash-ref ht 'check-with (lambda _ (lambda _ #t))))
+         (on-release (hash-ref ht 'on-release void))
+         (on-pad     (hash-ref ht 'on-pad #f))
+         (name       (hash-ref ht 'name "no  name"))
+         (register   (hash-ref ht 'register #f))
+         (on-receive (hash-ref ht 'on-receive void))
+         )))
+
+;; (-> Object) -> Any
+(define (run-it o)
+  (define esp (make-eventspace))
+  (define thd (eventspace-handler-thread esp))
+  (with-handlers ((exn:break? (lambda (x) (break-thread thd))))
+    (define obj:ch (make-channel))
+    (parameterize ([current-eventspace esp])
+      (queue-callback (lambda () (displayln o) (channel-put obj:ch (o)))))
+    (send (channel-get obj:ch) last)))
+
+(define (allowed-prim? v)
+  (or (number? v)
+      (string? v)
+      (boolean? v)))
+
+(define (wrap-racket-value val)
+  (cond
+   [(allowed-prim? val)  val]
+   [else (p:p-opaque val)]))
+(define (get-val arg)
+  (cond
+    [(p:p-opaque? arg) (p:p-opaque-val arg)]
+    [(allowed-prim? arg) arg]
+    [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
+
+(define (wrap-racket-fun f)
+  (p:mk-fun-nodoc (λ args (p:wrap (wrap-racket-value (apply f (map get-val (map p:unwrap args))))))))
+
+(define (big-bang loc)
+  (lambda args
+    (define (wrap-for-racket-callback k f)
+      (cond
+        [(equal? k "to-draw")
+         (lambda (world) (p:p-opaque-val ((p:check-fun f loc) world)))]
+        [(equal? k "stop-when")
+         (lambda (world) (p:unwrap ((p:check-fun f loc) world)))] 
+        [(equal? k "on-tick")
+         (lambda (world) ((p:check-fun f loc) world))]
+        [else (raise (p:pyret-error loc "big-bang-no-impl"
+                      (format "No implementation for big-bang handler ~a" k)))]))
+    (match (second args)
+      [(p:p-object _ _ d)
+       (define hash-for-bb
+         (for/hash ((k (hash-keys d)))
+          (values (string->symbol k) (wrap-for-racket-callback k (hash-ref d k)))))
+       (define my-world (my-bb (first args) hash-for-bb))
+       (run-it my-world)]
+      [v (raise (p:pyret-error loc "big-bang-non-object"
+                     (format "Non-object given to big bang: ~a" (p:to-string v))))])))
+
+(define big-bang-pfun (p:mk-internal-fun big-bang))
+
+(define export (p:mk-object
+  (make-immutable-hash (list (cons "big-bang" big-bang-pfun)))))

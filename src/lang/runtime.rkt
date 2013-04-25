@@ -712,7 +712,7 @@
 (define is-nothing-pfun
   (mk-internal-fun
     (λ (loc)
-      (λ (specimens)
+      (λ specimens
         (mk-bool (equal? (first specimens) nothing))))))
 
 ;; tie the knot of mutual state problems

@@ -17,7 +17,7 @@ these metadata purposes.
 (struct s-prog (syntax imports block) #:transparent)
 
 ;; A Header is a (U s-import s-provide)
-;; s-import : srcloc String Symbol -> srcloc
+;; s-import : srcloc (U String Symbol) Symbol -> srcloc
 (struct s-import (syntax file name) #:transparent)
 ;; s-provide : srcloc expr -> srcloc
 (struct s-provide (syntax expr) #:transparent)

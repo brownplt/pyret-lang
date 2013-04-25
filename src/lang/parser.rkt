@@ -52,10 +52,18 @@
     [(_ stmt "") #'stmt]
     [(_ stmt) #'stmt]))
 
+(define-syntax (import-string stx)
+  (syntax-case stx ()
+    [(_ str) #`#,(parse-string #'str)]))
+
+(define-syntax (import-name stx)
+  (syntax-case stx ()
+    [(_ name) #`(quote #,(parse-id #'name))]))
+
 (define-syntax (import-stmt stx)
   (syntax-case stx ()
     [(_ "import" file "as" name)
-      #`(s-import #,(loc stx) #,(parse-string #'file) '#,(parse-name #'name))]))
+      #`(s-import #,(loc stx) file '#,(parse-name #'name))]))
 
 (define-syntax (provide-stmt stx)
   (syntax-case stx ()
