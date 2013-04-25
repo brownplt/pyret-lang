@@ -19,11 +19,16 @@ Need-to-have (soon):
 [] Performance
 [] Indentation enforcement
 [] Sensible story on importing libs like big-bang, image
-  [] Change desugaring of modules to use provide/require
-  [] Create a racket-ffi subdirectory of lang/
-  [] Create files in racket-ffi that implement e.g. big-bang
-  [] Register these files in desugar.rkt, and compile them
+  [x] Change desugaring of modules to use provide/require
+  [x] Create a racket-ffi subdirectory of lang/
+  [x] Create files in racket-ffi that implement e.g. big-bang
+  [x] Register these files in desugar.rkt, and compile them
      to require statements
+  [] Clean up
+    [] Is the printer option to print-pyret necessary anymore?
+    [] Should runtime-ext exist anymore?
+    [] Create useful ffi helpers like wrap-racket-fun and share between
+       ffi modules (there's copied code right now)
 
 15-minute tasks
 [] Make everything with methods consistent with functions
