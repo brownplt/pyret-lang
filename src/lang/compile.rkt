@@ -149,7 +149,15 @@
                           #,(compile-expr obj)
                           (p:p-str-s #,(compile-expr field)))))]
 
+    [(s-prog l headers block) (compile-prog l headers block)]
+
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
+
+(define (compile-prog l headers block)
+  (attach l
+   (with-syntax ([(req ...) (map compile-header (filter s-import? headers))]
+                 [(prov ...) (map compile-header (filter s-provide? headers))])
+     #`(r:begin req ... #,(compile-pyret block) prov ...))))
 
 (define (compile-header header)
   (match header
@@ -171,11 +179,7 @@
 
 (define (compile-pyret ast)
   (match ast
-    [(s-prog l headers blck)
-     (attach l
-      (with-syntax ([(req ...) (map compile-header (filter s-import? headers))]
-                    [(prov ...) (map compile-header (filter s-provide? headers))])
-        #`(r:begin req ... #,(compile-pyret blck) prov ...)))]
+    [(s-prog l headers block) (compile-prog l headers block)]
     [(s-block l stmts)
      (define (compile-top-stmt stmt)
       (match stmt

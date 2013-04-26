@@ -4,8 +4,7 @@
   repl-eval-pyret
   print-pyret
   pyret->racket
-  pyret->racket/libs
-  get-py-eval)
+  pyret->racket/libs)
 (require
   (only-in racket/base [print racket-print])
   racket/sandbox
@@ -19,34 +18,12 @@
   "load.rkt"
   "runtime.rkt")
 
-(define-runtime-path parser "parser.rkt")
-(define-runtime-path ast "ast.rkt")
-(define-runtime-path runtime "runtime.rkt")
-(define-runtime-module-path-index pyret-lang-ix "pyret-lang-racket.rkt")
-;(dynamic-require pyret-lang #f)
-(define-runtime-path read-root (simplify-path "/"))
-
-(define (get-py-eval) pyret-eval)
-(define (pyret-eval stx)
-  (define pyret-lang (resolve-module-path-index pyret-lang-ix #f))
-  (define make-fresh-namespace (eval
-                              '(lambda ()
-                                 (variable-reference->empty-namespace
-                                  (#%variable-reference)))
-                              (make-base-namespace)))
-  (define ns (make-fresh-namespace))
-  (parameterize ([current-namespace ns])
-    (namespace-require pyret-lang))
-  (eval stx ns))
-
-
 (define (stx->racket stx desugar)
   (strip-context
    (compile-expr
     (contract-check-pyret
      (desugar
       (parse-eval stx))))))
-
 
 (define (pyret->racket/libs src in)
   (stx->racket (get-syntax src in) desugar-pyret/libs))
@@ -59,7 +36,6 @@
   (define desugared (desugar parsed-stx))
   (define compiled (compile (contract-check-pyret desugared)))
   (strip-context compiled))
-
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from 

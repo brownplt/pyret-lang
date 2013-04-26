@@ -4,7 +4,6 @@
   racket/list
   racket/match
   (only-in math uniform-dist sample)
-  "big-bang.rkt"
   "runtime.rkt")
 
 (provide Racket
@@ -45,10 +44,8 @@
 
 ;; mk-racket-fun : String -> Value
 (define (mk-racket-fun f)
-  (printf "mkking racket-fun: ~a\n" f)
   (p:mk-fun-nodoc
     (λ args
-      (printf "calling racket-fun: ~a\n" f)
       (match (first args)
         [(p:p-str _ _ _ s)
          (p:wrap (apply-racket-fun f s (map p:unwrap (rest args))))]

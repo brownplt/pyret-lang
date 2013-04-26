@@ -29,6 +29,13 @@ Need-to-have (soon):
     [] Should runtime-ext exist anymore?
     [] Create useful ffi helpers like wrap-racket-fun and share between
        ffi modules (there's copied code right now)
+[] Make tests work again, don't use brittle sandbox
+  [x] Read and understand docs for namespace-require, etc.
+  [] Clean up
+    [x] Consolidate copied code in compile for s-prog
+    [x] Remove useless code from eval.rkt
+    [!] Move test-utils code to eval.rkt?
+      - Can't, causes loading cycle
 
 15-minute tasks
 [] Make everything with methods consistent with functions

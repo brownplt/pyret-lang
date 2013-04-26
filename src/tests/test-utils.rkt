@@ -18,14 +18,13 @@
   check-not-exn)
 (require
  (except-in rackunit check)
-   racket/runtime-path
-  "../lang/compile.rkt"
-  "../lang/tokenizer.rkt"
-  "../lang/typecheck.rkt"
-  "../lang/desugar.rkt"
-  "../lang/runtime.rkt"
-  "../lang/load.rkt"
-  "../lang/eval.rkt")
+ racket/runtime-path
+ "../lang/compile.rkt"
+ "../lang/tokenizer.rkt"
+ "../lang/typecheck.rkt"
+ "../lang/desugar.rkt"
+ "../lang/load.rkt"
+ "../lang/eval.rkt")
 
 (define verbose #f)
 (define (verbose! v) (set! verbose v))
@@ -35,7 +34,20 @@
     (printf "Test for:\n")
     (printf "~a\n" str)))
 
-(define py-eval (get-py-eval))
+(module test-shell "../lang/pyret-lang-racket.rkt"
+  (r:define-namespace-anchor test-shell-anchor)
+  (r:provide test-shell-anchor))
+(require (submod "." test-shell))
+
+(define (make-fresh-namespace)
+  (define ns (namespace-anchor->empty-namespace test-shell-anchor))
+  (parameterize ([current-namespace ns])
+    (namespace-require "../lang/pyret-lang-racket.rkt")
+    (eval (pyret->racket utils-path (open-input-string "nothing") #:libs #t #:toplevel #t)))
+  ns)
+
+(define (py-eval stx)
+  (eval stx (make-fresh-namespace)))
 
 (define (eval-pyret str)
   (print-test str)

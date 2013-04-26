@@ -15,9 +15,9 @@
 
 (check-pyret-match "5" (p:p-num _ (hash-table) x 5))
 
+
 (check-pyret "5" five)
 (check-pyret-fail "2" five)
-
 
 (check-pyret "fun f(): 2 end f()" two)
 (check-pyret "fun f(x): x end f(2)" two)
@@ -45,6 +45,7 @@
                                  (make-immutable-hash (list (cons "x" five)))))
 (check-pyret "{['x'.append('y')]:5}" (p:p-object (p:none) (make-immutable-hash '())
                                                  (make-immutable-hash (list (cons "xy" five)))))
+
 (check-pyret "var f: 'x' {[f]:5}" (p:p-object (p:none) (make-immutable-hash '())
                                               (make-immutable-hash (list (cons "x" five)))))
 
@@ -432,4 +433,3 @@ l1.add(l2)
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: {}() except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: \\x -> (x).x except(e): builtins.is-exception(e)" true)
-
