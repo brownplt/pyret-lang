@@ -3,11 +3,9 @@
 (require
   racket/list
   racket/match
-  (only-in math uniform-dist sample)
   "runtime.rkt")
 
 (provide Racket
-         Imports
          (except-out (all-from-out "runtime.rkt") p:get-field)
          (rename-out
           [get-field-ext p:get-field]))
@@ -57,17 +55,4 @@
   (if (eq? v Racket)
       (mk-racket-fun f)
       (p:get-field loc v f)))
-
-(define math-dict
-  (make-immutable-hash
-    (list
-      (cons "uniform-dist" (wrap-racket-fun uniform-dist))
-      (cons "sample" (wrap-racket-fun sample)))))
-
-(define imports-dict
-  (make-immutable-hash
-    (list
-      (cons "math" (p:mk-object math-dict)))))
-
-(define Imports (p:mk-object imports-dict))
 
