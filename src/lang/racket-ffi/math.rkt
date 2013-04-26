@@ -30,5 +30,5 @@
 
 (define math-obj (p:mk-object math-dict))
 
-(provide (rename-out %PYRET-PROVIDE math-obj))
+(provide (rename-out [math-obj %PYRET-PROVIDE]))
 
