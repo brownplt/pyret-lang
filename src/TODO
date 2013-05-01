@@ -26,8 +26,8 @@ Need-to-have (soon):
      to require statements
   [] Clean up
     [x] Is the printer option to print-pyret necessary anymore?
-    [] Should runtime-ext exist anymore?
-    [] Create useful ffi helpers like wrap-racket-fun and share between
+    [x] Should runtime-ext exist anymore?
+    [x] Create useful ffi helpers like wrap-racket-fun and share between
        ffi modules (there's copied code right now)
 [x] Make tests work again, don't use brittle sandbox
   [x] Read and understand docs for namespace-require, etc.

@@ -1,16 +1,17 @@
 #lang pyret
 
+import Racket as R
 provide {file : file} end
 
 data File
   | fd: inner-file :: Any with
-    read-line(self): Racket.read-line(self.inner-file),
-    read-file(self): Racket.["port->string"](self.inner-file),
-    close-file(self): Racket.close-input-port(self.inner-file)
+    read-line(self): R('read-line')(self.inner-file),
+    read-file(self): R('port->string')(self.inner-file),
+    close-file(self): R('close-input-port')(self.inner-file)
 end
 
 fun file(path :: String):
-  fd(Racket.open-input-file(path))
+  fd(R('open-input-file')(path))
 end
 
 #file("file.arr").read-line()

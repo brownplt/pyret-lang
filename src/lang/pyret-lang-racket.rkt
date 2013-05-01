@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "runtime-ext.rkt" "eval.rkt")
+(require "runtime.rkt" "eval.rkt")
 
 (provide
   #%module-begin
@@ -10,7 +10,7 @@
   #%app
   [prefix-out r: (all-from-out racket/base)]
 
-  (all-from-out "runtime-ext.rkt")
+  (all-from-out "runtime.rkt")
   print-pyret
   repl-eval-pyret
   )

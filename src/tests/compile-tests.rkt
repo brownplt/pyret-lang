@@ -145,10 +145,14 @@
 (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
 (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
 
-(check-pyret "Racket.racket('+',2, 3)" five)
-(check-pyret-match "Racket.racket('string-append','four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
-(check-pyret-exn "Racket.racket('map',4,5)" "map")
-(check-pyret "var img: Racket.['2htdp/image']
+(check-pyret "import Racket as R
+              R('racket')('+',2, 3)" five)
+(check-pyret-match "import Racket as R
+                    R('racket')('string-append','four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
+(check-pyret-exn "import Racket as R
+                  R('racket')('map',4,5)" "map")
+(check-pyret "import Racket as R
+              var img: R('2htdp/image')
               var scene: img('empty-scene', 10, 10)
               img('image-width', scene)"
               ten)
