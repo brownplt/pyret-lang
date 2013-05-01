@@ -43,4 +43,5 @@ clean:
 	rm -rf ./src/tests/compiled
 	rm -rf ./src/tests/pyret/compiled
 	rm -rf ./src/lang/compiled
+	rm -rf ./src/lang/pyret-lib/compiled/
 	rm -rf ./src/whalesong/lang/compiled
