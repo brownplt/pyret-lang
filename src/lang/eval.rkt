@@ -59,7 +59,7 @@
     [(? p:p-base?) val]
     [_ (void)]))
 
-(define ((print-pyret printer) val)
+(define (print-pyret val)
   (when (not (equal? val nothing))
     (match val
       [(p:p-opaque v) (racket-print v) (newline)]

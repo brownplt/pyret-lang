@@ -36,6 +36,6 @@
               #`(module src (file pyret-lang-racket-stx)
                   (r:require (r:only-in racket/base current-read-interaction current-print void))
                   (void (current-read-interaction repl-eval-pyret))
-                  (void (current-print (print-pyret (current-print))))
+                  (void (current-print print-pyret))
                   #,(pyret->racket src in #:libs #t #:toplevel #t))))]))
 
