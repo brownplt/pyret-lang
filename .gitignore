@@ -1,3 +1,6 @@
 *compiled/
 *~
 *.swp
+*.html
+*.js
+*.css
