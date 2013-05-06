@@ -43,6 +43,7 @@
   (define ns (namespace-anchor->empty-namespace test-shell-anchor))
   (parameterize ([current-namespace ns])
     (namespace-require "../lang/pyret-lang-racket.rkt")
+    (namespace-require 'pyret/lang/pyret-lib/libs)
     (eval (pyret->racket utils-path (open-input-string "nothing") #:libs #t #:toplevel #t)))
   ns)
 

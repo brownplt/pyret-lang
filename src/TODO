@@ -18,13 +18,13 @@ Need-to-have (soon):
   [] Blocked on Danny for:  with-handlers, REPL
 [] Performance
 [] Indentation enforcement
-[] Sensible story on importing libs like big-bang, image
+[x] Sensible story on importing libs like big-bang, image
   [x] Change desugaring of modules to use provide/require
   [x] Create a racket-ffi subdirectory of lang/
   [x] Create files in racket-ffi that implement e.g. big-bang
   [x] Register these files in desugar.rkt, and compile them
      to require statements
-  [] Clean up
+  [x] Clean up
     [x] Is the printer option to print-pyret necessary anymore?
     [x] Should runtime-ext exist anymore?
     [x] Create useful ffi helpers like wrap-racket-fun and share between

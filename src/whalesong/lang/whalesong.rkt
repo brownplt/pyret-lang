@@ -23,5 +23,6 @@
            (path->string (resolved-module-path-name pyret-lang-whalesong))])
             (strip-context
               #`(module src (file pyret-lang-whalesong-stx)
-                  #,(pyret->racket src in #:libs #t #:toplevel #t))))]))
+                  (r:require pyret/lang/pyret-lib/libs)
+                  #,(pyret->racket src in #:libs 'inline #:toplevel #t))))]))
 

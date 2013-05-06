@@ -15,6 +15,7 @@
       [(symbol? e) (symbol->string e)]
       [(string? e) e]
       [(path? e) e]
+      [(false? e) "unknown source"]
       [else (error (format "Non-symbol, non-string, non-path value for
                             source: ~a" e))]))
   (list (serialize-source (srcloc-source loc))

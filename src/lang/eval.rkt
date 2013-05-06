@@ -2,6 +2,7 @@
 
 (provide
   repl-eval-pyret
+  pyret-to-printable
   print-pyret
   pyret->racket
   pyret->racket/libs)
@@ -29,7 +30,10 @@
   (stx->racket (get-syntax src in) desugar-pyret/libs))
 
 (define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f])
-  (define desugar (if libs desugar-pyret/libs desugar-pyret))
+  (define desugar
+    (cond
+      [libs desugar-pyret/libs]
+      [else desugar-pyret]))
   (define compile (if toplevel compile-pyret compile-expr))
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
@@ -58,6 +62,14 @@
      (make-hash (set-map s (lambda (s) (cons s (simplify-pyret (hash-ref d s))))))]
     [(? p:p-base?) val]
     [_ (void)]))
+
+(define (pyret-to-printable val)
+  (when (not (equal? val nothing))
+    (match val
+      [(p:p-opaque v) v]
+      [(? p:p-base?) (p:to-string val)]
+      [_ (void)])))
+
 
 (define (print-pyret val)
   (when (not (equal? val nothing))
