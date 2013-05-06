@@ -617,6 +617,7 @@
 ;; to-string : Value -> String
 (define (to-string v)
   (py-match v
+    [(p-nothing _ __ ___) "nothing"]
     [(p-num _ __ ___ n) (format "~a" n)]
     [(p-str _ __ ___ s) (format "~a" s)]
     [(p-bool _ __ ___ b) (if b "true" "false")]

@@ -22,8 +22,9 @@
     [else
       (with-syntax
          ([pyret-lang-racket-stx
-           (path->string (resolved-module-path-name pyret-lang-racket))])
+           (path->string (resolved-module-path-name pyret-lang-racket))]
+          [src-syntax (src->module-name src)])
             (strip-context
-              #`(module src (file pyret-lang-racket-stx)
+              #`(module src-syntax (file pyret-lang-racket-stx)
                   #,(pyret->racket src in #:libs #f #:toplevel #t))))]))
 

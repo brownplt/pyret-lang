@@ -14,7 +14,7 @@
     (cond
       [(symbol? e) (symbol->string e)]
       [(string? e) e]
-      [(path? e) e]
+      [(path? e) (path->string e)]
       [(false? e) "unknown source"]
       [else (error (format "Non-symbol, non-string, non-path value for
                             source: ~a" e))]))
