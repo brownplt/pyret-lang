@@ -28,11 +28,11 @@ end
 
 
 fun make-error(obj):
-  var loc: location(obj.path, obj.line, obj.column)
+  loc = location(obj.path, obj.line, obj.column)
   cond:
     | obj.system =>
-      var type: obj.value.type
-      var msg: obj.value.message
+      type = obj.value.type
+      msg = obj.value.message
       cond:
         | type.equals("opaque") => opaque-error(msg, loc)
         | type.equals("field-not-found") => field-not-found(msg, loc)

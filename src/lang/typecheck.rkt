@@ -3,6 +3,22 @@
 (require "ast.rkt" "pretty.rkt")
 (provide contract-check-pyret)
 
+(struct exn:fail:pyret/tc exn:fail (srclocs)
+  #:property prop:exn:srclocs
+    (lambda (a-struct)
+      (exn:fail:pyret/tc-srclocs a-struct)))
+
+(define (tc-error str . locs)
+  (raise (exn:fail:pyret/tc str (current-continuation-marks) locs)))
+
+(define VAR-REMINDER "(Variables are declared with var; names from function arguments or = are identifiers)")
+
+(define (bad-assign-msg name)
+  (format "Assignment to identifier ~a, which is not a variable. ~a" name VAR-REMINDER))
+
+(define (mixed-id-type-msg name)
+  (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
+
 (define (wrap-ann-check loc ann e)
   (s-app loc (ann-check loc ann) (list e)))
 
@@ -91,18 +107,46 @@
       (format "typecheck: don't know how to check ann: ~a"
               ann))]))
 
+(define (bound? env id)
+  (hash-has-key? env id))
 (define (lookup env id)
   (define r (hash-ref env id #f))
   (when (not r) (error (format "Unbound id: ~a" id)))
   r)
-(define (update bind env)
+(struct binding (loc ann mutable?))
+(define (update id b env)
+  (hash-set env id b))
+
+(define (check-consistent env loc id mutable?)
+  (cond
+    [(not (bound? env id)) (void)]
+    [else
+     (match (cons (lookup env id) mutable?)
+       [(cons (binding other-loc _ #f) #t)
+        (tc-error (mixed-id-type-msg id) loc other-loc)]
+       [(cons (binding other-loc _ #t) #f)
+        (tc-error (mixed-id-type-msg id) loc other-loc)]
+       [_ (void)])]))
+
+(define ((update-for-bind mutable?) bind env)
   (match bind
-    [(s-bind _ id ann)
-     (hash-set env id ann)]))
+    [(s-bind loc id ann)
+     (check-consistent env loc id mutable?)
+     (update id (binding loc ann mutable?) env)]
+    [_ (error (format "Expected a bind and got something else: ~a" bind))]))
 
 
 (define (cc-block-env stmts env)
-  (foldr update env (map s-var-name (filter s-var? stmts))))
+  (define (update-for-node node env)
+    (match node
+      [(s-var loc (s-bind _ id ann) _)
+       (check-consistent env loc id #t)
+       (update id (binding loc ann #t) env)]
+      [(s-let loc (s-bind _ id ann) _)
+       (check-consistent env loc id #f)
+       (update id (binding loc ann #f) env)]
+      [_ env]))
+  (foldr update-for-node env stmts))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
@@ -118,16 +162,18 @@
      (s-block s (map (curryr cc-env new-env) stmts))]
     [(s-var s bnd val)
      (s-var s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
+    [(s-let s bnd val)
+     (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann doc body)
-     (define body-env (foldr update env args))
+     (define body-env (foldr (update-for-bind #f) env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann body)
-     (define body-env (foldr update env args))
+     (define body-env (foldr (update-for-bind #f) env args))
      (s-method s args ann (cc-env body body-env))]
     
     [(s-cond s c-bs)
@@ -138,11 +184,15 @@
      (s-cond s (map cc-branch c-bs))]
 
     [(s-try s try bind catch)
-     (define catch-env (update bind env))
+     (define catch-env ((update-for-bind #f) bind env))
      (s-try s (cc try) bind (cc-env catch catch-env))]
     
     [(s-assign s name expr)
-     (s-assign s name (wrap-ann-check s (lookup env name) (cc expr)))]
+     (match (lookup env name)
+      [(binding s-def _ #f)
+       (tc-error (bad-assign-msg name) s s-def)]
+      [(binding _ ann #t)
+       (s-assign s name (wrap-ann-check s ann (cc expr)))])]
 
     [(s-app s fun args)
      (s-app s (cc fun) (map cc args))]

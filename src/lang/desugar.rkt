@@ -32,7 +32,7 @@
                     (list
                      (s-app s (s-dot s brander 'check)
                             (list (s-id s 'specimen))))))
-    (s-var s
+    (s-let s
            (s-bind s (make-checker-type-name name) (a-blank))
            (s-id s (make-checker-name name))))))
            
@@ -61,8 +61,8 @@
                                 (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list 
-           (s-var s (s-bind s base-name (a-blank)) base-obj)
-           (s-var s (s-bind s brander-name (a-blank))
+           (s-let s (s-bind s base-name (a-blank)) base-obj)
+           (s-let s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s name (s-id s brander-name))
            (s-fun s name
@@ -116,7 +116,7 @@
      (define super-fields (map ds-member share-members))
      (ds (s-block s
                   (append
-                   (list (s-var s (s-bind s brander-name (a-blank))
+                   (list (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                          (make-checker s name (s-id s brander-name)))
                    (variant-defs/list brander-name super-fields variants))))]
@@ -127,9 +127,11 @@
         
     [(s-var s name val)
      (s-var s name (ds val))]
+    [(s-let s name val)
+     (s-let s name (ds val))]
 
     [(s-fun s name typarams args ann doc body)
-     (s-var s
+     (s-let s
             (s-bind s name (a-arrow s (map desugar-ann (map s-bind-ann args)) (desugar-ann ann)))
             (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body)))]
 
@@ -273,7 +275,7 @@
     (define (desugar-module ast)
       (match ast
 	    [(s-prog s imps block)
-	     (s-var s (s-bind s (cdr mod) (a-blank))
+	     (s-let s (s-bind s (cdr mod) (a-blank))
            (match (desugar-pyret/no-imports mapping ast)
 	         [(s-block s stmts)
 	          (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))]))]))
@@ -314,5 +316,5 @@
       (s-fun s '%provide (list) (list) (a-blank) "" (s-block s (list exp)))]
     [(s-import s file name)
      (define full-path (path->complete-path file))
-     (s-var s (s-bind s name (a-blank)) (s-id s (cdr (assoc full-path mapping))))]))
+     (s-let s (s-bind s name (a-blank)) (s-id s (cdr (assoc full-path mapping))))]))
 

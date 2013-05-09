@@ -4,7 +4,7 @@
 
 provide { seal: seal, unseal: unseal } end
 
-var todo1: {
+todo1 = {
   due: "25 January 2012",
   task: "Write mixin examples",
   done: false,
@@ -36,14 +36,14 @@ fun seal-kit(obj, names):
   }
 end
 
-#var names: ["done", "complete", "task"]
-#var todo-sealed: seal(todo1, names)
+#names = ["done", "complete", "task"]
+#todo-sealed = seal(todo1, names)
 
 #Test.check-equals("field after seal", \(todo-sealed.done), false)
 #Test.check-equals("method after seal", \(todo-sealed.complete().done), true)
 #Test.check-exn("dropped field after seal", \(todo-sealed.due), "get-field: ")
 
-#var todo-unsealed: unseal(todo-sealed.complete(), todo1, names)
+#todo-unsealed = unseal(todo-sealed.complete(), todo1, names)
 #Test.check-equals("field is overwritten by unseal", \(todo-unsealed.done), true)
 
 #Test.check-equals("unseal and seal compose to identity",

@@ -20,6 +20,11 @@ test:
 clean:
 	raco setup -c pyret
 
+unlink:
+	raco link -r src/
+	raco link -r lib/ragg/ragg/
+	raco link -r lib/whalesong/whalesong/
+
 dangerous-clean:
 	find . -name "compiled" | xargs rm -rf
 

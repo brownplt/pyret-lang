@@ -8,10 +8,10 @@ provide {
   format-results: format-results
 } end
 
-var results: []
+var results = []
 
 fun mk-checker(message :: String, thunk, value :: Any):
-  var base: { expected: value, message: message }
+  base = { expected: value, message: message }
   try:
     base.{ actual: thunk() }
   except(e):
@@ -20,7 +20,7 @@ fun mk-checker(message :: String, thunk, value :: Any):
 end
 
 fun check-equals(message, thunk, value):
-  var c: mk-checker(message, thunk, value)
+  c = mk-checker(message, thunk, value)
   cond:
     | builtins.keys(c).member("exception") =>
       results := results.push(c.{ passed: false, reason: "Exception" })
@@ -32,7 +32,7 @@ fun check-equals(message, thunk, value):
 end
 
 fun check-not-equals(message, thunk, value):
-  var c: mk-checker(message, thunk, value)
+  c = mk-checker(message, thunk, value)
   cond:
     | builtins.keys(c).member("exception") =>
       results := results.push(c.{ passed: false, reason: "Exception" })
@@ -45,7 +45,7 @@ end
 
 
 fun check-exn(message, thunk, exn-pred):
-  var c: mk-checker(message, thunk, exn-pred)
+  c = mk-checker(message, thunk, exn-pred)
   cond:
     | builtins.keys(c).member("exception") =>
       cond:
@@ -68,10 +68,10 @@ end
 fun get-results(): results end
 
 fun format-results():
-  var passed: results.filter(\r: (r.passed))
-  var failed: results.filter(\r: (r.passed.not()))
-  var passedNum: passed.length()
-  var failedNum: failed.length()
+  passed = results.filter(\r: (r.passed))
+  failed = results.filter(\r: (r.passed.not()))
+  passedNum = passed.length()
+  failedNum = failed.length()
 
   print(passedNum.tostring().append(" tests passed."))
   print(failedNum.tostring().append(" tests failed."))

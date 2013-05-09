@@ -1,8 +1,8 @@
 #lang pyret
 
-var five :: Number: 5
-var x :: String: "hello"
-var b :: Bool: true
+five :: Number = 5
+x :: String = "hello"
+b :: Bool = true
 #def o :: {x:Number}: {x:10}
 
 # this function can never run successfully

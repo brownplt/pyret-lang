@@ -2,7 +2,7 @@
 
 import "src/lang/pyret-lib/experimental/check.arr" as Check
 
-var todo1: {
+todo1 = {
   # Constructor should return an object to use as self
   constructor(_, self, spec):
     self.{
@@ -32,14 +32,14 @@ end
 fun make-class(obj):
   { 
     instantiate(self, spec):
-      var instance: droppable(obj).drop(["constructor"])
+      instance = droppable(obj).drop(["constructor"])
       obj.constructor(instance, spec)
     end
   }
 end
   
-var todo-class: make-class(todo1)
-var todo2: todo-class.instantiate({ due: "today", task: "implement classes" })
+todo-class = make-class(todo1)
+todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
 Check.equal(todo2.due, "today", "due was instantiated")
 Check.equal(todo2.done, false, "done used default")
 todo2.constructor() # should err
