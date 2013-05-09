@@ -31,7 +31,7 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-var-expr: "var" NAME ["::" ann] ":" expr
+var-expr: "var" NAME ["::" ann] "=" expr
 let-expr: NAME ["::" ann] "=" expr
 
 app-arg-elt: expr ","

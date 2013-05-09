@@ -155,11 +155,11 @@
 
 (define-syntax (var-expr stx)
   (syntax-case stx ()
-    [(_ "var" id ":" value-expr)
+    [(_ "var" id "=" value-expr)
      #`(s-var #,(loc stx) 
               (s-bind #,(loc #'id) '#,(parse-id #'id) (a-blank)) 
               value-expr)]
-    [(_ "var" id "::" ann ":" value-expr)
+    [(_ "var" id "::" ann "=" value-expr)
      #`(s-var #,(loc stx) 
               (s-bind #,(loc #'id) '#,(parse-id #'id) ann) 
               value-expr)]))

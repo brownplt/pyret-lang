@@ -98,7 +98,7 @@
                     _
                     (s-block _ (list (s-num _ 5)))))
 
-(check/block "var g: 5"
+(check/block "var g = 5"
              (s-var _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
 
 (check/block "[]" (s-list _ empty))
@@ -147,12 +147,12 @@
                            (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
                            'f))
 
-(check/block "var x :: Number: 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
+(check/block "var x :: Number = 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
                                            (s-num _ 5)))
-(check/block "var x :: Number: 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number))
+(check/block "var x :: Number = 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number))
                                          (s-str _ "hello")))
 
-(check/block "var f :: (Number, Number -> Number): plus"
+(check/block "var f :: (Number, Number -> Number) = plus"
 	     (s-var _ (s-bind _ 'f (a-arrow _
 					    (list (a-name _ 'Number) (a-name _ 'Number))
 					    (a-name _ 'Number)))
@@ -167,12 +167,12 @@
                     _
                     (s-block _ (list (s-id _ 'x)))))
 
-(check/block "var x :: {}: 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
-(check/block "var x :: {foo: Number}: 4" 
+(check/block "var x :: {} = 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
+(check/block "var x :: {foo: Number} = 4" 
              (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "var x :: {foo: Number}: 4" 
+(check/block "var x :: {foo: Number} = 4" 
              (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "var x :: {foo: Number, a: Bool}: 4" 
+(check/block "var x :: {foo: Number, a: Bool} = 4" 
              (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
                                                      (a-field _ "a" (a-name _ 'Bool)))))
                     (s-num _ 4)))
@@ -223,7 +223,7 @@ end"
                                                         (list)))
                      (list)))
 
-(check/block "var my-hypthen-y-ident-i-fier: 10"
+(check/block "var my-hypthen-y-ident-i-fier = 10"
              (s-var _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
 
 (check/block "data List<a> | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
@@ -331,7 +331,7 @@ end"
 (check-pyret-exn "o^o2.f.g()" "parsing error")
 
 ;; non-empty lists for x
-(check/block "var x :: List(list.is-cons): 4"
+(check/block "var x :: List(list.is-cons) = 4"
   (s-var _
          (s-bind _ 'x
                    (a-pred _
@@ -341,7 +341,7 @@ end"
          (s-num _ 4)))
 
 ;; non-empty lists of strings for x
-(check/block "var x :: List<String>(list.is-cons): 4"
+(check/block "var x :: List<String>(list.is-cons) = 4"
   (s-var _
          (s-bind _ 'x
                    (a-pred _
@@ -385,7 +385,7 @@ end"
   (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
   (s-id _ 'x))
 
-(check-parse/fail "var x: x = 5" "parse")
+(check-parse/fail "var x = x = 5" "parse")
 
 (check/block "x :: Number = 22"
   (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))

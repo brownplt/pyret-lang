@@ -31,7 +31,7 @@ fun nothin(actual, message):
 end
 
 fun assert(testfun, message):
-  var result: testfun()
+  result = testfun()
   cond:
     | result => print("Passed: ".append(message)) true
     | else => print("Failed: ".append(message)) false

@@ -3,7 +3,7 @@
 import "mixin-java.arr" as Java
 import "check.arr" as Check
 
-var C1: Java.class({
+C1 = Java.class({
                  fields: {x : "Number"},
                  methods: {
                    add1(self, _): self.set("x", self.get("x").add(2)) end,
@@ -19,7 +19,7 @@ var C1: Java.class({
                  end
                 })
 
-var C2: C1.ext({
+C2 = C1.ext({
                 fields: {x : "Number"},
                 methods: {
                    add1(self, _): self.set("x", self.get("x").add(1)) end
@@ -31,9 +31,9 @@ var C2: C1.ext({
                 end
                })
 
-var c2: C2.new({_x: 42})
+c2 = C2.new({_x: 42})
 Check.equal(c2.get("x"), 42, "constructor for C2 works")
-var c1: c2.view-as(C1)
+c1 = c2.view-as(C1)
 Check.equal(c1.get("x"), 46, "constructor for C2 works when viewed as C1")
 
 c2.invoke("add1", nothing)

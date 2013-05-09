@@ -17,8 +17,8 @@ provide {
 #end
 
 # The base object for all hierarchies
-var object-brander: brander()
-var Object: object-brander.brand({
+object-brander = brander()
+Object = object-brander.brand({
   #_brander: brander(),
   new(self, spec): object-brander.brand({
     get(_, name): raise("get: field not found: ".append(name)) end,
@@ -37,16 +37,16 @@ var Object: object-brander.brand({
 
 # : Class -> ClassDescription -> Class
 fun ext(parent-class, description):
-  var class-brander: brander()
+  class-brander = brander()
   class-brander.brand({
 
     # : (Class) -> Object -> Instance
     new(self, spec): 
-      var fields: description.fields
-      var methods: description.methods
-      var parent-inst: nothing # to be init'd by super from constructor
+      var fields = description.fields
+      methods = description.methods
+      parent-inst = nothing # to be init'd by super from constructor
 
-      var instance: {
+      instance = {
 
         # : (Instance) -> String -> Any
         get(_, name):
@@ -69,7 +69,7 @@ fun ext(parent-class, description):
         # For now, only support one arg methods
         invoke(inst, name, arg):
 
-          var inst-with-super: inst.{
+          inst-with-super == inst.{
             super(inst, arg):
               parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
             end
@@ -102,14 +102,14 @@ fun ext(parent-class, description):
         end
       }
 
-      var inst-with-super: instance.{
+      inst-with-super = instance.{
         super(inst, spec):
           parent-inst := parent-class.new(spec)
           inst
         end
       }
 
-      var inst-constructed: description:constructor._fun()(inst-with-super, spec)
+      inst-constructed = description:constructor._fun()(inst-with-super, spec)
       #drop-fields(inst-constructed, ["super"])
       inst-constructed
     end,
@@ -128,7 +128,7 @@ fun class(description): Object.ext(description) end
 
 # Tests
 
-var todo-class-descr: {
+todo-class-descr = {
   fields: {
     due: "String",
     task: "String",
@@ -149,7 +149,7 @@ var todo-class-descr: {
   end
 }
 
-var assignee-ext-descr: {
+assignee-ext-descr = {
   fields: {
     assignee: "String"
   },
@@ -176,8 +176,8 @@ var assignee-ext-descr: {
   end
 }
 
-var Todo: class(todo-class-descr)
-var todo1: Todo.new({ due: "Feb 2", task: "do that thing"})
+Todo = class(todo-class-descr)
+todo1 = Todo.new({ due: "Feb 2", task: "do that thing"})
 
 Check.equal(todo1.get("task"), "do that thing", "get task")
 todo1.set("task", "make some java")
@@ -189,8 +189,8 @@ Check.equal(todo1.get("done"), true, "get done after invoke")
 
 Check.tru(todo1.instance-of(Todo), "instance-of")
 
-var AssignableTodo: Todo.ext(assignee-ext-descr)
-var todo2: AssignableTodo.new({ due: "Feb 8", task: "assign someone" })
+AssignableTodo = Todo.ext(assignee-ext-descr)
+todo2 = AssignableTodo.new({ due: "Feb 8", task: "assign someone" })
 
 Check.nothin(todo2.get("assignee"), "get child field")
 Check.equal(todo2.get("due"), "Feb 8", "get parent field")
