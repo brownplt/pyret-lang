@@ -12,7 +12,7 @@ Setting Sail
 
 First, make sure ye've installed [Racket 5.3.3](http://racket-lang.org). Then run:
 
-    $ make
+    $ make && make test
 
 It'll build the Pyret compiler, run the tests, and hoist the
 anchor.
