@@ -3,6 +3,22 @@
 (require "ast.rkt" "pretty.rkt")
 (provide contract-check-pyret)
 
+(struct exn:fail:pyret/tc exn:fail (srclocs)
+  #:property prop:exn:srclocs
+    (lambda (a-struct)
+      (exn:fail:pyret/tc-srclocs a-struct)))
+
+(define (tc-error str . locs)
+  (raise (exn:fail:pyret/tc str (current-continuation-marks) locs)))
+
+(define VAR-REMINDER "(Variables are declared with var; names from function arguments or = are identifiers)")
+
+(define (bad-assign-msg name)
+  (format "Assignment to identifier ~a, which is not a variable. ~a" name VAR-REMINDER))
+
+(define (mixed-id-type-msg name)
+  (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
+
 (define (wrap-ann-check loc ann e)
   (s-app loc (ann-check loc ann) (list e)))
 
@@ -97,38 +113,38 @@
   (define r (hash-ref env id #f))
   (when (not r) (error (format "Unbound id: ~a" id)))
   r)
-(struct binding (ann mutable?))
+(struct binding (loc ann mutable?))
 (define (update id b env)
   (hash-set env id b))
 
-(define (check-consistent env id mutable?)
+(define (check-consistent env loc id mutable?)
   (cond
     [(not (bound? env id)) (void)]
     [else
-     (match (cons (binding-mutable? (lookup env id)) mutable?)
-       [(cons #f #t)
-        (error (format "~a declared as both a variable and identifier" id))]
-       [(cons #t #f)
-        (error (format "~a declared as both a variable and identifier" id))]
+     (match (cons (lookup env id) mutable?)
+       [(cons (binding other-loc _ #f) #t)
+        (tc-error (mixed-id-type-msg id) loc other-loc)]
+       [(cons (binding other-loc _ #t) #f)
+        (tc-error (mixed-id-type-msg id) loc other-loc)]
        [_ (void)])]))
 
 (define ((update-for-bind mutable?) bind env)
   (match bind
-    [(s-bind _ id ann)
-     (check-consistent env id mutable?)
-     (update id (binding ann mutable?) env)]
+    [(s-bind loc id ann)
+     (check-consistent env loc id mutable?)
+     (update id (binding loc ann mutable?) env)]
     [_ (error (format "Expected a bind and got something else: ~a" bind))]))
 
 
 (define (cc-block-env stmts env)
   (define (update-for-node node env)
     (match node
-      [(s-var _ (s-bind _ id ann) _)
-       (check-consistent env id #t)
-       (update id (binding ann #t) env)]
-      [(s-let _ (s-bind _ id ann) _)
-       (check-consistent env id #f)
-       (update id (binding ann #f) env)]
+      [(s-var loc (s-bind _ id ann) _)
+       (check-consistent env loc id #t)
+       (update id (binding loc ann #t) env)]
+      [(s-let loc (s-bind _ id ann) _)
+       (check-consistent env loc id #f)
+       (update id (binding loc ann #f) env)]
       [_ env]))
   (foldr update-for-node env stmts))
 
@@ -173,9 +189,9 @@
     
     [(s-assign s name expr)
      (match (lookup env name)
-      [(binding _ #f)
-       (error (format "Assignment to identifier ~a, which is not a variable" name))]
-      [(binding ann #t)
+      [(binding s-def _ #f)
+       (tc-error (bad-assign-msg name) s s-def)]
+      [(binding _ ann #t)
        (s-assign s name (wrap-ann-check s ann (cc expr)))])]
 
     [(s-app s fun args)
