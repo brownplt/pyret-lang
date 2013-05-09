@@ -518,6 +518,29 @@ f(x)
 "
 five)
 
+(check-pyret "
+when true: 5 end
+" five)
+
+(check-pyret "
+when true: when true: 5 end end
+" five)
+
+(check-pyret "
+when true: when false: 5 end end
+" nothing)
+
+(check-pyret "
+when false: 5 end
+"
+nothing)
+
+(check-pyret "
+nothing = 42
+when false: 5 end
+"
+nothing)
+
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: {}() except(e): builtins.is-exception(e)" true)

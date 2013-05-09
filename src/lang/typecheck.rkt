@@ -11,7 +11,7 @@
 (define (tc-error str . locs)
   (raise (exn:fail:pyret/tc str (current-continuation-marks) locs)))
 
-(define VAR-REMINDER "(Variables are declared with var; names from function arguments or = are identifiers)")
+(define VAR-REMINDER "(Identifiers are declared with = and as the names of function arguments.  Variables are declared with var.)")
 
 (define (bad-assign-msg name)
   (format "Assignment to identifier ~a, which is not a variable. ~a" name VAR-REMINDER))
@@ -146,7 +146,7 @@
        (check-consistent env loc id #f)
        (update id (binding loc ann #f) env)]
       [_ env]))
-  (foldr update-for-node env stmts))
+  (foldl update-for-node env stmts))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
@@ -166,14 +166,14 @@
      (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann doc body)
-     (define body-env (foldr (update-for-bind #f) env args))
+     (define body-env (foldl (update-for-bind #f) env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann body)
-     (define body-env (foldr (update-for-bind #f) env args))
+     (define body-env (foldl (update-for-bind #f) env args))
      (s-method s args ann (cc-env body body-env))]
     
     [(s-cond s c-bs)

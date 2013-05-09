@@ -38,6 +38,8 @@ these metadata purposes.
 (struct s-var (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
 (struct s-let (syntax name value) #:transparent)
+;; s-when : srcloc (Listof Expr s-block) -> s-cond
+(struct s-when (syntax test block) #:transparent)
 ;; s-cond : srcloc (Listof s-cond-branch) -> s-cond
 (struct s-cond (syntax branches) #:transparent)
 ;; s-cond-branch : srcloc Expr s-block -> s-cond-branch

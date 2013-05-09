@@ -89,6 +89,7 @@
               [reseal p:reseal]
               [extend p:extend]
               [to-string p:to-string]
+              [nothing p:nothing]
               [pyret-true? p:pyret-true?])
   (rename-out [p-pi pi]
               [print-pfun print]
@@ -105,6 +106,7 @@
   String?
   Bool?
   nothing)
+
 
 ;(define-type Value (U p-object p-num p-bool
 ;                      p-str p-fun p-method p-nothing p-opaque))
