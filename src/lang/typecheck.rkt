@@ -91,18 +91,46 @@
       (format "typecheck: don't know how to check ann: ~a"
               ann))]))
 
+(define (bound? env id)
+  (hash-has-key? env id))
 (define (lookup env id)
   (define r (hash-ref env id #f))
   (when (not r) (error (format "Unbound id: ~a" id)))
   r)
-(define (update bind env)
+(struct binding (ann mutable?))
+(define (update id b env)
+  (hash-set env id b))
+
+(define (check-consistent env id mutable?)
+  (cond
+    [(not (bound? env id)) (void)]
+    [else
+     (match (cons (binding-mutable? (lookup env id)) mutable?)
+       [(cons #f #t)
+        (error (format "~a declared as both a variable and identifier" id))]
+       [(cons #t #f)
+        (error (format "~a declared as both a variable and identifier" id))]
+       [_ (void)])]))
+
+(define ((update-for-bind mutable?) bind env)
   (match bind
     [(s-bind _ id ann)
-     (hash-set env id ann)]))
+     (check-consistent env id mutable?)
+     (update id (binding ann mutable?) env)]
+    [_ (error (format "Expected a bind and got something else: ~a" bind))]))
 
 
 (define (cc-block-env stmts env)
-  (foldr update env (map s-var-name (filter s-var? stmts))))
+  (define (update-for-node node env)
+    (match node
+      [(s-var _ (s-bind _ id ann) _)
+       (check-consistent env id #t)
+       (update id (binding ann #t) env)]
+      [(s-let _ (s-bind _ id ann) _)
+       (check-consistent env id #f)
+       (update id (binding ann #f) env)]
+      [_ env]))
+  (foldr update-for-node env stmts))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
@@ -118,16 +146,18 @@
      (s-block s (map (curryr cc-env new-env) stmts))]
     [(s-var s bnd val)
      (s-var s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
+    [(s-let s bnd val)
+     (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann doc body)
-     (define body-env (foldr update env args))
+     (define body-env (foldr (update-for-bind #f) env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
     
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann body)
-     (define body-env (foldr update env args))
+     (define body-env (foldr (update-for-bind #f) env args))
      (s-method s args ann (cc-env body body-env))]
     
     [(s-cond s c-bs)
@@ -138,11 +168,15 @@
      (s-cond s (map cc-branch c-bs))]
 
     [(s-try s try bind catch)
-     (define catch-env (update bind env))
+     (define catch-env ((update-for-bind #f) bind env))
      (s-try s (cc try) bind (cc-env catch catch-env))]
     
     [(s-assign s name expr)
-     (s-assign s name (wrap-ann-check s (lookup env name) (cc expr)))]
+     (match (lookup env name)
+      [(binding _ #f)
+       (error (format "Assignment to identifier ~a, which is not a variable" name))]
+      [(binding ann #t)
+       (s-assign s name (wrap-ann-check s ann (cc expr)))])]
 
     [(s-app s fun args)
      (s-app s (cc fun) (map cc args))]

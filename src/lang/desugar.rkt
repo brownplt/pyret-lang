@@ -127,6 +127,8 @@
         
     [(s-var s name val)
      (s-var s name (ds val))]
+    [(s-let s name val)
+     (s-let s name (ds val))]
 
     [(s-fun s name typarams args ann doc body)
      (s-var s

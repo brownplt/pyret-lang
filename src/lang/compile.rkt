@@ -35,6 +35,8 @@
   (match ast-node
     [(s-var s (s-bind _ id _) val)
        (cons id (compile-expr val))]
+    [(s-let s (s-bind _ id _) val)
+       (cons id (compile-expr val))]
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
@@ -185,6 +187,10 @@
      (define (compile-top-stmt stmt)
       (match stmt
         [(s-var s (s-bind _ id _) val)
+         (with-syntax ([id-stx id])
+          #`(r:define id-stx #,(compile-expr val)))]
+        ;; TODO(joe): Can set! immutable vars at the REPL
+        [(s-let s (s-bind _ id _) val)
          (with-syntax ([id-stx id])
           #`(r:define id-stx #,(compile-expr val)))]
         [else (compile-expr stmt)]))

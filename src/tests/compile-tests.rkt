@@ -13,6 +13,9 @@
 
 (define true (p:mk-bool #t))
 
+(define CONFLICT-MESSAGE "variable and identifier")
+
+
 (check-pyret-match "5" (p:p-num _ (hash-table) x 5))
 
 
@@ -29,7 +32,7 @@
 
 (check-pyret "\\x: (x)(2)" two)
 (check-pyret "var x: 2 \\(x := 10)() x" ten)
-(check-pyret "var x: 2 \\x: (x := 10)(5) x" two)
+(check-pyret-exn "var x: 2 \\x: (x := 10)(5) x" CONFLICT-MESSAGE)
 (check-pyret "var x: 2 fun f(g): g() end f(\\(x := 10)) x" ten)
 
 (check-pyret "{}" (p:p-object (p:none) (make-immutable-hash '()) p:empty-dict))
@@ -53,24 +56,25 @@
 (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
                         (p:p-bool _ _ _ #t))
 
-(check-pyret "fun f(x): x := 2 x end f(1)" two)
-(check-pyret "fun f(x): x := 2 x := 5 x end f(1)" five)
+(check-pyret "fun f(x): x = 2 x end f(1)" two)
+(check-pyret "fun f(): var x : 1 x := 2 x := 5 x end f()" five)
 (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
-(check-pyret "fun f(x): fun g(): x := 2 end g() x end f(1)" two)
-(check-pyret "fun f(x): fun g(x): x := 2 end g(1) x end f(5)" five)
+(check-pyret "fun f(): var x: 1 fun g(): x := 2 end g() x end f()" two)
 (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "arity")
 (check-pyret-exn "fun f(x, y): x end f(3)" "arity")
-(check-pyret "fun fundo(o):
-                fun f(x):
+(check-pyret "fun fundo():
+                var o : {}
+                var x : 1
+                fun f():
                   fun g(): x := 2 end
                   fun h(): x end
                   {g: g, h: h} 
                 end
-                o := f(1)
+                o := f()
                 o.g()
                 o.h()
               end
-              fundo({})" two)
+              fundo()" two)
 
 (check-pyret "var x: 5 x" five)
 (check-pyret "var x: 5 var y: x y" five)
@@ -82,15 +86,15 @@
 ;(check-pyret-exn "var w: zoot var zoot: 5 w" "undefined")
 
 (check-pyret-match "brander()" (p:p-object _ (hash-table) (hash-table ("brand" _) ("check" _))))
-(check-pyret-match "fun f(x, y): x := brander() y := x.brand(y) y end f(1,2)"
+(check-pyret-match "fun f(z): x = brander() y = x.brand(z) y end f(2)"
                    (p:p-num _ (hash-table _) _ 2))
-(check-pyret-match "fun f(x,y): x := brander() y := x.brand(y) x.check(y) end f(1,2)"
+(check-pyret-match "fun f(z): x = brander() y = x.brand(z) x.check(y) end f(2)"
                    (p:p-bool _ _ _ #t))
-(check-pyret-match "fun f(x,y): x := brander() x.check(y) end f(1,2)"
+(check-pyret-match "fun f(y): x = brander() x.check(y) end f(2)"
                    (p:p-bool _ _ _ #f))
-(check-pyret-match "fun f(x,y,z): x := brander() y := brander() z := x.brand(z) y.check(z) end f(1,2,3)"
+(check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) y.check(u) end f(3)"
                    (p:p-bool _ _ _ #f))
-(check-pyret-match "fun f(x,y,z): x := brander() y := brander() z := x.brand(z) z := y.brand(z) x.check(z) end f(1,2,3)"
+(check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.check(w) end f(3)"
                    (p:p-bool _ _ _ #t))
 
 ;; can extract raw methods
@@ -432,6 +436,89 @@ l1.add(l2)
               fun g(): raise(5) end
               fun h(): try: f() except(e): e end end
               h()" ten)
+
+(check-pyret "
+x = 5
+x
+" five)
+
+(check-pyret-exn "
+x = 5
+x := 5
+"
+"Assignment to identifier x")
+
+(check-pyret-exn "
+x = 5
+var x : 5
+"
+CONFLICT-MESSAGE)
+
+(check-pyret-exn "
+var x : 5
+x = 5
+"
+CONFLICT-MESSAGE)
+
+(check-pyret-exn "
+var x : 5
+fun f(x):
+  nothing
+end
+"
+CONFLICT-MESSAGE)
+
+(check-pyret "
+x = 5
+fun f(x):
+  x
+end
+f(x)
+"
+five)
+
+(check-pyret-exn "
+x = 5
+fun f(x):
+  var x : x
+end
+"
+CONFLICT-MESSAGE)
+
+(check-pyret-exn "
+var x : 5
+try:
+  nothing
+except(x):
+  nothing
+end
+"
+CONFLICT-MESSAGE)
+
+(check-pyret-exn "
+var should_notice_method_bodies : 5
+o = { meth(self): should_notice_method_bodies = 3 }
+"
+CONFLICT-MESSAGE)
+
+(check-pyret "
+var x : 5
+fun f():
+  var x : 10
+  x
+end
+f()
+"
+ten)
+
+(check-pyret "
+x :: Number = 5
+fun f(y :: Number):
+  y
+end
+f(x)
+"
+five)
 
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
