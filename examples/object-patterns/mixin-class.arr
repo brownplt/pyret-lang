@@ -1,6 +1,6 @@
 #lang pyret
 
-import "src/lang/pyret-lib/experimental/check.arr" as Check
+import "check.arr" as Check
 
 todo1 = {
   # Constructor should return an object to use as self

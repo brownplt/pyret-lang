@@ -44,7 +44,7 @@ fun ext(parent-class, description):
     new(self, spec): 
       var fields = description.fields
       methods = description.methods
-      parent-inst = nothing # to be init'd by super from constructor
+      var parent-inst = nothing # to be init'd by super from constructor
 
       instance = {
 
@@ -69,7 +69,7 @@ fun ext(parent-class, description):
         # For now, only support one arg methods
         invoke(inst, name, arg):
 
-          inst-with-super == inst.{
+          inst-with-super = inst.{
             super(inst, arg):
               parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
             end

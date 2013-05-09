@@ -1,6 +1,6 @@
 #lang pyret
 
-import "src/lang/pyret-lib/experimental/check.arr" as Check
+import "check.arr" as Check
 
 todo1 = {
   due: "25 January 2012",
