@@ -6,7 +6,9 @@ provide
     is-empty: is-empty,
     is-link: is-link,
     empty: empty,
-    link: link
+    link: link,
+
+    range: range
   }
 end
 
@@ -98,5 +100,13 @@ data List
 
 sharing
   push(self, elt): link(elt, self)
+end
+
+fun range(start, stop):
+  cond:
+    | start.greaterthan(stop) => raise("range: start greater than stop")
+    | start.equals(stop)      => empty()
+    | start.lessthan(stop)    => link(start, range(start.add(1), stop))
+  end
 end
 
