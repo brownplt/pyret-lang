@@ -140,7 +140,12 @@
     
     [(s-method s args ann body)
      (s-method s args ann (ds body))]
-    
+
+    [(s-when s test body)
+     (s-cond s (list
+      (s-cond-branch s test body)
+      (s-cond-branch s (s-bool s #t) (s-id s 'p:nothing))))]
+
     [(s-cond s c-bs)
      (define (ds-cond branch)
        (match branch
