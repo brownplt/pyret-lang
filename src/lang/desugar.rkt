@@ -143,7 +143,7 @@
 
     [(s-when s test body)
      (s-cond s (list
-      (s-cond-branch s test body)
+      (s-cond-branch s (ds test) (ds body))
       (s-cond-branch s (s-bool s #t) (s-id s 'p:nothing))))]
 
     [(s-cond s c-bs)

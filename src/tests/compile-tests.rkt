@@ -523,6 +523,14 @@ when true: 5 end
 " five)
 
 (check-pyret "
+when true: when true: 5 end end
+" five)
+
+(check-pyret "
+when true: when false: 5 end end
+" nothing)
+
+(check-pyret "
 when false: 5 end
 "
 nothing)
