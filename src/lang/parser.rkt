@@ -252,6 +252,11 @@
      #`(s-list #,(loc stx) (list expr ... lastexpr))]
     [(_ "[" "]") #`(s-list #,(loc stx) empty)]))
 
+(define-syntax (when-expr stx)
+  (syntax-case stx ()
+    [(_ "when" test ":" block "end")
+     #`(s-when #,(loc stx) test block)]))
+
 (define-syntax (cond-expr stx)
   (syntax-case stx (cond-branch)
     [(_ "cond" ":" (cond-branch _ exp _ blck) ... "end")

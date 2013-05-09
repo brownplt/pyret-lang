@@ -13,7 +13,7 @@ block: stmt*
 
 stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | dot-assign-expr | bracket-assign-expr
-    | try-expr) [ENDMARKER]
+    | when-expr | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -63,6 +63,8 @@ lambda-expr:
  | BACKSLASH fun-body
  | BACKSLASH fun-ty-params "->" ann ":" fun-body
  
+when-expr: "when" expr ":" block "end"
+
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
 

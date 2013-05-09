@@ -390,4 +390,12 @@ end"
 (check/block "x :: Number = 22"
   (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
 
+(check/block "when true: 5 end"
+  (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
+
+(check/block "when x.equals(42): print('got it') print('the answer') end"
+  (s-when _ (s-app _ (s-dot _ (s-id _ 'x) 'equals) (list (s-num _ 42)))
+    (s-block _ (list
+      (s-app _ (s-id _ 'print) (list (s-str _ "got it")))
+      (s-app _ (s-id _ 'print) (list (s-str _ "the answer")))))))
 
