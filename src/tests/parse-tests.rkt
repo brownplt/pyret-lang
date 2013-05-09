@@ -210,10 +210,10 @@
              (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
                              (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
 
-(check/block "  data Foo | bar end"
+(check/block "  data Foo: | bar end"
              (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list)))
 
-(check/block "data NumList
+(check/block "data NumList:
   | empty
   | cons: first :: Number, rest :: NumList
 end"
@@ -226,10 +226,10 @@ end"
 (check/block "var my-hypthen-y-ident-i-fier = 10"
              (s-var _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
 
-(check/block "data List<a> | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
+(check/block "data List<a>: | empty end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 
 (check/block 
- "data List<a> | cons: field, l :: List<a> end" 
+ "data List<a>: | cons: field, l :: List<a> end" 
  (s-data _ 'List (list 'a) 
          (list (s-variant 
                 _ 
@@ -272,7 +272,7 @@ end"
 
 
 (check/block
- "data Foo | bar with x(self): self end"
+ "data Foo: | bar with x(self): self end"
  (s-data _ 'Foo (list)
          (list (s-variant _ 'bar (list)
                           (list (s-method-field _
@@ -283,7 +283,7 @@ end"
          (list)))
 
 (check/block
- "data Foo | bar with x(self) -> Num: self
+ "data Foo: | bar with x(self) -> Num: self
   sharing
     z: 10
   end"

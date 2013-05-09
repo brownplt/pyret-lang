@@ -238,7 +238,7 @@
  "2")
 
 (check-pyret
- "data List
+ "data List:
     | cons : first, rest with
         length(self): 1.add(self.rest.length())
     | empty with
@@ -248,7 +248,7 @@
  two)
 
 (check-pyret
- "data List
+ "data List:
     | cons : first, rest
     | empty
   sharing
@@ -312,7 +312,7 @@
 " (p:mk-bool #t))
 
 (check-pyret-match
-  "data Foo | bar end bar.doc"
+  "data Foo: | bar end bar.doc"
   (p:p-str _ _ _ _))
 
 (check-pyret-match

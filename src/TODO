@@ -6,7 +6,7 @@ Need-to-have (soon):
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[] Pyret on Whalesong
+[x] Pyret on Whalesong
   [x] Convert ast, runtime to racket/base
   [x] Remove all non-whalesong imports from runtime.rkt
     [x] match
@@ -15,8 +15,27 @@ Need-to-have (soon):
     [x] string
     [x] math
     [x] set
-  [] Blocked on Danny for:  with-handlers, REPL
+  [x] Blocked on Danny for:
+    - with-handlers
+    - REPL
 [] Performance
+  [] Change method representation, optimize method calls
+    [] Add a new m field to create (p-method f m)
+    [] Update all uses of p-method (all are in runtime.rkt or compile-tests.rkt
+       as of 439aa3b2266dbec97c29b9295b0f4611d7af1ed6)
+    [] In compile, create two versions of the function, one which is what we
+       do now, and another which is optimized for method calls, of the form
+       (λ (arg1) (λ (arg2 ...) e))
+    [] In compile, change (s-app (s-get-raw-field e1 e2) e3 ...) into
+       (let ([maybe-meth (get-field e1 e2)])
+         (cond
+          [(s-method? maybe-meth) ((p-method-m maybe-meth) maybe-meth e3 ...)]
+          [(s-fun? maybe-meth) ((p-fun-f maybe-meth) e3 ...)]))
+    [] Add a desugar/typecheck error for methods of zero arguments; can still
+       happen at runtime due to fun/method conversions
+    [] Figure out what to do with all the builtins that use apply and rely on a
+       single representation (these are probably a bottleneck)
+       - Macros probably a good idea here
 [] Indentation enforcement
 [x] Sensible story on importing libs like big-bang, image
   [x] Change desugaring of modules to use provide/require
@@ -36,21 +55,6 @@ Need-to-have (soon):
     [x] Remove useless code from eval.rkt
     [!] Move test-utils code to eval.rkt?
       - Can't, causes loading cycle
-[] Change method representation, optimize method calls
-  [] Add a new m field to create (p-method f m)
-  [] Update all uses of p-method (all are in runtime.rkt or compile-tests.rkt
-     as of 439aa3b2266dbec97c29b9295b0f4611d7af1ed6)
-  [] In compile, create two versions of the function, one which is what we
-     do now, and another which is optimized for method calls, of the form
-     (λ (arg1) (λ (arg2 ...) e))
-  [] In compile, change (s-app (s-get-raw-field e1 e2) e3 ...) into
-     (let ([maybe-meth (get-field e1 e2)])
-       (cond
-        [(s-method? maybe-meth) ((p-method-m maybe-meth) maybe-meth e3 ...)]
-        [(s-fun? maybe-meth) ((p-fun-f maybe-meth) e3 ...)]))
-  [] Add a desugar/typecheck error for methods of zero arguments; can still
-     happen at runtime due to fun/method conversions
-
 
 15-minute tasks
 [] Make everything with methods consistent with functions

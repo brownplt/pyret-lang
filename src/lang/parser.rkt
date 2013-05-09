@@ -350,7 +350,7 @@
 
 (define-syntax (data-expr stx)
   (syntax-case stx ()
-    [(_ "data" data-name data-params variant ...  sharing-part)
+    [(_ "data" data-name data-params ":" variant ...  sharing-part)
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
                data-params

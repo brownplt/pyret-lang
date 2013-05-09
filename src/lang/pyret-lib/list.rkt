@@ -12,7 +12,7 @@ provide
   }
 end
 
-data List
+data List:
   | empty with
 
     length(self): 0,

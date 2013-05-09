@@ -1,6 +1,6 @@
 #lang pyret
 
-data NumList
+data NumList:
   | empty
   | cons: first :: Number, rest :: NumList
 end
