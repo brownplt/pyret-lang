@@ -34,8 +34,10 @@ these metadata purposes.
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block
 (struct s-fun (syntax name params args ann doc body) #:transparent)
 
-;; s-var : srcloc Symbol Expr -> s-var
+;; s-var : srcloc bind Expr -> s-var
 (struct s-var (syntax name value) #:transparent)
+;; s-let : srcloc bind Expr -> s-let
+(struct s-let (syntax name value) #:transparent)
 ;; s-cond : srcloc (Listof s-cond-branch) -> s-cond
 (struct s-cond (syntax branches) #:transparent)
 ;; s-cond-branch : srcloc Expr s-block -> s-cond-branch

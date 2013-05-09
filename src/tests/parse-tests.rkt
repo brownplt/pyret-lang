@@ -11,6 +11,16 @@
 (define round-trip-test #f)
 (set! round-trip-test #f)
 
+(define-syntax check-parse/fail
+  (syntax-rules ()
+    [(_ str error)
+     (begin
+       (when verbose
+         (printf "Testing: \n~a\n\n" str))
+       (check-exn exn:fail? (lambda () (parse-pyret str))
+                  (regexp-quote error)))]))
+     
+
 (define-syntax check/block
   (syntax-rules ()
     [(_ str stmt ...)
@@ -359,4 +369,25 @@ end"
       (s-id _ 'c)))
     (s-bind _ 'e (a-blank))
     (s-block _ (list (s-num _ 5)))))
+
+(check/block "x = 5"
+  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5)))
+
+(check/block "x = 5 y = 10"
+  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
+  (s-let _ (s-bind _ 'y (a-blank)) (s-num _ 10)))
+
+(check/block "duplicates-ok-in-parse = 5 duplicates-ok-in-parse = 10"
+  (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 5))
+  (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 10)))
+
+(check/block "x = 5 x"
+  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
+  (s-id _ 'x))
+
+(check-parse/fail "var x: x = 5" "parse")
+
+(check/block "x :: Number = 22"
+  (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
+
 

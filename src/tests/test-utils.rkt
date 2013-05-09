@@ -2,6 +2,7 @@
 
 (provide
   verbose!
+  check-exn
   check-pyret-fail
   check-pyret-exn
   check-pyret-exn/libs

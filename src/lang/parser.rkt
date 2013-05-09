@@ -164,6 +164,18 @@
               (s-bind #,(loc #'id) '#,(parse-id #'id) ann) 
               value-expr)]))
 
+(define-syntax (let-expr stx)
+  (syntax-case stx ()
+    [(_ id "=" value-expr)
+     #`(s-let #,(loc stx) 
+              (s-bind #,(loc #'id) '#,(parse-id #'id) (a-blank)) 
+              value-expr)]
+    [(_ id "::" ann "=" value-expr)
+     #`(s-let #,(loc stx) 
+              (s-bind #,(loc #'id) '#,(parse-id #'id) ann) 
+              value-expr)]))
+
+
 (define-syntax (args stx)
   (syntax-case stx ()
     [(_ "(" arg ... lastarg ")") #'(list arg ... lastarg)]

@@ -11,7 +11,7 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (var-expr | fun-expr | data-expr | do-expr | expr
+stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | dot-assign-expr | bracket-assign-expr
     | try-expr) [ENDMARKER]
 
@@ -32,6 +32,7 @@ bool-expr: "true" | "false"
 string-expr: STRING
                     
 var-expr: "var" NAME ["::" ann] ":" expr
+let-expr: NAME ["::" ann] "=" expr
 
 app-arg-elt: expr ","
 app-args: "(" [app-arg-elt* expr] ")"
