@@ -24,6 +24,8 @@
           [src-syntax (src->module-name src)])
             (strip-context
               #`(module src-syntax (file pyret-lang-whalesong-stx)
-                  (r:require pyret/lang/pyret-lib/libs)
+                  (r:require (r:rename-in pyret/lang/pyret-lib/list [%PYRET-PROVIDE list]))
+                  (r:require (r:rename-in pyret/lang/pyret-lib/error [%PYRET-PROVIDE error]))
+                  (r:require (r:rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins]))
                   #,(pyret->racket src in #:libs 'inline #:toplevel #t))))]))
 

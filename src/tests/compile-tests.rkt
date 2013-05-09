@@ -373,7 +373,7 @@ l1.add(l2)
 
 (check-pyret
   "
-  import '../lang/pyret-lib/list.arr' as L
+  import '../lang/pyret-lib/list.rkt' as L
   5^L.link(L.empty()).first
   "
   five)
