@@ -12,7 +12,7 @@
      "data" "end" "do" "try" "except"
      "as" "with" "sharing")))
 (defconst pyret-punctuation-regex
-  (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "{" "}" "." "\\" ";" "|" "=")))
+  (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
 (defconst pyret-font-lock-keywords-1
   (list
    `(,(concat 
@@ -162,7 +162,7 @@
         (setq cur-closed-parens 0) (setq cur-closed-object 0)
         (setq cur-closed-vars 0) (setq cur-closed-fields 0)
         (setq initial-period 0)
-        (message "At start of line %d, opens is %s" (+ n 1) opens)
+        ;;(message "At start of line %d, opens is %s" (+ n 1) opens)
         (while (not (eolp))
           (cond
            ((COMMENT)
@@ -254,6 +254,10 @@
             (forward-char))
            ((WITH)
             (cond
+             ((has-top opens '(wantopenparen wantcloseparen data))
+              (pop opens) (pop opens)
+              (incf open-object) (incf cur-opened-object)
+              (push 'object opens))
              ((has-top opens '(data))
               (incf open-object) (incf cur-opened-object)
               (push 'object opens)))
@@ -352,6 +356,9 @@
               (incf cur-closed-vars))
             (forward-char))
            ((END)
+            (cond
+             ((has-top opens '(object data))
+              (decf open-object) (pop opens)))
             (let ((h (car-safe opens)))
               (cond
                ((equal h 'provide)
@@ -380,7 +387,7 @@
               (incf cur-closed-vars))
             (goto-char (match-end 0)))
            (t (if (not (eobp)) (forward-char)))))
-        (message "At end   of line %d, opens is %s" (+ n 1) opens)
+        ;;(message "At end   of line %d, opens is %s" (+ n 1) opens)
         (aset nestings n (indent (- open-fun (max 0 (- cur-opened-fun cur-closed-fun)))
                                  (- open-cond cur-opened-cond)
                                  (- open-data cur-opened-data)
@@ -398,9 +405,9 @@
             (incf cur-closed-vars)
             (setq h (car-safe opens))))
         (setq open-vars (- open-vars cur-closed-vars))
-        ;(message "On line %d, there are currently %d open fields, %d opened fields, and %d closed fields"
-        ;         (+ 1 n)
-        ;         open-fields cur-opened-fields cur-closed-fields)
+        ;;(message "On line %d, there are currently %d open fields, %d opened fields, and %d closed fields"
+        ;;         (+ 1 n)
+        ;;         open-fields cur-opened-fields cur-closed-fields)
         (setq open-fields (- open-fields cur-closed-fields))
         (incf n)
         (if (not (eobp)) (forward-char))))
