@@ -13,7 +13,7 @@ provide
 end
 
 data List:
-  | empty with
+  | empty() with
 
     length(self): 0,
 
@@ -49,7 +49,7 @@ data List:
 
     tostring(self): "[]"
 
-  | link: first :: Any, rest :: List with
+  | link(first :: Any, rest :: List) with
 
     length(self): 1.add(self.rest.length()),
 

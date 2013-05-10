@@ -105,7 +105,7 @@ bracket-method-expr: expr ":" "[" expr "]"
 data-member: NAME ["::" ann]
 data-member-elt: data-member ","
 data-with: ["with" fields]
-data-fields: [":" data-member-elt* data-member]
+data-fields: "(" [data-member-elt* data-member] ")"
 data-variant: "|" NAME data-fields data-with
 data-param-elt: NAME ","
 data-params: ["<" data-param-elt* NAME ">"]

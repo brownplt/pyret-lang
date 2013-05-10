@@ -1,8 +1,8 @@
 #lang pyret
 
 data NumList:
-  | empty
-  | cons: first :: Number, rest :: NumList
+  | empty()
+  | cons(first :: Number, rest :: NumList)
 end
 
 empty()

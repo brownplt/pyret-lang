@@ -232,9 +232,9 @@
 
   (check-pyret
    "data List:
-      | cons : first, rest with
+      | cons(first, rest) with
           length(self): 1.add(self.rest.length())
-      | empty with
+      | empty() with
           length(self): 0
     end
     cons(1, cons(2, empty())).length()"
@@ -242,8 +242,8 @@
 
   (check-pyret
    "data List:
-      | cons : first, rest
-      | empty
+      | cons(first, rest)
+      | empty()
     sharing
       length(self):
         cond:
@@ -301,7 +301,7 @@
 
 
   (check-pyret-match
-    "data Foo: | bar end bar.doc"
+    "data Foo: | bar() end bar.doc"
     (p:p-str _ _ _ _))
 
   (check-pyret-match
@@ -589,7 +589,7 @@
   exceptions
   ids-and-vars))
 
-(run-tests all)
+(run-tests all 'normal)
 
 
 ;; TODO(joe): decide on the shape of exceptions for builtins

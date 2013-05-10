@@ -9,17 +9,17 @@ provide {
 } end
 
 data Location:
-  | location : file :: String, line :: Number, column :: Number with
+  | location(file :: String, line :: Number, column :: Number) with
     format(self):
       self.file.append(": line ").append(self.line.tostring()).append(", column ").append(self.column.tostring())
 end
 
 data Error:
-  | opaque-error : message :: String, location :: Location with
+  | opaque-error(message :: String, location :: Location) with
     name(self): "Error using opaque internal value"
-  | field-not-found : message :: String, location :: Location with
+  | field-not-found(message :: String, location :: Location) with
     name(self): "Field not found"
-  | lazy-error : message :: String, location :: Location with
+  | lazy-error(message :: String, location :: Location) with
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy"
 sharing
   format(self):

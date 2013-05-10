@@ -324,9 +324,9 @@
 
 (define-syntax (data-fields stx)
   (syntax-case stx ()
-    [(_ ":" (data-member-elt member ",") ... last-member)
+    [(_ "(" (data-member-elt member ",") ... last-member ")")
      #'(list member ... last-member)]
-    [(_) #'(list)]))
+    [(_ "(" ")") #'(list)]))
 
 (define-syntax (data-variant stx)
   (syntax-case stx (data-member-elt data-members)
