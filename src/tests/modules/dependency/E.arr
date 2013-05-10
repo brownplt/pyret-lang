@@ -2,6 +2,6 @@
 
 provide {mk : mk, check : is-mk} end
 
-data Mk
-| mk
+data Mk:
+| mk()
 end

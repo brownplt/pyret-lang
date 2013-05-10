@@ -324,9 +324,9 @@
 
 (define-syntax (data-fields stx)
   (syntax-case stx ()
-    [(_ ":" (data-member-elt member ",") ... last-member)
+    [(_ "(" (data-member-elt member ",") ... last-member ")")
      #'(list member ... last-member)]
-    [(_) #'(list)]))
+    [(_ "(" ")") #'(list)]))
 
 (define-syntax (data-variant stx)
   (syntax-case stx (data-member-elt data-members)
@@ -334,6 +334,10 @@
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
                   fields-part
+                  with-part)]
+    [(_ "|" variant-name with-part)
+     #`(s-singleton-variant #,(loc stx)
+                  '#,(parse-name #'variant-name)
                   with-part)]))
 
 (define-syntax (data-params stx)
@@ -350,7 +354,7 @@
 
 (define-syntax (data-expr stx)
   (syntax-case stx ()
-    [(_ "data" data-name data-params variant ...  sharing-part)
+    [(_ "data" data-name data-params ":" variant ...  sharing-part)
      #`(s-data #,(loc stx) 
                '#,(parse-name #'data-name)
                data-params

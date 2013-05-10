@@ -2,6 +2,6 @@
 
 provide { is-d: is-d, d: d } end
 
-data D
-  | d
+data D:
+  | d()
 end

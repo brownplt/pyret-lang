@@ -114,6 +114,8 @@ these metadata purposes.
 
 ;; s-variant : srcloc Symbol (Listof s-member) (Listof Member)
 (struct s-variant (syntax name members with-members) #:transparent)
+;; s-variant : srcloc Symbol (Listof Member)
+(struct s-singleton-variant (syntax name with-members) #:transparent)
 
 ;; s-member : srcloc Symbol Ann
 (struct s-member (syntax name ann) #:transparent)

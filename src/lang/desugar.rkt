@@ -45,14 +45,33 @@
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
     (match v
+      [(s-singleton-variant s name with-members)
+       (define brander-name (gensym name))
+       (define base-name (gensym (string-append (symbol->string name) "_base")))
+       (define dsg-with-members (map ds-member with-members))
+       (define base-obj
+         (s-obj s (append super-fields dsg-with-members)))
+       (s-block s
+         (list 
+           (s-let s (s-bind s base-name (a-blank)) base-obj)
+           (s-let s (s-bind s brander-name (a-blank))
+                    (s-app s (s-id s 'brander) (list)))
+           (make-checker s name (s-id s brander-name))
+           (s-let s (s-bind s name (a-blank))
+                    (apply-brand s super-brand
+                      (apply-brand s brander-name
+                        (s-id s base-name))))))]
       [(s-variant s name members with-members)
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define dsg-with-members (map ds-member with-members))
        (define args (map s-member-name members))
-       ;; TODO(joe): annotations on args
        (define constructor-args
-        (map (lambda (id) (s-bind s id (a-blank))) args))
+        (map (lambda (m)
+          (match m
+            [(s-member s name ann) (s-bind s name ann)]
+            [_ (error (format "pyret-internal: non-member in data: ~a" m))]))
+          members))
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj
