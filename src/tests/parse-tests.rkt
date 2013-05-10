@@ -238,6 +238,26 @@ end"
                       (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))
                 (list))) (list)))
 
+(check/block
+ "data List: | empty end"
+ (s-data _ 'List (list)
+  (list (s-singleton-variant
+         _
+         'empty
+         (list)))
+  (list)))
+
+(check/block
+ "data List: | empty with length(self): 0 end end"
+ (s-data _ 'List (list)
+  (list (s-singleton-variant
+         _
+         'empty
+         (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) (s-block _ (list (s-num _ 0)))))))
+  (list)))
+
+
+
 
 (check/block
  "do while x.lessthan(10); x.add(1) end"

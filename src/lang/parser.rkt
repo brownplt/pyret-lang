@@ -334,6 +334,10 @@
      #`(s-variant #,(loc stx)
                   '#,(parse-name #'variant-name)
                   fields-part
+                  with-part)]
+    [(_ "|" variant-name with-part)
+     #`(s-singleton-variant #,(loc stx)
+                  '#,(parse-name #'variant-name)
                   with-part)]))
 
 (define-syntax (data-params stx)
