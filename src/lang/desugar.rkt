@@ -56,9 +56,10 @@
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj
-         (s-onion s base-obj (map member->field
-                                members
-                                (map (lambda (id) (s-id s id)) args))))
+         (s-onion s (s-id s base-name)
+          (map member->field
+               members
+               (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list 
            (s-let s (s-bind s base-name (a-blank)) base-obj)

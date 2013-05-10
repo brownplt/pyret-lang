@@ -47,7 +47,7 @@ data List
 
     tostring(self): "[]"
 
-  | link: first :: Any, rest :: List with
+  | link(first, rest) with
 
     length(self): 1.add(self.rest.length()),
 

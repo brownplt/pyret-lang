@@ -6,6 +6,7 @@
 (require
   racket/match
   racket/splicing
+  racket/syntax
   "ast.rkt"
   "runtime.rkt")
 
@@ -66,7 +67,7 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun (r:λ (arg ...) body-stx) #,doc)))]
+         #`(p:mk-fun #,(attach l #'(r:λ (arg ...) body-stx)) #,doc)))]
     
     [(s-method l args ann body)
      (attach l
@@ -106,6 +107,22 @@
              (r:set! name-stx temp)
              temp)))]
 
+    [(s-app l (s-bracket l2 obj field) args)
+        (with-syntax ([obj (compile-expr obj)]
+                      [field (match field
+                                [(s-str _ s) (d->stx s l)]
+                                [else #'(p:p-str-s #,(compile-expr field))])]
+                      [(arg ...) (map compile-expr args)]
+                      [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
+              	      [(loc-param ...) (loc-list l)])
+          #'(r:let* ([%obj obj]
+                     [%field (p:get-raw-field (r:list loc-param ...) %obj field)]
+                     [argid arg] ...)
+              (r:cond
+               [(p:p-method? %field) ((p:p-method-f %field) %obj argid ...)]
+               [else ((p:check-fun %field (r:list loc-param ...)) argid ...)])))]
+
+
     [(s-app l fun args)
      (attach l
         (with-syntax ([fun (compile-expr fun)]
@@ -128,21 +145,14 @@
                     super
                     (r:make-hash (r:list member ...))))))]
     
-    [(s-dot l val field)
-     (attach l
-      (with-syntax
-		    ([(loc-param ...) (loc-list l)])
-       #`(p:get-field (r:list loc-param ...)
-                      #,(compile-expr val)
-                      (p:p-str-s #,(d->stx (symbol->string field) l)))))]
-    
     [(s-bracket l val field)
      (attach l
       (with-syntax
-		    ([(loc-param ...) (loc-list l)])
-       #`(p:get-field (r:list loc-param ...)
-                      #,(compile-expr val)
-                      (p:p-str-s #,(compile-expr field)))))]
+         ([field (match field
+                 [(s-str _ s) (d->stx s l)]
+                 [else #'(p:p-str-s #,(compile-expr field))])]
+		      [(loc-param ...) (loc-list l)])
+       #`(p:get-field (r:list loc-param ...) #,(compile-expr val) field)))]
     
     [(s-bracket-method l obj field)
      (attach l
