@@ -11,7 +11,7 @@ all:
 	@echo Pyret build completed successfully
 
 test:
-	@echo Compiling and running tests, no error messages implies all passed
+	@echo Compiling and running tests, should say 0 errors and 0 failures
 	cd src/tests; \
 	raco make compile-tests.rkt parse-tests.rkt; \
 	racket parse-tests.rkt; \
