@@ -230,6 +230,10 @@
 
 (define data (test-suite "data"
 
+  (check-pyret-match
+    "data Foo: | bar() end bar.doc"
+    (p:p-str _ _ _ _))
+
   (check-pyret
    "data List:
       | cons(first, rest) with
@@ -304,7 +308,6 @@
     f(4)"
     "expected single")
 
-
   (check-pyret
    "data Color:
      | red with asRGB(_): { r: 256, g: 0, b: 0 } end
@@ -364,10 +367,6 @@
   (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
                           (p:p-bool _ _ _ #t))
 
-
-  (check-pyret-match
-    "data Foo: | bar() end bar.doc"
-    (p:p-str _ _ _ _))
 
   (check-pyret-match
     "prim-keys({x : 5})"

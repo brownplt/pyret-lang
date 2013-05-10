@@ -66,9 +66,12 @@
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define dsg-with-members (map ds-member with-members))
        (define args (map s-member-name members))
-       ;; TODO(joe): annotations on args
        (define constructor-args
-        (map (lambda (id) (s-bind s id (a-blank))) args))
+        (map (lambda (m)
+          (match m
+            [(s-member s name ann) (s-bind s name ann)]
+            [_ (error (format "pyret-internal: non-member in data: ~a" m))]))
+          members))
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj

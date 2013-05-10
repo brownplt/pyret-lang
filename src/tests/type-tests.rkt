@@ -2,6 +2,7 @@
 
 (require
   rackunit
+  rackunit/text-ui
   "test-utils.rkt"
   "../lang/runtime.rkt"
   "match-set.rkt")
@@ -11,40 +12,45 @@
 (define eight (p:mk-num 8))
 (define forty8 (p:mk-num 48))
 
+(define all (test-suite "all"
+
 ;; tests for type annotation runtime checks
 (check-pyret-exn
- "var x :: Number: 'hello'"
+ "var x :: Number = 'hello'"
  "runtime:")
 
 (check-pyret
- "var x :: String: 'hello'"
+ "var x :: String = 'hello' x"
  (p:mk-str "hello"))
 
 
-(check-pyret-exn "var x :: Number: true" "runtime:")
-(check-pyret "var x :: Number: 48 x" forty8)
-(check-pyret-exn "var x :: Number: 37 x := 'not-a-num'" "runtime:")
+(check-pyret-exn "var x :: Number = true" "runtime:")
+(check-pyret "var x :: Number = 48 x" forty8)
+(check-pyret-exn "var x :: Number = 37 x := 'not-a-num'" "runtime:")
 
-(check-pyret "var x :: Number: 23 x := 6" six)
-(check-pyret "fun f(x :: Number) -> String: (var x :: String: 'daniel' x) f(42)" (p:mk-str "daniel"))
-(check-pyret-exn "fun f(x :: Number) -> String: (var x :: String: 'daniel' x := 6) f(42)"
+(check-pyret "var x :: Number = 23 x := 6" six)
+(check-pyret "fun f(x :: Number) -> String: (var y :: String = 'daniel' y) f(42)" (p:mk-str "daniel"))
+(check-pyret-exn "fun f(x :: Number) -> String: var y :: String = 'daniel' y := 6 end f(42)"
                  "runtime:")
-(check-pyret "var x :: Number: 6 fun f(): (var x :: String: 'daniel' x := 'bobby') f() x"
+(check-pyret "var x :: Number = 6 fun f(): var x :: String = 'daniel' x := 'bobby' end f() x"
              six)
-(check-pyret-exn "var x :: Number: 6 fun f(): (x := 'bobby') f() x"
+(check-pyret-exn "var x :: Number = 6 fun f(): (x := 'bobby') f() x"
                  "runtime:")
-(check-pyret-exn "fun g(h): h() end var x :: Number: 6 fun f(): (x := 'bobby') g(f) x"
+(check-pyret-exn "fun g(h): h() end var x :: Number = 6 fun f(): x := 'bobby' end g(f) x"
                  "runtime:")
 
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
-  f := \\x :: String -> String: (x)
-  f('foo')"
+  var g :: (Number -> String) = f
+  g := \\x :: String -> String: (x)
+  g('foo')"
  "runtime:")
+
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
-  f := \\x :: String -> String: (x)
-  f(6)"
+  var g :: (String -> String) = f
+  g := \\x :: String -> String: (x)
+  g(6)"
  "runtime:")
 
 (check-pyret
@@ -61,25 +67,32 @@
  "fun f(g :: (Number -> String)): g(10) end f(\\m: (m))"
  "expected String")
 
-(check-pyret
+(check-pyret-exn
+ "data HasAType
+    | variant(x :: Number)
+  end
+  variant(true)"
+ "expected Number")
+
+#;(check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: Maybe<Number>)) -> Number: x.value end
   f(some(10))"
  ten)
 
-(check-pyret
+#;(check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: (Maybe<Number> -> Number)) -> Number: x(some(10)) end
   f(\\m: (m.value))"
  ten)
 
-(check-pyret-exn
+#;(check-pyret-exn
   "data Maybe(a) | some: value :: a end
   fun f(x :: Maybe<Number>) -> Number: x.value end
   f(some('hello'))"
   "runtime:")
 
-(check-pyret
+#;(check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: (Maybe<Number> -> Number)) -> Number: x(some('string')) end
   f(\\m: (m.value))"
@@ -93,7 +106,7 @@
       | else => even(x.minus(2))
     end
   end
-  var x :: Number(even): 5"
+  x :: Number(even) = 5"
  "contract failure")
 
 (check-pyret/libs
@@ -104,6 +117,9 @@
       | else => even(x.minus(2))
     end
   end
-  var x :: Number(even): 10 x"
+  x :: Number(even) = 10 x"
  ten)
 
+))
+
+(run-tests all)
