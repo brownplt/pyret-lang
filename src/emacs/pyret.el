@@ -29,10 +29,19 @@
   (append
    pyret-font-lock-keywords-1
    (list
-    '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-builtin-face))
+    ;; "| else" is a builtin
+    '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-keyword-face))
+    ;; "data IDENT"
     `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
       (1 font-lock-keyword-face) (2 font-lock-type-face))
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:::\\|with\\)") 
+    ;; "| IDENT(whatever) =>" is a function name
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)(.*?)[ \t]*=>")
+      (1 font-lock-builtin-face) (2 font-lock-function-name-face))
+    ;; "| IDENT =>" is a variable name
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
+      (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
+    ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\)")
       (1 font-lock-builtin-face) (2 font-lock-type-face))
     `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
       (1 font-lock-variable-name-face) (2 font-lock-type-face))
@@ -100,6 +109,7 @@
 (defun EXCEPT () (looking-at "\\bexcept\\b"))
 (defun AS () (looking-at "\\bas\\b"))
 (defun WITH () (looking-at "\\bwith\\b"))
+(defun PIPE () (looking-at "|"))
 (defun SHARING () (looking-at "\\bsharing\\b"))
 (defun COLON () (looking-at ":"))
 (defun COMMA () (looking-at ","))
@@ -111,7 +121,13 @@
 (defun RPAREN () (looking-at ")"))
 (defun EQUALS () (looking-at "="))
 (defun COMMENT () (looking-at "[ \t]*#.*$"))
-           
+
+(defun has-top (stack top)
+  (if top
+      (and (equal (car-safe stack) (car top))
+           (has-top (cdr stack) (cdr top)))
+    t))
+
 (defun compute-nestings ()
   (let ((nlen (if nestings (length nestings) 0))
         (doclen (count-lines (point-min) (point-max))))
@@ -146,38 +162,42 @@
         (setq cur-closed-parens 0) (setq cur-closed-object 0)
         (setq cur-closed-vars 0) (setq cur-closed-fields 0)
         (setq initial-period 0)
-        ;(message "At start of line %d, opens is %s" (+ n 1) opens)
+        (message "At start of line %d, opens is %s" (+ n 1) opens)
         (while (not (eolp))
           (cond
            ((COMMENT)
             (goto-char (match-end 0)))
-           ((and (looking-at "[^ \t]") (equal (car-safe opens) 'needsomething))
-            (pop opens))
-           ((looking-at "^[ \t]*\\.") 
+           ((and (looking-at "[^ \t]") (has-top opens '(needsomething)))
+            (pop opens)) ;; don't advance, because we may need to process that text
+           ((looking-at "^[ \t]*\\.\\|\\^") 
             (setq initial-period 1)
             (goto-char (match-end 0)))
            ((COLON)
             (cond
-             ((or (equal (car-safe opens) 'wantcolon)
-                  (equal (car-safe opens) 'wantcolonorequal))
+             ((or (has-top opens '(wantcolon))
+                  (has-top opens '(wantcolonorequal)))
               (pop opens))
-             ((equal (car-safe opens) 'object)
-              (incf open-fields) (incf cur-opened-fields)
+             ((or (has-top opens '(object))
+                  (has-top opens '(shared)))
+                  ;;(has-top opens '(data)))
+              ;;(message "Line %d, saw colon in context %s, pushing 'field" (+ 1 n) (car-safe opens))
+              (incf open-fields)
+              (incf cur-opened-fields)
               (push 'field opens)
               (push 'needsomething opens)))
             (forward-char))
            ((COMMA)
             (cond
-             ((equal (car-safe opens) 'field)
+             ((has-top opens '(field))
               (pop opens)
               (incf cur-closed-fields)))
             (forward-char))
            ((EQUALS)
             (cond
-             ((equal (car-safe opens) 'wantcolonorequal)
+             ((has-top opens '(wantcolonorequal))
               (pop opens))
              (t 
-              (while (equal (car-safe opens) 'var)
+              (while (has-top opens '(var))
                 (pop opens)
                 (incf cur-closed-vars))
               (incf open-vars)
@@ -215,6 +235,29 @@
             (push 'wantcolon opens)
             (push 'needsomething opens)
             (goto-char (match-end 0)))
+           ((PIPE)
+            (cond 
+             ((or (has-top opens '(object data))
+                  (has-top opens '(field object data)))
+              (decf open-object)
+              (cond
+               ((has-top opens '(field))
+                (pop opens)
+                (if (> cur-opened-fields 0) ;; if a field was just opened, 
+                    (incf cur-closed-fields) ;; say it's closed
+                  (decf open-fields)))) ;; otherwise decrement the running count
+              (if (has-top opens '(object))
+                  (pop opens)))
+             ((has-top opens '(data))
+              (push 'wantcloseparen opens) (push 'wantopenparen opens) (push 'needsomething opens)
+              ))
+            (forward-char))
+           ((WITH)
+            (cond
+             ((has-top opens '(data))
+              (incf open-object) (incf cur-opened-object)
+              (push 'object opens)))
+            (goto-char (match-end 0)))
            ((PROVIDE)
             (push 'provide opens)
             (goto-char (match-end 0)))
@@ -222,7 +265,10 @@
             (decf open-data) (incf cur-closed-data)
             (incf open-shared) (incf cur-opened-shared)
             (cond 
-             ((equal (car-safe opens) 'data)
+             ((has-top opens '(object data))
+              (pop opens) (pop opens) (decf open-object)
+              (push 'shared opens))
+             ((has-top opens '(data))
               (pop opens)
               (push 'shared opens)))
             (goto-char (match-end 0)))
@@ -235,7 +281,7 @@
             (decf open-try) (incf cur-closed-try)
             (incf open-except) (incf cur-opened-except)
             (cond
-             ((equal (car-safe opens) 'try)
+             ((has-top opens '(try))
               (pop opens)
               (push 'except opens)
               (push 'wantcolon opens)
@@ -248,9 +294,9 @@
             (forward-char))
            ((RBRACK)
             (decf open-object) (incf cur-closed-object)
-            (if (equal (car-safe opens) 'array)
+            (if (has-top opens '(array))
                 (pop opens))
-            (while (equal (car-safe opens) 'var)
+            (while (has-top opens '(var))
               (pop opens)
               (incf cur-closed-vars))
             (forward-char))
@@ -260,11 +306,11 @@
              ;; minor hacks to make indentation slightly less deep for object literals
              ;; assigned to variables or to fields of object literals
              ((> cur-opened-vars 0)
-              (while (equal (car-safe opens) 'var)
+              (while (has-top opens '(var))
                 (pop opens)
                 (incf cur-closed-vars)))
              ((> cur-opened-fields 0)
-              (while (equal (car-safe opens) 'field)
+              (while (has-top opens '(field))
                 (pop opens)
                 (incf cur-closed-fields))))
             (push 'object opens)
@@ -272,23 +318,24 @@
            ((RBRACE)
             (decf open-object) (incf cur-closed-object)
             (cond
-             ((equal (car-safe opens) 'field)
+             ((has-top opens '(field))
               (pop opens)
               (if (> cur-opened-fields 0) ;; if a field was just opened, 
                   (incf cur-closed-fields) ;; say it's closed
                 (decf open-fields)))) ;; otherwise decrement the running count
-            (if (equal (car-safe opens) 'object)
+            (if (has-top opens '(object))
                 (pop opens))
-            (while (equal (car-safe opens) 'var)
+            (while (has-top opens '(var))
               (pop opens)
               (incf cur-closed-vars))
             (forward-char))
            ((LPAREN)
             (incf open-parens) (incf cur-opened-parens)
             (cond
-             ((equal (car-safe opens) 'wantopenparen)
+             ((has-top opens '(wantopenparen))
               (pop opens))
-             ((equal (car-safe opens) 'object) ; method in an object
+             ((or (has-top opens '(object))
+                  (has-top opens '(shared))) ; method in an object or sharing section
               (push 'fun opens)
               (push 'wantcolon opens)
               (push 'wantcloseparen opens)
@@ -298,9 +345,9 @@
             (forward-char))
            ((RPAREN)
             (decf open-parens) (incf cur-closed-parens)
-            (if (equal (car-safe opens) 'wantcloseparen)
+            (if (has-top opens '(wantcloseparen))
                 (pop opens))
-            (while (equal (car-safe opens) 'var)
+            (while (has-top opens '(var))
               (pop opens)
               (incf cur-closed-vars))
             (forward-char))
@@ -328,12 +375,12 @@
                 (decf open-except) (incf cur-closed-except)
                 (pop opens))
                (t nil)))
-            (while (equal (car-safe opens) 'var)
+            (while (has-top opens '(var))
               (pop opens)
               (incf cur-closed-vars))
             (goto-char (match-end 0)))
            (t (if (not (eobp)) (forward-char)))))
-        ;(message "At end   of line %d, opens is %s" (+ n 1) opens)
+        (message "At end   of line %d, opens is %s" (+ n 1) opens)
         (aset nestings n (indent (- open-fun (max 0 (- cur-opened-fun cur-closed-fun)))
                                  (- open-cond cur-opened-cond)
                                  (- open-data cur-opened-data)
