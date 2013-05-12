@@ -51,7 +51,7 @@ these metadata purposes.
 ;; An Expr is a
 ;; (U s-obj s-onion s-list s-app s-left-app s-id
 ;;    s-assign s-num s-bool s-str
-;;    s-dot s-bracket s-dot-assign s-bracket-assign
+;;    s-dot s-bracket
 ;;    s-dot-method s-bracket-method s-lam
 ;;    s-block s-method))
 
@@ -98,11 +98,6 @@ these metadata purposes.
 (struct s-dot (syntax obj field) #:transparent)
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
-
-;; s-dot-assign : srcloc Expr Symbol Expr
-(struct s-dot-assign (syntax obj field value) #:transparent)
-;; s-bracket-assign : srcloc Expr Expr Expr
-(struct s-bracket-assign (syntax obj field value) #:transparent)
 
 ;; s-dot-method : srcloc Expr Symbol
 (struct s-dot-method (syntax obj field) #:transparent)

@@ -12,8 +12,7 @@ provide-stmt: "provide" stmt "end"
 block: stmt*
 
 stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | dot-assign-expr | bracket-assign-expr
-    | when-expr | try-expr) [ENDMARKER]
+    | assign-expr | when-expr | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -92,9 +91,6 @@ extend-expr: expr "." "{" fields "}"
 
 dot-expr: expr "." NAME
 bracket-expr: expr "." "[" expr "]"
-
-dot-assign-expr: expr "." NAME = expr
-bracket-assign-expr: expr "." "[" expr "]" "=" expr
 
 left-app-fun-expr: id-expr | id-expr "." NAME
 left-app-expr: expr "^" left-app-fun-expr app-args
