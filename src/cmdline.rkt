@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require
-  pyret/whalesong/lang/reader
+  pyret/library/lang/reader
   racket/cmdline
   racket/pretty)
 
