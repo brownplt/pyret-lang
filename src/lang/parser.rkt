@@ -283,15 +283,6 @@
   (syntax-case stx ()
     [(_ obj "." "[" field "]") #`(s-bracket #,(loc stx) obj field)]))
 
-(define-syntax (dot-assign-expr stx)
-  (syntax-case stx ()
-    [(_ obj "." field "=" expr) 
-        #`(s-dot-assign #,(loc stx) obj '#,(parse-name #'field) expr)]))
-
-(define-syntax (bracket-assign-expr stx)
-  (syntax-case stx ()
-    [(_ obj "." "[" field "]" "=" expr) #`(s-bracket-assign #,(loc stx) obj field expr)]))
-
 (define-syntax (dot-method-expr stx)
   (syntax-case stx ()
     [(_ obj ":" field)
