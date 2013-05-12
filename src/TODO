@@ -15,10 +15,9 @@ Need-to-have (soon):
     [x] string
     [x] math
     [x] set
-  [] Blocked on Danny for:
+  [x] Blocked on Danny for:
     - with-handlers
     - REPL
-  [] What is going on with require from collections and file requires?
 [] Performance
   [] Change method representation, optimize method calls
     [] Add a new m field to create (p-method f m)
@@ -38,6 +37,24 @@ Need-to-have (soon):
        single representation (these are probably a bottleneck)
        - Macros probably a good idea here
 [] Indentation enforcement
+[x] Sensible story on importing libs like big-bang, image
+  [x] Change desugaring of modules to use provide/require
+  [x] Create a racket-ffi subdirectory of lang/
+  [x] Create files in racket-ffi that implement e.g. big-bang
+  [x] Register these files in desugar.rkt, and compile them
+     to require statements
+  [x] Clean up
+    [x] Is the printer option to print-pyret necessary anymore?
+    [x] Should runtime-ext exist anymore?
+    [x] Create useful ffi helpers like wrap-racket-fun and share between
+       ffi modules (there's copied code right now)
+[x] Make tests work again, don't use brittle sandbox
+  [x] Read and understand docs for namespace-require, etc.
+  [x] Clean up
+    [x] Consolidate copied code in compile for s-prog
+    [x] Remove useless code from eval.rkt
+    [!] Move test-utils code to eval.rkt?
+      - Can't, causes loading cycle
 
 15-minute tasks
 [] Make everything with methods consistent with functions
