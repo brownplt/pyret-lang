@@ -99,6 +99,11 @@ these metadata purposes.
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
 
+;; s-dot-assign : srcloc Expr Symbol Expr
+(struct s-dot-assign (syntax obj field value) #:transparent)
+;; s-bracket-assign : srcloc Expr Expr Expr
+(struct s-bracket-assign (syntax obj field value) #:transparent)
+
 ;; s-dot-method : srcloc Expr Symbol
 (struct s-dot-method (syntax obj field) #:transparent)
 ;; s-bracket-method : srcloc Expr Expr
