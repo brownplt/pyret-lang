@@ -588,6 +588,7 @@
           ("cos" . ,(mk-num-fixed cos 'cos 1))
           ("sqr" . ,(mk-num-fixed sqr 'sqr 1))
           ("sqrt" . ,(mk-num-fixed sqrt 'sqrt 1))
+          ("floor" . ,(mk-num-fixed floor 'floor 1))
           ("tostring" . ,(mk-num-fixed number->string 'tostring 1))
           ("expt" . ,(mk-num-fixed expt 'expt 1))
           ("equals" . ,(mk-num-fixed = 'equals 2))
