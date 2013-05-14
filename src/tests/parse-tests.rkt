@@ -1,9 +1,12 @@
 #lang racket
 
-(require "test-utils.rkt"
-         "../lang/ast.rkt"
-         "../lang/pretty.rkt"
-         "../lang/desugar.rkt")
+(require
+  rackunit
+  rackunit/text-ui
+  "test-utils.rkt"
+  "../lang/ast.rkt"
+  "../lang/pretty.rkt"
+  "../lang/desugar.rkt")
 
 (define verbose #f)
 (set! verbose #f)
@@ -36,386 +39,428 @@
                 (printf "Printed to: \n~a\n\n" pr))
               (parse-pyret pr)))))]))
 
-(check/block "'str'" (s-str _ "str"))
-(check/block "5" (s-num _ 5))
-(check/block "-5" (s-num _ -5))
+(define literals (test-suite "literals"
+  (check/block "'str'" (s-str _ "str"))
+  (check/block "5" (s-num _ 5))
+  (check/block "-5" (s-num _ -5))
 
-(check/block "true" (s-bool _ #t))
-(check/block "false" (s-bool _ #f))
+  (check/block "true" (s-bool _ #t))
+  (check/block "false" (s-bool _ #f))
 
-(check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
+  (check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
 
-(check/block "{}" (s-obj _ empty))
-(check/block "{x:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
-(check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))
-                                                            (s-data-field _ (s-str _ "y") (s-str _ "foo")))))
-(check/block "{x:{}}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-obj _ empty)))))
+  (check/block "{}" (s-obj _ empty))
+  (check/block "{x:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+  (check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))
+                                                              (s-data-field _ (s-str _ "y") (s-str _ "foo")))))
+  (check/block "{x:{}}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-obj _ empty)))))
 
-(check/block "{[x]:5}" (s-obj _ (list (s-data-field _ (s-id _ 'x) (s-num _ 5)))))
-(check/block "{['x']:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+  (check/block "{[x]:5}" (s-obj _ (list (s-data-field _ (s-id _ 'x) (s-num _ 5)))))
+  (check/block "{['x']:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
-(check/block "x" (s-id _ 'x))
-(check/block "{x:x}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-id _ 'x)))))
+  (check/block "{x:x}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-id _ 'x)))))
 
-(check/block "{f(): x}"
-             (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
-(check/block "{f(): x end}"
-             (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+  (check/block "[]" (s-list _ empty))
+  (check/block "[5]" (s-list _ (list (s-num _ 5))))
+))
 
-(check/block "{[f](): x}"
-             (s-obj _ (list (s-method-field _ (s-id _ 'f)
-                                            (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
-(check/block "{['f'](): x}"
-             (s-obj _ (list (s-method-field _ (s-str _ "f")
-                                            (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+(define methods (test-suite "methods"
+  (check/block "{f(): x}"
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+  (check/block "{f(): x end}"
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 
-(check/block "f()" (s-app _ (s-id _ 'f) empty))
-(check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
+  (check/block "{[f](): x}"
+               (s-obj _ (list (s-method-field _ (s-id _ 'f)
+                                              (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+  (check/block "{['f'](): x}"
+               (s-obj _ (list (s-method-field _ (s-str _ "f")
+                                              (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+))
 
-(check/block "f(5,'foo')" (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))
+(define functions (test-suite "functions"
+  (check/block "f()" (s-app _ (s-id _ 'f) empty))
+  (check/block "f(5)" (s-app _ (s-id _ 'f) (list (s-num _ 5))))
 
-(check/block "fun f(): 5 end"
-            (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
-(check/block "fun f(): (5)"
-            (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
+  (check/block "f(5,'foo')" (s-app _ (s-id _ 'f) (list (s-num _ 5) (s-str _ "foo"))))
 
-(check/block "fun g(g): 5 end"
-            (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))) (a-blank)
-                   _
-                   (s-block _ (list (s-num _ 5)))))
+  (check/block "fun f(): 5 end"
+              (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
+  (check/block "fun f(): (5)"
+              (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
 
-(check/block "fun g(g,f,x): 5 end"
-             (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
-                                     (s-bind _ 'f (a-blank)) 
-                                     (s-bind _ 'x (a-blank))) (a-blank)
-                    _
-                    (s-block _ (list (s-num _ 5)))))
+  (check/block "fun g(g): 5 end"
+              (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))) (a-blank)
+                     _
+                     (s-block _ (list (s-num _ 5)))))
 
-(check/block "fun g(g,f,x): (5)"
-             (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
-                               (s-bind _ 'f (a-blank)) 
-                               (s-bind _ 'x (a-blank))) (a-blank)
-                    _
-                    (s-block _ (list (s-num _ 5)))))
+  (check/block "fun g(g,f,x): 5 end"
+               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
+                                       (s-bind _ 'f (a-blank)) 
+                                       (s-bind _ 'x (a-blank))) (a-blank)
+                      _
+                      (s-block _ (list (s-num _ 5)))))
 
-(check/block "var g = 5"
-             (s-var _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
+  (check/block "fun g(g,f,x): (5)"
+               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
+                                 (s-bind _ 'f (a-blank)) 
+                                 (s-bind _ 'x (a-blank))) (a-blank)
+                      _
+                      (s-block _ (list (s-num _ 5)))))
+  (check/block "brander()"
+               (s-app _ (s-id _ 'brander) (list)))
 
-(check/block "[]" (s-list _ empty))
-(check/block "[5]" (s-list _ (list (s-num _ 5))))
+))
 
-(check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
-(check/block "seal({x:5}, []).x"
-             (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
-                                                    (s-list _ empty)))
-                    'x))
+(define fields (test-suite "fields"
 
-(check/block "o.['x']" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
-(check/block "x := 1" (s-assign _ 'x (s-num _ 1)))
-(check/block "o.x = 1" (s-dot-assign _ (s-id _ 'o) 'x (s-num _ 1)))
-(check/block "o.['x'] = 1" 
-            (s-bracket-assign _ (s-id _ 'o) (s-str _ "x") (s-num _ 1)))
+  (check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
+  (check/block "seal({x:5}, []).x"
+               (s-dot _ (s-app _ (s-id _ 'seal) (list (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+                                                      (s-list _ empty)))
+                      'x))
 
-(check/block "brander()"
-             (s-app _ (s-id _ 'brander) (list)))
+  (check/block "o.['x']" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
 
-(check/block "3.add" (s-dot _ (s-num _ 3) 'add))
+  (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 
-(check/block "{x:5}.{y:3}"
-             (s-onion _
-                      (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
-                      (list (s-data-field _ (s-str _ "y") (s-num _ 3)))))
+  (check/block "{x:5}.{y:3}"
+               (s-onion _
+                        (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+                        (list (s-data-field _ (s-str _ "y") (s-num _ 3)))))
 
-(check/block "5.{foo: 12}"
-             (s-onion _
-                      (s-num _ 5)
-                      (list (s-data-field _ (s-str _ "foo") (s-num _ 12)))))
+  (check/block "5.{foo: 12}"
+               (s-onion _
+                        (s-num _ 5)
+                        (list (s-data-field _ (s-str _ "foo") (s-num _ 12)))))
 
-(check/block "List.{length: 0, width: 0}"
-             (s-onion _
-                      (s-id _ 'List)
-                      (list (s-data-field _ (s-str _ "length") (s-num _ 0))
-                            (s-data-field _ (s-str _ "width") (s-num _ 0)))))
+  (check/block "List.{length: 0, width: 0}"
+               (s-onion _
+                        (s-id _ 'List)
+                        (list (s-data-field _ (s-str _ "length") (s-num _ 0))
+                              (s-data-field _ (s-str _ "width") (s-num _ 0)))))
 
-(check/block "o:f"
-             (s-dot-method _
-                           (s-id _ 'o)
-                           'f))
+  (check/block "o:f"
+               (s-dot-method _
+                             (s-id _ 'o)
+                             'f))
 
-(check/block "{f:4}:f"
-             (s-dot-method _
-                           (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
-                           'f))
+  (check/block "{f:4}:f"
+               (s-dot-method _
+                             (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
+                             'f))
+  (check/block
+   "o.{x : 5}"
+   (s-onion _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
-(check/block "var x :: Number = 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
-                                           (s-num _ 5)))
-(check/block "var x :: Number = 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number))
-                                         (s-str _ "hello")))
+  (check/block
+   "{x : 5}.{x : 10, y : 6}"
+   (s-onion _ (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+            (list (s-data-field _ (s-str _ "x") (s-num _ 10))
+                  (s-data-field _ (s-str _ "y") (s-num _ 6)))))
 
-(check/block "var f :: (Number, Number -> Number) = plus"
-	     (s-var _ (s-bind _ 'f (a-arrow _
-					    (list (a-name _ 'Number) (a-name _ 'Number))
-					    (a-name _ 'Number)))
-		    (s-id _ 'plus)))
-
-(check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
-             (s-fun _ 'foo empty (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
-                    _
-                    (s-block _ (list (s-str _ _)))))
-(check/block "fun foo(x :: Bool) -> Bool: x end" 
-             (s-fun _ 'foo empty (list (s-bind _ 'x (a-name _ 'Bool))) (a-name _ 'Bool)
-                    _
-                    (s-block _ (list (s-id _ 'x)))))
-
-(check/block "var x :: {} = 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
-(check/block "var x :: {foo: Number} = 4" 
-             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "var x :: {foo: Number} = 4" 
-             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-(check/block "var x :: {foo: Number, a: Bool} = 4" 
-             (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
-                                                     (a-field _ "a" (a-name _ 'Bool)))))
-                    (s-num _ 4)))
-
-(check/block " \\(x)"
-             (s-lam _ empty (list)
-                    (a-blank)
-                    _
-                    (s-block _ (list (s-id _ 'x)))))
-
-(check/block " \\-> Number: (x)"
-             (s-lam _ empty (list)
-                    (a-name _ 'Number)
-                    _
-                    (s-block _ (list (s-id _ 'x)))))
-
-(check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
-             (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number))
-                            (s-bind _ 'y (a-name _ 'Bool)))
-                    (a-name _ 'Number)
-                    _
-                    (s-block _ (list (s-app _
-                                            (s-dot _ (s-id _ 'x) 'send)
-                                            (list (s-id _ 'y)))))))
-
-(check/block "\\x,y,z: (x)"
-             (s-lam _ empty (list (s-bind _ 'x (a-blank))
-                            (s-bind _ 'y (a-blank))
-                            (s-bind _ 'z (a-blank)))
-                    (a-blank)
-                    _
-                    (s-block _ (list (s-id _ 'x)))))
-
-(check/block "cond: | true => 1 | false => 2 end" 
-             (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
-                             (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
-
-(check/block "  data Foo: | bar() end"
-             (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list)))
-
-(check/block "data NumList:
-  | empty()
-  | cons(first :: Number, rest :: NumList)
-end"
-             (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
-                                             (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
-                                                                      (s-member _ 'rest (a-name _ 'NumList)))
-                                                        (list)))
-                     (list)))
-
-(check/block "var my-hypthen-y-ident-i-fier = 10"
-             (s-var _ (s-bind _ 'my-hypthen-y-ident-i-fier (a-blank)) (s-num _ 10)))
-
-(check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
-
-(check/block 
- "data List<a>: | cons(field, l :: List<a>) end" 
- (s-data _ 'List (list 'a) 
-         (list (s-variant 
-                _ 
-                'cons 
-                (list (s-member _ 'field (a-blank)) 
-                      (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))
-                (list))) (list)))
-
-(check/block
- "data List: | empty end"
- (s-data _ 'List (list)
-  (list (s-singleton-variant
-         _
-         'empty
-         (list)))
-  (list)))
-
-(check/block
- "data List: | empty with length(self): 0 end end"
- (s-data _ 'List (list)
-  (list (s-singleton-variant
-         _
-         'empty
-         (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) (s-block _ (list (s-num _ 0)))))))
-  (list)))
+))
 
 
+(define annotations (test-suite "annotations"
+  (check/block
+   "fun <a> f(x :: a) -> a: x end"
+   (s-fun _ 'f (list 'a) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'a)
+    _
+    (s-block _ (list (s-id _ 'x)))))
+
+  (check/block
+   "fun <a,b> f(x :: a) -> b: x end"
+   (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
+    _
+    (s-block _ (list (s-id _ 'x)))))
 
 
-(check/block
- "do while x.lessthan(10); x.add(1) end"
- (s-do _
-       (s-id _ 'while)
-       (list (s-block _ (list
-                         (s-app _
-                                (s-dot _ (s-id _ 'x) 'lessthan)
-                                (list (s-num _ 10)))))
-             (s-block _ (list (s-app _
-                                     (s-dot _ (s-id _ 'x) 'add)
-                                     (list (s-num _ 1))))))))
-
-(check/block
- "fun <a> f(x :: a) -> a: x end"
- (s-fun _ 'f (list 'a) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'a)
-  _
-	(s-block _ (list (s-id _ 'x)))))
-
-(check/block
- "fun <a,b> f(x :: a) -> b: x end"
- (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
-  _
-	(s-block _ (list (s-id _ 'x)))))
+  (check/block
+   "fun <a,b> f(x :: a) -> b: 'doc' x end"
+   (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
+    "doc"
+    (s-block _ (list (s-id _ 'x)))))
 
 
-(check/block
- "fun <a,b> f(x :: a) -> b: 'doc' x end"
- (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
-  "doc"
-	(s-block _ (list (s-id _ 'x)))))
+  (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
+               (s-fun _ 'foo empty (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
+                      _
+                      (s-block _ (list (s-str _ _)))))
+  (check/block "fun foo(x :: Bool) -> Bool: x end" 
+               (s-fun _ 'foo empty (list (s-bind _ 'x (a-name _ 'Bool))) (a-name _ 'Bool)
+                      _
+                      (s-block _ (list (s-id _ 'x)))))
+
+  (check/block "var x :: Number = 5" (s-var _ (s-bind _ 'x (a-name _ 'Number))
+                                             (s-num _ 5)))
+  (check/block "var x :: Number = 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number))
+                                           (s-str _ "hello")))
+
+  (check/block "var f :: (Number, Number -> Number) = plus"
+         (s-var _ (s-bind _ 'f (a-arrow _
+                (list (a-name _ 'Number) (a-name _ 'Number))
+                (a-name _ 'Number)))
+          (s-id _ 'plus)))
 
 
-(check/block
- "data Foo: | bar() with x(self): self end"
- (s-data _ 'Foo (list)
-         (list (s-variant _ 'bar (list)
-                          (list (s-method-field _
-                                                (s-str _ "x")
-                                                (list (s-bind _ 'self (a-blank)))
-                                                (a-blank)
-                                                (s-block _ (list (s-id _ 'self)))))))
-         (list)))
+  (check/block "var x :: {} = 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
+  (check/block "var x :: {foo: Number} = 4" 
+               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+  (check/block "var x :: {foo: Number} = 4" 
+               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
+  (check/block "var x :: {foo: Number, a: Bool} = 4" 
+               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
+                                                       (a-field _ "a" (a-name _ 'Bool)))))
+                      (s-num _ 4)))
+))
 
-(check/block
- "data Foo: | bar() with x(self) -> Num: self
-  sharing
-    z: 10
+(define anon-func (test-suite "anon-func"
+  (check/block " \\(x)"
+               (s-lam _ empty (list)
+                      (a-blank)
+                      _
+                      (s-block _ (list (s-id _ 'x)))))
+
+  (check/block " \\-> Number: (x)"
+               (s-lam _ empty (list)
+                      (a-name _ 'Number)
+                      _
+                      (s-block _ (list (s-id _ 'x)))))
+
+  (check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
+               (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number))
+                              (s-bind _ 'y (a-name _ 'Bool)))
+                      (a-name _ 'Number)
+                      _
+                      (s-block _ (list (s-app _
+                                              (s-dot _ (s-id _ 'x) 'send)
+                                              (list (s-id _ 'y)))))))
+
+  (check/block "\\x,y,z: (x)"
+               (s-lam _ empty (list (s-bind _ 'x (a-blank))
+                              (s-bind _ 'y (a-blank))
+                              (s-bind _ 'z (a-blank)))
+                      (a-blank)
+                      _
+                      (s-block _ (list (s-id _ 'x)))))
+
+  ;; non-empty lists for x
+  (check/block "var x :: List(list.is-cons) = 4"
+    (s-var _
+           (s-bind _ 'x
+                     (a-pred _
+                             (a-name _ 'List)
+                             (s-dot _ (s-id _ 'list)
+                                      'is-cons)))
+           (s-num _ 4)))
+
+  ;; non-empty lists of strings for x
+  (check/block "var x :: List<String>(list.is-cons) = 4"
+    (s-var _
+           (s-bind _ 'x
+                     (a-pred _
+                             (a-app _ 'List
+                                      (list (a-name _ 'String)))
+                             (s-dot _ (s-id _ 'list)
+                                      'is-cons)))
+           (s-num _ 4)))
+))
+
+(define conditionals (test-suite "conditionals"
+  (check/block "cond: | true => 1 | false => 2 end" 
+               (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
+                               (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
+
+  (check/block "when true: 5 end"
+    (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
+
+  (check/block "when x.equals(42): print('got it') print('the answer') end"
+    (s-when _ (s-app _ (s-dot _ (s-id _ 'x) 'equals) (list (s-num _ 42)))
+      (s-block _ (list
+        (s-app _ (s-id _ 'print) (list (s-str _ "got it")))
+        (s-app _ (s-id _ 'print) (list (s-str _ "the answer")))))))
+
+))
+
+(define data (test-suite "data"
+
+  (check/block "  data Foo: | bar() end"
+               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list)))
+
+  (check/block "data NumList:
+    | empty()
+    | cons(first :: Number, rest :: NumList)
   end"
- (s-data _ 'Foo (list) (list (s-variant _
-                                        'bar
-                                        (list)
-                                        (list (s-method-field _
-                                                              (s-str _ "x")
-                                                              (list (s-bind _ 'self (a-blank)))
-                                                              (a-name _ 'Num)
-                                                              (s-block _ (list (s-id _ 'self)))))))
-         (list (s-data-field _ (s-str _ "z") (s-num _ 10)))))
+               (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
+                                               (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
+                                                                        (s-member _ 'rest (a-name _ 'NumList)))
+                                                          (list)))
+                       (list)))
+  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
 
-(check/block
- "o.{x : 5}"
- (s-onion _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+  (check/block 
+   "data List<a>: | cons(field, l :: List<a>) end" 
+   (s-data _ 'List (list 'a) 
+           (list (s-variant 
+                  _ 
+                  'cons 
+                  (list (s-member _ 'field (a-blank)) 
+                        (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))
+                  (list))) (list)))
 
-(check/block
- "{x : 5}.{x : 10, y : 6}"
- (s-onion _ (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
-          (list (s-data-field _ (s-str _ "x") (s-num _ 10))
-                (s-data-field _ (s-str _ "y") (s-num _ 6)))))
+  (check/block
+   "data List: | empty end"
+   (s-data _ 'List (list)
+    (list (s-singleton-variant
+           _
+           'empty
+           (list)))
+    (list)))
+
+  (check/block
+   "data List: | empty with length(self): 0 end end"
+   (s-data _ 'List (list)
+    (list (s-singleton-variant
+           _
+           'empty
+           (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) (s-block _ (list (s-num _ 0)))))))
+    (list)))
+
+  (check/block
+   "data Foo: | bar() with x(self): self end"
+   (s-data _ 'Foo (list)
+           (list (s-variant _ 'bar (list)
+                            (list (s-method-field _
+                                                  (s-str _ "x")
+                                                  (list (s-bind _ 'self (a-blank)))
+                                                  (a-blank)
+                                                  (s-block _ (list (s-id _ 'self)))))))
+           (list)))
+
+  (check/block
+   "data Foo: | bar() with x(self) -> Num: self
+    sharing
+      z: 10
+    end"
+   (s-data _ 'Foo (list) (list (s-variant _
+                                          'bar
+                                          (list)
+                                          (list (s-method-field _
+                                                                (s-str _ "x")
+                                                                (list (s-bind _ 'self (a-blank)))
+                                                                (a-name _ 'Num)
+                                                                (s-block _ (list (s-id _ 'self)))))))
+           (list (s-data-field _ (s-str _ "z") (s-num _ 10)))))
+
+))
+
+(define doblock (test-suite "doblock"
+  (check/block
+   "do while x.lessthan(10); x.add(1) end"
+   (s-do _
+         (s-id _ 'while)
+         (list (s-block _ (list
+                           (s-app _
+                                  (s-dot _ (s-id _ 'x) 'lessthan)
+                                  (list (s-num _ 10)))))
+               (s-block _ (list (s-app _
+                                       (s-dot _ (s-id _ 'x) 'add)
+                                       (list (s-num _ 1))))))))
+))
 
 
-(check-match (parse-pyret "import 'file.arr' as file")
- (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
+(define modules (test-suite "modules"
+  (check-match (parse-pyret "import 'file.arr' as file")
+   (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
 
-(check-match (parse-pyret "provide {a: 1} end")
- (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
- 	   (s-block _ (list))))
+  (check-match (parse-pyret "provide {a: 1} end")
+   (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
+       (s-block _ (list))))
+))
 
-(check/block "o^f()"
- (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list)))
+(define caret (test-suite "caret"
+  (check/block "o^f()"
+   (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list)))
 
-(check/block "o^f.g()()"
- (s-app _ (s-left-app _ (s-id _ 'o) (s-dot _ (s-id _ 'f) 'g) (list))
-          (list)))
+  (check/block "o^f.g()()"
+   (s-app _ (s-left-app _ (s-id _ 'o) (s-dot _ (s-id _ 'f) 'g) (list))
+            (list)))
 
-(check/block "o^f()^g()"
- (s-left-app _
-             (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list))
-             (s-id _ 'g)
-             (list)))
+  (check/block "o^f()^g()"
+   (s-left-app _
+               (s-left-app _ (s-id _ 'o) (s-id _ 'f) (list))
+               (s-id _ 'g)
+               (list)))
 
-(check-pyret-exn "o^o2.f.g()" "parsing error")
+  (check-pyret-exn "o^o2.f.g()" "parsing error")
+))
 
-;; non-empty lists for x
-(check/block "var x :: List(list.is-cons) = 4"
-  (s-var _
-         (s-bind _ 'x
-                   (a-pred _
-                           (a-name _ 'List)
-                           (s-dot _ (s-id _ 'list)
-                                    'is-cons)))
-         (s-num _ 4)))
 
-;; non-empty lists of strings for x
-(check/block "var x :: List<String>(list.is-cons) = 4"
-  (s-var _
-         (s-bind _ 'x
-                   (a-pred _
-                           (a-app _ 'List
-                                    (list (a-name _ 'String)))
-                           (s-dot _ (s-id _ 'list)
-                                    'is-cons)))
-         (s-num _ 4)))
+(define exceptions (test-suite "exceptions"
+  (check/block "try: a b c except(e): 5 end"
+    (s-try _
+      (s-block _ (list (s-id _ 'a)
+                       (s-id _ 'b)
+                       (s-id _ 'c)))
+      (s-bind _ 'e (a-blank))
+      (s-block _ (list (s-num _ 5)))))
 
-(check/block "try: a b c except(e): 5 end"
-  (s-try _
-    (s-block _ (list (s-id _ 'a)
-                     (s-id _ 'b)
-                     (s-id _ 'c)))
-    (s-bind _ 'e (a-blank))
-    (s-block _ (list (s-num _ 5)))))
+  (check/block "try: try: a except(e): 5 end b c except(e): 5 end"
+    (s-try _
+      (s-block _ (list
+        (s-try _ (s-block _ (list (s-id _ 'a)))
+                 (s-bind _ 'e (a-blank))
+                 (s-block _ (list (s-num _ 5))))
+        (s-id _ 'b)
+        (s-id _ 'c)))
+      (s-bind _ 'e (a-blank))
+      (s-block _ (list (s-num _ 5)))))
+))
 
-(check/block "try: try: a except(e): 5 end b c except(e): 5 end"
-  (s-try _
-    (s-block _ (list
-      (s-try _ (s-block _ (list (s-id _ 'a)))
-               (s-bind _ 'e (a-blank))
-               (s-block _ (list (s-num _ 5))))
-      (s-id _ 'b)
-      (s-id _ 'c)))
-    (s-bind _ 'e (a-blank))
-    (s-block _ (list (s-num _ 5)))))
+(define ids-and-vars (test-suite "ids-and-vars"
+  (check/block "x" (s-id _ 'x))
+  (check/block "x = 5"
+    (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5)))
 
-(check/block "x = 5"
-  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5)))
+  (check/block "x := 1" (s-assign _ 'x (s-num _ 1)))
 
-(check/block "x = 5 y = 10"
-  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
-  (s-let _ (s-bind _ 'y (a-blank)) (s-num _ 10)))
+  (check/block "var g = 5"
+               (s-var _ (s-bind _ 'g (a-blank)) (s-num _ 5)))
 
-(check/block "duplicates-ok-in-parse = 5 duplicates-ok-in-parse = 10"
-  (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 5))
-  (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 10)))
+  (check/block "x = 5 y = 10"
+    (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
+    (s-let _ (s-bind _ 'y (a-blank)) (s-num _ 10)))
 
-(check/block "x = 5 x"
-  (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
-  (s-id _ 'x))
+  (check/block "duplicates-ok-in-parse = 5 duplicates-ok-in-parse = 10"
+    (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 5))
+    (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank)) (s-num _ 10)))
 
-(check-parse/fail "var x = x = 5" "parse")
+  (check/block "x = 5 x"
+    (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
+    (s-id _ 'x))
 
-(check/block "x :: Number = 22"
-  (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
+  (check-parse/fail "var x = x = 5" "parse")
 
-(check/block "when true: 5 end"
-  (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
+  (check/block "x :: Number = 22"
+    (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
+))
 
-(check/block "when x.equals(42): print('got it') print('the answer') end"
-  (s-when _ (s-app _ (s-dot _ (s-id _ 'x) 'equals) (list (s-num _ 42)))
-    (s-block _ (list
-      (s-app _ (s-id _ 'print) (list (s-str _ "got it")))
-      (s-app _ (s-id _ 'print) (list (s-str _ "the answer")))))))
+(define all (test-suite "all"
+  literals
+  methods
+  functions
+  fields
+  annotations
+  anon-func
+  conditionals
+  data
+  doblock
+  modules
+  caret
+  exceptions
+  ids-and-vars
+))
+
+(run-tests all 'normal)
 

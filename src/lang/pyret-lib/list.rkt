@@ -17,6 +17,8 @@ data List:
 
     length(self): 0,
 
+    each(self, f): empty(),
+
     map(self, f): empty(),
 
     filter(self, f): empty(),
@@ -26,6 +28,10 @@ data List:
     foldl(self, f, base): base,
 
     member(self, elt): false,
+
+    append(self, other): other,
+
+    last(self): raise('last: took last of empty list'),
 
     take(self, n):
       cond:
@@ -43,6 +49,13 @@ data List:
       end
     end,
 
+    get(self, n):
+      cond:
+        | n.greaterequal(0) => raise('get: n too large: '.append(n.tostring()))
+        | else => raise('drop: invalid argument')
+      end
+    end,
+
     equals(self, other):
       is-empty(other)
     end,
@@ -52,6 +65,8 @@ data List:
   | link(first :: Any, rest :: List) with
 
     length(self): 1.add(self.rest.length()),
+
+    each(self, f): f(self.first) self.rest.map(f),
 
     map(self, f): f(self.first)^link(self.rest.map(f)),
 
@@ -68,6 +83,15 @@ data List:
 
     foldl(self, f, base): self.rest.foldl(f, f(self.first, base)),
 
+    append(self, other): self.first^link(self.rest.append(other)),
+
+    last(self):
+      cond:
+        | is-empty(self.rest) => self.first
+        | is-link(self.rest) => self.rest.last()
+      end
+    end,
+
     take(self, n):
       cond:
         | n.equals(0) => empty()
@@ -81,6 +105,14 @@ data List:
         | n.equals(0) => self
         | n.greaterthan(0) => self.rest.drop(n.minus(1))
         | else => raise('drop: invalid argument')
+      end
+    end,
+
+    get(self, n):
+      cond:
+        | n.equals(0) => self.first
+        | n.greaterthan(0) => self.rest.get(n.minus(1))
+        | else => raise('get: invalid argument: '.append(n.tostring()))
       end
     end,
 
@@ -104,7 +136,11 @@ end
 
 fun range(start, stop):
   cond:
-    | start.greaterthan(stop) => raise("range: start greater than stop")
+    | start.greaterthan(stop) => raise("range: start greater than stop: (".
+                                        append(start.tostring()).
+                                        append(", ").
+                                        append(stop.tostring()).
+                                        append(")"))
     | start.equals(stop)      => empty()
     | start.lessthan(stop)    => link(start, range(start.add(1), stop))
   end
