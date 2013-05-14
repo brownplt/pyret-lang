@@ -313,9 +313,9 @@
 
 ;; get-raw-field : Loc Value String -> Value
 (define (get-raw-field loc v f)
-  (if (has-field? v f)
-      (hash-ref (get-dict v) f)
-      (raise (pyret-error loc "field-not-found" (format "~a was not found" f)))))
+  (hash-ref (get-dict v) f
+    (lambda()
+      (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -357,21 +357,9 @@
         "apply-non-function"
         (format "apply-fun: expected function, got ~a" (to-string v))))]))
 
-;; reseal : Value Seal -> Values
-(define (reseal v new-seal)
-  (py-match v
-    [(p-object b h) (p-object b h)]
-    [(p-num b h n) (p-num b h n)]
-    [(p-bool b h t) (p-bool b h t)]
-    [(p-str b h s) (p-str b h s)]
-    [(p-fun b h f) (p-fun b h f)]
-    [(p-method b h f) (p-method b h f)]
-    [(p-nothing b h) (error "seal: Cannot seal nothing")]
-    [(default _) (error (format "seal: Cannot seal ~a" v))]))
-
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
-  (define bs (set-union (get-brands v) (list->set (list new-brand))))
+  (define bs (set-add (get-brands v) new-brand))
   (py-match v
     [(p-object _ h) (p-object bs h)]
     [(p-num _ h n) (p-num bs h n)]
@@ -430,7 +418,7 @@
 
 ;; keys : Value -> Value
 (define (keys object)
-  (mk-structural-list (hash-keys (get-dict object))))
+  (mk-structural-list (map mk-str (hash-keys (get-dict object)))))
 
 (define keys-pfun (mk-fun-nodoc keys))
 

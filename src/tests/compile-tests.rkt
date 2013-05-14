@@ -100,24 +100,7 @@
 
 
 
-(define seals (test-suite "seals"
-  (check-pyret-exn "seal({x:5},[]).{y:6}" "extending outside")
 
-  (check-pyret-match "{x:2}.{ y:10 }"
-                     (p:p-object _ (hash-table ("x" (p:p-num _ _ 2))("y" (p:p-num _ _ 10)))))
-
-
-  (check-pyret "{x:5}.{ y:6 }.x" five)
-  (check-pyret-exn "seal({x:5}, []).{ x:10 }" "extending outside")
-  (check-pyret "{x:5}.{x:10}.x" ten)
-  (check-pyret-match "{x:1}.{ y:2}.{z:7}"
-                     (p:p-object
-                       _
-                       (hash-table ("x" (p:p-num _ _ 1))
-                                   ("y" (p:p-num _ _ 2))
-                                   ("z" (p:p-num _ _ 7)))))
-  (check-pyret-exn "o = seal({x:1}.{x:2}, []) o.x" "not found")
-  ))
 
 (define conditionals (test-suite "conditionals"
   (check-pyret "cond: | true => 2 | false => 1 end" two)
@@ -462,13 +445,6 @@
     l.equals([2,3,4])"
    (p:mk-bool #t))
 
-  (check-pyret
-   "seal([1], ['first']).{first: 2}.first"
-   two)
-
-  (check-pyret-exn
-   "seal([1], ['first']).{rest: 2}.rest"
-   "extending outside")
 ))
 
 (define conversions (test-suite "conversions"
@@ -642,7 +618,6 @@
   constants
   functions
   brands
-  seals
   conditionals
   data
   modules
