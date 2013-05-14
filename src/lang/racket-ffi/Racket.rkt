@@ -19,7 +19,7 @@
   (p:mk-fun-nodoc
     (λ args
       (match (cons f (first args))
-        [(cons (p:p-str _ _ _ f) (p:p-str _ _ _ s))
+        [(cons (p:p-str _ _ f) (p:p-str _ _ s))
          (p:wrap (apply-racket-fun f s (map p:unwrap (rest args))))]
         [else
          (error (format "Racket: expected string as first argument, got ~a" (first args)))]))))

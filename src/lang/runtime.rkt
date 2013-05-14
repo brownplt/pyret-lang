@@ -80,13 +80,11 @@
               [pyret-error p:pyret-error]
               [empty-dict p:empty-dict]
               [get-dict p:get-dict]
-              [get-seal p:get-seal]
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
               [apply-fun p:apply-fun]
               [check-fun p:check-fun]
               [has-field? p:has-field?]
-              [reseal p:reseal]
               [extend p:extend]
               [to-string p:to-string]
               [nothing p:nothing]
@@ -94,7 +92,6 @@
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
-              [seal-pfun seal]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
@@ -119,13 +116,11 @@
 (define dummy-loc (list "pyret-internal" #f #f #f #f))
 
 ;(define-type Dict (HashTable String Value))
-;(define-type Seal (U (Setof String) none))
 ;(define-type Proc (Value * -> Value))
 
 (struct none () #:transparent)
-;; Everything has a seal, a set of brands, and a dict
-;; p-base: Seal SetOf Symbol Dict -> p-base
-(struct p-base (seal brands dict) #:transparent)
+;; p-base: SetOf Symbol Dict -> p-base
+(struct p-base (brands dict) #:transparent)
 (struct p-nothing p-base () #:transparent)
 (struct p-object p-base () #:transparent)
 ;; p-num : p-base Number -> p-num
@@ -171,9 +166,8 @@
      (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
       #'(let ((v-id val))
         body))]
-    [(py-match val [(typ s b d id ...) body] other ...)
+    [(py-match val [(typ b d id ...) body] other ...)
      (with-syntax [
-      (s-id (datum->syntax #'body (syntax->datum #'s)))
       (b-id (datum->syntax #'body (syntax->datum #'b)))
       (d-id (datum->syntax #'body (syntax->datum #'d)))
       ((rest-id ...) (datum->syntax #'body (syntax->datum #'(id ...))))]
@@ -182,10 +176,9 @@
        (let ((matchval val))
         (if ((value-predicate-for typ) matchval)
             (apply
-              (lambda (s-id b-id d-id rest-id ...) body)
+              (lambda (b-id d-id rest-id ...) body)
               (append
                 (list
-                  (p-base-seal matchval)
                   (p-base-brands matchval)
                   (p-base-dict matchval))
                 (type-specific-fields matchval)))
@@ -223,7 +216,7 @@
 ;; empty-dict: HashOf String Value
 (define empty-dict (make-immutable-hash '()))
 
-(define nothing (p-nothing (set) (set) empty-dict))
+(define nothing (p-nothing (set) empty-dict))
 
 ;; filter-opaque : Value -> p-base
 (define (filter-opaque v)
@@ -235,55 +228,51 @@
 (define (get-dict v)
   (p-base-dict (filter-opaque v)))
 
-;; get-seal : Value -> Seal
-(define (get-seal v)
-  (p-base-seal (filter-opaque v)))
-
 ;; get-brands : Value -> Setof Symbol
 (define (get-brands v)
   (p-base-brands (filter-opaque v)))
 
 ;; mk-object : Dict -> Value
 (define (mk-object dict)
-  (p-object (none) (set) dict))
+  (p-object (set) dict))
 
 ;; mk-num : Number -> Value
 (define (mk-num n)
-  (p-num (none) (set) meta-num-store n))
+  (p-num (set) meta-num-store n))
 
 ;; mk-bool : Boolean -> Value
 (define (mk-bool b)
-  (p-bool (none) (set) meta-bool-store b))
+  (p-bool (set) meta-bool-store b))
 
 ;; mk-str : String -> Value
 (define (mk-str s)
-  (p-str (none) (set) meta-str-store s))
+  (p-str (set) meta-str-store s))
 
 ;; mk-fun : Proc String -> Value
 (define (mk-fun f s)
-  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,(mk-str s))
-                                             ("_method" . ,(mk-method-method f))))
+  (p-fun (set) (make-immutable-hash `(("doc" . ,(mk-str s))
+                                      ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
-  (p-fun (none) (set) (make-immutable-hash `(("doc" . ,nothing)
-                                             ("_method" . ,(mk-method-method f))))
+  (p-fun (set) (make-immutable-hash `(("doc" . ,nothing)
+                                      ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
 ;; mk-internal-fun : (Loc -> Proc) -> Value
 (define (mk-internal-fun f)
-  (p-fun (none) (set) empty-dict f))
+  (p-fun (set) empty-dict f))
 
 ;; mk-method-method : Proc -> p-method
 (define (mk-method-method f)
-  (p-method (none) (set)
+  (p-method (set)
             (make-immutable-hash `(("doc" . ,nothing)))
             (λ _ (mk-method f))))
 
 ;; mk-fun-method : Proc -> p-method
 (define (mk-fun-method f)
-  (p-method (none) (set)
+  (p-method (set)
             (make-immutable-hash `(("doc" . ,(mk-str "method"))))
             (λ _ (mk-fun f "method-fun"))))
 
@@ -291,7 +280,7 @@
 (define (mk-method f)
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
                                    ("doc" . ,(mk-str "method")))))
-  (p-method (none) (set) d f))
+  (p-method (set) d f))
 
 (define exn-brand (gensym 'exn))
 
@@ -314,7 +303,7 @@
 
 (define Bool? (mk-fun-nodoc bool?))
 
-;; pyret-error : Loc STring String -> p-exn
+;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
   (define obj (mk-object (make-immutable-hash 
@@ -331,7 +320,7 @@
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
   (py-match (get-raw-field loc v f)
-    [(p-method _ __ ___ f)
+    [(p-method _ __ f)
      (mk-fun-nodoc (λ args (apply f (cons v args))))]
     [(default non-method) non-method]))
 
@@ -359,7 +348,7 @@
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
   (py-match v
-    [(p-fun _ __ ___ f)
+    [(p-fun _ __ f)
      (apply (f l) args)]
     [(default _)
      (raise
@@ -371,89 +360,51 @@
 ;; reseal : Value Seal -> Values
 (define (reseal v new-seal)
   (py-match v
-    [(p-object _ b h) (p-object new-seal b h)]
-    [(p-num _ b h n) (p-num new-seal b h n)]
-    [(p-bool _ b h t) (p-bool new-seal b h t)]
-    [(p-str _ b h s) (p-str new-seal b h s)]
-    [(p-fun _ b h f) (p-fun new-seal b h f)]
-    [(p-method _ b h f) (p-method new-seal b h f)]
-    [(p-nothing _ b h) (error "seal: Cannot seal nothing")]
+    [(p-object b h) (p-object b h)]
+    [(p-num b h n) (p-num b h n)]
+    [(p-bool b h t) (p-bool b h t)]
+    [(p-str b h s) (p-str b h s)]
+    [(p-fun b h f) (p-fun b h f)]
+    [(p-method b h f) (p-method b h f)]
+    [(p-nothing b h) (error "seal: Cannot seal nothing")]
     [(default _) (error (format "seal: Cannot seal ~a" v))]))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
   (define bs (set-union (get-brands v) (list->set (list new-brand))))
   (py-match v
-    [(p-object s _ h) (p-object s bs h)]
-    [(p-num s _ h n) (p-num s bs h n)]
-    [(p-bool s _ h b) (p-bool s bs h b)]
-    [(p-str sl _ h s) (p-str sl bs h s)]
-    [(p-fun s _ h f) (p-fun s bs h f)]
-    [(p-method s _ h f) (p-method s bs h f)]
-    [(p-nothing _ b h) (error "brand: Cannot brand nothing")]
+    [(p-object _ h) (p-object bs h)]
+    [(p-num _ h n) (p-num bs h n)]
+    [(p-bool _ h b) (p-bool bs h b)]
+    [(p-str _ h s) (p-str bs h s)]
+    [(p-fun _ h f) (p-fun bs h f)]
+    [(p-method _ h f) (p-method bs h f)]
+    [(p-nothing b h) (error "brand: Cannot brand nothing")]
     [(default _) (error (format "brand: Cannot brand ~a" v))]))
 
 ;; has-brand? : Value Symbol -> Boolean
 (define (has-brand? v brand)
   (set-member? (get-brands v) brand))
 
-;; in-seal? : Value String -> Boolean
-(define (in-seal? v f)
-  (define s (get-seal v))
-  (or (none? s) (set-member? s f)))
-
 ;; has-field? : Value String -> Boolean
 (define (has-field? v f)
-  (define d (get-dict v))
-  (and (in-seal? v f)
-       (hash-has-key? d f)))
-
-;; seal: Value * -> Value
-(define (seal . vs)
-  (define object (first vs))
-  (define fields (second vs))
-  ;; get-strings : ListofValue -> Setof String
-  (define (get-strings strs)
-    (foldr (λ (v s)
-             (if (p-str? v)
-                 (set-add s (p-str-s v))
-                 (error (format "seal: found non-string in constraint list: ~a" v))))
-           (set)
-           strs))
-  (define fields-seal (get-strings (structural-list->list fields)))
-  (define current-seal (get-seal object))
-  (define new-seal (if (none? current-seal)
-                       fields-seal
-                       (set-intersect fields-seal current-seal)))
-  (reseal object new-seal))
-
-(define seal-pfun (mk-fun-nodoc seal))
-
-;; get-visible-keys : Dict Seal -> Setof String
-(define (get-visible-keys d s)
-  (define existing-keys (list->set (hash-keys d)))
-  (if (none? s)
-      existing-keys
-      (set-intersect existing-keys s)))
+  (hash-has-key? (get-dict v) f))
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
-  (when (not (andmap (λ (k) (in-seal? base k)) (hash-keys extension)))
-    (raise (pyret-error loc "extend" "extending outside seal")))
   (define d (get-dict base))
-  (define s (get-seal base))
   (define new-map (foldr (λ (k d)
                             (hash-set d k (hash-ref extension k)))
                          d
                          (hash-keys extension)))
   (py-match base
-    [(p-object s _ __) (p-object s (set) new-map)]
-    [(p-fun s _ __ f) (p-fun s (set) new-map f)]
-    [(p-num s _ __ n) (p-num s (set) new-map n)]
-    [(p-str s _ __ str) (p-str s (set) new-map str)]
-    [(p-method s _ __ m) (p-method s (set) new-map m)]
-    [(p-bool s _ __ t) (p-bool s (set) new-map t)]
-    [(p-nothing _ __ ___) (error "update: Cannot update nothing")]
+    [(p-object _ __) (p-object (set) new-map)]
+    [(p-fun _ __ f) (p-fun (set) new-map f)]
+    [(p-num _ __ n) (p-num (set) new-map n)]
+    [(p-str _ __ str) (p-str (set) new-map str)]
+    [(p-method _ __ m) (p-method (set) new-map m)]
+    [(p-bool _ __ t) (p-bool (set) new-map t)]
+    [(p-nothing __ ___) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
 ;; structural-list->list : Value -> Listof Value
@@ -477,12 +428,9 @@
           ("rest" . ,(mk-structural-list (rest lst))))))]
     [else (error 'mk-structural-list (format "mk-structural-list got ~a" lst))]))
 
-;; keys : Value * -> Value
-(define (keys . vs)
-  (define obj (first vs))
-  (define d (get-dict obj))
-  (define s (get-seal obj))
-  (mk-structural-list (set-map (get-visible-keys d s) mk-str)))
+;; keys : Value -> Value
+(define (keys object)
+  (mk-structural-list (hash-keys (get-dict object))))
 
 (define keys-pfun (mk-fun-nodoc keys))
 
@@ -509,7 +457,7 @@
 (define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
   (py-match v
-    [(p-bool _ __ ___ b) b]
+    [(p-bool _ __ b) b]
     [(default _) #f]))
 
 ;; mk-prim-fun :
@@ -643,13 +591,13 @@
 ;; to-string : Value -> String
 (define (to-string v)
   (py-match v
-    [(p-nothing _ __ ___) "nothing"]
-    [(p-num _ __ ___ n) (format "~a" n)]
-    [(p-str _ __ ___ s) (format "~a" s)]
-    [(p-bool _ __ ___ b) (if b "true" "false")]
-    [(p-method _ __ ___ f) "[[code]]"]
-    [(p-fun _ __ ___ f) "[[code]]"]
-    [(p-object _ __ h)
+    [(p-nothing _ __) "nothing"]
+    [(p-num _ __ n) (format "~a" n)]
+    [(p-str _ __ s) (format "~a" s)]
+    [(p-bool _ __ b) (if b "true" "false")]
+    [(p-method _ __ f) "[[code]]"]
+    [(p-fun _ __ f) "[[code]]"]
+    [(p-object _ h)
      (let ()
        (define (to-string-raw-object h)
          (define (field-to-string f v)
@@ -662,7 +610,7 @@
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
                  (py-match ((p-method-f m) v)
-                           [(p-str _ __ ___ s) s]
+                           [(p-str _ __ s) s]
                            [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
            (to-string-raw-object h)))]
@@ -702,9 +650,9 @@
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
   (py-match v
-    [(p-num _ __ ___ n) n]
-    [(p-bool _ __ ___ b) b]
-    [(p-str _ __ ___ s) s]
+    [(p-num _ __ n) n]
+    [(p-bool _ __ b) b]
+    [(p-str _ __ s) s]
     [(default _)
      (if (p-opaque? v)
          v

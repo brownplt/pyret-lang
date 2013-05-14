@@ -56,7 +56,7 @@
         [else (raise (p:pyret-error loc "big-bang-no-impl"
                       (format "No implementation for big-bang handler ~a" k)))]))
     (match (second args)
-      [(p:p-object _ _ d)
+      [(p:p-object _ d)
        (define hash-for-bb
          (for/hash ((k (hash-keys d)))
           (values (string->symbol k) (wrap-for-racket-callback k (hash-ref d k)))))
