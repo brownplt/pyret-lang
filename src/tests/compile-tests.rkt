@@ -79,6 +79,12 @@
                 end
                 fundo()" two)
 
+  ;; regression for order-of-operations; non-function error happens
+  ;; before evaluating args
+  (check-pyret-exn
+    "5(raise('foo'))"
+    "apply-fun")
+
 ))
 
 
