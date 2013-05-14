@@ -353,7 +353,7 @@
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
-  (define bs (set-add (get-brands v) new-brand))t
+  (define bs (set-add (get-brands v) new-brand))
   (py-match v
     [(p-object _ h) (p-object bs h)]
     [(p-num _ h n) (p-num bs h n)]
