@@ -117,10 +117,14 @@
               	      [(loc-param ...) (loc-list l)])
           #'(r:let* ([%obj obj]
                      [%field (p:get-raw-field (r:list loc-param ...) %obj field)]
+                     [%is-method (p:p-method? %field)]
+                     [%fun (r:cond
+                            [%is-method (p:p-method-f %field)]
+                            [else (p:check-fun %field (r:list loc-param ...))])]
                      [argid arg] ...)
               (r:cond
-               [(p:p-method? %field) ((p:p-method-f %field) %obj argid ...)]
-               [else ((p:check-fun %field (r:list loc-param ...)) argid ...)])))]
+               [%is-method (%fun %obj argid ...)]
+               [else (%fun argid ...)])))]
 
 
     [(s-app l fun args)
