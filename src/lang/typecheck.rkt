@@ -20,7 +20,10 @@
   (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
 
 (define (wrap-ann-check loc ann e)
-  (s-app loc (ann-check loc ann) (list e)))
+  (match ann
+    [(a-blank) e]
+    [(a-arrow _ (list (a-blank)) (a-blank)) e]
+    [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body))))
@@ -231,4 +234,4 @@
     [(s-prog s imps ast)
      (s-prog s imps (cc-env ast (make-immutable-hash)))]
     [else (cc-env ast (make-immutable-hash))]))
-  
+

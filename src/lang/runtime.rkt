@@ -345,6 +345,16 @@
         "apply-non-function"
         (format "apply-fun: expected function, got ~a" (to-string v))))]))
 
+(define (check-method v l)
+  (cond
+    [(p-fun? v) ((p-fun-f v) l)]
+    [else
+     (raise
+      (pyret-error
+        l
+        "apply-non-function"
+        (format "apply-fun: expected function, got ~a" (to-string v))))]))
+
 
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
@@ -549,11 +559,31 @@
   (when (= (hash-count meta-num-store) 0)
     (set! meta-num-store
       (make-immutable-hash
-        `(("add" . ,(mk-num-fun + '+))
-          ("plus" . ,(mk-num-fun + '+))
-          ("minus" . ,(mk-num-fun - '-))
-          ("divide" . ,(mk-num-fun / '/))
-          ("times" . ,(mk-num-fun * '*))
+        `(("plus" . 
+           ,(mk-method
+             (lambda (left right)
+              (cond
+                [(and (p-num? left) (p-num? right)) (mk-num (+ (p-num-n left) (p-num-n right)))]
+                [else (error "turrible urror")]))))
+          ("add" . ,(mk-num-fun + '+))
+          ("minus" .
+           ,(mk-method
+             (lambda (left right)
+              (cond
+                [(and (p-num? left) (p-num? right)) (mk-num (- (p-num-n left) (p-num-n right)))]
+                [else (error "turrible urror")]))))
+          ("divide" .
+           ,(mk-method
+             (lambda (left right)
+              (cond
+                [(and (p-num? left) (p-num? right)) (mk-num (/ (p-num-n left) (p-num-n right)))]
+                [else (error "turrible urror")]))))
+          ("times" .
+           ,(mk-method
+             (lambda (left right)
+              (cond
+                [(and (p-num? left) (p-num? right)) (mk-num (* (p-num-n left) (p-num-n right)))]
+                [else (error "turrible urror")]))))
           ("sin" . ,(mk-num-fixed sin 'sin 1))
           ("cos" . ,(mk-num-fixed cos 'cos 1))
           ("sqr" . ,(mk-num-fixed sqr 'sqr 1))
@@ -653,10 +683,7 @@
 ;; check-brand : Loc -> Value * -> Value
 (define check-brand
   (λ (loc)
-    (λ vs
-      (define ck (first vs))
-      (define o (second vs))
-      (define s (third vs))
+    (λ (ck o s)
   (cond
     [(and (p-fun? ck) (p-str? s))
      (define f (p-fun-f ck))
