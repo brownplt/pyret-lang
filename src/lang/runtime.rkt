@@ -542,16 +542,29 @@
          (define args-str (string-join args-strs ", "))
          (define error-val (mk-str (format "Too many args to prim: ~a : ~a" opname args-str)))
          (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
+ 
+(define-syntax-rule (mk-prim-fun-m op opname wrapper unwrapper (arg ...) (pred ...))
+  (mk-method
+    (λ (arg ...)
+       (define preds-passed (and (pred arg) ...))
+       (cond
+        [preds-passed (wrapper (op (unwrapper arg) ...))]
+        [else 
+           (define args-strs (list (to-string arg) ...))
+           (define args-str (string-join args-strs ", "))
+           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
+           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
 
 (define (mk-prim-fixed op opname pred len)
   (mk-prim-fun op opname (λ (v) #f) (build-list len (λ (n) pred))))
 
 
-(define (mk-num-fun op name)
-  (mk-prim-fun op name p-num?))
-
-(define (mk-num-fixed op opname len)
-  (mk-prim-fixed op opname p-num? len))
+(define-syntax-rule (mk-num-1 op opname)
+  (mk-prim-fun-m op opname mk-num p-num-n (n) (p-num?)))
+(define-syntax-rule (mk-num-2 op opname)
+  (mk-prim-fun-m op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
+(define-syntax-rule (mk-num-2-bool op opname)
+  (mk-prim-fun-m op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store (make-immutable-hash '()))
@@ -559,43 +572,23 @@
   (when (= (hash-count meta-num-store) 0)
     (set! meta-num-store
       (make-immutable-hash
-        `(("plus" . 
-           ,(mk-method
-             (lambda (left right)
-              (cond
-                [(and (p-num? left) (p-num? right)) (mk-num (+ (p-num-n left) (p-num-n right)))]
-                [else (error "turrible urror")]))))
-          ("add" . ,(mk-num-fun + '+))
-          ("minus" .
-           ,(mk-method
-             (lambda (left right)
-              (cond
-                [(and (p-num? left) (p-num? right)) (mk-num (- (p-num-n left) (p-num-n right)))]
-                [else (error "turrible urror")]))))
-          ("divide" .
-           ,(mk-method
-             (lambda (left right)
-              (cond
-                [(and (p-num? left) (p-num? right)) (mk-num (/ (p-num-n left) (p-num-n right)))]
-                [else (error "turrible urror")]))))
-          ("times" .
-           ,(mk-method
-             (lambda (left right)
-              (cond
-                [(and (p-num? left) (p-num? right)) (mk-num (* (p-num-n left) (p-num-n right)))]
-                [else (error "turrible urror")]))))
-          ("sin" . ,(mk-num-fixed sin 'sin 1))
-          ("cos" . ,(mk-num-fixed cos 'cos 1))
-          ("sqr" . ,(mk-num-fixed sqr 'sqr 1))
-          ("sqrt" . ,(mk-num-fixed sqrt 'sqrt 1))
-          ("floor" . ,(mk-num-fixed floor 'floor 1))
-          ("tostring" . ,(mk-num-fixed number->string 'tostring 1))
-          ("expt" . ,(mk-num-fixed expt 'expt 1))
-          ("equals" . ,(mk-num-fixed = 'equals 2))
-          ("lessthan" . ,(mk-num-fixed < 'lessthan 2)) 
-          ("greaterthan" . ,(mk-num-fixed > 'greaterthan 2)) 
-          ("lessequal" . ,(mk-num-fixed <= 'lessequal 2)) 
-          ("greaterequal" . ,(mk-num-fixed >= 'greaterequal 2))))))
+        `(("plus" . ,(mk-num-2 + 'plus))
+          ("add" . ,(mk-num-2 + 'add))
+          ("minus" . ,(mk-num-2 - 'minus))
+          ("divide" . ,(mk-num-2 / 'divide))
+          ("times" . ,(mk-num-2 * 'times))
+          ("sin" . ,(mk-num-1 sin 'sin))
+          ("cos" . ,(mk-num-1 cos 'cos))
+          ("sqr" . ,(mk-num-1 sqr 'sqr))
+          ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
+          ("floor" . ,(mk-num-1 floor 'floor))
+          ("tostring" . ,(mk-prim-fun-m number->string 'tostring mk-str p-num-n (n) (p-num?)))
+          ("expt" . ,(mk-num-1 expt 'expt))
+          ("equals" . ,(mk-num-2-bool = 'equals))
+          ("lessthan" . ,(mk-num-2-bool < 'lessthan))
+          ("greaterthan" . ,(mk-num-2-bool > 'greaterthan))
+          ("lessequal" . ,(mk-num-2-bool <= 'lessequal))
+          ("greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
   meta-num-store)
 (define p-pi (mk-num pi))
 
