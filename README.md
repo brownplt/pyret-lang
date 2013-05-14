@@ -10,9 +10,9 @@ when commenting and reporting issues.
 Setting Sail
 ------------
 
-First, make sure ye've installed [Racket 5.3.3](http://racket-lang.org). Then run:
+First, make sure ye've installed [Racket >= 5.3.3](http://racket-lang.org). Then run:
 
-    $ make && make test
+    $ make dep && make && make test
 
 It'll build the Pyret compiler, run the tests, and hoist the
 anchor.
@@ -20,3 +20,4 @@ anchor.
 When yer ready to brave the sea, run:
 
     $ racket examples/ahoy-world.arr
+
