@@ -218,19 +218,13 @@
 
 (define nothing (p-nothing (set) empty-dict))
 
-;; filter-opaque : Value -> p-base
-(define (filter-opaque v)
-  (if (p-opaque? v)
-      (error (format "Got opaque: ~a" v))
-      v))
-
 ;; get-dict : Value -> Dict
 (define (get-dict v)
-  (p-base-dict (filter-opaque v)))
+  (p-base-dict v))
 
 ;; get-brands : Value -> Setof Symbol
 (define (get-brands v)
-  (p-base-brands (filter-opaque v)))
+  (p-base-brands v))
 
 ;; mk-object : Dict -> Value
 (define (mk-object dict)
@@ -359,7 +353,7 @@
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
-  (define bs (set-add (get-brands v) new-brand))
+  (define bs (set-add (get-brands v) new-brand))t
   (py-match v
     [(p-object _ h) (p-object bs h)]
     [(p-num _ h n) (p-num bs h n)]
