@@ -147,7 +147,7 @@
                      [super (compile-expr super)])
         #'(p:extend (r:list loc-param ...)
                     super
-                    (r:make-hash (r:list member ...))))))]
+                    (r:list member ...)))))]
     
     [(s-bracket l val field)
      (attach l

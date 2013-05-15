@@ -237,10 +237,6 @@
 (define (mk-num n)
   (p-num (set) meta-num-store n))
 
-;; mk-bool : Boolean -> Value
-(define (mk-bool b)
-  (p-bool (set) meta-bool-store b))
-
 ;; mk-str : String -> Value
 (define (mk-str s)
   (p-str (set) meta-str-store s))
@@ -280,9 +276,6 @@
   (p-method (set) d f))
 
 (define exn-brand (gensym 'exn))
-
-(define Any?
-  (mk-fun-nodoc (λ o (mk-bool #t))))
 
 ;; is-number? : Value * -> Value
 (define (is-number? . n)
@@ -378,10 +371,7 @@
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
   (define d (get-dict base))
-  (define new-map (foldr (λ (k d)
-                            (hash-set d k (hash-ref extension k)))
-                         d
-                         (hash-keys extension)))
+  (define new-map (foldr (λ (p d) (hash-set d (car p) (cdr p))) d extension))
   (py-match base
     [(p-object _ __) (p-object (set) new-map)]
     [(p-fun _ __ f) (p-fun (set) new-map f)]
@@ -552,6 +542,11 @@
 (define (mk-bool-fixed op opname len)
   (mk-prim-fixed op opname p-bool? len))
 
+(define-syntax-rule (mk-bool-1 op opname)
+  (mk-prim-fun-m op opname mk-bool p-bool-b (b) (p-bool?)))
+(define-syntax-rule (mk-bool-2 op opname)
+  (mk-prim-fun-m op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
+
 ;; meta-bool-store (Hashof String value)
 (define meta-bool-store (make-immutable-hash '()))
 (define (meta-bool)
@@ -563,13 +558,11 @@
             (my-or (lambda (x y) (if x #t (if y #t #f))))
             (my-equals (lambda (x y) (equal? x y)))]
         (make-immutable-hash
-         `(("and" . ,(mk-bool-fixed my-and 'and 2))
-           ("or" . ,(mk-bool-fixed my-or 'or 2))
-           ("equals" . ,(mk-bool-fixed equal? 'equals 2))
-           ("not" . ,(mk-bool-fixed not 'not 1))))))) 
+         `(("and" . ,(mk-bool-2 my-and 'and))
+           ("or" . ,(mk-bool-2 my-or 'or))
+           ("equals" . ,(mk-bool-2 equal? 'equals))
+           ("not" . ,(mk-bool-1 not 'not))))))) 
   meta-bool-store)
-
-(define p-else (mk-bool #t))
 
 ;; to-string : Value -> String
 (define (to-string v)
@@ -675,4 +668,14 @@
   (meta-num)
   (meta-bool)
   (meta-str))
+
+(define p-true (p-bool (set) meta-bool-store #t))
+(define p-false (p-bool (set) meta-bool-store #f))
+;; mk-bool : Boolean -> Value
+(define (mk-bool b)
+  (if b p-true p-false))
+(define p-else p-true)
+
+(define Any?
+  (mk-fun-nodoc (λ o (mk-bool #t))))
 
