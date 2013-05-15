@@ -115,6 +115,8 @@
 
 (define dummy-loc (list "pyret-internal" #f #f #f #f))
 
+(define no-brands (set))
+
 ;(define-type Dict (HashTable String Value))
 ;(define-type Proc (Value * -> Value))
 
@@ -219,7 +221,7 @@
 ;; empty-dict: HashOf String Value
 (define empty-dict (make-immutable-hash '()))
 
-(define nothing (p-nothing (set) empty-dict))
+(define nothing (p-nothing no-brands empty-dict))
 
 ;; get-dict : Value -> Dict
 (define (get-dict v)
@@ -231,41 +233,41 @@
 
 ;; mk-object : Dict -> Value
 (define (mk-object dict)
-  (p-object (set) dict))
+  (p-object no-brands dict))
 
 ;; mk-num : Number -> Value
 (define (mk-num n)
-  (p-num (set) meta-num-store n))
+  (p-num no-brands meta-num-store n))
 
 ;; mk-str : String -> Value
 (define (mk-str s)
-  (p-str (set) meta-str-store s))
+  (p-str no-brands meta-str-store s))
 
 ;; mk-fun : Proc String -> Value
 (define (mk-fun f s)
-  (p-fun (set) (make-immutable-hash `(("doc" . ,(mk-str s))
+  (p-fun no-brands (make-immutable-hash `(("doc" . ,(mk-str s))
                                       ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
-  (p-fun (set) (make-immutable-hash `(("doc" . ,nothing)
+  (p-fun no-brands (make-immutable-hash `(("doc" . ,nothing)
                                       ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
 ;; mk-internal-fun : (Loc -> Proc) -> Value
 (define (mk-internal-fun f)
-  (p-fun (set) empty-dict f))
+  (p-fun no-brands empty-dict f))
 
 ;; mk-method-method : Proc -> p-method
 (define (mk-method-method f)
-  (p-method (set)
+  (p-method no-brands
             (make-immutable-hash `(("doc" . ,nothing)))
             (λ _ (mk-method f))))
 
 ;; mk-fun-method : Proc -> p-method
 (define (mk-fun-method f)
-  (p-method (set)
+  (p-method no-brands
             (make-immutable-hash `(("doc" . ,(mk-str "method"))))
             (λ _ (mk-fun f "method-fun"))))
 
@@ -273,7 +275,7 @@
 (define (mk-method f)
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
                                    ("doc" . ,(mk-str "method")))))
-  (p-method (set) d f))
+  (p-method no-brands d f))
 
 (define exn-brand (gensym 'exn))
 
@@ -373,12 +375,12 @@
   (define d (get-dict base))
   (define new-map (foldr (λ (p d) (hash-set d (car p) (cdr p))) d extension))
   (py-match base
-    [(p-object _ __) (p-object (set) new-map)]
-    [(p-fun _ __ f) (p-fun (set) new-map f)]
-    [(p-num _ __ n) (p-num (set) new-map n)]
-    [(p-str _ __ str) (p-str (set) new-map str)]
-    [(p-method _ __ m) (p-method (set) new-map m)]
-    [(p-bool _ __ t) (p-bool (set) new-map t)]
+    [(p-object _ __) (p-object no-brands new-map)]
+    [(p-fun _ __ f) (p-fun no-brands new-map f)]
+    [(p-num _ __ n) (p-num no-brands new-map n)]
+    [(p-str _ __ str) (p-str no-brands new-map str)]
+    [(p-method _ __ m) (p-method no-brands new-map m)]
+    [(p-bool _ __ t) (p-bool no-brands new-map t)]
     [(p-nothing __ ___) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
@@ -669,8 +671,8 @@
   (meta-bool)
   (meta-str))
 
-(define p-true (p-bool (set) meta-bool-store #t))
-(define p-false (p-bool (set) meta-bool-store #f))
+(define p-true (p-bool no-brands meta-bool-store #t))
+(define p-false (p-bool no-brands meta-bool-store #f))
 ;; mk-bool : Boolean -> Value
 (define (mk-bool b)
   (if b p-true p-false))
