@@ -4,7 +4,6 @@
 ;; http://lists.racket-lang.org/users/archive/2013-April/057407.html
 
 (require
-  profile
   2htdp/private/world
   2htdp/image
   "../runtime.rkt"
@@ -61,9 +60,7 @@
          (for/hash ((k (hash-keys d)))
           (values (string->symbol k) (wrap-for-racket-callback k (hash-ref d k)))))
        (define my-world (my-bb (first args) hash-for-bb))
-       (profile-thunk
-        (lambda () (run-it my-world))
-        #:threads #t)]
+         (run-it my-world)]
       [v (raise (p:pyret-error loc "big-bang-non-object"
                      (format "Non-object given to big bang: ~a" (p:to-string v))))])))
 
