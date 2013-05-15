@@ -1,4 +1,8 @@
 all:
+	raco setup pyret
+	@echo Pyret build completed successfully
+
+dep:
 	@echo Downloading and linking to helper libraries...
 	git submodule init
 	git submodule update
@@ -7,8 +11,6 @@ all:
 	@echo Linking and building Pyret locally...
 	cd ../..
 	raco link -n pyret src/
-	raco setup pyret
-	@echo Pyret build completed successfully
 
 test:
 	@echo Compiling and running tests, should say 0 errors and 0 failures
