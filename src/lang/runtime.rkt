@@ -147,41 +147,44 @@
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
 
-;; Value -> Listof Any
-(define (type-specific-fields val)
-  (cond
-    [(p-nothing? val) '()]
-    [(p-object? val) '()]
-    [(p-num? val) `(,(p-num-n val))]
-    [(p-str? val) `(,(p-str-s val))]
-    [(p-bool? val) `(,(p-bool-b val))]
-    [(p-fun? val) `(,(p-fun-f val))]
-    [(p-method? val) `(,(p-method-f val))]
-    [else '()]))
+(define-syntax (type-specific-bind stx)
+  (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
+    [(_ p-nothing _ () body) #'body]
+    [(_ p-object _ () body) #'body]
+    [(_ p-num matchval (n) body)
+     (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
+      #'(let [(n-id (p-num-n matchval))] body))]
+    [(_ p-str matchval (s) body)
+     (with-syntax [(s-id (datum->syntax #'body (syntax->datum #'s)))]
+      #'(let [(s-id (p-str-s matchval))] body))]
+    [(_ p-bool matchval (b) body)
+     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
+      #'(let [(b-id (p-bool-b matchval))] body))]
+    [(_ p-fun matchval (f) body)
+     (with-syntax [(f-id (datum->syntax #'body (syntax->datum #'f)))]
+      #'(let [(f-id (p-fun-f matchval))] body))]
+    [(_ p-method matchval (f) body)
+     (with-syntax [(f-id (datum->syntax #'body (syntax->datum #'f)))]
+      #'(let [(f-id (p-method-f matchval))] body))]))
 
 (define-syntax (py-match stx)
   (syntax-case stx (default)
-    [(py-match val) #'(error 'py-match (format "py-match fell through on ~a" val))]
-    [(py-match val [(default v) body])
+    [(_ val) #'(error 'py-match (format "py-match fell through on ~a" val))]
+    [(_ val [(default v) body])
      (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
       #'(let ((v-id val))
         body))]
-    [(py-match val [(typ b d id ...) body] other ...)
+    [(_ val [(typ b d id ...) body] other ...)
      (with-syntax [
       (b-id (datum->syntax #'body (syntax->datum #'b)))
-      (d-id (datum->syntax #'body (syntax->datum #'d)))
-      ((rest-id ...) (datum->syntax #'body (syntax->datum #'(id ...))))]
+      (d-id (datum->syntax #'body (syntax->datum #'d)))]
 
      (syntax/loc #'body
        (let ((matchval val))
         (if ((value-predicate-for typ) matchval)
-            (apply
-              (lambda (b-id d-id rest-id ...) body)
-              (append
-                (list
-                  (p-base-brands matchval)
-                  (p-base-dict matchval))
-                (type-specific-fields matchval)))
+            (let [(b-id (p-base-brands matchval))
+                  (d-id (p-base-dict matchval))]
+              (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
@@ -418,16 +421,16 @@
 
 ;; mk-brander : Symbol -> Proc
 (define (mk-brander sym)
-  (λ vs
-    (add-brand (first vs) sym)))
+  (λ (v)
+    (add-brand v sym)))
 
 ;; mk-checker : Symbol -> Proc
 (define (mk-checker sym)
-  (λ vs
-    (mk-bool (has-brand? (first vs) sym))))
+  (λ (v)
+    (mk-bool (has-brand? v sym))))
 
-;; brander : Value * -> Value
-(define (brander . _)
+;; brander : -> Value
+(define (brander)
   (define sym (gensym))
   (mk-object
    (make-immutable-hash 
@@ -438,9 +441,7 @@
 
 (define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
-  (py-match v
-    [(p-bool _ __ b) b]
-    [(default _) #f]))
+  (and (p-bool? v) (p-bool-b v)))
 
 ;; mk-prim-fun :
 ;; ((a1 ... an) -> b)
