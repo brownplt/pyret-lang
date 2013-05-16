@@ -14,7 +14,7 @@
    id="svg3160"
    version="1.1"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="pyret-banner-blank.svg">
+   sodipodi:docname="pyret-banner.svg">
   <defs
      id="defs3162" />
   <sodipodi:namedview
@@ -28,12 +28,12 @@
      inkscape:cx="390.11364"
      inkscape:cy="104.83335"
      inkscape:document-units="px"
-     inkscape:current-layer="g4060"
+     inkscape:current-layer="layer1"
      showgrid="false"
      showguides="true"
      inkscape:guide-bbox="true"
-     inkscape:window-width="1366"
-     inkscape:window-height="738"
+     inkscape:window-width="1920"
+     inkscape:window-height="1171"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1" />
@@ -145,7 +145,7 @@
        xml:space="preserve"
        id="flowRoot3266-5"
        style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Nimbus Roman No9 L;-inkscape-font-specification:Nimbus Roman No9 L"
-       transform="matrix(2.4631898,0,0,2.4633215,1594.3076,2611.3283)"><flowRegion
+       transform="matrix(3.5440377,0,0,3.5442272,2315.061,3348.5797)"><flowRegion
          id="flowRegion3268-0"><rect
            id="rect3270-6"
            width="208.57655"
@@ -154,5 +154,5 @@
            y="-712.85712"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Nimbus Roman No9 L;-inkscape-font-specification:Nimbus Roman No9 L" /></flowRegion><flowPara
          id="flowPara3272-6"
-         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu Bold Italic">pyret.org</flowPara></flowRoot>  </g>
+         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu Bold Italic">pyret</flowPara></flowRoot>  </g>
 </svg>
