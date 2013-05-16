@@ -1,4 +1,4 @@
-![Yarr](https://raw.github.com/brownplt/pyret-lang/master/img/pyret-banner.svg)
+![Yarr](https://raw.github.com/brownplt/pyret-lang/master/img/pyret-banner.png)
 
 A scripting language.
 
