@@ -1,7 +1,7 @@
 Pyret
 =====
 
-<img src="https://raw.github.com/brownplt/pyret-lang/master/img/pyret-logo.png" style="width:5em"></img>
+<img src="https://raw.github.com/brownplt/pyret-lang/master/img/pyret-logo.png" width="250"></img>
 
 A scripting language.
 
