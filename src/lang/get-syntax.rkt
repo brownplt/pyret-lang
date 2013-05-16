@@ -11,7 +11,7 @@
   racket/generator
   parser-tools/lex
   ragg/support
-  "../../lib/pyret-tokenizer/main.rkt"
+  "tokenizer.rkt"
   "grammar.rkt")
 
 (define (adapt-pyret-tokenizer ip)

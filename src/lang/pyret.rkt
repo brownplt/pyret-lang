@@ -9,7 +9,6 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
-  "tokenizer.rkt"
   "compile.rkt"
   "desugar.rkt"
   "typecheck.rkt"

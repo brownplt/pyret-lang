@@ -13,7 +13,7 @@
   racket/runtime-path
   syntax/modresolve
   syntax/strip-context
-  "tokenizer.rkt"
+  "get-syntax.rkt"
   "desugar.rkt"
   "typecheck.rkt"
   "compile.rkt"

@@ -3,7 +3,7 @@
 (provide parse-pyret (rename-out [py-eval parse-eval]))
 
 (require
-  "tokenizer.rkt"
+  "get-syntax.rkt"
   racket/runtime-path)
 
 (module test-shell racket/base
