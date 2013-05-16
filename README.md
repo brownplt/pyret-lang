@@ -1,6 +1,8 @@
 Pyret
 =====
 
+<img src="https://raw.github.com/brownplt/pyret-lang/master/img/pyret-logo.png" style="width:5em"></img>
+
 A scripting language.
 
 The use of vocabulary from
