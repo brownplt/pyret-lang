@@ -1,8 +1,6 @@
 Pyret
 =====
 
-![Yarr](https://raw.github.com/brownplt/pyret-lang/master/img/pyret-logo.png)
-
 A scripting language.
 
 The use of vocabulary from
