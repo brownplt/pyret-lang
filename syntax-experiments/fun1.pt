@@ -1,7 +1,0 @@
-#lang reader "../src/lang/reader.rkt"
-
-fun foo():
-  x
-end
-
-foo(x)

@@ -1,4 +1,0 @@
-#lang reader "../src/lang/pyret-mlang.rkt"
-
-{x:5}
-

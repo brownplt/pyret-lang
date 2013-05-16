@@ -1,6 +1,0 @@
-#lang pyret
-
-def port = {
-  handler: null,
-  onmessage(self, message): self.handler(message)
-}
