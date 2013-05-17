@@ -73,6 +73,7 @@
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-internal-fun p:mk-internal-fun]
               [mk-method p:mk-method]
+              [mk-structural-list p:mk-structural-list]
               [wrap p:wrap]
               [unwrap p:unwrap]
               [exn:fail:pyret? p:exn:fail:pyret?]
@@ -642,6 +643,7 @@
     [(number? v) (mk-num v)]
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
+    [(list? v) (mk-structural-list v)]
     [(p-opaque? v) v]
     [else (error (format "wrap: Bad return value from Racket: ~a" v))]))
 
