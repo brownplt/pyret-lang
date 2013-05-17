@@ -56,6 +56,10 @@ Need-to-have (soon):
     [!] Move test-utils code to eval.rkt?
       - Can't, causes loading cycle
 
+BUGS
+[] Name<Name<Foo>> is a syntax error, because >> is parsed as a single
+   token. Name<Name<Foo> > parses fine.
+
 15-minute tasks
 [] Make everything with methods consistent with functions
   [] doc
@@ -72,7 +76,7 @@ CS019 Assignments
 [x] Flags
 [] Rocket
 [x] Filesystem
-[] Sortacle
+[x] Sortacle
 [] Oracle
 [] Brown Heaps
 [x] Updater
@@ -175,4 +179,3 @@ TODO templates:
     [] Make your changes to desugar.rkt
   [] If you cannot desugar it entirely:
     [] Figure out how to split it between desugar.rkt and compile.rkt
-
