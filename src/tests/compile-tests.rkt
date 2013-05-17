@@ -381,6 +381,18 @@
     (p:mk-bool #f))
 
   (check-pyret/libs
+     "option.is-some(option.some(2))"
+     (p:mk-bool #t))
+
+  (check-pyret/libs
+     "option.is-Option(option.none)"
+     (p:mk-bool #t))
+
+  (check-pyret/libs
+     "option.is-some(option.none)"
+     (p:mk-bool #f))
+
+  (check-pyret/libs
     "
     fun map(l, f):
       cond:

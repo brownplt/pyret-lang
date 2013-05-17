@@ -2,8 +2,7 @@
 
 (provide
   desugar-pyret
-  desugar-pyret/libs
-  desugar-pyret/inline)
+  desugar-pyret/libs)
 (require
   racket/runtime-path
   "ast.rkt"
@@ -261,15 +260,6 @@
     [(s-prog s imps block)
      (s-prog s (map desugar-imp imps) (desugar-internal block))]))
 
-(define (desugar-pyret/inline ast)
-  (match ast
-    [(s-prog s imps block)
-     (define mod-mapping (create-header (append (get-prelude s) (prog->imports ast)) empty))
-     (define inner (desugar-pyret/no-imports mod-mapping ast))
-     (s-block s
-        (append (create-inlined-imports mod-mapping)
-                (s-block-stmts inner)))]))
-
 (define (desugar-pyret/no-imports mod-mapping ast)
   (match ast
     [(s-prog s imps block)
@@ -278,22 +268,6 @@
 			      imps)
 			 (map desugar-internal (s-block-stmts block)))))]))
 
-(define (get-prelude s)
-  (define (mk-import p)
-    (define-values (_ filename __) (split-path p))
-    (define modname (string->symbol
-                     (first
-                      (string-split
-                       (path->string filename) "."))))
-    (s-import s (path->string (path->complete-path p)) modname))
-  (map mk-import libs))
-
-(define-runtime-path-list libs
-  '(
-    "pyret-lib/list.arr"
-    "pyret-lib/builtins.arr"
-    "pyret-lib/error.arr"
-   ))
 
 (define (create-inlined-imports mapping)
   (define (mapping->var mod)
