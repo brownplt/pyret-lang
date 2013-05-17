@@ -141,4 +141,5 @@ these metadata purposes.
 (struct a-app a-ann (syntax name parameters) #:transparent)
 ;; a-pred : srcloc a-ann Expr
 (struct a-pred a-ann (syntax ann exp) #:transparent)
-
+;; a-dot : srcloc Symbol Symbol
+(struct a-dot a-ann (syntax obj field) #:transparent)

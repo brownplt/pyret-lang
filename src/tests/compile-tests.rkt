@@ -277,14 +277,14 @@
    "data Foo:
      | singleton
     end
-    is-singleton(singleton).and(is-Foo(singleton))"
+    is-singleton(singleton).and(Foo(singleton))"
     (p:mk-bool #t))
 
   (check-pyret
    "data Foo:
      | single
     end
-    fun f(s :: single): when is-single(s): true end end
+    fun f(s :: is-single): when is-single(s): true end end
     f(single)"
     (p:mk-bool #t))
 
@@ -292,9 +292,9 @@
    "data Foo:
      | single
     end
-    fun f(s :: single): when is-single(s): true end end
+    fun f(s :: is-single): when is-single(s): true end end
     f(4)"
-    "expected single")
+    "expected is-single")
 
   (check-pyret
    "data Color:
@@ -352,7 +352,7 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-pyret-match/libs "list.is-empty([]).and(list.is-List([]))"
+  (check-pyret-match/libs "list.is-empty([]).and(list.List([]))"
                           (p:p-bool _ _ #t))
 
 
@@ -385,7 +385,7 @@
      (p:mk-bool #t))
 
   (check-pyret/libs
-     "option.is-Option(option.none)"
+     "option.Option(option.none)"
      (p:mk-bool #t))
 
   (check-pyret/libs
@@ -453,7 +453,7 @@
    (p:mk-str "x"))
 
   (check-pyret/libs
-   "list.is-List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
+   "list.List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
    (p:mk-bool #t))
 
   (check-pyret

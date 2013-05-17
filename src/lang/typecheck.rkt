@@ -43,7 +43,7 @@
        s
        (type s wrapargs result
         (mk-contract-doc ann)
-        (wrap-ann-check s result 
+        (wrap-ann-check s result
          (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
        (list (s-data-field s (s-str s "doc")
                              (s-bracket s
@@ -65,13 +65,14 @@
   (match ann
     [(a-name s id)
      (mk-flat-checker
-      (s-id s (string->symbol
-               (string-append
-                (symbol->string id) "?"))))]
+      (s-id s id))]
+    [(a-dot s obj fld)
+     (mk-flat-checker (s-bracket s (s-id s obj)
+                                 (s-str s (symbol->string fld))))]
     [(a-blank)
-     (mk-flat-checker (s-id loc 'Any?))]
+     (mk-flat-checker (s-id loc 'Any))]
     [(a-any)
-     (mk-flat-checker (s-id loc 'Any?))]
+     (mk-flat-checker (s-id loc 'Any))]
     [(a-arrow s args result)
      (code-wrapper s args result mk-lam (λ (e) e))]
     [(a-method s args result)
@@ -153,7 +154,7 @@
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
-  
+
 (define (cc-env ast env)
   (define cc (curryr cc-env env))
   (define (cc-member ast env)
@@ -173,12 +174,12 @@
      (wrap-ann-check s
                      (get-arrow s args ann)
                      (s-lam s typarams args ann doc (cc-env body body-env)))]
-    
+
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann body)
      (define body-env (foldl (update-for-bind #f) env args))
      (s-method s args ann (cc-env body body-env))]
-    
+
     [(s-cond s c-bs)
      (define (cc-branch branch)
        (match branch
@@ -189,7 +190,7 @@
     [(s-try s try bind catch)
      (define catch-env ((update-for-bind #f) bind env))
      (s-try s (cc try) bind (cc-env catch catch-env))]
-    
+
     [(s-assign s name expr)
      (match (lookup env name)
       [(binding s-def _ #f)
@@ -205,19 +206,19 @@
 
     [(s-obj s fields)
      (s-obj s (map (curryr cc-member env) fields))]
-    
+
     [(s-list s elts)
      (s-list s (map cc elts))]
-    
+
     [(s-dot s val field)
      (s-dot s (cc val) field)]
-    
+
     [(s-bracket s val field)
      (s-bracket s (cc val) (cc field))]
-    
+
     [(s-dot-method s obj field)
      (s-dot-method s (cc obj) field)]
-    
+
     [(s-bracket-method s obj field)
      (s-bracket-method s (cc obj) (cc field))]
 
@@ -225,7 +226,7 @@
          (s-bool _ _)
          (s-str _ _)
          (s-id _ _)) ast]
-    
+
     [else (error (format "Missed a case in type-checking: ~a" ast))]))
 
 (define (contract-check-pyret ast)
@@ -234,4 +235,3 @@
     [(s-prog s imps ast)
      (s-prog s imps (cc-env ast (make-immutable-hash)))]
     [else (cc-env ast (make-immutable-hash))]))
-

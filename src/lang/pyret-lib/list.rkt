@@ -2,7 +2,7 @@
 
 provide
   {
-    is-List: is-List,
+    List: List,
     is-empty: is-empty,
     is-link: is-link,
     empty: empty,

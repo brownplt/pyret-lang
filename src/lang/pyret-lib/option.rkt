@@ -2,7 +2,7 @@
 
 provide
   {
-    is-Option: is-Option,
+    Option: Option,
     is-none: is-none,
     is-some: is-some,
     none: none,

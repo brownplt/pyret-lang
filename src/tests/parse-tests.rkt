@@ -213,6 +213,9 @@
                (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
                                                        (a-field _ "a" (a-name _ 'Bool)))))
                       (s-num _ 4)))
+  (check/block "var x :: list.List = 4"
+               (s-var _ (s-bind _ 'x (a-dot _ 'list 'List))
+                      (s-num _ 4)))
 ))
 
 (define anon-func (test-suite "anon-func"

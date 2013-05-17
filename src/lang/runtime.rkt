@@ -98,10 +98,10 @@
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
               [p-else else])
-  Any?
-  Number?
-  String?
-  Bool?
+  Any
+  Number
+  String
+  Bool
   nothing)
 
 
@@ -282,18 +282,18 @@
 ;; is-number? : Value * -> Value
 (define (is-number? . n)
   (mk-bool (p-num? (first n))))  
-(define Number? (mk-fun-nodoc is-number?))
+(define Number (mk-fun-nodoc is-number?))
 
 ;; is-string : Value * -> Value
 (define (is-string? . n)
   (mk-bool (p-str? (first n))))
-(define String? (mk-fun-nodoc is-string?))
+(define String (mk-fun-nodoc is-string?))
 
 ;; bool? : Value * -> Value
 (define (bool? . n)
   (mk-bool (p-bool? (first n))))
 
-(define Bool? (mk-fun-nodoc bool?))
+(define Bool (mk-fun-nodoc bool?))
 
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
@@ -678,6 +678,6 @@
   (if b p-true p-false))
 (define p-else p-true)
 
-(define Any?
+(define Any
   (mk-fun-nodoc (λ o (mk-bool #t))))
 

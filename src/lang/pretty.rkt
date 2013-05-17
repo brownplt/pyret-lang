@@ -97,6 +97,9 @@
 (define (pretty-ann ann)
   (match ann
     [(a-name _ id) (symbol->string id)]
+    [(a-dot _ obj fld) (string-join (list (symbol->string obj)
+                                          "."
+                                          (symbol->string fld)) "")]
     [(a-arrow _ t1 t2) (format "(~a -> ~a)" (string-join (map pretty-ann t1) ", ") (pretty-ann t2))]
     [(a-blank) "Any"]
     [(a-any) "Any"]
