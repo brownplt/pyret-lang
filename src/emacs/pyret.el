@@ -406,7 +406,7 @@
             (save-excursion
               (beginning-of-line)
               (if (looking-at "^[ \t]*\\]")
-                  (decf (pyret-indent-object open))
+                  (incf (pyret-indent-object cur-closed))
                 (incf (pyret-indent-object defered-closed))))
             (if (pyret-has-top opens '(array))
                 (pop opens))
@@ -423,7 +423,7 @@
             (save-excursion
               (beginning-of-line)
               (if (looking-at "^[ \t]*\\}")
-                  (decf (pyret-indent-object open))
+                  (incf (pyret-indent-object cur-closed))
                 (incf (pyret-indent-object defered-closed))))
             (when (pyret-has-top opens '(field))
               (pop opens)
