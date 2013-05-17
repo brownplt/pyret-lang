@@ -113,6 +113,25 @@
     [(? a-ann?) ann]
     [_ (error 'desugar-ann "Not an annotation: ~a" ann)]))
 
+;; NOTE(dbp): these functions are a temporary hack;
+;; they are just stripping out parametric annotations, so
+;; that code will compile with them present
+(define (replace-typarams typarams)
+  (lambda (ann)
+    (match ann
+      [(a-name s name)
+       (if (member name typarams)
+           (a-any)
+           ann)]
+      [_ ann])))
+(define (replace-typarams-binds typarams)
+  (lambda (bind)
+    (match bind
+      [(s-bind s1 id (a-name s2 name))
+       (if (member name typarams)
+           (s-bind s1 id (a-any)) bind)]
+      [_ bind])))
+
 (define (desugar-internal ast)
   (define ds desugar-internal)
   (define (ds-args binds)
@@ -145,11 +164,22 @@
 
     [(s-fun s name typarams args ann doc body)
      (s-let s
-            (s-bind s name (a-arrow s (map desugar-ann (map s-bind-ann args)) (desugar-ann ann)))
-            (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body)))]
+            (s-bind s name
+                    (a-arrow s (map (replace-typarams typarams)
+                                    (map desugar-ann
+                                         (map s-bind-ann args)))
+                             ((replace-typarams typarams)
+                              (desugar-ann ann))))
+            (s-lam s typarams (map (replace-typarams-binds typarams)
+                                   (ds-args args))
+                   ((replace-typarams typarams) (desugar-ann ann))
+                   doc (ds body)))]
 
     [(s-lam s typarams args ann doc body)
-     (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body))]
+     (s-lam s typarams (map (replace-typarams-binds typarams)
+                            (ds-args args))
+            ((replace-typarams typarams) (desugar-ann ann))
+            doc (ds body))]
 
     [(s-method s args ann body)
      (s-method s args ann (ds body))]
