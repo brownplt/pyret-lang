@@ -4,3 +4,6 @@
 *.html
 *.js
 *.css
+src/lang/pyret-lib/list.rkt
+src/lang/pyret-lib/error.rkt
+src/lang/pyret-lib/builtins.rkt
