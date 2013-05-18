@@ -11,7 +11,7 @@
   "../../lang/eval.rkt"
   "../../lang/pyret.rkt")
 
-(define-runtime-module-path pyret-lang-racket "../../lang/pyret-lang-whalesong.rkt")
+(define-runtime-module-path pyret-lang-racket "../../lang/pyret-lang-library.rkt")
 
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
