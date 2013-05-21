@@ -216,6 +216,31 @@
     sum" ten)
 ))
 
+(define for-block (test-suite "for-block"
+
+  (check-pyret
+   "strs = for list.map(elt from [1,2,3]): elt.tostring() end
+    strs.equals(['1','2','3'])"
+   true)
+
+  (check-pyret
+   "for list.fold(acc from 0, elt from [1,2,3]): acc.plus(elt) end"
+   (p:mk-num 6))
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [1, '2', 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [true, 2, 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.fold(acc from '', elt from ['1','2']) -> Number: elt end"
+   "expected Number and got")
+
+))
+
 (define data (test-suite "data"
 
   (check-pyret-match
@@ -641,6 +666,7 @@
   modules
   built-in-libraries
   do-blocks
+  for-block
   methods
   exceptions
   ids-and-vars))

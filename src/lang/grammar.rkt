@@ -11,12 +11,13 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | for-expr | expr
+stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
     | assign-expr | when-expr | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
     | cond-expr | lambda-expr | extend-expr | left-app-expr
+    | for-expr
 
 id-expr: NAME
 

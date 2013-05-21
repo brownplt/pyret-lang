@@ -359,8 +359,8 @@
 
 (define-syntax (for-name stx)
   (syntax-case stx ()
-    [(_ x) #`(s-bind #,(loc stx) x (a-blank))]
-    [(_ x "::" ann) #`(s-bind #,(loc stx) x ann)]))
+    [(_ x) #`(s-bind #,(loc stx) '#,(parse-name #'x) (a-blank))]
+    [(_ x "::" ann) #`(s-bind #,(loc stx) '#,(parse-name #'x) ann)]))
 
 (define-syntax (for-bind stx)
   (syntax-case stx ()

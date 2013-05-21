@@ -157,6 +157,13 @@
        (s-lam s (list) (list) (a-blank) "" (ds b)))
      (s-app s fun (map functionize args))]
 
+    [(s-for s iter bindings ann body)
+     (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
+     (define (bind-of b) (match b [(s-for-bind _ b _) b]))
+     (define the-function
+      (s-lam s (list) (map bind-of bindings) ann "" (ds body)))
+     (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
+
     [(s-var s name val)
      (s-var s name (ds val))]
     [(s-let s name val)
