@@ -357,6 +357,22 @@
     [(_ "do" fun-stmt (do-stmt stmt ";") ... last-stmt "end")
      #`(s-do #,(loc stx) fun-stmt (list stmt ... last-stmt))]))
 
+(define-syntax (for-name stx)
+  (syntax-case stx ()
+    [(_ x) #`(s-bind #,(loc stx) '#,(parse-name #'x) (a-blank))]
+    [(_ x "::" ann) #`(s-bind #,(loc stx) '#,(parse-name #'x) ann)]))
+
+(define-syntax (for-bind stx)
+  (syntax-case stx ()
+    [(_ name "from" expr) #`(s-for-bind #,(loc stx) name expr)]))
+
+(define-syntax (for-expr stx)
+  (syntax-case stx (for-bind-elt)
+    [(_ "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" block "end")
+     #`(s-for #,(loc stx) iter (list binds ... last-bind) return-ann block)]
+    [(_ "for" iter "(" ")" return-ann ":" block "end")
+     #`(s-for #,(loc stx) iter (list) return-ann block)]))
+
 (define-syntax (ann stx)
   (syntax-case stx ()
     [(_ constructed-ann) #'constructed-ann]))

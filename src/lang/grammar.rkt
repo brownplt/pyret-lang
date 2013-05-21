@@ -17,6 +17,7 @@ stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
     | cond-expr | lambda-expr | extend-expr | left-app-expr
+    | for-expr
 
 id-expr: NAME
 
@@ -110,6 +111,11 @@ data-expr: "data" NAME data-params ":" data-variant+ data-sharing
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
+
+for-name: NAME ["::" ann]
+for-bind: for-name "from" expr
+for-bind-elt: for-bind ","
+for-expr: "for" expr "(" [for-bind-elt* for-bind] ")" return-ann ":" block "end"
            
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 

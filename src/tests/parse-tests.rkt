@@ -372,6 +372,42 @@
                                        (list (s-num _ 1))))))))
 ))
 
+(define for (test-suite "for"
+
+  (check/block
+    "for map(elt from lst): elt.plus(42) end"
+    (s-for _
+           (s-id _ 'map)
+           (list (s-for-bind _ (s-bind _ elt (a-blank)) (s-id _ 'lst)))
+           (a-blank)
+           (s-block _ (list
+                        (s-app _
+                               (s-dot _ (s-id _ 'elt) 'plus)
+                               (list (s-num _ 42)))))))
+
+  (check/block
+    "for get.iterator('from-expr')() -> String: 'body' end"
+    (s-for _
+           (s-app _ (s-dot _ (s-id _ 'get) 'iterator) (list (s-str _ "from-expr")))
+           (list)
+           (a-name _ 'String)
+           (s-block _ (list (s-str _ "body")))))
+
+  (check/block
+    "for fold(acc :: Number from 0, elt :: Number from [1,2,3]): acc.plus(elt) end"
+    (s-for _
+           (s-id _ 'fold)
+           (list
+            (s-for-bind _ (s-bind _ acc (a-name _ 'Number))
+                          (s-num _ 0))
+            (s-for-bind _ (s-bind _ elt (a-name _ 'Number))
+                          (s-list _ (list (s-num _ 1) (s-num _ 2) (s-num _ 3)))))
+           (a-blank)
+           (s-block _ (list
+             (s-app _ (s-dot _ (s-id _ 'acc) 'plus) (list (s-id _ 'elt)))))))
+
+))
+
 
 (define modules (test-suite "modules"
   (check-match (parse-pyret "import 'file.arr' as file")
@@ -458,6 +494,7 @@
   anon-func
   conditionals
   data
+  for
   doblock
   modules
   caret

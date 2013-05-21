@@ -8,7 +8,9 @@ provide
     empty: empty,
     link: link,
 
-    range: range
+    range: range,
+    map: map,
+    fold: fold
   }
 end
 
@@ -153,3 +155,18 @@ fun range(start, stop):
     | start.lessthan(stop)    => link(start, range(start.add(1), stop))
   end
 end
+
+fun map(f, lst):
+  cond:
+    | is-empty(lst) => empty()
+    | is-link(lst) => f(lst.first)^link(map(f, lst.rest))
+  end
+end
+
+fun fold(f, base, lst):
+  cond:
+    | is-empty(lst) => base
+    | is-link(lst) => fold(f, f(base, lst.first), lst.rest)
+  end
+end
+

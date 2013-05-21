@@ -198,22 +198,47 @@
     x" ten)
 
   (check-pyret
-   "fun for(init, test, update, body):
+   "fun For(init, test, update, body):
       init()
       cond:
         | test() =>
             body()
             update()
-            for(\\(), test, update, body)
+            For(\\(), test, update, body)
         | true => 'for base case'
       end
     end
     var x = 0
     var sum = 0
-    do for x := 0; x.lessthan(5); x := x.add(1);
+    do For x := 0; x.lessthan(5); x := x.add(1);
       sum := sum.add(x)
     end
     sum" ten)
+))
+
+(define for-block (test-suite "for-block"
+
+  (check-pyret
+   "strs = for list.map(elt from [1,2,3]): elt.tostring() end
+    strs.equals(['1','2','3'])"
+   true)
+
+  (check-pyret
+   "for list.fold(acc from 0, elt from [1,2,3]): acc.plus(elt) end"
+   (p:mk-num 6))
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [1, '2', 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [true, 2, 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.fold(acc from '', elt from ['1','2']) -> Number: elt end"
+   "expected Number and got")
+
 ))
 
 (define data (test-suite "data"
@@ -641,6 +666,7 @@
   modules
   built-in-libraries
   do-blocks
+  for-block
   methods
   exceptions
   ids-and-vars))
