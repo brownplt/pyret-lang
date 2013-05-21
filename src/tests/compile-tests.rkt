@@ -198,19 +198,19 @@
     x" ten)
 
   (check-pyret
-   "fun for(init, test, update, body):
+   "fun For(init, test, update, body):
       init()
       cond:
         | test() =>
             body()
             update()
-            for(\\(), test, update, body)
+            For(\\(), test, update, body)
         | true => 'for base case'
       end
     end
     var x = 0
     var sum = 0
-    do for x := 0; x.lessthan(5); x := x.add(1);
+    do For x := 0; x.lessthan(5); x := x.add(1);
       sum := sum.add(x)
     end
     sum" ten)

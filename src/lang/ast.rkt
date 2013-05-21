@@ -123,6 +123,11 @@ these metadata purposes.
 ;; s-do : srcloc Stmt (Listof Stmt)
 (struct s-do (syntax init args) #:transparent)
 
+;; s-for-bind : srcloc s-bind Expr
+(struct s-for-bind (syntax bind value))
+;; s-for : srcloc Expr (Listof s-for-bind) ann s-block
+(struct s-for (syntax iterator bindings ann body))
+
 ;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
 (struct a-ann () #:transparent)
 (struct a-blank a-ann () #:transparent)

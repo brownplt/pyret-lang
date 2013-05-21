@@ -11,7 +11,7 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
+stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | for-expr | expr
     | assign-expr | when-expr | try-expr) [ENDMARKER]
 
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
@@ -110,6 +110,11 @@ data-expr: "data" NAME data-params ":" data-variant+ data-sharing
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
+
+for-name: NAME ["::" ann]
+for-bind: for-name "from" expr
+for-bind-elt: for-bind ","
+for-expr: "for" expr "(" [for-bind-elt* for-bind] ")" return-ann ":" block "end"
            
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
