@@ -244,10 +244,7 @@
        (s-bracket s (s-id s 'list) (s-str s name)))
      (define (make-link elt acc)
        (s-app s (get-lib "link") (list elt acc)))
-
-     (foldr make-link
-            (s-app s (get-lib "empty") (list))
-            (map ds elts))]
+     (foldr make-link (get-lib "empty") (map ds elts))]
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 

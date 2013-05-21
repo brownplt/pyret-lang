@@ -13,15 +13,15 @@ provide
 end
 
 data List:
-  | empty() with
+  | empty with
 
     length(self): 0,
 
-    each(self, f): empty(),
+    each(self, f): empty,
 
-    map(self, f): empty(),
+    map(self, f): empty,
 
-    filter(self, f): empty(),
+    filter(self, f): empty,
 
     foldr(self, f, base): base,
 
@@ -35,7 +35,7 @@ data List:
 
     take(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => raise('take: took too many')
         | else => raise('take: invalid argument')
       end
@@ -43,7 +43,7 @@ data List:
 
     drop(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => raise('drop: dropped too many')
         | else => raise('drop: invalid argument')
       end
@@ -102,7 +102,7 @@ data List:
 
     take(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => self.first^link(self.rest.take(n.minus(1)))
         | else => raise('take: invalid argument')
       end
@@ -149,7 +149,7 @@ fun range(start, stop):
                                         append(", ").
                                         append(stop.tostring()).
                                         append(")"))
-    | start.equals(stop)      => empty()
+    | start.equals(stop)      => empty
     | start.lessthan(stop)    => link(start, range(start.add(1), stop))
   end
 end

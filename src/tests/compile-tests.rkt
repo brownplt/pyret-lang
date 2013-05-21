@@ -440,12 +440,12 @@
   (check-pyret
     "
     import '../lang/pyret-lib/list.rkt' as L
-    5^L.link(L.empty()).first
+    5^L.link(L.empty).first
     "
     five)
 
   (check-pyret-match/libs
-    "list.empty()"
+    "list.empty"
     (p:p-object _ _))
 
   (check-pyret/libs
