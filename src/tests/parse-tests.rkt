@@ -373,6 +373,7 @@
 ))
 
 (define for (test-suite "for"
+
   (check/block
     "for map(elt from lst): elt.plus(42) end"
     (s-for _
@@ -395,7 +396,7 @@
   (check/block
     "for fold(acc :: Number from 0, elt :: Number from [1,2,3]): acc.plus(elt) end"
     (s-for _
-           (s-id _ 'map)
+           (s-id _ 'fold)
            (list
             (s-for-bind _ (s-bind _ acc (a-name _ 'Number))
                           (s-num _ 0))
@@ -493,6 +494,7 @@
   anon-func
   conditionals
   data
+  for
   doblock
   modules
   caret

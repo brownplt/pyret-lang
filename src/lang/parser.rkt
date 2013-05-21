@@ -369,7 +369,9 @@
 (define-syntax (for-expr stx)
   (syntax-case stx (for-bind-elt)
     [(_ "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" block "end")
-     #`(s-for #,(loc stx) iter (list binds ... last-bind) return-ann block)]))
+     #`(s-for #,(loc stx) iter (list binds ... last-bind) return-ann block)]
+    [(_ "for" iter "(" ")" return-ann ":" block "end")
+     #`(s-for #,(loc stx) iter (list) return-ann block)]))
 
 (define-syntax (ann stx)
   (syntax-case stx ()
