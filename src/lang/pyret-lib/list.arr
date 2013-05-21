@@ -99,7 +99,7 @@ data List:
     end,
 
     reverse(self):
-       self.rest.reverse().append(self.first^link(empty()))
+       self.rest.reverse().append(self.first^link(empty))
     end,
 
     take(self, n):
@@ -158,7 +158,7 @@ end
 
 fun map(f, lst):
   cond:
-    | is-empty(lst) => empty()
+    | is-empty(lst) => empty
     | is-link(lst) => f(lst.first)^link(map(f, lst.rest))
   end
 end
