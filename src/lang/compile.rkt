@@ -67,20 +67,13 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun-loc
-              (r:lambda (%loc)
-                (r:case-lambda [(arg ...) body-stx]
-                               [args (p:arity-error %loc (r:quote (arg ...)) args)]))
-            #,doc)))]
+         #`(p:pλ (arg ...) #,doc body-stx)))]
     
     [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-method-loc
-              (r:lambda (%loc)
-                (r:case-lambda [(arg ...) body-stx]
-                               [args (p:arity-error %loc (r:quote (arg ...)) args)])))))]
+         #`(p:pμ (arg ...) body-stx)))]
     
     [(s-cond l c-bs)
      (define (compile-cond-branch b)

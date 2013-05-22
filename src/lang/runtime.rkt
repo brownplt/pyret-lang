@@ -69,10 +69,12 @@
               [mk-num p:mk-num]
               [mk-bool p:mk-bool]
               [mk-str p:mk-str]
+              [pλ p:pλ]
               [mk-fun p:mk-fun]
               [mk-fun-loc p:mk-fun-loc]
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-internal-fun p:mk-internal-fun]
+              [pμ p:pμ]
               [mk-method p:mk-method]
               [mk-method-loc p:mk-method-loc]
               [mk-structural-list p:mk-structural-list]
@@ -192,6 +194,32 @@
                   (d-id (p-base-dict matchval))]
               (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
+
+(define-syntax-rule (pλ (arg ...) doc e ...)
+  (mk-fun-loc
+    (lambda (%loc)
+      (case-lambda
+        [(arg ...) e ...]
+        [arity-mismatch-args-list
+         (arity-error %loc '(arg ...) arity-mismatch-args-list)]))
+    doc))
+
+(define-syntax-rule (pλ/internal (loc) (arg ...) e ...)
+  (mk-internal-fun
+    (lambda (loc)
+      (case-lambda
+        [(arg ...) e ...]
+        [arity-mismatch-args-list
+         (arity-error loc '(arg ...) arity-mismatch-args-list)]))))
+
+(define-syntax-rule (pμ (arg ...) e ...)
+  (mk-method-loc
+    (lambda (%loc)
+      (case-lambda
+        [(arg ...) e ...]
+        [arity-mismatch-args-list
+         (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))))
+
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
@@ -376,6 +404,29 @@
         "apply-non-function"
         (format "apply-fun: expected function, got ~a" (to-string v))))]))
 
+(define (arity-method-error loc argnames args)
+  (cond
+    [(= (length args) 0)
+     (raise
+      (pyret-error loc
+        "Arity mismatch (method): expected ~a arguments and an object, but no arguments or object were provided"
+        (length argnames)))]
+    [else
+     (raise
+      (pyret-error
+        loc
+        "arity-mismatch"
+        (format
+  "Arity mismatch (method): expected ~a arguments and an object, but the ~a provided argument(s) were:
+~a
+And the object was:
+~a"
+
+          (- (length argnames) 1)
+          (- (length args) 1)
+          (string-join (map to-string (drop args 1)) "\n")
+          (to-string (first args)))))]))
+
 (define (arity-error loc argnames args)
   (raise
     (pyret-error
@@ -453,25 +504,26 @@
 
 ;; mk-brander : Symbol -> Proc
 (define (mk-brander sym)
-  (λ (v)
+  (pλ (v)
+    "Brands values"
     (add-brand v sym)))
 
 ;; mk-checker : Symbol -> Proc
 (define (mk-checker sym)
-  (λ (v)
+  (pλ (v)
+    "Checks brands on values"
     (mk-bool (has-brand? v sym))))
 
 ;; brander : -> Value
-(define (brander)
+(define brander-pfun (pλ/internal (_) ()
   (define sym (gensym))
   (mk-object
    (make-immutable-hash 
     `(("brand" .
-       ,(mk-fun-nodoc (mk-brander sym)))
+       ,(mk-brander sym))
       ("check" .
-       ,(mk-fun-nodoc (mk-checker sym)))))))
+       ,(mk-checker sym)))))))
 
-(define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
   (and (p-bool? v) (p-bool-b v)))
 
@@ -507,16 +559,15 @@
          (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
  
 (define-syntax-rule (mk-prim-fun-m op opname wrapper unwrapper (arg ...) (pred ...))
-  (mk-method
-    (λ (arg ...)
-       (define preds-passed (and (pred arg) ...))
-       (cond
-        [preds-passed (wrapper (op (unwrapper arg) ...))]
-        [else 
-           (define args-strs (list (to-string arg) ...))
-           (define args-str (string-join args-strs ", "))
-           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
+  (pμ (arg ...)
+    (define preds-passed (and (pred arg) ...))
+    (cond
+      [preds-passed (wrapper (op (unwrapper arg) ...))]
+      [else 
+        (define args-strs (list (to-string arg) ...))
+        (define args-str (string-join args-strs ", "))
+        (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
+        (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])))
 
 (define (mk-prim-fixed op opname pred len)
   (mk-prim-fun op opname (λ (v) #f) (build-list len (λ (n) pred))))
@@ -627,7 +678,7 @@
              (if (p-method? m)
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
-                 (py-match ((p-method-f m) v)
+                 (py-match (((p-method-f m) dummy-loc) v)
                            [(p-str _ __ s) s]
                            [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
@@ -639,10 +690,8 @@
 (define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing)))
 )
 
-;; check-brand : Loc -> Value * -> Value
-(define check-brand
-  (λ (loc)
-    (λ (ck o s)
+;; check-brand-pfun : Loc -> Value * -> Value
+(define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
     [(and (p-fun? ck) (p-str? s))
      (define f (p-fun-f ck))
@@ -661,9 +710,7 @@
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]
     [else
-     (error "runtime: check-brand failed")]))))
-
-(define check-brand-pfun (mk-internal-fun check-brand))
+     (error "runtime: check-brand failed")])))
 
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
