@@ -527,37 +527,6 @@ And the object was:
 (define (pyret-true? v)
   (and (p-bool? v) (p-bool-b v)))
 
-;; mk-prim-fun :
-;; ((a1 ... an) -> b)
-;; Symbol
-;; (b -> Value)
-;; (a1 -> Boolean ... am -> Boolean)
-;; ((U am+1 ... an) -> Boolean)
-;; (∩ (Value1 -> a1) ... (Valuen -> an))
-;; -> (Value1 ... Valuen -> Value)
-(define (mk-prim-fun op opname [pred-default p-base?] [preds (list)] [wrapper wrap] [unwrapper unwrap])
-  (mk-method
-    (λ args
-      (define args-len (length args))
-      (define preds-len (length preds))
-      (cond
-        [(<= preds-len args-len)
-         (define preds-passed (andmap (λ (pred arg) (pred arg)) preds (take args preds-len)))
-         (define pred-default-passed (andmap (λ (arg) (pred-default arg)) (drop args preds-len)))
-         (cond
-          [(and preds-passed pred-default-passed)
-           (wrapper (apply op (map unwrapper args)))]
-          [else
-           (define args-strs (map to-string args))
-           (define args-str (string-join args-strs ", "))
-           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])]
-        [else
-         (define args-strs (map to-string args))
-         (define args-str (string-join args-strs ", "))
-         (define error-val (mk-str (format "Too many args to prim: ~a : ~a" opname args-str)))
-         (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
- 
 (define-syntax-rule (mk-prim-fun-m op opname wrapper unwrapper (arg ...) (pred ...))
   (pμ (arg ...)
     (define preds-passed (and (pred arg) ...))
@@ -568,10 +537,6 @@ And the object was:
         (define args-str (string-join args-strs ", "))
         (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
         (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])))
-
-(define (mk-prim-fixed op opname pred len)
-  (mk-prim-fun op opname (λ (v) #f) (build-list len (λ (n) pred))))
-
 
 (define-syntax-rule (mk-num-1 op opname)
   (mk-prim-fun-m op opname mk-num p-num-n (n) (p-num?)))
@@ -606,34 +571,19 @@ And the object was:
   meta-num-store)
 (define p-pi (mk-num pi))
 
-(define (mk-str-fun op opname)
-  (mk-prim-fun op opname p-str?))
-(define (mk-str-fixed op opname len)
-  (mk-prim-fixed op opname p-str? len))
-
 ;; meta-str-store (Hashof String value)
 (define meta-str-store (make-immutable-hash '()))
 (define (meta-str)
   (when (= 0 (hash-count meta-str-store))
     (set! meta-str-store
       (make-immutable-hash
-        `(("append" . ,(mk-str-fun string-append 'append))
-          ("contains" . ,(mk-str-fixed string-contains 'contains 2))
-          ("length" . ,(mk-str-fixed string-length 'length 1))
-          ("tonumber" . ,(mk-str-fixed string->number 'tonumber 1))
-          ("equals" . ,(mk-str-fixed string=? 'equals 2))
-          ;; NOTE(dbp): this process of writing library code is ridiculous.
-          ;; We need to put this elsewhere.
-          ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
-          ;("from" . ,(mk-method ,(mk-str-fun (lambda (s n) (substring s n (string-length s))))))
-          ;("trim" . ,(mk-method ,(mk-single-str-fun (lambda (s) (mk-str (string-trim s))))))
+        `(("append" . ,(mk-prim-fun-m string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("contains" . ,(mk-prim-fun-m string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("length" . ,(mk-prim-fun-m string-length 'length mk-num p-str-s (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun-m string->number 'tonumber mk-num p-str-s (s) (p-str?)))
+          ("equals" . ,(mk-prim-fun-m string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
       ))))
   meta-str-store)
-
-(define (mk-bool-fun op opname)
-  (mk-prim-fun op opname p-bool?))
-(define (mk-bool-fixed op opname len)
-  (mk-prim-fixed op opname p-bool? len))
 
 (define-syntax-rule (mk-bool-1 op opname)
   (mk-prim-fun-m op opname mk-bool p-bool-b (b) (p-bool?)))
