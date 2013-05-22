@@ -67,13 +67,20 @@
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:mk-fun #,(attach l #'(r:λ (arg ...) body-stx)) #,doc)))]
+         #`(p:mk-fun-loc
+              (r:lambda (%loc)
+                (r:case-lambda [(arg ...) body-stx]
+                               [args (p:arity-error %loc (r:quote (arg ...)) args)]))
+            #,doc)))]
     
     [(s-method l args ann body)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
-                     [body-stx (compile-expr body)]) 
-         #'(p:mk-method (r:λ (arg ...) body-stx))))]
+                     [body-stx (compile-expr body)])
+         #`(p:mk-method-loc
+              (r:lambda (%loc)
+                (r:case-lambda [(arg ...) body-stx]
+                               [args (p:arity-error %loc (r:quote (arg ...)) args)])))))]
     
     [(s-cond l c-bs)
      (define (compile-cond-branch b)
@@ -123,7 +130,7 @@
                             [else (p:check-fun %field (r:list loc-param ...))])]
                      [argid arg] ...)
               (r:cond
-               [%is-method (%fun %obj argid ...)]
+               [%is-method ((%fun (r:list loc-param ...)) %obj argid ...)]
                [else (%fun argid ...)])))]
 
 
@@ -154,7 +161,7 @@
       (with-syntax
          ([field (match field
                  [(s-str _ s) (d->stx s l)]
-                 [else #'(p:p-str-s #,(compile-expr field))])]
+                 [else #`(p:p-str-s #,(compile-expr field))])]
 		      [(loc-param ...) (loc-list l)])
        #`(p:get-field (r:list loc-param ...) #,(compile-expr val) field)))]
     

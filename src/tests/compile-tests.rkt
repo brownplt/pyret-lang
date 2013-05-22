@@ -63,8 +63,8 @@
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
-  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "arity")
-  (check-pyret-exn "fun f(x, y): x end f(3)" "arity")
+  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Arity")
+  (check-pyret-exn "fun f(x, y): x end f(3)" "Arity")
   (check-pyret "fun fundo():
                   var o = {}
                   var x = 1

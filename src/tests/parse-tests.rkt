@@ -121,6 +121,7 @@
                       'x))
 
   (check/block "o.['x']" (s-bracket _ (s-id _ 'o) (s-str _ "x")))
+  (check/block "o.[x]" (s-bracket _ (s-id _ 'o) (s-id _ 'x)))
 
   (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 

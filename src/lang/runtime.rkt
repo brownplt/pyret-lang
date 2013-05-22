@@ -70,9 +70,11 @@
               [mk-bool p:mk-bool]
               [mk-str p:mk-str]
               [mk-fun p:mk-fun]
+              [mk-fun-loc p:mk-fun-loc]
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-internal-fun p:mk-internal-fun]
               [mk-method p:mk-method]
+              [mk-method-loc p:mk-method-loc]
               [mk-structural-list p:mk-structural-list]
               [wrap p:wrap]
               [unwrap p:unwrap]
@@ -84,6 +86,7 @@
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
               [apply-fun p:apply-fun]
+              [arity-error p:arity-error]
               [check-fun p:check-fun]
               [has-field? p:has-field?]
               [extend p:extend]
@@ -250,6 +253,13 @@
                                       ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
+;; mk-fun-loc : Proc String -> Value
+(define (mk-fun-loc f s)
+  (p-fun no-brands
+         (make-immutable-hash `(("doc" . ,(mk-str s))
+                                ("_method" . ,(mk-method-method-loc f))))
+         f))
+
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
   (p-fun no-brands (make-immutable-hash `(("doc" . ,nothing)
@@ -264,17 +274,33 @@
 (define (mk-method-method f)
   (p-method no-brands
             (make-immutable-hash `(("doc" . ,nothing)))
-            (λ _ (mk-method f))))
+            (λ (_) (λ (self) (mk-method f)))))
+
+;; mk-method-method-loc : Proc -> p-method
+(define (mk-method-method-loc f)
+  (p-method no-brands
+            (make-immutable-hash `(("doc" . ,nothing)))
+            (λ (_) (λ (self) (mk-method-loc f)))))
 
 ;; mk-fun-method : Proc -> p-method
 (define (mk-fun-method f)
   (p-method no-brands
             (make-immutable-hash `(("doc" . ,(mk-str "method"))))
-            (λ _ (mk-fun f "method-fun"))))
+            (λ (_) (λ (self) (mk-fun f "method-fun")))))
+
+(define (mk-fun-method-loc f)
+  (p-method no-brands
+            (make-immutable-hash `(("doc" . ,(mk-str "method"))))
+            (λ (_) (λ (self) (mk-fun-loc f "method-fun")))))
 
 ;; mk-method : Proc -> Value
 (define (mk-method f)
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
+                                   ("doc" . ,(mk-str "method")))))
+  (p-method no-brands d (λ (_) f)))
+
+(define (mk-method-loc f)
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method-loc f))
                                    ("doc" . ,(mk-str "method")))))
   (p-method no-brands d f))
 
@@ -349,6 +375,19 @@
         l
         "apply-non-function"
         (format "apply-fun: expected function, got ~a" (to-string v))))]))
+
+(define (arity-error loc argnames args)
+  (raise
+    (pyret-error
+      loc
+      "arity-mismatch"
+      (format
+"Arity mismatch: expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+~a"
+        (length argnames)
+        (length args)
+        (length args)
+        (string-join (map to-string args) "\n")))))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
@@ -507,7 +546,7 @@
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
           ("floor" . ,(mk-num-1 floor 'floor))
           ("tostring" . ,(mk-prim-fun-m number->string 'tostring mk-str p-num-n (n) (p-num?)))
-          ("expt" . ,(mk-num-1 expt 'expt))
+          ("expt" . ,(mk-num-2 expt 'expt))
           ("equals" . ,(mk-num-2-bool = 'equals))
           ("lessthan" . ,(mk-num-2-bool < 'lessthan))
           ("greaterthan" . ,(mk-num-2-bool > 'greaterthan))
