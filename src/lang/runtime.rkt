@@ -527,7 +527,7 @@ And the object was:
 (define (pyret-true? v)
   (and (p-bool? v) (p-bool-b v)))
 
-(define-syntax-rule (mk-prim-fun-m op opname wrapper unwrapper (arg ...) (pred ...))
+(define-syntax-rule (mk-prim-fun op opname wrapper unwrapper (arg ...) (pred ...))
   (pμ (arg ...)
     (define preds-passed (and (pred arg) ...))
     (cond
@@ -539,11 +539,11 @@ And the object was:
         (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])))
 
 (define-syntax-rule (mk-num-1 op opname)
-  (mk-prim-fun-m op opname mk-num p-num-n (n) (p-num?)))
+  (mk-prim-fun op opname mk-num p-num-n (n) (p-num?)))
 (define-syntax-rule (mk-num-2 op opname)
-  (mk-prim-fun-m op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
 (define-syntax-rule (mk-num-2-bool op opname)
-  (mk-prim-fun-m op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store (make-immutable-hash '()))
@@ -561,7 +561,7 @@ And the object was:
           ("sqr" . ,(mk-num-1 sqr 'sqr))
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
           ("floor" . ,(mk-num-1 floor 'floor))
-          ("tostring" . ,(mk-prim-fun-m number->string 'tostring mk-str p-num-n (n) (p-num?)))
+          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str p-num-n (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))
           ("equals" . ,(mk-num-2-bool = 'equals))
           ("lessthan" . ,(mk-num-2-bool < 'lessthan))
@@ -577,18 +577,18 @@ And the object was:
   (when (= 0 (hash-count meta-str-store))
     (set! meta-str-store
       (make-immutable-hash
-        `(("append" . ,(mk-prim-fun-m string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
-          ("contains" . ,(mk-prim-fun-m string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("length" . ,(mk-prim-fun-m string-length 'length mk-num p-str-s (s) (p-str?)))
-          ("tonumber" . ,(mk-prim-fun-m string->number 'tonumber mk-num p-str-s (s) (p-str?)))
-          ("equals" . ,(mk-prim-fun-m string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+        `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))
+          ("equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
       ))))
   meta-str-store)
 
 (define-syntax-rule (mk-bool-1 op opname)
-  (mk-prim-fun-m op opname mk-bool p-bool-b (b) (p-bool?)))
+  (mk-prim-fun op opname mk-bool p-bool-b (b) (p-bool?)))
 (define-syntax-rule (mk-bool-2 op opname)
-  (mk-prim-fun-m op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
+  (mk-prim-fun op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
 
 ;; meta-bool-store (Hashof String value)
 (define meta-bool-store (make-immutable-hash '()))
