@@ -112,13 +112,10 @@ these metadata purposes.
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member)
 (struct s-data (syntax name params variants shared-members) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-member) (Listof Member)
-(struct s-variant (syntax name members with-members) #:transparent)
+;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
+(struct s-variant (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant (syntax name with-members) #:transparent)
-
-;; s-member : srcloc Symbol Ann
-(struct s-member (syntax name ann) #:transparent)
 
 ;; s-do : srcloc Stmt (Listof Stmt)
 (struct s-do (syntax init args) #:transparent)

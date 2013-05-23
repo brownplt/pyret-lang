@@ -31,44 +31,42 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-var-expr: "var" NAME ["::" ann] "=" expr
-let-expr: NAME ["::" ann] "=" expr
+var-expr: "var" arg-elt "=" expr
+let-expr: NAME arg-elt "=" expr
 
 app-arg-elt: expr ","
 app-args: "(" [app-arg-elt* expr] ")"
 app-expr: expr app-args
 
-arg-elt: NAME ["::" ann] ","
-last-arg-elt: NAME ["::" ann]
-args: "(" [arg-elt* last-arg-elt] ")"
+arg-elt: NAME ["::" ann]
+list-arg-elt: arg-elt ","
+args: "(" [list-arg-elt* arg-elt] ")"
 
 fun-body: block "end"
         | "(" block ")"
 
-fun-ty-param-elt: NAME
-fun-ty-param: fun-ty-param-elt ","
-fun-ty-params:
-  ["<" fun-ty-param* fun-ty-param-elt ">"]
+list-ty-param: NAME ","
+ty-params:
+  ["<" list-ty-param* NAME ">"]
 
 return-ann: ["->" ann]
 
-fun-header: fun-ty-params NAME args return-ann
+fun-header: ty-params NAME args return-ann
 
 fun-expr: "fun" fun-header ":" fun-body
  
-lambda-args: arg-elt* last-arg-elt
+lambda-args: list-arg-elt* arg-elt
 lambda-expr:
-   BACKSLASH fun-ty-params lambda-args ":" fun-body
- | BACKSLASH fun-ty-params lambda-args "->" ann ":" fun-body
+   BACKSLASH ty-params lambda-args return-ann ":" fun-body
  | BACKSLASH fun-body
- | BACKSLASH fun-ty-params "->" ann ":" fun-body
+ | BACKSLASH ty-params "->" ann ":" fun-body
  
 when-expr: "when" expr ":" block "end"
 
 cond-branch: "|" expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
 
-try-expr: "try" ":" block "except" "(" last-arg-elt ")" ":" block "end"
+try-expr: "try" ":" block "except" "(" arg-elt ")" ":" block "end"
    
 field:
    NAME ":" expr
@@ -99,15 +97,10 @@ left-app-expr: expr "^" left-app-fun-expr app-args
 dot-method-expr: expr ":" NAME
 bracket-method-expr: expr ":" "[" expr "]"
 
-data-member: NAME ["::" ann]
-data-member-elt: data-member ","
 data-with: ["with" fields]
-data-fields: "(" [data-member-elt* data-member] ")"
-data-variant: "|" NAME data-fields data-with | "|" NAME data-with
-data-param-elt: NAME ","
-data-params: ["<" data-param-elt* NAME ">"]
+data-variant: "|" NAME args data-with | "|" NAME data-with
 data-sharing: "end"|("sharing" fields "end")
-data-expr: "data" NAME data-params ":" data-variant+ data-sharing 
+data-expr: "data" NAME ty-params ":" data-variant+ data-sharing 
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"

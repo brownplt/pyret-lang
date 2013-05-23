@@ -71,6 +71,11 @@ BUGS
   - appropriate label, srcloc, and message in runtime.rkt
 [] Move some compile-tests to pyret/ test directory and use unittest
 [] pretty-print a-record
+[] Parser cleanup to remove duplicated code across cases:
+  [] Add sub-production for field name (either [key-expr] or key)
+  [] Add sub-production for lastfield (either field or (field ","))
+  [] Rename s-dot-method, s-bracket-method
+  [] make docstrings first-class productions
 
 CS019 Assignments
 [x] Flags
