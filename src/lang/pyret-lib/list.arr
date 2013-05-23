@@ -2,7 +2,7 @@
 
 provide
   {
-    is-List: is-List,
+    List: List,
     is-empty: is-empty,
     is-link: is-link,
     empty: empty,
@@ -49,6 +49,10 @@ data List:
       end
     end,
 
+    reverse(self):
+       self
+    end,
+
     get(self, n):
       cond:
         | n.greaterequal(0) => raise('get: n too large: '.append(n.tostring()))
@@ -90,6 +94,10 @@ data List:
         | is-empty(self.rest) => self.first
         | is-link(self.rest) => self.rest.last()
       end
+    end,
+
+    reverse(self):
+       self.rest.reverse().append(self.first^link(empty()))
     end,
 
     take(self, n):
@@ -145,4 +153,3 @@ fun range(start, stop):
     | start.lessthan(stop)    => link(start, range(start.add(1), stop))
   end
 end
-

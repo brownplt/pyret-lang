@@ -1,12 +1,20 @@
 #lang pyret
 
 provide {
+  assert-equals: assert-equals,
   check-equals: check-equals,
   check-not-equals: check-not-equals,
   check-exn: check-exn,
   get-results: get-results,
   format-results: format-results
 } end
+
+fun assert-equals(value1, value2):
+  cond:
+    | value1.equals(value2) => nothing
+    | else => raise "Failed test"
+  end
+end
 
 var results = []
 

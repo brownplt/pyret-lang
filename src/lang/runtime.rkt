@@ -73,6 +73,7 @@
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-internal-fun p:mk-internal-fun]
               [mk-method p:mk-method]
+              [mk-structural-list p:mk-structural-list]
               [wrap p:wrap]
               [unwrap p:unwrap]
               [exn:fail:pyret? p:exn:fail:pyret?]
@@ -98,10 +99,10 @@
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
               [p-else else])
-  Any?
-  Number?
-  String?
-  Bool?
+  Any
+  Number
+  String
+  Bool
   nothing)
 
 
@@ -282,18 +283,18 @@
 ;; is-number? : Value * -> Value
 (define (is-number? . n)
   (mk-bool (p-num? (first n))))  
-(define Number? (mk-fun-nodoc is-number?))
+(define Number (mk-fun-nodoc is-number?))
 
 ;; is-string : Value * -> Value
 (define (is-string? . n)
   (mk-bool (p-str? (first n))))
-(define String? (mk-fun-nodoc is-string?))
+(define String (mk-fun-nodoc is-string?))
 
 ;; bool? : Value * -> Value
 (define (bool? . n)
   (mk-bool (p-bool? (first n))))
 
-(define Bool? (mk-fun-nodoc bool?))
+(define Bool (mk-fun-nodoc bool?))
 
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
@@ -642,6 +643,7 @@
     [(number? v) (mk-num v)]
     [(string? v) (mk-str v)]
     [(boolean? v) (mk-bool v)]
+    [(list? v) (mk-structural-list v)]
     [(p-opaque? v) v]
     [else (error (format "wrap: Bad return value from Racket: ~a" v))]))
 
@@ -678,6 +680,6 @@
   (if b p-true p-false))
 (define p-else p-true)
 
-(define Any?
+(define Any
   (mk-fun-nodoc (λ o (mk-bool #t))))
 

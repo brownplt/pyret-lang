@@ -2,40 +2,30 @@
 
 (provide
   desugar-pyret
-  desugar-pyret/libs
-  desugar-pyret/inline)
+  desugar-pyret/libs)
 (require
   racket/runtime-path
   "ast.rkt"
   "load.rkt")
 
-;; internal name
-(define (make-checker-type-name s)
-    (string->symbol (string-append (symbol->string s) "?")))
-;; user-visible name
+;; variant checker name
 (define (make-checker-name s)
     (string->symbol (string-append "is-" (symbol->string s))))
 
-(define (make-checker s name brander)
-  (s-block
-   s
-   (list
-    (s-fun s (make-checker-name name) (list) 
-           (list (s-bind s 'specimen (a-any)))
-           (a-blank)
-           (format
-            "~a: This function checks that its argument is an
+(define (make-checker s name tyname brander)
+  (s-fun s name (list)
+         (list (s-bind s 'specimen (a-any)))
+         (a-blank)
+         (format
+          "~a: This function checks that its argument is an
              instance of the ~a type."
-            (symbol->string (make-checker-name name))
-            (symbol->string name))
-           (s-block s
-                    (list
-                     (s-app s (s-dot s brander 'check)
-                            (list (s-id s 'specimen))))))
-    (s-let s
-           (s-bind s (make-checker-type-name name) (a-blank))
-           (s-id s (make-checker-name name))))))
-           
+          (symbol->string name)
+          (symbol->string tyname))
+         (s-block s
+                  (list
+                   (s-app s (s-dot s brander 'check)
+                          (list (s-id s 'specimen)))))))
+
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
     (s-data-field (s-member-syntax m)
@@ -52,11 +42,12 @@
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (s-block s
-         (list 
+         (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
-           (make-checker s name (s-id s brander-name))
+           (make-checker s (make-checker-name name) name
+                         (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
                     (apply-brand s super-brand
                       (apply-brand s brander-name
@@ -80,11 +71,12 @@
                members
                (map (lambda (id) (s-id s id)) args))))
        (s-block s
-         (list 
+         (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
-           (make-checker s name (s-id s brander-name))
+           (make-checker s (make-checker-name name) name
+                         (s-id s brander-name))
            (s-fun s name
                     (list)
                     constructor-args
@@ -121,8 +113,27 @@
     [(? a-ann?) ann]
     [_ (error 'desugar-ann "Not an annotation: ~a" ann)]))
 
+;; NOTE(dbp): these functions are a temporary hack;
+;; they are just stripping out parametric annotations, so
+;; that code will compile with them present
+(define (replace-typarams typarams)
+  (lambda (ann)
+    (match ann
+      [(a-name s name)
+       (if (member name typarams)
+           (a-any)
+           ann)]
+      [_ ann])))
+(define (replace-typarams-binds typarams)
+  (lambda (bind)
+    (match bind
+      [(s-bind s1 id (a-name s2 name))
+       (if (member name typarams)
+           (s-bind s1 id (a-any)) bind)]
+      [_ bind])))
+
 (define (desugar-internal ast)
-  (define ds desugar-internal) 
+  (define ds desugar-internal)
   (define (ds-args binds)
     (map (lambda (b)
       (match b
@@ -138,13 +149,14 @@
                   (append
                    (list (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
-                         (make-checker s name (s-id s brander-name)))
+                         (make-checker s name name
+                                       (s-id s brander-name)))
                    (variant-defs/list brander-name super-fields variants))))]
     [(s-do s fun args)
      (define (functionize b)
        (s-lam s (list) (list) (a-blank) "" (ds b)))
      (s-app s fun (map functionize args))]
-        
+
     [(s-var s name val)
      (s-var s name (ds val))]
     [(s-let s name val)
@@ -152,12 +164,23 @@
 
     [(s-fun s name typarams args ann doc body)
      (s-let s
-            (s-bind s name (a-arrow s (map desugar-ann (map s-bind-ann args)) (desugar-ann ann)))
-            (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body)))]
+            (s-bind s name
+                    (a-arrow s (map (replace-typarams typarams)
+                                    (map desugar-ann
+                                         (map s-bind-ann args)))
+                             ((replace-typarams typarams)
+                              (desugar-ann ann))))
+            (s-lam s typarams (map (replace-typarams-binds typarams)
+                                   (ds-args args))
+                   ((replace-typarams typarams) (desugar-ann ann))
+                   doc (ds body)))]
 
     [(s-lam s typarams args ann doc body)
-     (s-lam s typarams (ds-args args) (desugar-ann ann) doc (ds body))]
-    
+     (s-lam s typarams (map (replace-typarams-binds typarams)
+                            (ds-args args))
+            ((replace-typarams typarams) (desugar-ann ann))
+            doc (ds body))]
+
     [(s-method s args ann body)
      (s-method s args ann (ds body))]
 
@@ -215,30 +238,30 @@
     [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
-    
+
     [(s-list s elts)
      (define (get-lib name)
        (s-bracket s (s-id s 'list) (s-str s name)))
      (define (make-link elt acc)
        (s-app s (get-lib "link") (list elt acc)))
-      
+
      (foldr make-link
             (s-app s (get-lib "empty") (list))
             (map ds elts))]
-    
+
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
-    
+
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
-    
+
     [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
-    
+
     [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
-    
+
     [(or (s-num _ _)
          (s-bool _ _)
          (s-str _ _)
          (s-id _ _)) ast]
-    
+
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
 
 (define (desugar-pyret/libs ast)
@@ -260,86 +283,3 @@
   (match ast
     [(s-prog s imps block)
      (s-prog s (map desugar-imp imps) (desugar-internal block))]))
-
-(define (desugar-pyret/inline ast)
-  (match ast
-    [(s-prog s imps block)
-     (define mod-mapping (create-header (append (get-prelude s) (prog->imports ast)) empty))
-     (define inner (desugar-pyret/no-imports mod-mapping ast))
-     (s-block s
-        (append (create-inlined-imports mod-mapping)
-                (s-block-stmts inner)))]))
-
-(define (desugar-pyret/no-imports mod-mapping ast)
-  (match ast
-    [(s-prog s imps block)
-     (s-block s (flatten-blocks
-		 (append (map (compose desugar-internal (curryr desugar-header mod-mapping))
-			      imps)
-			 (map desugar-internal (s-block-stmts block)))))]))
-
-(define (get-prelude s)
-  (define (mk-import p)
-    (define-values (_ filename __) (split-path p))
-    (define modname (string->symbol
-                     (first
-                      (string-split
-                       (path->string filename) "."))))
-    (s-import s (path->string (path->complete-path p)) modname))
-  (map mk-import libs))
-
-(define-runtime-path-list libs
-  '(
-    "pyret-lib/list.arr"
-    "pyret-lib/builtins.arr"
-    "pyret-lib/error.arr"
-   ))
-
-(define (create-inlined-imports mapping)
-  (define (mapping->var mod)
-    (define (desugar-module ast)
-      (match ast
-	    [(s-prog s imps block)
-	     (s-let s (s-bind s (cdr mod) (a-blank))
-           (match (desugar-pyret/no-imports mapping ast)
-	         [(s-block s stmts)
-	          (s-block s (append stmts (list (s-app s (s-id s '%provide) (list)))))]))]))
-    (define mod-ast (parse-pyret (file->string (car mod)) (car mod)))
-    (define-values (base relative-file root?) (split-path (car mod)))
-    (parameterize [(current-directory base)]
-      (desugar-module mod-ast)))
-  (map mapping->var mapping))
-
-(define (create-header imports mapping)
-  (define (process-imp imp mapping)
-    (match imp
-      [(s-import s file name) 
-       (define full-path (path->complete-path file))
-       (define-values (base relative-file root?) (split-path full-path))
-       (define mod-name (gensym (string-append "module_" (path->string relative-file) "_" (symbol->string name))))
-       (define file-imports (file->imports full-path))
-       (define existing-mapping (assoc full-path mapping))
-       (define new-mapping
-	 (cond
-	  [existing-mapping (cons existing-mapping (remove existing-mapping mapping))]
-	  [else (cons (cons full-path mod-name) mapping)]))
-       (parameterize [(current-directory base)]
-	  (create-header file-imports new-mapping))]
-      [_ (error (format "process-imp: should have been an s-import: ~a" imp))]))
-  (foldr process-imp mapping imports))
-
-(define (prog->imports prog)
-  (filter s-import? (s-prog-imports prog)))
-
-(define (file->imports filename)
-  (define mod-ast (parse-pyret (file->string filename) filename))
-  (prog->imports mod-ast))
-  
-(define (desugar-header hd mapping)
-  (match hd
-    [(s-provide s exp)
-      (s-fun s '%provide (list) (list) (a-blank) "" (s-block s (list exp)))]
-    [(s-import s file name)
-     (define full-path (path->complete-path file))
-     (s-let s (s-bind s name (a-blank)) (s-id s (cdr (assoc full-path mapping))))]))
-

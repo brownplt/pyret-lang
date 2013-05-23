@@ -3,7 +3,8 @@
 import "list.rkt" as list
 provide {
   keys: keys,
-  has-field: has-field
+  has-field: has-field,
+  mklist: mklist
 } end
 
 fun mklist(obj):

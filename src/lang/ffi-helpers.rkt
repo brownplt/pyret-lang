@@ -11,6 +11,7 @@
 (define (wrap-racket-value val)
   (cond
    [(allowed-prim? val)  val]
+   [(list? val) (map wrap-racket-value val)]
    [else (p:p-opaque val)]))
 
 (define (wrap-racket-fun f)

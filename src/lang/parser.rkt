@@ -394,3 +394,9 @@
     [(_ ann "(" expr ")")
      #`(a-pred #,(loc stx) ann expr)]))
 
+(define-syntax (dot-ann stx)
+  (syntax-case stx ()
+    [(_ obj "." field)
+     #`(a-dot #,(loc stx) '#,(parse-name #'obj)
+              '#,(parse-name #'field))]))
+
