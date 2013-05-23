@@ -3,9 +3,7 @@
 (provide (all-defined-out))
 (require
   (only-in racket/list empty)
-  (for-syntax racket/base)
-  ;; We need to define the `expr` literal
-  (except-in syntax/parse expr)
+  syntax/parse
   syntax/strip-context
   "ast.rkt")
 
@@ -16,58 +14,6 @@
             (syntax-column stx)
             (syntax-position stx)
             (syntax-span stx)))
-
-
-(define-syntax-rule (define-pyret-syntax-tools (id ...))
-  (define-syntaxes (id ...)
-    (values (lambda (stx) #'(raise-syntax-error #f (format "~a used out of context") 'id)) ...))
-  )
-
-;; NOTE(joe):  When you add a new piece of syntax that is used in a
-;; #:datum-literals declaration, you need to add it here.  syntax-parse will
-;; complain that the literal is not bound.  There should be one of these for
-;; every named production in grammar.rkt.
-(define-pyret-syntax-tools (
-  program block stmt expr
-  imports import-stmt provide-stmt import-name import-string
-  var-expr
-  let-expr
-  fun-expr fun-header fun-body args arg-elt list-arg-elt return-ann
-  data-expr data-sharing data-variant data-with
-  do-expr do-stmt
-  assign-expr
-  when-expr
-  try-expr
-  obj-expr fields list-field field
-  list-expr list-elt
-  app-expr app-args app-arg-elt
-  id-expr 
-  prim-expr
-  dot-expr 
-  bracket-expr 
-  dot-method-expr 
-  bracket-method-expr
-  cond-expr cond-branch
-  for-expr for-bind
-  lambda-expr lambda-args ty-params list-ty-param
-  extend-expr 
-  left-app-expr left-app-fun-expr
-  bool-expr
-  num-expr
-  string-expr
-  name-ann
-  record-ann list-ann-field ann-field
-  arrow-ann arrow-ann-elt
-  app-ann app-ann-elt
-  pred-ann
-  dot-ann
-  ann
-))
-
-(define-syntax-rule (pyret-parse stx body ...)
-  (syntax-parse (replace-context #'here stx)
-    body ...))
-
 
 (define (parse-name n) (string->symbol (syntax->datum n)))
 
@@ -82,7 +28,7 @@
   (map (λ (s) (f (datum->syntax #'here s))) (syntax->datum stx)))
 
 (define (parse-program stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (program imports)
     [(program (imports import ...) body "")
      (s-prog (loc stx)
@@ -90,38 +36,38 @@
              (parse-block #'body))]))
 
 (define (parse-import stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (import-stmt provide-stmt)
     [(provide-stmt "provide" stmt "end") (s-provide (loc stx) (parse-stmt #'stmt))]
     [(import-stmt "import" import-module "as" name)
      (s-import (loc stx) (parse-import-module #'import-module) (parse-name #'name))]))
 
 (define (parse-import-module stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (import-name import-string)
     [(import-name n) (parse-name #'n)]
     [(import-string s) (parse-string #'s)]))
 
 
 (define (parse-block stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (block)
     [(block stmts ...)
      (s-block (loc stx) (map/stx parse-stmt-wrapper #'(stmts ...)))]))
 
 (define (parse-stmt-wrapper stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (stmt)
     [(stmt s) (parse-stmt #'s)]))
 
 (define (parse-with stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (data-with)
     [(data-with) empty]
     [(data-with "with" fields) (parse-fields #'fields)]))
 
 (define (parse-variant stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (data-variant)
     [(data-variant "|" name args with)
      (s-variant (loc stx)
@@ -132,14 +78,14 @@
      (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]))
 
 (define (parse-sharing stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (data-sharing)
     [(data-sharing "sharing" fields "end") (parse-fields #'fields)]
     [(data-sharing "end") empty]))
 
 
 (define (parse-stmt stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (
       var-expr
       let-expr
@@ -204,27 +150,27 @@
     [(expr e) (parse-expr #'e)]))
 
 (define (parse-return-ann stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (return-ann)
     [(return-ann) (a-blank)]
     [(return-ann "->" ann) (parse-ann #'ann)]))
 
 (define (parse-arg-elt stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (arg-elt)
     [(arg-elt name) (s-bind (loc stx) (parse-name #'name) (a-blank))]
     [(arg-elt name "::" ann)
      (s-bind (loc stx) (parse-name #'name) (parse-ann #'ann))]))
 
 (define (parse-args stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (args list-arg-elt)
     [(args "(" ")") empty]
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
      (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
 
 (define (parse-field stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (field)
     [(field key ":" value)
      (s-data-field (loc stx)
@@ -248,7 +194,7 @@
                      (parse-block #'body))]))
 
 (define (parse-fields stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (fields list-field)
     [(fields (list-field f1 ",") ... lastfield)
      (map/stx parse-field #'(f1 ... lastfield))]
@@ -256,53 +202,53 @@
      (map/stx parse-field #'(f1 ... lastfield))]))
 
 (define (parse-app-args stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (app-args app-arg-elt)
     [(app-args "(" ")") empty]
     [(app-args "(" (app-arg-elt e1 ",") ... elast ")")
      (map/stx parse-expr #'(e1 ... elast))]))
 
 (define (parse-cond-branch stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (cond-branch)
     [(cond-branch "|" test "=>" body)
      (s-cond-branch (loc stx) (parse-expr #'test) (parse-block #'body))]))
 
 (define (parse-lambda-args stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (lambda-args list-arg-elt)
     [(lambda-args ) empty]
     [(lambda-args (list-arg-elt arg1 ",") ... lastarg) 
      (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
 
 (define (parse-ty-params stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (ty-params list-ty-param)
     [(ty-params) empty]
     [(ty-params "<" (list-ty-param param ",") ... last ">")
      (map/stx parse-name #'(param ... last))]))
 
 (define (parse-fun-body stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (fun-body)
     [(fun-body block "end") (parse-block #'block)]
     [(fun-body "(" block ")") (parse-block #'block)]))
 
 (define (parse-left-app-fun-expr stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (left-app-fun-expr)
     [(left-app-fun-expr id) (parse-expr #'id)]
     [(left-app-fun-expr id "." name)
      (s-dot (loc stx) (parse-expr #'id) (parse-name #'name))]))
 
 (define (parse-for-bind stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (for-bind)
     [(for-bind name "from" expr)
      (s-for-bind (loc stx) (parse-arg-elt #'name) (parse-expr #'expr))]))
 
 (define (parse-expr stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (
       prim-expr
       obj-expr 
@@ -391,13 +337,13 @@
     [(string-expr s) (s-str (loc stx) (parse-string #'s))]))
 
 (define (parse-ann-field stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (ann-field)
     [(ann-field n ":" ann)
      (a-field (loc stx) (symbol->string (parse-name #'n)) (parse-ann #'ann))]))
 
 (define (parse-ann stx)
-  (pyret-parse stx
+  (syntax-parse stx
     #:datum-literals (
       name-ann
       record-ann list-ann-field
