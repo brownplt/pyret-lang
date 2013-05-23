@@ -28,8 +28,8 @@
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
-    (s-data-field (s-member-syntax m)
-             (s-str (s-member-syntax m) (symbol->string (s-member-name m)))
+    (s-data-field (s-bind-syntax m)
+             (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
              val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
@@ -56,13 +56,8 @@
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define dsg-with-members (map ds-member with-members))
-       (define args (map s-member-name members))
-       (define constructor-args
-        (map (lambda (m)
-          (match m
-            [(s-member s name ann) (s-bind s name ann)]
-            [_ (error (format "pyret-internal: non-member in data: ~a" m))]))
-          members))
+       (define args (map s-bind-id members))
+       (define constructor-args members)
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj

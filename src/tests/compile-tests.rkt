@@ -249,10 +249,8 @@
 
   (check-pyret
    "data List:
-      | cons(first, rest) with
-          length(self): 1.add(self.rest.length())
-      | empty() with
-          length(self): 0
+      | cons(first, rest) with length(self): 1.add(self.rest.length()) end
+      | empty() with length(self): 0 end
     end
     cons(1, cons(2, empty())).length()"
    two)
@@ -267,6 +265,7 @@
           | is-cons(self) => 1.add(self.rest.length())
           | is-empty(self) => 0
         end
+      end
     end
     cons(1, cons(2, empty())).length()"
     two)
@@ -500,25 +499,25 @@
 ))
 
 (define methods (test-suite "methods"
-  (check-pyret "{f(self): self.x, x:5}.f()" five)
-  (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
-  (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
+  (check-pyret "{f(self): self.x end, x:5}.f()" five)
+  (check-pyret "{f(self,y): self.x.add(y) end, x:4}.f(6)" ten)
+  (check-pyret "{f(s): s.x end, x:10}.{x:5}.f()" five)
 
   ;; can extract raw methods
   (check-pyret-match "3:add" (p:p-method _ _ (? procedure?)))
-  (check-pyret-match "{f(x): 5}:f" (p:p-method _ _ (? procedure?)))
+  (check-pyret-match "{f(x): 5 end}:f" (p:p-method _ _ (? procedure?)))
 
   ;; can put raw methods on other objects and use them
-  (check-pyret "var o = {x:5} var o2 = {f(self): self.x} o := o.{g : o2:f} o.g()" five)
+  (check-pyret "var o = {x:5} var o2 = {f(self): self.x end} o := o.{g : o2:f} o.g()" five)
 
   ;; cannot apply raw methods (better error messages plz)
   (check-pyret-exn "3:add()" "apply-fun: expected function")
   (check-pyret
-    "o = { m(self): self }
+    "o = { m(self): self end }
      m = o:m
      m._fun()(5)"
     five)
-  (check-pyret "o = {fff(self, x): x} o:['f'.append('ff')]._fun()(nothing, 5)" five)
+  (check-pyret "o = {fff(self, x): x end} o:['f'.append('ff')]._fun()(nothing, 5)" five)
   (check-pyret "fun f(self): self.x end o = { x: 5 }.{ m : f._method() } o.m()" five)
 ))
 
@@ -608,7 +607,7 @@
 
   (check-pyret-exn "
   var should_notice_method_bodies = 5
-  o = { meth(self): should_notice_method_bodies = 3 }
+  o = { meth(self): should_notice_method_bodies = 3 end }
   "
   CONFLICT-MESSAGE)
 

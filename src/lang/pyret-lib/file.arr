@@ -5,9 +5,9 @@ provide {file : file} end
 
 data File:
   | fd(inner-file :: Any) with
-    read-line(self): R('read-line')(self.inner-file),
-    read-file(self): R('port->string')(self.inner-file),
-    close-file(self): R('close-input-port')(self.inner-file)
+    read-line(self): R('read-line')(self.inner-file) end,
+    read-file(self): R('port->string')(self.inner-file) end,
+    close-file(self): R('close-input-port')(self.inner-file) end
 end
 
 fun file(path :: String):

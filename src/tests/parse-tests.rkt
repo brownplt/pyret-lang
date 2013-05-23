@@ -42,38 +42,38 @@
 (define literals (test-suite "literals"
   (check/block "'str'" (s-str _ "str"))
   (check/block "5" (s-num _ 5))
-  (check/block "-5" (s-num _ -5))
+  (check/block "-7" (s-num _ -7))
 
   (check/block "true" (s-bool _ #t))
   (check/block "false" (s-bool _ #f))
 
-  (check/block "5 'foo'" (s-num _ 5) (s-str _ "foo"))
+  (check/block "8 'foo'" (s-num _ 8) (s-str _ "foo"))
 
   (check/block "{}" (s-obj _ empty))
-  (check/block "{x:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
-  (check/block "{x:5,y:'foo'}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))
+  (check/block "{x:9}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 9)))))
+  (check/block "{x:6,y:'foo'}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 6))
                                                               (s-data-field _ (s-str _ "y") (s-str _ "foo")))))
   (check/block "{x:{}}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-obj _ empty)))))
 
-  (check/block "{[x]:5}" (s-obj _ (list (s-data-field _ (s-id _ 'x) (s-num _ 5)))))
-  (check/block "{['x']:5}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+  (check/block "{[xfield]:3}" (s-obj _ (list (s-data-field _ (s-id _ 'xfield) (s-num _ 3)))))
+  (check/block "{['x']:2}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 2)))))
 
-  (check/block "{x:x}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-id _ 'x)))))
+  (check/block "{x:idfield}" (s-obj _ (list (s-data-field _ (s-str _ "x") (s-id _ 'idfield)))))
 
   (check/block "[]" (s-list _ empty))
   (check/block "[5]" (s-list _ (list (s-num _ 5))))
 ))
 
 (define methods (test-suite "methods"
-  (check/block "{f(): x}"
+  (check/block "{f(): x end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
   (check/block "{f(): x end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 
-  (check/block "{[f](): x}"
+  (check/block "{[f](): x end}"
                (s-obj _ (list (s-method-field _ (s-id _ 'f)
                                               (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
-  (check/block "{['f'](): x}"
+  (check/block "{['f'](): x end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f")
                                               (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
 ))
@@ -178,9 +178,9 @@
 
 
   (check/block
-   "fun <a,b> f(x :: a) -> b: 'doc' x end"
+   "fun <a,b> f(x :: a) -> b: 'some documentation' x end"
    (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
-    "doc"
+    "some documentation"
     (s-block _ (list (s-id _ 'x)))))
 
 
@@ -297,8 +297,8 @@
     | cons(first :: Number, rest :: NumList)
   end"
                (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
-                                               (s-variant _ 'cons (list (s-member _ 'first (a-name _ 'Number))
-                                                                        (s-member _ 'rest (a-name _ 'NumList)))
+                                               (s-variant _ 'cons (list (s-bind _ 'first (a-name _ 'Number))
+                                                                        (s-bind _ 'rest (a-name _ 'NumList)))
                                                           (list)))
                        (list)))
   (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
@@ -309,8 +309,8 @@
            (list (s-variant 
                   _ 
                   'cons 
-                  (list (s-member _ 'field (a-blank)) 
-                        (s-member _ 'l (a-app _ 'List (list (a-name _ 'a)))))
+                  (list (s-bind _ 'field (a-blank)) 
+                        (s-bind _ 'l (a-app _ 'List (list (a-name _ 'a)))))
                   (list))) (list)))
 
   (check/block
@@ -332,7 +332,7 @@
     (list)))
 
   (check/block
-   "data Foo: | bar() with x(self): self end"
+   "data Foo: | bar() with x(self): self end end"
    (s-data _ 'Foo (list)
            (list (s-variant _ 'bar (list)
                             (list (s-method-field _
@@ -343,7 +343,7 @@
            (list)))
 
   (check/block
-   "data Foo: | bar() with x(self) -> Num: self
+   "data Foo: | bar() with x(self) -> Num: self end
     sharing
       z: 10
     end"
