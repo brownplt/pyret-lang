@@ -13,6 +13,7 @@
     rotate
     bitmap/url
     bitmap/file
+    save-image
     image-width
     image?
     image->color-list
@@ -37,6 +38,7 @@
       (cons "rectangle" (wrap-racket-fun rectangle))
       (cons "bitmap-url" (wrap-racket-fun bitmap/url))
       (cons "bitmap-file" (wrap-racket-fun bitmap/file))
+      (cons "save-file" (wrap-racket-fun save-image))
       (cons "Image" (wrap-racket-fun image?))
       (cons "image-width" (wrap-racket-fun image-width))
       (cons "image-to-color-list"

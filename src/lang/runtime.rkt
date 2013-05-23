@@ -475,12 +475,17 @@ And the object was:
     [(p-nothing __ ___) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
+;; structural-list? : Value -> Boolean
+(define (structural-list? v)
+  (define d (get-dict v))
+  (and (hash-has-key? d "first")
+       (hash-has-key? d "rest")))
+
 ;; structural-list->list : Value -> Listof Value
 (define (structural-list->list lst)
   (define d (get-dict lst))
   (cond
-    [(and (hash-has-key? d "first")
-          (hash-has-key? d "rest"))
+    [(structural-list? lst)
      (cons (hash-ref d "first")
            (structural-list->list (hash-ref d "rest")))]
     [else empty]))
@@ -669,9 +674,12 @@ And the object was:
     [(p-bool _ __ b) b]
     [(p-str _ __ s) s]
     [(default _)
-     (if (p-opaque? v)
-         v
-         (error (format "unwrap: cannot unwrap ~a for Racket" v)))]))
+     (cond
+      [(p-opaque? v) v]
+      [(and (p-object? v) (structural-list? v))
+       (map unwrap (structural-list->list v))]
+      [else
+       (error (format "unwrap: cannot unwrap ~a for Racket" (to-string v)))])]))
 
 ;; wrap : RacketValue -> Value
 (define (wrap v)
