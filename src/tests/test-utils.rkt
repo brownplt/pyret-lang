@@ -47,8 +47,7 @@
     (namespace-require '(rename pyret/lang/pyret-lib/list list %PYRET-PROVIDE))
     (namespace-require '(rename pyret/lang/pyret-lib/option option %PYRET-PROVIDE))
     (namespace-require '(rename pyret/lang/pyret-lib/builtins builtins %PYRET-PROVIDE))
-    (namespace-require '(rename pyret/lang/pyret-lib/error error %PYRET-PROVIDE))
-    (eval (pyret->racket utils-path (open-input-string "nothing") #:libs #t #:toplevel #t)))
+    (namespace-require '(rename pyret/lang/pyret-lib/error error %PYRET-PROVIDE)))
   ns)
 
 (define (py-eval stx)

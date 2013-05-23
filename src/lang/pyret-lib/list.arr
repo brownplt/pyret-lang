@@ -17,23 +17,23 @@ end
 data List:
   | empty with
 
-    length(self): 0,
+    length(self): 0 end,
 
-    each(self, f): empty,
+    each(self, f): empty end,
 
-    map(self, f): empty,
+    map(self, f): empty end,
 
-    filter(self, f): empty,
+    filter(self, f): empty end,
 
-    foldr(self, f, base): base,
+    foldr(self, f, base): base end,
 
-    foldl(self, f, base): base,
+    foldl(self, f, base): base end,
 
-    member(self, elt): false,
+    member(self, elt): false end,
 
-    append(self, other): other,
+    append(self, other): other end,
 
-    last(self): raise('last: took last of empty list'),
+    last(self): raise('last: took last of empty list') end,
 
     take(self, n):
       cond:
@@ -51,9 +51,7 @@ data List:
       end
     end,
 
-    reverse(self):
-       self
-    end,
+    reverse(self): self end,
 
     get(self, n):
       cond:
@@ -62,19 +60,17 @@ data List:
       end
     end,
 
-    equals(self, other):
-      is-empty(other)
-    end,
+    equals(self, other): is-empty(other) end,
 
-    tostring(self): "[]"
+    tostring(self): "[]" end
 
   | link(first, rest) with
 
-    length(self): 1.add(self.rest.length()),
+    length(self): 1.add(self.rest.length()) end,
 
-    each(self, f): f(self.first) self.rest.map(f),
+    each(self, f): f(self.first) self.rest.map(f) end,
 
-    map(self, f): f(self.first)^link(self.rest.map(f)),
+    map(self, f): f(self.first)^link(self.rest.map(f)) end,
 
     filter(self, f):
       cond:
@@ -83,13 +79,13 @@ data List:
       end
     end,
 
-    member(self, elt): elt.equals(self.first).or(self.rest.member(elt)),
+    member(self, elt): elt.equals(self.first).or(self.rest.member(elt)) end,
 
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)),
+    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
 
-    foldl(self, f, base): self.rest.foldl(f, f(self.first, base)),
+    foldl(self, f, base): self.rest.foldl(f, f(self.first, base)) end,
 
-    append(self, other): self.first^link(self.rest.append(other)),
+    append(self, other): self.first^link(self.rest.append(other)) end,
 
     last(self):
       cond:
@@ -138,10 +134,10 @@ data List:
       self.rest.foldl(
         \elt, s: (s.append(", ").append(tostring(elt))),
 				tostring(self.first))
-		).append("]")
+		).append("]") end
 
 sharing
-  push(self, elt): link(elt, self)
+  push(self, elt): link(elt, self) end
 end
 
 fun range(start, stop):

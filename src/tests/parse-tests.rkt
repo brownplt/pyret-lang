@@ -332,7 +332,7 @@
     (list)))
 
   (check/block
-   "data Foo: | bar() with x(self): self end"
+   "data Foo: | bar() with x(self): self end end"
    (s-data _ 'Foo (list)
            (list (s-variant _ 'bar (list)
                             (list (s-method-field _
@@ -343,7 +343,7 @@
            (list)))
 
   (check/block
-   "data Foo: | bar() with x(self) -> Num: self
+   "data Foo: | bar() with x(self) -> Num: self end
     sharing
       z: 10
     end"

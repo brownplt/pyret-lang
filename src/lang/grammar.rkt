@@ -32,7 +32,7 @@ bool-expr: "true" | "false"
 string-expr: STRING
                     
 var-expr: "var" arg-elt "=" expr
-let-expr: NAME arg-elt "=" expr
+let-expr: arg-elt "=" expr
 
 app-arg-elt: expr ","
 app-args: "(" [app-arg-elt* expr] ")"
@@ -59,7 +59,7 @@ lambda-args: list-arg-elt* arg-elt
 lambda-expr:
    BACKSLASH ty-params lambda-args return-ann ":" fun-body
  | BACKSLASH fun-body
- | BACKSLASH ty-params "->" ann ":" fun-body
+ | BACKSLASH return-ann ":" fun-body
  
 when-expr: "when" expr ":" block "end"
 
@@ -70,9 +70,9 @@ try-expr: "try" ":" block "except" "(" arg-elt ")" ":" block "end"
    
 field:
    NAME ":" expr
- | NAME args return-ann ":" block ["end"]
+ | NAME args return-ann ":" block "end"
  | "[" expr "]" ":" expr
- | "[" expr "]" args return-ann ":" block ["end"]
+ | "[" expr "]" args return-ann ":" block "end"
 list-field: field ","
 fields: list-field* field [","]
 
@@ -105,8 +105,7 @@ data-expr: "data" NAME ty-params ":" data-variant+ data-sharing
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
 
-for-name: NAME ["::" ann]
-for-bind: for-name "from" expr
+for-bind: arg-elt "from" expr
 for-bind-elt: for-bind ","
 for-expr: "for" expr "(" [for-bind-elt* for-bind] ")" return-ann ":" block "end"
            
@@ -114,11 +113,13 @@ ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
 name-ann: NAME
 record-ann: "{" [list-ann-field* ann-field] "}"
+          | "{" "}"
 ann-field: NAME ":" ann
 list-ann-field: ann-field ","
 
 arrow-ann-elt: ann ","
 arrow-ann: "(" arrow-ann-elt* ann "->" ann ")"
+
 app-ann-elt: ann ","
 app-ann: name-ann "<" app-ann-elt* ann ">"
 
