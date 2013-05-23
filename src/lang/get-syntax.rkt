@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 ;; NOTE(joe): This has been ripped from Danny's test cases for
 ;; autogrammar
@@ -6,7 +6,7 @@
  get-syntax
  get-stmt-syntax)
 (require
-  rackunit
+  racket/set
   racket/match
   racket/generator
   parser-tools/lex

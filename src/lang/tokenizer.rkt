@@ -601,11 +601,3 @@
 
 
 
-(define (exercising)
-  (sequence->list (generate-tokens (open-input-string "
-def f(x):
-    return x * x
-    r'''hi, this is
-a test
-'''
-"))))
