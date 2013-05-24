@@ -229,7 +229,7 @@
 ;; Because of leftmost-then-longest match semantics, be sure to put the
 ;; longest operators first (e.g., if = came before ==, == would get
 ;; recognized as two instances of =).
-(define Operator (group @r{\*\*=?} @r{>>=?} @r{<<=?} @r{<>} @r{!=}
+(define Operator (group @r{<>} @r{!=}
                         @r{\+\+} @r{--}
                         @r{//=?}
                         @r{:=}
