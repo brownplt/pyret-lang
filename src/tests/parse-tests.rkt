@@ -9,7 +9,7 @@
   "../lang/desugar.rkt")
 
 (define verbose #f)
-(set! verbose #f)
+(set! verbose #t)
 
 (define round-trip-test #f)
 (set! round-trip-test #f)
@@ -486,6 +486,54 @@
     (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
 ))
 
+(define binary-operators (test-suite "binary-operators"
+   (check/block "1 + 2" (s-op _ op+ (s-num _ 1) (s-num _ 2)))
+   (check/block "1 + 2 + 3" (s-op _ op+ (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   ;; next two are invalid, to be caught in
+   ;; well-formedness of ast check, pre-desugar
+   (check/block "1 + 2 - 3" (s-op _ op- (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   (check/block "1 + 2.add(3)" (s-op _ op+
+                                     (s-num _ 1)
+                                     (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                                      (list (s-num _ 3)))))
+   (check/block "2.add(3) + 1" (s-op _ op+ 
+                                     (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                            (list (s-num _ 3)))
+                                     (s-num _ 1)))
+   (check/block "1 + 2.add(3) + 4" (s-op _ op+
+                                         (s-op _ op+
+                                               (s-num _ 1)
+                                               (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                                      (list (s-num _ 3))))
+                                         (s-num _ 4)))
+   (check/block "(1 - 2) + 3" (s-op _ op+
+                                    (s-op _ op-
+                                          (s-num _ 1)
+                                          (s-num _ 2))
+                                    (s-num _ 3)))
+   (check/block "(3 * (1 - 2)) / 3"
+                (s-op _ op/
+                      (s-op _ op*
+                            (s-num _ 3)
+                            (s-op _ op-
+                                  (s-num _ 1)
+                                  (s-num _ 2)))
+                      (s-num _ 3)))
+   (check/block "x = 3 + 4"
+                (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
+   (check/block "3 + cond: |true => 7 end"
+                (s-op _ op+
+                      (s-num _ 3)
+                      (s-cond _ (list
+                                 (s-cond-branch _ (s-bool _ #t)
+                                                (s-block _ (list (s-num _ 7))))))))
+   
+   ))
+
 (define all (test-suite "all"
   literals
   methods
@@ -501,6 +549,7 @@
   caret
   exceptions
   ids-and-vars
+  binary-operators
 ))
 
 (run-tests all 'normal)

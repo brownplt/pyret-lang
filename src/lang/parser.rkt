@@ -99,11 +99,11 @@
       expr
     )
     [(var-expr "var" bind "=" e)
-     (s-var (loc stx) (parse-arg-elt #'bind) (parse-expr #'e))]
+     (s-var (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
     [(let-expr bind "=" e)
-     (s-let (loc stx) (parse-arg-elt #'bind) (parse-expr #'e))]
+     (s-let (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
-        (fun-body (block (stmt (expr (prim-expr (string-expr doc))))
+        (fun-body (block (stmt (binop-expr (expr (prim-expr (string-expr doc)))))
                          stmt2
                          stmts ...)
                   "end"))
@@ -135,10 +135,10 @@
            (map/stx parse-block #'(stmts ... last-stmt)))]
 
     [(assign-expr id ":=" e)
-     (s-assign (loc stx) (parse-name #'id) (parse-expr #'e))]
+     (s-assign (loc stx) (parse-name #'id) (parse-binop-expr #'e))]
 
     [(when-expr "when" test ":" body "end")
-     (s-when (loc stx) (parse-expr #'test) (parse-block #'body))]
+     (s-when (loc stx) (parse-binop-expr #'test) (parse-block #'body))]
 
     [(try-expr "try" ":" body "except" "(" arg-elt ")" ":" except "end")
      (s-try (loc stx)
@@ -147,7 +147,30 @@
             (parse-block #'except))]
       
     [(stmt s) (parse-stmt #'s)]
-    [(expr e) (parse-expr #'e)]))
+    [(binop-expr e) (parse-binop-expr #'e)]
+    [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
+                                      (parse-binop-expr-sub #'left)
+                                      (parse-binop-expr-sub #'right))]))
+
+(define (parse-binop-expr stx)
+  (syntax-parse stx
+    #:datum-literals (binop-expr expr paren-expr)
+    [(binop-expr _ _ _) (parse-stmt stx)]
+    [(expr e) (parse-expr #'e)]
+    [(binop-expr e) (parse-binop-expr #'e)]))
+
+(define (parse-binop-expr-sub stx)
+  (syntax-parse stx
+    #:datum-literals (binop-expr-sub binop-expr paren-expr)
+    [(binop-expr-sub (paren-expr "(" e ")")) (parse-binop-expr #'e)]
+    [(binop-expr-sub e) (parse-binop-expr #'e)]))
+
+(define (parse-op stx)
+  (syntax-parse stx
+    [(op "+") op+]
+    [(op "-") op-]
+    [(op "*") op*]
+    [(op "/") op/]))
 
 (define (parse-return-ann stx)
   (syntax-parse stx
@@ -175,11 +198,11 @@
     [(field key ":" value)
      (s-data-field (loc stx)
                    (s-str (loc stx) (symbol->string (parse-name #'key)))
-                   (parse-stmt #'value))]
+                   (parse-binop-expr #'value))]
     [(field "[" key "]" ":" value)
      (s-data-field (loc stx)
-                   (parse-expr #'key)
-                   (parse-expr #'value))]
+                   (parse-binop-expr #'key)
+                   (parse-binop-expr #'value))]
     [(field key args ret ":" body "end")
      (s-method-field (loc stx)
                    (s-str (loc stx) (symbol->string (parse-name #'key)))
@@ -188,7 +211,7 @@
                      (parse-block #'body))]
     [(field "[" key "]" args ret ":" body "end")
      (s-method-field (loc stx)
-                     (parse-expr #'key)
+                     (parse-binop-expr #'key)
                      (parse-args #'args)
                      (parse-return-ann #'ret)
                      (parse-block #'body))]))
@@ -206,13 +229,13 @@
     #:datum-literals (app-args app-arg-elt)
     [(app-args "(" ")") empty]
     [(app-args "(" (app-arg-elt e1 ",") ... elast ")")
-     (map/stx parse-expr #'(e1 ... elast))]))
+     (map/stx parse-binop-expr #'(e1 ... elast))]))
 
 (define (parse-cond-branch stx)
   (syntax-parse stx
     #:datum-literals (cond-branch)
     [(cond-branch "|" test "=>" body)
-     (s-cond-branch (loc stx) (parse-expr #'test) (parse-block #'body))]))
+     (s-cond-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
 (define (parse-lambda-args stx)
   (syntax-parse stx
@@ -245,7 +268,7 @@
   (syntax-parse stx
     #:datum-literals (for-bind)
     [(for-bind name "from" expr)
-     (s-for-bind (loc stx) (parse-arg-elt #'name) (parse-expr #'expr))]))
+     (s-for-bind (loc stx) (parse-arg-elt #'name) (parse-binop-expr #'expr))]))
 
 (define (parse-expr stx)
   (syntax-parse stx
@@ -271,18 +294,18 @@
     [(obj-expr "{" fields "}") (s-obj (loc stx) (parse-fields #'fields))]
     [(list-expr "[" "]") (s-list (loc stx) empty)]
     [(list-expr "[" (list-elt e1 ",") ... elast "]")
-     (s-list (loc stx) (map/stx parse-expr #'(e1 ... elast)))]
+     (s-list (loc stx) (map/stx parse-binop-expr #'(e1 ... elast)))]
     [(app-expr efun eargs)
      (s-app (loc stx) (parse-expr #'efun) (parse-app-args #'eargs))]
     [(id-expr x) (s-id (loc stx) (parse-name #'x))]
     [(dot-expr obj "." field)
      (s-dot (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-expr obj "." "[" field "]")
-     (s-bracket (loc stx) (parse-expr #'obj) (parse-expr #'field))]
+     (s-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(dot-method-expr obj ":" field)
      (s-dot-method (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-method-expr obj ":" "[" field "]")
-     (s-bracket-method (loc stx) (parse-expr #'obj) (parse-expr #'field))]
+     (s-bracket-method (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(cond-expr "cond" ":" branch ... "end")
      (s-cond (loc stx) (map/stx parse-cond-branch #'(branch ...)))]
     [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body "end")
@@ -366,7 +389,7 @@
             (parse-name #'n)
             (map/stx parse-ann #'(anns ... last-ann)))]
     [(pred-ann annbase "(" expr ")")
-     (a-pred (loc stx) (parse-ann #'annbase) (parse-expr #'expr))]
+     (a-pred (loc stx) (parse-ann #'annbase) (parse-binop-expr #'expr))]
     [(dot-ann n1 "." n2)
      (a-dot (loc stx) (parse-name #'n1) (parse-name #'n2))]
     [(ann a) (parse-ann #'a)]))

@@ -48,6 +48,14 @@ these metadata purposes.
 (struct s-try (syntax body id except) #:transparent)
 
 
+(define op+ 'op+)
+(define op- 'op-)
+(define op* 'op*)
+(define op/ 'op/)
+
+;; s-op: srcloc op Expr Expr -> s-op
+(struct s-op (syntax op left right) #:transparent)
+
 ;; An Expr is a
 ;; (U s-obj s-onion s-list s-app s-left-app s-id
 ;;    s-assign s-num s-bool s-str
