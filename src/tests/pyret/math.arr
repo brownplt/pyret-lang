@@ -1,6 +1,6 @@
 #lang pyret
 
-import "test.arr" as T
+import test as T
 import math as M
 provide { run-tests: run-tests } end
 
