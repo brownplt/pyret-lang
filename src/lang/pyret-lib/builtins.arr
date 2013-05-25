@@ -19,5 +19,5 @@ fun keys(obj):
 end
 
 fun has-field(obj, name):
-  keys(obj).member(name)
+  prim-has-field(obj, name)
 end

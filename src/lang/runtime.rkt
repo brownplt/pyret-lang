@@ -101,6 +101,7 @@
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
+              [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
               [p-else else])
@@ -195,30 +196,41 @@
               (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
 
-(define-syntax-rule (pλ (arg ...) doc e ...)
-  (mk-fun-loc
-    (lambda (%loc)
-      (case-lambda
-        [(arg ...) e ...]
-        [arity-mismatch-args-list
-         (arity-error %loc '(arg ...) arity-mismatch-args-list)]))
-    doc))
+;; NOTE(joe): the nested syntax/loc below appears necessary to get good
+;; profiling and debugging line numbers for the created functions
+(define-syntax (pλ stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ...)
+     (quasisyntax/loc stx
+      (mk-fun-loc
+        (lambda (%loc)
+          (case-lambda
+            #,(syntax/loc stx [(arg ...) e ...])
+            [arity-mismatch-args-list
+             (arity-error %loc (quote (arg ...)) arity-mismatch-args-list)]))
+        doc))]))
 
-(define-syntax-rule (pλ/internal (loc) (arg ...) e ...)
-  (mk-internal-fun
-    (lambda (loc)
-      (case-lambda
-        [(arg ...) e ...]
-        [arity-mismatch-args-list
-         (arity-error loc '(arg ...) arity-mismatch-args-list)]))))
+(define-syntax (pλ/internal stx)
+  (syntax-case stx ()
+    [(_ (loc) (arg ...) e ...)
+     (quasisyntax/loc stx
+       (mk-internal-fun
+         (lambda (loc)
+           (case-lambda
+             #,(syntax/loc stx [(arg ...) e ...])
+             [arity-mismatch-args-list
+              (arity-error loc '(arg ...) arity-mismatch-args-list)]))))]))
 
-(define-syntax-rule (pμ (arg ...) e ...)
-  (mk-method-loc
-    (lambda (%loc)
-      (case-lambda
-        [(arg ...) e ...]
-        [arity-mismatch-args-list
-         (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))))
+(define-syntax (pμ stx)
+  (syntax-case stx ()
+    [(_ (arg ...) e ...)
+     (quasisyntax/loc stx
+      (mk-method-loc
+        (lambda (%loc)
+          (case-lambda
+            #,(syntax/loc stx [(arg ...) e ...])
+            [arity-mismatch-args-list
+             (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))))]))
 
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
@@ -506,6 +518,17 @@ And the object was:
   (mk-structural-list (map mk-str (hash-keys (get-dict object)))))
 
 (define keys-pfun (mk-fun-nodoc keys))
+
+(define has-field-pfun (pλ/internal (loc) (object field)
+  (cond
+    [(p-str? field)
+     (mk-bool (has-field? object (p-str-s field)))]
+    [else
+     (raise
+      (pyret-error
+        loc
+        "has-field-non-string"
+        (format "has-field: expected string, got ~a" (to-string field))))])))
 
 ;; mk-brander : Symbol -> Proc
 (define (mk-brander sym)

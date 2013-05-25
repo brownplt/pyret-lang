@@ -14,6 +14,7 @@
 (define ten (p:mk-num 10))
 
 (define true (p:mk-bool #t))
+(define false (p:mk-bool #f))
 
 (define CONFLICT-MESSAGE "variable and identifier")
 
@@ -475,6 +476,22 @@
   (check-pyret/libs
    "builtins.keys({x:5}).first"
    (p:mk-str "x"))
+
+  (check-pyret
+   "builtins.has-field({x:5},'x')"
+   true)
+
+  (check-pyret
+   "builtins.has-field(5.{x:10},'x')"
+   true)
+
+  (check-pyret
+   "builtins.has-field({x:10},'y')"
+   false)
+
+  (check-pyret-exn
+   "builtins.has-field({}, {})"
+   "expected string")
 
   (check-pyret/libs
    "list.List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
