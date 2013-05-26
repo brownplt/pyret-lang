@@ -347,8 +347,8 @@
 (define exn-brand (gensym 'exn))
 
 ;; is-number? : Value * -> Value
-(define (is-number? . n)
-  (mk-bool (p-num? (first n))))  
+(define (is-number? n)
+  (mk-bool (p-num? n)))
 (define Number (mk-fun-nodoc is-number?))
 
 ;; is-string : Value * -> Value

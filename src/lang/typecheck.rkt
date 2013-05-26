@@ -20,9 +20,11 @@
   (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
 
 (define (wrap-ann-check loc ann e)
+  (define (skippable? a)
+    (or (a-blank? a) (a-any? a) (and (a-name? a) (equal? (a-name-id a) 'Any))))
   (match ann
-    [(a-blank) e]
-    [(a-arrow _ (list (a-blank)) (a-blank)) e]
+    [(? skippable? a) e]
+    [(a-arrow _  (list (? skippable? arg) ...) (? skippable? return)) e]
     [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
