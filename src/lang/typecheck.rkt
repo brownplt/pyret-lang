@@ -72,9 +72,13 @@
      (mk-flat-checker (s-bracket s (s-id s obj)
                                  (s-str s (symbol->string fld))))]
     [(a-blank)
-     (mk-flat-checker (s-id loc 'Any))]
+     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-id loc '_))]
     [(a-any)
-     (mk-flat-checker (s-id loc 'Any))]
+     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-id loc '_))]
     [(a-arrow s args result)
      (code-wrapper s args result mk-lam (λ (e) e))]
     [(a-method s args result)

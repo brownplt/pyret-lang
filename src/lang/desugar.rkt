@@ -13,18 +13,7 @@
     (string->symbol (string-append "is-" (symbol->string s))))
 
 (define (make-checker s name tyname brander)
-  (s-fun s name (list)
-         (list (s-bind s 'specimen (a-any)))
-         (a-blank)
-         (format
-          "~a: This function checks that its argument is an
-             instance of the ~a type."
-          (symbol->string name)
-          (symbol->string tyname))
-         (s-block s
-                  (list
-                   (s-app s (s-dot s brander 'check)
-                          (list (s-id s 'specimen)))))))
+  (s-let s (s-bind s name (a-blank)) (s-dot s brander 'check)))
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)

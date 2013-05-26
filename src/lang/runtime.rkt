@@ -378,10 +378,11 @@
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
-  (py-match (get-raw-field loc v f)
-    [(p-method _ __ f)
-     (mk-fun-nodoc (λ args (apply f (cons v args))))]
-    [(default non-method) non-method]))
+  (define vfield (get-raw-field loc v f))
+  (cond
+    [(p-method? vfield)
+     (mk-fun-nodoc (λ args (apply (p-method-f vfield) (cons v args))))]
+    [else vfield]))
 
 (define (check-fun v l)
   (cond
@@ -665,8 +666,8 @@ And the object was:
 
 (define tostring-pfun (mk-fun-nodoc (λ o (mk-str (to-string (first o))))))
 
-(define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing)))
-)
+(define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing))))
+
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
@@ -676,7 +677,7 @@ And the object was:
      (define typname (p-str-s s))
      (define check-v ((f loc) o))
      (if (and (p-bool? check-v) (p-bool-b check-v))
-	       o
+         o
          ;; NOTE(dbp): not sure how to give good reporting
          ;; NOTE(joe): This is better, but still would be nice to highlight
          ;;  the call site as well as the destination
