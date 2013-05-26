@@ -116,8 +116,8 @@ data List:
 
     get(self, n):
       cond:
-        | n.equals(0) => self.first
         | n.greaterthan(0) => self.rest.get(n.minus(1))
+        | n.equals(0) => self.first
         | else => raise('get: invalid argument: '.append(n.tostring()))
       end
     end,
