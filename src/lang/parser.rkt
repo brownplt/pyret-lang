@@ -4,7 +4,6 @@
 (require
   (only-in racket/list empty)
   syntax/parse
-  syntax/strip-context
   "ast.rkt")
 
 ;; borrowed from dyoo's brainfudge
@@ -24,8 +23,12 @@
 (define (parse-num stx)
   (string->number (syntax->datum stx)))
 
+;; NOTE(joe): syntax->datum followed by datum->syntax loses location
+;; information if used naively, so do the unpacking with syntax/parse
 (define (map/stx f stx)
-  (map (λ (s) (f (datum->syntax #'here s))) (syntax->datum stx)))
+  (syntax-parse stx
+    [() empty]
+    [(elt elts ...) (cons (f #'elt) (map/stx f #'(elts ...)))]))
 
 (define (parse-program stx)
   (syntax-parse stx
