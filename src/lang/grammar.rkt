@@ -1,6 +1,6 @@
 #lang ragg
 
-program: imports block ENDMARKER
+program: imports block
 
 imports: (import-stmt|provide-stmt)*
 
@@ -19,7 +19,9 @@ binop: "+" | "-" | "*" | "/"
 binop-expr: expr | binop-expr-sub binop binop-expr-sub
 binop-expr-sub: paren-expr | binop-expr
 
-paren-expr: "(" binop-expr ")"
+# paren-exprs must be preceded by a space, so as not be be confused with
+# function application
+paren-expr: PARENSPACE binop-expr ")"
     
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
@@ -43,15 +45,17 @@ var-expr: "var" arg-elt "=" binop-expr
 let-expr: arg-elt "=" binop-expr
 
 app-arg-elt: binop-expr ","
-app-args: "(" [app-arg-elt* binop-expr] ")"
+app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
 app-expr: expr app-args
 
 arg-elt: NAME ["::" ann]
 list-arg-elt: arg-elt ","
-args: "(" [list-arg-elt* arg-elt] ")"
+args: PARENNOSPACE [list-arg-elt* arg-elt] ")"
 
 fun-body: block "end"
-        | "(" block ")"
+        # This is a horrible sad hack, but we are dropping this syntax anyway and
+        # did not want to add more changes in the tokenizer conversions
+        | paren-expr
 
 list-ty-param: NAME ","
 ty-params:
@@ -74,7 +78,7 @@ when-expr: "when" binop-expr ":" block "end"
 cond-branch: "|" binop-expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
 
-try-expr: "try" ":" block "except" "(" arg-elt ")" ":" block "end"
+try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    
 field:
    NAME ":" binop-expr
@@ -115,7 +119,7 @@ do-expr: "do" stmt do-stmt* block "end"
 
 for-bind: arg-elt "from" binop-expr
 for-bind-elt: for-bind ","
-for-expr: "for" expr "(" [for-bind-elt* for-bind] ")" return-ann ":" block "end"
+for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block "end"
            
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
@@ -126,11 +130,11 @@ ann-field: NAME ":" ann
 list-ann-field: ann-field ","
 
 arrow-ann-elt: ann ","
-arrow-ann: "(" arrow-ann-elt* ann "->" ann ")"
+arrow-ann: (PARENSPACE|PARENNOSPACE) arrow-ann-elt* ann "->" ann ")"
 
 app-ann-elt: ann ","
 app-ann: name-ann "<" app-ann-elt* ann ">"
 
-pred-ann: ann "(" binop-expr ")"
+pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr ")"
 
 dot-ann : NAME "." NAME

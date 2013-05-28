@@ -9,7 +9,7 @@
   "../lang/desugar.rkt")
 
 (define verbose #f)
-(set! verbose #t)
+(set! verbose #f)
 
 (define round-trip-test #f)
 (set! round-trip-test #f)
@@ -30,7 +30,10 @@
      (begin
        (when verbose
          (printf "Testing: \n~a\n\n" str))
-       (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))
+       ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
+       ;; in test context (where there is no #lang), we prepend everything with " "
+       (check-match (parse-pyret (string-append " " str))
+                    (s-prog _ empty (s-block _ (list stmt ...))))
        (when round-trip-test
            (check-not-exn
             (lambda ()
@@ -43,6 +46,8 @@
   (check/block "'str'" (s-str _ "str"))
   (check/block "5" (s-num _ 5))
   (check/block "-7" (s-num _ -7))
+  (check/block "10.2" (s-num _ 10.2))
+  (check/block "-10.2" (s-num _ -10.2))
 
   (check/block "true" (s-bool _ #t))
   (check/block "false" (s-bool _ #f))
@@ -220,7 +225,7 @@
 ))
 
 (define anon-func (test-suite "anon-func"
-  (check/block " \\(x)"
+  (check/block " \\ (x)"
                (s-lam _ empty (list)
                       (a-blank)
                       _
@@ -460,6 +465,7 @@
 
 (define ids-and-vars (test-suite "ids-and-vars"
   (check/block "x" (s-id _ 'x))
+  (check/block "_foo" (s-id _ '_foo))
   (check/block "x = 5"
     (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5)))
 

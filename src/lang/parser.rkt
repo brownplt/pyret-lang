@@ -30,7 +30,7 @@
 (define (parse-program stx)
   (syntax-parse stx
     #:datum-literals (program imports)
-    [(program (imports import ...) body "")
+    [(program (imports import ...) body)
      (s-prog (loc stx)
              (map/stx parse-import #'(import ...))
              (parse-block #'body))]))
@@ -253,9 +253,10 @@
 
 (define (parse-fun-body stx)
   (syntax-parse stx
-    #:datum-literals (fun-body)
+    #:datum-literals (fun-body paren-expr)
     [(fun-body block "end") (parse-block #'block)]
-    [(fun-body "(" block ")") (parse-block #'block)]))
+    [(fun-body (paren-expr "(" e ")"))
+     (s-block (loc #'e) (list (parse-binop-expr #'e)))]))
 
 (define (parse-left-app-fun-expr stx)
   (syntax-parse stx
