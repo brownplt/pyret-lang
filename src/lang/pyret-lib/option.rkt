@@ -13,4 +13,11 @@ end
 data Option:
   | none
   | some(value)
+sharing
+  tostring(self):
+    cond:
+      | is-none(self) => "None"
+      | is-some(self) => "Some(" + tostring(self.value) + ")"
+    end
+  end
 end
