@@ -62,7 +62,11 @@ data List:
 
     equals(self, other): is-empty(other) end,
 
-    tostring(self): "[]" end
+    tostring(self): "[]" end,
+
+    sort-by(self, cmp, eq): self end,
+
+    sort(self): self end
 
   | link(first, rest) with
 
@@ -74,7 +78,7 @@ data List:
 
     filter(self, f):
       cond:
-        | f(self.first) => f(self.first)^link(self.rest.filter(f))
+        | f(self.first) => self.first^link(self.rest.filter(f))
         | else => self.rest.filter(f)
       end
     end,
@@ -137,6 +141,18 @@ data List:
           combined + ", " + elt.tostring
         end
       + "]"
+    end,
+
+    sort-by(self, cmp, eq):
+      pivot = self.first
+      less = self.filter(fun(e): cmp(e,pivot) end).sort-by(cmp, eq)
+      equal = self.filter(fun(e): eq(e,pivot) end)
+      greater = self.filter(fun(e): cmp(pivot,e) end).sort-by(cmp, eq)
+      less.append(equal).append(greater)
+    end,
+
+    sort(self):
+      self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
     end
 
 sharing

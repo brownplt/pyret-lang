@@ -504,6 +504,35 @@
     l.equals([2,3,4])"
    (p:mk-bool #t))
 
+  (check-pyret "[1,2].sort-by(fun(e1,e2): e1 < e2 end,
+                              fun(e1,e2): e1 == e2 end) == [1,2]"
+               (p:mk-bool #t))
+
+  (check-pyret "[3,1,2,3,4].sort-by(fun(e1,e2): e1 < e2 end,
+                                    fun(e1,e2): e1 == e2 end) == [1,2,3,3,4]"
+               (p:mk-bool #t))
+
+  (check-pyret "[].sort-by(fun(e1,e2): e1 < e2 end,
+                           fun(e1,e2): e1 == e2 end) == []"
+               (p:mk-bool #t))
+
+  (check-pyret "[1,2,3].sort-by(fun(e1,e2): e1 < e2 end,
+                                fun(e1,e2): e1 == e2 end) == [1,2,3]"
+               (p:mk-bool #t))
+
+  (check-pyret "[1,2].sort() == [1,2]"
+               (p:mk-bool #t))
+
+  (check-pyret "[3,1,2,3,4].sort() == [1,2,3,3,4]"
+               (p:mk-bool #t))
+
+  (check-pyret "[].sort() == []"
+               (p:mk-bool #t))
+
+  (check-pyret "[1,2,3].sort() == [1,2,3]"
+               (p:mk-bool #t))
+  
+
 ))
 
 (define conversions (test-suite "conversions"
