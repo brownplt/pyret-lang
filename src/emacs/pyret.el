@@ -1,7 +1,12 @@
 (defvar pyret-mode-hook nil)
-(defvar pyret-mode-map
+(defconst pyret-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'newline-and-indent)
+    (define-key map (kbd "|") 
+      (function (lambda (&optional N) 
+                  (interactive "^p")
+                  (or N (setq N 1))
+                  (self-insert-command N) (smart-tab))))
     map)
   "Keymap for Pyret major mode")
 
@@ -82,7 +87,7 @@
 
 ;; Eleven (!) kinds of indentation:
 ;; bodies of functions
-;; bodies of conditions (these indent twice, but lines beginning with a pipe indent once)
+;; bodies of cases (these indent twice, but lines beginning with a pipe indent once)
 ;; bodies of data declarations (these also indent twice excepting the lines beginning with a pipe)
 ;; bodies of sharing declarations
 ;; bodies of try blocks
@@ -124,7 +129,7 @@
       
 (defsubst pyret-FUN () (pyret-keyword "fun"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
-(defsubst pyret-COND () (pyret-keyword "cond"))
+(defsubst pyret-CASES () (pyret-keyword "cond"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
 (defsubst pyret-IMPORT () (pyret-keyword "import"))
 (defsubst pyret-PROVIDE () (pyret-keyword "provide"))
@@ -158,9 +163,9 @@
 
 (defstruct
   (pyret-indent
-   (:constructor pyret-make-indent (fun cond data shared try except parens object vars fields initial-period))
+   (:constructor pyret-make-indent (fun cases data shared try except parens object vars fields initial-period))
    :named)
-   fun cond data shared try except parens object vars fields initial-period)
+   fun cases data shared try except parens object vars fields initial-period)
 
 (defun pyret-map-indent (f total delta)
   (let* ((len (length total))
@@ -200,9 +205,9 @@
 
 (defun pyret-print-indent (ind)
   (format
-   "Fun %d, Cond %d, Data %d, Shared %d, Try %d, Except %d, Parens %d, Object %d, Vars %d, Fields %d, Period %d"
+   "Fun %d, Cases %d, Data %d, Shared %d, Try %d, Except %d, Parens %d, Object %d, Vars %d, Fields %d, Period %d"
    (pyret-indent-fun ind)
-   (pyret-indent-cond ind)
+   (pyret-indent-cases ind)
    (pyret-indent-data ind)
    (pyret-indent-shared ind)
    (pyret-indent-try ind)
@@ -314,9 +319,9 @@
             (push 'wantcolon opens)
             (forward-char 4))
            ((looking-at "[ \t]+") (goto-char (match-end 0)))
-           ((pyret-COND)
-            (incf (pyret-indent-cond defered-opened))
-            (push 'cond opens)
+           ((pyret-CASES)
+            (incf (pyret-indent-cases defered-opened))
+            (push 'cases opens)
             (push 'wantcolon opens)
             (forward-char 4))
            ((pyret-DATA)
@@ -490,8 +495,8 @@
                  ((or (equal h 'fun) (equal h 'when))
                   (incf (pyret-indent-fun cur-closed))
                   (setq still-unclosed nil))
-                 ((equal h 'cond)
-                  (incf (pyret-indent-cond cur-closed))
+                 ((equal h 'cases)
+                  (incf (pyret-indent-cases cur-closed))
                   (setq still-unclosed nil))
                  ((equal h 'data)
                   (incf (pyret-indent-data cur-closed))
@@ -595,6 +600,5 @@ For detail, see `comment-dwim'."
 
 
 
-(provide 'pyret-mode)
+(provide 'pyret)
 
-(add-to-list 'auto-mode-alist '("\\.arr$" . pyret-mode))
