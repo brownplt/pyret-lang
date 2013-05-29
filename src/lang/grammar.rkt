@@ -16,7 +16,7 @@ stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
     
-binop-expr: expr | paren-expr | binop-expr binop binop-expr
+binop-expr: expr | binop-expr binop binop-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
@@ -25,7 +25,7 @@ paren-expr: PARENSPACE binop-expr ")"
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
     | cond-expr | lambda-expr | method-expr | extend-expr | left-app-expr
-    | for-expr
+    | for-expr | paren-expr
 
 
 id-expr: NAME

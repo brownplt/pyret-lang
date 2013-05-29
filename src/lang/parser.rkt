@@ -157,9 +157,8 @@
 
 (define (parse-binop-expr stx)
   (syntax-parse stx
-    #:datum-literals (binop-expr expr paren-expr)
+    #:datum-literals (binop-expr expr)
     [(binop-expr _ _ _) (parse-stmt stx)]
-    [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
     [(expr e) (parse-expr #'e)]
     [(binop-expr e) (parse-binop-expr #'e)]))
 
@@ -244,9 +243,7 @@
 (define (parse-fun-body stx)
   (syntax-parse stx
     #:datum-literals (fun-body paren-expr)
-    [(fun-body block "end") (parse-block #'block)]
-    [(fun-body (paren-expr "(" e ")"))
-     (s-block (loc #'e) (list (parse-binop-expr #'e)))]))
+    [(fun-body block "end") (parse-block #'block)]))
 
 (define (parse-left-app-fun-expr stx)
   (syntax-parse stx
@@ -279,6 +276,7 @@
       method-expr
       extend-expr 
       left-app-expr
+      paren-expr
       expr
     )
     [(prim-expr e) (parse-prim #'e)]
@@ -338,6 +336,7 @@
                  (parse-expr #'e)
                  (parse-left-app-fun-expr #'fun-expr)
                  (parse-app-args #'app-args))]
+    [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
     [(expr e) (parse-expr #'e)]
     ))
 

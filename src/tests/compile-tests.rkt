@@ -708,6 +708,7 @@
   (check-pyret-exn "x = {lessthan: fun(s,o): 3 end} x < 5" "Arity")
   (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
+  (check-pyret "a = 1 b = 2 (a == b).or(true)" (p:mk-bool #t))
 ))
                                
 (define all (test-suite "all"
