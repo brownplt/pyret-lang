@@ -47,11 +47,30 @@ these metadata purposes.
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try (syntax body id except) #:transparent)
 
-
 (define op+ 'op+)
 (define op- 'op-)
 (define op* 'op*)
 (define op/ 'op/)
+(define op<= 'op<=)
+(define op< 'op<)
+(define op>= 'op>=)
+(define op> 'op>)
+(define op== 'op==)
+(define op<> 'op<>)
+
+(define op-lookup-table
+  (make-immutable-hash
+   `(("+" . ,op+)
+     ("-" . ,op-)
+     ("*" . ,op*)
+     ("/" . ,op/)
+     ("<=" . ,op<=)
+     ("<" . ,op<)
+     (">=" . ,op>=)
+     (">" . ,op>)
+     ("==" . ,op==)
+     ("<>" . ,op<>))))
+
 
 ;; s-op: srcloc op Expr Expr -> s-op
 (struct s-op (syntax op left right) #:transparent)

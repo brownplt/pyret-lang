@@ -12,12 +12,11 @@ provide-stmt: "provide" stmt "end"
 block: stmt*
 
 stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
-    | assign-expr | when-expr | try-expr) [ENDMARKER]
+    | assign-expr | when-expr | try-expr)
 
-binop: "+" | "-" | "*" | "/"
+binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
     
-binop-expr: expr | binop-expr-sub binop binop-expr-sub
-binop-expr-sub: paren-expr | binop-expr
+binop-expr: expr | paren-expr | binop-expr binop binop-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application

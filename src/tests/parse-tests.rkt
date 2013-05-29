@@ -3,6 +3,7 @@
 (require
   rackunit
   rackunit/text-ui
+  srfi/13
   "test-utils.rkt"
   "../lang/ast.rkt"
   "../lang/pretty.rkt"
@@ -20,8 +21,9 @@
      (begin
        (when verbose
          (printf "Testing: \n~a\n\n" str))
-       (check-exn exn:fail? (lambda () (parse-pyret str))
-                  (regexp-quote error)))]))
+       (check-exn (lambda (e) (and (exn:fail? e)
+                                   (string-contains (exn-message e) error)))
+                  (lambda () (parse-pyret str))))]))
      
 
 (define-syntax check/block
@@ -486,7 +488,7 @@
     (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
     (s-id _ 'x))
 
-  (check-parse/fail "var x = x = 5" "parse")
+  (check-parse/fail "var x = x = 5" "parsing error")
 
   (check/block "x :: Number = 22"
     (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
@@ -537,7 +539,63 @@
                       (s-cond _ (list
                                  (s-cond-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
+
+   (check/block "1+(2*3)"
+                (s-op _ op+
+                      (s-num _ 1)
+                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
    
+   (check/block "1*(2-3)"
+                (s-op _ op*
+                      (s-num _ 1)
+                      (s-op _ op- (s-num _ 2) (s-num _ 3))))
+
+   (check/block "1/(2*3)"
+                (s-op _ op/
+                      (s-num _ 1)
+                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
+
+   (check/block "1-(2*3)"
+                (s-op _ op-
+                      (s-num _ 1)
+                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
+
+   (check/block "foo((2+3))"
+                (s-app _
+                       (s-id _ 'foo)
+                       (list
+                        (s-op _ op* (s-num _ 2) (s-num _ 3)))))
+
+   (check/block "foo((2+3)*2)"
+                (s-app _
+                       (s-id _ 'foo)
+                       (list
+                        (s-op _ op* (s-op _ op+ (s-num _ 2) (s-num _ 3))
+                              (s-num _ 2)))))
+
+   (check/block "1 < 2"
+                (s-op _ op< (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 > 2"
+                (s-op _ op> (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <= 2"
+                (s-op _ op<= (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 >= 2"
+                (s-op _ op>= (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 == 2"
+                (s-op _ op== (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <> 2"
+                (s-op _ op<> (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <= (1+2)"
+                (s-op _ op<= (s-num _ 1)
+                      (s-op _ op+ (s-num _ 1) (s-num _ 2))))
+
+   (check-parse/fail "when(1 < 2): 3" "parsing error")
    ))
 
 (define all (test-suite "all"
