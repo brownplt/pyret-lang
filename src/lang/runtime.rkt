@@ -550,6 +550,8 @@
 (define-syntax-rule (mk-bool-2 op opname)
   (mk-prim-fun-m op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
 
+(define (bool->string b) (if b "true" "false"))
+
 ;; meta-bool-store (Hashof String value)
 (define meta-bool-store (make-immutable-hash '()))
 (define (meta-bool)
@@ -563,6 +565,7 @@
         (make-immutable-hash
          `(("and" . ,(mk-bool-2 my-and 'and))
            ("or" . ,(mk-bool-2 my-or 'or))
+           ("tostring" . ,(mk-prim-fun-m bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
            ("equals" . ,(mk-bool-2 equal? 'equals))
            ("not" . ,(mk-bool-1 not 'not))))))) 
   meta-bool-store)
