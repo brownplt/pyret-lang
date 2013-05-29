@@ -1,18 +1,22 @@
 #lang pyret/library
 
-provide
-  {
-    List: List,
-    is-empty: is-empty,
-    is-link: is-link,
-    empty: empty,
-    link: link,
+provide {
+  List: List,
+  is-empty: is-empty,
+  is-link: is-link,
+  empty: empty,
+  link: link,
 
-    range: range,
-    map: map,
-    fold: fold
-  }
-end
+  range: range,
+  map: map,
+  map2: map2,
+  map3: map3,
+  map4: map4,
+  fold: fold,
+  fold2: fold2,
+  fold3: fold3,
+  fold4: fold4
+} end
 
 data List:
   | empty with
@@ -178,10 +182,52 @@ fun map(f, lst):
   end
 end
 
+fun map2(f, l1, l2):
+  cond:
+    | is-empty(l1).or(is-empty(l2)) => empty
+    | else => f(l1.first, l2.first)^link(map2(f, l1.rest, l2.rest))
+  end
+end
+
+fun map3(f, l1, l2, l3):
+  cond:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => empty
+    | else => f(l1.first, l2.first, l3.first)^link(map3(f, l1.rest, l2.rest, l3.rest))
+  end
+end
+
+fun map4(f, l1, l2, l3, l4):
+  cond:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
+    | else => f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
+  end
+end
+
 fun fold(f, base, lst):
   cond:
     | is-empty(lst) => base
     | is-link(lst) => fold(f, f(base, lst.first), lst.rest)
+  end
+end
+
+fun fold2(f, base, l1, l2):
+  cond:
+    | is-empty(l1).or(is-empty(l2)) => base
+    | else => fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
+  end
+end
+
+fun fold3(f, base, l1, l2, l3):
+  cond:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => base
+    | else => fold3(f, f(base, l1.first, l2.first, l3.first), l1.rest, l2.rest, l3.rest)
+  end
+end
+
+fun fold4(f, base, l1, l2, l3, l4):
+  cond:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => base
+    | else => fold4(f, f(base, l1.first, l2.first, l3.first, l4.first), l1.rest, l2.rest, l3.rest, l4.rest)
   end
 end
 

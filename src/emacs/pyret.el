@@ -28,7 +28,7 @@
 (defconst pyret-keywords-regex 
   (regexp-opt
    '("fun" "var" "cond" "when" "import" "provide"
-     "data" "end" "do" "try" "except"
+     "data" "end" "do" "try" "except" "for" "from"
      "as" "with" "sharing")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
@@ -150,6 +150,8 @@
 (defsubst pyret-DATA () (pyret-keyword "data"))
 (defsubst pyret-END () (pyret-keyword "end"))
 (defsubst pyret-DO () (pyret-keyword "do"))
+(defsubst pyret-FOR () (pyret-keyword "for"))
+(defsubst pyret-FROM () (pyret-keyword "from"))
 (defsubst pyret-TRY () (pyret-keyword "try"))
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
@@ -332,6 +334,11 @@
             (push 'when opens)
             (push 'wantcolon opens)
             (forward-char 4))
+           ((pyret-FOR) ;for indents just like funs
+            (incf (pyret-indent-fun defered-opened))
+            (push 'for opens)
+            (push 'wantcolon opens)
+            (forward-char 3))
            ((looking-at "[ \t]+") (goto-char (match-end 0)))
            ((pyret-CASES)
             (incf (pyret-indent-cases defered-opened))
@@ -518,7 +525,7 @@
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
-                 ((or (equal h 'fun) (equal h 'when))
+                 ((or (equal h 'fun) (equal h 'when) (equal h 'for))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
