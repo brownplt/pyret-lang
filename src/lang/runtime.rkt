@@ -607,6 +607,7 @@ And the object was:
     (set! meta-str-store
       (make-immutable-hash
         `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))

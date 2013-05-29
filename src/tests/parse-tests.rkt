@@ -3,6 +3,7 @@
 (require
   rackunit
   rackunit/text-ui
+  srfi/13
   "test-utils.rkt"
   "../lang/ast.rkt"
   "../lang/pretty.rkt"
@@ -20,8 +21,9 @@
      (begin
        (when verbose
          (printf "Testing: \n~a\n\n" str))
-       (check-exn exn:fail? (lambda () (parse-pyret str))
-                  (regexp-quote error)))]))
+       (check-exn (lambda (e) (and (exn:fail? e)
+                                   (string-contains (exn-message e) error)))
+                  (lambda () (parse-pyret str))))]))
      
 
 (define-syntax check/block
@@ -30,7 +32,10 @@
      (begin
        (when verbose
          (printf "Testing: \n~a\n\n" str))
-       (check-match (parse-pyret str) (s-prog _ empty (s-block _ (list stmt ...))))
+       ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
+       ;; in test context (where there is no #lang), we prepend everything with " "
+       (check-match (parse-pyret (string-append " " str))
+                    (s-prog _ empty (s-block _ (list stmt ...))))
        (when round-trip-test
            (check-not-exn
             (lambda ()
@@ -43,6 +48,8 @@
   (check/block "'str'" (s-str _ "str"))
   (check/block "5" (s-num _ 5))
   (check/block "-7" (s-num _ -7))
+  (check/block "10.2" (s-num _ 10.2))
+  (check/block "-10.2" (s-num _ -10.2))
 
   (check/block "true" (s-bool _ #t))
   (check/block "false" (s-bool _ #f))
@@ -220,7 +227,7 @@
 ))
 
 (define anon-func (test-suite "anon-func"
-  (check/block " \\(x)"
+  (check/block " \\ (x)"
                (s-lam _ empty (list)
                       (a-blank)
                       _
@@ -460,6 +467,7 @@
 
 (define ids-and-vars (test-suite "ids-and-vars"
   (check/block "x" (s-id _ 'x))
+  (check/block "_foo" (s-id _ '_foo))
   (check/block "x = 5"
     (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5)))
 
@@ -480,11 +488,122 @@
     (s-let _ (s-bind _ 'x (a-blank)) (s-num _ 5))
     (s-id _ 'x))
 
-  (check-parse/fail "var x = x = 5" "parse")
+  (check-parse/fail "var x = x = 5" "parsing error")
 
   (check/block "x :: Number = 22"
     (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
 ))
+
+(define binary-operators (test-suite "binary-operators"
+   (check/block "1 + 2" (s-op _ op+ (s-num _ 1) (s-num _ 2)))
+   (check/block "1 + 2 + 3" (s-op _ op+ (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   ;; next two are invalid, to be caught in
+   ;; well-formedness of ast check, pre-desugar
+   (check/block "1 + 2 - 3" (s-op _ op- (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2))
+                                            (s-num _ 3)))
+   (check/block "1 + 2.add(3)" (s-op _ op+
+                                     (s-num _ 1)
+                                     (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                                      (list (s-num _ 3)))))
+   (check/block "2.add(3) + 1" (s-op _ op+ 
+                                     (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                            (list (s-num _ 3)))
+                                     (s-num _ 1)))
+   (check/block "1 + 2.add(3) + 4" (s-op _ op+
+                                         (s-op _ op+
+                                               (s-num _ 1)
+                                               (s-app _ (s-dot _ (s-num _ 2) 'add)
+                                                      (list (s-num _ 3))))
+                                         (s-num _ 4)))
+   (check/block "(1 - 2) + 3" (s-op _ op+
+                                    (s-paren _
+                                        (s-op _ op-
+                                          (s-num _ 1)
+                                          (s-num _ 2)))
+                                    (s-num _ 3)))
+   (check/block "(3 * (1 - 2)) / 3"
+                (s-op _ op/
+                      (s-paren _ (s-op _ op*
+                            (s-num _ 3)
+                            (s-paren _
+                                (s-op _ op-
+                                  (s-num _ 1)
+                                  (s-num _ 2)))))
+                      (s-num _ 3)))
+   (check/block "x = 3 + 4"
+                (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
+   (check/block "3 + cond: |true => 7 end"
+                (s-op _ op+
+                      (s-num _ 3)
+                      (s-cond _ (list
+                                 (s-cond-branch _ (s-bool _ #t)
+                                                (s-block _ (list (s-num _ 7))))))))
+
+   (check/block "1+(2*3)"
+                (s-op _ op+
+                      (s-num _ 1)
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
+   
+   (check/block "1*(2-3)"
+                (s-op _ op*
+                      (s-num _ 1)
+                      (s-paren _ (s-op _ op- (s-num _ 2) (s-num _ 3)))))
+
+   (check/block "1/(2*3)"
+                (s-op _ op/
+                      (s-num _ 1)
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
+
+   (check/block "1-(2*3)"
+                (s-op _ op-
+                      (s-num _ 1)
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
+
+   (check/block "foo((2+3))"
+                (s-app _
+                       (s-id _ 'foo)
+                       (list
+                        (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3))))))
+
+   (check/block "fun f(y):
+                  y
+                end
+                f((1+2))" _ _)
+
+   (check/block "foo((2+3)*2)"
+                (s-app _
+                       (s-id _ 'foo)
+                       (list
+                        (s-op _ op* (s-paren _ (s-op _ op+ (s-num _ 2) (s-num _ 3)))
+                              (s-num _ 2)))))
+
+   (check/block "1 < 2"
+                (s-op _ op< (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 > 2"
+                (s-op _ op> (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <= 2"
+                (s-op _ op<= (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 >= 2"
+                (s-op _ op>= (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 == 2"
+                (s-op _ op== (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <> 2"
+                (s-op _ op<> (s-num _ 1) (s-num _ 2)))
+
+   (check/block "1 <= (1+2)"
+                (s-op _ op<= (s-num _ 1)
+                      (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
+
+   (check-parse/fail "when(1 < 2): 3" "parsing error")
+   ))
 
 (define all (test-suite "all"
   literals
@@ -501,6 +620,7 @@
   caret
   exceptions
   ids-and-vars
+  binary-operators
 ))
 
 (run-tests all 'normal)

@@ -55,11 +55,13 @@
 
 (define (eval-pyret str)
   (print-test str)
-  (py-eval (compile-str str)))
+  ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
+  ;; in test context (where there is no #lang), we prepend everything with " "
+  (py-eval (compile-str (string-append " " str))))
 
 (define (eval-pyret/libs str)
   (print-test str)
-  (py-eval (compile-str/libs str)))
+  (py-eval (compile-str/libs (string-append " " str))))
 
 (define-runtime-path utils-path "test-utils.rkt")
 

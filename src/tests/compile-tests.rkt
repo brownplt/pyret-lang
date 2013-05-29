@@ -56,9 +56,9 @@
   (check-pyret-fail "fun f(x): x end f(3)" two)
 
   (check-pyret "\\x: (x)(2)" two)
-  (check-pyret "var x = 2 \\(x := 10)() x" ten)
-  (check-pyret-exn "var x = 2 \\x: (x := 10)(5) x" CONFLICT-MESSAGE)
-  (check-pyret "var x = 2 fun f(g): g() end f(\\(x := 10)) x" ten)
+  (check-pyret "var x = 2 \\ x := 10 end() x" ten)
+  (check-pyret-exn "var x = 2 \\x: x := 10 end(5) x" CONFLICT-MESSAGE)
+  (check-pyret "var x = 2 fun f(g): g() end f(\\ x := 10 end) x" ten)
 
   (check-pyret "fun f(x): x = 2 x end f(1)" two)
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
@@ -151,7 +151,7 @@
 (define do-blocks (test-suite "do-blocks"
   (check-pyret
    "var x = 0
-    do \\f,g: (f() g()) x := 5; x end" five)
+    do \\f,g: f() g() end x := 5; x end" five)
 
   ;; check expansions of or and and with do
   (check-pyret
@@ -205,7 +205,7 @@
         | test() =>
             body()
             update()
-            For(\\(), test, update, body)
+            For(\\ end, test, update, body)
         | true => 'for base case'
       end
     end
@@ -370,7 +370,7 @@
      check = [b.check(from-b), b.check(from-c), b.check(from-f)
                 ,c.check(from-b), c.check(from-c), c.check(from-f)
                 ,f.check(from-b), f.check(from-c), f.check(from-f)]
-     list.is-empty(check.filter(\\x:(x.not())))
+     list.is-empty(check.filter(\\x: (x.not())))
   " (p:mk-bool #t))
   ))
 
@@ -673,6 +673,34 @@
 
 ))
 
+(define binary-operators (test-suite "binary-operators"
+  (check-pyret "6 - 4 - 1" (p:mk-num 1))
+  (check-pyret "6 - (4 - 1)" (p:mk-num 3))
+  (check-pyret "5 + 5" (p:mk-num 10))
+  (check-pyret "5 * 5" (p:mk-num 25))
+  (check-pyret "5 / 5" (p:mk-num 1))
+  (check-pyret "4 <= 5" (p:mk-bool #t))
+  (check-pyret "4 < 5" (p:mk-bool #t))
+  (check-pyret "4 >= 5" (p:mk-bool #f))
+  (check-pyret "4 > 5" (p:mk-bool #f))
+  (check-pyret "4 <> 5" (p:mk-bool #t))
+  (check-pyret "4 == 6" (p:mk-bool #f))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f(1+2)" (p:mk-num 3))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f((1+2))" (p:mk-num 3))
+  (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
+  (check-pyret-exn "5 + 'foo'" "Bad args to prim")
+  (check-pyret "x = {lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
+  (check-pyret-exn "x = {lessthan: \\s,o: 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
+  (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
+))
+                               
 (define all (test-suite "all"
   constants
   functions
@@ -685,7 +713,8 @@
   for-block
   methods
   exceptions
-  ids-and-vars))
+  ids-and-vars
+  binary-operators))
 
 (run-tests all 'normal)
 
