@@ -519,17 +519,19 @@
                                                       (list (s-num _ 3))))
                                          (s-num _ 4)))
    (check/block "(1 - 2) + 3" (s-op _ op+
-                                    (s-op _ op-
+                                    (s-paren _
+                                        (s-op _ op-
                                           (s-num _ 1)
-                                          (s-num _ 2))
+                                          (s-num _ 2)))
                                     (s-num _ 3)))
    (check/block "(3 * (1 - 2)) / 3"
                 (s-op _ op/
-                      (s-op _ op*
+                      (s-paren _ (s-op _ op*
                             (s-num _ 3)
-                            (s-op _ op-
+                            (s-paren _
+                                (s-op _ op-
                                   (s-num _ 1)
-                                  (s-num _ 2)))
+                                  (s-num _ 2)))))
                       (s-num _ 3)))
    (check/block "x = 3 + 4"
                 (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
@@ -543,34 +545,39 @@
    (check/block "1+(2*3)"
                 (s-op _ op+
                       (s-num _ 1)
-                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
    
    (check/block "1*(2-3)"
                 (s-op _ op*
                       (s-num _ 1)
-                      (s-op _ op- (s-num _ 2) (s-num _ 3))))
+                      (s-paren _ (s-op _ op- (s-num _ 2) (s-num _ 3)))))
 
    (check/block "1/(2*3)"
                 (s-op _ op/
                       (s-num _ 1)
-                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
    (check/block "1-(2*3)"
                 (s-op _ op-
                       (s-num _ 1)
-                      (s-op _ op* (s-num _ 2) (s-num _ 3))))
+                      (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
    (check/block "foo((2+3))"
                 (s-app _
                        (s-id _ 'foo)
                        (list
-                        (s-op _ op* (s-num _ 2) (s-num _ 3)))))
+                        (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3))))))
+
+   (check/block "fun f(y):
+                  y
+                end
+                f((1+2))" _ _)
 
    (check/block "foo((2+3)*2)"
                 (s-app _
                        (s-id _ 'foo)
                        (list
-                        (s-op _ op* (s-op _ op+ (s-num _ 2) (s-num _ 3))
+                        (s-op _ op* (s-paren _ (s-op _ op+ (s-num _ 2) (s-num _ 3)))
                               (s-num _ 2)))))
 
    (check/block "1 < 2"
@@ -593,7 +600,7 @@
 
    (check/block "1 <= (1+2)"
                 (s-op _ op<= (s-num _ 1)
-                      (s-op _ op+ (s-num _ 1) (s-num _ 2))))
+                      (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
 
    (check-parse/fail "when(1 < 2): 3" "parsing error")
    ))

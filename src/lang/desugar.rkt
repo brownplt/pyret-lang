@@ -127,6 +127,21 @@
            (s-bind s1 id (a-any)) bind)]
       [_ bind])))
 
+(define op-method-table
+  (make-immutable-hash
+   `((,op+ . "plus")
+     (,op- . "minus")
+     (,op* . "times")
+     (,op/ . "divide")
+     (,op<= . "lessequal")
+     (,op< . "lessthan")
+     (,op>= . "greaterequal")
+     (,op> . "greaterthan")
+     (,op== . "equals")
+     ;; NOTE(dbp): we deal with not specially, since it is .equals(...).not() 
+     ;(,op<> . "")
+     )))
+
 (define (desugar-internal ast)
   (define ds desugar-internal)
   (define (ds-args binds)
@@ -219,7 +234,7 @@
     [(s-try s try exn catch)
      ;; NOTE(joe & dbp): The identifier in the exn binding of the try is carefully
      ;; shadowed here to avoid capturing any names in Pyret.  It is both
-     ;; the name that the compiler will use for the exception, and the name
+     ;; the name that the compiler will use for the exc, and the name
      ;; that desugaring uses to provide the wrapped exception from the error
      ;; library.
      (define make-error (s-app s (s-bracket s (s-id s 'error)
@@ -255,6 +270,20 @@
     [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
 
     [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
+
+    [(s-paren _ e) (ds e)]
+
+    ;; NOTE(dbp): notequals is special because it requires two method
+    [(s-op s 'op<> e1 e2)
+     (s-app s (s-bracket s
+               (s-app s (s-bracket s (ds e1) (s-str s "equals"))
+                      (list (ds e2)))
+               (s-str s "not"))
+            (list))]
+
+    [(s-op s op e1 e2)
+     (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))
+                      (list (ds e2)))]
 
     [(or (s-num _ _)
          (s-bool _ _)

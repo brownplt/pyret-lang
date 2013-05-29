@@ -656,6 +656,34 @@
 
 ))
 
+(define binary-operators (test-suite "binary-operators"
+  (check-pyret "6 - 4 - 1" (p:mk-num 1))
+  (check-pyret "6 - (4 - 1)" (p:mk-num 3))
+  (check-pyret "5 + 5" (p:mk-num 10))
+  (check-pyret "5 * 5" (p:mk-num 25))
+  (check-pyret "5 / 5" (p:mk-num 1))
+  (check-pyret "4 <= 5" (p:mk-bool #t))
+  (check-pyret "4 < 5" (p:mk-bool #t))
+  (check-pyret "4 >= 5" (p:mk-bool #f))
+  (check-pyret "4 > 5" (p:mk-bool #f))
+  (check-pyret "4 <> 5" (p:mk-bool #t))
+  (check-pyret "4 == 6" (p:mk-bool #f))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f(1+2)" (p:mk-num 3))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f((1+2))" (p:mk-num 3))
+  (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
+  (check-pyret-exn "5 + 'foo'" "Bad args to prim")
+  (check-pyret "x = {lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
+  (check-pyret-exn "x = {lessthan: \\s,o: 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
+  (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
+))
+                               
 (define all (test-suite "all"
   constants
   functions
@@ -668,7 +696,8 @@
   for-block
   methods
   exceptions
-  ids-and-vars))
+  ids-and-vars
+  binary-operators))
 
 (run-tests all 'normal)
 

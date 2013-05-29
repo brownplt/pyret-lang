@@ -4,6 +4,7 @@
          ragg/support
          racket/set
          racket/port
+         racket/list
          "grammar.rkt")
 (provide tokenize)
 
@@ -27,12 +28,14 @@
   operator-chars
   (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">"))
 
-
+(define (get-middle-pos n pos)
+  (position (+ n (position-offset pos))
+            (position-line pos)
+            (+ n (position-col pos))))
+  
 (define (tokenize ip)
   (port-count-lines! ip)
-  (define (push-back-paren)
-    (set! ip (input-port-append  #t (open-input-string " (")
-                                 ip)))
+  (define extra-token #f)
   (define my-lexer
     (lexer-src-pos
      ;; open parenthesis: preceded by space and not
@@ -41,14 +44,18 @@
      ;; doing this at the tokenizer level, we don't need to deal
      ;; with whitespace in the grammar.
      ["(("
-      (begin
-        (push-back-paren)
-        (token PARENNOSPACE "("))]
+      (let [(middle-pos (get-middle-pos 1 start-pos))]
+      (return-without-pos
+       (list (position-token (token PARENNOSPACE "(") start-pos middle-pos)
+             (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      [(concatenation operator-chars "(")
-      (let [(op (substring lexeme 0
-                           (- (string-length lexeme) 1)))]
-        (push-back-paren)
-        (token op op))]
+      (let* [(op (substring lexeme 0
+                           (- (string-length lexeme) 1)))
+            (op-len (string-length op))
+            (middle-pos (get-middle-pos op-len start-pos))]
+        (return-without-pos
+         (list (position-token (token op op) start-pos middle-pos)
+               (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      [(concatenation whitespace "(")
       (token PARENSPACE "(")]
      ["("
@@ -112,5 +119,14 @@
      [(eof)
       (void)]
      ))
-    (define (next-token) (my-lexer ip))
+    (define (next-token)
+      (if extra-token
+          (let [(rv extra-token)]
+            (set! extra-token #f)
+            rv)
+          (let [(tokens (my-lexer ip))]
+            (cond
+             [(list? tokens) (set! extra-token (second tokens))
+                             (first tokens)]
+             [else tokens]))))
     next-token)

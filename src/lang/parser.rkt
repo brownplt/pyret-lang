@@ -156,13 +156,14 @@
   (syntax-parse stx
     #:datum-literals (binop-expr expr paren-expr)
     [(binop-expr _ _ _) (parse-stmt stx)]
-    [(paren-expr "(" e ")") (parse-binop-expr #'e)]
+    [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
     [(expr e) (parse-expr #'e)]
     [(binop-expr e) (parse-binop-expr #'e)]))
 
 (define (parse-op stx)
   (syntax-parse stx
-    [(op str) (hash-ref op-lookup-table (syntax->datum #'str))]))
+    #:datum-literals (binop)
+    [(binop str) (hash-ref op-lookup-table (syntax->datum #'str))]))
 
 (define (parse-return-ann stx)
   (syntax-parse stx

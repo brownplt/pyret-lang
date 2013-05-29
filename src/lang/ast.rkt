@@ -75,6 +75,9 @@ these metadata purposes.
 ;; s-op: srcloc op Expr Expr -> s-op
 (struct s-op (syntax op left right) #:transparent)
 
+;; s-paren: srcloc Expr -> s-paren
+(struct s-paren (syntax expr) #:transparent)
+
 ;; An Expr is a
 ;; (U s-obj s-onion s-list s-app s-left-app s-id
 ;;    s-assign s-num s-bool s-str
