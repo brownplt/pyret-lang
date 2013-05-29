@@ -12,22 +12,22 @@ end
 
 fun equal(actual, expected, message):
   cond:
-    | assert(\(actual.equals(expected)), "check.equal: ".append(message))
+    | assert(fun: actual.equals(expected) end, "check.equal: ".append(message))
     => nothing
     | else => print(actual)
   end
 end
 
 fun tru(actual, message):
-  assert(\(actual), "check.tru: ".append(message))
+  assert(fun: actual end, "check.tru: ".append(message))
 end
 
 fun fals(actual, message):
-  assert(\(actual.not()), "check.fals: ".append(message))
+  assert(fun: actual.not() end, "check.fals: ".append(message))
 end
 
 fun nothin(actual, message):
-  assert(\(is-nothing(actual)), "check.nothin: ".append(message))
+  assert(fun: is-nothing(actual) end, "check.nothin: ".append(message))
 end
 
 fun assert(testfun, message):

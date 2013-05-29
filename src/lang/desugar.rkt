@@ -13,23 +13,12 @@
     (string->symbol (string-append "is-" (symbol->string s))))
 
 (define (make-checker s name tyname brander)
-  (s-fun s name (list)
-         (list (s-bind s 'specimen (a-any)))
-         (a-blank)
-         (format
-          "~a: This function checks that its argument is an
-             instance of the ~a type."
-          (symbol->string name)
-          (symbol->string tyname))
-         (s-block s
-                  (list
-                   (s-app s (s-dot s brander 'check)
-                          (list (s-id s 'specimen)))))))
+  (s-let s (s-bind s name (a-blank)) (s-dot s brander 'check)))
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
-    (s-data-field (s-member-syntax m)
-             (s-str (s-member-syntax m) (symbol->string (s-member-name m)))
+    (s-data-field (s-bind-syntax m)
+             (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
              val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
@@ -56,13 +45,8 @@
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define dsg-with-members (map ds-member with-members))
-       (define args (map s-member-name members))
-       (define constructor-args
-        (map (lambda (m)
-          (match m
-            [(s-member s name ann) (s-bind s name ann)]
-            [_ (error (format "pyret-internal: non-member in data: ~a" m))]))
-          members))
+       (define args (map s-bind-id members))
+       (define constructor-args members)
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj
@@ -132,6 +116,21 @@
            (s-bind s1 id (a-any)) bind)]
       [_ bind])))
 
+(define op-method-table
+  (make-immutable-hash
+   `((,op+ . "plus")
+     (,op- . "minus")
+     (,op* . "times")
+     (,op/ . "divide")
+     (,op<= . "lessequal")
+     (,op< . "lessthan")
+     (,op>= . "greaterequal")
+     (,op> . "greaterthan")
+     (,op== . "equals")
+     ;; NOTE(dbp): we deal with not specially, since it is .equals(...).not() 
+     ;(,op<> . "")
+     )))
+
 (define (desugar-internal ast)
   (define ds desugar-internal)
   (define (ds-args binds)
@@ -156,6 +155,13 @@
      (define (functionize b)
        (s-lam s (list) (list) (a-blank) "" (ds b)))
      (s-app s fun (map functionize args))]
+
+    [(s-for s iter bindings ann body)
+     (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
+     (define (bind-of b) (match b [(s-for-bind _ b _) b]))
+     (define the-function
+      (s-lam s (list) (map bind-of bindings) ann "" (ds body)))
+     (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
      (s-var s name (ds val))]
@@ -217,7 +223,7 @@
     [(s-try s try exn catch)
      ;; NOTE(joe & dbp): The identifier in the exn binding of the try is carefully
      ;; shadowed here to avoid capturing any names in Pyret.  It is both
-     ;; the name that the compiler will use for the exception, and the name
+     ;; the name that the compiler will use for the exc, and the name
      ;; that desugaring uses to provide the wrapped exception from the error
      ;; library.
      (define make-error (s-app s (s-bracket s (s-id s 'error)
@@ -244,10 +250,7 @@
        (s-bracket s (s-id s 'list) (s-str s name)))
      (define (make-link elt acc)
        (s-app s (get-lib "link") (list elt acc)))
-
-     (foldr make-link
-            (s-app s (get-lib "empty") (list))
-            (map ds elts))]
+     (foldr make-link (get-lib "empty") (map ds elts))]
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 
@@ -256,6 +259,20 @@
     [(s-dot-method s obj field) (s-bracket-method s (ds obj) (s-str s (symbol->string field)))]
 
     [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
+
+    [(s-paren _ e) (ds e)]
+
+    ;; NOTE(dbp): notequals is special because it requires two method
+    [(s-op s 'op<> e1 e2)
+     (s-app s (s-bracket s
+               (s-app s (s-bracket s (ds e1) (s-str s "equals"))
+                      (list (ds e2)))
+               (s-str s "not"))
+            (list))]
+
+    [(s-op s op e1 e2)
+     (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))
+                      (list (ds e2)))]
 
     [(or (s-num _ _)
          (s-bool _ _)

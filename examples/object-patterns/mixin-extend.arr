@@ -11,9 +11,9 @@ todo1 = {
 fun extendable(obj):
   obj.{
     ext(self, obj2):
-      builtins.keys(obj2).foldr(\name, self-ext: (
+      builtins.keys(obj2).foldr(fun(name, self-ext):
         self-ext.{ [name]: obj2.[name] }
-      ), self)
+      end, self)
     end
   }
 end

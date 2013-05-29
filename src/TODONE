@@ -109,3 +109,5 @@ Assignment tests
   - e.g. Racket.string-append(pyval, pyval)
   - unwrapping and wrapping of pyret constants to Racket #'s and str's
 
+[x] Name<Name<Foo>> is a syntax error, because >> is parsed as a single
+   token. Name<Name<Foo> > parses fine.

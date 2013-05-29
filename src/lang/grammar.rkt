@@ -1,6 +1,6 @@
 #lang ragg
 
-program: imports block ENDMARKER
+program: imports block
 
 imports: (import-stmt|provide-stmt)*
 
@@ -11,16 +11,26 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | expr
-    | assign-expr | when-expr | try-expr) [ENDMARKER]
+stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
+    | assign-expr | when-expr | try-expr)
 
+binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
+    
+binop-expr: expr | paren-expr | binop-expr binop binop-expr
+
+# paren-exprs must be preceded by a space, so as not be be confused with
+# function application
+paren-expr: PARENSPACE binop-expr ")"
+    
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
     | cond-expr | lambda-expr | extend-expr | left-app-expr
+    | for-expr
+
 
 id-expr: NAME
 
-assign-expr: NAME ":=" expr
+assign-expr: NAME ":=" binop-expr
 
 prim-expr:
    num-expr
@@ -30,50 +40,43 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
                     
-var-expr: "var" NAME ["::" ann] "=" expr
-let-expr: NAME ["::" ann] "=" expr
+var-expr: "var" arg-elt "=" binop-expr
+let-expr: arg-elt "=" binop-expr
 
-app-arg-elt: expr ","
-app-args: "(" [app-arg-elt* expr] ")"
+app-arg-elt: binop-expr ","
+app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
 app-expr: expr app-args
 
-arg-elt: NAME ["::" ann] ","
-last-arg-elt: NAME ["::" ann]
-args: "(" [arg-elt* last-arg-elt] ")"
+arg-elt: NAME ["::" ann]
+list-arg-elt: arg-elt ","
+args: PARENNOSPACE [list-arg-elt* arg-elt] ")"
 
 fun-body: block "end"
-        | "(" block ")"
 
-fun-ty-param-elt: NAME
-fun-ty-param: fun-ty-param-elt ","
-fun-ty-params:
-  ["<" fun-ty-param* fun-ty-param-elt ">"]
+list-ty-param: NAME ","
+ty-params:
+  ["<" list-ty-param* NAME ">"]
 
 return-ann: ["->" ann]
 
-fun-header: fun-ty-params NAME args return-ann
+fun-header: ty-params NAME args return-ann
 
 fun-expr: "fun" fun-header ":" fun-body
- 
-lambda-args: arg-elt* last-arg-elt
-lambda-expr:
-   BACKSLASH fun-ty-params lambda-args ":" fun-body
- | BACKSLASH fun-ty-params lambda-args "->" ann ":" fun-body
- | BACKSLASH fun-body
- | BACKSLASH fun-ty-params "->" ann ":" fun-body
- 
-when-expr: "when" expr ":" block "end"
 
-cond-branch: "|" expr "=>" block
+lambda-expr: "fun" ty-params [args] return-ann ":" fun-body
+
+when-expr: "when" binop-expr ":" block "end"
+
+cond-branch: "|" binop-expr "=>" block
 cond-expr: "cond" ":" cond-branch* "end"
 
-try-expr: "try" ":" block "except" "(" last-arg-elt ")" ":" block "end"
+try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    
 field:
-   NAME ":" expr
- | NAME args return-ann ":" block ["end"]
- | "[" expr "]" ":" expr
- | "[" expr "]" args return-ann ":" block ["end"]
+   NAME ":" binop-expr
+ | NAME args return-ann ":" block "end"
+ | "[" binop-expr "]" ":" binop-expr
+ | "[" binop-expr "]" args return-ann ":" block "end"
 list-field: field ","
 fields: list-field* field [","]
 
@@ -83,46 +86,47 @@ obj-expr:
    "{" fields "}"
  | "{" "}"
 
-list-elt: expr ","
-list-expr: "[" [list-elt* expr] "]"
+list-elt: binop-expr ","
+list-expr: "[" [list-elt* binop-expr] "]"
 
 extend-expr: expr "." "{" fields "}"
              # if we want it, we can add | expr "." "{" expr "}"
 
 dot-expr: expr "." NAME
-bracket-expr: expr "." "[" expr "]"
+bracket-expr: expr "." "[" binop-expr "]"
 
 left-app-fun-expr: id-expr | id-expr "." NAME
 left-app-expr: expr "^" left-app-fun-expr app-args
 
 dot-method-expr: expr ":" NAME
-bracket-method-expr: expr ":" "[" expr "]"
+bracket-method-expr: expr ":" "[" binop-expr "]"
 
-data-member: NAME ["::" ann]
-data-member-elt: data-member ","
 data-with: ["with" fields]
-data-fields: "(" [data-member-elt* data-member] ")"
-data-variant: "|" NAME data-fields data-with | "|" NAME data-with
-data-param-elt: NAME ","
-data-params: ["<" data-param-elt* NAME ">"]
+data-variant: "|" NAME args data-with | "|" NAME data-with
 data-sharing: "end"|("sharing" fields "end")
-data-expr: "data" NAME data-params ":" data-variant+ data-sharing 
+data-expr: "data" NAME ty-params ":" data-variant+ data-sharing 
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"
+
+for-bind: arg-elt "from" binop-expr
+for-bind-elt: for-bind ","
+for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block "end"
            
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
 name-ann: NAME
 record-ann: "{" [list-ann-field* ann-field] "}"
+          | "{" "}"
 ann-field: NAME ":" ann
 list-ann-field: ann-field ","
 
 arrow-ann-elt: ann ","
-arrow-ann: "(" arrow-ann-elt* ann "->" ann ")"
+arrow-ann: (PARENSPACE|PARENNOSPACE) arrow-ann-elt* ann "->" ann ")"
+
 app-ann-elt: ann ","
 app-ann: name-ann "<" app-ann-elt* ann ">"
 
-pred-ann: ann "(" expr ")"
+pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr ")"
 
 dot-ann : NAME "." NAME

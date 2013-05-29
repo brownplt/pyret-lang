@@ -14,6 +14,7 @@
 (define ten (p:mk-num 10))
 
 (define true (p:mk-bool #t))
+(define false (p:mk-bool #f))
 
 (define CONFLICT-MESSAGE "variable and identifier")
 
@@ -54,17 +55,17 @@
 
   (check-pyret-fail "fun f(x): x end f(3)" two)
 
-  (check-pyret "\\x: (x)(2)" two)
-  (check-pyret "var x = 2 \\(x := 10)() x" ten)
-  (check-pyret-exn "var x = 2 \\x: (x := 10)(5) x" CONFLICT-MESSAGE)
-  (check-pyret "var x = 2 fun f(g): g() end f(\\(x := 10)) x" ten)
+  (check-pyret "fun(x): x end(2)" two)
+  (check-pyret "var x = 2 fun: x := 10 end() x" ten)
+  (check-pyret-exn "var x = 2 fun(x): x := 10 end(5) x" CONFLICT-MESSAGE)
+  (check-pyret "var x = 2 fun f(g): g() end f(fun: x := 10 end) x" ten)
 
   (check-pyret "fun f(x): x = 2 x end f(1)" two)
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
-  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "arity")
-  (check-pyret-exn "fun f(x, y): x end f(3)" "arity")
+  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Arity")
+  (check-pyret-exn "fun f(x, y): x end f(3)" "Arity")
   (check-pyret "fun fundo():
                   var o = {}
                   var x = 1
@@ -150,7 +151,7 @@
 (define do-blocks (test-suite "do-blocks"
   (check-pyret
    "var x = 0
-    do \\f,g: (f() g()) x := 5; x end" five)
+    do fun(f,g): f() g() end x := 5; x end" five)
 
   ;; check expansions of or and and with do
   (check-pyret
@@ -198,22 +199,47 @@
     x" ten)
 
   (check-pyret
-   "fun for(init, test, update, body):
+   "fun For(init, test, update, body):
       init()
       cond:
         | test() =>
             body()
             update()
-            for(\\(), test, update, body)
+            For(fun: end, test, update, body)
         | true => 'for base case'
       end
     end
     var x = 0
     var sum = 0
-    do for x := 0; x.lessthan(5); x := x.add(1);
+    do For x := 0; x.lessthan(5); x := x.add(1);
       sum := sum.add(x)
     end
     sum" ten)
+))
+
+(define for-block (test-suite "for-block"
+
+  (check-pyret
+   "strs = for list.map(elt from [1,2,3]): elt.tostring() end
+    strs.equals(['1','2','3'])"
+   true)
+
+  (check-pyret
+   "for list.fold(acc from 0, elt from [1,2,3]): acc.plus(elt) end"
+   (p:mk-num 6))
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [1, '2', 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.map(elt :: Number from [true, 2, 3]): nothing end"
+   "expected Number and got")
+
+  (check-pyret-exn
+   "for list.fold(acc from '', elt from ['1','2']) -> Number: elt end"
+   "expected Number and got")
+
 ))
 
 (define data (test-suite "data"
@@ -224,10 +250,8 @@
 
   (check-pyret
    "data List:
-      | cons(first, rest) with
-          length(self): 1.add(self.rest.length())
-      | empty() with
-          length(self): 0
+      | cons(first, rest) with length(self): 1.add(self.rest.length()) end
+      | empty() with length(self): 0 end
     end
     cons(1, cons(2, empty())).length()"
    two)
@@ -242,6 +266,7 @@
           | is-cons(self) => 1.add(self.rest.length())
           | is-empty(self) => 0
         end
+      end
     end
     cons(1, cons(2, empty())).length()"
     two)
@@ -345,7 +370,7 @@
      check = [b.check(from-b), b.check(from-c), b.check(from-f)
                 ,c.check(from-b), c.check(from-c), c.check(from-f)
                 ,f.check(from-b), f.check(from-c), f.check(from-f)]
-     list.is-empty(check.filter(\\x:(x.not())))
+     list.is-empty(check.filter(fun(x): x.not() end))
   " (p:mk-bool #t))
   ))
 
@@ -400,8 +425,8 @@
         | else => map(l.rest, f).push(f(l.first))
       end
     end
-    l1 = map([5], \\x: (x.add(1))).first
-    l2 = map([5,6,7], \\x: (x.add(1))).rest.rest.first
+    l1 = map([5], fun(x): x.add(1) end).first
+    l2 = map([5,6,7], fun(x): x.add(1) end).rest.rest.first
     l1.add(l2)" (p:mk-num 14))
 
   (check-pyret "import Racket as R
@@ -432,25 +457,41 @@
         end
     }
   end
-  l1 = mklist([5]).map(\\x :: Number: (x.add(1))).first()
-  l2 = mklist([5,6,7]).map(\\x :: Number: (x.add(1))).rest().rest().first()
+  l1 = mklist([5]).map(fun(x :: Number): x.add(1) end).first()
+  l2 = mklist([5,6,7]).map(fun(x :: Number): x.add(1) end).rest().rest().first()
   l1.add(l2)
     " (p:mk-num 14))
 
   (check-pyret
     "
     import '../lang/pyret-lib/list.rkt' as L
-    5^L.link(L.empty()).first
+    5^L.link(L.empty).first
     "
     five)
 
   (check-pyret-match/libs
-    "list.empty()"
+    "list.empty"
     (p:p-object _ _))
 
   (check-pyret/libs
    "builtins.keys({x:5}).first"
    (p:mk-str "x"))
+
+  (check-pyret
+   "builtins.has-field({x:5},'x')"
+   true)
+
+  (check-pyret
+   "builtins.has-field(5.{x:10},'x')"
+   true)
+
+  (check-pyret
+   "builtins.has-field({x:10},'y')"
+   false)
+
+  (check-pyret-exn
+   "builtins.has-field({}, {})"
+   "expected string")
 
   (check-pyret/libs
    "list.List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
@@ -467,6 +508,8 @@
 
 (define conversions (test-suite "conversions"
   (check-pyret "tostring(1)" (p:mk-str "1"))
+  (check-pyret "tostring(true)" (p:mk-str "true"))
+  (check-pyret "tostring(false)" (p:mk-str "false"))
   (check-pyret "[1,2,3].tostring()" (p:mk-str "[1, 2, 3]"))
   (check-pyret "tostring('hello')" (p:mk-str "hello"))
   (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
@@ -475,25 +518,25 @@
 ))
 
 (define methods (test-suite "methods"
-  (check-pyret "{f(self): self.x, x:5}.f()" five)
-  (check-pyret "{f(self,y): self.x.add(y), x:4}.f(6)" ten)
-  (check-pyret "{f(s): s.x, x:10}.{x:5}.f()" five)
+  (check-pyret "{f(self): self.x end, x:5}.f()" five)
+  (check-pyret "{f(self,y): self.x.add(y) end, x:4}.f(6)" ten)
+  (check-pyret "{f(s): s.x end, x:10}.{x:5}.f()" five)
 
   ;; can extract raw methods
   (check-pyret-match "3:add" (p:p-method _ _ (? procedure?)))
-  (check-pyret-match "{f(x): 5}:f" (p:p-method _ _ (? procedure?)))
+  (check-pyret-match "{f(x): 5 end}:f" (p:p-method _ _ (? procedure?)))
 
   ;; can put raw methods on other objects and use them
-  (check-pyret "var o = {x:5} var o2 = {f(self): self.x} o := o.{g : o2:f} o.g()" five)
+  (check-pyret "var o = {x:5} var o2 = {f(self): self.x end} o := o.{g : o2:f} o.g()" five)
 
   ;; cannot apply raw methods (better error messages plz)
   (check-pyret-exn "3:add()" "apply-fun: expected function")
   (check-pyret
-    "o = { m(self): self }
+    "o = { m(self): self end }
      m = o:m
      m._fun()(5)"
     five)
-  (check-pyret "o = {fff(self, x): x} o:['f'.append('ff')]._fun()(nothing, 5)" five)
+  (check-pyret "o = {fff(self, x): x end} o:['f'.append('ff')]._fun()(nothing, 5)" five)
   (check-pyret "fun f(self): self.x end o = { x: 5 }.{ m : f._method() } o.m()" five)
 ))
 
@@ -583,7 +626,7 @@
 
   (check-pyret-exn "
   var should_notice_method_bodies = 5
-  o = { meth(self): should_notice_method_bodies = 3 }
+  o = { meth(self): should_notice_method_bodies = 3 end }
   "
   CONFLICT-MESSAGE)
 
@@ -632,6 +675,34 @@
 
 ))
 
+(define binary-operators (test-suite "binary-operators"
+  (check-pyret "6 - 4 - 1" (p:mk-num 1))
+  (check-pyret "6 - (4 - 1)" (p:mk-num 3))
+  (check-pyret "5 + 5" (p:mk-num 10))
+  (check-pyret "5 * 5" (p:mk-num 25))
+  (check-pyret "5 / 5" (p:mk-num 1))
+  (check-pyret "4 <= 5" (p:mk-bool #t))
+  (check-pyret "4 < 5" (p:mk-bool #t))
+  (check-pyret "4 >= 5" (p:mk-bool #f))
+  (check-pyret "4 > 5" (p:mk-bool #f))
+  (check-pyret "4 <> 5" (p:mk-bool #t))
+  (check-pyret "4 == 6" (p:mk-bool #f))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f(1+2)" (p:mk-num 3))
+  (check-pyret "fun f(y):
+                  y
+                end
+                f((1+2))" (p:mk-num 3))
+  (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
+  (check-pyret-exn "5 + 'foo'" "Bad args to prim")
+  (check-pyret "x = {lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
+  (check-pyret-exn "x = {lessthan: fun(s,o): 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
+  (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
+))
+                               
 (define all (test-suite "all"
   constants
   functions
@@ -641,9 +712,11 @@
   modules
   built-in-libraries
   do-blocks
+  for-block
   methods
   exceptions
-  ids-and-vars))
+  ids-and-vars
+  binary-operators))
 
 (run-tests all 'normal)
 
@@ -651,4 +724,4 @@
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: {}() except(e): builtins.is-exception(e)" true)
-#;(check-pyret "try: \\x -> (x).x except(e): builtins.is-exception(e)" true)
+#;(check-pyret "try: fun(x) -> (x).x except(e): builtins.is-exception(e) end" true)

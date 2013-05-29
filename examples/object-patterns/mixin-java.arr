@@ -8,12 +8,12 @@ provide {
 } end
 
 #fun drop-fields(obj, names):
-#  builtins.keys(obj).foldr(\name, filtered-obj: (
+#  builtins.keys(obj).foldr(fun(name, filtered-obj):
 #    cond:
 #      | names.member(name) => filtered-obj
 #      | else => filtered-obj.{ [name]: obj[name] }
 #    end
-#  ), {})
+#  end, {})
 #end
 
 # The base object for all hierarchies
