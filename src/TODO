@@ -26,14 +26,14 @@ Need-to-have (soon):
     [] In compile, create two versions of the function, one which is what we
        do now, and another which is optimized for method calls, of the form
        (λ (arg1) (λ (arg2 ...) e))
-    [] In compile, change (s-app (s-get-raw-field e1 e2) e3 ...) into
+    [x] In compile, change (s-app (s-get-raw-field e1 e2) e3 ...) into
        (let ([maybe-meth (get-field e1 e2)])
          (cond
           [(s-method? maybe-meth) ((p-method-m maybe-meth) maybe-meth e3 ...)]
           [(s-fun? maybe-meth) ((p-fun-f maybe-meth) e3 ...)]))
     [] Add a desugar/typecheck error for methods of zero arguments; can still
        happen at runtime due to fun/method conversions
-    [] Figure out what to do with all the builtins that use apply and rely on a
+    [x] Figure out what to do with all the builtins that use apply and rely on a
        single representation (these are probably a bottleneck)
        - Macros probably a good idea here
 [] Indentation enforcement
@@ -71,6 +71,11 @@ BUGS
   - appropriate label, srcloc, and message in runtime.rkt
 [] Move some compile-tests to pyret/ test directory and use unittest
 [] pretty-print a-record
+[] Parser cleanup to remove duplicated code across cases:
+  [] Add sub-production for field name (either [key-expr] or key)
+  [] Add sub-production for lastfield (either field or (field ","))
+  [] Rename s-dot-method, s-bracket-method
+  [] make docstrings first-class productions
 
 CS019 Assignments
 [x] Flags

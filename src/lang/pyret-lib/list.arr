@@ -8,34 +8,36 @@ provide
     empty: empty,
     link: link,
 
-    range: range
+    range: range,
+    map: map,
+    fold: fold
   }
 end
 
 data List:
-  | empty() with
+  | empty with
 
-    length(self): 0,
+    length(self): 0 end,
 
-    each(self, f): empty(),
+    each(self, f): empty end,
 
-    map(self, f): empty(),
+    map(self, f): empty end,
 
-    filter(self, f): empty(),
+    filter(self, f): empty end,
 
-    foldr(self, f, base): base,
+    foldr(self, f, base): base end,
 
-    foldl(self, f, base): base,
+    foldl(self, f, base): base end,
 
-    member(self, elt): false,
+    member(self, elt): false end,
 
-    append(self, other): other,
+    append(self, other): other end,
 
-    last(self): raise('last: took last of empty list'),
+    last(self): raise('last: took last of empty list') end,
 
     take(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => raise('take: took too many')
         | else => raise('take: invalid argument')
       end
@@ -43,15 +45,13 @@ data List:
 
     drop(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => raise('drop: dropped too many')
         | else => raise('drop: invalid argument')
       end
     end,
 
-    reverse(self):
-       self
-    end,
+    reverse(self): self end,
 
     get(self, n):
       cond:
@@ -60,19 +60,17 @@ data List:
       end
     end,
 
-    equals(self, other):
-      is-empty(other)
-    end,
+    equals(self, other): is-empty(other) end,
 
-    tostring(self): "[]"
+    tostring(self): "[]" end
 
   | link(first, rest) with
 
-    length(self): 1.add(self.rest.length()),
+    length(self): 1.add(self.rest.length()) end,
 
-    each(self, f): f(self.first) self.rest.map(f),
+    each(self, f): f(self.first) self.rest.map(f) end,
 
-    map(self, f): f(self.first)^link(self.rest.map(f)),
+    map(self, f): f(self.first)^link(self.rest.map(f)) end,
 
     filter(self, f):
       cond:
@@ -81,13 +79,13 @@ data List:
       end
     end,
 
-    member(self, elt): elt.equals(self.first).or(self.rest.member(elt)),
+    member(self, elt): elt.equals(self.first).or(self.rest.member(elt)) end,
 
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)),
+    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
 
-    foldl(self, f, base): self.rest.foldl(f, f(self.first, base)),
+    foldl(self, f, base): self.rest.foldl(f, f(self.first, base)) end,
 
-    append(self, other): self.first^link(self.rest.append(other)),
+    append(self, other): self.first^link(self.rest.append(other)) end,
 
     last(self):
       cond:
@@ -97,12 +95,12 @@ data List:
     end,
 
     reverse(self):
-       self.rest.reverse().append(self.first^link(empty()))
+       self.rest.reverse().append(self.first^link(empty))
     end,
 
     take(self, n):
       cond:
-        | n.equals(0) => empty()
+        | n.equals(0) => empty
         | n.greaterthan(0) => self.first^link(self.rest.take(n.minus(1)))
         | else => raise('take: invalid argument')
       end
@@ -118,8 +116,8 @@ data List:
 
     get(self, n):
       cond:
-        | n.equals(0) => self.first
         | n.greaterthan(0) => self.rest.get(n.minus(1))
+        | n.equals(0) => self.first
         | else => raise('get: invalid argument: '.append(n.tostring()))
       end
     end,
@@ -134,12 +132,12 @@ data List:
     tostring(self):
     "[".append(
       self.rest.foldl(
-        \elt, s: (s.append(", ").append(tostring(elt))),
+        fun(elt, s): s.append(", ").append(tostring(elt)) end,
 				tostring(self.first))
-		).append("]")
+		).append("]") end
 
 sharing
-  push(self, elt): link(elt, self)
+  push(self, elt): link(elt, self) end
 end
 
 fun range(start, stop):
@@ -149,7 +147,22 @@ fun range(start, stop):
                                         append(", ").
                                         append(stop.tostring()).
                                         append(")"))
-    | start.equals(stop)      => empty()
+    | start.equals(stop)      => empty
     | start.lessthan(stop)    => link(start, range(start.add(1), stop))
   end
 end
+
+fun map(f, lst):
+  cond:
+    | is-empty(lst) => empty
+    | is-link(lst) => f(lst.first)^link(map(f, lst.rest))
+  end
+end
+
+fun fold(f, base, lst):
+  cond:
+    | is-empty(lst) => base
+    | is-link(lst) => fold(f, f(base, lst.first), lst.rest)
+  end
+end
+

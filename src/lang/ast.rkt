@@ -47,6 +47,36 @@ these metadata purposes.
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try (syntax body id except) #:transparent)
 
+(define op+ 'op+)
+(define op- 'op-)
+(define op* 'op*)
+(define op/ 'op/)
+(define op<= 'op<=)
+(define op< 'op<)
+(define op>= 'op>=)
+(define op> 'op>)
+(define op== 'op==)
+(define op<> 'op<>)
+
+(define op-lookup-table
+  (make-immutable-hash
+   `(("+" . ,op+)
+     ("-" . ,op-)
+     ("*" . ,op*)
+     ("/" . ,op/)
+     ("<=" . ,op<=)
+     ("<" . ,op<)
+     (">=" . ,op>=)
+     (">" . ,op>)
+     ("==" . ,op==)
+     ("<>" . ,op<>))))
+
+
+;; s-op: srcloc op Expr Expr -> s-op
+(struct s-op (syntax op left right) #:transparent)
+
+;; s-paren: srcloc Expr -> s-paren
+(struct s-paren (syntax expr) #:transparent)
 
 ;; An Expr is a
 ;; (U s-obj s-onion s-list s-app s-left-app s-id
@@ -112,16 +142,18 @@ these metadata purposes.
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member)
 (struct s-data (syntax name params variants shared-members) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-member) (Listof Member)
-(struct s-variant (syntax name members with-members) #:transparent)
+;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
+(struct s-variant (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant (syntax name with-members) #:transparent)
 
-;; s-member : srcloc Symbol Ann
-(struct s-member (syntax name ann) #:transparent)
-
 ;; s-do : srcloc Stmt (Listof Stmt)
 (struct s-do (syntax init args) #:transparent)
+
+;; s-for-bind : srcloc s-bind Expr
+(struct s-for-bind (syntax bind value))
+;; s-for : srcloc Expr (Listof s-for-bind) ann s-block
+(struct s-for (syntax iterator bindings ann body))
 
 ;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
 (struct a-ann () #:transparent)

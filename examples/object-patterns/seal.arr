@@ -2,6 +2,8 @@
 
 #import "../test.arr" as Test
 
+## NB(dbp): seals exist no longer
+
 provide { seal: seal, unseal: unseal } end
 
 todo1 = {

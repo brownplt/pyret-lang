@@ -1,6 +1,6 @@
 #lang pyret
 
-import "test.arr" as T
+import test as T
 import "../../lang/pyret-lib/experimental/seal.arr" as S
 provide { run-tests: run-tests } end
 

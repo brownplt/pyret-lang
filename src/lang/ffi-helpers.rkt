@@ -20,6 +20,7 @@
 (define (get-val arg)
   (cond
     [(p:p-opaque? arg) (p:p-opaque-val arg)]
+    [(list? arg) (map get-val arg)]
     [(allowed-prim? arg) arg]
     [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
 

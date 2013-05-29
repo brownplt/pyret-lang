@@ -69,10 +69,14 @@
               [mk-num p:mk-num]
               [mk-bool p:mk-bool]
               [mk-str p:mk-str]
+              [pλ p:pλ]
               [mk-fun p:mk-fun]
+              [mk-fun-loc p:mk-fun-loc]
               [mk-fun-nodoc p:mk-fun-nodoc]
               [mk-internal-fun p:mk-internal-fun]
+              [pμ p:pμ]
               [mk-method p:mk-method]
+              [mk-method-loc p:mk-method-loc]
               [mk-structural-list p:mk-structural-list]
               [wrap p:wrap]
               [unwrap p:unwrap]
@@ -84,6 +88,7 @@
               [get-field p:get-field]
               [get-raw-field p:get-raw-field]
               [apply-fun p:apply-fun]
+              [arity-error p:arity-error]
               [check-fun p:check-fun]
               [has-field? p:has-field?]
               [extend p:extend]
@@ -96,6 +101,7 @@
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
+              [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
               [p-else else])
@@ -190,6 +196,43 @@
               (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
 
+;; NOTE(joe): the nested syntax/loc below appears necessary to get good
+;; profiling and debugging line numbers for the created functions
+(define-syntax (pλ stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ...)
+     (quasisyntax/loc stx
+      (mk-fun-loc
+        (lambda (%loc)
+          (case-lambda
+            #,(syntax/loc stx [(arg ...) e ...])
+            [arity-mismatch-args-list
+             (arity-error %loc (quote (arg ...)) arity-mismatch-args-list)]))
+        doc))]))
+
+(define-syntax (pλ/internal stx)
+  (syntax-case stx ()
+    [(_ (loc) (arg ...) e ...)
+     (quasisyntax/loc stx
+       (mk-internal-fun
+         (lambda (loc)
+           (case-lambda
+             #,(syntax/loc stx [(arg ...) e ...])
+             [arity-mismatch-args-list
+              (arity-error loc '(arg ...) arity-mismatch-args-list)]))))]))
+
+(define-syntax (pμ stx)
+  (syntax-case stx ()
+    [(_ (arg ...) e ...)
+     (quasisyntax/loc stx
+      (mk-method-loc
+        (lambda (%loc)
+          (case-lambda
+            #,(syntax/loc stx [(arg ...) e ...])
+            [arity-mismatch-args-list
+             (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))))]))
+
+
 (struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
     (lambda (a-struct)
@@ -250,6 +293,13 @@
                                       ("_method" . ,(mk-method-method f))))
          (λ (_) f)))
 
+;; mk-fun-loc : Proc String -> Value
+(define (mk-fun-loc f s)
+  (p-fun no-brands
+         (make-immutable-hash `(("doc" . ,(mk-str s))
+                                ("_method" . ,(mk-method-method-loc f))))
+         f))
+
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
   (p-fun no-brands (make-immutable-hash `(("doc" . ,nothing)
@@ -264,25 +314,41 @@
 (define (mk-method-method f)
   (p-method no-brands
             (make-immutable-hash `(("doc" . ,nothing)))
-            (λ _ (mk-method f))))
+            (λ (_) (λ (self) (mk-method f)))))
+
+;; mk-method-method-loc : Proc -> p-method
+(define (mk-method-method-loc f)
+  (p-method no-brands
+            (make-immutable-hash `(("doc" . ,nothing)))
+            (λ (_) (λ (self) (mk-method-loc f)))))
 
 ;; mk-fun-method : Proc -> p-method
 (define (mk-fun-method f)
   (p-method no-brands
             (make-immutable-hash `(("doc" . ,(mk-str "method"))))
-            (λ _ (mk-fun f "method-fun"))))
+            (λ (_) (λ (self) (mk-fun f "method-fun")))))
+
+(define (mk-fun-method-loc f)
+  (p-method no-brands
+            (make-immutable-hash `(("doc" . ,(mk-str "method"))))
+            (λ (_) (λ (self) (mk-fun-loc f "method-fun")))))
 
 ;; mk-method : Proc -> Value
 (define (mk-method f)
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
+                                   ("doc" . ,(mk-str "method")))))
+  (p-method no-brands d (λ (_) f)))
+
+(define (mk-method-loc f)
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method-loc f))
                                    ("doc" . ,(mk-str "method")))))
   (p-method no-brands d f))
 
 (define exn-brand (gensym 'exn))
 
 ;; is-number? : Value * -> Value
-(define (is-number? . n)
-  (mk-bool (p-num? (first n))))  
+(define (is-number? n)
+  (mk-bool (p-num? n)))
 (define Number (mk-fun-nodoc is-number?))
 
 ;; is-string : Value * -> Value
@@ -312,10 +378,11 @@
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
-  (py-match (get-raw-field loc v f)
-    [(p-method _ __ f)
-     (mk-fun-nodoc (λ args (apply f (cons v args))))]
-    [(default non-method) non-method]))
+  (define vfield (get-raw-field loc v f))
+  (cond
+    [(p-method? vfield)
+     (mk-fun-nodoc (λ args (apply (p-method-f vfield) (cons v args))))]
+    [else vfield]))
 
 (define (check-fun v l)
   (cond
@@ -349,6 +416,42 @@
         l
         "apply-non-function"
         (format "apply-fun: expected function, got ~a" (to-string v))))]))
+
+(define (arity-method-error loc argnames args)
+  (cond
+    [(= (length args) 0)
+     (raise
+      (pyret-error loc
+        "Arity mismatch (method): expected ~a arguments and an object, but no arguments or object were provided"
+        (length argnames)))]
+    [else
+     (raise
+      (pyret-error
+        loc
+        "arity-mismatch"
+        (format
+  "Arity mismatch (method): expected ~a arguments and an object, but the ~a provided argument(s) were:
+~a
+And the object was:
+~a"
+
+          (- (length argnames) 1)
+          (- (length args) 1)
+          (string-join (map to-string (drop args 1)) "\n")
+          (to-string (first args)))))]))
+
+(define (arity-error loc argnames args)
+  (raise
+    (pyret-error
+      loc
+      "arity-mismatch"
+      (format
+"Arity mismatch: expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+~a"
+        (length argnames)
+        (length args)
+        (length args)
+        (string-join (map to-string args) "\n")))))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
@@ -385,12 +488,17 @@
     [(p-nothing __ ___) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
+;; structural-list? : Value -> Boolean
+(define (structural-list? v)
+  (define d (get-dict v))
+  (and (hash-has-key? d "first")
+       (hash-has-key? d "rest")))
+
 ;; structural-list->list : Value -> Listof Value
 (define (structural-list->list lst)
   (define d (get-dict lst))
   (cond
-    [(and (hash-has-key? d "first")
-          (hash-has-key? d "rest"))
+    [(structural-list? lst)
      (cons (hash-ref d "first")
            (structural-list->list (hash-ref d "rest")))]
     [else empty]))
@@ -412,83 +520,59 @@
 
 (define keys-pfun (mk-fun-nodoc keys))
 
+(define has-field-pfun (pλ/internal (loc) (object field)
+  (cond
+    [(p-str? field)
+     (mk-bool (has-field? object (p-str-s field)))]
+    [else
+     (raise
+      (pyret-error
+        loc
+        "has-field-non-string"
+        (format "has-field: expected string, got ~a" (to-string field))))])))
+
 ;; mk-brander : Symbol -> Proc
 (define (mk-brander sym)
-  (λ (v)
+  (pλ (v)
+    "Brands values"
     (add-brand v sym)))
 
 ;; mk-checker : Symbol -> Proc
 (define (mk-checker sym)
-  (λ (v)
+  (pλ (v)
+    "Checks brands on values"
     (mk-bool (has-brand? v sym))))
 
 ;; brander : -> Value
-(define (brander)
+(define brander-pfun (pλ/internal (_) ()
   (define sym (gensym))
   (mk-object
    (make-immutable-hash 
     `(("brand" .
-       ,(mk-fun-nodoc (mk-brander sym)))
+       ,(mk-brander sym))
       ("check" .
-       ,(mk-fun-nodoc (mk-checker sym)))))))
+       ,(mk-checker sym)))))))
 
-(define brander-pfun (mk-fun-nodoc brander))
 (define (pyret-true? v)
   (and (p-bool? v) (p-bool-b v)))
 
-;; mk-prim-fun :
-;; ((a1 ... an) -> b)
-;; Symbol
-;; (b -> Value)
-;; (a1 -> Boolean ... am -> Boolean)
-;; ((U am+1 ... an) -> Boolean)
-;; (∩ (Value1 -> a1) ... (Valuen -> an))
-;; -> (Value1 ... Valuen -> Value)
-(define (mk-prim-fun op opname [pred-default p-base?] [preds (list)] [wrapper wrap] [unwrapper unwrap])
-  (mk-method
-    (λ args
-      (define args-len (length args))
-      (define preds-len (length preds))
-      (cond
-        [(<= preds-len args-len)
-         (define preds-passed (andmap (λ (pred arg) (pred arg)) preds (take args preds-len)))
-         (define pred-default-passed (andmap (λ (arg) (pred-default arg)) (drop args preds-len)))
-         (cond
-          [(and preds-passed pred-default-passed)
-           (wrapper (apply op (map unwrapper args)))]
-          [else
-           (define args-strs (map to-string args))
-           (define args-str (string-join args-strs ", "))
-           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])]
-        [else
-         (define args-strs (map to-string args))
-         (define args-str (string-join args-strs ", "))
-         (define error-val (mk-str (format "Too many args to prim: ~a : ~a" opname args-str)))
-         (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
- 
-(define-syntax-rule (mk-prim-fun-m op opname wrapper unwrapper (arg ...) (pred ...))
-  (mk-method
-    (λ (arg ...)
-       (define preds-passed (and (pred arg) ...))
-       (cond
-        [preds-passed (wrapper (op (unwrapper arg) ...))]
-        [else 
-           (define args-strs (list (to-string arg) ...))
-           (define args-str (string-join args-strs ", "))
-           (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-           (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))]))))
-
-(define (mk-prim-fixed op opname pred len)
-  (mk-prim-fun op opname (λ (v) #f) (build-list len (λ (n) pred))))
-
+(define-syntax-rule (mk-prim-fun op opname wrapper unwrapper (arg ...) (pred ...))
+  (pμ (arg ...)
+    (define preds-passed (and (pred arg) ...))
+    (cond
+      [preds-passed (wrapper (op (unwrapper arg) ...))]
+      [else 
+        (define args-strs (list (to-string arg) ...))
+        (define args-str (string-join args-strs ", "))
+        (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
+        (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])))
 
 (define-syntax-rule (mk-num-1 op opname)
-  (mk-prim-fun-m op opname mk-num p-num-n (n) (p-num?)))
+  (mk-prim-fun op opname mk-num p-num-n (n) (p-num?)))
 (define-syntax-rule (mk-num-2 op opname)
-  (mk-prim-fun-m op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
 (define-syntax-rule (mk-num-2-bool op opname)
-  (mk-prim-fun-m op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store (make-immutable-hash '()))
@@ -506,8 +590,8 @@
           ("sqr" . ,(mk-num-1 sqr 'sqr))
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
           ("floor" . ,(mk-num-1 floor 'floor))
-          ("tostring" . ,(mk-prim-fun-m number->string 'tostring mk-str p-num-n (n) (p-num?)))
-          ("expt" . ,(mk-num-1 expt 'expt))
+          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str p-num-n (n) (p-num?)))
+          ("expt" . ,(mk-num-2 expt 'expt))
           ("equals" . ,(mk-num-2-bool = 'equals))
           ("lessthan" . ,(mk-num-2-bool < 'lessthan))
           ("greaterthan" . ,(mk-num-2-bool > 'greaterthan))
@@ -516,39 +600,25 @@
   meta-num-store)
 (define p-pi (mk-num pi))
 
-(define (mk-str-fun op opname)
-  (mk-prim-fun op opname p-str?))
-(define (mk-str-fixed op opname len)
-  (mk-prim-fixed op opname p-str? len))
-
 ;; meta-str-store (Hashof String value)
 (define meta-str-store (make-immutable-hash '()))
 (define (meta-str)
   (when (= 0 (hash-count meta-str-store))
     (set! meta-str-store
       (make-immutable-hash
-        `(("append" . ,(mk-str-fun string-append 'append))
-          ("contains" . ,(mk-str-fixed string-contains 'contains 2))
-          ("length" . ,(mk-str-fixed string-length 'length 1))
-          ("tonumber" . ,(mk-str-fixed string->number 'tonumber 1))
-          ("equals" . ,(mk-str-fixed string=? 'equals 2))
-          ;; NOTE(dbp): this process of writing library code is ridiculous.
-          ;; We need to put this elsewhere.
-          ;("starts-with" . ,(mk-method (mk-str-bool-impl (lambda (s ) (substring s ))
-          ;("from" . ,(mk-method ,(mk-str-fun (lambda (s n) (substring s n (string-length s))))))
-          ;("trim" . ,(mk-method ,(mk-single-str-fun (lambda (s) (mk-str (string-trim s))))))
+        `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))
+          ("equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
       ))))
   meta-str-store)
 
-(define (mk-bool-fun op opname)
-  (mk-prim-fun op opname p-bool?))
-(define (mk-bool-fixed op opname len)
-  (mk-prim-fixed op opname p-bool? len))
-
 (define-syntax-rule (mk-bool-1 op opname)
-  (mk-prim-fun-m op opname mk-bool p-bool-b (b) (p-bool?)))
+  (mk-prim-fun op opname mk-bool p-bool-b (b) (p-bool?)))
 (define-syntax-rule (mk-bool-2 op opname)
-  (mk-prim-fun-m op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
+  (mk-prim-fun op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
 
 (define (bool->string b) (if b "true" "false"))
 
@@ -591,7 +661,7 @@
              (if (p-method? m)
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
-                 (py-match ((p-method-f m) v)
+                 (py-match (((p-method-f m) dummy-loc) v)
                            [(p-str _ __ s) s]
                            [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
@@ -600,20 +670,18 @@
 
 (define tostring-pfun (mk-fun-nodoc (λ o (mk-str (to-string (first o))))))
 
-(define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing)))
-)
+(define print-pfun (mk-fun-nodoc (λ o (begin (printf "~a\n" (to-string (first o))) nothing))))
 
-;; check-brand : Loc -> Value * -> Value
-(define check-brand
-  (λ (loc)
-    (λ (ck o s)
+
+;; check-brand-pfun : Loc -> Value * -> Value
+(define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
     [(and (p-fun? ck) (p-str? s))
      (define f (p-fun-f ck))
      (define typname (p-str-s s))
      (define check-v ((f loc) o))
      (if (and (p-bool? check-v) (p-bool-b check-v))
-	       o
+         o
          ;; NOTE(dbp): not sure how to give good reporting
          ;; NOTE(joe): This is better, but still would be nice to highlight
          ;;  the call site as well as the destination
@@ -625,9 +693,7 @@
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]
     [else
-     (error "runtime: check-brand failed")]))))
-
-(define check-brand-pfun (mk-internal-fun check-brand))
+     (error "runtime: check-brand failed")])))
 
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
@@ -636,9 +702,12 @@
     [(p-bool _ __ b) b]
     [(p-str _ __ s) s]
     [(default _)
-     (if (p-opaque? v)
-         v
-         (error (format "unwrap: cannot unwrap ~a for Racket" v)))]))
+     (cond
+      [(p-opaque? v) v]
+      [(and (p-object? v) (structural-list? v))
+       (map unwrap (structural-list->list v))]
+      [else
+       (error (format "unwrap: cannot unwrap ~a for Racket" (to-string v)))])]))
 
 ;; wrap : RacketValue -> Value
 (define (wrap v)

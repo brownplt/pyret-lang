@@ -9,7 +9,7 @@ provide {
 
 fun mklist(obj):
   cond:
-    | obj.is-empty => list.empty()
+    | obj.is-empty => list.empty
     | else => list.link(obj.first, mklist(obj.rest))
   end
 end
@@ -19,5 +19,5 @@ fun keys(obj):
 end
 
 fun has-field(obj, name):
-  keys(obj).member(name)
+  prim-has-field(obj, name)
 end

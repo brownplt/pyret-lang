@@ -2,4 +2,4 @@
 
 provide "list-exists" end
 
-x = list.empty()
+x = list.empty

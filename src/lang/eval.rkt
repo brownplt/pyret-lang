@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 (provide
   src->module-name
@@ -8,6 +8,9 @@
   pyret->racket
   pyret->racket/libs)
 (require
+  (only-in racket/bool false?)
+  racket/match
+  racket/pretty
   (only-in racket/base [print racket-print])
   racket/sandbox
   racket/runtime-path

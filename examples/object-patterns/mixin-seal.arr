@@ -1,5 +1,8 @@
 #lang pyret
 
+
+## NB(dbp): seals exist no longer
+
 import "check.arr" as Check
 
 todo1 = {

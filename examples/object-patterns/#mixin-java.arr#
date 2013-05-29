@@ -8,12 +8,12 @@ provide {
 } end
 
 #fun drop-fields(obj, names):
-#  builtins.keys(obj).foldr(fun(name, filtered-obj):
+#  builtins.keys(obj).foldr(\name, filtered-obj: (
 #    cond:
 #      | names.member(name) => filtered-obj
 #      | else => filtered-obj.{ [name]: obj[name] }
 #    end
-#  end, {})
+#  ), {})
 #end
 
 # The base object for all hierarchies
@@ -27,7 +27,7 @@ Object = object-brander.brand({
     instance-of(_, class): object-brander.check(class) end,
     view-as(inst, class):
       cond:
-        | object-brander.check(class) => inst
+        | object-brander.check(class) => ret inst
         | else => raise("Incompatible cast in view-as")
       end
     end
@@ -38,7 +38,7 @@ Object = object-brander.brand({
 # : Class -> ClassDescription -> Class
 fun ext(parent-class, description):
   class-brander = brander()
-  class-brander.brand({
+  ret class-brander.brand({
 
     # : (Class) -> Object -> Instance
     new(self, spec): 
@@ -51,8 +51,8 @@ fun ext(parent-class, description):
         # : (Instance) -> String -> Any
         get(_, name):
           cond:
-            | builtins.has-field(fields, name) => fields.[name]
-            | else => parent-inst.get(name)
+            | builtins.has-field(fields, name) => ret fields.[name]
+            | else => ret parent-inst.get(name)
           end
         end,
 
@@ -60,8 +60,9 @@ fun ext(parent-class, description):
         set(_, name, val):
           cond:
             | builtins.has-field(fields, name) => 
-                fields := fields.{ [name]: val }
-            | else => parent-inst.set(name, val)
+                do fields := fields.{ [name]: val }
+            | else =>
+                do parent-inst.set(name, val)
           end
         end,
 
@@ -77,9 +78,9 @@ fun ext(parent-class, description):
 
           cond:
             | builtins.has-field(methods, name) =>
-              methods:[name]._fun()(inst-with-super, arg)
+              ret methods:[name]._fun()(inst-with-super, arg)
             | else =>
-              parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
+              ret parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
           end
         end,
 
@@ -90,8 +91,8 @@ fun ext(parent-class, description):
         
         view-as(inst, class):
           cond:
-            | class-brander.check(class) => inst
-            | else => parent-inst:view-as._fun()(inst.{
+            | class-brander.check(class) => ret inst
+            | else => ret parent-inst:view-as._fun()(inst.{
                 get: parent-inst:get,
                 set: parent-inst:set,
                 invoke(_, name, arg):
@@ -104,14 +105,14 @@ fun ext(parent-class, description):
 
       inst-with-super = instance.{
         super(inst, spec):
-          parent-inst := parent-class.new(spec)
-          inst
+          do parent-inst := parent-class.new(spec)
+          ret inst
         end
       }
 
       inst-constructed = description:constructor._fun()(inst-with-super, spec)
       #drop-fields(inst-constructed, ["super"])
-      inst-constructed
+      ret inst-constructed
     end,
 
     # : (Class) -> ClassDescription -> Class
@@ -142,10 +143,10 @@ todo-class-descr = {
   # Constructor should return an object to use as self
   # : (Instance) -> Object -> Instance
   constructor(self, spec):
-    self.set("due", spec.due)
-    self.set("task", spec.task)
-    self.set("done", false)
-    self.super(spec)
+    self.set("due", spec.due);
+    self.set("task", spec.task);
+    self.set("done", false);
+    ret self.super(spec)
   end
 }
 
@@ -156,7 +157,7 @@ assignee-ext-descr = {
   methods: {
 
     assign(self, person):
-      cond:
+      ret cond:
         | self.get("done") => raise("Can't assign a completed task")
         | else => self.set("assignee", person)
       end

@@ -20,9 +20,11 @@
   (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
 
 (define (wrap-ann-check loc ann e)
+  (define (skippable? a)
+    (or (a-blank? a) (a-any? a) (and (a-name? a) (equal? (a-name-id a) 'Any))))
   (match ann
-    [(a-blank) e]
-    [(a-arrow _ (list (a-blank)) (a-blank)) e]
+    [(? skippable? a) e]
+    [(a-arrow _  (list (? skippable? arg) ...) (? skippable? return)) e]
     [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
@@ -70,9 +72,13 @@
      (mk-flat-checker (s-bracket s (s-id s obj)
                                  (s-str s (symbol->string fld))))]
     [(a-blank)
-     (mk-flat-checker (s-id loc 'Any))]
+     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-id loc '_))]
     [(a-any)
-     (mk-flat-checker (s-id loc 'Any))]
+     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+             (mk-contract-doc ann)
+             (s-id loc '_))]
     [(a-arrow s args result)
      (code-wrapper s args result mk-lam (λ (e) e))]
     [(a-method s args result)

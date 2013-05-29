@@ -19,12 +19,12 @@ todo1 = {
 fun droppable(obj):
   obj.{
     drop(self, names):
-      builtins.keys(self).foldr(\name, self-dropped: (
+      builtins.keys(self).foldr(fun(name, self-dropped):
         cond:
           | names.member(name) => self-dropped
           | else => self-dropped.{ [name]: self.[name] }
         end
-      ), {})
+      end, {})
     end
   }
 end
