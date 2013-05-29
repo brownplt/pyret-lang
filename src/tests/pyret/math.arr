@@ -6,14 +6,13 @@ provide { run-tests: run-tests } end
 
 fun run-tests():
 
-  fun f(i):
-    cond:
-    | i.lessthan(1000) => 
+  fun f():
+    for list.fold(acc from true, _ from list.range(0, 1000)):
       val = M.sample(M.uniform-dist(0, 100))
-      val.greaterthan(0).and(val.lessthan(100)).and(f(i.plus(1)))
-    | else => true
+      acc.and(val > 0).and(val < 100)
     end
   end
-  T.check-equals("Test uniform", \(f(0)), true)
+    
+  T.check-equals("Test uniform", f, true)
 
 end

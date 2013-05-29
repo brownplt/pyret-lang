@@ -6,22 +6,22 @@ provide { run-tests: run-tests } end
 fun run-tests():
 
   T.check-equals("constant function",
-    \(fun f(): 2 end f()),
+    fun: fun f(): 2 end f() end,
     2)
 
   T.check-equals("identity function on a number",
-    \(fun f(x): x end f(2)), 2)
+    fun: fun f(x): x end f(2) end, 2)
 
   T.check-equals("shadowing",
-    \(fun f(x): x end fun g(x): x end f(2) g(10) f(2)),
+    fun: fun f(x): x end fun g(x): x end f(2) g(10) f(2) end,
     2)
 
   T.check-equals("shadowing2",
-    \(fun f(x): fun g(x): x end g(x) end f(5)),
+    fun: fun f(x): fun g(x): x end g(x) end f(5) end,
     5)
 
   T.check-not-equals("constant function",
-    \(fun f(x): x end f(3)),
+    fun: fun f(x): x end f(3) end,
     2)
 
 end
