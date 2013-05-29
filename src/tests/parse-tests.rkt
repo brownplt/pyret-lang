@@ -600,6 +600,13 @@
                       (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
 
    (check-parse/fail "when(1 < 2): 3" "parsing error")
+
+   (check/block "(a == b).or(true)"
+                (s-app _ (s-dot _ (s-paren _ (s-op _ op==
+                                                       (s-id _ 'a)
+                                                       (s-id _ 'b)))
+                                    'or)
+                       (list (s-bool _ #t))))
    ))
 
 (define all (test-suite "all"
