@@ -56,10 +56,6 @@ Need-to-have (soon):
     [!] Move test-utils code to eval.rkt?
       - Can't, causes loading cycle
 
-BUGS
-[] Name<Name<Foo>> is a syntax error, because >> is parsed as a single
-   token. Name<Name<Foo> > parses fine.
-
 15-minute tasks
 [] Make everything with methods consistent with functions
   [] doc
@@ -87,7 +83,7 @@ CS019 Assignments
 [x] Updater
 [] ||ism
 [] Tour Guide
-[] Seam Carving (image libs)
+[x] Seam Carving (image libs)
 
 Need-to-have (eventually):
 [] not before things as opposed to after?
@@ -107,8 +103,6 @@ Need-to-have (eventually):
 [] better error reporting / pretty printing / support for debugging.
    For example, printing out names for brands (where appropriate)
    would be a start.
-[] seals should expand when fields are updated; otherwise you
-   can tell what is hidden, which is potentially a Bad Thing
 [x] Capture avoiding names in catch blocks
 [] Data urls for inline images
 
@@ -122,10 +116,9 @@ Nice-to-have (eventually):
 [] Vim highlight numbers
 [x] Allow exprs for object literal field names
 [x] := for assignment
-[] don't use ? in identifiers from data
+[x] don't use ? in identifiers from data
 [] better pretty-printing libraries
 [] optional "," in object literals
-[] (what's up with) end syntax for lambdas?
 
 Redex
 [] Redex the initial semantics
@@ -142,7 +135,7 @@ Redex
 HTDP:
 [] surface syntax for first-class methods
 [] Constructed types and brands
-[] surface syntax for operators?
+[x] surface syntax for operators?
 [] Desugar data
   [] Lock operator for immutability
   [] Brand checks on struct creation
