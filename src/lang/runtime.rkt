@@ -635,7 +635,7 @@ And the object was:
         (make-immutable-hash
          `(("and" . ,(mk-bool-2 my-and 'and))
            ("or" . ,(mk-bool-2 my-or 'or))
-           ("tostring" . ,(mk-prim-fun-m bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
+           ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
            ("equals" . ,(mk-bool-2 equal? 'equals))
            ("not" . ,(mk-bool-1 not 'not))))))) 
   meta-bool-store)
