@@ -105,7 +105,7 @@ data List:
     take(self, n):
       cond:
         | n == 0 => empty
-        | n == 0 => self.first^link(self.rest.take(n - 1))
+        | n >= 0 => self.first^link(self.rest.take(n - 1))
         | else => raise('take: invalid argument')
       end
     end,
@@ -138,7 +138,7 @@ data List:
     tostring(self):
       "[" +
         for fold(combined from tostring(self.first), elt from self.rest):
-          combined + ", " + elt.tostring
+          combined + ", " + tostring(elt)
         end
       + "]"
     end,

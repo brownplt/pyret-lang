@@ -598,6 +598,12 @@
    (check/block "1 <= (1+2)"
                 (s-op _ op<= (s-num _ 1)
                       (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
+   
+   (check/block "(a + ((d * 2) + g))"
+                (s-paren _ (s-op _ op+
+                                   (s-id _ 'a)
+                                   (s-paren _ (s-op _ op+ (s-paren _ (s-op _ op* (s-id _ 'd) (s-num _ 2)))
+                                                          (s-id _ 'g))))))
 
    (check-parse/fail "when(1 < 2): 3" "parsing error")
 

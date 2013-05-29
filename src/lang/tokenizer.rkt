@@ -43,6 +43,11 @@
      ;; function application and binary operators unambiguously. By
      ;; doing this at the tokenizer level, we don't need to deal
      ;; with whitespace in the grammar.
+     [(concatenation whitespace "((")
+      (let [(middle-pos (get-middle-pos (- (string-length lexeme) 2) start-pos))]
+      (return-without-pos
+       (list (position-token (token PARENSPACE "(") start-pos middle-pos)
+             (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      ["(("
       (let [(middle-pos (get-middle-pos 1 start-pos))]
       (return-without-pos
