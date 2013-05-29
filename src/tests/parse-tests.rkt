@@ -93,9 +93,7 @@
 
   (check/block "fun f(): 5 end"
               (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
-  (check/block "fun f(): (5)"
-              (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))))
-
+  
   (check/block "fun g(g): 5 end"
               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))) (a-blank)
                      _
@@ -108,12 +106,6 @@
                       _
                       (s-block _ (list (s-num _ 5)))))
 
-  (check/block "fun g(g,f,x): (5)"
-               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
-                                 (s-bind _ 'f (a-blank)) 
-                                 (s-bind _ 'x (a-blank))) (a-blank)
-                      _
-                      (s-block _ (list (s-num _ 5)))))
   (check/block "brander()"
                (s-app _ (s-id _ 'brander) (list)))
 
@@ -227,19 +219,19 @@
 ))
 
 (define anon-func (test-suite "anon-func"
-  (check/block " \\ (x)"
+  (check/block "fun: x end"
                (s-lam _ empty (list)
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))))
 
-  (check/block " \\-> Number: (x)"
+  (check/block "fun -> Number: x end"
                (s-lam _ empty (list)
                       (a-name _ 'Number)
                       _
                       (s-block _ (list (s-id _ 'x)))))
 
-  (check/block "\\x :: Number, y :: Bool -> Number: (x.send(y))"
+  (check/block "fun(x :: Number, y :: Bool) -> Number: x.send(y) end"
                (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number))
                               (s-bind _ 'y (a-name _ 'Bool)))
                       (a-name _ 'Number)
@@ -248,7 +240,7 @@
                                               (s-dot _ (s-id _ 'x) 'send)
                                               (list (s-id _ 'y)))))))
 
-  (check/block "\\x,y,z: (x)"
+  (check/block "fun(x,y,z): x end"
                (s-lam _ empty (list (s-bind _ 'x (a-blank))
                               (s-bind _ 'y (a-blank))
                               (s-bind _ 'z (a-blank)))

@@ -76,15 +76,15 @@ end
 fun get-results(): results end
 
 fun format-results():
-  passed = results.filter(\r: (r.passed))
-  failed = results.filter(\r: (r.passed.not()))
+  passed = results.filter(fun(r): r.passed end)
+  failed = results.filter(fun(r): r.passed.not() end)
   passedNum = passed.length()
   failedNum = failed.length()
 
   print(passedNum.tostring().append(" tests passed."))
   print(failedNum.tostring().append(" tests failed."))
 
-  results.map(\r: (
+  results.map(fun(r):
     cond:
       | r.passed => nothing
       | else =>
@@ -103,6 +103,6 @@ fun format-results():
         end
         print("")
     end
-  ))
+  end)
   nothing
 end

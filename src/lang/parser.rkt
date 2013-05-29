@@ -233,12 +233,6 @@
     [(cond-branch "|" test "=>" body)
      (s-cond-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
-(define (parse-lambda-args stx)
-  (syntax-parse stx
-    #:datum-literals (lambda-args list-arg-elt)
-    [(lambda-args ) empty]
-    [(lambda-args (list-arg-elt arg1 ",") ... lastarg) 
-     (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
 
 (define (parse-ty-params stx)
   (syntax-parse stx
@@ -317,19 +311,17 @@
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(lambda-expr "\\" ty-params args return-ann ":" fun-body)
+    [(lambda-expr "fun" ty-params args return-ann ":" fun-body)
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
-            (parse-lambda-args #'args)
+            (parse-args #'args)
             (parse-return-ann #'return-ann)
             ""
             (parse-fun-body #'fun-body))]
-    [(lambda-expr "\\" fun-body)
-     (s-lam (loc stx) empty empty (a-blank) "" (parse-fun-body #'fun-body))]
-    [(lambda-expr "\\" return-ann ":" fun-body)
+    [(lambda-expr "fun" ty-params return-ann ":" fun-body)
      (s-lam (loc stx)
-            empty
-            empty
+            (parse-ty-params #'ty-params)
+            (list)
             (parse-return-ann #'return-ann)
             ""
             (parse-fun-body #'fun-body))]

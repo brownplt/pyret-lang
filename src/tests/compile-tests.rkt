@@ -55,10 +55,10 @@
 
   (check-pyret-fail "fun f(x): x end f(3)" two)
 
-  (check-pyret "\\x: (x)(2)" two)
-  (check-pyret "var x = 2 \\ x := 10 end() x" ten)
-  (check-pyret-exn "var x = 2 \\x: x := 10 end(5) x" CONFLICT-MESSAGE)
-  (check-pyret "var x = 2 fun f(g): g() end f(\\ x := 10 end) x" ten)
+  (check-pyret "fun(x): x end(2)" two)
+  (check-pyret "var x = 2 fun: x := 10 end() x" ten)
+  (check-pyret-exn "var x = 2 fun(x): x := 10 end(5) x" CONFLICT-MESSAGE)
+  (check-pyret "var x = 2 fun f(g): g() end f(fun: x := 10 end) x" ten)
 
   (check-pyret "fun f(x): x = 2 x end f(1)" two)
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
@@ -151,7 +151,7 @@
 (define do-blocks (test-suite "do-blocks"
   (check-pyret
    "var x = 0
-    do \\f,g: f() g() end x := 5; x end" five)
+    do fun(f,g): f() g() end x := 5; x end" five)
 
   ;; check expansions of or and and with do
   (check-pyret
@@ -205,7 +205,7 @@
         | test() =>
             body()
             update()
-            For(\\ end, test, update, body)
+            For(fun: end, test, update, body)
         | true => 'for base case'
       end
     end
@@ -370,7 +370,7 @@
      check = [b.check(from-b), b.check(from-c), b.check(from-f)
                 ,c.check(from-b), c.check(from-c), c.check(from-f)
                 ,f.check(from-b), f.check(from-c), f.check(from-f)]
-     list.is-empty(check.filter(\\x: (x.not())))
+     list.is-empty(check.filter(fun(x): x.not() end))
   " (p:mk-bool #t))
   ))
 
@@ -425,8 +425,8 @@
         | else => map(l.rest, f).push(f(l.first))
       end
     end
-    l1 = map([5], \\x: (x.add(1))).first
-    l2 = map([5,6,7], \\x: (x.add(1))).rest.rest.first
+    l1 = map([5], fun(x): x.add(1) end).first
+    l2 = map([5,6,7], fun(x): x.add(1) end).rest.rest.first
     l1.add(l2)" (p:mk-num 14))
 
   (check-pyret "import Racket as R
@@ -457,8 +457,8 @@
         end
     }
   end
-  l1 = mklist([5]).map(\\x :: Number: (x.add(1))).first()
-  l2 = mklist([5,6,7]).map(\\x :: Number: (x.add(1))).rest().rest().first()
+  l1 = mklist([5]).map(fun(x :: Number): x.add(1) end).first()
+  l2 = mklist([5,6,7]).map(fun(x :: Number): x.add(1) end).rest().rest().first()
   l1.add(l2)
     " (p:mk-num 14))
 
@@ -696,7 +696,7 @@
   (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
   (check-pyret "x = {lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
-  (check-pyret-exn "x = {lessthan: \\s,o: 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {lessthan: fun(s,o): 3 end} x < 5" "Arity")
   (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
 ))
@@ -722,4 +722,4 @@
 ;; TODO(joe): decide on the shape of exceptions for builtins
 #;(check-pyret "try: {}.x except(e): builtins.is-exception(e)" true)
 #;(check-pyret "try: {}() except(e): builtins.is-exception(e)" true)
-#;(check-pyret "try: \\x -> (x).x except(e): builtins.is-exception(e)" true)
+#;(check-pyret "try: fun(x) -> (x).x except(e): builtins.is-exception(e) end" true)

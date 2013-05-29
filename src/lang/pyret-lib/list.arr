@@ -132,7 +132,7 @@ data List:
     tostring(self):
     "[".append(
       self.rest.foldl(
-        \elt, s: (s.append(", ").append(tostring(elt))),
+        fun(elt, s): s.append(", ").append(tostring(elt)) end,
 				tostring(self.first))
 		).append("]") end
 

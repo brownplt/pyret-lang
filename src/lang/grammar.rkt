@@ -52,9 +52,6 @@ list-arg-elt: arg-elt ","
 args: PARENNOSPACE [list-arg-elt* arg-elt] ")"
 
 fun-body: block "end"
-        # This is a horrible sad hack, but we are dropping this syntax anyway and
-        # did not want to add more changes in the tokenizer conversions
-        | paren-expr
 
 list-ty-param: NAME ","
 ty-params:
@@ -65,13 +62,9 @@ return-ann: ["->" ann]
 fun-header: ty-params NAME args return-ann
 
 fun-expr: "fun" fun-header ":" fun-body
- 
-lambda-args: list-arg-elt* arg-elt
-lambda-expr:
-   BACKSLASH ty-params lambda-args return-ann ":" fun-body
- | BACKSLASH fun-body
- | BACKSLASH return-ann ":" fun-body
- 
+
+lambda-expr: "fun" ty-params [args] return-ann ":" fun-body
+
 when-expr: "when" binop-expr ":" block "end"
 
 cond-branch: "|" binop-expr "=>" block
