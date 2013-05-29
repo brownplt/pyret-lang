@@ -37,16 +37,16 @@ data List:
 
     take(self, n):
       cond:
-        | n.equals(0) => empty
-        | n.greaterthan(0) => raise('take: took too many')
+        | n == 0 => empty
+        | n > 0 => raise('take: took too many')
         | else => raise('take: invalid argument')
       end
     end,
 
     drop(self, n):
       cond:
-        | n.equals(0) => empty
-        | n.greaterthan(0) => raise('drop: dropped too many')
+        | n == 0 => empty
+        | n > 0 => raise('drop: dropped too many')
         | else => raise('drop: invalid argument')
       end
     end,
@@ -55,7 +55,7 @@ data List:
 
     get(self, n):
       cond:
-        | n.greaterequal(0) => raise('get: n too large: '.append(n.tostring()))
+        | n >= 0 => raise('get: n too large: '.append(n.tostring()))
         | else => raise('drop: invalid argument')
       end
     end,
@@ -66,9 +66,9 @@ data List:
 
   | link(first, rest) with
 
-    length(self): 1.add(self.rest.length()) end,
+    length(self): 1 + self.rest.length() end,
 
-    each(self, f): f(self.first) self.rest.map(f) end,
+    each(self, f): f(self.first) self.rest.each(f) end,
 
     map(self, f): f(self.first)^link(self.rest.map(f)) end,
 
@@ -100,41 +100,44 @@ data List:
 
     take(self, n):
       cond:
-        | n.equals(0) => empty
-        | n.greaterthan(0) => self.first^link(self.rest.take(n.minus(1)))
+        | n == 0 => empty
+        | n == 0 => self.first^link(self.rest.take(n - 1))
         | else => raise('take: invalid argument')
       end
     end,
 
     drop(self, n):
       cond:
-        | n.equals(0) => self
-        | n.greaterthan(0) => self.rest.drop(n.minus(1))
+        | n == 0 => self
+        | n > 0 => self.rest.drop(n - 1)
         | else => raise('drop: invalid argument')
       end
     end,
 
     get(self, n):
       cond:
-        | n.greaterthan(0) => self.rest.get(n.minus(1))
-        | n.equals(0) => self.first
-        | else => raise('get: invalid argument: '.append(n.tostring()))
+        | n > 0 => self.rest.get(n - 1)
+        | n == 0 => self.first
+        | else => raise('get: invalid argument: ' + n.tostring())
       end
     end,
 
     equals(self, other):
       cond:
-        | is-link(other) => self.first.equals(other.first).and(self.rest.equals(other.rest))
+        | is-link(other) =>
+          others-equal = (self.first == other.first)
+          others-equal.and(self.rest == other.rest)
         | else => false
       end
     end,
 
     tostring(self):
-    "[".append(
-      self.rest.foldl(
-        fun(elt, s): s.append(", ").append(tostring(elt)) end,
-				tostring(self.first))
-		).append("]") end
+      "[" +
+        for fold(combined from tostring(self.first), elt from self.rest):
+          combined + ", " + elt.tostring
+        end
+      + "]"
+    end
 
 sharing
   push(self, elt): link(elt, self) end
@@ -142,13 +145,13 @@ end
 
 fun range(start, stop):
   cond:
-    | start.greaterthan(stop) => raise("range: start greater than stop: (".
-                                        append(start.tostring()).
-                                        append(", ").
-                                        append(stop.tostring()).
-                                        append(")"))
+    | start.greaterthan(stop) => raise("range: start greater than stop: ("
+                                        + start.tostring()
+                                        + ", "
+                                        + stop.tostring()
+                                        + ")")
     | start.equals(stop)      => empty
-    | start.lessthan(stop)    => link(start, range(start.add(1), stop))
+    | start.lessthan(stop)    => link(start, range(start + 1, stop))
   end
 end
 
