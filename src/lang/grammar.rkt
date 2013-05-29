@@ -24,7 +24,7 @@ paren-expr: PARENSPACE binop-expr ")"
     
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-    | cond-expr | lambda-expr | extend-expr | left-app-expr
+    | cond-expr | lambda-expr | method-expr | extend-expr | left-app-expr
     | for-expr
 
 
@@ -64,6 +64,8 @@ fun-header: ty-params NAME args return-ann
 fun-expr: "fun" fun-header ":" fun-body
 
 lambda-expr: "fun" ty-params [args] return-ann ":" fun-body
+
+method-expr: "method" args return-ann ":" fun-body
 
 when-expr: "when" binop-expr ":" block "end"
 

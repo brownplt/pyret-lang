@@ -538,6 +538,13 @@
     five)
   (check-pyret "o = {fff(self, x): x end} o:['f'.append('ff')]._fun()(nothing, 5)" five)
   (check-pyret "fun f(self): self.x end o = { x: 5 }.{ m : f._method() } o.m()" five)
+
+  ;; can create raw methods and stick them on objects
+  (check-pyret "var o = {x:3} o := o.{f: method(self): self.x end} o.f()"
+               (p:mk-num 3))
+  ;; can't apply raw methods
+  (check-pyret-exn "method(self): 1 end()" "apply-fun: expected function")
+  
 ))
 
 (define exceptions (test-suite "exceptions"
