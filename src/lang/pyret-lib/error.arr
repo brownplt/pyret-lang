@@ -11,7 +11,8 @@ provide {
 data Location:
   | location(file :: String, line :: Number, column :: Number) with
     format(self):
-      self.file.append(": line ").append(self.line.tostring()).append(", column ").append(self.column.tostring()) end
+      self.file + ": line " + self.line.tostring() + ", column " + self.column.tostring()
+    end
 end
 
 data Error:
@@ -34,10 +35,11 @@ fun make-error(obj):
       type = obj.value.type
       msg = obj.value.message
       cond:
-        | type.equals("opaque") => opaque-error(msg, loc)
-        | type.equals("field-not-found") => field-not-found(msg, loc)
+        | (type == "opaque") => opaque-error(msg, loc)
+        | (type == "field-not-found") => field-not-found(msg, loc)
         | else => lazy-error(msg, loc)
       end
     | else => obj.value
   end
 end
+
