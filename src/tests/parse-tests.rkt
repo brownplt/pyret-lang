@@ -83,6 +83,11 @@
   (check/block "{['f'](): x end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f")
                                               (list) (a-blank) (s-block _ (list (s-id _ 'x)))))))
+
+  (check/block "method(x,y): 1 end"
+               (s-method _ (list (s-bind _ 'x (a-blank)) (s-bind _ 'y (a-blank)))
+                         (a-blank) (s-block _ (list (s-num _ 1)))))
+  
 ))
 
 (define functions (test-suite "functions"

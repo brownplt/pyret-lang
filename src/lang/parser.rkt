@@ -275,7 +275,8 @@
       bracket-method-expr
       cond-expr 
       for-expr
-      lambda-expr 
+      lambda-expr
+      method-expr
       extend-expr 
       left-app-expr
       expr
@@ -324,6 +325,11 @@
             (list)
             (parse-return-ann #'return-ann)
             ""
+            (parse-fun-body #'fun-body))]
+    [(method-expr "method" args return-ann ":" fun-body)
+     (s-method (loc stx)
+            (parse-args #'args)
+            (parse-return-ann #'return-ann)
             (parse-fun-body #'fun-body))]
     [(extend-expr e "." "{" fields "}")
      (s-onion (loc stx) (parse-expr #'e) (parse-fields #'fields))]
