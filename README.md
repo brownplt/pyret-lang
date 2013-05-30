@@ -9,7 +9,7 @@ when commenting and reporting issues.
 Setting Sail
 ------------
 
-First, make sure ye've installed [Racket >= 5.3.3](http://racket-lang.org). Then run:
+First, make sure ye've installed [Racket >= 5.3.4](http://racket-lang.org). Then run:
 
     $ make dep && make && make test
 
