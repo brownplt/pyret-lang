@@ -63,13 +63,13 @@
     [(s-bool l b) #`(p:mk-bool #,(d->stx b l))]
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
-    [(s-lam l params args ann doc body)
+    [(s-lam l params args ann doc body _)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
     
-    [(s-method l args ann body)
+    [(s-method l args ann body _)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])

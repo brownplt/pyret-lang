@@ -1,6 +1,6 @@
 #lang pyret
 
-provide {mk : mk, check : is-mk} end
+provide {mk : mk, test : is-mk} end
 
 data Mk:
 | mk()

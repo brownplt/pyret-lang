@@ -91,16 +91,16 @@
 
 (define brands (test-suite "brands"
 
-  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("check" _))))
+  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("test" _))))
   (check-pyret-match "fun f(z): x = brander() y = x.brand(z) y end f(2)"
                      (p:p-num (hash-table _) _ 2))
-  (check-pyret-match "fun f(z): x = brander() y = x.brand(z) x.check(y) end f(2)"
+  (check-pyret-match "fun f(z): x = brander() y = x.brand(z) x.test(y) end f(2)"
                      (p:p-bool _ _ #t))
-  (check-pyret-match "fun f(y): x = brander() x.check(y) end f(2)"
+  (check-pyret-match "fun f(y): x = brander() x.test(y) end f(2)"
                      (p:p-bool _ _ #f))
-  (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) y.check(u) end f(3)"
+  (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) y.test(u) end f(3)"
                      (p:p-bool _ _ #f))
-  (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.check(w) end f(3)"
+  (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.test(w) end f(3)"
                      (p:p-bool _ _ #t))
   ))
 
@@ -367,10 +367,10 @@
      from-b = b.mk()
      from-c = c.mk()
      from-f = f.mk()
-     check = [b.check(from-b), b.check(from-c), b.check(from-f)
-                ,c.check(from-b), c.check(from-c), c.check(from-f)
-                ,f.check(from-b), f.check(from-c), f.check(from-f)]
-     list.is-empty(check.filter(fun(x): x.not() end))
+     brand_tests = [b.test(from-b), b.test(from-c), b.test(from-f)
+                ,c.test(from-b), c.test(from-c), c.test(from-f)
+                ,f.test(from-b), f.test(from-c), f.test(from-f)]
+     list.is-empty(brand_tests.filter(fun(x): x.not() end))
   " (p:mk-bool #t))
   ))
 

@@ -552,7 +552,7 @@ And the object was:
    (make-immutable-hash 
     `(("brand" .
        ,(mk-brander sym))
-      ("check" .
+      ("test" .
        ,(mk-checker sym)))))))
 
 (define (pyret-true? v)

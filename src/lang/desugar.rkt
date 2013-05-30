@@ -13,7 +13,7 @@
     (string->symbol (string-append "is-" (symbol->string s))))
 
 (define (make-checker s name tyname brander)
-  (s-let s (s-bind s name (a-blank)) (s-dot s brander 'check)))
+  (s-let s (s-bind s name (a-blank)) (s-dot s brander 'test)))
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
@@ -73,7 +73,8 @@
                      (list
                       (apply-brand s super-brand
                        (apply-brand s brander-name
-                        obj)))))))]))
+                        obj))))
+                    (s-block s empty))))]))
   (map variant-defs variants))
 
 (define (flatten-blocks maybe-blocks)
@@ -88,8 +89,8 @@
     (match ast-node
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
-      [(s-method-field s name args ann body)
-       (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body)))]))
+      [(s-method-field s name args ann body check)
+       (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body) (desugar-internal check)))]))
 
 (define (desugar-ann ann)
   (match ann
@@ -153,14 +154,14 @@
                    (variant-defs/list brander-name super-fields variants))))]
     [(s-do s fun args)
      (define (functionize b)
-       (s-lam s (list) (list) (a-blank) "" (ds b)))
+       (s-lam s (list) (list) (a-blank) "" (ds b) (s-block s empty)))
      (s-app s fun (map functionize args))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
      (define (bind-of b) (match b [(s-for-bind _ b _) b]))
      (define the-function
-      (s-lam s (list) (map bind-of bindings) ann "" (ds body)))
+      (s-lam s (list) (map bind-of bindings) ann "" (ds body) (s-block s empty)))
      (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
@@ -168,7 +169,7 @@
     [(s-let s name val)
      (s-let s name (ds val))]
 
-    [(s-fun s name typarams args ann doc body)
+    [(s-fun s name typarams args ann doc body check)
      (s-let s
             (s-bind s name
                     (a-arrow s (map (replace-typarams typarams)
@@ -179,16 +180,16 @@
             (s-lam s typarams (map (replace-typarams-binds typarams)
                                    (ds-args args))
                    ((replace-typarams typarams) (desugar-ann ann))
-                   doc (ds body)))]
+                   doc (ds body) (ds check)))]
 
-    [(s-lam s typarams args ann doc body)
+    [(s-lam s typarams args ann doc body check)
      (s-lam s typarams (map (replace-typarams-binds typarams)
                             (ds-args args))
             ((replace-typarams typarams) (desugar-ann ann))
-            doc (ds body))]
+            doc (ds body) (ds check))]
 
-    [(s-method s args ann body)
-     (s-method s args ann (ds body))]
+    [(s-method s args ann body check)
+     (s-method s args ann (ds body) (ds check))]
 
     [(s-when s test body)
      (s-case s (list
@@ -232,7 +233,7 @@
      (s-try s (ds try) exn
 	    (s-block s
 		     (list
-		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch)) (list make-error)))))]
+		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 

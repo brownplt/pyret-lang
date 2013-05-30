@@ -106,25 +106,28 @@
     [(let-expr bind "=" e)
      (s-let (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
-        (fun-body (block (stmt (binop-expr (expr (prim-expr (string-expr doc)))))
+        (block (stmt (binop-expr (expr (prim-expr (string-expr doc)))))
                          stmt2
                          stmts ...)
-                  "end"))
+        check
+                  "end")
      (s-fun (loc stx)
             (parse-name #'fun-name)
             (parse-ty-params #'params)
             (parse-args #'args)
             (parse-return-ann #'return)
             (parse-string #'doc)
-            (s-block (loc stx) (map/stx parse-stmt #'(stmt2 stmts ...))))]
-    [(fun-expr "fun" (fun-header params fun-name args return) ":" body)
+            (s-block (loc stx) (map/stx parse-stmt #'(stmt2 stmts ...)))
+            (parse-check-clause #'check))]
+    [(fun-expr "fun" (fun-header params fun-name args return) ":" body check "end")
      (s-fun (loc stx)
             (parse-name #'fun-name)
             (parse-ty-params #'params)
             (parse-args #'args)
             (parse-return-ann #'return)
             ""
-            (parse-fun-body #'body))]
+            (parse-block #'body)
+            (parse-check-clause #'check))]
     [(data-expr "data" name params ":" variant ... sharing-part)
      (s-data (loc stx)
              (parse-name #'name)
@@ -154,6 +157,12 @@
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
                                       (parse-binop-expr #'left)
                                       (parse-binop-expr #'right))]))
+
+(define (parse-check-clause stx)
+  (syntax-parse stx
+    #:datum-literals (check-clause)
+    [(check-clause) (s-block (loc stx) empty)]
+    [(check-clause "check" block) (parse-block #'block)]))
 
 (define (parse-binop-expr stx)
   (syntax-parse stx
@@ -198,18 +207,20 @@
      (s-data-field (loc stx)
                    (parse-binop-expr #'key)
                    (parse-binop-expr #'value))]
-    [(field key args ret ":" body "end")
+    [(field key args ret ":" body check "end")
      (s-method-field (loc stx)
                    (s-str (loc stx) (symbol->string (parse-name #'key)))
                      (parse-args #'args)
                      (parse-return-ann #'ret)
-                     (parse-block #'body))]
-    [(field "[" key "]" args ret ":" body "end")
+                     (parse-block #'body)
+                     (parse-check-clause #'check))]
+    [(field "[" key "]" args ret ":" body check "end")
      (s-method-field (loc stx)
                      (parse-binop-expr #'key)
                      (parse-args #'args)
                      (parse-return-ann #'ret)
-                     (parse-block #'body))]))
+                     (parse-block #'body)
+                     (parse-check-clause #'check))]))
 
 (define (parse-fields stx)
   (syntax-parse stx
@@ -240,10 +251,6 @@
     [(ty-params "<" (list-ty-param param ",") ... last ">")
      (map/stx parse-name #'(param ... last))]))
 
-(define (parse-fun-body stx)
-  (syntax-parse stx
-    #:datum-literals (fun-body paren-expr)
-    [(fun-body block "end") (parse-block #'block)]))
 
 (define (parse-left-app-fun-expr stx)
   (syntax-parse stx
@@ -310,25 +317,28 @@
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(lambda-expr "fun" ty-params args return-ann ":" fun-body)
+    [(lambda-expr "fun" ty-params args return-ann ":" body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
             ""
-            (parse-fun-body #'fun-body))]
-    [(lambda-expr "fun" ty-params return-ann ":" fun-body)
+            (parse-block #'body)
+            (parse-check-clause #'check))]
+    [(lambda-expr "fun" ty-params return-ann ":" body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (list)
             (parse-return-ann #'return-ann)
             ""
-            (parse-fun-body #'fun-body))]
-    [(method-expr "method" args return-ann ":" fun-body)
+            (parse-block #'body)
+            (parse-check-clause #'check))]
+    [(method-expr "method" args return-ann ":" body check "end")
      (s-method (loc stx)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
-            (parse-fun-body #'fun-body))]
+            (parse-block #'body)
+            (parse-check-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-onion (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)

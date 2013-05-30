@@ -31,8 +31,9 @@ these metadata purposes.
 (struct s-bind (syntax id ann) #:transparent)
 
 ;; A Stmt is a (U s-fun s-var s-case s-try s-data s-do s-import Expr)
-;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block
-(struct s-fun (syntax name params args ann doc body) #:transparent)
+
+;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
+(struct s-fun (syntax name params args ann doc body check) #:transparent)
 
 ;; s-var : srcloc bind Expr -> s-var
 (struct s-var (syntax name value) #:transparent)
@@ -85,17 +86,17 @@ these metadata purposes.
 ;;    s-dot-method s-bracket-method s-lam
 ;;    s-block s-method))
 
-;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block -> s-lam
-(struct s-lam (syntax typarams args ann doc body) #:transparent)
+;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
+(struct s-lam (syntax typarams args ann doc body check) #:transparent)
 
-;; s-method : srcloc (Listof s-bind) Ann s-block
-(struct s-method (syntax args ann body) #:transparent)
+;; s-method : srcloc (Listof s-bind) Ann s-block s-check
+(struct s-method (syntax args ann body check) #:transparent)
 
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
 (struct s-data-field (syntax name value) #:transparent)
-;; s-method-field : srcloc Expr (Listof s-bind) Ann s-block
-(struct s-method-field (syntax name args ann body) #:transparent)
+;; s-method-field : srcloc Expr (Listof s-bind) Ann s-block s-block
+(struct s-method-field (syntax name args ann body check) #:transparent)
 
 ;; s-onion : srcloc Expr (Listof Member)
 (struct s-onion (syntax super fields) #:transparent)

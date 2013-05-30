@@ -28,7 +28,7 @@
     [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
-  (s-lam loc empty args result doc (s-block loc (list body))))
+  (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty)))
 (define (mk-method loc args result doc-unused body)
   (s-method loc args result (s-block loc (list body))))
 
@@ -179,16 +179,17 @@
     [(s-let s bnd val)
      (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
-    [(s-lam s typarams args ann doc body)
+    [(s-lam s typarams args ann doc body check)
      (define body-env (foldl (update-for-bind #f) env args))
      (wrap-ann-check s
                      (get-arrow s args ann)
-                     (s-lam s typarams args ann doc (cc-env body body-env)))]
+                     (s-lam s typarams args ann doc (cc-env body body-env)
+                            (cc-env check body-env)))]
 
     ;; TODO(joe): give methods an annotation position for result
-    [(s-method s args ann body)
+    [(s-method s args ann body check)
      (define body-env (foldl (update-for-bind #f) env args))
-     (s-method s args ann (cc-env body body-env))]
+     (s-method s args ann (cc-env body body-env) (cc-env check body-env))]
 
     [(s-case s c-bs)
      (define (cc-branch branch)
