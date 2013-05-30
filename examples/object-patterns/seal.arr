@@ -15,7 +15,7 @@ todo1 = {
 
 fun copy(fromobj, to, names):
   for list.fold(toobj from to, name from names):
-    cond:
+    case:
       | builtins.has-field(fromobj, name) =>
           to.{ [name]: fromobj.[name] }
       | else => toobj

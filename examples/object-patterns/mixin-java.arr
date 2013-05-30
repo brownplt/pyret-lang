@@ -9,7 +9,7 @@ provide {
 
 #fun drop-fields(obj, names):
 #  builtins.keys(obj).foldr(fun(name, filtered-obj):
-#    cond:
+#    case:
 #      | names.member(name) => filtered-obj
 #      | else => filtered-obj.{ [name]: obj[name] }
 #    end
@@ -26,7 +26,7 @@ Object = object-brander.brand({
     invoke(_, name, a): raise("invoke: method not found: ".append(name)) end,
     instance-of(_, class): object-brander.check(class) end,
     view-as(inst, class):
-      cond:
+      case:
         | object-brander.check(class) => inst
         | else => raise("Incompatible cast in view-as")
       end
@@ -50,7 +50,7 @@ fun ext(parent-class, description):
 
         # : (Instance) -> String -> Any
         get(_, name):
-          cond:
+          case:
             | builtins.has-field(fields, name) => fields.[name]
             | else => parent-inst.get(name)
           end
@@ -58,7 +58,7 @@ fun ext(parent-class, description):
 
         # : (Instance) -> String -> Any -> Any
         set(_, name, val):
-          cond:
+          case:
             | builtins.has-field(fields, name) => 
                 fields := fields.{ [name]: val }
             | else => parent-inst.set(name, val)
@@ -75,7 +75,7 @@ fun ext(parent-class, description):
             end
           }
 
-          cond:
+          case:
             | builtins.has-field(methods, name) =>
               methods:[name]._fun()(inst-with-super, arg)
             | else =>
@@ -89,7 +89,7 @@ fun ext(parent-class, description):
         end,
         
         view-as(inst, class):
-          cond:
+          case:
             | class-brander.check(class) => inst
             | else => parent-inst:view-as._fun()(inst.{
                 get: parent-inst:get,
@@ -156,14 +156,14 @@ assignee-ext-descr = {
   methods: {
 
     assign(self, person):
-      cond:
+      case:
         | self.get("done") => raise("Can't assign a completed task")
         | else => self.set("assignee", person)
       end
     end,
 
     complete(self, _):
-      cond:
+      case:
         | is-nothing(self.get("assignee")) =>
             raise("Can't complete an unassigned task")
         | else => self.super(_)

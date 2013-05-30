@@ -9,7 +9,7 @@ empty()
 cons(4,empty())
 
 fun length(l :: NumList) -> Number:
-  cond:
+  case:
     | is-cons(l) => 1.add(length(l.rest))
     | is-empty(l) => 0
   end

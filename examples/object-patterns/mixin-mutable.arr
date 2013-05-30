@@ -20,7 +20,7 @@ fun make-mutable(obj):
   fun make-mutable-field(name, new-obj):
     var field-val = obj.[name]
     new-obj.{ [name](self, new-val):
-      cond:
+      case:
         | is-nothing(new-val) => field-val
         | else => field-val := new-val      
       end
