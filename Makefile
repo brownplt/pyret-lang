@@ -9,7 +9,6 @@ dep:
 	raco link lib/ragg/ragg/
 	raco link lib/whalesong/whalesong/
 	@echo Linking and building Pyret locally...
-	cd ../..
 	raco link -n pyret src/
 
 test:
@@ -19,6 +18,7 @@ test:
 	racket parse-tests.rkt; \
 	racket compile-tests.rkt; \
 	racket type-tests.rkt
+	cd src/tests/pyret/; ./run-pyret-tests.sh
 
 clean:
 	raco setup -c pyret

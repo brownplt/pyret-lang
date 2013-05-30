@@ -7,7 +7,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword basic var fun end case with sharing data do import provide as try except when for from
+syn keyword basic var fun end case with sharing data do import provide as try except when for from check
 
 syn match delimeter '|'
 syn match delimeter '('
