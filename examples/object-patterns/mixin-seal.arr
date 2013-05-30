@@ -9,15 +9,15 @@ todo1 = {
   due: "25 January 2012",
   task: "Write mixin examples",
   done: false,
-  complete(self): self.{ done: true }
+  complete(self): self.{ done: true } end
 }
 
 fun sealable(obj):
   obj.{
     seal(self, names-to-expose):
-      names-to-expose.foldr(\name, self-sealed: (
+      for list.fold(self-sealed from {}, name from names-to-expose):
         self-sealed.{ [name]: self.[name] }
-      ), {})
+      end
     end
   }
 end

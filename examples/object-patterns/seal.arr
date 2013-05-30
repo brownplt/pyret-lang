@@ -10,17 +10,17 @@ todo1 = {
   due: "25 January 2012",
   task: "Write mixin examples",
   done: false,
-  complete(self): self.{ done: true }
+  complete(self): self.{ done: true } end
 }
 
-fun copy(from, to, names):
-  names.foldr(\name, to: (
+fun copy(fromobj, to, names):
+  for list.fold(toobj from to, name from names):
     cond:
-      | builtins.has-field(from, name) =>
-          to.{ [name]: from.[name] }
-      | else => to
+      | builtins.has-field(fromobj, name) =>
+          to.{ [name]: fromobj.[name] }
+      | else => toobj
     end
-  ), to)
+  end
 end
 
 fun seal(obj, names-to-expose):
@@ -34,7 +34,7 @@ end
 fun seal-kit(obj, names):
   {
     obj: seal(obj, names),
-    unseal(_, sealed): unseal(sealed, obj, names),
+    unseal(_, sealed): unseal(sealed, obj, names) end
   }
 end
 
