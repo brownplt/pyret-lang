@@ -27,7 +27,7 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords-regex 
   (regexp-opt
-   '("fun" "var" "cond" "when" "import" "provide"
+   '("fun" "var" "case" "when" "import" "provide"
      "data" "end" "do" "try" "except" "for" "from"
      "as" "with" "sharing")))
 (defconst pyret-punctuation-regex
@@ -143,7 +143,7 @@
       
 (defsubst pyret-FUN () (pyret-keyword "fun"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
-(defsubst pyret-CASES () (pyret-keyword "cond"))
+(defsubst pyret-CASES () (pyret-keyword "case"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
 (defsubst pyret-IMPORT () (pyret-keyword "import"))
 (defsubst pyret-PROVIDE () (pyret-keyword "provide"))
