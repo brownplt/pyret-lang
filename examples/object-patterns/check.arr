@@ -11,7 +11,7 @@ provide
 end
 
 fun equal(actual, expected, message):
-  cond:
+  case:
     | assert(fun: actual.equals(expected) end, "check.equal: ".append(message))
     => nothing
     | else => print(actual)
@@ -32,7 +32,7 @@ end
 
 fun assert(testfun, message):
   result = testfun()
-  cond:
+  case:
     | result => print("Passed: ".append(message)) true
     | else => print("Failed: ".append(message)) false
   end
