@@ -613,6 +613,12 @@
                                                        (s-id _ 'b)))
                                     'or)
                        (list (s-bool _ #t))))
+   (check/block "((1))"
+                (s-paren _ (s-paren _ (s-num _ 1))))
+   (check/block "(((1)))"
+                (s-paren _ (s-paren _ (s-paren _ (s-num _ 1)))))
+   (check/block "((((1))))"
+                (s-paren _ (s-paren _ (s-paren _ (s-paren _ (s-num _ 1))))))
    ))
 
 (define all (test-suite "all"

@@ -35,7 +35,12 @@
   
 (define (tokenize ip)
   (port-count-lines! ip)
+  ;; used because we sometimes need to generate two tokens, and have
+  ;; to save the extra one for later.
   (define extra-token #f)
+  ;; used so that after any number of parenthesis, the next
+  ;; parenthesis is tokenized as a PARENSPACE, not a PARENNOSPACE
+  (define after-paren #f)
   (define my-lexer
     (lexer-src-pos
      ;; open parenthesis: preceded by space and not
@@ -43,87 +48,99 @@
      ;; function application and binary operators unambiguously. By
      ;; doing this at the tokenizer level, we don't need to deal
      ;; with whitespace in the grammar.
-     [(concatenation whitespace "((")
-      (let [(middle-pos (get-middle-pos (- (string-length lexeme) 2) start-pos))]
-      (return-without-pos
-       (list (position-token (token PARENSPACE "(") start-pos middle-pos)
-             (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      ["(("
-      (let [(middle-pos (get-middle-pos 1 start-pos))]
+      (let [(middle-pos (get-middle-pos 1 start-pos))
+            (t (if after-paren PARENSPACE PARENNOSPACE))]
+      (set! after-paren #t)
       (return-without-pos
-       (list (position-token (token PARENNOSPACE "(") start-pos middle-pos)
+       (list (position-token (token t "(") start-pos middle-pos)
              (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      [(concatenation operator-chars "(")
       (let* [(op (substring lexeme 0
                            (- (string-length lexeme) 1)))
             (op-len (string-length op))
             (middle-pos (get-middle-pos op-len start-pos))]
+        (set! after-paren #t)
         (return-without-pos
          (list (position-token (token op op) start-pos middle-pos)
                (position-token (token PARENSPACE "(") middle-pos end-pos))))]
      [(concatenation whitespace "(")
-      (token PARENSPACE "(")]
+      (begin
+        (set! after-paren #t)
+        (token PARENSPACE "("))]
      ["("
-      (token PARENNOSPACE "(")]
-     ;; names
-     [(concatenation identifier-chars
-                     (repetition 0 +inf.0
-                                 (union #\- numeric identifier-chars)))
-      ;; NOTE(dbp): we are getting literals from the grammar and making
-      ;; them not be NAME anymore.
-      (cond [(set-member? all-token-types (string->symbol lexeme))
-             (token (string->symbol lexeme) lexeme)]
-            [else
-             (token NAME lexeme)])]
-     ;; numbers
-     [(concatenation
-       (repetition 1 +inf.0 numeric)
-       (union ""
-              (concatenation
-               #\.
-               (repetition 1 +inf.0 numeric))))
-      (token NUMBER lexeme)]
-     ;; strings
-     [(concatenation
-       "\""
-       (repetition 0 +inf.0 (union "\\\"" (intersection
-                                           (char-complement #\")
-                                           (char-complement #\newline))))
-       "\"")
-      (token STRING lexeme)]
-     [(concatenation
-       "'"
-       (repetition 0 +inf.0 (union "\\'" (intersection
-                                          (char-complement #\')
-                                          (char-complement #\newline))))
-       "'")
-      (token STRING lexeme)]
-     ;; brackets
-     [(union "[" "]" "{" "}" ")")
-      (token lexeme lexeme)]
-     ;; whitespace
-     [whitespace
-      (token WS lexeme #:skip? #t)]
-     ;; operators
-     [operator-chars
-      (token lexeme lexeme)]
-     ;; misc
-     [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=")
-      (token lexeme lexeme)]
-     ;; comments
-     [(concatenation #\# (repetition 0 +inf.0
-                                     (char-complement #\newline)))
-      (token COMMENT lexeme #:skip? #t)]
-     ;; semicolons - for the to-be-removed do notation
-     [#\;
-      (token lexeme lexeme)]
-     ;; backslash - for the to-be-changed lambda notation
-     [#\\
-      (token BACKSLASH lexeme)]
-     ;; end terminator
+      (let [(t (if after-paren PARENSPACE PARENNOSPACE))]
+        (set! after-paren #t)
+        (token t "("))]
+     ;; end terminator - need to have this in both branches, since "" does not
+     ;; match eof
      [(eof)
       (void)]
-     ))
+     ;; NOTE(dbp): we split to a second level, because in all other
+     ;; cases, after-paren is #f, and this makes the code simpler.
+     [""
+      (begin
+        (set! after-paren #f)
+        (return-without-pos
+         ((lexer-src-pos
+          ;; names
+          [(concatenation identifier-chars
+                          (repetition 0 +inf.0
+                                      (union #\- numeric identifier-chars)))
+           ;; NOTE(dbp): we are getting literals from the grammar and making
+           ;; them not be NAME anymore.
+           (cond [(set-member? all-token-types (string->symbol lexeme))
+                  (token (string->symbol lexeme) lexeme)]
+                 [else
+                  (token NAME lexeme)])]
+          ;; numbers
+          [(concatenation
+            (repetition 1 +inf.0 numeric)
+            (union ""
+                   (concatenation
+                    #\.
+                    (repetition 1 +inf.0 numeric))))
+           (token NUMBER lexeme)]
+          ;; strings
+          [(concatenation
+            "\""
+            (repetition 0 +inf.0 (union "\\\"" (intersection
+                                                (char-complement #\")
+                                                (char-complement #\newline))))
+            "\"")
+           (token STRING lexeme)]
+          [(concatenation
+            "'"
+            (repetition 0 +inf.0 (union "\\'" (intersection
+                                               (char-complement #\')
+                                               (char-complement #\newline))))
+            "'")
+           (token STRING lexeme)]
+          ;; brackets
+          [(union "[" "]" "{" "}" ")")
+           (token lexeme lexeme)]
+          ;; whitespace
+          [whitespace
+           (token WS lexeme #:skip? #t)]
+          ;; operators
+          [operator-chars
+           (token lexeme lexeme)]
+          ;; misc
+          [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=")
+           (token lexeme lexeme)]
+          ;; comments
+          [(concatenation #\# (repetition 0 +inf.0
+                                          (char-complement #\newline)))
+           (token COMMENT lexeme #:skip? #t)]
+          ;; semicolons - for the to-be-removed do notation
+          [#\;
+           (token lexeme lexeme)]
+          ;; backslash - for the to-be-changed lambda notation
+          [#\\
+           (token BACKSLASH lexeme)]
+          ;; end terminator
+          [(eof)
+           (void)]) ip)))]))
     (define (next-token)
       (if extra-token
           (let [(rv extra-token)]
