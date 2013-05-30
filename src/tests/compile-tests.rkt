@@ -573,6 +573,11 @@
                (p:mk-num 3))
   ;; can't apply raw methods
   (check-pyret-exn "method(self): 1 end()" "apply-fun: expected function")
+
+  (check-pyret "
+o = {}
+o2 = o.{ m: {m(self): self.{ called : true } end}.m}
+o2.m().called" true)
   
 ))
 

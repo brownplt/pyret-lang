@@ -381,7 +381,9 @@
   (define vfield (get-raw-field loc v f))
   (cond
     [(p-method? vfield)
-     (mk-fun-nodoc (λ args (apply (p-method-f vfield) (cons v args))))]
+     (mk-fun-loc (λ (loc)
+                   (λ args (apply ((p-method-f vfield) loc) (cons v args))))
+                 "")]
     [else vfield]))
 
 (define (check-fun v l)
