@@ -89,8 +89,8 @@
     (match ast-node
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
-      [(s-method-field s name args ann body check)
-       (s-data-field s (desugar-internal name) (s-method s args ann (desugar-internal body) (desugar-internal check)))]))
+      [(s-method-field s name args ann doc body check)
+       (s-data-field s (desugar-internal name) (s-method s args ann doc (desugar-internal body) (desugar-internal check)))]))
 
 (define (desugar-ann ann)
   (match ann
@@ -188,8 +188,8 @@
             ((replace-typarams typarams) (desugar-ann ann))
             doc (ds body) (ds check))]
 
-    [(s-method s args ann body check)
-     (s-method s args ann (ds body) (ds check))]
+    [(s-method s args ann doc body check)
+     (s-method s args ann doc (ds body) (ds check))]
 
     [(s-when s test body)
      (s-case s (list

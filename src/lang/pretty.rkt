@@ -49,7 +49,7 @@
              indent
              check)]
     
-    [(s-method s args ann body check)
+    [(s-method s args ann doc body check)
      (define s-args (string-join (map pretty-bind args) ", "))
      (define s-ann (pretty-ann ann))
      (define s-body (pretty body))

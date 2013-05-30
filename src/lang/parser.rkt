@@ -106,26 +106,13 @@
     [(let-expr bind "=" e)
      (s-let (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
-        (block (stmt (binop-expr (expr (prim-expr (string-expr doc)))))
-                         stmt2
-                         stmts ...)
-        check
-                  "end")
+               doc body check "end")
      (s-fun (loc stx)
             (parse-name #'fun-name)
             (parse-ty-params #'params)
             (parse-args #'args)
             (parse-return-ann #'return)
-            (parse-string #'doc)
-            (s-block (loc stx) (map/stx parse-stmt #'(stmt2 stmts ...)))
-            (parse-check-clause #'check))]
-    [(fun-expr "fun" (fun-header params fun-name args return) ":" body check "end")
-     (s-fun (loc stx)
-            (parse-name #'fun-name)
-            (parse-ty-params #'params)
-            (parse-args #'args)
-            (parse-return-ann #'return)
-            ""
+            (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-check-clause #'check))]
     [(data-expr "data" name params ":" variant ... sharing-part)
@@ -157,6 +144,12 @@
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
                                       (parse-binop-expr #'left)
                                       (parse-binop-expr #'right))]))
+
+(define (parse-doc-string stx)
+  (syntax-parse stx
+    #:datum-literals (doc-string)
+    [(doc-string) ""]
+    [(doc-string "doc" str) (parse-string #'str)]))
 
 (define (parse-check-clause stx)
   (syntax-parse stx
@@ -207,18 +200,20 @@
      (s-data-field (loc stx)
                    (parse-binop-expr #'key)
                    (parse-binop-expr #'value))]
-    [(field key args ret ":" body check "end")
+    [(field key args ret ":" doc body check "end")
      (s-method-field (loc stx)
                    (s-str (loc stx) (symbol->string (parse-name #'key)))
                      (parse-args #'args)
                      (parse-return-ann #'ret)
+                     (parse-doc-string #'doc)
                      (parse-block #'body)
                      (parse-check-clause #'check))]
-    [(field "[" key "]" args ret ":" body check "end")
+    [(field "[" key "]" args ret ":" doc body check "end")
      (s-method-field (loc stx)
                      (parse-binop-expr #'key)
                      (parse-args #'args)
                      (parse-return-ann #'ret)
+                     (parse-doc-string #'doc)
                      (parse-block #'body)
                      (parse-check-clause #'check))]))
 
@@ -317,26 +312,27 @@
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(lambda-expr "fun" ty-params args return-ann ":" body check "end")
+    [(lambda-expr "fun" ty-params args return-ann ":" doc body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
-            ""
+            (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-check-clause #'check))]
-    [(lambda-expr "fun" ty-params return-ann ":" body check "end")
+    [(lambda-expr "fun" ty-params return-ann ":" doc body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (list)
             (parse-return-ann #'return-ann)
-            ""
+            (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-check-clause #'check))]
-    [(method-expr "method" args return-ann ":" body check "end")
+    [(method-expr "method" args return-ann ":" doc body check "end")
      (s-method (loc stx)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
+            (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-check-clause #'check))]
     [(extend-expr e "." "{" fields "}")

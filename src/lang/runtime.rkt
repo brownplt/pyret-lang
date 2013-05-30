@@ -223,14 +223,15 @@
 
 (define-syntax (pμ stx)
   (syntax-case stx ()
-    [(_ (arg ...) e ...)
+    [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
       (mk-method-loc
         (lambda (%loc)
           (case-lambda
             #,(syntax/loc stx [(arg ...) e ...])
             [arity-mismatch-args-list
-             (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))))]))
+             (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))
+        doc))]))
 
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
@@ -289,59 +290,71 @@
 
 ;; mk-fun : Proc String -> Value
 (define (mk-fun f s)
-  (p-fun no-brands (make-immutable-hash `(("doc" . ,(mk-str s))
-                                      ("_method" . ,(mk-method-method f))))
+  (p-fun no-brands (make-immutable-hash `(("_doc" . ,(mk-str s))
+                                      ("_method" . ,(mk-method-method f s))))
          (λ (_) f)))
 
 ;; mk-fun-loc : Proc String -> Value
 (define (mk-fun-loc f s)
   (p-fun no-brands
-         (make-immutable-hash `(("doc" . ,(mk-str s))
-                                ("_method" . ,(mk-method-method-loc f))))
+         (make-immutable-hash `(("_doc" . ,(mk-str s))
+                                ("_method" . ,(mk-method-method-loc f s))))
          f))
 
 ;; mk-fun-nodoc : Proc -> Value
 (define (mk-fun-nodoc f)
-  (p-fun no-brands (make-immutable-hash `(("doc" . ,nothing)
-                                      ("_method" . ,(mk-method-method f))))
+  (p-fun no-brands (make-immutable-hash `(("_doc" . ,nothing)
+                                      ("_method" . ,(mk-method-method-nodoc f))))
          (λ (_) f)))
 
 ;; mk-internal-fun : (Loc -> Proc) -> Value
 (define (mk-internal-fun f)
   (p-fun no-brands empty-dict f))
 
-;; mk-method-method : Proc -> p-method
-(define (mk-method-method f)
+;; mk-method-method : Proc String -> p-method
+(define (mk-method-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("doc" . ,nothing)))
-            (λ (_) (λ (self) (mk-method f)))))
+            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (λ (_) (λ (self) (mk-method f doc)))))
 
-;; mk-method-method-loc : Proc -> p-method
-(define (mk-method-method-loc f)
+;; mk-method-method-nodoc : Proc -> p-method
+(define (mk-method-method-nodoc f)
   (p-method no-brands
-            (make-immutable-hash `(("doc" . ,nothing)))
-            (λ (_) (λ (self) (mk-method-loc f)))))
+            (make-immutable-hash `(("_doc" . ,nothing)))
+            (λ (_) (λ (self) (mk-method-nodoc f)))))
 
-;; mk-fun-method : Proc -> p-method
-(define (mk-fun-method f)
+;; mk-method-method-loc : Proc String -> p-method
+(define (mk-method-method-loc f doc)
   (p-method no-brands
-            (make-immutable-hash `(("doc" . ,(mk-str "method"))))
-            (λ (_) (λ (self) (mk-fun f "method-fun")))))
+            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (λ (_) (λ (self) (mk-method-loc f doc)))))
 
-(define (mk-fun-method-loc f)
+;; mk-fun-method : Proc String -> p-method
+(define (mk-fun-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("doc" . ,(mk-str "method"))))
-            (λ (_) (λ (self) (mk-fun-loc f "method-fun")))))
+            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (λ (_) (λ (self) (mk-fun f doc)))))
 
-;; mk-method : Proc -> Value
-(define (mk-method f)
+(define (mk-fun-method-loc f doc)
+  (p-method no-brands
+            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (λ (_) (λ (self) (mk-fun-loc f doc)))))
+
+;; mk-method : Proc String -> Value
+(define (mk-method f doc)
   (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
-                                   ("doc" . ,(mk-str "method")))))
+                                   ("_doc" . ,(mk-str doc)))))
   (p-method no-brands d (λ (_) f)))
 
-(define (mk-method-loc f)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method-loc f))
-                                   ("doc" . ,(mk-str "method")))))
+;; mk-method-nodoc : Proc -> Value
+(define (mk-method-nodoc f)
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
+                                   ("_doc" . ,nothing))))
+  (p-method no-brands d (λ (_) f)))
+
+(define (mk-method-loc f doc)
+  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method-loc f doc))
+                                   ("_doc" . ,(mk-str doc)))))
   (p-method no-brands d f))
 
 (define exn-brand (gensym 'exn))
@@ -559,7 +572,7 @@ And the object was:
   (and (p-bool? v) (p-bool-b v)))
 
 (define-syntax-rule (mk-prim-fun op opname wrapper unwrapper (arg ...) (pred ...))
-  (pμ (arg ...)
+  (pμ (arg ...) ""
     (define preds-passed (and (pred arg) ...))
     (cond
       [preds-passed (wrapper (op (unwrapper arg) ...))]

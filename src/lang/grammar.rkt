@@ -51,8 +51,6 @@ arg-elt: NAME ["::" ann]
 list-arg-elt: arg-elt ","
 args: PARENNOSPACE [list-arg-elt* arg-elt] ")"
 
-fun-body: block "end"
-
 list-ty-param: NAME ","
 ty-params:
   ["<" list-ty-param* NAME ">"]
@@ -61,13 +59,18 @@ return-ann: ["->" ann]
 
 fun-header: ty-params NAME args return-ann
 
-fun-expr: "fun" fun-header ":" fun-body
+fun-expr: "fun" fun-header ":" doc-string block check-clause "end"
 
-lambda-expr: "fun" ty-params [args] return-ann ":" fun-body
+lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block check-clause "end"
 
-method-expr: "method" args return-ann ":" fun-body
+method-expr: "method" args return-ann ":" doc-string block check-clause "end"
+
+doc-string: ["doc" STRING]
+
+check-clause: ["check" block]
 
 when-expr: "when" binop-expr ":" block "end"
+
 
 case-branch: "|" binop-expr "=>" block
 case-expr: "case" ":" case-branch* "end"
@@ -76,9 +79,9 @@ try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" blo
    
 field:
    NAME ":" binop-expr
- | NAME args return-ann ":" block "end"
+ | NAME args return-ann ":" doc-string block check-clause "end"
  | "[" binop-expr "]" ":" binop-expr
- | "[" binop-expr "]" args return-ann ":" block "end"
+ | "[" binop-expr "]" args return-ann ":" doc-string block check-clause "end"
 list-field: field ","
 fields: list-field* field [","]
 

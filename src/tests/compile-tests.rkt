@@ -245,7 +245,7 @@
 (define data (test-suite "data"
 
   (check-pyret-match
-    "data Foo: | bar() end bar.doc"
+    "data Foo: | bar() end bar._doc"
     (p:p-str _ _ _))
 
   (check-pyret
@@ -578,6 +578,11 @@
 o = {}
 o2 = o.{ m: {m(self): self.{ called : true } end}.m}
 o2.m().called" true)
+
+  ;; methods have doc strings!
+  (check-pyret "method(self): doc 'hello' 1 end._doc" (p:mk-str "hello"))
+  (check-pyret "method(self): doc 'hello' 1 end._fun()._doc" (p:mk-str "hello"))
+  (check-pyret "fun(self): doc 'hello' 1 end._method()._doc" (p:mk-str "hello"))
   
 ))
 

@@ -69,11 +69,11 @@
                      [body-stx (compile-expr body)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
     
-    [(s-method l args ann body _)
+    [(s-method l args ann doc body _)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map s-bind-id args) l)]
                      [body-stx (compile-expr body)])
-         #`(p:pμ (arg ...) body-stx)))]
+         #`(p:pμ (arg ...) #,doc body-stx)))]
     
     [(s-case l c-bs)
      (define (compile-case-branch b)

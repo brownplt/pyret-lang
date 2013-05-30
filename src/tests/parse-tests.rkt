@@ -73,35 +73,45 @@
 
 (define methods (test-suite "methods"
   (check/block "{f(): x end}"
-               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x))) _))))
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) _ (s-block _ (list (s-id _ 'x))) _))))
   (check/block "{f(): x end}"
-               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x))) _))))
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) _ (s-block _ (list (s-id _ 'x))) _))))
 
   (check/block "{[f](): x end}"
                (s-obj _ (list (s-method-field _ (s-id _ 'f)
-                                              (list) (a-blank) (s-block _ (list (s-id _ 'x))) _))))
+                                              (list) (a-blank) _ (s-block _ (list (s-id _ 'x))) _))))
   (check/block "{['f'](): x end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f")
-                                              (list) (a-blank) (s-block _ (list (s-id _ 'x))) _))))
+                                              (list) (a-blank) _ (s-block _ (list (s-id _ 'x))) _))))
 
   (check/block "method(x,y): 1 end"
                (s-method _ (list (s-bind _ 'x (a-blank)) (s-bind _ 'y (a-blank)))
-                         (a-blank) (s-block _ (list (s-num _ 1))) _))
+                         (a-blank) _ (s-block _ (list (s-num _ 1))) _))
 
   (check/block "method(self): 1 check foo end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
-                         (a-blank) (s-block _ (list (s-num _ 1)))
+                         (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ (list (s-id _ 'foo)))))
 
   (check/block "method(self): 1 check end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
-                         (a-blank) (s-block _ (list (s-num _ 1)))
+                         (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ empty)))
 
   (check/block "{f(): x check 1 end}"
-               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) (s-block _ (list (s-id _ 'x)))
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) _
+                                              (s-block _ (list (s-id _ 'x)))
                                               (s-block _ (list (s-num _ 1)))))))
-  
+
+  (check/block "method(self): doc 'hello' 1 end"
+               (s-method _ (list (s-bind _ 'self (a-blank)))
+                         (a-blank) "hello" (s-block _ (list (s-num _ 1)))
+                         (s-block _ empty)))
+
+  (check/block "{f(): doc 'hello' 1 end}"
+               (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) "hello"
+                                              (s-block _ (list (s-num _ 1)))
+                                              (s-block _ empty)))))
 ))
 
 (define functions (test-suite "functions"
@@ -210,7 +220,7 @@
 
 
   (check/block
-   "fun <a,b> f(x :: a) -> b: 'some documentation' x end"
+   "fun <a,b> f(x :: a) -> b: doc 'some documentation' x end"
    (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
     "some documentation"
     (s-block _ (list (s-id _ 'x)))
@@ -376,7 +386,7 @@
     (list (s-singleton-variant
            _
            'empty
-           (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) (s-block _ (list (s-num _ 0))) _))))
+           (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) _ (s-block _ (list (s-num _ 0))) _))))
     (list)))
 
   (check/block
@@ -387,6 +397,7 @@
                                                   (s-str _ "x")
                                                   (list (s-bind _ 'self (a-blank)))
                                                   (a-blank)
+                                                  _
                                                   (s-block _ (list (s-id _ 'self)))
                                                   _))))
            (list)))
@@ -403,6 +414,7 @@
                                                                 (s-str _ "x")
                                                                 (list (s-bind _ 'self (a-blank)))
                                                                 (a-name _ 'Num)
+                                                                _
                                                                 (s-block _ (list (s-id _ 'self)))
                                                                 _))))
            (list (s-data-field _ (s-str _ "z") (s-num _ 10)))))

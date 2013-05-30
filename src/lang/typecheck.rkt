@@ -29,8 +29,8 @@
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty)))
-(define (mk-method loc args result doc-unused body)
-  (s-method loc args result (s-block loc (list body))))
+(define (mk-method loc args result doc body)
+  (s-method loc args result doc (s-block loc (list body))))
 
 (define (ann-check loc ann)
   (define (code-wrapper s args result type get-fun)
@@ -47,10 +47,10 @@
         (mk-contract-doc ann)
         (wrap-ann-check s result
          (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
-       (list (s-data-field s (s-str s "doc")
+       (list (s-data-field s (s-str s "_doc")
                              (s-bracket s
                                         (s-id s funname)
-                                        (s-str s "doc")))))))
+                                        (s-str s "_doc")))))))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
   (define ann-str (s-str loc (pretty-ann ann)))
@@ -187,9 +187,9 @@
                             (cc-env check body-env)))]
 
     ;; TODO(joe): give methods an annotation position for result
-    [(s-method s args ann body check)
+    [(s-method s args ann doc body check)
      (define body-env (foldl (update-for-bind #f) env args))
-     (s-method s args ann (cc-env body body-env) (cc-env check body-env))]
+     (s-method s args ann doc (cc-env body body-env) (cc-env check body-env))]
 
     [(s-case s c-bs)
      (define (cc-branch branch)
