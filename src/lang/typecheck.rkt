@@ -106,11 +106,11 @@
                           (s-app loc
                                  pred
                                  (list (s-id s tempname))))
-                 (s-cond s
+                 (s-case s
                     (list
-                      (s-cond-branch s (s-id s result)
+                      (s-case-branch s (s-id s result)
                         (s-block s (list (s-id s tempname))))
-                      (s-cond-branch s (s-id s 'else)
+                      (s-case-branch s (s-id s 'else)
                         (s-block s
                           (list
                             (s-app s (s-id s 'raise)
@@ -190,12 +190,12 @@
      (define body-env (foldl (update-for-bind #f) env args))
      (s-method s args ann (cc-env body body-env))]
 
-    [(s-cond s c-bs)
+    [(s-case s c-bs)
      (define (cc-branch branch)
        (match branch
-         [(s-cond-branch s test expr)
-          (s-cond-branch s (cc test) (cc expr))]))
-     (s-cond s (map cc-branch c-bs))]
+         [(s-case-branch s test expr)
+          (s-case-branch s (cc test) (cc expr))]))
+     (s-case s (map cc-branch c-bs))]
 
     [(s-try s try bind catch)
      (define catch-env ((update-for-bind #f) bind env))

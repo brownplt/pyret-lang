@@ -24,7 +24,7 @@ paren-expr: PARENSPACE binop-expr ")"
     
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
-    | cond-expr | lambda-expr | method-expr | extend-expr | left-app-expr
+    | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
     | for-expr | paren-expr
 
 
@@ -69,8 +69,8 @@ method-expr: "method" args return-ann ":" fun-body
 
 when-expr: "when" binop-expr ":" block "end"
 
-cond-branch: "|" binop-expr "=>" block
-cond-expr: "cond" ":" cond-branch* "end"
+case-branch: "|" binop-expr "=>" block
+case-expr: "case" ":" case-branch* "end"
 
 try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    

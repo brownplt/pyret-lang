@@ -17,7 +17,8 @@ test:
 	cd src/tests; \
 	raco make compile-tests.rkt parse-tests.rkt; \
 	racket parse-tests.rkt; \
-	racket compile-tests.rkt;
+	racket compile-tests.rkt; \
+  racket type-tests.rkt
 
 clean:
 	raco setup -c pyret

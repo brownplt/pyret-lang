@@ -75,14 +75,14 @@
                      [body-stx (compile-expr body)])
          #`(p:pμ (arg ...) body-stx)))]
     
-    [(s-cond l c-bs)
-     (define (compile-cond-branch b)
+    [(s-case l c-bs)
+     (define (compile-case-branch b)
        (match b
-         [(s-cond-branch s test block)
+         [(s-case-branch s test block)
           (attach l
                   #`((p:pyret-true? #,(compile-expr test)) #,(compile-expr block)))]))
      (attach l
-       (with-syntax ([(branch ...) (d->stx (map compile-cond-branch c-bs) l)])
+       (with-syntax ([(branch ...) (d->stx (map compile-case-branch c-bs) l)])
          #`(r:cond branch ...)))]
 
     [(s-try l try (s-bind l2 id ann) catch)

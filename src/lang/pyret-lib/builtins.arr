@@ -8,7 +8,7 @@ provide {
 } end
 
 fun mklist(obj):
-  cond:
+  case:
     | obj.is-empty => list.empty
     | else => list.link(obj.first, mklist(obj.rest))
   end

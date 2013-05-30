@@ -29,12 +29,12 @@
 (check-pyret-exn "var x :: Number = 37 x := 'not-a-num'" "runtime:")
 
 (check-pyret "var x :: Number = 23 x := 6" six)
-(check-pyret "fun f(x :: Number) -> String: (var y :: String = 'daniel' y) f(42)" (p:mk-str "daniel"))
+(check-pyret "fun f(x :: Number) -> String: var y :: String = 'daniel' y end f(42)" (p:mk-str "daniel"))
 (check-pyret-exn "fun f(x :: Number) -> String: var y :: String = 'daniel' y := 6 end f(42)"
                  "runtime:")
 (check-pyret "var x :: Number = 6 fun f(): var x :: String = 'daniel' x := 'bobby' end f() x"
              six)
-(check-pyret-exn "var x :: Number = 6 fun f(): (x := 'bobby') f() x"
+(check-pyret-exn "var x :: Number = 6 fun f(): x := 'bobby' end f() x"
                  "runtime:")
 (check-pyret-exn "fun g(h): h() end var x :: Number = 6 fun f(): x := 'bobby' end g(f) x"
                  "runtime:")
@@ -42,33 +42,33 @@
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
   var g :: (Number -> String) = f
-  g := \\x :: String -> String: (x)
+  g := fun(x :: String) -> String: x end
   g('foo')"
  "runtime:")
 
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
   var g :: (String -> String) = f
-  g := \\x :: String -> String: (x)
+  g := fun(x :: String) -> String: x end
   g(6)"
  "runtime:")
 
 (check-pyret
  "fun f(g :: (Number -> String)): g(10) end
-  f(\\m: (m.tostring()))"
+  f(fun(m): m.tostring() end)"
  (p:mk-str "10"))
 
 (check-pyret-exn
  "fun f(g :: (Number -> String)): g('hello') end
-  f(\\m: (m.tostring()))"
+  f(fun(m): m.tostring() end)"
  "expected Number")
 
 (check-pyret-exn
- "fun f(g :: (Number -> String)): g(10) end f(\\m: (m))"
+ "fun f(g :: (Number -> String)): g(10) end f(fun(m): m end)"
  "expected String")
 
 (check-pyret-exn
- "data HasAType
+ "data HasAType:
     | variant(x :: Number)
   end
   variant(true)"
@@ -100,7 +100,7 @@
 
 (check-pyret-exn/libs
  "fun even(x):
-    cond:
+    case:
       | x.equals(0) => true
       | x.equals(1).or(x.equals(-1)) => false
       | else => even(x.minus(2))
@@ -111,7 +111,7 @@
 
 (check-pyret/libs
  "fun even(x):
-    cond:
+    case:
       | x.equals(0) => true
       | x.equals(1).or(x.equals(-1)) => false
       | else => even(x.minus(2))

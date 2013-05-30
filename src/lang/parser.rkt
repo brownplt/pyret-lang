@@ -226,11 +226,11 @@
     [(app-args "(" (app-arg-elt e1 ",") ... elast ")")
      (map/stx parse-binop-expr #'(e1 ... elast))]))
 
-(define (parse-cond-branch stx)
+(define (parse-case-branch stx)
   (syntax-parse stx
-    #:datum-literals (cond-branch)
-    [(cond-branch "|" test "=>" body)
-     (s-cond-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
+    #:datum-literals (case-branch)
+    [(case-branch "|" test "=>" body)
+     (s-case-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
 
 (define (parse-ty-params stx)
@@ -270,7 +270,7 @@
       bracket-expr 
       dot-method-expr 
       bracket-method-expr
-      cond-expr 
+      case-expr 
       for-expr
       lambda-expr
       method-expr
@@ -296,8 +296,8 @@
      (s-dot-method (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-method-expr obj ":" "[" field "]")
      (s-bracket-method (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
-    [(cond-expr "cond" ":" branch ... "end")
-     (s-cond (loc stx) (map/stx parse-cond-branch #'(branch ...)))]
+    [(case-expr "case" ":" branch ... "end")
+     (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
     [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body "end")
      (s-for (loc stx)
             (parse-expr #'iter)

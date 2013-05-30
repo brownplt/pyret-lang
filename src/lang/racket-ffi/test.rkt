@@ -10,7 +10,7 @@ provide {
 } end
 
 fun assert-equals(value1, value2):
-  cond:
+  case:
     | value1.equals(value2) => nothing
     | else => raise "Failed test"
   end
@@ -29,7 +29,7 @@ end
 
 fun check-equals(message, thunk, value):
   c = mk-checker(message, thunk, value)
-  cond:
+  case:
     | builtins.keys(c).member("exception") =>
       results := results.push(c.{ passed: false, reason: "Exception" })
     | c.actual.equals(value) =>
@@ -41,7 +41,7 @@ end
 
 fun check-not-equals(message, thunk, value):
   c = mk-checker(message, thunk, value)
-  cond:
+  case:
     | builtins.keys(c).member("exception") =>
       results := results.push(c.{ passed: false, reason: "Exception" })
     | c.actual.equals(value) =>
@@ -54,9 +54,9 @@ end
 
 fun check-exn(message, thunk, exn-pred):
   c = mk-checker(message, thunk, exn-pred)
-  cond:
+  case:
     | builtins.keys(c).member("exception") =>
-      cond:
+      case:
         | exn-pred(c.exception) =>
           results := results.push(c.{ passed: true })
         | else => 
@@ -85,7 +85,7 @@ fun format-results():
   print(failedNum.tostring().append(" tests failed."))
 
   results.map(fun(r):
-    cond:
+    case:
       | r.passed => nothing
       | else =>
         print("===========================")
@@ -93,7 +93,7 @@ fun format-results():
         print("Failed because: ".append(r.reason))
         print("Expected:")
         print(r.expected)
-        cond:
+        case:
           | builtins.keys(r).member("actual") =>
             print("Actual:")
             print(r.actual)

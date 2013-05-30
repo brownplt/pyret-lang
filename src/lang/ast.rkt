@@ -30,7 +30,7 @@ these metadata purposes.
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind (syntax id ann) #:transparent)
 
-;; A Stmt is a (U s-fun s-var s-cond s-try s-data s-do s-import Expr)
+;; A Stmt is a (U s-fun s-var s-case s-try s-data s-do s-import Expr)
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block
 (struct s-fun (syntax name params args ann doc body) #:transparent)
 
@@ -38,12 +38,12 @@ these metadata purposes.
 (struct s-var (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
 (struct s-let (syntax name value) #:transparent)
-;; s-when : srcloc (Listof Expr s-block) -> s-cond
+;; s-when : srcloc (Listof Expr s-block) -> s-case
 (struct s-when (syntax test block) #:transparent)
-;; s-cond : srcloc (Listof s-cond-branch) -> s-cond
-(struct s-cond (syntax branches) #:transparent)
-;; s-cond-branch : srcloc Expr s-block -> s-cond-branch
-(struct s-cond-branch (syntax expr body) #:transparent)
+;; s-case : srcloc (Listof s-case-branch) -> s-case
+(struct s-case (syntax branches) #:transparent)
+;; s-case-branch : srcloc Expr s-block -> s-case-branch
+(struct s-case-branch (syntax expr body) #:transparent)
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try (syntax body id except) #:transparent)
 

@@ -15,7 +15,7 @@ data Option:
   | some(value)
 sharing
   tostring(self):
-    cond:
+    case:
       | is-none(self) => "None"
       | is-some(self) => "Some(" + tostring(self.value) + ")"
     end

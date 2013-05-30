@@ -109,18 +109,18 @@
 
 
 
-(define conditionals (test-suite "conditionals"
-  (check-pyret "cond: | true => 2 | false => 1 end" two)
-  (check-pyret "cond: | false => 1 | else => 2 end" two) 
-  (check-pyret "cond: | else => 2 end" two) 
-  (check-pyret "cond: | false => 2 | true => 10 end" ten)
-  (check-pyret "cond: | true => 2 | true => 1 end" two)
-  (check-pyret "cond: | 3.lessthan(2) => 10 | true => 2 end" two)
-  (check-pyret "cond: | 2.lessthan(3) => 10 end" ten)
-  (check-pyret-exn "cond: | 4.lessthan(3) => 10 end" "cond:")
+(define cases (test-suite "cases"
+  (check-pyret "case: | true => 2 | false => 1 end" two)
+  (check-pyret "case: | false => 1 | else => 2 end" two) 
+  (check-pyret "case: | else => 2 end" two) 
+  (check-pyret "case: | false => 2 | true => 10 end" ten)
+  (check-pyret "case: | true => 2 | true => 1 end" two)
+  (check-pyret "case: | 3.lessthan(2) => 10 | true => 2 end" two)
+  (check-pyret "case: | 2.lessthan(3) => 10 end" ten)
+  (check-pyret-exn "case: | 4.lessthan(3) => 10 end" "case:")
 
-  ;; shouldn't lift vars out of cond
-  (check-pyret-exn "cond: | true => var zed = 5 zed end zed" "undefined")
+  ;; shouldn't lift vars out of case
+  (check-pyret-exn "case: | true => var zed = 5 zed end zed" "undefined")
 
   (check-pyret "
   when true: 5 end
@@ -156,7 +156,7 @@
   ;; check expansions of or and and with do
   (check-pyret
    "fun or(a,b):
-      cond:
+      case:
         | a() => true
         | true => b()
       end
@@ -167,7 +167,7 @@
 
   (check-pyret
    "fun and(a,b):
-      cond:
+      case:
         | a() => b()
         | true => false
       end
@@ -178,7 +178,7 @@
 
   (check-pyret
    "fun and(a,b):
-      cond:
+      case:
         | a() => b()
         | true => false
       end
@@ -189,7 +189,7 @@
 
   (check-pyret
    "fun while(test, body):
-      cond:
+      case:
         | test() => body() while(test, body)
         | true => 'while base case'
       end
@@ -201,7 +201,7 @@
   (check-pyret
    "fun For(init, test, update, body):
       init()
-      cond:
+      case:
         | test() =>
             body()
             update()
@@ -262,7 +262,7 @@
       | empty()
     sharing
       length(self):
-        cond:
+        case:
           | is-cons(self) => 1.add(self.rest.length())
           | is-empty(self) => 0
         end
@@ -420,7 +420,7 @@
   (check-pyret/libs
     "
     fun map(l, f):
-      cond:
+      case:
         | list.is-empty(l) => []
         | else => map(l.rest, f).push(f(l.first))
       end
@@ -451,7 +451,7 @@
       first(self): l.first(),
       push(self, elt): mklist(l.push(elt)),
       map(self, f):
-        cond:
+        case:
           | self.is-empty() => mklist([])
           | else => self.rest().map(f).push(f(l.first()))
         end
@@ -749,7 +749,7 @@ o2.m().called" true)
   constants
   functions
   brands
-  conditionals
+  cases
   data
   modules
   built-in-libraries

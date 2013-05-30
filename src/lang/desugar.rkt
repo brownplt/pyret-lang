@@ -191,23 +191,23 @@
      (s-method s args ann (ds body))]
 
     [(s-when s test body)
-     (s-cond s (list
-      (s-cond-branch s (ds test) (ds body))
-      (s-cond-branch s (s-bool s #t) (s-id s 'p:nothing))))]
+     (s-case s (list
+      (s-case-branch s (ds test) (ds body))
+      (s-case-branch s (s-bool s #t) (s-id s 'p:nothing))))]
 
-    [(s-cond s c-bs)
-     (define (ds-cond branch)
+    [(s-case s c-bs)
+     (define (ds-case branch)
        (match branch
-         [(s-cond-branch s tst blk) (s-cond-branch s (ds tst) (ds blk))]))
-     (define cond-fallthrough
+         [(s-case-branch s tst blk) (s-case-branch s (ds tst) (ds blk))]))
+     (define case-fallthrough
        (s-block s
                 (list
                  (s-app s
                         (s-id s 'raise)
-                        (list (s-str s "cond: no cases matched"))))))
-     (s-cond s
-             (append (map ds-cond c-bs)
-                     (list (s-cond-branch s (s-bool s #t) cond-fallthrough))))]
+                        (list (s-str s "case: no cases matched"))))))
+     (s-case s
+             (append (map ds-case c-bs)
+                     (list (s-case-branch s (s-bool s #t) case-fallthrough))))]
 
     ;; NOTE(joe): This is a hack that needs to be cleaned up. It avoids re-desugaring
     ;; catch blocks that already have their call to "make-error" added

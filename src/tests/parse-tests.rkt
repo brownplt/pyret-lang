@@ -275,10 +275,10 @@
            (s-num _ 4)))
 ))
 
-(define conditionals (test-suite "conditionals"
-  (check/block "cond: | true => 1 | false => 2 end" 
-               (s-cond _ (list (s-cond-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
-                               (s-cond-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
+(define cases (test-suite "cases"
+  (check/block "case: | true => 1 | false => 2 end" 
+               (s-case _ (list (s-case-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
+                               (s-case-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
 
   (check/block "when true: 5 end"
     (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
@@ -532,11 +532,11 @@
                       (s-num _ 3)))
    (check/block "x = 3 + 4"
                 (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
-   (check/block "3 + cond: |true => 7 end"
+   (check/block "3 + case: |true => 7 end"
                 (s-op _ op+
                       (s-num _ 3)
-                      (s-cond _ (list
-                                 (s-cond-branch _ (s-bool _ #t)
+                      (s-case _ (list
+                                 (s-case-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
 
    (check/block "1+(2*3)"
@@ -622,7 +622,7 @@
   fields
   annotations
   anon-func
-  conditionals
+  cases
   data
   for
   doblock

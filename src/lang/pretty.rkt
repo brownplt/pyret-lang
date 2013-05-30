@@ -52,12 +52,12 @@
      (define s-body (pretty body))
      (format "method(~a) -> ~a: ~a end" s-args s-ann s-body)]
 
-    [(s-cond s c-bs)
+    [(s-case s c-bs)
      (define (pretty-branch branch)
        (match branch
-         [(s-cond-branch s test expr)
+         [(s-case-branch s test expr)
           (format "| ~a => ~a" (pretty test) (pretty expr))]))
-     (format "cond:\n~a\nend" (string-join (map pretty-branch c-bs) "\n"))]
+     (format "case:\n~a\nend" (string-join (map pretty-branch c-bs) "\n"))]
     
     [(s-assign s name expr)
      (format "~a := ~a" name (pretty expr))]
