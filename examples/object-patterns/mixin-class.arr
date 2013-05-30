@@ -13,18 +13,18 @@ todo1 = {
   due: "25 January 2012",
   task: "Write mixin examples",
   done: false,
-  complete(self): self.{ done: true }
+  complete(self): self.{ done: true } end
 }
 
 fun droppable(obj):
   obj.{
     drop(self, names):
-      builtins.keys(self).foldr(fun(name, self-dropped):
+      for list.fold(self-dropped from {}, name from builtins.keys(self)):
         cond:
           | names.member(name) => self-dropped
           | else => self-dropped.{ [name]: self.[name] }
         end
-      end, {})
+      end
     end
   }
 end
@@ -43,3 +43,4 @@ todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
 Check.equal(todo2.due, "today", "due was instantiated")
 Check.equal(todo2.done, false, "done used default")
 todo2.constructor() # should err
+

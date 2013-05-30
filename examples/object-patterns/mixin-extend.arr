@@ -11,14 +11,14 @@ todo1 = {
 fun extendable(obj):
   obj.{
     ext(self, obj2):
-      builtins.keys(obj2).foldr(fun(name, self-ext):
+      for list.fold(self-ext from self, name from builtins.keys(obj2)):
         self-ext.{ [name]: obj2.[name] }
-      end, self)
+      end
     end
   }
 end
 
 todo2 = extendable(todo1)
-todo3 = todo2.ext({ complete(self): self.{ done: true } })
+todo3 = todo2.ext({ complete(self): self.{ done: true } end })
 Check.equal(todo3.done, false, "done is present after extend")
 Check.equal(todo3.complete().done, true, "complete is present after extend")

@@ -1,3 +1,3 @@
 #lang pyret
 
-"Ahoy world!"
+print("Ahoy world!")
