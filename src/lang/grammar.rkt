@@ -11,8 +11,8 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: (var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
-    | assign-expr | when-expr | try-expr)
+stmt: var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
+    | assign-expr | when-expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
     
@@ -25,7 +25,7 @@ paren-expr: PARENSPACE binop-expr ")"
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
-    | for-expr | paren-expr
+    | for-expr | paren-expr | try-expr
 
 
 id-expr: NAME

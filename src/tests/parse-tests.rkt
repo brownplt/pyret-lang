@@ -518,6 +518,13 @@
         (s-id _ 'c)))
       (s-bind _ 'e (a-blank))
       (s-block _ (list (s-num _ 5)))))
+
+  ;; try/except should be an expression
+  (check/block "x = try: a except(e): 5 end"
+        (s-let _ (s-bind _ 'x (a-blank))
+               (s-try _ (s-block _ (list (s-id _ 'a)))
+                           (s-bind _ 'e (a-blank))
+                           (s-block _ (list (s-num _ 5))))))
 ))
 
 (define ids-and-vars (test-suite "ids-and-vars"

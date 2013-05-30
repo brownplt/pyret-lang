@@ -97,7 +97,6 @@
       do-expr do-stmt
       assign-expr
       when-expr
-      try-expr
       stmt
       expr
     )
@@ -132,12 +131,6 @@
 
     [(when-expr "when" test ":" body "end")
      (s-when (loc stx) (parse-binop-expr #'test) (parse-block #'body))]
-
-    [(try-expr "try" ":" body "except" "(" arg-elt ")" ":" except "end")
-     (s-try (loc stx)
-            (parse-block #'body)
-            (parse-arg-elt #'arg-elt)
-            (parse-block #'except))]
       
     [(stmt s) (parse-stmt #'s)]
     [(binop-expr e) (parse-binop-expr #'e)]
@@ -274,6 +267,7 @@
       bracket-method-expr
       case-expr 
       for-expr
+      try-expr
       lambda-expr
       method-expr
       extend-expr 
@@ -312,6 +306,11 @@
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
+    [(try-expr "try" ":" body "except" "(" arg-elt ")" ":" except "end")
+     (s-try (loc stx)
+            (parse-block #'body)
+            (parse-arg-elt #'arg-elt)
+            (parse-block #'except))]
     [(lambda-expr "fun" ty-params args return-ann ":" doc body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
