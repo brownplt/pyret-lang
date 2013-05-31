@@ -7,16 +7,10 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword basic var fun end case with sharing data do import provide as try except when for from
+" This hilarious line is *adding* hyphens as a non-word separator
+se iskeyword+=-
 
-syn match delimeter '|'
-syn match delimeter '('
-syn match delimeter ')'
-syn match delimeter ':'
-syn match delimeter '->'
-syn match delimeter '=>'
-syn match delimeter ':='
-syn match delimeter '='
+syn keyword basic var fun end case with sharing data do import provide as try except when for from
 
 syn match op '+'
 syn match op '-'
@@ -28,10 +22,19 @@ syn match op '>='
 syn match op '<='
 syn match op '<>'
 
-syn match literal '\['
-syn match literal '\]'
-syn match literal '{'
-syn match literal '}'
+syn match delimeter '|'
+syn match delimeter '('
+syn match delimeter ')'
+syn match delimeter ':'
+syn match delimeter '->'
+syn match delimeter '=>'
+syn match delimeter ':='
+syn match delimeter '='
+
+syn match delimeter '\['
+syn match delimeter '\]'
+syn match delimeter '{'
+syn match delimeter '}'
 
 syn match comment '\#.*$'
 
@@ -47,7 +50,4 @@ hi def link delimeter PreProc
 hi def link string Constant
 hi def link number Constant
 hi def link literal Constant
-
-" This hilarious line is *adding* hyphens as a non-word separator
-se iskeyword+=-
 
