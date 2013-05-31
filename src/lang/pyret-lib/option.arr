@@ -11,8 +11,10 @@ provide
 end
 
 data Option:
-  | none
-  | some(value)
+  | none with
+    orelse(self, v): v end
+  | some(value) with
+    orelse(self, v): self.value end
 sharing
   tostring(self):
     case:

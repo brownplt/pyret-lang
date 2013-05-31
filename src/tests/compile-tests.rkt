@@ -532,6 +532,10 @@
   (check-pyret "[1,2,3].sort() == [1,2,3]"
                (p:mk-bool #t))
   
+  (check-pyret "option.some(4).orelse(5)" (p:mk-num 4))
+
+  (check-pyret "option.none.orelse(5)" (p:mk-num 5))
+
 
 ))
 
