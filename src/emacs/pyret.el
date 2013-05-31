@@ -27,9 +27,9 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords-regex 
   (regexp-opt
-   '("fun" "var" "case" "when" "import" "provide"
+   '("fun" "method" "var" "case" "when" "import" "provide"
      "data" "end" "do" "try" "except" "for" "from"
-     "as" "with" "sharing")))
+     "as" "with" "sharing" "check")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
 (defconst pyret-font-lock-keywords-1
@@ -91,7 +91,6 @@
     (modify-syntax-entry ?{ "(}" st)
     (modify-syntax-entry ?} "){" st)
     (modify-syntax-entry ?. "." st)
-    (modify-syntax-entry ?\\ "." st)
     (modify-syntax-entry ?\; "." st)
     (modify-syntax-entry ?| "." st)
     st)
@@ -127,7 +126,9 @@
         (= c ?-))))
 
 (defsubst pyret-keyword (s) 
-  (if (pyret-is-word (preceding-char)) nil
+  (if (or (pyret-is-word (preceding-char))
+          (and (get-text-property (point) 'fontified)
+               (equal (get-text-property (point) 'face) 'font-lock-string-face))) nil
     (let ((i 0)
           (slen (length s)))
       (cond
@@ -142,6 +143,7 @@
           t))))))
       
 (defsubst pyret-FUN () (pyret-keyword "fun"))
+(defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
 (defsubst pyret-CASES () (pyret-keyword "case"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
@@ -156,6 +158,7 @@
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing"))
+(defsubst pyret-CHECK () (pyret-keyword "check"))
 (defsubst pyret-WITH () (pyret-keyword "with"))
 (defsubst pyret-PIPE () (= (char-after) ?|))
 (defsubst pyret-COLON () (= (char-after) ?:))
@@ -329,6 +332,13 @@
             (push 'wantcloseparen opens)
             (push 'wantopenparen opens)
             (forward-char 3))
+           ((pyret-METHOD)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'fun opens)
+            (push 'wantcolon opens)
+            (push 'wantcloseparen opens)
+            (push 'wantopenparen opens)
+            (forward-char 6))
            ((pyret-WHEN) ;when indents just like funs
             (incf (pyret-indent-fun defered-opened))
             (push 'when opens)
@@ -400,13 +410,22 @@
               (pop opens)
               (push 'shared opens)))
             (forward-char 7))
+           ((pyret-CHECK)
+            (incf (pyret-indent-fun cur-closed))
+            (incf (pyret-indent-shared defered-opened))
+            (pop opens)
+            (push 'check opens)
+            (forward-char 5))
            ((pyret-TRY)
             (incf (pyret-indent-try defered-opened))
             (push 'try opens)
             (push 'wantcolon opens)
             (forward-char 3))
            ((pyret-EXCEPT)
-            (incf (pyret-indent-try cur-closed))
+            (cond 
+             ((> (pyret-indent-try cur-opened) 0) (decf (pyret-indent-try cur-opened)))
+             ((> (pyret-indent-try defered-opened) 0) (decf (pyret-indent-try defered-opened)))
+             (t (incf (pyret-indent-try cur-closed))))
             (incf (pyret-indent-except defered-opened))
             (when (pyret-has-top opens '(try))
               (pop opens)
@@ -543,7 +562,7 @@
                    ((> (pyret-indent-data defered-opened) 0) (decf (pyret-indent-data defered-opened)))
                    (t (incf (pyret-indent-data cur-closed))))
                   (setq still-unclosed nil))
-                 ((equal h 'shared)
+                 ((or (equal h 'shared) (equal h 'check))
                   (cond
                    ((> (pyret-indent-shared cur-opened) 0) (decf (pyret-indent-shared cur-opened)))
                    ((> (pyret-indent-shared defered-opened) 0) (decf (pyret-indent-shared defered-opened)))
