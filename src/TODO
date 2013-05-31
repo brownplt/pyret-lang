@@ -108,6 +108,7 @@ Need-to-have (eventually):
 [] String templates (ie, "blah %s" with some way of filling in stuff for %s).
 
 Nice-to-have (eventually):
+[] macros for creating objects/lists/functions in pyret desugaring
 [] implicit cond if you start fun with a |
 [] DrRacket syntax highlighting
 [] Figure out how to/if we can use list.arr lists in runtime.rkt

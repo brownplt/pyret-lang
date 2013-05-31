@@ -77,14 +77,6 @@
                     (s-block s empty))))]))
   (map variant-defs variants))
 
-(define (flatten-blocks maybe-blocks)
-  (foldr (λ (stmt block-stmts)
-           (match stmt
-             [(s-block s stmts) (append (flatten-blocks stmts) block-stmts)]
-             [else (cons stmt block-stmts)]))
-         empty
-         maybe-blocks))
-
 (define (ds-member ast-node)
     (match ast-node
       [(s-data-field s name value)

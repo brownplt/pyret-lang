@@ -7,6 +7,7 @@
   (rename-in pyret/lang/pyret-lib/list [%PYRET-PROVIDE list])
   (rename-in pyret/lang/pyret-lib/error [%PYRET-PROVIDE error])
   (rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins])
+  (rename-in pyret/lang/pyret-lib/option [%PYRET-PROVIDE option])
   )
 
 (provide

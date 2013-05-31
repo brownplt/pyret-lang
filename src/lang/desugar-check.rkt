@@ -1,25 +1,159 @@
 #lang racket/base
 
-(define (desugar-check/ann ast)
-  (match ast
-    [(pred-ann s e) (desugar-check e)]
-    [_ ast]))
+(provide desugar-check)
+(require
+  racket/list
+  racket/match
+  "ast.rkt")
 
 (struct check-info (srcloc name check-body))
 
 (define (get-checks stmts)
-  (define (get-check stmt)
+  (define (add-check stmt lst)
     (match stmt
       [(s-fun s name _ _ _ _ _ check)
-       (check-info s name check)]
-      [_ 
+       (cons (check-info s name check) lst)]
+      [_ lst]))
+  (foldl add-check empty stmts))
 
-(define (desugar-check ast)
-  (define ds desugar-check)
+;; srcloc (listof check-info) -> s-block
+(define (create-check-block s checks)
+  (define (create-checker check)
+    (match check
+      [(check-info s name body)
+       (define source (srcloc-source s))
+       (define line (srcloc-line s))
+       (define col (srcloc-column s))
+       (define srcloc-str (format "~a:~a:~a" source line col))
+       (define check-fun
+        (s-lam s
+               empty
+               empty
+               (a-blank)
+               (format "~a: Tests for ~a" srcloc-str name)
+               body
+               (s-block s empty)))
+       (s-obj s (list (s-data-field s (s-str s "name") (s-str s name))
+                      (s-data-field s (s-str s "run") check-fun)
+                      (s-data-field s (s-str s "location")
+                        (s-obj s (list
+                                  (s-data-field s (s-str s "file") (s-str s source))
+                                  (s-data-field s (s-str s "line") (s-num s line))
+                                  (s-data-field s (s-str s "column") (s-num s col)))))))]))
+  (define checkers (map create-checker checks))
+  (s-block s
+    (list
+      (s-app s (s-bracket s (s-id s 'checkers) (s-str s "run-checks"))
+               (list (s-list s checkers))))))
+  
+
+(define (desugar-check/internal ast)
+  (define ds desugar-check/internal)
+  (define (ds-ann ast)
+    (match ast
+      [(a-pred s t e) (a-pred s t (ds e))]
+      [_ ast]))
+  (define (ds-bind b)
+    (match b
+     [(s-bind s name ann) (s-bind s name (ds-ann ann))]))
+  (define (ds-variant var)
+    (match var
+     [(s-singleton-variant s name members)
+      (s-singleton-variant s name (map ds-member members))]
+     [(s-variant s name binds members)
+      (s-variant s name (map ds-bind binds) (map ds-member members))]))
+  (define (ds-member mem)
+    (match mem
+     [(s-data-field s name val) (s-data-field s (ds name) (ds val))]
+     [(s-method-field s name args ann doc body check)
+      (s-method-field s name (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]))
   (match ast
     [(s-block s stmts)
-     (define checks-to-perform (get-checks stmts))
-     (define ds-stmts (map ds stmts))
-     (s-block s (append stmts (create-checks checks-to-perform)))] 
-    
-    ...))
+     (define flat-stmts (flatten-blocks stmts))
+     (define checks-to-perform (get-checks flat-stmts))
+     (define ds-stmts (map ds flat-stmts))
+     (define do-checks (create-check-block s checks-to-perform))
+     (cond
+      [(empty? ds-stmts) 
+       (s-block s (list do-checks (s-id s 'nothing)))]
+      [(cons? ds-stmts)
+       (define last-expr (last ds-stmts))
+       (s-block s
+        (append
+          (take ds-stmts (- (length ds-stmts) 1))
+          (list
+              (s-let s (s-bind s '%result-after-checks (a-blank)) last-expr)
+              do-checks
+              (s-id s ''%result-after-checks))))])]
+    [(s-data s name params variants shares)
+     (s-data s name params (map ds-variant variants) (map ds-member shares))]
+
+    [(s-do s fun args)
+     (s-do s (ds fun) (map ds args))]
+
+    [(s-for s iter bindings ann body)
+     (s-for s (ds iter) (map ds-bind bindings) (ds-ann ann) (ds body))]
+
+    [(s-var s name val) (s-var s (ds-bind name) (ds val))]
+    [(s-let s name val) (s-let s (ds-bind name) (ds val))]
+
+    [(s-fun s name typarams args ann doc body check)
+     (s-fun s name typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
+
+    [(s-lam s typarams args ann doc body check)
+     (s-lam s typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
+
+    [(s-method s args ann doc body check)
+     (s-method s (map ds-bind args) (ds-ann) doc (ds body) (s-block s (list)))]
+
+    [(s-when s test body)
+     (s-when s (ds test) (ds body))]
+
+    [(s-case s c-bs)
+     (define (ds-case branch)
+       (match branch
+         [(s-case-branch s tst blk) (s-case-branch s (ds tst) (ds blk))]))
+     (s-case s (map ds-case c-bs))]
+
+    [(s-try s try x exn) (s-try s (ds try) x (ds exn))]
+
+    [(s-assign s name expr) (s-assign s name (ds expr))]
+
+    [(s-app s fun args) (s-app s (ds fun) (map ds args))]
+
+    [(s-left-app s target fun args)
+     (s-left-app s (ds target) (ds fun) (ds args))]
+
+    [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
+
+    [(s-obj s fields) (s-obj s (map ds-member fields))]
+
+    [(s-list s elts) (s-list s (map ds elts))]
+
+    [(s-dot s val field) (s-dot s (ds val) field)]
+
+    [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
+
+    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
+
+    [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
+
+    [(s-paren s e) (s-paren s (ds e))]
+
+    [(s-op s op e1 e2) (s-op s op (ds e1) (ds e2))]
+
+    [(or (s-num _ _)
+         (s-bool _ _)
+         (s-str _ _)
+         (s-id _ _)) ast]
+
+    [else (error (format "Missed a case in desugaring checks: ~a" ast))]))
+
+(define (desugar-check ast)
+  (match ast
+    [(s-prog s imports blck)
+     (define print (s-app s (s-dot s (s-id s 'checkers) 'format-check-results) empty))
+     (define with-checks (desugar-check/internal blck))
+     (s-prog s imports (s-block s (append (s-block-stmts with-checks) (list print))))]
+    [ast (desugar-check/internal ast)]))
+

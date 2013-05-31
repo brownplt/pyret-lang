@@ -8,6 +8,7 @@ provide {
   link: link,
 
   range: range,
+  each: each,
   map: map,
   map2: map2,
   map3: map3,
@@ -172,6 +173,15 @@ fun range(start, stop):
                                         + ")")
     | start.equals(stop)      => empty
     | start.lessthan(stop)    => link(start, range(start + 1, stop))
+  end
+end
+
+fun each(f, lst):
+  case:
+    | is-empty(lst) => nothing
+    | is-link(lst) =>
+        f(lst.first)
+        each(f, lst.rest)
   end
 end
 
