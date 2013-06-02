@@ -72,6 +72,7 @@ Need-to-have (soon):
   [] Add sub-production for lastfield (either field or (field ","))
   [] Rename s-dot-method, s-bracket-method
   [] make docstrings first-class productions
+[] Better string-checking in computed field name positions in object literals
   
 CS019 Assignments
 [x] Flags
