@@ -609,6 +609,9 @@ o2.m().called" true)
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" ten)
+
+  (check-pyret-exn "{}.[5]" "expected string, got 5")
+  (check-pyret-exn "{}.f" "f was not found")
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"

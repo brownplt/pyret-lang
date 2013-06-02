@@ -90,6 +90,7 @@
               [apply-fun p:apply-fun]
               [arity-error p:arity-error]
               [check-fun p:check-fun]
+              [check-str p:check-str]
               [has-field? p:has-field?]
               [extend p:extend]
               [to-string p:to-string]
@@ -398,6 +399,16 @@
                    (λ args (apply ((p-method-f vfield) loc) (cons v args))))
                  "")]
     [else vfield]))
+
+(define (check-str v l)
+  (cond
+    [(p-str? v) (p-str-s v)]
+    [else
+     (raise
+       (pyret-error
+        l
+        "lookup-non-string"
+        (format "get-field: expected string, got ~a" (to-string v))))]))
 
 (define (check-fun v l)
   (cond

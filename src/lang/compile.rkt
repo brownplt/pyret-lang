@@ -41,6 +41,16 @@
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
+  (define (compile-lookup l obj field lookup-type)
+     (attach l
+      (with-syntax*
+         ([(loc-param ...) (loc-list l)]
+          [loc #'(r:list loc-param ...)]
+          [field-stx (match field
+                 [(s-str _ s) (d->stx s l)]
+                 [else #`(p:check-str #,(compile-expr field) loc)])]
+		      )
+       #`(#,lookup-type loc #,(compile-expr obj) field-stx))))
   (define (compile-member ast-node)
     (match ast-node
       [(s-data-field l name value)
@@ -108,22 +118,23 @@
              temp)))]
 
     [(s-app l (s-bracket l2 obj field) args)
-        (with-syntax ([obj (compile-expr obj)]
-                      [field (match field
+        (with-syntax* ([obj (compile-expr obj)]
+                       [(arg ...) (map compile-expr args)]
+                       [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
+              	       [(loc-param ...) (loc-list l)]
+                       [loc #'(r:list loc-param ...)]
+                       [field (match field
                                 [(s-str _ s) (d->stx s l)]
-                                [else #'(p:p-str-s #,(compile-expr field))])]
-                      [(arg ...) (map compile-expr args)]
-                      [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
-              	      [(loc-param ...) (loc-list l)])
+                                [else #'(p:check-str #,(compile-expr field) loc)])])
           #'(r:let* ([%obj obj]
-                     [%field (p:get-raw-field (r:list loc-param ...) %obj field)]
+                     [%field (p:get-raw-field loc %obj field)]
                      [%is-method (p:p-method? %field)]
                      [%fun (r:cond
                             [%is-method (p:p-method-f %field)]
-                            [else (p:check-fun %field (r:list loc-param ...))])]
+                            [else (p:check-fun %field loc)])]
                      [argid arg] ...)
               (r:cond
-               [%is-method ((%fun (r:list loc-param ...)) %obj argid ...)]
+               [%is-method ((%fun loc) %obj argid ...)]
                [else (%fun argid ...)])))]
 
 
@@ -149,22 +160,11 @@
                     super
                     (r:list member ...)))))]
     
-    [(s-bracket l val field)
-     (attach l
-      (with-syntax
-         ([field (match field
-                 [(s-str _ s) (d->stx s l)]
-                 [else #`(p:p-str-s #,(compile-expr field))])]
-		      [(loc-param ...) (loc-list l)])
-       #`(p:get-field (r:list loc-param ...) #,(compile-expr val) field)))]
+    [(s-bracket l obj field)
+     (compile-lookup l obj field #'p:get-field)]
     
     [(s-bracket-method l obj field)
-     (attach l
-      (with-syntax
-		    ([(loc-param ...) (loc-list l)])
-       #`(p:get-raw-field (r:list loc-param ...)
-                          #,(compile-expr obj)
-                          (p:p-str-s #,(compile-expr field)))))]
+     (compile-lookup l obj field #'p:get-raw-field)]
 
     [(s-prog l headers block) (compile-prog l headers block)]
 

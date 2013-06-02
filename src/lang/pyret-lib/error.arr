@@ -20,6 +20,8 @@ data Error:
     name(self): "Error using opaque internal value" end
   | field-not-found(message :: String, location :: Location) with
     name(self): "Field not found" end
+  | get-field-non-string(message :: String, location :: Location) with
+    name(self): "Non-string in field lookup" end
   | lazy-error(message :: String, location :: Location) with
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing
@@ -37,6 +39,7 @@ fun make-error(obj):
       case:
         | (type == "opaque") => opaque-error(msg, loc)
         | (type == "field-not-found") => field-not-found(msg, loc)
+        | (type == "lookup-non-string") => get-field-non-string(msg, loc)
         | else => lazy-error(msg, loc)
       end
     | else => obj.value
