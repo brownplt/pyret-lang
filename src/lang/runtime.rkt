@@ -407,8 +407,8 @@
      (raise
        (pyret-error
         l
-        "lookup-non-string"
-        (format "get-field: expected string, got ~a" (to-string v))))]))
+        "field-non-string"
+        (format "field: expected string, got ~a" (to-string v))))]))
 
 (define (check-fun v l)
   (cond

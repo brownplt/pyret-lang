@@ -55,9 +55,12 @@
     (match ast-node
       [(s-data-field l name value)
        (attach l
-         (with-syntax ([name-stx (compile-expr name)]
-                       [val-stx (compile-expr value)]) 
-           #'(r:cons (p:p-str-s name-stx) val-stx)))]))
+         (with-syntax*
+          ([(loc-param ...) (loc-list l)]
+           [loc #'(r:list loc-param ...)]
+           [name-stx (compile-expr name)]
+           [val-stx (compile-expr value)]) 
+           #'(r:cons (p:check-str name-stx loc) val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)
@@ -100,9 +103,9 @@
        #`(r:with-handlers
             ([p:exn:fail:pyret?
               (r:lambda (%exn)
-		 (r:define #,(d->stx id l2) (p:mk-exn %exn))
-		 #,(compile-expr catch))])
-             #,(compile-expr try)))]
+               (r:define #,(d->stx id l2) (p:mk-exn %exn))
+               #,(compile-expr catch))])
+            #,(compile-expr try)))]
 
     [(s-id l name)
      (attach l

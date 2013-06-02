@@ -611,6 +611,7 @@ o2.m().called" true)
                 h()" ten)
 
   (check-pyret-exn "{}.[5]" "expected string, got 5")
+  (check-pyret-exn "{[5]: 'foo'}" "expected string, got 5")
   (check-pyret-exn "{}.f" "f was not found")
 ))
 
