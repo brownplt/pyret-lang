@@ -664,6 +664,9 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'indent-line-function) 'pyret-indent-line)  
   (set (make-local-variable 'tab-width) 2)
   (set (make-local-variable 'indent-tabs-mode) nil)
+  (set (make-local-variable 'paragraph-start)
+       (concat "\\|[ \t]*" 
+               (regexp-opt '("|" "fun" "case" "data" "for" "sharing" "try" "except" "when" "check"))))
   (setq major-mode 'pyret-mode)
   (setq mode-name "Pyret")
   (set (make-local-variable 'pyret-nestings) nil)
