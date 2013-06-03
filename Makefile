@@ -5,12 +5,15 @@ all:
 dep:
 	@echo Downloading and linking to helper libraries...
 	git submodule init
-	git submodule update
+	git submodule update lib/ragg lib/whalesong/ lib/CodeMirror
 	raco link lib/ragg/ragg/
 	raco link lib/whalesong/whalesong/
 	@echo Linking and building Pyret locally...
-	cd ../..
 	raco link -n pyret src/
+
+pyret-dev: dep
+	@echo Downloading private Pyret tests...
+	git submodule update examples/pyret-lang-private
 
 test:
 	@echo Compiling and running tests, should say 0 errors and 0 failures
