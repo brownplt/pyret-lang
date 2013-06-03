@@ -1,3 +1,63 @@
+[x] Pyret on Whalesong
+  [x] Convert ast, runtime to racket/base
+  [x] Remove all non-whalesong imports from runtime.rkt
+    [x] match
+    [x] list
+    [x] srfi
+    [x] string
+    [x] math
+    [x] set
+  [x] Blocked on Danny for:
+    - with-handlers
+    - REPL
+
+[x] parse method() ... end syntax
+
+[x] decide on built-in exception types
+  - types in error.arr, desugar/compile to error.make-error
+[x] mis-applied function error message is crap:
+    p-fun-f823: contract violation
+     expected: p-fun?
+     given: (p-bool ...
+
+[x] Capture avoiding names in catch blocks
+
+[x] Allow exprs for object literal field names
+[x] := for assignment
+[x] don't use ? in identifiers from data
+[x] surface syntax for operators?
+[x] Desugar data
+  [x] Brand checks on struct creation
+  [x] Annotations actually checked
+  [/] constructed annotations actually checked
+  [x] Skeleton of struct/data desugaring
+[x] Testing libs (check/expect)
+
+[x] surface syntax for first-class methods
+[x] Make tests work again, don't use brittle sandbox
+  [x] Read and understand docs for namespace-require, etc.
+  [x] Clean up
+    [x] Consolidate copied code in compile for s-prog
+    [x] Remove useless code from eval.rkt
+    [!] Move test-utils code to eval.rkt?
+      - Can't, causes loading cycle
+
+[x] figure out what define-syntax is less boilerplate in parser.rkt
+[x] get rid of #<void> in output in DrRacket
+[x] get rid of ugly value printing in output in DrRacket
+
+[x] Sensible story on importing libs like big-bang, image
+  [x] Change desugaring of modules to use provide/require
+  [x] Create a racket-ffi subdirectory of lang/
+  [x] Create files in racket-ffi that implement e.g. big-bang
+  [x] Register these files in desugar.rkt, and compile them
+     to require statements
+  [x] Clean up
+    [x] Is the printer option to print-pyret necessary anymore?
+    [x] Should runtime-ext exist anymore?
+    [x] Create useful ffi helpers like wrap-racket-fun and share between
+       ffi modules (there's copied code right now)
+
 [x] Some sort of module system for sane libraries
   [x] nested modules graph
 [x] application should check type better?

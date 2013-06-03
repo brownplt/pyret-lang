@@ -6,18 +6,6 @@ Need-to-have (soon):
       contract installation - do we want to have some version of that
       working?"
      - contracts up to monomorphic structures and polymorphic functions
-[x] Pyret on Whalesong
-  [x] Convert ast, runtime to racket/base
-  [x] Remove all non-whalesong imports from runtime.rkt
-    [x] match
-    [x] list
-    [x] srfi
-    [x] string
-    [x] math
-    [x] set
-  [x] Blocked on Danny for:
-    - with-handlers
-    - REPL
 [] Performance
   [] Change method representation, optimize method calls
     [] Add a new m field to create (p-method f m)
@@ -37,30 +25,11 @@ Need-to-have (soon):
        single representation (these are probably a bottleneck)
        - Macros probably a good idea here
 [] Indentation enforcement
-[x] Sensible story on importing libs like big-bang, image
-  [x] Change desugaring of modules to use provide/require
-  [x] Create a racket-ffi subdirectory of lang/
-  [x] Create files in racket-ffi that implement e.g. big-bang
-  [x] Register these files in desugar.rkt, and compile them
-     to require statements
-  [x] Clean up
-    [x] Is the printer option to print-pyret necessary anymore?
-    [x] Should runtime-ext exist anymore?
-    [x] Create useful ffi helpers like wrap-racket-fun and share between
-       ffi modules (there's copied code right now)
-[x] Make tests work again, don't use brittle sandbox
-  [x] Read and understand docs for namespace-require, etc.
-  [x] Clean up
-    [x] Consolidate copied code in compile for s-prog
-    [x] Remove useless code from eval.rkt
-    [!] Move test-utils code to eval.rkt?
-      - Can't, causes loading cycle
 
 15-minute tasks
-[] Make everything with methods consistent with functions
-  [] doc
+[x] Make everything with methods consistent with functions
+  [x] doc
   [] type variable declaration
-[x] parse method() ... end syntax
 [] find an error in runtime.rkt and give it a good error message:
   - variant in Error error.arr
   - case in error.make-error in error.arr
@@ -71,8 +40,8 @@ Need-to-have (soon):
   [] Add sub-production for field name (either [key-expr] or key)
   [] Add sub-production for lastfield (either field or (field ","))
   [] Rename s-dot-method, s-bracket-method
-  [] make docstrings first-class productions
-[] Better string-checking in computed field name positions in object literals
+  [x] make docstrings first-class productions
+[x] Better string-checking in computed field name positions in object literals
   
 CS019 Assignments
 [x] Flags
@@ -91,12 +60,6 @@ Need-to-have (eventually):
 [] fulfills keyword for inline tests
 [] Cyclic modules check
 [] provide Data
-[x] decide on built-in exception types
-  - types in error.arr, desugar/compile to error.make-error
-[x] mis-applied function error message is crap:
-    p-fun-f823: contract violation
-     expected: p-fun?
-     given: (p-bool ...
 [] Indentation enforcement
   [] Need pyrfmt: a way to print out canonically correct pyret code
     [] Keep track of comments in parsing
@@ -104,7 +67,6 @@ Need-to-have (eventually):
 [] better error reporting / pretty printing / support for debugging.
    For example, printing out names for brands (where appropriate)
    would be a start.
-[x] Capture avoiding names in catch blocks
 [] Data urls for inline images
 [] String templates (ie, "blah %s" with some way of filling in stuff for %s).
 
@@ -116,11 +78,12 @@ Nice-to-have (eventually):
 [] srcloc for a-any
 [] Make objects retain order w.r.t syntax of literal and update
 [] Vim highlight numbers
-[x] Allow exprs for object literal field names
-[x] := for assignment
-[x] don't use ? in identifiers from data
 [] better pretty-printing libraries
 [] optional "," in object literals
+[] Constructed types and brands
+[] brand names for debugging and general user-friendliness
+[] pretty-printing objects
+   - Take brands into account (names for them)
 
 Redex
 [] Redex the initial semantics
@@ -134,26 +97,10 @@ Redex
    Racket implementation as well
 [] add s-let and pyret compile let
 
-HTDP:
-[] surface syntax for first-class methods
-[] Constructed types and brands
-[x] surface syntax for operators?
-[] Desugar data
-  [] Lock operator for immutability
-  [] Brand checks on struct creation
-  [x] Annotations actually checked
-  [] constructed annotations actually checked
-  [x] Skeleton of struct/data desugaring
-[] brand names for debugging and general user-friendliness
-[] pretty-printing objects
-   - Take brands into account (names for them)
-[x] Testing libs (check/expect)
-
 Cleanup:
 [] decide on a line length and enforce
 [] ordering of things in grammar vs pyret.rkt
 [] consistent naming in grammar for lists of things
-[] figure out what define-syntax is less boilerplate in parser.rkt
 [] s-data and s-dot should agree on symbol vs. string
 [] clean up runtime.rkt into more .arr definitions
 [] bug report on module docs for language definitions
@@ -162,8 +109,6 @@ Cleanup:
 [] Should use a stable paren-based syntax in compile-tests rather than
    needing to update that on syntax changes
 [] optional trailing commas everywhere
-[] get rid of #<void> in output in DrRacket
-[] get rid of ugly value printing in output in DrRacket
 
 TODO templates:
 
