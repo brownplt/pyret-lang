@@ -12,6 +12,10 @@ provide {
   map2: map2,
   map3: map3,
   map4: map4,
+  iter: iter,
+  iter2: iter2,
+  iter3: iter3,
+  iter4: iter4,
   fold: fold,
   fold2: fold2,
   fold3: fold3,
@@ -201,6 +205,55 @@ fun map4(f, l1, l2, l3, l4):
     | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
     | else => f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
   end
+end
+
+
+fun iter(f, n, lst):
+  fun help(n, lst):
+    case:
+      | is-empty(lst) => nothing
+      | is-link(lst) =>
+        f(n, lst.first)
+        help(n + 1, lst.rest)
+    end
+  end
+  help(n, lst)
+end
+
+fun iter2(f, n, l1, l2):
+  fun help(n, l1, l2):
+    case:
+      | is-empty(l1).or(is-empty(l2)) => nothing
+      | else =>
+        f(n, l1.first, l2.first)
+        help(n + 1, l1.rest, l2.rest)
+    end
+  end
+  help(n, l1, l2)
+end
+
+fun iter3(f, n, l1, l2, l3):
+  fun help(n, l1, l2, l3):
+    case:
+      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
+      | else =>
+        f(n, l1.first, l2.first, l3.first)
+        help(n + 1, l1.rest, l2.rest, l3.rest)
+    end
+  end
+  help(n, l1, l2, l3)
+end
+
+fun iter4(f, n, l1, l2, l3, l4):
+  fun help(n, l1, l2, l3, l4):
+    case:
+      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
+      | else =>
+        f(n, l1.first, l2.first, l3.first, l4.first)
+        help(n + 1, l1.rest, l2.rest, l3.rest, l4.rest)
+    end
+  end
+  help(n, l1, l2, l3, l4)
 end
 
 fun fold(f, base, lst):
