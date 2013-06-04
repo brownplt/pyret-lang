@@ -24,6 +24,7 @@ Need-to-have (soon):
     [x] Figure out what to do with all the builtins that use apply and rely on a
        single representation (these are probably a bottleneck)
        - Macros probably a good idea here
+  [] Add a function field to every struct that throws an appropriate error
 [] Indentation enforcement
 
 15-minute tasks
@@ -42,7 +43,7 @@ Need-to-have (soon):
   [] Rename s-dot-method, s-bracket-method
   [x] make docstrings first-class productions
 [x] Better string-checking in computed field name positions in object literals
-  
+
 CS019 Assignments
 [x] Flags
 [] Rocket
@@ -124,3 +125,4 @@ TODO templates:
     [] Make your changes to desugar.rkt
   [] If you cannot desugar it entirely:
     [] Figure out how to split it between desugar.rkt and compile.rkt
+

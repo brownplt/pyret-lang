@@ -110,6 +110,9 @@
   Number
   String
   Bool
+  Object
+  Function
+  Method
   nothing)
 
 
@@ -359,22 +362,6 @@
   (p-method no-brands d f))
 
 (define exn-brand (gensym 'exn))
-
-;; is-number? : Value * -> Value
-(define (is-number? n)
-  (mk-bool (p-num? n)))
-(define Number (mk-fun-nodoc is-number?))
-
-;; is-string : Value * -> Value
-(define (is-string? . n)
-  (mk-bool (p-str? (first n))))
-(define String (mk-fun-nodoc is-string?))
-
-;; bool? : Value * -> Value
-(define (bool? . n)
-  (mk-bool (p-bool? (first n))))
-
-(define Bool (mk-fun-nodoc bool?))
 
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
@@ -780,4 +767,17 @@ And the object was:
 
 (define Any
   (mk-fun-nodoc (λ o (mk-bool #t))))
+
+(define-syntax-rule (mk-pred name test)
+  (define name
+    (pλ (arg)
+      (format "Built-in predicate for ~a" 'name)
+      (mk-bool (test arg)))))
+
+(mk-pred Number p-num?)
+(mk-pred String p-str?)
+(mk-pred Bool p-bool?)
+(mk-pred Object p-object?)
+(mk-pred Function p-fun?)
+(mk-pred Method p-method?)
 

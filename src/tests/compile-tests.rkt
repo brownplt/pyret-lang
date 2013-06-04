@@ -539,6 +539,29 @@
 
 ))
 
+(define tag-tests (test-suite "tag-tests"
+  (check-pyret "Function(fun: nothing end)" true)
+  (check-pyret "Function(method(): nothing end)" false)
+  (check-pyret "Method(fun: nothing end)" false)
+  (check-pyret "Method(method(): nothing end)" true)
+  (check-pyret "Object(method(): nothing end)" false)
+  (check-pyret "Object({})" true)
+  (check-pyret "String('')" true)
+  (check-pyret "String(5)" false)
+  (check-pyret "Number(5)" true)
+  (check-pyret "Number('str')" false)
+  (check-pyret "Bool(true)" true)
+  (check-pyret "Bool(false)" true)
+  (check-pyret "Bool({})" false)
+
+  (check-pyret "Number(5.{ x: 'some-new-field' })" true)
+  (check-pyret "String('str'.{ x: 'some-new-field' })" true)
+  (check-pyret "Bool(true.{ x: 'some-new-field' })" true)
+  (check-pyret "Function(fun: nothing end.{ x: 'some-new-field' })" true)
+  (check-pyret "Method(method(): nothing end.{ x: 'some-new-field' })" true)
+  (check-pyret "Object({}.{ x: 'some-new-field' })" true)
+))
+
 (define conversions (test-suite "conversions"
   (check-pyret "tostring(1)" (p:mk-str "1"))
   (check-pyret "tostring(true)" (p:mk-str "true"))
@@ -546,7 +569,7 @@
   (check-pyret "[1,2,3].tostring()" (p:mk-str "[1, 2, 3]"))
   (check-pyret "tostring('hello')" (p:mk-str "hello"))
   (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
-  (check-pyret "tostring({a: 5, tostring(self): 'hello!'})"
+  (check-pyret "tostring({a: 5, tostring(self): 'hello!' end})"
          (p:mk-str "hello!"))
 ))
 
@@ -765,6 +788,8 @@ o2.m().called" true)
   cases
   data
   modules
+  conversions
+  tag-tests
   built-in-libraries
   do-blocks
   for-block
