@@ -60,4 +60,4 @@
 (define (pyret-list? l)
   (define d (p:get-dict pyret-list))
   (define is-list (hash-ref d "List"))
-  ((p:p-fun-f is-list) l))
+  (ffi-unwrap (p:apply-fun is-list p:dummy-loc l)))

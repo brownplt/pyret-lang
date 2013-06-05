@@ -15,7 +15,7 @@
           (ffi-wrap (lambda (start options)
             (serve/servlet start
               #:servlet-path (ffi-unwrap (p:get-field p:dummy-loc options "servlet-path"))
-              #:extra-files-paths (map ffi-unwrap (p:structural-list->list (p:get-field p:dummy-loc options "static-files")))
+              #:extra-files-paths (ffi-unwrap (p:get-field p:dummy-loc options "static-files"))
               #:server-root-path (ffi-unwrap (p:get-field p:dummy-loc options "server-root-path"))
               #:servlet-current-directory (ffi-unwrap (p:get-field p:dummy-loc options "servlet-current-directory"))
               #:port (ffi-unwrap (p:get-field p:dummy-loc options "port"))
