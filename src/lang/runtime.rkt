@@ -78,6 +78,7 @@
               [mk-method p:mk-method]
               [mk-method-loc p:mk-method-loc]
               [mk-structural-list p:mk-structural-list]
+              [structural-list? p:structural-list?]
               [structural-list->list p:structural-list->list]
               [wrap p:wrap]
               [unwrap p:unwrap]

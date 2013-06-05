@@ -23,6 +23,7 @@
     [(number? val) (p:mk-num val)]
     [(string? val) (p:mk-str val)]
     [(boolean? val) (p:mk-bool val)]
+    [(list? val) (p:mk-structural-list val)]
     [else (p:p-opaque val)]))
 
 (define (ffi-unwrap val)
@@ -33,6 +34,10 @@
     [(p:p-num _ _ n) n]
     [(p:p-str _ _ s) s]
     [(p:p-bool _ _ b) b]
+    [(p:p-object _ _)
+     (if (p:structural-list? val)
+         (map ffi-unwrap (p:structural-list->list val))
+         val)]
     [else val]))
 
 (define (wrap-racket-fun f)
