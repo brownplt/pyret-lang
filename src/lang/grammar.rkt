@@ -63,7 +63,8 @@ fun-header: ty-params NAME args return-ann
 
 fun-expr: "fun" fun-header ":" fun-body
 
-lambda-expr: "fun" ty-params [args] return-ann ":" fun-body
+lambda-args: (PARENNOSPACE|PARENSPACE) [list-arg-elt* arg-elt] ")"
+lambda-expr: "fun" ty-params [lambda-args] return-ann ":" fun-body
 
 when-expr: "when" binop-expr ":" block "end"
 

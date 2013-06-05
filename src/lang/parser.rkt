@@ -188,6 +188,16 @@
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
      (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
 
+;; we allow spaces before the parens in lambda definitions, so this
+;; case is, while different in the grammar, identical to parse-args here.
+(define (parse-lambda-args stx)
+  (syntax-parse stx
+    #:datum-literals (lambda-args list-arg-elt)
+    [(lambda-args "(" ")") empty]
+    [(lambda-args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
+     (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
+
+
 (define (parse-field stx)
   (syntax-parse stx
     #:datum-literals (field)
@@ -314,7 +324,7 @@
     [(lambda-expr "fun" ty-params args return-ann ":" fun-body)
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
-            (parse-args #'args)
+            (parse-lambda-args #'args)
             (parse-return-ann #'return-ann)
             ""
             (parse-fun-body #'fun-body))]
