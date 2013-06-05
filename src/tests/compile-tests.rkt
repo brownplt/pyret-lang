@@ -636,6 +636,10 @@ o2.m().called" true)
   (check-pyret-exn "{}.[5]" "expected string, got 5")
   (check-pyret-exn "{[5]: 'foo'}" "expected string, got 5")
   (check-pyret-exn "{}.f" "f was not found")
+
+  (check-pyret-exn
+   "try: raise(5) except(_): _ end"
+   "undefined")
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"
@@ -750,6 +754,27 @@ o2.m().called" true)
     y"
    "duplicate")
 
+  ;; check behavior of _, which should be an identifier that just disappears
+  (check-pyret
+   "_ = 4
+    _ = 5
+    5"
+    five)
+  (check-pyret
+   "f = fun(_,_,_): 5 end
+    f(1,2,3)"
+    five)
+
+  (check-pyret-exn
+   "_ = 5
+    _"
+   "undefined")
+
+  (check-pyret
+   "_foo = 10
+    _foo"
+   (p:mk-num 10))
+  
 ))
 
 (define binary-operators (test-suite "binary-operators"
