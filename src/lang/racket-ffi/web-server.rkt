@@ -15,7 +15,8 @@
           (ffi-wrap (lambda (start options)
             (serve/servlet start
               #:servlet-path (ffi-unwrap (p:get-field p:dummy-loc options "servlet-path"))
-              #:extra-files-paths (list (ffi-unwrap (p:get-field p:dummy-loc options "static-files")))
+              #:extra-files-paths (map ffi-unwrap (p:structural-list->list (p:get-field p:dummy-loc options "static-files")))
+              #:port (ffi-unwrap (p:get-field p:dummy-loc options "port"))
               #:launch-browser? #f))))
         (cons "make-response" (ffi-wrap (lambda (s)
           (response/output (lambda (p) (display s p))))))))))
