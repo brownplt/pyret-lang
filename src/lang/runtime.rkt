@@ -95,7 +95,8 @@
               [extend p:extend]
               [to-string p:to-string]
               [nothing p:nothing]
-              [pyret-true? p:pyret-true?])
+              [pyret-true? p:pyret-true?]
+              [dummy-loc p:dummy-loc])
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
