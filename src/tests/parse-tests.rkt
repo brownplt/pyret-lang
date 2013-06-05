@@ -307,6 +307,22 @@
 
   
 
+(check/block "fun (x,y,z): x end"
+               (s-lam _ empty (list (s-bind _ 'x (a-blank))
+                              (s-bind _ 'y (a-blank))
+                              (s-bind _ 'z (a-blank)))
+                      (a-blank)
+                      _
+                      (s-block _ (list (s-id _ 'x)))
+                      _))
+
+(check/block "fun (): x end"
+               (s-lam _ empty (list)
+                      (a-blank)
+                      _
+                      (s-block _ (list (s-id _ 'x)))
+                      _))
+
   ;; non-empty lists for x
   (check/block "var x :: List(list.is-cons) = 4"
     (s-var _

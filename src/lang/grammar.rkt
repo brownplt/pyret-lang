@@ -49,7 +49,7 @@ app-expr: expr app-args
 
 arg-elt: NAME ["::" ann]
 list-arg-elt: arg-elt ","
-args: PARENNOSPACE [list-arg-elt* arg-elt] ")"
+args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* arg-elt] ")"
 
 list-ty-param: NAME ","
 ty-params:
