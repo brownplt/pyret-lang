@@ -30,7 +30,9 @@
      (define strs (map pretty stmts))
      (string-join strs (format "\n~a" indent))]
     [(s-var s bnd val)
-     (format "var ~a: ~a" (pretty-bind bnd) (pretty val))]
+     (format "var ~a = ~a" (pretty-bind bnd) (pretty val))]
+    [(s-let s bnd val)
+     (format "~a = ~a" (pretty-bind bnd) (pretty val))]
     [(s-lam s typarams args ann doc body check)
      (define s-typarams
        (cond [(cons? typarams) (format "<~a>" (string-join (map symbol->string typarams) ", "))]
@@ -39,7 +41,7 @@
      (define s-ann (pretty-ann ann))
      (define s-body (vary-pretty (s-block s (cons (s-str s doc) (s-block-stmts body))) (increase-indent ind)))
      ;; NOTE(dbp): pretty printing for check is almost certainly wrong
-     (define check (pretty check))
+     (define s-check (pretty check))
      (format "\\~a ~a -> ~a:\n~a~a\n~acheck~aend"
              s-typarams
              s-args
@@ -47,14 +49,14 @@
              next-indent
              s-body
              indent
-             check)]
+             s-check)]
     
     [(s-method s args ann doc body check)
      (define s-args (string-join (map pretty-bind args) ", "))
      (define s-ann (pretty-ann ann))
      (define s-body (pretty body))
-     (define check (pretty check))
-     (format "method(~a) -> ~a: ~a check ~a end" s-args s-ann s-body check)]
+     (define s-check (pretty check))
+     (format "method(~a) -> ~a: ~a check ~a end" s-args s-ann s-body s-check)]
 
     [(s-case s c-bs)
      (define (pretty-branch branch)

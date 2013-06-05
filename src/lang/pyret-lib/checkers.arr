@@ -1,7 +1,8 @@
 #lang pyret/library
 
 import "list.rkt" as list
-import "error.rkt" as err
+import "error.rkt" as error
+
 provide
   {
     check-equals: check-equals,
@@ -11,21 +12,20 @@ provide
   }
 end
 
-Location = err.Location
-Error = err.Error
+# These are just convenience
+Location = error.Location
+Error = error.Error
 
 data Result:
   | success
   | failure(reason :: String)
-  | error(exception :: Error)
+  | err(exception :: Error)
 end
 
 var current-results = []
 
 fun check-equals(val1, val2):
   try:
-    print(val1)
-    print(val2)
     case:
       | (val1 == val2) =>
         current-results := current-results.push(success)
@@ -37,7 +37,7 @@ fun check-equals(val1, val2):
                                        tostring(val2)))
     end
   except(e):
-    current-results := current-results.push(error(e))
+    current-results := current-results.push(err(e))
   end
 end
 
@@ -49,19 +49,22 @@ end
 var all-results :: list.List = []
 
 fun run-checks(checks):
+  var old-results = current-results
   these-check-results = 
     for list.map(chk from checks):
       l = chk.location
-      loc = err.location(l.file, l.line, l.column)
+      loc = error.location(l.file, l.line, l.column)
       current-results := []
-      try:
+      result = try:
         chk.run()
         normal-result(chk.name, loc, current-results)
       except(e):
         error-result(chk.name, loc, current-results, e)
       end
+      result
     end
 
+  current-results := old-results
   all-results := all-results.push(these-check-results)
 end
 
@@ -71,14 +74,13 @@ fun format-check-results():
   init = { passed: 0, failed : 0, errors: 0, total: 0}
   counts = for list.fold(acc from init, results from all-results):
     for list.fold(inner-acc from acc, check-result from results):
-      results = check-result.results
+      inner-results = check-result.results
       extra-errors = [check-result].filter(is-error-result).length()
-      print(results)
-      acc.{
-        passed: acc.passed + results.filter(is-success).length(),
-        failed: acc.failed + results.filter(is-failure).length(),
-        errors: acc.errors + results.filter(is-error).length() + extra-errors,
-        total: acc.total + results.length() 
+      inner-acc.{
+        passed: inner-acc.passed + inner-results.filter(is-success).length(),
+        failed: inner-acc.failed + inner-results.filter(is-failure).length(),
+        errors: inner-acc.errors + inner-results.filter(is-err).length() + extra-errors,
+        total: inner-acc.total + inner-results.length() 
       }
     end
   end

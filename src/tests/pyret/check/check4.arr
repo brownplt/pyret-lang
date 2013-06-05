@@ -1,13 +1,11 @@
 #lang pyret
 
-import test as T
+eq = checkers.check-equals
 
 fun greater_than_4(n):
   n > 4
 check
-  T.assert-true(greater_than_4(5))
-  T.assert-true(greater_than_4(3))
+  eq(greater_than_4(5), true)
+  eq(greater_than_4(3), true)
 end
-
-T.assert-passing-results(1)
 

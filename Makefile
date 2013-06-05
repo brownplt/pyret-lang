@@ -18,7 +18,7 @@ test:
 	racket parse-tests.rkt; \
 	racket compile-tests.rkt; \
 	racket type-tests.rkt
-	cd src/tests/pyret/; ./run-pyret-tests.sh
+	cd src/tests/pyret; ./run-pyret-tests.sh
 
 clean:
 	raco setup -c pyret

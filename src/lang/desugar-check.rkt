@@ -84,7 +84,7 @@
           (list
               (s-let s (s-bind s '%result-after-checks (a-blank)) last-expr)
               do-checks
-              (s-id s ''%result-after-checks))))])]
+              (s-id s '%result-after-checks))))])]
     [(s-data s name params variants shares)
      (s-data s name params (map ds-variant variants) (map ds-member shares))]
 
@@ -92,7 +92,12 @@
      (s-do s (ds fun) (map ds args))]
 
     [(s-for s iter bindings ann body)
-     (s-for s (ds iter) (map ds-bind bindings) (ds-ann ann) (ds body))]
+     (define (ds-for-bind b)
+      (match b
+        [(s-for-bind s bind value)
+         (s-for-bind s (ds-bind bind) (ds value))]
+        [else (error (format "FATAL: Not an s-for-bind: ~a" b))]))
+     (s-for s (ds iter) (map ds-for-bind bindings) (ds-ann ann) (ds body))]
 
     [(s-var s name val) (s-var s (ds-bind name) (ds val))]
     [(s-let s name val) (s-let s (ds-bind name) (ds val))]
@@ -151,9 +156,13 @@
 
 (define (desugar-check ast)
   (match ast
-    [(s-prog s imports blck)
+    [(s-prog s imports (s-block s2 stmts))
+     ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.
+     ;; The toplevel may end in a statement that we cannot let-bind (which is
+     ;; what desugar-check/internal will try to do), so we add a nothing at
+     ;; the end
+     (define with-checks (desugar-check/internal (s-block s2 (append stmts (list (s-id s2 'nothing))))))
      (define print (s-app s (s-dot s (s-id s 'checkers) 'format-check-results) empty))
-     (define with-checks (desugar-check/internal blck))
      (s-prog s imports (s-block s (append (s-block-stmts with-checks) (list print))))]
     [ast (desugar-check/internal ast)]))
 

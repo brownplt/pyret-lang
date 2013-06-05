@@ -1,6 +1,6 @@
 #lang pyret
 
-import test as T
+eq = checkers.check-equals
 
 fun odd(n):
   case:
@@ -9,8 +9,8 @@ fun odd(n):
     | else => even(n - 1)
   end
 check
-  T.assert-equals(odd(9), true)
-  T.assert-equals(odd(8), false)
+  eq(odd(9), true)
+  eq(odd(8), false)
 end
 
 
@@ -21,6 +21,7 @@ fun even(n):
     | else => odd(n - 1)
   end
 check
-  T.assert-equals(even(9), false)
-  T.assert-equals(even(8), true)
+  eq(even(9), false)
+  eq(even(8), true)
 end
+

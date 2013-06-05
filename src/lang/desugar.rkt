@@ -126,10 +126,11 @@
 
 (define (desugar-internal ast)
   (define ds desugar-internal)
+  (define (ds-bind b)
+    (match b
+      [(s-bind s id a) (s-bind s id (desugar-ann a))]))
   (define (ds-args binds)
-    (map (lambda (b)
-      (match b
-        [(s-bind s id a) (s-bind s id (desugar-ann a))])) binds))
+    (map ds-bind binds))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -157,9 +158,9 @@
      (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
-     (s-var s name (ds val))]
+     (s-var s (ds-bind name) (ds val))]
     [(s-let s name val)
-     (s-let s name (ds val))]
+     (s-let s (ds-bind name) (ds val))]
 
     [(s-fun s name typarams args ann doc body check)
      (s-let s

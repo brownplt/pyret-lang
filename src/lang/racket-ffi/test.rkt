@@ -86,7 +86,7 @@ fun assert-passing-results(n):
   m = results.filter(fun(r): r.passed end).length()
   when n <> m:
     format-results()
-    print("Expected " + n + " passing tests, got " + m)
+    print("Expected " + n.tostring() + " passing tests, got " + m.tostring())
   end
 end
 
