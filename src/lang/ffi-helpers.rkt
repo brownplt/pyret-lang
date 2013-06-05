@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/match "runtime.rkt")
+(require racket/match "runtime.rkt"
+         (rename-in "pyret-lib/list.rkt" (%PYRET-PROVIDE pyret-list)))
 (provide (all-defined-out))
 
 (define (allowed-prim? v)
@@ -23,7 +24,7 @@
     [(number? val) (p:mk-num val)]
     [(string? val) (p:mk-str val)]
     [(boolean? val) (p:mk-bool val)]
-    [(list? val) (p:mk-structural-list val)]
+    [(list? val) (create-pyret-list val)]
     [else (p:p-opaque val)]))
 
 (define (ffi-unwrap val)
@@ -35,13 +36,13 @@
     [(p:p-str _ _ s) s]
     [(p:p-bool _ _ b) b]
     [(p:p-object _ _)
-     (if (p:structural-list? val)
+     (if (pyret-list? val)
          (map ffi-unwrap (p:structural-list->list val))
          val)]
     [else val]))
 
 (define (wrap-racket-fun f)
-  (p:mk-fun-nodoc (λ args (p:wrap (wrap-racket-value (apply f (map get-val (map p:unwrap args))))))))
+  (p:mk-fun-nodoc (λ args (ffi-wrap (wrap-racket-value (apply f (map get-val (map ffi-unwrap args))))))))
 
 (define (get-val arg)
   (cond
@@ -50,3 +51,13 @@
     [(allowed-prim? arg) arg]
     [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
 
+(define (create-pyret-list l)
+  (define d (p:get-dict pyret-list))
+  (define link (hash-ref d "link"))
+  (define empty (hash-ref d "empty"))
+  (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (ffi-wrap elem) lst)) empty l))
+
+(define (pyret-list? l)
+  (define d (p:get-dict pyret-list))
+  (define is-list (hash-ref d "List"))
+  ((p:p-fun-f is-list) l))
