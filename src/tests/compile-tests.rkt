@@ -72,7 +72,7 @@
                   fun f():
                     fun g(): x := 2 end
                     fun h(): x end
-                    {g: g, h: h} 
+                    {g: g, h: h}
                   end
                   o := f()
                   o.g()
@@ -111,8 +111,8 @@
 
 (define cases (test-suite "cases"
   (check-pyret "case: | true => 2 | false => 1 end" two)
-  (check-pyret "case: | false => 1 | else => 2 end" two) 
-  (check-pyret "case: | else => 2 end" two) 
+  (check-pyret "case: | false => 1 | else => 2 end" two)
+  (check-pyret "case: | else => 2 end" two)
   (check-pyret "case: | false => 2 | true => 10 end" ten)
   (check-pyret "case: | true => 2 | true => 1 end" two)
   (check-pyret "case: | 3.lessthan(2) => 10 | true => 2 end" two)
@@ -360,7 +360,7 @@
     d2.is-d(a-d)"
     (p:mk-bool #t))
 
-  (check-pyret 
+  (check-pyret
     "import 'modules/dependency/B.arr' as b
      import 'modules/dependency/C.arr' as c
      import 'modules/dependency/F.arr' as f
@@ -531,7 +531,7 @@
 
   (check-pyret "[1,2,3].sort() == [1,2,3]"
                (p:mk-bool #t))
-  
+
   (check-pyret "option.some(4).orelse(5)" (p:mk-num 4))
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
@@ -610,7 +610,7 @@ o2.m().called" true)
   (check-pyret "method(self): doc 'hello' 1 end._doc" (p:mk-str "hello"))
   (check-pyret "method(self): doc 'hello' 1 end._fun()._doc" (p:mk-str "hello"))
   (check-pyret "fun(self): doc 'hello' 1 end._method()._doc" (p:mk-str "hello"))
-  
+
 ))
 
 (define exceptions (test-suite "exceptions"
@@ -637,9 +637,6 @@ o2.m().called" true)
   (check-pyret-exn "{[5]: 'foo'}" "expected string, got 5")
   (check-pyret-exn "{}.f" "f was not found")
 
-  (check-pyret-exn
-   "try: raise(5) except(_): _ end"
-   "undefined")
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"
@@ -754,27 +751,17 @@ o2.m().called" true)
     y"
    "duplicate")
 
-  ;; check behavior of _, which should be an identifier that just disappears
-  (check-pyret
-   "_ = 4
-    _ = 5
-    5"
-    five)
+  ;; check behavior of _, which, when an argument name, should disappear
   (check-pyret
    "f = fun(_,_,_): 5 end
     f(1,2,3)"
     five)
 
-  (check-pyret-exn
-   "_ = 5
-    _"
-   "undefined")
-
   (check-pyret
    "_foo = 10
     _foo"
    (p:mk-num 10))
-  
+
 ))
 
 (define binary-operators (test-suite "binary-operators"
@@ -805,7 +792,7 @@ o2.m().called" true)
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
   (check-pyret "a = 1 b = 2 (a == b).or(true)" (p:mk-bool #t))
 ))
-                               
+
 (define all (test-suite "all"
   constants
   functions
