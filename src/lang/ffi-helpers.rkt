@@ -58,6 +58,5 @@
   (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (ffi-wrap elem) lst)) empty l))
 
 (define (pyret-list? l)
-  (define d (p:get-dict pyret-list))
-  (define is-list (hash-ref d "List"))
+  (define is-list (p:get-raw-field p:dummy-loc pyret-list "List"))
   (ffi-unwrap (p:apply-fun is-list p:dummy-loc l)))
