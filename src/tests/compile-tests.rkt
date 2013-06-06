@@ -793,6 +793,25 @@ o2.m().called" true)
   (check-pyret "a = 1 b = 2 (a == b).or(true)" (p:mk-bool #t))
 ))
 
+(define checks (test-suite "checks"
+
+  (let ()
+    (define (make-test t p f te oe)
+      (format
+        "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
+        
+    (check-pyret-match/check "pyret/check/check1.arr" _ (make-test 3 3 0 0 0))
+    (check-pyret-match/check "pyret/check/check2.arr" _ (make-test 4 4 0 0 0))
+    (check-pyret-match/check "pyret/check/check3.arr" _ (make-test 36 36 0 0 0))
+    (check-pyret-match/check "pyret/check/check4.arr" _ (make-test 2 1 1 0 0))
+    (check-pyret-match/check "pyret/check/check-error.arr" _ (make-test 2 1 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error2.arr" _ (make-test 4 2 2 0 1))
+    (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-test 4 3 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-test 2 1 0 1 0))
+    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-test 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-test 2 2 0 0 0)))
+))
+
 (define all (test-suite "all"
   constants
   functions
@@ -808,7 +827,8 @@ o2.m().called" true)
   methods
   exceptions
   ids-and-vars
-  binary-operators))
+  binary-operators
+  checks))
 
 (run-tests all 'normal)
 

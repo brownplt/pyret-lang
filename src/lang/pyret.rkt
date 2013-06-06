@@ -9,6 +9,7 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
+  "settings.rkt"
   "compile.rkt"
   "desugar.rkt"
   "typecheck.rkt"
@@ -41,5 +42,5 @@
                   (r:require (r:rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins]))
                   (void (current-read-interaction repl-eval-pyret))
                   (void (current-print print-pyret))
-                  #,(pyret->racket src in #:libs #t #:toplevel #t))))]))
+                  #,(pyret->racket src in #:libs #t #:toplevel #t #:check (param-compile-check-mode)))))]))
 

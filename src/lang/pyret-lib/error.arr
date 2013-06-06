@@ -5,7 +5,11 @@ provide {
   is-opaque-error : is-opaque-error,
   field-not-found: field-not-found,
   is-field-not-found: is-field-not-found,
-  make-error: make-error
+  make-error: make-error,
+  Error: Error,
+  Location: Location,
+  location: location,
+  is-location: is-location
 } end
 
 data Location:

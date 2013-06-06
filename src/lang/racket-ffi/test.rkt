@@ -6,13 +6,21 @@ provide {
   check-not-equals: check-not-equals,
   check-exn: check-exn,
   get-results: get-results,
+  assert-passing-results: assert-passing-results,
   format-results: format-results
 } end
 
+fun assert-true(value):
+  assert-equals(value, true)
+end
+
 fun assert-equals(value1, value2):
+  c = mk-checker("assert-equals", fun: value1 end, value2)
   case:
-    | value1.equals(value2) => nothing
-    | else => raise "Failed test"
+    | value1.equals(value2) =>
+      results := results.push(c.{ passed: true })
+    | else =>
+      results := results.push(c.{ passed: false, reason: "Values not equal" })
   end
 end
 
@@ -74,6 +82,13 @@ fun check-exn(message, thunk, exn-pred):
 end
 
 fun get-results(): results end
+fun assert-passing-results(n):
+  m = results.filter(fun(r): r.passed end).length()
+  when n <> m:
+    format-results()
+    print("Expected " + n.tostring() + " passing tests, got " + m.tostring())
+  end
+end
 
 fun format-results():
   passed = results.filter(fun(r): r.passed end)
@@ -81,16 +96,16 @@ fun format-results():
   passedNum = passed.length()
   failedNum = failed.length()
 
-  print(passedNum.tostring().append(" tests passed."))
-  print(failedNum.tostring().append(" tests failed."))
+  print(passedNum.tostring() + " tests passed.")
+  print(failedNum.tostring() + " tests failed.")
 
   results.map(fun(r):
     case:
       | r.passed => nothing
       | else =>
         print("===========================")
-        print("Test: ".append(r.message))
-        print("Failed because: ".append(r.reason))
+        print("Test: " + r.message)
+        print("Failed because: " + r.reason)
         print("Expected:")
         print(r.expected)
         case:

@@ -18,6 +18,7 @@
   syntax/strip-context
   "get-syntax.rkt"
   "desugar.rkt"
+  "desugar-check.rkt"
   "typecheck.rkt"
   "compile.rkt"
   "load.rkt"
@@ -42,9 +43,10 @@
 (define (pyret->racket/libs src in)
   (stx->racket (get-syntax src in) desugar-pyret/libs))
 
-(define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f])
+(define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f] #:check [check #f])
   (define desugar
     (cond
+      [check (lambda (e) (desugar-pyret (desugar-check e)))]
       [libs desugar-pyret/libs]
       [else desugar-pyret]))
   (define compile (if toplevel compile-pyret compile-expr))
