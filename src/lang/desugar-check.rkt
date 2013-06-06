@@ -163,6 +163,7 @@
      ;; the end
      (define with-checks (desugar-check/internal (s-block s2 (append stmts (list (s-id s2 'nothing))))))
      (define print (s-app s (s-dot s (s-id s 'checkers) 'format-check-results) empty))
-     (s-prog s imports (s-block s (append (s-block-stmts with-checks) (list print))))]
+     (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
+     (s-prog s imports (s-block s (append (list clear) (s-block-stmts with-checks) (list print))))]
     [ast (desugar-check/internal ast)]))
 

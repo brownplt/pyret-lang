@@ -14,11 +14,10 @@ dep:
 test:
 	@echo Compiling and running tests, should say 0 errors and 0 failures
 	cd src/tests; \
-	raco make compile-tests.rkt parse-tests.rkt; \
+	raco make compile-tests.rkt parse-tests.rkt type-tests.rkt; \
 	racket parse-tests.rkt; \
 	racket compile-tests.rkt; \
 	racket type-tests.rkt
-	cd src/tests/pyret; ./run-pyret-tests.sh
 
 clean:
 	raco setup -c pyret

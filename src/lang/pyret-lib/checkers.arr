@@ -8,18 +8,18 @@ provide
     check-equals: check-equals,
     run-checks: run-checks,
     format-check-results: format-check-results,
+    clear-results: clear-results,
     get-results: get-results
   }
 end
 
 # These are just convenience
 Location = error.Location
-Error = error.Error
 
 data Result:
   | success
   | failure(reason :: String)
-  | err(exception :: Error)
+  | err(exception :: Any)
 end
 
 var current-results = []
@@ -43,7 +43,7 @@ end
 
 data CheckResult:
   | normal-result(name :: String, location :: Location, results :: list.List)
-  | error-result(name :: String, location :: Location, results :: list.List, err :: Error)
+  | error-result(name :: String, location :: Location, results :: list.List, err :: Any)
 end
 
 var all-results :: list.List = []
@@ -68,22 +68,28 @@ fun run-checks(checks):
   all-results := all-results.push(these-check-results)
 end
 
+fun clear-results(): all-results := [] end
 fun get-results(): all-results end
 
 fun format-check-results():
-  init = { passed: 0, failed : 0, errors: 0, total: 0}
+  init = { passed: 0, failed : 0, test-errors: 0, other-errors: 0, total: 0}
   counts = for list.fold(acc from init, results from all-results):
     for list.fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
-      extra-errors = [check-result].filter(is-error-result).length()
+      other-errors = [check-result].filter(is-error-result).length()
       inner-acc.{
         passed: inner-acc.passed + inner-results.filter(is-success).length(),
         failed: inner-acc.failed + inner-results.filter(is-failure).length(),
-        errors: inner-acc.errors + inner-results.filter(is-err).length() + extra-errors,
+        test-errors: inner-acc.test-errors + inner-results.filter(is-err).length(),
+        other-errors: inner-acc.other-errors + other-errors,
         total: inner-acc.total + inner-results.length() 
       }
     end
   end
-  print(counts)
+  print("Total: " + counts.total.tostring() +
+        ", Passed: " + counts.passed.tostring() +
+        ", Failed: " + counts.failed.tostring() +
+        ", Errors in tests: " + counts.test-errors.tostring() +
+        ", Errors in between tests: " + counts.other-errors.tostring())
 end
 

@@ -8,6 +8,7 @@
   check-pyret-exn/libs
   check-pyret-match
   check-pyret-match/libs
+  check-pyret-match/check
   check-pyret
   check-pyret/libs
   compile-str
@@ -60,6 +61,12 @@
   ;; in test context (where there is no #lang), we prepend everything with " "
   (py-eval (compile-str (string-append " " str))))
 
+(define (eval-pyret/check str)
+  (print-test str)
+  ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
+  ;; in test context (where there is no #lang), we prepend everything with " "
+  (py-eval (compile-str/check (string-append " " str))))
+
 (define (eval-pyret/libs str)
   (print-test str)
   (py-eval (compile-str/libs (string-append " " str))))
@@ -71,6 +78,9 @@
 
 (define (compile-str/libs str)
   (pyret->racket utils-path (open-input-string str) #:libs #t))
+
+(define (compile-str/check str)
+  (pyret->racket utils-path (open-input-string str) #:check #t))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
@@ -107,4 +117,17 @@
   (syntax-case stx ()
     [(_ str expected)
      (syntax/loc stx (check-match (eval-pyret/libs str) expected))]))
+
+(define-syntax (check-pyret-match/check stx)
+  (syntax-case stx ()
+    [(_ file expected-value expected-stdout)
+     (quasisyntax/loc stx
+       (let () 
+         (define output (open-output-string))
+         (define result
+           (parameterize ([current-output-port output])
+             (eval-pyret/check (port->string (open-input-file file)))))
+         (define stdout (get-output-string output))
+         #,(syntax/loc stx (check-match result expected-value))
+         #,(syntax/loc stx (check-regexp-match (regexp-quote expected-stdout) stdout))))]))
 
