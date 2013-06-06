@@ -1,8 +1,7 @@
 #lang racket
 
 (provide
-  desugar-pyret
-  desugar-pyret/libs)
+  desugar-pyret)
 (require
   racket/runtime-path
   "ast.rkt"
@@ -274,11 +273,6 @@
          (s-id _ _)) ast]
 
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
-
-(define (desugar-pyret/libs ast)
-  (match ast
-    [(s-prog s imps block)
-     (desugar-pyret (s-prog s imps block))]))
 
 (define-runtime-path FFI "racket-ffi/")
 

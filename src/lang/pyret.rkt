@@ -23,7 +23,7 @@
 (define (bare-read-syntax src in)
   (cond
     [(port-eof? in) eof]
-    [else (strip-context (pyret->racket src in #:libs #t))]))
+    [else (strip-context (pyret->racket src in))]))
 
 (define (my-read-syntax src in)
   (cond
@@ -42,5 +42,5 @@
                   (r:require (r:rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins]))
                   (void (current-read-interaction repl-eval-pyret))
                   (void (current-print print-pyret))
-                  #,(pyret->racket src in #:libs #t #:toplevel #t #:check (param-compile-check-mode)))))]))
+                  #,(pyret->racket src in #:toplevel #t #:check (param-compile-check-mode)))))]))
 

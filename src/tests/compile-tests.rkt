@@ -377,7 +377,7 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-pyret-match/libs "list.is-empty([]).and(list.List([]))"
+  (check-pyret-match "list.is-empty([]).and(list.List([]))"
                           (p:p-bool _ _ #t))
 
 
@@ -385,39 +385,39 @@
     "prim-keys({x : 5})"
     (p:p-object _ _))
 
-  (check-pyret/libs
+  (check-pyret
     "[5].first"
     five)
 
-  (check-pyret/libs
+  (check-pyret
     "[5].push(4).first"
     (p:mk-num 4))
 
-  (check-pyret/libs
+  (check-pyret
     "[5,6].rest.first"
     (p:mk-num 6))
 
-  (check-pyret/libs
+  (check-pyret
     "list.is-empty([])"
     (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
     "list.is-empty([5])"
     (p:mk-bool #f))
 
-  (check-pyret/libs
+  (check-pyret
      "option.is-some(option.some(2))"
      (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
      "option.Option(option.none)"
      (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
      "option.is-some(option.none)"
      (p:mk-bool #f))
 
-  (check-pyret/libs
+  (check-pyret
     "
     fun map(l, f):
       case:
@@ -442,7 +442,7 @@
                 ten)
   ;; TODO(joe): this doesn't work because first and rest are fields
   ;; and we cannot proxy them this way unless we define list differently
-  #;(check-pyret/libs
+  #;(check-pyret
     "
   fun mklist(l):
     l.{
@@ -469,11 +469,11 @@
     "
     five)
 
-  (check-pyret-match/libs
+  (check-pyret-match
     "list.empty"
     (p:p-object _ _))
 
-  (check-pyret/libs
+  (check-pyret
    "builtins.keys({x:5}).first"
    (p:mk-str "x"))
 
@@ -493,7 +493,7 @@
    "builtins.has-field({}, {})"
    "expected string")
 
-  (check-pyret/libs
+  (check-pyret
    "list.List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
    (p:mk-bool #t))
 
@@ -622,13 +622,13 @@ o2.m().called" true)
    "raise(2)"
    "2")
 
-  (check-pyret/libs "try: raise(5) except(e): e end" five)
-  (check-pyret/libs "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
-  (check-pyret/libs "fun f(): g() end
+  (check-pyret "try: raise(5) except(e): e end" five)
+  (check-pyret "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
+  (check-pyret "fun f(): g() end
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" five)
-  (check-pyret/libs "fun f(): try: g() except(e): raise(e.add(5)) end end
+  (check-pyret "fun f(): try: g() except(e): raise(e.add(5)) end end
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" ten)

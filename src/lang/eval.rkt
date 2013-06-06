@@ -5,8 +5,7 @@
   repl-eval-pyret
   pyret-to-printable
   print-pyret
-  pyret->racket
-  pyret->racket/libs)
+  pyret->racket)
 (require
   (only-in racket/bool false?)
   racket/match
@@ -40,14 +39,10 @@
      (desugar
       (parse-eval stx))))))
 
-(define (pyret->racket/libs src in)
-  (stx->racket (get-syntax src in) desugar-pyret/libs))
-
-(define (pyret->racket src in #:libs [libs #f] #:toplevel [toplevel #f] #:check [check #f])
+(define (pyret->racket src in #:toplevel [toplevel #f] #:check [check #f])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
-      [libs desugar-pyret/libs]
       [else desugar-pyret]))
   (define compile (if toplevel compile-pyret compile-expr))
   (define pyret-stx (get-syntax src in))

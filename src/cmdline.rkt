@@ -41,9 +41,9 @@
   (define pyret-file (first file-and-maybe-other-stuff))
   (cond
     [check-mode
-     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:libs #t #:toplevel #t #:check #t))
+     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #t))
      (eval pyret-code (make-fresh-namespace))]
     [else
-     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:libs #t #:toplevel #t #:check #f))
+     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #f))
      (eval pyret-code (make-fresh-namespace))]))
 

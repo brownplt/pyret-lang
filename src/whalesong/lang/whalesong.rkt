@@ -28,5 +28,5 @@
                   (r:require (r:rename-in pyret/lang/pyret-lib/option [%PYRET-PROVIDE option]))
                   (r:require (r:rename-in pyret/lang/pyret-lib/error [%PYRET-PROVIDE error]))
                   (r:require (r:rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins]))
-                  #,(pyret->racket src in #:libs 'inline #:toplevel #t))))]))
+                  #,(pyret->racket src in #:toplevel #t))))]))
 

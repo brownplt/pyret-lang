@@ -26,5 +26,5 @@
           [src-syntax (src->module-name src)])
             (strip-context
               #`(module src-syntax (file pyret-lang-racket-stx)
-                  #,(pyret->racket src in #:libs #f #:toplevel #t))))]))
+                  #,(pyret->racket src in #:toplevel #t))))]))
 
