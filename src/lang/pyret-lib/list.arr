@@ -13,14 +13,14 @@ provide {
   map2: map2,
   map3: map3,
   map4: map4,
-  iter: iter,
-  iter2: iter2,
-  iter3: iter3,
-  iter4: iter4,
-  iteri: iteri,
-  iteri2: iteri2,
-  iteri3: iteri3,
-  iteri4: iteri4,
+  each: each,
+  each2: each2,
+  each3: each3,
+  each4: each4,
+  each_n: each_n,
+  each2_n: each2_n,
+  each3_n: each3_n,
+  each4_n: each4_n,
   fold: fold,
   fold2: fold2,
   fold3: fold3,
@@ -81,7 +81,7 @@ data List:
 
     sort(self): self end
 
-  | link(first, rest) with
+  | link(first, rest :: List) with
 
     length(self): 1 + self.rest.length() end,
 
@@ -107,7 +107,7 @@ data List:
     last(self):
       case:
         | is-empty(self.rest) => self.first
-        | is-link(self.rest) => self.rest.last()
+        | else => self.rest.last()
       end
     end,
 
@@ -184,37 +184,28 @@ fun range(start, stop):
   end
 end
 
-fun each(f, lst):
-  case:
-    | is-empty(lst) => nothing
-    | is-link(lst) =>
-        f(lst.first)
-        each(f, lst.rest)
-  end
-end
-
-fun map(f, lst):
+fun map(f, lst :: List):
   case:
     | is-empty(lst) => empty
-    | is-link(lst) => f(lst.first)^link(map(f, lst.rest))
+    | else => f(lst.first)^link(map(f, lst.rest))
   end
 end
 
-fun map2(f, l1, l2):
+fun map2(f, l1 :: List, l2 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)) => empty
     | else => f(l1.first, l2.first)^link(map2(f, l1.rest, l2.rest))
   end
 end
 
-fun map3(f, l1, l2, l3):
+fun map3(f, l1 :: List, l2 :: List, l3 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => empty
     | else => f(l1.first, l2.first, l3.first)^link(map3(f, l1.rest, l2.rest, l3.rest))
   end
 end
 
-fun map4(f, l1, l2, l3, l4):
+fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
     | else => f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
@@ -222,11 +213,11 @@ fun map4(f, l1, l2, l3, l4):
 end
 
 
-fun iter(f, lst):
+fun each(f, lst :: List):
   fun help(lst):
     case:
       | is-empty(lst) => nothing
-      | is-link(lst) =>
+      | else =>
         f(lst.first)
         help(lst.rest)
     end
@@ -234,7 +225,7 @@ fun iter(f, lst):
   help(lst)
 end
 
-fun iter2(f, l1, l2):
+fun each2(f, l1 :: List, l2 :: List):
   fun help(l1, l2):
     case:
       | is-empty(l1).or(is-empty(l2)) => nothing
@@ -246,7 +237,7 @@ fun iter2(f, l1, l2):
   help(l1, l2)
 end
 
-fun iter3(f, l1, l2, l3):
+fun each3(f, l1 :: List, l2 :: List, l3 :: List):
   fun help(l1, l2, l3):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
@@ -258,7 +249,7 @@ fun iter3(f, l1, l2, l3):
   help(l1, l2, l3)
 end
 
-fun iter4(f, l1, l2, l3, l4):
+fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   fun help(l1, l2, l3, l4):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
@@ -270,11 +261,11 @@ fun iter4(f, l1, l2, l3, l4):
   help(l1, l2, l3, l4)
 end
 
-fun iteri(f, n, lst):
+fun each_n(f, n :: Number, lst:: List):
   fun help(n, lst):
     case:
       | is-empty(lst) => nothing
-      | is-link(lst) =>
+      | else =>
         f(n, lst.first)
         help(n + 1, lst.rest)
     end
@@ -282,7 +273,7 @@ fun iteri(f, n, lst):
   help(n, lst)
 end
 
-fun iteri2(f, n, l1, l2):
+fun each2_n(f, n :: Number, l1 :: List, l2 :: List):
   fun help(n, l1, l2):
     case:
       | is-empty(l1).or(is-empty(l2)) => nothing
@@ -294,7 +285,7 @@ fun iteri2(f, n, l1, l2):
   help(n, l1, l2)
 end
 
-fun iteri3(f, n, l1, l2, l3):
+fun each3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
   fun help(n, l1, l2, l3):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
@@ -306,7 +297,7 @@ fun iteri3(f, n, l1, l2, l3):
   help(n, l1, l2, l3)
 end
 
-fun iteri4(f, n, l1, l2, l3, l4):
+fun each4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   fun help(n, l1, l2, l3, l4):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
@@ -318,28 +309,28 @@ fun iteri4(f, n, l1, l2, l3, l4):
   help(n, l1, l2, l3, l4)
 end
 
-fun fold(f, base, lst):
+fun fold(f, base, lst :: List):
   case:
     | is-empty(lst) => base
-    | is-link(lst) => fold(f, f(base, lst.first), lst.rest)
+    | else => fold(f, f(base, lst.first), lst.rest)
   end
 end
 
-fun fold2(f, base, l1, l2):
+fun fold2(f, base, l1 :: List, l2 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)) => base
     | else => fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
   end
 end
 
-fun fold3(f, base, l1, l2, l3):
+fun fold3(f, base, l1 :: List, l2 :: List, l3 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => base
     | else => fold3(f, f(base, l1.first, l2.first, l3.first), l1.rest, l2.rest, l3.rest)
   end
 end
 
-fun fold4(f, base, l1, l2, l3, l4):
+fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   case:
     | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => base
     | else => fold4(f, f(base, l1.first, l2.first, l3.first, l4.first), l1.rest, l2.rest, l3.rest, l4.rest)
