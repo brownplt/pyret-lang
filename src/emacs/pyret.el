@@ -30,7 +30,7 @@
   (regexp-opt
    '("fun" "method" "var" "case" "when" "import" "provide"
      "data" "end" "do" "try" "except" "for" "from"
-     "as" "with" "sharing" "check")))
+     "as" "with" "sharing" "check" "doc")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
 (defconst pyret-font-lock-keywords-1
@@ -417,8 +417,18 @@
               (push 'shared opens)))
             (forward-char 7))
            ((pyret-CHECK)
-            (incf (pyret-indent-fun cur-closed))
-            (incf (pyret-indent-shared defered-opened))
+            (cond
+             ((pyret-has-top opens '(object data))
+              (pop opens)
+              (incf (pyret-indent-object cur-closed))
+              (incf (pyret-indent-data cur-closed))
+              (incf (pyret-indent-shared defered-opened)))
+             ((pyret-has-top opens '(fun))
+              (incf (pyret-indent-fun cur-closed))
+              (incf (pyret-indent-shared defered-opened)))
+             ((pyret-has-top opens '(shared))
+              (incf (pyret-indent-shared cur-closed))
+              (incf (pyret-indent-shared defered-opened))))
             (pop opens)
             (push 'check opens)
             (forward-char 5))
