@@ -16,6 +16,10 @@ provide {
   iter2: iter2,
   iter3: iter3,
   iter4: iter4,
+  iteri: iteri,
+  iteri2: iteri2,
+  iteri3: iteri3,
+  iteri4: iteri4,
   fold: fold,
   fold2: fold2,
   fold3: fold3,
@@ -208,7 +212,55 @@ fun map4(f, l1, l2, l3, l4):
 end
 
 
-fun iter(f, n, lst):
+fun iter(f, lst):
+  fun help(lst):
+    case:
+      | is-empty(lst) => nothing
+      | is-link(lst) =>
+        f(lst.first)
+        help(lst.rest)
+    end
+  end
+  help(lst)
+end
+
+fun iter2(f, l1, l2):
+  fun help(l1, l2):
+    case:
+      | is-empty(l1).or(is-empty(l2)) => nothing
+      | else =>
+        f(l1.first, l2.first)
+        help(l1.rest, l2.rest)
+    end
+  end
+  help(l1, l2)
+end
+
+fun iter3(f, l1, l2, l3):
+  fun help(l1, l2, l3):
+    case:
+      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
+      | else =>
+        f(l1.first, l2.first, l3.first)
+        help(l1.rest, l2.rest, l3.rest)
+    end
+  end
+  help(l1, l2, l3)
+end
+
+fun iter4(f, l1, l2, l3, l4):
+  fun help(l1, l2, l3, l4):
+    case:
+      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
+      | else =>
+        f(l1.first, l2.first, l3.first, l4.first)
+        help(l1.rest, l2.rest, l3.rest, l4.rest)
+    end
+  end
+  help(l1, l2, l3, l4)
+end
+
+fun iteri(f, n, lst):
   fun help(n, lst):
     case:
       | is-empty(lst) => nothing
@@ -220,7 +272,7 @@ fun iter(f, n, lst):
   help(n, lst)
 end
 
-fun iter2(f, n, l1, l2):
+fun iteri2(f, n, l1, l2):
   fun help(n, l1, l2):
     case:
       | is-empty(l1).or(is-empty(l2)) => nothing
@@ -232,7 +284,7 @@ fun iter2(f, n, l1, l2):
   help(n, l1, l2)
 end
 
-fun iter3(f, n, l1, l2, l3):
+fun iteri3(f, n, l1, l2, l3):
   fun help(n, l1, l2, l3):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
@@ -244,7 +296,7 @@ fun iter3(f, n, l1, l2, l3):
   help(n, l1, l2, l3)
 end
 
-fun iter4(f, n, l1, l2, l3, l4):
+fun iteri4(f, n, l1, l2, l3, l4):
   fun help(n, l1, l2, l3, l4):
     case:
       | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
