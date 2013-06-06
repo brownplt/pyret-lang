@@ -134,7 +134,7 @@
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params variants share-members)
+    [(s-data s name params variants share-members check)
      (define brander-name (gensym name))
      (define super-fields (map ds-member share-members))
      (ds (s-block s

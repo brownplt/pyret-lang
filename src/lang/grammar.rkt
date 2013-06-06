@@ -108,8 +108,8 @@ bracket-method-expr: expr ":" "[" binop-expr "]"
 
 data-with: ["with" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with
-data-sharing: "end"|("sharing" fields "end")
-data-expr: "data" NAME ty-params ":" data-variant+ data-sharing 
+data-sharing: ["sharing" fields]
+data-expr: "data" NAME ty-params ":" data-variant+ data-sharing check-clause "end"
 
 do-stmt: block ";"
 do-expr: "do" stmt do-stmt* block "end"

@@ -83,8 +83,8 @@
 (define (parse-sharing stx)
   (syntax-parse stx
     #:datum-literals (data-sharing)
-    [(data-sharing "sharing" fields "end") (parse-fields #'fields)]
-    [(data-sharing "end") empty]))
+    [(data-sharing "sharing" fields) (parse-fields #'fields)]
+    [(data-sharing) empty]))
 
 
 (define (parse-stmt stx)
@@ -114,12 +114,13 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-check-clause #'check))]
-    [(data-expr "data" name params ":" variant ... sharing-part)
+    [(data-expr "data" name params ":" variant ... sharing-part check "end")
      (s-data (loc stx)
              (parse-name #'name)
              (parse-ty-params #'params)
              (map/stx parse-variant #'(variant ...))
-             (parse-sharing #'sharing-part))]
+             (parse-sharing #'sharing-part)
+             (parse-check-clause #'check))]
 
     [(do-expr "do" fun-stmt (do-stmt stmts ";") ... last-stmt "end")
      (s-do (loc stx)

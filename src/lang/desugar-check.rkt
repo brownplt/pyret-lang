@@ -85,8 +85,11 @@
               (s-let s (s-bind s '%result-after-checks (a-blank)) last-expr)
               do-checks
               (s-id s '%result-after-checks))))])]
-    [(s-data s name params variants shares)
-     (s-data s name params (map ds-variant variants) (map ds-member shares))]
+    [(s-data s name params variants shares check)
+     (s-data s name params
+             (map ds-variant variants)
+             (map ds-member shares)
+             (ds check))]
 
     [(s-do s fun args)
      (s-do s (ds fun) (map ds args))]

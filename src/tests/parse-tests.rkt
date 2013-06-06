@@ -364,7 +364,7 @@
 (define data (test-suite "data"
 
   (check/block "  data Foo: | bar() end"
-               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list)))
+               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
   (check/block "data NumList:
     | empty()
@@ -374,8 +374,8 @@
                                                (s-variant _ 'cons (list (s-bind _ 'first (a-name _ 'Number))
                                                                         (s-bind _ 'rest (a-name _ 'NumList)))
                                                           (list)))
-                       (list)))
-  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list)))
+                       (list) (s-block _ _)))
+  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
 
   (check/block 
    "data List<a>: | cons(field, l :: List<a>) end" 
@@ -385,7 +385,8 @@
                   'cons 
                   (list (s-bind _ 'field (a-blank)) 
                         (s-bind _ 'l (a-app _ 'List (list (a-name _ 'a)))))
-                  (list))) (list)))
+                  (list))) (list)
+                  (s-block _ _)))
 
   (check/block
    "data List: | empty end"
@@ -394,7 +395,8 @@
            _
            'empty
            (list)))
-    (list)))
+    (list)
+    (s-block _ _)))
 
   (check/block
    "data List: | empty with length(self): 0 end end"
@@ -403,7 +405,8 @@
            _
            'empty
            (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank))) (a-blank) _ (s-block _ (list (s-num _ 0))) _))))
-    (list)))
+    (list)
+    (s-block _ _)))
 
   (check/block
    "data Foo: | bar() with x(self): self end end"
@@ -416,7 +419,8 @@
                                                   _
                                                   (s-block _ (list (s-id _ 'self)))
                                                   _))))
-           (list)))
+           (list)
+           (s-block _ _)))
 
   (check/block
    "data Foo: | bar() with x(self) -> Num: self end
@@ -433,7 +437,23 @@
                                                                 _
                                                                 (s-block _ (list (s-id _ 'self)))
                                                                 _))))
-           (list (s-data-field _ (s-str _ "z") (s-num _ 10)))))
+           (list (s-data-field _ (s-str _ "z") (s-num _ 10)))
+           (s-block _ _)))
+
+   (check/block
+    "data Foo: | bar() check 5 end"
+    (s-data _ 'Foo empty
+            (list (s-variant _ 'bar (list) (list)))
+            (list)
+            (s-block _ (list (s-num _ 5)))))
+
+     (check/block
+      "data Foo: | bar() | baz() sharing z: 10 check end"
+      (s-data _ 'Foo empty
+              (list (s-variant _ 'bar (list) (list))
+                    (s-variant _ 'baz (list) (list)))
+              (list (s-data-field _ (s-str _ "z") (s-num _ 10)))
+              (s-block _ (list))))
 
 ))
 

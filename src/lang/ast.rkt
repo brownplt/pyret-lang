@@ -153,8 +153,8 @@ these metadata purposes.
 ;; s-bracket-method : srcloc Expr Expr
 (struct s-bracket-method (syntax obj field) #:transparent)
 
-;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member)
-(struct s-data (syntax name params variants shared-members) #:transparent)
+;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member) block
+(struct s-data (syntax name params variants shared-members check) #:transparent)
 
 ;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
 (struct s-variant (syntax name binds with-members) #:transparent)
