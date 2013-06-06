@@ -13,6 +13,8 @@
     (match stmt
       [(s-fun s name _ _ _ _ _ check)
        (cons (check-info s name check) lst)]
+      [(s-data s name _ _ _ check)
+       (cons (check-info s name check) lst)]
       [_ lst]))
   (foldl add-check empty stmts))
 
@@ -89,7 +91,7 @@
      (s-data s name params
              (map ds-variant variants)
              (map ds-member shares)
-             (ds check))]
+             (s-block s (list)))]
 
     [(s-do s fun args)
      (s-do s (ds fun) (map ds args))]

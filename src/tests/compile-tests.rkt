@@ -809,7 +809,12 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-test 4 3 1 0 1))
     (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-test 2 1 0 1 0))
     (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-test 1 1 0 0 0))
-    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-test 2 2 0 0 0)))
+    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-test 2 2 0 0 0))
+
+    (check-pyret-match/check "pyret/check/check-data1.arr" _ (make-test 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/check-data2.arr" _ (make-test 2 1 1 0 0))
+    (check-pyret-match/check "pyret/check/check-data3.arr" _ (make-test 3 2 1 0 0))
+    (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-test 2 2 0 0 0)))
 ))
 
 (define all (test-suite "all"
