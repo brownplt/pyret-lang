@@ -21,3 +21,4 @@ end
 fun has-field(obj, name):
   prim-has-field(obj, name)
 end
+

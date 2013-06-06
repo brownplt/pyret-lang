@@ -1,6 +1,7 @@
 #lang whalesong
 
 (provide (all-defined-out))
+(require racket/match)
 
 #|
 
@@ -26,6 +27,18 @@ these metadata purposes.
 ;; A Block is a (Listof Stmt)
 ;; s-block : srcloc Block -> s-block
 (struct s-block (syntax stmts) #:transparent)
+
+(define (flatten-blocks maybe-blocks)
+  (cond
+    [(or (cons? maybe-blocks) (empty? maybe-blocks))
+     (foldr (λ (stmt block-stmts)
+              (match stmt
+                [(s-block s stmts) (append (flatten-blocks stmts) block-stmts)]
+                [else (cons stmt block-stmts)]))
+            empty
+            maybe-blocks)]
+    [else (list maybe-blocks)]))
+
 
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind (syntax id ann) #:transparent)
@@ -152,9 +165,9 @@ these metadata purposes.
 (struct s-do (syntax init args) #:transparent)
 
 ;; s-for-bind : srcloc s-bind Expr
-(struct s-for-bind (syntax bind value))
+(struct s-for-bind (syntax bind value) #:transparent)
 ;; s-for : srcloc Expr (Listof s-for-bind) ann s-block
-(struct s-for (syntax iterator bindings ann body))
+(struct s-for (syntax iterator bindings ann body) #:transparent)
 
 ;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
 (struct a-ann () #:transparent)

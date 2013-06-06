@@ -98,7 +98,7 @@
   f(\\m: (m.value))"
  "runtime:")
 
-(check-pyret-exn/libs
+(check-pyret-exn
  "fun even(x):
     case:
       | x.equals(0) => true
@@ -109,7 +109,7 @@
   x :: Number(even) = 5"
  "contract failure")
 
-(check-pyret/libs
+(check-pyret
  "fun even(x):
     case:
       | x.equals(0) => true

@@ -1,8 +1,7 @@
 #lang racket
 
 (provide
-  desugar-pyret
-  desugar-pyret/libs)
+  desugar-pyret)
 (require
   racket/runtime-path
   "ast.rkt"
@@ -77,14 +76,6 @@
                     (s-block s empty))))]))
   (map variant-defs variants))
 
-(define (flatten-blocks maybe-blocks)
-  (foldr (λ (stmt block-stmts)
-           (match stmt
-             [(s-block s stmts) (append (flatten-blocks stmts) block-stmts)]
-             [else (cons stmt block-stmts)]))
-         empty
-         maybe-blocks))
-
 (define (ds-member ast-node)
     (match ast-node
       [(s-data-field s name value)
@@ -134,10 +125,11 @@
 
 (define (desugar-internal ast)
   (define ds desugar-internal)
+  (define (ds-bind b)
+    (match b
+      [(s-bind s id a) (s-bind s id (desugar-ann a))]))
   (define (ds-args binds)
-    (map (lambda (b)
-      (match b
-        [(s-bind s id a) (s-bind s id (desugar-ann a))])) binds))
+    (map ds-bind binds))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -165,9 +157,9 @@
      (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
-     (s-var s name (ds val))]
+     (s-var s (ds-bind name) (ds val))]
     [(s-let s name val)
-     (s-let s name (ds val))]
+     (s-let s (ds-bind name) (ds val))]
 
     [(s-fun s name typarams args ann doc body check)
      (s-let s
@@ -281,11 +273,6 @@
          (s-id _ _)) ast]
 
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
-
-(define (desugar-pyret/libs ast)
-  (match ast
-    [(s-prog s imps block)
-     (desugar-pyret (s-prog s imps block))]))
 
 (define-runtime-path FFI "racket-ffi/")
 

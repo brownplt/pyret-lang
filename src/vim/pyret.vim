@@ -10,7 +10,7 @@ endif
 " This hilarious line is *adding* hyphens as a non-word separator
 se iskeyword+=-
 
-syn keyword basic var fun end case with sharing data do import provide as try except when for from
+syn keyword basic var fun end case with sharing data do import provide as try except when for from check
 
 syn match op '+'
 syn match op '-'

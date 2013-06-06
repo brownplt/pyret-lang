@@ -377,7 +377,7 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-pyret-match/libs "list.is-empty([]).and(list.List([]))"
+  (check-pyret-match "list.is-empty([]).and(list.List([]))"
                           (p:p-bool _ _ #t))
 
 
@@ -385,39 +385,39 @@
     "prim-keys({x : 5})"
     (p:p-object _ _))
 
-  (check-pyret/libs
+  (check-pyret
     "[5].first"
     five)
 
-  (check-pyret/libs
+  (check-pyret
     "[5].push(4).first"
     (p:mk-num 4))
 
-  (check-pyret/libs
+  (check-pyret
     "[5,6].rest.first"
     (p:mk-num 6))
 
-  (check-pyret/libs
+  (check-pyret
     "list.is-empty([])"
     (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
     "list.is-empty([5])"
     (p:mk-bool #f))
 
-  (check-pyret/libs
+  (check-pyret
      "option.is-some(option.some(2))"
      (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
      "option.Option(option.none)"
      (p:mk-bool #t))
 
-  (check-pyret/libs
+  (check-pyret
      "option.is-some(option.none)"
      (p:mk-bool #f))
 
-  (check-pyret/libs
+  (check-pyret
     "
     fun map(l, f):
       case:
@@ -442,7 +442,7 @@
                 ten)
   ;; TODO(joe): this doesn't work because first and rest are fields
   ;; and we cannot proxy them this way unless we define list differently
-  #;(check-pyret/libs
+  #;(check-pyret
     "
   fun mklist(l):
     l.{
@@ -469,11 +469,11 @@
     "
     five)
 
-  (check-pyret-match/libs
+  (check-pyret-match
     "list.empty"
     (p:p-object _ _))
 
-  (check-pyret/libs
+  (check-pyret
    "builtins.keys({x:5}).first"
    (p:mk-str "x"))
 
@@ -493,7 +493,7 @@
    "builtins.has-field({}, {})"
    "expected string")
 
-  (check-pyret/libs
+  (check-pyret
    "list.List(builtins.keys({y:5, x:6}).foldr(list.link, []))"
    (p:mk-bool #t))
 
@@ -622,13 +622,13 @@ o2.m().called" true)
    "raise(2)"
    "2")
 
-  (check-pyret/libs "try: raise(5) except(e): e end" five)
-  (check-pyret/libs "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
-  (check-pyret/libs "fun f(): g() end
+  (check-pyret "try: raise(5) except(e): e end" five)
+  (check-pyret "fun f(): raise({x:5}) end try: f() except(e): e.x end" five)
+  (check-pyret "fun f(): g() end
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" five)
-  (check-pyret/libs "fun f(): try: g() except(e): raise(e.add(5)) end end
+  (check-pyret "fun f(): try: g() except(e): raise(e.add(5)) end end
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" ten)
@@ -793,6 +793,25 @@ o2.m().called" true)
   (check-pyret "a = 1 b = 2 (a == b).or(true)" (p:mk-bool #t))
 ))
 
+(define checks (test-suite "checks"
+
+  (let ()
+    (define (make-test t p f te oe)
+      (format
+        "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
+        
+    (check-pyret-match/check "pyret/check/check1.arr" _ (make-test 3 3 0 0 0))
+    (check-pyret-match/check "pyret/check/check2.arr" _ (make-test 4 4 0 0 0))
+    (check-pyret-match/check "pyret/check/check3.arr" _ (make-test 36 36 0 0 0))
+    (check-pyret-match/check "pyret/check/check4.arr" _ (make-test 2 1 1 0 0))
+    (check-pyret-match/check "pyret/check/check-error.arr" _ (make-test 2 1 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error2.arr" _ (make-test 4 2 2 0 1))
+    (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-test 4 3 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-test 2 1 0 1 0))
+    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-test 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-test 2 2 0 0 0)))
+))
+
 (define all (test-suite "all"
   constants
   functions
@@ -808,7 +827,8 @@ o2.m().called" true)
   methods
   exceptions
   ids-and-vars
-  binary-operators))
+  binary-operators
+  checks))
 
 (run-tests all 'normal)
 
