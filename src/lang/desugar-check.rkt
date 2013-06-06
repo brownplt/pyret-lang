@@ -35,11 +35,11 @@
                (format "~a: Tests for ~a" srcloc-str name)
                body
                (s-block s empty)))
-       (s-obj s (list (s-data-field s (s-str s "name") (s-str s name))
+       (s-obj s (list (s-data-field s (s-str s "name") (s-str s (symbol->string name)))
                       (s-data-field s (s-str s "run") check-fun)
                       (s-data-field s (s-str s "location")
                         (s-obj s (list
-                                  (s-data-field s (s-str s "file") (s-str s source))
+                                  (s-data-field s (s-str s "file") (s-str s (symbol->string (src->module-name source))))
                                   (s-data-field s (s-str s "line") (s-num s line))
                                   (s-data-field s (s-str s "column") (s-num s col)))))))]))
   (define checkers (map create-checker checks))
@@ -114,7 +114,7 @@
      (s-lam s typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
 
     [(s-method s args ann doc body check)
-     (s-method s (map ds-bind args) (ds-ann) doc (ds body) (s-block s (list)))]
+     (s-method s (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
 
     [(s-when s test body)
      (s-when s (ds test) (ds body))]

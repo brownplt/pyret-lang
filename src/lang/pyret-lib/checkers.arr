@@ -6,6 +6,7 @@ import "error.rkt" as error
 provide
   {
     check-equals: check-equals,
+    check-pred: check-pred,
     run-checks: run-checks,
     format-check-results: format-check-results,
     clear-results: clear-results,
@@ -35,6 +36,23 @@ fun check-equals(val1, val2):
                                        tostring(val1) +
                                        ", " +
                                        tostring(val2)))
+    end
+  except(e):
+    current-results := current-results.push(err(e))
+  end
+end
+
+fun check-pred(val1, pred):
+  try:
+    case:
+      | pred(val1) =>
+        current-results := current-results.push(success)
+      | else =>
+        current-results :=
+          current-results.push(failure("Value didn't satisfy predicate: " +
+                                       tostring(val1) +
+                                       ", " +
+                                       pred._doc))
     end
   except(e):
     current-results := current-results.push(err(e))
@@ -77,6 +95,15 @@ fun format-check-results():
     for list.fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
       other-errors = [check-result].filter(is-error-result).length()
+      for list.each(failure from inner-results.filter(is-failure)):
+        print("Test failed:")
+        print(failure.reason)
+        print("")
+      end
+      when is-error-result(check-result):
+        print("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
+        print(check-result.err)
+      end
       inner-acc.{
         passed: inner-acc.passed + inner-results.filter(is-success).length(),
         failed: inner-acc.failed + inner-results.filter(is-failure).length(),

@@ -15,6 +15,7 @@
   racket/runtime-path
   syntax/modresolve
   syntax/strip-context
+  "ast.rkt"
   "get-syntax.rkt"
   "desugar.rkt"
   "desugar-check.rkt"
@@ -22,15 +23,6 @@
   "compile.rkt"
   "load.rkt"
   "runtime.rkt")
-
-(define (src->module-name e)
-  (cond
-    [(symbol? e) e]
-    [(string? e) (string->symbol e)]
-    [(path? e) (string->symbol (path->string e))]
-    [(false? e) 'unknown-pyret-source]
-    [else (error (format "Non-symbol, non-string, non-path value for
-                          source: ~a" e))]))
 
 (define (stx->racket stx desugar)
   (strip-context

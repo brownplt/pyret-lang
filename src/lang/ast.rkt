@@ -1,7 +1,7 @@
-#lang whalesong
+#lang racket/base
 
 (provide (all-defined-out))
-(require racket/match)
+(require racket/match racket/path racket/bool racket/list)
 
 #|
 
@@ -13,6 +13,16 @@ should not be required for evaluating the ast node, and only used for
 these metadata purposes.
 
 |#
+
+(define (src->module-name e)
+  (cond
+    [(symbol? e) e]
+    [(string? e) (string->symbol e)]
+    [(path? e) (string->symbol (path->string e))]
+    [(false? e) 'unknown-pyret-source]
+    [else (error (format "Non-symbol, non-string, non-path value for
+                          source: ~a" e))]))
+
 
 ;; s-prog : srcloc (Listof Header) s-block -> s-prog
 (struct s-prog (syntax imports block) #:transparent)

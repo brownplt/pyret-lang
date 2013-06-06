@@ -801,6 +801,7 @@ o2.m().called" true)
         "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
         
     (check-pyret-match/check "pyret/check/check1.arr" _ (make-test 3 3 0 0 0))
+    (check-pyret-match/check "pyret/check/check-method.arr" _ (make-test 3 3 0 0 0))
     (check-pyret-match/check "pyret/check/check2.arr" _ (make-test 4 4 0 0 0))
     (check-pyret-match/check "pyret/check/check3.arr" _ (make-test 36 36 0 0 0))
     (check-pyret-match/check "pyret/check/check4.arr" _ (make-test 2 1 1 0 0))

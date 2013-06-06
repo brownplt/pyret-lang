@@ -240,6 +240,19 @@
              (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))
         doc))]))
 
+(define-syntax (pμ/internal stx)
+  (syntax-case stx ()
+    [(_ (loc) (arg ...) doc e ...)
+     (quasisyntax/loc stx
+      (mk-method-loc
+        (lambda (loc)
+          (case-lambda
+            #,(syntax/loc stx [(arg ...) e ...])
+            [arity-mismatch-args-list
+             (arity-method-error loc '(arg ...) arity-mismatch-args-list)]))
+        doc))]))
+
+
 
 (struct exn:fail:pyret exn:fail (srcloc system? val)
   #:property prop:exn:srclocs
@@ -573,7 +586,7 @@ And the object was:
   (and (p-bool? v) (p-bool-b v)))
 
 (define-syntax-rule (mk-prim-fun op opname wrapper unwrapper (arg ...) (pred ...))
-  (pμ (arg ...) ""
+  (pμ/internal (loc) (arg ...) ""
     (define preds-passed (and (pred arg) ...))
     (cond
       [preds-passed (wrapper (op (unwrapper arg) ...))]
@@ -581,7 +594,7 @@ And the object was:
         (define args-strs (list (to-string arg) ...))
         (define args-str (string-join args-strs ", "))
         (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-        (raise (mk-pyret-exn (exn+loc->message error-val dummy-loc) dummy-loc error-val #f))])))
+        (raise (mk-pyret-exn (exn+loc->message error-val loc) loc error-val #f))])))
 
 (define-syntax-rule (mk-num-1 op opname)
   (mk-prim-fun op opname mk-num p-num-n (n) (p-num?)))
@@ -627,6 +640,10 @@ And the object was:
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))
+          ("lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("greaterequals" . ,(mk-prim-fun string>=? 'greaterequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
           ("equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
       ))))
   meta-str-store)
