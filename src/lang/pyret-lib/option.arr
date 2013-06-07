@@ -11,11 +11,11 @@ provide
 end
 
 data Option:
-  | none with
+  | none with:
     orelse(self, v): v end
-  | some(value) with
+  | some(value) with:
     orelse(self, v): self.value end
-sharing
+sharing:
   tostring(self):
     case:
       | is-none(self) => "None"

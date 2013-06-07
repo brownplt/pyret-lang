@@ -2,7 +2,7 @@
 
 fun f():
   
-check
+check:
   checkers.check-equals(0, 0)
   checkers.check-equals(0, 1)
   raise("Done checking")
@@ -11,7 +11,7 @@ end
 
 fun h():
 
-check
+check:
   checkers.check-equals(0, 0)
   checkers.check-equals(0, 1)
 end

@@ -67,7 +67,7 @@
   (syntax-parse stx
     #:datum-literals (data-with)
     [(data-with) empty]
-    [(data-with "with" fields) (parse-fields #'fields)]))
+    [(data-with "with" ":" fields) (parse-fields #'fields)]))
 
 (define (parse-variant stx)
   (syntax-parse stx
@@ -83,7 +83,7 @@
 (define (parse-sharing stx)
   (syntax-parse stx
     #:datum-literals (data-sharing)
-    [(data-sharing "sharing" fields) (parse-fields #'fields)]
+    [(data-sharing "sharing" ":" fields) (parse-fields #'fields)]
     [(data-sharing) empty]))
 
 
@@ -149,7 +149,7 @@
   (syntax-parse stx
     #:datum-literals (check-clause)
     [(check-clause) (s-block (loc stx) empty)]
-    [(check-clause "check" block) (parse-block #'block)]))
+    [(check-clause "check" ":" block) (parse-block #'block)]))
 
 (define (parse-binop-expr stx)
   (syntax-parse stx

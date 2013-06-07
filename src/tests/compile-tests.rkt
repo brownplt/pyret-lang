@@ -250,8 +250,8 @@
 
   (check-pyret
    "data List:
-      | cons(first, rest) with length(self): 1.add(self.rest.length()) end
-      | empty() with length(self): 0 end
+      | cons(first, rest) with: length(self): 1.add(self.rest.length()) end
+      | empty() with: length(self): 0 end
     end
     cons(1, cons(2, empty())).length()"
    two)
@@ -260,7 +260,7 @@
    "data List:
       | cons(first, rest)
       | empty()
-    sharing
+    sharing:
       length(self):
         case:
           | is-cons(self) => 1.add(self.rest.length())
@@ -274,7 +274,7 @@
 
   (check-pyret
    "data List:
-     | empty with length(self): 0 end
+     | empty with: length(self): 0 end
     end
     empty.length()
     "
@@ -283,7 +283,7 @@
   (check-pyret
    "data List:
      | empty
-    sharing
+    sharing:
       length(self): 0 end
     end
     empty.length()
@@ -323,10 +323,10 @@
 
   (check-pyret
    "data Color:
-     | red with asRGB(_): { r: 256, g: 0, b: 0 } end
-     | green with asRGB(_): { r: 0, g: 256, b: 0 } end
-     | blue with asRGB(_): { r: 0, g: 0, b: 256 } end
-     | rgb(r :: Number, g :: Number, b :: Number) with
+     | red with: asRGB(_): { r: 256, g: 0, b: 0 } end
+     | green with: asRGB(_): { r: 0, g: 256, b: 0 } end
+     | blue with: asRGB(_): { r: 0, g: 0, b: 256 } end
+     | rgb(r :: Number, g :: Number, b :: Number) with:
         asRGB(self): { r: self.r, g: self.g, b: self.b } end
     end
     fun asRGB(obj): obj.asRGB() end
