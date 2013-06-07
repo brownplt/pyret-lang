@@ -8,8 +8,7 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
-  "../../lang/eval.rkt"
-  "../../lang/pyret.rkt")
+  "../../lang/eval.rkt")
 
 (define-runtime-module-path pyret-lang-racket "../../lang/pyret-lang-library.rkt")
 
