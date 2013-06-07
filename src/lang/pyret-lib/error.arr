@@ -13,22 +13,22 @@ provide {
 } end
 
 data Location:
-  | location(file :: String, line :: Number, column :: Number) with
+  | location(file :: String, line :: Number, column :: Number) with:
     format(self):
       self.file + ": line " + self.line.tostring() + ", column " + self.column.tostring()
     end
 end
 
 data Error:
-  | opaque-error(message :: String, location :: Location) with
+  | opaque-error(message :: String, location :: Location) with:
     name(self): "Error using opaque internal value" end
-  | field-not-found(message :: String, location :: Location) with
+  | field-not-found(message :: String, location :: Location) with:
     name(self): "Field not found" end
-  | field-non-string(message :: String, location :: Location) with
+  | field-non-string(message :: String, location :: Location) with:
     name(self): "Non-string in field name" end
-  | lazy-error(message :: String, location :: Location) with
+  | lazy-error(message :: String, location :: Location) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
-sharing
+sharing:
   format(self):
     self.location.format().append(":\n").append(self.name()).append(": ").append(self.message) end
 end

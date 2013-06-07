@@ -16,18 +16,18 @@ end
 List = list.List
 
 data DB:
-  # | postgres with
+  # | postgres with:
   #     connect(user :: String, database :: String, password :: String):
   #       dblib.postgresql-connect(user, )
   #     end
-  | sqlite with
+  | sqlite with:
       connect(_, database :: String):
         connection(dblib.sqlite3-connect(database))
       end
 end
 
 data Connection:
-  | connection(con) with
+  | connection(con) with:
       query(self, sql :: String, args :: List) -> Result:
         res = dblib.query(self.con, sql, args)
         case:

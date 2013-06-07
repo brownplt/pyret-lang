@@ -28,7 +28,7 @@ provide {
 } end
 
 data List:
-  | empty with
+  | empty with:
 
     length(self): 0 end,
 
@@ -81,7 +81,7 @@ data List:
 
     sort(self): self end
 
-  | link(first, rest :: List) with
+  | link(first, rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -168,7 +168,7 @@ data List:
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
     end
 
-sharing
+sharing:
   push(self, elt): link(elt, self) end
 end
 

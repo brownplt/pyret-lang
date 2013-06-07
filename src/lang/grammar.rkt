@@ -67,7 +67,7 @@ method-expr: "method" args return-ann ":" doc-string block check-clause "end"
 
 doc-string: ["doc" STRING]
 
-check-clause: ["check" block]
+check-clause: ["check" ":" block]
 
 when-expr: "when" binop-expr ":" block "end"
 
@@ -106,9 +106,9 @@ left-app-expr: expr "^" left-app-fun-expr app-args
 dot-method-expr: expr ":" NAME
 bracket-method-expr: expr ":" "[" binop-expr "]"
 
-data-with: ["with" fields]
+data-with: ["with" ":" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with
-data-sharing: ["sharing" fields]
+data-sharing: ["sharing" ":" fields]
 data-expr: "data" NAME ty-params ":" data-variant+ data-sharing check-clause "end"
 
 do-stmt: block ";"

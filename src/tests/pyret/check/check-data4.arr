@@ -4,15 +4,15 @@ eq = checkers.check-equals
 
 fun foo():
   data Foo:
-    | foo with
+    | foo with:
         equals(self,other): is-foo(other) end
-    | bar with
+    | bar with:
         equals(self,other): false end
-  check
+  check:
         eq(foo,foo)
   end
 
   1
-check
+check:
   eq(foo(),1)
 end
