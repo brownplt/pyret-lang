@@ -214,15 +214,11 @@
      ast]
 
     [(s-try s try exn catch)
-     ;; NOTE(joe & dbp): The identifier in the exn binding of the try is carefully
-     ;; shadowed here to avoid capturing any names in Pyret.  It is both
-     ;; the name that the compiler will use for the exc, and the name
-     ;; that desugaring uses to provide the wrapped exception from the error
-     ;; library.
+     (define exn-id (gensym))
      (define make-error (s-app s (s-bracket s (s-id s 'error)
 			                      (s-str s "make-error"))
-			         (list (s-id s (s-bind-id exn)))))
-     (s-try s (ds try) exn
+			         (list (s-id s exn-id))))
+     (s-try s (ds try) (s-bind (s-bind-syntax exn) exn-id (s-bind-ann exn))
 	    (s-block s
 		     (list
 		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
