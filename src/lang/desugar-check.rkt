@@ -4,6 +4,7 @@
 (require
   racket/list
   racket/match
+  racket/function
   "ast.rkt")
 
 (struct check-info (srcloc name check-body))
@@ -162,6 +163,7 @@
 (define (desugar-check ast)
   (match ast
     [(s-prog s imports (s-block s2 stmts))
+     (define no-provides (filter (negate s-provide?) imports))
      ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.
      ;; The toplevel may end in a statement that we cannot let-bind (which is
      ;; what desugar-check/internal will try to do), so we add a nothing at
@@ -169,6 +171,6 @@
      (define with-checks (desugar-check/internal (s-block s2 (append stmts (list (s-id s2 'nothing))))))
      (define print (s-app s (s-dot s (s-id s 'checkers) 'format-check-results) empty))
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
-     (s-prog s imports (s-block s (append (list clear) (s-block-stmts with-checks) (list print))))]
+     (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list print))))]
     [ast (desugar-check/internal ast)]))
 

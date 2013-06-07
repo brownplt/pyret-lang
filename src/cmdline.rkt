@@ -39,11 +39,12 @@
    (set! check-mode #t))
   #:args file-and-maybe-other-stuff
   (define pyret-file (first file-and-maybe-other-stuff))
+  (define-values (base name dir?) (split-path (simplify-path (path->complete-path pyret-file))))
   (cond
     [check-mode
-     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #t))
-     (eval pyret-code (make-fresh-namespace))]
+     (parameterize ([current-load-relative-directory base])
+       (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #t))
+       (eval pyret-code (make-fresh-namespace)))]
     [else
-     (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #f))
-     (eval pyret-code (make-fresh-namespace))]))
+     (dynamic-require pyret-file #f)]))
 
