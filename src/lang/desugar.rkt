@@ -118,13 +118,18 @@
      (,op< . "lessthan")
      (,op>= . "greaterequal")
      (,op> . "greaterthan")
-     (,op== . "equals")
+     ;; NOTE(joe): we deal with equals specially, since it is
+     ;; builtins.equiv(..., ...)
+     ;(,op== . "equals")
      ;; NOTE(dbp): we deal with not specially, since it is .equals(...).not() 
      ;(,op<> . "")
      )))
 
 (define (desugar-internal ast)
   (define ds desugar-internal)
+  (define (ds-== s e1 e2)
+    (s-app s (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
+              (list (ds e1) (ds e2))))
   (define (ds-bind b)
     (match b
       [(s-bind s id a) (s-bind s id (desugar-ann a))]))
@@ -251,13 +256,11 @@
 
     [(s-paren _ e) (ds e)]
 
-    ;; NOTE(dbp): notequals is special because it requires two method
+
+    [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
+
     [(s-op s 'op<> e1 e2)
-     (s-app s (s-bracket s
-               (s-app s (s-bracket s (ds e1) (s-str s "equals"))
-                      (list (ds e2)))
-               (s-str s "not"))
-            (list))]
+     (s-app s (s-bracket s (ds-== s e1 e2) (s-str s "not")) (list))]
 
     [(s-op s op e1 e2)
      (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))
@@ -284,3 +287,4 @@
   (match ast
     [(s-prog s imps block)
      (s-prog s (map desugar-imp imps) (desugar-internal block))]))
+

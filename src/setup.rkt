@@ -10,7 +10,7 @@
   "library/lang/reader.rkt")
 (provide pre-installer)
 (define LIB-BASE "src/lang/pyret-lib/")
-(define LIB-FILES (list "list" "error" "builtins" "option" "checkers"))
+(define LIB-FILES (list "moorings"))
 (define LIBS
   (map (lambda (p) (build-path LIB-BASE p))
        LIB-FILES))

@@ -42,11 +42,7 @@
   (define ns (namespace-anchor->empty-namespace test-shell-anchor))
   (parameterize ([current-namespace ns])
     (namespace-require pyret-lang)
-    (namespace-require '(rename pyret/lang/pyret-lib/list list %PYRET-PROVIDE))
-    (namespace-require '(rename pyret/lang/pyret-lib/option option %PYRET-PROVIDE))
-    (namespace-require '(rename pyret/lang/pyret-lib/builtins builtins %PYRET-PROVIDE))
-    (namespace-require '(rename pyret/lang/pyret-lib/error error %PYRET-PROVIDE))
-    (namespace-require '(rename pyret/lang/pyret-lib/checkers checkers %PYRET-PROVIDE)))
+    (void))
   ns)
 
 (define (py-eval stx)
@@ -60,8 +56,10 @@
 
 (define (eval-pyret/check str)
   (print-test str)
-  ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
-  ;; in test context (where there is no #lang), we prepend everything with " "
+  (py-eval (compile-str/check (string-append " " str))))
+
+(define (eval-pyret/check/lib str)
+  (print-test str)
   (py-eval (compile-str/check (string-append " " str))))
 
 (define-runtime-path utils-path "test-utils.rkt")

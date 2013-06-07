@@ -467,7 +467,7 @@
 
   (check-pyret
     "
-    import '../lang/pyret-lib/list.rkt' as L
+    L = list
     5^L.link(L.empty).first
     "
     five)
@@ -539,7 +539,7 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
-  (check-pyret-match/check "../lang/pyret-lib/builtins.arr" _ (make-check-test 11 11 0 0 0))
+  (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ (make-check-test 12 12 0 0 0))
 
 
 ))
@@ -824,7 +824,7 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-error.arr" _ (make-check-test 2 1 1 0 1))
     (check-pyret-match/check "pyret/check/check-error2.arr" _ (make-check-test 4 2 2 0 1))
     (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-check-test 4 3 1 0 1))
-    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-check-test 2 1 0 1 0))
+    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-check-test 2 1 1 0 0))
     (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-check-test 1 1 0 0 0))
     (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-check-test 2 2 0 0 0))
 

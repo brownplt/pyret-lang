@@ -36,11 +36,6 @@
             (strip-context
               #`(module src-syntax (file pyret-lang-racket-stx)
                   (r:require (r:only-in racket/base current-read-interaction current-print void))
-                  (r:require (r:rename-in pyret/lang/pyret-lib/list [%PYRET-PROVIDE list]))
-                  (r:require (r:rename-in pyret/lang/pyret-lib/option [%PYRET-PROVIDE option]))
-                  (r:require (r:rename-in pyret/lang/pyret-lib/error [%PYRET-PROVIDE error]))
-                  (r:require (r:rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins]))
-                  (r:require (r:rename-in pyret/lang/pyret-lib/checkers [%PYRET-PROVIDE checkers]))
                   (void (current-read-interaction repl-eval-pyret))
                   (void (current-print print-pyret))
                   #,(pyret->racket src in #:toplevel #t #:check (param-compile-check-mode)))))]))

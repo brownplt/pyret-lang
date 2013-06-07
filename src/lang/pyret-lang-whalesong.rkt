@@ -4,11 +4,14 @@
   (except-in whalesong/lang/whalesong list error raise pi else)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "runtime.rkt"
-  (rename-in pyret/lang/pyret-lib/list [%PYRET-PROVIDE list])
-  (rename-in pyret/lang/pyret-lib/error [%PYRET-PROVIDE error])
-  (rename-in pyret/lang/pyret-lib/builtins [%PYRET-PROVIDE builtins])
-  (rename-in pyret/lang/pyret-lib/option [%PYRET-PROVIDE option])
+  (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
   )
+
+(define list (p:get-field p:dummy-loc moorings "list"))
+(define error (p:get-field p:dummy-loc moorings "error"))
+(define builtins (p:get-field p:dummy-loc moorings "builtins"))
+(define checkers (p:get-field p:dummy-loc moorings "checkers"))
+(define option (p:get-field p:dummy-loc moorings "option"))
 
 (provide
   #%module-begin
@@ -20,6 +23,8 @@
   list
   error
   builtins
+  checkers
+  option
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]
   r:list r:error r:raise

@@ -1,8 +1,10 @@
 #lang racket/base
 
 (require racket/match "runtime.rkt"
-         (rename-in "pyret-lib/list.rkt" (%PYRET-PROVIDE pyret-list)))
+         (rename-in "pyret-lib/moorings.rkt" (%PYRET-PROVIDE pyret-moorings)))
 (provide (all-defined-out))
+
+(define pyret-list (p:get-field p:dummy-loc pyret-moorings "list"))
 
 (define (allowed-prim? v)
   (or (number? v)
