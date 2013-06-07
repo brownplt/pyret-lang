@@ -431,6 +431,7 @@
               (incf (pyret-indent-shared defered-opened))))
             (pop opens)
             (push 'check opens)
+            (push 'wantcolon opens)
             (forward-char 5))
            ((pyret-TRY)
             (incf (pyret-indent-try defered-opened))
