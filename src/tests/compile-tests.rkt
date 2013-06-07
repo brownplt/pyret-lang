@@ -637,6 +637,9 @@ o2.m().called" true)
   (check-pyret-exn "{[5]: 'foo'}" "expected string, got 5")
   (check-pyret-exn "{}.f" "f was not found")
 
+  (check-pyret "try: raise(5) except(_): 3 end" (p:mk-num 3))
+  (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
+
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"
@@ -751,11 +754,23 @@ o2.m().called" true)
     y"
    "duplicate")
 
-  ;; check behavior of _, which, when an argument name, should disappear
+  ;; check behavior of _, which should always disappear
   (check-pyret
    "f = fun(_,_,_): 5 end
     f(1,2,3)"
     five)
+
+  ;; should not trigger normal binding errors
+  (check-pyret
+   "var _ = 5
+    _ = 4
+    5"
+   five)
+  
+  (check-pyret-exn
+   "_ = 5
+    _"
+   "undefined")
 
   (check-pyret
    "_foo = 10

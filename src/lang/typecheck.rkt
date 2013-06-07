@@ -134,6 +134,12 @@
 (define (check-consistent env loc id mutable?)
   (cond
     [(not (bound? env id)) (void)]
+    ;; NOTE(dbp): this is a little bit unpleasant. Later on (in compile),
+    ;; _ in id positions is turned into a gensym. Thus, it never will conflict
+    ;; with another binding with the same name. So if we block it here, this is
+    ;; confusing, but equally, to do the conversion before here (ie, in the parser)
+    ;; seems odd. 
+    [(equal? id '_) (void)]
     [else
      (match (cons (lookup env id) mutable?)
        [(cons (binding other-loc _ #f) #t)

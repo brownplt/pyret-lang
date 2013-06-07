@@ -35,9 +35,9 @@
 (define (compile-stmt ast-node)
   (match ast-node
     [(s-var s (s-bind _ id _) val)
-       (cons id (compile-expr val))]
+       (cons (discard-_ id) (compile-expr val))]
     [(s-let s (s-bind _ id _) val)
-       (cons id (compile-expr val))]
+       (cons (discard-_ id) (compile-expr val))]
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
@@ -103,13 +103,13 @@
        #`(r:with-handlers
             ([p:exn:fail:pyret?
               (r:lambda (%exn)
-               (r:define #,(d->stx id l2) (p:mk-exn %exn))
+               (r:define #,(d->stx (discard-_ id) l2) (p:mk-exn %exn))
                #,(compile-expr catch))])
             #,(compile-expr try)))]
 
     [(s-id l name)
      (attach l
-       (with-syntax ([name-stx (d->stx name l)])
+       (with-syntax ([name-stx (d->stx (discard-_ name) l)])
          #'name-stx))]
 
     [(s-assign l name expr)
@@ -204,11 +204,11 @@
      (define (compile-top-stmt stmt)
       (match stmt
         [(s-var s (s-bind _ id _) val)
-         (with-syntax ([id-stx id])
+         (with-syntax ([id-stx (discard-_ id)])
           #`(r:define id-stx #,(compile-expr val)))]
         ;; TODO(joe): Can set! immutable vars at the REPL
         [(s-let s (s-bind _ id _) val)
-         (with-syntax ([id-stx id])
+         (with-syntax ([id-stx (discard-_ id)])
           #`(r:define id-stx #,(compile-expr val)))]
         [else (compile-expr stmt)]))
      (with-syntax ([(expr ...) (map compile-top-stmt stmts)])
