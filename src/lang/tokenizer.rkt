@@ -5,6 +5,7 @@
          racket/set
          racket/port
          racket/list
+         racket/string
          "grammar.rkt")
 (provide tokenize)
 
@@ -32,6 +33,16 @@
   (position (+ n (position-offset pos))
             (position-line pos)
             (+ n (position-col pos))))
+
+;; NOTE(dbp): actual escape chars are not allowed in strings, but escaped escapes
+;; should turn into actual escape characters in the resulting strings.
+;; This is a mediocre solution, but I'm not sure of a better way.
+(define (fix-escapes s)
+  (string-replace 
+    (string-replace
+      (string-replace s "\\n" "\n")
+       "\\t" "\t")
+    "\\r" "\r"))
   
 (define (tokenize ip)
   (port-count-lines! ip)
@@ -108,14 +119,14 @@
                                                 (char-complement #\")
                                                 (char-complement #\newline))))
             "\"")
-           (token STRING lexeme)]
+           (token STRING (fix-escapes lexeme))]
           [(concatenation
             "'"
             (repetition 0 +inf.0 (union "\\'" (intersection
                                                (char-complement #\')
                                                (char-complement #\newline))))
             "'")
-           (token STRING lexeme)]
+           (token STRING (fix-escapes lexeme))]
           ;; brackets
           [(union "[" "]" "{" "}" ")")
            (token lexeme lexeme)]

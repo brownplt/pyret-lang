@@ -69,6 +69,12 @@
 
   (check/block "[]" (s-list _ empty))
   (check/block "[5]" (s-list _ (list (s-num _ 5))))
+
+  ;; NOTE(dbp): we are writing a pyret program in a racket string, so to replicate
+  ;; the literal "\" "n" typed by the racket programmer, we need to escape.
+  ;; What we should get back is the actual escape characters.
+  (check/block "'string\\nwith\\r\\nspecial\\tcharacters'"
+               (s-str _ "string\nwith\r\nspecial\tcharacters"))
 ))
 
 (define methods (test-suite "methods"
