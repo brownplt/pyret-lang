@@ -30,7 +30,7 @@ fun equiv(obj1, obj2):
     try:
       case:
         | has-field(obj1, "equals") => obj1 == obj2
-        | Method(obj1).or(Function(obj2)) => false
+        | Method(obj1).or(Function(obj1)) => false
         | else =>
           for list.fold(same from true, key from left_keys):
             case:
@@ -60,5 +60,10 @@ check:
   # TODO(joe & dbp): this should probably return true some day, with list helping
   # us out a little bit
   eq("",equiv([{}], [{}]), false)
+
+  f = fun: end
+  eq("functions in objects aren't ever equal", equiv({my_fun:f}, {my_fun:f}), false)
+  m = method(self): end
+  eq("methods in objects aren't ever equal", equiv({my_meth:m}, {my_meth:m}), false)
 end
 

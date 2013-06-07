@@ -18,6 +18,9 @@
 
 (define CONFLICT-MESSAGE "variable and identifier")
 
+(define (make-check-test t p f te oe)
+      (format
+        "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
 
 (define constants (test-suite
   "constants and literals"
@@ -536,6 +539,8 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
+  (check-pyret-match/check "../lang/pyret-lib/builtins.arr" _ (make-check-test 11 11 0 0 0))
+
 
 ))
 
@@ -811,26 +816,22 @@ o2.m().called" true)
 (define checks (test-suite "checks"
 
   (let ()
-    (define (make-test t p f te oe)
-      (format
-        "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
-        
-    (check-pyret-match/check "pyret/check/check1.arr" _ (make-test 3 3 0 0 0))
-    (check-pyret-match/check "pyret/check/check-method.arr" _ (make-test 3 3 0 0 0))
-    (check-pyret-match/check "pyret/check/check2.arr" _ (make-test 4 4 0 0 0))
-    (check-pyret-match/check "pyret/check/check3.arr" _ (make-test 36 36 0 0 0))
-    (check-pyret-match/check "pyret/check/check4.arr" _ (make-test 2 1 1 0 0))
-    (check-pyret-match/check "pyret/check/check-error.arr" _ (make-test 2 1 1 0 1))
-    (check-pyret-match/check "pyret/check/check-error2.arr" _ (make-test 4 2 2 0 1))
-    (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-test 4 3 1 0 1))
-    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-test 2 1 0 1 0))
-    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-test 1 1 0 0 0))
-    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-test 2 2 0 0 0))
+    (check-pyret-match/check "pyret/check/check1.arr" _ (make-check-test 3 3 0 0 0))
+    (check-pyret-match/check "pyret/check/check-method.arr" _ (make-check-test 3 3 0 0 0))
+    (check-pyret-match/check "pyret/check/check2.arr" _ (make-check-test 4 4 0 0 0))
+    (check-pyret-match/check "pyret/check/check3.arr" _ (make-check-test 36 36 0 0 0))
+    (check-pyret-match/check "pyret/check/check4.arr" _ (make-check-test 2 1 1 0 0))
+    (check-pyret-match/check "pyret/check/check-error.arr" _ (make-check-test 2 1 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error2.arr" _ (make-check-test 4 2 2 0 1))
+    (check-pyret-match/check "pyret/check/check-error3.arr" _ (make-check-test 4 3 1 0 1))
+    (check-pyret-match/check "pyret/check/check-error4.arr" _ (make-check-test 2 1 0 1 0))
+    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ (make-check-test 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ (make-check-test 2 2 0 0 0))
 
-    (check-pyret-match/check "pyret/check/check-data1.arr" _ (make-test 1 1 0 0 0))
-    (check-pyret-match/check "pyret/check/check-data2.arr" _ (make-test 2 1 1 0 0))
-    (check-pyret-match/check "pyret/check/check-data3.arr" _ (make-test 3 2 1 0 0))
-    (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-test 2 2 0 0 0)))
+    (check-pyret-match/check "pyret/check/check-data1.arr" _ (make-check-test 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/check-data2.arr" _ (make-check-test 2 1 1 0 0))
+    (check-pyret-match/check "pyret/check/check-data3.arr" _ (make-check-test 3 2 1 0 0))
+    (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-check-test 2 2 0 0 0)))
 ))
 
 (define all (test-suite "all"

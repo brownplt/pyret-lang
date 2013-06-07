@@ -36,10 +36,12 @@
   (r:provide test-shell-anchor))
 (require (submod "." test-shell))
 
+(define-runtime-path pyret-lang "../lang/pyret-lang-racket.rkt")
+
 (define (make-fresh-namespace)
   (define ns (namespace-anchor->empty-namespace test-shell-anchor))
   (parameterize ([current-namespace ns])
-    (namespace-require "../lang/pyret-lang-racket.rkt")
+    (namespace-require pyret-lang)
     (namespace-require '(rename pyret/lang/pyret-lib/list list %PYRET-PROVIDE))
     (namespace-require '(rename pyret/lang/pyret-lib/option option %PYRET-PROVIDE))
     (namespace-require '(rename pyret/lang/pyret-lib/builtins builtins %PYRET-PROVIDE))
@@ -95,10 +97,13 @@
   (syntax-case stx ()
     [(_ file expected-value expected-stdout)
      (quasisyntax/loc stx
-       (let () 
+       (let ()
+         (define-values (base name dir?)
+           (split-path (simplify-path (path->complete-path file))))
          (define output (open-output-string))
          (define result
-           (parameterize ([current-output-port output])
+           (parameterize ([current-output-port output]
+                          [current-load-relative-directory base])
              (eval-pyret/check (port->string (open-input-file file)))))
          (define stdout (get-output-string output))
          #,(syntax/loc stx (check-match result expected-value))
