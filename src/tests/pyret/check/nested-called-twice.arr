@@ -5,7 +5,7 @@ f = fun:
     5
   check:
     when h() == 5:
-      checkers.check-equals(0, 0)
+      checkers.check-equals("0=0",0, 0)
     end
   end
   h

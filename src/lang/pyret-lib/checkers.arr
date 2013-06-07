@@ -18,44 +18,44 @@ end
 Location = error.Location
 
 data Result:
-  | success
-  | failure(reason :: String)
-  | err(exception :: Any)
+  | success(name :: String)
+  | failure(name :: String, reason :: String)
+  | err(name :: String, exception :: Any)
 end
 
 var current-results = []
 
-fun check-equals(val1, val2):
+fun check-equals(name, val1, val2):
   try:
     case:
       | (val1 == val2) =>
-        current-results := current-results.push(success)
+        current-results := current-results.push(success(name))
       | else =>
         current-results :=
-          current-results.push(failure("Values not equal: " +
+          current-results.push(failure(name, "Values not equal: " +
                                        tostring(val1) +
                                        ", " +
                                        tostring(val2)))
     end
   except(e):
-    current-results := current-results.push(err(e))
+    current-results := current-results.push(err(name, e))
   end
 end
 
-fun check-pred(val1, pred):
+fun check-pred(name, val1, pred):
   try:
     case:
       | pred(val1) =>
-        current-results := current-results.push(success)
+        current-results := current-results.push(success(name))
       | else =>
         current-results :=
-          current-results.push(failure("Value didn't satisfy predicate: " +
+          current-results.push(failure(name, "Value didn't satisfy predicate: " +
                                        tostring(val1) +
                                        ", " +
                                        pred._doc))
     end
   except(e):
-    current-results := current-results.push(err(e))
+    current-results := current-results.push(err(name, e))
   end
 end
 
@@ -96,7 +96,7 @@ fun format-check-results():
       inner-results = check-result.results
       other-errors = [check-result].filter(is-error-result).length()
       for list.each(failure from inner-results.filter(is-failure)):
-        print("Test failed:")
+        print("Test " + failure.name + " failed:")
         print(failure.reason)
         print("")
       end

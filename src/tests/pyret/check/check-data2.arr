@@ -8,6 +8,6 @@ data Foo:
   | bar with:
       equals(self,other): false end
 check:
-  eq(foo,foo)
-  eq(bar,bar)
+  eq("foo=foo",foo,foo)
+  eq("bar=bar",bar,bar)
 end

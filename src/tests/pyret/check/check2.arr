@@ -9,8 +9,8 @@ fun odd(n):
     | else => even(n - 1)
   end
 check:
-  eq(odd(9), true)
-  eq(odd(8), false)
+  eq("odd(9)",odd(9), true)
+  eq("odd(8)",odd(8), false)
 end
 
 
@@ -21,7 +21,7 @@ fun even(n):
     | else => odd(n - 1)
   end
 check:
-  eq(even(9), false)
-  eq(even(8), true)
+  eq("even(9)",even(9), false)
+  eq("even(8)",even(8), true)
 end
 

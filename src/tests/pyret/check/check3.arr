@@ -6,9 +6,9 @@ fun expt(x, n):
   fun mult(x, y):
     x * y
   check:
-    eq(mult(3,4), 12)
+    eq("mult(3,4)=12",mult(3,4), 12)
     for list.map(i from list.range(0, 10)):
-      eq(mult(0,i), 0)
+      eq("mult(0,"+tostring(i)+")=0", mult(0,i), 0)
     end
   end
 
@@ -16,9 +16,9 @@ fun expt(x, n):
     mult(acc, x)
   end
 check:
-  eq(expt(5, 0), 1)
-  eq(expt(0, 5), 0)
-  eq(expt(2, 4), 16)
+  eq("expr(5,0)",expt(5, 0), 1)
+  eq("expt(0, 5)",expt(0, 5), 0)
+  eq("expt(2,4)",expt(2, 4), 16)
 end
 
 # should run

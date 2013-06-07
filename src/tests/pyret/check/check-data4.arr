@@ -9,10 +9,10 @@ fun foo():
     | bar with:
         equals(self,other): false end
   check:
-        eq(foo,foo)
+        eq("foo=foo",foo,foo)
   end
 
   1
 check:
-  eq(foo(),1)
+  eq("foo()=1",foo(),1)
 end

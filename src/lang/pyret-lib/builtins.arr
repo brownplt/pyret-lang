@@ -49,16 +49,16 @@ fun equiv(obj1, obj2):
   all_same(obj1, obj2).and(all_same(obj2, obj1))
 check:
   eq = checkers.check-equals
-  eq(equiv({}, {}), true)
-  eq(equiv({x : 5}, {y : 6}), false)
-  eq(equiv({x : 5}, {x : 6}), false)
-  eq(equiv({x : 5}, {x : 5}), true)
-  eq(equiv({x : 5, y : 6}, {y : 6, x : 5}), true)
-  eq(equiv({x : {z: "foo"}, y : 6}, {y : 6, x : {z: "foo"}}), true)
-  eq(equiv({x : {z: "foo"}, y : [true, 6]}, {y : [true, 6], x : {z: "foo"}}), true)
-  eq(equiv(fun: end, fun: end), false)
+  eq("empty objects", equiv({}, {}), true)
+  eq("",equiv({x : 5}, {y : 6}), false)
+  eq("",equiv({x : 5}, {x : 6}), false)
+  eq("",equiv({x : 5}, {x : 5}), true)
+  eq("",equiv({x : 5, y : 6}, {y : 6, x : 5}), true)
+  eq("",equiv({x : {z: "foo"}, y : 6}, {y : 6, x : {z: "foo"}}), true)
+  eq("",equiv({x : {z: "foo"}, y : [true, 6]}, {y : [true, 6], x : {z: "foo"}}), true)
+  eq("",equiv(fun: end, fun: end), false)
   # TODO(joe & dbp): this should probably return true some day, with list helping
   # us out a little bit
-  eq(equiv([{}], [{}]), false)
+  eq("",equiv([{}], [{}]), false)
 end
 
