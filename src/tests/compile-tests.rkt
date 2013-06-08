@@ -667,13 +667,13 @@ o2.m().called" true)
   x = 5
   var x = 5
   "
-  CONFLICT-MESSAGE)
+  "x defined twice")
 
   (check-pyret-exn "
   var x = 5
   x = 5
   "
-  CONFLICT-MESSAGE)
+  "x defined twice")
 
   (check-pyret-exn "
   var x = 5
@@ -782,6 +782,12 @@ o2.m().called" true)
     _foo"
    (p:mk-num 10))
 
+  (check-pyret-exn "x = 4 x = 5" "x defined twice")
+  (check-pyret-exn "x = 4 y = 6 x = 5" "x defined twice")
+  (check-pyret-exn "x = 4 fun x(): 5 end" "x defined twice")
+  (check-pyret-exn "fun x(): 4 end y = 7 x = 3" "x defined twice")
+  (check-pyret-exn "fun x(): 4 end fun x(): 3 end" "x defined twice")
+  (check-pyret-exn "var x = 3 var x = 7" "x defined twice")
 ))
 
 (define binary-operators (test-suite "binary-operators"
@@ -834,6 +840,9 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-check-test 2 2 0 0 0)))
 ))
 
+(define errors (test-suite "errors"
+))
+
 (define all (test-suite "all"
   constants
   functions
@@ -850,7 +859,8 @@ o2.m().called" true)
   exceptions
   ids-and-vars
   binary-operators
-  checks))
+  checks
+  errors))
 
 (run-tests all 'normal)
 

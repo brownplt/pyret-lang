@@ -9,7 +9,7 @@
       (exn:fail:pyret/tc-srclocs a-struct)))
 
 (define (tc-error str . locs)
-  (raise (exn:fail:pyret/tc str (current-continuation-marks) locs)))
+  (raise (exn:fail:pyret/tc str (continuation-marks #f) locs)))
 
 (define VAR-REMINDER "(Identifiers are declared with = and as the names of function arguments.  Variables are declared with var.)")
 
@@ -18,6 +18,9 @@
 
 (define (mixed-id-type-msg name)
   (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
+
+(define (duplicate-identifier name)
+  (format "~a defined twice" name))
 
 (define (wrap-ann-check loc ann e)
   (define (skippable? a)
@@ -157,6 +160,20 @@
 
 
 (define (cc-block-env stmts env)
+  (define (get-bind stmt)
+    (match stmt
+      [(s-var _ _ _) stmt]
+      [(s-let _ _ _) stmt]
+      [_ #f]))
+  (define bind-stmts (filter-map get-bind stmts))
+  (define (get-id stmt)
+    (match stmt
+      [(s-var _ (s-bind _ id _) _) id]
+      [(s-let _ (s-bind _ id _) _) id]))
+  (define (get-loc stmt)
+    (match stmt
+      [(s-var loc (s-bind _ _ _) _) loc]
+      [(s-let loc (s-bind _ _ _) _) loc]))
   (define (update-for-node node env)
     (match node
       [(s-var loc (s-bind _ id ann) _)
@@ -164,9 +181,26 @@
        (update id (binding loc ann #t) env)]
       [(s-let loc (s-bind _ id ann) _)
        (check-consistent env loc id #f)
-       (update id (binding loc ann #f) env)]
-      [_ env]))
-  (foldl update-for-node env stmts))
+       (update id (binding loc ann #f) env)]))
+  (define (find-duplicate stmts stmts-seen)
+    (define ((matching-bind stmt-chk) stmt)
+      (define id-chk (get-id stmt-chk))
+      (define id (get-id stmt))
+      (and (not (symbol=? '_ id-chk))
+           (not (symbol=? '_ id))
+           (symbol=? id-chk id)))
+    (cond
+      [(empty? stmts) #f]
+      [(cons? stmts)
+       (define stmt (first stmts))
+       (define found (findf (matching-bind stmt) stmts-seen))
+       (cond
+        [found (tc-error (duplicate-identifier (get-id stmt))
+               (get-loc stmt)
+               (get-loc found))]
+        [else (find-duplicate (rest stmts) (cons stmt stmts-seen))])]))
+  (find-duplicate bind-stmts empty)
+  (foldl update-for-node env bind-stmts))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
