@@ -33,8 +33,8 @@
   ("--check" "Run in check mode"
    (set! check-mode #t))
   #:args file-and-maybe-other-stuff
-  (define pyret-file (first file-and-maybe-other-stuff))
-  (define-values (base name dir?) (split-path (simplify-path (path->complete-path pyret-file))))
+  (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
+  (define-values (base name dir?) (split-path pyret-file))
   (cond
     [check-mode
      (parameterize ([current-load-relative-directory base])
