@@ -840,8 +840,6 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-check-test 2 2 0 0 0)))
 ))
 
-(define errors (test-suite "errors"
-))
 
 (define all (test-suite "all"
   constants
@@ -859,8 +857,7 @@ o2.m().called" true)
   exceptions
   ids-and-vars
   binary-operators
-  checks
-  errors))
+  checks))
 
 (run-tests all 'normal)
 
