@@ -267,7 +267,7 @@ end
 fun map_n(f, n :: Number, lst :: List):
   case:
     | is-empty(lst) => empty
-    | else => f(lst.first, n)^link(map_n(f, n + 1, lst.rest))
+    | else => f(n, lst.first)^link(map_n(f, n + 1, lst.rest))
   end
 end
 
