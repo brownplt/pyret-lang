@@ -264,6 +264,33 @@ fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   end
 end
 
+fun map_n(f, n :: Number, lst :: List):
+  case:
+    | is-empty(lst) => empty
+    | else => f(lst.first, n)^link(map_n(f, n + 1, lst.rest))
+  end
+end
+
+fun map2_n(f, n :: Number, l1 :: List, l2 :: List):
+  case:
+    | is-empty(l1).or(is-empty(l2)) => empty
+    | else => f(n, l1.first, l2.first)^link(map2_n(f, n + 1, l1.rest, l2.rest))
+  end
+end
+
+fun map3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
+  case:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => empty
+    | else => f(n, l1.first, l2.first, l3.first)^link(map3_n(f, n + 1, l1.rest, l2.rest, l3.rest))
+  end
+end
+
+fun map4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
+  case:
+    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
+    | else => f(n, l1.first, l2.first, l3.first, l4.first)^link(map4(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
+  end
+end
 
 fun each(f, lst :: List):
   fun help(lst):
@@ -397,11 +424,14 @@ list = {
     link: link,
 
     range: range,
-    each: each,
     map: map,
     map2: map2,
     map3: map3,
     map4: map4,
+    map_n: map_n,
+    map2_n: map2_n,
+    map3_n: map3_n,
+    map4_n: map4_n,
     each: each,
     each2: each2,
     each3: each3,
