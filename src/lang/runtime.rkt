@@ -55,50 +55,52 @@
        (string-join (rest strs) sep)))]))
 
 (provide
-  (prefix-out p: (struct-out none))
-  (prefix-out p: (struct-out p-opaque))
-  (prefix-out p: (struct-out p-base))
-  (prefix-out p: (struct-out p-nothing))
-  (prefix-out p: (struct-out p-object))
-  (prefix-out p: (struct-out p-num))
-  (prefix-out p: (struct-out p-bool))
-  (prefix-out p: (struct-out p-str))
-  (prefix-out p: (struct-out p-fun))
-  (prefix-out p: (struct-out p-method))
-  (rename-out [mk-object p:mk-object]
-              [mk-num p:mk-num]
-              [mk-bool p:mk-bool]
-              [mk-str p:mk-str]
-              [pλ p:pλ]
-              [mk-fun p:mk-fun]
-              [mk-fun-loc p:mk-fun-loc]
-              [mk-fun-nodoc p:mk-fun-nodoc]
-              [mk-internal-fun p:mk-internal-fun]
-              [pμ p:pμ]
-              [mk-method p:mk-method]
-              [mk-method-loc p:mk-method-loc]
-              [mk-structural-list p:mk-structural-list]
-              [structural-list? p:structural-list?]
-              [structural-list->list p:structural-list->list]
-              [wrap p:wrap]
-              [unwrap p:unwrap]
-              [exn:fail:pyret? p:exn:fail:pyret?]
-              [mk-exn p:mk-exn]
-              [pyret-error p:pyret-error]
-              [empty-dict p:empty-dict]
-              [get-dict p:get-dict]
-              [get-field p:get-field]
-              [get-raw-field p:get-raw-field]
-              [apply-fun p:apply-fun]
-              [arity-error p:arity-error]
-              [check-fun p:check-fun]
-              [check-str p:check-str]
-              [has-field? p:has-field?]
-              [extend p:extend]
-              [to-string p:to-string]
-              [nothing p:nothing]
-              [pyret-true? p:pyret-true?]
-              [dummy-loc p:dummy-loc])
+  (prefix-out p:
+    (combine-out
+      (struct-out none)
+      (struct-out p-opaque)
+      (struct-out p-base)
+      (struct-out p-nothing)
+      (struct-out p-object)
+      (struct-out p-num)
+      (struct-out p-bool)
+      (struct-out p-str)
+      (struct-out p-fun)
+      (struct-out p-method)
+      mk-object
+      mk-num
+      mk-bool
+      mk-str
+      pλ
+      mk-fun
+      mk-fun-loc
+      mk-fun-nodoc
+      mk-internal-fun
+      pμ
+      mk-method
+      mk-method-loc
+      mk-structural-list
+      structural-list?
+      structural-list->list
+      wrap
+      unwrap
+      exn:fail:pyret?
+      mk-exn
+      pyret-error
+      empty-dict
+      get-dict
+      get-field
+      get-raw-field
+      apply-fun
+      arity-error
+      check-fun
+      check-str
+      has-field?
+      extend
+      to-string
+      nothing
+      pyret-true?
+      dummy-loc))
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
