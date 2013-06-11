@@ -1,7 +1,7 @@
 #lang racket
 
 (require "ast.rkt" "pretty.rkt")
-(provide contract-check-pyret)
+(provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
 (struct exn:fail:pyret/tc exn:fail (srclocs)
   #:property prop:exn:srclocs

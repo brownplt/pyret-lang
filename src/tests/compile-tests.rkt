@@ -837,7 +837,8 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-data1.arr" _ (make-check-test 1 1 0 0 0))
     (check-pyret-match/check "pyret/check/check-data2.arr" _ (make-check-test 2 1 1 0 0))
     (check-pyret-match/check "pyret/check/check-data3.arr" _ (make-check-test 3 2 1 0 0))
-    (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-check-test 2 2 0 0 0)))
+    (check-pyret-match/check "pyret/check/check-data4.arr" _ (make-check-test 2 2 0 0 0))
+    (check-pyret-match/check "pyret/check/check-with-import.arr" _ (make-check-test 1 1 0 0 0)))
 ))
 
 

@@ -67,6 +67,7 @@
       (struct-out p-str)
       (struct-out p-fun)
       (struct-out p-method)
+      (struct-out exn:fail:pyret)
       mk-object
       mk-num
       mk-bool
@@ -84,7 +85,6 @@
       structural-list->list
       wrap
       unwrap
-      exn:fail:pyret?
       mk-exn
       pyret-error
       empty-dict

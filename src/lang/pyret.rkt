@@ -20,6 +20,13 @@
 (define (my-read in)
   (syntax->datum (my-read-syntax #f in)))
 
+; NOTE(joe): Only the first file gets compiled in check mode, so this helper
+; returns true the first time, and sets the parameter to be false after
+(define (test-check-mode)
+  (define old-value (param-compile-check-mode))
+  (param-compile-check-mode #f)
+  old-value)
+
 (define (bare-read-syntax src in)
   (cond
     [(port-eof? in) eof]
@@ -38,5 +45,5 @@
                   (r:require (r:only-in racket/base current-read-interaction current-print void))
                   (void (current-read-interaction repl-eval-pyret))
                   (void (current-print print-pyret))
-                  #,(pyret->racket src in #:toplevel #t #:check (param-compile-check-mode)))))]))
+                  #,(pyret->racket src in #:toplevel #t #:check (test-check-mode)))))]))
 

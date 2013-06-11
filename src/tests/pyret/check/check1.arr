@@ -1,5 +1,7 @@
 #lang pyret
 
+provide len end
+
 eq = checkers.check-equals
 
 fun len(l):

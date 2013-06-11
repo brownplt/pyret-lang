@@ -3,10 +3,13 @@
 (require
   pyret/lang/settings
   pyret/lang/pyret
+  pyret/lang/runtime
+  pyret/lang/typecheck
   pyret/lang/eval
   ;; pyret/whalesong/lang/reader
   racket/cmdline
   racket/list
+  racket/match
   racket/pretty
   racket/runtime-path
   racket/syntax)
@@ -27,6 +30,31 @@
     (current-print print-pyret))
   ns)
 
+(define (process-pyret-error p)
+  (match p
+    [(p:exn:fail:pyret message cms srcloc system? val)
+     (eprintf "~a\n" message)]
+    [(exn:fail:pyret/tc message cms srclocs)
+     (eprintf "[pyret] Error in type-checking:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (define (print-loc l)
+      (eprintf "~a:~a:~a\n"
+        (srcloc-source l)
+        (srcloc-line l)
+        (srcloc-column l)))
+     (void (map print-loc srclocs))
+     ]
+    [(exn:fail:contract:variable message cms x)
+     (eprintf "~a\n" message)]
+    [(exn:fail:syntax:unbound message cms x)
+     (eprintf "~a\n" message)]
+    [(exn:fail message cms)
+     (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
+     (display p)
+     (display (continuation-mark-set->context cms))
+     (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")]
+    ))
+
 (define check-mode #f)
 (command-line
   #:once-each
@@ -37,9 +65,10 @@
   (define-values (base name dir?) (split-path pyret-file))
   (cond
     [check-mode
-     (parameterize ([current-load-relative-directory base])
-       (define pyret-code (pyret->racket pyret-file (open-input-file pyret-file) #:toplevel #t #:check #t))
-       (eval pyret-code (make-fresh-namespace)))]
+     (with-handlers ([exn:fail? process-pyret-error])
+       (parameterize ([param-compile-check-mode #t])
+         (dynamic-require pyret-file #f)))]
     [else
-     (dynamic-require pyret-file #f)]))
+     (with-handlers ([exn:fail? process-pyret-error])
+      (dynamic-require pyret-file #f))]))
 

@@ -75,6 +75,6 @@
   (when (not (equal? val nothing))
     (match val
       [(p:p-opaque v) (racket-print v) (newline)]
-      [(? p:p-base?) (pretty-write (p:to-string val))]
+      [(? p:p-base?) (printf "~a\n" (p:to-string val))]
       [_ (void)])))
 

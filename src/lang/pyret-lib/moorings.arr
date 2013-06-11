@@ -598,9 +598,10 @@ fun run-checks(checks):
 
   current-results := old-results
   all-results := all-results.push(these-check-results)
+  nothing
 end
 
-fun clear-results(): all-results := empty end
+fun clear-results(): all-results := empty nothing end
 fun get-results(): all-results end
 
 fun format-check-results():
@@ -632,6 +633,7 @@ fun format-check-results():
         ", Failed: " + counts.failed.tostring() +
         ", Errors in tests: " + counts.test-errors.tostring() +
         ", Errors in between tests: " + counts.other-errors.tostring())
+  nothing
 end
 
 checkers = {
