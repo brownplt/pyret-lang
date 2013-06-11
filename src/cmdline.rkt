@@ -6,6 +6,7 @@
   pyret/lang/runtime
   pyret/lang/typecheck
   pyret/lang/eval
+  ragg/support
   ;; pyret/whalesong/lang/reader
   racket/cmdline
   racket/list
@@ -31,19 +32,24 @@
   ns)
 
 (define (process-pyret-error p)
+  (define (print-loc l)
+   (eprintf "~a:~a:~a\n"
+     (srcloc-source l)
+     (srcloc-line l)
+     (srcloc-column l)))
   (match p
-    [(p:exn:fail:pyret message cms srcloc system? val)
-     (eprintf "~a\n" message)]
+    [(exn:fail:parsing message cms third)
+     (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (void (map print-loc third))]
     [(exn:fail:pyret/tc message cms srclocs)
      (eprintf "[pyret] Error in type-checking:\n\n~a\n" message)
      (eprintf "\nAt:\n")
-     (define (print-loc l)
-      (eprintf "~a:~a:~a\n"
-        (srcloc-source l)
-        (srcloc-line l)
-        (srcloc-column l)))
-     (void (map print-loc srclocs))
-     ]
+     (void (map print-loc srclocs))]
+    [(p:exn:fail:pyret message cms srcloc system? val)
+     (eprintf "[pyret] Runtime error:\n\n~a\n" message)
+     (eprintf "At:\n")
+     (print-loc srcloc)]
     [(exn:fail:contract:variable message cms x)
      (eprintf "~a\n" message)]
     [(exn:fail:syntax:unbound message cms x)
