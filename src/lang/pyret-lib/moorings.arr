@@ -26,6 +26,8 @@ fun has-field(obj, name):
   prim-has-field(obj, name)
 end
 
+fun num-keys(obj): prim-num-keys(obj) end
+
 fun equiv(obj1, obj2):
   doc "Check if two objects have all the same keys with equiv fields"
   fun all_same(obj1, obj2):
@@ -49,7 +51,10 @@ fun equiv(obj1, obj2):
       false
     end
   end
-  all_same(obj1, obj2).and(all_same(obj2, obj1))
+  case:
+    | num-keys(obj1).equals(num-keys(obj2)) => all_same(obj1, obj2)
+    | else => false
+  end
 check:
   eq = checkers.check-equals
   eq("empty objects", equiv({}, {}), true)

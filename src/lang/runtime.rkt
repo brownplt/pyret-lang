@@ -107,6 +107,7 @@
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
+              [num-keys-pfun prim-num-keys]
               [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
@@ -550,6 +551,11 @@ And the object was:
   (mk-structural-list (map mk-str (hash-keys (get-dict object)))))
 
 (define keys-pfun (mk-fun-nodoc keys))
+
+(define (num-keys object)
+  (mk-num (hash-count (get-dict object))))
+
+(define num-keys-pfun (mk-fun-nodoc num-keys))
 
 (define has-field-pfun (pλ/internal (loc) (object field)
   (cond
