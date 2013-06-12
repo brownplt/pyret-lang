@@ -93,7 +93,7 @@
 
 (define-syntax (check-pyret-match/check stx)
   (syntax-case stx ()
-    [(_ file expected-value expected-stdout)
+    [(_ file expected-value t p f te oe)
      (quasisyntax/loc stx
        (let ()
          (define-values (base name dir?)
@@ -104,6 +104,17 @@
                           [current-load-relative-directory base])
              (eval-pyret/check (port->string (open-input-file file)))))
          (define stdout (get-output-string output))
-         #,(syntax/loc stx (check-match result expected-value))
-         #,(syntax/loc stx (check-regexp-match (regexp-quote expected-stdout) stdout))))]))
+         (define expected-stdout
+           (format
+            "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
+         #,(quasisyntax/loc stx
+             (match result
+             [expected-value #t]
+             [_ #,(syntax/loc stx (check-match result expected-value))]))
+         #,(quasisyntax/loc stx
+             (if (regexp-match (regexp-quote expected-stdout) stdout)
+             (map (λ (_) (check-true #t)) (range t))
+             #,(syntax/loc stx
+               (check-regexp-match (regexp-quote expected-stdout)
+                                 stdout))))))]))
 
