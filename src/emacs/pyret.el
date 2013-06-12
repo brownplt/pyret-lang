@@ -267,8 +267,10 @@
 
 (defvar pyret-nestings-stack nil
   "Stores the token stack of the parse.  Should only be buffer-local.")
-(defvar pyret-nestings-dirty-at-char nil 
+(defvar pyret-nestings-dirty-at-char 0
   "Stores the minimum dirty position of the buffer.  Should only be buffer-local.")
+(defvar pyret-nestings-open nil
+  "Stores the deferred open information of the parse.  Should only be buffer-local.")
 (defvar pyret-nestings nil
   "Stores the indentation information of the parse.  Should only be buffer-local.")
 
@@ -778,7 +780,8 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'pyret-nestings-dirty-at-char) 0)
   (add-hook 'before-change-functions
                (function (lambda (beg end) 
-                           (setq pyret-nestings-dirty-at-char beg)))
+                           (setq pyret-nestings-dirty-at-char 
+                                 (min beg pyret-nestings-dirty-at-char))))
                nil t)
   (run-hooks 'pyret-mode-hook))
 
