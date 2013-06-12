@@ -541,6 +541,13 @@
 
   (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ (make-check-test 12 12 0 0 0))
 
+  (check-pyret "prim-num-keys({})" (p:mk-num 0))
+  (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))
+  (check-pyret "prim-num-keys({x:5}.{y:6})" (p:mk-num 2))
+  (check-pyret "prim-num-keys({x:5}.{x:6})" (p:mk-num 1))
+  (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
+  (check-pyret "prim-num-keys({x(): end, y:'', z: fun: end})" (p:mk-num 3))
+
 
 ))
 
