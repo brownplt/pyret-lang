@@ -779,6 +779,17 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-with-import.arr" _ (make-check-test 1 1 0 0 0)))
 ))
 
+(define examples (test-suite "examples"
+  (let ((private-run (lambda (filename passing)
+    (when (file-exists? filename)
+      (check-pyret-match/check filename _ (make-check-test passing passing 0 0 0))))))
+  (let ()
+    (private-run "../../examples/pyret-lang-private/cs019/sortacle.arr" 2)
+    (private-run "../../examples/pyret-lang-private/cs019/filesystem.arr" 2)
+    ;; NOTE(dbp): we need to set the current directory to be right for this to work,
+    ;; as it needs to open a file in the same directory (a test image).
+    #;(private-run "../../examples/pyret-lang-private/cs019/seam-carving.arr" 34)))))
+
 
 (define all (test-suite "all"
   constants
@@ -795,7 +806,8 @@ o2.m().called" true)
   exceptions
   ids-and-vars
   binary-operators
-  checks))
+  checks
+  examples))
 
 (run-tests all 'normal)
 
