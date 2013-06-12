@@ -13,28 +13,46 @@
         (indent-region (region-beginning)
                        (region-end))
         (indent-for-tab-command))))
+(defun pyret-indent-from-punctuation (&optional N)
+  (interactive "^p")
+  (or N (setq N 1))
+  (self-insert-command N)
+  (pyret-smart-tab))
+
 (defvar pyret-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'newline-and-indent)
-    (define-key map (kbd "|") 
-      (function (lambda (&optional N) 
+    (define-key map (kbd "|") 'pyret-indent-from-punctuation)
+    (define-key map (kbd "}") 'pyret-indent-from-punctuation)
+    (define-key map (kbd "]") 'pyret-indent-from-punctuation)
+    (define-key map (kbd "d")
+      (function (lambda (&optional N)
                   (interactive "^p")
                   (or N (setq N 1))
                   (self-insert-command N)
-                  (pyret-smart-tab))))
+                  (when (save-excursion (forward-char -3) (pyret-END))
+                    (pyret-smart-tab)))))
     map)
   "Keymap for Pyret major mode")
 
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords-regex 
   (regexp-opt
-   '("fun" "method" "var" "case" "when" "import" "provide"
+   '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "do" "try" "except" "for" "from"
-     "as" "with" "sharing" "check" "doc")))
+     "as" "purpose")))
+(defconst pyret-keywords-colon-regex
+  (regexp-opt
+   '("with" "sharing" "check" "case")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
 (defconst pyret-font-lock-keywords-1
   (list
+   `(,(concat 
+       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+       pyret-keywords-colon-regex
+       "\\)\\(:\\)") 
+     (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
    `(,(concat 
        "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
        pyret-keywords-regex
@@ -112,9 +130,6 @@
 ;; field definitions
 ;; lines beginning with a period
 
-(defvar pyret-nestings (vector))
-(defvar pyret-nestings-dirty t)
-
 (defsubst pyret-is-word (c)
   (and c
        (or 
@@ -157,7 +172,6 @@
 (defsubst pyret-PROVIDE () (pyret-keyword "provide"))
 (defsubst pyret-DATA () (pyret-keyword "data"))
 (defsubst pyret-END () (pyret-keyword "end"))
-(defsubst pyret-DO () (pyret-keyword "do"))
 (defsubst pyret-FOR () (pyret-keyword "for"))
 (defsubst pyret-FROM () (pyret-keyword "from"))
 (defsubst pyret-TRY () (pyret-keyword "try"))
@@ -243,29 +257,73 @@
    (pyret-indent-fields ind)
    (pyret-indent-initial-period ind)))
 
-(defun pyret-compute-nestings ()
+(defun pyret-make-zero-vector (length)
+  (let ((v (make-vector length nil))
+        (n 0))
+    (while (< n length)
+      (aset v n (pyret-make-zero-indent))
+      (incf n))
+    v))
+
+(defvar pyret-nestings-stack nil
+  "Stores the token stack of the parse.  Should only be buffer-local.")
+(defvar pyret-nestings-dirty-at-char nil 
+  "Stores the minimum dirty position of the buffer.  Should only be buffer-local.")
+(defvar pyret-nestings nil
+  "Stores the indentation information of the parse.  Should only be buffer-local.")
+
+(defun pyret-compute-nestings (char-min char-max)
   (let ((nlen (if pyret-nestings (length pyret-nestings) 0))
         (doclen (count-lines (point-min) (point-max))))
     (cond 
      ((>= (+ doclen 1) nlen)
-      (setq pyret-nestings (vconcat pyret-nestings (make-vector (+ 1 (- doclen nlen)) (pyret-make-zero-indent)))))
+      (setq pyret-nestings (vconcat pyret-nestings (pyret-make-zero-vector (+ 1 (- doclen nlen)))))
+      (setq pyret-nestings-open (vconcat pyret-nestings-open (pyret-make-zero-vector (+ 1 (- doclen nlen)))))
+      (setq pyret-nestings-stack (vconcat pyret-nestings-stack (make-vector (+ 1 (- doclen nlen)) nil))))
      (t nil)))
   ;; open-* is the running count as of the *beginning of the line*
   ;; cur-opened-* is the count of how many have been opened on this line
   ;; cur-closed-* is the count of how many have been closed on this line
   ;; defered-opened-* is the count of how many have been opened on this line, but should not be indented
   ;; defered-closed-* is the count of how many have been closed on this line, but should not be outdented
-  (let ((n 0)
-        (open       (pyret-make-zero-indent))
-        (cur-opened (pyret-make-zero-indent))
-        (cur-closed (pyret-make-zero-indent))
-        (defered-opened (pyret-make-zero-indent))
-        (defered-closed (pyret-make-zero-indent))
-        (opens nil))
+  (let* ((line-min (- (line-number-at-pos char-min) 1))
+         (line-max (line-number-at-pos char-max))
+         (n line-min)
+         (open (pyret-make-zero-indent))
+         (cur-opened (pyret-make-zero-indent))
+         (cur-closed (pyret-make-zero-indent))
+         (defered-opened (pyret-make-zero-indent))
+         (defered-closed (pyret-make-zero-indent))
+         (opens nil))
+    ;; (message "Indenting from line %d to %d" line-min line-max)
     (save-excursion
-      (goto-char (point-min))
+      (goto-char char-min) (beginning-of-line)
+      ;; (message "n = %d" n)
+      ;; (when (> n 1)
+      ;;   (message "indent(%d)     : %s" (- n 2) (pyret-print-indent (aref pyret-nestings (- n 2)))))
+      ;; (when (> n 0)
+      ;;   (message "indent(%d)     : %s" (- n 1) (pyret-print-indent (aref pyret-nestings (- n 1)))))
+      ;; (message "indent(%d)     : %s" n (pyret-print-indent (aref pyret-nestings n)))
+      ;; (message "indent(%d)     : %s" (+ n 1) (pyret-print-indent (aref pyret-nestings (+ n 1))))
+      ;; (message "indent(%d)     : %s" (+ n 2) (pyret-print-indent (aref pyret-nestings (+ n 2))))
+      ;; (when (> n 1)
+      ;;   (message "open(%d)     : %s" (- n 2) (pyret-print-indent (aref pyret-nestings-open (- n 2)))))
+      ;; (when (> n 0)
+      ;;   (message "open(%d)     : %s" (- n 1) (pyret-print-indent (aref pyret-nestings-open (- n 1)))))
+      ;; (message "open(%d)     : %s" n (pyret-print-indent (aref pyret-nestings-open n)))
+      ;; (message "open(%d)     : %s" (+ n 1) (pyret-print-indent (aref pyret-nestings-open (+ n 1))))
+      ;; (message "open(%d)     : %s" (+ n 2) (pyret-print-indent (aref pyret-nestings-open (+ n 2))))
+      ;; (when (> n 1)
+      ;;   (message "stack(%d)     : %s" (- n 2) (aref pyret-nestings-stack (- n 2))))
+      ;; (when (> n 0)
+      ;;   (message "stack(%d)     : %s" (- n 1) (aref pyret-nestings-stack (- n 1))))
+      ;; (message "stack(%d)    : %s" n (aref pyret-nestings-stack n))
+      ;; (message "stack(%d)    : %s" (+ n 1) (aref pyret-nestings-stack (+ n 1)))
+      ;; (message "stack(%d)    : %s" (+ n 2) (aref pyret-nestings-stack (+ n 2)))
+      (pyret-copy-indent! open (aref pyret-nestings-open n))
       (pyret-copy-indent! (aref pyret-nestings n) open)
-      (while (not (eobp))
+      (setq opens (append (aref pyret-nestings-stack n) nil))
+      (while (and (<= n line-max) (not (eobp)))
         (pyret-zero-indent! cur-opened) (pyret-zero-indent! cur-closed)
         (pyret-zero-indent! defered-opened) (pyret-zero-indent! defered-closed)
         ;;(message "At start of line %d, open is %s" (+ n 1) open)
@@ -444,10 +502,12 @@
             (forward-char 3))
            ((pyret-EXCEPT)
             (cond 
-             ((> (pyret-indent-try cur-opened) 0) (decf (pyret-indent-try cur-opened)))
-             ((> (pyret-indent-try defered-opened) 0) (decf (pyret-indent-try defered-opened)))
-             (t (incf (pyret-indent-try cur-closed))))
-            (incf (pyret-indent-except defered-opened))
+             ((> (pyret-indent-try cur-opened) 0) 
+              (decf (pyret-indent-try cur-opened)) (incf (pyret-indent-except cur-opened)))
+             ((> (pyret-indent-try defered-opened) 0)
+              (decf (pyret-indent-try defered-opened)) (incf (pyret-indent-except defered-opened)))
+             (t 
+              (incf (pyret-indent-try cur-closed)) (incf (pyret-indent-except defered-opened))))
             (when (pyret-has-top opens '(try))
               (pop opens)
               (push 'except opens)
@@ -615,6 +675,7 @@
             (setq h (car-safe opens))))
         ;; (message "Line %d" (+ 1 n))
         ;; (message "Prev open     : %s" (pyret-print-indent open))
+        ;; (message "open(%d)      : %s" n (pyret-print-indent (aref pyret-nestings-open n)))
         (pyret-add-indent! open (pyret-sub-indent (pyret-add-indent cur-opened defered-opened) 
                                                   (pyret-add-indent cur-closed defered-closed)))
         ;; (message "Cur-opened    : %s" (pyret-print-indent cur-opened))
@@ -623,9 +684,13 @@
         ;; (message "Defered-closed: %s" (pyret-print-indent defered-closed))
         ;; (message "New open      : %s" (pyret-print-indent open))
         (incf n)
+        (pyret-copy-indent! (aref pyret-nestings-open n) open)
+        (aset pyret-nestings-stack n (append opens nil))
         (pyret-copy-indent! (aref pyret-nestings n) open)
-        (if (not (eobp)) (forward-char)))))
-  (setq pyret-nestings-dirty nil))
+        (if (not (eobp)) (forward-char)))
+      (setq pyret-nestings-dirty-at-char char-max)
+      ))
+  )
 
 (defun print-nestings ()
   "Displays the nestings information in the Messages buffer"
@@ -633,17 +698,18 @@
   (let ((i 0))
     (while (and (< i (length pyret-nestings))
                 (< i (line-number-at-pos (point-max))))
-      (let* ((indents (aref pyret-nestings i)))
-        (message "Line %4d: %s" (incf i) (pyret-print-indent indents))
+      (let* ((indents (aref pyret-nestings i))
+             (defered (aref pyret-nestings-open i)))
+        (incf i)
+        (message "Line %4d: %s" i (pyret-print-indent indents))
+        (message "Open %4d: %s" i (pyret-print-indent defered))
         ))))
 
 (defconst pyret-indent-widths (pyret-make-indent 1 2 2 1 1 1 1 1 1 1 1))
 (defun pyret-indent-line ()
   "Indent current line as Pyret code"
   (interactive)
-  (cond
-   (pyret-nestings-dirty
-    (pyret-compute-nestings)))
+  (pyret-compute-nestings (min (point) pyret-nestings-dirty-at-char) (point))
   (let* ((indents (aref pyret-nestings (min (- (line-number-at-pos) 1) (length pyret-nestings))))
          (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
     (save-excursion
@@ -652,12 +718,33 @@
           (if (> total-indent 0)
               (indent-line-to (* tab-width (- total-indent 1)))
             (indent-line-to 0))
-        (indent-line-to (max 0 (* tab-width total-indent))))
-      (setq pyret-nestings-dirty nil))
+        (indent-line-to (max 0 (* tab-width total-indent)))))
     (if (< (current-column) (current-indentation))
         (forward-char (- (current-indentation) (current-column))))
     ))
 
+(defun pyret-indent-region (start end)
+  "Indent current region as Pyret code"
+  (interactive)
+  (pyret-compute-nestings (min start pyret-nestings-dirty-at-char) end)
+  (let* ((line-min (line-number-at-pos start))
+         (line-max (line-number-at-pos end))
+         (n line-min))
+    (save-excursion
+      (goto-char start) (beginning-of-line)
+      (while (<= n line-max)
+        (let* ((indents (aref pyret-nestings (min (- n 1) (length pyret-nestings))))
+               (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
+          (if (looking-at "^[ \t]*[|]")
+              (if (> total-indent 0)
+                  (indent-line-to (* tab-width (- total-indent 1)))
+                (indent-line-to 0))
+            (indent-line-to (max 0 (* tab-width total-indent)))))
+        (incf n)
+        (forward-line)))
+    (if (< (current-column) (current-indentation))
+        (forward-char (- (current-indentation) (current-column))))
+    ))
 
 (defun pyret-comment-dwim (arg)
   "Comment or uncomment current line or region in a smart way.
@@ -677,6 +764,7 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'indent-line-function) 'pyret-indent-line)  
+  (set (make-local-variable 'indent-region-function) 'pyret-indent-region)  
   (set (make-local-variable 'tab-width) 2)
   (set (make-local-variable 'indent-tabs-mode) nil)
   (set (make-local-variable 'paragraph-start)
@@ -684,11 +772,13 @@ For detail, see `comment-dwim'."
                (regexp-opt '("|" "fun" "case" "data" "for" "sharing" "try" "except" "when" "check"))))
   (setq major-mode 'pyret-mode)
   (setq mode-name "Pyret")
-  (set (make-local-variable 'pyret-nestings) nil)
-  (set (make-local-variable 'pyret-nestings-dirty) t)
+  (set (make-local-variable 'pyret-nestings) (vector))
+  (set (make-local-variable 'pyret-nestings-open) (vector))
+  (set (make-local-variable 'pyret-nestings-stack) (vector))
+  (set (make-local-variable 'pyret-nestings-dirty-at-char) 0)
   (add-hook 'before-change-functions
                (function (lambda (beg end) 
-                           (setq pyret-nestings-dirty t)))
+                           (setq pyret-nestings-dirty-at-char beg)))
                nil t)
   (run-hooks 'pyret-mode-hook))
 
