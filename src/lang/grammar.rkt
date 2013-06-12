@@ -11,7 +11,7 @@ provide-stmt: "provide" stmt "end"
 
 block: stmt*
 
-stmt: var-expr | let-expr | fun-expr | data-expr | do-expr | binop-expr
+stmt: var-expr | let-expr | fun-expr | data-expr | binop-expr
     | assign-expr | when-expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
@@ -110,9 +110,6 @@ data-with: ["with" ":" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with
 data-sharing: ["sharing" ":" fields]
 data-expr: "data" NAME ty-params ":" data-variant+ data-sharing check-clause "end"
-
-do-stmt: block ";"
-do-expr: "do" stmt do-stmt* block "end"
 
 for-bind: arg-elt "from" binop-expr
 for-bind-elt: for-bind ","

@@ -463,20 +463,6 @@
 
 ))
 
-(define doblock (test-suite "doblock"
-  (check/block
-   "do while x.lessthan(10); x.add(1) end"
-   (s-do _
-         (s-id _ 'while)
-         (list (s-block _ (list
-                           (s-app _
-                                  (s-dot _ (s-id _ 'x) 'lessthan)
-                                  (list (s-num _ 10)))))
-               (s-block _ (list (s-app _
-                                       (s-dot _ (s-id _ 'x) 'add)
-                                       (list (s-num _ 1))))))))
-))
-
 (define for (test-suite "for"
 
   (check/block
@@ -738,7 +724,6 @@
   cases
   data
   for
-  doblock
   modules
   caret
   exceptions

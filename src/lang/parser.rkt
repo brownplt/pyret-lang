@@ -94,7 +94,6 @@
       let-expr
       fun-expr fun-header fun-body
       data-expr
-      do-expr do-stmt
       assign-expr
       when-expr
       stmt
@@ -121,11 +120,6 @@
              (map/stx parse-variant #'(variant ...))
              (parse-sharing #'sharing-part)
              (parse-check-clause #'check))]
-
-    [(do-expr "do" fun-stmt (do-stmt stmts ";") ... last-stmt "end")
-     (s-do (loc stx)
-           (parse-stmt #'fun-stmt)
-           (map/stx parse-block #'(stmts ... last-stmt)))]
 
     [(assign-expr id ":=" e)
      (s-assign (loc stx) (parse-name #'id) (parse-binop-expr #'e))]

@@ -53,7 +53,7 @@ these metadata purposes.
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind (syntax id ann) #:transparent)
 
-;; A Stmt is a (U s-fun s-var s-case s-try s-data s-do s-import Expr)
+;; A Stmt is a (U s-fun s-var s-case s-try s-data s-import Expr)
 
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
 (struct s-fun (syntax name params args ann doc body check) #:transparent)
@@ -170,9 +170,6 @@ these metadata purposes.
 (struct s-variant (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant (syntax name with-members) #:transparent)
-
-;; s-do : srcloc Stmt (Listof Stmt)
-(struct s-do (syntax init args) #:transparent)
 
 ;; s-for-bind : srcloc s-bind Expr
 (struct s-for-bind (syntax bind value) #:transparent)

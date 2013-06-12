@@ -151,75 +151,6 @@
 ))
 
 
-(define do-blocks (test-suite "do-blocks"
-  (check-pyret
-   "var x = 0
-    do fun(f,g): f() g() end x := 5; x end" five)
-
-  ;; check expansions of or and and with do
-  (check-pyret
-   "fun or(a,b):
-      case:
-        | a() => true
-        | true => b()
-      end
-    end
-    var x = 5
-    do or true; x := 2 end
-    x" five)
-
-  (check-pyret
-   "fun and(a,b):
-      case:
-        | a() => b()
-        | true => false
-      end
-    end
-    var x = 5
-    do and false; x := 2 end
-    x" five)
-
-  (check-pyret
-   "fun and(a,b):
-      case:
-        | a() => b()
-        | true => false
-      end
-    end
-    var x = 5
-    do and true; x := 2 end
-    x" two)
-
-  (check-pyret
-   "fun while(test, body):
-      case:
-        | test() => body() while(test, body)
-        | true => 'while base case'
-      end
-    end
-    var x = 0
-    do while x.lessthan(10); x := x.add(1) end
-    x" ten)
-
-  (check-pyret
-   "fun For(init, test, update, body):
-      init()
-      case:
-        | test() =>
-            body()
-            update()
-            For(fun: end, test, update, body)
-        | true => 'for base case'
-      end
-    end
-    var x = 0
-    var sum = 0
-    do For x := 0; x.lessthan(5); x := x.add(1);
-      sum := sum.add(x)
-    end
-    sum" ten)
-))
-
 (define for-block (test-suite "for-block"
 
   (check-pyret
@@ -859,7 +790,6 @@ o2.m().called" true)
   conversions
   tag-tests
   built-in-libraries
-  do-blocks
   for-block
   methods
   exceptions

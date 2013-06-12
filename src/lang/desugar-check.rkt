@@ -94,9 +94,6 @@
              (map ds-member shares)
              (s-block s (list)))]
 
-    [(s-do s fun args)
-     (s-do s (ds fun) (map ds args))]
-
     [(s-for s iter bindings ann body)
      (define (ds-for-bind b)
       (match b

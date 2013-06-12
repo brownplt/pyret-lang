@@ -149,10 +149,6 @@
                          (make-checker s name name
                                        (s-id s brander-name)))
                    (variant-defs/list brander-name super-fields variants))))]
-    [(s-do s fun args)
-     (define (functionize b)
-       (s-lam s (list) (list) (a-blank) "" (ds b) (s-block s empty)))
-     (s-app s fun (map functionize args))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
