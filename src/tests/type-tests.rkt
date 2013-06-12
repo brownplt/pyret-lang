@@ -120,6 +120,29 @@
   x :: Number(even) = 10 x"
  ten)
 
+(check-pyret-exn
+  "data D:
+    | variant() with: meth(self, other :: Number): other end
+   end
+   variant().meth('not-a-num')"
+   "expected Number")
+
+(check-pyret
+  "data D:
+    | variant(x :: Number) with: meth(self :: D, other :: Number): self end
+   end
+   variant(10).meth(0).meth(1).meth(2).meth(3).x"
+   ten)
+
+(check-pyret
+  "data D:
+    | variant(x :: Number) with: meth(self :: D, other :: Number): self end
+   end
+   v = variant(5)
+   v2 = variant(10)
+   v:meth._fun()(v2,3).meth(1).meth(2).meth(3).x"
+   ten)
+ 
 ))
 
 (run-tests all)

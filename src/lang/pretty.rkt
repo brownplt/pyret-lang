@@ -107,6 +107,7 @@
                                           "."
                                           (symbol->string fld)) "")]
     [(a-arrow _ t1 t2) (format "(~a -> ~a)" (string-join (map pretty-ann t1) ", ") (pretty-ann t2))]
+    [(a-method _ t1 t2) (format "(~a => ~a)" (string-join (map pretty-ann t1) ", ") (pretty-ann t2))]
     [(a-blank) "Any"]
     [(a-any) "Any"]
     [(a-app _ base args) (format "~a<~a>" (symbol->string base) (string-join (map pretty-ann args) ", "))]

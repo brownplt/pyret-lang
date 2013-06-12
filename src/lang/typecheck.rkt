@@ -28,12 +28,13 @@
   (match ann
     [(? skippable? a) e]
     [(a-arrow _  (list (? skippable? arg) ...) (? skippable? return)) e]
+    [(a-method _  (list (? skippable? arg) ...) (? skippable? return)) e]
     [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty)))
 (define (mk-method loc args result doc body)
-  (s-method loc args result doc (s-block loc (list body))))
+  (s-method loc args result doc (s-block loc (list body)) (s-block loc empty)))
 
 (define (ann-check loc ann)
   (define (code-wrapper s args result type get-fun)
@@ -86,7 +87,7 @@
      (code-wrapper s args result mk-lam (λ (e) e))]
     [(a-method s args result)
      (define (get-fun e)
-       (s-bracket s e (s-str s "_fun")))
+       (s-app s (s-bracket s e (s-str s "_fun")) (list)))
      (code-wrapper s args result mk-method get-fun)]
     [(a-app s name parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
@@ -229,7 +230,9 @@
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann doc body check)
      (define body-env (foldl (update-for-bind #f) env args))
-     (s-method s args ann doc (cc-env body body-env) (cc-env check body-env))]
+     (wrap-ann-check s
+      (a-method s (map s-bind-ann args) (a-blank))
+      (s-method s args ann doc (cc-env body body-env) (cc-env check body-env)))]
 
     [(s-case s c-bs)
      (define (cc-branch branch)

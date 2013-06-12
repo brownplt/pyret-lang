@@ -27,6 +27,7 @@
     [(string? val) (p:mk-str val)]
     [(boolean? val) (p:mk-bool val)]
     [(list? val) (create-pyret-list val)]
+    [(p:p-opaque? val) val]
     [else (p:p-opaque val)]))
 
 (define (ffi-unwrap val)
@@ -44,7 +45,7 @@
     [else val]))
 
 (define (wrap-racket-fun f)
-  (p:mk-fun-nodoc (λ args (ffi-wrap (wrap-racket-value (apply f (map get-val (map ffi-unwrap args))))))))
+  (p:mk-fun-nodoc (λ args (ffi-wrap (wrap-racket-value (apply f (map ffi-unwrap args)))))))
 
 (define (get-val arg)
   (cond
