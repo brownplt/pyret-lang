@@ -19,12 +19,28 @@
   (self-insert-command N)
   (pyret-smart-tab))
 
+(defun pyret-indent-initial-punctuation (&optional N)
+  (interactive "^p")
+  (or N (setq N 1))
+  (self-insert-command N)
+  (when (save-excursion
+          (beginning-of-line) 
+          (and (looking-at pyret-initial-operator-regex) (not (pyret-in-string))))
+    (pyret-smart-tab)))
+
 (defvar pyret-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'newline-and-indent)
     (define-key map (kbd "|") 'pyret-indent-from-punctuation)
     (define-key map (kbd "}") 'pyret-indent-from-punctuation)
     (define-key map (kbd "]") 'pyret-indent-from-punctuation)
+    (define-key map (kbd "+") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "-") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "*") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "/") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "=") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "<") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd ">") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "d")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -45,7 +61,10 @@
   (regexp-opt
    '("with" "sharing" "check" "case")))
 (defconst pyret-punctuation-regex
-  (regexp-opt '(":" "::" "=>" "->" "<" ">" "," "^" "(" ")" "[" "]" "{" "}" "." "\\" ";" "|" "=")))
+  (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
+                "." "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
+(defconst pyret-initial-operator-regex
+  (concat "^[ \t]*" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "^" ))))
 (defconst pyret-font-lock-keywords-1
   (list
    `(,(concat 
@@ -88,6 +107,7 @@
     `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
     `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\|:\\)")  (1 font-lock-function-name-face))
     `(,pyret-ident-regex . font-lock-variable-name-face)
+    '("-" . font-lock-builtin-face)
     ))
   "Additional highlighting for Pyret mode")
 
@@ -128,7 +148,7 @@
 ;; bodies of objects (and list literals)
 ;; unterminated variable declarations
 ;; field definitions
-;; lines beginning with a period
+;; lines beginning with a period or operators
 
 (defsubst pyret-is-word (c)
   (and c
@@ -339,7 +359,7 @@
                      (> (pyret-indent-vars defered-opened) 0)) 
               (decf (pyret-indent-vars defered-opened))
               (pop opens))) ;; don't indent if we've started a RHS already
-           ((and (looking-at "^[ \t]*[.^]") (not (pyret-in-string)))
+           ((and (looking-at pyret-initial-operator-regex) (not (pyret-in-string)))
             (incf (pyret-indent-initial-period cur-opened))
             (incf (pyret-indent-initial-period defered-closed))
             (goto-char (match-end 0)))
