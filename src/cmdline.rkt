@@ -8,6 +8,7 @@
   pyret/lang/eval
   ragg/support
   ;; pyret/whalesong/lang/reader
+  errortrace
   racket/cmdline
   racket/list
   racket/match
@@ -47,12 +48,18 @@
      (eprintf "\nAt:\n")
      (void (map print-loc srclocs))]
     [(p:exn:fail:pyret message cms srcloc system? val)
+
+;     (errortrace-error-display-handler "disp handler" p)
      (eprintf "[pyret] Runtime error:\n\n~a\n" message)
+     (eprintf "~a\n" (continuation-mark-set->context cms))
      (eprintf "At:\n")
      (print-loc srcloc)]
     [(exn:fail:contract:variable message cms x)
      (eprintf "~a\n" message)]
     [(exn:fail:syntax:unbound message cms x)
+     (eprintf "~a\n" message)]
+    [(exn:fail:filesystem message cms)
+     (eprintf "Pyret could not load your program because of a filesystem error.  The system reported:\n\n")
      (eprintf "~a\n" message)]
     [(exn:fail message cms)
      (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
@@ -61,6 +68,7 @@
      (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")]
     ))
 
+;(current-compile errortrace-compile-handler)
 (define check-mode #f)
 (command-line
   #:once-each
