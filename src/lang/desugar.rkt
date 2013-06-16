@@ -49,7 +49,7 @@
        (define base-obj
          (s-obj s (append super-fields dsg-with-members)))
        (define obj
-         (s-onion s (s-id s base-name)
+         (s-extend s (s-id s base-name)
           (map member->field
                members
                (map (lambda (id) (s-id s id)) args))))
@@ -231,7 +231,7 @@
     [(s-left-app s target fun args)
      (s-app s (ds fun) (cons (ds target) (map ds args)))]
 
-    [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
+    [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 

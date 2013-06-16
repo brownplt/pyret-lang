@@ -172,17 +172,17 @@
   (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 
   (check/block "{x:5}.{y:3}"
-               (s-onion _
+               (s-extend _
                         (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
                         (list (s-data-field _ (s-str _ "y") (s-num _ 3)))))
 
   (check/block "5.{foo: 12}"
-               (s-onion _
+               (s-extend _
                         (s-num _ 5)
                         (list (s-data-field _ (s-str _ "foo") (s-num _ 12)))))
 
   (check/block "List.{length: 0, width: 0}"
-               (s-onion _
+               (s-extend _
                         (s-id _ 'List)
                         (list (s-data-field _ (s-str _ "length") (s-num _ 0))
                               (s-data-field _ (s-str _ "width") (s-num _ 0)))))
@@ -198,11 +198,11 @@
                         'f))
   (check/block
    "o.{x : 5}"
-   (s-onion _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+   (s-extend _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
   (check/block
    "{x : 5}.{x : 10, y : 6}"
-   (s-onion _ (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
+   (s-extend _ (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
             (list (s-data-field _ (s-str _ "x") (s-num _ 10))
                   (s-data-field _ (s-str _ "y") (s-num _ 6)))))
 

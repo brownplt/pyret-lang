@@ -153,7 +153,7 @@
        (with-syntax ([(member ...) (map compile-member fields)])
          #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
     
-    [(s-onion l super fields)
+    [(s-extend l super fields)
      (attach l
       (with-syntax
 		    ([(loc-param ...) (loc-list l)])

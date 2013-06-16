@@ -71,7 +71,7 @@
     [(s-app s fun args)
      (format "~a(~a)" (pretty fun) (string-join (map pretty args) ", "))]
 
-    [(s-onion s super fields)
+    [(s-extend s super fields)
      (format "~a.{ ~a }"
              (pretty super)
              (string-join (map pretty-member fields) ", "))]

@@ -132,7 +132,7 @@
     [(s-left-app s target fun args)
      (s-left-app s (ds target) (ds fun) (map ds args))]
 
-    [(s-onion s super fields) (s-onion s (ds super) (map ds-member fields))]
+    [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 

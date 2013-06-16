@@ -103,7 +103,7 @@ these metadata purposes.
 (struct s-paren (syntax expr) #:transparent)
 
 ;; An Expr is a
-;; (U s-obj s-onion s-list s-app s-left-app s-id
+;; (U s-obj s-extend s-list s-app s-left-app s-id
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
 ;;    s-colon s-colon-bracket s-lam
@@ -121,8 +121,8 @@ these metadata purposes.
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 
-;; s-onion : srcloc Expr (Listof Member)
-(struct s-onion (syntax super fields) #:transparent)
+;; s-extend : srcloc Expr (Listof Member)
+(struct s-extend (syntax super fields) #:transparent)
 ;; s-obj : srcloc (Listof Member)
 (struct s-obj (syntax fields) #:transparent)
 

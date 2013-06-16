@@ -324,7 +324,7 @@
             (parse-block #'body)
             (parse-check-clause #'check))]
     [(extend-expr e "." "{" fields "}")
-     (s-onion (loc stx) (parse-expr #'e) (parse-fields #'fields))]
+     (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)
      (s-left-app (loc stx)
                  (parse-expr #'e)

@@ -45,7 +45,7 @@
         [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
     (mk-lam s (list (s-bind s funname ann)) ann
      (mk-contract-doc ann)
-     (s-onion
+     (s-extend
        s
        (type s wrapargs result
         (mk-contract-doc ann)
@@ -255,8 +255,8 @@
     [(s-app s fun args)
      (s-app s (cc fun) (map cc args))]
 
-    [(s-onion s super fields)
-     (s-onion s (cc super) (map (curryr cc-member env) fields))]
+    [(s-extend s super fields)
+     (s-extend s (cc super) (map (curryr cc-member env) fields))]
 
     [(s-obj s fields)
      (s-obj s (map (curryr cc-member env) fields))]
