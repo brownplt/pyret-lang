@@ -188,14 +188,14 @@
                               (s-data-field _ (s-str _ "width") (s-num _ 0)))))
 
   (check/block "o:f"
-               (s-dot-method _
-                             (s-id _ 'o)
-                             'f))
+               (s-colon _
+                        (s-id _ 'o)
+                        'f))
 
   (check/block "{f:4}:f"
-               (s-dot-method _
-                             (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
-                             'f))
+               (s-colon _
+                        (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
+                        'f))
   (check/block
    "o.{x : 5}"
    (s-onion _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))

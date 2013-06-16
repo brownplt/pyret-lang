@@ -177,28 +177,22 @@
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
      (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
 
+(define (parse-key stx)
+  (syntax-parse stx
+    #:datum-literals (key)
+    [(key "[" expr "]") (parse-binop-expr #'expr)]
+    [(key name) (s-str (loc stx) (symbol->string (parse-name #'name)))]))
+
 (define (parse-field stx)
   (syntax-parse stx
     #:datum-literals (field)
     [(field key ":" value)
      (s-data-field (loc stx)
-                   (s-str (loc stx) (symbol->string (parse-name #'key)))
-                   (parse-binop-expr #'value))]
-    [(field "[" key "]" ":" value)
-     (s-data-field (loc stx)
-                   (parse-binop-expr #'key)
+                   (parse-key #'key)
                    (parse-binop-expr #'value))]
     [(field key args ret ":" doc body check "end")
      (s-method-field (loc stx)
-                   (s-str (loc stx) (symbol->string (parse-name #'key)))
-                     (parse-args #'args)
-                     (parse-return-ann #'ret)
-                     (parse-doc-string #'doc)
-                     (parse-block #'body)
-                     (parse-check-clause #'check))]
-    [(field "[" key "]" args ret ":" doc body check "end")
-     (s-method-field (loc stx)
-                     (parse-binop-expr #'key)
+                     (parse-key #'key)
                      (parse-args #'args)
                      (parse-return-ann #'ret)
                      (parse-doc-string #'doc)
@@ -258,8 +252,8 @@
       id-expr 
       dot-expr 
       bracket-expr 
-      dot-method-expr 
-      bracket-method-expr
+      colon-expr 
+      colon-bracket-expr
       case-expr 
       for-expr
       try-expr
@@ -283,10 +277,10 @@
      (s-dot (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-expr obj "." "[" field "]")
      (s-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
-    [(dot-method-expr obj ":" field)
-     (s-dot-method (loc stx) (parse-expr #'obj) (parse-name #'field))]
-    [(bracket-method-expr obj ":" "[" field "]")
-     (s-bracket-method (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
+    [(colon-expr obj ":" field)
+     (s-colon (loc stx) (parse-expr #'obj) (parse-name #'field))]
+    [(colon-bracket-expr obj ":" "[" field "]")
+     (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(case-expr "case" ":" branch ... "end")
      (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
     [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body "end")

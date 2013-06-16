@@ -106,7 +106,7 @@ these metadata purposes.
 ;; (U s-obj s-onion s-list s-app s-left-app s-id
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
-;;    s-dot-method s-bracket-method s-lam
+;;    s-colon s-colon-bracket s-lam
 ;;    s-block s-method))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
@@ -158,10 +158,10 @@ these metadata purposes.
 ;; s-bracket-assign : srcloc Expr Expr Expr
 (struct s-bracket-assign (syntax obj field value) #:transparent)
 
-;; s-dot-method : srcloc Expr Symbol
-(struct s-dot-method (syntax obj field) #:transparent)
-;; s-bracket-method : srcloc Expr Expr
-(struct s-bracket-method (syntax obj field) #:transparent)
+;; s-colon : srcloc Expr Symbol
+(struct s-colon (syntax obj field) #:transparent)
+;; s-colon-bracket : srcloc Expr Expr
+(struct s-colon-bracket (syntax obj field) #:transparent)
 
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member) block
 (struct s-data (syntax name params variants shared-members check) #:transparent)

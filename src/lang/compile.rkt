@@ -166,7 +166,7 @@
     [(s-bracket l obj field)
      (compile-lookup l obj field #'p:get-field)]
     
-    [(s-bracket-method l obj field)
+    [(s-colon-bracket l obj field)
      (compile-lookup l obj field #'p:get-raw-field)]
 
     [(s-prog l headers block) (compile-prog l headers block)]

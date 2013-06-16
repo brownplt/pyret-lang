@@ -23,7 +23,7 @@ binop-expr: expr | binop-expr binop binop-expr
 paren-expr: PARENSPACE binop-expr ")"
     
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
-    | dot-expr | bracket-expr | dot-method-expr | bracket-method-expr
+    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
     | for-expr | paren-expr | try-expr
 
@@ -77,11 +77,10 @@ case-expr: "case" ":" case-branch* "end"
 
 try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    
+key: NAME | "[" binop-expr "]"
 field:
-   NAME ":" binop-expr
- | NAME args return-ann ":" doc-string block check-clause "end"
- | "[" binop-expr "]" ":" binop-expr
- | "[" binop-expr "]" args return-ann ":" doc-string block check-clause "end"
+   key ":" binop-expr
+ | key args return-ann ":" doc-string block check-clause "end"
 list-field: field ","
 fields: list-field* field [","]
 
@@ -103,8 +102,8 @@ bracket-expr: expr "." "[" binop-expr "]"
 left-app-fun-expr: id-expr | id-expr "." NAME
 left-app-expr: expr "^" left-app-fun-expr app-args
 
-dot-method-expr: expr ":" NAME
-bracket-method-expr: expr ":" "[" binop-expr "]"
+colon-expr: expr ":" NAME
+colon-bracket-expr: expr ":" "[" binop-expr "]"
 
 data-with: ["with" ":" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with

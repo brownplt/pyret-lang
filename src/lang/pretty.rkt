@@ -86,10 +86,10 @@
     [(s-bracket s val field)
      (format "~a.[~a]" (pretty val) (pretty field))]
     
-    [(s-dot-method s obj field)
+    [(s-colon s obj field)
      (format "~a:~a" (pretty obj) field)]
     
-    [(s-bracket-method s obj field)
+    [(s-colon-bracket s obj field)
      (format "~a:[~a]" (pretty obj) (pretty field))]
 
     [(s-num _ n) (number->string n)]

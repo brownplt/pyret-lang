@@ -270,11 +270,11 @@
     [(s-bracket s val field)
      (s-bracket s (cc val) (cc field))]
 
-    [(s-dot-method s obj field)
-     (s-dot-method s (cc obj) field)]
+    [(s-colon s obj field)
+     (s-colon s (cc obj) field)]
 
-    [(s-bracket-method s obj field)
-     (s-bracket-method s (cc obj) (cc field))]
+    [(s-colon-bracket s obj field)
+     (s-colon-bracket s (cc obj) (cc field))]
 
     [(or (s-num _ _)
          (s-bool _ _)

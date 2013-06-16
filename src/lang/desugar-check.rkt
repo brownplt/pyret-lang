@@ -142,9 +142,9 @@
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 
-    [(s-dot-method s obj field) (s-dot-method s (ds obj) field)]
+    [(s-colon s obj field) (s-colon s (ds obj) field)]
 
-    [(s-bracket-method s obj field) (s-bracket-method s (ds obj) (ds field))]
+    [(s-colon-bracket s obj field) (s-colon-bracket s (ds obj) (ds field))]
 
     [(s-paren s e) (s-paren s (ds e))]
 
