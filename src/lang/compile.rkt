@@ -41,6 +41,9 @@
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
+  (define (compile-body l body)
+    (with-syntax [((loc-param ...) (loc-list l))]
+      #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,(compile-expr body))))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
@@ -79,13 +82,13 @@
     [(s-lam l params args ann doc body _)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map discard-_ (map s-bind-id args)) l)]
-                     [body-stx (compile-expr body)])
+                     [body-stx (compile-body l body)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
     
     [(s-method l args ann doc body _)
      (attach l
        (with-syntax ([(arg ...) (d->stx (map discard-_ (map s-bind-id args)) l)]
-                     [body-stx (compile-expr body)])
+                     [body-stx (compile-body l body)])
          #`(p:pμ (arg ...) #,doc body-stx)))]
     
     [(s-case l c-bs)
