@@ -784,7 +784,9 @@ o2.m().called" true)
   (let ()
     (private-run "../../examples/pyret-lang-private/cs019/sortacle.arr" 2)
     (private-run "../../examples/pyret-lang-private/cs019/filesystem.arr" 2)
-    (private-run "../../examples/pyret-lang-private/cs019/seam-carving.arr" 34)))))
+    (private-run "../../examples/pyret-lang-private/cs019/seam-carving.arr" 34)
+    (private-run "../../examples/pyret-lang-private/cs019/simple-updater.arr" 14)))
+    ))
 
 
 (define all (test-suite "all"
