@@ -67,7 +67,7 @@
   (syntax-parse stx
     #:datum-literals (data-with)
     [(data-with) empty]
-    [(data-with "with" ":" fields) (parse-fields #'fields)]))
+    [(data-with "with:" fields) (parse-fields #'fields)]))
 
 (define (parse-variant stx)
   (syntax-parse stx
@@ -83,7 +83,7 @@
 (define (parse-sharing stx)
   (syntax-parse stx
     #:datum-literals (data-sharing)
-    [(data-sharing "sharing" ":" fields) (parse-fields #'fields)]
+    [(data-sharing "sharing:" fields) (parse-fields #'fields)]
     [(data-sharing) empty]))
 
 
@@ -137,13 +137,13 @@
   (syntax-parse stx
     #:datum-literals (doc-string)
     [(doc-string) ""]
-    [(doc-string "doc" str) (parse-string #'str)]))
+    [(doc-string "doc:" str) (parse-string #'str)]))
 
 (define (parse-check-clause stx)
   (syntax-parse stx
     #:datum-literals (check-clause)
     [(check-clause) (s-block (loc stx) empty)]
-    [(check-clause "check" ":" block) (parse-block #'block)]))
+    [(check-clause "check:" block) (parse-block #'block)]))
 
 (define (parse-binop-expr stx)
   (syntax-parse stx
@@ -281,7 +281,7 @@
      (s-colon (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(colon-bracket-expr obj ":" "[" field "]")
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
-    [(case-expr "case" ":" branch ... "end")
+    [(case-expr "case:" branch ... "end")
      (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
     [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body "end")
      (s-for (loc stx)
@@ -295,7 +295,7 @@
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(try-expr "try" ":" body "except" "(" arg-elt ")" ":" except "end")
+    [(try-expr "try:" body "except" "(" arg-elt ")" ":" except "end")
      (s-try (loc stx)
             (parse-block #'body)
             (parse-arg-elt #'arg-elt)

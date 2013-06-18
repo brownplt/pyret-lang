@@ -29,7 +29,7 @@ end
 fun num-keys(obj): prim-num-keys(obj) end
 
 fun equiv(obj1, obj2):
-  doc "Check if two objects have all the same keys with equiv fields"
+  doc: "Check if two objects have all the same keys with equiv fields"
   fun all_same(obj1, obj2):
     try:
       case:

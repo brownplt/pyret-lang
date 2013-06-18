@@ -109,12 +109,12 @@
                                               (s-block _ (list (s-id _ 'x)))
                                               (s-block _ (list (s-num _ 1)))))))
 
-  (check/block "method(self): doc 'hello' 1 end"
+  (check/block "method(self): doc: 'hello' 1 end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) "hello" (s-block _ (list (s-num _ 1)))
                          (s-block _ empty)))
 
-  (check/block "{f(): doc 'hello' 1 end}"
+  (check/block "{f(): doc: 'hello' 1 end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) "hello"
                                               (s-block _ (list (s-num _ 1)))
                                               (s-block _ empty)))))
@@ -226,7 +226,7 @@
 
 
   (check/block
-   "fun <a,b> f(x :: a) -> b: doc 'some documentation' x end"
+   "fun <a,b> f(x :: a) -> b: doc: 'some documentation' x end"
    (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a))) (a-name _ 'b)
     "some documentation"
     (s-block _ (list (s-id _ 'x)))

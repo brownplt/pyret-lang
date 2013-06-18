@@ -65,17 +65,17 @@ lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block check-clause
 
 method-expr: "method" args return-ann ":" doc-string block check-clause "end"
 
-doc-string: ["doc" STRING]
+doc-string: ["doc:" STRING]
 
-check-clause: ["check" ":" block]
+check-clause: ["check:" block]
 
 when-expr: "when" binop-expr ":" block "end"
 
 
 case-branch: "|" binop-expr "=>" block
-case-expr: "case" ":" case-branch* "end"
+case-expr: "case:" case-branch* "end"
 
-try-expr: "try" ":" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
+try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    
 key: NAME | "[" binop-expr "]"
 field:
@@ -105,9 +105,9 @@ left-app-expr: expr "^" left-app-fun-expr app-args
 colon-expr: expr ":" NAME
 colon-bracket-expr: expr ":" "[" binop-expr "]"
 
-data-with: ["with" ":" fields]
+data-with: ["with:" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with
-data-sharing: ["sharing" ":" fields]
+data-sharing: ["sharing:" fields]
 data-expr: "data" NAME ty-params ":" data-variant+ data-sharing check-clause "end"
 
 for-bind: arg-elt "from" binop-expr
