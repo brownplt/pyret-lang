@@ -9,6 +9,7 @@
          "grammar.rkt")
 (provide tokenize)
 
+(define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
 (define NUMBER 'NUMBER)
 (define STRING 'STRING)
@@ -18,6 +19,18 @@
 (define BACKSLASH 'BACKSLASH)
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
+
+(define-lex-abbrev
+  keywords
+  (union "import" "provide" "as"
+         "var"
+         "fun" "method" "doc:"
+         "check:"
+         "try:" "except"
+         "case:" "when"
+         "data" "with:" "sharing:"
+         "for" "from"
+         "end"))
 
 (define-lex-abbrev
   identifier-chars
@@ -94,6 +107,12 @@
         (set! after-paren #f)
         (return-without-pos
          ((lexer-src-pos
+          ;; keywords
+          [keywords
+           (cond [(set-member? all-token-types (string->symbol lexeme))
+                  (token (string->symbol lexeme) lexeme)]
+                 [else
+                  (token NAME lexeme)])]
           ;; names
           [(concatenation identifier-chars
                           (repetition 0 +inf.0

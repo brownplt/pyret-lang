@@ -546,9 +546,9 @@ o2 = o.{ m: {m(self): self.{ called : true } end}.m}
 o2.m().called" true)
 
   ;; methods have doc strings!
-  (check-pyret "method(self): doc 'hello' 1 end._doc" (p:mk-str "hello"))
-  (check-pyret "method(self): doc 'hello' 1 end._fun()._doc" (p:mk-str "hello"))
-  (check-pyret "fun(self): doc 'hello' 1 end._method()._doc" (p:mk-str "hello"))
+  (check-pyret "method(self): doc: 'hello' 1 end._doc" (p:mk-str "hello"))
+  (check-pyret "method(self): doc: 'hello' 1 end._fun()._doc" (p:mk-str "hello"))
+  (check-pyret "fun(self): doc: 'hello' 1 end._method()._doc" (p:mk-str "hello"))
 
 ))
 

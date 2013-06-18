@@ -7,12 +7,11 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword basic var fun end case with sharing data import provide as try except when for from check
+set iskeyword+=:
 
 syn match delimeter '|'
 syn match delimeter '('
 syn match delimeter ')'
-syn match delimeter ':'
 syn match delimeter '->'
 syn match delimeter '='
 syn match delimeter '=>'
@@ -22,6 +21,8 @@ syn match delimeter '\['
 syn match delimeter '\]'
 syn match delimeter '{'
 syn match delimeter '}'
+
+syn keyword basic var fun end case with: sharing: data import provide as try: except when for from check: doc: :
 
 syn match op '+'
 syn match op '-'
