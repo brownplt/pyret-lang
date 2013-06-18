@@ -37,6 +37,10 @@
      (srcloc-source l)
      (srcloc-line l)
      (srcloc-column l)))
+  (define (print-pyret-locs cms)
+    (define marks (continuation-mark-set->list cms 'pyret-mark))
+    (for ((mark marks))
+      (print-loc mark)))
   (match p
     [(exn:fail:parsing message cms third)
      (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
@@ -51,9 +55,7 @@
      (eprintf "[pyret] Runtime error:\n\n~a\n" message)
      (eprintf "At:\n")
      (print-loc srcloc)
-     (define marks (continuation-mark-set->list cms 'pyret-mark))
-     (for ((mark marks))
-       (print-loc mark))]
+     (print-pyret-locs cms)]
     [(exn:fail:contract:variable message cms x)
      (eprintf "~a\n" message)]
     [(exn:fail:syntax:unbound message cms x)
@@ -63,9 +65,7 @@
      (eprintf "~a\n" message)]
     [(exn:fail message cms)
      (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
-     (define marks (continuation-mark-set->list cms 'pyret-mark))
-     (for ((mark marks))
-       (print-loc mark))
+     (print-pyret-locs cms)
      (display p)
      (display (continuation-mark-set->context cms))
      (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")]
