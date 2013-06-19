@@ -40,7 +40,7 @@
 ;; numbers as well as for binops
 (define-lex-abbrev
   operator-chars
-  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">"))
+  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not"))
 
 (define (get-middle-pos n pos)
   (position (+ n (position-offset pos))
@@ -113,6 +113,9 @@
                   (token (string->symbol lexeme) lexeme)]
                  [else
                   (token NAME lexeme)])]
+          ;; operators
+          [operator-chars
+           (token lexeme lexeme)]
           ;; names
           [(concatenation identifier-chars
                           (repetition 0 +inf.0
@@ -152,9 +155,6 @@
           ;; whitespace
           [whitespace
            (token WS lexeme #:skip? #t)]
-          ;; operators
-          [operator-chars
-           (token lexeme lexeme)]
           ;; misc
           [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=")
            (token lexeme lexeme)]

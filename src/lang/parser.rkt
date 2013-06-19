@@ -262,6 +262,7 @@
       extend-expr 
       left-app-expr
       paren-expr
+      not-expr
       expr
     )
     [(prim-expr e) (parse-prim #'e)]
@@ -331,6 +332,7 @@
                  (parse-left-app-fun-expr #'fun-expr)
                  (parse-app-args #'app-args))]
     [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
+    [(not-expr "not" e) (s-not (loc stx) (parse-expr #'e))]
     [(expr e) (parse-expr #'e)]
     ))
 

@@ -9,7 +9,7 @@ fun run-tests():
   fun f():
     for list.fold(acc from true, _ from list.range(0, 1000)):
       val = M.sample(M.uniform-dist(0, 100))
-      acc.and(val > 0).and(val < 100)
+      acc and (val > 0) and (val < 100)
     end
   end
     

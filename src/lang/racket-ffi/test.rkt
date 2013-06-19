@@ -92,7 +92,7 @@ end
 
 fun format-results():
   passed = results.filter(fun(r): r.passed end)
-  failed = results.filter(fun(r): r.passed.not() end)
+  failed = results.filter(fun(r): not (r.passed) end)
   passedNum = passed.length()
   failedNum = failed.length()
 

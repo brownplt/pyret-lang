@@ -148,6 +148,8 @@
 
     [(s-paren s e) (s-paren s (ds e))]
 
+    [(s-not s e) (s-not s (ds e))]
+    
     [(s-op s op e1 e2) (s-op s op (ds e1) (ds e2))]
 
     [(or (s-num _ _)

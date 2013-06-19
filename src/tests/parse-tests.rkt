@@ -700,18 +700,35 @@
 
    (check-parse/fail "when(1 < 2): 3" "parsing error")
 
-   (check/block "(a == b).or(true)"
-                (s-app _ (s-dot _ (s-paren _ (s-op _ op==
-                                                       (s-id _ 'a)
-                                                       (s-id _ 'b)))
-                                    'or)
-                       (list (s-bool _ #t))))
+   (check/block "(a == b) or (true)"
+                (s-op _ opor (s-paren _ (s-op _ op==
+                                              (s-id _ 'a)
+                                              (s-id _ 'b)))
+                             (s-paren _ (s-bool _ #t))))
    (check/block "((1))"
                 (s-paren _ (s-paren _ (s-num _ 1))))
    (check/block "(((1)))"
                 (s-paren _ (s-paren _ (s-paren _ (s-num _ 1)))))
    (check/block "((((1))))"
                 (s-paren _ (s-paren _ (s-paren _ (s-paren _ (s-num _ 1))))))
+
+   (check/block "true and false"
+                (s-op _ opand (s-bool _ #t) (s-bool _ #f)))
+
+   (check/block "(1 < 2) and false"
+                (s-op _ opand (s-paren _ (s-op _ op< (s-num _ 1) (s-num _ 2))) (s-bool _ #f)))
+
+   (check/block "false or (1 < 2)"
+                (s-op _ opor (s-bool _ #f) (s-paren _ (s-op _ op< (s-num _ 1) (s-num _ 2)))))
+
+   (check/block "not false" (s-not _ (s-bool _ #f)))
+   
+   (check/block "not (true and false)"
+                (s-not _
+                       (s-paren _
+                        (s-op _ opand
+                              (s-bool _ #t)
+                              (s-bool _ #f)))))
    ))
 
 (define all (test-suite "all"

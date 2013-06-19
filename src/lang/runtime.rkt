@@ -617,11 +617,11 @@ And the object was:
   (when (= (hash-count meta-num-store) 0)
     (set! meta-num-store
       (make-immutable-hash
-        `(("plus" . ,(mk-num-2 + 'plus))
-          ("add" . ,(mk-num-2 + 'add))
-          ("minus" . ,(mk-num-2 - 'minus))
-          ("divide" . ,(mk-num-2 / 'divide))
-          ("times" . ,(mk-num-2 * 'times))
+        `(("_plus" . ,(mk-num-2 + 'plus))
+          ("_add" . ,(mk-num-2 + 'plus))
+          ("_minus" . ,(mk-num-2 - 'minus))
+          ("_divide" . ,(mk-num-2 / 'divide))
+          ("_times" . ,(mk-num-2 * 'times))
           ("sin" . ,(mk-num-1 sin 'sin))
           ("cos" . ,(mk-num-1 cos 'cos))
           ("sqr" . ,(mk-num-1 sqr 'sqr))
@@ -629,11 +629,11 @@ And the object was:
           ("floor" . ,(mk-num-1 floor 'floor))
           ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str p-num-n (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))
-          ("equals" . ,(mk-num-2-bool = 'equals))
-          ("lessthan" . ,(mk-num-2-bool < 'lessthan))
-          ("greaterthan" . ,(mk-num-2-bool > 'greaterthan))
-          ("lessequal" . ,(mk-num-2-bool <= 'lessequal))
-          ("greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
+          ("_equals" . ,(mk-num-2-bool = 'equals))
+          ("_lessthan" . ,(mk-num-2-bool < 'lessthan))
+          ("_greaterthan" . ,(mk-num-2-bool > 'greaterthan))
+          ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
+          ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
   meta-num-store)
 (define p-pi (mk-num pi))
 
@@ -644,15 +644,15 @@ And the object was:
     (set! meta-str-store
       (make-immutable-hash
         `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
-          ("plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
+          ("_plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))
-          ("lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("greaterequals" . ,(mk-prim-fun string>=? 'greaterequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("_greaterequals" . ,(mk-prim-fun string>=? 'greaterequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+          ("_equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
       ))))
   meta-str-store)
 
@@ -674,11 +674,11 @@ And the object was:
             (my-or (lambda (x y) (if x #t (if y #t #f))))
             (my-equals (lambda (x y) (equal? x y)))]
         (make-immutable-hash
-         `(("and" . ,(mk-bool-2 my-and 'and))
-           ("or" . ,(mk-bool-2 my-or 'or))
+         `(("_and" . ,(mk-bool-2 my-and 'and))
+           ("_or" . ,(mk-bool-2 my-or 'or))
            ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
-           ("equals" . ,(mk-bool-2 equal? 'equals))
-           ("not" . ,(mk-bool-1 not 'not))))))) 
+           ("_equals" . ,(mk-bool-2 equal? 'equals))
+           ("_not" . ,(mk-bool-1 not 'not))))))) 
   meta-bool-store)
 
 ;; to-string : Value -> String

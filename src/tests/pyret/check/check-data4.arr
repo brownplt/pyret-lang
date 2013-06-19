@@ -5,9 +5,9 @@ eq = checkers.check-equals
 fun foo():
   data Foo:
     | foo with:
-        equals(self,other): is-foo(other) end
+        _equals(self,other): is-foo(other) end
     | bar with:
-        equals(self,other): false end
+        _equals(self,other): false end
   check:
         eq("foo=foo",foo,foo)
   end

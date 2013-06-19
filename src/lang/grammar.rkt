@@ -14,7 +14,7 @@ block: stmt*
 stmt: var-expr | let-expr | fun-expr | data-expr | binop-expr
     | assign-expr | when-expr
 
-binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">"
+binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">" | "and" | "or"
     
 binop-expr: expr | binop-expr binop binop-expr
 
@@ -25,7 +25,10 @@ paren-expr: PARENSPACE binop-expr ")"
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
-    | for-expr | paren-expr | try-expr
+    | for-expr | paren-expr | try-expr | not-expr
+
+# NOTE(dbp): special case because it is the only unary op.
+not-expr: "not" expr
 
 
 id-expr: NAME

@@ -33,17 +33,17 @@ fun equiv(obj1, obj2):
   fun all_same(obj1, obj2):
     try:
       case:
-        | has-field(obj1, "equals") => obj1.equals(obj2)
-        | Method(obj1).or(Function(obj1)) => false
+        | has-field(obj1, "_equals") => obj1._equals(obj2)
+        | Method(obj1) or Function(obj1) => false
         | else =>
           left_keys = keys(obj1)
           for fold(same from true, key from left_keys):
             case:
-              | has-field(obj2, key).not() => false
+              | not (has-field(obj2, key)) => false
               | else =>
                 left_val = obj1.[key]
                 right_val = obj2.[key]
-                same.and(equiv(left_val, right_val))
+                same and equiv(left_val, right_val)
             end
           end
       end
@@ -52,7 +52,7 @@ fun equiv(obj1, obj2):
     end
   end
   case:
-    | num-keys(obj1).equals(num-keys(obj2)) => all_same(obj1, obj2)
+    | num-keys(obj1)._equals(num-keys(obj2)) => all_same(obj1, obj2)
     | else => false
   end
 check:
@@ -130,7 +130,7 @@ data List:
       end
     end,
 
-    equals(self, other): is-empty(other) end,
+    _equals(self, other): is-empty(other) end,
 
     tostring(self): "[]" end,
 
@@ -153,7 +153,7 @@ data List:
       end
     end,
 
-    member(self, elt): elt.equals(self.first).or(self.rest.member(elt)) end,
+    member(self, elt): (elt == self.first) or self.rest.member(elt) end,
 
     foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
 
@@ -196,11 +196,11 @@ data List:
       end
     end,
 
-    equals(self, other):
+    _equals(self, other):
       case:
         | is-link(other) =>
           others-equal = (self.first == other.first)
-          others-equal.and(self.rest == other.rest)
+          others-equal and (self.rest == other.rest)
         | else => false
       end
     end,
@@ -231,13 +231,13 @@ end
 
 fun range(start, stop):
   case:
-    | start.greaterthan(stop) => raise("range: start greater than stop: ("
+    | start._greaterthan(stop) => raise("range: start greater than stop: ("
                                         + start.tostring()
                                         + ", "
                                         + stop.tostring()
                                         + ")")
-    | start.equals(stop)      => empty
-    | start.lessthan(stop)    => link(start, range(start + 1, stop))
+    | start._equals(stop)      => empty
+    | start._lessthan(stop)    => link(start, range(start + 1, stop))
   end
 end
 
@@ -250,21 +250,21 @@ end
 
 fun map2(f, l1 :: List, l2 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)) => empty
+    | is-empty(l1) or is-empty(l2) => empty
     | else => f(l1.first, l2.first)^link(map2(f, l1.rest, l2.rest))
   end
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => empty
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) => empty
     | else => f(l1.first, l2.first, l3.first)^link(map3(f, l1.rest, l2.rest, l3.rest))
   end
 end
 
 fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => empty
     | else => f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
   end
 end
@@ -278,21 +278,21 @@ end
 
 fun map2_n(f, n :: Number, l1 :: List, l2 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)) => empty
+    | is-empty(l1) or is-empty(l2) => empty
     | else => f(n, l1.first, l2.first)^link(map2_n(f, n + 1, l1.rest, l2.rest))
   end
 end
 
 fun map3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => empty
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) => empty
     | else => f(n, l1.first, l2.first, l3.first)^link(map3_n(f, n + 1, l1.rest, l2.rest, l3.rest))
   end
 end
 
 fun map4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => empty
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => empty
     | else => f(n, l1.first, l2.first, l3.first, l4.first)^link(map4(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
   end
 end
@@ -312,7 +312,7 @@ end
 fun each2(f, l1 :: List, l2 :: List):
   fun help(l1, l2):
     case:
-      | is-empty(l1).or(is-empty(l2)) => nothing
+      | is-empty(l1) or is-empty(l2) => nothing
       | else =>
         f(l1.first, l2.first)
         help(l1.rest, l2.rest)
@@ -324,7 +324,7 @@ end
 fun each3(f, l1 :: List, l2 :: List, l3 :: List):
   fun help(l1, l2, l3):
     case:
-      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
+      | is-empty(l1) or is-empty(l2) or is-empty(l3) => nothing
       | else =>
         f(l1.first, l2.first, l3.first)
         help(l1.rest, l2.rest, l3.rest)
@@ -336,7 +336,7 @@ end
 fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   fun help(l1, l2, l3, l4):
     case:
-      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
+      | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => nothing
       | else =>
         f(l1.first, l2.first, l3.first, l4.first)
         help(l1.rest, l2.rest, l3.rest, l4.rest)
@@ -360,7 +360,7 @@ end
 fun each2_n(f, n :: Number, l1 :: List, l2 :: List):
   fun help(n, l1, l2):
     case:
-      | is-empty(l1).or(is-empty(l2)) => nothing
+      | is-empty(l1) or is-empty(l2) => nothing
       | else =>
         f(n, l1.first, l2.first)
         help(n + 1, l1.rest, l2.rest)
@@ -372,7 +372,7 @@ end
 fun each3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
   fun help(n, l1, l2, l3):
     case:
-      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => nothing
+      | is-empty(l1) or is-empty(l2) or is-empty(l3) => nothing
       | else =>
         f(n, l1.first, l2.first, l3.first)
         help(n + 1, l1.rest, l2.rest, l3.rest)
@@ -384,7 +384,7 @@ end
 fun each4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   fun help(n, l1, l2, l3, l4):
     case:
-      | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => nothing
+      | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => nothing
       | else =>
         f(n, l1.first, l2.first, l3.first, l4.first)
         help(n + 1, l1.rest, l2.rest, l3.rest, l4.rest)
@@ -402,21 +402,21 @@ end
 
 fun fold2(f, base, l1 :: List, l2 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)) => base
+    | is-empty(l1) or is-empty(l2) => base
     | else => fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
   end
 end
 
 fun fold3(f, base, l1 :: List, l2 :: List, l3 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)) => base
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) => base
     | else => fold3(f, f(base, l1.first, l2.first, l3.first), l1.rest, l2.rest, l3.rest)
   end
 end
 
 fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   case:
-    | is-empty(l1).or(is-empty(l2)).or(is-empty(l3)).or(is-empty(l4)) => base
+    | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => base
     | else => fold4(f, f(base, l1.first, l2.first, l3.first, l4.first), l1.rest, l2.rest, l3.rest, l4.rest)
   end
 end
@@ -620,6 +620,11 @@ fun format-check-results():
         print(failure.reason)
         print("")
       end
+      for each(failure from inner-results.filter(is-err)):
+        print("Test " + failure.name + " raised an error:")
+        print(failure.exception)
+        print("")
+      end
       when is-error-result(check-result):
         print("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
         print(check-result.err)
@@ -649,4 +654,3 @@ checkers = {
   clear-results: clear-results,
   get-results: get-results
 }
-

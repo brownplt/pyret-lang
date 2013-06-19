@@ -110,19 +110,22 @@
 
 (define op-method-table
   (make-immutable-hash
-   `((,op+ . "plus")
-     (,op- . "minus")
-     (,op* . "times")
-     (,op/ . "divide")
-     (,op<= . "lessequal")
-     (,op< . "lessthan")
-     (,op>= . "greaterequal")
-     (,op> . "greaterthan")
+   `((,op+ . "_plus")
+     (,op- . "_minus")
+     (,op* . "_times")
+     (,op/ . "_divide")
+     (,op<= . "_lessequal")
+     (,op< . "_lessthan")
+     (,op>= . "_greaterequal")
+     (,op> . "_greaterthan")
      ;; NOTE(joe): we deal with equals specially, since it is
      ;; builtins.equiv(..., ...)
      ;(,op== . "equals")
-     ;; NOTE(dbp): we deal with not specially, since it is .equals(...).not() 
+     ;; NOTE(dbp): we deal with noteq specially, since it is .equals(...).not() 
      ;(,op<> . "")
+     ;; NOTE(dbp): 'and' and 'or' are special, because they thunk
+     (,opand . "_and")
+     (,opor . "_or")
      )))
 
 (define (desugar-internal ast)
@@ -253,10 +256,13 @@
     [(s-paren _ e) (ds e)]
 
 
+    [(s-not s e) (s-app s (s-bracket s (ds e)
+                                     (s-str s "_not")) (list))]
+    
     [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
 
     [(s-op s 'op<> e1 e2)
-     (s-app s (s-bracket s (ds-== s e1 e2) (s-str s "not")) (list))]
+     (s-app s (s-bracket s (ds-== s e1 e2) (s-str s "_not")) (list))]
 
     [(s-op s op e1 e2)
      (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))

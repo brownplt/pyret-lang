@@ -96,6 +96,7 @@
     [(_ file expected-value t p f te oe)
      (quasisyntax/loc stx
        (let ()
+         (print-test (format "~a" file))
          (define-values (base name dir?)
            (split-path (simplify-path (path->complete-path file))))
          (define output (open-output-string))

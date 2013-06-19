@@ -114,9 +114,9 @@
   (check-pyret "case: | else => 2 end" two)
   (check-pyret "case: | false => 2 | true => 10 end" ten)
   (check-pyret "case: | true => 2 | true => 1 end" two)
-  (check-pyret "case: | 3.lessthan(2) => 10 | true => 2 end" two)
-  (check-pyret "case: | 2.lessthan(3) => 10 end" ten)
-  (check-pyret-exn "case: | 4.lessthan(3) => 10 end" "case:")
+  (check-pyret "case: | 3._lessthan(2) => 10 | true => 2 end" two)
+  (check-pyret "case: | 2._lessthan(3) => 10 end" ten)
+  (check-pyret-exn "case: | 4._lessthan(3) => 10 end" "case:")
 
   ;; shouldn't lift vars out of case
   (check-pyret-exn "case: | true => var zed = 5 zed end zed" "undefined")
@@ -151,11 +151,11 @@
 
   (check-pyret
    "strs = for list.map(elt from [1,2,3]): elt.tostring() end
-    strs.equals(['1','2','3'])"
+    strs._equals(['1','2','3'])"
    true)
 
   (check-pyret
-   "for list.fold(acc from 0, elt from [1,2,3]): acc.plus(elt) end"
+   "for list.fold(acc from 0, elt from [1,2,3]): acc._plus(elt) end"
    (p:mk-num 6))
 
   (check-pyret-exn
@@ -180,7 +180,7 @@
 
   (check-pyret
    "data List:
-      | cons(first, rest) with: length(self): 1.add(self.rest.length()) end
+      | cons(first, rest) with: length(self): 1._add(self.rest.length()) end
       | empty() with: length(self): 0 end
     end
     cons(1, cons(2, empty())).length()"
@@ -193,7 +193,7 @@
     sharing:
       length(self):
         case:
-          | is-cons(self) => 1.add(self.rest.length())
+          | is-cons(self) => 1._add(self.rest.length())
           | is-empty(self) => 0
         end
       end
@@ -232,7 +232,7 @@
    "data Foo:
      | singleton
     end
-    is-singleton(singleton).and(Foo(singleton))"
+    is-singleton(singleton) and Foo(singleton)"
     (p:mk-bool #t))
 
   (check-pyret
@@ -261,7 +261,7 @@
     end
     fun asRGB(obj): obj.asRGB() end
     fun getR(obj): obj.r end
-    [rgb(100,100,100), red, green].map(asRGB).map(getR).equals([100, 256, 0])
+    [rgb(100,100,100), red, green].map(asRGB).map(getR)._equals([100, 256, 0])
     "
     (p:mk-bool #t))
   ))
@@ -300,14 +300,14 @@
      brand_tests = [b.test(from-b), b.test(from-c), b.test(from-f)
                 ,c.test(from-b), c.test(from-c), c.test(from-f)
                 ,f.test(from-b), f.test(from-c), f.test(from-f)]
-     list.is-empty(brand_tests.filter(fun(x): x.not() end))
+     list.is-empty(brand_tests.filter(fun(x): not x end))
   " (p:mk-bool #t))
   ))
 
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-pyret-match "list.is-empty([]).and(list.List([]))"
+  (check-pyret-match "list.is-empty([]) and list.List([])"
                           (p:p-bool _ _ #t))
 
 
@@ -355,9 +355,9 @@
         | else => map(l.rest, f).push(f(l.first))
       end
     end
-    l1 = map([5], fun(x): x.add(1) end).first
-    l2 = map([5,6,7], fun(x): x.add(1) end).rest.rest.first
-    l1.add(l2)" (p:mk-num 14))
+    l1 = map([5], fun(x): x._add(1) end).first
+    l2 = map([5,6,7], fun(x): x._add(1) end).rest.rest.first
+    l1._add(l2)" (p:mk-num 14))
 
   (check-pyret "import Racket as R
                 R('racket')('+',2, 3)" five)
@@ -387,9 +387,9 @@
         end
     }
   end
-  l1 = mklist([5]).map(fun(x :: Number): x.add(1) end).first()
-  l2 = mklist([5,6,7]).map(fun(x :: Number): x.add(1) end).rest().rest().first()
-  l1.add(l2)
+  l1 = mklist([5]).map(fun(x :: Number): x._add(1) end).first()
+  l2 = mklist([5,6,7]).map(fun(x :: Number): x._add(1) end).rest().rest().first()
+  l1._add(l2)
     " (p:mk-num 14))
 
   (check-pyret
@@ -429,9 +429,9 @@
 
   (check-pyret
    "var x = 1
-    fun f(): x := x.add(1) end
+    fun f(): x := x._add(1) end
     l = [f(), f(), f()]
-    l.equals([2,3,4])"
+    l._equals([2,3,4])"
    (p:mk-bool #t))
 
   (check-pyret "[1,2].sort-by(fun(e1,e2): e1 < e2 end,
@@ -514,18 +514,18 @@
 
 (define methods (test-suite "methods"
   (check-pyret "{f(self): self.x end, x:5}.f()" five)
-  (check-pyret "{f(self,y): self.x.add(y) end, x:4}.f(6)" ten)
+  (check-pyret "{f(self,y): self.x._plus(y) end, x:4}.f(6)" ten)
   (check-pyret "{f(s): s.x end, x:10}.{x:5}.f()" five)
 
   ;; can extract raw methods
-  (check-pyret-match "3:add" (p:p-method _ _ (? procedure?)))
+  (check-pyret-match "3:_add" (p:p-method _ _ (? procedure?)))
   (check-pyret-match "{f(x): 5 end}:f" (p:p-method _ _ (? procedure?)))
 
   ;; can put raw methods on other objects and use them
   (check-pyret "var o = {x:5} var o2 = {f(self): self.x end} o := o.{g : o2:f} o.g()" five)
 
   ;; cannot apply raw methods (better error messages plz)
-  (check-pyret-exn "3:add()" "apply-fun: expected function")
+  (check-pyret-exn "3:_add()" "apply-fun: expected function")
   (check-pyret
     "o = { m(self): self end }
      m = o:m
@@ -567,7 +567,7 @@ o2.m().called" true)
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" five)
-  (check-pyret "fun f(): try: g() except(e): raise(e.add(5)) end end
+  (check-pyret "fun f(): try: g() except(e): raise(e._plus(5)) end end
                 fun g(): raise(5) end
                 fun h(): try: f() except(e): e end end
                 h()" ten)
@@ -670,7 +670,7 @@ o2.m().called" true)
   five)
 
   ;; two not three because side effects should happen only once
-  (check-pyret "var x = 0 fun f(): x := x.add(1) x end f().add(1)" two)
+  (check-pyret "var x = 0 fun f(): x := x._add(1) x end f()._add(1)" two)
 
   ;(check-pyret-exn "var x = 5 var x = 10 x" "duplicate")
 
@@ -746,11 +746,19 @@ o2.m().called" true)
                 f((1+2))" (p:mk-num 3))
   (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
-  (check-pyret "x = {lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
-  (check-pyret-exn "x = {lessthan: fun(s,o): 3 end} x < 5" "Arity")
-  (check-pyret-exn "x = {greaterthan: 3} x > 5" "expected function")
+  (check-pyret "x = {_lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
+  (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {_greaterthan: 3} x > 5" "expected function")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
-  (check-pyret "a = 1 b = 2 (a == b).or(true)" (p:mk-bool #t))
+  (check-pyret "a = 1 b = 2 (a == b) or (true)" (p:mk-bool #t))
+  (check-pyret "true and false" (p:mk-bool #f))
+  (check-pyret "(1 < 2) or false" (p:mk-bool #t))
+  (check-pyret "((1 < 2) and true) or false" (p:mk-bool #t))
+  (check-pyret "true and true and false" (p:mk-bool #f))
+  (check-pyret "true or (1 > 2) or false" (p:mk-bool #t))
+  (check-pyret "not true" (p:mk-bool #f))
+  (check-pyret "not (1 > 2)" (p:mk-bool #t))
+  (check-pyret "not (true or (1 > 2) or false)" (p:mk-bool #f))
 ))
 
 (define checks (test-suite "checks"

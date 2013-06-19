@@ -81,6 +81,8 @@ these metadata purposes.
 (define op> 'op>)
 (define op== 'op==)
 (define op<> 'op<>)
+(define opand 'opand)
+(define opor 'opor)
 
 (define op-lookup-table
   (make-immutable-hash
@@ -93,11 +95,17 @@ these metadata purposes.
      (">=" . ,op>=)
      (">" . ,op>)
      ("==" . ,op==)
-     ("<>" . ,op<>))))
+     ("<>" . ,op<>)
+     ("and" . ,opand)
+     ("or" . ,opor))))
 
 
 ;; s-op: srcloc op Expr Expr -> s-op
 (struct s-op (syntax op left right) #:transparent)
+
+;; NOTE(dbp): our only unary op, so not generalized
+;; s-not: srcloc Expr
+(struct s-not (syntax expr) #:transparent)
 
 ;; s-paren: srcloc Expr -> s-paren
 (struct s-paren (syntax expr) #:transparent)

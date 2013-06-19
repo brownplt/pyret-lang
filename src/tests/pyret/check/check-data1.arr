@@ -2,7 +2,7 @@
 
 data Foo:
   | foo with:
-      equals(self,other): is-foo(other) end
+      _equals(self,other): is-foo(other) end
 check:
   checkers.check-equals("foo=foo",foo,foo)
 end
