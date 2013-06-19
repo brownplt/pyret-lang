@@ -1,6 +1,6 @@
 [submodule "lib/ragg"]
 	path = lib/ragg
-	url = git@github.com:dyoo/ragg
+	url = https://github.com/jpolitz/whalesong
 [submodule "examples/pyret-lang-private"]
 	path = examples/pyret-lang-private
 	url = git@github.com:brownplt/pyret-lang-private
