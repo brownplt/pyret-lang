@@ -55,11 +55,12 @@
 (defconst pyret-keywords-regex 
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
-     "data" "end" "do" "try" "except" "for" "from"
+     "data" "end" "except" "for" "from"
+     "and" "or" "not"
      "as" "purpose")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
-   '("with" "sharing" "check" "case")))
+   '("doc" "try" "with" "sharing" "check" "case")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
