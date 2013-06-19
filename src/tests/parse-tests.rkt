@@ -722,6 +722,12 @@
                 (s-op _ opor (s-bool _ #f) (s-paren _ (s-op _ op< (s-num _ 1) (s-num _ 2)))))
 
    (check/block "not false" (s-not _ (s-bool _ #f)))
+
+   (check/block "a.b and c.d"
+                (s-op _ opand _ _))
+
+   (check/block "a(b) or c(d)"
+                (s-op _ opor _ _))
    
    (check/block "not (true and false)"
                 (s-not _
@@ -729,6 +735,10 @@
                         (s-op _ opand
                               (s-bool _ #t)
                               (s-bool _ #f)))))
+
+   (check/block "not a.b" (s-not _ (s-dot s _ _)))
+
+   (check/block "not a(b)" (s-not _ _))
    ))
 
 (define all (test-suite "all"

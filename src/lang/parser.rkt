@@ -150,6 +150,7 @@
     #:datum-literals (binop-expr expr)
     [(binop-expr _ _ _) (parse-stmt stx)]
     [(expr e) (parse-expr #'e)]
+    [(not-expr "not" e) (s-not (loc stx) (parse-expr #'e))]
     [(binop-expr e) (parse-binop-expr #'e)]))
 
 (define (parse-op stx)
@@ -332,7 +333,6 @@
                  (parse-left-app-fun-expr #'fun-expr)
                  (parse-app-args #'app-args))]
     [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
-    [(not-expr "not" e) (s-not (loc stx) (parse-expr #'e))]
     [(expr e) (parse-expr #'e)]
     ))
 
