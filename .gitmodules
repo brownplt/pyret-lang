@@ -6,7 +6,7 @@
 	url = git@github.com:brownplt/pyret-lang-private
 [submodule "lib/whalesong"]
 	path = lib/whalesong
-	url = git@github.com:jpolitz/whalesong
+	url = https://github.com/jpolitz/whalesong
 [submodule "lib/CodeMirror"]
 	path = lib/CodeMirror
 	url = git@github.com:jpolitz/CodeMirror
