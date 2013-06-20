@@ -22,7 +22,7 @@
     (printf "pyret setup: Compiling ~a -> ~a\n" lib-in lib-out)
     (define pyret-file (open-input-file lib-in))
     (define racket-file (open-output-file lib-out #:exists 'replace))
-    (pretty-write (syntax->datum (read-syntax 'setup.rkt pyret-file))
+    (pretty-write (syntax->datum (read-syntax lib-in pyret-file))
                   racket-file)
     (close-output-port racket-file)
     (close-input-port pyret-file)))
