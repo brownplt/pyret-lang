@@ -102,7 +102,7 @@
  "fun even(x):
     case:
       | x._equals(0) => true
-      | x._equals(1)._or(x._equals(-1)) => false
+      | x._equals(1) or (x._equals(-1)) => false
       | else => even(x._minus(2))
     end
   end
@@ -113,7 +113,7 @@
  "fun even(x):
     case:
       | x._equals(0) => true
-      | x._equals(1)._or(x._equals(-1)) => false
+      | x._equals(1) or (x._equals(-1)) => false
       | else => even(x._minus(2))
     end
   end

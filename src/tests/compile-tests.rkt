@@ -759,6 +759,12 @@ o2.m().called" true)
   (check-pyret "not true" (p:mk-bool #f))
   (check-pyret "not (1 > 2)" (p:mk-bool #t))
   (check-pyret "not (true or (1 > 2) or false)" (p:mk-bool #f))
+  (check-pyret "true or raise('should be lazy')" (p:mk-bool #t))
+  (check-pyret "false and raise('should be lazy')" (p:mk-bool #f))
+  (check-pyret-exn "true and 5" "Bad args to prim")
+  (check-pyret-exn "false or 42" "Bad args to prim")
+  (check-pyret "true._and(fun: true end)" (p:mk-bool #t))
+  (check-pyret "false._or(fun: true end)" (p:mk-bool #t))
 ))
 
 (define checks (test-suite "checks"

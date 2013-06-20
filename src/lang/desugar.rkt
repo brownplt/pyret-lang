@@ -128,6 +128,11 @@
      (,opor . "_or")
      )))
 
+(define (is-lazy-method? meth)
+  (match meth
+    [(or 'opand 'opor) #t]
+    [_ #f]))
+
 (define (desugar-internal ast)
   (define ds desugar-internal)
   (define (ds-== s e1 e2)
@@ -265,8 +270,12 @@
      (s-app s (s-bracket s (ds-== s e1 e2) (s-str s "_not")) (list))]
 
     [(s-op s op e1 e2)
+     (define e2-maybe-thunked
+      (if (is-lazy-method? op)
+          (s-lam s empty empty (a-blank) "" (ds e2) (s-block s empty))
+          (ds e2)))
      (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))
-                      (list (ds e2)))]
+                      (list e2-maybe-thunked))]
 
     [(or (s-num _ _)
          (s-bool _ _)
