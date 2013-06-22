@@ -106,7 +106,7 @@
     `(,(concat "\\(->\\)[ \t]*\\(" pyret-ident-regex "\\)")
       (1 font-lock-builtin-face) (2 font-lock-type-face))
     `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
-    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\|:\\)")  (1 font-lock-function-name-face))
+    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\)")  (1 font-lock-function-name-face))
     `(,pyret-ident-regex . font-lock-variable-name-face)
     '("-" . font-lock-builtin-face)
     ))
