@@ -22,7 +22,7 @@ syn match delimeter '\]'
 syn match delimeter '{'
 syn match delimeter '}'
 
-syn keyword basic var fun end case with: sharing: data import provide as try: except when for from check: doc: : and or
+syn keyword basic var fun end case: with: sharing: data import provide as try: except when for from check: doc: : and or not
 
 syn match op '+'
 syn match op '-'
