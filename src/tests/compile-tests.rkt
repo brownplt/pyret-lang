@@ -790,11 +790,18 @@ o2.m().called" true)
 ))
 
 (define examples (test-suite "examples"
-  (let ((private-run (lambda (filename passing)
-    (when (file-exists? filename)
-      (define-values (base name _) (split-path (simplify-path filename)))
-      (parameterize [(current-directory base)]
-        (check-pyret-match/check name _ passing passing 0 0 0))))))
+  (let
+    ([example-path (lambda (sub) (build-path "../../examples/" sub))]
+     [private-run (lambda (filename passing)
+      (when (file-exists? filename)
+       (define-values (base name _) (split-path (simplify-path filename)))
+       (parameterize [(current-directory base)]
+         (check-pyret-match/check name _ passing passing 0 0 0))))])
+  (private-run (example-path "object-patterns/mixin-java.arr") 15)
+  (private-run (example-path "object-patterns/mixin-class.arr") 3)
+  (private-run (example-path "object-patterns/mixin-extend.arr") 2)
+  (private-run (example-path "object-patterns/mixin-seal.arr") 3)
+  (private-run (example-path "object-patterns/mixin-mutable.arr") 2)
   (let ()
     (private-run "../../examples/pyret-lang-private/cs019/sortacle.arr" 2)
     (private-run "../../examples/pyret-lang-private/cs019/filesystem.arr" 2)

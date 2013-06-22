@@ -6,15 +6,15 @@ import "check.arr" as Check
 C1 = Java.class({
                  fields: {x : "Number"},
                  methods: {
-                   add1(self, _): self.set("x", self.get("x").add(2)) end,
-                   add3(self, _): self.set("x", self.get("x").add(3)) end,
-                   proxy_add1(self, _):
-                     self.invoke("add1", _)
+                   add1(self, _): self.set("x", self.get("x") + 2) end,
+                   add3(self, _): self.set("x", self.get("x") + 3) end,
+                   proxy_add1(self, o):
+                     self.invoke("add1", o)
                    end
                  },
                  constructor(self, args):
                    self.super(args)
-                   self.set("x", args._x.add(4))
+                   self.set("x", args._x + 4)
                    self
                  end
                 })
@@ -22,7 +22,7 @@ C1 = Java.class({
 C2 = C1.ext({
                 fields: {x : "Number"},
                 methods: {
-                   add1(self, _): self.set("x", self.get("x").add(1)) end
+                   add1(self, _): self.set("x", self.get("x") + 1) end
                 },
                 constructor(self, args):
                   self.super(args)

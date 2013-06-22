@@ -1,7 +1,5 @@
 #lang pyret
 
-import "check.arr" as Check
-
 todo1 = {
   # Constructor should return an object to use as self
   constructor(_, self, spec):
@@ -36,11 +34,16 @@ fun make-class(obj):
       obj.constructor(instance, spec)
     end
   }
+check:
+  todo-class = make-class(todo1)
+  todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
+  checkers.check-equals("due was instantiated", todo2.due, "today")
+  checkers.check-equals("done used default", todo2.done, false)
+  try:
+    todo2.constructor() # should err
+  except(e):
+    checkers.check-equals("constructor not present on instance",
+                          error.is-field-not-found(e),
+                          true)
+  end
 end
-  
-todo-class = make-class(todo1)
-todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
-Check.equal(todo2.due, "today", "due was instantiated")
-Check.equal(todo2.done, false, "done used default")
-todo2.constructor() # should err
-

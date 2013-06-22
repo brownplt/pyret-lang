@@ -16,9 +16,11 @@ fun extendable(obj):
       end
     end
   }
+check:
+  todo2 = extendable(todo1)
+  todo3 = todo2.ext({ complete(self): self.{ done: true } end })
+  checkers.check-equals("done is present after extend", todo3.done, false)
+  checkers.check-equals("complete is present after extend", todo3.complete().done, true)
+
 end
 
-todo2 = extendable(todo1)
-todo3 = todo2.ext({ complete(self): self.{ done: true } end })
-Check.equal(todo3.done, false, "done is present after extend")
-Check.equal(todo3.complete().done, true, "complete is present after extend")
