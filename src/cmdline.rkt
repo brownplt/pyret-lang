@@ -42,16 +42,15 @@
     (for ((mark marks))
       (print-loc mark)))
   (match p
-    [(exn:fail:parsing message cms third)
+    [(exn:fail:parsing message cms locs)
      (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
      (eprintf "\nAt:\n")
-     (void (map print-loc third))]
+     (void (map print-loc locs))]
     [(exn:fail:pyret/tc message cms srclocs)
      (eprintf "[pyret] Error in type-checking:\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc srclocs))]
     [(p:exn:fail:pyret message cms srcloc system? val)
-
      (eprintf "[pyret] Runtime error:\n\n~a\n" message)
      (eprintf "At:\n")
      (print-loc srcloc)
