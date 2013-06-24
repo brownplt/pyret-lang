@@ -48,6 +48,13 @@
                   (self-insert-command N)
                   (when (save-excursion (forward-char -3) (pyret-END))
                     (pyret-smart-tab)))))
+    (define-key map (kbd "e")
+      (function (lambda (&optional N)
+                  (interactive "^p")
+                  (or N (setq N 1))
+                  (self-insert-command N)
+                  (when (save-excursion (forward-char -4) (pyret-ELSE))
+                    (pyret-smart-tab)))))
     map)
   "Keymap for Pyret major mode")
 
@@ -57,7 +64,7 @@
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from"
      "and" "or" "not"
-     "as" "purpose")))
+     "as" "purpose" "if" "else")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
    '("doc" "try" "with" "sharing" "check" "case")))
@@ -74,10 +81,20 @@
        "\\)\\(:\\)") 
      (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
    `(,(concat 
+       "\\(^\\|[ \t]\\|" pyret-keywords-regex "\\)\\("
+       pyret-keywords-regex "-" pyret-ident-regex
+       "\\)[ \t]*\\((\\)")
+     (1 font-lock-builtin-face) (2 font-lock-function-name-face) (3 font-lock-builtin-face))
+   `(,(concat 
+       "\\(^\\|[ \t]\\|" pyret-keywords-regex "\\)\\("
+       pyret-keywords-regex "-" pyret-ident-regex
+       "\\)")
+     (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
+   `(,(concat 
        "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
        pyret-keywords-regex
-       "\\)\\($\\|[ \t]\\|" pyret-punctuation-regex "\\)") 
-     (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
+       "\\)\\b")
+     (1 font-lock-builtin-face) (2 font-lock-keyword-face))
    `(,pyret-punctuation-regex . font-lock-builtin-face)
    `(,(concat "\\<" (regexp-opt '("true" "false") t) "\\>") . font-lock-constant-face)
    )
@@ -87,8 +104,6 @@
   (append
    pyret-font-lock-keywords-1
    (list
-    ;; "| else" is a builtin
-    '("\\([|]\\)[ \t]+\\(else\\)" (1 font-lock-builtin-face) (2 font-lock-keyword-face))
     ;; "data IDENT"
     `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
       (1 font-lock-keyword-face) (2 font-lock-type-face))
@@ -189,6 +204,8 @@
 (defsubst pyret-VAR () (pyret-keyword "var"))
 (defsubst pyret-CASES () (pyret-keyword "case"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
+(defsubst pyret-IF () (pyret-keyword "if"))
+(defsubst pyret-ELSE () (pyret-keyword "else"))
 (defsubst pyret-IMPORT () (pyret-keyword "import"))
 (defsubst pyret-PROVIDE () (pyret-keyword "provide"))
 (defsubst pyret-DATA () (pyret-keyword "data"))
@@ -369,6 +386,8 @@
              ((or (pyret-has-top opens '(wantcolon))
                   (pyret-has-top opens '(wantcolonorequal)))
               (pop opens))
+             ((pyret-has-top opens '(wantcolonorif))
+              (pop opens))
              ((or (pyret-has-top opens '(object))
                   (pyret-has-top opens '(shared)))
                   ;;(pyret-has-top opens '(data)))
@@ -447,6 +466,20 @@
             (push 'data opens)
             (push 'wantcolon opens)
             (push 'needsomething opens)
+            (forward-char 4))
+           ((pyret-IF)
+            (if (pyret-has-top opens '(wantcolonorif))
+                (pop opens)
+              (incf (pyret-indent-fun defered-opened)))
+            (push 'if opens)
+            (push 'wantcolon opens)
+            (push 'needsomething opens)
+            (forward-char 2))
+           ((pyret-ELSE)
+            (when (pyret-has-top opens '(if))
+              (incf (pyret-indent-fun cur-closed))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'wantcolonorif opens))
             (forward-char 4))
            ((pyret-PIPE)
             (cond 
@@ -648,7 +681,7 @@
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
-                 ((or (equal h 'fun) (equal h 'when) (equal h 'for))
+                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
