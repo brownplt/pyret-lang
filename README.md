@@ -18,5 +18,5 @@ anchor.
 
 When yer ready to brave the sea, run:
 
-    $ racket examples/ahoy-world.arr
+    $ raco pyret examples/ahoy-world.arr
 

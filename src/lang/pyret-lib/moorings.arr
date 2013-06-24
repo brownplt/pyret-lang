@@ -535,6 +535,8 @@ end
 
 var current-results = empty 
 
+fun check-true(name, val): check-equals(name, val, true) end
+fun check-false(name, val): check-equals(name, val, false) end
 fun check-equals(name, val1, val2):
   try:
     case:
@@ -647,6 +649,8 @@ fun format-check-results():
 end
 
 checkers = {
+  check-true: check-true,
+  check-false: check-false,
   check-equals: check-equals,
   check-pred: check-pred,
   run-checks: run-checks,

@@ -12,7 +12,7 @@ end
 
 fun equal(actual, expected, message):
   case:
-    | assert(fun: actual.equals(expected) end, "check.equal: ".append(message))
+    | assert(fun: actual == expected end, "check.equal: ".append(message))
     => nothing
     | else => print(actual)
   end
@@ -23,7 +23,7 @@ fun tru(actual, message):
 end
 
 fun fals(actual, message):
-  assert(fun: actual.not() end, "check.fals: ".append(message))
+  assert(fun: not actual end, "check.fals: ".append(message))
 end
 
 fun nothin(actual, message):

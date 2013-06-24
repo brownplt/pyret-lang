@@ -24,10 +24,10 @@ Object = object-brander.brand({
     get(_, name): raise("get: field not found: ".append(name)) end,
     set(_, name, v): raise("set: field not found: ".append(name)) end,
     invoke(_, name, a): raise("invoke: method not found: ".append(name)) end,
-    instance-of(_, class): object-brander.check(class) end,
+    instance-of(_, class): object-brander.test(class) end,
     view-as(inst, class):
       case:
-        | object-brander.check(class) => inst
+        | object-brander.test(class) => inst
         | else => raise("Incompatible cast in view-as")
       end
     end
@@ -85,12 +85,12 @@ fun ext(parent-class, description):
 
         # : (Instance) -> Class -> Bool
         instance-of(_, class):
-          class-brander.check(class).or(parent-inst.instance-of(class))
+          class-brander.test(class) or parent-inst.instance-of(class)
         end,
         
         view-as(inst, class):
           case:
-            | class-brander.check(class) => inst
+            | class-brander.test(class) => inst
             | else => parent-inst:view-as._fun()(inst.{
                 get: parent-inst:get,
                 set: parent-inst:set,
@@ -117,7 +117,94 @@ fun ext(parent-class, description):
     # : (Class) -> ClassDescription -> Class
     ext(self, ext-descr): ext(self, ext-descr) end,
   })
+check:
+  # Tests
+
+  todo-class-descr = {
+    fields: {
+      due: "String",
+      task: "String",
+      done: "Boolean"
+    },
+    methods: {
+      is-completed(self, _): self.get("done") end,
+      complete(self, _):
+        self.set("done", true) end
+    },
+    # Constructor should return an object to use as self
+    # : (Instance) -> Object -> Instance
+    constructor(self, spec):
+      self.set("due", spec.due)
+      self.set("task", spec.task)
+      self.set("done", false)
+      self.super(spec)
+    end
+  }
+
+  assignee-ext-descr = {
+    fields: {
+      assignee: "String"
+    },
+    methods: {
+
+      assign(self, person):
+        case:
+          | self.get("done") => raise("Can't assign a completed task")
+          | else => self.set("assignee", person)
+        end
+      end,
+
+      complete(self, o):
+        case:
+          | is-nothing(self.get("assignee")) =>
+              raise("Can't complete an unassigned task")
+          | else => self.super(o)
+        end
+      end
+    },
+    constructor(self, spec):
+      self.set("assignee", nothing)
+      self.super(spec)
+    end
+  }
+
+  Todo = class(todo-class-descr)
+  todo1 = Todo.new({ due: "Feb 2", task: "do that thing"})
+
+  checkers.check-equals("get task", todo1.get("task"), "do that thing")
+  todo1.set("task", "make some java")
+  checkers.check-equals("get task after set", todo1.get("task"), "make some java")
+
+  checkers.check-equals("get done", todo1.get("done"), false)
+  todo1.invoke("complete", nothing)
+  checkers.check-equals("get done after invoke", todo1.get("done"), true)
+
+  checkers.check-true("instance-of", todo1.instance-of(Todo))
+
+  AssignableTodo = Todo.ext(assignee-ext-descr)
+  todo2 = AssignableTodo.new({ due: "Feb 8", task: "assign someone" })
+
+  checkers.check-equals("get child field", todo2.get("assignee"), nothing)
+  checkers.check-equals("get parent field", todo2.get("due"), "Feb 8")
+
+  todo2.set("assignee", "Joe")
+  checkers.check-equals("set child field", todo2.get("assignee"), "Joe")
+  todo2.set("due", "Feb 9")
+  checkers.check-equals("set parent field", todo2.get("due"), "Feb 9")
+
+  checkers.check-true("instance-of-child", todo2.instance-of(AssignableTodo))
+  checkers.check-true("instance-of-parent", todo2.instance-of(Todo))
+  checkers.check-true("instance-of Object", todo2.instance-of(Object))
+
+  todo2.invoke("assign", "Jonah")
+  checkers.check-equals("invoke child method", todo2.get("assignee"), "Jonah")
+  todo2.invoke("is-completed", nothing)
+  checkers.check-false("invoke parent method", todo2.get("done"))
+
+  todo2.invoke("complete", nothing)
+  checkers.check-true("invoke overridden method", todo2.get("done"))
 end
+
 
 # Don't really need this...
 fun class(description): Object.ext(description) end
@@ -125,90 +212,4 @@ fun class(description): Object.ext(description) end
 
 
 
-
-# Tests
-
-todo-class-descr = {
-  fields: {
-    due: "String",
-    task: "String",
-    done: "Boolean"
-  },
-  methods: {
-    is-completed(self, _): self.get("done") end,
-    complete(self, _):
-      self.set("done", true) end
-  },
-  # Constructor should return an object to use as self
-  # : (Instance) -> Object -> Instance
-  constructor(self, spec):
-    self.set("due", spec.due)
-    self.set("task", spec.task)
-    self.set("done", false)
-    self.super(spec)
-  end
-}
-
-assignee-ext-descr = {
-  fields: {
-    assignee: "String"
-  },
-  methods: {
-
-    assign(self, person):
-      case:
-        | self.get("done") => raise("Can't assign a completed task")
-        | else => self.set("assignee", person)
-      end
-    end,
-
-    complete(self, _):
-      case:
-        | is-nothing(self.get("assignee")) =>
-            raise("Can't complete an unassigned task")
-        | else => self.super(_)
-      end
-    end
-  },
-  constructor(self, spec):
-    self.set("assignee", nothing)
-    self.super(spec)
-  end
-}
-
-Todo = class(todo-class-descr)
-todo1 = Todo.new({ due: "Feb 2", task: "do that thing"})
-
-Check.equal(todo1.get("task"), "do that thing", "get task")
-todo1.set("task", "make some java")
-Check.equal(todo1.get("task"), "make some java", "get task after set")
-
-Check.equal(todo1.get("done"), false, "get done")
-todo1.invoke("complete", nothing)
-Check.equal(todo1.get("done"), true, "get done after invoke")
-
-Check.tru(todo1.instance-of(Todo), "instance-of")
-
-AssignableTodo = Todo.ext(assignee-ext-descr)
-todo2 = AssignableTodo.new({ due: "Feb 8", task: "assign someone" })
-
-Check.nothin(todo2.get("assignee"), "get child field")
-Check.equal(todo2.get("due"), "Feb 8", "get parent field")
-
-todo2.set("assignee", "Joe")
-Check.equal(todo2.get("assignee"), "Joe", "set child field")
-todo2.set("due", "Feb 9")
-Check.equal(todo2.get("due"), "Feb 9", "set parent field")
-
-Check.tru(todo2.instance-of(AssignableTodo), "instance-of child")
-Check.tru(todo2.instance-of(Todo), "instance-of parent")
-Check.tru(todo2.instance-of(Object), "instance-of Object")
-
-todo2.invoke("assign", "Jonah")
-Check.equal(todo2.get("assignee"), "Jonah", "invoke child method")
-todo2.invoke("is-completed", nothing)
-Check.fals(todo2.get("done"), "invoke parent method")
-
-todo2.invoke("complete", nothing)
-Check.tru(todo2.get("done"), "invoke overridden method")
 
