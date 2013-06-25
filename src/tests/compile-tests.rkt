@@ -264,6 +264,19 @@
     [rgb(100,100,100), red, green].map(asRGB).map(getR)._equals([100, 256, 0])
     "
     (p:mk-bool #t))
+
+  (check-pyret
+   "data D: | foo sharing:
+      meth(self):
+        try: raise(22)
+        except(e): e
+        end
+      end
+    end
+    foo.meth()
+    "
+    (p:mk-num 22))
+
   ))
 
 (define modules (test-suite "modules"

@@ -149,14 +149,13 @@
     ;; NOTE(joe): generative...
     [(s-data s name params variants share-members check-ignored)
      (define brander-name (gensym name))
-     (define super-fields (map ds-member share-members))
      (ds (s-block s
                   (append
                    (list (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                          (make-checker s name name
                                        (s-id s brander-name)))
-                   (variant-defs/list brander-name super-fields variants))))]
+                   (variant-defs/list brander-name share-members variants))))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
@@ -210,17 +209,6 @@
      (s-case s
              (append (map ds-case c-bs)
                      (list (s-case-branch s (s-bool s #t) case-fallthrough))))]
-
-    ;; NOTE(joe): This is a hack that needs to be cleaned up. It avoids re-desugaring
-    ;; catch blocks that already have their call to "make-error" added
-    [(s-try _ _ _
-	    (s-block _
-		     (list
-		      (s-app _ _
-			     (list (s-app _ (s-bracket _ (s-id _ 'error)
-						       (s-str _ "make-error"))
-					  _))))))
-     ast]
 
     [(s-try s try exn catch)
      (define exn-id (gensym))
