@@ -789,6 +789,8 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0))
 ))
 
+;; NOTE(dbp): private-run just means that it won't fail if the file is
+;; missing. some of these should always be present.
 (define examples (test-suite "examples"
   (let
     ([example-path (lambda (sub) (build-path "../../examples/" sub))]
@@ -797,7 +799,18 @@ o2.m().called" true)
        (define-values (base name _) (split-path (simplify-path filename)))
        (parameterize [(current-directory base)]
          (check-pyret-match/check name _ passing passing 0 0 0))))])
-  (private-run (example-path "object-patterns/mixin-java.arr") 15)
+
+    ;; NOTE(dbp): just syntax checking, no tests, for now.
+    (private-run (example-path "htdp/arithmetic.arr") 0)
+    (private-run (example-path "htdp/boolean.arr") 0)
+    (private-run (example-path "htdp/conversions.arr") 0)
+    (private-run (example-path "htdp/def.arr") 0)
+    (private-run (example-path "htdp/more-arithmetic.arr") 0)
+    (private-run (example-path "htdp/string.arr") 0)
+    (private-run (example-path "htdp/struct.arr") 3)
+    (private-run (example-path "htdp/types.arr") 0)
+
+    (private-run (example-path "object-patterns/mixin-java.arr") 15)
   (private-run (example-path "object-patterns/mixin-class.arr") 3)
   (private-run (example-path "object-patterns/mixin-extend.arr") 2)
   (private-run (example-path "object-patterns/mixin-seal.arr") 3)

@@ -4,7 +4,7 @@
 "hello ".append("world")
 "hell".append("o world")
 
-"hello world".length().add(20)
+"hello world".length() + 20
 
-"hello world".equals("hello")
-"hello world".equals("hello world")
+"hello world" == "hello"
+"hello world" == "hello world"

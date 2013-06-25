@@ -649,7 +649,6 @@ And the object was:
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
           ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
   meta-num-store)
-(define p-pi (mk-num pi))
 
 ;; meta-str-store (Hashof String value)
 (define meta-str-store (make-immutable-hash '()))
@@ -803,6 +802,7 @@ And the object was:
 (define (mk-bool b)
   (if b p-true p-false))
 (define p-else p-true)
+(define p-pi (mk-num pi))
 
 (define Any
   (mk-fun-nodoc (λ o (mk-bool #t))))

@@ -5,9 +5,9 @@
 0.sin()
 pi.cos()
 
-2.lessthan(1)
-2.lessthan(3)
-5.lessequal(5)
-4.greaterthan(20)
-7.greaterequal(8)
+2 < 1
+2 < 3
+5 <= 5
+4 > 20
+7 >= 8
 

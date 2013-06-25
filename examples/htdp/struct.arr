@@ -10,13 +10,16 @@ cons(4,empty())
 
 fun length(l :: NumList) -> Number:
   case:
-    | is-cons(l) => 1.add(length(l.rest))
+    | is-cons(l) => 1 + length(l.rest)
     | is-empty(l) => 0
   end
+check:
+  checkers.check-equals("length of single elem list",
+                         length(cons(4,empty())), 1)
+  checkers.check-equals("length of 2-elem list",
+                        length(cons(4,cons(3,empty()))), 2)
+  checkers.check-equals("length of empty list", length(empty()), 0)
 end
 
-length(cons(4,empty()))
-length(cons(4,cons(3,empty())))
-
-print("should be: runtime typecheck failed")
-length({first: {}, rest: {}})
+#print("should be: runtime typecheck failed")
+#length({first: {}, rest: {}})

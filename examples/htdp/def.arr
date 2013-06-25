@@ -1,6 +1,6 @@
 #lang pyret
 
-fun y(x): x.times(x) end
+fun y(x): x * x end
 
 y(1)
 y(2)
