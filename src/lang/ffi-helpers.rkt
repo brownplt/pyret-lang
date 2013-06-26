@@ -1,6 +1,6 @@
-#lang racket/base
+#lang whalesong
 
-(require racket/match "runtime.rkt"
+(require "runtime.rkt"
          (rename-in "pyret-lib/moorings.rkt" (%PYRET-PROVIDE pyret-moorings)))
 (provide (all-defined-out))
 
@@ -27,22 +27,25 @@
     [(string? val) (p:mk-str val)]
     [(boolean? val) (p:mk-bool val)]
     [(list? val) (create-pyret-list val)]
+    [(p:p-base? val) val]
     [(p:p-opaque? val) val]
     [else (p:p-opaque val)]))
 
 (define (ffi-unwrap val)
-  (match val
-    [(p:p-fun _ _ f)
-     (lambda args (ffi-unwrap ((f p:dummy-loc) (map ffi-wrap args))))]
-    [(p:p-opaque v) v]
-    [(p:p-num _ _ n) n]
-    [(p:p-str _ _ s) s]
-    [(p:p-bool _ _ b) b]
-    [(p:p-object _ _)
-     (if (pyret-list? val)
-         (map ffi-unwrap (p:structural-list->list val))
-         val)]
-    [else val]))
+  (cond
+    [(p:p-opaque? val) (p:p-opaque-val val)]
+    [else
+     (p:py-match val
+       [(p:p-fun _ __ f)
+        (lambda args (ffi-unwrap (apply (f p:dummy-loc) (map ffi-wrap args))))]
+       [(p:p-num _ __ n) n]
+       [(p:p-str _ __ s) s]
+       [(p:p-bool _ __ b) b]
+       [(p:p-object _ __)
+        (if (pyret-list? val)
+            (map ffi-unwrap (p:structural-list->list val))
+            val)]
+       [(default _) val])]))
 
 (define (wrap-racket-fun f)
   (p:mk-fun-nodoc (λ args (ffi-wrap (wrap-racket-value (apply f (map ffi-unwrap args)))))))

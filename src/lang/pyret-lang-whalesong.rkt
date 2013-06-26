@@ -3,6 +3,7 @@
 (require
   (except-in whalesong/lang/whalesong list error raise pi else)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
+  "racket-ffi/animate.rkt"
   "runtime.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
   )
@@ -25,6 +26,9 @@
   builtins
   checkers
   option
+
+  (all-from-out "racket-ffi/animate.rkt")
+  (rename-out [pyret-random random])
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]
   r:list r:error r:raise

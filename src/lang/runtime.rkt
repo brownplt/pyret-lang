@@ -57,6 +57,7 @@
 (provide
   (prefix-out p:
     (combine-out
+      py-match
       (struct-out none)
       (struct-out p-opaque)
       (struct-out p-base)
