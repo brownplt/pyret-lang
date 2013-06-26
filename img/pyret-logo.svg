@@ -19,7 +19,7 @@
    enable-background="new 0 0 784 780.078"
    xml:space="preserve"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="pyret logo final.svg"><metadata
+   sodipodi:docname="pyret-logo.svg"><metadata
    id="metadata3139"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
          rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
@@ -37,7 +37,7 @@
    id="namedview3135"
    showgrid="false"
    inkscape:zoom="0.72813231"
-   inkscape:cx="324.40524"
+   inkscape:cx="82.690928"
    inkscape:cy="472.74311"
    inkscape:window-x="0"
    inkscape:window-y="0"
@@ -90,7 +90,7 @@
    d="m 520.67272,347.27107 c -0.74569,28.09367 -28.92018,39.12214 -28.92018,39.12214 C 487.1174,390.34267 462.7,377.678 440.023,362.338 c -28.839,-19.509 -78.746,-99.237 -78.746,-99.237 0,0 -1.81287,-11.83851 53.28513,-13.44851 55.096,-1.61 83.92618,34.24869 88.17618,41.25569 4.252,7.008 15.23966,23.68902 17.93441,56.36289 z"
    id="path3121"
    inkscape:connector-curvature="0"
-   style="fill:#1f1180;stroke:#000000;stroke-width:20"
+   style="fill:#3731b6;stroke:#000000;stroke-width:20;fill-opacity:1"
    sodipodi:nodetypes="ccccscc" />
 <path
    stroke="#000000"
