@@ -139,8 +139,8 @@
                      [%field (p:get-raw-field loc %obj field)]
                      [%is-method (p:p-method? %field)]
                      [%fun (r:cond
-                            [%is-method (p:p-method-f %field)]
-                            [else (p:check-fun %field loc)])]
+                            [%is-method (p:p-method-m %field)]
+                            [else (p:p-base-app %field)])]
                      [argid arg] ...)
               (r:cond
                [%is-method (%fun %obj argid ...)]
@@ -153,7 +153,7 @@
                       [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
           (mark l
-            #'((p:check-fun fun (r:list loc-param ...)) arg ...))))]
+            #'((p:p-base-app fun) arg ...))))]
 
     [(s-obj l fields)
      (attach l

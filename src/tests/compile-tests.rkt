@@ -21,26 +21,22 @@
 (define constants (test-suite
   "constants and literals"
 
-  (check-pyret-match "5" (p:p-num (hash-table) x 5))
+  (check-pyret-match "5" (p:p-num (hash-table) x _ 5))
   (check-pyret "5" five)
   (check-pyret-fail "2" five)
 
-  (check-pyret "{}" (p:p-object (make-immutable-hash '()) p:empty-dict))
+  (check-pyret "{}" (p:mk-object (make-immutable-hash)))
 
   (check-pyret "'5'" (p:mk-str "5"))
 
-  (check-pyret-match "true" (p:p-bool _ _ #t))
-  (check-pyret-match "false" (p:p-bool _ _ #f))
+  (check-pyret-match "true" (p:p-bool _ _ _ #t))
+  (check-pyret-match "false" (p:p-bool _ _ _ #f))
 
-  (check-pyret "{x:5}" (p:p-object (make-immutable-hash '())
-                                   (make-immutable-hash (list (cons "x" five)))))
-  (check-pyret "{['x']:5}" (p:p-object (make-immutable-hash '())
-                                   (make-immutable-hash (list (cons "x" five)))))
-  (check-pyret "f = 'x' {[f]:5}" (p:p-object (make-immutable-hash '())
-                                                (make-immutable-hash (list (cons "x" five)))))
+  (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five))))) 
+  (check-pyret "{['x']:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
+  (check-pyret "f = 'x' {[f]:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
 
-  (check-pyret "{['x'.append('y')]:5}" (p:p-object (make-immutable-hash '())
-                                                   (make-immutable-hash (list (cons "xy" five)))))
+  (check-pyret "{['x'.append('y')]:5}" (p:mk-object (make-immutable-hash (list (cons "xy" five)))))
   ))
 
 (define functions (test-suite
@@ -81,26 +77,28 @@
 
   ;; regression for order-of-operations; non-function error happens
   ;; before evaluating args
+  ;; UPDATE(joe): matching Racket on this for efficiency, so args are
+  ;; evaluated even if function position is illegal
   (check-pyret-exn
     "5(raise('foo'))"
-    "check-fun")
+    "foo")
 
 ))
 
 
 (define brands (test-suite "brands"
 
-  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("test" _))))
+  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("test" _)) _))
   (check-pyret-match "fun f(z): x = brander() y = x.brand(z) y end f(2)"
-                     (p:p-num (hash-table _) _ 2))
+                     (p:p-num (hash-table _) _ _ 2))
   (check-pyret-match "fun f(z): x = brander() y = x.brand(z) x.test(y) end f(2)"
-                     (p:p-bool _ _ #t))
+                     (p:p-bool _ _ _ #t))
   (check-pyret-match "fun f(y): x = brander() x.test(y) end f(2)"
-                     (p:p-bool _ _ #f))
+                     (p:p-bool _ _ _ #f))
   (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) y.test(u) end f(3)"
-                     (p:p-bool _ _ #f))
+                     (p:p-bool _ _ _ #f))
   (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.test(w) end f(3)"
-                     (p:p-bool _ _ #t))
+                     (p:p-bool _ _ _ #t))
   ))
 
 
@@ -176,7 +174,7 @@
 
   (check-pyret-match
     "data Foo: | bar() end bar._doc"
-    (p:p-str _ _ _))
+    (p:p-str _ _ _ _))
 
   (check-pyret
    "data List:
@@ -226,7 +224,7 @@
      | singleton
     end
     singleton"
-    (p:p-object _ _))
+    (p:p-object _ _ _))
 
   (check-pyret
    "data Foo:
@@ -321,12 +319,12 @@
 (define built-in-libraries (test-suite "built-in-libraries"
 
   (check-pyret-match "list.is-empty([]) and list.List([])"
-                          (p:p-bool _ _ #t))
+                          (p:p-bool _ _ _ #t))
 
 
   (check-pyret-match
     "prim-keys({x : 5})"
-    (p:p-object _ _))
+    (p:p-object _ _ _))
 
   (check-pyret
     "[5].first"
@@ -375,7 +373,7 @@
   (check-pyret "import Racket as R
                 R('racket')('+',2, 3)" five)
   (check-pyret-match "import Racket as R
-                      R('racket')('string-append','four', 'ty', 'two')" (p:p-str _ _ "fourtytwo"))
+                      R('racket')('string-append','four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
   (check-pyret-exn "import Racket as R
                     R('racket')('map',4,5)" "map")
   (check-pyret "import Racket as R
@@ -414,7 +412,7 @@
 
   (check-pyret-match
     "list.empty"
-    (p:p-object _ _))
+    (p:p-object _ _ _))
 
   (check-pyret
    "builtins.keys({x:5}).first"
@@ -531,8 +529,8 @@
   (check-pyret "{f(s): s.x end, x:10}.{x:5}.f()" five)
 
   ;; can extract raw methods
-  (check-pyret-match "3:_add" (p:p-method _ _ (? procedure?)))
-  (check-pyret-match "{f(x): 5 end}:f" (p:p-method _ _ (? procedure?)))
+  (check-pyret-match "3:_add" (p:p-method _ _ _ (? procedure?)))
+  (check-pyret-match "{f(x): 5 end}:f" (p:p-method _ _ _ (? procedure?)))
 
   ;; can put raw methods on other objects and use them
   (check-pyret "var o = {x:5} var o2 = {f(self): self.x end} o := o.{g : o2:f} o.g()" five)
@@ -808,6 +806,7 @@ o2.m().called" true)
   (let
     ([example-path (lambda (sub) (build-path "../../examples/" sub))]
      [private-run (lambda (filename passing)
+      (printf "Running : ~a\n" filename)
       (when (file-exists? filename)
        (define-values (base name _) (split-path (simplify-path filename)))
        (parameterize [(current-directory base)]

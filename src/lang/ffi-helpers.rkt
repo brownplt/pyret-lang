@@ -38,10 +38,10 @@
      (p:py-match val
        [(p:p-fun _ __ f)
         (lambda args (ffi-unwrap (apply f (map ffi-wrap args))))]
-       [(p:p-num _ __ n) n]
-       [(p:p-str _ __ s) s]
-       [(p:p-bool _ __ b) b]
-       [(p:p-object _ __)
+       [(p:p-num _ __ ___ n) n]
+       [(p:p-str _ __ ___ s) s]
+       [(p:p-bool _ __ ___ b) b]
+       [(p:p-object _ __ ___)
         (if (pyret-list? val)
             (map ffi-unwrap (p:structural-list->list val))
             val)]
