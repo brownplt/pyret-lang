@@ -1,6 +1,7 @@
 #lang whalesong
 
 (require "runtime.rkt"
+         "string-map.rkt"
          (rename-in "pyret-lib/moorings.rkt" (%PYRET-PROVIDE pyret-moorings)))
 (provide (all-defined-out))
 
@@ -59,8 +60,8 @@
 
 (define (create-pyret-list l)
   (define d (p:get-dict pyret-list))
-  (define link (hash-ref d "link"))
-  (define empty (hash-ref d "empty"))
+  (define link (string-map-ref d "link"))
+  (define empty (string-map-ref d "empty"))
   (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (ffi-wrap elem) lst)) empty l))
 
 (define (pyret-list? l)

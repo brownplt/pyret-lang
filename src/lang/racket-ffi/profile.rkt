@@ -10,9 +10,9 @@
 (provide (rename-out [export %PYRET-PROVIDE]))
 
 
-(define ((profile-wrapper loc) pyret-fun)
+(define (profile-wrapper pyret-fun)
   (define (wrapped)
-    ((p:check-fun pyret-fun loc)))
+    ((p:p-base-app pyret-fun)))
   (profile-thunk wrapped #:threads #t))
 
 (define profile-pfun (p:mk-internal-fun profile-wrapper))

@@ -33,8 +33,8 @@ fun equiv(obj1, obj2):
   fun all_same(obj1, obj2):
     try:
       case:
-        | has-field(obj1, "_equals") => obj1._equals(obj2)
         | Method(obj1) or Function(obj1) => false
+        | has-field(obj1, "_equals") => obj1._equals(obj2)
         | else =>
           left_keys = keys(obj1)
           for fold(same from true, key from left_keys):
@@ -52,6 +52,7 @@ fun equiv(obj1, obj2):
     end
   end
   case:
+    | has-field(obj1, "_equals") => obj1._equals(obj2)
     | num-keys(obj1)._equals(num-keys(obj2)) => all_same(obj1, obj2)
     | else => false
   end

@@ -158,7 +158,7 @@
     [(s-obj l fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)])
-         #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
+         #'(p:mk-object (p:make-string-map (r:list member ...)))))]
     
     [(s-extend l super fields)
      (attach l

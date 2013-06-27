@@ -2,6 +2,7 @@
 
 ;(require racket/set ;; set add union member intersect map)
 (require (for-syntax racket/base))
+(require "string-map.rkt")
 
 (define (hash-fold f h init)
   (when (not (hash? h)) (error (format "Bad fold: ~a ~a ~a" f h init)))
@@ -57,6 +58,7 @@
 (provide
   (prefix-out p:
     (combine-out
+      make-string-map
       py-match
       (struct-out none)
       (struct-out p-opaque)
@@ -137,7 +139,7 @@
 ;(define-type Proc (Value * -> Value))
 
 (struct none () #:transparent)
-;; p-base: SetOf Symbol Dict -> p-base
+;; p-base: (SetOf Symbol) StringMap (Value ... -> Value) -> p-base
 (struct p-base (brands dict app) #:transparent)
 (struct p-nothing p-base () #:transparent)
 (struct p-object p-base () #:transparent)
@@ -294,7 +296,7 @@
   (define line (if maybe-line maybe-line -1))
   (define column (if maybe-col maybe-col -1))
   (mk-object
-   (make-immutable-hash 
+   (make-string-map 
     (list (cons "value" (exn:fail:pyret-val e))
 	  (cons "system" (mk-bool (exn:fail:pyret-system? e)))
 	  (cons "path" (mk-str path))
@@ -302,7 +304,7 @@
 	  (cons "column" (mk-num column))))))
 
 ;; empty-dict: HashOf String Value
-(define empty-dict (make-immutable-hash '()))
+(define empty-dict (make-string-map '()))
 
 (define (bad-app type)
   (lambda args
@@ -339,13 +341,13 @@
 
 ;; mk-fun : (Value ... -> Value) String -> Value
 (define (mk-fun f s)
-  (p-fun no-brands (make-immutable-hash `(("_doc" . ,(mk-str s))
+  (p-fun no-brands (make-string-map `(("_doc" . ,(mk-str s))
                                       ("_method" . ,(mk-method-method f s))))
          f))
 
 ;; mk-fun-nodoc : (Value ... -> Value) -> Value
 (define (mk-fun-nodoc f)
-  (p-fun no-brands (make-immutable-hash `(("_doc" . ,nothing)
+  (p-fun no-brands (make-string-map `(("_doc" . ,nothing)
                                       ("_method" . ,(mk-method-method-nodoc f))))
          f))
 
@@ -357,33 +359,33 @@
 ;; mk-method-method : (Value ... -> Value) String -> p-method
 (define (mk-method-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (make-string-map `(("_doc" . ,(mk-str doc))))
             method-bad-app
             (λ (self) (mk-method f doc))))
 
 ;; mk-method-method-nodoc : (Value ... -> Value) -> p-method
 (define (mk-method-method-nodoc f)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,nothing)))
+            (make-string-map `(("_doc" . ,nothing)))
             method-bad-app
             (λ (self) (mk-method-nodoc f))))
 
 ;; mk-fun-method : (Value ... -> Value) String -> p-method
 (define (mk-fun-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
+            (make-string-map `(("_doc" . ,(mk-str doc))))
             method-bad-app
             (λ (self) (mk-fun f doc))))
 
 ;; mk-method : (Value ... -> Value) String -> Value
 (define (mk-method f doc)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f doc))
+  (define d (make-string-map `(("_fun" . ,(mk-fun-method f doc))
                                    ("_doc" . ,(mk-str doc)))))
   (p-method no-brands d method-bad-app f))
 
 ;; mk-method-nodoc : Proc -> Value
 (define (mk-method-nodoc f)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f ""))
+  (define d (make-string-map `(("_fun" . ,(mk-fun-method f ""))
                                    ("_doc" . ,nothing))))
   (p-method no-brands d method-bad-app f))
 
@@ -392,14 +394,14 @@
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
-  (define obj (mk-object (make-immutable-hash 
+  (define obj (mk-object (make-string-map 
     (list (cons "message" (mk-str message))
           (cons "type" (mk-str type))))))
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
 (define (get-raw-field loc v f)
-  (hash-ref (get-dict v) f
+  (string-map-ref (get-dict v) f
     (lambda()
       (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
 
@@ -499,12 +501,12 @@ And the object was:
 
 ;; has-field? : Value String -> Boolean
 (define (has-field? v f)
-  (hash-has-key? (get-dict v) f))
+  (string-map-has-key? (get-dict v) f))
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
   (define d (get-dict base))
-  (define new-map (foldr (λ (p d) (hash-set d (car p) (cdr p))) d extension))
+  (define new-map (string-map-set* d extension))
   (py-match base
     [(p-object _ __ f) (p-object no-brands new-map f)]
     [(p-fun _ __ f) (p-fun no-brands new-map f)]
@@ -518,24 +520,24 @@ And the object was:
 ;; structural-list? : Value -> Boolean
 (define (structural-list? v)
   (define d (get-dict v))
-  (and (hash-has-key? d "first")
-       (hash-has-key? d "rest")))
+  (and (string-map-has-key? d "first")
+       (string-map-has-key? d "rest")))
 
 ;; structural-list->list : Value -> Listof Value
 (define (structural-list->list lst)
   (define d (get-dict lst))
   (cond
     [(structural-list? lst)
-     (cons (hash-ref d "first")
-           (structural-list->list (hash-ref d "rest")))]
+     (cons (string-map-ref d "first")
+           (structural-list->list (string-map-ref d "rest")))]
     [else empty]))
 
 ;; mk-structural-list : ListOf Value -> Value
 (define (mk-structural-list lst)
   (cond
-    [(empty? lst) (mk-object (make-immutable-hash
+    [(empty? lst) (mk-object (make-string-map
         `(("is-empty" . ,(mk-bool #t)))))]
-    [(cons? lst) (mk-object (make-immutable-hash
+    [(cons? lst) (mk-object (make-string-map
         `(("first" . ,(first lst))
           ("is-empty" . ,(mk-bool #f))
           ("rest" . ,(mk-structural-list (rest lst))))))]
@@ -543,12 +545,13 @@ And the object was:
 
 ;; keys : Value -> Value
 (define (keys object)
-  (mk-structural-list (map mk-str (hash-keys (get-dict object)))))
+  (mk-structural-list (map mk-str (string-map-keys (get-dict object)))))
 
 (define keys-pfun (mk-fun-nodoc keys))
 
+;; TODO(joe): Quickify
 (define (num-keys object)
-  (mk-num (hash-count (get-dict object))))
+  (mk-num (length (string-map-keys (get-dict object)))))
 
 (define num-keys-pfun (mk-fun-nodoc num-keys))
 
@@ -579,7 +582,7 @@ And the object was:
 (define brander-pfun (pλ/internal (_) ()
   (define sym (gensym))
   (mk-object
-   (make-immutable-hash 
+   (make-string-map 
     `(("brand" .
        ,(mk-brander sym))
       ("test" .
@@ -621,11 +624,11 @@ And the object was:
   (mk-prim-fun op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
-(define meta-num-store (make-immutable-hash '()))
+(define meta-num-store #f)
 (define (meta-num)
-  (when (= (hash-count meta-num-store) 0)
+  (when (not meta-num-store)
     (set! meta-num-store
-      (make-immutable-hash
+      (make-string-map
         `(("_plus" . ,(mk-num-2 + 'plus))
           ("_add" . ,(mk-num-2 + 'plus))
           ("_minus" . ,(mk-num-2 - 'minus))
@@ -646,11 +649,11 @@ And the object was:
   meta-num-store)
 
 ;; meta-str-store (Hashof String value)
-(define meta-str-store (make-immutable-hash '()))
+(define meta-str-store #f)
 (define (meta-str)
-  (when (= 0 (hash-count meta-str-store))
+  (when (not meta-str-store)
     (set! meta-str-store
-      (make-immutable-hash
+      (make-string-map
         `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("_plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
@@ -674,11 +677,11 @@ And the object was:
 (define (bool->string b) (if b "true" "false"))
 
 ;; meta-bool-store (Hashof String value)
-(define meta-bool-store (make-immutable-hash '()))
+(define meta-bool-store #f)
 (define (meta-bool)
-  (when (= (hash-count meta-bool-store) 0)
+  (when (not meta-bool-store)
     (set! meta-bool-store
-      (make-immutable-hash
+      (make-string-map
        `(("_and" . ,(mk-lazy-bool-2 and 'and))
          ("_or" . ,(mk-lazy-bool-2 or 'or))
          ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
@@ -701,7 +704,7 @@ And the object was:
          (define (field-to-string f v)
            (format "~a: ~a" f (to-string v)))
          (format "{ ~a }"
-                 (string-join (hash-map h field-to-string) ", ")))
+                 (string-join (string-map-map h field-to-string) ", ")))
        (if (has-field? v "tostring")
            (let [(m (get-raw-field dummy-loc v "tostring"))]
              (if (p-method? m)

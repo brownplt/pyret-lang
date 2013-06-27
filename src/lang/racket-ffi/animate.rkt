@@ -2,6 +2,7 @@
 
 (require
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt"
   (prefix-in i: whalesong/image)
   (prefix-in w: whalesong/web-world))
@@ -16,7 +17,7 @@
 (define (%animate init obj)
   (define the-dict (p:get-dict obj))
   (define handlers
-    (hash-map the-dict (lambda (key val)
+    (string-map-map the-dict (lambda (key val)
       (define racket-val (ffi-unwrap val))
       (cond
         [(equal? key "on-tick") (w:on-tick/f racket-val)]
