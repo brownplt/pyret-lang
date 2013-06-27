@@ -42,17 +42,16 @@
       (queue-callback (lambda () (displayln o) (channel-put obj:ch (o)))))
     (send (channel-get obj:ch) last)))
 
-(define (big-bang loc)
-  (lambda args
+(define (big-bang . args)
     (define (wrap-for-racket-callback k f)
       (cond
         [(equal? k "to-draw")
-         (lambda (world) (p:p-opaque-val ((p:check-fun f loc) world)))]
+         (lambda (world) (p:p-opaque-val ((p:check-fun f p:dummy-loc) world)))]
         [(equal? k "stop-when")
-         (lambda (world) (p:unwrap ((p:check-fun f loc) world)))] 
+         (lambda (world) (p:unwrap ((p:check-fun f p:dummy-loc) world)))] 
         [(equal? k "on-tick")
-         (lambda (world) ((p:check-fun f loc) world))]
-        [else (raise (p:pyret-error loc "big-bang-no-impl"
+         (lambda (world) ((p:check-fun f p:dummy-loc) world))]
+        [else (raise (p:pyret-error p:dummy-loc "big-bang-no-impl"
                       (format "No implementation for big-bang handler ~a" k)))]))
     (match (second args)
       [(p:p-object _ d)
@@ -61,8 +60,8 @@
           (values (string->symbol k) (wrap-for-racket-callback k (hash-ref d k)))))
        (define my-world (my-bb (first args) hash-for-bb))
          (run-it my-world)]
-      [v (raise (p:pyret-error loc "big-bang-non-object"
-                     (format "Non-object given to big bang: ~a" (p:to-string v))))])))
+      [v (raise (p:pyret-error p:dummy-loc "big-bang-non-object"
+                     (format "Non-object given to big bang: ~a" (p:to-string v))))]))
 
 (define big-bang-pfun (p:mk-internal-fun big-bang))
 

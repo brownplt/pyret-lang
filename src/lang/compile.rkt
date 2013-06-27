@@ -140,7 +140,7 @@
                             [else (p:check-fun %field loc)])]
                      [argid arg] ...)
               (r:cond
-               [%is-method ((%fun loc) %obj argid ...)]
+               [%is-method (%fun %obj argid ...)]
                [else (%fun argid ...)])))]
 
 

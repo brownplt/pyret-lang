@@ -83,7 +83,7 @@
   ;; before evaluating args
   (check-pyret-exn
     "5(raise('foo'))"
-    "apply-fun")
+    "check-fun")
 
 ))
 
@@ -538,7 +538,7 @@
   (check-pyret "var o = {x:5} var o2 = {f(self): self.x end} o := o.{g : o2:f} o.g()" five)
 
   ;; cannot apply raw methods (better error messages plz)
-  (check-pyret-exn "3:_add()" "apply-fun: expected function")
+  (check-pyret-exn "3:_add()" "check-fun: expected function")
   (check-pyret
     "o = { m(self): self end }
      m = o:m
@@ -551,7 +551,7 @@
   (check-pyret "var o = {x:3} o := o.{f: method(self): self.x end} o.f()"
                (p:mk-num 3))
   ;; can't apply raw methods
-  (check-pyret-exn "method(self): 1 end()" "apply-fun: expected function")
+  (check-pyret-exn "method(self): 1 end()" "check-fun: expected function")
 
   (check-pyret "
 o = {}

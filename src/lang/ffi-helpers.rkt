@@ -37,7 +37,7 @@
     [else
      (p:py-match val
        [(p:p-fun _ __ f)
-        (lambda args (ffi-unwrap (apply (f p:dummy-loc) (map ffi-wrap args))))]
+        (lambda args (ffi-unwrap (apply f (map ffi-wrap args))))]
        [(p:p-num _ __ n) n]
        [(p:p-str _ __ s) s]
        [(p:p-bool _ __ b) b]
