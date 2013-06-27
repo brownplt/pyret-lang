@@ -41,9 +41,11 @@
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
-  (define (compile-body l body)
+  (define (mark l expr)
     (with-syntax [((loc-param ...) (loc-list l))]
-      #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,(compile-expr body))))
+      #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
+  (define (compile-body l body)
+    (mark l (compile-expr body)))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
@@ -132,6 +134,7 @@
                        [field (match field
                                 [(s-str _ s) (d->stx s l)]
                                 [else #'(p:check-str #,(compile-expr field) loc)])])
+         (mark l
           #'(r:let* ([%obj obj]
                      [%field (p:get-raw-field loc %obj field)]
                      [%is-method (p:p-method? %field)]
@@ -141,7 +144,7 @@
                      [argid arg] ...)
               (r:cond
                [%is-method (%fun %obj argid ...)]
-               [else (%fun argid ...)])))]
+               [else (%fun argid ...)]))))]
 
 
     [(s-app l fun args)
@@ -149,7 +152,8 @@
         (with-syntax ([fun (compile-expr fun)]
                       [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
-          #'((p:check-fun fun (r:list loc-param ...)) arg ...)))]
+          (mark l
+            #'((p:check-fun fun (r:list loc-param ...)) arg ...))))]
 
     [(s-obj l fields)
      (attach l
