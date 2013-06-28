@@ -2,11 +2,12 @@
 
 (require
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt"
   db)
 
 (define db-dict
-  (make-immutable-hash
+  (make-string-map
     (list
       (cons "sqlite3-connect"
             (wrap-racket-fun

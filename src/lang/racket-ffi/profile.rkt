@@ -6,6 +6,7 @@
 (require
   profile
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt")
 (provide (rename-out [export %PYRET-PROVIDE]))
 
@@ -18,5 +19,5 @@
 (define profile-pfun (p:mk-internal-fun profile-wrapper))
 
 (define export (p:mk-object
-  (make-immutable-hash (list (cons "profile" profile-pfun)))))
+  (string-map (list (cons "profile" profile-pfun)))))
 
