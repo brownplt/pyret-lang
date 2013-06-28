@@ -7,6 +7,7 @@
   2htdp/private/world
   2htdp/image
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt")
 (provide (rename-out [export %PYRET-PROVIDE]))
 
@@ -56,8 +57,11 @@
     (match (second args)
       [(p:p-object _ d _)
        (define hash-for-bb
-         (for/hash ((k (hash-keys d)))
-          (values (string->symbol k) (wrap-for-racket-callback k (hash-ref d k)))))
+         (make-hash
+          (string-map-map
+            d
+            (lambda (k v) (cons (string->symbol k)
+                                (wrap-for-racket-callback k (string-map-ref d k)))))))
        (define my-world (my-bb (first args) hash-for-bb))
          (run-it my-world)]
       [v (raise (p:pyret-error p:dummy-loc "big-bang-non-object"
@@ -66,4 +70,4 @@
 (define big-bang-pfun (p:mk-internal-fun big-bang))
 
 (define export (p:mk-object
-  (make-immutable-hash (list (cons "big-bang" big-bang-pfun)))))
+  (make-string-map (list (cons "big-bang" big-bang-pfun)))))
