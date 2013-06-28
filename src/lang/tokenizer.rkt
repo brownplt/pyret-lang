@@ -60,9 +60,6 @@
 
 (define (tokenize ip)
   (port-count-lines! ip)
-  ;; used because we sometimes need to generate two tokens, and have
-  ;; to save the extra one for later.
-  (define extra-token #f)
   ;; used so that after any number of parenthesis, the next
   ;; parenthesis is tokenized as a PARENSPACE, not a PARENNOSPACE
   (define after-paren #f)
@@ -177,13 +174,12 @@
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)
-    (if extra-token
-        (let [(rv extra-token)]
-          (set! extra-token #f)
-          rv)
-        (let [(tokens (my-lexer ip))]
-          (cond
-            [(list? tokens) (set! extra-token (second tokens))
-                            (first tokens)]
-            [else tokens]))))
+    (cond [(cons? token-queue) (let [(tok (first token-queue))]
+                                 (set! token-queue (rest token-queue))
+                                 tok)]
+          [(empty? token-queue) (set! token-queue (my-lexer ip))
+                                (next-token)]
+          [else (let [(tok token-queue)]
+                  (set! token-queue empty)
+                  tok)]))
   next-token)
