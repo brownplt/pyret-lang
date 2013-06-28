@@ -19,5 +19,5 @@
 (define profile-pfun (p:mk-internal-fun profile-wrapper))
 
 (define export (p:mk-object
-  (string-map (list (cons "profile" profile-pfun)))))
+  (make-string-map (list (cons "profile" profile-pfun)))))
 

@@ -10,7 +10,7 @@
 
 (define web-server
   (p:mk-object
-    (string-map
+    (make-string-map
       (list
         (cons "serve-servlet"
           (ffi-wrap (lambda (start options)

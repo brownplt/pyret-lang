@@ -26,7 +26,7 @@
   (eval to-eval namespace-for-template))
 
 (define template
-  (p:mk-object (string-map
+  (p:mk-object (make-string-map
     (list
       (cons "render" (ffi-wrap render-template))))))
 

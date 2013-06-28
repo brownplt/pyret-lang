@@ -28,7 +28,7 @@
 (provide (rename-out [image-obj %PYRET-PROVIDE]))
 
 (define image-dict
-  (string-map
+  (make-string-map
     (list
       (cons "place-image" (wrap-racket-fun place-image))
       (cons "circle" (wrap-racket-fun circle))
