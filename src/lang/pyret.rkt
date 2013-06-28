@@ -27,10 +27,10 @@
   (param-compile-check-mode #f)
   old-value)
 
-(define (bare-read-syntax src in)
+(define (bare-read-syntax src in #:check [check #f])
   (cond
     [(port-eof? in) eof]
-    [else (strip-context (pyret->racket src in))]))
+    [else (strip-context (pyret->racket src in #:check check))]))
 
 (define (my-read-syntax src in)
   (cond

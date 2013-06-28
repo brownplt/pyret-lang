@@ -4,12 +4,13 @@
   web-server/servlet
   web-server/servlet-env
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt")
 (provide (rename-out [web-server %PYRET-PROVIDE]))
 
 (define web-server
   (p:mk-object
-    (make-immutable-hash
+    (make-string-map
       (list
         (cons "serve-servlet"
           (ffi-wrap (lambda (start options)

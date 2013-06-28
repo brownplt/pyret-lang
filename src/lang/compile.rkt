@@ -41,9 +41,11 @@
     [_ (cons (gensym) (compile-expr ast-node))]))
 
 (define (compile-expr ast-node)
-  (define (compile-body l body)
+  (define (mark l expr)
     (with-syntax [((loc-param ...) (loc-list l))]
-      #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,(compile-expr body))))
+      #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
+  (define (compile-body l body)
+    (mark l (compile-expr body)))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
@@ -132,16 +134,17 @@
                        [field (match field
                                 [(s-str _ s) (d->stx s l)]
                                 [else #'(p:check-str #,(compile-expr field) loc)])])
+         (mark l
           #'(r:let* ([%obj obj]
                      [%field (p:get-raw-field loc %obj field)]
                      [%is-method (p:p-method? %field)]
                      [%fun (r:cond
-                            [%is-method (p:p-method-f %field)]
-                            [else (p:check-fun %field loc)])]
+                            [%is-method (p:p-method-m %field)]
+                            [else (p:p-base-app %field)])]
                      [argid arg] ...)
               (r:cond
-               [%is-method ((%fun loc) %obj argid ...)]
-               [else (%fun argid ...)])))]
+               [%is-method (%fun %obj argid ...)]
+               [else (%fun argid ...)]))))]
 
 
     [(s-app l fun args)
@@ -149,12 +152,13 @@
         (with-syntax ([fun (compile-expr fun)]
                       [(arg ...) (map compile-expr args)]
 		      [(loc-param ...) (loc-list l)])
-          #'((p:check-fun fun (r:list loc-param ...)) arg ...)))]
+          (mark l
+            #'((p:p-base-app fun) arg ...))))]
 
     [(s-obj l fields)
      (attach l
        (with-syntax ([(member ...) (map compile-member fields)])
-         #'(p:mk-object (r:make-immutable-hash (r:list member ...)))))]
+         #'(p:mk-object (p:make-string-map (r:list member ...)))))]
     
     [(s-extend l super fields)
      (attach l

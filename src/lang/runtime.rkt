@@ -2,6 +2,7 @@
 
 ;(require racket/set ;; set add union member intersect map)
 (require (for-syntax racket/base))
+(require "string-map.rkt")
 
 (define (hash-fold f h init)
   (when (not (hash? h)) (error (format "Bad fold: ~a ~a ~a" f h init)))
@@ -57,6 +58,7 @@
 (provide
   (prefix-out p:
     (combine-out
+      make-string-map
       py-match
       (struct-out none)
       (struct-out p-opaque)
@@ -75,12 +77,10 @@
       mk-str
       pλ
       mk-fun
-      mk-fun-loc
       mk-fun-nodoc
       mk-internal-fun
       pμ
       mk-method
-      mk-method-loc
       mk-structural-list
       structural-list?
       structural-list->list
@@ -139,8 +139,8 @@
 ;(define-type Proc (Value * -> Value))
 
 (struct none () #:transparent)
-;; p-base: SetOf Symbol Dict -> p-base
-(struct p-base (brands dict) #:transparent)
+;; p-base: (SetOf Symbol) StringMap (Value ... -> Value) -> p-base
+(struct p-base (brands dict app) #:transparent)
 (struct p-nothing p-base () #:transparent)
 (struct p-object p-base () #:transparent)
 ;; p-num : p-base Number -> p-num
@@ -150,9 +150,9 @@
 ;; p-str : p-base String -> p-str
 (struct p-str p-base (s) #:transparent)
 ;; p-fun : p-base (Loc -> Proc) -> p-fun
-(struct p-fun p-base (f) #:transparent)
+(struct p-fun p-base () #:transparent)
 ;; p-method: p-base Proc -> p-method
-(struct p-method p-base (f) #:transparent)
+(struct p-method p-base (m) #:transparent)
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -171,21 +171,19 @@
   (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
     [(_ p-nothing _ () body) #'body]
     [(_ p-object _ () body) #'body]
+    [(_ p-fun _ () body) #'body]
     [(_ p-num matchval (n) body)
      (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
       #'(let [(n-id (p-num-n matchval))] body))]
     [(_ p-str matchval (s) body)
      (with-syntax [(s-id (datum->syntax #'body (syntax->datum #'s)))]
       #'(let [(s-id (p-str-s matchval))] body))]
+    [(_ p-method matchval (m) body)
+     (with-syntax [(m-id (datum->syntax #'body (syntax->datum #'m)))]
+      #'(let [(m-id (p-method-m matchval))] body))]
     [(_ p-bool matchval (b) body)
      (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
-      #'(let [(b-id (p-bool-b matchval))] body))]
-    [(_ p-fun matchval (f) body)
-     (with-syntax [(f-id (datum->syntax #'body (syntax->datum #'f)))]
-      #'(let [(f-id (p-fun-f matchval))] body))]
-    [(_ p-method matchval (f) body)
-     (with-syntax [(f-id (datum->syntax #'body (syntax->datum #'f)))]
-      #'(let [(f-id (p-method-f matchval))] body))]))
+      #'(let [(b-id (p-bool-b matchval))] body))]))
 
 (define-syntax (py-match stx)
   (syntax-case stx (default)
@@ -194,18 +192,40 @@
      (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
       #'(let ((v-id val))
         body))]
-    [(_ val [(typ b d id ...) body] other ...)
+    [(_ val [(typ b d f id ...) body] other ...)
      (with-syntax [
       (b-id (datum->syntax #'body (syntax->datum #'b)))
-      (d-id (datum->syntax #'body (syntax->datum #'d)))]
+      (d-id (datum->syntax #'body (syntax->datum #'d)))
+      (f-id (datum->syntax #'body (syntax->datum #'f)))]
 
      (syntax/loc #'body
        (let ((matchval val))
         (if ((value-predicate-for typ) matchval)
             (let [(b-id (p-base-brands matchval))
-                  (d-id (p-base-dict matchval))]
+                  (d-id (p-base-dict matchval))
+                  (f-id (p-base-app matchval))]
               (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
+
+(define (loc-list loc)
+  (define (serialize-source e)
+    (cond
+      [(symbol? e) (symbol->string e)]
+      [(string? e) e]
+      [(false? e) "unknown source"]
+      [else (error (format "Non-symbol, non-string, non-path value for
+                            source: ~a" e))]))
+  (list (serialize-source (srcloc-source loc))
+        (srcloc-line loc)
+        (srcloc-column loc)
+        (srcloc-position loc)
+        (srcloc-span loc)))
+
+(define (get-top-loc)
+  (define cms (continuation-mark-set->list (current-continuation-marks) 'pyret-mark))
+  (cond
+    [(> (length cms) 0) (loc-list (first cms))]
+    [else dummy-loc]))
 
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
 ;; profiling and debugging line numbers for the created functions
@@ -213,47 +233,43 @@
   (syntax-case stx ()
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
-      (mk-fun-loc
-        (lambda (%loc)
-          (case-lambda
-            #,(syntax/loc stx [(arg ...) e ...])
-            [arity-mismatch-args-list
-             (arity-error %loc (quote (arg ...)) arity-mismatch-args-list)]))
+      (mk-fun
+        (case-lambda
+          #,(syntax/loc stx [(arg ...) e ...])
+          [arity-mismatch-args-list
+           (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)])
         doc))]))
 
 (define-syntax (pλ/internal stx)
   (syntax-case stx ()
     [(_ (loc) (arg ...) e ...)
      (quasisyntax/loc stx
-       (mk-internal-fun
-         (lambda (loc)
-           (case-lambda
-             #,(syntax/loc stx [(arg ...) e ...])
-             [arity-mismatch-args-list
-              (arity-error loc '(arg ...) arity-mismatch-args-list)]))))]))
+      (mk-fun-nodoc
+       (case-lambda
+         #,(syntax/loc stx [(arg ...) e ...])
+         [arity-mismatch-args-list
+          (arity-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])))]))
 
 (define-syntax (pμ stx)
   (syntax-case stx ()
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
-      (mk-method-loc
-        (lambda (%loc)
-          (case-lambda
-            #,(syntax/loc stx [(arg ...) e ...])
-            [arity-mismatch-args-list
-             (arity-method-error %loc '(arg ...) arity-mismatch-args-list)]))
-        doc))]))
+      (mk-method
+        (case-lambda
+          #,(syntax/loc stx [(arg ...) e ...])
+          [arity-mismatch-args-list
+           (arity-method-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])
+       doc))]))
 
 (define-syntax (pμ/internal stx)
   (syntax-case stx ()
     [(_ (loc) (arg ...) doc e ...)
      (quasisyntax/loc stx
-      (mk-method-loc
-        (lambda (loc)
-          (case-lambda
-            #,(syntax/loc stx [(arg ...) e ...])
-            [arity-mismatch-args-list
-             (arity-method-error loc '(arg ...) arity-mismatch-args-list)]))
+      (mk-method
+        (case-lambda
+          #,(syntax/loc stx [(arg ...) e ...])
+          [arity-mismatch-args-list
+           (arity-method-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])
         doc))]))
 
 
@@ -280,7 +296,7 @@
   (define line (if maybe-line maybe-line -1))
   (define column (if maybe-col maybe-col -1))
   (mk-object
-   (make-immutable-hash 
+   (make-string-map 
     (list (cons "value" (exn:fail:pyret-val e))
 	  (cons "system" (mk-bool (exn:fail:pyret-system? e)))
 	  (cons "path" (mk-str path))
@@ -288,9 +304,17 @@
 	  (cons "column" (mk-num column))))))
 
 ;; empty-dict: HashOf String Value
-(define empty-dict (make-immutable-hash '()))
+(define empty-dict (make-string-map '()))
 
-(define nothing (p-nothing no-brands empty-dict))
+(define (bad-app type)
+  (lambda args
+    (raise
+      (pyret-error
+        (get-top-loc)
+        "apply-non-function"
+        (format "check-fun: expected function, got ~a" (to-string type))))))
+
+(define nothing (p-nothing no-brands empty-dict (bad-app "nothing")))
 
 ;; get-dict : Value -> Dict
 (define (get-dict v)
@@ -300,100 +324,84 @@
 (define (get-brands v)
   (p-base-brands v))
 
+(define obj-bad-app (bad-app "object"))
 ;; mk-object : Dict -> Value
 (define (mk-object dict)
-  (p-object no-brands dict))
+  (p-object no-brands dict obj-bad-app))
 
+(define num-bad-app (bad-app "number"))
 ;; mk-num : Number -> Value
 (define (mk-num n)
-  (p-num no-brands meta-num-store n))
+  (p-num no-brands meta-num-store num-bad-app n))
 
+(define str-bad-app (bad-app "string"))
 ;; mk-str : String -> Value
 (define (mk-str s)
-  (p-str no-brands meta-str-store s))
+  (p-str no-brands meta-str-store str-bad-app s))
 
-;; mk-fun : Proc String -> Value
+;; mk-fun : (Value ... -> Value) String -> Value
 (define (mk-fun f s)
-  (p-fun no-brands (make-immutable-hash `(("_doc" . ,(mk-str s))
+  (p-fun no-brands (make-string-map `(("_doc" . ,(mk-str s))
                                       ("_method" . ,(mk-method-method f s))))
-         (λ (_) f)))
-
-;; mk-fun-loc : Proc String -> Value
-(define (mk-fun-loc f s)
-  (p-fun no-brands
-         (make-immutable-hash `(("_doc" . ,(mk-str s))
-                                ("_method" . ,(mk-method-method-loc f s))))
          f))
 
-;; mk-fun-nodoc : Proc -> Value
+;; mk-fun-nodoc : (Value ... -> Value) -> Value
 (define (mk-fun-nodoc f)
-  (p-fun no-brands (make-immutable-hash `(("_doc" . ,nothing)
+  (p-fun no-brands (make-string-map `(("_doc" . ,nothing)
                                       ("_method" . ,(mk-method-method-nodoc f))))
-         (λ (_) f)))
+         f))
 
-;; mk-internal-fun : (Loc -> Proc) -> Value
+;; mk-internal-fun : (Value ... -> Value) -> Value
 (define (mk-internal-fun f)
   (p-fun no-brands empty-dict f))
 
-;; mk-method-method : Proc String -> p-method
+(define method-bad-app (bad-app "method"))
+;; mk-method-method : (Value ... -> Value) String -> p-method
 (define (mk-method-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
-            (λ (_) (λ (self) (mk-method f doc)))))
+            (make-string-map `(("_doc" . ,(mk-str doc))))
+            method-bad-app
+            (λ (self) (mk-method f doc))))
 
-;; mk-method-method-nodoc : Proc -> p-method
+;; mk-method-method-nodoc : (Value ... -> Value) -> p-method
 (define (mk-method-method-nodoc f)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,nothing)))
-            (λ (_) (λ (self) (mk-method-nodoc f)))))
+            (make-string-map `(("_doc" . ,nothing)))
+            method-bad-app
+            (λ (self) (mk-method-nodoc f))))
 
-;; mk-method-method-loc : Proc String -> p-method
-(define (mk-method-method-loc f doc)
-  (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
-            (λ (_) (λ (self) (mk-method-loc f doc)))))
-
-;; mk-fun-method : Proc String -> p-method
+;; mk-fun-method : (Value ... -> Value) String -> p-method
 (define (mk-fun-method f doc)
   (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
-            (λ (_) (λ (self) (mk-fun f doc)))))
+            (make-string-map `(("_doc" . ,(mk-str doc))))
+            method-bad-app
+            (λ (self) (mk-fun f doc))))
 
-(define (mk-fun-method-loc f doc)
-  (p-method no-brands
-            (make-immutable-hash `(("_doc" . ,(mk-str doc))))
-            (λ (_) (λ (self) (mk-fun-loc f doc)))))
-
-;; mk-method : Proc String -> Value
+;; mk-method : (Value ... -> Value) String -> Value
 (define (mk-method f doc)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
+  (define d (make-string-map `(("_fun" . ,(mk-fun-method f doc))
                                    ("_doc" . ,(mk-str doc)))))
-  (p-method no-brands d (λ (_) f)))
+  (p-method no-brands d method-bad-app f))
 
 ;; mk-method-nodoc : Proc -> Value
 (define (mk-method-nodoc f)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method f))
+  (define d (make-string-map `(("_fun" . ,(mk-fun-method f ""))
                                    ("_doc" . ,nothing))))
-  (p-method no-brands d (λ (_) f)))
-
-(define (mk-method-loc f doc)
-  (define d (make-immutable-hash `(("_fun" . ,(mk-fun-method-loc f doc))
-                                   ("_doc" . ,(mk-str doc)))))
-  (p-method no-brands d f))
+  (p-method no-brands d method-bad-app f))
 
 (define exn-brand (gensym 'exn))
 
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
-  (define obj (mk-object (make-immutable-hash 
+  (define obj (mk-object (make-string-map 
     (list (cons "message" (mk-str message))
           (cons "type" (mk-str type))))))
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
 (define (get-raw-field loc v f)
-  (hash-ref (get-dict v) f
+  (string-map-ref (get-dict v) f
     (lambda()
       (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
 
@@ -402,9 +410,7 @@
   (define vfield (get-raw-field loc v f))
   (cond
     [(p-method? vfield)
-     (mk-fun-loc (λ (loc)
-                   (λ args (apply ((p-method-f vfield) loc) (cons v args))))
-                 "")]
+     (mk-fun (λ args (apply (p-method-m vfield) (cons v args))) "")]
     [else vfield]))
 
 (define (check-str v l)
@@ -419,30 +425,20 @@
 
 (define (check-fun v l)
   (cond
-    [(p-fun? v) ((p-fun-f v) l)]
+    [(p-fun? v) (p-base-app v)]
     [else
      (raise
       (pyret-error
         l
         "apply-non-function"
-        (format "apply-fun: expected function, got ~a" (to-string v))))]))
-
-(define (check-method v l)
-  (cond
-    [(p-fun? v) ((p-fun-f v) l)]
-    [else
-     (raise
-      (pyret-error
-        l
-        "apply-non-function"
-        (format "apply-fun: expected function, got ~a" (to-string v))))]))
+        (format "check-fun: expected function, got ~a" (to-string v))))]))
 
 
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
   (py-match v
     [(p-fun _ __ f)
-     (apply (f l) args)]
+     (apply f args)]
     [(default _)
      (raise
       (pyret-error
@@ -490,13 +486,13 @@ And the object was:
 (define (add-brand v new-brand)
   (define bs (set-add (get-brands v) new-brand))
   (py-match v
-    [(p-object _ h) (p-object bs h)]
-    [(p-num _ h n) (p-num bs h n)]
-    [(p-bool _ h b) (p-bool bs h b)]
-    [(p-str _ h s) (p-str bs h s)]
+    [(p-object _ h f) (p-object bs h f)]
+    [(p-num _ h f n) (p-num bs h f n)]
+    [(p-bool _ h f b) (p-bool bs h f b)]
+    [(p-str _ h f s) (p-str bs h f s)]
     [(p-fun _ h f) (p-fun bs h f)]
-    [(p-method _ h f) (p-method bs h f)]
-    [(p-nothing b h) (error "brand: Cannot brand nothing")]
+    [(p-method _ h f m) (p-method bs h f m)]
+    [(p-nothing b h f) (error "brand: Cannot brand nothing")]
     [(default _) (error (format "brand: Cannot brand ~a" v))]))
 
 ;; has-brand? : Value Symbol -> Boolean
@@ -505,43 +501,43 @@ And the object was:
 
 ;; has-field? : Value String -> Boolean
 (define (has-field? v f)
-  (hash-has-key? (get-dict v) f))
+  (string-map-has-key? (get-dict v) f))
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
   (define d (get-dict base))
-  (define new-map (foldr (λ (p d) (hash-set d (car p) (cdr p))) d extension))
+  (define new-map (string-map-set* d extension))
   (py-match base
-    [(p-object _ __) (p-object no-brands new-map)]
+    [(p-object _ __ f) (p-object no-brands new-map f)]
     [(p-fun _ __ f) (p-fun no-brands new-map f)]
-    [(p-num _ __ n) (p-num no-brands new-map n)]
-    [(p-str _ __ str) (p-str no-brands new-map str)]
-    [(p-method _ __ m) (p-method no-brands new-map m)]
-    [(p-bool _ __ t) (p-bool no-brands new-map t)]
-    [(p-nothing __ ___) (error "update: Cannot update nothing")]
+    [(p-num _ __ f n) (p-num no-brands new-map f n)]
+    [(p-str _ __ f str) (p-str no-brands new-map f str)]
+    [(p-method _ __ f m) (p-method no-brands new-map f m)]
+    [(p-bool _ __ f t) (p-bool no-brands new-map f t)]
+    [(p-nothing _ __ ___) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
 ;; structural-list? : Value -> Boolean
 (define (structural-list? v)
   (define d (get-dict v))
-  (and (hash-has-key? d "first")
-       (hash-has-key? d "rest")))
+  (and (string-map-has-key? d "first")
+       (string-map-has-key? d "rest")))
 
 ;; structural-list->list : Value -> Listof Value
 (define (structural-list->list lst)
   (define d (get-dict lst))
   (cond
     [(structural-list? lst)
-     (cons (hash-ref d "first")
-           (structural-list->list (hash-ref d "rest")))]
+     (cons (string-map-ref d "first")
+           (structural-list->list (string-map-ref d "rest")))]
     [else empty]))
 
 ;; mk-structural-list : ListOf Value -> Value
 (define (mk-structural-list lst)
   (cond
-    [(empty? lst) (mk-object (make-immutable-hash
+    [(empty? lst) (mk-object (make-string-map
         `(("is-empty" . ,(mk-bool #t)))))]
-    [(cons? lst) (mk-object (make-immutable-hash
+    [(cons? lst) (mk-object (make-string-map
         `(("first" . ,(first lst))
           ("is-empty" . ,(mk-bool #f))
           ("rest" . ,(mk-structural-list (rest lst))))))]
@@ -549,12 +545,13 @@ And the object was:
 
 ;; keys : Value -> Value
 (define (keys object)
-  (mk-structural-list (map mk-str (hash-keys (get-dict object)))))
+  (mk-structural-list (map mk-str (string-map-keys (get-dict object)))))
 
 (define keys-pfun (mk-fun-nodoc keys))
 
+;; TODO(joe): Quickify
 (define (num-keys object)
-  (mk-num (hash-count (get-dict object))))
+  (mk-num (length (string-map-keys (get-dict object)))))
 
 (define num-keys-pfun (mk-fun-nodoc num-keys))
 
@@ -565,7 +562,7 @@ And the object was:
     [else
      (raise
       (pyret-error
-        loc
+        (get-top-loc)
         "has-field-non-string"
         (format "has-field: expected string, got ~a" (to-string field))))])))
 
@@ -585,7 +582,7 @@ And the object was:
 (define brander-pfun (pλ/internal (_) ()
   (define sym (gensym))
   (mk-object
-   (make-immutable-hash 
+   (make-string-map 
     `(("brand" .
        ,(mk-brander sym))
       ("test" .
@@ -603,7 +600,7 @@ And the object was:
         (define args-strs (list (to-string arg) ...))
         (define args-str (string-join args-strs ", "))
         (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-        (raise (mk-pyret-exn (exn+loc->message error-val loc) loc error-val #f))])))
+        (raise (mk-pyret-exn (exn+loc->message error-val (get-top-loc)) (get-top-loc) error-val #f))])))
 
 (define-syntax-rule (mk-lazy-prim op opname wrapper unwrapper (arg1 arg2 ...)
                                                               (pred1 pred2 ...))
@@ -612,12 +609,12 @@ And the object was:
       (define args-strs (list (to-string arg1) (to-string arg2) ...))
       (define args-str (string-join args-strs ", "))
       (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-      (raise (mk-pyret-exn (exn+loc->message error-val loc) loc error-val #f)))
+      (raise (mk-pyret-exn (exn+loc->message error-val (get-top-loc)) (get-top-loc) error-val #f)))
     (define (check1 arg1) (if (pred1 arg1) arg1 (error)))
     (define (check2 arg2) (if (pred2 arg2) arg2 (error)))
     ...
     (wrapper (op (unwrapper (check1 arg1))
-                 (unwrapper (check2 ((check-fun arg2 loc)))) ...))))
+                 (unwrapper (check2 ((check-fun arg2 (get-top-loc))))) ...))))
 
 (define-syntax-rule (mk-num-1 op opname)
   (mk-prim-fun op opname mk-num p-num-n (n) (p-num?)))
@@ -627,11 +624,11 @@ And the object was:
   (mk-prim-fun op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
-(define meta-num-store (make-immutable-hash '()))
+(define meta-num-store #f)
 (define (meta-num)
-  (when (= (hash-count meta-num-store) 0)
+  (when (not meta-num-store)
     (set! meta-num-store
-      (make-immutable-hash
+      (make-string-map
         `(("_plus" . ,(mk-num-2 + 'plus))
           ("_add" . ,(mk-num-2 + 'plus))
           ("_minus" . ,(mk-num-2 - 'minus))
@@ -652,11 +649,11 @@ And the object was:
   meta-num-store)
 
 ;; meta-str-store (Hashof String value)
-(define meta-str-store (make-immutable-hash '()))
+(define meta-str-store #f)
 (define (meta-str)
-  (when (= 0 (hash-count meta-str-store))
+  (when (not meta-str-store)
     (set! meta-str-store
-      (make-immutable-hash
+      (make-string-map
         `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("_plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
@@ -680,11 +677,11 @@ And the object was:
 (define (bool->string b) (if b "true" "false"))
 
 ;; meta-bool-store (Hashof String value)
-(define meta-bool-store (make-immutable-hash '()))
+(define meta-bool-store #f)
 (define (meta-bool)
-  (when (= (hash-count meta-bool-store) 0)
+  (when (not meta-bool-store)
     (set! meta-bool-store
-      (make-immutable-hash
+      (make-string-map
        `(("_and" . ,(mk-lazy-bool-2 and 'and))
          ("_or" . ,(mk-lazy-bool-2 or 'or))
          ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
@@ -695,26 +692,26 @@ And the object was:
 ;; to-string : Value -> String
 (define (to-string v)
   (py-match v
-    [(p-nothing _ __) "nothing"]
-    [(p-num _ __ n) (format "~a" n)]
-    [(p-str _ __ s) (format "~a" s)]
-    [(p-bool _ __ b) (if b "true" "false")]
-    [(p-method _ __ f) "[[code]]"]
+    [(p-nothing _ __ ___) "nothing"]
+    [(p-num _ __ ___ n) (format "~a" n)]
+    [(p-str _ __ ___ s) (format "~a" s)]
+    [(p-bool _ __ ___ b) (if b "true" "false")]
+    [(p-method _ __ f m) "[[code]]"]
     [(p-fun _ __ f) "[[code]]"]
-    [(p-object _ h)
+    [(p-object _ h __)
      (let ()
        (define (to-string-raw-object h)
          (define (field-to-string f v)
            (format "~a: ~a" f (to-string v)))
          (format "{ ~a }"
-                 (string-join (hash-map h field-to-string) ", ")))
+                 (string-join (string-map-map h field-to-string) ", ")))
        (if (has-field? v "tostring")
            (let [(m (get-raw-field dummy-loc v "tostring"))]
              (if (p-method? m)
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
-                 (py-match (((p-method-f m) dummy-loc) v)
-                           [(p-str _ __ s) s]
+                 (py-match ((p-method-m m) v)
+                           [(p-str _ __ ___ s) s]
                            [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
            (to-string-raw-object h)))]
@@ -728,10 +725,10 @@ And the object was:
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
-    [(and (p-fun? ck) (p-str? s))
-     (define f (p-fun-f ck))
+    [(p-str? s)
+     (define f (p-base-app ck))
      (define typname (p-str-s s))
-     (define check-v ((f loc) o))
+     (define check-v (f o))
      (if (and (p-bool? check-v) (p-bool-b check-v))
          o
          ;; NOTE(dbp): not sure how to give good reporting
@@ -739,7 +736,7 @@ And the object was:
          ;;  the call site as well as the destination
          (let [(val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
                               typname (to-string o))))]
-         (raise (mk-pyret-exn (exn+loc->message val loc) loc val #f))))]
+         (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f))))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
@@ -750,9 +747,9 @@ And the object was:
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
   (py-match v
-    [(p-num _ __ n) n]
-    [(p-bool _ __ b) b]
-    [(p-str _ __ s) s]
+    [(p-num _ __ ___ n) n]
+    [(p-bool _ __ ___ b) b]
+    [(p-str _ __ ___ s) s]
     [(default _)
      (cond
       [(p-opaque? v) v]
@@ -782,14 +779,12 @@ And the object was:
 
 (define raise-pfun
   (mk-internal-fun
-   (λ (loc)
-      (λ o (raise (mk-pyret-exn (exn+loc->message (first o) loc) loc (first o) #f))))))
+    (λ (o) (raise (mk-pyret-exn (exn+loc->message o (get-top-loc)) (get-top-loc) o #f)))))
 
 (define is-nothing-pfun
   (mk-internal-fun
-    (λ (loc)
-      (λ specimens
-        (mk-bool (equal? (first specimens) nothing))))))
+    (λ (specimen)
+      (mk-bool (equal? specimen nothing)))))
 
 ;; tie the knot of mutual state problems
 (void
@@ -797,8 +792,8 @@ And the object was:
   (meta-bool)
   (meta-str))
 
-(define p-true (p-bool no-brands meta-bool-store #t))
-(define p-false (p-bool no-brands meta-bool-store #f))
+(define p-true (p-bool no-brands meta-bool-store (bad-app "true") #t))
+(define p-false (p-bool no-brands meta-bool-store (bad-app "false") #f))
 ;; mk-bool : Boolean -> Value
 (define (mk-bool b)
   (if b p-true p-false))

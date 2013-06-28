@@ -2,6 +2,7 @@
 
 (require
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt"
   (only-in 2htdp/image
     place-image
@@ -27,7 +28,7 @@
 (provide (rename-out [image-obj %PYRET-PROVIDE]))
 
 (define image-dict
-  (make-immutable-hash
+  (make-string-map
     (list
       (cons "place-image" (wrap-racket-fun place-image))
       (cons "circle" (wrap-racket-fun circle))

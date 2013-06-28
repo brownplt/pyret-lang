@@ -3,6 +3,7 @@
 (require
   web-server/templates
   "../ffi-helpers.rkt"
+  "../string-map.rkt"
   "../runtime.rkt")
 
 (provide (rename-out [template %PYRET-PROVIDE]))
@@ -11,7 +12,7 @@
   (define dict (p:get-dict obj))
   (define namespace-for-template (make-empty-namespace))
   (namespace-attach-module (current-namespace) 'web-server/templates namespace-for-template)
-  (hash-map dict
+  (string-map-map dict
     (lambda (key value)
       (define name-of-identifier (string->symbol key))
       (namespace-set-variable-value!
@@ -25,7 +26,7 @@
   (eval to-eval namespace-for-template))
 
 (define template
-  (p:mk-object (make-immutable-hash
+  (p:mk-object (make-string-map
     (list
       (cons "render" (ffi-wrap render-template))))))
 

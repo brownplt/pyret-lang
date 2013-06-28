@@ -2,11 +2,12 @@
 
 (require
   "../runtime.rkt"
+  "../string-map.rkt"
   "../ffi-helpers.rkt"
   (only-in math uniform-dist sample))
 
 (define math-dict
-  (make-immutable-hash
+  (make-string-map
     (list
       (cons "uniform-dist" (wrap-racket-fun uniform-dist))
       (cons "random" (wrap-racket-fun random))

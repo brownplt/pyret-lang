@@ -1,6 +1,7 @@
 #lang whalesong
 
 (require "runtime.rkt"
+         "string-map.rkt"
          (rename-in "pyret-lib/moorings.rkt" (%PYRET-PROVIDE pyret-moorings)))
 (provide (all-defined-out))
 
@@ -37,11 +38,11 @@
     [else
      (p:py-match val
        [(p:p-fun _ __ f)
-        (lambda args (ffi-unwrap (apply (f p:dummy-loc) (map ffi-wrap args))))]
-       [(p:p-num _ __ n) n]
-       [(p:p-str _ __ s) s]
-       [(p:p-bool _ __ b) b]
-       [(p:p-object _ __)
+        (lambda args (ffi-unwrap (apply f (map ffi-wrap args))))]
+       [(p:p-num _ __ ___ n) n]
+       [(p:p-str _ __ ___ s) s]
+       [(p:p-bool _ __ ___ b) b]
+       [(p:p-object _ __ ___)
         (if (pyret-list? val)
             (map ffi-unwrap (p:structural-list->list val))
             val)]
@@ -59,8 +60,8 @@
 
 (define (create-pyret-list l)
   (define d (p:get-dict pyret-list))
-  (define link (hash-ref d "link"))
-  (define empty (hash-ref d "empty"))
+  (define link (string-map-ref d "link"))
+  (define empty (string-map-ref d "empty"))
   (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (ffi-wrap elem) lst)) empty l))
 
 (define (pyret-list? l)
