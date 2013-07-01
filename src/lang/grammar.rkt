@@ -7,7 +7,7 @@ imports: (import-stmt|provide-stmt)*
 import-name: NAME
 import-string: STRING
 import-stmt: "import" (import-name | import-string) "as" NAME
-provide-stmt: "provide" stmt "end"
+provide-stmt: "provide" stmt "end" | "provide" "*"
 
 block: stmt*
 

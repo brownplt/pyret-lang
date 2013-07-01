@@ -313,6 +313,18 @@
                 ,f.test(from-b), f.test(from-c), f.test(from-f)]
      list.is-empty(brand_tests.filter(fun(x): not x end))
   " (p:mk-bool #t))
+
+  (check-pyret
+    "import 'modules/provide-star.arr' as P
+    (prim-num-keys(P) == 7) and
+    (for list.fold(all from true, field from
+              ['Thing',
+               'is-singleton', 'singleton',
+               'is-non-singleton', 'non-singleton',
+               'foo', 'x']):
+      all and builtins.has-field(P, field)
+     end)"
+   (p:mk-bool #t))
   ))
 
 
@@ -778,6 +790,10 @@ o2.m().called" true)
   (check-pyret "false._or(fun: true end)" (p:mk-bool #t))
 ))
 
+(define ffi (test-suite "ffi"
+  (check-pyret-match/check "pyret/test-ast.arr" _ 8 8 0 0 0)
+))
+
 (define checks (test-suite "checks"
 
   (let ()
@@ -850,6 +866,7 @@ o2.m().called" true)
   exceptions
   ids-and-vars
   binary-operators
+  ffi
   checks
   examples))
 

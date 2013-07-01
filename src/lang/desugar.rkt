@@ -274,16 +274,38 @@
 
 (define-runtime-path FFI "racket-ffi/")
 
+(define (top-level-ids block)
+  (define (_top-level-ids expr)
+    (define (variant-ids variant)
+      (match variant
+        [(s-variant _ name _ _)
+         (list name (make-checker-name name))]
+        [(s-singleton-variant _ name _)
+         (list name (make-checker-name name))]))
+    (match expr
+      [(s-let _ (s-bind _ x _) _) (list x)]
+      [(s-fun _ name _ _ _ _ _ _) (list name)]
+      [(s-data s name _ variants _ _)
+       (cons name (flatten (map variant-ids variants)))]
+      [else (list)]))
+  (flatten (map _top-level-ids (s-block-stmts block))))
+
 (define (desugar-pyret ast)
   ;; This is the magic that turns `import foo as bar` into
   ;; `import "/path/to/racket-ffi/foo.rkt" as bar`
-  (define (desugar-imp imp)
+  (define (desugar-imp imp body)
     (match imp
       [(s-import l (? symbol? f) n)
        (s-import l (path->string (path->complete-path
                       (build-path FFI (string-append (symbol->string f) ".rkt")))) n)]
+      [(s-provide-all l)
+       (define fields
+        (for/list ((id (top-level-ids body)))
+          (s-data-field l (s-str l (symbol->string id)) (s-id l id))))
+       (s-provide l (s-obj l fields))]
       [_ imp]))
   (match ast
     [(s-prog s imps block)
-     (s-prog s (map desugar-imp imps) (desugar-internal block))]))
+     (s-prog s (map (lambda (imp) (desugar-imp imp block)) imps)
+               (desugar-internal block))]))
 

@@ -452,11 +452,20 @@ list = {
     fold4: fold4
   }
 
-
 data Location:
-  | location(file :: String, line :: Number, column :: Number) with:
+  | location(file :: String, line, column) with:
+    equals(self, other):
+      is-location(other) and
+      (self.file == other.file) and
+      (self.line == other.line) and
+      (self.column == other.column)
+    end,
     format(self):
-      self.file + ": line " + self.line.tostring() + ", column " + self.column.tostring()
+      self.file +
+      ": line " +
+      self.line.tostring() +
+      ", column " +
+      self.column.tostring()
     end
 end
 
@@ -545,9 +554,9 @@ fun check-equals(name, val1, val2):
         current-results := current-results.push(success(name))
       | else =>
         current-results :=
-          current-results.push(failure(name, "Values not equal: " +
+          current-results.push(failure(name, "Values not equal: \n" +
                                        tostring(val1) +
-                                       ", " +
+                                       "\n\n" +
                                        tostring(val2)))
     end
   except(e):

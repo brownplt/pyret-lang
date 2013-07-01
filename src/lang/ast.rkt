@@ -32,6 +32,8 @@ these metadata purposes.
 (struct s-import (syntax file name) #:transparent)
 ;; s-provide : srcloc expr -> srcloc
 (struct s-provide (syntax expr) #:transparent)
+;; s-provide-all : srcloc -> srcloc
+(struct s-provide-all (syntax) #:transparent)
 
 
 ;; A Block is a (Listof Stmt)
@@ -160,11 +162,6 @@ these metadata purposes.
 (struct s-dot (syntax obj field) #:transparent)
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
-
-;; s-dot-assign : srcloc Expr Symbol Expr
-(struct s-dot-assign (syntax obj field value) #:transparent)
-;; s-bracket-assign : srcloc Expr Expr Expr
-(struct s-bracket-assign (syntax obj field value) #:transparent)
 
 ;; s-colon : srcloc Expr Symbol
 (struct s-colon (syntax obj field) #:transparent)

@@ -4,7 +4,9 @@
   rackunit
   rackunit/text-ui
   srfi/13
+  (rename-in (only-in racket/string string-replace) [string-replace string-subst])
   "test-utils.rkt"
+  "../lang/runtime.rkt"
   "../lang/ast.rkt"
   "../lang/pretty.rkt"
   "../lang/desugar.rkt")
@@ -30,19 +32,33 @@
   (syntax-rules ()
     [(_ str stmt ...)
      (begin
+       (let ([parse-test (format "import ast as A
+                             parsed = A.parse(~s, 'parse-tests', {['check']: false})
+                             A.is-s_program(parsed.pre-desugar)"
+                             (string-subst (string-subst str "\r" " ") "\n" " "))])
        (when verbose
-         (printf "Testing: \n~a\n\n" str))
+         (printf "Testing: \n~a\n\n" str)
+         (printf "For ast-test: \n~a\n\n" parse-test))
        ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
        ;; in test context (where there is no #lang), we prepend everything with " "
        (check-match (parse-pyret (string-append " " str))
                     (s-prog _ empty (s-block _ (list stmt ...))))
+
+       ;; Make sure it *can* be parsed by the AST ffi
+       ;; NOTE(joe): HACK HACK HACK.  We don't handle escapes well through all this
+       ;; round-tripping, so skip tests that contain escaped escapes.
+       (when (not (or (string-contains str "\\n")
+                      (string-contains str "\\t")
+                      (string-contains str "\\r")))
+         (check-pyret parse-test (p:mk-bool #t)))
+
        (when round-trip-test
            (check-not-exn
             (lambda ()
               (define pr (pretty (desugar-pyret (parse-pyret str))))
               (when verbose
                 (printf "Printed to: \n~a\n\n" pr))
-              (parse-pyret pr)))))]))
+              (parse-pyret pr))))))]))
 
 (define literals (test-suite "literals"
   (check/block "'str'" (s-str _ "str"))
@@ -501,12 +517,16 @@
 
 
 (define modules (test-suite "modules"
+
   (check-match (parse-pyret "import 'file.arr' as file")
    (s-prog _ (list (s-import _ "file.arr" 'file)) (s-block _ (list))))
 
   (check-match (parse-pyret "provide {a: 1} end")
    (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
        (s-block _ (list))))
+
+  (check-match (parse-pyret "provide *")
+    (s-prog _ (list (s-provide-all _)) (s-block _ (list))))
 ))
 
 (define caret (test-suite "caret"

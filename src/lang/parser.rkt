@@ -41,6 +41,7 @@
 (define (parse-import stx)
   (syntax-parse stx
     #:datum-literals (import-stmt provide-stmt)
+    [(provide-stmt "provide" "*") (s-provide-all (loc stx))]
     [(provide-stmt "provide" stmt "end") (s-provide (loc stx) (parse-stmt #'stmt))]
     [(import-stmt "import" import-module "as" name)
      (s-import (loc stx) (parse-import-module #'import-module) (parse-name #'name))]))
