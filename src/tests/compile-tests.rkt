@@ -791,7 +791,7 @@ o2.m().called" true)
 ))
 
 (define ffi (test-suite "ffi"
-  (check-pyret-match/check "pyret/test-ast.arr" _ 8 8 0 0 0)
+  (check-pyret-match/check "pyret/test-ast.arr" _ 10 10 0 0 0)
 ))
 
 (define checks (test-suite "checks"

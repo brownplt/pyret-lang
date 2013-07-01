@@ -23,4 +23,12 @@ check:
   pred("Has an import", with_imports.imports.first, A.is-s_import)
   pred("Has a const import", with_imports.imports.first.file, A.is-s_const_import)
 
+  for_loop = A.parse("for map(a from [1,2,3]): a + 1 end", "for-loop", {['check']: false})
+  pred("Is a for loop",
+       for_loop.pre-desugar.block.stmts.first,
+       A.is-s_for)
+  pred("Turns into an application",
+       for_loop.post-desugar.block.stmts.first,
+       A.is-s_app)
+
 end
