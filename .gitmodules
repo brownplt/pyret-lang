@@ -7,6 +7,3 @@
 [submodule "lib/whalesong"]
 	path = lib/whalesong
 	url = https://github.com/jpolitz/whalesong
-[submodule "lib/CodeMirror"]
-	path = lib/CodeMirror
-	url = https://github.com/jpolitz/CodeMirror
