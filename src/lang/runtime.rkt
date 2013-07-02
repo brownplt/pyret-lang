@@ -551,7 +551,7 @@ And the object was:
 
 ;; TODO(joe): Quickify
 (define (num-keys object)
-  (mk-num (length (string-map-keys (get-dict object)))))
+  (mk-num (string-map-count (get-dict object))))
 
 (define num-keys-pfun (mk-fun-nodoc num-keys))
 
@@ -591,16 +591,20 @@ And the object was:
 (define (pyret-true? v)
   (and (p-bool? v) (p-bool-b v)))
 
-(define-syntax-rule (mk-prim-fun op opname wrapper unwrapper (arg ...) (pred ...))
+(define-syntax-rule (mk-prim-fun op opname wrapper (unwrapper ...) (arg ...) (pred ...))
+  (mk-prim-fun-default op opname wrapper (unwrapper ...) (arg ...) (pred ...)
+    (let ()
+      (define args-strs (list (to-string arg) ...))
+      (define args-str (string-join args-strs ", "))
+      (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
+      (raise (mk-pyret-exn (exn+loc->message error-val (get-top-loc)) (get-top-loc) error-val #f)))))
+
+(define-syntax-rule (mk-prim-fun-default op opname wrapper (unwrapper ...) (arg ...) (pred ...) default)
   (pμ/internal (loc) (arg ...) ""
     (define preds-passed (and (pred arg) ...))
     (cond
       [preds-passed (wrapper (op (unwrapper arg) ...))]
-      [else 
-        (define args-strs (list (to-string arg) ...))
-        (define args-str (string-join args-strs ", "))
-        (define error-val (mk-str (format "Bad args to prim: ~a : ~a" opname args-str)))
-        (raise (mk-pyret-exn (exn+loc->message error-val (get-top-loc)) (get-top-loc) error-val #f))])))
+      [else default])))
 
 (define-syntax-rule (mk-lazy-prim op opname wrapper unwrapper (arg1 arg2 ...)
                                                               (pred1 pred2 ...))
@@ -614,14 +618,14 @@ And the object was:
     (define (check2 arg2) (if (pred2 arg2) arg2 (error)))
     ...
     (wrapper (op (unwrapper (check1 arg1))
-                 (unwrapper (check2 ((check-fun arg2 (get-top-loc))))) ...))))
+                 (unwrapper (check2 ((check-fun arg2 dummy-loc)))) ...))))
 
 (define-syntax-rule (mk-num-1 op opname)
-  (mk-prim-fun op opname mk-num p-num-n (n) (p-num?)))
+  (mk-prim-fun op opname mk-num (p-num-n) (n) (p-num?)))
 (define-syntax-rule (mk-num-2 op opname)
-  (mk-prim-fun op opname mk-num p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-num (p-num-n p-num-n) (n1 n2) (p-num? p-num?)))
 (define-syntax-rule (mk-num-2-bool op opname)
-  (mk-prim-fun op opname mk-bool p-num-n (n1 n2) (p-num? p-num?)))
+  (mk-prim-fun op opname mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?)))
 
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store #f)
@@ -639,9 +643,9 @@ And the object was:
           ("sqr" . ,(mk-num-1 sqr 'sqr))
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
           ("floor" . ,(mk-num-1 floor 'floor))
-          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str p-num-n (n) (p-num?)))
+          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))
-          ("_equals" . ,(mk-num-2-bool = 'equals))
+          ("_equals" . ,(mk-prim-fun-default = 'equals mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?) (mk-bool #f)))
           ("_lessthan" . ,(mk-num-2-bool < 'lessthan))
           ("_greaterthan" . ,(mk-num-2-bool > 'greaterthan))
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
@@ -654,23 +658,23 @@ And the object was:
   (when (not meta-str-store)
     (set! meta-str-store
       (make-string-map
-        `(("append" . ,(mk-prim-fun string-append 'append mk-str p-str-s (s1 s2) (p-str? p-str?)))
-          ("_plus" . ,(mk-prim-fun string-append 'plus mk-str p-str-s (s1 s2) (p-str? p-str?)))
-          ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("length" . ,(mk-prim-fun string-length 'length mk-num p-str-s (s) (p-str?)))
-          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num p-str-s (s) (p-str?)))
-          ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("_greaterequals" . ,(mk-prim-fun string>=? 'greaterequals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
-          ("_equals" . ,(mk-prim-fun string=? 'equals mk-bool p-str-s (s1 s2) (p-str? p-str?)))
+        `(("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_plus" . ,(mk-prim-fun string-append 'plus mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num (p-str-s) (s) (p-str?)))
+          ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_greaterequals" . ,(mk-prim-fun string>=? 'greaterequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
       ))))
   meta-str-store)
 
 (define-syntax-rule (mk-bool-1 op opname)
-  (mk-prim-fun op opname mk-bool p-bool-b (b) (p-bool?)))
+  (mk-prim-fun op opname mk-bool (p-bool-b) (b) (p-bool?)))
 (define-syntax-rule (mk-bool-2 op opname)
-  (mk-prim-fun op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
+  (mk-prim-fun op opname mk-bool (p-bool-b p-bool-b) (b1 b2) (p-bool? p-bool?)))
 (define-syntax-rule (mk-lazy-bool-2 op opname)
   (mk-lazy-prim op opname mk-bool p-bool-b (b1 b2) (p-bool? p-bool?)))
 
@@ -684,8 +688,8 @@ And the object was:
       (make-string-map
        `(("_and" . ,(mk-lazy-bool-2 and 'and))
          ("_or" . ,(mk-lazy-bool-2 or 'or))
-         ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str p-bool-b (b) (p-bool?)))
-         ("_equals" . ,(mk-bool-2 equal? 'equals))
+         ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str (p-bool-b) (b) (p-bool?)))
+         ("_equals" . ,(mk-prim-fun-default equal? 'equals mk-bool (p-bool-b p-bool-b) (b1 b2) (p-bool? p-bool?) (mk-bool #f)))
          ("_not" . ,(mk-bool-1 not 'not))))))
   meta-bool-store)
 

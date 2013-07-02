@@ -31,24 +31,20 @@ fun num-keys(obj): prim-num-keys(obj) end
 fun equiv(obj1, obj2):
   doc: "Check if two objects have all the same keys with equiv fields"
   fun all_same(obj1, obj2):
-    try:
-      case:
-        | Method(obj1) or Function(obj1) => false
-        | has-field(obj1, "_equals") => obj1._equals(obj2)
-        | else =>
-          left_keys = keys(obj1)
-          for fold(same from true, key from left_keys):
-            case:
-              | not (has-field(obj2, key)) => false
-              | else =>
-                left_val = obj1.[key]
-                right_val = obj2.[key]
-                same and equiv(left_val, right_val)
-            end
+    case:
+      | Method(obj1) or Function(obj1) => false
+      | has-field(obj1, "_equals") => obj1._equals(obj2)
+      | else =>
+        left_keys = keys(obj1)
+        for fold(same from true, key from left_keys):
+          case:
+            | not (has-field(obj2, key)) => false
+            | else =>
+              left_val = obj1.[key]
+              right_val = obj2.[key]
+              same and equiv(left_val, right_val)
           end
-      end
-    except(_):
-      false
+        end
     end
   end
   case:
@@ -628,11 +624,13 @@ fun format-check-results():
       inner-results = check-result.results
       other-errors = link(check-result,empty).filter(is-error-result).length()
       for each(failure from inner-results.filter(is-failure)):
+        print("In check block at " + check-result.location.format())
         print("Test " + failure.name + " failed:")
         print(failure.reason)
         print("")
       end
       for each(failure from inner-results.filter(is-err)):
+        print("In check block at " + check-result.location.format())
         print("Test " + failure.name + " raised an error:")
         print(failure.exception)
         print("")

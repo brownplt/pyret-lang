@@ -19,3 +19,5 @@
   (map (lambda (key) (f key (js-map-get obj-map key)))
        (string-map-keys obj-map)))
 
+(define (string-map-count obj-map)
+  (length (string-map-keys obj-map)))
