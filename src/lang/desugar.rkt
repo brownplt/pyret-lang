@@ -26,9 +26,8 @@
       [(s-singleton-variant s name with-members)
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define dsg-with-members (map ds-member with-members))
        (define base-obj
-         (s-obj s (append super-fields dsg-with-members)))
+         (s-obj s (append super-fields with-members)))
        (s-block s
          (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
@@ -43,11 +42,10 @@
       [(s-variant s name members with-members)
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define dsg-with-members (map ds-member with-members))
        (define args (map s-bind-id members))
        (define constructor-args members)
        (define base-obj
-         (s-obj s (append super-fields dsg-with-members)))
+         (s-obj s (append super-fields with-members)))
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field

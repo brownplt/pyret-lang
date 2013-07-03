@@ -172,6 +172,36 @@
 
 (define data (test-suite "data"
 
+  ;; Regression tests for double-desugar in data definitions
+  (check-pyret
+    "data Foo:
+      | test with:
+        bar(self):
+          try:
+            raise(42)
+          except(e):
+            5
+          end
+        end
+    end
+    test.bar()"
+    five)
+
+  (check-pyret
+    "data Foo:
+      | test() with:
+        bar(self):
+          try:
+            raise(42)
+          except(e):
+            5
+          end
+        end
+    end
+    test().bar()"
+    five)
+
+
   (check-pyret-match
     "data Foo: | bar() end bar._doc"
     (p:p-str _ _ _ _))
