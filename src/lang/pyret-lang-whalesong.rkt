@@ -14,6 +14,8 @@
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
 
+(define List (p:get-field p:dummy-loc list "List"))
+
 (provide
   #%module-begin
   #%top-interaction
@@ -22,6 +24,7 @@
   #%app
 
   list
+  List
   error
   builtins
   checkers
