@@ -39,22 +39,26 @@
 (define (ann-check loc ann)
   (define (code-wrapper s args result type get-fun)
     (define funname (gensym "contract"))
+    (define gotten-funname (gensym "fun"))
     (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
     (define (check-arg bind)
       (match bind
         [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
     (mk-lam s (list (s-bind s funname ann)) ann
      (mk-contract-doc ann)
-     (s-extend
-       s
-       (type s wrapargs result
-        (mk-contract-doc ann)
-        (wrap-ann-check s result
-         (s-app s (get-fun (s-id s funname)) (map check-arg wrapargs))))
-       (list (s-data-field s (s-str s "_doc")
-                             (s-bracket s
-                                        (s-id s funname)
-                                        (s-str s "_doc")))))))
+     (s-block s
+      (list
+       (s-let s (s-bind s gotten-funname (a-blank)) (get-fun (s-id s funname)))
+       (s-extend
+         s
+         (type s wrapargs result
+          (mk-contract-doc ann)
+          (wrap-ann-check s result
+           (s-app s (s-id s gotten-funname) (map check-arg wrapargs))))
+         (list (s-data-field s (s-str s "_doc")
+                               (s-bracket s
+                                          (s-id s funname)
+                                          (s-str s "_doc")))))))))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
   (define ann-str (s-str loc (pretty-ann ann)))
