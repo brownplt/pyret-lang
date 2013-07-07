@@ -25,6 +25,10 @@
         (srcloc-position loc)
         (srcloc-span loc)))
 
+(define (loc-stx loc)
+  (with-syntax ([(loc-param ...) (loc-list loc)])
+    #'(r:list loc-param ...)))
+
 (define (d->stx stx loc) (datum->syntax #f stx (loc-list loc)))
 
 (define (attach loc stx)
@@ -49,23 +53,20 @@
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
-         ([(loc-param ...) (loc-list l)]
-          [loc #'(r:list loc-param ...)]
-          [field-stx (match field
-                 [(s-str _ s) (d->stx s l)]
-                 [else #`(p:check-str #,(compile-expr field) loc)])]
+         ([field-stx
+            (match field
+              [(s-str _ s) (d->stx s l)]
+              [else #`(p:check-str #,(compile-expr field) #,(loc-stx l))])]
 		      )
-       #`(#,lookup-type loc #,(compile-expr obj) field-stx))))
+       #`(#,lookup-type #,(loc-stx l) #,(compile-expr obj) field-stx))))
   (define (compile-member ast-node)
     (match ast-node
       [(s-data-field l name value)
        (attach l
          (with-syntax*
-          ([(loc-param ...) (loc-list l)]
-           [loc #'(r:list loc-param ...)]
-           [name-stx (compile-expr name)]
+          ([name-stx (compile-expr name)]
            [val-stx (compile-expr value)]) 
-           #'(r:cons (p:check-str name-stx loc) val-stx)))]))
+           #`(r:cons (p:check-str name-stx #,(loc-stx l)) val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)
@@ -129,14 +130,12 @@
         (with-syntax* ([obj (compile-expr obj)]
                        [(arg ...) (map compile-expr args)]
                        [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
-              	       [(loc-param ...) (loc-list l)]
-                       [loc #'(r:list loc-param ...)]
                        [field (match field
                                 [(s-str _ s) (d->stx s l)]
-                                [else #'(p:check-str #,(compile-expr field) loc)])])
+                                [else #`(p:check-str #,(compile-expr field) #,(loc-stx l))])])
          (mark l
-          #'(r:let* ([%obj obj]
-                     [%field (p:get-raw-field loc %obj field)]
+          #`(r:let* ([%obj obj]
+                     [%field (p:get-raw-field #,(loc-stx l) %obj field)]
                      [%is-method (p:p-method? %field)]
                      [%fun (r:cond
                             [%is-method (p:p-method-m %field)]
@@ -150,8 +149,7 @@
     [(s-app l fun args)
      (attach l
         (with-syntax ([fun (compile-expr fun)]
-                      [(arg ...) (map compile-expr args)]
-		      [(loc-param ...) (loc-list l)])
+                      [(arg ...) (map compile-expr args)])
           (mark l
             #'((p:p-base-app fun) arg ...))))]
 
@@ -162,13 +160,11 @@
     
     [(s-extend l super fields)
      (attach l
-      (with-syntax
-		    ([(loc-param ...) (loc-list l)])
        (with-syntax ([(member ...) (map compile-member fields)]
                      [super (compile-expr super)])
-        #'(p:extend (r:list loc-param ...)
+        #`(p:extend #,(loc-stx l)
                     super
-                    (r:list member ...)))))]
+                    (r:list member ...))))]
     
     [(s-bracket l obj field)
      (compile-lookup l obj field #'p:get-field)]
