@@ -167,6 +167,15 @@
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
 
+(define-syntax (maybe-bind stx)
+  (syntax-case stx ()
+    [(_ [] e) #'e]
+    [(_ [(x val) (y val-rest) ...] e)
+     (cond
+      [(equal? (syntax->datum #'x) '_) #'(maybe-bind [(y val-rest) ...] e)]
+      [else
+       #'(let [(x val)] (maybe-bind [(y val-rest) ...] e))])]))
+
 (define-syntax (type-specific-bind stx)
   (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
     [(_ p-nothing _ () body) #'body]
@@ -174,36 +183,34 @@
     [(_ p-fun _ () body) #'body]
     [(_ p-num matchval (n) body)
      (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
-      #'(let [(n-id (p-num-n matchval))] body))]
+      #'(maybe-bind [(n-id (p-num-n matchval))] body))]
     [(_ p-str matchval (s) body)
      (with-syntax [(s-id (datum->syntax #'body (syntax->datum #'s)))]
-      #'(let [(s-id (p-str-s matchval))] body))]
+      #'(maybe-bind [(s (p-str-s matchval))] body))]
     [(_ p-method matchval (m) body)
      (with-syntax [(m-id (datum->syntax #'body (syntax->datum #'m)))]
-      #'(let [(m-id (p-method-m matchval))] body))]
+      #'(maybe-bind [(m (p-method-m matchval))] body))]
     [(_ p-bool matchval (b) body)
      (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
-      #'(let [(b-id (p-bool-b matchval))] body))]))
+      #'(maybe-bind [(b-id (p-bool-b matchval))] body))]))
 
 (define-syntax (py-match stx)
   (syntax-case stx (default)
     [(_ val) #'(error 'py-match (format "py-match fell through on ~a" val))]
     [(_ val [(default v) body])
      (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
-      #'(let ((v-id val))
-        body))]
+      #'(let ((v-id val)) body))]
     [(_ val [(typ b d f id ...) body] other ...)
-     (with-syntax [
-      (b-id (datum->syntax #'body (syntax->datum #'b)))
-      (d-id (datum->syntax #'body (syntax->datum #'d)))
-      (f-id (datum->syntax #'body (syntax->datum #'f)))]
-
+     (with-syntax
+      [(b-id (datum->syntax #'body (syntax->datum #'b)))
+       (d-id (datum->syntax #'body (syntax->datum #'d)))
+       (f-id (datum->syntax #'body (syntax->datum #'f)))]
      (syntax/loc #'body
        (let ((matchval val))
         (if ((value-predicate-for typ) matchval)
-            (let [(b-id (p-base-brands matchval))
-                  (d-id (p-base-dict matchval))
-                  (f-id (p-base-app matchval))]
+          (maybe-bind [(b-id (p-base-brands matchval))
+                       (d-id (p-base-dict matchval))
+                       (f-id (p-base-app matchval))]
               (type-specific-bind typ matchval (id ...) body))
             (py-match matchval other ...)))))]))
 
@@ -437,7 +444,7 @@
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
   (py-match v
-    [(p-fun _ __ f)
+    [(p-fun _ _ f)
      (apply f args)]
     [(default _)
      (raise
@@ -508,13 +515,13 @@ And the object was:
   (define d (get-dict base))
   (define new-map (string-map-set* d extension))
   (py-match base
-    [(p-object _ __ f) (p-object no-brands new-map f)]
-    [(p-fun _ __ f) (p-fun no-brands new-map f)]
-    [(p-num _ __ f n) (p-num no-brands new-map f n)]
-    [(p-str _ __ f str) (p-str no-brands new-map f str)]
-    [(p-method _ __ f m) (p-method no-brands new-map f m)]
-    [(p-bool _ __ f t) (p-bool no-brands new-map f t)]
-    [(p-nothing _ __ ___) (error "update: Cannot update nothing")]
+    [(p-object _ _ f) (p-object no-brands new-map f)]
+    [(p-fun _ _ f) (p-fun no-brands new-map f)]
+    [(p-num _ _ f n) (p-num no-brands new-map f n)]
+    [(p-str _ _ f str) (p-str no-brands new-map f str)]
+    [(p-method _ _ f m) (p-method no-brands new-map f m)]
+    [(p-bool _ _ f t) (p-bool no-brands new-map f t)]
+    [(p-nothing _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
 ;; structural-list? : Value -> Boolean
@@ -696,13 +703,13 @@ And the object was:
 ;; to-string : Value -> String
 (define (to-string v)
   (py-match v
-    [(p-nothing _ __ ___) "nothing"]
-    [(p-num _ __ ___ n) (format "~a" n)]
-    [(p-str _ __ ___ s) (format "~a" s)]
-    [(p-bool _ __ ___ b) (if b "true" "false")]
-    [(p-method _ __ f m) "[[code]]"]
-    [(p-fun _ __ f) "[[code]]"]
-    [(p-object _ h __)
+    [(p-nothing _ _ _) "nothing"]
+    [(p-num _ _ _ n) (format "~a" n)]
+    [(p-str _ _ _ s) (format "~a" s)]
+    [(p-bool _ _ _ b) (if b "true" "false")]
+    [(p-method _ _ f m) "[[code]]"]
+    [(p-fun _ _ f) "[[code]]"]
+    [(p-object _ h _)
      (let ()
        (define (to-string-raw-object h)
          (define (field-to-string f v)
@@ -715,7 +722,7 @@ And the object was:
                  ;; NOTE(dbp): this will fail if tostring isn't defined
                  ;; as taking only self.
                  (py-match ((p-method-m m) v)
-                           [(p-str _ __ ___ s) s]
+                           [(p-str _ _ _ s) s]
                            [(default _) (to-string-raw-object h)])
                  (to-string-raw-object h)))
            (to-string-raw-object h)))]
@@ -751,9 +758,9 @@ And the object was:
 ;; unwrap : Value -> RacketValue
 (define (unwrap v)
   (py-match v
-    [(p-num _ __ ___ n) n]
-    [(p-bool _ __ ___ b) b]
-    [(p-str _ __ ___ s) s]
+    [(p-num _ _ _ n) n]
+    [(p-bool _ _ _ b) b]
+    [(p-str _ _ _ s) s]
     [(default _)
      (cond
       [(p-opaque? v) v]
