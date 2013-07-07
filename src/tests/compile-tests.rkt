@@ -4,8 +4,7 @@
   rackunit
   rackunit/text-ui
 	 "test-utils.rkt"
-	 "../lang/runtime.rkt"
-	 "match-set.rkt")
+	 "../lang/runtime.rkt")
 
 (verbose! #f)
 
