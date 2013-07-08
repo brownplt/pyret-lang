@@ -168,8 +168,8 @@
      ;; what desugar-check/internal will try to do), so we add a nothing at
      ;; the end
      (define with-checks (desugar-check/internal (s-block s2 (append stmts (list (s-id s2 'nothing))))))
-     (define print (s-app s (s-dot s (s-id s 'checkers) 'format-check-results) empty))
+     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) empty))
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
-     (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list print))))]
+     (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list get-results))))]
     [ast (desugar-check/internal ast)]))
 

@@ -16,7 +16,9 @@
 (require
  (except-in rackunit check)
  racket/runtime-path
+ (only-in "../lang/pyret-lang-racket.rkt" checkers)
  "../lang/compile.rkt"
+ "../lang/runtime.rkt"
  "../lang/tokenizer.rkt"
  "../lang/typecheck.rkt"
  "../lang/desugar.rkt"
@@ -103,7 +105,9 @@
          (define result
            (parameterize ([current-output-port output]
                           [current-load-relative-directory base])
-             (eval-pyret/check (port->string (open-input-file file)))))
+             (define check-results
+              (eval-pyret/check (port->string (open-input-file file))))
+             ((p:p-method-m (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
          (define stdout (get-output-string output))
          (define expected-stdout
            (format

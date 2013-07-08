@@ -223,7 +223,8 @@ data List:
     end
 
 sharing:
-  push(self, elt): link(elt, self) end
+  push(self, elt): link(elt, self) end,
+  _plus(self, other): self.append(other) end
 end
 
 fun range(start, stop):
@@ -585,41 +586,52 @@ end
 var all-results :: List = empty
 
 fun run-checks(checks):
-  fun lst-to-structural(lst):
-    case:
-      | has-field(lst, 'first') =>
-        { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
-      | else =>
-        { is-empty: true }
+  when checks.length() <> 0:
+    fun lst-to-structural(lst):
+      case:
+        | has-field(lst, 'first') =>
+          { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
+        | else =>
+          { is-empty: true }
+      end
+    end
+    these-checks = mklist(lst-to-structural(checks))
+    old-results = current-results
+    these-check-results = 
+      for map(chk from these-checks):
+        l = chk.location
+        loc = error.location(l.file, l.line, l.column)
+        current-results := empty
+        result = try:
+          chk.run()
+          normal-result(chk.name, loc, current-results)
+        except(e):
+          error-result(chk.name, loc, current-results, e)
+        end
+        result
+      end
+
+    relevant-results = these-check-results.filter(fun(elt):
+      is-error-result(elt) or (elt.results.length() > 0)
+    end)
+
+    current-results := old-results
+    when relevant-results.length() > 0:
+      all-results := all-results.push(relevant-results)
     end
   end
-  these-checks = mklist(lst-to-structural(checks))
-  old-results = current-results
-  these-check-results = 
-    for map(chk from these-checks):
-      l = chk.location
-      loc = error.location(l.file, l.line, l.column)
-      current-results := empty
-      result = try:
-        chk.run()
-        normal-result(chk.name, loc, current-results)
-      except(e):
-        error-result(chk.name, loc, current-results, e)
-      end
-      result
-    end
-
-  current-results := old-results
-  all-results := all-results.push(these-check-results)
   nothing
 end
 
 fun clear-results(): all-results := empty nothing end
-fun get-results(): all-results end
+fun get-results(): {
+  results: all-results,
+  format(self): format-check-results(self.results) end
+} end
 
-fun format-check-results():
+fun format-check-results(results):
   init = { passed: 0, failed : 0, test-errors: 0, other-errors: 0, total: 0}
-  counts = for fold(acc from init, results from all-results):
+  counts = for fold(acc from init, results from results):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
       other-errors = link(check-result,empty).filter(is-error-result).length()

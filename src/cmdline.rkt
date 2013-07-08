@@ -1,13 +1,14 @@
 #lang racket/base
 
 (require
+  pyret/lang/ffi-helpers
   pyret/lang/settings
   pyret/lang/pyret
+  (only-in pyret/lang/pyret-lang-racket checkers)
   pyret/lang/runtime
   pyret/lang/typecheck
   pyret/lang/eval
   ragg/support
-  ;; pyret/whalesong/lang/reader
   racket/cmdline
   racket/list
   racket/match
@@ -70,6 +71,9 @@
      (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")]
     ))
 
+(define (print-check-results results)
+  ((p:p-method-m (p:get-raw-field p:dummy-loc results "format")) results))
+
 (define check-mode #f)
 (command-line
   #:once-each
@@ -81,8 +85,13 @@
   (cond
     [check-mode
      (with-handlers ([exn:fail? process-pyret-error])
-       (parameterize ([param-compile-check-mode #t])
-         (dynamic-require pyret-file #f)))]
+       (parameterize ([param-compile-check-mode #t]
+                      [current-load-relative-directory base])
+         (define results
+          (eval
+            (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
+            (make-fresh-namespace)))
+         (print-check-results results)))]
     [else
      (with-handlers ([exn:fail? process-pyret-error])
       (dynamic-require pyret-file #f))]))
