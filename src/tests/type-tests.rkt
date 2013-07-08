@@ -4,8 +4,7 @@
   rackunit
   rackunit/text-ui
   "test-utils.rkt"
-  "../lang/runtime.rkt"
-  "match-set.rkt")
+  "../lang/runtime.rkt")
 
 (define six (p:mk-num 6))
 (define ten (p:mk-num 10))
