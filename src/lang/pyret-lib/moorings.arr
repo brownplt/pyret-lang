@@ -1,12 +1,12 @@
 #lang pyret/library
 
 provide {
-    list: list,
-    builtins: builtins,
-    error: error,
-    checkers: checkers,
-    option: option
-  }
+  list: list,
+  builtins: builtins,
+  error: error,
+  checkers: checkers,
+  option: option
+}
 end
 
 # BUILTINS
@@ -62,12 +62,12 @@ check:
   eq("",equiv({x : {z: "foo"}, y : 6}, {y : 6, x : {z: "foo"}}), true)
   eq("",equiv({x : {z: "foo"}, y : [true, 6]}, {y : [true, 6], x : {z: "foo"}}), true)
   eq("",equiv(fun: end, fun: end), false)
-
+  
   f = fun: end
   eq("functions in objects aren't ever equal", equiv({my_fun:f}, {my_fun:f}), false)
   m = method(self): end
   eq("methods in objects aren't ever equal", equiv({my_meth:m}, {my_meth:m}), false)
-
+  
   eq("lists of objects", equiv([{}], [{}]), true)
   eq("lists of prims", equiv([5], [5]), true)
 end
@@ -259,6 +259,20 @@ fun range(start, stop):
   end
 end
 
+fun repeat(n :: Number, e :: Any):
+  case:
+    | n < 0 => raise("repeat: can't have a negative argument'")
+    | n == 0 => empty
+    | else => link(e, repeat(n - 1, e))
+  end
+check:
+  eq = checkers.check-equals
+
+  eq("repeat 0", repeat(0, 10), [])
+  eq("repeat 3", repeat(3, -1), [-1, -1, -1])
+  eq("repeat 1", repeat(1, "foo"), ["foo"])
+end
+  
 fun map(f, lst :: List):
   case:
     | is-empty(lst) => empty
@@ -447,6 +461,7 @@ list = {
     link: link,
 
     range: range,
+    repeat: repeat,
     map: map,
     map2: map2,
     map3: map3,
