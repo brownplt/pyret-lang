@@ -518,7 +518,7 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
-  (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 12 12 0 0 0)
+  (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 13 13 0 0 0)
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
   (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))

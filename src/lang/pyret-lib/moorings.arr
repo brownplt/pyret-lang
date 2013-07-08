@@ -123,10 +123,17 @@ data List:
     get(self, n):
       case:
         | n >= 0 => raise('get: n too large: '.append(n.tostring()))
-        | else => raise('drop: invalid argument')
+        | else => raise('get: invalid argument')
       end
     end,
 
+    set(self, n, e):
+      case:
+        | n >= 0 => raise('set: n too large: '.append(n.tostring()))
+        | else => raise('set: invalid argument')
+      end
+    end,
+    
     _equals(self, other): is-empty(other) end,
 
     tostring(self): "[]" end,
@@ -193,6 +200,14 @@ data List:
       end
     end,
 
+    set(self, n, e):
+      case:
+        | n > 0 => self.first ^ link(self.rest.set(n - 1, e))
+        | n == 0 => e ^ link(self.rest)
+        | else => raise('set: invalid argument: ' + n.tostring())
+      end
+    end,
+        
     _equals(self, other):
       case:
         | is-link(other) =>
@@ -225,6 +240,11 @@ data List:
 sharing:
   push(self, elt): link(elt, self) end,
   _plus(self, other): self.append(other) end
+
+check:
+    eq = checkers.check-equals
+    
+    eq("list set", [1,2,3].set(1, 5), [1,5,3])
 end
 
 fun range(start, stop):
