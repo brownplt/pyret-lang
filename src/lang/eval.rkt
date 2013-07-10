@@ -48,7 +48,7 @@
   ;; http://docs.racket-lang.org/reference/eval.html?(def._((quote._~23~25kernel)._current-read-interaction))
   (parameterize ([read-accept-reader #t]
                  [read-accept-lang #f])
-    (if (eof-object? (peek-char in))
+    (if (not (byte-ready? in))
         eof
         (pyret->racket src in #:toplevel #t))))
 
