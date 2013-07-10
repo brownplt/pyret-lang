@@ -1,12 +1,12 @@
 #lang pyret/library
 
 provide {
-    list: list,
-    builtins: builtins,
-    error: error,
-    checkers: checkers,
-    option: option
-  }
+  list: list,
+  builtins: builtins,
+  error: error,
+  checkers: checkers,
+  option: option
+}
 end
 
 # BUILTINS
@@ -62,12 +62,12 @@ check:
   eq("",equiv({x : {z: "foo"}, y : 6}, {y : 6, x : {z: "foo"}}), true)
   eq("",equiv({x : {z: "foo"}, y : [true, 6]}, {y : [true, 6], x : {z: "foo"}}), true)
   eq("",equiv(fun: end, fun: end), false)
-
+  
   f = fun: end
   eq("functions in objects aren't ever equal", equiv({my_fun:f}, {my_fun:f}), false)
   m = method(self): end
   eq("methods in objects aren't ever equal", equiv({my_meth:m}, {my_meth:m}), false)
-
+  
   eq("lists of objects", equiv([{}], [{}]), true)
   eq("lists of prims", equiv([5], [5]), true)
 end
@@ -123,10 +123,17 @@ data List:
     get(self, n):
       case:
         | n >= 0 => raise('get: n too large: '.append(n.tostring()))
-        | else => raise('drop: invalid argument')
+        | else => raise('get: invalid argument')
       end
     end,
 
+    set(self, n, e):
+      case:
+        | n >= 0 => raise('set: n too large: '.append(n.tostring()))
+        | else => raise('set: invalid argument')
+      end
+    end,
+    
     _equals(self, other): is-empty(other) end,
 
     tostring(self): "[]" end,
@@ -193,6 +200,14 @@ data List:
       end
     end,
 
+    set(self, n, e):
+      case:
+        | n > 0 => self.first ^ link(self.rest.set(n - 1, e))
+        | n == 0 => e ^ link(self.rest)
+        | else => raise('set: invalid argument: ' + n.tostring())
+      end
+    end,
+        
     _equals(self, other):
       case:
         | is-link(other) =>
@@ -225,6 +240,11 @@ data List:
 sharing:
   push(self, elt): link(elt, self) end,
   _plus(self, other): self.append(other) end
+
+check:
+    eq = checkers.check-equals
+    
+    eq("list set", [1,2,3].set(1, 5), [1,5,3])
 end
 
 fun range(start, stop):
@@ -239,6 +259,20 @@ fun range(start, stop):
   end
 end
 
+fun repeat(n :: Number, e :: Any):
+  case:
+    | n < 0 => raise("repeat: can't have a negative argument'")
+    | n == 0 => empty
+    | else => link(e, repeat(n - 1, e))
+  end
+check:
+  eq = checkers.check-equals
+
+  eq("repeat 0", repeat(0, 10), [])
+  eq("repeat 3", repeat(3, -1), [-1, -1, -1])
+  eq("repeat 1", repeat(1, "foo"), ["foo"])
+end
+  
 fun map(f, lst :: List):
   case:
     | is-empty(lst) => empty
@@ -427,6 +461,7 @@ list = {
     link: link,
 
     range: range,
+    repeat: repeat,
     map: map,
     map2: map2,
     map3: map3,
