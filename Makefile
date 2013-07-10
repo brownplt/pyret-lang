@@ -25,6 +25,7 @@ test:
 
 clean:
 	raco setup -c pyret
+	rm src/lang/pyret-lib/*.rkt
 
 unlink:
 	raco link -r src/
