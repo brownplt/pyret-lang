@@ -181,6 +181,12 @@
     }
   );
 
+  plt.runtime.jsMap = {};
+  plt.runtime.jsMap.getElement = getElement;
+  plt.runtime.jsMap.hasKey = hasKey;
+  plt.runtime.jsMap.getKeys = getKeys;
+  plt.runtime.jsMap.addElements = addElements;
+
   EXPORTS['make-js-map'] = makeJSMap;
   EXPORTS['js-map-set'] = jsMapSet;
   EXPORTS['js-map-set*'] = jsMapSetMany;
