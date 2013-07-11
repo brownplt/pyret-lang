@@ -50,23 +50,23 @@
       #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
   (define (compile-body l body)
     (mark l (compile-expr body)))
+  (define (compile-string-literal l e)
+    (match e
+      [(s-str _ s) (d->stx s l)]
+      [else #`(p:check-str #,(compile-expr e) #,(loc-stx l))]))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
-         ([field-stx
-            (match field
-              [(s-str _ s) (d->stx s l)]
-              [else #`(p:check-str #,(compile-expr field) #,(loc-stx l))])]
-		      )
+         ([field-stx (compile-string-literal l field)])
        #`(#,lookup-type #,(loc-stx l) #,(compile-expr obj) field-stx))))
   (define (compile-member ast-node)
     (match ast-node
       [(s-data-field l name value)
        (attach l
          (with-syntax*
-          ([name-stx (compile-expr name)]
+          ([name-stx (compile-string-literal l name)]
            [val-stx (compile-expr value)]) 
-           #`(r:cons (p:check-str name-stx #,(loc-stx l)) val-stx)))]))
+           #`(r:cons name-stx val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)
@@ -79,7 +79,8 @@
        #`(r:letrec [(id expr) ...] body-id)))]
 
     [(s-num l n) #`(p:mk-num #,(d->stx n l))]
-    [(s-bool l b) #`(p:mk-bool #,(d->stx b l))]
+    [(s-bool l #t) #`p:p-true]
+    [(s-bool l #f) #`p:p-false]
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
     [(s-lam l params args ann doc body _)

@@ -67,6 +67,8 @@
       (struct-out p-object)
       (struct-out p-num)
       (struct-out p-bool)
+      p-true
+      p-false
       (struct-out p-str)
       (struct-out p-fun)
       (struct-out p-method)
