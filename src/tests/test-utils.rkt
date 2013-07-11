@@ -11,6 +11,7 @@
   compile-str
   parse-pyret
   eval-pyret
+  eval-pyret/check
   check-match
   check-not-exn)
 (require
@@ -107,7 +108,7 @@
                           [current-load-relative-directory base])
              (define check-results
               (eval-pyret/check (port->string (open-input-file file))))
-             ((p:p-method-m (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
+             ((p:p-base-method (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
          (define stdout (get-output-string output))
          (define expected-stdout
            (format

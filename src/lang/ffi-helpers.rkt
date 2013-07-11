@@ -21,7 +21,7 @@
 (define (ffi-wrap val)
   (cond
     [(procedure? val)
-     (p:mk-fun-nodoc
+     (p:mk-fun-nodoc-slow
       (lambda args
         (ffi-wrap (apply val (map ffi-unwrap args)))))]
     [(number? val) (p:mk-num val)]
@@ -37,19 +37,21 @@
     [(p:p-opaque? val) (p:p-opaque-val val)]
     [else
      (p:py-match val
-       [(p:p-fun _ __ f)
+       [(p:p-fun _ _ f _)
         (lambda args (ffi-unwrap (apply f (map ffi-wrap args))))]
-       [(p:p-num _ __ ___ n) n]
-       [(p:p-str _ __ ___ s) s]
-       [(p:p-bool _ __ ___ b) b]
-       [(p:p-object _ __ ___)
+       [(p:p-num _ _ _ _ n) n]
+       [(p:p-str _ _ _ _ s) s]
+       [(p:p-bool _ _ _ _ b) b]
+       [(p:p-object _ _ _ _)
         (if (pyret-list? val)
             (map ffi-unwrap (p:structural-list->list val))
             val)]
        [(default _) val])]))
 
 (define (wrap-racket-fun f)
-  (p:mk-fun-nodoc (λ args (ffi-wrap (wrap-racket-value (apply f (map ffi-unwrap args)))))))
+  (define (call . args)
+    (ffi-wrap (wrap-racket-value (apply f (map ffi-unwrap args)))))
+  (p:mk-fun-nodoc-slow call))
 
 (define (get-val arg)
   (cond

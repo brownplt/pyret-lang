@@ -72,7 +72,7 @@
     ))
 
 (define (print-check-results results)
-  ((p:p-method-m (p:get-raw-field p:dummy-loc results "format")) results))
+  ((p:p-base-method (p:get-raw-field p:dummy-loc results "format")) results))
 
 (define check-mode #f)
 (command-line

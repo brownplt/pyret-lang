@@ -55,7 +55,7 @@
         [else (raise (p:pyret-error p:dummy-loc "big-bang-no-impl"
                       (format "No implementation for big-bang handler ~a" k)))]))
     (match (second args)
-      [(p:p-object _ d _)
+      [(p:p-object _ d _ _)
        (define hash-for-bb
          (make-hash
           (string-map-map
@@ -67,7 +67,7 @@
       [v (raise (p:pyret-error p:dummy-loc "big-bang-non-object"
                      (format "Non-object given to big bang: ~a" (p:to-string v))))]))
 
-(define big-bang-pfun (p:mk-internal-fun big-bang))
+(define big-bang-pfun (p:mk-fun-nodoc-slow big-bang))
 
 (define export (p:mk-object
   (make-string-map (list (cons "big-bang" big-bang-pfun)))))

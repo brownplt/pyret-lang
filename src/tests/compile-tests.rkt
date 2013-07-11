@@ -20,7 +20,7 @@
 (define constants (test-suite
   "constants and literals"
 
-  (check-pyret-match "5" (p:p-num (hash-table) x _ 5))
+  (check-pyret-match "5" (p:p-num (hash-table) x _ _ 5))
   (check-pyret "5" five)
   (check-pyret-fail "2" five)
 
@@ -28,8 +28,8 @@
 
   (check-pyret "'5'" (p:mk-str "5"))
 
-  (check-pyret-match "true" (p:p-bool _ _ _ #t))
-  (check-pyret-match "false" (p:p-bool _ _ _ #f))
+  (check-pyret-match "true" (p:p-bool _ _ _ _ #t))
+  (check-pyret-match "false" (p:p-bool _ _ _ _ #f))
 
   (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five))))) 
   (check-pyret "{['x']:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
@@ -87,17 +87,17 @@
 
 (define brands (test-suite "brands"
 
-  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("test" _)) _))
+  (check-pyret-match "brander()" (p:p-object (hash-table) (hash-table ("brand" _) ("test" _)) _ _))
   (check-pyret-match "fun f(z): x = brander() y = x.brand(z) y end f(2)"
-                     (p:p-num (hash-table _) _ _ 2))
+                     (p:p-num (hash-table _) _ _ _ 2))
   (check-pyret-match "fun f(z): x = brander() y = x.brand(z) x.test(y) end f(2)"
-                     (p:p-bool _ _ _ #t))
+                     (p:p-bool _ _ _ _ #t))
   (check-pyret-match "fun f(y): x = brander() x.test(y) end f(2)"
-                     (p:p-bool _ _ _ #f))
+                     (p:p-bool _ _ _ _ #f))
   (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) y.test(u) end f(3)"
-                     (p:p-bool _ _ _ #f))
+                     (p:p-bool _ _ _ _ #f))
   (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.test(w) end f(3)"
-                     (p:p-bool _ _ _ #t))
+                     (p:p-bool _ _ _ _ #t))
   ))
 
 
@@ -203,7 +203,7 @@
 
   (check-pyret-match
     "data Foo: | bar() end bar._doc"
-    (p:p-str _ _ _ _))
+    (p:p-str _ _ _ _ _))
 
   (check-pyret
    "data List:
@@ -253,7 +253,7 @@
      | singleton
     end
     singleton"
-    (p:p-object _ _ _))
+    (? p:p-object? _))
 
   (check-pyret
    "data Foo:
@@ -311,7 +311,7 @@
   (check-pyret-match
    "import '../lang/pyret-lib/file.arr' as file
     file.file"
-   (p:p-fun _ _ _))
+   (? p:p-fun? _))
   ;; two nested directories deep, the string "inner" is provided
   (check-pyret
    "import 'modules/nested-dir.arr' as result
@@ -360,12 +360,12 @@
 (define built-in-libraries (test-suite "built-in-libraries"
 
   (check-pyret-match "list.is-empty([]) and list.List([])"
-                          (p:p-bool _ _ _ #t))
+                          (? p:pyret-true? _))
 
 
   (check-pyret-match
     "prim-keys({x : 5})"
-    (p:p-object _ _ _))
+    (? p:p-object? _))
 
   (check-pyret
     "[5].first"
@@ -414,7 +414,7 @@
   (check-pyret "import Racket as R
                 R('racket')('+',2, 3)" five)
   (check-pyret-match "import Racket as R
-                      R('racket')('string-append','four', 'ty', 'two')" (p:p-str _ _ _ "fourtytwo"))
+                      R('racket')('string-append','four', 'ty', 'two')" (p:p-str _ _ _ _ "fourtytwo"))
   (check-pyret-exn "import Racket as R
                     R('racket')('map',4,5)" "map")
   (check-pyret "import Racket as R
@@ -453,7 +453,7 @@
 
   (check-pyret-match
     "list.empty"
-    (p:p-object _ _ _))
+    (? p:p-object? _))
 
   (check-pyret
    "builtins.keys({x:5}).first"
@@ -800,7 +800,7 @@ o2.m().called" true)
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
   (check-pyret "x = {_lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
   (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Arity")
-  (check-pyret-exn "x = {_greaterthan: 3} x > 5" "expected function")
+  (check-pyret-exn "x = {_greaterthan: 3} x > 5" "expected method")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
   (check-pyret "a = 1 b = 2 (a == b) or (true)" (p:mk-bool #t))
   (check-pyret "true and false" (p:mk-bool #f))

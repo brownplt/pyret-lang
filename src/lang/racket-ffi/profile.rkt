@@ -20,7 +20,7 @@
   (printf "Wall time for profiled code was: ~ams\n" (- end start))
   result)
 
-(define profile-pfun (p:mk-internal-fun profile-wrapper))
+(define profile-pfun (p:mk-fun-nodoc-slow profile-wrapper))
 
 (define export (p:mk-object
   (make-string-map (list (cons "profile" profile-pfun)))))

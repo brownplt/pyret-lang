@@ -128,23 +128,15 @@
              temp)))]
 
     [(s-app l (s-bracket l2 obj field) args)
-        (with-syntax* ([obj (compile-expr obj)]
-                       [(arg ...) (map compile-expr args)]
-                       [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
-                       [field (match field
-                                [(s-str _ s) (d->stx s l)]
-                                [else #`(p:check-str #,(compile-expr field) #,(loc-stx l))])])
+     (with-syntax* ([obj (compile-expr obj)]
+                    [(arg ...) (map compile-expr args)]
+                    [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
+                    [field (compile-string-literal l2 field)])
          (mark l
           #`(r:let* ([%obj obj]
                      [%field (p:get-raw-field #,(loc-stx l) %obj field)]
-                     [%is-method (p:p-method? %field)]
-                     [%fun (r:cond
-                            [%is-method (p:p-method-m %field)]
-                            [else (p:p-base-app %field)])]
                      [argid arg] ...)
-              (r:cond
-               [%is-method (%fun %obj argid ...)]
-               [else (%fun argid ...)]))))]
+              ((p:p-base-method %field) %obj argid ...))))]
 
 
     [(s-app l fun args)
