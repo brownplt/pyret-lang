@@ -55,6 +55,10 @@
   (define (ds-if-branch branch)
     (match branch
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
+  (define (ds-cases-branch branch)
+    (match branch
+      [(s-cases-branch s name args blk)
+       (s-cases-branch s name (map ds-bind args) (ds blk))]))
   (define (ds-ann ast)
     (match ast
       [(a-pred s t e) (a-pred s t (ds e))]
@@ -122,6 +126,11 @@
 
     [(s-if s if-bs) (s-if s (map ds-if-branch if-bs))]
     [(s-if-else s if-bs else) (s-if-else s (map ds-if-branch if-bs) (ds else))]
+
+    [(s-cases type val s c-bs)
+     (s-cases s (ds type) (ds val) (map ds-cases-branch c-bs))]
+    [(s-cases-else type val s c-bs else)
+     (s-cases-else s (ds type) (ds val) (map ds-cases-branch c-bs) (ds else))]
 
     [(s-case s c-bs)
      (define (ds-case branch)

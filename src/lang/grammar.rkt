@@ -27,7 +27,7 @@ paren-expr: PARENSPACE binop-expr ")"
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
-    | for-expr | paren-expr | try-expr | if-expr
+    | for-expr | paren-expr | try-expr | if-expr | cases-expr
 
 
 id-expr: NAME
@@ -73,6 +73,8 @@ check-clause: ["check:" block]
 
 when-expr: "when" binop-expr ":" block "end"
 
+cases-branch: "|" NAME [args] "=>" block
+cases-expr: "cases" (PARENSPACE|PARENNOSPACE) expr ")" expr ":" cases-branch* ["|" "else" "=>" block] "end"
 
 case-branch: "|" binop-expr "=>" block
 case-expr: "case:" case-branch* "end"

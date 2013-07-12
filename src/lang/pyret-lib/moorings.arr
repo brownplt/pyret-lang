@@ -272,6 +272,18 @@ check:
   eq("repeat 3", repeat(3, -1), [-1, -1, -1])
   eq("repeat 1", repeat(1, "foo"), ["foo"])
 end
+
+fun filter(f, lst :: List):
+  case:
+    | is-empty(lst) => empty
+    | true =>
+      if f(lst.first):
+        lst.first^link(filter(f, lst.rest))
+      else:
+        filter(f, lst.rest)
+      end
+  end
+end
   
 fun map(f, lst :: List):
   case:
@@ -462,6 +474,7 @@ list = {
 
     range: range,
     repeat: repeat,
+    filter: filter,
     map: map,
     map2: map2,
     map3: map3,
@@ -508,6 +521,8 @@ data Error:
     name(self): "Field not found" end
   | field-non-string(message :: String, location :: Location) with:
     name(self): "Non-string in field name" end
+  | cases-miss(message :: String, location :: Location) with:
+    name(self): "No cases matched" end
   | lazy-error(message :: String, location :: Location) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:

@@ -28,6 +28,10 @@
    (match b
      [(s-if-branch s tst blk)
       (build s_if_branch (tp-loc s) (tp tst) (tp blk))]))
+  (define (tp-cases-branch b)
+   (match b
+     [(s-cases-branch s name args blk)
+      (build s_cases_branch (tp-loc s) (tp name) (map tp-bind args) (tp blk))]))
   (define (tp-variant variant)
     (match variant
       [(s-variant l name binds members)
@@ -151,6 +155,18 @@
 
     [(s-if-else s if-bs else)
      (build s_if_else (tp-loc s) (map tp-if-branch if-bs) (tp else))]
+
+    [(s-cases s type val c-bs)
+     (build s_cases (tp-loc s) 
+                    (tp type)
+                    (tp val)
+                    (map tp-cases-branch c-bs))]
+
+    [(s-cases-else s type val c-bs else)
+     (build s_cases_else (tp-loc s)
+                         (tp type)
+                         (tp val)
+                         (map tp-cases-branch c-bs) (tp else))]
 
     [(s-try s try exn catch)
      (build s_try

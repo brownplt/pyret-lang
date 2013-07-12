@@ -256,20 +256,6 @@
     [(s-block l stmts)
      (with-syntax ([(stmt ...) (compile-block l stmts (compile-env (set)))])
        (attach l #'(r:begin stmt ...)))]
-     #|
-     (define (compile-top-stmt stmt)
-      (match stmt
-        [(s-var s (s-bind _ id _) val)
-         (with-syntax ([id-stx (discard-_ id)])
-          #`(r:define id-stx #,(compile-expr val)))]
-        ;; TODO(joe): Can set! immutable vars at the REPL
-        [(s-let s (s-bind _ id _) val)
-         (with-syntax ([id-stx (discard-_ id)])
-          #`(r:define id-stx #,(compile-expr val)))]
-        [else (compile-expr stmt)]))
-     (with-syntax ([(expr ...) (map compile-top-stmt stmts)])
-     (attach l #`(r:begin expr ...)))]
-     |#
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 
 (define (discard-_ name)

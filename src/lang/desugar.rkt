@@ -14,6 +14,67 @@
 (define (make-checker s name tyname brander)
   (s-let s (s-bind s name (a-blank)) (s-dot s brander 'test)))
 
+(define (lam s args body)
+  (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+
+(define (add-matcher s base name variants)
+  (define (app-with-fields s f members)
+    (define (member->access m)
+      (s-bracket s (s-id s 'val) (s-str s (symbol->string (s-bind-id m)))))
+    (s-app s f (map member->access members)))
+  (define (helper-for-variant v)
+    (match v
+      [(s-singleton-variant s _ _)
+       (lam s (list 'f) (s-app s (s-id s 'f) (list)))]
+      [(s-variant s _ members _)
+       (lam s (list 'f) (app-with-fields s (s-id s 'f) members))]))
+  (define (pred-entry-for v)
+    (match v
+      [(or (s-singleton-variant s name _) (s-variant s name _ _))
+       (s-data-field s
+        (s-str s (symbol->string name))
+        (s-id s (make-checker-name name)))]))
+  (define (helper-entry-for v)
+    (match v
+      [(or (s-singleton-variant s name _) (s-variant s name _ _))
+       (s-data-field s
+        (s-str s (symbol->string name))
+        (helper-for-variant v))]))
+  (define pred-dict (s-obj s (map pred-entry-for variants)))
+  (define helpers-dict (s-obj s (map helper-entry-for variants)))
+  (define loop-body
+    (s-app s
+      (s-bracket s (s-id s 'preds)
+                   (s-dot s (s-id s 'elt) 'key))
+      (list (s-id s 'val))))
+  (define loop
+    (s-for s (s-dot s (s-id s 'list) 'filter)
+      (list (s-for-bind s (s-bind s 'elt (a-blank)) (s-id s 'cases)))
+      (a-blank)
+      loop-body))
+  (define post-loop
+    (s-if-else s
+      (list
+        (s-if-branch s
+          (s-app s (s-dot s (s-id s 'list) 'is-empty)
+                   (list (s-id s 'matched)))
+          (s-app s (s-id s 'else-fun) (list))))
+      (s-app s
+        (s-bracket s (s-id s 'helpers)
+                     (s-dot s (s-dot s (s-id s 'matched) 'first) 'key))
+        (list (s-dot s (s-dot s (s-id s 'matched) 'first) 'action)))))
+  (define matcher-fun
+    (lam s (list 'val 'cases 'else-fun)
+           (s-block s
+            (list
+              (s-let s (s-bind s 'preds (a-blank)) pred-dict)
+              (s-let s (s-bind s 'helpers (a-blank)) helpers-dict)
+              (s-let s (s-bind s 'matched (a-blank)) loop)
+              post-loop))))
+  (s-let s (s-bind s name (a-blank))
+    (s-extend s base
+      (list (s-data-field s (s-str s "case_matcher") (desugar-internal matcher-fun))))))
+
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
     (s-data-field (s-bind-syntax m)
@@ -151,6 +212,20 @@
   (define (ds-if branch)
     (match branch
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
+  (define (ds-cases s type val cases else)
+    (define matcher-fun (s-dot s type 'case_matcher))
+    (define (ds-cases-branch b)
+      (match b
+        [(s-cases-branch s2 name args body)
+         (s-obj s
+          (list
+            (s-data-field s2 (s-str s2 "key") (s-str s2 (symbol->string name)))
+            (s-data-field s2 (s-str s2 "action")
+              (s-lam s2 empty args (a-blank) "" body (s-block s2 empty)))))]))
+    (define else-fun
+      (s-lam s empty empty (a-blank) "" else (s-block s empty)))
+    (ds (s-app s matcher-fun (list val (s-list s (map ds-cases-branch cases)) else-fun))))
+
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -161,8 +236,7 @@
                   (append
                    (list (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
-                         (make-checker s name name
-                                       (s-id s brander-name)))
+                         (add-matcher s (s-dot s (s-id s brander-name) 'test) name variants))
                    (variant-defs/list brander-name share-members variants))))]
 
     [(s-for s iter bindings ann body)
@@ -211,6 +285,7 @@
      (s-if-else s (map ds-if cases) (ds else))]
 
     [(s-if s cases)
+     ;; TODO(joe): call some constructor from error.arr for better error
      (define if-fallthrough
        (s-block s
                 (list
@@ -219,6 +294,18 @@
                         (list (s-str s "if: no tests matched"))))))
      (s-if-else s (map ds-if cases) if-fallthrough)]
      
+    [(s-cases s type val cases)
+     ;; TODO(joe): call `cases-miss` from error.arr
+     (define cases-fallthrough
+       (s-block s
+                (list
+                 (s-app s
+                        (s-id s 'raise)
+                        (list (s-str s "cases: no cases matched"))))))
+     (ds-cases s type val cases cases-fallthrough)]
+
+    [(s-cases-else s type val cases else-block)
+     (ds-cases s type val cases else-block)]
 
     [(s-case s c-bs)
      (define (ds-case branch)

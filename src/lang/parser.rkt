@@ -222,6 +222,15 @@
     [(case-branch "|" test "=>" body)
      (s-case-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
+(define (parse-cases-branch stx)
+  (syntax-parse stx
+    #:datum-literals (cases-branch)
+    [(cases-branch "|" name "=>" body)
+     (s-cases-branch (loc stx) (parse-name #'name) empty (parse-block #'body))]
+    [(cases-branch "|" name args "=>" body)
+     (s-cases-branch (loc stx) (parse-name #'name) (parse-args #'args) (parse-block #'body))]))
+
+
 (define (parse-else-if stx)
   (syntax-parse stx
     #:datum-literals (else-if)
@@ -296,6 +305,13 @@
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(case-expr "case:" branch ... "end")
      (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
+    [(cases-expr "cases" "(" type ")" val ":" branch ... "|" "else" "=>" else-block "end")
+     (s-cases-else (loc stx) (parse-expr #'type) (parse-expr #'val)
+      (map/stx parse-cases-branch #'(branch ...))
+      (parse-block #'else-block))]
+    [(cases-expr "cases" "(" type ")" val ":" branch ... "end")
+     (s-cases (loc stx) (parse-expr #'type) (parse-expr #'val)
+      (map/stx parse-cases-branch #'(branch ...)))]
     [(if-expr "if" test ":" body branch ... "else:" else-block "end")
      (s-if-else (loc stx)
        (cons
