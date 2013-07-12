@@ -31,9 +31,7 @@ Most syntax in the language are expression forms, which means they can
 appear almost anywhere in the syntax where it would make sense. The
 exception are the binding forms - named function definitions, data
 declarations, and variable binding. Binding forms can only appear in
-blocks. At the end of this introduction is a section that will describe
-where blocks appear (but, it shouldn't be surprising - at the top level,
-in functions, etc).
+[blocks](#blocks).
 
 #### Objects
 
@@ -548,7 +546,7 @@ way and didn't want to have to re-run it, you could write code like:
     run(z) # doesn't run expensive-check  
 
 Note that since objects are not mutable, the `.brand` method returns a
-new object with the brand added. You are welcome to use `branders` for
+new object with the brand added. You are welcome to use `brander`s for
 whatever you want - we think they are an interesting pattern for
 controlling a certain kind of truth within a program (of which a type
 is just one example).
