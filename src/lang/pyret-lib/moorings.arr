@@ -486,7 +486,7 @@ list = {
 
 data Location:
   | location(file :: String, line, column) with:
-    equals(self, other):
+    _equals(self, other):
       is-location(other) and
       (self.file == other.file) and
       (self.line == other.line) and
