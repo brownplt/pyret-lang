@@ -155,9 +155,9 @@ example, we might have a deeply nested computation that needs to record that
 sometimes specific happened, and threading the result out isn't convenient.
 For this, we have a separate declaration, and a way to update those variables:
 
-   var x = 10
-   # ...
-   x := 20
+    var x = 10
+    # ...
+    x := 20
 
 ### More Values
 
