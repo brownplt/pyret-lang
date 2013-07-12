@@ -82,7 +82,6 @@
       mk-fun
       mk-fun-nodoc
       mk-fun-nodoc-slow
-      mk-internal-fun
       pμ
       mk-method
       mk-structural-list
@@ -378,11 +377,6 @@
 (define (mk-fun-nodoc-slow f)
   (p-fun no-brands empty-dict f (lambda (_ . args) (apply f args))))
   
-
-;; mk-internal-fun : (Value ... -> Value) -> Value
-(define (mk-internal-fun f m)
-  (p-fun no-brands empty-dict f m))
-
 (define method-bad-app (bad-app "method"))
 ;; mk-method-method : (Value ... -> Value) String -> p-method
 (define (mk-method-method f doc)
