@@ -180,6 +180,9 @@
       (match fun
         [(s-id l2 (? (λ (s) (set-member? (compile-env-functions-to-inline env) s)) id))
          (make-immediate-id id)]
+        [(s-lam l _ args _ doc body _)
+         (with-syntax ([(arg ...) (args-stx l args)])
+           #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env)))]
         [_ #`(p:p-base-app #,(compile-expr fun env))]))
      (attach l
         (with-syntax ([fun (compile-fun-expr fun)]
