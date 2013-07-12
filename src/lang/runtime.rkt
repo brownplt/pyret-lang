@@ -431,9 +431,18 @@
   (define vfield (get-raw-field loc v f))
   (cond
     [(p-method? vfield)
-     (mk-fun (λ args (apply (p-base-method vfield) (cons v args)))
-             (λ args (apply (p-base-method vfield) (cons v (rest args))))
-     "")]
+     (let [(curried
+            (mk-fun (λ args (apply (p-base-method vfield)
+                                   (cons v args)))
+                    (λ args (apply (p-base-method vfield)
+                                   (cons v (rest args))))
+                    (get-field loc vfield "_doc")))]
+       (if (has-field? vfield "tostring")
+           (extend loc curried
+                   (list
+                    (cons "tostring"
+                          (get-field loc vfield "tostring"))))
+           curried))]
     [else vfield]))
 
 (define (check-str v l)
@@ -703,13 +712,24 @@ And the object was:
 
 ;; to-string : Value -> String
 (define (to-string v)
+  (define (call-tostring v fallback)
+    (if (has-field? v "tostring")
+        (let [(m (get-raw-field dummy-loc v "tostring"))]
+          (if (p-method? m)
+              ;; NOTE(dbp): this will fail if tostring isn't defined
+              ;; as taking only self.
+              (py-match ((p-base-method m) v)
+                        [(p-str _ _ _ _ s) s]
+                        [(default _) fallback])
+              fallback))
+        fallback))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
     [(p-num _ _ _ _ n) (format "~a" n)]
     [(p-str _ _ _ _ s) (format "~a" s)]
     [(p-bool _ _ _ _ b) (if b "true" "false")]
-    [(p-method _ _ _ _) "[[code]]"]
-    [(p-fun _ _ _ _) "[[code]]"]
+    [(p-method _ _ _ _) (call-tostring v "[[code]]")]
+    [(p-fun _ _ _ _) (call-tostring v "[[code]]")]
     [(p-object _ h _ _)
      (let ()
        (define (to-string-raw-object h)
@@ -717,16 +737,9 @@ And the object was:
            (format "~a: ~a" f (to-string v)))
          (format "{ ~a }"
                  (string-join (string-map-map h field-to-string) ", ")))
-       (if (has-field? v "tostring")
-           (let [(m (get-raw-field dummy-loc v "tostring"))]
-             (if (p-method? m)
-                 ;; NOTE(dbp): this will fail if tostring isn't defined
-                 ;; as taking only self.
-                 (py-match ((p-base-method m) v)
-                           [(p-str _ _ _ _ s) s]
-                           [(default _) (to-string-raw-object h)])
-                 (to-string-raw-object h)))
-           (to-string-raw-object h)))]
+       (call-tostring
+        v
+        (to-string-raw-object h)))]
     [(default _) (format "~a" v)]))
 
 (define tostring-pfun (pλ/internal (loc) (o)

@@ -79,7 +79,14 @@
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
-       (s-data-field s (desugar-internal name) (s-method s args ann doc (desugar-internal body) (desugar-internal check)))]))
+       ;; NOTE(dbp): we could make the tostring more expensive and
+       ;; pass this around as a value, but most of the time it
+       ;; should just be a string.
+       (let [(best-guess-name (if (s-str? name) (s-str-s name)
+                                  ""))]
+       (s-data-field s (desugar-internal name)
+          (add-lam-tostring s "method" best-guess-name args
+          (s-method s args ann doc (desugar-internal body) (desugar-internal check)))))]))
 
 (define (desugar-ann ann)
   (match ann
@@ -178,19 +185,22 @@
                                          (map s-bind-ann args)))
                              ((replace-typarams typarams)
                               (desugar-ann ann))))
+            (add-lam-tostring s "fun" name args
             (s-lam s typarams (map (replace-typarams-binds typarams)
                                    (ds-args args))
                    ((replace-typarams typarams) (desugar-ann ann))
-                   doc (ds body) (ds check)))]
+                   doc (ds body) (ds check))))]
 
     [(s-lam s typarams args ann doc body check)
+     (add-lam-tostring s "fun" "" args
      (s-lam s typarams (map (replace-typarams-binds typarams)
                             (ds-args args))
             ((replace-typarams typarams) (desugar-ann ann))
-            doc (ds body) (ds check))]
+            doc (ds body) (ds check)))]
 
     [(s-method s args ann doc body check)
-     (s-method s args ann doc (ds body) (ds check))]
+     (add-lam-tostring s "method" "" args
+     (s-method s args ann doc (ds body) (ds check)))]
 
     [(s-when s test body)
      (s-case s (list
@@ -287,6 +297,31 @@
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
 
 (define-runtime-path FFI "racket-ffi/")
+
+(define (add-lam-tostring loc type name args obj)
+  (define prefix
+    (format "~a ~a(~a): '" type name
+            (string-join
+             (map
+              (compose symbol->string s-bind-id) args)
+             ", ")))
+  (define end (s-str loc "' end"))
+  (s-extend loc obj
+            (list (s-data-field loc (s-str loc "tostring")
+                   (s-method
+                   loc (list (s-bind loc 'self (a-blank)))
+                   (a-blank) ""
+                   (s-block loc (list
+                    (s-app loc
+                    (s-bracket loc
+                     (s-app loc
+                      (s-bracket loc (s-str loc prefix)
+                             (s-str loc "_plus"))
+                      (list (s-bracket loc (s-id loc 'self)
+                                   (s-str loc "_doc"))))
+                     (s-str loc "_plus"))
+                    (list end))))
+                   (s-block loc empty))))))
 
 (define (top-level-ids block)
   (define (_top-level-ids expr)

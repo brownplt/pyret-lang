@@ -82,6 +82,19 @@
     "5(raise('foo'))"
     "foo")
 
+  ;; tostring on functions
+  (check-pyret-match "fun f(x): x end f.tostring()"
+             (p:p-str _ _ _ _ "fun f(x): '' end"))
+  
+  (check-pyret-match "fun f(x): doc: 'great' x end f.tostring()"
+               (p:p-str _ _ _ _ "fun f(x): 'great' end"))
+
+  (check-pyret-match "(fun(x): x end).tostring()"
+               (p:p-str _ _ _ _ "fun (x): '' end"))
+
+  (check-pyret-match "(fun(x): doc: 'great' x end).tostring()"
+               (p:p-str _ _ _ _ "fun (x): 'great' end"))
+
 ))
 
 
@@ -584,6 +597,8 @@
   (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
   (check-pyret "tostring({a: 5, tostring(self): 'hello!' end})"
          (p:mk-str "hello!"))
+  (check-pyret "tostring(fun(x): x end)" (p:mk-str "fun (x): '' end"))
+  (check-pyret "tostring(method(x): doc: 'yay' x end)" (p:mk-str "method (x): 'yay' end"))
 ))
 
 (define methods (test-suite "methods"
@@ -624,6 +639,25 @@ o2.m().called" true)
   (check-pyret "method(self): doc: 'hello' 1 end._fun()._doc" (p:mk-str "hello"))
   (check-pyret "fun(self): doc: 'hello' 1 end._method()._doc" (p:mk-str "hello"))
 
+  ;; tostring on methods
+  (check-pyret-match "(method (x): x end).tostring()"
+             (p:p-str _ _ _ _ "method (x): '' end"))
+
+  (check-pyret-match "(method (x): doc: 'cool' x end).tostring()"
+             (p:p-str _ _ _ _ "method (x): 'cool' end"))
+  
+  (check-pyret-match "o = {foo(x): x end} o:foo.tostring()"
+               (p:p-str _ _ _ _ "method foo(x): '' end"))
+
+  (check-pyret-match "o = {foo(x): doc: 'cool' x end} o:foo.tostring()"
+               (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
+
+
+  ;; when curried, tostring() should still be the same
+  (check-pyret-match "o = {foo(x): doc: 'cool' x end} o.foo.tostring()"
+               (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
+
+  
 ))
 
 (define exceptions (test-suite "exceptions"
@@ -902,6 +936,7 @@ o2.m().called" true)
     ))
 
 
+    
 (define all (test-suite "all"
   constants
   functions
