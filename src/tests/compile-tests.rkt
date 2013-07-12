@@ -98,6 +98,14 @@
                      (p:p-bool _ _ _ _ #f))
   (check-pyret-match "fun f(z): x = brander() y = brander() u = x.brand(z) w = y.brand(u) x.test(w) end f(3)"
                      (p:p-bool _ _ _ _ #t))
+
+  (check-pyret
+    "b = brander()
+     true-branded = b.brand(true)
+     case:
+       | true-branded => 5
+     end"
+     five)
   ))
 
 
