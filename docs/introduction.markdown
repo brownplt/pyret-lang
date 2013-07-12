@@ -179,6 +179,9 @@ Which will do the same as the previous example. It's also usually
 preferred, as thinking / talking about functions is easier when they
 have names.
 
+Bindings are visible at the same scope level and in any nested scope
+(ie, local function definitions, etc).
+
 Sometimes you want to be able to change the value in a variable. For
 example, we might have a deeply nested computation that needs to
 record that sometimes specific happened, and threading the result out
@@ -206,8 +209,8 @@ written with the `method` keyword instead of `fun`. An example:
 
 When a method is put in an object, it can be called as follows:
 
-   o = {foo: method(self): 10 end}
-   o.foo()
+    o = {foo: method(self): 10 end}
+    o.foo()
 
 The first argument to the method will be bound to the value of the
 object when it is called - the rest will be what is passed to the
