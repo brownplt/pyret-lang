@@ -455,16 +455,16 @@ In both forms, there can be any number of comma-separated methods.
 
 ... To be added.
 
-### Where blocks
+### Check blocks
 
-One of the more interesting features of Pyret is the `where` block. At
+One of the more interesting features of Pyret is the `check` block. At
 the end of any function or data definition, or in any block, you can
-add a `where` block, which contains code that asserts various
+add a `check` block, which contains code that asserts various
 properties about the function or data definition (or just tests things
 in general). If you run Pyret in `check` mode, we run these
-blocks. The novel feature is that you can put `where` blocks on nested
+blocks. The novel feature is that you can put `check` blocks on nested
 functions, and they will be run with the arguments to the outer
-function from outer `where` blocks, which allows sensible testing of
+function from outer `check` blocks, which allows sensible testing of
 nested functions. For example:
 
     fun fact(n):
@@ -474,14 +474,14 @@ nested functions. For example:
         else:
           fact_(n - 1, acc * n)
         end
-      where:
+      check:
         fact_(0, 0) is 0
         fact_(n, 0) is 0
         fact_(3, 3) is 18
         fact_(5, 1) is 120
       end
       fact_(n, 1)
-    where
+    check
       fact(1) is 1
       fact(5) is 120
       fact(3) is 6
@@ -581,7 +581,7 @@ blocks are:
 - top level of a `.arr` file (or Captain Teach editor)
 - `function` bodies
 - `method` bodies
-- `where` bodies
+- `check` bodies
 - `if`, `else if`, and `else` branches
 - inside `when`
 - between `try` and `except`, and `except` and `end`
