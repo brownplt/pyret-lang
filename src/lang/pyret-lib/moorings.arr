@@ -106,7 +106,7 @@ data List:
       case:
         | n == 0 => empty
         | n > 0 => raise('take: took too many')
-        | else => raise('take: invalid argument')
+        | else => raise('take: invalid argument on empty list: ' + n.tostring())
       end
     end,
 
@@ -180,7 +180,7 @@ data List:
       case:
         | n == 0 => empty
         | n >= 0 => self.first^link(self.rest.take(n - 1))
-        | else => raise('take: invalid argument')
+        | else => raise('take: invalid argument on non-empty list: ' + n.tostring())
       end
     end,
 

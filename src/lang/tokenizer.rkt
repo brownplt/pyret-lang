@@ -137,16 +137,12 @@
       ;; strings
       [(concatenation
         "\""
-        (repetition 0 +inf.0 (union "\\\"" (intersection
-                                            (char-complement #\")
-                                            (char-complement #\newline))))
+        (repetition 0 +inf.0 (union "\\\"" (char-complement #\")))
         "\"")
        (token STRING (fix-escapes lexeme))]
       [(concatenation
         "'"
-        (repetition 0 +inf.0 (union "\\'" (intersection
-                                           (char-complement #\')
-                                           (char-complement #\newline))))
+        (repetition 0 +inf.0 (union "\\'" (char-complement #\')))
         "'")
        (token STRING (fix-escapes lexeme))]
       ;; brackets

@@ -62,6 +62,10 @@
 
 (define literals (test-suite "literals"
   (check/block "'str'" (s-str _ "str"))
+  (check/block "'multi
+line string'" (s-str _ "multi\nline string"))
+  #;(check/block "\"multi
+line string\"" (s-str _ "multi\nline string"))
   (check/block "5" (s-num _ 5))
   (check/block "-7" (s-num _ -7))
   (check/block "10.2" (s-num _ 10.2))
