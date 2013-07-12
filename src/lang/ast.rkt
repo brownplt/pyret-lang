@@ -23,7 +23,6 @@ these metadata purposes.
     [else (error (format "Non-symbol, non-string, non-path value for
                           source: ~a" e))]))
 
-
 ;; s-prog : srcloc (Listof Header) s-block -> s-prog
 (struct s-prog (syntax imports block) #:transparent)
 

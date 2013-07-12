@@ -10,14 +10,17 @@ sharing:
 check:
   fun do-not-include-this():
   end
+  nothing
 end
 
 fun foo():
   fun bar():
   end
+  nothing
 check:
   fun do-not-include-this():
   end
+  nothing
 end
 
 x = "toplevel x"
