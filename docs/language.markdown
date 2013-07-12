@@ -1,16 +1,16 @@
-# Pyret Language Reference
+## Pyret Language Reference
 
-## Basics
+### Basics
 
-### Hello world
+#### Hello world
 
     print("Hello World!")
 
-### Comments
+#### Comments
 
 Are single line, starting from the `#` character and running to the end of the line.
 
-### Whitespace
+#### Whitespace
 
 Is not significant except insofar as to separate pieces of syntax. So
 there are places where you must place _some_ whitespace, but
@@ -18,11 +18,11 @@ indentation, nor how much whitespace (and what combination of newlines
 and spaces) never matters.
 
 
-### Separators
+#### Separators
 
 There are also no line end separators. Pyret is semicolonless. 
 
-### Expressions
+#### Expressions
 
 Most syntax in the language are expression forms, which means they can
 appear almost anywhere in the syntax where it would make sense. The
@@ -31,15 +31,15 @@ declarations, and variable binding. Binding forms can only appear at
 the block level (ie, at the top level and within functions / methods /
 where blocks).
 
-### Objects
+#### Objects
 
 Every value is an object. This means that the basic object operations
 (adding fields and methods, looking stuff up, `branding` (to be
 defined later) can be done on any value.)
 
-## Values
+### Values
 
-### Numbers
+#### Numbers
 
 Written with or without decimals. Examples:
 
@@ -47,14 +47,14 @@ Written with or without decimals. Examples:
     5.12
     -79
 
-### Booleans
+#### Booleans
 
 There are only two:
 
     true
     false
 
-### Strings
+#### Strings
 
 Written as double quoted unicode strings. They may span multiple
 lines. Character escapes like \n work, and the double quote character
@@ -67,7 +67,7 @@ can be included if escaped like \".
 
     "an example\n\nwith explicit newline\ncharacters"
 
-### Objects
+#### Objects
 
 Written as dictionary literals, in curly brace syntax. Keys are always
 strings, and can be computed from an arbitrary expression, and should
@@ -85,7 +85,7 @@ written without.
 
     {["foobar"]: 300}.foobar # evaluates to 300
 
-### Lists
+#### Lists
 
 Written as square bracket comma-separated values, lists can have any
 value in them (they are heterogeneous). Lists are objects, so the
@@ -102,7 +102,7 @@ standard libraries. `[1,2,3]` is really `link(1,link(2,link(3,empty)))`
 where `empty` is one constructor, that is an empty list, and `link` is another,
 that takes a value and another list.
 
-### Functions
+#### Functions
 
 Function values are written with the `fun` keyword and then a comma separated
 list of arguments followed by a body and then the keyword `end`. There is
@@ -136,7 +136,7 @@ But it might be more confusing. In general though, functions will
 usually be bound to variables or passed as arguments instead of being used
 immediately after construction.
 
-## Variables and Named Functions
+### Variables and Named Functions
 
 We can bind any value to a name with `=`. This value cannot be changed
 (though the binding can be shadowed). For example:
@@ -159,9 +159,9 @@ For this, we have a separate declaration, and a way to update those variables:
    # ...
    x := 20
 
-## More Values
+### More Values
 
-### Methods
+#### Methods
 
 Methods are a separate kind of value from functions. Given a function,
 you can get a corresponding method, and the same is true in reverse,
@@ -195,7 +195,7 @@ This could then be applied as a normal function, passing in a value for `self`:
     f = m._fun()
     f({bar: 20}) # evaluates to 10
 
-## Operators
+### Operators
 
 Pyret does not have precedence for operators. The result is not
 defined if you mix multiple types of operators - you must use
@@ -204,7 +204,7 @@ parethesis to disambiguate. For example:
     1 + 2 * 3 # undefined, and an error to write
     1 + (2 * 3) # what you should write
 
-### Equality
+#### Equality
 
 Equality works on the built-in values and on objects structurally (ie,
 same keys and values). Functions and methods are never equal to
@@ -216,7 +216,7 @@ be compared for equality, any object that has a "_equals" method that takes
     2 <> 4 # true - this is our not equals
 
 
-### Arithmetic
+#### Arithmetic
 
 The following operators are supported, with their normal math definition on
 built in numbers:
@@ -235,7 +235,7 @@ data types - any object that defines a "_plus" can be used with `+`, similar
 for `_minus`, `_divide`, `_times`, `_lessequal`, `_greaterequal`, `_greaterthan`,
 `_lessthan`. 
 
-### Boolean
+#### Boolean
 
 We use infix `and` and `or`. These work on booleans, and can also work on your
 own datatypes. You must define `_and` and/or `_or` methods, and note that they
@@ -248,9 +248,9 @@ call the function or not). For example:
     true and (false or true) # evaluates to true
     
     
-## Control
+### Control
 
-### Exceptions
+#### Exceptions
 
 Any value can be `raise`d, which causes control to immediately transfer to the
 `catch` block of the closest (in terms of nesting) `try/except` block. The value
@@ -280,7 +280,7 @@ hit the first one available. For example:
       # control never reaches here 
     end
 
-### For loops
+#### For loops
 
 We present the common pattern of iteration in a simplified syntax. To `map` over a list,
 running some block of code to produce a new value for each existing value, we can write:
@@ -308,11 +308,11 @@ the `from` clauses and has the body of the `for` block, and then the rest of
 the arguments are the values from the right side of the `from` clauses.
 
 
-### If
+#### If
 
-### Case
+#### Case
 
-### When blocks
+#### When blocks
 
 Sometimes there is certain code that should only be run when something is true. This is
 code that exists solely to _do_ something. For example:
@@ -321,4 +321,4 @@ code that exists solely to _do_ something. For example:
       print("Oh No!")
     end
 
-## Data Definitions
+### Data Definitions
