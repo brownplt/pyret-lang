@@ -77,6 +77,7 @@
       mk-num
       mk-bool
       mk-str
+      arity-catcher
       pλ
       mk-fun
       mk-fun-nodoc
@@ -237,6 +238,12 @@
     [(> (length cms) 0) (loc-list (first cms))]
     [else dummy-loc]))
 
+(define-syntax-rule (arity-catcher (arg ...) e ...)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)]))
+
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
 ;; profiling and debugging line numbers for the created functions
 (define-syntax (pλ stx)
@@ -244,14 +251,8 @@
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
       (mk-fun
-        (case-lambda
-          #,(syntax/loc stx [(arg ...) e ...])
-          [arity-mismatch-args-list
-           (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)])
-        (case-lambda
-          #,(syntax/loc stx [(_ arg ...) e ...])
-          [arity-mismatch-args-list
-           (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)])
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (_ arg ...) e ...))
         doc))]))
 
 (define-syntax (pλ/internal stx)
@@ -259,14 +260,8 @@
     [(_ (loc) (arg ...) e ...)
      (quasisyntax/loc stx
       (mk-fun-nodoc
-       (case-lambda
-         #,(syntax/loc stx [(arg ...) e ...])
-         [arity-mismatch-args-list
-          (arity-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])
-       (case-lambda
-         #,(syntax/loc stx [(_ arg ...) e ...])
-         [arity-mismatch-args-list
-          (arity-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])))]))
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (_ arg ...) e ...))))]))
 
 (define-syntax (pμ stx)
   (syntax-case stx ()
@@ -438,7 +433,7 @@
 (define (get-raw-field loc v f)
   (string-map-ref (get-dict v) f
     (lambda()
-      (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
+      (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-string v)))))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)

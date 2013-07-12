@@ -14,6 +14,7 @@
   racket/match
   racket/pretty
   racket/runtime-path
+  "lang/reader.rkt"
   racket/syntax)
 
 
@@ -77,22 +78,26 @@
 (define check-mode #f)
 (command-line
   #:once-each
+  ("--print-racket" path "Print a compiled Racket program on stdout"
+   (define pyret-file (open-input-file path))
+   (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--check" "Run in check mode"
    (set! check-mode #t))
   #:args file-and-maybe-other-stuff
-  (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
-  (define-values (base name dir?) (split-path pyret-file))
-  (cond
-    [check-mode
-     (with-handlers ([exn:fail? process-pyret-error])
-       (parameterize ([param-compile-check-mode #t]
-                      [current-load-relative-directory base])
-         (define results
-          (eval
-            (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
-            (make-fresh-namespace)))
-         (print-check-results results)))]
-    [else
-     (with-handlers ([exn:fail? process-pyret-error])
-      (dynamic-require pyret-file #f))]))
+  (when (> (length file-and-maybe-other-stuff) 0)
+    (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
+    (define-values (base name dir?) (split-path pyret-file))
+    (cond
+      [check-mode
+       (with-handlers ([exn:fail? process-pyret-error])
+         (parameterize ([param-compile-check-mode #t]
+                        [current-load-relative-directory base])
+           (define results
+            (eval
+              (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
+              (make-fresh-namespace)))
+           (print-check-results results)))]
+      [else
+       (with-handlers ([exn:fail? process-pyret-error])
+        (dynamic-require pyret-file #f))])))
 
