@@ -617,7 +617,7 @@ And the object was:
        ,(mk-checker sym)))))))
 
 (define (pyret-true? v)
-  (and (p-bool? v) (p-bool-b v)))
+  (eq? v p-true))
 
 (define-syntax-rule (mk-prim-fun op opname wrapper (unwrapper ...) (arg ...) (pred ...))
   (mk-prim-fun-default op opname wrapper (unwrapper ...) (arg ...) (pred ...)
