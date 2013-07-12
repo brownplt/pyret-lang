@@ -46,7 +46,7 @@ data Connection:
          | dblib.is-connected(self.con) =>
            dblib.disconnect(self.con)
            nothing
-         | else => nothing
+         | true => nothing
         end
       end
 end

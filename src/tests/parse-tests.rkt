@@ -368,6 +368,20 @@
 ))
 
 (define cases (test-suite "cases"
+
+  (check/block "if false: 5 else: 42 end"
+               (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5)))))
+                            (s-block _ (list (s-num _ 42)))))
+
+  (check/block "if false: 5 else if true: 24 end"
+               (s-if _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5))))
+                             (s-if-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 24)))))))
+
+  (check/block "if false: 5 else if true: 24 else: 6 end"
+               (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5))))
+                                  (s-if-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 24)))))
+                          (s-block _ (list (s-num _ 6)))))
+
   (check/block "case: | true => 1 | false => 2 end" 
                (s-case _ (list (s-case-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
                                (s-case-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
@@ -386,6 +400,9 @@
 (define data (test-suite "data"
 
   (check/block "  data Foo: | bar() end"
+               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
+
+  (check/block "data Foo: bar() end" 
                (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
   (check/block "data NumList:

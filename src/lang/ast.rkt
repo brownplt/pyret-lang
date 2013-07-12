@@ -54,7 +54,7 @@ these metadata purposes.
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind (syntax id ann) #:transparent)
 
-;; A Stmt is a (U s-fun s-var s-case s-try s-data s-import Expr)
+;; A Stmt is a (U s-fun s-var s-if s-try s-data s-import Expr)
 
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
 (struct s-fun (syntax name params args ann doc body check) #:transparent)
@@ -63,12 +63,18 @@ these metadata purposes.
 (struct s-var (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
 (struct s-let (syntax name value) #:transparent)
-;; s-when : srcloc (Listof Expr s-block) -> s-case
+;; s-when : srcloc (Listof Expr s-block) -> s-when
 (struct s-when (syntax test block) #:transparent)
-;; s-case : srcloc (Listof s-case-branch) -> s-case
+;; s-case : srcloc (Listof s-if-branch) -> s-if
 (struct s-case (syntax branches) #:transparent)
-;; s-case-branch : srcloc Expr s-block -> s-case-branch
+;; s-if-branch : srcloc Expr s-block -> s-if-branch
 (struct s-case-branch (syntax expr body) #:transparent)
+;; s-if : srcloc (Listof s-if-branch) -> s-if
+(struct s-if (syntax branches) #:transparent)
+;; s-if-else : srcloc (Listof s-if-branch) s-block -> s-if-else
+(struct s-if-else (syntax branches else) #:transparent)
+;; s-if-branch : srcloc Expr s-block -> s-if-branch
+(struct s-if-branch (syntax expr body) #:transparent)
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try (syntax body id except) #:transparent)
 
