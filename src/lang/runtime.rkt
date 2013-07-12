@@ -95,7 +95,6 @@
       get-raw-field
       apply-fun
       arity-error
-      check-fun
       check-str
       has-field?
       extend
@@ -447,17 +446,6 @@
         "field-non-string"
         (format "field: expected string, got ~a" (to-string v))))]))
 
-(define (check-fun v l)
-  (cond
-    [(p-fun? v) (p-base-app v)]
-    [else
-     (raise
-      (pyret-error
-        l
-        "apply-non-function"
-        (format "check-fun: expected function, got ~a" (to-string v))))]))
-
-
 ;; apply-fun : Value Loc Value * -> Values
 (define (apply-fun v l . args)
   (py-match v
@@ -638,7 +626,7 @@ And the object was:
     (define (check2 arg2) (if (pred2 arg2) arg2 (error)))
     ...
     (wrapper (op (unwrapper (check1 arg1))
-                 (unwrapper (check2 ((check-fun arg2 dummy-loc)))) ...))))
+                 (unwrapper (check2 ((p-base-app arg2)))) ...))))
 
 (define-syntax-rule (mk-num-1 op opname)
   (mk-prim-fun op opname mk-num (p-num-n) (n) (p-num?)))
