@@ -6,6 +6,11 @@
 
     print("Hello World!")
 
+Bonus: when you call `print()`, it first calls the builtin
+`tostring()` function on the argument. This does sensible things
+with base values, but for more complicated things, if you define
+a `tostring` method, it will use that instead. 
+
 #### Comments
 
 Are single line, starting from the `#` character and running to the end of the line.
@@ -161,6 +166,15 @@ But it might be more confusing. In general though, functions will
 usually be bound to variables or passed as arguments instead of being used
 immediately after construction.
 
+You can (and should) add documentation to your functions. The best way to do that is with `doc`. On the first line of the function, you can write a documentation string. This will be available as the `_doc` attribute on your functions. Also, if you print out a function (or call the `tostring` built-in on it), it will print with the header and the doc string. For example:
+
+    fun foo(x):
+      doc: "my great foo function!"
+      x # NOTE: improve!
+    end
+
+    print(foo) # prints "fun foo(x): 'my great foo function' end"
+
 ### Variables and Named Functions
 
 We can bind any value to a name with `=`. This value cannot be changed
@@ -229,6 +243,12 @@ This could then be applied as a normal function, passing in a value for `self`:
     m = method(self): 10 end
     f = m._fun()
     f({bar: 20}) # evaluates to 10
+
+Methods can also have doc strings, like functions, and they also print them out when
+you call `tostring()` on them. For example:
+
+    o = {foo(self): doc: "This function needs help..." 10 end}
+    tostring(o.foo) # evaluates to "method foo(self): 'This function needs help...' end"
 
 ### Operators
 
