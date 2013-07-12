@@ -516,7 +516,7 @@ nested functions. For example:
         fact_(5, 1) is 120
       end
       fact_(n, 1)
-    check
+    check:
       fact(1) is 1
       fact(5) is 120
       fact(3) is 6
