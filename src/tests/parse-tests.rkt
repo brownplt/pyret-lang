@@ -402,9 +402,6 @@
   (check/block "  data Foo: | bar() end"
                (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
-  (check/block "data Foo: bar() end" 
-               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
-
   (check/block "data NumList:
     | empty()
     | cons(first :: Number, rest :: NumList)

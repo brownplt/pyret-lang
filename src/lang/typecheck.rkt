@@ -238,6 +238,13 @@
       (a-method s (map s-bind-ann args) (a-blank))
       (s-method s args ann doc (cc-env body body-env) (cc-env check body-env)))]
 
+    [(s-if-else s if-bs else-block)
+     (define (cc-branch branch)
+       (match branch
+         [(s-if-branch s test expr)
+          (s-if-branch s (cc test) (cc expr))]))
+     (s-if-else s (map cc-branch if-bs) (cc else-block))]
+
     [(s-case s c-bs)
      (define (cc-branch branch)
        (match branch

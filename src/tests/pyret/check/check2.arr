@@ -6,7 +6,7 @@ fun odd(n):
   case:
     | n == 0 => false
     | n == 1 => true
-    | else => even(n - 1)
+    | true => even(n - 1)
   end
 check:
   eq("odd(9)",odd(9), true)
@@ -18,7 +18,7 @@ fun even(n):
   case:
     | n == 0 => true
     | n == 1 => false
-    | else => odd(n - 1)
+    | true => odd(n - 1)
   end
 check:
   eq("even(9)",even(9), false)

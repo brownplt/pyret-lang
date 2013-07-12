@@ -38,6 +38,8 @@ data Expr:
   | s_when(l :: Loc, test :: Expr, block :: Expr)
   | s_assign(l :: Loc, id :: String, value :: Expr)
   | s_case(l :: Loc, branches :: List<CaseBranch>)
+  | s_if(l :: Loc, branches :: List<IfBranch>)
+  | s_if_else(l :: Loc, branches :: List<IfBranch>, _else :: Expr)
   | s_try(l :: Loc, body :: Expr, id :: Bind, _except :: Expr)
   | s_op(l :: Loc, op :: String, left :: Expr, right :: Expr)
   | s_not(l :: Loc, expr :: Expr)
@@ -126,6 +128,10 @@ end
 
 data CaseBranch:
   | s_case_branch(l :: Loc, expr :: Expr, body :: Expr)
+end
+
+data IfBranch:
+  | s_if_branch(l :: Loc, test :: Expr, body :: Expr)
 end
 
 data Ann:

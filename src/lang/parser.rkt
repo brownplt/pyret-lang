@@ -225,7 +225,7 @@
 (define (parse-else-if stx)
   (syntax-parse stx
     #:datum-literals (else-if)
-    [(else-if "else" "if" test ":" body)
+    [(else-if "else if" test ":" body)
      (s-if-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
 (define (parse-else stx)
@@ -296,7 +296,7 @@
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(case-expr "case:" branch ... "end")
      (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
-    [(if-expr "if" test ":" body branch ... "else" else-block "end")
+    [(if-expr "if" test ":" body branch ... "else:" else-block "end")
      (s-if-else (loc stx)
        (cons
          (s-if-branch (loc #'test) (parse-binop-expr #'test) (parse-block #'body))

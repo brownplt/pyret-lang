@@ -24,6 +24,10 @@
 
 (define (to-pyret ast)
   (define tp to-pyret)
+  (define (tp-if-branch b)
+   (match b
+     [(s-if-branch s tst blk)
+      (build s_if_branch (tp-loc s) (tp tst) (tp blk))]))
   (define (tp-variant variant)
     (match variant
       [(s-variant l name binds members)
@@ -141,6 +145,12 @@
      (build s_case
         (tp-loc s)
         (map tp-case-branch c-bs))]
+
+    [(s-if s if-bs)
+     (build s_if (tp-loc s) (map tp-if-branch if-bs))]
+
+    [(s-if-else s if-bs else)
+     (build s_if_else (tp-loc s) (map tp-if-branch if-bs) (tp else))]
 
     [(s-try s try exn catch)
      (build s_try
