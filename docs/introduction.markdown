@@ -284,7 +284,7 @@ to call the function or not). For example:
 
     true and true and false # evaluates to false
     true and (false or true) # evaluates to true
-    
+    not (true and false) # evaluates to true
     
 ### Control
 
@@ -403,8 +403,8 @@ then a list of one or more variants, which may have attributes (like `link`)
 does, or may not. The values of the type are constructed just like the variants
 are written:
 
-   x = empty
-   y = link(10, empty)
+    x = empty
+    y = link(10, empty)
 
 This is the basic form. In addition to the functions to construct the
 values, you also get functions to check whether values are of the
@@ -435,6 +435,7 @@ In both forms, there can be any number of comma-separated methods.
 
 #### Case
 
+... To be added.
 
 ### Where blocks
 
