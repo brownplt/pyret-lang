@@ -141,6 +141,9 @@
       [(s-bind s id a) (s-bind s id (desugar-ann a))]))
   (define (ds-args binds)
     (map ds-bind binds))
+  (define (ds-if branch)
+    (match branch
+      [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -193,6 +196,19 @@
      (s-case s (list
       (s-case-branch s (ds test) (ds body))
       (s-case-branch s (s-bool s #t) (s-id s 'p:nothing))))]
+
+    [(s-if-else s cases else)
+     (s-if-else s (map ds-if cases) (ds else))]
+
+    [(s-if s cases)
+     (define if-fallthrough
+       (s-block s
+                (list
+                 (s-app s
+                        (s-id s 'raise)
+                        (list (s-str s "if: no tests matched"))))))
+     (s-if-else s (map ds-if cases) if-fallthrough)]
+     
 
     [(s-case s c-bs)
      (define (ds-case branch)

@@ -19,7 +19,7 @@ fun assert-equals(value1, value2):
   case:
     | value1.equals(value2) =>
       results := results.push(c.{ passed: true })
-    | else =>
+    | true =>
       results := results.push(c.{ passed: false, reason: "Values not equal" })
   end
 end
@@ -42,7 +42,7 @@ fun check-equals(message, thunk, value):
       results := results.push(c.{ passed: false, reason: "Exception" })
     | c.actual.equals(value) =>
       results := results.push(c.{ passed: true })
-    | else =>
+    | true =>
       results := results.push(c.{ passed: false, reason: "Values not equal" })
   end
 end
@@ -54,7 +54,7 @@ fun check-not-equals(message, thunk, value):
       results := results.push(c.{ passed: false, reason: "Exception" })
     | c.actual.equals(value) =>
       results := results.push(c.{ passed: false, reason: "Values equal" })
-    | else =>
+    | true =>
       results := results.push(c.{ passed: true })
   end
 end
@@ -67,13 +67,13 @@ fun check-exn(message, thunk, exn-pred):
       case:
         | exn-pred(c.exception) =>
           results := results.push(c.{ passed: true })
-        | else => 
+        | true => 
           results := results.push(c.{
             passed: false,
             reason: "Wrong exception"
           })
       end
-    | else =>
+    | true =>
       results := results.push(c.{
         passed: false,
         reason: "No exception raised"
@@ -102,7 +102,7 @@ fun format-results():
   results.map(fun(r):
     case:
       | r.passed => nothing
-      | else =>
+      | true =>
         print("===========================")
         print("Test: " + r.message)
         print("Failed because: " + r.reason)

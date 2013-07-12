@@ -102,7 +102,7 @@
     case:
       | x._equals(0) => true
       | x._equals(1) or (x._equals(-1)) => false
-      | else => even(x._minus(2))
+      | true => even(x._minus(2))
     end
   end
   x :: Number(even) = 5"
@@ -113,7 +113,7 @@
     case:
       | x._equals(0) => true
       | x._equals(1) or (x._equals(-1)) => false
-      | else => even(x._minus(2))
+      | true => even(x._minus(2))
     end
   end
   x :: Number(even) = 10 x"

@@ -27,7 +27,7 @@ paren-expr: PARENSPACE binop-expr ")"
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
-    | for-expr | paren-expr | try-expr
+    | for-expr | paren-expr | try-expr | if-expr
 
 
 id-expr: NAME
@@ -76,6 +76,9 @@ when-expr: "when" binop-expr ":" block "end"
 
 case-branch: "|" binop-expr "=>" block
 case-expr: "case:" case-branch* "end"
+
+else-if: "else if" expr ":" block
+if-expr: "if" expr ":" block else-if* ["else:" block] "end"
 
 try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    

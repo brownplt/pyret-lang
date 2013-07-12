@@ -28,7 +28,7 @@
          "fun" "method" "doc:"
          "check:"
          "try:" "except"
-         "case:" "when"
+         "case:" "when" "if" "else if" "else:"
          "data" "with:" "sharing:"
          "for" "from"
          "end"))

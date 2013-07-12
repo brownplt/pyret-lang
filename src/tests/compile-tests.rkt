@@ -115,8 +115,8 @@
 
 (define cases (test-suite "cases"
   (check-pyret "case: | true => 2 | false => 1 end" two)
-  (check-pyret "case: | false => 1 | else => 2 end" two)
-  (check-pyret "case: | else => 2 end" two)
+  (check-pyret "case: | false => 1 | true => 2 end" two)
+  (check-pyret "case: | true => 2 end" two)
   (check-pyret "case: | false => 2 | true => 10 end" ten)
   (check-pyret "case: | true => 2 | true => 1 end" two)
   (check-pyret "case: | 3._lessthan(2) => 10 | true => 2 end" two)
@@ -148,6 +148,20 @@
   when false: 5 end
   "
   nothing)
+
+  (check-pyret-exn "if false: 5 end" "if: no tests matched")
+  (check-pyret-exn "if false: 5 else if false: 8 end" "if: no tests matched")
+  (check-pyret "if true: 5 end" five)
+  (check-pyret "if false: 5 else if true: 6 end" (p:mk-num 6))
+  (check-pyret "if true: 5 else if true: 6 end" five)
+  (check-pyret "if true: 5 else: 6 end" five)
+  (check-pyret "if false: 5 else if false: 6 else: 7 end" (p:mk-num 7))
+  (check-pyret "if false: 5 else if false: 6 else if false: 8 else: 7 end"
+               (p:mk-num 7))
+  (check-pyret "if false: 5 else if false: 6 else if true: 8 else: 7 end"
+               (p:mk-num 8))
+  (check-pyret "if false: 5 else if false: 6 else if true: 8 end"
+               (p:mk-num 8))
 
 ))
 
@@ -412,7 +426,7 @@
     fun map(l, f):
       case:
         | list.is-empty(l) => []
-        | else => map(l.rest, f).push(f(l.first))
+        | true => map(l.rest, f).push(f(l.first))
       end
     end
     l1 = map([5], fun(x): x._add(1) end).first
@@ -443,7 +457,7 @@
       map(self, f):
         case:
           | self.is-empty() => mklist([])
-          | else => self.rest().map(f).push(f(l.first()))
+          | true => self.rest().map(f).push(f(l.first()))
         end
     }
   end

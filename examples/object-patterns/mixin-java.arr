@@ -11,7 +11,7 @@ provide {
 #  builtins.keys(obj).foldr(fun(name, filtered-obj):
 #    case:
 #      | names.member(name) => filtered-obj
-#      | else => filtered-obj.{ [name]: obj[name] }
+#      | true => filtered-obj.{ [name]: obj[name] }
 #    end
 #  end, {})
 #end
@@ -28,7 +28,7 @@ Object = object-brander.brand({
     view-as(inst, class):
       case:
         | object-brander.test(class) => inst
-        | else => raise("Incompatible cast in view-as")
+        | true => raise("Incompatible cast in view-as")
       end
     end
   }) end,
@@ -52,7 +52,7 @@ fun ext(parent-class, description):
         get(_, name):
           case:
             | builtins.has-field(fields, name) => fields.[name]
-            | else => parent-inst.get(name)
+            | true => parent-inst.get(name)
           end
         end,
 
@@ -61,7 +61,7 @@ fun ext(parent-class, description):
           case:
             | builtins.has-field(fields, name) => 
                 fields := fields.{ [name]: val }
-            | else => parent-inst.set(name, val)
+            | true => parent-inst.set(name, val)
           end
         end,
 
@@ -78,7 +78,7 @@ fun ext(parent-class, description):
           case:
             | builtins.has-field(methods, name) =>
               methods:[name]._fun()(inst-with-super, arg)
-            | else =>
+            | true =>
               parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
           end
         end,
@@ -91,7 +91,7 @@ fun ext(parent-class, description):
         view-as(inst, class):
           case:
             | class-brander.test(class) => inst
-            | else => parent-inst:view-as._fun()(inst.{
+            | true => parent-inst:view-as._fun()(inst.{
                 get: parent-inst:get,
                 set: parent-inst:set,
                 invoke(_, name, arg):
@@ -150,7 +150,7 @@ check:
       assign(self, person):
         case:
           | self.get("done") => raise("Can't assign a completed task")
-          | else => self.set("assignee", person)
+          | true => self.set("assignee", person)
         end
       end,
 
@@ -158,7 +158,7 @@ check:
         case:
           | is-nothing(self.get("assignee")) =>
               raise("Can't complete an unassigned task")
-          | else => self.super(o)
+          | true => self.super(o)
         end
       end
     },

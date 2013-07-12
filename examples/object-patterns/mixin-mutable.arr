@@ -7,7 +7,7 @@ fun make-mutable(obj):
     new-obj.{ [name](self, new-val):
         case:
           | is-nothing(new-val) => field-val
-          | else => field-val := new-val      
+          | true => field-val := new-val      
         end
       end
     }

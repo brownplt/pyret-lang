@@ -129,6 +129,17 @@
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body)])
          #`(p:pμ (arg ...) #,doc body-stx)))]
+
+    [(s-if-else l c-bs else-block)
+     (define (compile-if-branch b)
+       (match b
+         [(s-if-branch s test block)
+          (attach l
+                  #`((p:pyret-true? #,(compile-expr test env))
+                     #,(compile-expr block env)))]))
+     (attach l
+       (with-syntax ([(branch ...) (d->stx (map compile-if-branch c-bs) l)])
+         #`(r:cond branch ... [#t #,(compile-expr else-block env)])))]
     
     [(s-case l c-bs)
      (define (compile-case-branch b)
