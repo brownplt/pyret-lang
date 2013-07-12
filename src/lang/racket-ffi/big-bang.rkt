@@ -47,11 +47,11 @@
     (define (wrap-for-racket-callback k f)
       (cond
         [(equal? k "to-draw")
-         (lambda (world) (p:p-opaque-val ((p:check-fun f p:dummy-loc) world)))]
+         (lambda (world) (p:p-opaque-val ((p:p-base-app f) world)))]
         [(equal? k "stop-when")
-         (lambda (world) (p:unwrap ((p:check-fun f p:dummy-loc) world)))] 
+         (lambda (world) (ffi-unwrap ((p:p-base-app f) world)))] 
         [(equal? k "on-tick")
-         (lambda (world) ((p:check-fun f p:dummy-loc) world))]
+         (lambda (world) ((p:p-base-app f) world))]
         [else (raise (p:pyret-error p:dummy-loc "big-bang-no-impl"
                       (format "No implementation for big-bang handler ~a" k)))]))
     (match (second args)

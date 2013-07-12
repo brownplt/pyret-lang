@@ -88,8 +88,6 @@
       mk-structural-list
       structural-list?
       structural-list->list
-      wrap
-      unwrap
       mk-exn
       pyret-error
       empty-dict
@@ -777,30 +775,6 @@ And the object was:
      (error "runtime: cannot check-brand with non-string")]
     [else
      (error "runtime: check-brand failed")])))
-
-;; unwrap : Value -> RacketValue
-(define (unwrap v)
-  (py-match v
-    [(p-num _ _ _ _ n) n]
-    [(p-bool _ _ _ _ b) b]
-    [(p-str _ _ _ _ s) s]
-    [(default _)
-     (cond
-      [(p-opaque? v) v]
-      [(and (p-object? v) (structural-list? v))
-       (map unwrap (structural-list->list v))]
-      [else
-       (error (format "unwrap: cannot unwrap ~a for Racket" (to-string v)))])]))
-
-;; wrap : RacketValue -> Value
-(define (wrap v)
-  (cond
-    [(number? v) (mk-num v)]
-    [(string? v) (mk-str v)]
-    [(boolean? v) (mk-bool v)]
-    [(list? v) (mk-structural-list v)]
-    [(p-opaque? v) v]
-    [else (error (format "wrap: Bad return value from Racket: ~a" v))]))
 
 ;; exn+loc->message : Value Loc -> String
 (define (exn+loc->message v l)

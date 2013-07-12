@@ -7,17 +7,6 @@
 
 (define pyret-list (p:get-field p:dummy-loc pyret-moorings "list"))
 
-(define (allowed-prim? v)
-  (or (number? v)
-      (string? v)
-      (boolean? v)))
-
-(define (wrap-racket-value val)
-  (cond
-   [(allowed-prim? val)  val]
-   [(list? val) (map wrap-racket-value val)]
-   [else (p:p-opaque val)]))
-
 (define (ffi-wrap val)
   (cond
     [(procedure? val)
@@ -47,18 +36,6 @@
             (map ffi-unwrap (p:structural-list->list val))
             val)]
        [(default _) val])]))
-
-(define (wrap-racket-fun f)
-  (define (call . args)
-    (ffi-wrap (wrap-racket-value (apply f (map ffi-unwrap args)))))
-  (p:mk-fun-nodoc-slow call))
-
-(define (get-val arg)
-  (cond
-    [(p:p-opaque? arg) (p:p-opaque-val arg)]
-    [(list? arg) (map get-val arg)]
-    [(allowed-prim? arg) arg]
-    [else (error (format "apply-racket-fun: Bad argument ~a." arg))]))
 
 (define (create-pyret-list l)
   (define d (p:get-dict pyret-list))

@@ -9,9 +9,9 @@
 (define math-dict
   (make-string-map
     (list
-      (cons "uniform-dist" (wrap-racket-fun uniform-dist))
-      (cons "random" (wrap-racket-fun random))
-      (cons "sample" (wrap-racket-fun sample)))))
+      (cons "uniform-dist" (ffi-wrap uniform-dist))
+      (cons "random" (ffi-wrap random))
+      (cons "sample" (ffi-wrap sample)))))
 
 (define math-obj (p:mk-object math-dict))
 
