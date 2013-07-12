@@ -451,9 +451,44 @@ examples of the two ways:
 
 In both forms, there can be any number of comma-separated methods.
 
-#### Case
+#### Cases
 
-... To be added.
+A common pattern is to do different things based on the variant of
+your `data` definition. You could use `if` statements, but it gets
+clumsy quickly. Instead, `cases` allows you to write branches just like the
+data definition. For example:
+
+    cases(List) x:
+      | empty => print("An empty list!")
+      | link(first, rest) => print("A non-empty list!")
+    end
+
+Note that if you don't care about a specific attribute, you can always
+replace it with an underscore. Since we use neither `first` nor `rest`
+in the previous example, we could write it as:
+
+    cases(List) x:
+      | empty => print("An empty list!")
+      | link(_, _) => print("A non-empty list!")
+    end
+
+Which makes it clearer to the reader, especially if the blocks become
+large, what we are and aren't going to use.
+
+Finally, it is an error, caught at runtime, to pass a value that isn't
+of the type inside the `cases`. And, you don't have to provide all the
+variants, and you can provide them in whatever order you want. If you
+want to have a catch-all, `else` is valid. For example:
+
+    cases(List) x:
+      | link(first, _) => first
+      | else => nothing
+    end
+
+It is an error to not match any branch, so if you don't include all
+your variants, either include an `else` or be sure that only the
+variants listed will ever be passed in.
+
 
 ### Check blocks
 
@@ -585,4 +620,4 @@ blocks are:
 - `if`, `else if`, and `else` branches
 - inside `when`
 - between `try` and `except`, and `except` and `end`
-- in the branches of `case`
+- in the branches of `cases`
