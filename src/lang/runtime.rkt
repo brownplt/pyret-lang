@@ -760,15 +760,16 @@ And the object was:
   (cond
     [(p-str? s)
      (define f (p-base-app ck))
-     (define typname (p-str-s s))
      (define check-v (f o))
-     (if (and (p-bool? check-v) (p-bool-b check-v))
+     (if (pyret-true? check-v)
          o
          ;; NOTE(dbp): not sure how to give good reporting
          ;; NOTE(joe): This is better, but still would be nice to highlight
          ;;  the call site as well as the destination
-         (let [(val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-string o))))]
+         (let*
+          ([typname (p-str-s s)]
+           [val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-string o)))])
          (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f))))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
