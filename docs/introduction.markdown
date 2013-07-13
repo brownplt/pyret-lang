@@ -197,7 +197,7 @@ Bindings are visible at the same scope level and in any nested scope
 
 Sometimes you want to be able to change the value in a variable. For
 example, we might have a deeply nested computation that needs to
-record that sometimes specific happened, and threading the result out
+record that something specific happened, and threading the result out
 isn't convenient.  For this, we have a separate declaration, and a way
 to update those variables:
 
