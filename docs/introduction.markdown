@@ -207,7 +207,9 @@ to update those variables:
 
 Note that it is an error to define a `var` to a identifier that is
 already bound. Also, if you try to use an identifier that has not been
-bound, that error will be caught before you run your program.
+bound, that error will be caught before your program is run (or, really, as
+soon as you try to run your program, but before we spend any time executing
+your code).
 
 ### More Values
 
