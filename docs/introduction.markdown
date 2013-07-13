@@ -115,20 +115,7 @@ Or do this multiple times:
 
     o.{fieldA: 10}.{fieldB: 20}
 
-Finally, if you want to just get out a raw value (this is currently
-only useful for methods - if you want the method value itself, not it
-in the context of the current object), you can access fields with
-colon. For example:
 
-    o = { foo(self): 10 end, b: 20 }
-    o:b == o.b # is true
-    m = o:foo
-    m() # an error - can't apply bare methods
-    f = m._fun()
-    f({}) # evaluates to 10 - note that you have to apply it to a self
-    o2 = o.{ newmeth = m }
-    o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
-    
 #### Lists
 
 Written as square bracket comma-separated values, lists can have any
@@ -264,6 +251,21 @@ you call `tostring()` on them. For example:
     o = {foo(self): doc: "This function needs help..." 10 end}
     tostring(o.foo) # evaluates to "method foo(self): 'This function needs help...' end"
 
+Finally, if you want to just get out the raw method value (this also
+will get out any other raw value, but as of now, methods are the only
+things that are treated specially), you can access fields with
+colon. For example:
+
+    o = { foo(self): 10 end, b: 20 }
+    o:b == o.b # is true - there isn't anything special about non-methods
+    m = o:foo
+    m() # an error - can't apply bare methods
+    f = m._fun()
+    f({}) # evaluates to 10 - note that you have to apply it to a self
+    o2 = o.{ newmeth = m }
+    o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
+    
+    
 ### Operators
 
 Pyret does not have precedence for operators. The result is not
