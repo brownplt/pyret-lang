@@ -114,7 +114,8 @@ You can also add/change many fields:
 Or do this multiple times:
 
     o.{fieldA: 10}.{fieldB: 20}
-    
+
+
 #### Lists
 
 Written as square bracket comma-separated values, lists can have any
@@ -196,7 +197,7 @@ Bindings are visible at the same scope level and in any nested scope
 
 Sometimes you want to be able to change the value in a variable. For
 example, we might have a deeply nested computation that needs to
-record that sometimes specific happened, and threading the result out
+record that something specific happened, and threading the result out
 isn't convenient.  For this, we have a separate declaration, and a way
 to update those variables:
 
@@ -206,7 +207,9 @@ to update those variables:
 
 Note that it is an error to define a `var` to a identifier that is
 already bound. Also, if you try to use an identifier that has not been
-bound, that error will be caught before you run your program.
+bound, that error will be caught before your program is run (or, really, as
+soon as you try to run your program, but before we spend any time executing
+your code).
 
 ### More Values
 
@@ -250,6 +253,21 @@ you call `tostring()` on them. For example:
     o = {foo(self): doc: "This function needs help..." 10 end}
     tostring(o.foo) # evaluates to "method foo(self): 'This function needs help...' end"
 
+Finally, if you want to just get out the raw method value (this also
+will get out any other raw value, but as of now, methods are the only
+things that are treated specially), you can access fields with
+colon. For example:
+
+    o = { foo(self): 10 end, b: 20 }
+    o:b == o.b # is true - there isn't anything special about non-methods
+    m = o:foo
+    m() # an error - can't apply bare methods
+    f = m._fun()
+    f({}) # evaluates to 10 - note that you have to apply it to a self
+    o2 = o.{ newmeth = m }
+    o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
+    
+    
 ### Operators
 
 Pyret does not have precedence for operators. The result is not
@@ -451,9 +469,44 @@ examples of the two ways:
 
 In both forms, there can be any number of comma-separated methods.
 
-#### Case
+#### Cases
 
-... To be added.
+A common pattern is to do different things based on the variant of
+your `data` definition. You could use `if` statements, but it gets
+clumsy quickly. Instead, `cases` allows you to write branches just like the
+data definition. For example:
+
+    cases(List) x:
+      | empty => print("An empty list!")
+      | link(first, rest) => print("A non-empty list!")
+    end
+
+Note that if you don't care about a specific attribute, you can always
+replace it with an underscore. Since we use neither `first` nor `rest`
+in the previous example, we could write it as:
+
+    cases(List) x:
+      | empty => print("An empty list!")
+      | link(_, _) => print("A non-empty list!")
+    end
+
+Which makes it clearer to the reader, especially if the blocks become
+large, what we are and aren't going to use.
+
+Finally, it is an error, caught at runtime, to pass a value that isn't
+of the type inside the `cases`. And, you don't have to provide all the
+variants, and you can provide them in whatever order you want. If you
+want to have a catch-all, `else` is valid. For example:
+
+    cases(List) x:
+      | link(first, _) => first
+      | else => nothing
+    end
+
+It is an error to not match any branch, so if you don't include all
+your variants, either include an `else` or be sure that only the
+variants listed will ever be passed in.
+
 
 ### Check blocks
 
@@ -481,7 +534,7 @@ nested functions. For example:
         fact_(5, 1) is 120
       end
       fact_(n, 1)
-    check
+    check:
       fact(1) is 1
       fact(5) is 120
       fact(3) is 6
@@ -585,4 +638,4 @@ blocks are:
 - `if`, `else if`, and `else` branches
 - inside `when`
 - between `try` and `except`, and `except` and `end`
-- in the branches of `case`
+- in the branches of `cases`
