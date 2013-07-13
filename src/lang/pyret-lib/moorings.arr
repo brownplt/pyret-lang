@@ -552,6 +552,8 @@ error = {
   is-opaque-error : is-opaque-error,
   field-not-found: field-not-found,
   is-field-not-found: is-field-not-found,
+  cases-miss: cases-miss,
+  is-cases-miss: is-cases-miss,
   make-error: make-error,
   Error: Error,
   Location: Location,

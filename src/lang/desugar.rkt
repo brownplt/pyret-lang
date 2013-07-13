@@ -7,6 +7,22 @@
   "ast.rkt"
   "load.rkt")
 
+(define (build-location s)
+  (define (serialize-source e)
+    (cond
+      [(symbol? e) (symbol->string e)]
+      [(string? e) e]
+      [(path? e) (path->string e)]
+      [(false? e) "unknown source"]
+      [else (error (format "Non-symbol, non-string, non-path value for
+                            source: ~a" e))]))
+  (s-app s
+    (s-bracket s (s-id s 'error) (s-str s "location"))
+    (list
+      (s-str s (serialize-source (srcloc-source s)))
+      (s-num s (srcloc-line s))
+      (s-num s (srcloc-column s)))))
+
 ;; variant checker name
 (define (make-checker-name s)
     (string->symbol (string-append "is-" (symbol->string s))))
@@ -64,13 +80,19 @@
                      (s-dot s (s-dot s (s-id s 'matched) 'first) 'key))
         (list (s-dot s (s-dot s (s-id s 'matched) 'first) 'action)))))
   (define matcher-fun
-    (lam s (list 'val 'cases 'else-fun)
+    (s-lam s empty
+           (list (s-bind s 'val (a-name s name))
+                 (s-bind s 'cases (a-blank))
+                 (s-bind s 'else-fun (a-blank)))
+           (a-blank)
+           ""
            (s-block s
             (list
               (s-let s (s-bind s 'preds (a-blank)) pred-dict)
               (s-let s (s-bind s 'helpers (a-blank)) helpers-dict)
               (s-let s (s-bind s 'matched (a-blank)) loop)
-              post-loop))))
+              post-loop))
+           (s-block s empty)))
   (s-let s (s-bind s name (a-blank))
     (s-extend s base
       (list (s-data-field s (s-str s "case_matcher") (desugar-internal matcher-fun))))))
@@ -301,7 +323,12 @@
                 (list
                  (s-app s
                         (s-id s 'raise)
-                        (list (s-str s "cases: no cases matched"))))))
+                        (list
+                          (s-app s
+                            (s-bracket s (s-id s 'error) (s-str s "cases-miss"))
+                            (list
+                              (s-str s "cases: no cases matched")
+                              (build-location s))))))))
      (ds-cases s type val cases cases-fallthrough)]
 
     [(s-cases-else s type val cases else-block)

@@ -20,5 +20,14 @@ check:
     | else => 42
   end
   eq("list else", test3, 42)
+
+  try:
+    cases(list.List) "not-a-list":
+      | else => "shouldn't hit this case"
+    end
+  except(e):
+    checkers.check-true("case contract",
+      e.contains("expected List"))
+  end
 end
 

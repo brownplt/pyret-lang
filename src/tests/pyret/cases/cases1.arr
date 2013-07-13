@@ -25,7 +25,7 @@ check:
   eq("field lookup", test3, 2)
 
   try:
-    cases(MyData) 5:
+    cases(MyData) multi(1,2,3):
       | single => 5
     end
   except(e):
