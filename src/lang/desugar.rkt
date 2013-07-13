@@ -59,10 +59,26 @@
   (define pred-dict (s-obj s (map pred-entry-for variants)))
   (define helpers-dict (s-obj s (map helper-entry-for variants)))
   (define loop-body
-    (s-app s
-      (s-bracket s (s-id s 'preds)
-                   (s-dot s (s-id s 'elt) 'key))
-      (list (s-id s 'val))))
+    (s-if-else s
+      (list
+        (s-if-branch s
+          (s-not s
+            (s-app s (s-dot s (s-id s 'builtins) 'has-field)
+              (list
+                (s-id s 'preds)
+                (s-dot s (s-id s 'elt) 'key))))
+          (s-app s (s-id s 'raise)
+            (list
+              (s-app s (s-dot s (s-id s 'error) 'invalid-case)
+                (list
+                  (s-op s 'op+
+                    (s-str s "Case does not exist: ")
+                    (s-dot s (s-id s 'elt) 'key))
+                  (build-location s)))))))
+        (s-app s
+          (s-bracket s (s-id s 'preds)
+                       (s-dot s (s-id s 'elt) 'key))
+          (list (s-id s 'val)))))
   (define loop
     (s-for s (s-dot s (s-id s 'list) 'filter)
       (list (s-for-bind s (s-bind s 'elt (a-blank)) (s-id s 'cases)))

@@ -6,7 +6,7 @@
 	 "test-utils.rkt"
 	 "../lang/runtime.rkt")
 
-(verbose! #t)
+(verbose! #f)
 
 (define five (p:mk-num 5))
 (define two (p:mk-num 2))
@@ -177,9 +177,8 @@
                (p:mk-num 8))
 
   (check-pyret-match/check "pyret/cases/cases1.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-list.arr" _ 3 3 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-overlap.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 2 2 0 0 0)
+  (check-pyret-match/check "pyret/cases/cases-list.arr" _ 4 4 0 0 0)
+  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 3 3 0 0 0)
 ))
 
 

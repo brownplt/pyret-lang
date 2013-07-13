@@ -523,6 +523,8 @@ data Error:
     name(self): "Non-string in field name" end
   | cases-miss(message :: String, location :: Location) with:
     name(self): "No cases matched" end
+  | invalid-case(message :: String, location :: Location) with:
+    name(self): "Invalid case" end
   | lazy-error(message :: String, location :: Location) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
@@ -554,6 +556,8 @@ error = {
   is-field-not-found: is-field-not-found,
   cases-miss: cases-miss,
   is-cases-miss: is-cases-miss,
+  invalid-case: invalid-case,
+  is-invalid-case: is-invalid-case,
   make-error: make-error,
   Error: Error,
   Location: Location,

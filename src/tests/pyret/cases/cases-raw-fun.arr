@@ -18,4 +18,13 @@ check:
     fun: 43 end)
   eq("else", test2, 43)
 
+  try:
+    D.case_matcher(single, [
+        { key: "nothing-useful", action: fun(a,b): "should miss" end }
+      ],
+      fun: "miss" end)
+  except(e):
+    checkers.check-true("invalid case", e.name().contains("Invalid case"))
+  end
+
 end
