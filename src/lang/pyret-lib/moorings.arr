@@ -528,6 +528,7 @@ data Error:
   | lazy-error(message :: String, location :: Location) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
+  tostring(self): self.format() end,
   format(self):
     self.location.format().append(":\n").append(self.name()).append(": ").append(self.message) end
 end

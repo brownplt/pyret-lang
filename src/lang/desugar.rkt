@@ -74,7 +74,7 @@
                   (s-op s 'op+
                     (s-str s "Case does not exist: ")
                     (s-dot s (s-id s 'elt) 'key))
-                  (build-location s)))))))
+                  (s-id s 'location)))))))
         (s-app s
           (s-bracket s (s-id s 'preds)
                        (s-dot s (s-id s 'elt) 'key))
@@ -99,7 +99,8 @@
     (s-lam s empty
            (list (s-bind s 'val (a-name s name))
                  (s-bind s 'cases (a-blank))
-                 (s-bind s 'else-fun (a-blank)))
+                 (s-bind s 'else-fun (a-blank))
+                 (s-bind s 'location (a-blank)))
            (a-blank)
            ""
            (s-block s
@@ -262,7 +263,13 @@
               (s-lam s2 empty args (a-blank) "" body (s-block s2 empty)))))]))
     (define else-fun
       (s-lam s empty empty (a-blank) "" else (s-block s empty)))
-    (ds (s-app s matcher-fun (list val (s-list s (map ds-cases-branch cases)) else-fun))))
+    (define location
+      (build-location s))
+    (ds (s-app s matcher-fun
+          (list val
+                (s-list s (map ds-cases-branch cases))
+                else-fun
+                location))))
 
   (match ast
     [(s-block s stmts)
