@@ -127,7 +127,7 @@ colon. For example:
     f = m._fun()
     f({}) # evaluates to 10 - note that you have to apply it to a self
     o2 = o.{ newmeth = m }
-    o2.m() # evaluates to 10 - because now we accessed it with normal dot.
+    o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
     
 #### Lists
 
