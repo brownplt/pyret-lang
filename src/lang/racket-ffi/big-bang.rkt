@@ -13,24 +13,24 @@
 
 ;; -----------------------------------------------------------------------------
 ;; small adapter 
-
+(define do-nothing-thunk (lambda () (lambda _ (first _))))
 (define (my-bb world0 ht)
   (lambda ()
     (new world% 
          (world0 world0)
          (on-draw    (hash-ref ht 'to-draw))
-         (on-tick    (hash-ref ht 'on-tick))
-         (on-mouse   (hash-ref ht 'on-mouse void))
-         (on-key     (hash-ref ht 'on-key void))
+         (on-tick    (hash-ref ht 'on-tick do-nothing-thunk))
+         (on-mouse   (hash-ref ht 'on-mouse do-nothing-thunk))
+         (on-key     (hash-ref ht 'on-key do-nothing-thunk))
          (record?    (hash-ref ht 'record #f))
          (stop-when  (hash-ref ht 'stop-when (lambda _ (displayln _) (lambda _ #f))))
          (state      (hash-ref ht 'state #f))
          (check-with (hash-ref ht 'check-with (lambda _ (lambda _ #t))))
-         (on-release (hash-ref ht 'on-release void))
+         (on-release (hash-ref ht 'on-release do-nothing-thunk))
          (on-pad     (hash-ref ht 'on-pad #f))
          (name       (hash-ref ht 'name "no  name"))
          (register   (hash-ref ht 'register #f))
-         (on-receive (hash-ref ht 'on-receive void))
+         (on-receive (hash-ref ht 'on-receive do-nothing-thunk))
          )))
 
 ;; (-> Object) -> Any
@@ -50,6 +50,10 @@
          (lambda (world) (p:p-opaque-val ((p:p-base-app f) world)))]
         [(equal? k "stop-when")
          (lambda (world) (ffi-unwrap ((p:p-base-app f) world)))] 
+        [(equal? k "on-key")
+         (lambda (world key) ((p:p-base-app f) world (ffi-wrap key)))]
+        [(equal? k "on-mouse")
+         (lambda (world x y type) ((p:p-base-app f) world (ffi-wrap x) (ffi-wrap y) (ffi-wrap type)))]
         [(equal? k "on-tick")
          (lambda (world) ((p:p-base-app f) world))]
         [else (raise (p:pyret-error p:dummy-loc "big-bang-no-impl"

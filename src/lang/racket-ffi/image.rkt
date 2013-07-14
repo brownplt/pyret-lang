@@ -5,6 +5,7 @@
   "../string-map.rkt"
   "../ffi-helpers.rkt"
   (only-in 2htdp/image
+    text
     place-image
     circle
     rectangle
@@ -50,6 +51,7 @@
       (cons "color-red" (ffi-wrap color-red))
       (cons "color-green" (ffi-wrap color-green))
       (cons "color-blue" (ffi-wrap color-blue))
+      (cons "text" (ffi-wrap text))
       (cons "rgb" (ffi-wrap make-color)))))
 
 (define image-obj (p:mk-object image-dict))
