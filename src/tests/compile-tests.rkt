@@ -95,6 +95,9 @@
   (check-pyret-match "(fun(x): doc: 'great' x end).tostring()"
                (p:p-str _ _ _ _ "fun (x): 'great' end"))
 
+  (check-pyret-match "(fun(x :: Number): doc: 'great' x end).tostring()"
+               (p:p-str _ _ _ _ "fun (x): 'great' end"))
+
 ))
 
 
@@ -425,6 +428,7 @@
     "list.is-empty([5])"
     (p:mk-bool #f))
 
+
   (check-pyret
      "option.is-some(option.some(2))"
      (p:mk-bool #t))
@@ -439,14 +443,14 @@
 
   (check-pyret
     "
-    fun map(l, f):
+    fun ourmap(l, f):
       case:
         | list.is-empty(l) => []
-        | true => map(l.rest, f).push(f(l.first))
+        | true => ourmap(l.rest, f).push(f(l.first))
       end
     end
-    l1 = map([5], fun(x): x._add(1) end).first
-    l2 = map([5,6,7], fun(x): x._add(1) end).rest.rest.first
+    l1 = ourmap([5], fun(x): x._add(1) end).first
+    l2 = ourmap([5,6,7], fun(x): x._add(1) end).rest.rest.first
     l1._add(l2)" (p:mk-num 14))
 
   (check-pyret "import Racket as R
@@ -895,6 +899,7 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-error3.arr" _ 4 3 1 0 1)
     (check-pyret-match/check "pyret/check/check-error4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ 1 1 0 0 0)
+    (check-pyret-match/check "pyret/check/check-identifier-after.arr" _ 1 1 0 0 0)
     (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ 2 2 0 0 0)
 
     (check-pyret-match/check "pyret/check/check-data1.arr" _ 1 1 0 0 0)

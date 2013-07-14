@@ -225,11 +225,20 @@
      (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
 
     [(s-lam s typarams args ann doc body check)
+     (define (new-arg b)
+      (match b
+        [(s-bind s id ann) (s-bind s (gensym id) (a-blank))]))
+     (define new-args (map new-arg args))
+     (define new-argnames (map s-bind-id new-args))
      (define body-env (foldl (update-for-bind #f) env args))
-     (wrap-ann-check s
-                     (get-arrow s args ann)
-                     (s-lam s typarams args ann doc (cc-env body body-env)
-                            (cc-env check body-env)))]
+     (define wrapped-body
+      (wrap-ann-check s ann (cc-env body body-env)))
+     (define (check-arg bind new-id) (cc-env (s-let s bind (s-id s new-id)) body-env))
+     (define checked-args (map check-arg args new-argnames))
+     (define full-body
+      (s-block s
+        (append checked-args (list wrapped-body))))
+     (s-lam s typarams new-args ann doc full-body (cc check))]
 
     ;; TODO(joe): give methods an annotation position for result
     [(s-method s args ann doc body check)

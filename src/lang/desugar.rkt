@@ -297,13 +297,7 @@
      (s-let s (ds-bind name) (ds val))]
 
     [(s-fun s name typarams args ann doc body check)
-     (s-let s
-            (s-bind s name
-                    (a-arrow s (map (replace-typarams typarams)
-                                    (map desugar-ann
-                                         (map s-bind-ann args)))
-                             ((replace-typarams typarams)
-                              (desugar-ann ann))))
+     (s-let s (s-bind s name (a-blank))
             (add-lam-tostring s "fun" name args
             (s-lam s typarams (map (replace-typarams-binds typarams)
                                    (ds-args args))

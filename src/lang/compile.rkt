@@ -43,6 +43,7 @@
   (define (stmt-id stmt)
     (match stmt
       [(s-let _ (s-bind _ id _) (s-lam _ _ _ _ _ _ _)) id]
+      [(s-let _ (s-bind _ id _) (s-extend s (s-lam _ _ _ _ _ _ _) fields)) id]
       [_ #f]))
   (list->set (filter-map stmt-id stmts)))
 
@@ -65,14 +66,19 @@
           #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))]
       [(s-let s (s-bind _ id _) val)
        (match val
-        [(s-lam l _ args _ doc body _)
+        [(s-extend s (s-lam l _ args _ doc body _) fields)
          (list
           (with-syntax ([(arg ...) (args-stx l args)])
             #`(r:define #,(make-immediate-id id)
                (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))
           (with-syntax ([(arg ...) (args-stx l args)]
-                        [f-id (make-immediate-id id)])
-            #`(r:define #,(discard-_ id) (p:pλ (arg ...) #,doc (f-id arg ...)))))]
+                        [f-id (make-immediate-id id)]
+                        [(field ...) (map (curryr compile-member env) fields)])
+            #`(r:define #,(discard-_ id)
+                (p:extend
+                  #,(loc-stx s)
+                  (p:pλ (arg ...) #,doc (f-id arg ...))
+                  (r:list field ...)))))]
         [_ (list #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))])]
       [_ (list (compile-expr/internal ast-node env))]))
   (define ids (block-ids stmts))
@@ -83,6 +89,19 @@
   (define stmts-stx (append* (map (curryr compile-stmt new-env) stmts)))
   (if (empty? stmts-stx) (list #'nothing) stmts-stx))
 
+(define (compile-member ast-node env)
+  (match ast-node
+    [(s-data-field l name value)
+     (attach l
+       (with-syntax*
+        ([name-stx (compile-string-literal l name env)]
+         [val-stx (compile-expr/internal value env)]) 
+         #`(r:cons name-stx val-stx)))]))
+(define (compile-string-literal l e env)
+  (match e
+    [(s-str _ s) (d->stx s l)]
+    [else #`(p:check-str #,(compile-expr/internal e env) #,(loc-stx l))]))
+
 (define (compile-expr/internal ast-node env)
   (define compile-expr compile-expr/internal)
   (define (mark l expr)
@@ -90,23 +109,11 @@
       #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
   (define (compile-body l body)
     (mark l (compile-expr body env)))
-  (define (compile-string-literal l e)
-    (match e
-      [(s-str _ s) (d->stx s l)]
-      [else #`(p:check-str #,(compile-expr e env) #,(loc-stx l))]))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
-         ([field-stx (compile-string-literal l field)])
+         ([field-stx (compile-string-literal l field env)])
        #`(#,lookup-type #,(loc-stx l) #,(compile-expr obj env) field-stx))))
-  (define (compile-member ast-node)
-    (match ast-node
-      [(s-data-field l name value)
-       (attach l
-         (with-syntax*
-          ([name-stx (compile-string-literal l name)]
-           [val-stx (compile-expr value env)]) 
-           #`(r:cons name-stx val-stx)))]))
   (match ast-node
     
     [(s-block l stmts)
@@ -178,7 +185,7 @@
      (with-syntax* ([obj (compile-expr obj env)]
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
-                    [field (compile-string-literal l2 field)])
+                    [field (compile-string-literal l2 field env)])
          (mark l
           #`(r:let* ([%obj obj]
                      [%field (p:get-raw-field #,(loc-stx l) %obj field)]
@@ -202,12 +209,12 @@
 
     [(s-obj l fields)
      (attach l
-       (with-syntax ([(member ...) (map compile-member fields)])
+       (with-syntax ([(member ...) (map (curryr compile-member env) fields)])
          #'(p:mk-object (p:make-string-map (r:list member ...)))))]
     
     [(s-extend l super fields)
      (attach l
-       (with-syntax ([(member ...) (map compile-member fields)]
+       (with-syntax ([(member ...) (map (curryr compile-member env) fields)]
                      [super (compile-expr super env)])
         #`(p:extend #,(loc-stx l)
                     super
