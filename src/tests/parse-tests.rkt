@@ -95,6 +95,9 @@ line string\"" (s-str _ "multi\nline string"))
   ;; What we should get back is the actual escape characters.
   (check/block "'string\\nwith\\r\\nspecial\\tcharacters'"
                (s-str _ "string\nwith\r\nspecial\tcharacters"))
+
+  (check/block "\"\\\"\"" (s-str _ "\""))
+  (check/block "'\\''" (s-str _ "'"))
 ))
 
 (define methods (test-suite "methods"

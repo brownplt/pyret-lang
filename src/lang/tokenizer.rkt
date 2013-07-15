@@ -53,11 +53,15 @@
 ;; should turn into actual escape characters in the resulting strings.
 ;; This is a mediocre solution, but I'm not sure of a better way.
 (define (fix-escapes s)
-  (string-replace 
+  (string-replace
    (string-replace
-    (string-replace s "\\n" "\n")
-    "\\t" "\t")
-   "\\r" "\r"))
+    (string-replace 
+     (string-replace
+      (string-replace s "\\n" "\n")
+      "\\t" "\t")
+     "\\r" "\r")
+    "\\\"" "\"")
+   "\\'" "'"))
 
 (define (tokenize ip)
   (port-count-lines! ip)
