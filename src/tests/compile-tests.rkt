@@ -38,6 +38,8 @@
   (check-pyret "{['x'.append('y')]:5}" (p:mk-object (make-immutable-hash (list (cons "xy" five)))))
 
   (check-pyret "'fod'.substring(1,2)" (p:mk-str "o"))
+
+  (check-pyret "'fod'.char-at(1)" (p:mk-str "o"))
   ))
 
 (define functions (test-suite

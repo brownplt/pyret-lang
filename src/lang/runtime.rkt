@@ -669,6 +669,10 @@ And the object was:
           ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
   meta-num-store)
 
+;; Pyret's char-at just returns a single character string
+(define (char-at s n)
+  (substring s n (+ n 1)))
+
 ;; meta-str-store (Hashof String value)
 (define meta-str-store #f)
 (define (meta-str)
@@ -679,6 +683,7 @@ And the object was:
           ("_plus" . ,(mk-prim-fun string-append 'plus mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("substring" . ,(mk-prim-fun substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
+          ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num (p-str-s) (s) (p-str?)))
           ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
