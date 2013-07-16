@@ -40,6 +40,10 @@
   (check-pyret "'fod'.substring(1,2)" (p:mk-str "o"))
 
   (check-pyret "'fod'.char-at(1)" (p:mk-str "o"))
+
+  (check-pyret "'fod'.repeat(1)" (p:mk-str "fod"))
+  (check-pyret "'fod'.repeat(0)" (p:mk-str ""))
+  (check-pyret "'fod'.repeat(3)" (p:mk-str "fodfodfod"))
   ))
 
 (define functions (test-suite
