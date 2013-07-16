@@ -7,8 +7,8 @@
     print("Hello World!")
 
 Bonus: when you call `print()`, it first calls the builtin
-`tostring()` function on the argument. This does sensible things
-with base values, but for more complicated things, if you define
+`tostring()` function on the argument. This shows sensible representations
+for base values, but for more complicated objects, if you define
 a `tostring` method, it will use that instead. 
 
 #### Comments
@@ -23,7 +23,11 @@ Are single line, starting from the `#` character and running to the end of the l
 Is not significant except insofar as to separate pieces of syntax. So
 there are places where you must place _some_ whitespace, but
 indentation, nor how much whitespace (and what combination of newlines
-and spaces) never matters.
+and spaces) ever matters.
+
+On the other hand, whitespace is sometimes not allowed: if a keyword is followed
+by a colon, no whitespace may be present between the two. Also, `else if` must be
+written exactly this way - exactly one space between `else` and `if`.
 
 
 #### Separators
@@ -33,7 +37,7 @@ There are also no line end separators. Pyret is semicolonless.
 #### Expressions
 
 Most syntax in the language are expression forms, which means they can
-appear almost anywhere in the syntax where it would make sense. The
+appear almost anywhere in the syntax. The
 exception are the binding forms - named function definitions, data
 declarations, and variable binding. Binding forms can only appear in
 [blocks](#blocks).
@@ -80,7 +84,7 @@ can be included if escaped like \".
 
 `nothing` is a value that doesn't do anything. You can return it,
 check for it, and in some cases, like if you have an empty function
-body, you'll get access to it. You can't add fields to it. You write it like:
+body, it will be returned to you. You can't add fields to it. You write it like:
 
     nothing
     
@@ -118,11 +122,12 @@ Or do this multiple times:
 
 #### Lists
 
-Written as square bracket comma-separated values, lists can have any
-value in them (they are heterogeneous). Lists are objects, so the
-first element in the list (sometimes known as the head in other
-languages) is accessed as the `first` field, and the rest of the list
-(which is another list, potentially empty) is the `rest` field.
+Written as square bracket comma-separated values, lists can have
+values of different types in them (they are heterogeneous). Lists are
+objects, so the first element in the list (sometimes known as the head
+in other languages) is accessed as the `first` field, and the rest of
+the list (which is another list, potentially empty) is the `rest`
+field.
 
     [1,2,3].first # evaluates to 1
     [1,2,3].rest # evaluates to [2,3]
@@ -131,7 +136,8 @@ languages) is accessed as the `first` field, and the rest of the list
 List notation is actually syntax sugar for a data definition in the Pyret
 standard libraries. `[1,2,3]` is really `link(1,link(2,link(3,empty)))`
 where `empty` is one constructor, that is an empty list, and `link` is another,
-that takes a value and another list.
+that takes a value and another list. Note that `link` is what you might know as
+`cons` from another language.
 
 #### Functions
 
@@ -171,12 +177,13 @@ You can (and should) add documentation to your functions. The best way to do tha
 
     fun foo(x):
       doc: "my great foo function!"
-      x # NOTE: improve!
+      y = 10
+      x + y # NOTE: improve!
     end
 
     print(foo) # prints "fun foo(x): 'my great foo function' end"
 
-### Variables and Named Functions
+### Variables, Named Functions and Methods
 
 We can bind any value to a name with `=`. This value cannot be changed
 (though the binding can be shadowed). For example:
@@ -205,19 +212,17 @@ to update those variables:
     # ...
     x := 20
 
-Note that it is an error to define a `var` to a identifier that is
-already bound. Also, if you try to use an identifier that has not been
-bound, that error will be caught before your program is run (or, really, as
-soon as you try to run your program, but before we spend any time executing
-your code).
-
-### More Values
+Note that you cannot define a `var` to a identifier that is already
+bound. Also, if you try to use an identifier that has not been bound,
+that error will be caught before your program is run (or, really, as
+soon as you try to run your program, but before we spend any time
+executing your code).
 
 #### Methods
 
 Methods are a separate kind of value from functions. Given a function,
 you can get a corresponding method, and the same is true in reverse,
-but methods behave differently when inside objects. A methods is
+but methods behave differently when inside objects. A method is
 written with the `method` keyword instead of `fun`. An example:
 
     method(self): 10 end
@@ -324,36 +329,6 @@ to call the function or not). For example:
     
 ### Control
 
-#### Exceptions
-
-Any value can be `raise`d, which causes control to immediately transfer to the
-`catch` block of the closest (in terms of nesting) `try/except` block. The value
-raised will be bound to the identifier inside the `except` clause. For example:
-
-    try:
-      10
-      raise "Help"
-      20 # control never reaches here
-    except(e):
-      e # is "Help"
-    end
-
-There can be any number of `try/except` blocks nested - the exception will
-hit the first one available. For example:
-
-
-    try:
-      try:
-        10
-        raise "Help"
-        20 # control never reaches here
-      except(e):
-        e # is "Help"
-      end
-    except(e):
-      # control never reaches here 
-    end
-
 #### For loops
 
 We present the common pattern of iteration in a simplified syntax. To `map` over a list,
@@ -379,8 +354,24 @@ There are also several other built in functions for this purpose:
 And you are free to define your own `for` operators - they are functions that take
 as their first arguments a function with the argument names from the left side of
 the `from` clauses and has the body of the `for` block, and then the rest of
-the arguments are the values from the right side of the `from` clauses.
+the arguments are the values from the right side of the `from` clauses. For example:
 
+    fun every-other(body-fun, lst):
+      fun every-other-internal(flip, lst):
+        case(List) lst:
+          | empty => empty
+          | link(first, rst) =>
+            link(if flip: body-fun(first) else: first end,
+                 iter-alternating-internal(not flip, rst))
+        end
+      end
+      iter-every-other-internal(true, lst)
+    end
+
+    for every-other(elt from range(0,10)):
+      print(elt)
+    end
+    # prints 0, 2, 4, 6, 8, 10
 
 #### If
 
@@ -416,6 +407,54 @@ code that exists solely to _do_ something. For example:
       print("Oh No!")
     end
 
+
+#### Exceptions
+
+Any value can be `raise`d, which causes control to immediately transfer to the
+`catch` block of the closest (in terms of nesting) `try/except` block. The value
+raised will be bound to the identifier inside the `except` clause. For example:
+
+    try:
+      10
+      raise "Help"
+      20 # control never reaches here
+    except(e):
+      e # is "Help"
+    end
+
+There can be any number of `try/except` blocks nested - the exception will
+hit the first one available. For example:
+
+
+    try:
+      try:
+        10
+        raise "Help"
+        20 # control never reaches here
+      except(e):
+        e # is "Help"
+      end
+    except(e):
+      # control never reaches here 
+    end
+
+    
+#### Blocks
+
+There are many block forms in Pyret. In any block, any number of
+statements / expressions can be put. The last one will be what the block
+evaluates to, which has different meanings depending on the context. The
+blocks are:
+
+- top level of a `.arr` file (or Captain Teach editor)
+- `function` bodies
+- `method` bodies
+- `check` bodies
+- `if`, `else if`, and `else` branches
+- inside `when`
+- between `try` and `except`, and `except` and `end`
+- in the branches of `cases`
+    
 ### Data
 
 Pyret supports variant data types. This means that a single type may have
@@ -549,7 +588,7 @@ defined as 1, 5, and 3).
 
 ### Annotations
 
-Pyret is not currently a type language, but it allows type-like
+Pyret is not currently a typed language, but it allows type-like
 annotations that are checked when running your programs. In the
 future, some or most of these will be turned into compile time
 type-checking, so that your annotated programs will become safer
@@ -624,18 +663,3 @@ whatever you want - we think they are an interesting pattern for
 controlling a certain kind of truth within a program (of which a type
 is just one example).
 
-### Blocks
-
-There are many block forms in Pyret. In any block, any number of
-statements / expressions can be put. The last one will be what the block
-evaluates to, which has different meanings depending on the context. The
-blocks are:
-
-- top level of a `.arr` file (or Captain Teach editor)
-- `function` bodies
-- `method` bodies
-- `check` bodies
-- `if`, `else if`, and `else` branches
-- inside `when`
-- between `try` and `except`, and `except` and `end`
-- in the branches of `cases`
