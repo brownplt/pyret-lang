@@ -31,7 +31,7 @@
   (define (tp-cases-branch b)
    (match b
      [(s-cases-branch s name args blk)
-      (build s_cases_branch (tp-loc s) (tp name) (map tp-bind args) (tp blk))]))
+      (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]))
   (define (tp-variant variant)
     (match variant
       [(s-variant l name binds members)
