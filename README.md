@@ -16,7 +16,7 @@ First, make sure ye've installed [Racket >= 5.3.4](http://racket-lang.org). Then
 It'll build the Pyret compiler, run the tests, and hoist the
 anchor.
 
-When yer ready to brave the sea, run:
+When yer ready to brave the sea, visit:
 
-    $ raco pyret examples/ahoy-world.arr
+    https://github.com/brownplt/pyret-lang/blob/master/docs/introduction.markdown
 
