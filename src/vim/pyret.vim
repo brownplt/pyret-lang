@@ -7,6 +7,7 @@ if exists("b:current_syntax")
   finish
 endif
 
+set iskeyword+=-
 set iskeyword+=:
 
 syn match delimeter '|'
@@ -21,18 +22,19 @@ syn match delimeter '\['
 syn match delimeter '\]'
 syn match delimeter '{'
 syn match delimeter '}'
+syn match delimeter '::'
 
 syn keyword basic var fun fun: end case: with: sharing: data import provide as try: except when for from check: doc: : and or not else: if else
 
-syn match op '+'
-syn match op '-'
-syn match op '/'
-syn match op '*'
-syn match op '>'
-syn match op '<'
-syn match op '>='
-syn match op '<='
-syn match op '<>'
+syn match op ' + '
+syn match op ' - '
+syn match op ' / '
+syn match op ' * '
+syn match op ' > '
+syn match op ' < '
+syn match op ' >= '
+syn match op ' <= '
+syn match op ' <> '
 
 syn match comment '\#.*$'
 
