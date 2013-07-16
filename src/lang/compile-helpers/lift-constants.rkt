@@ -15,10 +15,10 @@
   (define (get-and-replace-constants ast)
     (define (process-member m)
      (match m
-       [(s-data-field l (s-str l s) val)
+       [(s-data-field l (s-str l2 s) val)
         (match-define (cons val-list new-val) (get-and-replace-constants val))
         (cons val-list
-              (s-data-field l (s-str l s) new-val))]
+              (s-data-field l (s-str l2 s) new-val))]
        [(s-data-field l name val)
         (match-define (cons name-list new-name) (get-and-replace-constants name))
         (match-define (cons val-list new-val) (get-and-replace-constants val))

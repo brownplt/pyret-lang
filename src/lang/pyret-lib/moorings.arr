@@ -250,7 +250,7 @@ end
 fun range(start, stop):
   case:
     | start < stop => link(start, range(start + 1, stop))
-    | start._equals(stop) => empty
+    | start == stop => empty
     | start > stop  => raise("range: start greater than stop: ("
                             + start.tostring()
                             + ", "

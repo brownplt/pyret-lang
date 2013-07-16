@@ -4,12 +4,12 @@
   compile-pyret
   compile-expr)
 (require
-  srfi/13
   racket/match
   racket/splicing
   racket/syntax
   "ast.rkt"
   "runtime.rkt"
+  "compile-helpers/find.rkt"
   "compile-helpers/lift-constants.rkt")
 
 (define (loc-list loc)
@@ -34,7 +34,7 @@
 (define (args-stx l args)
   (d->stx (map discard-_ (map s-bind-id args)) l))
 
-(struct compile-env (functions-to-inline) #:transparent)
+(struct compile-env (functions-to-inline toplevel?) #:transparent)
 
 (define (d->stx stx loc) (datum->syntax #f stx (loc-list loc)))
 
@@ -67,36 +67,55 @@
         (list 
           #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))]
       [(s-let s (s-bind _ id _) val)
+       (define (match-id-use e)
+        (match e
+          [(s-app s (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
+           (s-id s2 x)]
+          [(s-id s (? (lambda (x) (equal? id x)) x))
+           (s-id s x)]
+          [_ #f]))
+       (define ids (find (s-block l stmts) match-id-use))
+       (define id-used (or (> (length (remove-duplicates ids)) 1)
+                           (= (length ids) 1)))
        (match val
         [(s-lam l _ args _ doc body _)
-         (list
+         (define inline-binding
           (with-syntax ([(arg ...) (args-stx l args)])
             #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))
-          (with-syntax ([(arg ...) (args-stx l args)]
-                        [f-id (make-immediate-id id)])
-            #`(r:define #,(discard-_ id)
-                  (p:pλ (arg ...) #,doc (f-id arg ...)))))]
+               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+         (cond
+          [(or (compile-env-toplevel? env) id-used)
+            (list inline-binding
+                  (with-syntax ([(arg ...) (args-stx l args)]
+                                [f-id (make-immediate-id id)])
+                    #`(r:define #,(discard-_ id)
+                          (p:pλ (arg ...) #,doc (f-id arg ...)))))]
+          [else (list inline-binding)])]
         [(s-extend s (s-lam l _ args _ doc body _) fields)
-         (list
+         (define inline-binding
           (with-syntax ([(arg ...) (args-stx l args)])
             #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))
-          (with-syntax ([(arg ...) (args-stx l args)]
-                        [f-id (make-immediate-id id)]
-                        [(field ...) (map (curryr compile-member env) fields)])
-            #`(r:define #,(discard-_ id)
-                (p:extend
-                  #,(loc-stx s)
-                  (p:pλ (arg ...) #,doc (f-id arg ...))
-                  (r:list field ...)))))]
+               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+         (cond
+          [(or (compile-env-toplevel? env) id-used)
+            (list inline-binding
+                  (with-syntax ([(arg ...) (args-stx l args)]
+                                [f-id (make-immediate-id id)]
+                                [(field ...) (map (curryr compile-member env) fields)])
+                    #`(r:define #,(discard-_ id)
+                        (p:extend
+                          #,(loc-stx s)
+                          (p:pλ (arg ...) #,doc (f-id arg ...))
+                          (r:list field ...)))))]
+           [else (list inline-binding)])]
         [_ (list #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))])]
       [_ (list (compile-expr/internal ast-node env))]))
   (define ids (block-ids stmts))
   (define fun-ids (block-fun-ids stmts))
   (define old-fun-ids (compile-env-functions-to-inline env))
   (define avoid-shadowing (set-subtract old-fun-ids (list->set ids)))
-  (define new-env (compile-env (set-union avoid-shadowing fun-ids)))
+  (define new-env (compile-env (set-union avoid-shadowing fun-ids)
+                               (compile-env-toplevel? env)))
   (define stmts-stx (append* (map (curryr compile-stmt new-env) stmts)))
   (if (empty? stmts-stx) (list #'nothing) stmts-stx))
 
@@ -118,8 +137,8 @@
   (define (mark l expr)
     (with-syntax [((loc-param ...) (loc-list l))]
       #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
-  (define (compile-body l body)
-    (mark l (compile-expr body env)))
+  (define (compile-body l body new-env)
+    (mark l (compile-expr body new-env)))
   (define (compile-lookup l obj field lookup-type)
      (attach l
       (with-syntax*
@@ -128,7 +147,8 @@
   (match ast-node
     
     [(s-block l stmts)
-     (with-syntax ([(stmt ...) (compile-block l stmts env)])
+     (define new-env (compile-env (compile-env-functions-to-inline env) #f))
+     (with-syntax ([(stmt ...) (compile-block l stmts new-env)])
        (attach l #'(r:let () stmt ...)))]
 
     [(s-num l n) #`(p:mk-num #,(d->stx n l))]
@@ -137,15 +157,17 @@
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
     [(s-lam l params args ann doc body _)
+     (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
        (with-syntax ([(arg ...) (args-stx l args)]
-                     [body-stx (compile-body l body)])
+                     [body-stx (compile-body l body new-env)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
     
     [(s-method l args ann doc body _)
+     (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
        (with-syntax ([(arg ...) (args-stx l args)]
-                     [body-stx (compile-body l body)])
+                     [body-stx (compile-body l body new-env)])
          #`(p:pμ (arg ...) #,doc body-stx)))]
 
     [(s-if-else l c-bs else-block)
@@ -272,13 +294,13 @@
     [(s-prog l headers block) (compile-prog l headers block)]
     [(s-block l stmts)
      (match-define (s-block l2 new-stmts) (lift-constants ast))
-     (with-syntax ([(stmt ...) (compile-block l2 new-stmts (compile-env (set)))])
+     (with-syntax ([(stmt ...) (compile-block l2 new-stmts (compile-env (set) #t))])
        (attach l #'(r:begin stmt ...)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 
 (define (compile-expr pre-ast)
   (define ast (lift-constants pre-ast))
-  (compile-expr/internal ast (compile-env (set))))
+  (compile-expr/internal ast (compile-env (set) #f)))
 
 (define (discard-_ name)
   (if (equal? name '_) (gensym) name))
