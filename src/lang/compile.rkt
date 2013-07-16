@@ -4,11 +4,13 @@
   compile-pyret
   compile-expr)
 (require
+  srfi/13
   racket/match
   racket/splicing
   racket/syntax
   "ast.rkt"
-  "runtime.rkt")
+  "runtime.rkt"
+  "compile-helpers/lift-constants.rkt")
 
 (define (loc-list loc)
   (define (serialize-source e)
@@ -66,6 +68,15 @@
           #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))]
       [(s-let s (s-bind _ id _) val)
        (match val
+        [(s-lam l _ args _ doc body _)
+         (list
+          (with-syntax ([(arg ...) (args-stx l args)])
+            #`(r:define #,(make-immediate-id id)
+               (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))
+          (with-syntax ([(arg ...) (args-stx l args)]
+                        [f-id (make-immediate-id id)])
+            #`(r:define #,(discard-_ id)
+                  (p:pλ (arg ...) #,doc (f-id arg ...)))))]
         [(s-extend s (s-lam l _ args _ doc body _) fields)
          (list
           (with-syntax ([(arg ...) (args-stx l args)])
@@ -230,12 +241,6 @@
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
-(define (compile-prog l headers block)
-  (attach l
-   (with-syntax ([(req ...) (map compile-header (filter s-import? headers))]
-                 [(prov ...) (map compile-header (filter s-provide? headers))])
-     #`(r:begin req ... #,(compile-pyret block) prov ...))))
-
 (define (compile-header header)
   (match header
     [(s-import l file name)
@@ -254,16 +259,26 @@
             (r:define temp-stx #,(compile-expr exp))
             (r:provide (r:rename-out [temp-stx %PYRET-PROVIDE])))))]))
 
-(define (compile-expr ast)
-  (compile-expr/internal ast (compile-env (set))))
+
+
+(define (compile-prog l headers block)
+  (attach l
+   (with-syntax ([(req ...) (map compile-header (filter s-import? headers))]
+                 [(prov ...) (map compile-header (filter s-provide? headers))])
+     #`(r:begin req ... #,(compile-pyret block) prov ...))))
 
 (define (compile-pyret ast)
   (match ast
     [(s-prog l headers block) (compile-prog l headers block)]
     [(s-block l stmts)
-     (with-syntax ([(stmt ...) (compile-block l stmts (compile-env (set)))])
+     (match-define (s-block l2 new-stmts) (lift-constants ast))
+     (with-syntax ([(stmt ...) (compile-block l2 new-stmts (compile-env (set)))])
        (attach l #'(r:begin stmt ...)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
+
+(define (compile-expr pre-ast)
+  (define ast (lift-constants pre-ast))
+  (compile-expr/internal ast (compile-env (set))))
 
 (define (discard-_ name)
   (if (equal? name '_) (gensym) name))
