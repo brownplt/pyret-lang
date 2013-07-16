@@ -249,21 +249,21 @@ end
 
 fun range(start, stop):
   case:
+    | start < stop => link(start, range(start + 1, stop))
+    | start._equals(stop) => empty
     | start > stop  => raise("range: start greater than stop: ("
                             + start.tostring()
                             + ", "
                             + stop.tostring()
                             + ")")
-    | start == stop => empty
-    | start < stop  => link(start, range(start + 1, stop))
   end
 end
 
 fun repeat(n :: Number, e :: Any):
   case:
-    | n < 0 => raise("repeat: can't have a negative argument'")
+    | n > 0 => link(e, repeat(n - 1, e))
     | n == 0 => empty
-    | true => link(e, repeat(n - 1, e))
+    | n < 0 => raise("repeat: can't have a negative argument'")
   end
 check:
   eq = checkers.check-equals
