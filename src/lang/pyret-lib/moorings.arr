@@ -86,7 +86,7 @@ data List:
 
     length(self): 0 end,
 
-    each(self, f): empty end,
+    each(self, f): nothing end,
 
     map(self, f): empty end,
 
@@ -249,13 +249,13 @@ end
 
 fun range(start, stop):
   case:
-    | start._greaterthan(stop) => raise("range: start greater than stop: ("
-                                        + start.tostring()
-                                        + ", "
-                                        + stop.tostring()
-                                        + ")")
-    | start._equals(stop)      => empty
-    | start._lessthan(stop)    => link(start, range(start + 1, stop))
+    | start > stop  => raise("range: start greater than stop: ("
+                            + start.tostring()
+                            + ", "
+                            + stop.tostring()
+                            + ")")
+    | start == stop => empty
+    | start < stop  => link(start, range(start + 1, stop))
   end
 end
 
