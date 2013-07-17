@@ -389,6 +389,12 @@ line string\"" (s-str _ "multi\nline string"))
                                   (s-if-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 24)))))
                           (s-block _ (list (s-num _ 6)))))
 
+  (check/block "if 0 < 1: 5 else if 1 < 0: 24 else: 6 end"
+               (s-if-else _ (list (s-if-branch _ (s-op _ 'op< (s-num _ 0) (s-num _ 1))
+                                                 (s-block _ (list (s-num _ 5))))
+                                  (s-if-branch _ (s-op _ 'op< (s-num _ 1) (s-num _ 0)) (s-block _ (list (s-num _ 24)))))
+                          (s-block _ (list (s-num _ 6)))))
+
   (check/block "cases(List) 5: | empty() => 1 end"
                (s-cases _ (s-id _ 'List) (s-num _ 5)
                   (list

@@ -79,8 +79,8 @@ cases-expr: "cases" (PARENSPACE|PARENNOSPACE) expr ")" expr ":" cases-branch* ["
 case-branch: "|" binop-expr "=>" block
 case-expr: "case:" case-branch* "end"
 
-else-if: "else if" expr ":" block
-if-expr: "if" expr ":" block else-if* ["else:" block] "end"
+else-if: "else if" binop-expr ":" block
+if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
 
 try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
    
