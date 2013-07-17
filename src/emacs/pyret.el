@@ -313,7 +313,7 @@
   "Stores the indentation information of the parse.  Should only be buffer-local.")
 
 (defun pyret-compute-nestings (char-min char-max)
-  (font-lock-fontify-region (max 1 char-min) char-max)
+  (save-excursion (font-lock-fontify-region (max 1 char-min) char-max))
   (let ((nlen (if pyret-nestings-at-line-start (length pyret-nestings-at-line-start) 0))
         (doclen (count-lines (point-min) (point-max))))
     (cond 
