@@ -18,7 +18,6 @@
   "lang/reader.rkt"
   racket/syntax)
 
-
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
 (module test-shell "lang/pyret-lang-racket.rkt"
   (r:define-namespace-anchor test-shell-anchor)
@@ -34,7 +33,7 @@
     (current-print print-pyret))
   ns)
 
-(define (process-pyret-error p)
+(define (process-pyret-error str p)
   (define (print-loc l)
    (eprintf "~a:~a:~a\n"
      (srcloc-source l)
@@ -70,15 +69,24 @@
      (eprintf "Pyret could not load your program because of a filesystem error.  The system reported:\n\n")
      (eprintf "~a\n" message)]
     [(exn:fail message cms)
-     (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
-     (print-pyret-locs cms)
-     (display p)
-     (display (continuation-mark-set->context cms))
-     (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")]
+     (cond
+      [(exn:srclocs? p)
+       (define locs ((exn:srclocs-accessor p) p))
+       (eprintf "[pyret]\n~a\n" message)
+       (eprintf "\nAt:\n")
+       (void (map print-loc locs))
+       (print-pyret-locs cms)]
+      [else
+       (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
+       (print-pyret-locs cms)
+       (display p)
+       (display (continuation-mark-set->context cms))
+       (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")])]
     ))
 
 (define (print-check-results results)
   ((p:p-base-method (p:get-raw-field p:dummy-loc results "format")) results))
+(error-display-handler process-pyret-error)
 
 (define check-mode #f)
 (command-line
@@ -94,15 +102,13 @@
     (define-values (base name dir?) (split-path pyret-file))
     (cond
       [check-mode
-       (with-handlers ([exn:fail? process-pyret-error])
-         (parameterize ([param-compile-check-mode #t]
-                        [current-load-relative-directory base])
-           (define results
-            (eval
-              (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
-              (make-fresh-namespace)))
-           (print-check-results results)))]
+       (parameterize ([param-compile-check-mode #t]
+                      [current-load-relative-directory base])
+         (define results
+          (eval
+            (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
+            (make-fresh-namespace)))
+         (print-check-results results))]
       [else
-       (with-handlers ([exn:fail? process-pyret-error])
-        (dynamic-require pyret-file #f))])))
+       (dynamic-require pyret-file #f)])))
 
