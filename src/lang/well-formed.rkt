@@ -72,13 +72,13 @@
     (match ast
       [(s-not s1 _)
        (wf-error
-        (format "Cannot have nested bare `not` with a `~a` operator. Include parenthesis around it." (op-name op))
+        (format "Cannot have nested bare `not` with a `~a` operator. Include parentheses around it." (op-name op))
         s s1)]
       [(s-op s1 op1 e1 e2)
        (if (equal? op op1) (begin (reachable-ops s op e1)
                                   (reachable-ops s op e2))
            (wf-error
-            (format "Cannot mix binary operators of different types: `~a` and `~a`. Use parenthesis to disambiguate."
+            (format "Cannot mix binary operators of different types: `~a` and `~a`. Use parentheses to disambiguate."
                     (op-name op) (op-name op1))
             s s1))]
       [else (wf ast)]))
