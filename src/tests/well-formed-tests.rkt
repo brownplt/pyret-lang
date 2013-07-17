@@ -40,6 +40,14 @@
  "1 / 2 + 3 * 4 - 5"
  "well-formedness:")
 
+(check-pyret-exn
+ "method(): end"
+ "well-formedness:")
+
+(check-pyret-exn
+ "{foo(): end}"
+ "well-formedness:")
+
 ))
 
 (run-tests all)

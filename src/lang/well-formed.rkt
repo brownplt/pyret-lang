@@ -27,6 +27,9 @@
 ;; - non-mixed operators - the reachable portion of the ast tree from
 ;;   an s-op, where reachable is defined by edges that connect
 ;;   to s-op or s-not, must all have the same op type.
+;;
+;; - methods with zero arguments - since the object itself will be passed as
+;;   the first argument, to have a zero argument method is an error.
 
 (define (well-formed ast)
   (match ast
@@ -61,7 +64,8 @@
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
      [(s-method-field s name args ann doc body check)
-      (begin (map wf-bind args) (wf-ann ann) (wf body))]))
+      (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
+          (begin (map wf-bind args) (wf-ann ann) (wf body)))]))
 
   (define (reachable-ops s op ast)
     (match ast
@@ -110,9 +114,10 @@
             (wf body))]
 
     [(s-method s args ann doc body check)
-     (begin (map wf-bind args)
-            (wf-ann ann)
-            (wf body))]
+     (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
+         (begin (map wf-bind args)
+                (wf-ann ann)
+                (wf body)))]
 
     [(s-when s test body)
      (begin (wf test) (wf body))]
