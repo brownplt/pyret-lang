@@ -53,7 +53,12 @@
         [(equal? k "on-key")
          (lambda (world key) ((p:p-base-app f) world (ffi-wrap key)))]
         [(equal? k "on-mouse")
-         (lambda (world x y type) ((p:p-base-app f) world (ffi-wrap x) (ffi-wrap y) (ffi-wrap type)))]
+         (lambda (world x y type)
+          (define event-obj (p:mk-object (make-string-map (list 
+            (cons "x" (ffi-wrap x))
+            (cons "y" (ffi-wrap y))
+            (cons "type" (ffi-wrap type))))))
+          ((p:p-base-app f) world event-obj))]
         [(equal? k "on-tick")
          (lambda (world) ((p:p-base-app f) world))]
         [else (raise (p:pyret-error p:dummy-loc "big-bang-no-impl"

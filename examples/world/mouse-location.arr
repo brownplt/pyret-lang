@@ -11,7 +11,7 @@ B.big-bang({x: 50, y: 50, type: "No last event"}, {
     message-img = I.text(message, 12, "black")
     I.place-image(message-img, x, y, I.rectangle(300, 300, "solid", "white"))
   end,
-  on-mouse: fun(w, x, y, type):
-    {x : x, y : y, type: type}
+  on-mouse: fun(w, evt):
+    {x : evt.x, y : evt.y, type: evt.type}
   end
 })
