@@ -112,7 +112,7 @@
            (s-block s empty)))
   (s-let s (s-bind s name (a-blank))
     (s-extend s base
-      (list (s-data-field s (s-str s "case_matcher") (desugar-internal matcher-fun))))))
+      (list (s-data-field s (s-str s "case_matcher") matcher-fun)))))
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
