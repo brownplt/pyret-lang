@@ -575,17 +575,17 @@
   (check-pyret "prim-num-keys({x:5}.{y:6})" (p:mk-num 2))
   (check-pyret "prim-num-keys({x:5}.{x:6})" (p:mk-num 1))
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
-  (check-pyret "prim-num-keys({x(): end, y:'', z: fun: end})" (p:mk-num 3))
+  (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
 
 ))
 
 (define tag-tests (test-suite "tag-tests"
   (check-pyret "Function(fun: nothing end)" true)
-  (check-pyret "Function(method(): nothing end)" false)
+  (check-pyret "Function(method(self): nothing end)" false)
   (check-pyret "Method(fun: nothing end)" false)
-  (check-pyret "Method(method(): nothing end)" true)
-  (check-pyret "Object(method(): nothing end)" false)
+  (check-pyret "Method(method(self): nothing end)" true)
+  (check-pyret "Object(method(self): nothing end)" false)
   (check-pyret "Object({})" true)
   (check-pyret "String('')" true)
   (check-pyret "String(5)" false)
@@ -599,7 +599,7 @@
   (check-pyret "String('str'.{ x: 'some-new-field' })" true)
   (check-pyret "Bool(true.{ x: 'some-new-field' })" true)
   (check-pyret "Function(fun: nothing end.{ x: 'some-new-field' })" true)
-  (check-pyret "Method(method(): nothing end.{ x: 'some-new-field' })" true)
+  (check-pyret "Method(method(self): nothing end.{ x: 'some-new-field' })" true)
   (check-pyret "Object({}.{ x: 'some-new-field' })" true)
 ))
 
