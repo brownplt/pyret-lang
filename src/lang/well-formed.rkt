@@ -13,7 +13,7 @@
       (exn:fail:pyret/wf-srclocs a-struct)))
 
 (define (wf-error str . locs)
-  (raise (exn:fail:pyret/wf str (continuation-marks #f) locs)))
+  (raise (exn:fail:pyret/wf (string-append "well-formedness: " str) (continuation-marks #f) locs)))
 
 ;; NOTE(dbp): `well-formed` operates over surface syntax
 ;;
@@ -64,17 +64,23 @@
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
      [(s-method-field s name args ann doc body check)
-      (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
+      (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
           (begin (map wf-bind args) (wf-ann ann) (wf body)))]))
 
   (define (reachable-ops s op ast)
+    (define (op-name op) (hash-ref reverse-op-lookup-table op))
     (match ast
       [(s-not s1 _)
-       (wf-error "well-formedness: Cannot have nested bare `not` with a binary operator. Include parenthesis around it." s s1)]
+       (wf-error
+        (format "Cannot have nested bare `not` with a `~a` operator. Include parenthesis around it." (op-name op))
+        s s1)]
       [(s-op s1 op1 e1 e2)
        (if (equal? op op1) (begin (reachable-ops s op e1)
                                   (reachable-ops s op e2))
-           (wf-error "well-formedness: Cannot mix binary operators of different types. Use parenthesis to disambiguate" s s1))]
+           (wf-error
+            (format "Cannot mix binary operators of different types: `~a` and `~a`. Use parenthesis to disambiguate."
+                    (op-name op) (op-name op1))
+            s s1))]
       [else (wf ast)]))
   
   (match ast

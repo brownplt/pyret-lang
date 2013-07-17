@@ -113,6 +113,10 @@ these metadata purposes.
      ("and" . ,opand)
      ("or" . ,opor))))
 
+(define reverse-op-lookup-table
+  (make-immutable-hash
+   (map (λ (k) (cons (hash-ref op-lookup-table k) k))
+        (hash-keys op-lookup-table))))
 
 ;; s-op: srcloc op Expr Expr -> s-op
 (struct s-op (syntax op left right) #:transparent)
