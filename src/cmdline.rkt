@@ -7,6 +7,7 @@
   (only-in pyret/lang/pyret-lang-racket checkers)
   pyret/lang/runtime
   pyret/lang/typecheck
+  pyret/lang/well-formed
   pyret/lang/eval
   ragg/support
   racket/cmdline
@@ -50,6 +51,10 @@
      (void (map print-loc locs))]
     [(exn:fail:pyret/tc message cms srclocs)
      (eprintf "[pyret] Error in type-checking:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (void (map print-loc srclocs))]
+    [(exn:fail:pyret/wf message cms srclocs)
+     (eprintf "[pyret] Error in well-formedness checking:\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc srclocs))]
     [(p:exn:fail:pyret message cms srcloc system? val)
