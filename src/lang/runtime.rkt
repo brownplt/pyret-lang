@@ -732,16 +732,16 @@ And the object was:
               ;; as taking only self.
               (py-match ((p-base-method m) v)
                         [(p-str _ _ _ _ s) s]
-                        [(default _) fallback])
-              fallback))
-        fallback))
+                        [(default _) (fallback)])
+              (fallback)))
+        (fallback)))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
     [(p-num _ _ _ _ n) (format "~a" n)]
     [(p-str _ _ _ _ s) (format "~a" s)]
     [(p-bool _ _ _ _ b) (if b "true" "false")]
-    [(p-method _ _ _ _) (call-tostring v "[[code]]")]
-    [(p-fun _ _ _ _) (call-tostring v "[[code]]")]
+    [(p-method _ _ _ _) (call-tostring v (λ () "[[code]]"))]
+    [(p-fun _ _ _ _) (call-tostring v (λ () "[[code]]"))]
     [(p-object _ h _ _)
      (let ()
        (define (to-string-raw-object h)
@@ -751,7 +751,7 @@ And the object was:
                  (string-join (string-map-map h field-to-string) ", ")))
        (call-tostring
         v
-        (to-string-raw-object h)))]
+        (λ () (to-string-raw-object h))))]
     [(default _) (format "~a" v)]))
 
 (define tostring-pfun (pλ/internal (loc) (o)
