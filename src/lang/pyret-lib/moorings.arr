@@ -147,7 +147,9 @@ data List:
 
     sort-by(self, cmp, eq): self end,
 
-    sort(self): self end
+    sort(self): self end,
+
+    join-str(self, str): "" end
 
   | link(first, rest :: List) with:
 
@@ -242,6 +244,12 @@ data List:
 
     sort(self):
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
+    end,
+
+    join-str(self, str):
+      for fold(combined from tostring(self.first), elt from self.rest):
+        combined + str + tostring(elt)
+      end
     end
 
 sharing:
