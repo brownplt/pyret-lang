@@ -368,7 +368,7 @@ fun map4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun each(f, lst :: List):
-  doc: "for each elem in lst, calls f(elem). returns the f(lst.last())"
+  doc: "Calls f for each elem in lst, and returns nothing"
   fun help(lst):
     case:
       | is-empty(lst) => nothing
@@ -381,6 +381,7 @@ fun each(f, lst :: List):
 end
 
 fun each2(f, l1 :: List, l2 :: List):
+  doc: "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2):
     case:
       | is-empty(l1) or is-empty(l2) => nothing
@@ -393,6 +394,7 @@ fun each2(f, l1 :: List, l2 :: List):
 end
 
 fun each3(f, l1 :: List, l2 :: List, l3 :: List):
+  doc: "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3):
     case:
       | is-empty(l1) or is-empty(l2) or is-empty(l3) => nothing
@@ -405,6 +407,7 @@ fun each3(f, l1 :: List, l2 :: List, l3 :: List):
 end
 
 fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
+  doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3, l4):
     case:
       | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => nothing
