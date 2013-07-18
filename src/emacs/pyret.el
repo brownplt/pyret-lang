@@ -62,7 +62,7 @@
 (defconst pyret-keywords-regex 
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
-     "data" "end" "except" "for" "from"
+     "data" "end" "except" "for" "from" "cases"
      "and" "or" "not"
      "as" "purpose" "if" "else")))
 (defconst pyret-keywords-colon-regex
@@ -201,7 +201,8 @@
 (defsubst pyret-FUN () (pyret-keyword "fun"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
-(defsubst pyret-CASES () (pyret-keyword "case:"))
+(defsubst pyret-CASE () (pyret-keyword "case:"))
+(defsubst pyret-CASES () (pyret-keyword "cases"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
 (defsubst pyret-IF () (pyret-keyword "if"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
@@ -455,11 +456,19 @@
             (push 'wantcolon opens)
             (forward-char 3))
            ((looking-at "[ \t]+") (goto-char (match-end 0)))
-           ((pyret-CASES)
+           ((pyret-CASE)
             (incf (pyret-indent-cases defered-opened))
             (push 'cases opens)
             (push 'wantcolon opens)
             (forward-char 4))
+           ((pyret-CASES)
+            (incf (pyret-indent-cases defered-opened))
+            (push 'cases opens)
+            (push 'wantcolon opens)
+            (push 'needsomething opens)
+            (push 'wantcloseparen opens)
+            (push 'wantopenparen opens)
+            (forward-char 5))
            ((pyret-DATA)
             (incf (pyret-indent-data defered-opened))
             (push 'data opens)
@@ -474,14 +483,20 @@
             (forward-char 2))
            ((pyret-ELSEIF)
             (when (pyret-has-top opens '(if))
-              (incf (pyret-indent-fun cur-closed))
+              (cond
+               ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
+               ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
+               (t (incf (pyret-indent-fun cur-closed))))
               (incf (pyret-indent-fun defered-opened))
               (push 'wantcolon opens)
               (push 'needsomething opens))
             (forward-char 7))
            ((pyret-ELSE)
             (when (pyret-has-top opens '(if))
-              (incf (pyret-indent-fun cur-closed))
+              (cond
+               ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
+               ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
+               (t (incf (pyret-indent-fun cur-closed))))
               (incf (pyret-indent-fun defered-opened))
               (push 'wantcolon opens))
             (forward-char 4))
