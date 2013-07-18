@@ -12,6 +12,7 @@ end
 # BUILTINS
 
 fun mklist(obj):
+  doc: "creates a List from something with `first` and `rest` fields, recursively"
   case:
     | obj.is-empty => empty
     | true => link(obj.first, mklist(obj.rest))
@@ -19,17 +20,23 @@ fun mklist(obj):
 end
 
 fun keys(obj):
+  doc: "returns a List of the keys of an object, as strings"
   mklist(prim-keys(obj))
 end
 
 fun has-field(obj, name):
+  doc: "returns true if the object has a field with the name specified"
   prim-has-field(obj, name)
 end
 
-fun num-keys(obj): prim-num-keys(obj) end
+fun num-keys(obj):
+  doc: "returns the Number of fields in an object"
+  prim-num-keys(obj)
+end
 
 fun equiv(obj1, obj2):
-  doc: "Check if two objects have all the same keys with equiv fields"
+  doc: "Check if two objects are equal via an _equals method, or
+        have all the same keys with equiv fields"
   fun all_same(obj1, obj2):
     case:
       | Method(obj1) or Function(obj1) => false
@@ -238,7 +245,10 @@ data List:
     end
 
 sharing:
-  push(self, elt): link(elt, self) end,
+  push(self, elt):
+    doc: "adds an element to the front of the list, returning a new list"
+    link(elt, self)
+  end,
   _plus(self, other): self.append(other) end
 
 check:
@@ -248,6 +258,7 @@ check:
 end
 
 fun range(start, stop):
+  doc: "creates a list of numbers, starting with start, ending with stop-1"
   case:
     | start < stop => link(start, range(start + 1, stop))
     | start == stop => empty
@@ -260,6 +271,7 @@ fun range(start, stop):
 end
 
 fun repeat(n :: Number, e :: Any):
+  doc: "creates a list with n copies of e"
   case:
     | n > 0 => link(e, repeat(n - 1, e))
     | n == 0 => empty
@@ -274,6 +286,7 @@ check:
 end
 
 fun filter(f, lst :: List):
+  doc: "returns the subset of lst for which f(elem) is true"
   case:
     | is-empty(lst) => empty
     | true =>
@@ -286,6 +299,7 @@ fun filter(f, lst :: List):
 end
   
 fun map(f, lst :: List):
+  doc: "returns a list made up of f(elem) for each elem in lst"
   case:
     | is-empty(lst) => empty
     | true => f(lst.first)^link(map(f, lst.rest))
@@ -293,6 +307,7 @@ fun map(f, lst :: List):
 end
 
 fun map2(f, l1 :: List, l2 :: List):
+  doc: "returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
   case:
     | is-empty(l1) or is-empty(l2) => empty
     | true => f(l1.first, l2.first)^link(map2(f, l1.rest, l2.rest))
@@ -300,6 +315,7 @@ fun map2(f, l1 :: List, l2 :: List):
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
+  doc: "returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
   case:
     | is-empty(l1) or is-empty(l2) or is-empty(l3) => empty
     | true => f(l1.first, l2.first, l3.first)^link(map3(f, l1.rest, l2.rest, l3.rest))
@@ -307,6 +323,7 @@ fun map3(f, l1 :: List, l2 :: List, l3 :: List):
 end
 
 fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
+  doc: "returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
   case:
     | is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) => empty
     | true => f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
@@ -314,6 +331,7 @@ fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun map_n(f, n :: Number, lst :: List):
+  doc: "returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
   case:
     | is-empty(lst) => empty
     | true => f(n, lst.first)^link(map_n(f, n + 1, lst.rest))
@@ -342,6 +360,7 @@ fun map4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun each(f, lst :: List):
+  doc: "for each elem in lst, calls f(elem). returns the f(lst.last())"
   fun help(lst):
     case:
       | is-empty(lst) => nothing
