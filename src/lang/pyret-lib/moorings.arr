@@ -597,9 +597,11 @@ error = {
 
 data Option:
   | none with:
-    orelse(self, v): v end
+      orelse(self, v): v end,
+      andthen(self, f): self end
   | some(value) with:
-    orelse(self, v): self.value end
+      orelse(self, v): self.value end,
+      andthen(self, f): f(self.value) end
 sharing:
   tostring(self):
     case:
