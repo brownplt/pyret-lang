@@ -133,9 +133,9 @@
                                 (map wf-if-branch if-bs)
                                 (wf else))]
 
-    [(s-cases type val s c-bs)
+    [(s-cases s type val c-bs)
      (begin (wf type) (wf val) (map wf-cases-branch c-bs))]
-    [(s-cases-else type val s c-bs else)
+    [(s-cases-else s type val c-bs else)
      (begin (wf type)
             (wf val)
             (map wf-cases-branch c-bs)

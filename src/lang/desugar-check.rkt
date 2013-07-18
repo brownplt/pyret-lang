@@ -127,9 +127,9 @@
     [(s-if s if-bs) (s-if s (map ds-if-branch if-bs))]
     [(s-if-else s if-bs else) (s-if-else s (map ds-if-branch if-bs) (ds else))]
 
-    [(s-cases type val s c-bs)
+    [(s-cases s type val c-bs)
      (s-cases s (ds type) (ds val) (map ds-cases-branch c-bs))]
-    [(s-cases-else type val s c-bs else)
+    [(s-cases-else s type val c-bs else)
      (s-cases-else s (ds type) (ds val) (map ds-cases-branch c-bs) (ds else))]
 
     [(s-case s c-bs)
