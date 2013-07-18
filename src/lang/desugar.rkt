@@ -110,9 +110,15 @@
               (s-let s (s-bind s 'matched (a-blank)) loop)
               post-loop))
            (s-block s empty)))
-  (s-let s (s-bind s name (a-blank))
-    (s-extend s base
-      (list (s-data-field s (s-str s "case_matcher") matcher-fun)))))
+  (s-extend s base
+      (list (s-data-field s (s-str s "case_matcher") matcher-fun))))
+
+(define (add-parameterizer s params variants obj)
+  (define add-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
+  (define check-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
+  (s-extend s obj
+      (list (s-data-field s (s-str s "parameterize_add") add-fun)
+            (s-data-field s (s-str s "parameterize_check") check-fun))))
 
 (define (variant-defs/list super-brand super-fields variants)
   (define (member->field m val)
@@ -281,7 +287,9 @@
                   (append
                    (list (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
-                         (add-matcher s (s-dot s (s-id s brander-name) 'test) name variants))
+                         (s-let s (s-bind s name (a-blank))
+                                (add-parameterizer s params variants
+                                  (add-matcher s (s-dot s (s-id s brander-name) 'test) name variants))))
                    (variant-defs/list brander-name share-members variants))))]
 
     [(s-for s iter bindings ann body)
