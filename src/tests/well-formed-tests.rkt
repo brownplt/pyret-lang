@@ -48,6 +48,35 @@
  "{foo(): end}"
  "well-formedness:")
 
+#;(check-pyret-exn
+ "fun foo():
+   x = 10
+  end
+  10"
+ "well-formedness:")
+
+#;(check-pyret-exn
+ "fun foo():
+   var x = 10
+  end
+  10"
+ "well-formedness:")
+
+#;(check-pyret
+ "fun foo():
+   var x = 10
+   x
+  end
+  10"
+ (p:mk-num 10))
+
+#;(check-pyret-exn
+ "fun foo():
+   fun f(): end
+  end
+  10"
+ "well-formedness:")
+
 ))
 
 (run-tests all)

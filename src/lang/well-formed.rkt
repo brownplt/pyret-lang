@@ -91,7 +91,15 @@
                               (reachable-ops s op e2))]
 
     [(s-block s stmts)
-     (map well-formed stmts)]
+     (let [#;(lst (last stmts))]
+       (cond
+        #;[(or (s-let? lst)
+             (s-var? lst)
+             (s-fun? lst)) (wf-error "Cannot have binding form as last statement in a block" s)]
+        [else
+         (map well-formed stmts)]))]
+
+    
     [(s-data s name params variants shares check)
      (begin
        (map wf-variant variants)
