@@ -24,6 +24,11 @@ test:
 	racket type-tests.rkt; \
 	racket well-formed-tests.rkt
 
+doc:
+	@echo Building docs
+	cd tools; \
+	racket scroll.arr | sed 's/^/    /' > ../docs/moorings.markdown
+
 clean:
 	raco setup -c pyret
 	rm src/lang/pyret-lib/*.rkt
