@@ -211,8 +211,8 @@ these metadata purposes.
 (struct a-field a-ann (syntax name ann) #:transparent)
 ;; a-record : srcloc (Listof a-field)
 (struct a-record a-ann (syntax fields) #:transparent)
-;; a-app : srcloc Symbol (Listof a-ann)
-(struct a-app a-ann (syntax name parameters) #:transparent)
+;; a-app : srcloc (Symbol or a-dot) (Listof a-ann)
+(struct a-app a-ann (syntax ann parameters) #:transparent)
 ;; a-pred : srcloc a-ann Expr
 (struct a-pred a-ann (syntax ann exp) #:transparent)
 ;; a-dot : srcloc Symbol Symbol

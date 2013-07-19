@@ -147,7 +147,7 @@ data Ann:
   | a_arrow(l :: Loc, args :: List<Ann>, ret :: Ann)
   | a_method(l :: Loc, args :: List<Ann>, ret :: Ann)
   | a_record(l :: Loc, fields :: List<AField>)
-  | a_app(l :: Loc, name :: String, args :: List<Ann>)
+  | a_app(l :: Loc, ann :: Ann, args :: List<Ann>)
   | a_pred(l :: Loc, ann :: Ann, exp :: Expr)
   | a_dot(l :: Loc, obj :: String, field :: String)
 end

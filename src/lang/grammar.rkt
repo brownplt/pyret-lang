@@ -133,7 +133,7 @@ arrow-ann-elt: ann ","
 arrow-ann: (PARENSPACE|PARENNOSPACE) arrow-ann-elt* ann "->" ann ")"
 
 app-ann-elt: ann ","
-app-ann: name-ann "<" app-ann-elt* ann ">"
+app-ann: (name-ann|dot-ann) "<" app-ann-elt* ann ">"
 
 pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr ")"
 

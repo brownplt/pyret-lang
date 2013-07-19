@@ -412,9 +412,9 @@
      (a-arrow (loc stx)
               (map/stx parse-ann #'(anns ... last-ann))
               (parse-ann #'result))]
-    [(app-ann (name-ann n) "<" (app-ann-elt anns ",") ... last-ann ">")
+    [(app-ann the-ann "<" (app-ann-elt anns ",") ... last-ann ">")
      (a-app (loc stx)
-            (parse-name #'n)
+            (parse-ann #'the-ann)
             (map/stx parse-ann #'(anns ... last-ann)))]
     [(pred-ann annbase "(" expr ")")
      (a-pred (loc stx) (parse-ann #'annbase) (parse-binop-expr #'expr))]

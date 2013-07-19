@@ -254,8 +254,8 @@
      (build a_arrow (tp-loc s) (map tp-ann args) (tp-ann result))]
     [(a-method s args result)
      (build a_method (tp-loc s) (map tp-ann args) (tp-ann result))]
-    [(a-app s name parameters)
-     (build a_app (tp-loc s) (symbol->string name) (map tp-ann parameters))]
+    [(a-app s ann parameters)
+     (build a_app (tp-loc s) (tp-ann ann) (map tp-ann parameters))]
     [(a-pred s ann pred)
      (build a_pred (tp-loc s) (tp-ann ann) (to-pyret pred))]
     [(a-record s fields)

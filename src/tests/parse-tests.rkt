@@ -291,6 +291,12 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "var x :: list.List = 4"
                (s-var _ (s-bind _ 'x (a-dot _ 'list 'List))
                       (s-num _ 4)))
+
+  (check/block "var x :: list.List<A> = 4"
+               (s-var _ (s-bind _ 'x (a-app _ (a-dot _ 'list 'List)
+                                            (list (a-name _ 'A))))
+                      (s-num _ 4)))
+
 ))
 
 (define anon-func (test-suite "anon-func"
@@ -367,7 +373,7 @@ line string\"" (s-str _ "multi\nline string"))
     (s-var _
            (s-bind _ 'x
                      (a-pred _
-                             (a-app _ 'List
+                             (a-app _ (a-name _ 'List)
                                       (list (a-name _ 'String)))
                              (s-dot _ (s-id _ 'list)
                                       'is-cons)))
@@ -438,7 +444,8 @@ line string\"" (s-str _ "multi\nline string"))
                   _ 
                   'cons 
                   (list (s-bind _ 'field (a-blank)) 
-                        (s-bind _ 'l (a-app _ 'List (list (a-name _ 'a)))))
+                        (s-bind _ 'l (a-app _ (a-name _ 'List)
+                                            (list (a-name _ 'a)))))
                   (list))) (list)
                   (s-block _ _)))
 

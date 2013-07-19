@@ -93,10 +93,10 @@
      (define (get-fun e)
        (s-app s (s-bracket s e (s-str s "_fun")) (list)))
      (code-wrapper s args result mk-method get-fun)]
-    [(a-app s name parameters)
+    [(a-app s ann parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
      ;; everything past the name weren't included.
-     (mk-flat-checker (s-id loc name))]
+     (ann-check loc ann)]
     [(a-pred s ann pred)
      (define ann-wrapper (ann-check s ann))
      (define argname (gensym "pred-arg"))
