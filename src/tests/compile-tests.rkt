@@ -411,6 +411,7 @@
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
+  (check-pyret-match/check "pyret/list-tests.arr" _ 3 3 0 0 0)
 
   (check-pyret-match
     "prim-keys({x : 5})"

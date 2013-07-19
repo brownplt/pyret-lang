@@ -247,8 +247,10 @@ data List:
     end,
 
     join-str(self, str):
-      for fold(combined from tostring(self.first), elt from self.rest):
-        combined + str + tostring(elt)
+      if is-link(self.rest):
+         tostring(self.first) + str + self.rest.join-str(str)
+      else:
+         tostring(self.first)
       end
     end
 
