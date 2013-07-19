@@ -34,15 +34,24 @@
 (define (well-formed ast)
   (match ast
     [(s-prog s imps ast)
-     (s-prog s imps (well-formed/internal ast))]
+     (match ast
+      [(s-block s stmts) (map well-formed/internal stmts)]
+      [_ (well-formed/internal ast)])]
+    [(s-block s stmts) (map well-formed/internal stmts)]
     [else (well-formed/internal ast)])
   ast)
 
 (define (well-formed/internal ast)
   (define wf well-formed/internal)
-    (define (wf-if-branch branch)
+  (define (wf-if-branch branch)
     (match branch
       [(s-if-branch s tst blk) (begin (wf tst) (wf blk))]))
+  (define (wf-last-stmt stmt)
+    (match stmt
+      [(s-let s bind e) (wf-error "Cannot end a block in a let-binding." s)]
+      [(s-var s bind e) (wf-error "Cannot end a block in a var-binding." s)]
+      [(s-fun s _ _ _ _ _ _ _) (wf-error "Cannot end a block in a fun-binding." s)]
+      [else #t]))
   (define (wf-cases-branch branch)
     (match branch
       [(s-cases-branch s name args blk)
@@ -91,15 +100,9 @@
                               (reachable-ops s op e2))]
 
     [(s-block s stmts)
-     (let [#;(lst (last stmts))]
-       (cond
-        #;[(or (s-let? lst)
-             (s-var? lst)
-             (s-fun? lst)) (wf-error "Cannot have binding form as last statement in a block" s)]
-        [else
-         (map well-formed stmts)]))]
-
-    
+     (begin
+       (or (empty? stmts) (wf-last-stmt (last stmts)))
+       (map well-formed stmts))]
     [(s-data s name params variants shares check)
      (begin
        (map wf-variant variants)

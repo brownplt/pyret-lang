@@ -48,21 +48,21 @@
  "{foo(): end}"
  "well-formedness:")
 
-#;(check-pyret-exn
+(check-pyret-exn
  "fun foo():
    x = 10
   end
   10"
  "well-formedness:")
 
-#;(check-pyret-exn
+(check-pyret-exn
  "fun foo():
    var x = 10
   end
   10"
  "well-formedness:")
 
-#;(check-pyret
+(check-pyret
  "fun foo():
    var x = 10
    x
@@ -70,13 +70,32 @@
   10"
  (p:mk-num 10))
 
-#;(check-pyret-exn
+(check-pyret-exn
  "fun foo():
    fun f(): end
   end
   10"
  "well-formedness:")
 
+(check-pyret-exn
+ "fun: x = 5 end"
+ "Cannot end a block in a let-binding")
+
+(check-pyret-exn
+ "fun: var x = 5 end"
+ "Cannot end a block in a var-binding")
+
+(check-pyret-exn
+ "fun: fun f(): end end"
+ "Cannot end a block in a fun-binding")
+
+(check-pyret-exn
+ "fun: x = 5 fun f(): end end"
+ "Cannot end a block in a fun-binding")
+
+(check-pyret-exn
+ "fun: var x = 5 y = 4 fun f(): end end"
+ "Cannot end a block in a fun-binding")
 ))
 
 (run-tests all)

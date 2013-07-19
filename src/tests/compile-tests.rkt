@@ -754,6 +754,7 @@ o2.m().called" true)
   x = 5
   fun f(x):
     var x = x
+    x
   end
   "
   CONFLICT-MESSAGE)
@@ -770,7 +771,7 @@ o2.m().called" true)
 
   (check-pyret-exn "
   var should_notice_method_bodies = 5
-  o = { meth(self): should_notice_method_bodies = 3 end }
+  o = { meth(self): should_notice_method_bodies = 3 nothing end }
   "
   CONFLICT-MESSAGE)
 
