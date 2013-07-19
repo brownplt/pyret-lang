@@ -81,12 +81,12 @@
        "\\)\\(:\\)") 
      (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
    `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-keywords-regex "\\)\\("
+       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
        pyret-keywords-regex "-" pyret-ident-regex
        "\\)[ \t]*\\((\\)")
      (1 font-lock-builtin-face) (2 font-lock-function-name-face) (3 font-lock-builtin-face))
    `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-keywords-regex "\\)\\("
+       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
        pyret-keywords-regex "-" pyret-ident-regex
        "\\)")
      (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
