@@ -1,3 +1,10 @@
+    provide {list: list,
+    builtins: builtins,
+    error: error,
+    checkers: checkers,
+    option: option}
+    
+    
     fun mklist(obj):
       'creates a List from something with `first` and `rest` fields, recursively'
     end
@@ -24,6 +31,10 @@
     end
     
     
+    builtins = {keys: keys,
+    has-field: has-field,
+    mklist: mklist,
+    equiv: equiv}
     data List:
       empty:
         length(self): '' end
@@ -124,22 +135,22 @@
     
     
     fun each(f, lst :: List):
-      'for each elem in lst, calls f(elem). returns the f(lst.last())'
+      'Calls f for each elem in lst, and returns nothing'
     end
     
     
     fun each2(f, l1 :: List, l2 :: List):
-      ''
+      'Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list'
     end
     
     
     fun each3(f, l1 :: List, l2 :: List, l3 :: List):
-      ''
+      'Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list'
     end
     
     
     fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
-      ''
+      'Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list'
     end
     
     
@@ -183,6 +194,34 @@
     end
     
     
+    list = {List: List,
+    is-empty: is-empty,
+    is-link: is-link,
+    empty: empty,
+    link: link,
+    range: range,
+    repeat: repeat,
+    filter: filter,
+    map: map,
+    map2: map2,
+    map3: map3,
+    map4: map4,
+    map_n: map_n,
+    map2_n: map2_n,
+    map3_n: map3_n,
+    map4_n: map4_n,
+    each: each,
+    each2: each2,
+    each3: each3,
+    each4: each4,
+    each_n: each_n,
+    each2_n: each2_n,
+    each3_n: each3_n,
+    each4_n: each4_n,
+    fold: fold,
+    fold2: fold2,
+    fold3: fold3,
+    fold4: fold4}
     data Location:
       location(file :: String, line, column):
         _equals(self, other): '' end
@@ -211,14 +250,34 @@
     end
     
     
+    error = {opaque-error: opaque-error,
+    is-opaque-error: is-opaque-error,
+    field-not-found: field-not-found,
+    is-field-not-found: is-field-not-found,
+    cases-miss: cases-miss,
+    is-cases-miss: is-cases-miss,
+    invalid-case: invalid-case,
+    is-invalid-case: is-invalid-case,
+    make-error: make-error,
+    Error: Error,
+    Location: Location,
+    location: location,
+    is-location: is-location}
     data Option:
       none:
         orelse(self, v): '' end
+        andthen(self, f): '' end
       some(value):
         orelse(self, v): '' end
+        andthen(self, f): '' end
     end
     
     
+    option = {Option: Option,
+    is-none: is-none,
+    is-some: is-some,
+    none: none,
+    some: some}
     data Result:
       success(name :: String)
       failure(name :: String, reason :: String)
@@ -272,3 +331,11 @@
     end
     
     
+    checkers = {check-true: check-true,
+    check-false: check-false,
+    check-equals: check-equals,
+    check-pred: check-pred,
+    run-checks: run-checks,
+    format-check-results: format-check-results,
+    clear-results: clear-results,
+    get-results: get-results}

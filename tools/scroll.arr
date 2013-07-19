@@ -56,10 +56,26 @@ fun render-member(m):
       name := m.name.s
     end
     "    " + name + "(" + m.args.map(render-bind).join-str(", ") + ")" + render-return(m.ann) + ": '" + m.doc + "' end"
-  else:
-    "    don't handle s-data-fields"
+  else if A.is-s_id(m.value) and A.is-s_str(m.name):
+    m.name.s + ": " + m.value.id
   end
 end
+
+fun render-object(o):
+  "{" + o.fields.map(render-member).join-str(",\n") + "}"
+end
+
+# Just print out some stuff
+
+for list.each(stmt from moorings.imports):
+  if A.is-s_provide(stmt) and A.is-s_obj(stmt.block):
+    print("provide " + render-object(stmt.block))
+  else:
+    nothing
+  end
+end
+
+print("\n")
 
 for list.each(stmt from moorings.block.stmts):
   if A.is-s_fun(stmt):
@@ -73,6 +89,8 @@ for list.each(stmt from moorings.block.stmts):
   else if A.is-s_data(stmt):
     print("data " + stmt.name + ":\n" + stmt.variants.map(render-variant).join-str("\n") + "\nend")
     print("\n")
+  else if A.is-s_let(stmt) and A.is-s_obj(stmt.value):
+    print(render-bind(stmt.name) + " = " + render-object(stmt.value))
   else:
     nothing
   end
