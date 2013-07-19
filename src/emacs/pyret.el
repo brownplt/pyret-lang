@@ -867,6 +867,18 @@ For detail, see `comment-dwim'."
   (run-hooks 'pyret-mode-hook))
 
 
+(defun pyret-reload-mode-all-buffers ()
+  "Debugging function to help reload the pyret major mode in all open buffers"
+  (interactive)
+  (mapcar
+   (function
+    (lambda (b)
+      (with-current-buffer b
+        (when (equal major-mode 'pyret-mode)
+          (text-mode)
+          (pyret-mode)))))
+   (buffer-list)))
+
 
 (provide 'pyret)
 
