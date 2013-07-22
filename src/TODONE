@@ -171,3 +171,16 @@ Assignment tests
 
 [x] Name<Name<Foo>> is a syntax error, because >> is parsed as a single
    token. Name<Name<Foo> > parses fine.
+
+[x] Parser cleanup to remove duplicated code across cases:
+  [x] Add sub-production for field name (either [key-expr] or key)
+  [x] Add sub-production for lastfield (either field or (field ","))
+  [x] Rename s-dot-method, s-bracket-method
+  [x] make docstrings first-class productions
+[x] Better string-checking in computed field name positions in object literals
+
+[x] optional "," in object literals
+[x] letrec* for sequences
+[x] not before things as opposed to after?
+[x] fulfills keyword for inline tests
+[x] Cyclic modules check
