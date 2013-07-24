@@ -96,7 +96,7 @@
        "\\)\\b")
      (1 font-lock-builtin-face) (2 font-lock-keyword-face))
    `(,pyret-punctuation-regex . font-lock-builtin-face)
-   `(,(concat "\\<" (regexp-opt '("true" "false") t) "\\>") . font-lock-constant-face)
+   `(,(concat "\\_<" (regexp-opt '("true" "false") t) "\\_>") . font-lock-constant-face)
    )
   "Minimal highlighting expressions for Pyret mode")
 
@@ -140,7 +140,7 @@
     (modify-syntax-entry ?: "." st)
     (modify-syntax-entry ?^ "." st)
     (modify-syntax-entry ?= "." st)
-    (modify-syntax-entry ?- "." st)
+    (modify-syntax-entry ?- "_" st)
     (modify-syntax-entry ?, "." st)
     (modify-syntax-entry ?' "\"" st)
     (modify-syntax-entry ?{ "(}" st)
