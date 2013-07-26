@@ -219,6 +219,18 @@ line string\"" (s-str _ "multi\nline string"))
                (s-colon _
                         (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
                         'f))
+
+  (check/block "methods:[name]._fun()(inst-with-super, arg)"
+               (s-app _
+                (s-app _
+                  (s-dot _
+                    (s-colon-bracket _
+                      (s-id _ 'methods)
+                      (s-id _ 'name))
+                    '_fun)
+                  (list))
+                (list (s-id _ 'inst-with-super) (s-id _ 'arg))))
+
   (check/block
    "o.{x : 5}"
    (s-extend _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
@@ -381,6 +393,13 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define cases (test-suite "cases"
+
+  (check/block "if x:o:f() end"
+               (s-if _ (list
+                        (s-if-branch
+                         _
+                         (s-colon _ (s-id _ 'x) 'o)
+                         (s-block _ (list (s-app _ (s-id _ 'f) (list))))))))
 
   (check/block "if false: 5 else: 42 end"
                (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5)))))
