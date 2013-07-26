@@ -359,56 +359,55 @@
 (define (mk-str s)
   (p-str no-brands meta-str-store str-bad-app str-bad-meth s))
 
-;; mk-fun : (Value ... -> Value) String -> Value
-(define (mk-fun f m s)
-  (p-fun no-brands (make-string-map `(("_doc" . ,(mk-str s))
-                                      ("_method" . ,(mk-method-method f s))))
+(define (_mk-fun f m d to-m)
+  (p-fun no-brands (make-string-map `(("_doc" . ,d)
+                                      ("_method" . ,to-m)))
          f
          m))
+
+;; mk-fun : (Value ... -> Value) String -> Value
+(define (mk-fun f m s)
+  (_mk-fun f m (mk-str s) (mk-method-method f s)))
 
 ;; mk-fun-nodoc : (Value ... -> Value) -> Value
 (define (mk-fun-nodoc f m)
-  (p-fun no-brands (make-string-map `(("_doc" . ,nothing)
-                                      ("_method" . ,(mk-method-method-nodoc f))))
-         f
-         m))
+  (_mk-fun f m nothing (mk-method-method-nodoc f)))
 
 (define (mk-fun-nodoc-slow f)
-  (p-fun no-brands empty-dict f (lambda (_ . args) (apply f args))))
-  
+  (_mk-fun f (lambda (_ . args) (apply f args)) nothing nothing))
+
 (define method-bad-app (bad-app "method"))
+
+(define (_mk-method m doc to-f)
+  (p-method no-brands
+            (make-string-map
+              `(("_doc" . ,doc)
+                ("_fun" . ,to-f)))
+            method-bad-app
+            m))
+
 ;; mk-method-method : (Value ... -> Value) String -> p-method
 (define (mk-method-method f doc)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,(mk-str doc))))
-            method-bad-app
-            (λ (self) (mk-method f doc))))
+  (_mk-method (λ (self) (mk-method f doc)) (mk-str doc) nothing))
 
 ;; mk-method-method-nodoc : (Value ... -> Value) -> p-method
 (define (mk-method-method-nodoc f)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,nothing)))
-            method-bad-app
-            (λ (self) (mk-method-nodoc f))))
+  (_mk-method (λ (self) (mk-method f nothing)) nothing nothing))
 
 ;; mk-fun-method : (Value ... -> Value) String -> p-method
 (define (mk-fun-method f doc)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,(mk-str doc))))
-            method-bad-app
-            (λ (self) (mk-fun f (lambda args (apply f (rest args))) doc))))
+  (_mk-method
+    (λ (self) (mk-fun f (lambda args (apply f (rest args))) doc))
+    (mk-str doc)
+    nothing))
 
 ;; mk-method : (Value ... -> Value) String -> Value
 (define (mk-method f doc)
-  (define d (make-string-map `(("_fun" . ,(mk-fun-method f doc))
-                                   ("_doc" . ,(mk-str doc)))))
-  (p-method no-brands d method-bad-app f))
+  (_mk-method f (mk-str doc) (mk-fun-method f doc)))
 
 ;; mk-method-nodoc : Proc -> Value
 (define (mk-method-nodoc f)
-  (define d (make-string-map `(("_fun" . ,(mk-fun-method f ""))
-                                   ("_doc" . ,nothing))))
-  (p-method no-brands d method-bad-app f))
+  (_mk-method f nothing (mk-fun-method f "")))
 
 (define exn-brand (gensym 'exn))
 
