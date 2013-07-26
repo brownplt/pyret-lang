@@ -670,8 +670,12 @@ line string\"" (s-str _ "multi\nline string"))
    ;; well-formedness of ast check, pre-desugar
    (check/block "1 + 2 - 3" (s-op _ op- (s-op _ op+ (s-num _ 1) (s-num _ 2))
                                             (s-num _ 3)))
-   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2))
-                                            (s-num _ 3)))
+   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2)) (s-num _ 3)))
+   
+   (check/block "1 + o.x" (s-op _ op+
+                                (s-num _ 1)
+                                (s-dot _ (s-id _ 'o) 'x)))
+
    (check/block "1 + 2.add(3)" (s-op _ op+
                                      (s-num _ 1)
                                      (s-app _ (s-dot _ (s-num _ 2) 'add)
