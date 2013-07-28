@@ -527,13 +527,16 @@ And the object was:
 (define (extend loc base extension)
   (define d (get-dict base))
   (define new-map (string-map-set* d extension))
+  (define loses-brands?
+    (ormap (lambda (k) (string-map-has-key? d k)) (map car extension)))
+  (define new-brands (if loses-brands? no-brands (get-brands base)))
   (py-match base
-    [(p-object _ _ f m) (p-object no-brands new-map f m)]
-    [(p-fun _ _ f m) (p-fun no-brands new-map f m)]
-    [(p-num _ _ f m n) (p-num no-brands new-map f m n)]
-    [(p-str _ _ f m str) (p-str no-brands new-map f m str)]
-    [(p-method _ _ f m) (p-method no-brands new-map f m)]
-    [(p-bool _ _ f m t) (p-bool no-brands new-map f m t)]
+    [(p-object _ _ f m) (p-object new-brands new-map f m)]
+    [(p-fun _ _ f m) (p-fun new-brands new-map f m)]
+    [(p-num _ _ f m n) (p-num new-brands new-map f m n)]
+    [(p-str _ _ f m str) (p-str new-brands new-map f m str)]
+    [(p-method _ _ f m) (p-method new-brands new-map f m)]
+    [(p-bool _ _ f m t) (p-bool new-brands new-map f m t)]
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 

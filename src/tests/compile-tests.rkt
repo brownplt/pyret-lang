@@ -130,7 +130,24 @@
        | true-branded => 5
      end"
      five)
-  ))
+
+  (check-pyret
+    "b = brander()
+     b.test(b.brand({}).{x: 5})"
+    true)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand({x:10}).{x: 5})"
+    false)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand([4]).{ bonus-field: {} })"
+    true)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand([4]).{ first: [] })"
+    false)
+))
 
 
 
