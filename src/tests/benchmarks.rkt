@@ -32,6 +32,7 @@
 (benchmark-run "list-creation" 0)
 (benchmark-run "list-equality" 1)
 (benchmark-run "many-fields" 1)
+(benchmark-run "match" 0)
 
 ))
 
