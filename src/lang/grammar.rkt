@@ -115,12 +115,12 @@ colon-bracket-expr: expr ":" "[" binop-expr "]"
 data-with: ["with:" fields]
 data-variant: "|" NAME args data-with | "|" NAME data-with
 data-sharing: ["sharing:" fields]
-data-expr: "data" NAME ty-params ":" data-variant+ data-sharing check-clause "end"
+data-expr: "data" NAME ty-params ":" data-variant* data-sharing check-clause "end"
 
 for-bind: arg-elt "from" binop-expr
 for-bind-elt: for-bind ","
 for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block "end"
-           
+
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
 name-ann: NAME

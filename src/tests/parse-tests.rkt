@@ -442,6 +442,11 @@ line string\"" (s-str _ "multi\nline string"))
 
 (define data (test-suite "data"
 
+  (check/block "data Foo: end"
+               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+  (check/block "data Foo: check: end"
+               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+
   (check/block "  data Foo: | bar() end"
                (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
