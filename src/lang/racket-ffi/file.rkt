@@ -1,18 +1,32 @@
 #lang pyret
 
-import Racket as R
-provide {file : file} end
+import filelib as F
+provide {
+  input-file : input-file,
+  output-file : output-file,
+} end
 
 data File:
-  | fd(inner-file :: Any) with:
-    read-line(self): R("racket")('read-line', self.inner-file) end,
-    read-file(self): R("racket")('port->string', self.inner-file) end,
-    close-file(self): R("racket")('close-input-port', self.inner-file) end
+  | in-fd(inner-file :: Any) with:
+    read-line(self): F.read-line(self.inner-file) end,
+    read-file(self): F.read-file(self.inner-file) end,
+    close-file(self): F.close-input-file(self.inner-file) end
+  | out-fd(inner-file :: Any) with:
+    display(self, val): F.display(self.inner-file, val) end,
+    close-file(self): F.close-output-file(self.inner-file) end
 end
 
-fun file(path :: String):
-  fd(R("racket")('open-input-file', path))
+fun input-file(path :: String):
+  in-fd(F.open-input-file(path))
 end
 
-#file("file.arr").read-line()
-#file("file.arr").read-file()
+fun output-file(path :: String, append :: Bool):
+  exists =
+    if append: F.exists-append
+    else: F.exists-truncate-replace
+    end
+  out-fd(F.open-output-file(path, exists))
+end
+
+#input-file("file.arr").read-line()
+#input-file("file.arr").read-file()
