@@ -296,6 +296,20 @@ fun filter(f, lst :: List):
     end
   end
 end
+
+fun find(f, lst :: List):
+  doc: "returns Some<elem> where eleme is the first elem in lst for which
+        f(elem) returns true, or none otherwise"
+  if is-empty(lst):
+    none
+  else:
+    if f(lst.first):
+      some(lst.first)
+    else:
+      find(f, lst.rest)
+    end
+  end
+end
   
 fun map(f, lst :: List):
   doc: "returns a list made up of f(elem) for each elem in lst"
@@ -508,6 +522,7 @@ list = {
     range: range,
     repeat: repeat,
     filter: filter,
+    find: find,
     map: map,
     map2: map2,
     map3: map3,

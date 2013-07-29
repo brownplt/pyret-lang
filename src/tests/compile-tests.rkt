@@ -218,6 +218,16 @@
    true)
 
   (check-pyret
+   "str = for list.find(elt from ['1','2','3']): elt == '2' end
+    str.value"
+   (p:mk-str "2"))
+
+  (check-pyret
+   "str = for list.find(elt from ['1','2','3']): elt == 'not-in-list' end
+    option.is-none(str)"
+   true)
+
+  (check-pyret
    "for list.fold(acc from 0, elt from [1,2,3]): acc._plus(elt) end"
    (p:mk-num 6))
 
