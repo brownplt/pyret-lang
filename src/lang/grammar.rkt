@@ -15,7 +15,7 @@ stmt: var-expr | let-expr | fun-expr | data-expr | binop-expr
     | assign-expr | when-expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">" | "and" | "or"
-    
+
 binop-expr: expr | not-expr | binop-expr binop binop-expr
 
 not-expr: "not" expr
@@ -23,7 +23,7 @@ not-expr: "not" expr
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
 paren-expr: PARENSPACE binop-expr ")"
-    
+
 expr: obj-expr | list-expr | app-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | case-expr | lambda-expr | method-expr | extend-expr | left-app-expr
@@ -41,7 +41,7 @@ prim-expr:
 num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
-                    
+
 var-expr: "var" arg-elt "=" binop-expr
 let-expr: arg-elt "=" binop-expr
 
@@ -83,7 +83,7 @@ else-if: "else if" binop-expr ":" block
 if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
 
 try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) arg-elt ")" ":" block "end"
-   
+
 key: NAME | "[" binop-expr "]"
 field:
    key ":" binop-expr
