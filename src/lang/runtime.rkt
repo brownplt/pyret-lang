@@ -682,6 +682,8 @@ And the object was:
    [else (string-append s (string-repeat s (- n 1)))]))
 
 ;; meta-str-store (Hashof String value)
+(define (mk-num-or-nothing v)
+  (if v (mk-num v) nothing))
 (define meta-str-store #f)
 (define (meta-str)
   (when (not meta-str-store)
@@ -694,7 +696,7 @@ And the object was:
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
-          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num (p-str-s) (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
