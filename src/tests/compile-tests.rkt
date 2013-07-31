@@ -380,6 +380,12 @@
     "
     (p:mk-num 22))
 
+  (check-pyret-exn
+   "data Test:
+     | test(x, x)
+    end"
+   "x defined twice")
+
   ))
 
 (define modules (test-suite "modules"
