@@ -908,6 +908,10 @@ o2.m().called" true)
   (check-pyret-exn "false or 42" "Bad args to prim")
   (check-pyret "true._and(fun: true end)" (p:mk-bool #t))
   (check-pyret "false._or(fun: true end)" (p:mk-bool #t))
+
+  (check-pyret "4 is 4" true)
+  (check-pyret "4 is 5" false)
+  (check-pyret "(1 + 2) is 3" true)
 ))
 
 (define ffi (test-suite "ffi"

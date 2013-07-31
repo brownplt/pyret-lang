@@ -14,7 +14,7 @@ block: stmt*
 stmt: var-expr | let-expr | fun-expr | data-expr | binop-expr
     | assign-expr | when-expr
 
-binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">" | "and" | "or"
+binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "==" | "<>"  | "<"  | ">" | "and" | "or" | "is"
 
 binop-expr: expr | not-expr | binop-expr binop binop-expr
 

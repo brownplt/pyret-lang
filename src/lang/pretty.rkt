@@ -72,6 +72,9 @@
     [(s-obj s fields)
      (format "{ ~a }"
              (string-join (map pretty-member fields) ", "))]
+
+    [(s-op s op e1 e2)
+     (format "~a ~a ~a" (pretty e1) (substring (symbol->string op) 2) (pretty e2))]
     
     [(s-dot s val field)
      (format "~a.~a" (pretty val) field)] 
@@ -90,8 +93,10 @@
     [(s-bool _ #f) "false"]
     [(s-str _ s) (format "\"~a\"" s)]
     [(s-id _ id) (symbol->string id)]
-    
-    [else (error (format "Missed a case in pretty-printing: ~a" ast))]))
+
+    [(s-paren _ e) (format "(~a)" (pretty e))]
+
+    [else "<unprintable-expr>"]))
 
 (define (pretty-ann ann)
   (match ann
