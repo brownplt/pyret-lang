@@ -42,7 +42,7 @@ exception are:
 
 1. Binding forms - named function definitions, data
    declarations, and identifier/variable binding.
-2. Variable assignment `x := v'
+2. Variable assignment `x := v`
 
 These forms can only appear in [blocks](#blocks).
 
