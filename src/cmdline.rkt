@@ -34,6 +34,7 @@
   ns)
 
 (define (process-pyret-error str p)
+  (flush-output (current-output-port))
   (define (print-loc l)
    (eprintf "~a:~a:~a\n"
      (srcloc-source l)
@@ -100,15 +101,23 @@
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
     (define-values (base name dir?) (split-path pyret-file))
-    (cond
-      [check-mode
-       (parameterize ([param-compile-check-mode #t]
-                      [current-load-relative-directory base])
-         (define results
-          (eval
-            (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
-            (make-fresh-namespace)))
-         (print-check-results results))]
-      [else
-       (dynamic-require pyret-file #f)])))
+    (define (run)
+      (cond
+        [check-mode
+         (parameterize ([param-compile-check-mode #t]
+                        [current-load-relative-directory base])
+           (define results
+            (eval
+              (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
+              (make-fresh-namespace)))
+           (print-check-results results))]
+        [else
+         (dynamic-require pyret-file #f)]))
+    (with-handlers
+      ([exn:break?
+        (lambda (e)
+          (printf "[pyret] User or system break\n")
+          (flush-output (current-output-port))
+          (flush-output (current-error-port)))])
+      (run))))
 
