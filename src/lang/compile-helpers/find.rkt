@@ -39,14 +39,6 @@
       (define branch-results (map find-if-branch c-bs))
       (append (append* branch-results) (find else matcher))]
      
-     [(s-case l c-bs)
-      (define (find-case-branch b)
-        (match b
-          [(s-case-branch s test block)
-           (append (find test matcher) (find block matcher))]))
-      (define branch-results (map find-case-branch c-bs))
-      (append* branch-results)]
-
      [(s-try l try b catch)
       (append (find try matcher) (find catch matcher))]
 

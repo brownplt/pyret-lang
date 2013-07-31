@@ -181,17 +181,6 @@
        (with-syntax ([(branch ...) (d->stx (map compile-if-branch c-bs) l)])
          #`(r:cond branch ... [#t #,(compile-expr else-block env)])))]
     
-    [(s-case l c-bs)
-     (define (compile-case-branch b)
-       (match b
-         [(s-case-branch s test block)
-          (attach l
-                  #`((p:pyret-true? #,(compile-expr test env))
-                     #,(compile-expr block env)))]))
-     (attach l
-       (with-syntax ([(branch ...) (d->stx (map compile-case-branch c-bs) l)])
-         #`(r:cond branch ...)))]
-
     [(s-try l try (s-bind l2 id ann) catch)
      (attach l
        #`(r:with-handlers

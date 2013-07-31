@@ -30,9 +30,8 @@ data Connection:
   | connection(con) with:
       query(self, sql :: String, args :: List) -> Result:
         res = dblib.query(self.con, sql, args)
-        case:
-         | String(res) => simple_result
-         | List(res) => rows_result(res)
+        if String(res): simple_result
+        else if List(res): rows_result(res)
         end
       end,
       query_(self, sql :: String) -> Result:
@@ -42,11 +41,11 @@ data Connection:
         dblib.is-connected(self.con)
       end,
       disconnect(self):
-        case:
-         | dblib.is-connected(self.con) =>
-           dblib.disconnect(self.con)
-           nothing
-         | true => nothing
+        if dblib.is-connected(self.con):
+          dblib.disconnect(self.con)
+          nothing
+        else:
+          nothing
         end
       end
 end

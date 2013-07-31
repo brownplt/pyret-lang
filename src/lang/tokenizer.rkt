@@ -29,7 +29,7 @@
          "check:"
          "try:" "except"
          "cases"
-         "case:" "when" "if" "else if" "else:"
+         "when" "if" "else if" "else:"
          "data" "with:" "sharing:"
          "for" "from"
          "end"))

@@ -326,9 +326,8 @@
      (s-method s args ann doc (ds body) (ds check)))]
 
     [(s-when s test body)
-     (s-case s (list
-      (s-case-branch s (ds test) (ds body))
-      (s-case-branch s (s-bool s #t) (s-id s 'p:nothing))))]
+     (s-if-else s (list (s-if-branch s (ds test) (ds body)))
+      (s-id s 'p:nothing))]
 
     [(s-if-else s cases else)
      (s-if-else s (map ds-if cases) (ds else))]
@@ -360,20 +359,6 @@
 
     [(s-cases-else s type val cases else-block)
      (ds-cases s type val cases else-block)]
-
-    [(s-case s c-bs)
-     (define (ds-case branch)
-       (match branch
-         [(s-case-branch s tst blk) (s-case-branch s (ds tst) (ds blk))]))
-     (define case-fallthrough
-       (s-block s
-                (list
-                 (s-app s
-                        (s-id s 'raise)
-                        (list (s-str s "case: no cases matched"))))))
-     (s-case s
-             (append (map ds-case c-bs)
-                     (list (s-case-branch s (s-bool s #t) case-fallthrough))))]
 
     [(s-try s try exn catch)
      (define exn-id (gensym))

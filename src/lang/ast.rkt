@@ -65,10 +65,6 @@ these metadata purposes.
 (struct s-let (syntax name value) #:transparent)
 ;; s-when : srcloc (Listof Expr s-block) -> s-when
 (struct s-when (syntax test block) #:transparent)
-;; s-case : srcloc (Listof s-if-branch) -> s-if
-(struct s-case (syntax branches) #:transparent)
-;; s-if-branch : srcloc Expr s-block -> s-if-branch
-(struct s-case-branch (syntax expr body) #:transparent)
 ;; s-if : srcloc (Listof s-if-branch) -> s-if
 (struct s-if (syntax branches) #:transparent)
 ;; s-if-else : srcloc (Listof s-if-branch) s-block -> s-if-else

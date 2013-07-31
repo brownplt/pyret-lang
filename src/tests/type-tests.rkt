@@ -108,10 +108,9 @@
 
 (check-pyret-exn
  "fun even(x):
-    case:
-      | x._equals(0) => true
-      | x._equals(1) or (x._equals(-1)) => false
-      | true => even(x._minus(2))
+    if x._equals(0): true
+    else if x._equals(1) or (x._equals(-1)): false
+    else: even(x._minus(2))
     end
   end
   x :: Number(even) = 5"
@@ -119,10 +118,9 @@
 
 (check-pyret
  "fun even(x):
-    case:
-      | x._equals(0) => true
-      | x._equals(1) or (x._equals(-1)) => false
-      | true => even(x._minus(2))
+    if x._equals(0): true
+    else if x._equals(1) or (x._equals(-1)): false
+    else: even(x._minus(2))
     end
   end
   x :: Number(even) = 10 x"

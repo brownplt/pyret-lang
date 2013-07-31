@@ -584,17 +584,15 @@ end
 
 fun make-error(obj):
   loc = location(obj.path, obj.line, obj.column)
-  case:
-    | obj.system =>
-      type = obj.value.type
-      msg = obj.value.message
-      case:
-        | (type == "opaque") => opaque-error(msg, loc)
-        | (type == "field-not-found") => field-not-found(msg, loc)
-        | (type == "field-non-string") => field-non-string(msg, loc)
-        | true => lazy-error(msg, loc)
-      end
-    | true => obj.value
+  if obj.system:
+    type = obj.value.type
+    msg = obj.value.message
+    if (type == "opaque"): opaque-error(msg, loc)
+    else if (type == "field-not-found"): field-not-found(msg, loc)
+    else if (type == "field-non-string"): field-non-string(msg, loc)
+    else: lazy-error(msg, loc)
+    end
+  else: obj.value
   end
 end
 
@@ -619,17 +617,12 @@ error = {
 data Option:
   | none with:
       orelse(self, v): v end,
-      andthen(self, f): self end
+      andthen(self, f): self end,
+      tostring(self): "None" end
   | some(value) with:
       orelse(self, v): self.value end,
-      andthen(self, f): f(self.value) end
-sharing:
-  tostring(self):
-    case:
-      | is-none(self) => "None"
-      | is-some(self) => "Some(" + tostring(self.value) + ")"
-    end
-  end
+      andthen(self, f): f(self.value) end,
+      tostring(self): "Some(" + tostring(self.value) + ")" end
 end
 
 option = {
@@ -653,15 +646,14 @@ fun check-true(name, val): check-equals(name, val, true) end
 fun check-false(name, val): check-equals(name, val, false) end
 fun check-equals(name, val1, val2):
   try:
-    case:
-      | (val1 == val2) =>
-        current-results := current-results.push(success(name))
-      | true =>
-        current-results :=
-          current-results.push(failure(name, "Values not equal: \n" +
-                                       tostring(val1) +
-                                       "\n\n" +
-                                       tostring(val2)))
+    if (val1 == val2):
+      current-results := current-results.push(success(name))
+    else:
+      current-results :=
+        current-results.push(failure(name, "Values not equal: \n" +
+                                     tostring(val1) +
+                                     "\n\n" +
+                                     tostring(val2)))
     end
   except(e):
     current-results := current-results.push(err(name, e))
@@ -670,15 +662,14 @@ end
 
 fun check-pred(name, val1, pred):
   try:
-    case:
-      | pred(val1) =>
-        current-results := current-results.push(success(name))
-      | true =>
-        current-results :=
-          current-results.push(failure(name, "Value didn't satisfy predicate: " +
-                                       tostring(val1) +
-                                       ", " +
-                                       pred._doc))
+    if pred(val1):
+      current-results := current-results.push(success(name))
+    else:
+      current-results :=
+        current-results.push(failure(name, "Value didn't satisfy predicate: " +
+                                     tostring(val1) +
+                                     ", " +
+                                     pred._doc))
     end
   except(e):
     current-results := current-results.push(err(name, e))
@@ -695,11 +686,10 @@ var all-results :: List = empty
 fun run-checks(checks):
   when checks.length() <> 0:
     fun lst-to-structural(lst):
-      case:
-        | has-field(lst, 'first') =>
-          { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
-        | true =>
-          { is-empty: true }
+      if has-field(lst, 'first'):
+        { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
+      else:
+        { is-empty: true }
       end
     end
     these-checks = mklist(lst-to-structural(checks))

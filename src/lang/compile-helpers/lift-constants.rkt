@@ -58,20 +58,6 @@
        (cons (flatten (cons else-list (map car branch-results)))
              (s-if-else l (map cdr branch-results) new-else))]
       
-      [(s-case l c-bs)
-       (define (process-case-branch b)
-         (match b
-           [(s-case-branch s test block)
-            (match-define
-              (cons test-list new-test) (get-and-replace-constants test))
-            (match-define
-              (cons block-list new-block) (get-and-replace-constants block))
-            (cons (append test-list block-list)
-                  (s-case-branch s new-test new-block))]))
-       (define branch-results (map process-case-branch c-bs))
-       (cons (flatten (map car branch-results))
-             (s-case l (map cdr branch-results)))]
-
       [(s-try l try (s-bind l2 id ann) catch)
        (match-define (cons try-list new-try) (get-and-replace-constants try))
        (match-define (cons catch-list new-catch) (get-and-replace-constants catch))

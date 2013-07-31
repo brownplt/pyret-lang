@@ -152,12 +152,6 @@
             (map wf-cases-branch c-bs)
             (wf else))]
 
-    [(s-case s c-bs)
-     (define (wf-case branch)
-       (match branch
-         [(s-case-branch s tst blk) (begin (wf tst) (wf blk))]))
-     (map wf-case c-bs)]
-
     [(s-try s try x exn) (begin (wf try) (wf exn))]
 
     [(s-assign s name expr) (wf expr)]

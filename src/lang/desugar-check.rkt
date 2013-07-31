@@ -132,12 +132,6 @@
     [(s-cases-else s type val c-bs else)
      (s-cases-else s (ds type) (ds val) (map ds-cases-branch c-bs) (ds else))]
 
-    [(s-case s c-bs)
-     (define (ds-case branch)
-       (match branch
-         [(s-case-branch s tst blk) (s-case-branch s (ds tst) (ds blk))]))
-     (s-case s (map ds-case c-bs))]
-
     [(s-try s try x exn) (s-try s (ds try) x (ds exn))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]

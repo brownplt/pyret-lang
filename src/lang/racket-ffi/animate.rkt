@@ -9,6 +9,7 @@
 (provide (all-defined-out))
 
 (define circle (ffi-wrap i:circle))
+(define text (ffi-wrap i:text))
 (define rectangle (ffi-wrap i:rectangle))
 (define place-image (ffi-wrap i:place-image))
 

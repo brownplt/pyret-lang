@@ -425,10 +425,6 @@ line string\"" (s-str _ "multi\nline string"))
                   (list
                     (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
 
-  (check/block "case: | true => 1 | false => 2 end"
-               (s-case _ (list (s-case-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
-                               (s-case-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
-
   (check/block "when true: 5 end"
     (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
 
@@ -712,11 +708,11 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-num _ 3)))
    (check/block "x = 3 + 4"
                 (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
-   (check/block "3 + case: |true => 7 end"
+   (check/block "3 + if true: 7 end"
                 (s-op _ op+
                       (s-num _ 3)
-                      (s-case _ (list
-                                 (s-case-branch _ (s-bool _ #t)
+                      (s-if _ (list
+                                 (s-if-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
 
    (check/block "1+(2*3)"

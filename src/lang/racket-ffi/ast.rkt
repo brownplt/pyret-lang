@@ -141,15 +141,6 @@
         (tp test)
         (tp body))]
 
-    [(s-case s c-bs)
-     (define (tp-case-branch b)
-      (match b
-        [(s-case-branch s tst blk)
-         (build s_case_branch (tp-loc s) (tp tst) (tp blk))]))
-     (build s_case
-        (tp-loc s)
-        (map tp-case-branch c-bs))]
-
     [(s-if s if-bs)
      (build s_if (tp-loc s) (map tp-if-branch if-bs))]
 

@@ -114,15 +114,14 @@
                           (s-app loc
                                  pred
                                  (list (s-id s tempname))))
-                 (s-case s
+                 (s-if-else s
                     (list
-                      (s-case-branch s (s-id s result)
-                        (s-block s (list (s-id s tempname))))
-                      (s-case-branch s (s-id s 'else)
-                        (s-block s
-                          (list
-                            (s-app s (s-id s 'raise)
-                                     (list (s-str s "contract failure"))))))))
+                      (s-if-branch s (s-id s result)
+                        (s-block s (list (s-id s tempname)))))
+                      (s-block s
+                        (list
+                          (s-app s (s-id s 'raise)
+                                   (list (s-str s "contract failure"))))))
                )))]
     [else
      (error
@@ -258,13 +257,6 @@
          [(s-if-branch s test expr)
           (s-if-branch s (cc test) (cc expr))]))
      (s-if-else s (map cc-branch if-bs) (cc else-block))]
-
-    [(s-case s c-bs)
-     (define (cc-branch branch)
-       (match branch
-         [(s-case-branch s test expr)
-          (s-case-branch s (cc test) (cc expr))]))
-     (s-case s (map cc-branch c-bs))]
 
     [(s-try s try bind catch)
      (define catch-env ((update-for-bind #f) bind env))

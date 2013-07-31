@@ -126,9 +126,7 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
-     case:
-       | true-branded => 5
-     end"
+     if true-branded: 5 end"
      five)
 
   (check-pyret
@@ -155,17 +153,6 @@
 
 
 (define cases (test-suite "cases"
-  (check-pyret "case: | true => 2 | false => 1 end" two)
-  (check-pyret "case: | false => 1 | true => 2 end" two)
-  (check-pyret "case: | true => 2 end" two)
-  (check-pyret "case: | false => 2 | true => 10 end" ten)
-  (check-pyret "case: | true => 2 | true => 1 end" two)
-  (check-pyret "case: | 3._lessthan(2) => 10 | true => 2 end" two)
-  (check-pyret "case: | 2._lessthan(3) => 10 end" ten)
-  (check-pyret-exn "case: | 4._lessthan(3) => 10 end" "case:")
-
-  ;; shouldn't lift vars out of case
-  (check-pyret-exn "case: | true => var zed = 5 zed end zed" "undefined")
 
   (check-pyret "
   when true: 5 end
@@ -295,9 +282,9 @@
       | empty()
     sharing:
       length(self):
-        case:
-          | is-cons(self) => 1._add(self.rest.length())
-          | is-empty(self) => 0
+        cases(List) self:
+          | cons(_, rest) => 1._add(rest.length())
+          | empty => 0
         end
       end
     end
@@ -486,9 +473,8 @@
   (check-pyret
     "
     fun ourmap(l, f):
-      case:
-        | list.is-empty(l) => []
-        | true => ourmap(l.rest, f).push(f(l.first))
+      if list.is-empty(l): []
+      else: ourmap(l.rest, f).push(f(l.first))
       end
     end
     l1 = ourmap([5], fun(x): x._add(1) end).first
@@ -517,9 +503,8 @@
       first(self): l.first(),
       push(self, elt): mklist(l.push(elt)),
       map(self, f):
-        case:
-          | self.is-empty() => mklist([])
-          | true => self.rest().map(f).push(f(l.first()))
+        if self.is-empty(): mklist([])
+        else: self.rest().map(f).push(f(l.first()))
         end
     }
   end
