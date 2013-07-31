@@ -38,9 +38,13 @@ There are also no line end separators. Pyret is semicolonless.
 
 Most syntax in the language are expression forms, which means they can
 appear almost anywhere in the syntax. The
-exception are the binding forms - named function definitions, data
-declarations, and variable binding. Binding forms can only appear in
-[blocks](#blocks).
+exception are:
+
+1. Binding forms - named function definitions, data
+   declarations, and identifier/variable binding.
+2. Variable assignment `x := v'
+
+These forms can only appear in [blocks](#blocks).
 
 #### Objects
 
