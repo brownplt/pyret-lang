@@ -28,5 +28,3 @@ fun output-file(path :: String, append :: Bool):
   out-fd(F.open-output-file(path, exists))
 end
 
-#input-file("file.arr").read-line()
-#input-file("file.arr").read-file()

@@ -385,8 +385,8 @@
 (define modules (test-suite "modules"
 
   (check-pyret-match
-   "import '../lang/pyret-lib/file.arr' as file
-    file.file"
+   "import file as f
+    f.input-file"
    (? p:p-fun? _))
   ;; two nested directories deep, the string "inner" is provided
   (check-pyret
