@@ -18,9 +18,10 @@ fun droppable(obj):
   obj.{
     drop(self, names):
       for list.fold(self-dropped from {}, name from builtins.keys(self)):
-        case:
-          | names.member(name) => self-dropped
-          | true => self-dropped.{ [name]: self.[name] }
+        if names.member(name):
+          self-dropped
+        else:
+          self-dropped.{ [name]: self.[name] }
         end
       end
     end

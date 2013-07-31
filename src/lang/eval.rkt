@@ -20,6 +20,7 @@
   "desugar.rkt"
   "desugar-check.rkt"
   "typecheck.rkt"
+  "well-formed.rkt"
   "compile.rkt"
   "load.rkt"
   "runtime.rkt")
@@ -29,7 +30,8 @@
    (compile-expr
     (contract-check-pyret
      (desugar
-      (parse-eval stx))))))
+      (well-formed
+       (parse-eval stx)))))))
 
 (define (pyret->racket src in #:toplevel [toplevel #f] #:check [check #f])
   (define desugar
@@ -39,7 +41,8 @@
   (define compile (if toplevel compile-pyret compile-expr))
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
-  (define desugared (desugar parsed-stx))
+  (define well-formed-stx (well-formed parsed-stx))
+  (define desugared (desugar well-formed-stx))
   (define compiled (compile (contract-check-pyret desugared)))
   (strip-context compiled))
 

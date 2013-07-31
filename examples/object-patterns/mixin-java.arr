@@ -7,15 +7,6 @@ provide {
   Object: Object
 } end
 
-#fun drop-fields(obj, names):
-#  builtins.keys(obj).foldr(fun(name, filtered-obj):
-#    case:
-#      | names.member(name) => filtered-obj
-#      | true => filtered-obj.{ [name]: obj[name] }
-#    end
-#  end, {})
-#end
-
 # The base object for all hierarchies
 object-brander = brander()
 Object = object-brander.brand({
@@ -26,9 +17,10 @@ Object = object-brander.brand({
     invoke(_, name, a): raise("invoke: method not found: ".append(name)) end,
     instance-of(_, class): object-brander.test(class) end,
     view-as(inst, class):
-      case:
-        | object-brander.test(class) => inst
-        | true => raise("Incompatible cast in view-as")
+      if object-brander.test(class):
+        inst
+      else:
+        raise("Incompatible cast in view-as")
       end
     end
   }) end,
@@ -50,18 +42,19 @@ fun ext(parent-class, description):
 
         # : (Instance) -> String -> Any
         get(_, name):
-          case:
-            | builtins.has-field(fields, name) => fields.[name]
-            | true => parent-inst.get(name)
+          if builtins.has-field(fields, name):
+            fields.[name]
+          else:
+            parent-inst.get(name)
           end
         end,
 
         # : (Instance) -> String -> Any -> Any
         set(_, name, val):
-          case:
-            | builtins.has-field(fields, name) => 
-                fields := fields.{ [name]: val }
-            | true => parent-inst.set(name, val)
+          if builtins.has-field(fields, name):
+            fields := fields.{ [name]: val }
+          else:
+            parent-inst.set(name, val)
           end
         end,
 
@@ -75,11 +68,11 @@ fun ext(parent-class, description):
             end
           }
 
-          case:
-            | builtins.has-field(methods, name) =>
-              methods:[name]._fun()(inst-with-super, arg)
-            | true =>
-              parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
+          if builtins.has-field(methods, name):
+            # NOTE(joe 26 Jul 2013): Horrible parser ambiguity requires these parens
+            (methods:[name]._fun()(inst-with-super, arg))
+          else:
+            parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
           end
         end,
 
@@ -89,9 +82,10 @@ fun ext(parent-class, description):
         end,
         
         view-as(inst, class):
-          case:
-            | class-brander.test(class) => inst
-            | true => parent-inst:view-as._fun()(inst.{
+          if class-brander.test(class):
+            inst
+          else:
+            parent-inst:view-as._fun()(inst.{
                 get: parent-inst:get,
                 set: parent-inst:set,
                 invoke(_, name, arg):
@@ -148,17 +142,18 @@ check:
     methods: {
 
       assign(self, person):
-        case:
-          | self.get("done") => raise("Can't assign a completed task")
-          | true => self.set("assignee", person)
+        if self.get("done"):
+          raise("Can't assign a completed task")
+        else:
+          self.set("assignee", person)
         end
       end,
 
       complete(self, o):
-        case:
-          | is-nothing(self.get("assignee")) =>
-              raise("Can't complete an unassigned task")
-          | true => self.super(o)
+        if is-nothing(self.get("assignee")):
+          raise("Can't complete an unassigned task")
+        else:
+          self.super(o)
         end
       end
     },

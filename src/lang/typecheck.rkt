@@ -93,10 +93,10 @@
      (define (get-fun e)
        (s-app s (s-bracket s e (s-str s "_fun")) (list)))
      (code-wrapper s args result mk-method get-fun)]
-    [(a-app s name parameters)
+    [(a-app s ann parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
      ;; everything past the name weren't included.
-     (mk-flat-checker (s-id loc name))]
+     (ann-check loc ann)]
     [(a-pred s ann pred)
      (define ann-wrapper (ann-check s ann))
      (define argname (gensym "pred-arg"))
@@ -114,15 +114,14 @@
                           (s-app loc
                                  pred
                                  (list (s-id s tempname))))
-                 (s-case s
+                 (s-if-else s
                     (list
-                      (s-case-branch s (s-id s result)
-                        (s-block s (list (s-id s tempname))))
-                      (s-case-branch s (s-id s 'else)
-                        (s-block s
-                          (list
-                            (s-app s (s-id s 'raise)
-                                     (list (s-str s "contract failure"))))))))
+                      (s-if-branch s (s-id s result)
+                        (s-block s (list (s-id s tempname)))))
+                      (s-block s
+                        (list
+                          (s-app s (s-id s 'raise)
+                                   (list (s-str s "contract failure"))))))
                )))]
     [else
      (error
@@ -171,14 +170,6 @@
       [(s-let _ _ _) stmt]
       [_ #f]))
   (define bind-stmts (filter-map get-bind stmts))
-  (define (get-id stmt)
-    (match stmt
-      [(s-var _ (s-bind _ id _) _) id]
-      [(s-let _ (s-bind _ id _) _) id]))
-  (define (get-loc stmt)
-    (match stmt
-      [(s-var loc (s-bind _ _ _) _) loc]
-      [(s-let loc (s-bind _ _ _) _) loc]))
   (define (update-for-node node env)
     (match node
       [(s-var loc (s-bind _ id ann) _)
@@ -187,25 +178,34 @@
       [(s-let loc (s-bind _ id ann) _)
        (check-consistent env loc id #f)
        (update id (binding loc ann #f) env)]))
-  (define (find-duplicate stmts stmts-seen)
-    (define ((matching-bind stmt-chk) stmt)
-      (define id-chk (get-id stmt-chk))
-      (define id (get-id stmt))
-      (and (not (symbol=? '_ id-chk))
-           (not (symbol=? '_ id))
-           (symbol=? id-chk id)))
-    (cond
-      [(empty? stmts) #f]
-      [(cons? stmts)
-       (define stmt (first stmts))
-       (define found (findf (matching-bind stmt) stmts-seen))
-       (cond
-        [found (tc-error (duplicate-identifier (get-id stmt))
-               (get-loc stmt)
-               (get-loc found))]
-        [else (find-duplicate (rest stmts) (cons stmt stmts-seen))])]))
   (find-duplicate bind-stmts empty)
   (foldl update-for-node env bind-stmts))
+
+(define (get-id stmt)
+  (match stmt
+    [(s-var _ (s-bind _ id _) _) id]
+    [(s-let _ (s-bind _ id _) _) id]))
+(define (get-loc stmt)
+  (match stmt
+    [(s-var loc (s-bind _ _ _) _) loc]
+    [(s-let loc (s-bind _ _ _) _) loc]))
+(define (find-duplicate stmts stmts-seen)
+  (define ((matching-bind stmt-chk) stmt)
+    (define id-chk (get-id stmt-chk))
+    (define id (get-id stmt))
+    (and (not (symbol=? '_ id-chk))
+         (not (symbol=? '_ id))
+         (symbol=? id-chk id)))
+  (cond
+    [(empty? stmts) #f]
+    [(cons? stmts)
+     (define stmt (first stmts))
+     (define found (findf (matching-bind stmt) stmts-seen))
+     (cond
+      [found (tc-error (duplicate-identifier (get-id stmt))
+             (get-loc stmt)
+             (get-loc found))]
+      [else (find-duplicate (rest stmts) (cons stmt stmts-seen))])]))
 
 (define (get-arrow s args ann)
   (a-arrow s (map s-bind-ann args) ann))
@@ -230,11 +230,15 @@
         [(s-bind s id ann) (s-bind s (gensym id) (a-blank))]))
      (define new-args (map new-arg args))
      (define new-argnames (map s-bind-id new-args))
+     (define new-locs (map s-bind-syntax new-args))
      (define body-env (foldl (update-for-bind #f) env args))
      (define wrapped-body
       (wrap-ann-check s ann (cc-env body body-env)))
-     (define (check-arg bind new-id) (cc-env (s-let s bind (s-id s new-id)) body-env))
-     (define checked-args (map check-arg args new-argnames))
+     (define (check-arg bind new-id new-loc) (cc-env (s-let new-loc bind (s-id new-loc new-id)) body-env))
+     (define checked-args (map check-arg args new-argnames new-locs))
+     ;; NOTE(joe): Just doing the checking of checked-args for the error-checking,
+     ;; all the necessary wrapping is done
+     (find-duplicate checked-args empty)
      (define full-body
       (s-block s
         (append checked-args (list wrapped-body))))
@@ -253,13 +257,6 @@
          [(s-if-branch s test expr)
           (s-if-branch s (cc test) (cc expr))]))
      (s-if-else s (map cc-branch if-bs) (cc else-block))]
-
-    [(s-case s c-bs)
-     (define (cc-branch branch)
-       (match branch
-         [(s-case-branch s test expr)
-          (s-case-branch s (cc test) (cc expr))]))
-     (s-case s (map cc-branch c-bs))]
 
     [(s-try s try bind catch)
      (define catch-env ((update-for-bind #f) bind env))

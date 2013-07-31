@@ -216,12 +216,6 @@
     [(app-args "(" (app-arg-elt e1 ",") ... elast ")")
      (map/stx parse-binop-expr #'(e1 ... elast))]))
 
-(define (parse-case-branch stx)
-  (syntax-parse stx
-    #:datum-literals (case-branch)
-    [(case-branch "|" test "=>" body)
-     (s-case-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
-
 (define (parse-cases-branch stx)
   (syntax-parse stx
     #:datum-literals (cases-branch)
@@ -275,7 +269,6 @@
       bracket-expr 
       colon-expr 
       colon-bracket-expr
-      case-expr 
       for-expr
       try-expr
       lambda-expr
@@ -303,8 +296,6 @@
      (s-colon (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(colon-bracket-expr obj ":" "[" field "]")
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
-    [(case-expr "case:" branch ... "end")
-     (s-case (loc stx) (map/stx parse-case-branch #'(branch ...)))]
     [(cases-expr "cases" "(" type ")" val ":" branch ... "|" "else" "=>" else-block "end")
      (s-cases-else (loc stx) (parse-expr #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...))
@@ -412,9 +403,9 @@
      (a-arrow (loc stx)
               (map/stx parse-ann #'(anns ... last-ann))
               (parse-ann #'result))]
-    [(app-ann (name-ann n) "<" (app-ann-elt anns ",") ... last-ann ">")
+    [(app-ann the-ann "<" (app-ann-elt anns ",") ... last-ann ">")
      (a-app (loc stx)
-            (parse-name #'n)
+            (parse-ann #'the-ann)
             (map/stx parse-ann #'(anns ... last-ann)))]
     [(pred-ann annbase "(" expr ")")
      (a-pred (loc stx) (parse-ann #'annbase) (parse-binop-expr #'expr))]

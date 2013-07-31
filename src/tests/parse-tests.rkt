@@ -26,7 +26,7 @@
        (check-exn (lambda (e) (and (exn:fail? e)
                                    (string-contains (exn-message e) error)))
                   (lambda () (parse-pyret str))))]))
-     
+
 
 (define-syntax check/block
   (syntax-rules ()
@@ -152,7 +152,7 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "fun f(): 5 end"
               (s-fun _ 'f empty empty (a-blank) _ (s-block _ (list (s-num _ 5)))
                      (s-block _ empty)))
-  
+
   (check/block "fun g(g): 5 end"
               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))) (a-blank)
                      _
@@ -160,8 +160,8 @@ line string\"" (s-str _ "multi\nline string"))
                      (s-block _ empty)))
 
   (check/block "fun g(g,f,x): 5 end"
-               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank)) 
-                                       (s-bind _ 'f (a-blank)) 
+               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank))
+                                       (s-bind _ 'f (a-blank))
                                        (s-bind _ 'x (a-blank))) (a-blank)
                       _
                       (s-block _ (list (s-num _ 5)))
@@ -219,6 +219,18 @@ line string\"" (s-str _ "multi\nline string"))
                (s-colon _
                         (s-obj _ (list (s-data-field _ (s-str _ "f") (s-num _ 4))))
                         'f))
+
+  (check/block "methods:[name]._fun()(inst-with-super, arg)"
+               (s-app _
+                (s-app _
+                  (s-dot _
+                    (s-colon-bracket _
+                      (s-id _ 'methods)
+                      (s-id _ 'name))
+                    '_fun)
+                  (list))
+                (list (s-id _ 'inst-with-super) (s-id _ 'arg))))
+
   (check/block
    "o.{x : 5}"
    (s-extend _ (s-id _ 'o) (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
@@ -256,12 +268,12 @@ line string\"" (s-str _ "multi\nline string"))
     (s-block _ empty)))
 
 
-  (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end" 
+  (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end"
                (s-fun _ 'foo empty (list (s-bind _ 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
                       _
                       (s-block _ (list (s-str _ _)))
                       (s-block _ empty)))
-  (check/block "fun foo(x :: Bool) -> Bool: x end" 
+  (check/block "fun foo(x :: Bool) -> Bool: x end"
                (s-fun _ 'foo empty (list (s-bind _ 'x (a-name _ 'Bool))) (a-name _ 'Bool)
                       _
                       (s-block _ (list (s-id _ 'x)))
@@ -280,17 +292,23 @@ line string\"" (s-str _ "multi\nline string"))
 
 
   (check/block "var x :: {} = 4" (s-var _ (s-bind _ 'x (a-record _ (list))) (s-num _ 4)))
-  (check/block "var x :: {foo: Number} = 4" 
+  (check/block "var x :: {foo: Number} = 4"
                (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-  (check/block "var x :: {foo: Number} = 4" 
+  (check/block "var x :: {foo: Number} = 4"
                (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
-  (check/block "var x :: {foo: Number, a: Bool} = 4" 
-               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number)) 
+  (check/block "var x :: {foo: Number, a: Bool} = 4"
+               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number))
                                                        (a-field _ "a" (a-name _ 'Bool)))))
                       (s-num _ 4)))
   (check/block "var x :: list.List = 4"
                (s-var _ (s-bind _ 'x (a-dot _ 'list 'List))
                       (s-num _ 4)))
+
+  (check/block "var x :: list.List<A> = 4"
+               (s-var _ (s-bind _ 'x (a-app _ (a-dot _ 'list 'List)
+                                            (list (a-name _ 'A))))
+                      (s-num _ 4)))
+
 ))
 
 (define anon-func (test-suite "anon-func"
@@ -334,7 +352,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ (list (s-id _ 'x)))
                       (s-block _ (list (s-id _ 'foo)))))
 
-  
+
 
 (check/block "fun (x,y,z): x end"
                (s-lam _ empty (list (s-bind _ 'x (a-blank))
@@ -367,7 +385,7 @@ line string\"" (s-str _ "multi\nline string"))
     (s-var _
            (s-bind _ 'x
                      (a-pred _
-                             (a-app _ 'List
+                             (a-app _ (a-name _ 'List)
                                       (list (a-name _ 'String)))
                              (s-dot _ (s-id _ 'list)
                                       'is-cons)))
@@ -375,6 +393,13 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define cases (test-suite "cases"
+
+  (check/block "if x:o:f() end"
+               (s-if _ (list
+                        (s-if-branch
+                         _
+                         (s-colon _ (s-id _ 'x) 'o)
+                         (s-block _ (list (s-app _ (s-id _ 'f) (list))))))))
 
   (check/block "if false: 5 else: 42 end"
                (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5)))))
@@ -389,14 +414,16 @@ line string\"" (s-str _ "multi\nline string"))
                                   (s-if-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 24)))))
                           (s-block _ (list (s-num _ 6)))))
 
+  (check/block "if 0 < 1: 5 else if 1 < 0: 24 else: 6 end"
+               (s-if-else _ (list (s-if-branch _ (s-op _ 'op< (s-num _ 0) (s-num _ 1))
+                                                 (s-block _ (list (s-num _ 5))))
+                                  (s-if-branch _ (s-op _ 'op< (s-num _ 1) (s-num _ 0)) (s-block _ (list (s-num _ 24)))))
+                          (s-block _ (list (s-num _ 6)))))
+
   (check/block "cases(List) 5: | empty() => 1 end"
                (s-cases _ (s-id _ 'List) (s-num _ 5)
                   (list
                     (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
-
-  (check/block "case: | true => 1 | false => 2 end" 
-               (s-case _ (list (s-case-branch _ (s-bool _ #t) (s-block _ (list (s-num _ 1))))
-                               (s-case-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 2)))))))
 
   (check/block "when true: 5 end"
     (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
@@ -410,6 +437,11 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define data (test-suite "data"
+
+  (check/block "data Foo: end"
+               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+  (check/block "data Foo: check: end"
+               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
 
   (check/block "  data Foo: | bar() end"
                (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
@@ -425,14 +457,15 @@ line string\"" (s-str _ "multi\nline string"))
                        (list) (s-block _ _)))
   (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
 
-  (check/block 
-   "data List<a>: | cons(field, l :: List<a>) end" 
-   (s-data _ 'List (list 'a) 
-           (list (s-variant 
-                  _ 
-                  'cons 
-                  (list (s-bind _ 'field (a-blank)) 
-                        (s-bind _ 'l (a-app _ 'List (list (a-name _ 'a)))))
+  (check/block
+   "data List<a>: | cons(field, l :: List<a>) end"
+   (s-data _ 'List (list 'a)
+           (list (s-variant
+                  _
+                  'cons
+                  (list (s-bind _ 'field (a-blank))
+                        (s-bind _ 'l (a-app _ (a-name _ 'List)
+                                            (list (a-name _ 'a)))))
                   (list))) (list)
                   (s-block _ _)))
 
@@ -638,13 +671,17 @@ line string\"" (s-str _ "multi\nline string"))
    ;; well-formedness of ast check, pre-desugar
    (check/block "1 + 2 - 3" (s-op _ op- (s-op _ op+ (s-num _ 1) (s-num _ 2))
                                             (s-num _ 3)))
-   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2))
-                                            (s-num _ 3)))
+   (check/block "1 + 2 * 3" (s-op _ op* (s-op _ op+ (s-num _ 1) (s-num _ 2)) (s-num _ 3)))
+
+   (check/block "1 + o.x" (s-op _ op+
+                                (s-num _ 1)
+                                (s-dot _ (s-id _ 'o) 'x)))
+
    (check/block "1 + 2.add(3)" (s-op _ op+
                                      (s-num _ 1)
                                      (s-app _ (s-dot _ (s-num _ 2) 'add)
                                                       (list (s-num _ 3)))))
-   (check/block "2.add(3) + 1" (s-op _ op+ 
+   (check/block "2.add(3) + 1" (s-op _ op+
                                      (s-app _ (s-dot _ (s-num _ 2) 'add)
                                             (list (s-num _ 3)))
                                      (s-num _ 1)))
@@ -671,18 +708,18 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-num _ 3)))
    (check/block "x = 3 + 4"
                 (s-let _ (s-bind _ 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
-   (check/block "3 + case: |true => 7 end"
+   (check/block "3 + if true: 7 end"
                 (s-op _ op+
                       (s-num _ 3)
-                      (s-case _ (list
-                                 (s-case-branch _ (s-bool _ #t)
+                      (s-if _ (list
+                                 (s-if-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
 
    (check/block "1+(2*3)"
                 (s-op _ op+
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
-   
+
    (check/block "1*(2-3)"
                 (s-op _ op*
                       (s-num _ 1)
@@ -737,7 +774,7 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "1 <= (1+2)"
                 (s-op _ op<= (s-num _ 1)
                       (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
-   
+
    (check/block "(a + ((d * 2) + g))"
                 (s-paren _ (s-op _ op+
                                    (s-id _ 'a)
@@ -774,7 +811,7 @@ line string\"" (s-str _ "multi\nline string"))
 
    (check/block "a(b) or c(d)"
                 (s-op _ opor _ _))
-   
+
    (check/block "not (true and false)"
                 (s-not _
                        (s-paren _
@@ -805,4 +842,3 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (run-tests all 'normal)
-

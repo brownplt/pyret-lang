@@ -126,11 +126,26 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
-     case:
-       | true-branded => 5
-     end"
+     if true-branded: 5 end"
      five)
-  ))
+
+  (check-pyret
+    "b = brander()
+     b.test(b.brand({}).{x: 5})"
+    true)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand({x:10}).{x: 5})"
+    false)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand([4]).{ bonus-field: {} })"
+    true)
+  (check-pyret
+    "b = brander()
+     b.test(b.brand([4]).{ first: [] })"
+    false)
+))
 
 
 
@@ -138,17 +153,6 @@
 
 
 (define cases (test-suite "cases"
-  (check-pyret "case: | true => 2 | false => 1 end" two)
-  (check-pyret "case: | false => 1 | true => 2 end" two)
-  (check-pyret "case: | true => 2 end" two)
-  (check-pyret "case: | false => 2 | true => 10 end" ten)
-  (check-pyret "case: | true => 2 | true => 1 end" two)
-  (check-pyret "case: | 3._lessthan(2) => 10 | true => 2 end" two)
-  (check-pyret "case: | 2._lessthan(3) => 10 end" ten)
-  (check-pyret-exn "case: | 4._lessthan(3) => 10 end" "case:")
-
-  ;; shouldn't lift vars out of case
-  (check-pyret-exn "case: | true => var zed = 5 zed end zed" "undefined")
 
   (check-pyret "
   when true: 5 end
@@ -198,6 +202,16 @@
   (check-pyret
    "strs = for list.map(elt from [1,2,3]): elt.tostring() end
     strs._equals(['1','2','3'])"
+   true)
+
+  (check-pyret
+   "str = for list.find(elt from ['1','2','3']): elt == '2' end
+    str.value"
+   (p:mk-str "2"))
+
+  (check-pyret
+   "str = for list.find(elt from ['1','2','3']): elt == 'not-in-list' end
+    option.is-none(str)"
    true)
 
   (check-pyret
@@ -268,9 +282,9 @@
       | empty()
     sharing:
       length(self):
-        case:
-          | is-cons(self) => 1._add(self.rest.length())
-          | is-empty(self) => 0
+        cases(List) self:
+          | cons(_, rest) => 1._add(rest.length())
+          | empty => 0
         end
       end
     end
@@ -353,13 +367,19 @@
     "
     (p:mk-num 22))
 
+  (check-pyret-exn
+   "data Test:
+     | test(x, x)
+    end"
+   "x defined twice")
+
   ))
 
 (define modules (test-suite "modules"
 
   (check-pyret-match
-   "import '../lang/pyret-lib/file.arr' as file
-    file.file"
+   "import file as f
+    f.input-file"
    (? p:p-fun? _))
   ;; two nested directories deep, the string "inner" is provided
   (check-pyret
@@ -411,6 +431,7 @@
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
+  (check-pyret-match/check "pyret/list-tests.arr" _ 3 3 0 0 0)
 
   (check-pyret-match
     "prim-keys({x : 5})"
@@ -452,9 +473,8 @@
   (check-pyret
     "
     fun ourmap(l, f):
-      case:
-        | list.is-empty(l) => []
-        | true => ourmap(l.rest, f).push(f(l.first))
+      if list.is-empty(l): []
+      else: ourmap(l.rest, f).push(f(l.first))
       end
     end
     l1 = ourmap([5], fun(x): x._add(1) end).first
@@ -483,9 +503,8 @@
       first(self): l.first(),
       push(self, elt): mklist(l.push(elt)),
       map(self, f):
-        case:
-          | self.is-empty() => mklist([])
-          | true => self.rest().map(f).push(f(l.first()))
+        if self.is-empty(): mklist([])
+        else: self.rest().map(f).push(f(l.first()))
         end
     }
   end
@@ -575,17 +594,17 @@
   (check-pyret "prim-num-keys({x:5}.{y:6})" (p:mk-num 2))
   (check-pyret "prim-num-keys({x:5}.{x:6})" (p:mk-num 1))
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
-  (check-pyret "prim-num-keys({x(): end, y:'', z: fun: end})" (p:mk-num 3))
+  (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
 
 ))
 
 (define tag-tests (test-suite "tag-tests"
   (check-pyret "Function(fun: nothing end)" true)
-  (check-pyret "Function(method(): nothing end)" false)
+  (check-pyret "Function(method(self): nothing end)" false)
   (check-pyret "Method(fun: nothing end)" false)
-  (check-pyret "Method(method(): nothing end)" true)
-  (check-pyret "Object(method(): nothing end)" false)
+  (check-pyret "Method(method(self): nothing end)" true)
+  (check-pyret "Object(method(self): nothing end)" false)
   (check-pyret "Object({})" true)
   (check-pyret "String('')" true)
   (check-pyret "String(5)" false)
@@ -599,7 +618,7 @@
   (check-pyret "String('str'.{ x: 'some-new-field' })" true)
   (check-pyret "Bool(true.{ x: 'some-new-field' })" true)
   (check-pyret "Function(fun: nothing end.{ x: 'some-new-field' })" true)
-  (check-pyret "Method(method(): nothing end.{ x: 'some-new-field' })" true)
+  (check-pyret "Method(method(self): nothing end.{ x: 'some-new-field' })" true)
   (check-pyret "Object({}.{ x: 'some-new-field' })" true)
 ))
 
@@ -753,6 +772,7 @@ o2.m().called" true)
   x = 5
   fun f(x):
     var x = x
+    x
   end
   "
   CONFLICT-MESSAGE)
@@ -769,7 +789,7 @@ o2.m().called" true)
 
   (check-pyret-exn "
   var should_notice_method_bodies = 5
-  o = { meth(self): should_notice_method_bodies = 3 end }
+  o = { meth(self): should_notice_method_bodies = 3 nothing end }
   "
   CONFLICT-MESSAGE)
 

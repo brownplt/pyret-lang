@@ -359,56 +359,55 @@
 (define (mk-str s)
   (p-str no-brands meta-str-store str-bad-app str-bad-meth s))
 
-;; mk-fun : (Value ... -> Value) String -> Value
-(define (mk-fun f m s)
-  (p-fun no-brands (make-string-map `(("_doc" . ,(mk-str s))
-                                      ("_method" . ,(mk-method-method f s))))
+(define (_mk-fun f m d to-m)
+  (p-fun no-brands (make-string-map `(("_doc" . ,d)
+                                      ("_method" . ,to-m)))
          f
          m))
+
+;; mk-fun : (Value ... -> Value) String -> Value
+(define (mk-fun f m s)
+  (_mk-fun f m (mk-str s) (mk-method-method f s)))
 
 ;; mk-fun-nodoc : (Value ... -> Value) -> Value
 (define (mk-fun-nodoc f m)
-  (p-fun no-brands (make-string-map `(("_doc" . ,nothing)
-                                      ("_method" . ,(mk-method-method-nodoc f))))
-         f
-         m))
+  (_mk-fun f m nothing (mk-method-method-nodoc f)))
 
 (define (mk-fun-nodoc-slow f)
-  (p-fun no-brands empty-dict f (lambda (_ . args) (apply f args))))
-  
+  (_mk-fun f (lambda (_ . args) (apply f args)) nothing nothing))
+
 (define method-bad-app (bad-app "method"))
+
+(define (_mk-method m doc to-f)
+  (p-method no-brands
+            (make-string-map
+              `(("_doc" . ,doc)
+                ("_fun" . ,to-f)))
+            method-bad-app
+            m))
+
 ;; mk-method-method : (Value ... -> Value) String -> p-method
 (define (mk-method-method f doc)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,(mk-str doc))))
-            method-bad-app
-            (λ (self) (mk-method f doc))))
+  (_mk-method (λ (self) (mk-method f doc)) (mk-str doc) nothing))
 
 ;; mk-method-method-nodoc : (Value ... -> Value) -> p-method
 (define (mk-method-method-nodoc f)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,nothing)))
-            method-bad-app
-            (λ (self) (mk-method-nodoc f))))
+  (_mk-method (λ (self) (mk-method f nothing)) nothing nothing))
 
 ;; mk-fun-method : (Value ... -> Value) String -> p-method
 (define (mk-fun-method f doc)
-  (p-method no-brands
-            (make-string-map `(("_doc" . ,(mk-str doc))))
-            method-bad-app
-            (λ (self) (mk-fun f (lambda args (apply f (rest args))) doc))))
+  (_mk-method
+    (λ (self) (mk-fun f (lambda args (apply f (rest args))) doc))
+    (mk-str doc)
+    nothing))
 
 ;; mk-method : (Value ... -> Value) String -> Value
 (define (mk-method f doc)
-  (define d (make-string-map `(("_fun" . ,(mk-fun-method f doc))
-                                   ("_doc" . ,(mk-str doc)))))
-  (p-method no-brands d method-bad-app f))
+  (_mk-method f (mk-str doc) (mk-fun-method f doc)))
 
 ;; mk-method-nodoc : Proc -> Value
 (define (mk-method-nodoc f)
-  (define d (make-string-map `(("_fun" . ,(mk-fun-method f ""))
-                                   ("_doc" . ,nothing))))
-  (p-method no-brands d method-bad-app f))
+  (_mk-method f nothing (mk-fun-method f "")))
 
 (define exn-brand (gensym 'exn))
 
@@ -424,7 +423,7 @@
 (define (get-raw-field loc v f)
   (string-map-ref (get-dict v) f
     (lambda()
-      (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-string v)))))))
+      (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -528,13 +527,16 @@ And the object was:
 (define (extend loc base extension)
   (define d (get-dict base))
   (define new-map (string-map-set* d extension))
+  (define loses-brands?
+    (ormap (lambda (k) (string-map-has-key? d k)) (map car extension)))
+  (define new-brands (if loses-brands? no-brands (get-brands base)))
   (py-match base
-    [(p-object _ _ f m) (p-object no-brands new-map f m)]
-    [(p-fun _ _ f m) (p-fun no-brands new-map f m)]
-    [(p-num _ _ f m n) (p-num no-brands new-map f m n)]
-    [(p-str _ _ f m str) (p-str no-brands new-map f m str)]
-    [(p-method _ _ f m) (p-method no-brands new-map f m)]
-    [(p-bool _ _ f m t) (p-bool no-brands new-map f m t)]
+    [(p-object _ _ f m) (p-object new-brands new-map f m)]
+    [(p-fun _ _ f m) (p-fun new-brands new-map f m)]
+    [(p-num _ _ f m n) (p-num new-brands new-map f m n)]
+    [(p-str _ _ f m str) (p-str new-brands new-map f m str)]
+    [(p-method _ _ f m) (p-method new-brands new-map f m)]
+    [(p-bool _ _ f m t) (p-bool new-brands new-map f m t)]
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
@@ -655,6 +657,7 @@ And the object was:
           ("_minus" . ,(mk-num-2 - 'minus))
           ("_divide" . ,(mk-num-2 / 'divide))
           ("_times" . ,(mk-num-2 * 'times))
+          ("modulo" . ,(mk-num-2 modulo 'modulo))
           ("sin" . ,(mk-num-1 sin 'sin))
           ("cos" . ,(mk-num-1 cos 'cos))
           ("sqr" . ,(mk-num-1 sqr 'sqr))
@@ -679,6 +682,8 @@ And the object was:
    [else (string-append s (string-repeat s (- n 1)))]))
 
 ;; meta-str-store (Hashof String value)
+(define (mk-num-or-nothing v)
+  (if v (mk-num v) nothing))
 (define meta-str-store #f)
 (define (meta-str)
   (when (not meta-str-store)
@@ -691,7 +696,7 @@ And the object was:
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
-          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num (p-str-s) (s) (p-str?)))
+          ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("_lessequals" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
@@ -732,16 +737,16 @@ And the object was:
               ;; as taking only self.
               (py-match ((p-base-method m) v)
                         [(p-str _ _ _ _ s) s]
-                        [(default _) fallback])
-              fallback))
-        fallback))
+                        [(default _) (fallback)])
+              (fallback)))
+        (fallback)))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
     [(p-num _ _ _ _ n) (format "~a" n)]
     [(p-str _ _ _ _ s) (format "~a" s)]
     [(p-bool _ _ _ _ b) (if b "true" "false")]
-    [(p-method _ _ _ _) (call-tostring v "[[code]]")]
-    [(p-fun _ _ _ _) (call-tostring v "[[code]]")]
+    [(p-method _ _ _ _) (call-tostring v (λ () "[[code]]"))]
+    [(p-fun _ _ _ _) (call-tostring v (λ () "[[code]]"))]
     [(p-object _ h _ _)
      (let ()
        (define (to-string-raw-object h)
@@ -751,7 +756,7 @@ And the object was:
                  (string-join (string-map-map h field-to-string) ", ")))
        (call-tostring
         v
-        (to-string-raw-object h)))]
+        (λ () (to-string-raw-object h))))]
     [(default _) (format "~a" v)]))
 
 (define tostring-pfun (pλ/internal (loc) (o)

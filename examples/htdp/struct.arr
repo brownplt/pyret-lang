@@ -9,9 +9,9 @@ empty()
 cons(4,empty())
 
 fun length(l :: NumList) -> Number:
-  case:
-    | is-cons(l) => 1 + length(l.rest)
-    | is-empty(l) => 0
+  cases(NumList) l:
+    | cons(_, rest) => 1 + length(rest)
+    | empty => 0
   end
 check:
   checkers.check-equals("length of single elem list",

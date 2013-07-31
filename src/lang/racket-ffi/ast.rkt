@@ -141,15 +141,6 @@
         (tp test)
         (tp body))]
 
-    [(s-case s c-bs)
-     (define (tp-case-branch b)
-      (match b
-        [(s-case-branch s tst blk)
-         (build s_case_branch (tp-loc s) (tp tst) (tp blk))]))
-     (build s_case
-        (tp-loc s)
-        (map tp-case-branch c-bs))]
-
     [(s-if s if-bs)
      (build s_if (tp-loc s) (map tp-if-branch if-bs))]
 
@@ -254,8 +245,8 @@
      (build a_arrow (tp-loc s) (map tp-ann args) (tp-ann result))]
     [(a-method s args result)
      (build a_method (tp-loc s) (map tp-ann args) (tp-ann result))]
-    [(a-app s name parameters)
-     (build a_app (tp-loc s) (symbol->string name) (map tp-ann parameters))]
+    [(a-app s ann parameters)
+     (build a_app (tp-loc s) (tp-ann ann) (map tp-ann parameters))]
     [(a-pred s ann pred)
      (build a_pred (tp-loc s) (tp-ann ann) (to-pyret pred))]
     [(a-record s fields)

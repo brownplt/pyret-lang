@@ -15,10 +15,10 @@
   (define (get-and-replace-constants ast)
     (define (process-member m)
      (match m
-       [(s-data-field l (s-str l s) val)
+       [(s-data-field l (s-str l2 s) val)
         (match-define (cons val-list new-val) (get-and-replace-constants val))
         (cons val-list
-              (s-data-field l (s-str l s) new-val))]
+              (s-data-field l (s-str l2 s) new-val))]
        [(s-data-field l name val)
         (match-define (cons name-list new-name) (get-and-replace-constants name))
         (match-define (cons val-list new-val) (get-and-replace-constants val))
@@ -58,20 +58,6 @@
        (cons (flatten (cons else-list (map car branch-results)))
              (s-if-else l (map cdr branch-results) new-else))]
       
-      [(s-case l c-bs)
-       (define (process-case-branch b)
-         (match b
-           [(s-case-branch s test block)
-            (match-define
-              (cons test-list new-test) (get-and-replace-constants test))
-            (match-define
-              (cons block-list new-block) (get-and-replace-constants block))
-            (cons (append test-list block-list)
-                  (s-case-branch s new-test new-block))]))
-       (define branch-results (map process-case-branch c-bs))
-       (cons (flatten (map car branch-results))
-             (s-case l (map cdr branch-results)))]
-
       [(s-try l try (s-bind l2 id ann) catch)
        (match-define (cons try-list new-try) (get-and-replace-constants try))
        (match-define (cons catch-list new-catch) (get-and-replace-constants catch))
