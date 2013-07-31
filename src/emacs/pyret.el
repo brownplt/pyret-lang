@@ -49,14 +49,6 @@
                   (ignore-errors
                     (when (save-excursion (forward-char -3) (pyret-END))
                       (pyret-smart-tab))))))
-    (define-key map (kbd "e")
-      (function (lambda (&optional N)
-                  (interactive "^p")
-                  (or N (setq N 1))
-                  (self-insert-command N)
-                  (ignore-errors
-                    (when (save-excursion (forward-char -4) (pyret-ELSE))
-                      (pyret-smart-tab))))))
     (define-key map (kbd "f")
       (function (lambda (&optional N)
                   (interactive "^p")
