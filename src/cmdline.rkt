@@ -95,7 +95,7 @@
   ("--print-racket" path "Print a compiled Racket program on stdout"
    (define pyret-file (open-input-file path))
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
-  ("--no-checks" "Run in check mode"
+  ("--no-checks" "Run in without checks"
    (set! check-mode #f))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
