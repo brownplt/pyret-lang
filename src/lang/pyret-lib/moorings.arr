@@ -646,7 +646,8 @@ fun check-true(name, val): check-equals(name, val, true) end
 fun check-false(name, val): check-equals(name, val, false) end
 fun check-equals(name, val1, val2):
   try:
-    if (val1 == val2):
+    values_equal = val1 == val2
+    if values_equal:
       current-results := current-results.push(success(name))
     else:
       current-results :=
@@ -655,6 +656,7 @@ fun check-equals(name, val1, val2):
                                      "\n\n" +
                                      tostring(val2)))
     end
+    values_equal
   except(e):
     current-results := current-results.push(err(name, e))
   end
