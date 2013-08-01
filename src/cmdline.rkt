@@ -89,14 +89,14 @@
   ((p:p-base-method (p:get-raw-field p:dummy-loc results "format")) results))
 (error-display-handler process-pyret-error)
 
-(define check-mode #f)
+(define check-mode #t)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"
    (define pyret-file (open-input-file path))
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
-  ("--check" "Run in check mode"
-   (set! check-mode #t))
+  ("--no-checks" "Run in check mode"
+   (set! check-mode #f))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
