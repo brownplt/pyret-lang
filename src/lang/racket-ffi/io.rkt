@@ -13,10 +13,12 @@ ep = R("racket/base")("current-error-port")
 
 fun flush-output():
   R("racket/base")("flush-output", op)
+  nothing
 end
 
 fun flush-error():
   R("racket/base")("flush-output", ep)
+  nothing
 end
 
 s-any = R("racket/base")("string->symbol", "any")
