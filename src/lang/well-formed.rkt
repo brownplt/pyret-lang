@@ -106,7 +106,8 @@
     [(s-data s name params variants shares check)
      (begin
        (map wf-variant variants)
-       (map wf-member shares))]
+       (map wf-member shares)
+       (wf check))]
 
     [(s-for s iter bindings ann body)
      (define (wf-for-bind b)
@@ -123,18 +124,20 @@
     [(s-let s name val) (begin (wf-bind name) (wf val))]
 
     [(s-fun s name typarams args ann doc body check)
-     (begin (map wf-bind args) (wf-ann ann) (wf body))]
+     (begin (map wf-bind args) (wf-ann ann) (wf body) (wf check))]
 
     [(s-lam s typarams args ann doc body check)
      (begin (map wf-bind args)
             (wf-ann ann)
-            (wf body))]
+            (wf body)
+            (wf check))]
 
     [(s-method s args ann doc body check)
      (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
          (begin (map wf-bind args)
                 (wf-ann ann)
-                (wf body)))]
+                (wf body)
+                (wf check)))]
 
     [(s-when s test body)
      (begin (wf test) (wf body))]

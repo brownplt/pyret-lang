@@ -96,6 +96,11 @@
 (check-pyret-exn
  "fun: var x = 5 y = 4 fun f(): end end"
  "Cannot end a block in a fun-binding")
+
+(check-pyret-exn
+ "fun: nothing check: 5 + 2 is 7 end"
+ "well-formedness:")
+
 ))
 
 (run-tests all)

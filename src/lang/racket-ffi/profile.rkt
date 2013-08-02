@@ -18,7 +18,7 @@
   (define result (profile-thunk wrapped #:threads #t))
   (define end (current-milliseconds))
   (printf "Wall time for profiled code was: ~ams\n" (- end start))
-  result)
+  p:nothing)
 
 (define profile-pfun (p:mk-fun-nodoc-slow profile-wrapper))
 

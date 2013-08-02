@@ -93,6 +93,7 @@ these metadata purposes.
 (define op<> 'op<>)
 (define opand 'opand)
 (define opor 'opor)
+(define opis 'opis)
 
 (define op-lookup-table
   (make-immutable-hash
@@ -107,7 +108,8 @@ these metadata purposes.
      ("==" . ,op==)
      ("<>" . ,op<>)
      ("and" . ,opand)
-     ("or" . ,opor))))
+     ("or" . ,opor)
+     ("is" . ,opis))))
 
 (define reverse-op-lookup-table
   (make-immutable-hash
