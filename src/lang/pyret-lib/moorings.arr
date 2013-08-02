@@ -89,6 +89,29 @@ builtins = {
 
 # LISTS
 
+fun get-help(lst, n :: Number):
+  fun help(lst, cur):
+    if is-empty(lst): raise("get: n too large " + tostring(n))
+    else if cur == 0: lst.first
+    else: help(lst.rest, cur - 1)
+    end
+  end
+  if n < 0: raise("get: invalid argument: " + tostring(n))
+  else: help(lst, n)
+  end
+end
+fun set-help(lst, n :: Number, v):
+  fun help(lst, cur):
+    if is-empty(lst): raise("set: n too large " + tostring(n))
+    else if cur == 0: v ^ link(lst.rest)
+    else: lst.first ^ link(help(lst.rest, cur - 1))
+    end
+  end
+  if n < 0: raise("set: invalid argument: " + tostring(n))
+  else: help(lst, n)
+  end
+end
+
 data List:
   | empty with:
 
@@ -126,17 +149,9 @@ data List:
 
     reverse(self): self end,
 
-    get(self, n):
-      if n >= 0: raise('get: n too large: '.append(n.tostring()))
-      else:      raise('get: invalid argument')
-      end
-    end,
+    get(self, n): get-help(self, n) end,
 
-    set(self, n, e):
-      if n >= 0: raise('set: n too large: '.append(n.tostring()))
-      else:      raise('set: invalid argument')
-      end
-    end,
+    set(self, n, e): set-help(self, n, e) end,
     
     _equals(self, other): is-empty(other) end,
 
@@ -194,19 +209,9 @@ data List:
       end
     end,
 
-    get(self, n):
-      if n > 0:       self.rest.get(n - 1)
-      else if n == 0: self.first
-      else: raise('get: invalid argument: ' + n.tostring())
-      end
-    end,
+    get(self, n): get-help(self, n) end,
 
-    set(self, n, e):
-      if n > 0:       self.first ^ link(self.rest.set(n - 1, e))
-      else if n == 0: e ^ link(self.rest)
-      else:           raise('set: invalid argument: ' + n.tostring())
-      end
-    end,
+    set(self, n, e): set-help(self, n, e) end,
         
     _equals(self, other):
       if is-link(other):
