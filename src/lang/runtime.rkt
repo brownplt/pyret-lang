@@ -294,23 +294,35 @@
 ;; mk-exn: p-exn -> Value
 (define (mk-exn e)
   (define loc (exn:fail:pyret-srcloc e))
-  (define maybe-path (srcloc-source loc))
-  (define maybe-line (srcloc-line loc))
-  (define maybe-col (srcloc-column loc))
-  (define path (cond
-		[(string? maybe-path) maybe-path]
-    ;; TODO(joe): removed for WS
-		;[(path? maybe-path) (path->string maybe-path)]
-		[else "unnamed-pyret-file"]))
-  (define line (if maybe-line maybe-line -1))
-  (define column (if maybe-col maybe-col -1))
+  (define (mk-loc l)
+    (define maybe-path (srcloc-source l))
+    (define maybe-line (srcloc-line l))
+    (define maybe-col (srcloc-column l))
+    (define path (cond
+      [(string? maybe-path) maybe-path]
+      ;; TODO(joe): removed for WS
+      ;[(path? maybe-path) (path->string maybe-path)]
+      [else "unnamed-pyret-file"]))
+    (define line (if maybe-line maybe-line -1))
+    (define column (if maybe-col maybe-col -1))
+    (list
+      (cons "path" (mk-str path))
+      (cons "line" (mk-num line))
+      (cons "column" (mk-num column))))
+  (define trace-locs
+    (cons loc (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark)))
+  (define trace
+    (mk-structural-list
+      (map (lambda (l) (mk-object (make-string-map (mk-loc l))))
+      trace-locs)))
   (mk-object
    (make-string-map 
-    (list (cons "value" (exn:fail:pyret-val e))
-	  (cons "system" (mk-bool (exn:fail:pyret-system? e)))
-	  (cons "path" (mk-str path))
-	  (cons "line" (mk-num line))
-	  (cons "column" (mk-num column))))))
+    (append
+      (mk-loc loc)
+      (list
+        (cons "value" (exn:fail:pyret-val e))
+	      (cons "system" (mk-bool (exn:fail:pyret-system? e)))
+        (cons "trace" trace))))))
 
 ;; empty-dict: HashOf String Value
 (define empty-dict (make-string-map '()))

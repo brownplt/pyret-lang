@@ -721,6 +721,9 @@ o2.m().called" true)
   (check-pyret "try: raise(5) except(_): 3 end" (p:mk-num 3))
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
+  (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
+
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"

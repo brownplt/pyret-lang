@@ -75,7 +75,8 @@
                   (s-op s 'op+
                     (s-str s "Case does not exist: ")
                     (s-dot s (s-id s 'elt) 'key))
-                  (s-id s 'location)))))))
+                  (s-id s 'location)
+                  (s-list s (list))))))))
         (s-app s
           (s-bracket s (s-id s 'preds)
                        (s-dot s (s-id s 'elt) 'key))
@@ -355,7 +356,8 @@
                             (s-bracket s (s-id s 'error) (s-str s "cases-miss"))
                             (list
                               (s-str s "cases: no cases matched")
-                              (build-location s))))))))
+                              (build-location s)
+                              (s-list s (list)))))))))
      (ds-cases s type val cases cases-fallthrough)]
 
     [(s-cases-else s type val cases else-block)

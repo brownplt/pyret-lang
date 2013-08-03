@@ -564,21 +564,22 @@ data Location:
       self.line.tostring() +
       ", column " +
       self.column.tostring()
-    end
+    end,
+    tostring(self): self.format() end
 end
 
 data Error:
-  | opaque-error(message :: String, location :: Location) with:
+  | opaque-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Error using opaque internal value" end
-  | field-not-found(message :: String, location :: Location) with:
+  | field-not-found(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Field not found" end
-  | field-non-string(message :: String, location :: Location) with:
+  | field-non-string(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Non-string in field name" end
-  | cases-miss(message :: String, location :: Location) with:
+  | cases-miss(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "No cases matched" end
-  | invalid-case(message :: String, location :: Location) with:
+  | invalid-case(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Invalid case" end
-  | lazy-error(message :: String, location :: Location) with:
+  | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
   tostring(self): self.format() end,
@@ -588,14 +589,17 @@ end
 
 
 fun make-error(obj):
+  trace = for map(loc from mklist(obj.trace)):
+    location(loc.path, loc.line, loc.column)
+  end
   loc = location(obj.path, obj.line, obj.column)
   if obj.system:
     type = obj.value.type
     msg = obj.value.message
-    if (type == "opaque"): opaque-error(msg, loc)
-    else if (type == "field-not-found"): field-not-found(msg, loc)
-    else if (type == "field-non-string"): field-non-string(msg, loc)
-    else: lazy-error(msg, loc)
+    if (type == "opaque"): opaque-error(msg, loc, trace)
+    else if (type == "field-not-found"): field-not-found(msg, loc, trace)
+    else if (type == "field-non-string"): field-non-string(msg, loc, trace)
+    else: lazy-error(msg, loc, trace)
     end
   else: obj.value
   end
@@ -750,10 +754,21 @@ fun format-check-results(results):
         print("Test " + failure.name + " raised an error:")
         print(failure.exception)
         print("")
+        print("Trace:")
+        for each(loc from failure.trace):
+          print(loc)
+        end
       end
       when is-error-result(check-result):
         print("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
         print(check-result.err)
+        print("")
+        when has-field(check-result.err, "trace"):
+          print("Trace:")
+          for each(loc from check-result.err.trace):
+            print("  " + loc.format())
+          end
+        end
       end
       inner-acc.{
         passed: inner-acc.passed + inner-results.filter(is-success).length(),
