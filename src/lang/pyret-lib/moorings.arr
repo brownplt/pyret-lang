@@ -754,9 +754,11 @@ fun format-check-results(results):
         print("Test " + failure.name + " raised an error:")
         print(failure.exception)
         print("")
-        print("Trace:")
-        for each(loc from failure.trace):
-          print(loc)
+        when has-field(failure.exception, "trace"):
+          print("Trace:")
+          for each(loc from failure.trace):
+            print(loc)
+          end
         end
       end
       when is-error-result(check-result):
