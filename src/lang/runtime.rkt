@@ -670,6 +670,7 @@ And the object was:
           ("_divide" . ,(mk-num-2 / 'divide))
           ("_times" . ,(mk-num-2 * 'times))
           ("modulo" . ,(mk-num-2 modulo 'modulo))
+          ("truncate" . ,(mk-num-1 truncate 'truncate))
           ("sin" . ,(mk-num-1 sin 'sin))
           ("cos" . ,(mk-num-1 cos 'cos))
           ("sqr" . ,(mk-num-1 sqr 'sqr))

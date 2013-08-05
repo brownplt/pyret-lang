@@ -32,13 +32,13 @@
 
 (define (parse-program stx)
   (syntax-parse stx
-    #:datum-literals (program imports)
-    [(program (imports import ...) body)
+    #:datum-literals (program prelude)
+    [(program (prelude prelude-stmt ...) body)
      (s-prog (loc stx)
-             (map/stx parse-import #'(import ...))
+             (map/stx parse-prelude #'(prelude-stmt ...))
              (parse-block #'body))]))
 
-(define (parse-import stx)
+(define (parse-prelude stx)
   (syntax-parse stx
     #:datum-literals (import-stmt provide-stmt)
     [(provide-stmt "provide" "*") (s-provide-all (loc stx))]
@@ -101,9 +101,9 @@
       expr
     )
     [(var-expr "var" bind "=" e)
-     (s-var (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
+     (s-var (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(let-expr bind "=" e)
-     (s-let (loc stx) (parse-arg-elt #'bind) (parse-binop-expr #'e))]
+     (s-let (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
                doc body check "end")
      (s-fun (loc stx)
@@ -165,11 +165,11 @@
     [(return-ann) (a-blank)]
     [(return-ann "->" ann) (parse-ann #'ann)]))
 
-(define (parse-arg-elt stx)
+(define (parse-binding stx)
   (syntax-parse stx
-    #:datum-literals (arg-elt)
-    [(arg-elt name) (s-bind (loc stx) (parse-name #'name) (a-blank))]
-    [(arg-elt name "::" ann)
+    #:datum-literals (binding)
+    [(binding name) (s-bind (loc stx) (parse-name #'name) (a-blank))]
+    [(binding name "::" ann)
      (s-bind (loc stx) (parse-name #'name) (parse-ann #'ann))]))
 
 (define (parse-args stx)
@@ -177,7 +177,7 @@
     #:datum-literals (args list-arg-elt)
     [(args "(" ")") empty]
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
-     (map/stx parse-arg-elt #'(arg1 ... lastarg))]))
+     (map/stx parse-binding #'(arg1 ... lastarg))]))
 
 (define (parse-key stx)
   (syntax-parse stx
@@ -255,7 +255,7 @@
   (syntax-parse stx
     #:datum-literals (for-bind)
     [(for-bind name "from" expr)
-     (s-for-bind (loc stx) (parse-arg-elt #'name) (parse-binop-expr #'expr))]))
+     (s-for-bind (loc stx) (parse-binding #'name) (parse-binop-expr #'expr))]))
 
 (define (parse-expr stx)
   (syntax-parse stx
@@ -329,7 +329,7 @@
     [(try-expr "try:" body "except" "(" arg-elt ")" ":" except "end")
      (s-try (loc stx)
             (parse-block #'body)
-            (parse-arg-elt #'arg-elt)
+            (parse-binding #'arg-elt)
             (parse-block #'except))]
     [(lambda-expr "fun" ty-params args return-ann ":" doc body check "end")
      (s-lam (loc stx)
