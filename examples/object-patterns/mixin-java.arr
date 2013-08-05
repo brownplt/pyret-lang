@@ -15,9 +15,9 @@ Object = object-brander.brand({
     get(_, name): raise("get: field not found: ".append(name)) end,
     set(_, name, v): raise("set: field not found: ".append(name)) end,
     invoke(_, name, a): raise("invoke: method not found: ".append(name)) end,
-    instance-of(_, class): object-brander.test(class) end,
-    view-as(inst, class):
-      if object-brander.test(class):
+    instance-of(_, klass): object-brander.test(klass) end,
+    view-as(inst, klass):
+      if object-brander.test(klass):
         inst
       else:
         raise("Incompatible cast in view-as")
@@ -62,27 +62,27 @@ fun ext(parent-class, description):
         # For now, only support one arg methods
         invoke(inst, name, arg):
 
-          inst-with-super = inst.{
-            super(inst, arg):
-              parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
+          inst-with-super-inner = inst.{
+            super(inst-inner, arg-inner):
+              parent-inst:invoke._fun()(inst-inner.view-as(parent-class), name, arg-inner)
             end
           }
 
           if builtins.has-field(methods, name):
             # NOTE(joe 26 Jul 2013): Horrible parser ambiguity requires these parens
-            (methods:[name]._fun()(inst-with-super, arg))
+            (methods:[name]._fun()(inst-with-super-inner, arg))
           else:
             parent-inst:invoke._fun()(inst.view-as(parent-class), name, arg)
           end
         end,
 
         # : (Instance) -> Class -> Bool
-        instance-of(_, class):
-          class-brander.test(class) or parent-inst.instance-of(class)
+        instance-of(_, klass):
+          class-brander.test(klass) or parent-inst.instance-of(klass)
         end,
         
-        view-as(inst, class):
-          if class-brander.test(class):
+        view-as(inst, klass):
+          if class-brander.test(klass):
             inst
           else:
             parent-inst:view-as._fun()(inst.{
@@ -91,14 +91,14 @@ fun ext(parent-class, description):
                 invoke(_, name, arg):
                   inst.invoke(name, arg)
                 end
-              }, class)
+              }, klass)
           end
         end
       }
 
       inst-with-super = instance.{
-        super(inst, spec):
-          parent-inst := parent-class.new(spec)
+        super(inst, spec-inner):
+          parent-inst := parent-class.new(spec-inner)
           inst
         end
       }

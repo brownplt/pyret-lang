@@ -87,14 +87,15 @@
       [(empty? ds-stmts) 
        (s-block s (list do-checks (s-id s 'nothing)))]
       [(cons? ds-stmts)
+       (define id-result (gensym 'result-after-checks))
        (define last-expr (last ds-stmts))
        (s-block s
         (append
           (take ds-stmts (- (length ds-stmts) 1))
           (list
-              (s-let s (s-bind s '%result-after-checks (a-blank)) last-expr)
+              (s-let s (s-bind s id-result (a-blank)) last-expr)
               do-checks
-              (s-id s '%result-after-checks))))])]
+              (s-id s id-result))))])]
     [(s-data s name params variants shares check)
      (s-data s name params
              (map ds-variant variants)

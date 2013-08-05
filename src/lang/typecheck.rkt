@@ -9,7 +9,7 @@
       (exn:fail:pyret/tc-srclocs a-struct)))
 
 (define (tc-error str . locs)
-  (raise (exn:fail:pyret/tc str (continuation-marks #f) locs)))
+  (raise (exn:fail:pyret/tc (format "~a ~a"  locs str) (continuation-marks #f) locs)))
 
 (define VAR-REMINDER "(Identifiers are declared with = and as the names of function arguments.  Variables are declared with var.)")
 
@@ -18,6 +18,9 @@
 
 (define (mixed-id-type-msg name)
   (format "~a declared as both a variable and identifier. ~a" name VAR-REMINDER))
+
+(define (shadow-id-msg name)
+  (format "The name ~a cannot be used in two nested scopes.  Rename one of them to avoid confusion." name))
 
 (define (duplicate-identifier name)
   (format "~a defined twice" name))
@@ -153,7 +156,10 @@
         (tc-error (mixed-id-type-msg id) loc other-loc)]
        [(cons (binding other-loc _ #t) #f)
         (tc-error (mixed-id-type-msg id) loc other-loc)]
-       [_ (void)])]))
+       [(cons (binding other-loc _ b) b)
+        (if (equal? id 'self)
+            (void)
+            (tc-error (shadow-id-msg id) loc other-loc))])]))
 
 (define ((update-for-bind mutable?) bind env)
   (match bind

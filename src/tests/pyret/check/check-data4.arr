@@ -2,7 +2,7 @@
 
 eq = checkers.check-equals 
 
-fun foo():
+fun test():
   data Foo:
     | foo with:
         _equals(self,other): is-foo(other) end
@@ -14,5 +14,5 @@ fun foo():
 
   1
 check:
-  eq("foo()=1",foo(),1)
+  eq("foo()=1",test(),1)
 end
