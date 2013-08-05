@@ -258,9 +258,21 @@ sharing:
   _plus(self, other): self.append(other) end
 
 check:
-    eq = checkers.check-equals
-    
-    eq("list set", [1,2,3].set(1, 5), [1,5,3])
+  eq = checkers.check-equals
+  
+  eq("list set", [1,2,3].set(1, 5), [1,5,3])
+
+  o1 = {
+    _lessthan(self, other): self.x < other.x end,
+    _equals(self, other): self.x == other.x end,
+    x: 5
+  }
+  o2 = o1.{
+    _lessthan(self, other): self.x < other.x end,
+    _equals(self, other): self.x == other.x end,
+    x: 10
+  }
+  [o2, o1].sort() is [o1, o2]
 end
 
 fun range(start, stop):
