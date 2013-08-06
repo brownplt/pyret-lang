@@ -61,8 +61,6 @@
   (define (tp-bind b)
     (match b
       [(s-bind s id a) (build s_bind (tp-loc s) (symbol->string id) (tp-ann a))]))
-  (define (tp-args binds)
-    (map tp-bind binds))
   (define (tp-header header)
     (match header
       [(s-import s (? symbol? path) name)
@@ -271,13 +269,211 @@
         (cons "pre-desugar" (to-pyret ast))
         (cons "post-desugar" (to-pyret (desugar ast)))))))
 
+(define-syntax-rule (has-brand obj brand)
+  (ffi-unwrap (p:apply-fun (p:get-field p:dummy-loc ast (string-append "is-" (symbol->string (quote brand)))) p:dummy-loc (ffi-wrap obj))))
+(define-syntax-rule (has-type obj brand)
+  (ffi-unwrap (p:apply-fun (p:get-field p:dummy-loc ast (symbol->string (quote brand))) p:dummy-loc (ffi-wrap obj))))
+
+(define-syntax-rule (tr-obj obj constr (trans args ... field) ...)
+  (begin
+    ;; (printf "\nconstr is ~a\n" constr)
+    ;; (printf "actual obj keys are ~a\n" (map ffi-unwrap (p:structural-list->list (p:apply-fun prim-keys p:dummy-loc obj))))
+    ;; (printf "expected keys are ~a\n" (list (symbol->string (quote field)) ...))
+    ;; (let ((argval (p:get-field p:dummy-loc (ffi-unwrap obj) (symbol->string (quote field)))))
+    ;;   (printf "trans is ~a, args are ~a, field is ~a ==> ~a\n"
+    ;;           trans (list args ...) (symbol->string (quote field)) (p:to-string argval))) ...
+    ;; (printf "\n")
+    (constr (trans args ... (ffi-unwrap (p:get-field p:dummy-loc (ffi-unwrap obj) (symbol->string (quote field))))) ...)))
+
+(define (noop x) x)
+
+(define (tr-loc l)
+  (define (mini-srcloc f l c) (srcloc f l c #f #f))
+  (cond
+   [(has-type l Loc)
+    (tr-obj l mini-srcloc (noop file) (noop line) (noop column))]))
+
+(define (to-racket ast)
+  (define (tr-ifBranch b)
+    (cond
+     [(has-brand b s_if_branch)
+      (tr-obj b s-if-branch (tr-loc l) (tr-expr test) (tr-expr body))]
+     [else (error (format "Couldn't match if-branch: ~a" (p:to-string (ffi-unwrap b))))]))
+  (define (tr-casesBranch b)
+    (cond
+     [(has-brand b s_cases_branch)
+      (tr-obj b s-cases-branch (tr-loc l) (string->symbol name) (map tr-bind args) (tr-expr body))]
+     [else (error (format "Couldn't match cases-branch: ~a" (p:to-string (ffi-unwrap b))))]))
+  (define (tr-variant variant)
+    (cond
+     [(has-brand variant s_variant)
+      (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-bind binds) (map tr-member with_members))]
+     [(has-brand variant s_singleton_variant)
+      (tr-obj variant s-singleton-variant (tr-loc l) (string->symbol name) (map tr-member with_members))]
+     [else (error (format "Couldn't match variant: ~a" (p:to-string (ffi-unwrap variant))))]))
+  (define (tr-member m)
+    (cond
+     [(has-brand m s_data_field)
+      (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-expr value))]
+     [(has-brand m s_method_field)
+      (tr-obj m s-method-field
+              (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+     [else (error (format "Couldn't match member: ~a" (p:to-string (ffi-unwrap m))))]))
+  (define (tr-bind b)
+    (cond
+     [(has-brand b s_bind)
+      (tr-obj b s-bind (tr-loc l) (string->symbol id) (tr-ann ann))]
+     [else (error (format "Couldn't match bind: ~a" (p:to-string (ffi-unwrap b))))]))
+  (define (tr-forBind b)
+    (cond
+     [(has-brand b s_for_bind)
+      (tr-obj b s-for-bind (tr-loc l) (tr-bind bind) (tr-expr value))]
+     [else (error (format "Couldn't match for-bind: ~a" (p:to-string (ffi-unwrap b))))]))
+  (define (tr-header h)
+    (cond
+      [(has-brand h s_import)
+       (tr-obj h s-import (tr-loc l) (tr-importType file) (string->symbol name))]
+      [(has-brand h s_provide)
+       (tr-obj h s-provide (tr-loc l) (tr-expr block))]
+      [(has-brand h s_provide_all)
+       (tr-obj h s-provide-all (tr-loc l))]
+      [else (error (format "Couldn't match header: ~a\n" (p:to-string (ffi-unwrap h))))]))
+  (define (tr-importType i)
+    (cond
+     [(has-brand i s_file_import)
+      (tr-obj i noop (noop file))]
+     [(has-brand i s_const_import)
+      (tr-obj i string->symbol (noop module))]
+     [else (error (format "Couldn't match importType: ~a\n" (p:to-string (ffi-unwrap i))))]))
+  (define (tr-program p)
+    (cond
+     [(has-brand ast s_program)
+      (tr-obj p s-prog (tr-loc l) (map tr-header imports) (tr-expr block))]
+     [else (error (format "Couldn't match program: ~a\n" (p:to-string (ffi-unwrap p))))]))
+  (define (tr-ann a)
+    (cond
+     [(has-brand a a_blank)
+      (tr-obj a a-blank)]
+     [(has-brand a a_any)
+      (tr-obj a a-any)]
+     [(has-brand a a_name)
+      (tr-obj a a-name (tr-loc l) (string->symbol id))]
+     [(has-brand a a_arrow)
+      (tr-obj a a-arrow (tr-loc l) (map tr-ann args) (tr-ann ret))]
+     [(has-brand a a_method)
+      (tr-obj a a-method (tr-loc l) (map tr-ann args) (tr-ann ret))]
+     [(has-brand a a_record)
+      (tr-obj a a-record (tr-loc l) (map tr-afield fields))]
+     [(has-brand a a_app)
+      (tr-obj a a-app (tr-loc l) (tr-ann ann) (map tr-ann args))]
+     [(has-brand a a_pred)
+      (tr-obj a a-pred (tr-loc l) (tr-ann ann) (tr-expr exp))]
+     [(has-brand a a_dot)
+      (tr-obj a a-dot (tr-loc l) (string->symbol obj) (string->symbol field))]
+     [else (error (format "Couldn't match ann: ~a" (p:to-string (ffi-unwrap a))))]))
+  (define (tr-afield a)
+    (cond
+     [(has-brand a a_field)
+      (tr-obj a a-field (tr-loc l) (noop name) (tr-ann ann))]
+     [else (error (format "Couldn't match afield: ~a" (p:to-string (ffi-unwrap a))))]))
+  (define (tr-expr e)
+    (cond
+     [(list? e)
+      (map tr-expr e)]
+     [(has-brand e s_block)
+      (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
+     [(has-brand e s_fun)
+      (tr-obj e s-fun
+              (tr-loc l) (string->symbol name) (map symbol->string params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+     [(has-brand e s_var)
+      (tr-obj e s-var (tr-loc l) (tr-bind name) (tr-expr value))]
+     [(has-brand e s_let)
+      (tr-obj e s-let (tr-loc l) (tr-bind name) (tr-expr value))]
+     [(has-brand e s_when)
+      (tr-obj e s-when (tr-loc l) (tr-expr test) (tr-expr block))]
+     [(has-brand e s_assign)
+      (tr-obj e s-assign (tr-loc l) (string->symbol id) (tr-expr value))]
+     [(has-brand e s_if)
+      (tr-obj e s-if (tr-loc l) (map tr-ifBranch branches))]
+     [(has-brand e s_if_else)
+      (tr-obj e s-if-else (tr-loc l) (map tr-ifBranch branches) (tr-expr _else))]
+     [(has-brand e s_cases)
+      (tr-obj e s-cases (tr-loc l) (tr-expr type) (tr-expr val) (map tr-casesBranch branches))]
+     [(has-brand e s_cases_else)
+      (tr-obj e s-cases-else (tr-loc l) (tr-expr type) (tr-expr val) (map tr-casesBranch branches) (tr-expr _else))]
+     [(has-brand e s_try)
+      (tr-obj e s-try (tr-loc l) (tr-expr body) (tr-bind id) (tr-expr _except))]
+     [(has-brand e s_op)
+      (tr-obj e s-op (tr-loc l) (string->symbol op) (tr-expr left) (tr-expr right))]
+     [(has-brand e s_not)
+      (tr-obj e s-not (tr-loc l) (tr-expr expr))]
+     [(has-brand e s_paren)
+      (tr-obj e s-paren (tr-loc l) (tr-expr expr))]
+     [(has-brand e s_lam)
+      (tr-obj e s-lam (tr-loc l) (map string->symbol params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+     [(has-brand e s_method)
+      (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+     [(has-brand e s_extend)
+      (tr-obj e s-extend (tr-loc l) (tr-expr super) (map tr-member fields))]
+     [(has-brand e s_obj)
+      (tr-obj e s-obj (tr-loc l) (map tr-member fields))]
+     [(has-brand e s_list)
+      (tr-obj e s-list (tr-loc l) (map tr-expr values))]
+     [(has-brand e s_app)
+      (tr-obj e s-app (tr-loc l) (tr-expr _fun) (map tr-expr args))]
+     [(has-brand e s_left_app)
+      (tr-obj e s-left-app (tr-loc l) (tr-expr obj) (tr-expr _fun) (map tr-expr args))]
+     [(has-brand e s_id)
+      (tr-obj e s-id (tr-loc l) (string->symbol id))]
+     [(has-brand e s_num)
+      (tr-obj e s-num (tr-loc l) (noop n))]
+     [(has-brand e s_bool)
+      (tr-obj e s-bool (tr-loc l) (noop b))]
+     [(has-brand e s_str)
+      (tr-obj e s-str (tr-loc l) (noop s))]
+     [(has-brand e s_dot)
+      (tr-obj e s-dot (tr-loc l) (tr-expr obj) (string->symbol field))]
+     [(has-brand e s_bracket)
+      (tr-obj e s-bracket (tr-loc l) (tr-expr obj) (tr-expr field))]
+     [(has-brand e s_colon)
+      (tr-obj e s-colon (tr-loc l) (tr-expr obj) (string->symbol field))]
+     [(has-brand e s_colon_bracket)
+      (tr-obj e s-colon-bracket (tr-loc l) (tr-expr obj) (tr-expr field))]
+     [(has-brand e s_data)
+      (tr-obj e s-data
+              (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
+     [(has-brand e s_for)
+      (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
+     [else (error (format "Couldn't match expr: ~a" (p:to-string (ffi-unwrap e))))]))
+  (cond
+   [(has-type ast Program) (tr-program ast)]
+   [(has-type ast Header) (tr-header ast)]
+   [(has-type ast ImportType) (tr-importType ast)]
+   [(has-type ast Expr) (tr-expr ast)]
+   [(has-type ast Bind) (tr-bind ast)]
+   [(has-type ast Member) (tr-member ast)]
+   [(has-type ast ForBind) (tr-forBind ast)]
+   [(has-type ast Variant) (tr-variant ast)]
+   [(has-type ast IfBranch) (tr-ifBranch ast)]
+   [(has-type ast CasesBranch) (tr-casesBranch ast)]
+   [(has-type ast Ann) (tr-ann ast)]
+   [else (error (format "Unknown AST expression: ~a" (p:to-string (ffi-unwrap ast))))]))
+
+
+
+
+     
 (define export
   (p:extend
     p:dummy-loc
     ast
     (list
       (cons "parse"
-            (ffi-wrap pyret-pair-from-string)))))
+            (ffi-wrap pyret-pair-from-string))
+      (cons "to-native"
+            (ffi-wrap to-racket))
+      (cons "to-pyret"
+            (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
 
