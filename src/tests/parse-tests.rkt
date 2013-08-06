@@ -398,8 +398,8 @@ line string\"" (s-str _ "multi\nline string"))
                (s-if _ (list
                         (s-if-branch
                          _
-                         (s-colon _ (s-id _ 'x) 'o)
-                         (s-block _ (list (s-app _ (s-id _ 'f) (list))))))))
+                         (s-id _ 'x)
+                         (s-block _ (list (s-app _ (s-colon _ (s-id _ 'o) 'f) (list))))))))
 
   (check/block "if false: 5 else: 42 end"
                (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5)))))
