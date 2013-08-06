@@ -15,6 +15,9 @@
 (define option (p:get-field p:dummy-loc moorings "option"))
 
 (define List (p:get-field p:dummy-loc list "List"))
+(define pyret-map (p:get-field p:dummy-loc list "map"))
+(define pyret-filter (p:get-field p:dummy-loc list "filter"))
+(define pyret-fold (p:get-field p:dummy-loc list "fold"))
 
 (provide
   #%module-begin
@@ -25,6 +28,9 @@
 
   list
   List
+  (rename-out [pyret-map map]
+              [pyret-filter filter]
+              [pyret-fold fold])
   error
   builtins
   checkers
@@ -37,4 +43,3 @@
   r:list r:error r:raise
   (all-from-out "runtime.rkt")
   )
-  
