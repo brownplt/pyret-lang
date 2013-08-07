@@ -29,6 +29,8 @@
   option
 
   (rename-out
+    [pyret-link link]
+    [pyret-empty empty]
     [pyret-filter filter]
     [pyret-fold fold]
     [pyret-map map]
