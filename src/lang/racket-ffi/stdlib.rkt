@@ -5,7 +5,7 @@
   "../string-map.rkt"
   "../ffi-helpers.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
-(provide pyret-map pyret-fold)
+(provide List pyret-map pyret-fold pyret-filter)
 
 (define %list (p:get-field p:dummy-loc moorings "list"))
 (define List (p:get-field p:dummy-loc %list "List"))

@@ -23,7 +23,6 @@
   #%app
 
   list
-
   error
   builtins
   checkers
