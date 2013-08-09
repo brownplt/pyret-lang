@@ -68,6 +68,7 @@
 (define whalesong-env-list
   (blankify
     (list
+      'List
       'link
       'empty
       'filter
