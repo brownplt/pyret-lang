@@ -3,7 +3,7 @@
 eq = checkers.check-equals
 
 fun len(l):
-  m = method(self, l): l.length() end
+  m = method(self, lst): lst.length() end
   {m:m}.m(l)
 check:
   eq("len([1,2,3])=3",len([1,2,3]), 3)

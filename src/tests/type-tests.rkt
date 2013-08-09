@@ -6,6 +6,8 @@
   "test-utils.rkt"
   "../lang/runtime.rkt")
 
+(verbose! #f)
+
 (define six (p:mk-num 6))
 (define ten (p:mk-num 10))
 (define eight (p:mk-num 8))
@@ -40,7 +42,7 @@
 (check-pyret "fun f(x :: Number) -> String: var y :: String = 'daniel' y end f(42)" (p:mk-str "daniel"))
 (check-pyret-exn "fun f(x :: Number) -> String: var y :: String = 'daniel' y := 6 end f(42)"
                  "runtime:")
-(check-pyret "var x :: Number = 6 fun f(): var x :: String = 'daniel' x := 'bobby' end f() x"
+(check-pyret "var x :: Number = 6 fun f(): var y :: String = 'daniel' y := 'bobby' end f() x"
              six)
 (check-pyret-exn "var x :: Number = 6 fun f(): x := 'bobby' end f() x"
                  "runtime:")
@@ -113,7 +115,7 @@
     else: even(x._minus(2))
     end
   end
-  x :: Number(even) = 5"
+  y :: Number(even) = 5"
  "contract failure")
 
 (check-pyret
@@ -123,7 +125,7 @@
     else: even(x._minus(2))
     end
   end
-  x :: Number(even) = 10 x"
+  y :: Number(even) = 10 y"
  ten)
 
 (check-pyret-exn
@@ -148,7 +150,20 @@
    v2 = variant(10)
    v:meth._fun()(v2,3).meth(1).meth(2).meth(3).x"
    ten)
- 
+
+(check-pyret-exn
+  "x = 5
+   fun f():
+     x = 3
+     x
+   end"
+  "The name x cannot be used in two nested scopes.")
+(check-pyret-exn
+  "x = 5
+   fun f(x):
+     x
+   end"
+  "The name x cannot be used in two nested scopes.")
 ))
 
 (check-pyret-exn

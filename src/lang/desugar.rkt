@@ -35,16 +35,26 @@
   (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
 (define (add-matcher s base name variants)
+  (define id-matched (gensym 'matched))
+  (define id-val (gensym 'val))
+  (define id-f (gensym 'f))
+  (define id-v (gensym 'v))
+  (define id-cases (gensym 'cases))
+  (define id-else-fun (gensym 'else-fun))
+  (define id-location (gensym 'location))
+  (define id-preds (gensym 'preds))
+  (define id-helpers (gensym 'helpers))
+  (define id-elt (gensym 'elt))
   (define (app-with-fields s f members)
     (define (member->access m)
-      (s-bracket s (s-id s 'v) (s-str s (symbol->string (s-bind-id m)))))
+      (s-bracket s (s-id s id-v) (s-str s (symbol->string (s-bind-id m)))))
     (s-app s f (map member->access members)))
   (define (helper-for-variant v)
     (match v
       [(s-singleton-variant s _ _)
-       (lam s (list 'f 'v) (s-app s (s-id s 'f) (list)))]
+       (lam s (list id-f id-v) (s-app s (s-id s id-f) (list)))]
       [(s-variant s _ members _)
-       (lam s (list 'f 'v) (app-with-fields s (s-id s 'f) members))]))
+       (lam s (list id-f id-v) (app-with-fields s (s-id s id-f) members))]))
   (define (pred-entry-for v)
     (match v
       [(or (s-singleton-variant s name _) (s-variant s name _ _))
@@ -66,24 +76,24 @@
           (s-not s
             (s-app s (s-dot s (s-id s 'builtins) 'has-field)
               (list
-                (s-id s 'preds)
-                (s-dot s (s-id s 'elt) 'key))))
+                (s-id s id-preds)
+                (s-dot s (s-id s id-elt) 'key))))
           (s-app s (s-id s 'raise)
             (list
               (s-app s (s-dot s (s-id s 'error) 'invalid-case)
                 (list
                   (s-op s 'op+
                     (s-str s "Case does not exist: ")
-                    (s-dot s (s-id s 'elt) 'key))
-                  (s-id s 'location)
+                    (s-dot s (s-id s id-elt) 'key))
+                  (s-id s id-location)
                   (s-list s (list))))))))
         (s-app s
-          (s-bracket s (s-id s 'preds)
-                       (s-dot s (s-id s 'elt) 'key))
-          (list (s-id s 'val)))))
+          (s-bracket s (s-id s id-preds)
+                       (s-dot s (s-id s id-elt) 'key))
+          (list (s-id s id-val)))))
   (define loop
     (s-for s (s-dot s (s-id s 'list) 'find)
-      (list (s-for-bind s (s-bind s 'elt (a-blank)) (s-id s 'cases)))
+      (list (s-for-bind s (s-bind s id-elt (a-blank)) (s-id s id-cases)))
       (a-blank)
       loop-body))
   (define post-loop
@@ -91,27 +101,27 @@
       (list
         (s-if-branch s
           (s-app s (s-dot s (s-id s 'option) 'is-none)
-                   (list (s-id s 'matched)))
-          (s-app s (s-id s 'else-fun) (list))))
+                   (list (s-id s id-matched)))
+          (s-app s (s-id s id-else-fun) (list))))
       (s-app s
-        (s-bracket s (s-id s 'helpers)
-                     (s-dot s (s-dot s (s-id s 'matched) 'value) 'key))
-        (list (s-dot s (s-dot s (s-id s 'matched) 'value) 'action) (s-id s 'val)))))
+        (s-bracket s (s-id s id-helpers)
+                     (s-dot s (s-dot s (s-id s id-matched) 'value) 'key))
+        (list (s-dot s (s-dot s (s-id s id-matched) 'value) 'action) (s-id s id-val)))))
   (define matcher-fun
     (s-block s 
       (list
-        (s-let s (s-bind s 'preds (a-blank)) pred-dict)
-        (s-let s (s-bind s 'helpers (a-blank)) helpers-dict)
+        (s-let s (s-bind s id-preds (a-blank)) pred-dict)
+        (s-let s (s-bind s id-helpers (a-blank)) helpers-dict)
         (s-lam s empty
-               (list (s-bind s 'val (a-name s name))
-                     (s-bind s 'cases (a-blank))
-                     (s-bind s 'else-fun (a-blank))
-                     (s-bind s 'location (a-blank)))
+               (list (s-bind s id-val (a-name s name))
+                     (s-bind s id-cases (a-blank))
+                     (s-bind s id-else-fun (a-blank))
+                     (s-bind s id-location (a-blank)))
                (a-blank)
                ""
                (s-block s
                 (list
-                  (s-let s (s-bind s 'matched (a-blank)) loop)
+                  (s-let s (s-bind s id-matched (a-blank)) loop)
                   post-loop))
                (s-block s empty)))))
   (s-extend s base
@@ -152,8 +162,11 @@
       [(s-variant s name members with-members)
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define args (map s-bind-id members))
-       (define constructor-args members)
+       (define args (map gensym (map s-bind-id members)))
+       (define (replace-id m new-name)
+        (match m
+          [(s-bind s _ val) (s-bind s new-name val)]))
+       (define constructor-args (map replace-id members args))
        (define base-obj
          (s-obj s (append super-fields with-members)))
        (define obj

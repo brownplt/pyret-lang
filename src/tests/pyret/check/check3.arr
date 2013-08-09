@@ -3,8 +3,8 @@
 eq = checkers.check-equals
 
 fun expt(x, n):
-  fun mult(x, y):
-    x * y
+  fun mult(n1, n2):
+    n1 * n2
   check:
     eq("mult(3,4)=12",mult(3,4), 12)
     for list.map(i from list.range(0, 10)):

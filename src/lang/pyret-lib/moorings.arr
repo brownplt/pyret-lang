@@ -36,18 +36,16 @@ end
 fun equiv(obj1, obj2):
   doc: "Check if two objects are equal via an _equals method, or
         have all the same keys with equiv fields"
-  fun all_same(obj1, obj2):
-    if Method(obj1) or Function(obj1):
+  fun all_same(o1, o2):
+    if Method(o1) or Function(o1):
       false
-    else if has-field(obj1, "_equals"):
-      obj1._equals(obj2)
     else:
-      left_keys = keys(obj1)
+      left_keys = keys(o1)
       for fold(same from true, key from left_keys):
-        if not (has-field(obj2, key)): false
+        if not (has-field(o2, key)): false
         else:
-          left_val = obj1.[key]
-          right_val = obj2.[key]
+          left_val = o1.[key]
+          right_val = o2.[key]
           same and equiv(left_val, right_val)
         end
       end
@@ -90,10 +88,10 @@ builtins = {
 # LISTS
 
 fun get-help(lst, n :: Number):
-  fun help(lst, cur):
-    if is-empty(lst): raise("get: n too large " + tostring(n))
-    else if cur == 0: lst.first
-    else: help(lst.rest, cur - 1)
+  fun help(l, cur):
+    if is-empty(l): raise("get: n too large " + tostring(n))
+    else if cur == 0: l.first
+    else: help(l.rest, cur - 1)
     end
   end
   if n < 0: raise("get: invalid argument: " + tostring(n))
@@ -101,10 +99,10 @@ fun get-help(lst, n :: Number):
   end
 end
 fun set-help(lst, n :: Number, v):
-  fun help(lst, cur):
-    if is-empty(lst): raise("set: n too large " + tostring(n))
-    else if cur == 0: v ^ link(lst.rest)
-    else: lst.first ^ link(help(lst.rest, cur - 1))
+  fun help(l, cur):
+    if is-empty(l): raise("set: n too large " + tostring(n))
+    else if cur == 0: v ^ link(l.rest)
+    else: l.first ^ link(help(l.rest, cur - 1))
     end
   end
   if n < 0: raise("set: invalid argument: " + tostring(n))
@@ -420,18 +418,18 @@ end
 
 fun each(f, lst :: List):
   doc: "Calls f for each elem in lst, and returns nothing"
-  fun help(lst):
-    if is-empty(lst):
+  fun help(l):
+    if is-empty(l):
       nothing
     else:
-      f(lst.first)
-      help(lst.rest)
+      f(l.first)
+      help(l.rest)
     end
   end
   help(lst)
 end
 
-fun each2(f, l1 :: List, l2 :: List):
+fun each2(f, lst1 :: List, lst2 :: List):
   doc: "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2):
@@ -441,10 +439,10 @@ fun each2(f, l1 :: List, l2 :: List):
       help(l1.rest, l2.rest)
     end
   end
-  help(l1, l2)
+  help(lst1, lst2)
 end
 
-fun each3(f, l1 :: List, l2 :: List, l3 :: List):
+fun each3(f, lst1 :: List, lst2 :: List, lst3 :: List):
   doc: "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3):
     if is-empty(l1) or is-empty(l2) or is-empty(l3):
@@ -454,10 +452,10 @@ fun each3(f, l1 :: List, l2 :: List, l3 :: List):
       help(l1.rest, l2.rest, l3.rest)
     end
   end
-  help(l1, l2, l3)
+  help(lst1, lst2, lst3)
 end
 
-fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
+fun each4(f, lst1 :: List, lst2 :: List, lst3 :: List, lst4 :: List):
   doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3, l4):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
@@ -467,22 +465,22 @@ fun each4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
       help(l1.rest, l2.rest, l3.rest, l4.rest)
     end
   end
-  help(l1, l2, l3, l4)
+  help(lst1, lst2, lst3, lst4)
 end
 
-fun each_n(f, n :: Number, lst:: List):
-  fun help(n, lst):
-    if is-empty(lst):
+fun each_n(f, num :: Number, lst:: List):
+  fun help(n, l):
+    if is-empty(l):
       nothing
     else:
-      f(n, lst.first)
-      help(n + 1, lst.rest)
+      f(n, l.first)
+      help(n + 1, l.rest)
     end
   end
-  help(n, lst)
+  help(num, lst)
 end
 
-fun each2_n(f, n :: Number, l1 :: List, l2 :: List):
+fun each2_n(f, num :: Number, lst1 :: List, lst2 :: List):
   fun help(n, l1, l2):
     if is-empty(l1) or is-empty(l2):
       nothing
@@ -491,10 +489,10 @@ fun each2_n(f, n :: Number, l1 :: List, l2 :: List):
       help(n + 1, l1.rest, l2.rest)
     end
   end
-  help(n, l1, l2)
+  help(num, lst1, lst2)
 end
 
-fun each3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
+fun each3_n(f, num :: Number, lst1 :: List, lst2 :: List, lst3 :: List):
   fun help(n, l1, l2, l3):
     if is-empty(l1) or is-empty(l2) or is-empty(l3):
       nothing
@@ -503,10 +501,10 @@ fun each3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
       help(n + 1, l1.rest, l2.rest, l3.rest)
     end
   end
-  help(n, l1, l2, l3)
+  help(num, lst1, lst2, lst3)
 end
 
-fun each4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
+fun each4_n(f, num :: Number, lst1 :: List, lst2 :: List, lst3 :: List, lst4 :: List):
   fun help(n, l1, l2, l3, l4):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
       nothing
@@ -515,7 +513,7 @@ fun each4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
       help(n + 1, l1.rest, l2.rest, l3.rest, l4.rest)
     end
   end
-  help(n, l1, l2, l3, l4)
+  help(num, lst1, lst2, lst3, lst4)
 end
 
 fun fold(f, base, lst :: List):
@@ -623,8 +621,8 @@ end
 
 
 fun make-error(obj):
-  trace = for map(loc from mklist(obj.trace)):
-    location(loc.path, loc.line, loc.column)
+  trace = for map(l from mklist(obj.trace)):
+    location(l.path, l.line, l.column)
   end
   loc = location(obj.path, obj.line, obj.column)
   if obj.system:
@@ -805,35 +803,35 @@ fun get-results(): {
   format(self): format-check-results(self.results) end
 } end
 
-fun format-check-results(results):
+fun format-check-results(results-list):
   init = { passed: 0, failed : 0, test-errors: 0, other-errors: 0, total: 0}
-  counts = for fold(acc from init, results from results):
+  counts = for fold(acc from init, results from results-list):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
       other-errors = link(check-result,empty).filter(is-error-result).length()
       print("In check block at " + check-result.location.format())
-      for each(failure from inner-results.filter(is-failure)):
-        cases(Option) failure.location:
+      for each(fail from inner-results.filter(is-failure)):
+        cases(Option) fail.location:
           | none => nothing
           | some(loc) => 
             print("In test at " + loc.format())
         end
-        print("Test " + failure.name + " failed:")
-        print(failure.reason)
+        print("Test " + fail.name + " failed:")
+        print(fail.reason)
         print("")
       end
-      for each(failure from inner-results.filter(is-err)):
-        cases(Option) failure.location:
+      for each(fail from inner-results.filter(is-err)):
+        cases(Option) fail.location:
           | none => nothing
           | some(loc) => 
             print("In test at " + loc.format())
         end
-        print("Test " + failure.name + " raised an error:")
-        print(failure.exception)
+        print("Test " + fail.name + " raised an error:")
+        print(fail.exception)
         print("")
-        when has-field(failure.exception, "trace"):
+        when has-field(fail.exception, "trace"):
           print("Trace:")
-          for each(loc from failure.trace):
+          for each(loc from fail.trace):
             print(loc)
           end
         end

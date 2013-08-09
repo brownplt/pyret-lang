@@ -52,7 +52,7 @@
   (check-pyret "fun f(): 2 end f()" two)
   (check-pyret "fun f(x): x end f(2)" two)
   (check-pyret "fun f(x): x end fun g(x): x end f(2) g(10) f(2)" two)
-  (check-pyret "fun f(x): fun g(x): x end g(x) end f(5)" five)
+  (check-pyret-exn "fun f(x): fun g(x): x end g(x) end f(5)" "nested scopes")
   (check-pyret "fun foo(): 5 end foo()" five)
 
   (check-pyret-fail "fun f(x): x end f(3)" two)
@@ -62,7 +62,7 @@
   (check-pyret-exn "var x = 2 fun(x): x := 10 end(5) x" CONFLICT-MESSAGE)
   (check-pyret "var x = 2 fun f(g): g() end f(fun: x := 10 end) x" ten)
 
-  (check-pyret "fun f(x): x = 2 x end f(1)" two)
+  (check-pyret-exn "fun f(x): x = 2 x end f(1)" "nested scopes")
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
@@ -372,7 +372,7 @@
    "data Test:
      | test(x, x)
     end"
-   "x defined twice")
+   "duplicate")
 
   ))
 
@@ -769,14 +769,14 @@ o2.m().called" true)
   "
   CONFLICT-MESSAGE)
 
-  (check-pyret "
+  (check-pyret-exn "
   x = 5
   fun f(x):
     x
   end
   f(x)
   "
-  five)
+  "nested scope")
 
   (check-pyret-exn "
   x = 5
@@ -785,7 +785,7 @@ o2.m().called" true)
     x
   end
   "
-  CONFLICT-MESSAGE)
+  "nested scope")
 
   (check-pyret-exn "
   var x = 5
@@ -803,7 +803,7 @@ o2.m().called" true)
   "
   CONFLICT-MESSAGE)
 
-  (check-pyret "
+  (check-pyret-exn "
   var x = 5
   fun f():
     var x = 10
@@ -811,7 +811,7 @@ o2.m().called" true)
   end
   f()
   "
-  ten)
+  "nested scope")
 
   (check-pyret "
   x :: Number = 5
@@ -839,12 +839,11 @@ o2.m().called" true)
     y"
    five)
 
-  ;; TODO(joe): still not sure what's going on with duplicates
-  #;(check-pyret-exn
+  (check-pyret-exn
    "var x = 5
     var x = x
     y"
-   "duplicate")
+   "x defined twice")
 
   ;; check behavior of _, which should always disappear
   (check-pyret
