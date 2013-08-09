@@ -678,12 +678,44 @@ option = {
 
 
 data Result:
-  | success(name :: String)
-  | failure(name :: String, reason :: String)
-  | err(name :: String, exception :: Any)
+  | success(name :: String, location :: Option<Location>)
+  | failure(name :: String, reason :: String, location :: Option<Location>)
+  | err(name :: String, exception :: Any, location :: Option<Location>)
 end
 
 var current-results = empty 
+
+fun check-is(name, thunk1, thunk2, loc):
+  val1 = try:
+    thunk1()
+  except(e):
+    current-results := current-results + [err(name, e, some(loc))]
+  end
+
+  val2 = try:
+    thunk2()
+  except(e):
+    current-results := current-results + [err(name, e, some(loc))] 
+  end
+
+  try:
+    if val1 == val2:
+      current-results := current-results + [success(name, some(loc))]
+    else:
+      current-results := current-results +
+        [failure(
+           name,
+           "Values not equal: \n" +
+             tostring(val1) +
+             "\n\n" +
+             tostring(val2),
+           some(loc)
+         )]
+    end
+  except(e):
+    current-results := current-results + [err(name, e, some(loc))] 
+  end
+end
 
 fun check-true(name, val): check-equals(name, val, true) end
 fun check-false(name, val): check-equals(name, val, false) end
@@ -691,33 +723,35 @@ fun check-equals(name, val1, val2):
   try:
     values_equal = val1 == val2
     if values_equal:
-      current-results := current-results.push(success(name))
+      current-results := current-results.push(success(name, none))
     else:
       current-results :=
         current-results + [failure(name, "Values not equal: \n" +
                                      tostring(val1) +
                                      "\n\n" +
-                                     tostring(val2))]
+                                     tostring(val2),
+                                     none)]
     end
     values_equal
   except(e):
-    current-results := current-results + [err(name, e)]
+    current-results := current-results + [err(name, e, none)]
   end
 end
 
 fun check-pred(name, val1, pred):
   try:
     if pred(val1):
-      current-results := current-results + [success(name)]
+      current-results := current-results + [success(name, none)]
     else:
       current-results :=
         current-results + [failure(name, "Value didn't satisfy predicate: " +
                                      tostring(val1) +
                                      ", " +
-                                     pred._doc)]
+                                     pred._doc,
+                                   none)]
     end
   except(e):
-    current-results := current-results + [err(name, e)]
+    current-results := current-results + [err(name, e, none)]
   end
 end
 
@@ -777,14 +811,23 @@ fun format-check-results(results):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
       other-errors = link(check-result,empty).filter(is-error-result).length()
+      print("In check block at " + check-result.location.format())
       for each(failure from inner-results.filter(is-failure)):
-        print("In check block at " + check-result.location.format())
+        cases(Option) failure.location:
+          | none => nothing
+          | some(loc) => 
+            print("In test at " + loc.format())
+        end
         print("Test " + failure.name + " failed:")
         print(failure.reason)
         print("")
       end
       for each(failure from inner-results.filter(is-err)):
-        print("In check block at " + check-result.location.format())
+        cases(Option) failure.location:
+          | none => nothing
+          | some(loc) => 
+            print("In test at " + loc.format())
+        end
         print("Test " + failure.name + " raised an error:")
         print(failure.exception)
         print("")
@@ -824,6 +867,7 @@ fun format-check-results(results):
 end
 
 checkers = {
+  check-is: check-is,
   check-true: check-true,
   check-false: check-false,
   check-equals: check-equals,

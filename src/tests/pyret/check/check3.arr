@@ -16,9 +16,9 @@ fun expt(x, n):
     mult(acc, x)
   end
 check:
-  eq("expr(5,0)",expt(5, 0), 1)
-  eq("expt(0, 5)",expt(0, 5), 0)
-  eq("expt(2,4)",expt(2, 4), 16)
+  expt(5, 0) is 1
+  expt(0, 5) is 0
+  expt(2, 4) is 16
 end
 
 # should run
