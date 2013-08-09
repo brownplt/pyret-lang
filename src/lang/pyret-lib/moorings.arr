@@ -684,34 +684,32 @@ end
 var current-results = empty 
 
 fun check-is(name, thunk1, thunk2, loc):
-  val1 = try:
-    thunk1()
-  except(e):
-    current-results := current-results + [err(name, e, some(loc))]
-  end
-
-  val2 = try:
-    thunk2()
-  except(e):
-    current-results := current-results + [err(name, e, some(loc))] 
-  end
-
   try:
-    if val1 == val2:
-      current-results := current-results + [success(name, some(loc))]
-    else:
-      current-results := current-results +
-        [failure(
-           name,
-           "Values not equal: \n" +
-             tostring(val1) +
-             "\n\n" +
-             tostring(val2),
-           some(loc)
-         )]
+    val1 = thunk1()
+    try:
+      val2 = thunk2()
+      try:
+        if val1 == val2:
+          current-results := current-results + [success(name, some(loc))]
+        else:
+          current-results := current-results +
+            [failure(
+               name,
+               "Values not equal: \n" +
+                 tostring(val1) +
+                 "\n\n" +
+                 tostring(val2),
+               some(loc)
+             )]
+        end
+      except(e):
+        current-results := current-results + [err(name, e, some(loc))] 
+      end
+    except(e):
+      current-results := current-results + [err(name, e, some(loc))] 
     end
   except(e):
-    current-results := current-results + [err(name, e, some(loc))] 
+    current-results := current-results + [err(name, e, some(loc))]
   end
 end
 
