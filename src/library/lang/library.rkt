@@ -8,6 +8,7 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
+  "../../lang/type-env.rkt"
   "../../lang/eval.rkt")
 
 (define-runtime-module-path pyret-lang-racket "../../lang/pyret-lang-library.rkt")
@@ -25,5 +26,5 @@
           [src-syntax (src->module-name src)])
             (strip-context
               #`(module src-syntax (file pyret-lang-racket-stx)
-                  #,(pyret->racket src in #:toplevel #t))))]))
+                  #,(pyret->racket src in #:toplevel #t #:type-env LIBRARY-ENV))))]))
 

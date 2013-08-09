@@ -4,12 +4,12 @@ import "check.arr" as Check
 
 provide {
   class: class,
-  Object: Object
+  Objekt: Objekt
 } end
 
 # The base object for all hierarchies
 object-brander = brander()
-Object = object-brander.brand({
+Objekt = object-brander.brand({
   #_brander: brander(),
   new(self, spec): object-brander.brand({
     get(_, name): raise("get: field not found: ".append(name)) end,
@@ -32,7 +32,7 @@ fun ext(parent-class, description):
   class-brander = brander()
   class-brander.brand({
 
-    # : (Class) -> Object -> Instance
+    # : (Class) -> Objekt -> Instance
     new(self, spec): 
       var fields = description.fields
       methods = description.methods
@@ -126,7 +126,7 @@ check:
         self.set("done", true) end
     },
     # Constructor should return an object to use as self
-    # : (Instance) -> Object -> Instance
+    # : (Instance) -> Objekt -> Instance
     constructor(self, spec):
       self.set("due", spec.due)
       self.set("task", spec.task)
@@ -189,7 +189,7 @@ check:
 
   checkers.check-true("instance-of-child", todo2.instance-of(AssignableTodo))
   checkers.check-true("instance-of-parent", todo2.instance-of(Todo))
-  checkers.check-true("instance-of Object", todo2.instance-of(Object))
+  checkers.check-true("instance-of Objekt", todo2.instance-of(Objekt))
 
   todo2.invoke("assign", "Jonah")
   checkers.check-equals("invoke child method", todo2.get("assignee"), "Jonah")
@@ -202,7 +202,7 @@ end
 
 
 # Don't really need this...
-fun class(description): Object.ext(description) end
+fun class(description): Objekt.ext(description) end
 
 
 

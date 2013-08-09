@@ -6,6 +6,7 @@
   bound?
   update
   lookup
+  LIBRARY-ENV
   DEFAULT-ENV
   WHALESONG-ENV
   EMPTY-ENV)
@@ -80,6 +81,9 @@
       'rectangle
       'text
       'place-image)))
+
+(define LIBRARY-ENV
+  (make-immutable-hash runtime-env-list))
 
 (define DEFAULT-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list)))

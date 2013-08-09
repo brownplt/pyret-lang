@@ -31,15 +31,13 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 ;;
-<<<<<<< HEAD
 ;; - non-duplicated identifiers in arguments lists
 ;;
 ;; - all blocks end in a non-binding form
-=======
+;;
 ;; - check as an identifier
 ;;
 ;; - `is` outside of a check block.
->>>>>>> master
 
 (define (well-formed ast)
   (match ast
@@ -51,7 +49,6 @@
     [else (well-formed/internal ast #f)])
   ast)
 
-<<<<<<< HEAD
 (define (ensure-unique-ids bindings)
   (cond
     [(empty? bindings) (void)]
@@ -72,12 +69,8 @@
         [else
          (ensure-unique-ids (rest bindings))])])]))
 
-(define (well-formed/internal ast)
-  (define wf well-formed/internal)
-=======
 (define (well-formed/internal ast in-check-block)
   (define wf (λ (ast) (well-formed/internal ast in-check-block)))
->>>>>>> master
   (define (wf-if-branch branch)
     (match branch
       [(s-if-branch s tst blk) (begin (wf tst) (wf blk))]))
@@ -172,15 +165,11 @@
     [(s-let s name val) (begin (wf-bind name) (wf val))]
 
     [(s-fun s name typarams args ann doc body check)
-<<<<<<< HEAD
      (begin (ensure-unique-ids args)
             (map wf-bind args)
             (wf-ann ann)
             (wf body)
-            (wf check))]
-=======
-     (begin (map wf-bind args) (wf-ann ann) (wf body) (well-formed/internal check #t))]
->>>>>>> master
+            (well-formed/internal check #t))]
 
     [(s-lam s typarams args ann doc body check)
      (begin (ensure-unique-ids args)
@@ -190,14 +179,9 @@
             (well-formed/internal check #t))]
 
     [(s-method s args ann doc body check)
-<<<<<<< HEAD
-     (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
+     (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
                 (map wf-bind args)
-=======
-     (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
-         (begin (map wf-bind args)
->>>>>>> master
                 (wf-ann ann)
                 (wf body)
                 (well-formed/internal check #t)))]
