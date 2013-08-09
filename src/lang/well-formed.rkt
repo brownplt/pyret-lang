@@ -31,6 +31,7 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 
+
 (define (well-formed ast)
   (match ast
     [(s-prog s imps ast)
@@ -91,11 +92,11 @@
                     (op-name op) (op-name op1))
             s s1))]
       [else (wf ast)]))
-  
+
   (match ast
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
-    
+
     [(s-op s op e1 e2) (begin (reachable-ops s op e1)
                               (reachable-ops s op e2))]
 
@@ -181,10 +182,13 @@
 
     [(s-paren s e) (wf e)]
 
+    [(s-id s id) (if (equal? id 'check)
+                     (wf-error "well-formedness: Cannot use check as an identifier. Did you forget a colon?" s)
+                     #t)]
+
     [(or (s-num _ _)
          (s-bool _ _)
-         (s-str _ _)
-         (s-id _ _)) #t]
+         (s-str _ _)) #t]
 
     [else (error (format "Missed a case in well-formed: ~a"
                          ast))]))

@@ -101,6 +101,10 @@
  "fun: nothing check: 5 + 2 is 7 end"
  "well-formedness:")
 
+(check-pyret-exn
+ "fun: nothing check 1 end"
+ "Cannot use check as an identifier. Did you forget a colon?")
+
 ))
 
 (run-tests all)
