@@ -329,7 +329,7 @@
 
     [(s-when s test body)
      (s-if-else s (list (s-if-branch s (ds test) (ds body)))
-      (s-id s 'p:nothing))]
+      (s-id s 'nothing))]
 
     [(s-if-else s cases else)
      (s-if-else s (map ds-if cases) (ds else))]

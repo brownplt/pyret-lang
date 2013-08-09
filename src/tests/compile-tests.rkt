@@ -171,7 +171,8 @@
   "
   nothing)
 
-  (check-pyret "
+  ;; TODO(joe): when we switch to no shadowing, this should be an appropriate exn
+  #;(check-pyret "
   nothing = 42
   when false: 5 end
   "

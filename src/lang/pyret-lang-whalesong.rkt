@@ -15,6 +15,7 @@
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
 
+;; WARNING: Did you remember to update src/lang/type-env.rkt?
 (provide
   #%module-begin
   #%top-interaction

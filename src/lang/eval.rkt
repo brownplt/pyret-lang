@@ -16,6 +16,7 @@
   syntax/modresolve
   syntax/strip-context
   "ast.rkt"
+  "type-env.rkt"
   "get-syntax.rkt"
   "desugar.rkt"
   "desugar-check.rkt"
@@ -25,15 +26,12 @@
   "load.rkt"
   "runtime.rkt")
 
-(define (stx->racket stx desugar)
-  (strip-context
-   (compile-expr
-    (contract-check-pyret
-     (desugar
-      (well-formed
-       (parse-eval stx)))))))
-
-(define (pyret->racket src in #:toplevel [toplevel #f] #:check [check #f])
+(define (pyret->racket
+          src
+          in
+          #:toplevel [toplevel #f]
+          #:check [check #f]
+          #:type-env [type-env DEFAULT-ENV])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
@@ -43,7 +41,11 @@
   (define parsed-stx (parse-eval pyret-stx))
   (define well-formed-stx (well-formed parsed-stx))
   (define desugared (desugar well-formed-stx))
-  (define compiled (compile (contract-check-pyret desugared)))
+  (define type-checked
+    (if type-env
+        (contract-check-pyret desugared type-env)
+        desugared))
+  (define compiled (compile type-checked))
   (strip-context compiled))
 
 (define (repl-eval-pyret src in)
@@ -53,7 +55,7 @@
                  [read-accept-lang #f])
     (if (not (byte-ready? in))
         eof
-        (pyret->racket src in #:toplevel #t))))
+        (pyret->racket src in #:toplevel #t #:type-env #f))))
 
 (define (simplify-pyret val)
   (match val

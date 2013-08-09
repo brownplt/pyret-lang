@@ -151,4 +151,8 @@
  
 ))
 
+(check-pyret-exn
+  "x"
+  "Unbound identifier: x")
+
 (run-tests all)

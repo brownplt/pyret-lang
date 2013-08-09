@@ -1,6 +1,6 @@
 #lang racket
 
-(require "ast.rkt" "pretty.rkt")
+(require "ast.rkt" "pretty.rkt" "type-env.rkt")
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
 (struct exn:fail:pyret/tc exn:fail (srclocs)
@@ -128,16 +128,6 @@
       (format "typecheck: don't know how to check ann: ~a"
               ann))]))
 
-(define (bound? env id)
-  (hash-has-key? env id))
-(define (lookup env id)
-  (define r (hash-ref env id #f))
-  (when (not r) (error (format "Unbound id: ~a" id)))
-  r)
-(struct binding (loc ann mutable?))
-(define (update id b env)
-  (hash-set env id b))
-
 (define (check-consistent env loc id mutable?)
   (cond
     [(not (bound? env id)) (void)]
@@ -231,7 +221,7 @@
      (define new-args (map new-arg args))
      (define new-argnames (map s-bind-id new-args))
      (define new-locs (map s-bind-syntax new-args))
-     (define body-env (foldl (update-for-bind #f) env args))
+     (define body-env (foldl (update-for-bind #f) env (append args new-args)))
      (define wrapped-body
       (wrap-ann-check s ann (cc-env body body-env)))
      (define (check-arg bind new-id new-loc) (cc-env (s-let new-loc bind (s-id new-loc new-id)) body-env))
@@ -293,16 +283,26 @@
     [(s-colon-bracket s obj field)
      (s-colon-bracket s (cc obj) (cc field))]
 
+    [(s-id s x)
+     (if (bound? env x)
+         ast
+         (tc-error (format "Unbound identifier: ~a" x) s))]
+
     [(or (s-num _ _)
          (s-bool _ _)
-         (s-str _ _)
-         (s-id _ _)) ast]
+         (s-str _ _)) ast]
 
     [else (error (format "Missed a case in type-checking: ~a" ast))]))
 
-(define (contract-check-pyret ast)
+(define (contract-check-pyret ast env)
+  (define (bind-imports imp env)
+    (match imp
+      [(s-import l f n)
+       (update n (binding l (a-blank) #f) env)]
+      [_ env]))
   (match ast
     ;; TODO(joe): typechecking provides expressions?
     [(s-prog s imps ast)
-     (s-prog s imps (cc-env ast (make-immutable-hash)))]
-    [else (cc-env ast (make-immutable-hash))]))
+     (define imported-env (foldr bind-imports env imps))
+     (s-prog s imps (cc-env ast imported-env))]
+    [else (cc-env ast env)]))
