@@ -377,6 +377,11 @@
 
 (define modules (test-suite "modules"
 
+  (check-pyret
+    "import 'modules/provide-desugar-regression.arr' as pdr
+     pdr.x"
+    (p:mk-num 55))
+
   (check-pyret-match
    "import file as f
     f.input-file"
