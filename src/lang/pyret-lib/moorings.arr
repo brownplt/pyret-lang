@@ -123,6 +123,8 @@ data List:
 
     filter(self, f): empty end,
 
+    partition(self, f): { is-true: empty, is-false: empty } end,
+
     foldr(self, f, base): base end,
 
     foldl(self, f, base): base end,
@@ -176,6 +178,8 @@ data List:
       else:             self.rest.filter(f)
       end
     end,
+
+    partition(self, f): partition(f, self) end,
 
     member(self, elt): (elt == self.first) or self.rest.member(elt) end,
 
@@ -312,6 +316,23 @@ fun filter(f, lst :: List):
       filter(f, lst.rest)
     end
   end
+end
+
+fun partition(f, lst :: List):
+  doc: "splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  fun help(inner-lst):
+    if is-empty(inner-lst):
+      { is-true: [], is-false: [] }
+    else:
+      split-tail = help(inner-lst.rest)
+      if f(inner-lst.first):
+        { is-true: inner-lst.first^link(split-tail.is-true), is-false: split-tail.is-false }
+      else:
+        { is-true: split-tail.is-true, is-false: inner-lst.first^link(split-tail.is-false) }
+      end
+    end
+  end
+  help(lst)
 end
 
 fun find(f, lst :: List):
@@ -539,6 +560,7 @@ list = {
     range: range,
     repeat: repeat,
     filter: filter,
+    partition: partition,
     find: find,
     map: map,
     map2: map2,
