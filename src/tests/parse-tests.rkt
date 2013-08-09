@@ -117,17 +117,17 @@ line string\"" (s-str _ "multi\nline string"))
                (s-method _ (list (s-bind _ 'x (a-blank)) (s-bind _ 'y (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1))) _))
 
-  (check/block "method(self): 1 check: foo end"
+  (check/block "method(self): 1 where: foo end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ (list (s-id _ 'foo)))))
 
-  (check/block "method(self): 1 check: end"
+  (check/block "method(self): 1 where: end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ empty)))
 
-  (check/block "{f(): x check: 1 end}"
+  (check/block "{f(): x where: 1 end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) _
                                               (s-block _ (list (s-id _ 'x)))
                                               (s-block _ (list (s-num _ 1)))))))
@@ -170,12 +170,12 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "brander()"
                (s-app _ (s-id _ 'brander) (list)))
 
-  (check/block "fun f(): 5 check: 4 end"
+  (check/block "fun f(): 5 where: 4 end"
                (s-fun _ 'f empty empty (a-blank) _
                       (s-block _ (list (s-num _ 5)))
                       (s-block _ (list (s-num _ 4)))))
 
-  (check/block "fun f(): 5 check: end"
+  (check/block "fun f(): 5 where: end"
                (s-fun _ 'f empty empty (a-blank) _
                       (s-block _ (list (s-num _ 5)))
                       (s-block _ empty)))
@@ -345,7 +345,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ (list (s-id _ 'x)))
                       _))
 
-  (check/block "fun(x): x check: foo end"
+  (check/block "fun(x): x where: foo end"
                (s-lam _ empty (list (s-bind _ 'x (a-blank)))
                       (a-blank)
                       _
@@ -440,7 +440,7 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block "data Foo: end"
                (s-data _ 'Foo empty (list) (list) (s-block _ _)))
-  (check/block "data Foo: check: end"
+  (check/block "data Foo: where: end"
                (s-data _ 'Foo empty (list) (list) (s-block _ _)))
 
   (check/block "  data Foo: | bar() end"
@@ -522,14 +522,14 @@ line string\"" (s-str _ "multi\nline string"))
            (s-block _ _)))
 
    (check/block
-    "data Foo: | bar() check: 5 end"
+    "data Foo: | bar() where: 5 end"
     (s-data _ 'Foo empty
             (list (s-variant _ 'bar (list) (list)))
             (list)
             (s-block _ (list (s-num _ 5)))))
 
      (check/block
-      "data Foo: | bar() | baz() sharing: z: 10 check: end"
+      "data Foo: | bar() | baz() sharing: z: 10 where: end"
       (s-data _ 'Foo empty
               (list (s-variant _ 'bar (list) (list))
                     (s-variant _ 'baz (list) (list)))

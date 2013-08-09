@@ -1,8 +1,8 @@
 #lang pyret
 
 fun f():
-  
-check:
+
+where:
   0 is 0
   1 is 0
   0 is 1
@@ -12,8 +12,7 @@ end
 
 fun h():
 
-check:
+where:
   0 is 0
   0 is 1
 end
-

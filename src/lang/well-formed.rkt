@@ -228,9 +228,13 @@
 
     [(s-paren s e) (wf e)]
 
-    [(s-id s id) (if (equal? id 'check)
-                     (wf-error "Cannot use check as an identifier. Did you forget a colon?" s)
-                     #t)]
+    [(s-id s id)
+     (cond
+      [(equal? id 'check)
+       (wf-error "Cannot use `check` as an identifier." s)]
+      [(equal? id 'where)
+       (wf-error "Cannot use `where` as an identifier." s)]
+      [else #t])]
 
     [(or (s-num _ _)
          (s-bool _ _)

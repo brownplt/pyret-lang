@@ -113,21 +113,21 @@
             (parse-return-ann #'return)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-check-clause #'check))]
+            (parse-where-clause #'check))]
     [(data-expr "data" name params ":" variant ... sharing-part check "end")
      (s-data (loc stx)
              (parse-name #'name)
              (parse-ty-params #'params)
              (map/stx parse-variant #'(variant ...))
              (parse-sharing #'sharing-part)
-             (parse-check-clause #'check))]
+             (parse-where-clause #'check))]
 
     [(assign-expr id ":=" e)
      (s-assign (loc stx) (parse-name #'id) (parse-binop-expr #'e))]
 
     [(when-expr "when" test ":" body "end")
      (s-when (loc stx) (parse-binop-expr #'test) (parse-block #'body))]
-      
+
     [(stmt s) (parse-stmt #'s)]
     [(binop-expr e) (parse-binop-expr #'e)]
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
@@ -140,11 +140,11 @@
     [(doc-string) ""]
     [(doc-string "doc:" str) (parse-string #'str)]))
 
-(define (parse-check-clause stx)
+(define (parse-where-clause stx)
   (syntax-parse stx
-    #:datum-literals (check-clause)
-    [(check-clause) (s-block (loc stx) empty)]
-    [(check-clause "check:" block) (parse-block #'block)]))
+    #:datum-literals (where-clause)
+    [(where-clause) (s-block (loc stx) empty)]
+    [(where-clause "where:" block) (parse-block #'block)]))
 
 (define (parse-binop-expr stx)
   (syntax-parse stx
@@ -176,7 +176,7 @@
   (syntax-parse stx
     #:datum-literals (args list-arg-elt)
     [(args "(" ")") empty]
-    [(args "(" (list-arg-elt arg1 ",") ... lastarg ")") 
+    [(args "(" (list-arg-elt arg1 ",") ... lastarg ")")
      (map/stx parse-binding #'(arg1 ... lastarg))]))
 
 (define (parse-key stx)
@@ -199,7 +199,7 @@
                      (parse-return-ann #'ret)
                      (parse-doc-string #'doc)
                      (parse-block #'body)
-                     (parse-check-clause #'check))]))
+                     (parse-where-clause #'check))]))
 
 (define (parse-fields stx)
   (syntax-parse stx
@@ -261,19 +261,19 @@
   (syntax-parse stx
     #:datum-literals (
       prim-expr
-      obj-expr 
+      obj-expr
       list-expr list-elt
-      app-expr 
-      id-expr 
-      dot-expr 
-      bracket-expr 
-      colon-expr 
+      app-expr
+      id-expr
+      dot-expr
+      bracket-expr
+      colon-expr
       colon-bracket-expr
       for-expr
       try-expr
       lambda-expr
       method-expr
-      extend-expr 
+      extend-expr
       left-app-expr
       paren-expr
       not-expr
@@ -338,7 +338,7 @@
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-check-clause #'check))]
+            (parse-where-clause #'check))]
     [(lambda-expr "fun" ty-params return-ann ":" doc body check "end")
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
@@ -346,14 +346,14 @@
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-check-clause #'check))]
+            (parse-where-clause #'check))]
     [(method-expr "method" args return-ann ":" doc body check "end")
      (s-method (loc stx)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-check-clause #'check))]
+            (parse-where-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)
@@ -412,4 +412,3 @@
     [(dot-ann n1 "." n2)
      (a-dot (loc stx) (parse-name #'n1) (parse-name #'n2))]
     [(ann a) (parse-ann #'a)]))
-

@@ -3,7 +3,7 @@
 import "check1.arr" as check1
 
 fun f():
-check:
+where:
   checkers.check-equals("tough one",1,1)
 end
 

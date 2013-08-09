@@ -3,7 +3,7 @@
 data MyData:
   | single
   | multi(a, b, c)
-check:
+where:
   eq = checkers.check-equals
   test1 = cases(MyData) single:
     | single => 5
@@ -33,4 +33,3 @@ check:
   end
 
 end
-

@@ -13,7 +13,7 @@ fun length(l :: NumList) -> Number:
     | cons(_, rest) => 1 + length(rest)
     | empty => 0
   end
-check:
+where:
   checkers.check-equals("length of single elem list",
                          length(cons(4,empty())), 1)
   checkers.check-equals("length of 2-elem list",

@@ -8,7 +8,7 @@ fun sealable(obj):
       end
     end
   }
-check:
+where:
   todo1 = {
     due: "25 January 2012",
     task: "Write mixin examples",

@@ -58,7 +58,7 @@ fun equiv(obj1, obj2):
   else:
     false
   end
-check:
+where:
   eq = checkers.check-equals
   eq("empty objects", equiv({}, {}), true)
   eq("",equiv({x : 5}, {y : 6}), false)
@@ -68,12 +68,12 @@ check:
   eq("",equiv({x : {z: "foo"}, y : 6}, {y : 6, x : {z: "foo"}}), true)
   eq("",equiv({x : {z: "foo"}, y : [true, 6]}, {y : [true, 6], x : {z: "foo"}}), true)
   eq("",equiv(fun: end, fun: end), false)
-  
+
   f = fun: end
   eq("functions in objects aren't ever equal", equiv({my_fun:f}, {my_fun:f}), false)
   m = method(self): end
   eq("methods in objects aren't ever equal", equiv({my_meth:m}, {my_meth:m}), false)
-  
+
   eq("lists of objects", equiv([{}], [{}]), true)
   eq("lists of prims", equiv([5], [5]), true)
 end
@@ -152,7 +152,7 @@ data List:
     get(self, n): get-help(self, n) end,
 
     set(self, n, e): set-help(self, n, e) end,
-    
+
     _equals(self, other): is-empty(other) end,
 
     tostring(self): "[]" end,
@@ -214,7 +214,7 @@ data List:
     get(self, n): get-help(self, n) end,
 
     set(self, n, e): set-help(self, n, e) end,
-        
+
     _equals(self, other):
       if is-link(other):
         others-equal = (self.first == other.first)
@@ -259,9 +259,9 @@ sharing:
   end,
   _plus(self, other): self.append(other) end
 
-check:
+where:
   eq = checkers.check-equals
-  
+
   eq("list set", [1,2,3].set(1, 5), [1,5,3])
 
   o1 = {
@@ -295,7 +295,7 @@ fun repeat(n :: Number, e :: Any):
   else if n == 0: empty
   else:           raise("repeat: can't have a negative argument'")
   end
-check:
+where:
   eq = checkers.check-equals
 
   eq("repeat 0", repeat(0, 10), [])
@@ -346,7 +346,7 @@ fun find(f, lst :: List):
     end
   end
 end
-  
+
 fun map(f, lst :: List):
   doc: "returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
@@ -533,7 +533,7 @@ fun fold2(f, base, l1 :: List, l2 :: List):
 end
 
 fun fold3(f, base, l1 :: List, l2 :: List, l3 :: List):
-  if is-empty(l1) or is-empty(l2) or is-empty(l3):  
+  if is-empty(l1) or is-empty(l2) or is-empty(l3):
     base
   else:
     fold3(f, f(base, l1.first, l2.first, l3.first), l1.rest, l2.rest, l3.rest)
@@ -681,7 +681,7 @@ data Result:
   | err(name :: String, exception :: Any, location :: Option<Location>)
 end
 
-var current-results = empty 
+var current-results = empty
 
 fun check-is(name, thunk1, thunk2, loc):
   val1 = try:
@@ -693,7 +693,7 @@ fun check-is(name, thunk1, thunk2, loc):
   val2 = try:
     thunk2()
   except(e):
-    current-results := current-results + [err(name, e, some(loc))] 
+    current-results := current-results + [err(name, e, some(loc))]
   end
 
   try:
@@ -711,7 +711,7 @@ fun check-is(name, thunk1, thunk2, loc):
          )]
     end
   except(e):
-    current-results := current-results + [err(name, e, some(loc))] 
+    current-results := current-results + [err(name, e, some(loc))]
   end
 end
 
@@ -771,7 +771,7 @@ fun run-checks(checks):
     end
     these-checks = mklist(lst-to-structural(checks))
     old-results = current-results
-    these-check-results = 
+    these-check-results =
       for map(chk from these-checks):
         l = chk.location
         loc = error.location(l.file, l.line, l.column)
@@ -813,7 +813,7 @@ fun format-check-results(results-list):
       for each(fail from inner-results.filter(is-failure)):
         cases(Option) fail.location:
           | none => nothing
-          | some(loc) => 
+          | some(loc) =>
             print("In test at " + loc.format())
         end
         print("Test " + fail.name + " failed:")
@@ -823,7 +823,7 @@ fun format-check-results(results-list):
       for each(fail from inner-results.filter(is-err)):
         cases(Option) fail.location:
           | none => nothing
-          | some(loc) => 
+          | some(loc) =>
             print("In test at " + loc.format())
         end
         print("Test " + fail.name + " raised an error:")
@@ -852,7 +852,7 @@ fun format-check-results(results-list):
         failed: inner-acc.failed + inner-results.filter(is-failure).length(),
         test-errors: inner-acc.test-errors + inner-results.filter(is-err).length(),
         other-errors: inner-acc.other-errors + other-errors,
-        total: inner-acc.total + inner-results.length() 
+        total: inner-acc.total + inner-results.length()
       }
     end
   end

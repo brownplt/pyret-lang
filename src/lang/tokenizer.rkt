@@ -26,6 +26,7 @@
   (union "import" "provide" "as"
          "var"
          "fun" "method" "doc:"
+         "where:"
          "check:"
          "try:" "except"
          "cases"

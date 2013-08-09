@@ -3,6 +3,6 @@
 data Foo:
   | foo with:
       _equals(self,other): is-foo(other) end
-check:
+where:
   checkers.check-equals("foo=foo",foo,foo)
 end

@@ -17,7 +17,7 @@ stmt: let-expr | fun-expr | data-expr | when-expr
 let-expr: binding "=" binop-expr
 binding: NAME ["::" ann]
 
-fun-expr: "fun" fun-header ":" doc-string block check-clause "end"
+fun-expr: "fun" fun-header ":" doc-string block where-clause "end"
 fun-header: ty-params NAME args return-ann
 ty-params:
   ["<" list-ty-param* NAME ">"]
@@ -26,9 +26,9 @@ args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] ")"
 list-arg-elt: binding ","
 return-ann: ["->" ann]
 doc-string: ["doc:" STRING]
-check-clause: ["check:" block]
+where-clause: ["where:" block]
 
-data-expr: "data" NAME ty-params ":" data-variant* data-sharing check-clause "end"
+data-expr: "data" NAME ty-params ":" data-variant* data-sharing where-clause "end"
 data-variant: "|" NAME args data-with | "|" NAME data-with
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
@@ -64,9 +64,9 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
 
-lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block check-clause "end"
+lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block where-clause "end"
 
-method-expr: "method" args return-ann ":" doc-string block check-clause "end"
+method-expr: "method" args return-ann ":" doc-string block where-clause "end"
 
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
@@ -81,7 +81,7 @@ obj-expr: "{" fields "}" | "{" "}"
 fields: list-field* field [","]
 list-field: field ","
 field: key ":" binop-expr
-     | key args return-ann ":" doc-string block check-clause "end"
+     | key args return-ann ":" doc-string block where-clause "end"
 key: NAME | "[" binop-expr "]"
 
 list-elt: binop-expr ","
@@ -124,4 +124,3 @@ app-ann-elt: ann ","
 pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr ")"
 
 dot-ann : NAME "." NAME
-

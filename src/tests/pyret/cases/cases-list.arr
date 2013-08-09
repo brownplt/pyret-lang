@@ -1,7 +1,7 @@
 #lang pyret
 
 fun matcher():
-check:
+where:
   eq = checkers.check-equals
   test1 = cases(list.List) [1,2,3]:
     | empty => "not-this-one"
@@ -30,4 +30,3 @@ check:
       e.contains("expected List"))
   end
 end
-

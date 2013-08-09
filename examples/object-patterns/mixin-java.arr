@@ -33,7 +33,7 @@ fun ext(parent-class, description):
   class-brander.brand({
 
     # : (Class) -> Objekt -> Instance
-    new(self, spec): 
+    new(self, spec):
       var fields = description.fields
       methods = description.methods
       var parent-inst = nothing # to be init'd by super from constructor
@@ -80,7 +80,7 @@ fun ext(parent-class, description):
         instance-of(_, klass):
           class-brander.test(klass) or parent-inst.instance-of(klass)
         end,
-        
+
         view-as(inst, klass):
           if class-brander.test(klass):
             inst
@@ -111,7 +111,7 @@ fun ext(parent-class, description):
     # : (Class) -> ClassDescription -> Class
     ext(self, ext-descr): ext(self, ext-descr) end,
   })
-check:
+where:
   # Tests
 
   todo-class-descr = {
@@ -203,8 +203,3 @@ end
 
 # Don't really need this...
 fun class(description): Objekt.ext(description) end
-
-
-
-
-
