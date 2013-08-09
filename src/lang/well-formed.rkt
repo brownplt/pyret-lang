@@ -139,7 +139,7 @@
             (well-formed/internal check #t))]
 
     [(s-method s args ann doc body check)
-     (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
+     (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (map wf-bind args)
                 (wf-ann ann)
                 (wf body)
@@ -188,7 +188,7 @@
     [(s-paren s e) (wf e)]
 
     [(s-id s id) (if (equal? id 'check)
-                     (wf-error "well-formedness: Cannot use check as an identifier. Did you forget a colon?" s)
+                     (wf-error "Cannot use check as an identifier. Did you forget a colon?" s)
                      #t)]
 
     [(or (s-num _ _)
