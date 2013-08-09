@@ -672,30 +672,30 @@ fun check-equals(name, val1, val2):
       current-results := current-results.push(success(name))
     else:
       current-results :=
-        current-results.push(failure(name, "Values not equal: \n" +
+        current-results + [failure(name, "Values not equal: \n" +
                                      tostring(val1) +
                                      "\n\n" +
-                                     tostring(val2)))
+                                     tostring(val2))]
     end
     values_equal
   except(e):
-    current-results := current-results.push(err(name, e))
+    current-results := current-results + [err(name, e)]
   end
 end
 
 fun check-pred(name, val1, pred):
   try:
     if pred(val1):
-      current-results := current-results.push(success(name))
+      current-results := current-results + [success(name)]
     else:
       current-results :=
-        current-results.push(failure(name, "Value didn't satisfy predicate: " +
+        current-results + [failure(name, "Value didn't satisfy predicate: " +
                                      tostring(val1) +
                                      ", " +
-                                     pred._doc))
+                                     pred._doc)]
     end
   except(e):
-    current-results := current-results.push(err(name, e))
+    current-results := current-results + [err(name, e)]
   end
 end
 

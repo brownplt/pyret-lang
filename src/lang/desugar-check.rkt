@@ -17,7 +17,7 @@
       [(s-data s name _ _ _ check)
        (cons (check-info s name check) lst)]
       [_ lst]))
-  (foldl add-check empty stmts))
+  (foldr add-check empty stmts))
 
 ;; srcloc (listof check-info) -> s-block
 (define (create-check-block s checks)
