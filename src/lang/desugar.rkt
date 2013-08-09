@@ -421,9 +421,13 @@
     [(s-op s 'opis e1 e2)
      (s-app
       s
-      (s-bracket s (s-id s 'checkers) (s-str s "check-equals"))
-      (list (s-str s (pretty (s-op s 'opis e1 e2))) (ds e1) (ds e2)))]
-    
+      (s-bracket s (s-id s 'checkers) (s-str s "check-is"))
+      (list
+        (s-str s (pretty (s-op s 'opis e1 e2)))
+        (lam s (list) (ds e1))
+        (lam s (list) (ds e2))
+        (build-location s)))]
+
     [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
 
     [(s-op s 'op<> e1 e2)
