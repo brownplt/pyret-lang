@@ -105,6 +105,14 @@
  "fun: nothing check 1 end"
  "Cannot use check as an identifier. Did you forget a colon?")
 
+(check-pyret-exn
+ "fun: 1 is 2 end"
+ "Cannot use `is` outside of a check block. Try `==`.")
+
+(check-pyret
+ "fun: nothing check: 1 is 2 end 10"
+ (p:mk-num 10))
+
 ))
 
 (run-tests all)
