@@ -55,15 +55,15 @@
   (print-test str)
   ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
   ;; in test context (where there is no #lang), we prepend everything with " "
-  (py-eval (compile-str (string-append " " str))))
+  (py-eval (compile-str str)))
 
 (define (eval-pyret/check str)
   (print-test str)
-  (py-eval (compile-str/check (string-append " " str))))
+  (py-eval (compile-str/check str)))
 
 (define (eval-pyret/check/lib str)
   (print-test str)
-  (py-eval (compile-str/check (string-append " " str))))
+  (py-eval (compile-str/check str)))
 
 (define-runtime-path utils-path "test-utils.rkt")
 
@@ -123,4 +123,3 @@
              #,(syntax/loc stx
                (check-regexp-match (regexp-quote expected-stdout)
                                  stdout))))))]))
-
