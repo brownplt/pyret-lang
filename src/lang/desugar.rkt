@@ -342,7 +342,7 @@
 
     [(s-when s test body)
      (s-if-else s (list (s-if-branch s (ds test) (ds body)))
-      (s-id s 'p:nothing))]
+      (s-id s 'nothing))]
 
     [(s-if-else s cases else)
      (s-if-else s (map ds-if cases) (ds else))]
@@ -495,12 +495,14 @@
       [(s-import l (? symbol? f) n)
        (s-import l (path->string (path->complete-path
                       (build-path FFI (string-append (symbol->string f) ".rkt")))) n)]
+      [(s-import l (? string? f) n) imp]
       [(s-provide-all l)
        (define fields
         (for/list ((id (top-level-ids body)))
           (s-data-field l (s-str l (symbol->string id)) (s-id l id))))
-       (s-provide l (s-obj l fields))]
-      [_ imp]))
+       (s-provide l (desugar-internal (s-obj l fields)))]
+      [(s-provide l stmt)
+       (s-provide l (desugar-internal stmt))]))
   (match ast
     [(s-prog s imps block)
      (s-prog s (map (lambda (imp) (desugar-imp imp block)) imps)

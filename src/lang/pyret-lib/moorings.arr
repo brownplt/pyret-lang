@@ -121,6 +121,8 @@ data List:
 
     filter(self, f): empty end,
 
+    partition(self, f): { is-true: empty, is-false: empty } end,
+
     foldr(self, f, base): base end,
 
     foldl(self, f, base): base end,
@@ -174,6 +176,8 @@ data List:
       else:             self.rest.filter(f)
       end
     end,
+
+    partition(self, f): partition(f, self) end,
 
     member(self, elt): (elt == self.first) or self.rest.member(elt) end,
 
@@ -310,6 +314,23 @@ fun filter(f, lst :: List):
       filter(f, lst.rest)
     end
   end
+end
+
+fun partition(f, lst :: List):
+  doc: "splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  fun help(inner-lst):
+    if is-empty(inner-lst):
+      { is-true: [], is-false: [] }
+    else:
+      split-tail = help(inner-lst.rest)
+      if f(inner-lst.first):
+        { is-true: inner-lst.first^link(split-tail.is-true), is-false: split-tail.is-false }
+      else:
+        { is-true: split-tail.is-true, is-false: inner-lst.first^link(split-tail.is-false) }
+      end
+    end
+  end
+  help(lst)
 end
 
 fun find(f, lst :: List):
@@ -537,6 +558,7 @@ list = {
     range: range,
     repeat: repeat,
     filter: filter,
+    partition: partition,
     find: find,
     map: map,
     map2: map2,
@@ -670,30 +692,30 @@ fun check-equals(name, val1, val2):
       current-results := current-results.push(success(name))
     else:
       current-results :=
-        current-results.push(failure(name, "Values not equal: \n" +
+        current-results + [failure(name, "Values not equal: \n" +
                                      tostring(val1) +
                                      "\n\n" +
-                                     tostring(val2)))
+                                     tostring(val2))]
     end
     values_equal
   except(e):
-    current-results := current-results.push(err(name, e))
+    current-results := current-results + [err(name, e)]
   end
 end
 
 fun check-pred(name, val1, pred):
   try:
     if pred(val1):
-      current-results := current-results.push(success(name))
+      current-results := current-results + [success(name)]
     else:
       current-results :=
-        current-results.push(failure(name, "Value didn't satisfy predicate: " +
+        current-results + [failure(name, "Value didn't satisfy predicate: " +
                                      tostring(val1) +
                                      ", " +
-                                     pred._doc))
+                                     pred._doc)]
     end
   except(e):
-    current-results := current-results.push(err(name, e))
+    current-results := current-results + [err(name, e)]
   end
 end
 

@@ -31,7 +31,7 @@
   (check-pyret-match "true" (p:p-bool _ _ _ _ #t))
   (check-pyret-match "false" (p:p-bool _ _ _ _ #f))
 
-  (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five))))) 
+  (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
   (check-pyret "{['x']:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
   (check-pyret "f = 'x' {[f]:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
 
@@ -93,7 +93,7 @@
   ;; tostring on functions
   (check-pyret-match "fun f(x): x end f.tostring()"
              (p:p-str _ _ _ _ "fun f(x): '' end"))
-  
+
   (check-pyret-match "fun f(x): doc: 'great' x end f.tostring()"
                (p:p-str _ _ _ _ "fun f(x): 'great' end"))
 
@@ -171,7 +171,8 @@
   "
   nothing)
 
-  (check-pyret "
+  ;; TODO(joe): when we switch to no shadowing, this should be an appropriate exn
+  #;(check-pyret "
   nothing = 42
   when false: 5 end
   "
@@ -376,6 +377,11 @@
   ))
 
 (define modules (test-suite "modules"
+
+  (check-pyret
+    "import 'modules/provide-desugar-regression.arr' as pdr
+     pdr.x"
+    (p:mk-num 55))
 
   (check-pyret-match
    "import file as f
@@ -679,7 +685,7 @@ o2.m().called" true)
 
   (check-pyret-match "(method (x): doc: 'cool' x end).tostring()"
              (p:p-str _ _ _ _ "method (x): 'cool' end"))
-  
+
   (check-pyret-match "o = {foo(x): x end} o:foo.tostring()"
                (p:p-str _ _ _ _ "method foo(x): '' end"))
 
@@ -691,7 +697,7 @@ o2.m().called" true)
   (check-pyret-match "o = {foo(x): doc: 'cool' x end} o.foo.tostring()"
                (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
 
-  
+
 ))
 
 (define exceptions (test-suite "exceptions"
@@ -850,7 +856,7 @@ o2.m().called" true)
     _ = 4
     5"
    five)
-  
+
   (check-pyret-exn
    "_ = 5
     _"
@@ -911,9 +917,6 @@ o2.m().called" true)
   (check-pyret "true._and(fun: true end)" (p:mk-bool #t))
   (check-pyret "false._or(fun: true end)" (p:mk-bool #t))
 
-  (check-pyret "4 is 4" true)
-  (check-pyret "4 is 5" false)
-  (check-pyret "(1 + 2) is 3" true)
 ))
 
 (define ffi (test-suite "ffi"
@@ -929,7 +932,7 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check3.arr" _ 36 36 0 0 0)
     (check-pyret-match/check "pyret/check/check4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-error.arr" _ 2 1 1 0 1)
-    (check-pyret-match/check "pyret/check/check-error2.arr" _ 4 2 2 0 1)
+    (check-pyret-match/check "pyret/check/check-error2.arr" _ 5 2 3 0 1)
     (check-pyret-match/check "pyret/check/check-error3.arr" _ 4 3 1 0 1)
     (check-pyret-match/check "pyret/check/check-error4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ 1 1 0 0 0)
@@ -940,7 +943,8 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-data2.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-data3.arr" _ 3 2 1 0 0)
     (check-pyret-match/check "pyret/check/check-data4.arr" _ 2 2 0 0 0)
-    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0)
+    (check-pyret-match/check "pyret/check/check-is.arr" _ 3 2 1 0 0))
 ))
 
 ;; NOTE(dbp): private-run just means that it won't fail if the file is
@@ -978,7 +982,7 @@ o2.m().called" true)
     ))
 
 
-    
+
 (define all (test-suite "all"
   constants
   functions

@@ -166,4 +166,8 @@
   "The name x cannot be used in two nested scopes.")
 ))
 
+(check-pyret-exn
+  "x"
+  "Unbound identifier: x")
+
 (run-tests all)

@@ -31,20 +31,27 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 ;;
+<<<<<<< HEAD
 ;; - non-duplicated identifiers in arguments lists
 ;;
 ;; - all blocks end in a non-binding form
+=======
+;; - check as an identifier
+;;
+;; - `is` outside of a check block.
+>>>>>>> master
 
 (define (well-formed ast)
   (match ast
     [(s-prog s imps ast)
      (match ast
-      [(s-block s stmts) (map well-formed/internal stmts)]
+      [(s-block s stmts) (map (λ (ast) (well-formed/internal ast #f)) stmts)]
       [_ (well-formed/internal ast)])]
-    [(s-block s stmts) (map well-formed/internal stmts)]
-    [else (well-formed/internal ast)])
+    [(s-block s stmts) (map (λ (ast) (well-formed/internal ast #f)) stmts)]
+    [else (well-formed/internal ast #f)])
   ast)
 
+<<<<<<< HEAD
 (define (ensure-unique-ids bindings)
   (cond
     [(empty? bindings) (void)]
@@ -67,6 +74,10 @@
 
 (define (well-formed/internal ast)
   (define wf well-formed/internal)
+=======
+(define (well-formed/internal ast in-check-block)
+  (define wf (λ (ast) (well-formed/internal ast in-check-block)))
+>>>>>>> master
   (define (wf-if-branch branch)
     (match branch
       [(s-if-branch s tst blk) (begin (wf tst) (wf blk))]))
@@ -108,7 +119,8 @@
            (ensure-unique-ids args)
            (map wf-bind args)
            (wf-ann ann)
-           (wf body)))]))
+           (wf body)
+           (well-formed/internal check #t)))]))
 
   (define (reachable-ops s op ast)
     (define (op-name op) (hash-ref reverse-op-lookup-table op))
@@ -125,23 +137,25 @@
                     (op-name op) (op-name op1))
             s s1))]
       [else (wf ast)]))
-  
+
   (match ast
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
-    
-    [(s-op s op e1 e2) (begin (reachable-ops s op e1)
-                              (reachable-ops s op e2))]
+
+    [(s-op s op e1 e2) (if (and (not in-check-block) (equal? op 'opis))
+                           (wf-error "Cannot use `is` outside of a check block. Try `==`." s)
+                           (begin (reachable-ops s op e1)
+                                  (reachable-ops s op e2)))]
 
     [(s-block s stmts)
      (begin
        (or (empty? stmts) (wf-last-stmt (last stmts)))
-       (map well-formed stmts))]
+       (map wf stmts))]
     [(s-data s name params variants shares check)
      (begin
        (map wf-variant variants)
        (map wf-member shares)
-       (wf check))]
+       (well-formed/internal check #t))]
 
     [(s-for s iter bindings ann body)
      (define (wf-for-bind b)
@@ -158,26 +172,35 @@
     [(s-let s name val) (begin (wf-bind name) (wf val))]
 
     [(s-fun s name typarams args ann doc body check)
+<<<<<<< HEAD
      (begin (ensure-unique-ids args)
             (map wf-bind args)
             (wf-ann ann)
             (wf body)
             (wf check))]
+=======
+     (begin (map wf-bind args) (wf-ann ann) (wf body) (well-formed/internal check #t))]
+>>>>>>> master
 
     [(s-lam s typarams args ann doc body check)
      (begin (ensure-unique-ids args)
             (map wf-bind args)
             (wf-ann ann)
             (wf body)
-            (wf check))]
+            (well-formed/internal check #t))]
 
     [(s-method s args ann doc body check)
+<<<<<<< HEAD
      (if (= (length args) 0) (wf-error "well-formedness: Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
                 (map wf-bind args)
+=======
+     (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
+         (begin (map wf-bind args)
+>>>>>>> master
                 (wf-ann ann)
                 (wf body)
-                (wf check)))]
+                (well-formed/internal check #t)))]
 
     [(s-when s test body)
      (begin (wf test) (wf body))]
@@ -221,10 +244,13 @@
 
     [(s-paren s e) (wf e)]
 
+    [(s-id s id) (if (equal? id 'check)
+                     (wf-error "Cannot use check as an identifier. Did you forget a colon?" s)
+                     #t)]
+
     [(or (s-num _ _)
          (s-bool _ _)
-         (s-str _ _)
-         (s-id _ _)) #t]
+         (s-str _ _)) #t]
 
     [else (error (format "Missed a case in well-formed: ~a"
                          ast))]))
