@@ -316,7 +316,7 @@
       (map (lambda (l) (mk-object (make-string-map (mk-loc l))))
       trace-locs)))
   (mk-object
-   (make-string-map 
+   (make-string-map
     (append
       (mk-loc loc)
       (list
@@ -426,7 +426,7 @@
 ;; pyret-error : Loc String String -> p-exn
 (define (pyret-error loc type message)
   (define full-error (exn+loc->message (mk-str message) loc))
-  (define obj (mk-object (make-string-map 
+  (define obj (mk-object (make-string-map
     (list (cons "message" (mk-str message))
           (cons "type" (mk-str type))))))
   (mk-pyret-exn full-error loc obj #t))
@@ -447,7 +447,8 @@
                                    (cons v args)))
                     (λ args (apply (p-base-method vfield)
                                    (cons v (rest args))))
-                    (get-field loc vfield "_doc")))]
+                    ;; NOTE(dbp 2013-08-09): If _doc isn't a string, this will blow up...
+                    (p-str-s (get-field loc vfield "_doc"))))]
        (if (has-field? vfield "tostring")
            (extend loc curried
                    (list
@@ -613,7 +614,7 @@ And the object was:
 (define brander-pfun (pλ/internal (_) ()
   (define sym (gensym))
   (mk-object
-   (make-string-map 
+   (make-string-map
     `(("brand" .
        ,(mk-brander sym))
       ("test" .
@@ -751,13 +752,22 @@ And the object was:
               (py-match ((p-base-method m) v)
                         [(p-str _ _ _ _ s) s]
                         [(default _) (fallback)])
-              (fallback)))
+              (if (p-fun? m)
+                  ;; NOTE(dbp 2013-08-09): This will fail if tostring takes arguments
+                  (py-match ((p-base-app m))
+                            [(p-str _ _ _ _ s) s]
+                            [(default _) (fallback)])
+                  (fallback))))
         (fallback)))
+  (define (type-sanity-check pred typename val otherwise)
+    (if (not (pred val))
+        (raise (format "INTERNAL ERROR: Got a non-~a inside a pyret ~a: ~a." typename typename val))
+        otherwise))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
-    [(p-num _ _ _ _ n) (format "~a" n)]
-    [(p-str _ _ _ _ s) (format "~a" s)]
-    [(p-bool _ _ _ _ b) (if b "true" "false")]
+    [(p-num _ _ _ _ n) (type-sanity-check number? "number" n (format "~a" n))]
+    [(p-str _ _ _ _ s) (type-sanity-check string? "string" s (format "~a" s))]
+    [(p-bool _ _ _ _ b) (type-sanity-check boolean? "boolean" b (if b "true" "false"))]
     [(p-method _ _ _ _) (call-tostring v (λ () "[[code]]"))]
     [(p-fun _ _ _ _) (call-tostring v (λ () "[[code]]"))]
     [(p-object _ h _ _)
@@ -775,8 +785,14 @@ And the object was:
 (define tostring-pfun (pλ/internal (loc) (o)
   (mk-str (to-string o))))
 
-(define print-pfun (pλ/internal (loc) (o)
-  (begin (printf "~a\n" (to-string o)) nothing)))
+(define (pyret-print o)
+  (begin
+    (if (p-str? o)
+        (printf "~s\n" (p-str-s o))
+        (printf "~a\n" (to-string o)))
+    nothing))
+
+(define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
@@ -844,4 +860,3 @@ And the object was:
 (mk-pred Object p-object?)
 (mk-pred Function p-fun?)
 (mk-pred Method p-method?)
-

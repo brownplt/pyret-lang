@@ -696,7 +696,8 @@ o2.m().called" true)
   ;; when curried, tostring() should still be the same
   (check-pyret-match "o = {foo(x): doc: 'cool' x end} o.foo.tostring()"
                (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
-
+  (check-pyret-match "o = {foo(x): doc: 'cool' x end} tostring(o.foo)"
+               (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
 
 ))
 
