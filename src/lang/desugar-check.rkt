@@ -22,7 +22,7 @@
        (begin
          (set! standalone-counter (+ 1 standalone-counter))
          (cons (check-info s (string->symbol
-                              (format "standalone-~a"
+                              (format "check-block-~a"
                                       standalone-counter))
                            body) lst))]
       [_ lst]))
