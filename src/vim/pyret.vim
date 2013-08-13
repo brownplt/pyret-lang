@@ -24,7 +24,7 @@ syn match delimeter '{'
 syn match delimeter '}'
 syn match delimeter '::'
 
-syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: doc: : and or not else: if else cases
+syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: : and or not else: if else cases
 
 syn match op ' + '
 syn match op ' - '
