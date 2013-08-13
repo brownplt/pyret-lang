@@ -1,18 +1,18 @@
 #lang pyret
 
 fun f():
-  
-check:
-  checkers.check-equals("0=0",0, 0)
-  checkers.check-equals("0=1",0, 1)
+
+where:
+  0 is 0
+  1 is 0
+  0 is 1
   raise("Done checking")
-  checkers.check-equals("1=1",1, 1)
+  1 is 1
 end
 
 fun h():
 
-check:
-  checkers.check-equals("0=0",0, 0)
-  checkers.check-equals("0=1",0, 1)
+where:
+  0 is 0
+  0 is 1
 end
-

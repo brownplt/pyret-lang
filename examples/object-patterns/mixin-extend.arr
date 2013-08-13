@@ -16,11 +16,10 @@ fun extendable(obj):
       end
     end
   }
-check:
+where:
   todo2 = extendable(todo1)
   todo3 = todo2.ext({ complete(self): self.{ done: true } end })
   checkers.check-equals("done is present after extend", todo3.done, false)
   checkers.check-equals("complete is present after extend", todo3.complete().done, true)
 
 end
-

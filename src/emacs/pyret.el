@@ -69,6 +69,7 @@
                               (save-excursion (forward-char -5) (pyret-WITH))
                               (save-excursion (forward-char -8) (pyret-SHARING))
                               (save-excursion (forward-char -6) (pyret-CHECK))
+                              (save-excursion (forward-char -6) (pyret-WHERE))
                               (save-excursion (forward-char -5) (pyret-CASES)))
                       (pyret-smart-tab))))))
     map)
@@ -79,11 +80,11 @@
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from" "cases"
-     "and" "or" "not"
+     "and" "or" "not" "is"
      "as" "purpose" "if" "else")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
-   '("doc" "try" "with" "sharing" "check" "case")))
+   '("doc" "try" "with" "sharing" "check" "where" "case")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
@@ -233,6 +234,7 @@
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing:"))
 (defsubst pyret-CHECK () (pyret-keyword "check:"))
+(defsubst pyret-WHERE () (pyret-keyword "where:"))
 (defsubst pyret-WITH () (pyret-keyword "with:"))
 (defsubst pyret-PIPE () (pyret-char ?|))
 (defsubst pyret-COLON () (pyret-char ?:))
@@ -563,7 +565,7 @@
               (push 'shared opens)
               (push 'wantcolon opens)))
             (forward-char 7))
-           ((pyret-CHECK)
+           ((pyret-WHERE)
             (cond
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
@@ -583,7 +585,12 @@
               (incf (pyret-indent-shared cur-closed))
               (incf (pyret-indent-shared defered-opened)))
              ((not opens)
-              (incf( pyret-indent-shared defered-opened))))
+              (incf (pyret-indent-shared defered-opened))))
+            (push 'check opens)
+            (push 'wantcolon opens)
+            (forward-char 5))
+           ((and (pyret-CHECK) (not opens))
+            (incf (pyret-indent-shared defered-opened))
             (push 'check opens)
             (push 'wantcolon opens)
             (forward-char 5))

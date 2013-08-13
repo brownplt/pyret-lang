@@ -1,7 +1,7 @@
 #lang pyret
 
 fun f():
-check:
+where:
   checkers.check-true("variable defined after", x)
 end
 x = true

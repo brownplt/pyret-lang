@@ -26,6 +26,7 @@
   (union "import" "provide" "as"
          "var"
          "fun" "method" "doc:"
+         "where:"
          "check:"
          "try:" "except"
          "cases"
@@ -55,7 +56,7 @@
 (define (fix-escapes s)
   (string-replace
    (string-replace
-    (string-replace 
+    (string-replace
      (string-replace
       (string-replace s "\\n" "\n")
       "\\t" "\t")
@@ -65,9 +66,12 @@
 
 (define (tokenize ip)
   (port-count-lines! ip)
+  (define-values (p-line p-col p-pos) (port-next-location ip))
+  ;; if we are at the beginning, we want to have open-parens be PARENSPACE
+  (define at-beginning (and (equal? p-line 1) (equal? p-col 0)))
   ;; used so that after any number of parenthesis, the next
   ;; parenthesis is tokenized as a PARENSPACE, not a PARENNOSPACE
-  (define after-paren #f)
+  (define after-paren at-beginning)
   ;; sometimes we want to run an action before a set of cases in the lexer
   (define-syntax (lexer-src-pos-with-actions stx)
     (define (add-action after)

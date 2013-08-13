@@ -8,13 +8,13 @@ fun make-mutable(obj):
         if is-nothing(new-val):
           field-val
         else:
-          field-val := new-val      
+          field-val := new-val
         end
       end
     }
   end
   names.foldr(make-mutable-field, {})
-check:
+where:
   todo1 = {
     due: "25 January 2012",
     task: "Write mixin examples",

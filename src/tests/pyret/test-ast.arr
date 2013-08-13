@@ -9,7 +9,7 @@ is_false = checkers.check-true
 
 fun just-parse(str):
   A.parse(str, "test-ast.arr", {["check"]: false}).pre-desugar
-check:
+where:
   five = just-parse("5")
 
   pred("Is a program", five, A.is-s_program)

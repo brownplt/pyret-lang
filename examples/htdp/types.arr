@@ -1,7 +1,7 @@
 #lang pyret
 
 five :: Number = 5
-x :: String = "hello"
+s :: String = "hello"
 b :: Bool = true
 #def o :: {x:Number}: {x:10}
 

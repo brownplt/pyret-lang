@@ -59,6 +59,9 @@ these metadata purposes.
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
 (struct s-fun (syntax name params args ann doc body check) #:transparent)
 
+;; s-check: srcloc s-block
+(struct s-check (syntax body) #:transparent)
+
 ;; s-var : srcloc bind Expr -> s-var
 (struct s-var (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
@@ -136,7 +139,7 @@ these metadata purposes.
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
 (struct s-lam (syntax typarams args ann doc body check) #:transparent)
 
-;; s-method : srcloc (Listof s-bind) Ann String s-block s-check
+;; s-method : srcloc (Listof s-bind) Ann String s-block s-block
 (struct s-method (syntax args ann doc body check) #:transparent)
 
 ;; A Member is a (U s-data-field s-method-field)

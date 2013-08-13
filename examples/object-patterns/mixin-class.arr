@@ -29,13 +29,13 @@ fun droppable(obj):
 end
 
 fun make-class(obj):
-  { 
+  {
     instantiate(self, spec):
       instance = droppable(obj).drop(["constructor"])
       obj.constructor(instance, spec)
     end
   }
-check:
+where:
   todo-class = make-class(todo1)
   todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
   checkers.check-equals("due was instantiated", todo2.due, "today")

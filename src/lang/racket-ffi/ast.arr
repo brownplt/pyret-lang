@@ -46,7 +46,7 @@ data Expr:
   | s_not(l :: Loc, expr :: Expr)
   | s_paren(l :: Loc, expr :: Expr)
   | s_lam(
-      l :: Loc, 
+      l :: Loc,
       params :: List<String>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
@@ -88,6 +88,10 @@ data Expr:
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
+      body :: Expr
+    )
+  | s_check(
+      l :: Loc,
       body :: Expr
     )
 end
@@ -150,4 +154,3 @@ end
 data AField:
   | a_field(l :: Loc, name :: String, ann :: Ann)
 end
-

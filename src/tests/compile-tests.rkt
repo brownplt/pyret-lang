@@ -31,7 +31,7 @@
   (check-pyret-match "true" (p:p-bool _ _ _ _ #t))
   (check-pyret-match "false" (p:p-bool _ _ _ _ #f))
 
-  (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five))))) 
+  (check-pyret "{x:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
   (check-pyret "{['x']:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
   (check-pyret "f = 'x' {[f]:5}" (p:mk-object (make-immutable-hash (list (cons "x" five)))))
 
@@ -52,7 +52,7 @@
   (check-pyret "fun f(): 2 end f()" two)
   (check-pyret "fun f(x): x end f(2)" two)
   (check-pyret "fun f(x): x end fun g(x): x end f(2) g(10) f(2)" two)
-  (check-pyret "fun f(x): fun g(x): x end g(x) end f(5)" five)
+  (check-pyret-exn "fun f(x): fun g(x): x end g(x) end f(5)" "nested scopes")
   (check-pyret "fun foo(): 5 end foo()" five)
 
   (check-pyret-fail "fun f(x): x end f(3)" two)
@@ -62,7 +62,7 @@
   (check-pyret-exn "var x = 2 fun(x): x := 10 end(5) x" CONFLICT-MESSAGE)
   (check-pyret "var x = 2 fun f(g): g() end f(fun: x := 10 end) x" ten)
 
-  (check-pyret "fun f(x): x = 2 x end f(1)" two)
+  (check-pyret-exn "fun f(x): x = 2 x end f(1)" "nested scopes")
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
@@ -93,7 +93,7 @@
   ;; tostring on functions
   (check-pyret-match "fun f(x): x end f.tostring()"
              (p:p-str _ _ _ _ "fun f(x): '' end"))
-  
+
   (check-pyret-match "fun f(x): doc: 'great' x end f.tostring()"
                (p:p-str _ _ _ _ "fun f(x): 'great' end"))
 
@@ -171,7 +171,8 @@
   "
   nothing)
 
-  (check-pyret "
+  ;; TODO(joe): when we switch to no shadowing, this should be an appropriate exn
+  #;(check-pyret "
   nothing = 42
   when false: 5 end
   "
@@ -371,11 +372,16 @@
    "data Test:
      | test(x, x)
     end"
-   "x defined twice")
+   "duplicate")
 
   ))
 
 (define modules (test-suite "modules"
+
+  (check-pyret
+    "import 'modules/provide-desugar-regression.arr' as pdr
+     pdr.x"
+    (p:mk-num 55))
 
   (check-pyret-match
    "import file as f
@@ -587,7 +593,7 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
-  (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 16 16 0 0 0)
+  #;(check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 17 17 0 0 0)
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
   (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))
@@ -679,7 +685,7 @@ o2.m().called" true)
 
   (check-pyret-match "(method (x): doc: 'cool' x end).tostring()"
              (p:p-str _ _ _ _ "method (x): 'cool' end"))
-  
+
   (check-pyret-match "o = {foo(x): x end} o:foo.tostring()"
                (p:p-str _ _ _ _ "method foo(x): '' end"))
 
@@ -690,8 +696,9 @@ o2.m().called" true)
   ;; when curried, tostring() should still be the same
   (check-pyret-match "o = {foo(x): doc: 'cool' x end} o.foo.tostring()"
                (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
+  (check-pyret-match "o = {foo(x): doc: 'cool' x end} tostring(o.foo)"
+               (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
 
-  
 ))
 
 (define exceptions (test-suite "exceptions"
@@ -720,6 +727,9 @@ o2.m().called" true)
 
   (check-pyret "try: raise(5) except(_): 3 end" (p:mk-num 3))
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
+
+  (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
 ))
 
@@ -759,14 +769,14 @@ o2.m().called" true)
   "
   CONFLICT-MESSAGE)
 
-  (check-pyret "
+  (check-pyret-exn "
   x = 5
   fun f(x):
     x
   end
   f(x)
   "
-  five)
+  "nested scope")
 
   (check-pyret-exn "
   x = 5
@@ -775,7 +785,7 @@ o2.m().called" true)
     x
   end
   "
-  CONFLICT-MESSAGE)
+  "nested scope")
 
   (check-pyret-exn "
   var x = 5
@@ -793,7 +803,7 @@ o2.m().called" true)
   "
   CONFLICT-MESSAGE)
 
-  (check-pyret "
+  (check-pyret-exn "
   var x = 5
   fun f():
     var x = 10
@@ -801,7 +811,7 @@ o2.m().called" true)
   end
   f()
   "
-  ten)
+  "nested scope")
 
   (check-pyret "
   x :: Number = 5
@@ -829,12 +839,11 @@ o2.m().called" true)
     y"
    five)
 
-  ;; TODO(joe): still not sure what's going on with duplicates
-  #;(check-pyret-exn
+  (check-pyret-exn
    "var x = 5
     var x = x
     y"
-   "duplicate")
+   "x defined twice")
 
   ;; check behavior of _, which should always disappear
   (check-pyret
@@ -848,7 +857,7 @@ o2.m().called" true)
     _ = 4
     5"
    five)
-  
+
   (check-pyret-exn
    "_ = 5
     _"
@@ -909,9 +918,6 @@ o2.m().called" true)
   (check-pyret "true._and(fun: true end)" (p:mk-bool #t))
   (check-pyret "false._or(fun: true end)" (p:mk-bool #t))
 
-  (check-pyret "4 is 4" true)
-  (check-pyret "4 is 5" false)
-  (check-pyret "(1 + 2) is 3" true)
 ))
 
 (define ffi (test-suite "ffi"
@@ -927,7 +933,7 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check3.arr" _ 36 36 0 0 0)
     (check-pyret-match/check "pyret/check/check4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-error.arr" _ 2 1 1 0 1)
-    (check-pyret-match/check "pyret/check/check-error2.arr" _ 4 2 2 0 1)
+    (check-pyret-match/check "pyret/check/check-error2.arr" _ 5 2 3 0 1)
     (check-pyret-match/check "pyret/check/check-error3.arr" _ 4 3 1 0 1)
     (check-pyret-match/check "pyret/check/check-error4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ 1 1 0 0 0)
@@ -938,7 +944,11 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-data2.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-data3.arr" _ 3 2 1 0 0)
     (check-pyret-match/check "pyret/check/check-data4.arr" _ 2 2 0 0 0)
-    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0))
+    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0)
+    (check-pyret-match/check "pyret/check/check-is.arr" _ 3 2 1 0 0))
+
+    (check-pyret-match/check "pyret/check/standalone.arr" _ 4 2 2 0 0)
+
 ))
 
 ;; NOTE(dbp): private-run just means that it won't fail if the file is
@@ -976,7 +986,7 @@ o2.m().called" true)
     ))
 
 
-    
+
 (define all (test-suite "all"
   constants
   functions

@@ -10,6 +10,7 @@
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
   "settings.rkt"
+  "type-env.rkt"
   "compile.rkt"
   "desugar.rkt"
   "typecheck.rkt"
@@ -27,10 +28,10 @@
   (param-compile-check-mode #f)
   old-value)
 
-(define (bare-read-syntax src in #:check [check #f])
+(define (bare-read-syntax src in #:check [check #f] #:type-env [env DEFAULT-ENV])
   (cond
     [(port-eof? in) eof]
-    [else (strip-context (pyret->racket src in #:check check))]))
+    [else (strip-context (pyret->racket src in #:check check #:type-env env))]))
 
 (define (my-read-syntax src in)
   (cond

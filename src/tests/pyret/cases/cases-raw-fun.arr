@@ -3,7 +3,7 @@
 data D:
   | single
   | multi(a, b)
-check:
+where:
   eq = checkers.check-equals
   dummy-loc = error.location("test", 0, 0)
   test1 = D.case_matcher(

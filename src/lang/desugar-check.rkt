@@ -9,6 +9,8 @@
 
 (struct check-info (srcloc name check-body))
 
+(define standalone-counter 0)
+
 (define (get-checks stmts)
   (define (add-check stmt lst)
     (match stmt
@@ -16,8 +18,15 @@
        (cons (check-info s name check) lst)]
       [(s-data s name _ _ _ check)
        (cons (check-info s name check) lst)]
+      [(s-check s body)
+       (begin
+         (set! standalone-counter (+ 1 standalone-counter))
+         (cons (check-info s (string->symbol
+                              (format "check-block-~a"
+                                      standalone-counter))
+                           body) lst))]
       [_ lst]))
-  (foldl add-check empty stmts))
+  (foldr add-check empty stmts))
 
 ;; srcloc (listof check-info) -> s-block
 (define (create-check-block s checks)
@@ -48,7 +57,7 @@
     (list
       (s-app s (s-bracket s (s-id s 'checkers) (s-str s "run-checks"))
                (list (s-list s checkers))))))
-  
+
 
 (define (desugar-check/internal ast)
   (define ds desugar-check/internal)
@@ -84,17 +93,18 @@
      (define ds-stmts (map ds flat-stmts))
      (define do-checks (create-check-block s checks-to-perform))
      (cond
-      [(empty? ds-stmts) 
+      [(empty? ds-stmts)
        (s-block s (list do-checks (s-id s 'nothing)))]
       [(cons? ds-stmts)
+       (define id-result (gensym 'result-after-checks))
        (define last-expr (last ds-stmts))
        (s-block s
         (append
           (take ds-stmts (- (length ds-stmts) 1))
           (list
-              (s-let s (s-bind s '%result-after-checks (a-blank)) last-expr)
+              (s-let s (s-bind s id-result (a-blank)) last-expr)
               do-checks
-              (s-id s '%result-after-checks))))])]
+              (s-id s id-result))))])]
     [(s-data s name params variants shares check)
      (s-data s name params
              (map ds-variant variants)
@@ -123,6 +133,8 @@
 
     [(s-when s test body)
      (s-when s (ds test) (ds body))]
+
+    [(s-check s body) (s-id s 'nothing)]
 
     [(s-if s if-bs) (s-if s (map ds-if-branch if-bs))]
     [(s-if-else s if-bs else) (s-if-else s (map ds-if-branch if-bs) (ds else))]
@@ -158,7 +170,7 @@
     [(s-paren s e) (s-paren s (ds e))]
 
     [(s-not s e) (s-not s (ds e))]
-    
+
     [(s-op s op e1 e2) (s-op s op (ds e1) (ds e2))]
 
     [(or (s-num _ _)
@@ -181,4 +193,3 @@
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list get-results))))]
     [ast (desugar-check/internal ast)]))
-

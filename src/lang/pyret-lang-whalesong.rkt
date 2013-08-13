@@ -4,6 +4,7 @@
   (except-in whalesong/lang/whalesong list error raise pi else)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "racket-ffi/animate.rkt"
+  "racket-ffi/stdlib.rkt"
   "runtime.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
   )
@@ -14,8 +15,7 @@
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
 
-(define List (p:get-field p:dummy-loc list "List"))
-
+;; WARNING: Did you remember to update src/lang/type-env.rkt?
 (provide
   #%module-begin
   #%top-interaction
@@ -24,17 +24,22 @@
   #%app
 
   list
-  List
   error
   builtins
   checkers
   option
 
+  (rename-out
+    [pyret-link link]
+    [pyret-empty empty]
+    [pyret-filter filter]
+    [pyret-fold fold]
+    [pyret-map map]
+    [pyret-random random])
+  (all-from-out "racket-ffi/stdlib.rkt")
   (all-from-out "racket-ffi/animate.rkt")
-  (rename-out [pyret-random random])
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]
   r:list r:error r:raise
   (all-from-out "runtime.rkt")
   )
-  
