@@ -12,7 +12,7 @@ provide-stmt: "provide" stmt "end" | "provide" "*"
 block: stmt*
 
 stmt: let-expr | fun-expr | data-expr | when-expr
-    | var-expr | assign-expr | binop-expr
+    | var-expr | assign-expr | binop-expr | check-expr
 
 let-expr: binding "=" binop-expr
 binding: NAME ["::" ann]
@@ -27,6 +27,8 @@ list-arg-elt: binding ","
 return-ann: ["->" ann]
 doc-string: ["doc:" STRING]
 where-clause: ["where:" block]
+
+check-expr: "check:" block "end"
 
 data-expr: "data" NAME ty-params ":" data-variant* data-sharing where-clause "end"
 data-variant: "|" NAME args data-with | "|" NAME data-with

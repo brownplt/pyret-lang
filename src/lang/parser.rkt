@@ -97,6 +97,7 @@
       data-expr
       assign-expr
       when-expr
+      check-expr
       stmt
       expr
     )
@@ -127,6 +128,9 @@
 
     [(when-expr "when" test ":" body "end")
      (s-when (loc stx) (parse-binop-expr #'test) (parse-block #'body))]
+
+    [(check-expr "check:" body "end")
+     (s-check (loc stx) (parse-block #'body))]
 
     [(stmt s) (parse-stmt #'s)]
     [(binop-expr e) (parse-binop-expr #'e)]

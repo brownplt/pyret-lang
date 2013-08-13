@@ -108,7 +108,7 @@
                      (s-dot s (s-dot s (s-id s id-matched) 'value) 'key))
         (list (s-dot s (s-dot s (s-id s id-matched) 'value) 'action) (s-id s id-val)))))
   (define matcher-fun
-    (s-block s 
+    (s-block s
       (list
         (s-let s (s-bind s id-preds (a-blank)) pred-dict)
         (s-let s (s-bind s id-helpers (a-blank)) helpers-dict)
@@ -249,7 +249,7 @@
      ;; NOTE(joe): we deal with equals specially, since it is
      ;; builtins.equiv(..., ...)
      ;(,op== . "equals")
-     ;; NOTE(dbp): we deal with noteq specially, since it is .equals(...).not() 
+     ;; NOTE(dbp): we deal with noteq specially, since it is .equals(...).not()
      ;(,op<> . "")
      ;; NOTE(dbp): 'and' and 'or' are special, because they thunk
      (,opand . "_and")
@@ -329,6 +329,8 @@
                    ((replace-typarams typarams) (desugar-ann ann))
                    doc (ds body) (ds check))))]
 
+    [(s-check s body) (s-id s 'nothing)]
+
     [(s-lam s typarams args ann doc body check)
      (add-lam-tostring s "fun" "" args
      (s-lam s typarams (map (replace-typarams-binds typarams)
@@ -356,7 +358,7 @@
                         (s-id s 'raise)
                         (list (s-str s "if: no tests matched"))))))
      (s-if-else s (map ds-if cases) if-fallthrough)]
-     
+
     [(s-cases s type val cases)
      ;; TODO(joe): call `cases-miss` from error.arr
      (define cases-fallthrough
@@ -511,4 +513,3 @@
     [(s-prog s imps block)
      (s-prog s (map (lambda (imp) (desugar-imp imp block)) imps)
                (desugar-internal block))]))
-

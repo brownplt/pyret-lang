@@ -37,7 +37,7 @@
       [(s-variant l name binds members)
        (build s_variant
           (tp-loc l)
-          (symbol->string name) 
+          (symbol->string name)
           (map tp-bind binds)
           (map tp-member members))]
       [(s-singleton-variant l name members)
@@ -139,6 +139,11 @@
         (tp test)
         (tp body))]
 
+    [(s-check s body)
+     (build s_check
+            (tp-loc s)
+            (tp body))]
+
     [(s-if s if-bs)
      (build s_if (tp-loc s) (map tp-if-branch if-bs))]
 
@@ -146,7 +151,7 @@
      (build s_if_else (tp-loc s) (map tp-if-branch if-bs) (tp else))]
 
     [(s-cases s type val c-bs)
-     (build s_cases (tp-loc s) 
+     (build s_cases (tp-loc s)
                     (tp type)
                     (tp val)
                     (map tp-cases-branch c-bs))]
@@ -222,7 +227,7 @@
     [(s-paren s e) (build s_paren (tp-loc s) (tp e))]
 
     [(s-not s e) (build s_not (tp-loc s) (tp e))]
-    
+
     [(s-op s op e1 e2)
      (build s_op (tp-loc s) (symbol->string op) (tp e1) (tp e2))]
 
@@ -230,7 +235,7 @@
     [(s-str s str) (build s_str (tp-loc s) str)]
     [(s-bool s b) (build s_bool (tp-loc s) b)]
     [(s-id s x) (build s_id (tp-loc s) (symbol->string x))]))
-    
+
 (define (tp-ann ann)
   (match ann
     [(a-name s id)
@@ -462,7 +467,7 @@
 
 
 
-     
+
 (define export
   (p:extend
     p:dummy-loc
@@ -476,4 +481,3 @@
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
-

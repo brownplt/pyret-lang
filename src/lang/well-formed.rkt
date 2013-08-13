@@ -136,7 +136,7 @@
     [(s-not s e) (wf e)]
 
     [(s-op s op e1 e2) (if (and (not in-check-block) (equal? op 'opis))
-                           (wf-error "Cannot use `is` outside of a check block. Try `==`." s)
+                           (wf-error "Cannot use `is` outside of a `check` or `where` block. Try `==`." s)
                            (begin (reachable-ops s op e1)
                                   (reachable-ops s op e2)))]
 
@@ -188,6 +188,10 @@
 
     [(s-when s test body)
      (begin (wf test) (wf body))]
+
+    [(s-check s body)
+     (well-formed/internal body #t)]
+
 
     [(s-if s if-bs) (map wf-if-branch if-bs)]
     [(s-if-else s if-bs else) (begin

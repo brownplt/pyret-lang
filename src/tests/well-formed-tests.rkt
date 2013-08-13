@@ -98,7 +98,7 @@
  "Cannot end a block in a fun-binding")
 
 (check-pyret-exn
- "fun: nothing check: 5 + 2 is 7 end"
+ "fun: nothing where: 5 + 2 is 7 end"
  "well-formedness:")
 
 ;; NOTE(dbp 2013-08-09): The more "obvious" occurence of these two get
@@ -112,7 +112,7 @@
 
 (check-pyret-exn
  "fun: 1 is 2 end"
- "Cannot use `is` outside of a check block. Try `==`.")
+ "Cannot use `is` outside of a `check` or `where` block. Try `==`.")
 
 (check-pyret
  "fun: nothing where: 1 is 2 end 10"

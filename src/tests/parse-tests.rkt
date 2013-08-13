@@ -398,8 +398,8 @@ line string\"" (s-str _ "multi\nline string"))
                (s-if _ (list
                         (s-if-branch
                          _
-                         (s-id _ 'x)
-                         (s-block _ (list (s-app _ (s-colon _ (s-id _ 'o) 'f) (list))))))))
+                         (s-colon _ (s-id _ 'x) 'o)
+                         (s-block _ (list (s-app _ (s-id _ 'f) (list))))))))
 
   (check/block "if false: 5 else: 42 end"
                (s-if-else _ (list (s-if-branch _ (s-bool _ #f) (s-block _ (list (s-num _ 5)))))
@@ -663,6 +663,19 @@ line string\"" (s-str _ "multi\nline string"))
     (s-let _ (s-bind _ 'x (a-name _ 'Number)) (s-num _ 22)))
 ))
 
+(define check-blocks (test-suite "check-blocks"
+   (check/block "check: 1 end"
+                (s-check _ (s-block _ (list (s-num _ 1)))))
+   (check/block "fun foo(): check: 1 end end"
+                (s-fun _ 'foo (list) (list) (a-blank) ""
+                       (s-block _
+                        (list
+                         (s-check _ (s-block _ (list (s-num _ 1))))))
+                       (s-block _ (list))))
+
+))
+
+
 (define binary-operators (test-suite "binary-operators"
    (check/block "1 + 2" (s-op _ op+ (s-num _ 1) (s-num _ 2)))
    (check/block "1 + 2 + 3" (s-op _ op+ (s-op _ op+ (s-num _ 1) (s-num _ 2))
@@ -828,6 +841,7 @@ line string\"" (s-str _ "multi\nline string"))
   literals
   methods
   functions
+  check-blocks
   fields
   annotations
   anon-func
