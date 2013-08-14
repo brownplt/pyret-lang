@@ -105,6 +105,7 @@
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
+              [torepr-pfun torepr]
               [brander-pfun brander]
               [check-brand-pfun check-brand]
               [keys-pfun prim-keys]
@@ -164,6 +165,7 @@
     [(eq? p-str typ) p-str?]
     [(eq? p-fun typ) p-fun?]
     [(eq? p-method typ) p-method?]
+    [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
 
@@ -180,6 +182,7 @@
   (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
     [(_ p-nothing _ () body) #'body]
     [(_ p-object _ () body) #'body]
+    [(_ p-base _ () body) #'body]
     [(_ p-fun _ () body) #'body]
     [(_ p-method _ () body) #'body]
     [(_ p-num matchval (n) body)
@@ -678,6 +681,7 @@ And the object was:
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
           ("floor" . ,(mk-num-1 floor 'floor))
           ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
+          ("_torepr" . ,(mk-prim-fun number->string '_torepr mk-str (p-num-n) (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))
           ("_equals" . ,(mk-prim-fun-default = 'equals mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?) (mk-bool #f)))
           ("_lessthan" . ,(mk-num-2-bool < 'lessthan))
@@ -711,6 +715,8 @@ And the object was:
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
+          ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
+          ("_torepr" . ,(mk-prim-fun (lambda (x) (format "\"~a\"" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
           ("_lessequal" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
@@ -737,15 +743,16 @@ And the object was:
        `(("_and" . ,(mk-lazy-bool-2 and 'and))
          ("_or" . ,(mk-lazy-bool-2 or 'or))
          ("tostring" . ,(mk-prim-fun bool->string 'tostring mk-str (p-bool-b) (b) (p-bool?)))
+         ("_torepr" . ,(mk-prim-fun bool->string '_torepr mk-str (p-bool-b) (b) (p-bool?)))
          ("_equals" . ,(mk-prim-fun-default equal? 'equals mk-bool (p-bool-b p-bool-b) (b1 b2) (p-bool? p-bool?) (mk-bool #f)))
          ("_not" . ,(mk-bool-1 not 'not))))))
   meta-bool-store)
 
-;; to-string : Value -> String
-(define (to-string v)
-  (define (call-tostring v fallback)
-    (if (has-field? v "tostring")
-        (let [(m (get-raw-field dummy-loc v "tostring"))]
+;; serialize : Value String (method name) -> String
+(define (serialize v method)
+  (define (serialize-internal v fallback)
+    (if (has-field? v method)
+        (let [(m (get-raw-field dummy-loc v method))]
           (if (p-method? m)
               ;; NOTE(dbp): this will fail if tostring isn't defined
               ;; as taking only self.
@@ -765,25 +772,26 @@ And the object was:
         otherwise))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
-    [(p-num _ _ _ _ n) (type-sanity-check number? "number" n (format "~a" n))]
-    [(p-str _ _ _ _ s) (type-sanity-check string? "string" s (format "~a" s))]
-    [(p-bool _ _ _ _ b) (type-sanity-check boolean? "boolean" b (if b "true" "false"))]
-    [(p-method _ _ _ _) (call-tostring v (λ () "[[code]]"))]
-    [(p-fun _ _ _ _) (call-tostring v (λ () "[[code]]"))]
-    [(p-object _ h _ _)
+    [(p-method _ _ _ _) (serialize-internal v (λ () "fun(): \"no string for this function\" end"))]
+    [(p-fun _ _ _ _) (serialize-internal v (λ () "method(): \"no string for this method\" end"))]
+    [(p-base _ h _ _)
      (let ()
-       (define (to-string-raw-object h)
-         (define (field-to-string f v)
-           (format "~a: ~a" f (to-string v)))
-         (format "{ ~a }"
-                 (string-join (string-map-map h field-to-string) ", ")))
-       (call-tostring
+       (define (serialize-raw-object h)
+         (define (serialize-field f v)
+           (format "~a: ~a" f (serialize v method)))
+         (format "{~a}"
+                 (string-join (string-map-map h serialize-field) ", ")))
+       (serialize-internal
         v
-        (λ () (to-string-raw-object h))))]
+        (λ () (serialize-raw-object h))))]
     [(default _) (format "~a" v)]))
 
+(define to-string (lambda (o) (serialize o "tostring")))
+
 (define tostring-pfun (pλ/internal (loc) (o)
-  (mk-str (to-string o))))
+  (mk-str (serialize o "tostring"))))
+(define torepr-pfun (pλ/internal (loc) (o)
+  (mk-str (serialize o "_torepr"))))
 
 (define (pyret-print o)
   (begin

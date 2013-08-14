@@ -634,11 +634,13 @@
   (check-pyret "tostring(false)" (p:mk-str "false"))
   (check-pyret "[1,2,3].tostring()" (p:mk-str "[1, 2, 3]"))
   (check-pyret "tostring('hello')" (p:mk-str "hello"))
-  (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
+  (check-pyret "tostring({a: true})" (p:mk-str "{a: true}"))
   (check-pyret "tostring({a: 5, tostring(self): 'hello!' end})"
          (p:mk-str "hello!"))
   (check-pyret "tostring(fun(x): x end)" (p:mk-str "fun (x): '' end"))
   (check-pyret "tostring(method(x): doc: 'yay' x end)" (p:mk-str "method (x): 'yay' end"))
+
+  (check-pyret-match/check "pyret/repr.arr" _ 21 21 0 0 0)
 ))
 
 (define methods (test-suite "methods"

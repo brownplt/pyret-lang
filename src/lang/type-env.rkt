@@ -46,6 +46,7 @@
      'print
      'raise
      'tostring
+     'torepr
      'Any
      'Bool
      'Function

@@ -159,6 +159,8 @@ data List:
 
     tostring(self): "[]" end,
 
+    _torepr(self): "[]" end,
+
     sort-by(self, cmp, eq): self end,
 
     sort(self): self end,
@@ -235,6 +237,14 @@ data List:
       "[" +
         for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
+        end
+      + "]"
+    end,
+
+    _torepr(self):
+      "[" +
+        for fold(combined from torepr(self.first), elt from self.rest):
+          combined + ", " + torepr(elt)
         end
       + "]"
     end,
@@ -628,8 +638,12 @@ end
 
 
 fun make-error(obj):
-  trace = for map(l from mklist(obj.trace)):
-    location(l.path, l.line, l.column)
+  trace = if has-field(obj, "trace"):
+    for map(l from mklist(obj.trace)):
+      location(l.path, l.line, l.column)
+    end
+  else:
+    []
   end
   loc = location(obj.path, obj.line, obj.column)
   if obj.system:
@@ -839,7 +853,7 @@ fun format-check-results(results-list):
         print("")
         when has-field(fail.exception, "trace"):
           print("Trace:")
-          for each(loc from fail.trace):
+          for each(loc from fail.exception.trace):
             print(loc)
           end
         end
