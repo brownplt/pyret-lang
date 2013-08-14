@@ -121,6 +121,8 @@ data List:
 
     filter(self, f): empty end,
 
+    find(self, f): none end,
+
     partition(self, f): { is-true: empty, is-false: empty } end,
 
     foldr(self, f, base): base end,
@@ -178,6 +180,8 @@ data List:
     end,
 
     partition(self, f): partition(f, self) end,
+
+    find(self, f): find(f, self) end,
 
     member(self, elt): (elt == self.first) or self.rest.member(elt) end,
 
