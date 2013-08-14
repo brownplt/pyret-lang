@@ -787,9 +787,7 @@ And the object was:
 
 (define (pyret-print o)
   (begin
-    (if (p-str? o)
-        (printf (string-append (string-append "\"" (p-str-s o)) "\"\n"))
-        (printf "~a\n" (to-string o)))
+    (printf "~a\n" (to-string o))
     nothing))
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
