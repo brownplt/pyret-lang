@@ -33,6 +33,7 @@
           in
           #:toplevel [toplevel #f]
           #:check [check #f]
+          #:indentation [indentation (indentation-mode)]
           #:type-env [type-env DEFAULT-ENV])
   (define desugar
     (cond
@@ -42,7 +43,7 @@
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
   (define well-formed-stx (well-formed parsed-stx))
-  (define indentation-stx (if (indentation-mode)
+  (define indentation-stx (if indentation
                               (indentation-check well-formed-stx)
                               well-formed-stx))
   (define desugared (desugar indentation-stx))
