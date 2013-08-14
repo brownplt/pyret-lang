@@ -5,9 +5,12 @@
   check-exn
   check-pyret-fail
   check-pyret-exn
+  check-pyret-exn/indent
   check-pyret-match
+  check-pyret-match/indent
   check-pyret-match/check
   check-pyret
+  check-pyret/indent
   compile-str
   parse-pyret
   eval-pyret
@@ -18,6 +21,7 @@
  (except-in rackunit check)
  racket/runtime-path
  (only-in "../lang/pyret-lang-racket.rkt" checkers)
+ "../parameters.rkt"
  "../lang/compile.rkt"
  "../lang/runtime.rkt"
  "../lang/tokenizer.rkt"
@@ -27,6 +31,7 @@
  "../lang/eval.rkt")
 
 (define verbose #f)
+(indentation-mode #f)
 (define (verbose! v) (set! verbose v))
 (define (print-test str)
   (when verbose
@@ -53,8 +58,6 @@
 
 (define (eval-pyret str)
   (print-test str)
-  ;; NOTE(dbp): because we expect there to be whitespace before paren exprs,
-  ;; in test context (where there is no #lang), we prepend everything with " "
   (py-eval (compile-str str)))
 
 (define (eval-pyret/check str)
@@ -79,6 +82,10 @@
 (define-simple-check (check-pyret str expected)
   (equal? (eval-pyret str) expected))
 
+(define-simple-check (check-pyret/indent str expected)
+  (parameterize ([indentation-mode #t])
+    (equal? (eval-pyret str) expected)))
+
 (define-simple-check (check-pyret-fail str expected)
   (not (equal? (eval-pyret str) expected)))
 
@@ -89,10 +96,29 @@
        (check-exn (regexp (regexp-quote message))
             (lambda () (eval-pyret str))))]))
 
+
+(define-syntax (check-pyret-exn/indent stx)
+  (syntax-case stx ()
+    [(_ str message)
+     (syntax/loc stx
+       (check-exn (regexp (regexp-quote message))
+            (lambda ()
+              (parameterize ([indentation-mode #t])
+                (eval-pyret str)))))]))
+
+
 (define-syntax (check-pyret-match stx)
   (syntax-case stx ()
     [(_ str expected)
      (syntax/loc stx (check-match (eval-pyret str) expected))]))
+
+(define-syntax (check-pyret-match/indent stx)
+  (syntax-case stx ()
+    [(_ str expected)
+     (syntax/loc stx (check-match
+                      (parameterize ([indentation-mode #t])
+                        (eval-pyret str))
+                        expected))]))
 
 (define-syntax (check-pyret-match/check stx)
   (syntax-case stx ()

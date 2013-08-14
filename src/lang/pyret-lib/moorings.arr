@@ -169,7 +169,10 @@ data List:
 
     length(self): 1 + self.rest.length() end,
 
-    each(self, f): f(self.first) self.rest.each(f) end,
+    each(self, f):
+      f(self.first)
+      self.rest.each(f)
+    end,
 
     map(self, f): f(self.first)^link(self.rest.map(f)) end,
 
@@ -338,7 +341,7 @@ fun partition(f, lst :: List):
 end
 
 fun find(f, lst :: List):
-  doc: "returns Some<elem> where eleme is the first elem in lst for which
+  doc: "returns Some<elem> where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
     none
@@ -799,7 +802,10 @@ fun run-checks(checks):
   nothing
 end
 
-fun clear-results(): all-results := empty nothing end
+fun clear-results():
+  all-results := empty
+  nothing
+end
 fun get-results(): {
   results: all-results,
   format(self): format-check-results(self.results) end

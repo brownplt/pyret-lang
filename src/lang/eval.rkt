@@ -16,12 +16,14 @@
   syntax/modresolve
   syntax/strip-context
   "ast.rkt"
+  "../parameters.rkt"
   "type-env.rkt"
   "get-syntax.rkt"
   "desugar.rkt"
   "desugar-check.rkt"
   "typecheck.rkt"
   "well-formed.rkt"
+  "indentation.rkt"
   "compile.rkt"
   "load.rkt"
   "runtime.rkt")
@@ -40,7 +42,10 @@
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
   (define well-formed-stx (well-formed parsed-stx))
-  (define desugared (desugar well-formed-stx))
+  (define indentation-stx (if (indentation-mode)
+                              (indentation-check well-formed-stx)
+                              well-formed-stx))
+  (define desugared (desugar indentation-stx))
   (define type-checked
     (if type-env
         (contract-check-pyret desugared type-env)
@@ -49,7 +54,7 @@
   (strip-context compiled))
 
 (define (repl-eval-pyret src in)
-  ;; the parameterize is stolen from 
+  ;; the parameterize is stolen from
   ;; http://docs.racket-lang.org/reference/eval.html?(def._((quote._~23~25kernel)._current-read-interaction))
   (parameterize ([read-accept-reader #t]
                  [read-accept-lang #f])
@@ -82,4 +87,3 @@
       [(p:p-opaque v) (racket-print v) (newline)]
       [(? p:p-base?) (printf "~a\n" (p:to-string val))]
       [_ (void)])))
-

@@ -33,8 +33,10 @@ end
 fun assert(testfun, message):
   result = testfun()
   if result:
-    print("Passed: ".append(message)) true
+    print("Passed: ".append(message))
+    true
   else:
-    print("Failed: ".append(message)) false
+    print("Failed: ".append(message))
+    false
   end
 end

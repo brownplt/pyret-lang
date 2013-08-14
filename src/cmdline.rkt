@@ -8,7 +8,9 @@
   pyret/lang/runtime
   pyret/lang/typecheck
   pyret/lang/well-formed
+  pyret/lang/indentation
   pyret/lang/eval
+  pyret/parameters
   ragg/support
   racket/cmdline
   racket/list
@@ -57,6 +59,10 @@
      (eprintf "[pyret] Error in well-formedness checking:\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc srclocs))]
+    [(exn:fail:pyret/indent message cms srclocs)
+     (eprintf "[pyret] Error in indentation checking:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (void (map print-loc srclocs))]
     [(p:exn:fail:pyret message cms srcloc system? val)
      (eprintf "[pyret] Runtime error:\n\n~a\n" message)
      (eprintf "At:\n")
@@ -97,6 +103,8 @@
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--no-checks" "Run without checks"
    (set! check-mode #f))
+  ("--no-indentation" "Run without indentation checking"
+   (indentation-mode #f))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
@@ -120,4 +128,3 @@
           (flush-output (current-output-port))
           (flush-output (current-error-port)))])
       (run))))
-
