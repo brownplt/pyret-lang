@@ -34,6 +34,9 @@
 (define (lam s args body)
   (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
+(define (meth s args body)
+  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+
 (define (add-matcher s base name variants)
   (define id-matched (gensym 'matched))
   (define id-val (gensym 'val))
@@ -142,12 +145,32 @@
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
+     (define (member->string m)
+      (match m
+        [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
+    (define (make-equals s brander fields)
+      (meth s (list 'self 'other)
+        (s-app s (s-dot s (s-id s 'builtins) 'data-equals)
+          (append
+            (list
+            (s-id s 'self)
+            (s-id s 'other)
+            (s-id s brander)
+            (s-list s (map member->string fields)))))))
     (match v
       [(s-singleton-variant s name with-members)
+       (define torepr
+        (meth s (list 'self)
+          (s-str s (symbol->string name))))
        (define brander-name (gensym name))
+       (define equals (make-equals s (make-checker-name name) (list)))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define base-obj
-         (s-obj s (append super-fields with-members)))
+         (s-obj s (append (list
+                            (s-data-field s (s-str s "_torepr") torepr)
+                            (s-data-field s (s-str s "_equals") equals))
+                          super-fields
+                          with-members)))
        (s-block s
          (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
@@ -160,6 +183,13 @@
                       (apply-brand s brander-name
                         (s-id s base-name))))))]
       [(s-variant s name members with-members)
+       (define torepr
+        (meth s (list 'self)
+          (s-app s (s-dot s (s-id s 'builtins) 'data-to-repr)
+             (list (s-id s 'self)
+                   (s-str s (symbol->string name))
+                   (s-list s (map member->string members))))))
+       (define equals (make-equals s (make-checker-name name) members))
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define args (map gensym (map s-bind-id members)))
@@ -168,7 +198,11 @@
           [(s-bind s _ val) (s-bind s new-name val)]))
        (define constructor-args (map replace-id members args))
        (define base-obj
-         (s-obj s (append super-fields with-members)))
+         (s-obj s (append (list
+                            (s-data-field s (s-str s "_torepr") torepr)
+                            (s-data-field s (s-str s "_equals") equals))
+                          super-fields
+                          with-members)))
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field

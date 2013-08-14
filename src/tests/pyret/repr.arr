@@ -42,3 +42,24 @@ check:
   torepr(d2(d2(d1, "bar"), "foo")) is 'd2(d2(d1, "bar"), "foo")'
   torepr(d1) is 'd1'
 end
+
+check:
+
+  data MyRepr:
+    | d1
+    | d4()
+    | d2(a :: MyRepr, b :: String)
+  end
+
+  torepr(d2(d1, "foo")) is 'd2(d1, "foo")'
+  torepr(d2(d2(d1, "bar"), "foo")) is 'd2(d2(d1, "bar"), "foo")'
+  torepr(d1) is 'd1'
+
+  data MyOtherRepr:
+    | d3(x :: MyRepr, y :: list.List)
+  end
+
+  torepr(d3(d1, ["1"])) is 'd3(d1, ["1"])'
+  torepr(d3(   d2( d4(), "2"),[ "1"])) is 'd3(d2(d4(), "2"), ["1"])'
+end
+

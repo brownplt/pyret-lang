@@ -78,11 +78,32 @@ where:
   eq("lists of prims", equiv([5], [5]), true)
 end
 
+fun data-to-repr(val, name, fields):
+  cases(List) fields:
+    | empty => name + "()"
+    | link(f, r) =>
+      name + "(" +
+      for fold(combined from torepr(val.[f]), key from r):
+        combined + ", " + torepr(val.[key])
+      end
+      + ")"
+  end
+end
+
+fun data-equals(self, other, brand, fields):
+  brand(other) and
+  for fold(acc from true, f from fields):
+    acc and (self.[f] == other.[f])
+  end
+end
+
 builtins = {
   keys: keys,
   has-field: has-field,
   mklist: mklist,
-  equiv: equiv
+  equiv: equiv,
+  data-to-repr: data-to-repr,
+  data-equals: data-equals
 }
 
 # LISTS

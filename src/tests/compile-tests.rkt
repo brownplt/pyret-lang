@@ -374,6 +374,8 @@
     end"
    "duplicate")
 
+  (check-pyret-match/check "pyret/data-equals.arr" _ 27 27 0 0 0)
+
   ))
 
 (define modules (test-suite "modules"
@@ -640,7 +642,7 @@
   (check-pyret "tostring(fun(x): x end)" (p:mk-str "fun (x): '' end"))
   (check-pyret "tostring(method(x): doc: 'yay' x end)" (p:mk-str "method (x): 'yay' end"))
 
-  (check-pyret-match/check "pyret/repr.arr" _ 21 21 0 0 0)
+  (check-pyret-match/check "pyret/repr.arr" _ 26 26 0 0 0)
 ))
 
 (define methods (test-suite "methods"
