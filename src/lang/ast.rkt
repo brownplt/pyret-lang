@@ -185,8 +185,8 @@ these metadata purposes.
 ;; s-colon-bracket : srcloc Expr Expr
 (struct s-colon-bracket (syntax obj field) #:transparent)
 
-;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member) block
-(struct s-data (syntax name params variants shared-members check) #:transparent)
+;; s-data : srcloc Symbol (Listof Symbol) (Listof Expr) (Listof s-variant) (Listof Member) block
+(struct s-data (syntax name params mixins variants shared-members check) #:transparent)
 
 ;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
 (struct s-variant (syntax name binds with-members) #:transparent)
@@ -261,7 +261,7 @@ these metadata purposes.
     [(s-bracket syntax obj field) syntax]
     [(s-colon syntax obj field) syntax]
     [(s-colon-bracket syntax obj field) syntax]
-    [(s-data syntax name params variants shared-members check) syntax]
+    [(s-data syntax name params mixins variants shared-members check) syntax]
     [(s-variant syntax name binds with-members) syntax]
     [(s-singleton-variant syntax name with-members) syntax]
     [(s-for-bind syntax bind value) syntax]

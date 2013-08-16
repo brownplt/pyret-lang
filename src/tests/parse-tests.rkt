@@ -439,27 +439,27 @@ line string\"" (s-str _ "multi\nline string"))
 (define data (test-suite "data"
 
   (check/block "data Foo: end"
-               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list) (list) (s-block _ _)))
   (check/block "data Foo: where: end"
-               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list) (list) (s-block _ _)))
 
   (check/block "  data Foo: | bar() end"
-               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
   (check/block "data NumList:
     | empty()
     | cons(first :: Number, rest :: NumList)
   end"
-               (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
+               (s-data _ 'NumList empty (list) (list (s-variant _ 'empty (list) (list))
                                                (s-variant _ 'cons (list (s-bind _ 'first (a-name _ 'Number))
                                                                         (s-bind _ 'rest (a-name _ 'NumList)))
                                                           (list)))
                        (list) (s-block _ _)))
-  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
+  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) empty (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
 
   (check/block
    "data List<a>: | cons(field, l :: List<a>) end"
-   (s-data _ 'List (list 'a)
+   (s-data _ 'List (list 'a) empty
            (list (s-variant
                   _
                   'cons
@@ -470,8 +470,20 @@ line string\"" (s-str _ "multi\nline string"))
                   (s-block _ _)))
 
   (check/block
+   "data Der deriving Eq, Show(true): | derCase1 end"
+   (s-data _ 'Der empty
+           (list (s-id _ 'Eq)
+                 (s-app _ (s-id _ 'Show) (list (s-bool _ #t))))
+           (list (s-singleton-variant
+                  _
+                  'derCase1
+                  (list)))
+           (list)
+           (s-block _ _)))
+
+  (check/block
    "data List: | empty end"
-   (s-data _ 'List (list)
+   (s-data _ 'List (list) empty
     (list (s-singleton-variant
            _
            'empty
@@ -481,7 +493,7 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block
    "data List: | empty with: length(self): 0 end end"
-   (s-data _ 'List (list)
+   (s-data _ 'List (list) empty
     (list (s-singleton-variant
            _
            'empty
@@ -491,7 +503,7 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block
    "data Foo: | bar() with: x(self): self end end"
-   (s-data _ 'Foo (list)
+   (s-data _ 'Foo (list) empty
            (list (s-variant _ 'bar (list)
                             (list (s-method-field _
                                                   (s-str _ "x")
@@ -508,7 +520,7 @@ line string\"" (s-str _ "multi\nline string"))
     sharing:
       z: 10
     end"
-   (s-data _ 'Foo (list) (list (s-variant _
+   (s-data _ 'Foo (list) empty (list (s-variant _
                                           'bar
                                           (list)
                                           (list (s-method-field _
@@ -523,14 +535,14 @@ line string\"" (s-str _ "multi\nline string"))
 
    (check/block
     "data Foo: | bar() where: 5 end"
-    (s-data _ 'Foo empty
+    (s-data _ 'Foo empty empty
             (list (s-variant _ 'bar (list) (list)))
             (list)
             (s-block _ (list (s-num _ 5)))))
 
      (check/block
       "data Foo: | bar() | baz() sharing: z: 10 where: end"
-      (s-data _ 'Foo empty
+      (s-data _ 'Foo empty empty
               (list (s-variant _ 'bar (list) (list))
                     (s-variant _ 'baz (list) (list)))
               (list (s-data-field _ (s-str _ "z") (s-num _ 10)))

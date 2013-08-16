@@ -30,10 +30,14 @@ where-clause: ["where:" block]
 
 check-expr: "check:" block "end"
 
-data-expr: "data" NAME ty-params ":" data-variant* data-sharing where-clause "end"
+data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause "end"
+data-mixins: ["deriving" mixins]
 data-variant: "|" NAME args data-with | "|" NAME data-with
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
+
+mixins: list-mixin* binop-expr
+list-mixin: binop-expr ","
 
 var-expr: "var" binding "=" binop-expr
 assign-expr: NAME ":=" binop-expr

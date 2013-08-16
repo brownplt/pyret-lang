@@ -144,8 +144,9 @@
      (begin
        (or (empty? stmts) (wf-last-stmt (last stmts)))
        (map wf stmts))]
-    [(s-data s name params variants shares check)
+    [(s-data s name params mixins variants shares check)
      (begin
+       (map wf mixins)
        (map wf-variant variants)
        (map wf-member shares)
        (well-formed/internal check #t))]

@@ -79,6 +79,7 @@ data Expr:
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
+      mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
       check :: Expr

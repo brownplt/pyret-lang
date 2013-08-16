@@ -88,8 +88,8 @@
     [(s-bracket syntax obj field) (begin (ic obj) (ic field))]
     [(s-colon syntax obj field) (ic obj)]
     [(s-colon-bracket syntax obj field) (begin (ic obj) (ic field))]
-    [(s-data syntax name params variants shared-members check)
-     (begin (map ic variants) (map ic shared-members) (ic check))]
+    [(s-data syntax name params mixins variants shared-members check)
+     (begin (map ic variants) (map ic mixins) (map ic shared-members) (ic check))]
     [(s-variant syntax name binds with-members)
      (map ic with-members)]
     [(s-singleton-variant syntax name with-members)

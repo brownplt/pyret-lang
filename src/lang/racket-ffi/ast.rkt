@@ -77,11 +77,12 @@
      (build s_program (tp-loc s) (map tp-header imports) (tp block))]
     [(s-block s stmts)
      (build s_block (tp-loc s) (map tp stmts))]
-    [(s-data s name params variants share-members check)
+    [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
         (symbol->string name)
         (map symbol->string params)
+        (map tp mixins)
         (map tp-variant variants)
         (map tp-member share-members)
         (tp check))]

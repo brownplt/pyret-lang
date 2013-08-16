@@ -257,7 +257,7 @@
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params variants share-members check-ignored)
+    [(s-data s name params mixins variants share-members check-ignored)
      (define brander-name (gensym name))
      (ds (s-block s
                   (flatten (list
@@ -447,7 +447,7 @@
     (match expr
       [(s-let _ (s-bind _ x _) _) (list x)]
       [(s-fun _ name _ _ _ _ _ _) (list name)]
-      [(s-data s name _ variants _ _)
+      [(s-data s name _ _ variants _ _)
        (cons name (flatten (map variant-ids variants)))]
       [else (list)]))
   (flatten (map _top-level-ids (s-block-stmts block))))

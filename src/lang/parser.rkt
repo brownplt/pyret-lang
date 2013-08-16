@@ -115,10 +115,11 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-where-clause #'check))]
-    [(data-expr "data" name params ":" variant ... sharing-part check "end")
+    [(data-expr "data" name params mixins ":" variant ... sharing-part check "end")
      (s-data (loc stx)
              (parse-name #'name)
              (parse-ty-params #'params)
+             (parse-mixins #'mixins)
              (map/stx parse-variant #'(variant ...))
              (parse-sharing #'sharing-part)
              (parse-where-clause #'check))]
@@ -212,6 +213,17 @@
      (map/stx parse-field #'(f1 ... lastfield))]
     [(fields (list-field f1 ",") ... lastfield ",")
      (map/stx parse-field #'(f1 ... lastfield))]))
+
+(define (parse-mixins stx)
+  (syntax-parse stx
+    #:datum-literals (data-mixins)
+    [(data-mixins) empty]
+    [(data-mixins "deriving" mixins) (parse-all-mixins #'mixins)]))
+(define (parse-all-mixins stx)
+  (syntax-parse stx
+    #:datum-literals (mixins list-mixin)
+    [(mixins (list-mixin m1 ",") ... lastmixin)
+     (map/stx parse-binop-expr #'(m1 ... lastmixin))]))
 
 (define (parse-app-args stx)
   (syntax-parse stx

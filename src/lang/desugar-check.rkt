@@ -16,7 +16,7 @@
     (match stmt
       [(s-fun s name _ _ _ _ _ check)
        (cons (check-info s name check) lst)]
-      [(s-data s name _ _ _ check)
+      [(s-data s name _ _ _ _ check)
        (cons (check-info s name check) lst)]
       [(s-check s body)
        (begin
@@ -105,8 +105,9 @@
               (s-let s (s-bind s id-result (a-blank)) last-expr)
               do-checks
               (s-id s id-result))))])]
-    [(s-data s name params variants shares check)
+    [(s-data s name params mixins variants shares check)
      (s-data s name params
+             (map ds mixins)
              (map ds-variant variants)
              (map ds-member shares)
              (s-block s (list)))]
