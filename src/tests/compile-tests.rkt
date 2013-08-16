@@ -194,7 +194,7 @@
 
   (check-pyret-match/check "pyret/cases/cases1.arr" _ 4 4 0 0 0)
   (check-pyret-match/check "pyret/cases/cases-list.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 3 3 0 0 0)
+  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 2 2 0 0 0)
 ))
 
 
