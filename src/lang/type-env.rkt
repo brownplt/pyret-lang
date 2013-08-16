@@ -55,6 +55,7 @@
      'Object
      'String
      'brander
+     'check-brand
      'is-nothing
      'nothing)))
 
