@@ -928,6 +928,10 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/test-ast.arr" _ 10 10 0 0 0)
 ))
 
+(define mixins (test-suite "mixins"
+  (check-pyret-match/check "pyret/mixins.arr" _ 9 9 0 0 0)
+))
+
 (define checks (test-suite "checks"
 
   (let ()
@@ -1007,6 +1011,7 @@ o2.m().called" true)
   ids-and-vars
   binary-operators
   ffi
+  mixins
   checks
   examples))
 

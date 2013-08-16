@@ -44,7 +44,7 @@
       (list (s-data-field s (s-str s "parameterize_add") add-fun)
             (s-data-field s (s-str s "parameterize_check") check-fun))))
 
-(define (variant-defs/list super-brand super-fields variants)
+(define (variant-defs/list super-brand mixins-names super-fields variants)
   (define (member->field m val)
     (s-data-field (s-bind-syntax m)
              (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
@@ -79,6 +79,20 @@
                        (map (lambda (field-name) (s-dot s (s-id s 'self) (s-bind-id field-name))) fields))))))
          (s-app s (s-id s 'else-clause) (list)))                     
       ))
+    (define local-mixins-names
+      (map (lambda (m) (gensym "mixin")) mixins-names))
+    (define (local-bind-mixins s)
+      (map (lambda (local-name name)
+             (s-let s (s-bind s local-name (a-blank))
+                    (s-if-else s
+                               (list
+                                (s-if-branch s (s-app s (s-id s 'Function) (list (s-id s name)))
+                                             (s-app s (s-id s name) (list))))
+                               (s-id s name)))) local-mixins-names mixins-names))
+    (define (fold-mixins s method base-obj)
+      (foldl (lambda (mixin obj)
+               (s-app s (s-dot s (s-id s mixin) method) (list obj))) base-obj local-mixins-names))
+    
     (match v
       [(s-singleton-variant s name with-members)
        (define torepr
@@ -96,16 +110,19 @@
                           super-fields
                           with-members)))
        (s-block s
-         (list
+         (flatten (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
+           (local-bind-mixins s)
            (make-checker s (make-checker-name name) name
                          (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
                     (apply-brand s super-brand
                       (apply-brand s brander-name
-                        (s-id s base-name))))))]
+                       (fold-mixins s 'brand
+                         (fold-mixins s 'extend
+                           (s-id s base-name)))))))))]
       [(s-variant s name members with-members)
        (define torepr
         (meth s (list 'self)
@@ -150,10 +167,13 @@
                      (symbol->string name)
                      (symbol->string name))
                     (s-block s
-                     (list
+                     (flatten (list
+                      (local-bind-mixins s)
                       (apply-brand s super-brand
                        (apply-brand s brander-name
-                        obj))))
+                       (fold-mixins s 'brand
+                         (fold-mixins s 'extend
+                           obj)))))))
                     (s-block s empty))))]))
   (map variant-defs variants))
 
@@ -259,14 +279,19 @@
     ;; NOTE(joe): generative...
     [(s-data s name params mixins variants share-members check-ignored)
      (define brander-name (gensym name))
+     (define mixins-names
+       (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
+     (define bind-mixins
+       (map (lambda (m-name m) (s-let s (s-bind s m-name (a-blank)) m)) mixins-names mixins))
      (ds (s-block s
                   (flatten (list
-                   (list (s-let s (s-bind s brander-name (a-blank))
+                   (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
-                   (variant-defs/list brander-name share-members variants)
-                   (list (s-let s (s-bind s name (a-blank))
+                   bind-mixins
+                   (variant-defs/list brander-name mixins-names share-members variants)
+                   (s-let s (s-bind s name (a-blank))
                                 (add-parameterizer s params variants
-                                  (s-dot s (s-id s brander-name) 'test)))))))))]
+                                  (s-dot s (s-id s brander-name) 'test)))))))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
