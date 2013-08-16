@@ -119,6 +119,7 @@
   String
   Bool
   Object
+  Nothing
   Function
   Method
   nothing)
@@ -871,5 +872,6 @@ And the object was:
 (mk-pred String p-str?)
 (mk-pred Bool p-bool?)
 (mk-pred Object p-object?)
+(mk-pred Nothing p-nothing?)
 (mk-pred Function p-fun?)
 (mk-pred Method p-method?)

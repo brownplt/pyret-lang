@@ -54,6 +54,7 @@
      'Number
      'Object
      'String
+     'Nothing
      'brander
      'check-brand
      'is-nothing
