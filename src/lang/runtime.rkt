@@ -243,6 +243,13 @@
     [arity-mismatch-args-list
      (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)]))
 
+(define-syntax-rule (lambda-arity-catcher (arg ...) e ...)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error (get-top-loc) (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
+
+
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
 ;; profiling and debugging line numbers for the created functions
 (define-syntax (pλ stx)
@@ -250,8 +257,8 @@
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
       (mk-fun
-        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
-        #,(syntax/loc stx (arity-catcher (_ arg ...) e ...))
+        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))
         doc))]))
 
 (define-syntax (pλ/internal stx)
@@ -259,8 +266,8 @@
     [(_ (loc) (arg ...) e ...)
      (quasisyntax/loc stx
       (mk-fun-nodoc
-        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
-        #,(syntax/loc stx (arity-catcher (_ arg ...) e ...))))]))
+        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))))]))
 
 (define-syntax (pμ stx)
   (syntax-case stx ()
