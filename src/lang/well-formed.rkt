@@ -221,6 +221,8 @@
 
     [(s-extend s super fields) (begin (wf super)
                                       (map wf-member fields))]
+    [(s-update s super fields) (begin (wf super)
+                                      (map wf-member fields))]
 
     [(s-obj s fields) (map wf-member fields)]
 

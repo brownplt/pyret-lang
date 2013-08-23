@@ -150,6 +150,8 @@ these metadata purposes.
 
 ;; s-extend : srcloc Expr (Listof Member)
 (struct s-extend (syntax super fields) #:transparent)
+;; s-update : srcloc Expr (Listof Member)
+(struct s-update (syntax super fields) #:transparent)
 ;; s-obj : srcloc (Listof Member)
 (struct s-obj (syntax fields) #:transparent)
 

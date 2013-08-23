@@ -63,6 +63,7 @@ data Expr:
       check :: Expr
     )
   | s_extend(l :: Loc, super :: Expr, fields :: List<Member>)
+  | s_update(l :: Loc, super :: Expr, fields :: List<Member>)
   | s_obj(l :: Loc, fields :: List<Member>)
   | s_list(l :: Loc, values :: List<Expr>)
   | s_app(l :: Loc, _fun :: Expr, args :: List<Expr>)

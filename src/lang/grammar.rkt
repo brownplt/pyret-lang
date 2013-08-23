@@ -57,7 +57,8 @@ binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr | left-app-expr
     | obj-expr | list-expr
-    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr | extend-expr
+    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
+    | extend-expr | update-expr
     | if-expr | cases-expr
     | for-expr | try-expr
 
@@ -103,6 +104,7 @@ colon-expr: expr ":" NAME
 colon-bracket-expr: expr ":" "[" binop-expr "]"
 
 extend-expr: expr "." "{" fields "}"
+update-expr: expr "<-" "{" fields "}"
 
 if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
 else-if: "else if" binop-expr ":" block

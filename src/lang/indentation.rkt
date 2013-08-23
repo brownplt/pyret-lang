@@ -78,6 +78,7 @@
     [(s-method-field syntax name args ann doc body check)
      (begin (ic body) (ic check))]
     [(s-extend syntax super fields) (begin (ic super) (map ic fields))]
+    [(s-update syntax super fields) (begin (ic super) (map ic fields))]
     [(s-obj syntax fields) (map ic fields)]
     [(s-list syntax values) (map ic values)]
     [(s-app syntax fun args) (begin (ic fun) (map ic args))]

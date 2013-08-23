@@ -161,7 +161,7 @@
       [whitespace
        (token WS lexeme #:skip? #t)]
       ;; misc
-      [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=")
+      [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=" "<-")
        (token lexeme lexeme)]
       ;; comments
       [(concatenation #\# (repetition 0 +inf.0

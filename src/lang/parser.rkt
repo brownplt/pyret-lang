@@ -387,6 +387,8 @@
             (parse-where-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
+    [(update-expr e "<-" "{" fields "}")
+     (s-update (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)
      (s-left-app (loc stx)
                  (parse-expr #'e)

@@ -160,6 +160,8 @@
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
+    [(s-extend s super fields) (s-update s (ds super) (map ds-member fields))]
+
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
     [(s-list s elts) (s-list s (map ds elts))]

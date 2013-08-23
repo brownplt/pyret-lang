@@ -213,6 +213,17 @@ line string\"" (s-str _ "multi\nline string"))
                         (list (s-data-field _ (s-str _ "length") (s-num _ 0))
                               (s-data-field _ (s-str _ "width") (s-num _ 0)))))
 
+  (check/block "5 <- {x: 5}"
+               (s-update _
+                         (s-num _ 5)
+                         (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+
+  (check/block "5 <- {x: 5, y: 10}"
+               (s-update _
+                         (s-num _ 5)
+                         (list (s-data-field _ (s-str _ "x") (s-num _ 5))
+                               (s-data-field _ (s-str _ "y") (s-num _ 10)))))
+
   (check/block "o:f"
                (s-colon _
                         (s-id _ 'o)

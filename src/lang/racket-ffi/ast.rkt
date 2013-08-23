@@ -199,6 +199,12 @@
         (tp super)
         (map tp-member fields))]
 
+    [(s-update s super fields)
+     (build s_update
+        (tp-loc s)
+        (tp super)
+        (map tp-member fields))]
+
     [(s-obj s fields)
      (build s_obj (tp-loc s) (map tp-member fields))]
 
@@ -429,6 +435,8 @@
       (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [(has-brand e s_extend)
       (tr-obj e s-extend (tr-loc l) (tr-expr super) (map tr-member fields))]
+     [(has-brand e s_update)
+      (tr-obj e s-update (tr-loc l) (tr-expr super) (map tr-member fields))]
      [(has-brand e s_obj)
       (tr-obj e s-obj (tr-loc l) (map tr-member fields))]
      [(has-brand e s_list)
