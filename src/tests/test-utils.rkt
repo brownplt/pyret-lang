@@ -31,7 +31,7 @@
  "../lang/eval.rkt")
 
 (define verbose #f)
-(indentation-mode #f)
+(current-indentation-mode #f)
 (define (verbose! v) (set! verbose v))
 (define (print-test str)
   (when verbose
@@ -83,7 +83,7 @@
   (equal? (eval-pyret str) expected))
 
 (define-simple-check (check-pyret/indent str expected)
-  (parameterize ([indentation-mode #t])
+  (parameterize ([current-indentation-mode #t])
     (equal? (eval-pyret str) expected)))
 
 (define-simple-check (check-pyret-fail str expected)
@@ -103,7 +103,7 @@
      (syntax/loc stx
        (check-exn (regexp (regexp-quote message))
             (lambda ()
-              (parameterize ([indentation-mode #t])
+              (parameterize ([current-indentation-mode #t])
                 (eval-pyret str)))))]))
 
 
@@ -116,7 +116,7 @@
   (syntax-case stx ()
     [(_ str expected)
      (syntax/loc stx (check-match
-                      (parameterize ([indentation-mode #t])
+                      (parameterize ([current-indentation-mode #t])
                         (eval-pyret str))
                         expected))]))
 

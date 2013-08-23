@@ -1,5 +1,9 @@
 #lang racket
 
-(provide indentation-mode)
+(provide
+  current-indentation-mode
+  current-check-mode)
 
-(define indentation-mode (make-parameter #t))
+(define current-check-mode (make-parameter #f))
+(define current-indentation-mode (make-parameter #t))
+

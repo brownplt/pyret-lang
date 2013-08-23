@@ -7,6 +7,7 @@
 
 (require
   racket/pretty
+  "parameters.rkt"
   "library/lang/reader.rkt")
 (provide pre-installer)
 (define LIB-BASE "src/lang/pyret-lib/")
@@ -22,7 +23,8 @@
     (printf "pyret setup: Compiling ~a -> ~a\n" lib-in lib-out)
     (define pyret-file (open-input-file lib-in))
     (define racket-file (open-output-file lib-out #:exists 'replace))
-    (pretty-write (syntax->datum (read-syntax lib-in pyret-file))
-                  racket-file)
+    (parameterize ([current-check-mode #f])
+      (pretty-write (syntax->datum (read-syntax lib-in pyret-file))
+                    racket-file))
     (close-output-port racket-file)
     (close-input-port pyret-file)))

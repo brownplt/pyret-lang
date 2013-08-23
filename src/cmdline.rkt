@@ -2,9 +2,9 @@
 
 (require
   pyret/lang/ffi-helpers
-  pyret/lang/settings
   pyret/lang/pyret
   (only-in pyret/lang/pyret-lang-racket checkers)
+  pyret/lang/reader
   pyret/lang/runtime
   pyret/lang/typecheck
   pyret/lang/well-formed
@@ -17,7 +17,6 @@
   racket/match
   racket/pretty
   racket/runtime-path
-  "lang/reader.rkt"
   racket/syntax)
 
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
@@ -91,8 +90,6 @@
        (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")])]
     ))
 
-(define (print-check-results results)
-  ((p:p-base-method (p:get-raw-field p:dummy-loc results "format")) results))
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
@@ -102,9 +99,9 @@
    (define pyret-file (open-input-file path))
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--no-checks" "Run without checks"
-   (set! check-mode #f))
+   (current-check-mode #f))
   ("--no-indentation" "Run without indentation checking"
-   (indentation-mode #f))
+   (current-indentation-mode #f))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
@@ -112,13 +109,8 @@
     (define (run)
       (cond
         [check-mode
-         (parameterize ([param-compile-check-mode #t]
-                        [current-load-relative-directory base])
-           (define results
-            (eval
-              (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
-              (make-fresh-namespace)))
-           (print-check-results results))]
+         (parameterize ([current-check-mode #t])
+          (dynamic-require pyret-file #f))]
         [else
          (dynamic-require pyret-file #f)]))
     (with-handlers

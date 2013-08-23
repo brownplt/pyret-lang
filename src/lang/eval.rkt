@@ -32,8 +32,8 @@
           src
           in
           #:toplevel [toplevel #f]
-          #:check [check #f]
-          #:indentation [indentation (indentation-mode)]
+          #:check [check (current-check-mode)]
+          #:indentation [indentation (current-indentation-mode)]
           #:type-env [type-env DEFAULT-ENV])
   (define desugar
     (cond
@@ -82,9 +82,15 @@
       [_ (void)])))
 
 
-(define (print-pyret val)
+(define ((print-pyret check-mode) val)
   (when (not (equal? val nothing))
-    (match val
-      [(p:p-opaque v) (racket-print v) (newline)]
-      [(? p:p-base?) (printf "~a\n" (p:to-string val))]
-      [_ (void)])))
+   (match val
+     [(p:p-opaque v) (racket-print v) (newline)]
+     [(? p:p-base?)
+      (cond
+        [check-mode
+         ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
+        [else
+         (printf "~a\n" (p:to-string val))])]
+     [_ (void)])))
+

@@ -9,7 +9,7 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
-  "settings.rkt"
+  "../parameters.rkt"
   "type-env.rkt"
   "compile.rkt"
   "desugar.rkt"
@@ -24,8 +24,8 @@
 ; NOTE(joe): Only the first file gets compiled in check mode, so this helper
 ; returns true the first time, and sets the parameter to be false after
 (define (test-check-mode)
-  (define old-value (param-compile-check-mode))
-  (param-compile-check-mode #f)
+  (define old-value (current-check-mode))
+  (current-check-mode #f)
   old-value)
 
 (define (bare-read-syntax src in #:check [check #f] #:type-env [env DEFAULT-ENV])
@@ -45,6 +45,6 @@
               #`(module src-syntax (file pyret-lang-racket-stx)
                   (r:require (r:only-in racket/base current-read-interaction current-print void))
                   (void (current-read-interaction repl-eval-pyret))
-                  (void (current-print print-pyret))
+                  (void (current-print (print-pyret #,(current-check-mode))))
                   #,(pyret->racket src in #:toplevel #t #:check (test-check-mode)))))]))
 
