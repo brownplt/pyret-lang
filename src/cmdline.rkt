@@ -99,7 +99,7 @@
    (define pyret-file (open-input-file path))
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--no-checks" "Run without checks"
-   (current-check-mode #f))
+   (set! check-mode #f))
   ("--no-indentation" "Run without indentation checking"
    (current-indentation-mode #f))
   #:args file-and-maybe-other-stuff
