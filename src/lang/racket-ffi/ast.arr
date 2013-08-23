@@ -118,11 +118,15 @@ data ForBind:
   | s_for_bind(l :: Loc, bind :: Bind, value :: Expr)
 end
 
+data VariantMember:
+  | s_variant_member(l :: Loc, _mutable :: Bool, bind :: Bind)
+end
+
 data Variant:
   | s_variant(
       l :: Loc,
       name :: String,
-      binds :: List<Bind>,
+      members :: List<VariantMember>,
       with_members :: List<Member>
     )
   | s_singleton_variant(

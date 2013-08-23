@@ -33,13 +33,17 @@
      [(s-cases-branch s name args blk)
       (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]))
   (define (tp-variant variant)
+    (define (tp-variant-member vm)
+      (match vm
+        [(s-variant-member l mutable? bind)
+         (build s_variant_member (tp-loc l) mutable? (tp-bind bind))]))
     (match variant
-      [(s-variant l name binds members)
+      [(s-variant l name members with-members)
        (build s_variant
           (tp-loc l)
           (symbol->string name)
-          (map tp-bind binds)
-          (map tp-member members))]
+          (map tp-variant-member members)
+          (map tp-member with-members))]
       [(s-singleton-variant l name members)
        (build s_singleton_variant
           (tp-loc l)
@@ -311,9 +315,13 @@
       (tr-obj b s-cases-branch (tr-loc l) (string->symbol name) (map tr-bind args) (tr-expr body))]
      [else (error (format "Couldn't match cases-branch: ~a" (p:to-string (ffi-unwrap b))))]))
   (define (tr-variant variant)
+    (define (tr-variant-member vm)
+      (cond
+        [(has-brand vm s_variant_member)
+         (tr-obj vm s-variant-member (tr-loc l) (ffi-unwrap _mutable) (tr-bind bind))]))
     (cond
      [(has-brand variant s_variant)
-      (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-bind binds) (map tr-member with_members))]
+      (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
      [(has-brand variant s_singleton_variant)
       (tr-obj variant s-singleton-variant (tr-loc l) (string->symbol name) (map tr-member with_members))]
      [else (error (format "Couldn't match variant: ~a" (p:to-string (ffi-unwrap variant))))]))

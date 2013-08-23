@@ -17,7 +17,7 @@
 (define round-trip-test #f)
 (set! round-trip-test #f)
 
-(define ast-test #f)
+(define ast-test #t)
 
 (define-syntax check-parse/fail
   (syntax-rules ()
