@@ -94,14 +94,17 @@
   (define (wf-bind b)
     (match b
      [(s-bind s name ann) (wf-ann ann)]))
+  (define (wf-variant-member vm)
+    (match vm
+     [(s-variant-member s mutable? bind) (wf-bind bind)]))
   (define (wf-variant var)
     (match var
      [(s-singleton-variant s name members)
       (map wf-member members)]
      [(s-variant s name binds members)
       (begin
-        (ensure-unique-ids binds)
-        (map wf-bind binds)
+        (ensure-unique-ids (map s-variant-member-bind binds))
+        (map wf-variant-member binds)
         (map wf-member members))]))
   (define (wf-member mem)
     (match mem

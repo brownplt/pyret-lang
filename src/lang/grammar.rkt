@@ -32,7 +32,10 @@ check-expr: "check:" block "end"
 
 data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause "end"
 data-mixins: ["deriving" mixins]
-data-variant: "|" NAME args data-with | "|" NAME data-with
+data-variant: "|" NAME variant-members data-with | "|" NAME data-with
+variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
+list-variant-member: variant-member ","
+variant-member: ["mutable"] binding
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
 

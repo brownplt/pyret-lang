@@ -76,7 +76,7 @@
     [(data-variant "|" name args with)
      (s-variant (loc stx)
                 (parse-name #'name)
-                (parse-args #'args)
+                (parse-variant-members #'args)
                 (parse-with #'with))]
     [(data-variant "|" name with)
      (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]))
@@ -183,6 +183,21 @@
     [(args "(" ")") empty]
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")")
      (map/stx parse-binding #'(arg1 ... lastarg))]))
+
+(define (parse-variant-member stx)
+  (syntax-parse stx
+    #:datum-literals (variant-member)
+    [(variant-member b)
+     (s-variant-member (loc stx) #f (parse-binding #'b))]
+    [(variant-member "mutable" b)
+     (s-variant-member (loc stx) #t (parse-binding #'b))]))
+
+(define (parse-variant-members stx)
+  (syntax-parse stx
+    #:datum-literals (variant-members list-variant-member)
+    [(variant-members "(" ")") empty]
+    [(variant-members "(" (list-variant-member vm1 ",") ... lastvm ")")
+     (map/stx parse-variant-member #'(vm1 ... lastvm))]))
 
 (define (parse-key stx)
   (syntax-parse stx

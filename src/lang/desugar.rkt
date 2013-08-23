@@ -123,22 +123,23 @@
                        (fold-mixins s 'brand
                          (fold-mixins s 'extend
                            (s-id s base-name)))))))))]
-      [(s-variant s name members with-members)
+      [(s-variant s name variant-members with-members)
+       (define id-members (map s-variant-member-bind variant-members))
        (define torepr
         (meth s (list 'self)
           (s-app s (s-dot s (s-id s 'builtins) 'data-to-repr)
              (list (s-id s 'self)
                    (s-str s (symbol->string name))
-                   (s-list s (map member->string members))))))
-       (define equals (make-equals s (make-checker-name name) members))
-       (define matcher (make-match s name members))
+                   (s-list s (map member->string id-members))))))
+       (define equals (make-equals s (make-checker-name name) id-members))
+       (define matcher (make-match s name id-members))
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define args (map gensym (map s-bind-id members)))
+       (define args (map gensym (map s-bind-id id-members)))
        (define (replace-id m new-name)
         (match m
           [(s-bind s _ val) (s-bind s new-name val)]))
-       (define constructor-args (map replace-id members args))
+       (define constructor-args (map replace-id id-members args))
        (define base-obj
          (s-obj s (append (list
                             (s-data-field s (s-str s "_torepr") torepr)
@@ -149,7 +150,7 @@
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field
-               members
+               id-members
                (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list

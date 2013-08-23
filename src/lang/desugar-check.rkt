@@ -75,12 +75,16 @@
   (define (ds-bind b)
     (match b
      [(s-bind s name ann) (s-bind s name (ds-ann ann))]))
+  (define (ds-variant-member vm)
+    (match vm
+     [(s-variant-member s mutable? bind)
+      (s-variant-member s mutable? (ds-bind bind))]))
   (define (ds-variant var)
     (match var
      [(s-singleton-variant s name members)
       (s-singleton-variant s name (map ds-member members))]
      [(s-variant s name binds members)
-      (s-variant s name (map ds-bind binds) (map ds-member members))]))
+      (s-variant s name (map ds-variant-member binds) (map ds-member members))]))
   (define (ds-member mem)
     (match mem
      [(s-data-field s name val) (s-data-field s (ds name) (ds val))]
