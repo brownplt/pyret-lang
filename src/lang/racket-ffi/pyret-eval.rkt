@@ -2,6 +2,9 @@
 
 (require
   racket/runtime-path
+  racket/match
+  racket/list
+  "../ast.rkt"
   "../eval.rkt"
   "../ffi-helpers.rkt"
   "../string-map.rkt"
@@ -28,7 +31,31 @@
         ns)))
   ns)
 
+(define (extend-env-with-dict env dict)
+  (foldr
+    (lambda (key running-env)
+      (update (string->symbol key) (binding p:dummy-loc (a-any) #f) running-env))
+    env
+    (string-map-keys dict)))
+
 (define (pyret-eval ast env settings)
+  (define (compile-and-run pyret-stx)
+   (define env-dict (p:get-dict env))
+   (define racket-stx
+     (with-handlers
+         ([exn:fail?
+           (lambda (e) (raise (p:pyret-error p:dummy-loc "eval-error" (format "An error occurred during parsing or typechecking in eval: ~a" (exn-message e)))))])
+       (stx->racket
+         pyret-stx
+         #:toplevel #f
+         #:check check-mode
+         #:indentation indentation
+         #:type-env (extend-env-with-dict LIBRARY-ENV env-dict))))
+   (define environment (extend-namespace-with-dict (make-fresh-namespace) env-dict))
+   (with-handlers
+       ([exn:fail?
+         (lambda (e) (raise (p:pyret-error p:dummy-loc "eval-error" (format "An error occurred while evaluating an eval: ~a" (exn-message e)))))])
+     (eval racket-stx environment)))
   (define (get-or-false name)
     (cond
       [(p:has-field? settings name)
@@ -37,19 +64,11 @@
   (define check-mode (get-or-false "check-mode")) 
   (define indentation (get-or-false "indentation")) 
   (define pyret-stx (ffi-unwrap ast))
-  (define env-dict (p:get-dict env))
-  (define racket-stx
-    (with-handlers
-        ([exn:fail?
-          (lambda (e) (raise (p:pyret-error p:dummy-loc "eval-error" "An error occurred during parsing or typechecking in eval")))])
-      (stx->racket
-        pyret-stx
-        #:toplevel #f
-        #:check check-mode
-        #:indentation indentation
-        #:type-env LIBRARY-ENV)))
-  (define environment (extend-namespace-with-dict (make-fresh-namespace) env-dict))
-  (eval racket-stx environment))
+  (match pyret-stx
+    [(s-prog s (? cons? headers) block)
+     (raise (p:pyret-error p:dummy-loc "eval-error" (format "Import and provide not allowed in eval")))]
+    [_ (compile-and-run pyret-stx)]))
+      
 
 (define eval-lib
   (p:mk-object (make-string-map
