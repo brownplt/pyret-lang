@@ -109,7 +109,8 @@
     (define (run)
       (cond
         [check-mode
-         (parameterize ([current-check-mode #t])
+         (parameterize ([current-check-mode #t]
+                        [current-print (print-pyret #t)])
           (dynamic-require pyret-file #f))]
         [else
          (dynamic-require pyret-file #f)]))

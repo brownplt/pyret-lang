@@ -795,6 +795,7 @@ And the object was:
     [(default _) (format "~a" v)]))
 
 (define to-string (lambda (o) (serialize o "tostring")))
+(define to-repr (lambda (o) (serialize o "_torepr")))
 
 (define tostring-pfun (pλ/internal (loc) (o)
   (mk-str (serialize o "tostring"))))
@@ -822,7 +823,7 @@ And the object was:
          (let*
           ([typname (p-str-s s)]
            [val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-string o)))])
+                              typname (to-repr o)))])
          (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f))))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]

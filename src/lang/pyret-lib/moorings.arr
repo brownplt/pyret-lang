@@ -97,13 +97,24 @@ fun data-equals(self, other, brand, fields):
   end
 end
 
+fun Eq():
+  b = brander()
+  {
+    extend: fun(obj):
+        obj.{eq(self, other): b.test(self) and b.test(other) end}
+      end,
+    brand: fun(obj): b.brand(obj) end
+  }
+end
+
 builtins = {
   keys: keys,
   has-field: has-field,
   mklist: mklist,
   equiv: equiv,
   data-to-repr: data-to-repr,
-  data-equals: data-equals
+  data-equals: data-equals,
+  Eq: Eq
 }
 
 # LISTS
@@ -378,6 +389,10 @@ fun partition(f, lst :: List):
   help(lst)
 end
 
+fun any(f, lst :: List):
+  is-some(find(f, lst))
+end
+
 fun find(f, lst :: List):
   doc: "returns Some<elem> where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
@@ -604,6 +619,7 @@ list = {
     repeat: repeat,
     filter: filter,
     partition: partition,
+    any: any,
     find: find,
     map: map,
     map2: map2,
