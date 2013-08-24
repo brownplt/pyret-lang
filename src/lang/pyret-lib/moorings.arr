@@ -816,6 +816,23 @@ fun check-pred(name, val1, pred):
   end
 end
 
+fun check-exn(name, thunk, pred):
+  try:
+    thunk()
+    current-results := 
+      current-results + [failure(name, "Thunk didn't throw an exception: " + tostring(thunk),
+                                   none)]
+  except(e):
+    if pred(e):
+      current-results := current-results + [success(name, none)]
+    else:
+      current-results := 
+        current-results + [failure(name, "Wrong exception thrown:" + tostring(e),
+                                     none)]
+    end
+  end
+end
+
 data CheckResult:
   | normal-result(name :: String, location :: Location, results :: List)
   | error-result(name :: String, location :: Location, results :: List, err :: Any)
@@ -936,6 +953,7 @@ checkers = {
   check-false: check-false,
   check-equals: check-equals,
   check-pred: check-pred,
+  check-exn: check-exn,
   run-checks: run-checks,
   format-check-results: format-check-results,
   clear-results: clear-results,

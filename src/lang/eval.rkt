@@ -5,7 +5,8 @@
   repl-eval-pyret
   pyret-to-printable
   print-pyret
-  pyret->racket)
+  pyret->racket
+  stx->racket)
 (require
   (only-in racket/bool false?)
   racket/match
@@ -28,9 +29,8 @@
   "load.rkt"
   "runtime.rkt")
 
-(define (pyret->racket
-          src
-          in
+(define (stx->racket
+          pyret-stx
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
@@ -40,9 +40,7 @@
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
   (define compile (if toplevel compile-pyret compile-expr))
-  (define pyret-stx (get-syntax src in))
-  (define parsed-stx (parse-eval pyret-stx))
-  (define well-formed-stx (well-formed parsed-stx))
+  (define well-formed-stx (well-formed pyret-stx))
   (define indentation-stx (if indentation
                               (indentation-check well-formed-stx)
                               well-formed-stx))
@@ -53,6 +51,22 @@
         desugared))
   (define compiled (compile type-checked))
   (strip-context compiled))
+
+(define (pyret->racket
+          src
+          in
+          #:toplevel [toplevel #f]
+          #:check [check (current-check-mode)]
+          #:indentation [indentation (current-indentation-mode)]
+          #:type-env [type-env DEFAULT-ENV])
+  (define pyret-stx (get-syntax src in))
+  (define parsed-stx (parse-eval pyret-stx))
+  (stx->racket
+    parsed-stx
+    #:toplevel toplevel
+    #:check check
+    #:indentation indentation
+    #:type-env type-env))
 
 (define (repl-eval-pyret src in)
   ;; the parameterize is stolen from
