@@ -99,6 +99,7 @@
       has-field?
       extend
       to-string
+      to-repr
       nothing
       pyret-true?
       dummy-loc))

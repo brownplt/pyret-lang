@@ -960,5 +960,15 @@ checkers = {
   run-checks: run-checks,
   format-check-results: format-check-results,
   clear-results: clear-results,
-  get-results: get-results
+  get-results: get-results,
+  normal-result: normal-result,
+  is-normal-result: is-normal-result,
+  error-result: error-result,
+  is-error-result: is-error-result,
+  success: success,
+  is-success: is-success,
+  failure: failure,
+  is-failure: is-failure,
+  err: err,
+  is-err: is-err
 }

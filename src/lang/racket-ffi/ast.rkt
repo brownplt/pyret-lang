@@ -450,7 +450,9 @@
               (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
      [(has-brand e s_for)
       (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
-     [else (error (format "Couldn't match expr: ~a" (p:to-string (ffi-unwrap e))))]))
+     [(has-brand e s_check)
+      (tr-obj e s-check (tr-loc l) (tr-expr body))]
+     [else (error (format "Couldn't match expr: ~a" (p:to-repr (ffi-unwrap e))))]))
   (cond
    [(has-type ast Program) (tr-program ast)]
    [(has-type ast Header) (tr-header ast)]

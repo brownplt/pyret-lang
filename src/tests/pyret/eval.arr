@@ -52,5 +52,17 @@ check:
   checkers.check-exn("Import not allowed",
     fun: eval("import 'foo.arr' as foo", {}, {}) end,
     fun(e): e.message.contains("Import and provide not allowed in eval") end)
+
+  check-results = eval("check: 5 is 5 end", {
+      checkers: checkers,
+      list: list,
+      error: error
+    }, {check-mode: true})
+  results = check-results.results
+  results.length() is 1
+  block-results = results.first
+  block-results.length() is 1
+  checkers.is-normal-result(block-results.first) is true
+  checkers.is-success(block-results.first.results.first) is true
 end
 
