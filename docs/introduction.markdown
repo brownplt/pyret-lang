@@ -345,7 +345,7 @@ running some block of code to produce a new value for each existing value, we ca
 
 There are also several other built in functions for this purpose:
 
-    x = for filter(elem from [1,2,3,4])
+    x = for filter(elem from [1,2,3,4]):
       elem < 3
     end
     # x is [1,2]
