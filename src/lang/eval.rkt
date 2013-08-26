@@ -103,7 +103,10 @@
      [(? p:p-base?)
       (cond
         [check-mode
-         ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
+         (cond
+          [(p:has-field? val "format")
+           ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
+          [else (void)])]
         [else
          (printf "~a\n" (p:to-string val))])]
      [_ (void)])))

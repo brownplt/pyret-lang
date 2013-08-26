@@ -4,6 +4,7 @@
   racket/runtime-path
   syntax/strip-context
   (only-in rnrs/io/ports-6 port-eof?)
+  "../../parameters.rkt"
   "../../lang/type-env.rkt"
   "../../lang/eval.rkt"
   "../../lang/pyret.rkt")
@@ -16,6 +17,10 @@
 (define-runtime-module-path pyret-lang-whalesong "../../lang/pyret-lang-whalesong.rkt")
 
 (define (my-read-syntax src in)
+  (when (current-whalesong-repl-print)
+   (void (current-check-mode #t))
+   (void (current-read-interaction repl-eval-pyret))
+   (void (current-print (print-pyret (current-check-mode)))))
   (cond
     [(port-eof? in) eof]
     [else
