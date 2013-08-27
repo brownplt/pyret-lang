@@ -70,29 +70,27 @@ data Date:
 sharing:  
   tostring(self): self.format(display-formats.iso-8601) end,
   format(self, fmt):
-    tz-sec = self.time-zone-offset.modulo(60)
-    tz-min = ((self.time-zone-offset - tz-sec)/60).modulo(60)
-    tz-hour = ((self.time-zone-offset - (60*tz-min) - tz-sec)/60).modulo(60)
+    neg = self.time-zone-offset < 0
+    tz = if neg: 0 - self.time-zone-offset else: self.time-zone-offset end
+    tz-sec = tz.modulo(60)
+    tz-min = ((tz - tz-sec)/60).modulo(60)
+    tz-hour = ((tz - (60*tz-min) - tz-sec)/3600).modulo(60)
     sign =
-      if tz-hour > 0: "+"
-      else: "-"
-      end
-    tz-hour-abs =
-      if tz-hour > 0: tz-hour
-      else: 0 - tz-hour
+      if neg: "-"
+      else: "+"
       end
     if fmt == display-formats.iso-8601:
       pad-left(4, self.year, "0") + pad-left(2, self.month, "0") + pad-left(2, self.day, "0")
         + "T"
         + pad-left(2, self.hour, "0") + pad-left(2, self.minute, "0") + pad-left(2, self.second, "0")
         + sign
-        + pad-left(2, tz-hour-abs, "0") + pad-left(2, tz-min, "0")
+        + pad-left(2, tz-hour, "0") + pad-left(2, tz-min, "0")
     else if fmt == display-formats.readable-iso-8601:
       pad-left(4, self.year, "0") + "-" + pad-left(2, self.month, "0") + "-" + pad-left(2, self.day, "0")
         + "T"
         + pad-left(2, self.hour, "0") + ":" + pad-left(2, self.minute, "0") + ":" + pad-left(2, self.second, "0")
         + sign
-        + pad-left(2, tz-hour-abs, "0") + ":" + pad-left(2, tz-min, "0")
+        + pad-left(2, tz-hour, "0") + ":" + pad-left(2, tz-min, "0")
     else:
       "unknown format"
     end
