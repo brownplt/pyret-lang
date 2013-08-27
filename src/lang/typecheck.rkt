@@ -259,11 +259,14 @@
      (s-try s (cc try) bind (cc-env catch catch-env))]
 
     [(s-assign s name expr)
-     (match (lookup env name)
-      [(binding s-def _ #f)
-       (tc-error (bad-assign-msg name) s s-def)]
-      [(binding _ ann #t)
-       (s-assign s name (wrap-ann-check s ann (cc expr)))])]
+     (if (bound? env name)
+         (match (lookup env name)
+          [(binding s-def _ #f)
+           (tc-error (bad-assign-msg name) s s-def)]
+          [(binding _ ann #t)
+           (s-assign s name (wrap-ann-check s ann (cc expr)))])
+         (tc-error (format "Assigning to unbound variable: ~a" name) s))]
+
 
     [(s-app s fun args)
      (s-app s (cc fun) (map cc args))]
