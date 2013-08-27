@@ -1,6 +1,6 @@
 #lang pyret
 
-import racket as R
+import Racket as R
 provide {
   current-time: current-time,
   current-seconds: current-seconds,
