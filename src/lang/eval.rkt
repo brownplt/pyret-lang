@@ -75,7 +75,7 @@
                  [read-accept-lang #f])
     (if (not (byte-ready? in))
         eof
-        (pyret->racket src in #:toplevel #t #:type-env #f))))
+        (pyret->racket src in #:toplevel #t #:type-env #f #:check #f))))
 
 (define (simplify-pyret val)
   (match val
