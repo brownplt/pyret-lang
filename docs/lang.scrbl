@@ -23,7 +23,10 @@ its expression forms.  The entire grammar is included at the end of the
 document for reference, with its pieces introduced individually first.  This
 document cannot be read beginning-to-end assuming no experience with Pyret.
 Rather, it explains in detail the semantics and grammar of each syntactic form,
-and is heavily cross-referential when describing features that interact.
+and is heavily cross-referential when describing features that interact.  This
+document also occasionally references ``Captain Teach'', which is a programming
+and learning environment that uses Pyret, and has some of its own environmental
+behavior that is worth noting.
 
 @section{Language Constructs}
 
@@ -278,7 +281,7 @@ end
 is equivalent to
 
 @justcode{
-fun f(x, y):
+f = fun(x, y):
   x + y
 end
 }
@@ -347,6 +350,9 @@ The functions @tt{is-node} and @tt{is-leaf} are detectors for the values
 created by the individual constructors: @tt{is-node} will only return @tt{true}
 for values created by calling @tt{node}, and correspondingly for @tt{leaf}.
 
+Here is a longer example of the behavior of detectors, field access, and
+constructors:
+
 @justcode{
 data BTree:
   | node(value :: Number, left :: BTree, right :: BTree)
@@ -373,21 +379,62 @@ where:
 end
 }
 
-
-In the first case of @tt{data-variant}, the individual variants' @tt{NAME}s are
-bound to functions with the same arguments as in the @tt{args} list after the
-name (if args are given)
+A data definition can also define, for each instance as well as for the data
+definition as a whole, a set of methods.  This is done with the keywords
+@tt{with:} and @tt{sharing:}.  Methods defined on a variant via @tt{with:} will
+only be defined for instances of that variant, while methods defined on the
+union of all the variants with @tt{sharing:} are defined on all instances.  For
+example:
 
 @justcode{
 data BTree:
-  | node(value :: Number, left :: BTree, right :: BTree) with
+  | node(value :: Number, left :: BTree, right :: BTree) with:
     size(self): 1 + self.left.size() + self.right.size() end
-  | leaf
-    size(self): 0 end
-sharing
-  
+  | leaf(value :: Number) with:
+    size(self): 1 end,
+    increment(self): leaf(self.value + 1) end
+sharing:
+  values-equal(self, other):
+    self.value == other.value
+  end
+where:
+  a-btree = node(1, leaf(2), node(3, leaf(4)))
+  a-btree.values-equal(leaf(1)) is true
+  leaf(1).values-equal(a-btree) is true
+  a-btree.size() is 3
+  leaf(0).size() is 1
+  leaf(1).increment() is leaf(2)
+  a-btree.increment() # raises error: field increment not found.
 end
 }
+
+A data definition also sets up some special methods that are used by other
+constructs in the language.  Most of the time, you shouldn't need to call these
+directly, but they are present on each instance:
+
+@itemlist[
+  @item{@tt{tostring} is a method that produces a string
+        representation of the value}
+
+  @item{@tt{_torepr} is a method that produces a string that represents the
+  value in ``constructor form''.  This is distinct from @tt{tostring} in that,
+  for example, the @tt{tostring} of @tt{"a-str"} is the string value
+  @tt{"a-str"}, but the @tt{_torepr} is @tt{"\"a-str\""}.  This produces more
+  meaningful REPL output, among other things.}
+ 
+  @item{@tt{_equals} is a method used to check equality with other values.  It
+  is called implicitly by the @tt{==} operator.}
+
+  @item{@tt{_match} is a method that is used by @seclink["s:cases" "cases
+  expressions"].}
+
+]
+
+@;{ TODO: singleton variants and mixins }
+
+@subsubsection[#:tag "s:var-expr"]{Variable Declarations}
+
+@subsubsection[#:tag "s:assign-expr"]{Assignment Statements}
 
 @subsection{Expressions}
 
@@ -429,14 +476,116 @@ them, they are checked before the body of the function starts evaluating, in
 order from left to right.  If an annotation fails, an exception is thrown.
 
 @justcode{
-fun add1(x :: Number):
+add1 = fun(x :: Number):
   x + 1
 end
-f("not-a-number")
+add1("not-a-number")
 # Error: expected a Number and got "not-a-number"
 }
 
+Functions values are created with a @tt{"_doc"} field which holds the string
+value of the @tt{doc-string} written in the function expression.  So:
+
+@justcode{
+documented = fun():
+  doc: "Evaluates to a standards-compliant random number"
+  4
+end
+
+check:
+  documented._doc is "Evaluates to a standards-compliant random number"
+end
+}
+
 @subsubsection[#:tag "s:apply-expr"]{Application Expressions}
+
+Function application expressions have the following grammar:
+
+@justcode{
+app-expr: expr app-args
+app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
+app-arg-elt: binop-expr ","
+}
+
+An application expression is an expression (usually expected to evaluate to a
+function), followed by a comma-separated list of arguments enclosed in
+parentheses.  It first evaluates the arguments in left-to-right order, then
+evaluates the function position.  If the function position is a function value,
+the number of provided arguments is checked against the number of arguments
+that the function expects.  If they match, the arguments names are bound to the
+provided values.  If they don't, an exception is thrown.
+
+Note that there is @emph{no space} allowed before the opening parenthesis of
+the application.  If you make a mistake, Pyret will complain:
+
+@justcode{
+f(1) # This is the function application expression f(1)
+f (1) # This is the id-expr f, followed by the paren-expr (1)
+# The second form yields a well-formedness error that there
+# are two expressions on the same line
+}
+
+@subsubsection[#:tag "s:left-apply-expr"]{Caret Application Expressions}
+
+An application can also be written with a caret symbol @tt{^}:
+
+@justcode{
+left-app-expr: expr "^" left-app-fun-expr app-args
+left-app-fun-expr: id-expr | id-expr "." NAME
+}
+
+This is merely syntactic sugar for putting the initial @tt{expr} as the first
+argument of an application to the @tt{left-app-fun-expr}.  These are equivalent:
+
+@justcode{
+obj^f(1, 2, 3)
+}
+
+@justcode{
+f(obj, 1, 2, 3)
+}
+
+This allows for patterns like method-chaining on values that do not have
+methods defined.  For example, one could write a function @tt{add-each} that
+adds to each element of a list, and another function @tt{square} that
+squares them, and chain them linearly:
+
+@justcode{
+check:
+  [1,2,3]^inc(1)^square() is [4, 9, 16]
+end
+}
+
+
+@margin-note{
+The grammar of @tt{left-app-fun-expr} is restricted to avoid confusing
+constructions, like:
+
+@justcode{
+obj^f(1)(2)
+}
+
+in which it would be unclear if the function to call is @tt{f} or @tt{f(1)}.}
+
+@subsubsection[#:tag "s:obj-expr"]{Object Expressions}
+
+@subsubsection[#:tag "s:list-expr"]{List Expressions}
+
+@subsubsection[#:tag "s:dot-expr"]{Dot Expressions}
+
+@subsubsection[#:tag "s:colon-expr"]{Colon Expressions}
+
+@subsubsection[#:tag "s:extend-expr"]{Extend Expressions}
+
+@subsubsection[#:tag "s:if-expr"]{If Expressions}
+
+@subsubsection[#:tag "s:cases-expr"]{Cases Expressions}
+
+@subsubsection[#:tag "s:for-expr"]{For Expressions}
+
+@subsubsection[#:tag "s:try-expr"]{Try Expressions}
+
+
 
 @subsection[#:tag "s:annotations"]{Annotations}
 
