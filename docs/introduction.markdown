@@ -500,9 +500,9 @@ same methods on all variants, because using them might be hard! Here are
 examples of the two ways:
 
     data List:
-      | empty with
+      | empty with:
         length(self): 0 end
-      | link(first, rest) with
+      | link(first, rest) with:
         length(self): 1 + self.rest.length() end
     sharing:
       my-special-method(self):
