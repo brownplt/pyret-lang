@@ -425,7 +425,7 @@ directly, but they are present on each instance:
   @item{@tt{_equals} is a method used to check equality with other values.  It
   is called implicitly by the @tt{==} operator.}
 
-  @item{@tt{_match} is a method that is used by @seclink["s:cases" "cases
+  @item{@tt{_match} is a method that is used by @seclink["s:cases-expr" "cases
   expressions"].}
 
 ]
@@ -438,7 +438,7 @@ directly, but they are present on each instance:
 
 @subsection{Expressions}
 
-@subsubsection{Lambda Expressions}
+@subsubsection[#:tag "s:lam-expr"]{Lambda Expressions}
 
 The grammar for a lambda expression is:
 
@@ -527,6 +527,15 @@ f (1) # This is the id-expr f, followed by the paren-expr (1)
 
 @subsubsection[#:tag "s:left-apply-expr"]{Caret Application Expressions}
 
+@margin-note{
+The grammar of @tt{left-app-fun-expr} is restricted to avoid confusing
+constructions, like:
+
+@justcode{
+obj^f(1)(2)
+}
+
+in which it would be unclear if the function to call is @tt{f} or @tt{f(1)}.}
 An application can also be written with a caret symbol @tt{^}:
 
 @justcode{
@@ -557,31 +566,261 @@ end
 }
 
 
-@margin-note{
-The grammar of @tt{left-app-fun-expr} is restricted to avoid confusing
-constructions, like:
-
-@justcode{
-obj^f(1)(2)
-}
-
-in which it would be unclear if the function to call is @tt{f} or @tt{f(1)}.}
 
 @subsubsection[#:tag "s:obj-expr"]{Object Expressions}
 
+Object expressions map field names to values:
+
+@justcode{
+obj-expr: "{" fields "}" | "{" "}"
+fields: list-field* field [","]
+list-field: field ","
+field: key ":" binop-expr
+     | key args return-ann ":" doc-string block where-clause "end"
+key: NAME | "[" binop-expr "]"
+}
+
+@margin-note{The ability to define fields as computed strings using
+@tt{["brack" + "ets"]} is deprecated, and will be replaced in the future by
+other reflective operations on objects and dictionaries.}
+
+A comma-separated sequence of fields enclosed in @tt{{}} creates an object; we
+refer to the expression as an @emph{object literal}.  There are two types of
+fields: @emph{data} fields and @emph{method} fields.  A data field in an object
+literal simply creates a field with that name on the resulting object, with its
+value equal to the right-hand side of the field.  A method field
+
+@justcode{
+key args return-ann ":" doc-string block where-clause "end"
+}
+
+is syntactic sugar for:
+
+@justcode{
+key ":" "method" args return-ann ":" doc-string block where-clause "end"
+}
+
+That is, it's just special syntax for a data field that contains a method
+value.
+
+@margin-note{The overriding of later fields is expected to be deprecated and
+replaced with an error.}
+
+The fields are evaluated in order.  If the same field appears more than once,
+the later use overrides the earlier use, but both field expressions are still
+evaluated.
+
 @subsubsection[#:tag "s:list-expr"]{List Expressions}
+
+A list expression is a sequence of comma-separated expressions enclosed in
+@tt{[]}:
+
+@justcode{
+list-elt: binop-expr ","
+list-expr: "[" [list-elt* binop-expr] "]"
+}
+
+An empty list literal @tt{[]} is syntactic sugar for @tt{list.empty}.
+
+A list with elements in it is transformed into a sequence of nested calls to
+@tt{list.link}, ending in @tt{list.empty}.  For example:
+
+@justcode{
+[1,2,3]
+}
+
+becomes
+
+@justcode{
+list.link(1, list.link(2, list.link(3, list.empty)))
+}
+
+See the documentation for @seclink["s:lists" "lists"] for more information on
+the values created by @tt{list.link} and @tt{list.empty}.
 
 @subsubsection[#:tag "s:dot-expr"]{Dot Expressions}
 
+A dot expression is any expression, followed by a dot and name:
+
+@justcode{
+dot-expr: expr "." NAME
+}
+
+A dot expression evaluates the @tt{expr} to a value @tt{val}, and then does one
+of three things:
+
+@itemlist[
+  @item{Raises an exception, if @tt{NAME} is not a field of @tt{expr}}
+
+  @item{Evaluates to the value stored in @tt{NAME}, if @tt{NAME} is present and
+  not a method value}
+
+  @item{
+  
+    If the @tt{NAME} field is a method value, evaluates to a function that is
+    the @emph{method binding} of the method value to @tt{val}.  For a method 
+    
+    @justcode{
+      m = method(self, x): body end
+    }
+
+    The @emph{method binding} of @tt{m} to a value @tt{v} is equivalent to:
+
+    @justcode{
+      (fun(self): fun(x): body end end)(v)
+    }
+
+    What this detail means is that you can look up a method and it
+    automatically closes over the value on the left-hand side of the dot.  This
+    bound method can be freely used as a function.
+
+    For example:
+
+    @justcode{
+      o = { m(self, x): self.y + x end, y: 22 }
+      check:
+        the-m-method-closed-over-o = o.m
+        m(5) is 27
+      end
+    }
+  }
+]
+
 @subsubsection[#:tag "s:colon-expr"]{Colon Expressions}
 
+The colon expression is like the dot expression, but does not perform method
+binding.  It is written as a dot expression, but with @tt{:} rather than @tt{.}.
+
+@justcode{
+colon-expr: expr ":" NAME
+}
+
 @subsubsection[#:tag "s:extend-expr"]{Extend Expressions}
+
+The extend expression consists of an base expression and a list of fields to
+extend it with:
+
+@justcode{
+extend-expr: expr "." "{" fields "}"
+}
+
+The extend expression first evaluates @tt{expr} to a value @tt{val}, and then
+creates a new object with all the fields of @tt{val} and @tt{fields}.  If a
+field is present in both, the new field is used.
+
+Examples:
+
+@justcode{
+check:
+  o = {x : "original-x", y: "original-y"}
+  o2 = o.{x : "new-x", z : "new-z"}
+  o2.x is "new-x"
+  o2.y is "original-y"
+  o2.z is "new-z"
+end
+}
 
 @subsubsection[#:tag "s:if-expr"]{If Expressions}
 
 @subsubsection[#:tag "s:cases-expr"]{Cases Expressions}
 
+A cases expression consists of a datatype (in parentheses), an expression to
+inspect (before the colon), and a number of branches.  It is intended to be
+used in a structure parallel to a data definition.
+
+@justcode{
+cases-expr: "cases" (PARENSPACE|PARENNOSPACE) expr-check ")" expr-target ":"
+    cases-branch*
+    ["|" "else" "=>" block]
+  "end"
+cases-branch: "|" NAME [args] "=>" block
+}
+
+A @tt{cases} expression first evaluates @tt{expr-check} to get a checker for
+the type of the value to branch on.  Typically, this should be the name of a
+datatype like @tt{list.List}.  The expression then evaluates @tt{expr-target},
+and checks if it matches the given annotation.  If it does not, an exception is
+raise, otherwise it proceeds to match it against the given cases.
+
+@margin-note{ Under the hood, @tt{cases} is calling the @tt{_match} function of
+the target value, which is defined for each variant and performs the
+appropriate dispatch.}
+
+Cases should use the names of the variants of the given data type as the
+@tt{NAME}s of each branch.  The branches will be tried, in order, checking if
+the given value is an instance of that variant.  If it matches, the fields of
+the variant are bound, in order, to the provided @tt{args}, and the right-hand
+side of the @tt{=>} is evaluated in that extended environment.  An exception
+results if the wrong number of arguments are given.
+
+An optional @tt{else} clause can be provided, which is evaluated if no cases
+match.  If no @tt{else} clause is provided, a default is used that raises an
+exception.
+
+For example, a cases expression on lists looks like:
+
+@justcode{
+check:
+  result = cases(list.List) [1,2,3]:
+    | empty => "empty"
+    | link(f, r) => "link"
+  end
+  result is "link
+
+  result2 = cases(list.List) [1,2,3]:
+    | empty => "empty"
+    | else => "else"
+  end
+  result2 is else
+
+  result3 = cases(list.List) empty:
+    | empty => "empty"
+    | else => "else"
+  end
+  result3 is "empty"
+end
+}
+
 @subsubsection[#:tag "s:for-expr"]{For Expressions}
+
+For expressions consist of the @tt{for} keyword, followed by a list of
+@tt{binding from expr} clauses in parentheses, followed by a block:
+
+@justcode{
+for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":"
+  block
+"end"
+for-bind-elt: for-bind ","
+for-bind: binding "from" binop-expr
+}
+
+The for expression is just syntactic sugar for a
+@seclink["s:lam-expr"]{@tt{lam-expr}} and a @seclink["s:app-expr"]{@tt{app-expr}}.  An expression
+
+@justcode{
+for fun-expr(arg1 :: ann1 from expr1, ...) -> ann-return:
+  block
+end
+}
+
+is equivalent to:
+
+@justcode{
+fun-expr(fun(arg1 :: ann1, ...) -> ann-return: block end, expr1, ...)
+}
+
+Using a @tt{for-expr} can be a more natural way to call, for example, list
+iteration functions because it puts the identifier of the function and the
+value it draws from closer to one another.  Use of @tt{for-expr} is a matter of
+style; here is an example that compares @tt{fold} with and without @tt{for}:
+
+@justcode{
+for fold(sum from 0, number from [1,2,3,4]):
+  sum + number
+end
+
+fold(fun(sum, number): sum + number end, [1,2,3,4])
+}
 
 @subsubsection[#:tag "s:try-expr"]{Try Expressions}
 
@@ -589,6 +828,71 @@ in which it would be unclear if the function to call is @tt{f} or @tt{f(1)}.}
 
 @subsection[#:tag "s:annotations"]{Annotations}
 
+Annotations in Pyret express intended types values will have at runtime.
+They appear next to identifiers anywhere a @tt{binding} is specified in the
+grammar, and if an annotation is present adjacent to an identifier, the program
+is compiled to raise an error if the value bound to that identifier would
+behave in a way that violates the annotation.  The annotation provides a
+@emph{guarantee} that either the value will behave in a particular way, or the
+program will raise an exception.
+
+@subsubsection[#:tag "s:name-ann"]{Name Annotations}
+
+Some annotations are simply names.  For example, a
+@seclink["s:data-expr"]{@tt{data declaration}} binds the name of the
+declaration as a value suitable for use as a name annotation.  There are
+built-in name annotations, too:
+
+@justcode{
+Any
+Number
+String
+Bool
+}
+
+Each of these names represents a particular type of runtime value, and using
+them in annotation position will check each time the identifier is bound that
+the value is of the right type.
+
+@justcode{
+x :: Number = "not-a-number"
+# Error: expected Number and got "not-a-number"
+}
+
+@tt{Any} is an annotation that allows any value to be used.  It semantically
+equivalent to not putting an annotation on an identifier, but it allows a
+program to clearly signal that no restrictions are intended for the identifier
+it annotates.
+
+@subsubsection[#:tag "s:arrow-ann"]{Arrow Annotations}
+
+An arrow annotation is used to describe the behavior of functions.  It consists
+of a list of comma-separated argument types followed by an ASCII arrow and
+return type:
+
+@justcode{
+arrow-ann: (PARENSPACE|PARENNOSPACE) arrow-ann-elt* ann "->" ann ")"
+arrow-ann-elt: ann ","
+}
+
+When an arrow annotation appears in a binding, that binding position
+@emph{wraps} values that are bound to it in a new function.  This new function,
+when applied, checks that the arguments match the provided list of argument
+annotations, and if any fail, raises an exception.  When (or if) the function
+finishes evaluating to a value, it checks that the resulting value matches the
+@emph{return annotation}, which appears after the arrow, again signalling an
+exception if it does not.
+
+@justcode{
+# This line does not cause an error yet
+f :: (Number -> String) = fun(x): x + 1 end
+
+# This raises an exception "Expected Number, got 'not-a-number'"
+f("not-a-number")
+
+# This raises an exception "Expected String, got 4"
+f(3)
+}
 
 @subsection{Complete Grammar}
 
