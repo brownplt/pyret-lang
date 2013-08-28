@@ -630,7 +630,7 @@ You can also define arbitrary predicates. For example:
       if n == 0:
         []
       else:
-        link(e, replicate(n - 1))
+        link(e, replicate(n - 1, e))
       end
     end
 
