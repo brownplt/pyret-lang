@@ -1,6 +1,6 @@
 #lang racket
 
-(require "ast.rkt" "pretty.rkt" "type-env.rkt")
+(require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt")
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
 (struct exn:fail:pyret/tc exn:fail (srclocs)
@@ -147,7 +147,7 @@
        [(cons (binding other-loc _ #t) #f)
         (tc-error (mixed-id-type-msg id) loc other-loc)]
        [(cons (binding other-loc _ b) b)
-        (if (equal? id 'self)
+        (if (or (current-allow-shadowed-vars) (equal? id 'self))
             (void)
             (tc-error (shadow-id-msg id) loc other-loc))])]))
 

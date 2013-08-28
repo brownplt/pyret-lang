@@ -4,6 +4,7 @@
   rackunit
   rackunit/text-ui
 	 "test-utils.rkt"
+   "../parameters.rkt"
 	 "../lang/runtime.rkt")
 
 (verbose! #f)
@@ -595,7 +596,9 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
-  #;(check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 17 17 0 0 0)
+  ;; NOTE(joe): allow this here because checkers
+  (parameterize [(current-allow-shadowed-vars #t)]
+    (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 23 23 0 0 0))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
   (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))
