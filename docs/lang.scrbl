@@ -5,7 +5,50 @@
   racket/list
   racket/file
   scribble/core
-  (only-in racket/string string-join))
+  (only-in racket/string string-join)
+  pyret/lang/load
+  pyret/lang/runtime
+  pyret/lang/ffi-helpers
+  pyret/lang/ast
+  racket/match
+  (rename-in "renderer.arr" (%PYRET-PROVIDE renderer)))
+@(define (pretty ast)
+  (define lines 
+    (ffi-unwrap ((p:p-base-app (p:get-raw-field p:dummy-loc renderer "get-pretty-str"))
+          (p:p-opaque ast))))
+
+  (apply joincode lines))
+@(define (get-decl ast name)
+  (define (name-matches? sym) (equal? sym name))
+  (match ast
+    [(s-prog _ _ (s-block _ stmts))
+     (findf (lambda (s)
+      (match s
+        [(s-fun _ (? name-matches? test-name) _ _ _ _ _ _) s]
+        [(s-data _ (? name-matches? test-name) _ _ _ _ _) s]
+        [_ #f])) stmts)]))
+
+@(define (pretty-fun fun)
+  (match fun
+    [(s-fun loc name params args ann doc _ check)
+     (pretty (s-fun loc name params args ann "" (s-block loc '()) check))]))
+@(define (label-fun fun (prefix ""))
+  (match fun
+    [(s-fun loc name params args ann doc _ check)
+     (toc-target-element #f @(tt (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
+
+@(define (pretty-data data)
+  (define (simplify-variant v)
+    (match v
+      [(s-singleton-variant loc name with) (s-singleton-variant loc name empty)]
+      [(s-variant loc name args with) (s-variant loc name args empty)]))
+  (match data
+    [(s-data loc name params mixins variants _ _)
+     (pretty (s-data loc name params mixins (map simplify-variant variants) empty (s-block loc empty)))]))
+@(define (label-data data (prefix ""))
+  (match data
+    [(s-data loc name _ _ _ _ _)
+     (toc-target-element #f @(tt (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
 
 
 @(define (joincode . stx)
@@ -901,5 +944,55 @@ f(3)
 
 @section{Libraries}
 
-@toc-target-element[#f "list.foldr" (list 'list-foldr "list.foldr")]
+Pyret has several built-in libraries that provide both datatypes and functions.
+
+@subsection[#:tag "s:lists"]{@tt{list}}
+
+Pyret lists are defined via a data declaration:
+
+@(label-data (get-decl moorings-ast 'List))
+@(pretty-data (get-decl moorings-ast 'List))
+
+All of the functions in this section are available on the @tt{list} object, and
+help manipulate lists.
+
+@(define moorings-ast (parse-pyret (file->string (collection-file-path "lang/pyret-lib/moorings.arr" "pyret"))))
+
+@(flatten (for/list ((name '(
+    range
+    repeat
+    filter
+    partition
+    any
+    find
+    map
+    map2
+    map3
+    map4
+    map_n
+    map2_n
+    map3_n
+    map4_n
+    each
+    each2
+    each3
+    each4
+    each_n
+    each2_n
+    each3_n
+    each4_n
+    fold
+    fold2
+    fold3
+    fold4
+)))
+  (define f (get-decl moorings-ast name))
+  (list (label-fun f "list.")
+        (nested (para (s-fun-doc f))
+                (pretty-fun f)))))
+
+@subsection{@tt{Option}}
+
+@(label-data (get-decl moorings-ast 'Option))
+@(pretty-data (get-decl moorings-ast 'Option))
 

@@ -218,7 +218,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(first, rest :: List) with:
+  | link(first :: Any, rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -345,18 +345,16 @@ fun range(start, stop):
   end
 end
 
-fun repeat(n :: Number, e :: Any):
+fun repeat(n :: Number, e :: Any) -> List:
   doc: "creates a list with n copies of e"
   if n > 0:       link(e, repeat(n - 1, e))
   else if n == 0: empty
   else:           raise("repeat: can't have a negative argument'")
   end
 where:
-  eq = checkers.check-equals
-
-  eq("repeat 0", repeat(0, 10), [])
-  eq("repeat 3", repeat(3, -1), [-1, -1, -1])
-  eq("repeat 1", repeat(1, "foo"), ["foo"])
+  repeat(0, 10) is []
+  repeat(3, -1) is [-1, -1, -1]
+  repeat(1, "foo") is ["foo"]
 end
 
 fun filter(f, lst :: List):
@@ -389,12 +387,13 @@ fun partition(f, lst :: List):
   help(lst)
 end
 
-fun any(f, lst :: List):
+fun any(f :: (Any -> Bool), lst :: List):
+  doc: "returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 end
 
-fun find(f, lst :: List):
-  doc: "returns Some<elem> where elem is the first elem in lst for which
+fun find(f :: (Any -> Bool), lst :: List):
+  doc: "returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
     none
@@ -405,6 +404,13 @@ fun find(f, lst :: List):
       find(f, lst.rest)
     end
   end
+where:
+  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
+  find(fun(elt): true end, ["find-me"]) is some("find-me")
+  find(fun(elt): elt > 4 end, [1,2,3]) is none
+  find(fun(elt): true end, []) is none
+  find(fun(elt): false end, []) is none
+  find(fun(elt): false end, [1]) is none
 end
 
 fun map(f, lst :: List):
