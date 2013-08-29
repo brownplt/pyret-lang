@@ -345,7 +345,7 @@ running some block of code to produce a new value for each existing value, we ca
 
 There are also several other built in functions for this purpose:
 
-    x = for filter(elem from [1,2,3,4])
+    x = for filter(elem from [1,2,3,4]):
       elem < 3
     end
     # x is [1,2]
@@ -500,9 +500,9 @@ same methods on all variants, because using them might be hard! Here are
 examples of the two ways:
 
     data List:
-      | empty with
+      | empty with:
         length(self): 0 end
-      | link(first, rest) with
+      | link(first, rest) with:
         length(self): 1 + self.rest.length() end
     sharing:
       my-special-method(self):

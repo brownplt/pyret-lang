@@ -27,11 +27,13 @@
   (define (tp-if-branch b)
    (match b
      [(s-if-branch s tst blk)
-      (build s_if_branch (tp-loc s) (tp tst) (tp blk))]))
+      (build s_if_branch (tp-loc s) (tp tst) (tp blk))]
+     [_ (error (format "Not an if-branch: ~a" b))]))
   (define (tp-cases-branch b)
    (match b
      [(s-cases-branch s name args blk)
-      (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]))
+      (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]
+     [_ (error (format "Not a cases-branch: ~a" b))]))
   (define (tp-variant variant)
     (define (tp-variant-member vm)
       (match vm
@@ -48,7 +50,8 @@
        (build s_singleton_variant
           (tp-loc l)
           (symbol->string name)
-          (map tp-member members))]))
+          (map tp-member members))]
+      [_ (error (format "Not a variant: ~a" variant))]))
   (define (tp-member m)
     (match m
       [(s-data-field s name e)
@@ -61,10 +64,12 @@
           (tp-ann ann)
           doc
           (tp body)
-          (tp check))]))
+          (tp check))]
+       [_ (error (format "Not a member: ~a" m))]))
   (define (tp-bind b)
     (match b
-      [(s-bind s id a) (build s_bind (tp-loc s) (symbol->string id) (tp-ann a))]))
+      [(s-bind s id a) (build s_bind (tp-loc s) (symbol->string id) (tp-ann a))]
+      [_ (error (format "Not a bind: ~a" b))]))
   (define (tp-header header)
     (match header
       [(s-import s (? symbol? path) name)
@@ -245,7 +250,20 @@
     [(s-num s n) (build s_num (tp-loc s) n)]
     [(s-str s str) (build s_str (tp-loc s) str)]
     [(s-bool s b) (build s_bool (tp-loc s) b)]
-    [(s-id s x) (build s_id (tp-loc s) (symbol->string x))]))
+    [(s-id s x) (build s_id (tp-loc s) (symbol->string x))]
+    [(s-data-field s name e)
+     (build s_data_field (tp-loc s) (tp name) (tp e))]
+    [(s-method-field s name args ann doc body check)
+     (printf "Matching a method-field: ~a\n" ast)
+     (build s_method_field
+        (tp-loc s)
+        (tp name)
+        (map tp-bind args)
+        (tp-ann ann)
+        doc
+        (tp body)
+        (tp check))]
+    [_ (error "No transformation for ~a" ast)]))
 
 (define (tp-ann ann)
   (match ann
@@ -466,7 +484,9 @@
               (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
      [(has-brand e s_for)
       (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
-     [else (error (format "Couldn't match expr: ~a" (p:to-string (ffi-unwrap e))))]))
+     [(has-brand e s_check)
+      (tr-obj e s-check (tr-loc l) (tr-expr body))]
+     [else (error (format "Couldn't match expr: ~a" (p:to-repr (ffi-unwrap e))))]))
   (cond
    [(has-type ast Program) (tr-program ast)]
    [(has-type ast Header) (tr-header ast)]

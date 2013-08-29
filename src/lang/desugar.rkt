@@ -417,6 +417,16 @@
         (lam s (list) (ds e2))
         (build-location s)))]
 
+    [(s-op s 'opraises e1 e2)
+     (s-app
+      s
+      (s-bracket s (s-id s 'checkers) (s-str s "check-raises"))
+      (list
+        (s-str s (pretty (s-op s 'opraises e1 e2)))
+        (lam s (list) (ds e1))
+        e2
+        (build-location s)))]
+
     [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
 
     [(s-op s 'op<> e1 e2)

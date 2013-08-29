@@ -12,24 +12,24 @@ end
 # BUILTINS
 
 fun mklist(obj):
-  doc: "creates a List from something with `first` and `rest` fields, recursively"
+  doc: "Creates a List from something with `first` and `rest` fields, recursively"
   if obj.is-empty: empty
   else:            link(obj.first, mklist(obj.rest))
   end
 end
 
 fun keys(obj):
-  doc: "returns a List of the keys of an object, as strings"
+  doc: "Returns a List of the keys of an object, as strings"
   mklist(prim-keys(obj))
 end
 
 fun has-field(obj, name):
-  doc: "returns true if the object has a field with the name specified"
+  doc: "Returns true if the object has a field with the name specified"
   prim-has-field(obj, name)
 end
 
 fun num-keys(obj):
-  doc: "returns the Number of fields in an object"
+  doc: "Returns the Number of fields in an object"
   prim-num-keys(obj)
 end
 
@@ -174,15 +174,15 @@ end
 data List:
   | empty with:
 
-    length(self): 0 end,
+    length(self) -> Number: 0 end,
 
-    each(self, f): nothing end,
+    each(self, f :: (Any -> Nothing)) -> Nothing: nothing end,
 
-    map(self, f): empty end,
+    map(self, f :: (Any -> Any)) -> List: empty end,
 
-    filter(self, f): empty end,
+    filter(self, f :: (Any -> Bool)) -> List: empty end,
 
-    find(self, f): none end,
+    find(self, f :: (Any -> Bool)) -> Option: none end,
 
     partition(self, f): { is-true: empty, is-false: empty } end,
 
@@ -218,7 +218,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(first, rest :: List) with:
+  | link(first :: Any, rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -310,7 +310,7 @@ data List:
 
 sharing:
   push(self, elt):
-    doc: "adds an element to the front of the list, returning a new list"
+    doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
   _plus(self, other): self.append(other) end
@@ -334,7 +334,7 @@ where:
 end
 
 fun range(start, stop):
-  doc: "creates a list of numbers, starting with start, ending with stop-1"
+  doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start < stop:       link(start, range(start + 1, stop))
   else if start == stop: empty
   else if start > stop:  raise("range: start greater than stop: ("
@@ -345,22 +345,20 @@ fun range(start, stop):
   end
 end
 
-fun repeat(n :: Number, e :: Any):
-  doc: "creates a list with n copies of e"
+fun repeat(n :: Number, e :: Any) -> List:
+  doc: "Creates a list with n copies of e"
   if n > 0:       link(e, repeat(n - 1, e))
   else if n == 0: empty
   else:           raise("repeat: can't have a negative argument'")
   end
 where:
-  eq = checkers.check-equals
-
-  eq("repeat 0", repeat(0, 10), [])
-  eq("repeat 3", repeat(3, -1), [-1, -1, -1])
-  eq("repeat 1", repeat(1, "foo"), ["foo"])
+  repeat(0, 10) is []
+  repeat(3, -1) is [-1, -1, -1]
+  repeat(1, "foo") is ["foo"]
 end
 
 fun filter(f, lst :: List):
-  doc: "returns the subset of lst for which f(elem) is true"
+  doc: "Returns the subset of lst for which f(elem) is true"
   if is-empty(lst):
     empty
   else:
@@ -373,7 +371,7 @@ fun filter(f, lst :: List):
 end
 
 fun partition(f, lst :: List):
-  doc: "splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   fun help(inner-lst):
     if is-empty(inner-lst):
       { is-true: [], is-false: [] }
@@ -389,12 +387,13 @@ fun partition(f, lst :: List):
   help(lst)
 end
 
-fun any(f, lst :: List):
+fun any(f :: (Any -> Bool), lst :: List):
+  doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 end
 
-fun find(f, lst :: List):
-  doc: "returns Some<elem> where elem is the first elem in lst for which
+fun find(f :: (Any -> Bool), lst :: List):
+  doc: "Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
     none
@@ -405,10 +404,17 @@ fun find(f, lst :: List):
       find(f, lst.rest)
     end
   end
+where:
+  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
+  find(fun(elt): true end, ["find-me"]) is some("find-me")
+  find(fun(elt): elt > 4 end, [1,2,3]) is none
+  find(fun(elt): true end, []) is none
+  find(fun(elt): false end, []) is none
+  find(fun(elt): false end, [1]) is none
 end
 
 fun map(f, lst :: List):
-  doc: "returns a list made up of f(elem) for each elem in lst"
+  doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
     empty
   else:
@@ -417,7 +423,7 @@ fun map(f, lst :: List):
 end
 
 fun map2(f, l1 :: List, l2 :: List):
-  doc: "returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
+  doc: "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
   if is-empty(l1) or is-empty(l2):
     empty
   else:
@@ -426,7 +432,7 @@ fun map2(f, l1 :: List, l2 :: List):
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
-  doc: "returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
+  doc: "Returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
@@ -435,7 +441,7 @@ fun map3(f, l1 :: List, l2 :: List, l3 :: List):
 end
 
 fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
-  doc: "returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
+  doc: "Returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
@@ -444,7 +450,7 @@ fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun map_n(f, n :: Number, lst :: List):
-  doc: "returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
+  doc: "Returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
   if is-empty(lst):
     empty
   else:
@@ -672,6 +678,8 @@ data Error:
     name(self): "No cases matched" end
   | invalid-case(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Invalid case" end
+  | eval-error(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Eval Error" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
@@ -696,6 +704,7 @@ fun make-error(obj):
     if (type == "opaque"): opaque-error(msg, loc, trace)
     else if (type == "field-not-found"): field-not-found(msg, loc, trace)
     else if (type == "field-non-string"): field-non-string(msg, loc, trace)
+    else if (type == "eval-error"): eval-error(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
   else: obj.value
@@ -722,13 +731,21 @@ error = {
 
 data Option:
   | none with:
-      orelse(self, v): v end,
-      andthen(self, f): self end,
-      tostring(self): "None" end
+      orelse(self, v :: Any):
+        doc: "Return the default provided value"
+        v
+      where:
+        none.orelse("any value") is "any value"
+      end,
+      andthen(self, f): self end
   | some(value) with:
-      orelse(self, v): self.value end,
-      andthen(self, f): f(self.value) end,
-      tostring(self): "Some(" + tostring(self.value) + ")" end
+      orelse(self, v :: Any):
+        doc: "Return self.value, rather than the default"
+        self.value
+      where:
+        some("value").orelse("unused default") is "value"
+      end,
+      andthen(self, f): f(self.value) end
 end
 
 option = {
@@ -747,6 +764,9 @@ data Result:
 end
 
 var current-results = empty
+fun add-result(result :: Result):
+  current-results := current-results + [result]
+end
 
 fun check-is(name, thunk1, thunk2, loc):
   try:
@@ -755,26 +775,54 @@ fun check-is(name, thunk1, thunk2, loc):
       val2 = thunk2()
       try:
         if val1 == val2:
-          current-results := current-results + [success(name, some(loc))]
+          add-result(success(name, some(loc)))
         else:
-          current-results := current-results +
-            [failure(
-               name,
-               "Values not equal: \n" +
-                 tostring(val1) +
-                 "\n\n" +
-                 tostring(val2),
-               some(loc)
-             )]
+          add-result(
+            failure(
+              name,
+              "Values not equal: \n" +
+                torepr(val1) +
+                "\n\n" +
+                torepr(val2),
+              some(loc)
+            ))
         end
       except(e):
-        current-results := current-results + [err(name, e, some(loc))]
+        add-result(err(name, e, some(loc)))
       end
     except(e):
-      current-results := current-results + [err(name, e, some(loc))]
+      add-result(err(name, e, some(loc)))
     end
   except(e):
-    current-results := current-results + [err(name, e, some(loc))]
+    add-result(err(name, e, some(loc)))
+  end
+end
+
+fun check-raises(name, thunk, expected-str :: String, loc):
+  doc: "Check that thunk raises either a string that contains expected-str,
+        or an exception with a message that contains expected-str"
+  fun bad-err(actual):
+    add-result(failure(name, "Wrong error message.  The test expected:\n"
+                              + torepr(expected-str) 
+                              + "\nBut this was actually raised:\n"
+                              + torepr(actual),
+                       some(loc)))
+  end
+  try:
+    val1 = thunk()
+    add-result(failure(name, "No exception raised.  The test expected " + torepr(expected-str), some(loc)))
+  except(e):
+    if String(e) and e.contains(expected-str):
+      add-result(success(name, some(loc)))
+    else if Error(e):
+      if e.message.contains(expected-str):
+        add-result(success(name, some(loc)))
+      else:
+        bad-err(e.message)
+      end
+    else:
+      bad-err(e)
+    end
   end
 end
 
@@ -813,6 +861,23 @@ fun check-pred(name, val1, pred):
     end
   except(e):
     current-results := current-results + [err(name, e, none)]
+  end
+end
+
+fun check-exn(name, thunk, pred):
+  try:
+    thunk()
+    current-results := 
+      current-results + [failure(name, "Thunk didn't throw an exception: " + tostring(thunk),
+                                   none)]
+  except(e):
+    if pred(e):
+      current-results := current-results + [success(name, none)]
+    else:
+      current-results := 
+        current-results + [failure(name, "Wrong exception thrown:" + tostring(e),
+                                     none)]
+    end
   end
 end
 
@@ -932,12 +997,24 @@ end
 
 checkers = {
   check-is: check-is,
+  check-raises: check-raises,
   check-true: check-true,
   check-false: check-false,
   check-equals: check-equals,
   check-pred: check-pred,
+  check-exn: check-exn,
   run-checks: run-checks,
   format-check-results: format-check-results,
   clear-results: clear-results,
-  get-results: get-results
+  get-results: get-results,
+  normal-result: normal-result,
+  is-normal-result: is-normal-result,
+  error-result: error-result,
+  is-error-result: is-error-result,
+  success: success,
+  is-success: is-success,
+  failure: failure,
+  is-failure: is-failure,
+  err: err,
+  is-err: is-err
 }

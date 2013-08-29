@@ -14,7 +14,7 @@ fun matcher(v):
   end
 end
 
-sum = for list.fold(sum from 0, i from list.range(0, 10000)):
+total-sum = for list.fold(sum from 0, i from list.range(0, 10000)):
   choice = i.modulo(3)
   if choice == 0:
     sum + matcher(var1(1, 2))
@@ -25,4 +25,4 @@ sum = for list.fold(sum from 0, i from list.range(0, 10000)):
   end
 end
 
-print(sum)
+print(total-sum)

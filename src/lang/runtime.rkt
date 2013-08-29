@@ -34,8 +34,6 @@
 
 (define (sqr x) (* x x))
 
-(define pi 3.1415926) ;; NOTE(joe): good enough for government work
-
 ;; NOTE(joe): slow enough for government work
 (define (string-contains str substr)
   (define strlen (string-length str))
@@ -99,6 +97,7 @@
       has-field?
       extend
       to-string
+      to-repr
       nothing
       pyret-true?
       dummy-loc))
@@ -113,6 +112,7 @@
               [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
+              [gensym-pfun gensym]
               [p-else else])
   Any
   Number
@@ -681,21 +681,31 @@ And the object was:
           ("_minus" . ,(mk-num-2 - 'minus))
           ("_divide" . ,(mk-num-2 / 'divide))
           ("_times" . ,(mk-num-2 * 'times))
-          ("modulo" . ,(mk-num-2 modulo 'modulo))
-          ("truncate" . ,(mk-num-1 truncate 'truncate))
-          ("sin" . ,(mk-num-1 sin 'sin))
-          ("cos" . ,(mk-num-1 cos 'cos))
-          ("sqr" . ,(mk-num-1 sqr 'sqr))
-          ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
-          ("floor" . ,(mk-num-1 floor 'floor))
-          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
           ("_torepr" . ,(mk-prim-fun number->string '_torepr mk-str (p-num-n) (n) (p-num?)))
-          ("expt" . ,(mk-num-2 expt 'expt))
           ("_equals" . ,(mk-prim-fun-default = 'equals mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?) (mk-bool #f)))
           ("_lessthan" . ,(mk-num-2-bool < 'lessthan))
           ("_greaterthan" . ,(mk-num-2-bool > 'greaterthan))
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
-          ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))))))
+          ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))
+          ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
+          ("modulo" . ,(mk-num-2 modulo 'modulo))
+          ("truncate" . ,(mk-num-1 truncate 'truncate))
+          ("abs" . ,(mk-num-1 abs 'abs))
+          ("max" . ,(mk-num-2 max 'max))
+          ("min" . ,(mk-num-2 min 'min))
+          ("sin" . ,(mk-num-1 sin 'sin))
+          ("cos" . ,(mk-num-1 cos 'cos))
+          ("tan" . ,(mk-num-1 tan 'tan))
+          ("asin" . ,(mk-num-1 asin 'asin))
+          ("acos" . ,(mk-num-1 acos 'acos))
+          ("atan" . ,(mk-num-1 atan 'atan))
+          ("sqr" . ,(mk-num-1 sqr 'sqr))
+          ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
+          ("ceiling" . ,(mk-num-1 ceiling 'ceiling))
+          ("floor" . ,(mk-num-1 floor 'floor))
+          ("log" . ,(mk-num-1 log 'log))
+          ("exp" . ,(mk-num-1 exp 'exp))
+          ("expt" . ,(mk-num-2 expt 'expt))))))
   meta-num-store)
 
 ;; Pyret's char-at just returns a single character string
@@ -715,8 +725,13 @@ And the object was:
   (when (not meta-str-store)
     (set! meta-str-store
       (make-string-map
-        `(("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
-          ("_plus" . ,(mk-prim-fun string-append 'plus mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+         `(("_plus" . ,(mk-prim-fun string-append 'plus mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_lessequal" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_greaterequal" . ,(mk-prim-fun string>=? 'greaterequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
+          ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("substring" . ,(mk-prim-fun substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
@@ -725,11 +740,6 @@ And the object was:
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
           ("_torepr" . ,(mk-prim-fun (lambda (x) (format "\"~a\"" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
-          ("_lessequal" . ,(mk-prim-fun string<=? 'lessequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
-          ("_lessthan" . ,(mk-prim-fun string<? 'lessthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
-          ("_greaterthan" . ,(mk-prim-fun string>? 'greaterthan mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
-          ("_greaterequal" . ,(mk-prim-fun string>=? 'greaterequals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
-          ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
       ))))
   meta-str-store)
 
@@ -780,8 +790,8 @@ And the object was:
         otherwise))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
-    [(p-method _ _ _ _) (serialize-internal v (λ () "fun(): \"no string for this function\" end"))]
-    [(p-fun _ _ _ _) (serialize-internal v (λ () "method(): \"no string for this method\" end"))]
+    [(p-method _ _ _ _) (serialize-internal v (λ () "method(): end"))]
+    [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
@@ -809,6 +819,11 @@ And the object was:
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
+(define (throw-type-error! typname o)
+  (define val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-repr o))))
+  (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f)))
+
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
@@ -820,11 +835,8 @@ And the object was:
          ;; NOTE(dbp): not sure how to give good reporting
          ;; NOTE(joe): This is better, but still would be nice to highlight
          ;;  the call site as well as the destination
-         (let*
-          ([typname (p-str-s s)]
-           [val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o)))])
-         (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f))))]
+         (let ([typname (p-str-s s)])
+          (throw-type-error! typname o)))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
@@ -853,6 +865,13 @@ And the object was:
   (meta-bool)
   (meta-str))
 
+(define gensym-pfun (pλ (s)
+  "Generate a random string with the given prefix"
+  (cond
+    [(p-str? s)
+     (mk-str (symbol->string (gensym (p-str-s s))))]
+    [else (throw-type-error! "String" s)])))
+
 (define p-true (p-bool no-brands meta-bool-store (bad-app "true") (bad-meth "true") #t))
 (define p-false (p-bool no-brands meta-bool-store (bad-app "false") (bad-meth "false") #f))
 ;; mk-bool : Boolean -> Value
@@ -860,6 +879,7 @@ And the object was:
   (if b p-true p-false))
 (define p-else p-true)
 (define p-pi (mk-num pi))
+(define p-e (mk-num e))
 
 (define Any (pλ/internal (loc) (_) p-true))
 

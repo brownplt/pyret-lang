@@ -52,7 +52,7 @@ binop-expr: not-expr | binop-expr binop binop-expr | expr
 not-expr: "not" expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
-     | "<>"  | "<"  | ">" | "and" | "or" | "is"
+     | "<>"  | "<"  | ">" | "and" | "or" | "is" | "raises"
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr | left-app-expr

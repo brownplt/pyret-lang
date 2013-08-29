@@ -8,7 +8,6 @@
   racket/splicing
   racket/syntax
   "ast.rkt"
-  "runtime.rkt"
   "compile-helpers/find.rkt"
   "compile-helpers/lift-constants.rkt")
 
