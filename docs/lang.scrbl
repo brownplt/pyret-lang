@@ -49,14 +49,23 @@
   (match data
     [(s-data loc name params mixins variants _ _)
      (pretty (s-data loc name params mixins (map simplify-variant variants) empty (s-block loc empty)))]))
+
+@(define (get-all-methods data variant-name)
+  (match data
+    [(s-data loc name params mixins variants _ _)
+     (define with-members (filter-map (lambda (v) (variant-matches v variant-name)) variants))
+     (when (< (length with-members) 1)
+      (error "No such variant: ~a\n" variant-name))
+     (first with-members)]))
+  
+@(define (variant-matches v variant-name)
+  (match v
+    [(s-singleton-variant loc name with)
+     (if (equal? name variant-name) with #f)]
+    [(s-variant loc name args with)
+     (if (equal? name variant-name) with #f)]
+    [_ #f]))
 @(define (get-method data variant-name method-name)
-  (define (variant-matches v)
-    (match v
-      [(s-singleton-variant loc name with)
-       (if (equal? name variant-name) with #f)]
-      [(s-variant loc name args with)
-       (if (equal? name variant-name) with #f)]
-      [_ #f]))
   (define (member-matches v)
     (match v
       [(s-method-field loc (s-str _ name) args ann doc body check)
@@ -66,18 +75,21 @@
       [_ #f]))
   (match data
     [(s-data loc name params mixins variants _ _)
-     (define with-members (filter-map variant-matches variants))
+     (define with-members (filter-map (lambda (v) (variant-matches v variant-name)) variants))
      (when (< (length with-members) 1)
       (error "No such variant: ~a\n" variant-name))
      (define method-fields (filter-map member-matches (first with-members)))
      (when (< (length method-fields) 1)
       (error "No such field: ~a\n" method-name))
      (first method-fields)]))
+
 @(define (pretty-method method-field)
   (match method-field
    [(s-method loc args ann doc body check)
     (pretty (s-method loc args ann "" (s-block loc empty) check))]
-   [_ (error "Not a method: ~a\n" method-field)]))
+   [(s-method-field loc name args ann doc body check)
+    (pretty (s-method-field loc name args ann "" (s-block loc empty) check))]
+   [_ (error (format "Not a method: ~a\n" method-field))]))
   
 @(define (label-data data (prefix ""))
   (match data
@@ -262,7 +274,7 @@ stmt: let-expr | fun-expr | data-expr | when-expr
     | var-expr | assign-expr | binop-expr
 }
 
-@subsubsection{Let Expressions}
+@subsubsection[#:tag "s:let-expr"]{Let Expressions}
 
 Let expressions are written with an equals sign:
 
@@ -366,7 +378,7 @@ end
 See the documentation for @tt{lambda-exprs} for an explanation of arguments'
 and annotations' behavior, as well as @tt{doc-strings}.
 
-@subsubsection{Data Declarations}
+@subsubsection[#:tag "s:data-expr"]{Data Declarations}
 
 Data declarations define a number of related functions for creating and
 manipulating a data type.  Their grammar is:
@@ -543,7 +555,7 @@ included for homogeneity with @seclink["s:fun-expr" "function statements"].
 }
 
 A lambda expression creates a function value that can be applied with
-@seclink["s:apply-expr" "application expressions"].  The arguments in @tt{args}
+@seclink["s:app-expr" "application expressions"].  The arguments in @tt{args}
 are bound to their arguments as immutable identifiers as in a
 @seclink["s:let-expr" "let expression"].  These identifiers follow the same
 rules of no shadowing and no assignment.
@@ -574,7 +586,7 @@ check:
 end
 }
 
-@subsubsection[#:tag "s:apply-expr"]{Application Expressions}
+@subsubsection[#:tag "s:app-expr"]{Application Expressions}
 
 Function application expressions have the following grammar:
 
@@ -1073,10 +1085,76 @@ help manipulate lists.
 @(label-data option)
 @(pretty-data option)
 
-@(label "none.orelse()")
+@(label "Option.orelse()")
 @(pretty-method (get-method option 'none "orelse"))
 
-@(label "some.orelse()")
-@(pretty-method (get-method option 'some "orelse"))
+@section[#:tag "s:numbers"]{Numbers}
 
+@(define numbers
+  "data Number:
+    | num with:
+      tostring(self) -> String: end,
+      modulo(self) -> Number: end,
+      truncate(self) -> Number: end,
+      sin(self) -> Number: end,
+      cos(self) -> Number: end,
+      tan(self) -> Number: end,
+      asin(self) -> Number: end,
+      acos(self) -> Number: end,
+      atan(self) -> Number: end,
+      sqrt(self) -> Number: end,
+      floor(self) -> Number: end,
+      expt(self) -> Number: end,
+      abs(self) -> Number: end,
+      min(self, other :: Number) -> Number: end,
+      max(self, other :: Number) -> Number: end
+  end")
+@(define numbers-ast (parse-pyret numbers))
+
+Numbers have a number of useful methods:
+
+@(define (get-method-name m)
+  (match m
+    [(s-method-field l (s-str _ name) _ _ _ _ _) name]))
+
+@(flatten (for/list ((method (get-all-methods (get-decl numbers-ast 'Number) 'num)))
+  (printf "Method: ~a\n" method)
+
+  (list
+    (label (string-append "Number." (get-method-name method)))
+    (printf "Created label\n")
+    (pretty-method method))))
+
+@section[#:tag "s:strings"]{Strings}
+
+@(define strings
+  "data String:
+    | str with:
+      append(self, other :: String) -> String: end,
+      contains(self, other :: String) -> Bool: end,
+      substring(self, start :: Number, stop :: Number) -> String: end,
+      char-at(self, index :: Number) -> String: end,
+      repeat(self, reps :: Number) -> Number: end,
+      length(self) -> Number: end,
+      tonumber(self) -> Number: end,
+      tostring(self) -> String: end
+  end")
+@(define strings-ast (parse-pyret strings))
+
+Strings have a number methods:
+
+@(flatten (for/list ((name '(
+  "append"
+  "contains"
+  "substring"
+  "char-at"
+  "repeat"
+  "length"
+  "tonumber"
+  "tostring"
+)))
+  (define pystr (get-decl strings-ast 'String))
+  (list
+    (label (string-append "String." name))
+    (pretty-method (get-method pystr 'str name)))))
 
