@@ -781,8 +781,8 @@ And the object was:
         otherwise))
   (py-match v
     [(p-nothing _ _ _ _) "nothing"]
-    [(p-method _ _ _ _) (serialize-internal v (λ () "fun(): \"no string for this function\" end"))]
-    [(p-fun _ _ _ _) (serialize-internal v (λ () "method(): \"no string for this method\" end"))]
+    [(p-method _ _ _ _) (serialize-internal v (λ () "method(): end"))]
+    [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)

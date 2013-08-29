@@ -30,13 +30,48 @@
   option
 
   (rename-out
-    [pyret-link link]
+    [pyret-List List]
+    [pyret-is-empty is-empty]
+    [pyret-is-link is-link]
     [pyret-empty empty]
+    [pyret-link link]
+    [pyret-range range]
+    [pyret-repeat repeat]
     [pyret-filter filter]
-    [pyret-fold fold]
+    [pyret-partition partition]
+    [pyret-any any]
+    [pyret-find find]
     [pyret-map map]
+    [pyret-map2 map2]
+    [pyret-map3 map3]
+    [pyret-map4 map4]
+    [pyret-map_n map_n]
+    [pyret-map2_n map2_n]
+    [pyret-map3_n map3_n]
+    [pyret-map4_n map4_n]
+    [pyret-each each]
+    [pyret-each2 each2]
+    [pyret-each3 each3]
+    [pyret-each4 each4]
+    [pyret-each_n each_n]
+    [pyret-each2_n each2_n]
+    [pyret-each3_n each3_n]
+    [pyret-each4_n each4_n]
+    [pyret-fold fold]
+    [pyret-fold2 fold2]
+    [pyret-fold3 fold3]
+    [pyret-fold4 fold4])
+
+  (rename-out
+    [pyret-Option Option]
+    [pyret-is-none is-none]
+    [pyret-is-some is-some]
+    [pyret-none none]
+    [pyret-some some])
+
+  (rename-out
     [pyret-random random])
-  (all-from-out "racket-ffi/stdlib.rkt")
+
   (all-from-out "racket-ffi/animate.rkt")
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]
