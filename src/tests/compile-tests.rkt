@@ -607,6 +607,10 @@
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
   (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
+  (check-pyret "gensym('foo').contains('foo')" true)
+  (check-pyret "gensym('foo').length() > 3" true)
+  (check-pyret "gensym('foo') <> gensym('foo')" true)
+  (check-pyret "String(gensym('foo'))" true)
 
 ))
 

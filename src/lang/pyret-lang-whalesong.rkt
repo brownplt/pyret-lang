@@ -1,7 +1,7 @@
 #lang whalesong
 
 (require
-  (except-in whalesong/lang/whalesong list error raise pi else)
+  (except-in whalesong/lang/whalesong list error raise pi else gensym)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "racket-ffi/animate.rkt"
   "racket-ffi/stdlib.rkt"

@@ -58,7 +58,8 @@
      'brander
      'check-brand
      'is-nothing
-     'nothing)))
+     'nothing
+     'gensym)))
 
 (define builtins-env-list
   (blankify

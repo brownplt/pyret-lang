@@ -114,6 +114,7 @@
               [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
+              [gensym-pfun gensym]
               [p-else else])
   Any
   Number
@@ -817,6 +818,11 @@ And the object was:
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
+(define (throw-type-error! typname o)
+  (define val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-repr o))))
+  (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f)))
+
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
@@ -828,11 +834,8 @@ And the object was:
          ;; NOTE(dbp): not sure how to give good reporting
          ;; NOTE(joe): This is better, but still would be nice to highlight
          ;;  the call site as well as the destination
-         (let*
-          ([typname (p-str-s s)]
-           [val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o)))])
-         (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f))))]
+         (let ([typname (p-str-s s)])
+          (throw-type-error! typname o)))]
     [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
@@ -860,6 +863,13 @@ And the object was:
   (meta-num)
   (meta-bool)
   (meta-str))
+
+(define gensym-pfun (pλ (s)
+  "Generate a random string with the given prefix"
+  (cond
+    [(p-str? s)
+     (mk-str (symbol->string (gensym (p-str-s s))))]
+    [else (throw-type-error! "String" s)])))
 
 (define p-true (p-bool no-brands meta-bool-store (bad-app "true") (bad-meth "true") #t))
 (define p-false (p-bool no-brands meta-bool-store (bad-app "false") (bad-meth "false") #f))
