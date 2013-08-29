@@ -612,6 +612,7 @@
   (check-pyret "gensym('foo') <> gensym('foo')" true)
   (check-pyret "String(gensym('foo'))" true)
 
+  (check-pyret-match/check "pyret/math-libs.arr" _ 7 7 0 0 0)
 ))
 
 (define tag-tests (test-suite "tag-tests"

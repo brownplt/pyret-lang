@@ -1043,7 +1043,13 @@ help manipulate lists.
 
 @(define moorings-ast (parse-pyret (file->string (collection-file-path "lang/pyret-lib/moorings.arr" "pyret"))))
 
-@(flatten (for/list ((name '(
+@(define (pretty-functions block names)
+  (flatten (for/list ((name names))
+    (define f (get-decl block name))
+    (list (label-fun f)
+          (nested (pretty-fun f)
+                  (para (s-fun-doc f)))))))
+@(pretty-functions moorings-ast '(
     range
     repeat
     filter
@@ -1070,11 +1076,7 @@ help manipulate lists.
     fold2
     fold3
     fold4
-)))
-  (define f (get-decl moorings-ast name))
-  (list (label-fun f)
-        (nested (pretty-fun f)
-                (para (s-fun-doc f))))))
+ ))
 
 @section[#:tag "s:option"]{Option}
 
@@ -1104,10 +1106,19 @@ help manipulate lists.
       atan(self) -> Number: end,
       sqrt(self) -> Number: end,
       floor(self) -> Number: end,
-      expt(self) -> Number: end,
+      ceiling(self) -> Number: end,
       abs(self) -> Number: end,
       min(self, other :: Number) -> Number: end,
-      max(self, other :: Number) -> Number: end
+      max(self, other :: Number) -> Number: end,
+      log(self) -> Number: 
+        doc: 'The natural logarithm of this number'
+      end,
+      exp(self) -> Number:
+        doc: \"Euler's constant raised to this number\"
+      end,
+      expt(self, power :: Number) -> Number:
+        doc: 'This number raised to the specified power'
+      end
   end")
 @(define numbers-ast (parse-pyret numbers))
 
@@ -1118,12 +1129,11 @@ Numbers have a number of useful methods:
     [(s-method-field l (s-str _ name) _ _ _ _ _) name]))
 
 @(flatten (for/list ((method (get-all-methods (get-decl numbers-ast 'Number) 'num)))
-  (printf "Method: ~a\n" method)
-
   (list
     (label (string-append "Number." (get-method-name method)))
     (printf "Created label\n")
-    (pretty-method method))))
+    (pretty-method method)
+    (para (s-method-field-doc method)))))
 
 @section[#:tag "s:strings"]{Strings}
 
@@ -1157,4 +1167,29 @@ Strings have a number methods:
   (list
     (label (string-append "String." name))
     (pretty-method (get-method pystr 'str name)))))
+
+@section[#:tag "s:misc"]{Miscellaneous Functions}
+
+@(define misc
+  "fun gensym(prefix :: String) -> String:
+    doc: 'Generate a random string with the given prefix'
+  end
+  fun raise(value :: Any) -> Nothing:
+    doc: 'Raises the given value, to be caught by except, raises, or to show an error to the user'
+  end
+  fun print(value :: Any) -> Nothing:
+    doc: 'Prints the given value as a string'
+  end
+  fun torepr(value :: Any) -> String:
+    doc: 'Returns a string that resembles the expression used to construct value.  Useful for REPL printing.'
+  end"
+  )
+@(define misc-ast (parse-pyret misc))
+
+@(pretty-functions misc-ast '(
+  gensym
+  raise
+  print
+  torepr
+  ))
 

@@ -34,8 +34,6 @@
 
 (define (sqr x) (* x x))
 
-(define pi 3.1415926) ;; NOTE(joe): good enough for government work
-
 ;; NOTE(joe): slow enough for government work
 (define (string-contains str substr)
   (define strlen (string-length str))
@@ -703,7 +701,10 @@ And the object was:
           ("atan" . ,(mk-num-1 atan 'atan))
           ("sqr" . ,(mk-num-1 sqr 'sqr))
           ("sqrt" . ,(mk-num-1 sqrt 'sqrt))
+          ("ceiling" . ,(mk-num-1 ceiling 'ceiling))
           ("floor" . ,(mk-num-1 floor 'floor))
+          ("log" . ,(mk-num-1 log 'log))
+          ("exp" . ,(mk-num-1 exp 'exp))
           ("expt" . ,(mk-num-2 expt 'expt))))))
   meta-num-store)
 
@@ -878,6 +879,7 @@ And the object was:
   (if b p-true p-false))
 (define p-else p-true)
 (define p-pi (mk-num pi))
+(define p-e (mk-num e))
 
 (define Any (pλ/internal (loc) (_) p-true))
 
