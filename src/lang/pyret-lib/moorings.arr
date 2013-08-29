@@ -778,9 +778,9 @@ fun check-is(name, thunk1, thunk2, loc):
             [failure(
                name,
                "Values not equal: \n" +
-                 tostring(val1) +
+                 torepr(val1) +
                  "\n\n" +
-                 tostring(val2),
+                 torepr(val2),
                some(loc)
              )]
         end
