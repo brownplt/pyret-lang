@@ -847,6 +847,8 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "not a.b" (s-not _ (s-dot s _ _)))
 
    (check/block "not a(b)" (s-not _ _))
+
+   (check/block "o raises e" (s-op _ 'opraises (s-id _ 'o) (s-id _ 'e)))
    ))
 
 (define all (test-suite "all"

@@ -764,6 +764,9 @@ data Result:
 end
 
 var current-results = empty
+fun add-result(result :: Result):
+  current-results := current-results + [result]
+end
 
 fun check-is(name, thunk1, thunk2, loc):
   try:
@@ -772,26 +775,54 @@ fun check-is(name, thunk1, thunk2, loc):
       val2 = thunk2()
       try:
         if val1 == val2:
-          current-results := current-results + [success(name, some(loc))]
+          add-result(success(name, some(loc)))
         else:
-          current-results := current-results +
-            [failure(
-               name,
-               "Values not equal: \n" +
-                 torepr(val1) +
-                 "\n\n" +
-                 torepr(val2),
-               some(loc)
-             )]
+          add-result(
+            failure(
+              name,
+              "Values not equal: \n" +
+                torepr(val1) +
+                "\n\n" +
+                torepr(val2),
+              some(loc)
+            ))
         end
       except(e):
-        current-results := current-results + [err(name, e, some(loc))]
+        add-result(err(name, e, some(loc)))
       end
     except(e):
-      current-results := current-results + [err(name, e, some(loc))]
+      add-result(err(name, e, some(loc)))
     end
   except(e):
-    current-results := current-results + [err(name, e, some(loc))]
+    add-result(err(name, e, some(loc)))
+  end
+end
+
+fun check-raises(name, thunk, expected-str :: String, loc):
+  doc: "Check that thunk raises either a string that contains expected-str,
+        or an exception with a message that contains expected-str"
+  fun bad-err(actual):
+    add-result(failure(name, "Wrong error message.  The test expected:\n"
+                              + torepr(expected-str) 
+                              + "\nBut this was actually raised:\n"
+                              + torepr(actual),
+                       some(loc)))
+  end
+  try:
+    val1 = thunk()
+    add-result(failure(name, "No exception raised.  The test expected " + torepr(expected-str), some(loc)))
+  except(e):
+    if String(e) and e.contains(expected-str):
+      add-result(success(name, some(loc)))
+    else if Error(e):
+      if e.message.contains(expected-str):
+        add-result(success(name, some(loc)))
+      else:
+        bad-err(e.message)
+      end
+    else:
+      bad-err(e)
+    end
   end
 end
 
@@ -966,6 +997,7 @@ end
 
 checkers = {
   check-is: check-is,
+  check-raises: check-raises,
   check-true: check-true,
   check-false: check-false,
   check-equals: check-equals,

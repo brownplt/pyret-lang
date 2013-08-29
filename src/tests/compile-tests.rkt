@@ -961,6 +961,8 @@ o2.m().called" true)
 
     (check-pyret-match/check "pyret/check/standalone.arr" _ 4 2 2 0 0)
 
+    (check-pyret-match/check "pyret/check/raises.arr" _ 4 2 2 0 0)
+
 ))
 
 ;; NOTE(dbp): private-run just means that it won't fail if the file is

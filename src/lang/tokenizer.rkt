@@ -43,7 +43,7 @@
 ;; numbers as well as for binops
 (define-lex-abbrev
   operator-chars
-  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is"))
+  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
   (position (+ n (position-offset pos))
