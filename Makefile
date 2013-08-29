@@ -27,8 +27,6 @@ test:
 
 doc:
 	@echo Building docs
-	cd tools; \
-	racket scroll.arr | sed 's/^/    /' > ../docs/moorings.markdown
 	cd docs; \
 	scribble --htmls lang.scrbl
 

@@ -980,10 +980,17 @@ f(3)
 
 @subsection[#:tag "s:lists-data"]{@tt{List}}
 
+@subsubsection{The List Datatype}
+
 Pyret lists are defined via a data declaration:
 
 @(label-data (get-decl moorings-ast 'List))
 @(pretty-data (get-decl moorings-ast 'List))
+
+@subsubsection{List Methods}
+
+@tt{List} instances have a number of methods.  The following methods are
+defined on all lists (instances of @tt{empty} and @tt{link}):
 
 @(flatten (for/list ((name '(
     "length"
@@ -1011,10 +1018,13 @@ Pyret lists are defined via a data declaration:
 )))
   (define pylist (get-decl moorings-ast 'List))
   (list
-    (label (string-append "{empty, link}." name))
+    (label (string-append "List." name))
     (pretty-method (get-method pylist 'empty name)))))
 
 @subsection[#:tag "s:lists-functions"]{@tt{list} functions}
+
+@margin-note{In Captain Teach and in @tt{#lang pyret/whalesong}, these are in
+the environment by default, so you can just use their names as identifiers.}
 
 All of the functions in this section are available on the @tt{list} object, and
 help manipulate lists.
@@ -1050,7 +1060,7 @@ help manipulate lists.
     fold4
 )))
   (define f (get-decl moorings-ast name))
-  (list (label-fun f "list.")
+  (list (label-fun f)
         (nested (pretty-fun f)
                 (para (s-fun-doc f))))))
 
