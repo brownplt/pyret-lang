@@ -12,6 +12,7 @@
   pyret/lang/ast
   racket/match
   (rename-in "renderer.arr" (%PYRET-PROVIDE renderer)))
+
 @(define (pretty ast)
   (define lines 
     (ffi-unwrap ((p:p-base-app (p:get-raw-field p:dummy-loc renderer "get-pretty-str"))
@@ -28,6 +29,9 @@
         [(s-data _ (? name-matches? test-name) _ _ _ _ _) s]
         [_ #f])) stmts)]))
 
+@(define (label name)
+  (toc-target-element #f @(bold name) (list (string->symbol name) name)))
+
 @(define (pretty-fun fun)
   (match fun
     [(s-fun loc name params args ann doc _ check)
@@ -35,7 +39,7 @@
 @(define (label-fun fun (prefix ""))
   (match fun
     [(s-fun loc name params args ann doc _ check)
-     (toc-target-element #f @(tt (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
+     (toc-target-element #f @(bold (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
 
 @(define (pretty-data data)
   (define (simplify-variant v)
@@ -45,10 +49,40 @@
   (match data
     [(s-data loc name params mixins variants _ _)
      (pretty (s-data loc name params mixins (map simplify-variant variants) empty (s-block loc empty)))]))
+@(define (get-method data variant-name method-name)
+  (define (variant-matches v)
+    (match v
+      [(s-singleton-variant loc name with)
+       (if (equal? name variant-name) with #f)]
+      [(s-variant loc name args with)
+       (if (equal? name variant-name) with #f)]
+      [_ #f]))
+  (define (member-matches v)
+    (match v
+      [(s-method-field loc (s-str _ name) args ann doc body check)
+       (if (equal? name method-name)
+           (s-method loc args ann doc body check)
+           #f)]
+      [_ #f]))
+  (match data
+    [(s-data loc name params mixins variants _ _)
+     (define with-members (filter-map variant-matches variants))
+     (when (< (length with-members) 1)
+      (error "No such variant: ~a\n" variant-name))
+     (define method-fields (filter-map member-matches (first with-members)))
+     (when (< (length method-fields) 1)
+      (error "No such field: ~a\n" method-name))
+     (first method-fields)]))
+@(define (pretty-method method-field)
+  (match method-field
+   [(s-method loc args ann doc body check)
+    (pretty (s-method loc args ann "" (s-block loc empty) check))]
+   [_ (error "Not a method: ~a\n" method-field)]))
+  
 @(define (label-data data (prefix ""))
   (match data
     [(s-data loc name _ _ _ _ _)
-     (toc-target-element #f @(tt (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
+     (toc-target-element #f @(bold (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
 
 
 @(define (joincode . stx)
@@ -942,16 +976,45 @@ f(3)
 @(apply joincode (rest (file->lines (collection-file-path "lang/grammar.rkt" "pyret"))))
 
 
-@section{Libraries}
+@section[#:tag "s:lists"]{Lists}
 
-Pyret has several built-in libraries that provide both datatypes and functions.
-
-@subsection[#:tag "s:lists"]{@tt{list}}
+@subsection[#:tag "s:lists-data"]{@tt{List}}
 
 Pyret lists are defined via a data declaration:
 
 @(label-data (get-decl moorings-ast 'List))
 @(pretty-data (get-decl moorings-ast 'List))
+
+@(flatten (for/list ((name '(
+    "length"
+    "each"
+    "map"
+    "filter"
+    "find"
+    "partition"
+    "foldr"
+    "foldl"
+    "member"
+    "append"
+    "last"
+    "take"
+    "drop"
+    "reverse"
+    "get"
+    "set"
+    "_equals"
+    "tostring"
+    "_torepr"
+    "sort-by"
+    "sort"
+    "join-str"
+)))
+  (define pylist (get-decl moorings-ast 'List))
+  (list
+    (label (string-append "{empty, link}." name))
+    (pretty-method (get-method pylist 'empty name)))))
+
+@subsection[#:tag "s:lists-functions"]{@tt{list} functions}
 
 All of the functions in this section are available on the @tt{list} object, and
 help manipulate lists.
@@ -988,11 +1051,22 @@ help manipulate lists.
 )))
   (define f (get-decl moorings-ast name))
   (list (label-fun f "list.")
-        (nested (para (s-fun-doc f))
-                (pretty-fun f)))))
+        (nested (pretty-fun f)
+                (para (s-fun-doc f))))))
 
-@subsection{@tt{Option}}
+@section[#:tag "s:option"]{Option}
 
-@(label-data (get-decl moorings-ast 'Option))
-@(pretty-data (get-decl moorings-ast 'Option))
+@subsection[#:tag "s:option-data"]{@tt{Option}}
+
+@(define option (get-decl moorings-ast 'Option))
+
+@(label-data option)
+@(pretty-data option)
+
+@(label "none.orelse()")
+@(pretty-method (get-method option 'none "orelse"))
+
+@(label "some.orelse()")
+@(pretty-method (get-method option 'some "orelse"))
+
 

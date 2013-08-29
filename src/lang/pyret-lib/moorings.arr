@@ -12,24 +12,24 @@ end
 # BUILTINS
 
 fun mklist(obj):
-  doc: "creates a List from something with `first` and `rest` fields, recursively"
+  doc: "Creates a List from something with `first` and `rest` fields, recursively"
   if obj.is-empty: empty
   else:            link(obj.first, mklist(obj.rest))
   end
 end
 
 fun keys(obj):
-  doc: "returns a List of the keys of an object, as strings"
+  doc: "Returns a List of the keys of an object, as strings"
   mklist(prim-keys(obj))
 end
 
 fun has-field(obj, name):
-  doc: "returns true if the object has a field with the name specified"
+  doc: "Returns true if the object has a field with the name specified"
   prim-has-field(obj, name)
 end
 
 fun num-keys(obj):
-  doc: "returns the Number of fields in an object"
+  doc: "Returns the Number of fields in an object"
   prim-num-keys(obj)
 end
 
@@ -174,15 +174,15 @@ end
 data List:
   | empty with:
 
-    length(self): 0 end,
+    length(self) -> Number: 0 end,
 
-    each(self, f): nothing end,
+    each(self, f :: (Any -> Nothing)) -> Nothing: nothing end,
 
-    map(self, f): empty end,
+    map(self, f :: (Any -> Any)) -> List: empty end,
 
-    filter(self, f): empty end,
+    filter(self, f :: (Any -> Bool)) -> List: empty end,
 
-    find(self, f): none end,
+    find(self, f :: (Any -> Bool)) -> Option: none end,
 
     partition(self, f): { is-true: empty, is-false: empty } end,
 
@@ -310,7 +310,7 @@ data List:
 
 sharing:
   push(self, elt):
-    doc: "adds an element to the front of the list, returning a new list"
+    doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
   _plus(self, other): self.append(other) end
@@ -334,7 +334,7 @@ where:
 end
 
 fun range(start, stop):
-  doc: "creates a list of numbers, starting with start, ending with stop-1"
+  doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start < stop:       link(start, range(start + 1, stop))
   else if start == stop: empty
   else if start > stop:  raise("range: start greater than stop: ("
@@ -346,7 +346,7 @@ fun range(start, stop):
 end
 
 fun repeat(n :: Number, e :: Any) -> List:
-  doc: "creates a list with n copies of e"
+  doc: "Creates a list with n copies of e"
   if n > 0:       link(e, repeat(n - 1, e))
   else if n == 0: empty
   else:           raise("repeat: can't have a negative argument'")
@@ -358,7 +358,7 @@ where:
 end
 
 fun filter(f, lst :: List):
-  doc: "returns the subset of lst for which f(elem) is true"
+  doc: "Returns the subset of lst for which f(elem) is true"
   if is-empty(lst):
     empty
   else:
@@ -371,7 +371,7 @@ fun filter(f, lst :: List):
 end
 
 fun partition(f, lst :: List):
-  doc: "splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   fun help(inner-lst):
     if is-empty(inner-lst):
       { is-true: [], is-false: [] }
@@ -388,12 +388,12 @@ fun partition(f, lst :: List):
 end
 
 fun any(f :: (Any -> Bool), lst :: List):
-  doc: "returns true if f(elem) returns true for any elem of lst"
+  doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 end
 
 fun find(f :: (Any -> Bool), lst :: List):
-  doc: "returns some(elem) where elem is the first elem in lst for which
+  doc: "Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
     none
@@ -414,7 +414,7 @@ where:
 end
 
 fun map(f, lst :: List):
-  doc: "returns a list made up of f(elem) for each elem in lst"
+  doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
     empty
   else:
@@ -423,7 +423,7 @@ fun map(f, lst :: List):
 end
 
 fun map2(f, l1 :: List, l2 :: List):
-  doc: "returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
+  doc: "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
   if is-empty(l1) or is-empty(l2):
     empty
   else:
@@ -432,7 +432,7 @@ fun map2(f, l1 :: List, l2 :: List):
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
-  doc: "returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
+  doc: "Returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
@@ -441,7 +441,7 @@ fun map3(f, l1 :: List, l2 :: List, l3 :: List):
 end
 
 fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
-  doc: "returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
+  doc: "Returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
@@ -450,7 +450,7 @@ fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun map_n(f, n :: Number, lst :: List):
-  doc: "returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
+  doc: "Returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
   if is-empty(lst):
     empty
   else:
@@ -731,13 +731,21 @@ error = {
 
 data Option:
   | none with:
-      orelse(self, v): v end,
-      andthen(self, f): self end,
-      tostring(self): "None" end
+      orelse(self, v :: Any):
+        doc: "Return the default provided value"
+        v
+      where:
+        none.orelse("any value") is "any value"
+      end,
+      andthen(self, f): self end
   | some(value) with:
-      orelse(self, v): self.value end,
-      andthen(self, f): f(self.value) end,
-      tostring(self): "Some(" + tostring(self.value) + ")" end
+      orelse(self, v :: Any):
+        doc: "Return self.value, rather than the default"
+        self.value
+      where:
+        some("value").orelse("unused default") is "value"
+      end,
+      andthen(self, f): f(self.value) end
 end
 
 option = {
