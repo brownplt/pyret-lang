@@ -1118,6 +1118,9 @@ help manipulate lists.
       end,
       expt(self, power :: Number) -> Number:
         doc: 'This number raised to the specified power'
+      end,
+      exact(self) -> Number:
+        doc: 'Some functions and methods, like substring, require exact numbers as arguments.  This method returns an exact version of this number suitable for such functions'
       end
   end")
 @(define numbers-ast (parse-pyret numbers))
