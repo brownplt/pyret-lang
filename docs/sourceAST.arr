@@ -1287,8 +1287,12 @@ data Member:
       self.doc, self.body, self.check] end,
     node-name(self): t_method_field end,
     tosource(self):
-      self.name.tosource() + PP.string(": ") +
-      s_method(self.args, self.ann, self.doc, self.body, self.check).tosource()
+      name-part = cases(Expr) self.name:
+        | s_str(s) => PP.string(s)
+        | else => self.name.tosource()
+      end
+      funlam_tosource(name-part,
+        nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
     end,
     todatafield(self):
       funlam_tosource(PP.empty, self.name.s, nothing, self.args, self.ann, self.doc, self.body, self.check)
