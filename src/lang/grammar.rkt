@@ -88,7 +88,12 @@ app-arg-elt: binop-expr ","
 left-app-expr: expr "^" left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr "." NAME
 
-obj-expr: "{" fields "}" | "{" "}"
+obj-expr: "{" obj-fields "}" | "{" "}"
+obj-fields: list-obj-field* obj-field [","]
+list-obj-field: obj-field ","
+obj-field: ["mutable"] key ":" binop-expr
+     | key args return-ann ":" doc-string block where-clause "end"
+
 fields: list-field* field [","]
 list-field: field ","
 field: key ":" binop-expr

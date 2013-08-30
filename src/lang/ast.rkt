@@ -147,6 +147,8 @@ these metadata purposes.
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
 (struct s-data-field (syntax name value) #:transparent)
+;; s-mutable-field : srcloc Expr Expr
+(struct s-mutable-field (syntax name value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 
@@ -257,6 +259,7 @@ these metadata purposes.
     [(s-data-field syntax name value) syntax]
     [(s-method-field syntax name args ann doc body check) syntax]
     [(s-extend syntax super fields) syntax]
+    [(s-update syntax super fields) syntax]
     [(s-obj syntax fields) syntax]
     [(s-list syntax values) syntax]
     [(s-app syntax fun args) syntax]
@@ -267,6 +270,7 @@ these metadata purposes.
     [(s-bool syntax b) syntax]
     [(s-str syntax s) syntax]
     [(s-dot syntax obj field) syntax]
+    [(s-get-bang syntax obj field) syntax]
     [(s-bracket syntax obj field) syntax]
     [(s-colon syntax obj field) syntax]
     [(s-colon-bracket syntax obj field) syntax]

@@ -205,6 +205,35 @@
     [(key "[" expr "]") (parse-binop-expr #'expr)]
     [(key name) (s-str (loc stx) (symbol->string (parse-name #'name)))]))
 
+(define (parse-obj-field stx)
+  (syntax-parse stx
+    #:datum-literals (obj-field)
+    [(obj-field "mutable" key ":" value)
+     (s-mutable-field (loc stx)
+                      (parse-key #'key)
+                      (parse-binop-expr #'value))]
+    [(obj-field key ":" value)
+     (s-data-field (loc stx)
+                   (parse-key #'key)
+                   (parse-binop-expr #'value))]
+    [(obj-field key args ret ":" doc body check "end")
+     (s-method-field (loc stx)
+                     (parse-key #'key)
+                     (parse-args #'args)
+                     (parse-return-ann #'ret)
+                     (parse-doc-string #'doc)
+                     (parse-block #'body)
+                     (parse-where-clause #'check))]))
+
+(define (parse-obj-fields stx)
+  (syntax-parse stx
+    #:datum-literals (obj-fields list-obj-field)
+    [(obj-fields (list-obj-field f1 ",") ... lastfield)
+     (map/stx parse-obj-field #'(f1 ... lastfield))]
+    [(obj-fields (list-obj-field f1 ",") ... lastfield ",")
+     (map/stx parse-obj-field #'(f1 ... lastfield))]))
+
+
 (define (parse-field stx)
   (syntax-parse stx
     #:datum-literals (field)
@@ -312,7 +341,7 @@
     )
     [(prim-expr e) (parse-prim #'e)]
     [(obj-expr "{" "}") (s-obj (loc stx) empty)]
-    [(obj-expr "{" fields "}") (s-obj (loc stx) (parse-fields #'fields))]
+    [(obj-expr "{" obj-fields "}") (s-obj (loc stx) (parse-obj-fields #'obj-fields))]
     [(list-expr "[" "]") (s-list (loc stx) empty)]
     [(list-expr "[" (list-elt e1 ",") ... elast "]")
      (s-list (loc stx) (map/stx parse-binop-expr #'(e1 ... elast)))]

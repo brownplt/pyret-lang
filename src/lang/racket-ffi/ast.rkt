@@ -56,6 +56,8 @@
     (match m
       [(s-data-field s name e)
        (build s_data_field (tp-loc s) (tp name) (tp e))]
+      [(s-mutable-field s name e)
+       (build s_mutable_field (tp-loc s) (tp name) (tp e))]
       [(s-method-field s name args ann doc body check)
        (build s_method_field
           (tp-loc s)

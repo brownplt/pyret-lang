@@ -180,6 +180,8 @@
 
 (define (ds-member ast-node)
     (match ast-node
+      [(s-mutable-field s name value)
+       (s-mutable-field s name (desugar-internal value))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
@@ -395,7 +397,7 @@
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 
-    [(s-get-bang s val field) (s-dot s val field)]
+    [(s-get-bang s val field) (s-get-bang s val field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 

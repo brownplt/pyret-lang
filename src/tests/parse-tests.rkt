@@ -197,6 +197,10 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 
+  (check/block "{mutable x: 5}" (s-obj _ (list (s-mutable-field _ (s-str _ "x") (s-num _ 5)))))
+  (check/block "{mutable x: 5, y: 10}"
+    (s-obj _ (list (s-mutable-field _ (s-str _ "x") (s-num _ 5)) (s-data-field _ (s-str _ "y") (s-num _ 10)))))
+
   (check/block "o!f" (s-get-bang _ (s-id _ 'o) 'f))
 
   (check/block "o!f!g" (s-get-bang _ (s-get-bang _ (s-id _ 'o) 'f) 'g))
