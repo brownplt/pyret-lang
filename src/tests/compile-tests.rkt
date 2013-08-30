@@ -715,7 +715,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 21 21 0 0 0)
+  (check-pyret-match/check "pyret/update.arr" _ 22 22 0 0 0)
   ))
 
 (define exceptions (test-suite "exceptions"
