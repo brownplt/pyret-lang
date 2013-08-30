@@ -75,7 +75,7 @@
     [(s-method syntax args ann doc body check)
      (begin (ic body) (ic check))]
     [(s-data-field syntax name value) (ic name) (ic value)]
-    [(s-mutable-field syntax name value) (ic name) (ic value)]
+    [(s-mutable-field syntax name ann value) (ic name) (ic value)]
     [(s-method-field syntax name args ann doc body check)
      (begin (ic name) (ic body) (ic check))]
     [(s-extend syntax super fields) (begin (ic super) (map ic fields))]

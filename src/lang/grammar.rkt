@@ -91,7 +91,8 @@ left-app-fun-expr: id-expr | id-expr "." NAME
 obj-expr: "{" obj-fields "}" | "{" "}"
 obj-fields: list-obj-field* obj-field [","]
 list-obj-field: obj-field ","
-obj-field: ["mutable"] key ":" binop-expr
+obj-field: key ":" binop-expr
+     | "mutable" key ["::" ann] ":" binop-expr
      | key args return-ann ":" doc-string block where-clause "end"
 
 fields: list-field* field [","]

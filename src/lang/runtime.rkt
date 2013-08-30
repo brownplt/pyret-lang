@@ -454,8 +454,8 @@
 
 (define mk-mutable-pfun (pλ/internal (loc) (val read write)
   (define check (p-base-app check-brand-pfun))
-  (define checked-read (check Function read "Function"))
-  (define checked-write (check Function write "Function"))
+  (define checked-read (check Function read (mk-str "Function")))
+  (define checked-write (check Function write (mk-str "Function")))
   (mk-mutable val (list (p-base-app checked-read)) (list (p-base-app checked-write)))))
 
 (define mk-simple-mutable-pfun (pλ/internal (loc) (val)

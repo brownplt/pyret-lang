@@ -45,10 +45,6 @@
             (s-data-field s (s-str s "parameterize_check") check-fun))))
 
 (define (variant-defs/list super-brand mixins-names super-fields variants)
-  (define (member->field m val)
-    (s-data-field (s-bind-syntax m)
-             (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
-             val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
@@ -124,6 +120,13 @@
                          (fold-mixins s 'extend
                            (s-id s base-name)))))))))]
       [(s-variant s name variant-members with-members)
+       (define (member->field m val)
+        (match m
+          [(s-variant-member s mutable? (s-bind s2 name ann))
+           (define name-str (s-str s2 (symbol->string name)))
+           (if mutable?
+            (s-mutable-field s2 name-str ann val)
+            (s-data-field s2 name-str val))]))
        (define id-members (map s-variant-member-bind variant-members))
        (define torepr
         (meth s (list 'self)
@@ -150,7 +153,7 @@
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field
-               id-members
+               variant-members
                (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list
@@ -180,8 +183,8 @@
 
 (define (ds-member ast-node)
     (match ast-node
-      [(s-mutable-field s name value)
-       (s-data-field s name (s-app s (s-id s 'mk-simple-mutable) (list (desugar-internal value))))]
+      [(s-mutable-field s name ann value)
+       (s-mutable-field s name ann (desugar-internal value))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)

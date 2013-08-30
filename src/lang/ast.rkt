@@ -147,8 +147,8 @@ these metadata purposes.
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
 (struct s-data-field (syntax name value) #:transparent)
-;; s-mutable-field : srcloc Expr Expr
-(struct s-mutable-field (syntax name value) #:transparent)
+;; s-mutable-field : srcloc Expr Ann Expr
+(struct s-mutable-field (syntax name ann value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 

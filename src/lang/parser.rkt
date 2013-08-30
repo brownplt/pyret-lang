@@ -211,6 +211,12 @@
     [(obj-field "mutable" key ":" value)
      (s-mutable-field (loc stx)
                       (parse-key #'key)
+                      (a-blank)
+                      (parse-binop-expr #'value))]
+    [(obj-field "mutable" key "::" ann ":" value)
+     (s-mutable-field (loc stx)
+                      (parse-key #'key)
+                      (parse-ann #'ann)
                       (parse-binop-expr #'value))]
     [(obj-field key ":" value)
      (s-data-field (loc stx)

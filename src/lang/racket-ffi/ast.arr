@@ -105,7 +105,7 @@ end
 
 data Member:
   | s_data_field(l :: Loc, name :: Expr, value :: Expr)
-  | s_mutable_field(l :: Loc, name :: Expr, value :: Expr)
+  | s_mutable_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr)
   | s_method_field(
       l :: Loc,
       name :: Expr,

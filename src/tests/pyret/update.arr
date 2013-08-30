@@ -13,7 +13,7 @@ where:
 
     my-d1!x is 10
 
-    my-d1!y raises "Updating non-existent field"
+    my-d1!y raises "y was not found"
 
     Mutable(my-d1:x) is true
 

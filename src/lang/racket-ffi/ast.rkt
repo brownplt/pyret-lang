@@ -56,8 +56,8 @@
     (match m
       [(s-data-field s name e)
        (build s_data_field (tp-loc s) (tp name) (tp e))]
-      [(s-mutable-field s name e)
-       (build s_mutable_field (tp-loc s) (tp name) (tp e))]
+      [(s-mutable-field s name ann e)
+       (build s_mutable_field (tp-loc s) (tp name) (tp-ann ann) (tp e))]
       [(s-method-field s name args ann doc body check)
        (build s_method_field
           (tp-loc s)
@@ -361,6 +361,8 @@
     (cond
      [(has-brand m s_data_field)
       (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-expr value))]
+     [(has-brand m s_mutable_field)
+      (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-ann ann) (tr-expr value))]
      [(has-brand m s_method_field)
       (tr-obj m s-method-field
               (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]

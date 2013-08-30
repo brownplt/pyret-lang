@@ -47,6 +47,7 @@
   (check-pyret "'fod'.repeat(3)" (p:mk-str "fodfodfod"))
   ))
 
+
 (define functions (test-suite
   "simple functions"
 
@@ -713,6 +714,9 @@ o2.m().called" true)
 
 ))
 
+(define mutables (test-suite "mutable fields"
+  (check-pyret-match/check "pyret/update.arr" _ 16 16 0 0 0)
+  ))
 (define exceptions (test-suite "exceptions"
   (check-pyret-exn
    "raise('error')"
@@ -1018,6 +1022,7 @@ o2.m().called" true)
   built-in-libraries
   for-block
   methods
+  mutables
   exceptions
   ids-and-vars
   binary-operators
