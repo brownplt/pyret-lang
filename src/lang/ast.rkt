@@ -147,11 +147,15 @@ these metadata purposes.
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
 (struct s-data-field (syntax name value) #:transparent)
+;; s-mutable-field : srcloc Expr Ann Expr
+(struct s-mutable-field (syntax name ann value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 
 ;; s-extend : srcloc Expr (Listof Member)
 (struct s-extend (syntax super fields) #:transparent)
+;; s-update : srcloc Expr (Listof Member)
+(struct s-update (syntax super fields) #:transparent)
 ;; s-obj : srcloc (Listof Member)
 (struct s-obj (syntax fields) #:transparent)
 
@@ -182,6 +186,9 @@ these metadata purposes.
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
 
+;; s-dot : srcloc Expr Symbol
+(struct s-get-bang (syntax obj field) #:transparent)
+
 ;; s-colon : srcloc Expr Symbol
 (struct s-colon (syntax obj field) #:transparent)
 ;; s-colon-bracket : srcloc Expr Expr
@@ -190,7 +197,9 @@ these metadata purposes.
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof Expr) (Listof s-variant) (Listof Member) block
 (struct s-data (syntax name params mixins variants shared-members check) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
+(struct s-variant-member (syntax mutable? bind))
+
+;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
 (struct s-variant (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant (syntax name with-members) #:transparent)
@@ -250,6 +259,7 @@ these metadata purposes.
     [(s-data-field syntax name value) syntax]
     [(s-method-field syntax name args ann doc body check) syntax]
     [(s-extend syntax super fields) syntax]
+    [(s-update syntax super fields) syntax]
     [(s-obj syntax fields) syntax]
     [(s-list syntax values) syntax]
     [(s-app syntax fun args) syntax]
@@ -260,6 +270,7 @@ these metadata purposes.
     [(s-bool syntax b) syntax]
     [(s-str syntax s) syntax]
     [(s-dot syntax obj field) syntax]
+    [(s-get-bang syntax obj field) syntax]
     [(s-bracket syntax obj field) syntax]
     [(s-colon syntax obj field) syntax]
     [(s-colon-bracket syntax obj field) syntax]

@@ -35,13 +35,17 @@
       (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]
      [_ (error (format "Not a cases-branch: ~a" b))]))
   (define (tp-variant variant)
+    (define (tp-variant-member vm)
+      (match vm
+        [(s-variant-member l mutable? bind)
+         (build s_variant_member (tp-loc l) mutable? (tp-bind bind))]))
     (match variant
-      [(s-variant l name binds members)
+      [(s-variant l name members with-members)
        (build s_variant
           (tp-loc l)
           (symbol->string name)
-          (map tp-bind binds)
-          (map tp-member members))]
+          (map tp-variant-member members)
+          (map tp-member with-members))]
       [(s-singleton-variant l name members)
        (build s_singleton_variant
           (tp-loc l)
@@ -52,6 +56,8 @@
     (match m
       [(s-data-field s name e)
        (build s_data_field (tp-loc s) (tp name) (tp e))]
+      [(s-mutable-field s name ann e)
+       (build s_mutable_field (tp-loc s) (tp name) (tp-ann ann) (tp e))]
       [(s-method-field s name args ann doc body check)
        (build s_method_field
           (tp-loc s)
@@ -200,6 +206,12 @@
         (tp super)
         (map tp-member fields))]
 
+    [(s-update s super fields)
+     (build s_update
+        (tp-loc s)
+        (tp super)
+        (map tp-member fields))]
+
     [(s-obj s fields)
      (build s_obj (tp-loc s) (map tp-member fields))]
 
@@ -208,6 +220,12 @@
 
     [(s-dot s val field)
      (build s_dot
+        (tp-loc s)
+        (tp val)
+        (symbol->string field))]
+
+    [(s-get-bang s val field)
+     (build s_get_bang
         (tp-loc s)
         (tp val)
         (symbol->string field))]
@@ -329,9 +347,13 @@
       (tr-obj b s-cases-branch (tr-loc l) (string->symbol name) (map tr-bind args) (tr-expr body))]
      [else (error (format "Couldn't match cases-branch: ~a" (p:to-string (ffi-unwrap b))))]))
   (define (tr-variant variant)
+    (define (tr-variant-member vm)
+      (cond
+        [(has-brand vm s_variant_member)
+         (tr-obj vm s-variant-member (tr-loc l) (ffi-unwrap _mutable) (tr-bind bind))]))
     (cond
      [(has-brand variant s_variant)
-      (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-bind binds) (map tr-member with_members))]
+      (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
      [(has-brand variant s_singleton_variant)
       (tr-obj variant s-singleton-variant (tr-loc l) (string->symbol name) (map tr-member with_members))]
      [else (error (format "Couldn't match variant: ~a" (p:to-string (ffi-unwrap variant))))]))
@@ -339,6 +361,8 @@
     (cond
      [(has-brand m s_data_field)
       (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-expr value))]
+     [(has-brand m s_mutable_field)
+      (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-ann ann) (tr-expr value))]
      [(has-brand m s_method_field)
       (tr-obj m s-method-field
               (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
@@ -439,6 +463,8 @@
       (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [(has-brand e s_extend)
       (tr-obj e s-extend (tr-loc l) (tr-expr super) (map tr-member fields))]
+     [(has-brand e s_update)
+      (tr-obj e s-update (tr-loc l) (tr-expr super) (map tr-member fields))]
      [(has-brand e s_obj)
       (tr-obj e s-obj (tr-loc l) (map tr-member fields))]
      [(has-brand e s_list)
@@ -457,6 +483,8 @@
       (tr-obj e s-str (tr-loc l) (noop s))]
      [(has-brand e s_dot)
       (tr-obj e s-dot (tr-loc l) (tr-expr obj) (string->symbol field))]
+     [(has-brand e s_get_bang)
+      (tr-obj e s-get-bang (tr-loc l) (tr-expr obj) (string->symbol field))]
      [(has-brand e s_bracket)
       (tr-obj e s-bracket (tr-loc l) (tr-expr obj) (tr-expr field))]
      [(has-brand e s_colon)

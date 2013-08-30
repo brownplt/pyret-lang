@@ -32,7 +32,10 @@ check-expr: "check:" block "end"
 
 data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause "end"
 data-mixins: ["deriving" mixins]
-data-variant: "|" NAME args data-with | "|" NAME data-with
+data-variant: "|" NAME variant-members data-with | "|" NAME data-with
+variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
+list-variant-member: variant-member ","
+variant-member: ["mutable"] binding
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
 
@@ -54,7 +57,9 @@ binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr | left-app-expr
     | obj-expr | list-expr
-    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr | extend-expr
+    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
+    | get-bang-expr | update-expr
+    | extend-expr
     | if-expr | cases-expr
     | for-expr | try-expr
 
@@ -83,7 +88,13 @@ app-arg-elt: binop-expr ","
 left-app-expr: expr "^" left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr "." NAME
 
-obj-expr: "{" fields "}" | "{" "}"
+obj-expr: "{" obj-fields "}" | "{" "}"
+obj-fields: list-obj-field* obj-field [","]
+list-obj-field: obj-field ","
+obj-field: key ":" binop-expr
+     | "mutable" key ["::" ann] ":" binop-expr
+     | key args return-ann ":" doc-string block where-clause "end"
+
 fields: list-field* field [","]
 list-field: field ","
 field: key ":" binop-expr
@@ -96,10 +107,13 @@ list-expr: "[" [list-elt* binop-expr] "]"
 dot-expr: expr "." NAME
 bracket-expr: expr "." "[" binop-expr "]"
 
+get-bang-expr: expr "!" NAME
+
 colon-expr: expr ":" NAME
 colon-bracket-expr: expr ":" "[" binop-expr "]"
 
 extend-expr: expr "." "{" fields "}"
+update-expr: expr "!" "{" fields "}"
 
 if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
 else-if: "else if" binop-expr ":" block

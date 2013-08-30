@@ -10,6 +10,8 @@ endif
 set iskeyword+=-
 set iskeyword+=:
 
+syn match delimeter '!'
+syn match delimeter '\.'
 syn match delimeter '|'
 syn match delimeter '('
 syn match delimeter ')'
@@ -22,9 +24,10 @@ syn match delimeter '\['
 syn match delimeter '\]'
 syn match delimeter '{'
 syn match delimeter '}'
+syn match delimeter ':'
 syn match delimeter '::'
 
-syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: : and or not else: if else cases is deriving
+syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises
 
 syn match op ' + '
 syn match op ' - '

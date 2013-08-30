@@ -93,7 +93,14 @@ end
 fun data-equals(self, other, brand, fields):
   brand(other) and
   for fold(acc from true, f from fields):
-    acc and (self.[f] == other.[f])
+    thisval = self:[f]
+    otherval = other:[f]
+    these-equal = if Mutable(thisval) and Mutable(otherval):
+      thisval.get() == otherval.get()
+    else:
+      thisval == otherval 
+    end
+    acc and these-equal
   end
 end
 

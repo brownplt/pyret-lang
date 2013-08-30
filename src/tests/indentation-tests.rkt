@@ -13,6 +13,11 @@
  "indentation:")
 
 (check-pyret-exn/indent
+ "2
+  1 1"
+ "indentation:")
+
+(check-pyret-exn/indent
  "fun foo():
    1 2
   end"

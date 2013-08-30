@@ -45,10 +45,6 @@
             (s-data-field s (s-str s "parameterize_check") check-fun))))
 
 (define (variant-defs/list super-brand mixins-names super-fields variants)
-  (define (member->field m val)
-    (s-data-field (s-bind-syntax m)
-             (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
-             val))
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
@@ -123,22 +119,30 @@
                        (fold-mixins s 'brand
                          (fold-mixins s 'extend
                            (s-id s base-name)))))))))]
-      [(s-variant s name members with-members)
+      [(s-variant s name variant-members with-members)
+       (define (member->field m val)
+        (match m
+          [(s-variant-member s mutable? (s-bind s2 name ann))
+           (define name-str (s-str s2 (symbol->string name)))
+           (if mutable?
+            (s-mutable-field s2 name-str ann val)
+            (s-data-field s2 name-str val))]))
+       (define id-members (map s-variant-member-bind variant-members))
        (define torepr
         (meth s (list 'self)
           (s-app s (s-dot s (s-id s 'builtins) 'data-to-repr)
              (list (s-id s 'self)
                    (s-str s (symbol->string name))
-                   (s-list s (map member->string members))))))
-       (define equals (make-equals s (make-checker-name name) members))
-       (define matcher (make-match s name members))
+                   (s-list s (map member->string id-members))))))
+       (define equals (make-equals s (make-checker-name name) id-members))
+       (define matcher (make-match s name id-members))
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define args (map gensym (map s-bind-id members)))
+       (define args (map gensym (map s-bind-id id-members)))
        (define (replace-id m new-name)
         (match m
           [(s-bind s _ val) (s-bind s new-name val)]))
-       (define constructor-args (map replace-id members args))
+       (define constructor-args (map replace-id id-members args))
        (define base-obj
          (s-obj s (append (list
                             (s-data-field s (s-str s "_torepr") torepr)
@@ -149,7 +153,7 @@
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field
-               members
+               variant-members
                (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list
@@ -179,6 +183,8 @@
 
 (define (ds-member ast-node)
     (match ast-node
+      [(s-mutable-field s name ann value)
+       (s-mutable-field s name ann (desugar-internal value))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
@@ -381,6 +387,8 @@
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
+    [(s-update s super fields) (s-update s (ds super) (map ds-member fields))]
+
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
     [(s-list s elts)
@@ -391,6 +399,8 @@
      (foldr make-link (get-lib "empty") (map ds elts))]
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
+
+    [(s-get-bang s val field) (s-get-bang s val field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 
