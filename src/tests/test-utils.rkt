@@ -31,7 +31,6 @@
  "../lang/eval.rkt")
 
 (define verbose #f)
-(current-indentation-mode #f)
 (define (verbose! v) (set! verbose v))
 (define (print-test str)
   (when verbose
@@ -80,21 +79,25 @@
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
 
 (define-simple-check (check-pyret str expected)
-  (equal? (eval-pyret str) expected))
+  (parameterize [(current-indentation-mode #f)]
+    (equal? (eval-pyret str) expected)))
 
 (define-simple-check (check-pyret/indent str expected)
   (parameterize ([current-indentation-mode #t])
     (equal? (eval-pyret str) expected)))
 
 (define-simple-check (check-pyret-fail str expected)
-  (not (equal? (eval-pyret str) expected)))
+  (parameterize [(current-indentation-mode #f)]
+    (not (equal? (eval-pyret str) expected))))
 
 (define-syntax (check-pyret-exn stx)
   (syntax-case stx ()
     [(_ str message)
      (syntax/loc stx
        (check-exn (regexp (regexp-quote message))
-            (lambda () (eval-pyret str))))]))
+            (lambda ()
+              (parameterize [(current-indentation-mode #f)]
+                (eval-pyret str)))))]))
 
 
 (define-syntax (check-pyret-exn/indent stx)
@@ -110,7 +113,10 @@
 (define-syntax (check-pyret-match stx)
   (syntax-case stx ()
     [(_ str expected)
-     (syntax/loc stx (check-match (eval-pyret str) expected))]))
+       (syntax/loc stx (check-match 
+                        (parameterize [(current-indentation-mode #f)]
+                         (eval-pyret str))
+                        expected))]))
 
 (define-syntax (check-pyret-match/indent stx)
   (syntax-case stx ()

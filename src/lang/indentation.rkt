@@ -36,7 +36,7 @@
                  "Expected to find one statement per line, but found multiple statements on this line."
                  prev-loc
                  cur-loc)
-                cur-loc))
+                prev-loc))
          start-loc
          (map get-srcloc (rest stmts))))
 
