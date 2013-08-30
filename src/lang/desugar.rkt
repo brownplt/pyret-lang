@@ -400,7 +400,7 @@
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 
-    [(s-get-bang s val field) (s-get-bang s val field)]
+    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 
