@@ -181,7 +181,7 @@
 (define (ds-member ast-node)
     (match ast-node
       [(s-mutable-field s name value)
-       (s-mutable-field s name (desugar-internal value))]
+       (s-data-field s name (s-app s (s-id s 'mk-simple-mutable) (list (desugar-internal value))))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)

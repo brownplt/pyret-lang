@@ -274,6 +274,9 @@
     [(s-extend s super fields)
      (s-extend s (cc super) (map (curryr cc-member env) fields))]
 
+    [(s-update s super fields)
+     (s-update s (cc super) (map (curryr cc-member env) fields))]
+
     [(s-obj s fields)
      (s-obj s (map (curryr cc-member env) fields))]
 
@@ -282,6 +285,9 @@
 
     [(s-dot s val field)
      (s-dot s (cc val) field)]
+
+    [(s-get-bang s val field)
+     (s-get-bang s (cc val) field)]
 
     [(s-bracket s val field)
      (s-bracket s (cc val) (cc field))]

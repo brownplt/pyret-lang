@@ -55,8 +55,11 @@
      'Object
      'String
      'Nothing
+     'Mutable
      'brander
      'check-brand
+     'mk-mutable
+     'mk-simple-mutable
      'is-nothing
      'nothing
      'gensym)))

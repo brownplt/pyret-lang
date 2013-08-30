@@ -74,9 +74,10 @@
      (begin (ic body) (ic check))]
     [(s-method syntax args ann doc body check)
      (begin (ic body) (ic check))]
-    [(s-data-field syntax name value) (ic value)]
+    [(s-data-field syntax name value) (ic name) (ic value)]
+    [(s-mutable-field syntax name value) (ic name) (ic value)]
     [(s-method-field syntax name args ann doc body check)
-     (begin (ic body) (ic check))]
+     (begin (ic name) (ic body) (ic check))]
     [(s-extend syntax super fields) (begin (ic super) (map ic fields))]
     [(s-update syntax super fields) (begin (ic super) (map ic fields))]
     [(s-obj syntax fields) (map ic fields)]
@@ -86,6 +87,7 @@
                                              (map ic args))]
     [(s-assign syntax id value) (ic value)]
     [(s-dot syntax obj field) (ic obj)]
+    [(s-get-bang syntax obj field) (ic obj)]
     [(s-bracket syntax obj field) (begin (ic obj) (ic field))]
     [(s-colon syntax obj field) (ic obj)]
     [(s-colon-bracket syntax obj field) (begin (ic obj) (ic field))]

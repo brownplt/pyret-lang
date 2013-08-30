@@ -85,12 +85,23 @@
        (define fields-results (map process-member fields))
        (cons (flatten (cons super-list (map car fields-results)))
              (s-extend l new-super (map cdr fields-results)))]
+
+      [(s-update l super fields)
+       (match-define
+        (cons super-list new-super) (get-and-replace-constants super))
+       (define fields-results (map process-member fields))
+       (cons (flatten (cons super-list (map car fields-results)))
+             (s-update l new-super (map cdr fields-results)))]
       
       [(s-bracket l obj field)
        (match-define (cons obj-list new-obj) (get-and-replace-constants obj))
        (match-define (cons field-list new-field) (get-and-replace-constants field))
        (cons (append obj-list field-list)
              (s-bracket l obj field))]
+
+      [(s-get-bang l obj field)
+       (match-define (cons obj-list new-obj) (get-and-replace-constants obj))
+       (cons obj-list (s-get-bang l obj field))]
       
       [(s-colon-bracket l obj field)
        (match-define (cons obj-list new-obj) (get-and-replace-constants obj))

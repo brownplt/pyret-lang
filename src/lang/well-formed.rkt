@@ -109,6 +109,7 @@
   (define (wf-member mem)
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
+     [(s-mutable-field s name val) (begin (wf name) (wf val))]
      [(s-method-field s name args ann doc body check)
       (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
           (begin
@@ -229,6 +230,8 @@
     [(s-list s elts) (map wf elts)]
 
     [(s-dot s val field) (wf val)]
+
+    [(s-get-bang s val field) (wf val)]
 
     [(s-bracket s val field) (begin (wf val) (wf field))]
 

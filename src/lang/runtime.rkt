@@ -91,11 +91,13 @@
       get-dict
       get-field
       get-raw-field
+      get-mutable-field
       apply-fun
       arity-error
       check-str
       has-field?
       extend
+      update
       to-string
       to-repr
       nothing
@@ -112,6 +114,8 @@
               [has-field-pfun prim-has-field]
               [raise-pfun raise]
               [is-nothing-pfun is-nothing]
+              [mk-mutable-pfun mk-mutable]
+              [mk-simple-mutable-pfun mk-simple-mutable]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -122,6 +126,7 @@
   Nothing
   Function
   Method
+  Mutable
   nothing)
 
 
@@ -155,6 +160,8 @@
 (struct p-fun p-base () #:transparent)
 ;; p-method: p-base Proc -> p-method
 (struct p-method p-base () #:transparent)
+;; p-mutable p-base Box (Listof (Value -> Value)) (Listof (Value -> Value))
+(struct p-mutable p-base (b read-wrappers write-wrappers))
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -186,6 +193,14 @@
     [(_ p-base _ () body) #'body]
     [(_ p-fun _ () body) #'body]
     [(_ p-method _ () body) #'body]
+    [(_ p-mutable matchval (b rw ww) body)
+     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))
+                   (rw-id (datum->syntax #'body (syntax->datum #'rw)))
+                   (ww-id (datum->syntax #'body (syntax->datum #'ww)))]
+       #'(maybe-bind [(b-id (p-mutable-b matchval))
+                      (rw-id (p-mutable-read-wrappers matchval))
+                      (ww-id (p-mutable-write-wrappers matchval))]
+           body))]
     [(_ p-num matchval (n) body)
      (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
       #'(maybe-bind [(n-id (p-num-n matchval))] body))]
@@ -432,6 +447,21 @@
 (define (mk-method-nodoc f)
   (_mk-method f nothing (mk-fun-method f "")))
 
+(define mutable-bad-app (bad-app "mutable"))
+(define mutable-bad-meth (bad-meth "mutable"))
+(define (mk-mutable v reads writes)
+  (p-mutable no-brands empty-dict mutable-bad-app mutable-bad-meth (box v) reads writes))
+
+(define mk-mutable-pfun (pλ/internal (loc) (val read write)
+  (define check (p-base-app check-brand-pfun))
+  (define checked-read (check Function read "Function"))
+  (define checked-write (check Function write "Function"))
+  (mk-mutable val (list (p-base-app checked-read)) (list (p-base-app checked-write)))))
+
+(define mk-simple-mutable-pfun (pλ/internal (loc) (val)
+  (mk-mutable val (list) (list))))
+
+
 (define exn-brand (gensym 'exn))
 
 ;; pyret-error : Loc String String -> p-exn
@@ -467,6 +497,16 @@
                           (get-field loc vfield "tostring"))))
            curried))]
     [else vfield]))
+
+;; get-mutable-field : Loc Value String -> Value
+(define (get-mutable-field loc v f)
+  (define vfield (get-raw-field loc v f))
+  (cond
+    [(p-mutable? vfield)
+     (define checks (p-mutable-read-wrappers vfield))
+     (foldr (lambda (c v) (c v)) (unbox (p-mutable-b vfield)) checks)]
+    [else
+     (raise (pyret-error loc "immutable-mutable-lookup" (format "Cannot look up immutable field ~a with the ! operator" f)))]))
 
 (define (check-str v l)
   (cond
@@ -546,6 +586,23 @@ And the object was:
 ;; has-field? : Value String -> Boolean
 (define (has-field? v f)
   (string-map-has-key? (get-dict v) f))
+
+(define (update loc base extension)
+  (define d (get-dict base))
+  (void (map
+    (lambda (k)
+      (define (not-found-error)
+        (raise (pyret-error loc "field-not-found" (format "Updating non-existent field ~a" k))))
+      (when (not (p-mutable? (string-map-ref d k not-found-error)))
+        (raise (pyret-error loc "update-immutable" (format "Updating immutable field (~a) disallowed" k)))))
+    (map car extension)))
+  (void (map
+    (lambda (pair)
+      (define mutable (string-map-ref d (car pair)))
+      (define checks (p-mutable-write-wrappers mutable))
+      (define value (foldr (lambda (c v) (c v)) (cdr pair) checks))
+      (set-box! (p-mutable-b mutable) (cdr pair)))
+    extension)))
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
@@ -897,3 +954,4 @@ And the object was:
 (mk-pred Nothing p-nothing?)
 (mk-pred Function p-fun?)
 (mk-pred Method p-method?)
+(mk-pred Mutable p-mutable?)
