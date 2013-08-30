@@ -31,7 +31,7 @@
          "try:" "except"
          "cases"
          "when" "if" "else if" "else:"
-         "data" "with:" "sharing:"
+         "data" "with:" "sharing:" "mutable"
          "for" "from"
          "end"))
 
@@ -43,7 +43,7 @@
 ;; numbers as well as for binops
 (define-lex-abbrev
   operator-chars
-  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is"))
+  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
   (position (+ n (position-offset pos))
@@ -161,7 +161,7 @@
       [whitespace
        (token WS lexeme #:skip? #t)]
       ;; misc
-      [(union "." "," "->" "::" ":" "|" "=>" "^" "=" ":=")
+      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=")
        (token lexeme lexeme)]
       ;; comments
       [(concatenation #\# (repetition 0 +inf.0

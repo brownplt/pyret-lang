@@ -1,6 +1,6 @@
 #lang racket
 
-(require "ast.rkt" "pretty.rkt" "type-env.rkt")
+(require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt")
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
 (struct exn:fail:pyret/tc exn:fail (srclocs)
@@ -25,9 +25,9 @@
 (define (duplicate-identifier name)
   (format "~a defined twice" name))
 
+(define (skippable? a)
+  (or (a-blank? a) (a-any? a) (and (a-name? a) (equal? (a-name-id a) 'Any))))
 (define (wrap-ann-check loc ann e)
-  (define (skippable? a)
-    (or (a-blank? a) (a-any? a) (and (a-name? a) (equal? (a-name-id a) 'Any))))
   (match ann
     [(? skippable? a) e]
     [(a-arrow _  (list (? skippable? arg) ...) (? skippable? return)) e]
@@ -147,7 +147,7 @@
        [(cons (binding other-loc _ #t) #f)
         (tc-error (mixed-id-type-msg id) loc other-loc)]
        [(cons (binding other-loc _ b) b)
-        (if (equal? id 'self)
+        (if (or (current-allow-shadowed-vars) (equal? id 'self))
             (void)
             (tc-error (shadow-id-msg id) loc other-loc))])]))
 
@@ -210,7 +210,16 @@
   (define cc (curryr cc-env env))
   (define (cc-member ast env)
     (match ast
-      [(s-data-field s name value) (s-data-field s name (cc-env value env))]))
+      [(s-data-field s name value) (s-data-field s name (cc-env value env))]
+      [(s-mutable-field s name ann value)
+       (cond
+        [(skippable? ann)
+         (s-data-field s name (s-app s (s-id s 'mk-simple-mutable) (list (cc-env value env))))]
+        [else
+         (define check-read-expr (ann-check s ann))
+         (define check-write-expr (ann-check s ann))
+         (s-data-field s name (s-app s (s-id s 'mk-mutable)
+          (list (cc-env value env) check-read-expr check-write-expr)))])]))
   (match ast
     [(s-block s stmts)
      (define new-env (cc-block-env stmts env))
@@ -259,17 +268,23 @@
      (s-try s (cc try) bind (cc-env catch catch-env))]
 
     [(s-assign s name expr)
-     (match (lookup env name)
-      [(binding s-def _ #f)
-       (tc-error (bad-assign-msg name) s s-def)]
-      [(binding _ ann #t)
-       (s-assign s name (wrap-ann-check s ann (cc expr)))])]
+     (if (bound? env name)
+         (match (lookup env name)
+          [(binding s-def _ #f)
+           (tc-error (bad-assign-msg name) s s-def)]
+          [(binding _ ann #t)
+           (s-assign s name (wrap-ann-check s ann (cc expr)))])
+         (tc-error (format "Assigning to unbound variable: ~a" name) s))]
+
 
     [(s-app s fun args)
      (s-app s (cc fun) (map cc args))]
 
     [(s-extend s super fields)
      (s-extend s (cc super) (map (curryr cc-member env) fields))]
+
+    [(s-update s super fields)
+     (s-update s (cc super) (map (curryr cc-member env) fields))]
 
     [(s-obj s fields)
      (s-obj s (map (curryr cc-member env) fields))]
@@ -279,6 +294,9 @@
 
     [(s-dot s val field)
      (s-dot s (cc val) field)]
+
+    [(s-get-bang s val field)
+     (s-get-bang s (cc val) field)]
 
     [(s-bracket s val field)
      (s-bracket s (cc val) (cc field))]

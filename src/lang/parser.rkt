@@ -76,7 +76,7 @@
     [(data-variant "|" name args with)
      (s-variant (loc stx)
                 (parse-name #'name)
-                (parse-args #'args)
+                (parse-variant-members #'args)
                 (parse-with #'with))]
     [(data-variant "|" name with)
      (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]))
@@ -115,10 +115,11 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-where-clause #'check))]
-    [(data-expr "data" name params ":" variant ... sharing-part check "end")
+    [(data-expr "data" name params mixins ":" variant ... sharing-part check "end")
      (s-data (loc stx)
              (parse-name #'name)
              (parse-ty-params #'params)
+             (parse-mixins #'mixins)
              (map/stx parse-variant #'(variant ...))
              (parse-sharing #'sharing-part)
              (parse-where-clause #'check))]
@@ -183,11 +184,61 @@
     [(args "(" (list-arg-elt arg1 ",") ... lastarg ")")
      (map/stx parse-binding #'(arg1 ... lastarg))]))
 
+(define (parse-variant-member stx)
+  (syntax-parse stx
+    #:datum-literals (variant-member)
+    [(variant-member b)
+     (s-variant-member (loc stx) #f (parse-binding #'b))]
+    [(variant-member "mutable" b)
+     (s-variant-member (loc stx) #t (parse-binding #'b))]))
+
+(define (parse-variant-members stx)
+  (syntax-parse stx
+    #:datum-literals (variant-members list-variant-member)
+    [(variant-members "(" ")") empty]
+    [(variant-members "(" (list-variant-member vm1 ",") ... lastvm ")")
+     (map/stx parse-variant-member #'(vm1 ... lastvm))]))
+
 (define (parse-key stx)
   (syntax-parse stx
     #:datum-literals (key)
     [(key "[" expr "]") (parse-binop-expr #'expr)]
     [(key name) (s-str (loc stx) (symbol->string (parse-name #'name)))]))
+
+(define (parse-obj-field stx)
+  (syntax-parse stx
+    #:datum-literals (obj-field)
+    [(obj-field "mutable" key ":" value)
+     (s-mutable-field (loc stx)
+                      (parse-key #'key)
+                      (a-blank)
+                      (parse-binop-expr #'value))]
+    [(obj-field "mutable" key "::" ann ":" value)
+     (s-mutable-field (loc stx)
+                      (parse-key #'key)
+                      (parse-ann #'ann)
+                      (parse-binop-expr #'value))]
+    [(obj-field key ":" value)
+     (s-data-field (loc stx)
+                   (parse-key #'key)
+                   (parse-binop-expr #'value))]
+    [(obj-field key args ret ":" doc body check "end")
+     (s-method-field (loc stx)
+                     (parse-key #'key)
+                     (parse-args #'args)
+                     (parse-return-ann #'ret)
+                     (parse-doc-string #'doc)
+                     (parse-block #'body)
+                     (parse-where-clause #'check))]))
+
+(define (parse-obj-fields stx)
+  (syntax-parse stx
+    #:datum-literals (obj-fields list-obj-field)
+    [(obj-fields (list-obj-field f1 ",") ... lastfield)
+     (map/stx parse-obj-field #'(f1 ... lastfield))]
+    [(obj-fields (list-obj-field f1 ",") ... lastfield ",")
+     (map/stx parse-obj-field #'(f1 ... lastfield))]))
+
 
 (define (parse-field stx)
   (syntax-parse stx
@@ -212,6 +263,17 @@
      (map/stx parse-field #'(f1 ... lastfield))]
     [(fields (list-field f1 ",") ... lastfield ",")
      (map/stx parse-field #'(f1 ... lastfield))]))
+
+(define (parse-mixins stx)
+  (syntax-parse stx
+    #:datum-literals (data-mixins)
+    [(data-mixins) empty]
+    [(data-mixins "deriving" mixins) (parse-all-mixins #'mixins)]))
+(define (parse-all-mixins stx)
+  (syntax-parse stx
+    #:datum-literals (mixins list-mixin)
+    [(mixins (list-mixin m1 ",") ... lastmixin)
+     (map/stx parse-binop-expr #'(m1 ... lastmixin))]))
 
 (define (parse-app-args stx)
   (syntax-parse stx
@@ -285,7 +347,7 @@
     )
     [(prim-expr e) (parse-prim #'e)]
     [(obj-expr "{" "}") (s-obj (loc stx) empty)]
-    [(obj-expr "{" fields "}") (s-obj (loc stx) (parse-fields #'fields))]
+    [(obj-expr "{" obj-fields "}") (s-obj (loc stx) (parse-obj-fields #'obj-fields))]
     [(list-expr "[" "]") (s-list (loc stx) empty)]
     [(list-expr "[" (list-elt e1 ",") ... elast "]")
      (s-list (loc stx) (map/stx parse-binop-expr #'(e1 ... elast)))]
@@ -294,6 +356,8 @@
     [(id-expr x) (s-id (loc stx) (parse-name #'x))]
     [(dot-expr obj "." field)
      (s-dot (loc stx) (parse-expr #'obj) (parse-name #'field))]
+    [(get-bang-expr obj "!" field)
+     (s-get-bang (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-expr obj "." "[" field "]")
      (s-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(colon-expr obj ":" field)
@@ -360,6 +424,8 @@
             (parse-where-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
+    [(update-expr e "!" "{" fields "}")
+     (s-update (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)
      (s-left-app (loc stx)
                  (parse-expr #'e)

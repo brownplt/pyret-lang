@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require
-  "runtime.rkt"
+  (except-in "runtime.rkt" gensym)
+  (rename-in "runtime.rkt" [gensym pyret-gensym])
   "eval.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 
@@ -17,9 +18,10 @@
   #%datum
   #%top
   #%app
-  [prefix-out r: (all-from-out racket/base)]
+  [prefix-out r: (except-out (all-from-out racket/base) gensym)]
 
   [rename-out (pyret-list list)]
+  [rename-out (pyret-gensym gensym)]
   error
   builtins
   checkers

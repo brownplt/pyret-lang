@@ -27,6 +27,6 @@ where:
     end
   except(e):
     checkers.check-true("case contract",
-      e.contains("expected List"))
+      e.contains("expected list.List"))
   end
 end

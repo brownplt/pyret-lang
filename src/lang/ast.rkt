@@ -97,6 +97,7 @@ these metadata purposes.
 (define opand 'opand)
 (define opor 'opor)
 (define opis 'opis)
+(define opraises 'opraises)
 
 (define op-lookup-table
   (make-immutable-hash
@@ -112,7 +113,8 @@ these metadata purposes.
      ("<>" . ,op<>)
      ("and" . ,opand)
      ("or" . ,opor)
-     ("is" . ,opis))))
+     ("is" . ,opis)
+     ("raises" . ,opraises))))
 
 (define reverse-op-lookup-table
   (make-immutable-hash
@@ -145,11 +147,15 @@ these metadata purposes.
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
 (struct s-data-field (syntax name value) #:transparent)
+;; s-mutable-field : srcloc Expr Ann Expr
+(struct s-mutable-field (syntax name ann value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 
 ;; s-extend : srcloc Expr (Listof Member)
 (struct s-extend (syntax super fields) #:transparent)
+;; s-update : srcloc Expr (Listof Member)
+(struct s-update (syntax super fields) #:transparent)
 ;; s-obj : srcloc (Listof Member)
 (struct s-obj (syntax fields) #:transparent)
 
@@ -180,15 +186,20 @@ these metadata purposes.
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
 
+;; s-dot : srcloc Expr Symbol
+(struct s-get-bang (syntax obj field) #:transparent)
+
 ;; s-colon : srcloc Expr Symbol
 (struct s-colon (syntax obj field) #:transparent)
 ;; s-colon-bracket : srcloc Expr Expr
 (struct s-colon-bracket (syntax obj field) #:transparent)
 
-;; s-data : srcloc Symbol (Listof Symbol) (Listof s-variant) (Listof Member) block
-(struct s-data (syntax name params variants shared-members check) #:transparent)
+;; s-data : srcloc Symbol (Listof Symbol) (Listof Expr) (Listof s-variant) (Listof Member) block
+(struct s-data (syntax name params mixins variants shared-members check) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
+(struct s-variant-member (syntax mutable? bind))
+
+;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
 (struct s-variant (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant (syntax name with-members) #:transparent)
@@ -218,3 +229,64 @@ these metadata purposes.
 (struct a-pred a-ann (syntax ann exp) #:transparent)
 ;; a-dot : srcloc Symbol Symbol
 (struct a-dot a-ann (syntax obj field) #:transparent)
+
+
+(define (get-srcloc ast)
+  (match ast
+    [(s-prog syntax imports block) syntax]
+    [(s-import syntax file name) syntax]
+    [(s-provide syntax expr) syntax]
+    [(s-provide-all syntax) syntax]
+    [(s-block syntax stmts) syntax]
+    [(s-bind syntax id ann) syntax]
+    [(s-fun syntax name params args ann doc body check) syntax]
+    [(s-check syntax body) syntax]
+    [(s-var syntax name value) syntax]
+    [(s-let syntax name value) syntax]
+    [(s-when syntax test block) syntax]
+    [(s-if syntax branches) syntax]
+    [(s-if-else syntax branches else) syntax]
+    [(s-if-branch syntax expr body) syntax]
+    [(s-try syntax body id except) syntax]
+    [(s-cases syntax type val branches) syntax]
+    [(s-cases-else syntax type val branches else) syntax]
+    [(s-cases-branch syntax name args body) syntax]
+    [(s-op syntax op left right) syntax]
+    [(s-not syntax expr) syntax]
+    [(s-paren syntax expr) syntax]
+    [(s-lam syntax typarams args ann doc body check) syntax]
+    [(s-method syntax args ann doc body check) syntax]
+    [(s-data-field syntax name value) syntax]
+    [(s-method-field syntax name args ann doc body check) syntax]
+    [(s-extend syntax super fields) syntax]
+    [(s-update syntax super fields) syntax]
+    [(s-obj syntax fields) syntax]
+    [(s-list syntax values) syntax]
+    [(s-app syntax fun args) syntax]
+    [(s-left-app syntax obj fun args) syntax]
+    [(s-id syntax id) syntax]
+    [(s-assign syntax id value) syntax]
+    [(s-num syntax n) syntax]
+    [(s-bool syntax b) syntax]
+    [(s-str syntax s) syntax]
+    [(s-dot syntax obj field) syntax]
+    [(s-get-bang syntax obj field) syntax]
+    [(s-bracket syntax obj field) syntax]
+    [(s-colon syntax obj field) syntax]
+    [(s-colon-bracket syntax obj field) syntax]
+    [(s-data syntax name params mixins variants shared-members check) syntax]
+    [(s-variant syntax name binds with-members) syntax]
+    [(s-singleton-variant syntax name with-members) syntax]
+    [(s-for-bind syntax bind value) syntax]
+    [(s-for syntax iterator bindings ann body) syntax]
+    [(a-ann) (list "pyret-internal" #f #f #f #f)]
+    [(a-blank) (list "pyret-internal" #f #f #f #f)]
+    [(a-any) (list "pyret-internal" #f #f #f #f)]
+    [(a-name syntax id) syntax]
+    [(a-arrow syntax args ret) syntax]
+    [(a-method syntax args ret) syntax]
+    [(a-field syntax name ann) syntax]
+    [(a-record syntax fields) syntax]
+    [(a-app syntax ann parameters) syntax]
+    [(a-pred syntax ann exp) syntax]
+    [(a-dot syntax obj field) syntax]))

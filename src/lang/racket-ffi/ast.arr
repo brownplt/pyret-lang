@@ -63,6 +63,7 @@ data Expr:
       check :: Expr
     )
   | s_extend(l :: Loc, super :: Expr, fields :: List<Member>)
+  | s_update(l :: Loc, super :: Expr, fields :: List<Member>)
   | s_obj(l :: Loc, fields :: List<Member>)
   | s_list(l :: Loc, values :: List<Expr>)
   | s_app(l :: Loc, _fun :: Expr, args :: List<Expr>)
@@ -72,6 +73,7 @@ data Expr:
   | s_bool(l :: Loc, b :: Bool)
   | s_str(l :: Loc, s :: String)
   | s_dot(l :: Loc, obj :: Expr, field :: String)
+  | s_get_bang(l :: Loc, obj :: Expr, field :: String)
   | s_bracket(l :: Loc, obj :: Expr, field :: Expr)
   | s_colon(l :: Loc, obj :: Expr, field :: String)
   | s_colon_bracket(l :: Loc, obj :: Expr, field :: Expr)
@@ -79,6 +81,7 @@ data Expr:
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
+      mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
       check :: Expr
@@ -102,6 +105,7 @@ end
 
 data Member:
   | s_data_field(l :: Loc, name :: Expr, value :: Expr)
+  | s_mutable_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr)
   | s_method_field(
       l :: Loc,
       name :: Expr,
@@ -117,11 +121,15 @@ data ForBind:
   | s_for_bind(l :: Loc, bind :: Bind, value :: Expr)
 end
 
+data VariantMember:
+  | s_variant_member(l :: Loc, _mutable :: Bool, bind :: Bind)
+end
+
 data Variant:
   | s_variant(
       l :: Loc,
       name :: String,
-      binds :: List<Bind>,
+      members :: List<VariantMember>,
       with_members :: List<Member>
     )
   | s_singleton_variant(

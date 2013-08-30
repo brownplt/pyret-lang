@@ -80,16 +80,16 @@
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from" "cases"
-     "and" "or" "not" "is"
+     "and" "or" "not" "is" "raises" "mutable"
      "as" "purpose" "if" "else")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
    '("doc" "try" "with" "sharing" "check" "where" "case")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
-                "." "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
+                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
-  (concat "^[ \t]*" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "^" ))))
+  (concat "^[ \t]*" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" ))))
 (defconst pyret-font-lock-keywords-1
   (list
    `(,(concat 
@@ -516,7 +516,7 @@
             (cond 
              ((or (pyret-has-top opens '(object data))
                   (pyret-has-top opens '(field object data)))
-              (incf (pyret-indent-object cur-closed))
+              ;(incf (pyret-indent-object cur-closed))
               (cond
                ((pyret-has-top opens '(field))
                 (pop opens)
@@ -540,11 +540,11 @@
             (cond
              ((pyret-has-top opens '(wantopenparen wantcloseparen data))
               (pop opens) (pop opens)
-              (incf (pyret-indent-object defered-opened))
+              ;(incf (pyret-indent-object defered-opened))
               (push 'object opens)
               (push 'wantcolon opens))
              ((pyret-has-top opens '(data))
-              (incf (pyret-indent-object defered-opened))
+              ;(incf (pyret-indent-object defered-opened))
               (push 'object opens)
               (push 'wantcolon opens)))
             (forward-char 4))
@@ -557,7 +557,7 @@
             (cond 
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
-              (incf (pyret-indent-object cur-closed))
+              ;(incf (pyret-indent-object cur-closed))
               (push 'shared opens)
               (push 'wantcolon opens))
              ((pyret-has-top opens '(data))
@@ -569,7 +569,7 @@
             (cond
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
-              (incf (pyret-indent-object cur-closed))
+              ;(incf (pyret-indent-object cur-closed))
               (incf (pyret-indent-data cur-closed))
               (incf (pyret-indent-shared defered-opened)))
              ((pyret-has-top opens '(data))
@@ -697,7 +697,7 @@
             (forward-char))
            ((pyret-END)
             (when (pyret-has-top opens '(object data))
-              (incf (pyret-indent-object cur-closed))
+              ;(incf (pyret-indent-object cur-closed))
               (pop opens))
             (let ((h (car-safe opens))
                   (still-unclosed t))

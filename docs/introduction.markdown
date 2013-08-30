@@ -9,7 +9,7 @@
 Bonus: when you call `print()`, it first calls the builtin
 `tostring()` function on the argument. This shows sensible representations
 for base values, but for more complicated objects, if you define
-a `tostring` method, it will use that instead. 
+a `tostring` method, it will use that instead.
 
 #### Comments
 
@@ -32,7 +32,7 @@ written exactly this way - exactly one space between `else` and `if`.
 
 #### Separators
 
-There are also no line end separators. Pyret is semicolonless. 
+There are also no line end separators. Pyret is semicolonless.
 
 #### Expressions
 
@@ -91,7 +91,7 @@ check for it, and in some cases, like if you have an empty function
 body, it will be returned to you. You can't add fields to it. You write it like:
 
     nothing
-    
+
 #### Objects
 
 Written as dictionary literals, in curly brace syntax. Keys are always
@@ -275,8 +275,8 @@ colon. For example:
     f({}) # evaluates to 10 - note that you have to apply it to a self
     o2 = o.{ newmeth = m }
     o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
-    
-    
+
+
 ### Operators
 
 Pyret does not have precedence for operators. The result is not
@@ -315,7 +315,7 @@ built in numbers:
 Furthermore, like with equality, we support using math operators on your own
 data types - any object that defines a "_plus" can be used with `+`, similar
 for `_minus`, `_divide`, `_times`, `_lessequal`, `_greaterequal`, `_greaterthan`,
-`_lessthan`. 
+`_lessthan`.
 
 #### Boolean
 
@@ -330,7 +330,7 @@ to call the function or not). For example:
     true and true and false # evaluates to false
     true and (false or true) # evaluates to true
     not (true and false) # evaluates to true
-    
+
 ### Control
 
 #### For loops
@@ -345,7 +345,7 @@ running some block of code to produce a new value for each existing value, we ca
 
 There are also several other built in functions for this purpose:
 
-    x = for filter(elem from [1,2,3,4])
+    x = for filter(elem from [1,2,3,4]):
       elem < 3
     end
     # x is [1,2]
@@ -439,10 +439,10 @@ hit the first one available. For example:
         e # is "Help"
       end
     except(e):
-      # control never reaches here 
+      # control never reaches here
     end
 
-    
+
 #### Blocks
 
 There are many block forms in Pyret. In any block, any number of
@@ -458,11 +458,11 @@ blocks are:
 - inside `when`
 - between `try` and `except`, and `except` and `end`
 - in the branches of `cases`
-    
+
 ### Data
 
 Pyret supports variant data types. This means that a single type may have
-several examples of it, with different constructors. 
+several examples of it, with different constructors.
 
 #### Definitions
 
@@ -500,9 +500,9 @@ same methods on all variants, because using them might be hard! Here are
 examples of the two ways:
 
     data List:
-      | empty with
+      | empty with:
         length(self): 0 end
-      | link(first, rest) with
+      | link(first, rest) with:
         length(self): 1 + self.rest.length() end
     sharing:
       my-special-method(self):
@@ -551,17 +551,18 @@ your variants, either include an `else` or be sure that only the
 variants listed will ever be passed in.
 
 
-### Check blocks
+### Check/where blocks
 
-One of the more interesting features of Pyret is the `check` block. At
-the end of any function or data definition, or in any block, you can
-add a `check` block, which contains code that asserts various
-properties about the function or data definition (or just tests things
-in general). If you run Pyret in `check` mode, we run these
-blocks. The novel feature is that you can put `check` blocks on nested
-functions, and they will be run with the arguments to the outer
-function from outer `check` blocks, which allows sensible testing of
-nested functions. For example:
+One of the more interesting features of Pyret are it's `check` and
+`where` blocks. At the end of any function or data definition, or in
+any block, you can add a `where` block, which contains code that
+asserts various properties about the function or data definition (or
+just tests things in general). You can put a `check` block anywhere,
+not attached to a particular function or data definition. If you run
+Pyret in `check` mode, we run these blocks. The novel feature is that
+you can put `where` blocks on nested functions, and they will be run
+with the arguments to the outer function from outer `where` blocks,
+which allows sensible testing of nested functions. For example:
 
     fun fact(n):
       fun fact_(n, acc):
@@ -570,14 +571,14 @@ nested functions. For example:
         else:
           fact_(n - 1, acc * n)
         end
-      check:
+      where:
         fact_(0, 0) is 0
         fact_(n, 0) is 0
         fact_(3, 3) is 18
         fact_(5, 1) is 120
       end
       fact_(n, 1)
-    check:
+    where:
       fact(1) is 1
       fact(5) is 120
       fact(3) is 6
@@ -589,6 +590,12 @@ sense in the context of outer data, and setting up testing harnesses
 can be really hard. In this case, the inner data is provided by the
 outer tests (so the inner check block runs 3 times, once each with `n`
 defined as 1, 5, and 3).
+
+`check` blocks can go anywhere, like:
+
+    check:
+      1 + 1 is 2
+    end
 
 ### Annotations
 
@@ -628,7 +635,7 @@ You can also define arbitrary predicates. For example:
     end
 
 And if you were to call `replicate` with a negative number, it would
-not run (instead of running forever).      
+not run (instead of running forever).
 
 
 ### Brands
@@ -646,7 +653,7 @@ way and didn't want to have to re-run it, you could write code like:
       #...
       verified.brand(x)
     end
-    
+
     fun run(x):
       if not verified.test(x):
         foo(expensive-check(x))
@@ -659,11 +666,10 @@ way and didn't want to have to re-run it, you could write code like:
     z = expensive-check([])
 
     run(y) # runs expensive-check
-    run(z) # doesn't run expensive-check  
+    run(z) # doesn't run expensive-check
 
 Note that since objects are not mutable, the `.brand` method returns a
 new object with the brand added. You are welcome to use `brander`s for
 whatever you want - we think they are an interesting pattern for
 controlling a certain kind of truth within a program (of which a type
 is just one example).
-

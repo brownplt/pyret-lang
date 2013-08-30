@@ -94,18 +94,22 @@
   (define (wf-bind b)
     (match b
      [(s-bind s name ann) (wf-ann ann)]))
+  (define (wf-variant-member vm)
+    (match vm
+     [(s-variant-member s mutable? bind) (wf-bind bind)]))
   (define (wf-variant var)
     (match var
      [(s-singleton-variant s name members)
       (map wf-member members)]
      [(s-variant s name binds members)
       (begin
-        (ensure-unique-ids binds)
-        (map wf-bind binds)
+        (ensure-unique-ids (map s-variant-member-bind binds))
+        (map wf-variant-member binds)
         (map wf-member members))]))
   (define (wf-member mem)
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
+     [(s-mutable-field s name ann val) (begin (wf name) (wf val))]
      [(s-method-field s name args ann doc body check)
       (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
           (begin
@@ -144,8 +148,9 @@
      (begin
        (or (empty? stmts) (wf-last-stmt (last stmts)))
        (map wf stmts))]
-    [(s-data s name params variants shares check)
+    [(s-data s name params mixins variants shares check)
      (begin
+       (map wf mixins)
        (map wf-variant variants)
        (map wf-member shares)
        (well-formed/internal check #t))]
@@ -217,12 +222,16 @@
 
     [(s-extend s super fields) (begin (wf super)
                                       (map wf-member fields))]
+    [(s-update s super fields) (begin (wf super)
+                                      (map wf-member fields))]
 
     [(s-obj s fields) (map wf-member fields)]
 
     [(s-list s elts) (map wf elts)]
 
     [(s-dot s val field) (wf val)]
+
+    [(s-get-bang s val field) (wf val)]
 
     [(s-bracket s val field) (begin (wf val) (wf field))]
 

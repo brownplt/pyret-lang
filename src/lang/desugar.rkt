@@ -34,98 +34,8 @@
 (define (lam s args body)
   (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
-(define (add-matcher s base name variants)
-  (define id-matched (gensym 'matched))
-  (define id-val (gensym 'val))
-  (define id-f (gensym 'f))
-  (define id-v (gensym 'v))
-  (define id-cases (gensym 'cases))
-  (define id-else-fun (gensym 'else-fun))
-  (define id-location (gensym 'location))
-  (define id-preds (gensym 'preds))
-  (define id-helpers (gensym 'helpers))
-  (define id-elt (gensym 'elt))
-  (define (app-with-fields s f members)
-    (define (member->access m)
-      (s-bracket s (s-id s id-v) (s-str s (symbol->string (s-bind-id m)))))
-    (s-app s f (map member->access members)))
-  (define (helper-for-variant v)
-    (match v
-      [(s-singleton-variant s _ _)
-       (lam s (list id-f id-v) (s-app s (s-id s id-f) (list)))]
-      [(s-variant s _ members _)
-       (lam s (list id-f id-v) (app-with-fields s (s-id s id-f) members))]))
-  (define (pred-entry-for v)
-    (match v
-      [(or (s-singleton-variant s name _) (s-variant s name _ _))
-       (s-data-field s
-        (s-str s (symbol->string name))
-        (s-id s (make-checker-name name)))]))
-  (define (helper-entry-for v)
-    (match v
-      [(or (s-singleton-variant s name _) (s-variant s name _ _))
-       (s-data-field s
-        (s-str s (symbol->string name))
-        (helper-for-variant v))]))
-  (define pred-dict (s-obj s (map pred-entry-for variants)))
-  (define helpers-dict (s-obj s (map helper-entry-for variants)))
-  (define loop-body
-    (s-if-else s
-      (list
-        (s-if-branch s
-          (s-not s
-            (s-app s (s-dot s (s-id s 'builtins) 'has-field)
-              (list
-                (s-id s id-preds)
-                (s-dot s (s-id s id-elt) 'key))))
-          (s-app s (s-id s 'raise)
-            (list
-              (s-app s (s-dot s (s-id s 'error) 'invalid-case)
-                (list
-                  (s-op s 'op+
-                    (s-str s "Case does not exist: ")
-                    (s-dot s (s-id s id-elt) 'key))
-                  (s-id s id-location)
-                  (s-list s (list))))))))
-        (s-app s
-          (s-bracket s (s-id s id-preds)
-                       (s-dot s (s-id s id-elt) 'key))
-          (list (s-id s id-val)))))
-  (define loop
-    (s-for s (s-dot s (s-id s 'list) 'find)
-      (list (s-for-bind s (s-bind s id-elt (a-blank)) (s-id s id-cases)))
-      (a-blank)
-      loop-body))
-  (define post-loop
-    (s-if-else s
-      (list
-        (s-if-branch s
-          (s-app s (s-dot s (s-id s 'option) 'is-none)
-                   (list (s-id s id-matched)))
-          (s-app s (s-id s id-else-fun) (list))))
-      (s-app s
-        (s-bracket s (s-id s id-helpers)
-                     (s-dot s (s-dot s (s-id s id-matched) 'value) 'key))
-        (list (s-dot s (s-dot s (s-id s id-matched) 'value) 'action) (s-id s id-val)))))
-  (define matcher-fun
-    (s-block s
-      (list
-        (s-let s (s-bind s id-preds (a-blank)) pred-dict)
-        (s-let s (s-bind s id-helpers (a-blank)) helpers-dict)
-        (s-lam s empty
-               (list (s-bind s id-val (a-name s name))
-                     (s-bind s id-cases (a-blank))
-                     (s-bind s id-else-fun (a-blank))
-                     (s-bind s id-location (a-blank)))
-               (a-blank)
-               ""
-               (s-block s
-                (list
-                  (s-let s (s-bind s id-matched (a-blank)) loop)
-                  post-loop))
-               (s-block s empty)))))
-  (s-extend s base
-      (list (s-data-field s (s-str s "case_matcher") matcher-fun))))
+(define (meth s args body)
+  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
 (define (add-parameterizer s params variants obj)
   (define add-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
@@ -134,45 +44,116 @@
       (list (s-data-field s (s-str s "parameterize_add") add-fun)
             (s-data-field s (s-str s "parameterize_check") check-fun))))
 
-(define (variant-defs/list super-brand super-fields variants)
-  (define (member->field m val)
-    (s-data-field (s-bind-syntax m)
-             (s-str (s-bind-syntax m) (symbol->string (s-bind-id m)))
-             val))
+(define (variant-defs/list super-brand mixins-names super-fields variants)
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
+    (define (member->string m)
+      (match m
+        [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
+    (define (make-equals s brander fields)
+      (meth s (list 'self 'other)
+        (s-app s (s-dot s (s-id s 'builtins) 'data-equals)
+          (append
+            (list
+            (s-id s 'self)
+            (s-id s 'other)
+            (s-id s brander)
+            (s-list s (map member->string fields)))))))
+    (define (make-match s case-name fields)
+      (define call-match-case (gensym (string-append "call-" (symbol->string case-name))))
+      (meth s (list 'self 'cases-funs 'else-clause)
+        (s-if-else s
+         (list
+          (s-if-branch s
+            (s-app s (s-dot s (s-id s 'builtins) 'has-field)
+                   (list (s-id s 'cases-funs) (s-str s (symbol->string case-name))))
+            (s-block s
+              (list
+                (s-let s (s-bind s call-match-case (a-blank)) (s-dot s (s-id s 'cases-funs) case-name))
+                (s-app s (s-id s call-match-case)
+                       (map (lambda (field-name) (s-dot s (s-id s 'self) (s-bind-id field-name))) fields))))))
+         (s-app s (s-id s 'else-clause) (list)))                     
+      ))
+    (define local-mixins-names
+      (map (lambda (m) (gensym "mixin")) mixins-names))
+    (define (local-bind-mixins s)
+      (map (lambda (local-name name)
+             (s-let s (s-bind s local-name (a-blank))
+                    (s-if-else s
+                               (list
+                                (s-if-branch s (s-app s (s-id s 'Function) (list (s-id s name)))
+                                             (s-app s (s-id s name) (list))))
+                               (s-id s name)))) local-mixins-names mixins-names))
+    (define (fold-mixins s method base-obj)
+      (foldl (lambda (mixin obj)
+               (s-app s (s-dot s (s-id s mixin) method) (list obj))) base-obj local-mixins-names))
+    
     (match v
       [(s-singleton-variant s name with-members)
+       (define torepr
+        (meth s (list 'self)
+          (s-str s (symbol->string name))))
        (define brander-name (gensym name))
+       (define equals (make-equals s (make-checker-name name) (list)))
+       (define matcher (make-match s name (list)))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define base-obj
-         (s-obj s (append super-fields with-members)))
+         (s-obj s (append (list
+                            (s-data-field s (s-str s "_torepr") torepr)
+                            (s-data-field s (s-str s "_equals") equals)
+                            (s-data-field s (s-str s "_match") matcher))
+                          super-fields
+                          with-members)))
        (s-block s
-         (list
+         (flatten (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
+           (local-bind-mixins s)
            (make-checker s (make-checker-name name) name
                          (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
                     (apply-brand s super-brand
                       (apply-brand s brander-name
-                        (s-id s base-name))))))]
-      [(s-variant s name members with-members)
+                       (fold-mixins s 'brand
+                         (fold-mixins s 'extend
+                           (s-id s base-name)))))))))]
+      [(s-variant s name variant-members with-members)
+       (define (member->field m val)
+        (match m
+          [(s-variant-member s mutable? (s-bind s2 name ann))
+           (define name-str (s-str s2 (symbol->string name)))
+           (if mutable?
+            (s-mutable-field s2 name-str ann val)
+            (s-data-field s2 name-str val))]))
+       (define id-members (map s-variant-member-bind variant-members))
+       (define torepr
+        (meth s (list 'self)
+          (s-app s (s-dot s (s-id s 'builtins) 'data-to-repr)
+             (list (s-id s 'self)
+                   (s-str s (symbol->string name))
+                   (s-list s (map member->string id-members))))))
+       (define equals (make-equals s (make-checker-name name) id-members))
+       (define matcher (make-match s name id-members))
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
-       (define args (map gensym (map s-bind-id members)))
+       (define args (map gensym (map s-bind-id id-members)))
        (define (replace-id m new-name)
         (match m
           [(s-bind s _ val) (s-bind s new-name val)]))
-       (define constructor-args (map replace-id members args))
+       (define constructor-args (map replace-id id-members args))
        (define base-obj
-         (s-obj s (append super-fields with-members)))
+         (s-obj s (append (list
+                            (s-data-field s (s-str s "_torepr") torepr)
+                            (s-data-field s (s-str s "_equals") equals)
+                            (s-data-field s (s-str s "_match") matcher))
+                          super-fields
+                          with-members)))
        (define obj
          (s-extend s (s-id s base-name)
           (map member->field
-               members
+               variant-members
                (map (lambda (id) (s-id s id)) args))))
        (s-block s
          (list
@@ -190,15 +171,20 @@
                      (symbol->string name)
                      (symbol->string name))
                     (s-block s
-                     (list
+                     (flatten (list
+                      (local-bind-mixins s)
                       (apply-brand s super-brand
                        (apply-brand s brander-name
-                        obj))))
+                       (fold-mixins s 'brand
+                         (fold-mixins s 'extend
+                           obj)))))))
                     (s-block s empty))))]))
   (map variant-defs variants))
 
 (define (ds-member ast-node)
     (match ast-node
+      [(s-mutable-field s name ann value)
+       (s-mutable-field s name ann (desugar-internal value))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
@@ -275,39 +261,43 @@
     (match branch
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
   (define (ds-cases s type val cases else)
-    (define matcher-fun (s-dot s type 'case_matcher))
     (define (ds-cases-branch b)
       (match b
         [(s-cases-branch s2 name args body)
-         (s-obj s
-          (list
-            (s-data-field s2 (s-str s2 "key") (s-str s2 (symbol->string name)))
-            (s-data-field s2 (s-str s2 "action")
-              (s-lam s2 empty args (a-blank) "" body (s-block s2 empty)))))]))
+         (s-data-field s2 (s-str s2 (symbol->string name))
+                       (s-lam s2 empty args (a-blank) "" body (s-block s2 empty)))]))
     (define else-fun
-      (s-lam s empty empty (a-blank) "" else (s-block s empty)))
-    (define location
-      (build-location s))
-    (ds (s-app s matcher-fun
-          (list val
-                (s-list s (map ds-cases-branch cases))
-                else-fun
-                location))))
+      (s-lam (get-srcloc else) empty empty (a-blank) "" else (s-block (get-srcloc else) empty)))
+    (define cases-object
+      (s-obj s (map ds-cases-branch cases)))
+    (define val-temp-name (gensym "cases-value"))
+    (ds
+      (s-block s
+        (list
+          (s-let s (s-bind s val-temp-name (a-blank)) val)
+          (s-app s (s-id s 'check-brand)
+             (list type (s-id s val-temp-name) (s-str s (pretty type))))
+          (s-app s (s-dot s (s-id s val-temp-name) '_match) (list cases-object else-fun))))))
 
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params variants share-members check-ignored)
+    [(s-data s name params mixins variants share-members check-ignored)
      (define brander-name (gensym name))
+     (define mixins-names
+       (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
+     (define bind-mixins
+       (map (lambda (m-name m) (s-let s (s-bind s m-name (a-blank)) m)) mixins-names mixins))
      (ds (s-block s
                   (flatten (list
-                   (list (s-let s (s-bind s brander-name (a-blank))
+                   (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
-                   (variant-defs/list brander-name share-members variants)
-                   (list (s-let s (s-bind s name (a-blank))
+                   bind-mixins
+                   (variant-defs/list brander-name mixins-names share-members variants)
+                   (s-let s (s-bind s name (a-blank))
                                 (add-parameterizer s params variants
-                                  (add-matcher s (s-dot s (s-id s brander-name) 'test) name variants)))))))))]
+                                  (s-dot s (s-id s brander-name) 'test)))))))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
@@ -397,6 +387,8 @@
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
+    [(s-update s super fields) (s-update s (ds super) (map ds-member fields))]
+
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
     [(s-list s elts)
@@ -407,6 +399,8 @@
      (foldr make-link (get-lib "empty") (map ds elts))]
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
+
+    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 
@@ -428,6 +422,16 @@
         (s-str s (pretty (s-op s 'opis e1 e2)))
         (lam s (list) (ds e1))
         (lam s (list) (ds e2))
+        (build-location s)))]
+
+    [(s-op s 'opraises e1 e2)
+     (s-app
+      s
+      (s-bracket s (s-id s 'checkers) (s-str s "check-raises"))
+      (list
+        (s-str s (pretty (s-op s 'opraises e1 e2)))
+        (lam s (list) (ds e1))
+        e2
         (build-location s)))]
 
     [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
@@ -488,7 +492,7 @@
     (match expr
       [(s-let _ (s-bind _ x _) _) (list x)]
       [(s-fun _ name _ _ _ _ _ _) (list name)]
-      [(s-data s name _ variants _ _)
+      [(s-data s name _ _ variants _ _)
        (cons name (flatten (map variant-ids variants)))]
       [else (list)]))
   (flatten (map _top-level-ids (s-block-stmts block))))

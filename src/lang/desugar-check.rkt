@@ -16,7 +16,7 @@
     (match stmt
       [(s-fun s name _ _ _ _ _ check)
        (cons (check-info s name check) lst)]
-      [(s-data s name _ _ _ check)
+      [(s-data s name _ _ _ _ check)
        (cons (check-info s name check) lst)]
       [(s-check s body)
        (begin
@@ -75,15 +75,20 @@
   (define (ds-bind b)
     (match b
      [(s-bind s name ann) (s-bind s name (ds-ann ann))]))
+  (define (ds-variant-member vm)
+    (match vm
+     [(s-variant-member s mutable? bind)
+      (s-variant-member s mutable? (ds-bind bind))]))
   (define (ds-variant var)
     (match var
      [(s-singleton-variant s name members)
       (s-singleton-variant s name (map ds-member members))]
      [(s-variant s name binds members)
-      (s-variant s name (map ds-bind binds) (map ds-member members))]))
+      (s-variant s name (map ds-variant-member binds) (map ds-member members))]))
   (define (ds-member mem)
     (match mem
      [(s-data-field s name val) (s-data-field s (ds name) (ds val))]
+     [(s-mutable-field s name ann val) (s-mutable-field s (ds name) (ds-ann ann) (ds val))]
      [(s-method-field s name args ann doc body check)
       (s-method-field s name (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]))
   (match ast
@@ -105,8 +110,9 @@
               (s-let s (s-bind s id-result (a-blank)) last-expr)
               do-checks
               (s-id s id-result))))])]
-    [(s-data s name params variants shares check)
+    [(s-data s name params mixins variants shares check)
      (s-data s name params
+             (map ds mixins)
              (map ds-variant variants)
              (map ds-member shares)
              (s-block s (list)))]
@@ -155,11 +161,15 @@
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
+    [(s-update s super fields) (s-update s (ds super) (map ds-member fields))]
+
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
     [(s-list s elts) (s-list s (map ds elts))]
 
     [(s-dot s val field) (s-dot s (ds val) field)]
+
+    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 

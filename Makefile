@@ -18,16 +18,17 @@ pyret-dev: dep
 test:
 	@echo Compiling and running tests, should say 0 errors and 0 failures
 	cd src/tests; \
-	raco make compile-tests.rkt parse-tests.rkt type-tests.rkt well-formed-tests.rkt; \
+	raco make compile-tests.rkt parse-tests.rkt type-tests.rkt well-formed-tests.rkt indentation-tests.rkt; \
 	racket parse-tests.rkt; \
 	racket compile-tests.rkt; \
 	racket type-tests.rkt; \
-	racket well-formed-tests.rkt
+	racket well-formed-tests.rkt; \
+	racket indentation-tests.rkt
 
 doc:
 	@echo Building docs
-	cd tools; \
-	racket scroll.arr | sed 's/^/    /' > ../docs/moorings.markdown
+	cd docs; \
+	scribble --htmls lang.scrbl
 
 clean:
 	raco setup -c pyret
@@ -40,4 +41,3 @@ unlink:
 
 dangerous-clean:
 	find . -name "compiled" | xargs rm -rf
-

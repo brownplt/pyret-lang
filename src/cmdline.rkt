@@ -2,20 +2,21 @@
 
 (require
   pyret/lang/ffi-helpers
-  pyret/lang/settings
   pyret/lang/pyret
   (only-in pyret/lang/pyret-lang-racket checkers)
+  pyret/lang/reader
   pyret/lang/runtime
   pyret/lang/typecheck
   pyret/lang/well-formed
+  pyret/lang/indentation
   pyret/lang/eval
+  pyret/parameters
   ragg/support
   racket/cmdline
   racket/list
   racket/match
   racket/pretty
   racket/runtime-path
-  "lang/reader.rkt"
   racket/syntax)
 
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
@@ -57,6 +58,10 @@
      (eprintf "[pyret] Error in well-formedness checking:\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc srclocs))]
+    [(exn:fail:pyret/indent message cms srclocs)
+     (eprintf "[pyret] Error in indentation checking:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (void (map print-loc srclocs))]
     [(p:exn:fail:pyret message cms srcloc system? val)
      (eprintf "[pyret] Runtime error:\n\n~a\n" message)
      (eprintf "At:\n")
@@ -85,8 +90,6 @@
        (display "\n\nPlease copy/paste this exception in an email to joe@cs.brown.edu.\n")])]
     ))
 
-(define (print-check-results results)
-  ((p:p-base-method (p:get-raw-field p:dummy-loc results "format")) results))
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
@@ -97,6 +100,8 @@
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--no-checks" "Run without checks"
    (set! check-mode #f))
+  ("--no-indentation" "Run without indentation checking"
+   (current-indentation-mode #f))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
@@ -104,13 +109,9 @@
     (define (run)
       (cond
         [check-mode
-         (parameterize ([param-compile-check-mode #t]
-                        [current-load-relative-directory base])
-           (define results
-            (eval
-              (pyret->racket pyret-file (open-input-file pyret-file) #:check #t)
-              (make-fresh-namespace)))
-           (print-check-results results))]
+         (parameterize ([current-check-mode #t]
+                        [current-print (print-pyret #t)])
+          (dynamic-require pyret-file #f))]
         [else
          (dynamic-require pyret-file #f)]))
     (with-handlers
@@ -120,4 +121,3 @@
           (flush-output (current-output-port))
           (flush-output (current-error-port)))])
       (run))))
-

@@ -8,7 +8,6 @@
   racket/splicing
   racket/syntax
   "ast.rkt"
-  "runtime.rkt"
   "compile-helpers/find.rkt"
   "compile-helpers/lift-constants.rkt")
 
@@ -241,9 +240,21 @@
         #`(p:extend #,(loc-stx l)
                     super
                     (r:list member ...))))]
+
+    [(s-update l super fields)
+     (attach l
+       (with-syntax ([(member ...) (map (curryr compile-member env) fields)]
+                     [super (compile-expr super env)])
+        #`(p:update #,(loc-stx l)
+                    super
+                    (r:list member ...))))]
     
     [(s-bracket l obj field)
      (compile-lookup l obj field #'p:get-field)]
+
+    [(s-get-bang l obj field)
+     (attach l
+      #`(p:get-mutable-field #,(loc-stx l) #,(compile-expr obj env) #,(symbol->string field)))]
     
     [(s-colon-bracket l obj field)
      (compile-lookup l obj field #'p:get-raw-field)]

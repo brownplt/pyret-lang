@@ -46,6 +46,7 @@
      'print
      'raise
      'tostring
+     'torepr
      'Any
      'Bool
      'Function
@@ -53,9 +54,15 @@
      'Number
      'Object
      'String
+     'Nothing
+     'Mutable
      'brander
+     'check-brand
+     'mk-mutable
+     'mk-simple-mutable
      'is-nothing
-     'nothing)))
+     'nothing
+     'gensym)))
 
 (define builtins-env-list
   (blankify
@@ -75,12 +82,44 @@
       'filter
       'fold
       'map
+      'range
+      'repeat
+      'filter
+      'partition
+      'any
+      'find
+      'map
+      'map2
+      'map3
+      'map4
+      'map_n
+      'map2_n
+      'map3_n
+      'map4_n
+      'each
+      'each2
+      'each3
+      'each4
+      'each_n
+      'each2_n
+      'each3_n
+      'each4_n
+      'fold
+      'fold2
+      'fold3
+      'fold4
       'random
       'animate
       'circle
       'rectangle
       'text
-      'place-image)))
+      'place-image
+      
+      'Option
+      'some
+      'is-some
+      'none
+      'is-none)))
 
 (define LIBRARY-ENV
   (make-immutable-hash runtime-env-list))

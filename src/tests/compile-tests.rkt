@@ -4,6 +4,7 @@
   rackunit
   rackunit/text-ui
 	 "test-utils.rkt"
+   "../parameters.rkt"
 	 "../lang/runtime.rkt")
 
 (verbose! #f)
@@ -46,6 +47,7 @@
   (check-pyret "'fod'.repeat(3)" (p:mk-str "fodfodfod"))
   ))
 
+
 (define functions (test-suite
   "simple functions"
 
@@ -64,7 +66,7 @@
 
   (check-pyret-exn "fun f(x): x = 2 x end f(1)" "nested scopes")
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
-  (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Unbound id")
+  (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Assigning to unbound variable")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
   (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Arity")
   (check-pyret-exn "fun f(x, y): x end f(3)" "Arity")
@@ -194,7 +196,7 @@
 
   (check-pyret-match/check "pyret/cases/cases1.arr" _ 4 4 0 0 0)
   (check-pyret-match/check "pyret/cases/cases-list.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 3 3 0 0 0)
+  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 2 2 0 0 0)
 ))
 
 
@@ -373,6 +375,8 @@
      | test(x, x)
     end"
    "duplicate")
+
+  (check-pyret-match/check "pyret/data-equals.arr" _ 27 27 0 0 0)
 
   ))
 
@@ -593,7 +597,9 @@
 
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
-  #;(check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 17 17 0 0 0)
+  ;; NOTE(joe): allow this here because checkers
+  (parameterize [(current-allow-shadowed-vars #t)]
+    (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 23 23 0 0 0))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
   (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))
@@ -602,7 +608,12 @@
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
   (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
+  (check-pyret "gensym('foo').contains('foo')" true)
+  (check-pyret "gensym('foo').length() > 3" true)
+  (check-pyret "gensym('foo') <> gensym('foo')" true)
+  (check-pyret "String(gensym('foo'))" true)
 
+  (check-pyret-match/check "pyret/math-libs.arr" _ 7 7 0 0 0)
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -634,11 +645,13 @@
   (check-pyret "tostring(false)" (p:mk-str "false"))
   (check-pyret "[1,2,3].tostring()" (p:mk-str "[1, 2, 3]"))
   (check-pyret "tostring('hello')" (p:mk-str "hello"))
-  (check-pyret "tostring({a: true})" (p:mk-str "{ a: true }"))
+  (check-pyret "tostring({a: true})" (p:mk-str "{a: true}"))
   (check-pyret "tostring({a: 5, tostring(self): 'hello!' end})"
          (p:mk-str "hello!"))
   (check-pyret "tostring(fun(x): x end)" (p:mk-str "fun (x): '' end"))
   (check-pyret "tostring(method(x): doc: 'yay' x end)" (p:mk-str "method (x): 'yay' end"))
+
+  (check-pyret-match/check "pyret/repr.arr" _ 26 26 0 0 0)
 ))
 
 (define methods (test-suite "methods"
@@ -700,6 +713,10 @@ o2.m().called" true)
                (p:p-str _ _ _ _ "method foo(x): 'cool' end"))
 
 ))
+
+(define mutables (test-suite "mutable fields"
+  (check-pyret-match/check "pyret/update.arr" _ 22 22 0 0 0)
+  ))
 
 (define exceptions (test-suite "exceptions"
   (check-pyret-exn
@@ -922,6 +939,11 @@ o2.m().called" true)
 
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10 10 0 0 0)
+  (check-pyret-match/check "pyret/eval.arr" _ 20 20 0 0 0)
+))
+
+(define mixins (test-suite "mixins"
+  (check-pyret-match/check "pyret/mixins.arr" _ 9 9 0 0 0)
 ))
 
 (define checks (test-suite "checks"
@@ -948,6 +970,8 @@ o2.m().called" true)
     (check-pyret-match/check "pyret/check/check-is.arr" _ 3 2 1 0 0))
 
     (check-pyret-match/check "pyret/check/standalone.arr" _ 4 2 2 0 0)
+
+    (check-pyret-match/check "pyret/check/raises.arr" _ 4 2 2 0 0)
 
 ))
 
@@ -999,10 +1023,12 @@ o2.m().called" true)
   built-in-libraries
   for-block
   methods
+  mutables
   exceptions
   ids-and-vars
   binary-operators
   ffi
+  mixins
   checks
   examples))
 

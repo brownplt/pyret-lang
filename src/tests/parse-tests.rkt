@@ -17,6 +17,8 @@
 (define round-trip-test #f)
 (set! round-trip-test #f)
 
+(define ast-test #t)
+
 (define-syntax check-parse/fail
   (syntax-rules ()
     [(_ str error)
@@ -47,9 +49,10 @@
        ;; Make sure it *can* be parsed by the AST ffi
        ;; NOTE(joe): HACK HACK HACK.  We don't handle escapes well through all this
        ;; round-tripping, so skip tests that contain escaped escapes.
-       (when (not (or (string-contains str "\\n")
-                      (string-contains str "\\t")
-                      (string-contains str "\\r")))
+       (when (and ast-test
+                  (not (or (string-contains str "\\n")
+                           (string-contains str "\\t")
+                           (string-contains str "\\r"))))
          (check-pyret parse-test (p:mk-bool #t)))
 
        (when round-trip-test
@@ -181,6 +184,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ empty)))
 ))
 
+
 (define fields (test-suite "fields"
 
   (check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
@@ -193,6 +197,17 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "o.[x]" (s-bracket _ (s-id _ 'o) (s-id _ 'x)))
 
   (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
+
+  (check/block "{mutable x: 5}" (s-obj _ (list (s-mutable-field _ (s-str _ "x") (a-blank) (s-num _ 5)))))
+  (check/block "{mutable x :: Number: 5}" (s-obj _ (list (s-mutable-field _ (s-str _ "x") (a-name _ 'Number) (s-num _ 5)))))
+  (check/block "{mutable x: 5, y: 10}"
+    (s-obj _ (list (s-mutable-field _ (s-str _ "x") (a-blank) (s-num _ 5)) (s-data-field _ (s-str _ "y") (s-num _ 10)))))
+
+  (check/block "o!f" (s-get-bang _ (s-id _ 'o) 'f))
+
+  (check/block "o!f!g" (s-get-bang _ (s-get-bang _ (s-id _ 'o) 'f) 'g))
+  (check/block "o!f.g" (s-dot _ (s-get-bang _ (s-id _ 'o) 'f) 'g))
+  (check/block "o!f()" (s-app _ (s-get-bang _ (s-id _ 'o) 'f) (list)))
 
   (check/block "{x:5}.{y:3}"
                (s-extend _
@@ -209,6 +224,17 @@ line string\"" (s-str _ "multi\nline string"))
                         (s-id _ 'List)
                         (list (s-data-field _ (s-str _ "length") (s-num _ 0))
                               (s-data-field _ (s-str _ "width") (s-num _ 0)))))
+
+  (check/block "5!{x: 5}"
+               (s-update _
+                         (s-num _ 5)
+                         (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
+
+  (check/block "5!{x: 5, y: 10}"
+               (s-update _
+                         (s-num _ 5)
+                         (list (s-data-field _ (s-str _ "x") (s-num _ 5))
+                               (s-data-field _ (s-str _ "y") (s-num _ 10)))))
 
   (check/block "o:f"
                (s-colon _
@@ -439,39 +465,66 @@ line string\"" (s-str _ "multi\nline string"))
 (define data (test-suite "data"
 
   (check/block "data Foo: end"
-               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list) (list) (s-block _ _)))
   (check/block "data Foo: where: end"
-               (s-data _ 'Foo empty (list) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list) (list) (s-block _ _)))
 
   (check/block "  data Foo: | bar() end"
-               (s-data _ 'Foo empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
+               (s-data _ 'Foo empty empty (list (s-variant _ 'bar (list) (list))) (list) (s-block _ _)))
 
   (check/block "data NumList:
-    | empty()
-    | cons(first :: Number, rest :: NumList)
-  end"
-               (s-data _ 'NumList (list) (list (s-variant _ 'empty (list) (list))
-                                               (s-variant _ 'cons (list (s-bind _ 'first (a-name _ 'Number))
-                                                                        (s-bind _ 'rest (a-name _ 'NumList)))
-                                                          (list)))
-                       (list) (s-block _ _)))
-  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
+      | empty()
+      | cons(first :: Number, rest :: NumList)
+    end"
+    (s-data _ 'NumList empty (list) (list
+      (s-variant _ 'empty (list) (list))
+      (s-variant _ 'cons (list (s-variant-member _ #f (s-bind _ 'first (a-name _ 'Number)))
+                               (s-variant-member _ #f (s-bind _ 'rest (a-name _ 'NumList))))
+                 (list)))
+           (list) (s-block _ _)))
+  (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) empty (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
 
   (check/block
    "data List<a>: | cons(field, l :: List<a>) end"
-   (s-data _ 'List (list 'a)
+   (s-data _ 'List (list 'a) empty
            (list (s-variant
                   _
                   'cons
-                  (list (s-bind _ 'field (a-blank))
-                        (s-bind _ 'l (a-app _ (a-name _ 'List)
-                                            (list (a-name _ 'a)))))
+                  (list (s-variant-member _ #f (s-bind _ 'field (a-blank)))
+                        (s-variant-member _ #f (s-bind _ 'l (a-app _ (a-name _ 'List)
+                                            (list (a-name _ 'a))))))
                   (list))) (list)
                   (s-block _ _)))
 
   (check/block
+   "data Der deriving Eq, Show(true): | derCase1 end"
+   (s-data _ 'Der empty
+           (list (s-id _ 'Eq)
+                 (s-app _ (s-id _ 'Show) (list (s-bool _ #t))))
+           (list (s-singleton-variant
+                  _
+                  'derCase1
+                  (list)))
+           (list)
+           (s-block _ _)))
+
+  (check/block
+   "data Mutable:
+      | v1(mutable x :: String)
+      | v2(x, mutable y)
+    end"
+    (s-data _ 'Mutable (list) (list)
+      (list
+        (s-variant _ 'v1 (list (s-variant-member _ #t (s-bind _ 'x (a-name _ 'String)))) (list))
+        (s-variant _ 'v2 (list
+          (s-variant-member _ #f (s-bind _ 'x (a-blank)))
+          (s-variant-member _ #t (s-bind _ 'y (a-blank)))) (list)))
+      (list)
+      (s-block _ _)))
+
+  (check/block
    "data List: | empty end"
-   (s-data _ 'List (list)
+   (s-data _ 'List (list) empty
     (list (s-singleton-variant
            _
            'empty
@@ -481,7 +534,7 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block
    "data List: | empty with: length(self): 0 end end"
-   (s-data _ 'List (list)
+   (s-data _ 'List (list) empty
     (list (s-singleton-variant
            _
            'empty
@@ -491,7 +544,7 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block
    "data Foo: | bar() with: x(self): self end end"
-   (s-data _ 'Foo (list)
+   (s-data _ 'Foo (list) empty
            (list (s-variant _ 'bar (list)
                             (list (s-method-field _
                                                   (s-str _ "x")
@@ -508,7 +561,7 @@ line string\"" (s-str _ "multi\nline string"))
     sharing:
       z: 10
     end"
-   (s-data _ 'Foo (list) (list (s-variant _
+   (s-data _ 'Foo (list) empty (list (s-variant _
                                           'bar
                                           (list)
                                           (list (s-method-field _
@@ -523,14 +576,14 @@ line string\"" (s-str _ "multi\nline string"))
 
    (check/block
     "data Foo: | bar() where: 5 end"
-    (s-data _ 'Foo empty
+    (s-data _ 'Foo empty empty
             (list (s-variant _ 'bar (list) (list)))
             (list)
             (s-block _ (list (s-num _ 5)))))
 
      (check/block
       "data Foo: | bar() | baz() sharing: z: 10 where: end"
-      (s-data _ 'Foo empty
+      (s-data _ 'Foo empty empty
               (list (s-variant _ 'bar (list) (list))
                     (s-variant _ 'baz (list) (list)))
               (list (s-data-field _ (s-str _ "z") (s-num _ 10)))
@@ -835,6 +888,8 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "not a.b" (s-not _ (s-dot s _ _)))
 
    (check/block "not a(b)" (s-not _ _))
+
+   (check/block "o raises e" (s-op _ 'opraises (s-id _ 'o) (s-id _ 'e)))
    ))
 
 (define all (test-suite "all"
