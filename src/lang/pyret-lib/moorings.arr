@@ -289,6 +289,9 @@ data List:
     end,
 
     sort-by(self, cmp, eq):
+      doc: "Takes a comparator to check for elements that are strictly greater
+        or less than one another, and an equality procedure for elements that are
+        equal, and sorts the list accordingly."
       pivot = self.first
       less = self.filter(fun(e): cmp(e,pivot) end).sort-by(cmp, eq)
       equal = self.filter(fun(e): eq(e,pivot) end)

@@ -1031,7 +1031,8 @@ defined on all lists (instances of @tt{empty} and @tt{link}):
   (define pylist (get-decl moorings-ast 'List))
   (list
     (label (string-append "List." name))
-    (pretty-method (get-method pylist 'empty name)))))
+    (pretty-method (get-method pylist 'link name))
+    (para (s-method-doc (get-method pylist 'link name))))))
 
 @subsection[#:tag "s:lists-functions"]{@tt{list} functions}
 
@@ -1134,7 +1135,6 @@ Numbers have a number of useful methods:
 @(flatten (for/list ((method (get-all-methods (get-decl numbers-ast 'Number) 'num)))
   (list
     (label (string-append "Number." (get-method-name method)))
-    (printf "Created label\n")
     (pretty-method method)
     (para (s-method-field-doc method)))))
 
