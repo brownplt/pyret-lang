@@ -115,6 +115,7 @@
       'text
       'place-image
       
+      'Option
       'some
       'is-some
       'none
