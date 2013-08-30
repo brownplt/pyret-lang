@@ -80,16 +80,16 @@
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from" "cases"
-     "and" "or" "not" "is"
+     "and" "or" "not" "is" "raises" "mutable"
      "as" "purpose" "if" "else")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
    '("doc" "try" "with" "sharing" "check" "where" "case")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
-                "." "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
+                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
-  (concat "^[ \t]*" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "^" ))))
+  (concat "^[ \t]*" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" ))))
 (defconst pyret-font-lock-keywords-1
   (list
    `(,(concat 
