@@ -705,6 +705,7 @@ And the object was:
           ("floor" . ,(mk-num-1 floor 'floor))
           ("log" . ,(mk-num-1 log 'log))
           ("exp" . ,(mk-num-1 exp 'exp))
+          ("exact" . ,(mk-num-1 inexact->exact 'exact))
           ("expt" . ,(mk-num-2 expt 'expt))))))
   meta-num-store)
 
