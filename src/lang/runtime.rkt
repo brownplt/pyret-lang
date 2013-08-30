@@ -450,7 +450,7 @@
 (define mutable-bad-app (bad-app "mutable"))
 (define mutable-bad-meth (bad-meth "mutable"))
 (define (mk-mutable v reads writes)
-  (p-mutable no-brands empty-dict mutable-bad-app mutable-bad-meth (box v) reads writes))
+  (p-mutable no-brands mutable-dict mutable-bad-app mutable-bad-meth (box v) reads writes))
 
 (define mk-mutable-pfun (pλ/internal (loc) (val read write)
   (define check (p-base-app check-brand-pfun))
@@ -460,7 +460,6 @@
 
 (define mk-simple-mutable-pfun (pλ/internal (loc) (val)
   (mk-mutable val (list) (list))))
-
 
 (define exn-brand (gensym 'exn))
 
@@ -924,6 +923,17 @@ And the object was:
   (meta-num)
   (meta-bool)
   (meta-str))
+
+(define mutable-dict
+  (make-string-map
+    (list
+      (cons "get" (pμ/internal (loc) (self)
+        ""
+        (when (not (p-mutable? self))
+          (throw-type-error! "Mutable" self))
+        (define checks (p-mutable-read-wrappers self))
+        (foldr (lambda (c v) (c v)) (unbox (p-mutable-b self)) checks))))))
+
 
 (define gensym-pfun (pλ (s)
   "Generate a random string with the given prefix"

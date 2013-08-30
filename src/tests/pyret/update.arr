@@ -46,6 +46,10 @@ where:
     my-d2!{ y : 10 }
     my-d2!y is 10
 
+    my-other-d2 = with-ann(10)
+
+    my-other-d2 is my-d2
+
     my-d3 = arrow-ann(fun(n): "some-string" end)
     my-d3!f(5) is "some-string"
     my-d3!{ f : fun(n): 42 end }

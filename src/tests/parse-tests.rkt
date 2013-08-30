@@ -184,6 +184,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ empty)))
 ))
 
+
 (define fields (test-suite "fields"
 
   (check/block "o.x" (s-dot _ (s-id _ 'o) 'x))
