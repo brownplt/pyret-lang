@@ -321,6 +321,8 @@
     [(id-expr x) (s-id (loc stx) (parse-name #'x))]
     [(dot-expr obj "." field)
      (s-dot (loc stx) (parse-expr #'obj) (parse-name #'field))]
+    [(get-bang-expr obj "!" field)
+     (s-get-bang (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(bracket-expr obj "." "[" field "]")
      (s-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(colon-expr obj ":" field)
@@ -387,7 +389,7 @@
             (parse-where-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
-    [(update-expr e "<-" "{" fields "}")
+    [(update-expr e "!" "{" fields "}")
      (s-update (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(left-app-expr e "^" fun-expr app-args)
      (s-left-app (loc stx)

@@ -184,6 +184,9 @@ these metadata purposes.
 ;; s-bracket : srcloc Expr Expr
 (struct s-bracket (syntax obj field) #:transparent)
 
+;; s-dot : srcloc Expr Symbol
+(struct s-get-bang (syntax obj field) #:transparent)
+
 ;; s-colon : srcloc Expr Symbol
 (struct s-colon (syntax obj field) #:transparent)
 ;; s-colon-bracket : srcloc Expr Expr

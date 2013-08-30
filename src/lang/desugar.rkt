@@ -395,6 +395,8 @@
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 
+    [(s-get-bang s val field) (s-dot s val field)]
+
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 
     [(s-colon s obj field) (s-colon-bracket s (ds obj) (s-str s (symbol->string field)))]

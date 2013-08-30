@@ -197,6 +197,12 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block "3.add" (s-dot _ (s-num _ 3) 'add))
 
+  (check/block "o!f" (s-get-bang _ (s-id _ 'o) 'f))
+
+  (check/block "o!f!g" (s-get-bang _ (s-get-bang _ (s-id _ 'o) 'f) 'g))
+  (check/block "o!f.g" (s-dot _ (s-get-bang _ (s-id _ 'o) 'f) 'g))
+  (check/block "o!f()" (s-app _ (s-get-bang _ (s-id _ 'o) 'f) (list)))
+
   (check/block "{x:5}.{y:3}"
                (s-extend _
                         (s-obj _ (list (s-data-field _ (s-str _ "x") (s-num _ 5))))
@@ -213,12 +219,12 @@ line string\"" (s-str _ "multi\nline string"))
                         (list (s-data-field _ (s-str _ "length") (s-num _ 0))
                               (s-data-field _ (s-str _ "width") (s-num _ 0)))))
 
-  (check/block "5 <- {x: 5}"
+  (check/block "5!{x: 5}"
                (s-update _
                          (s-num _ 5)
                          (list (s-data-field _ (s-str _ "x") (s-num _ 5)))))
 
-  (check/block "5 <- {x: 5, y: 10}"
+  (check/block "5!{x: 5, y: 10}"
                (s-update _
                          (s-num _ 5)
                          (list (s-data-field _ (s-str _ "x") (s-num _ 5))

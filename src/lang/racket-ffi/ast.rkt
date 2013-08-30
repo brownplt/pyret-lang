@@ -222,6 +222,12 @@
         (tp val)
         (symbol->string field))]
 
+    [(s-get-bang s val field)
+     (build s_get_bang
+        (tp-loc s)
+        (tp val)
+        (symbol->string field))]
+
     [(s-bracket s val field)
      (build s_bracket
         (tp-loc s)
@@ -473,6 +479,8 @@
       (tr-obj e s-str (tr-loc l) (noop s))]
      [(has-brand e s_dot)
       (tr-obj e s-dot (tr-loc l) (tr-expr obj) (string->symbol field))]
+     [(has-brand e s_get_bang)
+      (tr-obj e s-get-bang (tr-loc l) (tr-expr obj) (string->symbol field))]
      [(has-brand e s_bracket)
       (tr-obj e s-bracket (tr-loc l) (tr-expr obj) (tr-expr field))]
      [(has-brand e s_colon)

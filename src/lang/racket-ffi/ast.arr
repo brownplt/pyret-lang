@@ -73,6 +73,7 @@ data Expr:
   | s_bool(l :: Loc, b :: Bool)
   | s_str(l :: Loc, s :: String)
   | s_dot(l :: Loc, obj :: Expr, field :: String)
+  | s_get_bang(l :: Loc, obj :: Expr, field :: String)
   | s_bracket(l :: Loc, obj :: Expr, field :: Expr)
   | s_colon(l :: Loc, obj :: Expr, field :: String)
   | s_colon_bracket(l :: Loc, obj :: Expr, field :: Expr)
