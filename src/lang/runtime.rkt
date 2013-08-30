@@ -173,6 +173,7 @@
     [(eq? p-str typ) p-str?]
     [(eq? p-fun typ) p-fun?]
     [(eq? p-method typ) p-method?]
+    [(eq? p-mutable typ) p-mutable?]
     [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
@@ -851,6 +852,7 @@ And the object was:
     [(p-nothing _ _ _ _) "nothing"]
     [(p-method _ _ _ _) (serialize-internal v (λ () "method(): end"))]
     [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
+    [(p-mutable _ _ _ _ _ _ _) (serialize-internal v (λ () "mutable-field"))]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
@@ -927,8 +929,11 @@ And the object was:
 (define mutable-dict
   (make-string-map
     (list
+      (cons "_equals" (pμ/internal (loc) (self other)
+        "Check equality of this mutable field with another"
+        (mk-bool (eq? self other))))
       (cons "get" (pμ/internal (loc) (self)
-        ""
+        "Get the value in this mutable field"
         (when (not (p-mutable? self))
           (throw-type-error! "Mutable" self))
         (define checks (p-mutable-read-wrappers self))
