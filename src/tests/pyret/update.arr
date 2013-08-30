@@ -1,5 +1,26 @@
 #lang pyret
 
+
+check:
+
+  o = { mutable x: 5 }
+  o!{ x: 10 }
+  o!x is 10
+  o.x raises 'Cannot look up mutable field "x" using dot or bracket'
+
+  o2 = o.{ x: 15 }
+  o2.x is 15
+  o2!x raises 'Cannot look up immutable field "x" with the ! operator'
+
+  mut-value = o:x
+  o3 = o.{ x: mut-value }
+  o3!{ x: "o3-set"}
+  o3!x is "o3-set"
+  o!x is "o3-set"
+
+end
+
+
 data D:
   | no-ann(mutable x)
   | with-ann(mutable y :: Number)
@@ -42,9 +63,3 @@ where:
     my-d4!c raises "look up immutable field"
 end
 
-
-check:
-  o = { mutable x: 5 }
-  o!{ x: 10 }
-  o!x is 10
-end

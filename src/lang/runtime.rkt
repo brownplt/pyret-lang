@@ -482,6 +482,8 @@
 (define (get-field loc v f)
   (define vfield (get-raw-field loc v f))
   (cond
+    [(p-mutable? vfield)
+     (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
     [(p-method? vfield)
      (let [(curried
             (mk-fun (λ args (apply (p-base-method vfield)
@@ -506,7 +508,7 @@
      (define checks (p-mutable-read-wrappers vfield))
      (foldr (lambda (c v) (c v)) (unbox (p-mutable-b vfield)) checks)]
     [else
-     (raise (pyret-error loc "immutable-mutable-lookup" (format "Cannot look up immutable field ~a with the ! operator" f)))]))
+     (raise (pyret-error loc "immutable-mutable-lookup" (format "Cannot look up immutable field \"~a\" with the ! operator" f)))]))
 
 (define (check-str v l)
   (cond
