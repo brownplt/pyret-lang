@@ -116,7 +116,7 @@
     end
   end
   y :: Number(even) = 5"
- "contract failure")
+ "Contract failure")
 
 (check-pyret
  "fun even(x):

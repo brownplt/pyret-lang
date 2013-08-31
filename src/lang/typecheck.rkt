@@ -3,6 +3,23 @@
 (require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt")
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
+(define (build-location s)
+  (define (serialize-source e)
+    (cond
+      [(symbol? e) (symbol->string e)]
+      [(string? e) e]
+      [(path? e) (path->string e)]
+      [(false? e) "unknown source"]
+      [else (error (format "Non-symbol, non-string, non-path value for
+                            source: ~a" e))]))
+  (s-app s
+    (s-bracket s (s-id s 'error) (s-str s "location"))
+    (list
+      (s-str s (serialize-source (srcloc-source s)))
+      (s-num s (srcloc-line s))
+      (s-num s (srcloc-column s)))))
+
+
 (struct exn:fail:pyret/tc exn:fail (srclocs)
   #:property prop:exn:srclocs
     (lambda (a-struct)
@@ -124,7 +141,20 @@
                       (s-block s
                         (list
                           (s-app s (s-id s 'raise)
-                                   (list (s-str s "contract failure"))))))
+                            (list
+                              (s-app s
+                              (s-bracket s (s-id s 'error) (s-str s "user-contract-failure"))
+                              (list
+                                (s-app s
+                                  (s-bracket s
+                                    (s-str s "contract check: value did not match predicate: ")
+                                    (s-str s "_plus"))
+                                  (list
+                                    (s-app s (s-id s 'torepr)
+                                      (list (s-id s tempname)))))
+                                  
+                                (build-location s)
+                                (s-bracket s (s-id s 'list) (s-str s "empty")))))))))
                )))]
     [else
      (error

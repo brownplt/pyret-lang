@@ -685,6 +685,8 @@ data Error:
     name(self): "Invalid case" end
   | eval-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Eval Error" end
+  | user-contract-failure(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Contract failure" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
@@ -709,6 +711,7 @@ fun make-error(obj):
     if (type == "opaque"): opaque-error(msg, loc, trace)
     else if (type == "field-not-found"): field-not-found(msg, loc, trace)
     else if (type == "field-non-string"): field-non-string(msg, loc, trace)
+    else if (type == "user-contract-failure"): user-contract-failure(msg, loc, trace)
     else if (type == "eval-error"): eval-error(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
@@ -725,6 +728,8 @@ error = {
   is-cases-miss: is-cases-miss,
   invalid-case: invalid-case,
   is-invalid-case: is-invalid-case,
+  user-contract-failure: user-contract-failure,
+  is-user-contract-failure: is-user-contract-failure,
   make-error: make-error,
   Error: Error,
   Location: Location,
