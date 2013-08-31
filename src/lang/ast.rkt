@@ -66,6 +66,10 @@ these metadata purposes.
 (struct s-var (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
 (struct s-let (syntax name value) #:transparent)
+
+(struct s-graph (syntax bindings) #:transparent)
+
+
 ;; s-when : srcloc (Listof Expr s-block) -> s-when
 (struct s-when (syntax test block) #:transparent)
 ;; s-if : srcloc (Listof s-if-branch) -> s-if

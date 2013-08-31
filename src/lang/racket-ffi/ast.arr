@@ -35,6 +35,7 @@ data Expr:
     )
   | s_var(l :: Loc, name :: Bind, value :: Expr)
   | s_let(l :: Loc, name :: Bind, value :: Expr)
+  | s_graph(l :: Loc, bindings :: List<is-s_let>)
   | s_when(l :: Loc, test :: Expr, block :: Expr)
   | s_assign(l :: Loc, id :: String, value :: Expr)
   | s_if(l :: Loc, branches :: List<IfBranch>)

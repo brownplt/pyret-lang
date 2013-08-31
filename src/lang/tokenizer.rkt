@@ -32,6 +32,7 @@
          "cases"
          "when" "if" "else if" "else:"
          "data" "with:" "sharing:" "mutable"
+         "graph:"
          "for" "from"
          "end"))
 

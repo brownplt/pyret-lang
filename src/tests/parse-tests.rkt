@@ -184,6 +184,27 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ empty)))
 ))
 
+(define graph (test-suite "graph"
+  (check/block "graph:
+                  x = m.constr(1, y)
+                  y = m.other-constr(x)
+                end"
+                (s-graph _
+                  (list (s-let _ (s-bind _ 'x (a-blank))
+                                 (s-app _ (s-dot _ (s-id _ 'm) 'constr)
+                                        (list
+                                         (s-num _ 1)
+                                         (s-id _ 'y))))
+                        (s-let _ (s-bind _ 'y (a-blank))
+                                 (s-app _ (s-dot _ (s-id _ 'm) 'other-constr)
+                                        (list
+                                          (s-id _ 'x)))))))
+  (check/block "graph:
+                  BOS = mlink(PVD, mlink(WOR, mempty)))
+                  WOR = mlink(BOS, mempty)
+                  PVD = mlink(BOS, mempty)
+                end")))
+
 
 (define fields (test-suite "fields"
 

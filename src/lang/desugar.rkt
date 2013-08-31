@@ -311,6 +311,8 @@
     [(s-let s name val)
      (s-let s (ds-bind name) (ds val))]
 
+    [(s-graph s bindings) (s-block s (map ds bindings))]
+
     [(s-fun s name typarams args ann doc body check)
      (s-let s (s-bind s name (a-blank))
             (add-lam-tostring s "fun" name args

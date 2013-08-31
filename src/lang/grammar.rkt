@@ -45,6 +45,8 @@ list-mixin: binop-expr ","
 var-expr: "var" binding "=" binop-expr
 assign-expr: NAME ":=" binop-expr
 
+graph-expr: "graph:" let-expr* "end"
+
 when-expr: "when" binop-expr ":" block "end"
 
 binop-expr: not-expr | binop-expr binop binop-expr | expr

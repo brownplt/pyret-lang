@@ -115,6 +115,9 @@
     [(s-let s name val)
      (build s_let (tp-loc s) (tp-bind name) (tp val))]
 
+    [(s-graph s bindings)
+     (build s_graph (tp-loc s) (map tp bindings))]
+
     [(s-fun s name typarams args ann doc body check)
      (build s_fun
         (tp-loc s)
@@ -437,6 +440,8 @@
       (tr-obj e s-var (tr-loc l) (tr-bind name) (tr-expr value))]
      [(has-brand e s_let)
       (tr-obj e s-let (tr-loc l) (tr-bind name) (tr-expr value))]
+     [(has-brand e s_graph)
+      (tr-obj e s-graph (tr-loc l) (map tr-expr bindings))]
      [(has-brand e s_when)
       (tr-obj e s-when (tr-loc l) (tr-expr test) (tr-expr block))]
      [(has-brand e s_assign)

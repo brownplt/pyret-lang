@@ -105,6 +105,8 @@
      (s-var (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(let-expr bind "=" e)
      (s-let (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
+    [(graph-expr "graph:" bindings)
+     (s-graph (loc stx) (map/stx parse-stmt #'bindings))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
                doc body check "end")
      (s-fun (loc stx)
