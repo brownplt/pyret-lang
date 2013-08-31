@@ -17,10 +17,6 @@
 (define-runtime-module-path pyret-lang-whalesong "../../lang/pyret-lang-whalesong.rkt")
 
 (define (my-read-syntax src in)
-  (when (current-whalesong-repl-print)
-   (void (current-check-mode #t))
-   (void (current-read-interaction repl-eval-pyret))
-   (void (current-print (print-pyret (current-check-mode)))))
   (cond
     [(port-eof? in) eof]
     [else

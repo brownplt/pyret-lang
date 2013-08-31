@@ -112,7 +112,8 @@
       (cond
         [check-mode
          (parameterize ([current-check-mode #t]
-                        [current-print (print-pyret #t)])
+                        [current-print (print-pyret #t)]
+                        [current-whalesong-repl-print #f])
           (dynamic-require pyret-file #f))]
         [else
          (dynamic-require pyret-file #f)]))
