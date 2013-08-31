@@ -116,6 +116,7 @@
               [is-nothing-pfun is-nothing]
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
+              [mk-placeholder-pfun mk-placeholder]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -162,6 +163,8 @@
 (struct p-method p-base () #:transparent)
 ;; p-mutable p-base Box (Listof (Value -> Value)) (Listof (Value -> Value))
 (struct p-mutable p-base (b read-wrappers write-wrappers))
+;; p-placeholder p-base Box (Listof (Value -> Value))
+(struct p-placeholder p-base (b wrappers) #:mutable)
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -174,6 +177,7 @@
     [(eq? p-fun typ) p-fun?]
     [(eq? p-method typ) p-method?]
     [(eq? p-mutable typ) p-mutable?]
+    [(eq? p-placeholder typ) p-placeholder?]
     [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
@@ -201,6 +205,12 @@
        #'(maybe-bind [(b-id (p-mutable-b matchval))
                       (rw-id (p-mutable-read-wrappers matchval))
                       (ww-id (p-mutable-write-wrappers matchval))]
+           body))]
+    [(_ p-mutable matchval (b w) body)
+     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))
+                   (w-id (datum->syntax #'body (syntax->datum #'w)))]
+       #'(maybe-bind [(b-id (p-placeholder-b matchval))
+                      (w-id (p-placeholder-wrappers matchval))]
            body))]
     [(_ p-num matchval (n) body)
      (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
@@ -462,6 +472,14 @@
 (define mk-simple-mutable-pfun (pλ/internal (loc) (val)
   (mk-mutable val (list) (list))))
 
+(define placeholder-bad-app (bad-app "placeholder"))
+(define placeholder-bad-meth (bad-meth "placeholder"))
+(define (mk-placeholder)
+  (p-placeholder no-brands placeholder-dict placeholder-bad-app placeholder-bad-meth (box #f) empty))
+
+(define mk-placeholder-pfun (pλ/internal (loc) ()
+  (mk-placeholder)))
+
 (define exn-brand (gensym 'exn))
 
 ;; pyret-error : Loc String String -> p-exn
@@ -484,6 +502,8 @@
   (cond
     [(p-mutable? vfield)
      (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
+    [(p-placeholder? vfield)
+     (get-placeholder-value loc vfield)]
     [(p-method? vfield)
      (let [(curried
             (mk-fun (λ args (apply (p-base-method vfield)
@@ -939,6 +959,41 @@ And the object was:
         (define checks (p-mutable-read-wrappers self))
         (foldr (lambda (c v) (c v)) (unbox (p-mutable-b self)) checks))))))
 
+(define (get-placeholder-value loc p)
+  (when (not (p-placeholder? p))
+    (throw-type-error! "Placeholder" p))
+  (define value (unbox (p-placeholder-b p)))
+  (if value value (raise (pyret-error loc "get-uninitialized-placeholder"
+                          (format "Tried to get value from uninitialized placeholder")))))
+
+(define placeholder-dict
+  (make-string-map
+    (list
+      (cons "get" (pμ/internal (loc) (self)
+        "Get the value in the placeholder"
+        (get-placeholder-value dummy-loc self)))
+      (cons "set" (pμ/internal (loc) (self new-value)
+        "Set the value in the placeholder"
+        (when (not (p-placeholder? self))
+          (throw-type-error! "Placeholder" self))
+        (define value (unbox (p-placeholder-b self)))
+        (when value (raise (pyret-error (get-top-loc) "set-initialized-placeholder"
+                      (format "Tried to set value in already-initialized placeholder"))))
+        (define wrappers (p-placeholder-wrappers self))
+        (define value-checked (foldr (lambda (c v) (c v)) new-value wrappers))
+        (set-box! (p-placeholder-b self) value-checked)))
+      (cons "guard" (pμ/internal (loc) (self pred)
+        "Add a guard to the placeholder for when it is set"
+        (when (not (p-placeholder? self))
+          (throw-type-error! "Placeholder" self))
+        (define check (p-base-app check-brand-pfun))
+        (define checked-pred (check Function pred (mk-str "Function")))
+        (define value (unbox (p-placeholder-b self)))
+        (when value (raise (pyret-error (get-top-loc) "guard-initialized-placeholder"
+                          (format "Tried to add guard on an already-initialized placeholder"))))
+        (define wrappers (p-placeholder-wrappers self))
+        (set-p-placeholder-wrappers! self (cons (p-base-app pred) wrappers))
+        nothing)))))
 
 (define gensym-pfun (pλ (s)
   "Generate a random string with the given prefix"

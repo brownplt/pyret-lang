@@ -60,6 +60,7 @@
      'check-brand
      'mk-mutable
      'mk-simple-mutable
+     'mk-placeholder
      'is-nothing
      'nothing
      'gensym)))
