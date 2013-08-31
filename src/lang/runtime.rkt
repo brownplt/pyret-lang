@@ -285,7 +285,7 @@
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
       (mk-fun
-        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))
         doc))]))
 
@@ -294,7 +294,7 @@
     [(_ (loc) (arg ...) e ...)
      (quasisyntax/loc stx
       (mk-fun-nodoc
-        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))))]))
 
 (define-syntax (pμ stx)
@@ -582,7 +582,7 @@ And the object was:
       loc
       "arity-mismatch"
       (format
-"Arity mismatch: expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+"Expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
 ~a"
         (length argnames)
         (length args)
