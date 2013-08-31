@@ -13,6 +13,7 @@ block: stmt*
 
 stmt: let-expr | fun-expr | data-expr | when-expr
     | var-expr | assign-expr | binop-expr | check-expr
+    | graph-expr
 
 let-expr: binding "=" binop-expr
 binding: NAME ["::" ann]
@@ -35,7 +36,7 @@ data-mixins: ["deriving" mixins]
 data-variant: "|" NAME variant-members data-with | "|" NAME data-with
 variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
 list-variant-member: variant-member ","
-variant-member: ["mutable"] binding
+variant-member: ["mutable"|"cyclic"] binding
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
 

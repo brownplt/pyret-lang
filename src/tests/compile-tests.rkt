@@ -716,7 +716,10 @@ o2.m().called" true)
 
 (define mutables (test-suite "mutable fields"
   (check-pyret-match/check "pyret/update.arr" _ 29 29 0 0 0)
+  (check-pyret-match/check "pyret/placeholder.arr" _ 11 11 0 0 0)
+  (check-pyret-match/check "pyret/graph.arr" _ 4 4 0 0 0)
   ))
+
 
 (define exceptions (test-suite "exceptions"
   (check-pyret-exn

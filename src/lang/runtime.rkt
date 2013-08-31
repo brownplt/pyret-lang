@@ -128,6 +128,7 @@
   Function
   Method
   Mutable
+  Placeholder
   nothing)
 
 
@@ -969,6 +970,9 @@ And the object was:
 (define placeholder-dict
   (make-string-map
     (list
+      (cons "_equals" (pμ/internal (loc) (self other)
+        "Check equality of this placeholder with another"
+        (mk-bool (eq? self other))))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in the placeholder"
         (get-placeholder-value dummy-loc self)))
@@ -1027,3 +1031,4 @@ And the object was:
 (mk-pred Function p-fun?)
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
+(mk-pred Placeholder p-placeholder?)

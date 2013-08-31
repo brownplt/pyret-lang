@@ -37,8 +37,8 @@
   (define (tp-variant variant)
     (define (tp-variant-member vm)
       (match vm
-        [(s-variant-member l mutable? bind)
-         (build s_variant_member (tp-loc l) mutable? (tp-bind bind))]))
+        [(s-variant-member l member-type bind)
+         (build s_variant_member (tp-loc l) (symbol->string member-type) (tp-bind bind))]))
     (match variant
       [(s-variant l name members with-members)
        (build s_variant
@@ -58,6 +58,8 @@
        (build s_data_field (tp-loc s) (tp name) (tp e))]
       [(s-mutable-field s name ann e)
        (build s_mutable_field (tp-loc s) (tp name) (tp-ann ann) (tp e))]
+      [(s-once-field s name ann e)
+       (build s_once_field (tp-loc s) (tp name) (tp-ann ann) (tp e))]
       [(s-method-field s name args ann doc body check)
        (build s_method_field
           (tp-loc s)
@@ -353,7 +355,7 @@
     (define (tr-variant-member vm)
       (cond
         [(has-brand vm s_variant_member)
-         (tr-obj vm s-variant-member (tr-loc l) (ffi-unwrap _mutable) (tr-bind bind))]))
+         (tr-obj vm s-variant-member (tr-loc l) (ffi-unwrap member-type) (tr-bind bind))]))
     (cond
      [(has-brand variant s_variant)
       (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
@@ -365,7 +367,9 @@
      [(has-brand m s_data_field)
       (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-expr value))]
      [(has-brand m s_mutable_field)
-      (tr-obj m s-data-field (tr-loc l) (tr-expr name) (tr-ann ann) (tr-expr value))]
+      (tr-obj m s-mutable-field (tr-loc l) (tr-expr name) (tr-ann ann) (tr-expr value))]
+     [(has-brand m s_once_field)
+      (tr-obj m s-once-field (tr-loc l) (tr-expr name) (tr-ann ann) (tr-expr value))]
      [(has-brand m s_method_field)
       (tr-obj m s-method-field
               (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]

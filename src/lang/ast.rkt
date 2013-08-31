@@ -153,6 +153,8 @@ these metadata purposes.
 (struct s-data-field (syntax name value) #:transparent)
 ;; s-mutable-field : srcloc Expr Ann Expr
 (struct s-mutable-field (syntax name ann value) #:transparent)
+;; s-once-field : srcloc Expr Ann Expr
+(struct s-once-field (syntax name ann value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
 (struct s-method-field (syntax name args ann doc body check) #:transparent)
 
@@ -201,7 +203,9 @@ these metadata purposes.
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof Expr) (Listof s-variant) (Listof Member) block
 (struct s-data (syntax name params mixins variants shared-members check) #:transparent)
 
-(struct s-variant-member (syntax mutable? bind))
+;; member-type is 'normal, 'mutable, or 'cyclic
+
+(struct s-variant-member (syntax member-type bind))
 
 ;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
 (struct s-variant (syntax name binds with-members) #:transparent)
@@ -235,6 +239,92 @@ these metadata purposes.
 (struct a-dot a-ann (syntax obj field) #:transparent)
 
 
+(define (subst expr1 sub-id expr2)
+  (define (sub e)
+    (subst e sub-id expr2))
+  (match expr1
+    [(s-id s id)
+     (cond
+      [(equal? sub-id id) expr2]
+      [else expr1])]
+    [(s-prog s imports block)
+     (s-prog s (map sub imports) (sub block))]
+    [(s-import s file name) expr1]
+    [(s-provide s expr) (s-provide s (sub expr))]
+    [(s-provide-all s) expr1]
+    [(s-block s stmts) (s-block s (map sub stmts))]
+    [(s-bind s id ann) expr1]
+    [(s-fun s name params args ann doc body check)
+     (define shadow? (member sub-id (map s-bind-id args)))
+     (cond
+      [shadow? (s-fun s name params args ann doc body (sub check))]
+      [else (s-fun s name params args ann doc (sub body) (sub check))])]
+    [(s-lam s typarams args ann doc body check)
+     (define shadow? (member sub-id (map s-bind-id args)))
+     (cond
+      [shadow? (s-lam s typarams args ann doc body (sub check))]
+      [else (s-lam s typarams args ann doc (sub body) (sub check))])]
+    [(s-method s args ann doc body check)
+     (define shadow? (member sub-id (map s-bind-id args)))
+     (cond
+      [shadow? (s-method s args ann doc body (sub check))]
+      [else (s-method s args ann doc (sub body) (sub check))])]
+    [(s-method-field s name args ann doc body check)
+     (define shadow? (member sub-id (map s-bind-id args)))
+     (cond
+      [shadow? (s-method-field s name args ann doc body (sub check))]
+      [else (s-method s name args ann doc (sub body) (sub check))])]
+    [(s-for s iterator bindings ann body)
+     (define shadow? (member sub-id (map s-bind-id (map s-for-bind-bind bindings))))
+     (cond
+      [shadow? (s-for s (sub iterator) (map sub bindings) ann body)]
+      [else (s-for s (sub iterator) (map sub bindings) ann (sub body))])]
+    [(s-graph s bindings)
+     (s-graph (map sub bindings))]
+    [(s-check s body) (s-check s (sub body))]
+    [(s-var s name value) (s-var s name (sub value))]
+    [(s-let s name value) (s-let s name (sub value))]
+    [(s-when s test block) (s-when s (sub test) (sub block))]
+    [(s-if s branches) (s-if s (map sub branches))]
+    [(s-if-else s branches else) (s-if-else s (map sub branches) (sub else))]
+    [(s-if-branch s expr body) (s-if-branch s (sub expr) (sub body))]
+    [(s-try s body id except)
+     (define shadow? (equal? sub-id id))
+     (cond
+      [shadow? (s-try s (sub body) id except)]
+      [else (s-try s (sub body) id (sub except))])]
+    [(s-cases s type val branches) (s-cases s type (sub val) (map sub branches))]
+    [(s-cases-else s type val branches else) (s-cases-else s type (sub val) (map sub branches) (sub else))]
+    [(s-cases-branch s name args body) (s-cases-branch s name args (sub body))]
+    [(s-op s op left right) (s-op s op (sub left) (sub right))]
+    [(s-not s expr) (s-not s (sub expr))]
+    [(s-paren s expr) (s-paren s (sub expr))]
+    [(s-data-field s name value) (s-data-field s name (sub value))]
+    [(s-mutable-field s name ann value) (s-mutable-field s name ann (sub value))]
+    [(s-once-field s name ann value) (s-once-field s name ann (sub value))]
+    [(s-extend s super fields) (s-extend s (sub super) (map sub fields))]
+    [(s-update s super fields) (s-update s (sub super) (map sub fields))]
+    [(s-obj s fields) (s-obj s (map sub fields))]
+    [(s-list s values) (s-list s (map sub values))]
+    [(s-app s fun args) (s-app s (sub fun) (map sub args))]
+    [(s-left-app s obj fun args) (s-left-app s (sub obj) (sub fun) (map sub args))]
+    [(s-assign s id value) (error "Can't substitute into a mutable variable")]
+    [(s-num s n) expr1]
+    [(s-bool s b) expr1]
+    [(s-str s str) expr1]
+    [(s-dot s obj field) (s-dot s (sub obj) field)]
+    [(s-get-bang s obj field) (s-get-bang s (sub obj) field)]
+    [(s-bracket s obj field) (s-bracket s (sub obj) (sub field))]
+    [(s-colon s obj field) (s-colon s (sub obj) field)]
+    [(s-colon-bracket s obj field) (s-colon-bracket s (sub obj) (sub field))]
+    [(s-data s name params mixins variants shared-members check)
+     (s-data s name params (map sub mixins) (map sub variants) (map sub shared-members) (sub check))]
+    [(s-variant s name binds with-members)
+     (s-variant s name binds (map sub with-members))]
+    [(s-singleton-variant s name with-members) expr1]
+    [(s-for-bind s bind value) (s-for-bind s bind (sub value))]
+    [_ (error (format "Cannot substitute into: ~a\n" expr1))]))
+
 (define (get-srcloc ast)
   (match ast
     [(s-prog syntax imports block) syntax]
@@ -247,6 +337,7 @@ these metadata purposes.
     [(s-check syntax body) syntax]
     [(s-var syntax name value) syntax]
     [(s-let syntax name value) syntax]
+    [(s-graph syntax bindings) syntax]
     [(s-when syntax test block) syntax]
     [(s-if syntax branches) syntax]
     [(s-if-else syntax branches else) syntax]

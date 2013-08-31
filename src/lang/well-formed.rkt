@@ -169,6 +169,8 @@
     [(s-var s name val) (begin (wf-bind name) (wf val))]
     [(s-let s name val) (begin (wf-bind name) (wf val))]
 
+    [(s-graph s bindings) (begin (map wf bindings))]
+
     [(s-fun s name typarams args ann doc body check)
      (begin (ensure-unique-ids args)
             (map wf-bind args)

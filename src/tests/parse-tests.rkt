@@ -185,6 +185,7 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define graph (test-suite "graph"
+
   (check/block "graph:
                   x = m.constr(1, y)
                   y = m.other-constr(x)
@@ -200,10 +201,29 @@ line string\"" (s-str _ "multi\nline string"))
                                         (list
                                           (s-id _ 'x)))))))
   (check/block "graph:
-                  BOS = mlink(PVD, mlink(WOR, mempty)))
+                  BOS = mlink(PVD, mlink(WOR, mempty))
                   WOR = mlink(BOS, mempty)
                   PVD = mlink(BOS, mempty)
-                end")))
+                end"
+                (s-graph _
+                  (list (s-let _ (s-bind _ 'BOS (a-blank))
+                                 (s-app _ (s-id _ 'mlink)
+                                        (list
+                                          (s-id _ 'PVD)
+                                          (s-app _ (s-id _ 'mlink)
+                                            (list (s-id _ 'WOR) (s-id s 'mempty))))))
+                        (s-let _ (s-bind _ 'WOR (a-blank))
+                                 (s-app _ (s-id _ 'mlink)
+                                        (list
+                                          (s-id _ 'BOS)
+                                          (s-id _ 'mempty))))
+                        (s-let _ (s-bind _ 'PVD (a-blank))
+                                 (s-app _ (s-id _ 'mlink)
+                                        (list
+                                          (s-id _ 'BOS)
+                                          (s-id _ 'mempty)))))))
+                
+                ))
 
 
 (define fields (test-suite "fields"
@@ -499,8 +519,8 @@ line string\"" (s-str _ "multi\nline string"))
     end"
     (s-data _ 'NumList empty (list) (list
       (s-variant _ 'empty (list) (list))
-      (s-variant _ 'cons (list (s-variant-member _ #f (s-bind _ 'first (a-name _ 'Number)))
-                               (s-variant-member _ #f (s-bind _ 'rest (a-name _ 'NumList))))
+      (s-variant _ 'cons (list (s-variant-member _ 'normal (s-bind _ 'first (a-name _ 'Number)))
+                               (s-variant-member _ 'normal (s-bind _ 'rest (a-name _ 'NumList))))
                  (list)))
            (list) (s-block _ _)))
   (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) empty (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
@@ -511,8 +531,8 @@ line string\"" (s-str _ "multi\nline string"))
            (list (s-variant
                   _
                   'cons
-                  (list (s-variant-member _ #f (s-bind _ 'field (a-blank)))
-                        (s-variant-member _ #f (s-bind _ 'l (a-app _ (a-name _ 'List)
+                  (list (s-variant-member _ 'normal (s-bind _ 'field (a-blank)))
+                        (s-variant-member _ 'normal (s-bind _ 'l (a-app _ (a-name _ 'List)
                                             (list (a-name _ 'a))))))
                   (list))) (list)
                   (s-block _ _)))
@@ -536,10 +556,10 @@ line string\"" (s-str _ "multi\nline string"))
     end"
     (s-data _ 'Mutable (list) (list)
       (list
-        (s-variant _ 'v1 (list (s-variant-member _ #t (s-bind _ 'x (a-name _ 'String)))) (list))
+        (s-variant _ 'v1 (list (s-variant-member _ 'mutable (s-bind _ 'x (a-name _ 'String)))) (list))
         (s-variant _ 'v2 (list
-          (s-variant-member _ #f (s-bind _ 'x (a-blank)))
-          (s-variant-member _ #t (s-bind _ 'y (a-blank)))) (list)))
+          (s-variant-member _ 'normal (s-bind _ 'x (a-blank)))
+          (s-variant-member _ 'mutable (s-bind _ 'y (a-blank)))) (list)))
       (list)
       (s-block _ _)))
 
@@ -609,6 +629,15 @@ line string\"" (s-str _ "multi\nline string"))
                     (s-variant _ 'baz (list) (list)))
               (list (s-data-field _ (s-str _ "z") (s-num _ 10)))
               (s-block _ (list))))
+
+   (check/block
+    "data F:
+      | v(cyclic x :: Number)
+     end"
+    (s-data _ 'F empty empty
+      (list (s-variant _ 'v (list (s-variant-member _ 'cyclic (s-bind _ 'x (a-name _ 'Number)))) (list)))
+      (list)
+      (s-block _ (list))))
 
 ))
 
@@ -923,6 +952,7 @@ line string\"" (s-str _ "multi\nline string"))
   anon-func
   cases
   data
+  graph
   for
   modules
   caret

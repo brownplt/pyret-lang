@@ -28,3 +28,14 @@ check:
   p.set(10) raises "Tried to set value in already-initialized"
 end
 
+check:
+  p1 = mk-placeholder()
+  p2 = mk-placeholder()
+  (p1 == p2) is false
+  p1.set(5)
+  p2.set(5)
+  (p1 == p2) is false
+  p1 is p1
+  p2 is p2
+end
+

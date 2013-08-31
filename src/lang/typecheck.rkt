@@ -211,6 +211,25 @@
   (define (cc-member ast env)
     (match ast
       [(s-data-field s name value) (s-data-field s name (cc-env value env))]
+      [(s-once-field s name ann value)
+       (cond
+        [(skippable? ann)
+         (s-data-field s name (cc-env value env))]
+        [else
+         (define checker (ann-check s ann))
+         (define val-id (gensym 'maybe-placeholder))
+         (define val-expr (s-id s val-id))
+         (define is-placeholder (s-app s (s-id s 'Placeholder) (list val-expr)))
+         (define do-guard (s-app s (s-bracket s val-expr (s-str s "guard"))
+                                 (list checker)))
+         (define field-block
+          (s-block s
+            (list
+              (s-let s (s-bind s val-id (a-blank)) (cc-env value env))
+              (s-if-else s
+                (list (s-if-branch s is-placeholder (s-block s (list do-guard val-expr))))
+                (s-block s (list (s-app s checker (list val-expr))))))))
+         (s-data-field s name field-block)])]
       [(s-mutable-field s name ann value)
        (cond
         [(skippable? ann)

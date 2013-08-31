@@ -56,6 +56,7 @@
      'String
      'Nothing
      'Mutable
+     'Placeholder
      'brander
      'check-brand
      'mk-mutable

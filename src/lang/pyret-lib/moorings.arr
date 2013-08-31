@@ -220,7 +220,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(first :: Any, rest :: List) with:
+  | link(cyclic first :: Any, cyclic rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -267,8 +267,8 @@ data List:
 
     _equals(self, other):
       if is-link(other):
-        others-equal = (self.first == other.first)
-        others-equal and (self.rest == other.rest)
+        others-equal = (self:first == other:first)
+        others-equal and (self:rest == other:rest)
       else:
         false
       end
@@ -1023,3 +1023,4 @@ checkers = {
   err: err,
   is-err: is-err
 }
+
