@@ -321,6 +321,38 @@ end
 # Not an error: x is used in two scopes that are not nested
 }
 
+@subsubsection[#:tag "s:graph-expr"]{Graph Declarations}
+
+Graph declarations look like a series of let statements:
+
+@justcode{
+graph-expr: "graph:" let-expr* "end"
+}
+
+They behave like let statements, binding variables in the block in which they
+appear.  However, they allow for the creation of mutual references between
+data.  For example:
+
+@justcode{
+check:
+  graph:
+    BOS = [PVD, WOR]
+    WOR = [BOS]
+    PVD = [BOS]
+  end
+  BOS.first is PVD
+  BOS.rest.first is WOR
+  WOR.first is BOS
+  PVD.first is BOS
+end
+}
+
+If we wrote this with a let expression, we would run in the gotcha about using
+an identifier before we defined it.  But @tt{graph:} keeps track of these
+mutual references and causes the right relationships to hold at the end of the
+@tt{graph:} block.  Fields that use a graph identifier need to be declared as
+@tt{cyclic} in their data declaration, otherwise an error results.
+
 
 @subsubsection[#:tag "s:fun-expr"]{Function Declaration Expressions}
 
