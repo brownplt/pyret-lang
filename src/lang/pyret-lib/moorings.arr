@@ -44,8 +44,8 @@ fun equiv(obj1, obj2):
       for fold(same from true, key from left_keys):
         if not (has-field(o2, key)): false
         else:
-          left_val = o1.[key]
-          right_val = o2.[key]
+          left_val = o1:[key]
+          right_val = o2:[key]
           same and equiv(left_val, right_val)
         end
       end
@@ -83,8 +83,8 @@ fun data-to-repr(val, name, fields):
     | empty => name + "()"
     | link(f, r) =>
       name + "(" +
-      for fold(combined from torepr(val.[f]), key from r):
-        combined + ", " + torepr(val.[key])
+      for fold(combined from torepr(val:[f]), key from r):
+        combined + ", " + torepr(val:[key])
       end
       + ")"
   end
@@ -95,12 +95,7 @@ fun data-equals(self, other, brand, fields):
   for fold(acc from true, f from fields):
     thisval = self:[f]
     otherval = other:[f]
-    these-equal = if Mutable(thisval) and Mutable(otherval):
-      thisval.get() == otherval.get()
-    else:
-      thisval == otherval 
-    end
-    acc and these-equal
+    acc and (thisval == otherval)
   end
 end
 
@@ -225,7 +220,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(first :: Any, rest :: List) with:
+  | link(cyclic first :: Any, cyclic rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -272,8 +267,8 @@ data List:
 
     _equals(self, other):
       if is-link(other):
-        others-equal = (self.first == other.first)
-        others-equal and (self.rest == other.rest)
+        others-equal = (self:first == other:first)
+        others-equal and (self:rest == other:rest)
       else:
         false
       end
@@ -1028,3 +1023,4 @@ checkers = {
   err: err,
   is-err: is-err
 }
+

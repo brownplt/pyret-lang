@@ -31,7 +31,8 @@
          "try:" "except"
          "cases"
          "when" "if" "else if" "else:"
-         "data" "with:" "sharing:" "mutable"
+         "data" "with:" "sharing:" "mutable" "cyclic"
+         "graph:"
          "for" "from"
          "end"))
 

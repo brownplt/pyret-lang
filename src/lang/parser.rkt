@@ -105,6 +105,8 @@
      (s-var (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(let-expr bind "=" e)
      (s-let (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
+    [(graph-expr "graph:" binding ... "end")
+     (s-graph (loc stx) (map/stx parse-stmt #'(binding ...)))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
                doc body check "end")
      (s-fun (loc stx)
@@ -188,9 +190,11 @@
   (syntax-parse stx
     #:datum-literals (variant-member)
     [(variant-member b)
-     (s-variant-member (loc stx) #f (parse-binding #'b))]
+     (s-variant-member (loc stx) 'normal (parse-binding #'b))]
     [(variant-member "mutable" b)
-     (s-variant-member (loc stx) #t (parse-binding #'b))]))
+     (s-variant-member (loc stx) 'mutable (parse-binding #'b))]
+    [(variant-member "cyclic" b)
+     (s-variant-member (loc stx) 'cyclic (parse-binding #'b))]))
 
 (define (parse-variant-members stx)
   (syntax-parse stx

@@ -362,7 +362,7 @@ the arguments are the values from the right side of the `from` clauses. For exam
 
     fun every-other(body-fun, lst):
       fun every-other-internal(flip, lst):
-        case(List) lst:
+        cases(List) lst:
           | empty => empty
           | link(first, rst) =>
             link(if flip: body-fun(first) else: first end,

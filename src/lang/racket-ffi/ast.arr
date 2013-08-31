@@ -35,6 +35,7 @@ data Expr:
     )
   | s_var(l :: Loc, name :: Bind, value :: Expr)
   | s_let(l :: Loc, name :: Bind, value :: Expr)
+  | s_graph(l :: Loc, bindings :: List<is-s_let>)
   | s_when(l :: Loc, test :: Expr, block :: Expr)
   | s_assign(l :: Loc, id :: String, value :: Expr)
   | s_if(l :: Loc, branches :: List<IfBranch>)
@@ -106,6 +107,7 @@ end
 data Member:
   | s_data_field(l :: Loc, name :: Expr, value :: Expr)
   | s_mutable_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr)
+  | s_once_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr)
   | s_method_field(
       l :: Loc,
       name :: Expr,
@@ -122,7 +124,7 @@ data ForBind:
 end
 
 data VariantMember:
-  | s_variant_member(l :: Loc, _mutable :: Bool, bind :: Bind)
+  | s_variant_member(l :: Loc, member_type :: String, bind :: Bind)
 end
 
 data Variant:

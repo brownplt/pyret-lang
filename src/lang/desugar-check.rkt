@@ -128,6 +128,8 @@
     [(s-var s name val) (s-var s (ds-bind name) (ds val))]
     [(s-let s name val) (s-let s (ds-bind name) (ds val))]
 
+    [(s-graph s bindings) (s-graph s (map ds bindings))]
+
     [(s-fun s name typarams args ann doc body check)
      (s-fun s name typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
 
