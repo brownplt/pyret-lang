@@ -619,6 +619,22 @@ fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   end
 end
 
+fun index(l :: List, n :: Number):
+  cases(List) l:
+    | empty      => raise("index: list too short, avast!")
+    | link(f, r) => if (n == 0): f else: index(r, n - 1) end
+  end
+where:
+  l0 = []
+  l1 = [1]
+  l2 = [{some: "object"}, {some-other: "object"}]
+  l3 = ["a", "b", "c"]
+  index(l0, 1) raises "list too short"
+  index(l1, 0) is 1
+  index(l2, 1) is {some-other: "object"}
+  index(l3, 2) is "c"
+end               
+
 list = {
     List: List,
     is-empty: is-empty,
@@ -651,7 +667,8 @@ list = {
     fold: fold,
     fold2: fold2,
     fold3: fold3,
-    fold4: fold4
+    fold4: fold4,
+    index: index
   }
 
 data Location:
