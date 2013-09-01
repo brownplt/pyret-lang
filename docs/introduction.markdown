@@ -341,19 +341,25 @@ running some block of code to produce a new value for each existing value, we ca
     x = for map(elem from [1,2,3,4]):
       elem + 2
     end
-    # x is [3,4,5,6]
+    check:
+     x is [3,4,5,6]
+    end
 
 There are also several other built in functions for this purpose:
 
-    x = for filter(elem from [1,2,3,4]):
+    z = for filter(elem from [1,2,3,4]):
       elem < 3
     end
-    # x is [1,2]
+    check:
+     z is [1,2]
+    end
 
     y = for fold(sum from 0, elem from [1,2,3]):
       sum + elem
     end
-    # y is 6
+    check:
+     y is 6
+    end
 
 And you are free to define your own `for` operators - they are functions that take
 as their first arguments a function with the argument names from the left side of
