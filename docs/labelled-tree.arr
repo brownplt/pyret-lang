@@ -17,7 +17,7 @@ import math as Math
 import "box.arr" as Box
 import "pprint.arr" as PP
 
-Mutable = Box.Mutable
+Mut = Box.Mut
 box = Box.box
 
 var next-tree = 0
@@ -116,7 +116,7 @@ data LabelledTree:
       name,
       label,
       children :: list.List,
-      info :: Mutable)
+      info :: Mut)
 sharing:
   mkc(self, cnum): self.children.get(cnum).mk-ast() end,
   is-leaf(self): self.children.length() == 0 end,

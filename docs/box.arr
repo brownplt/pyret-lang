@@ -1,13 +1,13 @@
 #lang pyret
 
 provide {
-  Mutable: Mutable,
+  Mut: Mut,
   is-box: is-box,
   box: mk-cell # N.B. deliberate!
 } end
 
 
-data Mutable<T>:
+data Mut<T>:
   | box(get, set, equals) with: tostring(self): "(Box)" end
 end
 

@@ -371,8 +371,8 @@ doc-string: ["doc:" STRING]
 where-clause: ["where:" block]
 }
 
-A function expression is syntactic sugar for a let and a lambda expression.
-The statement:
+A function expression is syntactic sugar for a let and an anonymous function
+expression.  The statement:
 
 @justcode{
 "fun" ty-params NAME args return-ann ":"
@@ -768,13 +768,18 @@ dot-expr: expr "." NAME
 }
 
 A dot expression evaluates the @tt{expr} to a value @tt{val}, and then does one
-of three things:
+of five things:
 
 @itemlist[
   @item{Raises an exception, if @tt{NAME} is not a field of @tt{expr}}
 
   @item{Evaluates to the value stored in @tt{NAME}, if @tt{NAME} is present and
-  not a method value}
+  not a method, mutable, or placeholder value}
+
+  @item{Raises an exception, if the value stored in @tt{NAME} is a @tt{mutable} field.}
+
+  @item{Evaluates to the value stored in the placeholder stored in @tt{NAME},
+  if the value is a placeholder value.}
 
   @item{
   

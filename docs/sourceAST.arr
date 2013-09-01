@@ -78,6 +78,8 @@ provide {
   is-s_const_import: stamp(s_const_import, is-s_const_import),
   is-s_data: stamp(s_data, is-s_data),
   is-s_data_field: stamp(s_data_field, is-s_data_field),
+  is-s_mutable_field: stamp(s_mutable_field, is-s_mutable_field),
+  is-s_once_field: stamp(s_once_field, is-s_once_field),
   is-s_dot: stamp(s_dot, is-s_dot),
   is-s_extend: stamp(s_extend, is-s_extend),
   is-s_file_import: stamp(s_file_import, is-s_file_import),
@@ -108,6 +110,7 @@ provide {
   is-s_try: stamp(s_try, is-s_try),
   is-s_var: stamp(s_var, is-s_var),
   is-s_variant: stamp(s_variant, is-s_variant),
+  is-s_variant_member: stamp(s_variant_member, is-s_variant_member),
   is-s_when: stamp(s_when, is-s_when),
   is-t_a_any: stamp(t_a_any, is-t_a_any),
   is-t_a_app: stamp(t_a_app, is-t_a_app),
@@ -181,6 +184,8 @@ provide {
   s_const_import: s_const_import,
   s_data: s_data,
   s_data_field: s_data_field,
+  s_mutable_field: s_mutable_field,
+  s_once_field: s_once_field,
   s_dot: s_dot,
   s_extend: s_extend,
   s_file_import: s_file_import,
@@ -369,12 +374,18 @@ fun from-ast(ast):
     else if A.Member(a):
       cases(A.Member) a:
         | s_data_field(_, name, value) => s_data_field(h(name), h(value))
+        | s_mutable_field(_, name, value, ann) => s_mutable_field(h(name), h(value), h(ann))
+        | s_once_field(_, name, value, ann) => s_once_field(h(name), h(value), h(ann))
         | s_method_field(_, name, args, ann, doc, body, _check) =>
           s_method_field(h(name), h(args), h(ann), h(doc), h(body), h(_check))
       end
     else if A.ForBind(a):
       cases(A.ForBind) a:
         | s_for_bind(_, bind, value) => s_for_bind(h(bind), h(value))
+      end
+    else if A.VariantMember(a):
+      cases(A.VariantMember) a:
+        | s_variant_member(_, type, value) => s_variant_member(type, h(value))
       end
     else if A.Variant(a):
       cases(A.Variant) a:
@@ -500,10 +511,15 @@ data TBind:
 end
 data TMember:
   | t_data_field with: tostring(self): "TDataField" end
+  | t_mutable_field with: tostring(self): "TMutableField" end
+  | t_once_field with: tostring(self): "TOnceField" end
   | t_method_field with: tostring(self): "TMethodField" end
 end
 data TForBind:
   | t_for_bind with: tostring(self): "TForBind" end
+end
+data TVariantMember:
+  | t_variant_member with: tostring(self): "TVariant" end
 end
 data TVariant:
   | t_variant with: tostring(self): "TVariant" end
@@ -1275,6 +1291,16 @@ data Member:
     node-name(self): t_data_field end,
     tosource(self): PP.nest(INDENT, self.name.tosource() + PP.string(": ") + self.value.tosource()) end,
     todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
+  | s_mutable_field(name :: Expr, ann :: Ann, value :: Expr) with:
+    fields(self): [self.name, self.value, self.ann] end,
+    node-name(self): t_mutable_field end,
+    tosource(self): PP.nest(INDENT, PP.string("mutable") + self.name.tosource() + PP.string("::") + self.ann.tosource() + PP.string(": ") + self.value.tosource()) end,
+    todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
+  | s_once_field(name :: Expr, ann :: Ann, value :: Expr) with:
+    fields(self): [self.name, self.value, self.ann] end,
+    node-name(self): t_once_field end,
+    tosource(self): PP.nest(INDENT, PP.string("once") + self.name.tosource() + PP.string("::") + self.ann.tosource() + PP.string(": ") + self.value.tosource()) end,
+    todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
   | s_method_field(
       name :: Expr,
       args :: ASTList, # Value parameters
@@ -1337,6 +1363,15 @@ sharing:
     end
   end,
   _equals(self, other): self.equals(other, field-equals) end
+end
+
+data VariantMember:
+  | s_variant_member(member_type :: String, bind :: Bind) with:
+    fields(self): [self.member_type, self.bind] end,
+    node-name(self): t_variant_member end,
+    tosource(self):
+      PP.string(self.member_type) + self.bind.tosource()
+    end
 end
 
 data Variant:
