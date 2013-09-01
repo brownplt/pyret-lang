@@ -750,6 +750,11 @@ And the object was:
 (define-syntax-rule (mk-num-2-bool op opname)
   (mk-prim-fun op opname mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?)))
 
+(define (protect-div n1 n2)
+  (cond
+    [(= n2 0) (raise (pyret-error (get-top-loc) "div-0" "Division by zero"))]
+    [else (/ n1 n2)]))
+
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store #f)
 (define (meta-num)
@@ -759,7 +764,7 @@ And the object was:
         `(("_plus" . ,(mk-num-2 + 'plus))
           ("_add" . ,(mk-num-2 + 'plus))
           ("_minus" . ,(mk-num-2 - 'minus))
-          ("_divide" . ,(mk-num-2 / 'divide))
+          ("_divide" . ,(mk-num-2 protect-div 'divide))
           ("_times" . ,(mk-num-2 * 'times))
           ("_torepr" . ,(mk-prim-fun number->string '_torepr mk-str (p-num-n) (n) (p-num?)))
           ("_equals" . ,(mk-prim-fun-default = 'equals mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?) (mk-bool #f)))

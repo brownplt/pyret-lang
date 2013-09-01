@@ -706,6 +706,8 @@ data Error:
     name(self): "Contract failure" end
   | arity-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Arity mismatch" end
+  | div-0(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Division by zero" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Email joe@cs.brown.edu and dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
@@ -733,6 +735,7 @@ fun make-error(obj):
     else if (type == "user-contract-failure"): user-contract-failure(msg, loc, trace)
     else if (type == "eval-error"): eval-error(msg, loc, trace)
     else if (type == "arity-mismatch"): arity-error(msg, loc, trace)
+    else if (type == "div-0"): div-0(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
   else: obj.value
@@ -750,6 +753,8 @@ error = {
   is-invalid-case: is-invalid-case,
   user-contract-failure: user-contract-failure,
   is-user-contract-failure: is-user-contract-failure,
+  div-0: div-0,
+  is-div-0: is-div-0,
   make-error: make-error,
   Error: Error,
   Location: Location,

@@ -68,8 +68,8 @@
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Assigning to unbound variable")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
-  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Arity")
-  (check-pyret-exn "fun f(x, y): x end f(3)" "Arity")
+  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Expected 2")
+  (check-pyret-exn "fun f(x, y): x end f(3)" "Expected 2")
   (check-pyret "fun fundo():
                   var o = {}
                   var x = 1
@@ -751,6 +751,7 @@ o2.m().called" true)
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
   (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
+  (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"
@@ -919,7 +920,7 @@ o2.m().called" true)
   (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
   (check-pyret "x = {_lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
-  (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Expected 2")
   (check-pyret-exn "x = {_greaterthan: 3} x > 5" "expected method")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
   (check-pyret "a = 1 b = 2 (a == b) or (true)" (p:mk-bool #t))
