@@ -721,6 +721,8 @@ data Error:
     name(self): "Arity mismatch" end
   | div-0(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Division by zero" end
+  | type-error(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Type Error" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Email joe@cs.brown.edu and dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
@@ -749,6 +751,7 @@ fun make-error(obj):
     else if (type == "eval-error"): eval-error(msg, loc, trace)
     else if (type == "arity-mismatch"): arity-error(msg, loc, trace)
     else if (type == "div-0"): div-0(msg, loc, trace)
+    else if (type == "type-error"): type-error(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
   else: obj.value

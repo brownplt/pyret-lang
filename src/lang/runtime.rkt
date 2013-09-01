@@ -908,9 +908,11 @@ And the object was:
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
 (define (throw-type-error! typname o)
-  (define val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o))))
-  (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f)))
+  (raise (pyret-error
+          (get-top-loc)
+           "type-error"
+           (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-repr o)))))
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
