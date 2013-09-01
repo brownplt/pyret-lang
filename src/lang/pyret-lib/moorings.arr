@@ -704,8 +704,10 @@ data Error:
     name(self): "Eval Error" end
   | user-contract-failure(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Contract failure" end
+  | arity-error(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Arity mismatch" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
-    name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
+    name(self): "Email joe@cs.brown.edu and dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
   tostring(self): self.format() end,
   format(self):
@@ -730,6 +732,7 @@ fun make-error(obj):
     else if (type == "field-non-string"): field-non-string(msg, loc, trace)
     else if (type == "user-contract-failure"): user-contract-failure(msg, loc, trace)
     else if (type == "eval-error"): eval-error(msg, loc, trace)
+    else if (type == "arity-mismatch"): arity-error(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
   else: obj.value
