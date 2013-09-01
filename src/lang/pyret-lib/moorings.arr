@@ -220,7 +220,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(cyclic first :: Any, cyclic rest :: List) with:
+  | link(cyclic first :: Any, rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -276,7 +276,7 @@ data List:
 
     tostring(self):
       "[" +
-        for fold(combined from tostring(self.first), elt from self.rest):
+        for raw-fold(combined from tostring(self:first), elt from self:rest):
           combined + ", " + tostring(elt)
         end
       + "]"
@@ -284,7 +284,7 @@ data List:
 
     _torepr(self):
       "[" +
-        for fold(combined from torepr(self.first), elt from self.rest):
+        for raw-fold(combined from torepr(self:first), elt from self:rest):
           combined + ", " + torepr(elt)
         end
       + "]"
@@ -616,6 +616,14 @@ fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
     base
   else:
     fold4(f, f(base, l1.first, l2.first, l3.first, l4.first), l1.rest, l2.rest, l3.rest, l4.rest)
+  end
+end
+
+fun raw-fold(f, base, lst :: List):
+  if is-empty(lst):
+    base
+  else:
+    raw-fold(f, f(base, lst:first), lst.rest)
   end
 end
 

@@ -39,3 +39,11 @@ check:
   p2 is p2
 end
 
+check:
+  p1 = mk-placeholder()
+  p1.tostring() is "cyclic-field"
+  p1._torepr() is "cyclic-field"
+  torepr(p1) is "cyclic-field"
+  tostring(p1) is "cyclic-field"
+end
+

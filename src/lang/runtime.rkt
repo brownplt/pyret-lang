@@ -879,6 +879,7 @@ And the object was:
     [(p-method _ _ _ _) (serialize-internal v (λ () "method(): end"))]
     [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
     [(p-mutable _ _ _ _ _ _ _) (serialize-internal v (λ () "mutable-field"))]
+    [(p-placeholder _ _ _ _ _ _) (serialize-internal v (λ () "cyclic-field"))]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
@@ -958,6 +959,12 @@ And the object was:
       (cons "_equals" (pμ/internal (loc) (self other)
         "Check equality of this mutable field with another"
         (mk-bool (eq? self other))))
+      (cons "_torepr" (pμ/internal (loc) (self)
+        "Print this mutable field"
+        (mk-str "mutable-field")))
+      (cons "tostring" (pμ/internal (loc) (self)
+        "Print this mutable field"
+        (mk-str "mutable-field")))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in this mutable field"
         (when (not (p-mutable? self))
@@ -978,6 +985,12 @@ And the object was:
       (cons "_equals" (pμ/internal (loc) (self other)
         "Check equality of this placeholder with another"
         (mk-bool (eq? self other))))
+      (cons "_torepr" (pμ/internal (loc) (self)
+        "Print this placeholder"
+        (mk-str "cyclic-field")))
+      (cons "tostring" (pμ/internal (loc) (self)
+        "Print this placeholder"
+        (mk-str "cyclic-field")))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in the placeholder"
         (get-placeholder-value dummy-loc self)))
