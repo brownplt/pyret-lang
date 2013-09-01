@@ -360,22 +360,27 @@ as their first arguments a function with the argument names from the left side o
 the `from` clauses and has the body of the `for` block, and then the rest of
 the arguments are the values from the right side of the `from` clauses. For example:
 
-    fun every-other(body-fun, lst):
-      fun every-other-internal(flip, lst):
-        cases(List) lst:
-          | empty => empty
-          | link(first, rst) =>
-            link(if flip: body-fun(first) else: first end,
-                 iter-alternating-internal(not flip, rst))
-        end
+    fun keep-every-other(body-fun, l):
+      fun iter(flip, lst):
+	cases(List) lst:
+	  | empty => empty
+	  | link(first, rst) =>
+	    if flip:
+	      link(body-fun(first), iter(not flip, rst))
+		      else:
+	      iter(not flip, rst)
+	    end
+	end
       end
-      iter-every-other-internal(true, lst)
+      iter(true, l)
     end
 
-    for every-other(elt from range(0,10)):
-      print(elt)
+    w = for keep-every-other(elt from range(0,10)):
+      elt + 1
     end
-    # prints 0, 2, 4, 6, 8, 10
+    check:
+      w is [1, 3, 5, 7, 9]
+    end
 
 #### If
 
