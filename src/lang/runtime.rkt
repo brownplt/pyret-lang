@@ -495,7 +495,7 @@
 (define (get-raw-field loc v f)
   (string-map-ref (get-dict v) f
     (lambda()
-      (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
+      (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
