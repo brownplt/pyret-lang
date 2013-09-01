@@ -57,7 +57,8 @@
   (s-method loc args result doc (s-block loc (list body)) (s-block loc empty)))
 
 (define (ann-check loc ann)
-  (define (code-wrapper s args result type get-fun)
+  (define ann-str (s-str loc (pretty-ann ann)))
+  (define (code-wrapper s args result type get-fun initial-check)
     (define funname (gensym "contract"))
     (define gotten-funname (gensym "fun"))
     (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
@@ -68,6 +69,11 @@
      (mk-contract-doc ann)
      (s-block s
       (list
+       (s-app loc
+              (s-id loc 'check-brand)
+              (list initial-check
+                    (s-id loc funname)
+                    ann-str))
        (s-let s (s-bind s gotten-funname (a-blank)) (get-fun (s-id s funname)))
        (s-extend
          s
@@ -81,7 +87,6 @@
                                           (s-str s "_doc")))))))))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
-  (define ann-str (s-str loc (pretty-ann ann)))
   (define (mk-flat-checker checker)
     (define argname (gensym "specimen"))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
@@ -108,11 +113,11 @@
              (mk-contract-doc ann)
              (s-id loc '_))]
     [(a-arrow s args result)
-     (code-wrapper s args result mk-lam (λ (e) e))]
+     (code-wrapper s args result mk-lam (λ (e) e) (s-id s 'Function))]
     [(a-method s args result)
      (define (get-fun e)
        (s-app s (s-bracket s e (s-str s "_fun")) (list)))
-     (code-wrapper s args result mk-method get-fun)]
+     (code-wrapper s args result mk-method get-fun (s-id s 'Method))]
     [(a-app s ann parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
      ;; everything past the name weren't included.
