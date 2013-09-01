@@ -92,8 +92,7 @@
                 (s-let s (s-bind s call-match-case (a-blank)) (s-dot s (s-id s 'cases-funs) case-name))
                 (s-app s (s-id s call-match-case)
                        (map (lambda (field-name) (s-dot s (s-id s 'self) (s-bind-id field-name))) fields))))))
-         (s-app s (s-id s 'else-clause) (list)))                     
-      ))
+         (s-app s (s-id s 'else-clause) (list)))))
     (define local-mixins-names
       (map (lambda (m) (gensym "mixin")) mixins-names))
     (define (local-bind-mixins s)
