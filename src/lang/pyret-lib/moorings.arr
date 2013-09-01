@@ -220,7 +220,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(cyclic first :: Any, rest :: List) with:
+  | link(cyclic first :: Any, cyclic rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -392,12 +392,17 @@ fun partition(f, lst :: List):
   help(lst)
 end
 
-fun any(f :: (Any -> Bool), lst :: List):
+fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
+where:
+  any(fun(n): n > 1 end, [1,2,3]) is true
+  any(fun(n): n > 3 end, [1,2,3]) is false
+  any(fun(x): true end, []) is false
+  any(fun(x): false end, []) is false
 end
 
-fun find(f :: (Any -> Bool), lst :: List):
+fun find(f :: (Any -> Bool), lst :: List) -> Option:
   doc: "Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
