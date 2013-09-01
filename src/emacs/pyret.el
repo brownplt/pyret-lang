@@ -80,7 +80,7 @@
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from" "cases"
-     "and" "or" "not" "is" "raises" "mutable"
+     "and" "or" "not" "is" "raises" "mutable" "cyclic"
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
