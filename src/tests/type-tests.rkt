@@ -116,7 +116,7 @@
     end
   end
   y :: Number(even) = 5"
- "contract failure")
+ "Contract failure")
 
 (check-pyret
  "fun even(x):
@@ -169,5 +169,18 @@
 (check-pyret-exn
   "x"
   "Unbound identifier: x")
+
+(check-pyret-exn
+  "x :: (Number -> String) = 5"
+  "expected (Number -> String)")
+
+(check-pyret
+  "var x :: (Number -> String) = fun(y): 5 end
+   Function(x)"
+  (p:mk-bool #t))
+
+(check-pyret-exn
+  "var f :: (Number -> String) = method(self): end"
+  "expected (Number -> String)")
 
 (run-tests all)

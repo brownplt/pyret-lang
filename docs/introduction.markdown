@@ -341,41 +341,52 @@ running some block of code to produce a new value for each existing value, we ca
     x = for map(elem from [1,2,3,4]):
       elem + 2
     end
-    # x is [3,4,5,6]
+    check:
+     x is [3,4,5,6]
+    end
 
 There are also several other built in functions for this purpose:
 
-    x = for filter(elem from [1,2,3,4]):
+    z = for filter(elem from [1,2,3,4]):
       elem < 3
     end
-    # x is [1,2]
+    check:
+     z is [1,2]
+    end
 
     y = for fold(sum from 0, elem from [1,2,3]):
       sum + elem
     end
-    # y is 6
+    check:
+     y is 6
+    end
 
 And you are free to define your own `for` operators - they are functions that take
 as their first arguments a function with the argument names from the left side of
 the `from` clauses and has the body of the `for` block, and then the rest of
 the arguments are the values from the right side of the `from` clauses. For example:
 
-    fun every-other(body-fun, lst):
-      fun every-other-internal(flip, lst):
-        case(List) lst:
-          | empty => empty
-          | link(first, rst) =>
-            link(if flip: body-fun(first) else: first end,
-                 iter-alternating-internal(not flip, rst))
-        end
+    fun keep-every-other(body-fun, l):
+      fun iter(flip, lst):
+	cases(List) lst:
+	  | empty => empty
+	  | link(first, rst) =>
+	    if flip:
+	      link(body-fun(first), iter(not flip, rst))
+		      else:
+	      iter(not flip, rst)
+	    end
+	end
       end
-      iter-every-other-internal(true, lst)
+      iter(true, l)
     end
 
-    for every-other(elt from range(0,10)):
-      print(elt)
+    w = for keep-every-other(elt from range(0,10)):
+      elt + 1
     end
-    # prints 0, 2, 4, 6, 8, 10
+    check:
+      w is [1, 3, 5, 7, 9]
+    end
 
 #### If
 

@@ -48,7 +48,9 @@ where:
 
     my-other-d2 = with-ann(10)
 
-    my-other-d2 is my-d2
+    (my-other-d2 == my-d2) is false
+    my-d2 is my-d2
+    my-other-d2 is my-other-d2
 
     my-d3 = arrow-ann(fun(n): "some-string" end)
     my-d3!f(5) is "some-string"
@@ -65,5 +67,26 @@ where:
     my-d4!a is "new-a" # doesn't get updated unless all updates work
 
     my-d4!c raises "look up immutable field"
+end
+
+data Node deriving builtins.Eq:
+  | node(mutable in :: list.List, n :: Number)
+where:
+  n1 = node([], 2)
+  n2 = node([n1], 3)
+  n3 = node([n2], 4)
+  n1!{in : [n3]}
+  n1!in.first.n is 4
+  (((n1!in).first!in).first!in).first.eq(n1) is true
+end
+
+check:
+  m = mk-simple-mutable(5)
+
+  m is m
+
+  String(torepr(m)) is true
+
+  torepr(m) is "mutable-field"
 end
 

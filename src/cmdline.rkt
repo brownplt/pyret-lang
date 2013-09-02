@@ -102,6 +102,8 @@
    (set! check-mode #f))
   ("--no-indentation" "Run without indentation checking"
    (current-indentation-mode #f))
+  ("--allow-shadow" "Run without checking for shadowed vars"
+   (current-allow-shadowed-vars #t))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
@@ -110,7 +112,8 @@
       (cond
         [check-mode
          (parameterize ([current-check-mode #t]
-                        [current-print (print-pyret #t)])
+                        [current-print (print-pyret #t)]
+                        [current-whalesong-repl-print #f])
           (dynamic-require pyret-file #f))]
         [else
          (dynamic-require pyret-file #f)]))

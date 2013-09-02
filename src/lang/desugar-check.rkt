@@ -88,6 +88,7 @@
   (define (ds-member mem)
     (match mem
      [(s-data-field s name val) (s-data-field s (ds name) (ds val))]
+     [(s-mutable-field s name ann val) (s-mutable-field s (ds name) (ds-ann ann) (ds val))]
      [(s-method-field s name args ann doc body check)
       (s-method-field s name (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]))
   (match ast
@@ -127,6 +128,8 @@
     [(s-var s name val) (s-var s (ds-bind name) (ds val))]
     [(s-let s name val) (s-let s (ds-bind name) (ds val))]
 
+    [(s-graph s bindings) (s-graph s (map ds bindings))]
+
     [(s-fun s name typarams args ann doc body check)
      (s-fun s name typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
 
@@ -160,13 +163,15 @@
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
-    [(s-extend s super fields) (s-update s (ds super) (map ds-member fields))]
+    [(s-update s super fields) (s-update s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
     [(s-list s elts) (s-list s (map ds elts))]
 
     [(s-dot s val field) (s-dot s (ds val) field)]
+
+    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 

@@ -44,8 +44,8 @@ fun equiv(obj1, obj2):
       for fold(same from true, key from left_keys):
         if not (has-field(o2, key)): false
         else:
-          left_val = o1.[key]
-          right_val = o2.[key]
+          left_val = o1:[key]
+          right_val = o2:[key]
           same and equiv(left_val, right_val)
         end
       end
@@ -83,8 +83,8 @@ fun data-to-repr(val, name, fields):
     | empty => name + "()"
     | link(f, r) =>
       name + "(" +
-      for fold(combined from torepr(val.[f]), key from r):
-        combined + ", " + torepr(val.[key])
+      for fold(combined from torepr(val:[f]), key from r):
+        combined + ", " + torepr(val:[key])
       end
       + ")"
   end
@@ -95,12 +95,7 @@ fun data-equals(self, other, brand, fields):
   for fold(acc from true, f from fields):
     thisval = self:[f]
     otherval = other:[f]
-    these-equal = if Mutable(thisval) and Mutable(otherval):
-      thisval.get() == otherval.get()
-    else:
-      thisval == otherval 
-    end
-    acc and these-equal
+    acc and (thisval == otherval)
   end
 end
 
@@ -225,7 +220,7 @@ data List:
 
     join-str(self, str): "" end
 
-  | link(first :: Any, rest :: List) with:
+  | link(cyclic first :: Any, cyclic rest :: List) with:
 
     length(self): 1 + self.rest.length() end,
 
@@ -272,8 +267,8 @@ data List:
 
     _equals(self, other):
       if is-link(other):
-        others-equal = (self.first == other.first)
-        others-equal and (self.rest == other.rest)
+        others-equal = (self:first == other:first)
+        others-equal and (self:rest == other:rest)
       else:
         false
       end
@@ -281,7 +276,7 @@ data List:
 
     tostring(self):
       "[" +
-        for fold(combined from tostring(self.first), elt from self.rest):
+        for raw-fold(combined from tostring(self:first), elt from self:rest):
           combined + ", " + tostring(elt)
         end
       + "]"
@@ -289,7 +284,7 @@ data List:
 
     _torepr(self):
       "[" +
-        for fold(combined from torepr(self.first), elt from self.rest):
+        for raw-fold(combined from torepr(self:first), elt from self:rest):
           combined + ", " + torepr(elt)
         end
       + "]"
@@ -397,12 +392,17 @@ fun partition(f, lst :: List):
   help(lst)
 end
 
-fun any(f :: (Any -> Bool), lst :: List):
+fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
+where:
+  any(fun(n): n > 1 end, [1,2,3]) is true
+  any(fun(n): n > 3 end, [1,2,3]) is false
+  any(fun(x): true end, []) is false
+  any(fun(x): false end, []) is false
 end
 
-fun find(f :: (Any -> Bool), lst :: List):
+fun find(f :: (Any -> Bool), lst :: List) -> Option:
   doc: "Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
   if is-empty(lst):
@@ -624,6 +624,30 @@ fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   end
 end
 
+fun raw-fold(f, base, lst :: List):
+  if is-empty(lst):
+    base
+  else:
+    raw-fold(f, f(base, lst:first), lst.rest)
+  end
+end
+
+fun index(l :: List, n :: Number):
+  cases(List) l:
+    | empty      => raise("index: list too short, avast!")
+    | link(f, r) => if (n == 0): f else: index(r, n - 1) end
+  end
+where:
+  l0 = []
+  l1 = [1]
+  l2 = [{some: "object"}, {some-other: "object"}]
+  l3 = ["a", "b", "c"]
+  index(l0, 1) raises "list too short"
+  index(l1, 0) is 1
+  index(l2, 1) is {some-other: "object"}
+  index(l3, 2) is "c"
+end               
+
 list = {
     List: List,
     is-empty: is-empty,
@@ -656,7 +680,8 @@ list = {
     fold: fold,
     fold2: fold2,
     fold3: fold3,
-    fold4: fold4
+    fold4: fold4,
+    index: index
   }
 
 data Location:
@@ -690,8 +715,16 @@ data Error:
     name(self): "Invalid case" end
   | eval-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Eval Error" end
+  | user-contract-failure(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Contract failure" end
+  | arity-error(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Arity mismatch" end
+  | div-0(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Division by zero" end
+  | type-error(message :: String, location :: Location, trace :: List<Location>) with:
+    name(self): "Type Error" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
-    name(self): "Email joe@cs.brown.edu or dbpatter@cs.brown.edu and complain that they were lazy" end
+    name(self): "Email joe@cs.brown.edu and dbpatter@cs.brown.edu and complain that they were lazy" end
 sharing:
   tostring(self): self.format() end,
   format(self):
@@ -714,7 +747,11 @@ fun make-error(obj):
     if (type == "opaque"): opaque-error(msg, loc, trace)
     else if (type == "field-not-found"): field-not-found(msg, loc, trace)
     else if (type == "field-non-string"): field-non-string(msg, loc, trace)
+    else if (type == "user-contract-failure"): user-contract-failure(msg, loc, trace)
     else if (type == "eval-error"): eval-error(msg, loc, trace)
+    else if (type == "arity-mismatch"): arity-error(msg, loc, trace)
+    else if (type == "div-0"): div-0(msg, loc, trace)
+    else if (type == "type-error"): type-error(msg, loc, trace)
     else: lazy-error(msg, loc, trace)
     end
   else: obj.value
@@ -730,6 +767,10 @@ error = {
   is-cases-miss: is-cases-miss,
   invalid-case: invalid-case,
   is-invalid-case: is-invalid-case,
+  user-contract-failure: user-contract-failure,
+  is-user-contract-failure: is-user-contract-failure,
+  div-0: div-0,
+  is-div-0: is-div-0,
   make-error: make-error,
   Error: Error,
   Location: Location,
@@ -949,8 +990,20 @@ fun format-check-results(results-list):
   counts = for fold(acc from init, results from results-list):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
+      new-passed = inner-results.filter(is-success).length()
+      new-failed = inner-results.filter(is-failure).length()
+      new-errors = inner-results.filter(is-err).length()
       other-errors = link(check-result,empty).filter(is-error-result).length()
-      print("In check block at " + check-result.location.format())
+      new-results = inner-acc.{
+        passed: inner-acc.passed + new-passed,
+        failed: inner-acc.failed + new-failed,
+        test-errors: inner-acc.test-errors + new-errors,
+        other-errors: inner-acc.other-errors + other-errors,
+        total: inner-acc.total + inner-results.length()
+      }
+      when (new-failed <> 0) or (new-errors <> 0) or (other-errors <> 0):
+        print("In check block at " + check-result.location.format())
+      end
       for each(fail from inner-results.filter(is-failure)):
         cases(Option) fail.location:
           | none => nothing
@@ -988,20 +1041,31 @@ fun format-check-results(results-list):
           end
         end
       end
-      inner-acc.{
-        passed: inner-acc.passed + inner-results.filter(is-success).length(),
-        failed: inner-acc.failed + inner-results.filter(is-failure).length(),
-        test-errors: inner-acc.test-errors + inner-results.filter(is-err).length(),
-        other-errors: inner-acc.other-errors + other-errors,
-        total: inner-acc.total + inner-results.length()
-      }
+      new-results
     end
   end
-  print("Total: " + counts.total.tostring() +
-        ", Passed: " + counts.passed.tostring() +
-        ", Failed: " + counts.failed.tostring() +
-        ", Errors in tests: " + counts.test-errors.tostring() +
-        ", Errors in between tests: " + counts.other-errors.tostring())
+  if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
+    if counts.passed == 0:
+      print("
+WARNING: Your program didn't define any tests.  Add some where: and check:
+blocks to test your code, or run with the --no-checks option to signal that you
+don't want tests run.
+")
+    else:
+      if counts.passed == 1:
+        print("Looks shipshape, your " + counts.passed.tostring() + " test passed, mate!")
+      else:
+        print("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
+      end
+    end
+  else:
+    print("Avast, there be bugs!")
+    print("Total: " + counts.total.tostring() +
+          ", Passed: " + counts.passed.tostring() +
+          ", Failed: " + counts.failed.tostring() +
+          ", Errors in tests: " + counts.test-errors.tostring() +
+          ", Errors in between tests: " + counts.other-errors.tostring())
+  end
   nothing
 end
 
@@ -1028,3 +1092,4 @@ checkers = {
   err: err,
   is-err: is-err
 }
+

@@ -126,32 +126,47 @@
                         (eval-pyret str))
                         expected))]))
 
+(define-syntax (check-match-file stx)
+  (syntax-case stx ()
+    [(_ file expected-value expected-stdout total)
+     (quasisyntax/loc stx
+          (let ()
+            (print-test (format "~a" file))
+            (define-values (base name dir?)
+              (split-path (simplify-path (path->complete-path file))))
+            (define output (open-output-string))
+            (define result
+              (parameterize ([current-output-port output]
+                             [current-load-relative-directory base])
+                (define check-results
+                 (eval-pyret/check (port->string (open-input-file file))))
+                ((p:p-base-method (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
+            (define stdout (get-output-string output))
+            #,(quasisyntax/loc stx
+                (match result
+                [expected-value #t]
+                [_ #,(syntax/loc stx (check-match result expected-value))]))
+            #,(quasisyntax/loc stx
+                (if (regexp-match (regexp-quote expected-stdout) stdout)
+                (map (λ (_) (check-true #t)) (range total))
+                #,(syntax/loc stx
+                  (check-regexp-match (regexp-quote expected-stdout)
+                                    stdout))))))]))
+
 (define-syntax (check-pyret-match/check stx)
   (syntax-case stx ()
     [(_ file expected-value t p f te oe)
-     (quasisyntax/loc stx
-       (let ()
-         (print-test (format "~a" file))
-         (define-values (base name dir?)
-           (split-path (simplify-path (path->complete-path file))))
-         (define output (open-output-string))
-         (define result
-           (parameterize ([current-output-port output]
-                          [current-load-relative-directory base])
-             (define check-results
-              (eval-pyret/check (port->string (open-input-file file))))
-             ((p:p-base-method (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
-         (define stdout (get-output-string output))
-         (define expected-stdout
-           (format
-            "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe))
-         #,(quasisyntax/loc stx
-             (match result
-             [expected-value #t]
-             [_ #,(syntax/loc stx (check-match result expected-value))]))
-         #,(quasisyntax/loc stx
-             (if (regexp-match (regexp-quote expected-stdout) stdout)
-             (map (λ (_) (check-true #t)) (range t))
-             #,(syntax/loc stx
-               (check-regexp-match (regexp-quote expected-stdout)
-                                 stdout))))))]))
+     (syntax/loc stx
+       (check-match-file file expected-value 
+        (format
+              "Total: ~a, Passed: ~a, Failed: ~a, Errors in tests: ~a, Errors in between tests: ~a" t p f te oe)
+           t))]
+    [(_ file expected-value p)
+     (syntax/loc stx
+      (cond
+        [(= p 0) (check-match-file file expected-value "Your program didn't define any tests" p)]
+        [(= p 1) (check-match-file file expected-value "your 1 test passed, mate!" p)]
+        [else
+          (check-match-file file expected-value
+           (format "all ~a tests passed, mate!" p) p)]))]))
+

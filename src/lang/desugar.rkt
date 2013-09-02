@@ -37,6 +37,25 @@
 (define (meth s args body)
   (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
+(define (desugar-graph s bindings)
+  (define names (map s-bind-id (map s-let-name bindings)))
+  (define placeholder-names (map gensym names))
+  (define (subst-expr e)
+   (foldr (lambda (id new-id expr)
+           (subst expr id (s-id s new-id)))
+          e
+          names
+          placeholder-names))
+  (define subbed-statements (map subst-expr (map desugar-internal bindings)))
+  (s-block s
+    (append
+     (map (lambda (id) (s-let s (s-bind s id (a-blank)) (s-app s (s-id s 'mk-placeholder) (list)))) placeholder-names)
+     subbed-statements
+     (map (lambda (id ph-id)
+            (s-app s (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
+          names
+          placeholder-names))))
+
 (define (add-parameterizer s params variants obj)
   (define add-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
   (define check-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
@@ -73,8 +92,7 @@
                 (s-let s (s-bind s call-match-case (a-blank)) (s-dot s (s-id s 'cases-funs) case-name))
                 (s-app s (s-id s call-match-case)
                        (map (lambda (field-name) (s-dot s (s-id s 'self) (s-bind-id field-name))) fields))))))
-         (s-app s (s-id s 'else-clause) (list)))                     
-      ))
+         (s-app s (s-id s 'else-clause) (list)))))
     (define local-mixins-names
       (map (lambda (m) (gensym "mixin")) mixins-names))
     (define (local-bind-mixins s)
@@ -122,11 +140,22 @@
       [(s-variant s name variant-members with-members)
        (define (member->field m val)
         (match m
-          [(s-variant-member s mutable? (s-bind s2 name ann))
+          [(s-variant-member s member-type (s-bind s2 name ann))
            (define name-str (s-str s2 (symbol->string name)))
-           (if mutable?
-            (s-mutable-field s2 name-str ann val)
-            (s-data-field s2 name-str val))]))
+           (match member-type
+             ['mutable (s-mutable-field s2 name-str ann val)]
+             ['normal (s-data-field s2 name-str val)]
+             ['cyclic (s-once-field s2 name-str ann val)]
+             [_ (error (format "Bad variant type: ~a" member-type))])]))
+       (define (member->constructor-arg m new-id)
+        (match m
+          [(s-variant-member s member-type (s-bind s2 name ann))
+           (define name-str (s-str s2 (symbol->string name)))
+           (match member-type
+             ['mutable (s-bind s2 new-id ann)]
+             ['normal (s-bind s2 new-id ann)]
+             ['cyclic (s-bind s2 new-id (a-blank))]
+             [_ (error (format "Bad variant type: ~a" member-type))])]))
        (define id-members (map s-variant-member-bind variant-members))
        (define torepr
         (meth s (list 'self)
@@ -139,10 +168,7 @@
        (define brander-name (gensym name))
        (define base-name (gensym (string-append (symbol->string name) "_base")))
        (define args (map gensym (map s-bind-id id-members)))
-       (define (replace-id m new-name)
-        (match m
-          [(s-bind s _ val) (s-bind s new-name val)]))
-       (define constructor-args (map replace-id id-members args))
+       (define constructor-args (map member->constructor-arg variant-members args))
        (define base-obj
          (s-obj s (append (list
                             (s-data-field s (s-str s "_torepr") torepr)
@@ -162,7 +188,8 @@
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s (make-checker-name name) name
                          (s-id s brander-name))
-           (s-fun s name
+           (s-let s (s-bind s name (a-blank))
+             (s-lam s
                     (list)
                     constructor-args
                     (a-blank)
@@ -178,13 +205,15 @@
                        (fold-mixins s 'brand
                          (fold-mixins s 'extend
                            obj)))))))
-                    (s-block s empty))))]))
+                    (s-block s empty)))))]))
   (map variant-defs variants))
 
 (define (ds-member ast-node)
     (match ast-node
       [(s-mutable-field s name ann value)
        (s-mutable-field s name ann (desugar-internal value))]
+      [(s-once-field s name ann value)
+       (s-once-field s name ann (desugar-internal value))]
       [(s-data-field s name value)
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
@@ -311,6 +340,8 @@
     [(s-let s name val)
      (s-let s (ds-bind name) (ds val))]
 
+    [(s-graph s bindings) (desugar-graph s bindings)]
+
     [(s-fun s name typarams args ann doc body check)
      (s-let s (s-bind s name (a-blank))
             (add-lam-tostring s "fun" name args
@@ -400,7 +431,7 @@
 
     [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
 
-    [(s-get-bang s val field) (s-get-bang s val field)]
+    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
 
     [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
 

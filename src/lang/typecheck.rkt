@@ -3,6 +3,23 @@
 (require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt")
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
+(define (build-location s)
+  (define (serialize-source e)
+    (cond
+      [(symbol? e) (symbol->string e)]
+      [(string? e) e]
+      [(path? e) (path->string e)]
+      [(false? e) "unknown source"]
+      [else (error (format "Non-symbol, non-string, non-path value for
+                            source: ~a" e))]))
+  (s-app s
+    (s-bracket s (s-id s 'error) (s-str s "location"))
+    (list
+      (s-str s (serialize-source (srcloc-source s)))
+      (s-num s (srcloc-line s))
+      (s-num s (srcloc-column s)))))
+
+
 (struct exn:fail:pyret/tc exn:fail (srclocs)
   #:property prop:exn:srclocs
     (lambda (a-struct)
@@ -40,7 +57,8 @@
   (s-method loc args result doc (s-block loc (list body)) (s-block loc empty)))
 
 (define (ann-check loc ann)
-  (define (code-wrapper s args result type get-fun)
+  (define ann-str (s-str loc (pretty-ann ann)))
+  (define (code-wrapper s args result type get-fun initial-check)
     (define funname (gensym "contract"))
     (define gotten-funname (gensym "fun"))
     (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
@@ -51,6 +69,11 @@
      (mk-contract-doc ann)
      (s-block s
       (list
+       (s-app loc
+              (s-id loc 'check-brand)
+              (list initial-check
+                    (s-id loc funname)
+                    ann-str))
        (s-let s (s-bind s gotten-funname (a-blank)) (get-fun (s-id s funname)))
        (s-extend
          s
@@ -64,7 +87,6 @@
                                           (s-str s "_doc")))))))))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
-  (define ann-str (s-str loc (pretty-ann ann)))
   (define (mk-flat-checker checker)
     (define argname (gensym "specimen"))
     (mk-lam loc (list (s-bind loc argname (a-blank))) ann
@@ -91,11 +113,11 @@
              (mk-contract-doc ann)
              (s-id loc '_))]
     [(a-arrow s args result)
-     (code-wrapper s args result mk-lam (λ (e) e))]
+     (code-wrapper s args result mk-lam (λ (e) e) (s-id s 'Function))]
     [(a-method s args result)
      (define (get-fun e)
        (s-app s (s-bracket s e (s-str s "_fun")) (list)))
-     (code-wrapper s args result mk-method get-fun)]
+     (code-wrapper s args result mk-method get-fun (s-id s 'Method))]
     [(a-app s ann parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
      ;; everything past the name weren't included.
@@ -124,7 +146,20 @@
                       (s-block s
                         (list
                           (s-app s (s-id s 'raise)
-                                   (list (s-str s "contract failure"))))))
+                            (list
+                              (s-app s
+                              (s-bracket s (s-id s 'error) (s-str s "user-contract-failure"))
+                              (list
+                                (s-app s
+                                  (s-bracket s
+                                    (s-str s "contract check: value did not match predicate: ")
+                                    (s-str s "_plus"))
+                                  (list
+                                    (s-app s (s-id s 'torepr)
+                                      (list (s-id s tempname)))))
+                                  
+                                (build-location s)
+                                (s-bracket s (s-id s 'list) (s-str s "empty")))))))))
                )))]
     [else
      (error
@@ -211,6 +246,25 @@
   (define (cc-member ast env)
     (match ast
       [(s-data-field s name value) (s-data-field s name (cc-env value env))]
+      [(s-once-field s name ann value)
+       (cond
+        [(skippable? ann)
+         (s-data-field s name (cc-env value env))]
+        [else
+         (define checker (ann-check s ann))
+         (define val-id (gensym 'maybe-placeholder))
+         (define val-expr (s-id s val-id))
+         (define is-placeholder (s-app s (s-id s 'Placeholder) (list val-expr)))
+         (define do-guard (s-app s (s-bracket s val-expr (s-str s "guard"))
+                                 (list checker)))
+         (define field-block
+          (s-block s
+            (list
+              (s-let s (s-bind s val-id (a-blank)) (cc-env value env))
+              (s-if-else s
+                (list (s-if-branch s is-placeholder (s-block s (list do-guard val-expr))))
+                (s-block s (list (s-app s checker (list val-expr))))))))
+         (s-data-field s name field-block)])]
       [(s-mutable-field s name ann value)
        (cond
         [(skippable? ann)

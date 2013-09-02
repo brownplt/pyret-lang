@@ -56,10 +56,12 @@
      'String
      'Nothing
      'Mutable
+     'Placeholder
      'brander
      'check-brand
      'mk-mutable
      'mk-simple-mutable
+     'mk-placeholder
      'is-nothing
      'nothing
      'gensym)))
@@ -116,6 +118,7 @@
       'place-image
       'read-sexpr
       
+      'Option
       'some
       'is-some
       'none

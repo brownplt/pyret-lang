@@ -68,8 +68,8 @@
   (check-pyret "fun f(): var x = 1 x := 2 x := 5 x end f()" five)
   (check-pyret-exn "fun f(x): y := 2 x end f(1)" "Assigning to unbound variable")
   (check-pyret "fun f(): var x = 1 fun g(): x := 2 end g() x end f()" two)
-  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Arity")
-  (check-pyret-exn "fun f(x, y): x end f(3)" "Arity")
+  (check-pyret-exn "fun f(x, y): x end f(3,4,5)" "Expected 2")
+  (check-pyret-exn "fun f(x, y): x end f(3)" "Expected 2")
   (check-pyret "fun fundo():
                   var o = {}
                   var x = 1
@@ -194,9 +194,9 @@
   (check-pyret "if false: 5 else if false: 6 else if true: 8 end"
                (p:mk-num 8))
 
-  (check-pyret-match/check "pyret/cases/cases1.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-list.arr" _ 4 4 0 0 0)
-  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 2 2 0 0 0)
+  (check-pyret-match/check "pyret/cases/cases1.arr" _ 4)
+  (check-pyret-match/check "pyret/cases/cases-list.arr" _ 4)
+  (check-pyret-match/check "pyret/cases/cases-raw-fun.arr" _ 2)
 ))
 
 
@@ -376,7 +376,7 @@
     end"
    "duplicate")
 
-  (check-pyret-match/check "pyret/data-equals.arr" _ 27 27 0 0 0)
+  (check-pyret-match/check "pyret/data-equals.arr" _ 27)
 
   ))
 
@@ -441,7 +441,7 @@
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 3 3 0 0 0)
+  (check-pyret-match/check "pyret/list-tests.arr" _ 3)
 
   (check-pyret-match
     "prim-keys({x : 5})"
@@ -599,7 +599,7 @@
 
   ;; NOTE(joe): allow this here because checkers
   (parameterize [(current-allow-shadowed-vars #t)]
-    (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 23 23 0 0 0))
+    (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 31))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
   (check-pyret "prim-num-keys({x:5})" (p:mk-num 1))
@@ -613,7 +613,7 @@
   (check-pyret "gensym('foo') <> gensym('foo')" true)
   (check-pyret "String(gensym('foo'))" true)
 
-  (check-pyret-match/check "pyret/math-libs.arr" _ 7 7 0 0 0)
+  (check-pyret-match/check "pyret/math-libs.arr" _ 7)
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -651,7 +651,7 @@
   (check-pyret "tostring(fun(x): x end)" (p:mk-str "fun (x): '' end"))
   (check-pyret "tostring(method(x): doc: 'yay' x end)" (p:mk-str "method (x): 'yay' end"))
 
-  (check-pyret-match/check "pyret/repr.arr" _ 26 26 0 0 0)
+  (check-pyret-match/check "pyret/repr.arr" _ 26)
 ))
 
 (define methods (test-suite "methods"
@@ -715,8 +715,11 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 22 22 0 0 0)
+  (check-pyret-match/check "pyret/update.arr" _ 29)
+  (check-pyret-match/check "pyret/placeholder.arr" _ 15)
+  (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
+
 
 (define exceptions (test-suite "exceptions"
   (check-pyret-exn
@@ -748,6 +751,7 @@ o2.m().called" true)
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
   (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
+  (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
 
 (define ids-and-vars (test-suite "variables and identifiers"
@@ -916,7 +920,7 @@ o2.m().called" true)
   (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
   (check-pyret "x = {_lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))
-  (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Arity")
+  (check-pyret-exn "x = {_lessthan: fun(s,o): 3 end} x < 5" "Expected 2")
   (check-pyret-exn "x = {_greaterthan: 3} x > 5" "expected method")
   (check-pyret-exn "x = {} x <= 5" "lessequal was not found")
   (check-pyret "a = 1 b = 2 (a == b) or (true)" (p:mk-bool #t))
@@ -938,35 +942,35 @@ o2.m().called" true)
 ))
 
 (define ffi (test-suite "ffi"
-  (check-pyret-match/check "pyret/test-ast.arr" _ 10 10 0 0 0)
-  (check-pyret-match/check "pyret/eval.arr" _ 20 20 0 0 0)
+  (check-pyret-match/check "pyret/test-ast.arr" _ 10)
+  (check-pyret-match/check "pyret/eval.arr" _ 20)
 ))
 
 (define mixins (test-suite "mixins"
-  (check-pyret-match/check "pyret/mixins.arr" _ 9 9 0 0 0)
+  (check-pyret-match/check "pyret/mixins.arr" _ 9)
 ))
 
 (define checks (test-suite "checks"
 
   (let ()
-    (check-pyret-match/check "pyret/check/check1.arr" _ 3 3 0 0 0)
-    (check-pyret-match/check "pyret/check/check-method.arr" _ 3 3 0 0 0)
-    (check-pyret-match/check "pyret/check/check2.arr" _ 4 4 0 0 0)
-    (check-pyret-match/check "pyret/check/check3.arr" _ 36 36 0 0 0)
+    (check-pyret-match/check "pyret/check/check1.arr" _ 3)
+    (check-pyret-match/check "pyret/check/check-method.arr" _ 3)
+    (check-pyret-match/check "pyret/check/check2.arr" _ 4)
+    (check-pyret-match/check "pyret/check/check3.arr" _ 36)
     (check-pyret-match/check "pyret/check/check4.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-error.arr" _ 2 1 1 0 1)
     (check-pyret-match/check "pyret/check/check-error2.arr" _ 5 2 3 0 1)
     (check-pyret-match/check "pyret/check/check-error3.arr" _ 4 3 1 0 1)
     (check-pyret-match/check "pyret/check/check-error4.arr" _ 2 1 1 0 0)
-    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ 1 1 0 0 0)
-    (check-pyret-match/check "pyret/check/check-identifier-after.arr" _ 1 1 0 0 0)
-    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ 2 2 0 0 0)
+    (check-pyret-match/check "pyret/check/check-in-pred-ann.arr" _ 1)
+    (check-pyret-match/check "pyret/check/check-identifier-after.arr" _ 1)
+    (check-pyret-match/check "pyret/check/nested-called-twice.arr" _ 2)
 
-    (check-pyret-match/check "pyret/check/check-data1.arr" _ 1 1 0 0 0)
+    (check-pyret-match/check "pyret/check/check-data1.arr" _ 1)
     (check-pyret-match/check "pyret/check/check-data2.arr" _ 2 1 1 0 0)
     (check-pyret-match/check "pyret/check/check-data3.arr" _ 3 2 1 0 0)
-    (check-pyret-match/check "pyret/check/check-data4.arr" _ 2 2 0 0 0)
-    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1 1 0 0 0)
+    (check-pyret-match/check "pyret/check/check-data4.arr" _ 2)
+    (check-pyret-match/check "pyret/check/check-with-import.arr" _ 1)
     (check-pyret-match/check "pyret/check/check-is.arr" _ 3 2 1 0 0))
 
     (check-pyret-match/check "pyret/check/standalone.arr" _ 4 2 2 0 0)
@@ -985,7 +989,7 @@ o2.m().called" true)
       (when (file-exists? filename)
        (define-values (base name _) (split-path (simplify-path filename)))
        (parameterize [(current-directory base)]
-         (check-pyret-match/check name _ passing passing 0 0 0))))])
+         (check-pyret-match/check name _ passing))))])
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)

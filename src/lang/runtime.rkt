@@ -116,6 +116,7 @@
               [is-nothing-pfun is-nothing]
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
+              [mk-placeholder-pfun mk-placeholder]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -127,6 +128,7 @@
   Function
   Method
   Mutable
+  Placeholder
   nothing)
 
 
@@ -162,6 +164,8 @@
 (struct p-method p-base () #:transparent)
 ;; p-mutable p-base Box (Listof (Value -> Value)) (Listof (Value -> Value))
 (struct p-mutable p-base (b read-wrappers write-wrappers))
+;; p-placeholder p-base Box (Listof (Value -> Value))
+(struct p-placeholder p-base (b wrappers) #:mutable)
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -173,6 +177,8 @@
     [(eq? p-str typ) p-str?]
     [(eq? p-fun typ) p-fun?]
     [(eq? p-method typ) p-method?]
+    [(eq? p-mutable typ) p-mutable?]
+    [(eq? p-placeholder typ) p-placeholder?]
     [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
@@ -200,6 +206,12 @@
        #'(maybe-bind [(b-id (p-mutable-b matchval))
                       (rw-id (p-mutable-read-wrappers matchval))
                       (ww-id (p-mutable-write-wrappers matchval))]
+           body))]
+    [(_ p-mutable matchval (b w) body)
+     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))
+                   (w-id (datum->syntax #'body (syntax->datum #'w)))]
+       #'(maybe-bind [(b-id (p-placeholder-b matchval))
+                      (w-id (p-placeholder-wrappers matchval))]
            body))]
     [(_ p-num matchval (n) body)
      (with-syntax [(n-id (datum->syntax #'body (syntax->datum #'n)))]
@@ -273,7 +285,7 @@
     [(_ (arg ...) doc e ...)
      (quasisyntax/loc stx
       (mk-fun
-        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))
         doc))]))
 
@@ -282,7 +294,7 @@
     [(_ (loc) (arg ...) e ...)
      (quasisyntax/loc stx
       (mk-fun-nodoc
-        #,(syntax/loc stx (lambda-arity-catcher (arg ...) e ...))
+        #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))))]))
 
 (define-syntax (pμ stx)
@@ -461,6 +473,14 @@
 (define mk-simple-mutable-pfun (pλ/internal (loc) (val)
   (mk-mutable val (list) (list))))
 
+(define placeholder-bad-app (bad-app "placeholder"))
+(define placeholder-bad-meth (bad-meth "placeholder"))
+(define (mk-placeholder)
+  (p-placeholder no-brands placeholder-dict placeholder-bad-app placeholder-bad-meth (box #f) empty))
+
+(define mk-placeholder-pfun (pλ/internal (loc) ()
+  (mk-placeholder)))
+
 (define exn-brand (gensym 'exn))
 
 ;; pyret-error : Loc String String -> p-exn
@@ -475,7 +495,7 @@
 (define (get-raw-field loc v f)
   (string-map-ref (get-dict v) f
     (lambda()
-      (raise (pyret-error loc "field-not-found" (format "~a was not found" f))))))
+      (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -483,6 +503,8 @@
   (cond
     [(p-mutable? vfield)
      (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
+    [(p-placeholder? vfield)
+     (get-placeholder-value loc vfield)]
     [(p-method? vfield)
      (let [(curried
             (mk-fun (λ args (apply (p-base-method vfield)
@@ -560,7 +582,7 @@ And the object was:
       loc
       "arity-mismatch"
       (format
-"Arity mismatch: expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+"Expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
 ~a"
         (length argnames)
         (length args)
@@ -728,6 +750,11 @@ And the object was:
 (define-syntax-rule (mk-num-2-bool op opname)
   (mk-prim-fun op opname mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?)))
 
+(define (protect-div n1 n2)
+  (cond
+    [(= n2 0) (raise (pyret-error (get-top-loc) "div-0" "Division by zero"))]
+    [else (/ n1 n2)]))
+
 ;; meta-num-store (Hashof numing value)
 (define meta-num-store #f)
 (define (meta-num)
@@ -737,7 +764,7 @@ And the object was:
         `(("_plus" . ,(mk-num-2 + 'plus))
           ("_add" . ,(mk-num-2 + 'plus))
           ("_minus" . ,(mk-num-2 - 'minus))
-          ("_divide" . ,(mk-num-2 / 'divide))
+          ("_divide" . ,(mk-num-2 protect-div 'divide))
           ("_times" . ,(mk-num-2 * 'times))
           ("_torepr" . ,(mk-prim-fun number->string '_torepr mk-str (p-num-n) (n) (p-num?)))
           ("_equals" . ,(mk-prim-fun-default = 'equals mk-bool (p-num-n p-num-n) (n1 n2) (p-num? p-num?) (mk-bool #f)))
@@ -851,6 +878,8 @@ And the object was:
     [(p-nothing _ _ _ _) "nothing"]
     [(p-method _ _ _ _) (serialize-internal v (λ () "method(): end"))]
     [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
+    [(p-mutable _ _ _ _ _ _ _) (serialize-internal v (λ () "mutable-field"))]
+    [(p-placeholder _ _ _ _ _ _) (serialize-internal v (λ () "cyclic-field"))]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
@@ -879,9 +908,11 @@ And the object was:
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
 (define (throw-type-error! typname o)
-  (define val (mk-str (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o))))
-  (raise (mk-pyret-exn (exn+loc->message val (get-top-loc)) (get-top-loc) val #f)))
+  (raise (pyret-error
+          (get-top-loc)
+           "type-error"
+           (format "runtime: typecheck failed; expected ~a and got\n~a"
+                              typname (to-repr o)))))
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
@@ -927,13 +958,66 @@ And the object was:
 (define mutable-dict
   (make-string-map
     (list
+      (cons "_equals" (pμ/internal (loc) (self other)
+        "Check equality of this mutable field with another"
+        (mk-bool (eq? self other))))
+      (cons "_torepr" (pμ/internal (loc) (self)
+        "Print this mutable field"
+        (mk-str "mutable-field")))
+      (cons "tostring" (pμ/internal (loc) (self)
+        "Print this mutable field"
+        (mk-str "mutable-field")))
       (cons "get" (pμ/internal (loc) (self)
-        ""
+        "Get the value in this mutable field"
         (when (not (p-mutable? self))
           (throw-type-error! "Mutable" self))
         (define checks (p-mutable-read-wrappers self))
         (foldr (lambda (c v) (c v)) (unbox (p-mutable-b self)) checks))))))
 
+(define (get-placeholder-value loc p)
+  (when (not (p-placeholder? p))
+    (throw-type-error! "Placeholder" p))
+  (define value (unbox (p-placeholder-b p)))
+  (if value value (raise (pyret-error loc "get-uninitialized-placeholder"
+                          (format "Tried to get value from uninitialized placeholder")))))
+
+(define placeholder-dict
+  (make-string-map
+    (list
+      (cons "_equals" (pμ/internal (loc) (self other)
+        "Check equality of this placeholder with another"
+        (mk-bool (eq? self other))))
+      (cons "_torepr" (pμ/internal (loc) (self)
+        "Print this placeholder"
+        (mk-str "cyclic-field")))
+      (cons "tostring" (pμ/internal (loc) (self)
+        "Print this placeholder"
+        (mk-str "cyclic-field")))
+      (cons "get" (pμ/internal (loc) (self)
+        "Get the value in the placeholder"
+        (get-placeholder-value dummy-loc self)))
+      (cons "set" (pμ/internal (loc) (self new-value)
+        "Set the value in the placeholder"
+        (when (not (p-placeholder? self))
+          (throw-type-error! "Placeholder" self))
+        (define value (unbox (p-placeholder-b self)))
+        (when value (raise (pyret-error (get-top-loc) "set-initialized-placeholder"
+                      (format "Tried to set value in already-initialized placeholder"))))
+        (define wrappers (p-placeholder-wrappers self))
+        (define value-checked (foldr (lambda (c v) (c v)) new-value wrappers))
+        (set-box! (p-placeholder-b self) value-checked)))
+      (cons "guard" (pμ/internal (loc) (self pred)
+        "Add a guard to the placeholder for when it is set"
+        (when (not (p-placeholder? self))
+          (throw-type-error! "Placeholder" self))
+        (define check (p-base-app check-brand-pfun))
+        (define checked-pred (check Function pred (mk-str "Function")))
+        (define value (unbox (p-placeholder-b self)))
+        (when value (raise (pyret-error (get-top-loc) "guard-initialized-placeholder"
+                          (format "Tried to add guard on an already-initialized placeholder"))))
+        (define wrappers (p-placeholder-wrappers self))
+        (set-p-placeholder-wrappers! self (cons (p-base-app pred) wrappers))
+        nothing)))))
 
 (define gensym-pfun (pλ (s)
   "Generate a random string with the given prefix"
@@ -967,3 +1051,4 @@ And the object was:
 (mk-pred Function p-fun?)
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
+(mk-pred Placeholder p-placeholder?)
