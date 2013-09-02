@@ -3,7 +3,7 @@
 ; Miscellaneous whalesong functions
 
 (require
-   "../runtime.rkt"
+   (except-in "../runtime.rkt" raise)
    "../ffi-helpers.rkt")
 
 (provide (rename-out [read-sexpr-pfun read-sexpr]))
@@ -14,13 +14,13 @@
   (define (handle-read-exn x)
     (raise (p:pyret-error
             p:dummy-loc "read-sexpr"
-            (format "read-sexpr: Invalid s-expression: \"~a\""
-                    str))))
+            (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
   (define (sexpr->list x)
-    (cond [(list? x)   (ffi-wrap (map sexpr->list x))]
-          [(symbol? x) (ffi-wrap (list "symbol" (symbol->string x)))]
-          [x           (ffi-wrap x)]))
-    (sexpr->list (parse-expr str)))
+    (cond [(list? x)   (map sexpr->list x)]
+          [(symbol? x) (list "symbol" (symbol->string x))]
+          [x           x]))
+  (with-handlers [[(λ (x) #t) handle-read-exn]]
+    (sexpr->list (parse-expr str))))
 
 (define read-sexpr-pfun (ffi-wrap read-sexpr))
 
