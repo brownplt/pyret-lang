@@ -1222,6 +1222,16 @@ Strings have a number methods:
   end
   fun torepr(value :: Any) -> String:
     doc: 'Returns a string that resembles the expression used to construct value.  Useful for REPL printing.'
+  end
+  fun read-sexpr(str :: String) -> Any:
+    doc: 'Take a string as input, and parse it into an s-expression.
+Each s-expression is a number, symbol, string, or a list of
+s-expressions surrounded by parenthesis and separated by whitespace.
+Parenthesized lists are converted into Pyret lists, and symbols
+are converted into a list [\"symbol\", <the-symbol>].'
+  where:
+      read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
+    is [[-13, 14, 88.8], ['symbol', 'cats'], ['symbol', '++'], 'dogs']
   end"
   )
 @(define misc-ast (parse-pyret misc))
@@ -1231,5 +1241,6 @@ Strings have a number methods:
   raise
   print
   torepr
+  read-sexpr
   ))
 

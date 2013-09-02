@@ -10,7 +10,18 @@
 
 ; read-sexpr: Convert an sexpr string into nested Pyret lists.
 ;             Symbols are wrapped in ("symbol" ***).
-(define (read-sexpr str)
+(define read-sexpr-pfun
+  (p:pλ (pyret-str)
+  "Take a string as input, and parse it into an s-expression.
+Each s-expression is a number, symbol, string, or a list of
+s-expressions surrounded by parenthesis and separated by whitespace.
+Parenthesized lists are converted into Pyret lists, and symbols
+are converted into a list [\"symbol\", <the-symbol>].
+
+For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
+  [[-13, 14, 88.8], [\"symbol\", \"cats\"], [\"symbol\", \"++\"], \"dogs\"]
+"
+  (let [[str (ffi-unwrap pyret-str)]]
   (define (handle-read-exn x)
     (raise (p:pyret-error
             p:dummy-loc "read-sexpr"
@@ -20,9 +31,7 @@
           [(symbol? x) (list "symbol" (symbol->string x))]
           [x           x]))
   (with-handlers [[(λ (x) #t) handle-read-exn]]
-    (sexpr->list (parse-expr str))))
-
-(define read-sexpr-pfun (ffi-wrap read-sexpr))
+    (ffi-wrap (sexpr->list (parse-expr str)))))))
 
 #| Top-down Parsing |#
 
