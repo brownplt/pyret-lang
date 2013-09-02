@@ -431,7 +431,7 @@ raised will be bound to the identifier inside the `except` clause. For example:
 
     try:
       10
-      raise "Help"
+      raise("Help")
       20 # control never reaches here
     except(e):
       e # is "Help"
@@ -444,7 +444,7 @@ hit the first one available. For example:
     try:
       try:
         10
-        raise "Help"
+        raise("Help")
         20 # control never reaches here
       except(e):
         e # is "Help"
