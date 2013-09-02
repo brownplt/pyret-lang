@@ -17,6 +17,7 @@
     bitmap/file
     save-image
     image-width
+    image-height
     image?
     image->color-list
     color-list->bitmap
@@ -43,6 +44,7 @@
       (cons "save-file" (ffi-wrap save-image))
       (cons "Image" (ffi-wrap image?))
       (cons "image-width" (ffi-wrap image-width))
+      (cons "image-height" (ffi-wrap image-height))
       (cons "image-to-color-list"
             (ffi-wrap image->color-list))
       (cons "color-list-to-bitmap"
