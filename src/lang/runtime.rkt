@@ -901,9 +901,13 @@ And the object was:
   (mk-str (serialize o "_torepr"))))
 
 (define (pyret-print o)
+  (define str
+    (cond
+      [(p-str? o) (p-str-s o)]
+      [else (to-repr o)]))
   (begin
-    (printf "~a\n" (to-string o))
-    nothing))
+    (printf "~a\n" str)
+    (mk-str str)))
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
