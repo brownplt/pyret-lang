@@ -15,11 +15,11 @@
   "Take a string as input, and parse it into an s-expression.
 Each s-expression is a number, symbol, string, or a list of
 s-expressions surrounded by parenthesis and separated by whitespace.
-Parenthesized lists are converted into Pyret lists, and symbols
-are converted into a list [\"symbol\", <the-symbol>].
+Parenthesized lists are converted into Pyret lists, and strings
+are each converted into a list [\"string\", <the-string>].
 
 For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
-  [[-13, 14, 88.8], [\"symbol\", \"cats\"], [\"symbol\", \"++\"], \"dogs\"]
+  [[-13, 14, 88.8], \"cats\", \"++\", [\"string\", \"dogs\"]]
 "
   (let [[str (ffi-unwrap pyret-str)]]
   (define (handle-read-exn x)
@@ -28,7 +28,8 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
             (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
   (define (sexpr->list x)
     (cond [(list? x)   (map sexpr->list x)]
-          [(symbol? x) (list "symbol" (symbol->string x))]
+          [(symbol? x) (symbol->string x)]
+          [(string? x) (list "string" x)]
           [x           x]))
   (with-handlers [[(λ (x) #t) handle-read-exn]]
     (ffi-wrap (sexpr->list (parse-expr str)))))))

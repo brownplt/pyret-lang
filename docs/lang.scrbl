@@ -1227,11 +1227,11 @@ Strings have a number methods:
     doc: 'Take a string as input, and parse it into an s-expression.
 Each s-expression is a number, symbol, string, or a list of
 s-expressions surrounded by parenthesis and separated by whitespace.
-Parenthesized lists are converted into Pyret lists, and symbols
-are converted into a list [\"symbol\", <the-symbol>].'
+Parenthesized lists are converted into Pyret lists, and strings
+are converted into a list [\"string\", <the-string>].'
   where:
       read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
-    is [[-13, 14, 88.8], ['symbol', 'cats'], ['symbol', '++'], 'dogs']
+    is [[-13, 14, 88.8], 'cats', '++', ['string', 'dogs']]
   end"
   )
 @(define misc-ast (parse-pyret misc))
