@@ -907,7 +907,7 @@ And the object was:
       [else (to-repr o)]))
   (begin
     (printf "~a\n" str)
-    (mk-str str)))
+    o))
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
