@@ -114,6 +114,7 @@
       'rectangle
       'text
       'place-image
+      'read-sexpr
       
       'some
       'is-some

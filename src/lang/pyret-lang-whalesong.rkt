@@ -60,7 +60,8 @@
     [pyret-fold fold]
     [pyret-fold2 fold2]
     [pyret-fold3 fold3]
-    [pyret-fold4 fold4])
+    [pyret-fold4 fold4]
+    [pyret-read-sexpr read-sexpr])
 
   (rename-out
     [pyret-Option Option]

@@ -4,6 +4,7 @@
   "../runtime.rkt"
   "../string-map.rkt"
   "../ffi-helpers.rkt"
+  "whalesong-lib.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 (provide (all-defined-out))
 
@@ -52,3 +53,5 @@
 (define pyret-is-some (get-option-lib "is-some"))
 (define pyret-none (get-option-lib "none"))
 (define pyret-some (get-option-lib "some"))
+
+(define pyret-read-sexpr read-sexpr)
