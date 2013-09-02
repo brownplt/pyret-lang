@@ -990,8 +990,20 @@ fun format-check-results(results-list):
   counts = for fold(acc from init, results from results-list):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
+      new-passed = inner-results.filter(is-success).length()
+      new-failed = inner-results.filter(is-failure).length()
+      new-errors = inner-results.filter(is-err).length()
       other-errors = link(check-result,empty).filter(is-error-result).length()
-      print("In check block at " + check-result.location.format())
+      new-results = inner-acc.{
+        passed: inner-acc.passed + new-passed,
+        failed: inner-acc.failed + new-failed,
+        test-errors: inner-acc.test-errors + new-errors,
+        other-errors: inner-acc.other-errors + other-errors,
+        total: inner-acc.total + inner-results.length()
+      }
+      when (new-failed <> 0) or (new-errors <> 0) or (other-errors <> 0):
+        print("In check block at " + check-result.location.format())
+      end
       for each(fail from inner-results.filter(is-failure)):
         cases(Option) fail.location:
           | none => nothing
@@ -1029,20 +1041,19 @@ fun format-check-results(results-list):
           end
         end
       end
-      inner-acc.{
-        passed: inner-acc.passed + inner-results.filter(is-success).length(),
-        failed: inner-acc.failed + inner-results.filter(is-failure).length(),
-        test-errors: inner-acc.test-errors + inner-results.filter(is-err).length(),
-        other-errors: inner-acc.other-errors + other-errors,
-        total: inner-acc.total + inner-results.length()
-      }
+      new-results
     end
   end
-  print("Total: " + counts.total.tostring() +
-        ", Passed: " + counts.passed.tostring() +
-        ", Failed: " + counts.failed.tostring() +
-        ", Errors in tests: " + counts.test-errors.tostring() +
-        ", Errors in between tests: " + counts.other-errors.tostring())
+  if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
+    print("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
+  else:
+    print("Avast, there be bugs!")
+    print("Total: " + counts.total.tostring() +
+          ", Passed: " + counts.passed.tostring() +
+          ", Failed: " + counts.failed.tostring() +
+          ", Errors in tests: " + counts.test-errors.tostring() +
+          ", Errors in between tests: " + counts.other-errors.tostring())
+  end
   nothing
 end
 
