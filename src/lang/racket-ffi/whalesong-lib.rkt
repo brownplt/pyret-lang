@@ -20,21 +20,9 @@
     (cond [(list? x)   (ffi-wrap (map sexpr->list x))]
           [(symbol? x) (ffi-wrap (list "symbol" (symbol->string x)))]
           [x           (ffi-wrap x)]))
-  ;(with-handlers [[(λ (x) #t) #;exn:fail:read?
-  ;                 (lambda (_) (handle-read-exn str))]]
     (sexpr->list (parse-expr str)))
 
-  #;(let [[str (ffi-unwrap pyret-val)]]
-    (if (not (string? str))
-        (raise p:pyret-error p:dummy-loc "read-sexpr-non-string"
-               (format "Non-string given to read-sexpr: ~a"
-                       (p:to-string pyret-val)))
-        (with-handlers [[(λ (x) #t) #;exn:fail:read?
-                         (lambda (_) (handle-read-exn pyret-val))]]
-          (sexpr->list (parse-expr str)))))
-
 (define read-sexpr-pfun (ffi-wrap read-sexpr))
-
 
 #| Top-down Parsing |#
 
@@ -123,8 +111,16 @@
   (star (char char-whitespace?)))
 
 (define num
-  (action (λ (x) (string->number (apply string-append x)))
-          (plus (char char-numeric?))))
+  (action (λ (x)
+            (let [[sign (first x)]
+                  [digits (second x)]]
+              (* (if (equal? sign "-") -1 1)
+                 (string->number (apply string-append digits)))))
+          (seq (option (char (λ (c) (eq? c #\-)))
+                       (char (λ (c) (eq? c #\+)))
+                       (seq))
+               (plus (char (λ (c) (or (char-numeric? c)
+                                      (eq? c #\.))))))))
 
 (define string
   (action (λ (x) (apply string-append (second x)))
@@ -135,6 +131,7 @@
 (define symbol-chars (string->list "~!@#$%^&*-=_+?,./;:<>|"))
 (define (symbol-char? c)
   (or (char-alphabetic? c)
+      (char-numeric? c)
       (member c symbol-chars)))
 (define symbol
   (action (λ (x) (string->symbol (apply string-append x)))
@@ -153,16 +150,22 @@
                (token (char (λ (c) (eq? c #\))))))))
 
 (define expr
-  (token (option parens string symbol num)))
+  (token (option parens string num symbol)))
 
 (define (f x)
   (parse-expr x))
 
-#| Tests
+#| Tests |# #|
 (parse num "3848a9")
 (parse string "\"some chars\"blarg")
 (parse symbol "symbool gogo")
 (parse-expr "3")
 (parse-expr "()")
 (parse-expr "(( ()394  qqv?#%^fu8   ++ \"st ring\")(  )))")
+(parse-expr "+")
+(parse-expr "++")
+(parse-expr "-385")
+(parse-expr "- 385")
+(parse-expr "3.48")
+(parse-expr "+3.48")
 |#
