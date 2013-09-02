@@ -163,5 +163,10 @@
            t))]
     [(_ file expected-value p)
      (syntax/loc stx
-      (check-match-file file expected-value
-       (format "all ~a tests passed, mate!" p) p))]))
+      (cond
+        [(= p 0) (check-match-file file expected-value "Your program didn't define any tests" p)]
+        [(= p 1) (check-match-file file expected-value "your 1 test passed, mate!" p)]
+        [else
+          (check-match-file file expected-value
+           (format "all ~a tests passed, mate!" p) p)]))]))
+

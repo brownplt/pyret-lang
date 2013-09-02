@@ -1045,7 +1045,19 @@ fun format-check-results(results-list):
     end
   end
   if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
-    print("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
+    if counts.passed == 0:
+      print("
+WARNING: Your program didn't define any tests.  Add some where: and check:
+blocks to test your code, or run with the --no-checks option to signal that you
+don't want tests run.
+")
+    else:
+      if counts.passed == 1:
+        print("Looks shipshape, your " + counts.passed.tostring() + " test passed, mate!")
+      else:
+        print("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
+      end
+    end
   else:
     print("Avast, there be bugs!")
     print("Total: " + counts.total.tostring() +
