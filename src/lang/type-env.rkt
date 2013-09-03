@@ -117,6 +117,7 @@
       'text
       'place-image
       'read-sexpr
+      'read-sexpr-list
       
       'Option
       'some

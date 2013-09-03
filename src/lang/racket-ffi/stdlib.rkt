@@ -55,3 +55,4 @@
 (define pyret-some (get-option-lib "some"))
 
 (define pyret-read-sexpr read-sexpr)
+(define pyret-read-sexpr-list read-sexpr-list)

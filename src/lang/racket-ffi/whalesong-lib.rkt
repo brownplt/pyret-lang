@@ -6,7 +6,8 @@
    (except-in "../runtime.rkt" raise)
    "../ffi-helpers.rkt")
 
-(provide (rename-out [read-sexpr-pfun read-sexpr]))
+(provide (rename-out [read-sexpr-pfun read-sexpr]
+                     [read-sexprs-pfun read-sexpr-list]))
 
 ; read-sexpr: Convert an sexpr string into nested Pyret lists.
 ;             Symbols are wrapped in ("symbol" ***).
@@ -22,26 +23,38 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
   [[-13, 14, 88.8], \"cats\", \"++\", [\"string\", \"dogs\"]]
 "
   (let [[str (ffi-unwrap pyret-str)]]
-  (define (handle-read-exn x)
-    (raise (p:pyret-error
-            p:dummy-loc "read-sexpr"
-            (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
-  (define (sexpr->list x)
-    (cond [(list? x)   (map sexpr->list x)]
-          [(symbol? x) (symbol->string x)]
-          [(string? x) (list "string" x)]
-          [x           x]))
-  (with-handlers [[(λ (x) #t) handle-read-exn]]
-    (ffi-wrap (sexpr->list (parse-expr str)))))))
+    (with-handlers [[(λ (x) #t) (λ (e) (handle-read-exn str e))]]
+      (ffi-wrap (sexpr->list (parse-expr str)))))))
+
+(define read-sexprs-pfun
+  (p:pλ (pyret-str)
+    "Read a sequence of s-expressions from a string. See read-sexpr."
+    (let [[str (ffi-unwrap pyret-str)]]
+      (with-handlers [[(λ (x) #t) (λ (e) (handle-read-exn str e))]]
+        (ffi-wrap (sexpr->list (parse-exprs str)))))))
+
+(define (handle-read-exn str x)
+  (raise (p:pyret-error
+          p:dummy-loc "read-sexpr"
+          (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
+
+(define (sexpr->list x)
+  (cond [(list? x)   (map sexpr->list x)]
+        [(symbol? x) (symbol->string x)]
+        [(string? x) (list "string" x)]
+        [x           x]))
+
+(define (parse-expr str)
+  (parse (action first (seq expr eof)) str))
+
+(define (parse-exprs str)
+  (parse (action first (seq exprs eof)) str))
 
 #| Top-down Parsing |#
 
 (define-struct succ (value input) #:transparent)
 (define-struct fail () #:transparent)
 (define-struct buffer (str index) #:transparent)
-
-(define (parse-expr str)
-  (parse expr str))
 
 (define (parse x str)
   (let [[answer (x (buffer str 0))]]
@@ -52,6 +65,12 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
 (define (eof? input)
   (eq? (string-length (buffer-str input))
        (buffer-index input)))
+
+(define eof
+  (λ (input)
+    (if (eof? input)
+        (succ (void) input)
+        (fail))))
 
 (define (char pred?)
   (λ (input)
@@ -153,10 +172,13 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
                x
                whitespace)))
 
+(define exprs
+  (star (token (tie-knot expr))))
+
 (define parens
   (action (λ (x) (second x))
           (seq (token (char (λ (c) (eq? c #\())))
-               (star (token (tie-knot expr)))
+               exprs
                (token (char (λ (c) (eq? c #\))))))))
 
 (define expr
@@ -171,11 +193,14 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
 (parse symbol "symbool gogo")
 (parse-expr "3")
 (parse-expr "()")
-(parse-expr "(( ()394  qqv?#%^fu8   ++ \"st ring\")(  )))")
+(parse-expr "(1 2)")
+(parse-expr "(( ()394  qqv?#%^fu8   ++ \"st ring\")(  ))")
 (parse-expr "+")
 (parse-expr "++")
 (parse-expr "-385")
-(parse-expr "- 385")
 (parse-expr "3.48")
 (parse-expr "+3.48")
+(parse-exprs "1 2 3")
+(parse-exprs "- 385")
+(parse-exprs "(_) (3 4)")
 |#
