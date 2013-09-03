@@ -10,6 +10,7 @@
   )
 
 (define list (p:get-field p:dummy-loc moorings "list"))
+(define set (p:get-field p:dummy-loc moorings "set"))
 (define error (p:get-field p:dummy-loc moorings "error"))
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
@@ -24,6 +25,7 @@
   #%app
 
   list
+  set
   error
   builtins
   checkers

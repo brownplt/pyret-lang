@@ -2,6 +2,7 @@
 
 provide {
   list: list,
+  set: set,
   builtins: builtins,
   error: error,
   checkers: checkers,
@@ -778,6 +779,71 @@ error = {
   is-location: is-location
 }
 
+
+data Set:
+  | __set(elems :: List) with:
+
+      member(self, elem :: Any):
+        self.elems.member(elem)
+      where:
+        __set([1, 2, 3]).member(2) is true
+        __set([1, 2, 3]).member(4) is false
+      end,
+
+      add(self, elem :: Any):
+        doc: "Add an element to the set if it is not already present."
+        if (self.elems.member(elem)):
+          self
+        else:
+          __set(link(elem, self.elems))
+        end
+      where:
+        __set([]).add(1) is __set([1])
+        __set([1]).add(1) is __set([1])
+        __set([1, 2, 3]).add(2) is __set([1, 2, 3])
+        __set([1, 2, 3]).add(1.5) is __set([1, 2, 3, 1.5])
+      end,
+
+      remove(self, elem :: Any):
+        doc: "Remove an element from the set if it is present."
+        __set(self.elems.filter(fun (x): x <> elem end))
+      where:
+        __set([1, 2]).remove(18) is __set([1, 2])
+        __set([1, 2]).remove(2) is __set([1])
+      end,
+
+      to-list(self):
+        self.elems.sort()
+      where:
+        __set([3, 1, 2]).to-list() is [1, 2, 3]
+      end,
+
+      union(self, other :: Set):
+        doc: "Take the union of two sets."
+        list-to-set(self.to-list().append(other.to-list()))
+      where:
+        __set([1, 2]).union(__set([2, 3])) is __set([1, 2, 3])
+      end,
+
+      _equals(self, other):
+        Set(other) and (self.elems.sort() == other.elems.sort())
+      where:
+        (__set([1, 2.1, 3]) <> __set([1, 2.2, 3])) is true
+        __set([1, 2, 4]) is __set([2, 1, 4])
+      end
+end
+
+fun list-to-set(lst :: List):
+  for fold(s from __set([]), elem from lst):
+    s.add(elem)
+  end
+end
+
+set = {
+  Set : Set,
+  empty-set: __set([]),
+  list-to-set: list-to-set
+}
 
 
 data Option:

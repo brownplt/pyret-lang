@@ -70,6 +70,7 @@
   (blankify
     (list
       'list
+      'set
       'error
       'builtins
       'checkers
