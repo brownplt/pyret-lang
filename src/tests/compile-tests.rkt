@@ -438,6 +438,12 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
+  (check-match-file "pyret/print.arr" _ 
+"5
+{}
+Looks shipshape, all 2 tests passed, mate!
+" 2)
+
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 

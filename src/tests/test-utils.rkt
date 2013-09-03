@@ -8,6 +8,7 @@
   check-pyret-exn/indent
   check-pyret-match
   check-pyret-match/indent
+  check-match-file
   check-pyret-match/check
   check-pyret
   check-pyret/indent
