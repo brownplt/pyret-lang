@@ -783,14 +783,15 @@ error = {
 data Set:
   | __set(elems :: List) with:
 
-      member(self, elem :: Any):
+      member(self, elem :: Any) -> Bool:
+        doc: 'Check to see if an element is in a set.'
         self.elems.member(elem)
       where:
         __set([1, 2, 3]).member(2) is true
         __set([1, 2, 3]).member(4) is false
       end,
 
-      add(self, elem :: Any):
+      add(self, elem :: Any) -> Set:
         doc: "Add an element to the set if it is not already present."
         if (self.elems.member(elem)):
           self
@@ -804,7 +805,7 @@ data Set:
         __set([1, 2, 3]).add(1.5) is __set([1, 2, 3, 1.5])
       end,
 
-      remove(self, elem :: Any):
+      remove(self, elem :: Any) -> Set:
         doc: "Remove an element from the set if it is present."
         __set(self.elems.filter(fun (x): x <> elem end))
       where:
@@ -812,7 +813,8 @@ data Set:
         __set([1, 2]).remove(2) is __set([1])
       end,
 
-      to-list(self):
+      to-list(self) -> List:
+        doc: 'Convert a set into a sorted list of elements.'
         self.elems.sort()
       where:
         __set([3, 1, 2]).to-list() is [1, 2, 3]

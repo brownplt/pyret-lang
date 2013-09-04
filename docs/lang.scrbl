@@ -90,6 +90,14 @@
    [(s-method-field loc name args ann doc body check)
     (pretty (s-method-field loc name args ann "" (s-block loc empty) check))]
    [_ (error (format "Not a method: ~a\n" method-field))]))
+
+@(define (pretty-method-with-doc method-field)
+  (match method-field
+   [(s-method loc args ann doc body check)
+    (pretty (s-method loc args ann doc (s-block loc empty) check))]
+   [(s-method-field loc name args ann doc body check)
+    (pretty (s-method-field loc name args ann doc (s-block loc empty) check))]
+   [_ (error (format "Not a method: ~a\n" method-field))]))
   
 @(define (label-data data (prefix ""))
   (match data
@@ -1116,6 +1124,8 @@ help manipulate lists.
     fold4
  ))
 
+
+
 @section[#:tag "s:option"]{Option}
 
 @subsection[#:tag "s:option-data"]{@tt{Option}}
@@ -1127,6 +1137,46 @@ help manipulate lists.
 
 @(label "Option.orelse()")
 @(pretty-method (get-method option 'none "orelse"))
+
+
+
+@section[#:tag "s:set"]{Set}
+
+@subsection[#:tag "s:set-data"]{@tt{Set}}
+
+Construct sets using @tt{set.list-to-set(lst)} and
+@tt{set.empty-set}. Sets have the type @tt{set.Set}.
+
+@justcode{data Set: | ... end}
+
+@(define set (get-decl moorings-ast 'Set))
+
+@(define set-constructor-code
+  "fun list-to-set(lst :: List):
+     doc: 'Construct a set from a list.'
+   end
+")
+
+@(define set-constructors (parse-pyret set-constructor-code))
+
+@(pretty-functions set-constructors
+   '(list-to-set))
+
+@(label "Set.member()")
+@(pretty-method-with-doc (get-method set '__set "member"))
+
+@(label "Set.add()")
+@(pretty-method-with-doc (get-method set '__set "add"))
+
+@(label "Set.remove()")
+@(pretty-method-with-doc (get-method set '__set "remove"))
+
+@(label "Set.to-list()")
+@(pretty-method-with-doc (get-method set '__set "to-list"))
+
+@(label "Set.union()")
+@(pretty-method-with-doc (get-method set '__set "union"))
+
 
 @section[#:tag "s:numbers"]{Numbers}
 
