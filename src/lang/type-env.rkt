@@ -82,6 +82,8 @@
       'List
       'link
       'empty
+      'is-link
+      'is-empty
       'filter
       'fold
       'map
