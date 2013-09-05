@@ -11,7 +11,11 @@
 (define (get-list-lib name)
   (p:get-field p:dummy-loc %list name))
 
+(define (get-set-lib name)
+  (p:get-field p:dummy-loc %set name))
+
 (define %list (p:get-field p:dummy-loc moorings "list"))
+(define %set (p:get-field p:dummy-loc moorings "sets"))
 (define pyret-List (get-list-lib "List"))
 (define pyret-is-empty (get-list-lib "is-empty"))
 (define pyret-is-link (get-list-lib "is-link"))
@@ -43,6 +47,8 @@
 (define pyret-fold2 (get-list-lib "fold2"))
 (define pyret-fold3 (get-list-lib "fold3"))
 (define pyret-fold4 (get-list-lib "fold"))
+(define pyret-Set (get-set-lib "Set"))
+(define pyret-set (get-set-lib "set"))
 
 (define %option (p:get-field p:dummy-loc moorings "option"))
 (define (get-option-lib name)

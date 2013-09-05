@@ -70,7 +70,7 @@
   (blankify
     (list
       'list
-      'set
+      'sets
       'error
       'builtins
       'checkers
@@ -124,7 +124,10 @@
       'some
       'is-some
       'none
-      'is-none)))
+      'is-none
+
+      'Set
+      'set)))
 
 (define LIBRARY-ENV
   (make-immutable-hash runtime-env-list))

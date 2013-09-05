@@ -620,6 +620,8 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "String(gensym('foo'))" true)
 
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
+
+  (check-pyret-match/check "pyret/sets.arr" _ 15)
 ))
 
 (define tag-tests (test-suite "tag-tests"

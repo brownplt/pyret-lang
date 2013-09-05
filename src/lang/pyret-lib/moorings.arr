@@ -2,7 +2,7 @@
 
 provide {
   list: list,
-  set: set,
+  sets: sets,
   builtins: builtins,
   error: error,
   checkers: checkers,
@@ -174,6 +174,13 @@ fun drop-help(lst, n :: Number):
 end
 
 
+fun list-to-set(lst :: List):
+  doc: "Convert a list into a set."
+  for fold(s from __set([]), elem from lst):
+    s.add(elem)
+  end
+end
+
 data List:
   | empty with:
 
@@ -319,7 +326,8 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self, other): self.append(other) end
+  _plus(self, other): self.append(other) end,
+  to-set(self): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
@@ -682,7 +690,8 @@ list = {
     fold2: fold2,
     fold3: fold3,
     fold4: fold4,
-    index: index
+    index: index,
+    to-set: list-to-set
   }
 
 data Location:
@@ -835,16 +844,9 @@ data Set:
       end
 end
 
-fun list-to-set(lst :: List):
-  for fold(s from __set([]), elem from lst):
-    s.add(elem)
-  end
-end
-
-set = {
-  Set : Set,
-  empty-set: __set([]),
-  list-to-set: list-to-set
+sets = {
+  Set: Set,
+  set: list-to-set
 }
 
 

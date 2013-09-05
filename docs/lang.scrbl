@@ -1140,19 +1140,22 @@ help manipulate lists.
 
 
 
-@section[#:tag "s:set"]{Set}
+@section[#:tag "s:set"]{Sets}
 
 @subsection[#:tag "s:set-data"]{@tt{Set}}
 
-Construct sets using @tt{set.list-to-set(lst)} and
-@tt{set.empty-set}. Sets have the type @tt{set.Set}.
+Construct sets using @tt{sets.set(lst)}.
+Sets have the type @tt{sets.Set}.
+
+In @tt{#lang pyret/whalesong}, @tt{set} and @tt{Set} are available
+directly.
 
 @justcode{data Set: | ... end}
 
 @(define set (get-decl moorings-ast 'Set))
 
 @(define set-constructor-code
-  "fun list-to-set(lst :: List):
+  "fun set(lst :: List):
      doc: 'Construct a set from a list.'
    end
 ")
@@ -1160,7 +1163,7 @@ Construct sets using @tt{set.list-to-set(lst)} and
 @(define set-constructors (parse-pyret set-constructor-code))
 
 @(pretty-functions set-constructors
-   '(list-to-set))
+   '(set))
 
 @(label "Set.member()")
 @(pretty-method-with-doc (get-method set '__set "member"))

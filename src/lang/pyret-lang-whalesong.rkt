@@ -10,7 +10,7 @@
   )
 
 (define list (p:get-field p:dummy-loc moorings "list"))
-(define set (p:get-field p:dummy-loc moorings "set"))
+(define sets (p:get-field p:dummy-loc moorings "sets"))
 (define error (p:get-field p:dummy-loc moorings "error"))
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
@@ -25,7 +25,7 @@
   #%app
 
   list
-  set
+  sets
   error
   builtins
   checkers
@@ -64,7 +64,9 @@
     [pyret-fold3 fold3]
     [pyret-fold4 fold4]
     [pyret-read-sexpr read-sexpr]
-    [pyret-read-sexpr-list read-sexpr-list])
+    [pyret-read-sexpr-list read-sexpr-list]
+    [pyret-Set Set]
+    [pyret-set set])
 
   (rename-out
     [pyret-Option Option]
