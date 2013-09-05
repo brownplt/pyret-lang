@@ -17,7 +17,8 @@
   racket/match
   racket/pretty
   racket/runtime-path
-  racket/syntax)
+  racket/syntax
+  srfi/13)
 
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
 (module test-shell "lang/pyret-lang-racket.rkt"
@@ -82,6 +83,10 @@
        (eprintf "\nAt:\n")
        (void (map print-loc locs))
        (print-pyret-locs cms)]
+      [(string-contains message "default-load-handler: expected a `module' declaration")
+       (display "This file doesn't look right.  Did you forget #lang pyret or #lang pyret/whalesong at the top of the file?\n")
+       (display message)
+       (newline)]
       [else
        (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
        (print-pyret-locs cms)
