@@ -6,11 +6,12 @@
 ;; they can be accessed as pure Whalesong files.
 
 (require
+  (only-in racket collection-path)
   racket/pretty
   "parameters.rkt"
   "library/lang/reader.rkt")
 (provide pre-installer)
-(define LIB-BASE "src/lang/pyret-lib/")
+(define LIB-BASE (collection-file-path "lang/pyret-lib/" "pyret"))
 (define LIB-FILES (list "moorings"))
 (define LIBS
   (map (lambda (p) (build-path LIB-BASE p))
