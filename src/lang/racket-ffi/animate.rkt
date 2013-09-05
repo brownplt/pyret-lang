@@ -12,6 +12,7 @@
 (define text (ffi-wrap i:text))
 (define rectangle (ffi-wrap i:rectangle))
 (define place-image (ffi-wrap i:place-image))
+(define Image (ffi-wrap i:image?))
 
 (define pyret-random (ffi-wrap random))
 
