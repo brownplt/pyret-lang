@@ -34,7 +34,7 @@
          "data" "with:" "sharing:" "mutable" "cyclic"
          "graph:"
          "for" "from"
-         "end"))
+         "end" ";"))
 
 (define-lex-abbrev
   identifier-chars

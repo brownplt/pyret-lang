@@ -2,12 +2,14 @@
 
 program: prelude block
 
+end: "end" | ";"
+
 prelude: (import-stmt|provide-stmt)*
 
 import-stmt: "import" (import-name | import-string) "as" NAME
 import-name: NAME
 import-string: STRING
-provide-stmt: "provide" stmt "end" | "provide" "*"
+provide-stmt: "provide" stmt end | "provide" "*"
 
 block: stmt*
 
@@ -18,7 +20,7 @@ stmt: let-expr | fun-expr | data-expr | when-expr
 let-expr: binding "=" binop-expr
 binding: NAME ["::" ann]
 
-fun-expr: "fun" fun-header ":" doc-string block where-clause "end"
+fun-expr: "fun" fun-header ":" doc-string block where-clause end
 fun-header: ty-params NAME args return-ann
 ty-params:
   ["<" list-ty-param* NAME ">"]
@@ -29,9 +31,9 @@ return-ann: ["->" ann]
 doc-string: ["doc:" STRING]
 where-clause: ["where:" block]
 
-check-expr: "check:" block "end"
+check-expr: "check:" block end
 
-data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause "end"
+data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause end
 data-mixins: ["deriving" mixins]
 data-variant: "|" NAME variant-members data-with | "|" NAME data-with
 variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
@@ -46,9 +48,9 @@ list-mixin: binop-expr ","
 var-expr: "var" binding "=" binop-expr
 assign-expr: NAME ":=" binop-expr
 
-graph-expr: "graph:" let-expr* "end"
+graph-expr: "graph:" let-expr* end
 
-when-expr: "when" binop-expr ":" block "end"
+when-expr: "when" binop-expr ":" block end
 
 binop-expr: not-expr | binop-expr binop binop-expr | expr
 
@@ -78,9 +80,9 @@ num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
 string-expr: STRING
 
-lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block where-clause "end"
+lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block where-clause end
 
-method-expr: "method" args return-ann ":" doc-string block where-clause "end"
+method-expr: "method" args return-ann ":" doc-string block where-clause end
 
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
@@ -96,12 +98,12 @@ obj-fields: list-obj-field* obj-field [","]
 list-obj-field: obj-field ","
 obj-field: key ":" binop-expr
      | "mutable" key ["::" ann] ":" binop-expr
-     | key args return-ann ":" doc-string block where-clause "end"
+     | key args return-ann ":" doc-string block where-clause end
 
 fields: list-field* field [","]
 list-field: field ","
 field: key ":" binop-expr
-     | key args return-ann ":" doc-string block where-clause "end"
+     | key args return-ann ":" doc-string block where-clause end
 key: NAME | "[" binop-expr "]"
 
 list-elt: binop-expr ","
@@ -118,17 +120,17 @@ colon-bracket-expr: expr ":" "[" binop-expr "]"
 extend-expr: expr "." "{" fields "}"
 update-expr: expr "!" "{" fields "}"
 
-if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
+if-expr: "if" binop-expr ":" block else-if* ["else:" block] end
 else-if: "else if" binop-expr ":" block
 
-cases-expr: "cases" (PARENSPACE|PARENNOSPACE) ann ")" expr ":" cases-branch* ["|" "else" "=>" block] "end"
+cases-expr: "cases" (PARENSPACE|PARENNOSPACE) ann ")" expr ":" cases-branch* ["|" "else" "=>" block] end
 cases-branch: "|" NAME [args] "=>" block
 
 for-bind: binding "from" binop-expr
 for-bind-elt: for-bind ","
-for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block "end"
+for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block end
 
-try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) binding ")" ":" block "end"
+try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) binding ")" ":" block end
 
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
