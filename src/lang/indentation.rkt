@@ -28,7 +28,6 @@
 
 
 (define (verify-distinct-lines stmts)
-  (printf "stmts: ~a\n\n" stmts)
   (define start-loc (get-srcloc (first stmts)))
   (foldr (λ (prev-loc cur-loc)
             (if (equal? (srcloc-line cur-loc)
