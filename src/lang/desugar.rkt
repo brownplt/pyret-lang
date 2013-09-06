@@ -303,9 +303,8 @@
     (ds
       (s-block s
         (list
-          (s-let s (s-bind s val-temp-name (a-blank)) val)
-          (s-app s (s-id s 'check-brand)
-             (list type (s-id s val-temp-name) (s-str s (pretty type))))
+          (s-let s (s-bind s val-temp-name type) val)
+          (s-id s val-temp-name)
           (s-app s (s-dot s (s-id s val-temp-name) '_match) (list cases-object else-fun))))))
 
   (match ast

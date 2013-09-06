@@ -369,11 +369,11 @@
     [(colon-bracket-expr obj ":" "[" field "]")
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
     [(cases-expr "cases" "(" type ")" val ":" branch ... "|" "else" "=>" else-block "end")
-     (s-cases-else (loc stx) (parse-expr #'type) (parse-expr #'val)
+     (s-cases-else (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...))
       (parse-block #'else-block))]
     [(cases-expr "cases" "(" type ")" val ":" branch ... "end")
-     (s-cases (loc stx) (parse-expr #'type) (parse-expr #'val)
+     (s-cases (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...)))]
     [(if-expr "if" test ":" body branch ... "else:" else-block "end")
      (s-if-else (loc stx)

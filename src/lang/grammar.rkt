@@ -121,7 +121,7 @@ update-expr: expr "!" "{" fields "}"
 if-expr: "if" binop-expr ":" block else-if* ["else:" block] "end"
 else-if: "else if" binop-expr ":" block
 
-cases-expr: "cases" (PARENSPACE|PARENNOSPACE) expr ")" expr ":" cases-branch* ["|" "else" "=>" block] "end"
+cases-expr: "cases" (PARENSPACE|PARENNOSPACE) ann ")" expr ":" cases-branch* ["|" "else" "=>" block] "end"
 cases-branch: "|" NAME [args] "=>" block
 
 for-bind: binding "from" binop-expr

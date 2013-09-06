@@ -206,9 +206,9 @@
                                 (wf else))]
 
     [(s-cases s type val c-bs)
-     (begin (wf type) (wf val) (map wf-cases-branch c-bs))]
+     (begin (wf-ann type) (wf val) (map wf-cases-branch c-bs))]
     [(s-cases-else s type val c-bs else)
-     (begin (wf type)
+     (begin (wf-ann type)
             (wf val)
             (map wf-cases-branch c-bs)
             (wf else))]

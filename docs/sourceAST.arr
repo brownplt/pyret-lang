@@ -1023,7 +1023,7 @@ data Expr:
       _else = PP.string("else:") + PP.nest(INDENT, PP.break(1) + self._else.tosource())
       PP.group(branches + PP.break(1) + _else + PP.break(1) + PP.string("end"))
     end
-  | s_cases(type :: Expr, val :: Expr, branches :: ASTList) with:
+  | s_cases(type :: Ann, val :: Expr, branches :: ASTList) with:
     fields(self): [self.type, self.val, self.branches] end,
     node-name(self): t_cases end,
     tosource(self):
@@ -1033,7 +1033,7 @@ data Expr:
         PP.group(header), PP.break(1), PP.string("end"),
         self.branches.fields().map(fun(b): PP.group(b.tosource()) end))
     end
-  | s_cases_else(type :: Expr, val :: Expr, branches :: ASTList, _else :: Expr) with:
+  | s_cases_else(type :: Ann, val :: Expr, branches :: ASTList, _else :: Expr) with:
     fields(self): [self.type, self.val, self.branches, self._else] end,
     node-name(self): t_cases_else end,
     tosource(self):

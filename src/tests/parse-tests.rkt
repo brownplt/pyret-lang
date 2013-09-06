@@ -488,7 +488,11 @@ line string\"" (s-str _ "multi\nline string"))
                           (s-block _ (list (s-num _ 6)))))
 
   (check/block "cases(List) 5: | empty() => 1 end"
-               (s-cases _ (s-id _ 'List) (s-num _ 5)
+               (s-cases _ (a-name _ 'List) (s-num _ 5)
+                  (list
+                    (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
+  (check/block "cases(List<a>) 5: | empty() => 1 end"
+               (s-cases _ (a-app _ (a-name _ 'List) (list (a-name _ 'a))) (s-num _ 5)
                   (list
                     (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
 
