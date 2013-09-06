@@ -946,6 +946,46 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "o raises e" (s-op _ 'opraises (s-id _ 'o) (s-id _ 'e)))
    ))
 
+(define semis (test-suite "semis"
+  (check/block "fun: expr ;"
+               (s-lam _ empty (list)
+                 (a-blank)
+                 _
+                 (s-block _ (list))
+                 _))
+
+  (check/block "for iter(thing from somewhere): dostuff();"
+      (s-for _
+           (s-id _ 'iter)
+           (list (s-for-bind _ (s-bind _ 'thing (a-blank)) (s-id _ 'somewhere)))
+           (a-blank)
+           (s-block _ (list
+                        (s-app _
+                               (s-id _ 'dostuff)
+                               (list))))))
+
+  (check/block "when not(false): if true: blowup() else: false;;"
+      (s-when _
+        (s-not _ (s-bool _ #f))
+        (s-block _
+          (list
+            (s-if-else _
+              (list
+                (s-if-branch _ (s-bool _ #t)
+                               (s-block _ (list (s-app _ (s-id _ 'blowup) (list))))))
+              (s-block _ (s-bool _ #f)))))))
+
+   (check/block "data D: | var1();" (s-data _ 'D (list) (list) (list (s-variant _ 'var1 (list) (list))) _ _))
+
+   (check/block "{ m(x): 5;, m2(self): 6; }"
+                (s-obj _
+                  (list
+                    (s-method-field _ (s-str _ "m") (list (s-bind _ 'x (a-blank))) _ _ (s-block _ (list (s-num _ 5))) _)
+                    (s-method-field _ (s-str _ "m2") (list (s-bind _ 'self (a-blank))) _ _ (s-block _ (list (s-num _ 6))) _))))
+
+
+))
+
 (define all (test-suite "all"
   literals
   methods

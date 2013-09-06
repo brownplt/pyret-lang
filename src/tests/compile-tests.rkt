@@ -999,6 +999,8 @@ o2.m().called" true)
        (parameterize [(current-directory base)]
          (check-pyret-match/check name _ passing))))])
 
+    (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
+
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)
     (private-run (example-path "htdp/boolean.arr") 0)
