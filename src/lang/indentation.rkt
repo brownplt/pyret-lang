@@ -29,14 +29,14 @@
 
 (define (verify-distinct-lines stmts)
   (define start-loc (get-srcloc (first stmts)))
-  (foldr (λ (prev-loc cur-loc)
-            (if (equal? (srcloc-line cur-loc)
-                        (srcloc-line prev-loc))
+  (foldl (λ (prev-loc cur-loc)
+            (when (equal? (srcloc-line cur-loc)
+                          (srcloc-line prev-loc))
                 (indent-error
                  "Expected to find one statement per line, but found multiple statements on this line."
                  prev-loc
-                 cur-loc)
-                cur-loc))
+                 cur-loc))
+             prev-loc)
          start-loc
          (map get-srcloc (rest stmts))))
 
