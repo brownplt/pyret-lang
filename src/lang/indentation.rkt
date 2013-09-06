@@ -28,6 +28,7 @@
 
 
 (define (verify-distinct-lines stmts)
+  (printf "stmts: ~a\n\n" stmts)
   (define start-loc (get-srcloc (first stmts)))
   (foldr (λ (prev-loc cur-loc)
             (if (equal? (srcloc-line cur-loc)
@@ -36,7 +37,7 @@
                  "Expected to find one statement per line, but found multiple statements on this line."
                  prev-loc
                  cur-loc)
-                prev-loc))
+                cur-loc))
          start-loc
          (map get-srcloc (rest stmts))))
 

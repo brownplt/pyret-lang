@@ -41,6 +41,18 @@
  "when true: 1 1 end"
  "indentation:")
 
+(check-pyret-exn/indent
+  "fun f(a):
+      2 * a
+  end
+
+  fun g(a):
+      f (22)
+      a + 2
+  end"
+  "Expected to find one statement per line")
+
+
 ))
 
 (run-tests all)
