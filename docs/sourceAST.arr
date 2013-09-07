@@ -1384,7 +1384,7 @@ data VariantMember:
     fields(self): [self.member_type, self.bind] end,
     node-name(self): t_variant_member end,
     tosource(self):
-      PP.string(self.member_type) + self.bind.tosource()
+      PP.string(self.member_type) + PP.string(" ") + self.bind.tosource()
     end
 end
 
