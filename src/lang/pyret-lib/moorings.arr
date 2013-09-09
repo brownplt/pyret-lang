@@ -796,8 +796,8 @@ data Set:
         doc: 'Check to see if an element is in a set.'
         self.elems.member(elem)
       where:
-        __set([1, 2, 3]).member(2) is true
-        __set([1, 2, 3]).member(4) is false
+        sets.set([1, 2, 3]).member(2) is true
+        sets.set([1, 2, 3]).member(4) is false
       end,
 
       add(self, elem :: Any) -> Set:
@@ -808,39 +808,39 @@ data Set:
           __set(link(elem, self.elems))
         end
       where:
-        __set([]).add(1) is __set([1])
-        __set([1]).add(1) is __set([1])
-        __set([1, 2, 3]).add(2) is __set([1, 2, 3])
-        __set([1, 2, 3]).add(1.5) is __set([1, 2, 3, 1.5])
+        sets.set([]).add(1) is sets.set([1])
+        sets.set([1]).add(1) is sets.set([1])
+        sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
+        sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
       end,
 
       remove(self, elem :: Any) -> Set:
         doc: "Remove an element from the set if it is present."
         __set(self.elems.filter(fun (x): x <> elem end))
       where:
-        __set([1, 2]).remove(18) is __set([1, 2])
-        __set([1, 2]).remove(2) is __set([1])
+        sets.set([1, 2]).remove(18) is sets.set([1, 2])
+        sets.set([1, 2]).remove(2) is sets.set([1])
       end,
 
       to-list(self) -> List:
         doc: 'Convert a set into a sorted list of elements.'
         self.elems.sort()
       where:
-        __set([3, 1, 2]).to-list() is [1, 2, 3]
+        sets.set([3, 1, 2]).to-list() is [1, 2, 3]
       end,
 
       union(self, other :: Set):
         doc: "Take the union of two sets."
         list-to-set(self.to-list().append(other.to-list()))
       where:
-        __set([1, 2]).union(__set([2, 3])) is __set([1, 2, 3])
+        sets.set([1, 2]).union(sets.set([2, 3])) is sets.set([1, 2, 3])
       end,
 
       _equals(self, other):
         Set(other) and (self.elems.sort() == other.elems.sort())
       where:
-        (__set([1, 2.1, 3]) <> __set([1, 2.2, 3])) is true
-        __set([1, 2, 4]) is __set([2, 1, 4])
+        (sets.set([1, 2.1, 3]) <> sets.set([1, 2.2, 3])) is true
+        sets.set([1, 2, 4]) is sets.set([2, 1, 4])
       end
 end
 
