@@ -144,6 +144,7 @@ provide {
   is-t_file_import: stamp(t_file_import, is-t_file_import),
   is-t_for: stamp(t_for, is-t_for),
   is-t_for_bind: stamp(t_for_bind, is-t_for_bind),
+  is-t_check: stamp(t_check, is-t_check),
   is-t_fun: stamp(t_fun, is-t_fun),
   is-t_id: stamp(t_id, is-t_id),
   is-t_if: stamp(t_if, is-t_if),
@@ -249,6 +250,7 @@ provide {
   t_file_import: t_file_import,
   t_for: t_for,
   t_for_bind: t_for_bind,
+  t_check: t_check,
   t_fun: t_fun,
   t_id: t_id,
   t_if: t_if,
@@ -366,6 +368,8 @@ fun from-ast(ast):
           s_data(h(name), h(params), h(mixins), h(variants), h(shared_members), h(_check))
         | s_for(_, iterator, bindings, ann, body) =>
           s_for(h(iterator), h(bindings), h(ann), h(body))
+        | s_check(_, body) => s_check(h(body))
+        | else => raise("Missed an expr: " + torepr(a))
       end
     else if A.Bind(a):
       cases(A.Bind) a:
@@ -505,6 +509,7 @@ data TExpr:
   | t_colon_bracket with: tostring(self): "TColonBracket" end
   | t_data with: tostring(self): "TData" end
   | t_for with: tostring(self): "TFor" end
+  | t_check with: tostring(self): "TCheck" end
 end
 data TBind:
   | t_bind with: tostring(self): "TBind" end
@@ -684,6 +689,9 @@ fun generic-to-labelled(ast, T):
           | s_for(iterator, bindings, ann, body) =>
             node = T.node(a.node-name(), "", [h(iterator), h(bindings), h(ann), h(body)])
             node.{mk-ast(l): s_for(l.mkc(0), l.mkc(1), l.mkc(2), l.mkc(3)) end}
+          | s_check(body) =>
+            node = T.node(a.node-name(), "", [h(body)])
+            node.{mk-ast(l): s_check(l.mkc(0)) end}
         end
       else if Bind(a):
         cases(Bind) a:
@@ -1213,6 +1221,12 @@ data Expr:
             PP.break(1) + PP.string("->") + PP.break(1) + self.ann.tosource() + PP.string(":"))))
       PP.surround(INDENT, 1, header, self.body.tosource(), PP.string("end"))
     end
+  | s_check(body :: Expr) with:
+    fields(self): [self.body] end,
+    node-name(self): t_check end,
+    tosource(self):
+      PP.surround(INDENT, 1, PP.string("check:"), self.body.tosource(), PP.string("end"))
+    end
 sharing:
   arity(self): self.fields().length() end,
   to-labelled(self, T): generic-to-labelled(self, T) end,
@@ -1370,7 +1384,7 @@ data VariantMember:
     fields(self): [self.member_type, self.bind] end,
     node-name(self): t_variant_member end,
     tosource(self):
-      PP.string(self.member_type) + self.bind.tosource()
+      PP.string(self.member_type) + PP.string(" ") + self.bind.tosource()
     end
 end
 

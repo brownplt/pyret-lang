@@ -10,15 +10,22 @@
   pyret/lang/runtime
   pyret/lang/ffi-helpers
   pyret/lang/ast
+  pyret/lang/desugar-check
   racket/match
   (rename-in "renderer.arr" (%PYRET-PROVIDE renderer)))
+
+@(define (prod . word)
+  (apply tt word))
+@(define (file . name)
+  (apply tt name))
+@(define (in-code . code)
+  (apply tt code))
 
 @(define (pretty ast)
   (define lines 
     (ffi-unwrap ((p:p-base-app (p:get-raw-field p:dummy-loc renderer "get-pretty-str"))
           (p:p-opaque ast))))
-
-  (apply joincode lines))
+  (apply pyret-lines lines))
 @(define (get-decl ast name)
   (define (name-matches? sym) (equal? sym name))
   (match ast
@@ -104,6 +111,9 @@
     [(s-data loc name _ _ _ _ _)
      (toc-target-element #f @(bold (string-append prefix (symbol->string name))) (list name (symbol->string name)))]))
 
+@(define (pyret-lines . stx)
+  (nested #:style 'code-inset
+   (verbatim (string-join stx "\n"))))
 
 @(define (joincode . stx)
   (nested #:style 'code-inset
@@ -151,12 +161,12 @@ import-name: NAME
 import-string: STRING
 }
 
-Both forms bind the value provided by the target (either @tt{import-name} or
-@tt{import-string}) to the @tt{NAME} after @tt{as}.
+Both forms bind the value provided by the target (either @prod{import-name} or
+@prod{import-string}) to the @prod{NAME} after @prod{as}.
 
-The form with @tt{STRING} as a target transforms the import into a Racket require
+The form with @prod{STRING} as a target transforms the import into a Racket require
 statement, using the string as the module path.  For example, given this
-@tt{"m.arr"}:
+@file{"m.arr"}:
 
 @justcode{
   provide m end
@@ -173,8 +183,8 @@ Another file in the same directory could use it:
 It is an error if the file does not exist, or does not have a provide
 statement.
 
-The form that uses a @tt{NAME} production looks for a file with that name in the
-built-in libraries of Pyret.  These are currently found in the @tt{lang/racket-ffi/}
+The form that uses a @prod{NAME} production looks for a file with that name in the
+built-in libraries of Pyret.  These are currently found in the @file{lang/racket-ffi/}
 directory of Pyret, and are maintained by the Pyret authors.
 
 Example:
@@ -184,8 +194,8 @@ Example:
   IO.read-line()
 }
 
-It is an error if there is no such named file in @tt{lang/racket-ffi/}, or if the
-file does not provide an identifier named @tt{%PYRET-PROVIDE}.
+It is an error if there is no such named file in @file{lang/racket-ffi/}, or if the
+file does not provide an identifier named @in-code{%PYRET-PROVIDE}.
 
 @subsection{Provide Statements}
 
@@ -196,7 +206,7 @@ provide-stmt: "provide" stmt "end" | "provide" "*"
 }
 
 Both forms have no effect when the program is run as the top-level program
-(e.g. in a Captain Teach editor, DrRacket buffer, or as the target of @tt{raco
+(e.g. in a Captain Teach editor, DrRacket buffer, or as the target of @in-code{raco
 pyret}).
 
 When the program is in a file that is evaluated via @tt{import}, the program is
@@ -399,7 +409,8 @@ NAME "=" "fun" ty-params args return-ann ":"
 "end"
 }
 
-With the @tt{where-clause} registered in check mode.  Concretely:
+With the @tt{where-clause} registered in @seclink["s:check/where" "check
+mode"].  Concretely:
 
 @justcode{
 fun f(x, y):
@@ -1032,6 +1043,70 @@ f(3)
 
 @(apply joincode (rest (file->lines (collection-file-path "lang/grammar.rkt" "pyret"))))
 
+@section[#:tag "s:testing"]{Testing in Pyret}
+
+Pyret's definition forms---@prod{data-expr} and @prod{fun-expr}---both
+support @in-code{where:} blocks intended to hold tests for the definition.  In
+addition, top-level @in-code{check:} blocks can hold tests.  These blocks are
+handled specially when the program is run in @emph{check mode}, which is the
+default mode for running Pyret programs.
+
+@subsection[#:tag "s:check/where"]{Check Mode Desugaring}
+
+When running in check mode, Pyret scans the statements of each @prod{block} in
+the program for @in-code{check:} blocks and definitions with attached
+@in-code{where:} blocks.  It collects these blocks and sets them up to be run
+at the @emph{end} of the block it finds them in, so they are run after all
+functions and data definitions have already been defined.
+
+This happens to all inner blocks as we,, so @in-code{check:} and
+@in-code{where:} blocks in nested scopes (say for helper functions) are run
+@emph{each} time the function is called.
+
+So, for example, in this program, 14 tests are run.  The comments show how that
+number accumulates:
+
+@justcode{
+fun exp(x :: Number, y :: Number):
+  when y < 0:
+    raise("Cannot take negative exponents")
+  end
+  if y == 0:
+    1
+  else:
+    fun times-x(n :: Number0):
+      x * n
+    where:
+      times-x(4) is (4 * x)
+      timex-x(10) is (10 * x)
+    end
+    times-x(exp(x, y - 1))
+  end
+where:
+  exp(3, 2) is 9  # inside exp, the else: block is evaluated twice,
+                  # so there are 2 invocations of times-x's tests,
+                  # and 4 successes
+                  # Including this test, after this line, 5 tests
+                  # have passed (0 + 5)
+
+  exp(4, 3) is 64 # inside exp, the else: block is evaluated three times,
+                  # so there are 3 invocations of times-x,
+                  # and 6 successes.
+                  # Including this test, after this line, 12 tests
+                  # have passed (5 + 7)
+
+  exp(5, 0) is 1  # inside exp, the else: block is not evaluated, 
+                  # so the times-x where: block is not run
+                  # Including this test, after this line, 13 tests
+                  # have been run (12 + 1)
+                  
+  exp(3, -1) raises "Cannot take negative exponents"
+                  # inside exp, the else: block is not evaluated,
+                  # so the times-x where: block is not run
+                  # Including this test, after this line, 14 tests
+                  # have been run (13 + 1)
+end
+}
 
 @section[#:tag "s:lists"]{Lists}
 
