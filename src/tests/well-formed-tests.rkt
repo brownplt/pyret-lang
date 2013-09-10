@@ -118,6 +118,35 @@
  "fun: nothing where: 1 is 2 end 10"
  (p:mk-num 10))
 
+(check-pyret-exn
+  "fun: 
+    data D:
+      | var1()
+    end
+   end"
+  "Cannot end a block with a data definition")
+
+(check-pyret-exn
+  "fun: 
+    y = 10
+    x = 5
+    fun f(): end
+    data D:
+      | var1()
+    end
+   end"
+  "Cannot end a block with a data definition")
+
+(check-pyret-exn
+  "fun: 
+    y = 10
+    x = 5
+    fun f(): end
+    graph:
+    z = 5
+    end
+   end"
+  "Cannot end a block with a graph definition")
 ))
 
 (run-tests all)

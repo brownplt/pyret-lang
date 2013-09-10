@@ -7,11 +7,12 @@
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 
 (define pyret-list (p:get-field p:dummy-loc moorings "list"))
-(define set (p:get-field p:dummy-loc moorings "set"))
+(define pyret-sets (p:get-field p:dummy-loc moorings "sets"))
 (define error (p:get-field p:dummy-loc moorings "error"))
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
+(define cs173 (p:get-field p:dummy-loc moorings "cs173"))
 
 (provide
   #%module-begin
@@ -22,12 +23,13 @@
   [prefix-out r: (except-out (all-from-out racket/base) gensym)]
 
   [rename-out (pyret-list list)]
-  set
+  [rename-out (pyret-sets sets)]
   [rename-out (pyret-gensym gensym)]
   error
   builtins
   checkers
   option
+  cs173
 
   (all-from-out "runtime.rkt")
   print-pyret

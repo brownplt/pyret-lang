@@ -41,6 +41,68 @@
  "when true: 1 1 end"
  "indentation:")
 
+(check-pyret-exn/indent
+  "fun f(a):
+      2 * a
+  end
+
+  fun g(a):
+      f (22)
+      a + 2
+  end"
+  "Expected to find one statement per line")
+
+(check-pyret-exn/indent
+  "fun f(a):
+      2 * a
+  end
+
+  fun g(a):
+      a + 2
+      f (22)
+      b + 3
+  end"
+  "Expected to find one statement per line")
+
+
+(check-pyret-exn/indent
+  "fun g(a):
+      a + 2
+      (b + 3) 4
+  end"
+  "Expected to find one statement per line")
+
+(check-pyret-exn/indent
+  "fun g(a):
+      a + 2
+      b + 3 4
+  end"
+  "Expected to find one statement per line")
+
+(check-pyret-exn/indent
+  "fun g(a):
+      g
+      fun h(): end 5
+  end"
+  "Expected to find one statement per line")
+
+(check-pyret-exn/indent
+  "fun g(a):
+      g
+      print()
+      do-other-thing()
+      fun h(): end 5
+  end"
+  "Expected to find one statement per line")
+
+(check-pyret-exn/indent
+  "fun g(a):
+      g (4)
+      print()
+      5 + 6
+      77
+  end"
+  "Expected to find one statement per line")
 ))
 
 (run-tests all)

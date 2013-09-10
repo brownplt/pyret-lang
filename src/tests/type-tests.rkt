@@ -183,4 +183,11 @@
   "var f :: (Number -> String) = method(self): end"
   "expected (Number -> String)")
 
+(check-pyret
+  "cases(list.List<Number>) [1,2]:
+     | empty => list.empty
+     | link(f :: Number, r :: list.List<Number>) => f
+   end"
+  (p:mk-num 1))
+
 (run-tests all)

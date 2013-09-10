@@ -169,13 +169,13 @@
 
     [(s-cases s type val c-bs)
      (build s_cases (tp-loc s)
-                    (tp type)
+                    (tp-ann type)
                     (tp val)
                     (map tp-cases-branch c-bs))]
 
     [(s-cases-else s type val c-bs else)
      (build s_cases_else (tp-loc s)
-                         (tp type)
+                         (tp-ann type)
                          (tp val)
                          (map tp-cases-branch c-bs) (tp else))]
 
@@ -454,9 +454,9 @@
      [(has-brand e s_if_else)
       (tr-obj e s-if-else (tr-loc l) (map tr-ifBranch branches) (tr-expr _else))]
      [(has-brand e s_cases)
-      (tr-obj e s-cases (tr-loc l) (tr-expr type) (tr-expr val) (map tr-casesBranch branches))]
+      (tr-obj e s-cases (tr-loc l) (tr-ann type) (tr-expr val) (map tr-casesBranch branches))]
      [(has-brand e s_cases_else)
-      (tr-obj e s-cases-else (tr-loc l) (tr-expr type) (tr-expr val) (map tr-casesBranch branches) (tr-expr _else))]
+      (tr-obj e s-cases-else (tr-loc l) (tr-ann type) (tr-expr val) (map tr-casesBranch branches) (tr-expr _else))]
      [(has-brand e s_try)
       (tr-obj e s-try (tr-loc l) (tr-expr body) (tr-bind id) (tr-expr _except))]
      [(has-brand e s_op)

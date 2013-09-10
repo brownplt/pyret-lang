@@ -55,7 +55,7 @@
   (define checkers (map create-checker checks))
   (s-block s
     (list
-      (s-app s (s-bracket s (s-id s 'checkers) (s-str s "run-checks"))
+      (s-app s (s-dot s (s-id s 'checkers) 'run-checks)
                (list (s-list s checkers))))))
 
 
@@ -98,6 +98,8 @@
      (define ds-stmts (map ds flat-stmts))
      (define do-checks (create-check-block s checks-to-perform))
      (cond
+      [(empty? checks-to-perform)
+       (s-block s ds-stmts)]
       [(empty? ds-stmts)
        (s-block s (list do-checks (s-id s 'nothing)))]
       [(cons? ds-stmts)
@@ -148,9 +150,9 @@
     [(s-if-else s if-bs else) (s-if-else s (map ds-if-branch if-bs) (ds else))]
 
     [(s-cases s type val c-bs)
-     (s-cases s (ds type) (ds val) (map ds-cases-branch c-bs))]
+     (s-cases s (ds-ann type) (ds val) (map ds-cases-branch c-bs))]
     [(s-cases-else s type val c-bs else)
-     (s-cases-else s (ds type) (ds val) (map ds-cases-branch c-bs) (ds else))]
+     (s-cases-else s (ds-ann type) (ds val) (map ds-cases-branch c-bs) (ds else))]
 
     [(s-try s try x exn) (s-try s (ds try) x (ds exn))]
 

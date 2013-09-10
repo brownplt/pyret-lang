@@ -2,11 +2,12 @@
 
 provide {
   list: list,
-  set: set,
+  sets: sets,
   builtins: builtins,
   error: error,
   checkers: checkers,
-  option: option
+  option: option,
+  cs173: cs173
 }
 end
 
@@ -174,6 +175,13 @@ fun drop-help(lst, n :: Number):
 end
 
 
+fun list-to-set(lst :: List):
+  doc: "Convert a list into a set."
+  for fold(s from __set([]), elem from lst):
+    s.add(elem)
+  end
+end
+
 data List:
   | empty with:
 
@@ -319,7 +327,8 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self, other): self.append(other) end
+  _plus(self, other): self.append(other) end,
+  to-set(self): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
@@ -682,7 +691,8 @@ list = {
     fold2: fold2,
     fold3: fold3,
     fold4: fold4,
-    index: index
+    index: index,
+    to-set: list-to-set
   }
 
 data Location:
@@ -787,8 +797,8 @@ data Set:
         doc: 'Check to see if an element is in a set.'
         self.elems.member(elem)
       where:
-        __set([1, 2, 3]).member(2) is true
-        __set([1, 2, 3]).member(4) is false
+        sets.set([1, 2, 3]).member(2) is true
+        sets.set([1, 2, 3]).member(4) is false
       end,
 
       add(self, elem :: Any) -> Set:
@@ -799,52 +809,45 @@ data Set:
           __set(link(elem, self.elems))
         end
       where:
-        __set([]).add(1) is __set([1])
-        __set([1]).add(1) is __set([1])
-        __set([1, 2, 3]).add(2) is __set([1, 2, 3])
-        __set([1, 2, 3]).add(1.5) is __set([1, 2, 3, 1.5])
+        sets.set([]).add(1) is sets.set([1])
+        sets.set([1]).add(1) is sets.set([1])
+        sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
+        sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
       end,
 
       remove(self, elem :: Any) -> Set:
         doc: "Remove an element from the set if it is present."
         __set(self.elems.filter(fun (x): x <> elem end))
       where:
-        __set([1, 2]).remove(18) is __set([1, 2])
-        __set([1, 2]).remove(2) is __set([1])
+        sets.set([1, 2]).remove(18) is sets.set([1, 2])
+        sets.set([1, 2]).remove(2) is sets.set([1])
       end,
 
       to-list(self) -> List:
         doc: 'Convert a set into a sorted list of elements.'
         self.elems.sort()
       where:
-        __set([3, 1, 2]).to-list() is [1, 2, 3]
+        sets.set([3, 1, 2]).to-list() is [1, 2, 3]
       end,
 
       union(self, other :: Set):
         doc: "Take the union of two sets."
         list-to-set(self.to-list().append(other.to-list()))
       where:
-        __set([1, 2]).union(__set([2, 3])) is __set([1, 2, 3])
+        sets.set([1, 2]).union(sets.set([2, 3])) is sets.set([1, 2, 3])
       end,
 
       _equals(self, other):
         Set(other) and (self.elems.sort() == other.elems.sort())
       where:
-        (__set([1, 2.1, 3]) <> __set([1, 2.2, 3])) is true
-        __set([1, 2, 4]) is __set([2, 1, 4])
+        (sets.set([1, 2.1, 3]) <> sets.set([1, 2.2, 3])) is true
+        sets.set([1, 2, 4]) is sets.set([2, 1, 4])
       end
 end
 
-fun list-to-set(lst :: List):
-  for fold(s from __set([]), elem from lst):
-    s.add(elem)
-  end
-end
-
-set = {
-  Set : Set,
-  empty-set: __set([]),
-  list-to-set: list-to-set
+sets = {
+  Set: Set,
+  set: list-to-set
 }
 
 
@@ -1161,3 +1164,124 @@ checkers = {
   is-err: is-err
 }
 
+
+### cs 173 ###
+
+
+fun interp-basic():    
+
+    data Value:
+      | numV(value :: Number)
+      | strV(value :: String)
+      | funV(params :: List<String>, body :: Expr, env :: Env)
+    end
+
+    data Env:
+      | mt-env
+      | an-env(name :: String, val :: Value, env :: Env)
+    end
+
+    data Expr:
+      | id(name :: String)
+      | num(value :: Number)
+      | str(value :: String)
+      | bop(op :: Operator, left :: Expr, right :: Expr)
+      | cif(cond :: Expr, consq :: Expr, altern :: Expr)
+      | let(name :: String, expr :: Expr, body :: Expr)
+      | lam(params :: List<String>, body :: Expr)
+      | app(func :: Expr, args :: List<Expr>)
+    end
+    
+    data Operator:
+      | plus
+      | minus
+      | append
+      | str-eq
+    end
+    
+    fun parse(prog) -> Expr:
+      doc: "Parse an s-expr in Paret's concrete syntax into an Expr."
+    
+      fun check-params(params :: List<String>) -> List<String>:
+        doc: "Ensure that a function has no duplicate parameter names."
+        for each(param from params):
+          when params.filter(fun(x): x == param end).length() > 1:
+            raise("parse: function has duplicate parameter " + param)
+          end
+        end
+        params
+      end
+    
+      fun convert(sexpr):
+        doc: "Convert an s-expression into an Expr."
+        if List(sexpr):
+          head = sexpr.first
+          if head == "string":
+            str(sexpr.get(1))
+          else if head == "if":
+            cif(convert(sexpr.get(1)),
+    		    convert(sexpr.get(2)),
+                convert(sexpr.get(3)))
+          else if head == "let":
+            let(sexpr.get(1).get(0),
+                convert(sexpr.get(1).get(1)),
+                convert(sexpr.get(2)))
+          else if head == "fun":
+            lam(check-params(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "+":
+            bop(plus, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "-":
+            bop(minus, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "++":
+            bop(append, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "==":
+            bop(str-eq, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else:
+            func = convert(head)
+            args = map(convert, sexpr.rest)
+            app(func, args)
+          end
+        else if Number(sexpr):
+          num(sexpr)
+        else if String(sexpr):
+          id(sexpr)
+        end
+      end
+      convert(prog)
+    end
+
+    {
+     Value: Value,
+     numV: numV, is-numV: is-numV,
+     strV: strV, is-strV: is-strV,
+     funV: funV, is-funV: is-funV,
+
+     Env: Env,
+     mt-env: mt-env, is-mt-env: is-mt-env,
+     an-env: an-env, is-an-env: is-an-env,
+
+     Expr: Expr,
+     id:id, is-id:is-id,
+     num:num, is-num:is-num,
+     str:str, is-str:is-str,
+     bop:bop, is-bop:is-bop,
+     cif:cif, is-cif:is-cif,
+     let:let, is-let:is-let,
+     lam:lam, is-lam:is-lam,
+     app:app, is-app:is-app,
+
+     Operator: Operator,
+     plus:plus, is-plus:is-plus,
+     minus:minus, is-minus:is-minus,
+     append:append, is-append:is-append,
+     str-eq:str-eq, is-str-eq:is-str-eq,
+
+     parse:parse
+    }
+end
+
+cs173 = {
+
+  interp-basic: interp-basic()
+     
+}

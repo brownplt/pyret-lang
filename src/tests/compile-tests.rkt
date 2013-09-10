@@ -620,6 +620,8 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "String(gensym('foo'))" true)
 
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
+
+  (check-pyret-match/check "pyret/sets.arr" _ 15)
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -996,6 +998,8 @@ o2.m().called" true)
        (define-values (base name _) (split-path (simplify-path filename)))
        (parameterize [(current-directory base)]
          (check-pyret-match/check name _ passing))))])
+
+    (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)

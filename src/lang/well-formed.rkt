@@ -79,6 +79,8 @@
       [(s-let s bind e) (wf-error "Cannot end a block in a let-binding." s)]
       [(s-var s bind e) (wf-error "Cannot end a block in a var-binding." s)]
       [(s-fun s _ _ _ _ _ _ _) (wf-error "Cannot end a block in a fun-binding." s)]
+      [(s-data s _ _ _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
+      [(s-graph s _) (wf-error "Cannot end a block with a graph definition." s)]
       [else #t]))
   (define (wf-cases-branch branch)
     (match branch
@@ -206,9 +208,9 @@
                                 (wf else))]
 
     [(s-cases s type val c-bs)
-     (begin (wf type) (wf val) (map wf-cases-branch c-bs))]
+     (begin (wf-ann type) (wf val) (map wf-cases-branch c-bs))]
     [(s-cases-else s type val c-bs else)
-     (begin (wf type)
+     (begin (wf-ann type)
             (wf val)
             (map wf-cases-branch c-bs)
             (wf else))]

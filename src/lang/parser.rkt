@@ -42,7 +42,7 @@
   (syntax-parse stx
     #:datum-literals (import-stmt provide-stmt)
     [(provide-stmt "provide" "*") (s-provide-all (loc stx))]
-    [(provide-stmt "provide" stmt "end") (s-provide (loc stx) (parse-stmt #'stmt))]
+    [(provide-stmt "provide" stmt (end (~or "end" ";"))) (s-provide (loc stx) (parse-stmt #'stmt))]
     [(import-stmt "import" import-module "as" name)
      (s-import (loc stx) (parse-import-module #'import-module) (parse-name #'name))]))
 
@@ -105,10 +105,10 @@
      (s-var (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(let-expr bind "=" e)
      (s-let (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
-    [(graph-expr "graph:" binding ... "end")
+    [(graph-expr "graph:" binding ... (end (~or "end" ";")))
      (s-graph (loc stx) (map/stx parse-stmt #'(binding ...)))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
-               doc body check "end")
+               doc body check (end (~or "end" ";")))
      (s-fun (loc stx)
             (parse-name #'fun-name)
             (parse-ty-params #'params)
@@ -117,7 +117,7 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-where-clause #'check))]
-    [(data-expr "data" name params mixins ":" variant ... sharing-part check "end")
+    [(data-expr "data" name params mixins ":" variant ... sharing-part check (end (~or "end" ";")))
      (s-data (loc stx)
              (parse-name #'name)
              (parse-ty-params #'params)
@@ -129,10 +129,10 @@
     [(assign-expr id ":=" e)
      (s-assign (loc stx) (parse-name #'id) (parse-binop-expr #'e))]
 
-    [(when-expr "when" test ":" body "end")
+    [(when-expr "when" test ":" body (end (~or "end" ";")))
      (s-when (loc stx) (parse-binop-expr #'test) (parse-block #'body))]
 
-    [(check-expr "check:" body "end")
+    [(check-expr "check:" body (end (~or "end" ";")))
      (s-check (loc stx) (parse-block #'body))]
 
     [(stmt s) (parse-stmt #'s)]
@@ -226,7 +226,7 @@
      (s-data-field (loc stx)
                    (parse-key #'key)
                    (parse-binop-expr #'value))]
-    [(obj-field key args ret ":" doc body check "end")
+    [(obj-field key args ret ":" doc body check (end (~or "end" ";")))
      (s-method-field (loc stx)
                      (parse-key #'key)
                      (parse-args #'args)
@@ -251,7 +251,7 @@
      (s-data-field (loc stx)
                    (parse-key #'key)
                    (parse-binop-expr #'value))]
-    [(field key args ret ":" doc body check "end")
+    [(field key args ret ":" doc body check (end (~or "end" ";")))
      (s-method-field (loc stx)
                      (parse-key #'key)
                      (parse-args #'args)
@@ -368,42 +368,42 @@
      (s-colon (loc stx) (parse-expr #'obj) (parse-name #'field))]
     [(colon-bracket-expr obj ":" "[" field "]")
      (s-colon-bracket (loc stx) (parse-expr #'obj) (parse-binop-expr #'field))]
-    [(cases-expr "cases" "(" type ")" val ":" branch ... "|" "else" "=>" else-block "end")
-     (s-cases-else (loc stx) (parse-expr #'type) (parse-expr #'val)
+    [(cases-expr "cases" "(" type ")" val ":" branch ... "|" "else" "=>" else-block (end (~or "end" ";")))
+     (s-cases-else (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...))
       (parse-block #'else-block))]
-    [(cases-expr "cases" "(" type ")" val ":" branch ... "end")
-     (s-cases (loc stx) (parse-expr #'type) (parse-expr #'val)
+    [(cases-expr "cases" "(" type ")" val ":" branch ... (end (~or "end" ";")))
+     (s-cases (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...)))]
-    [(if-expr "if" test ":" body branch ... "else:" else-block "end")
+    [(if-expr "if" test ":" body branch ... "else:" else-block (end (~or "end" ";")))
      (s-if-else (loc stx)
        (cons
          (s-if-branch (loc #'test) (parse-binop-expr #'test) (parse-block #'body))
          (map/stx parse-else-if #'(branch ...)))
        (parse-block #'else-block))]
-    [(if-expr "if" test ":" body branch ... "end")
+    [(if-expr "if" test ":" body branch ... (end (~or "end" ";")))
      (s-if (loc stx)
        (cons
          (s-if-branch (loc #'test) (parse-binop-expr #'test) (parse-block #'body))
          (map/stx parse-else-if #'(branch ...))))]
-    [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body "end")
+    [(for-expr "for" iter "(" (for-bind-elt binds ",") ... last-bind ")" return-ann ":" body (end (~or "end" ";")))
      (s-for (loc stx)
             (parse-expr #'iter)
             (map/stx parse-for-bind #'(binds ... last-bind))
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(for-expr "for" iter "(" ")" return-ann ":" body "end")
+    [(for-expr "for" iter "(" ")" return-ann ":" body (end (~or "end" ";")))
      (s-for (loc stx)
             (parse-expr #'iter)
             empty
             (parse-return-ann #'return-ann)
             (parse-block #'body))]
-    [(try-expr "try:" body "except" "(" arg-elt ")" ":" except "end")
+    [(try-expr "try:" body "except" "(" arg-elt ")" ":" except (end (~or "end" ";")))
      (s-try (loc stx)
             (parse-block #'body)
             (parse-binding #'arg-elt)
             (parse-block #'except))]
-    [(lambda-expr "fun" ty-params args return-ann ":" doc body check "end")
+    [(lambda-expr "fun" ty-params args return-ann ":" doc body check (end (~or "end" ";")))
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (parse-args #'args)
@@ -411,7 +411,7 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-where-clause #'check))]
-    [(lambda-expr "fun" ty-params return-ann ":" doc body check "end")
+    [(lambda-expr "fun" ty-params return-ann ":" doc body check (end (~or "end" ";")))
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
             (list)
@@ -419,7 +419,7 @@
             (parse-doc-string #'doc)
             (parse-block #'body)
             (parse-where-clause #'check))]
-    [(method-expr "method" args return-ann ":" doc body check "end")
+    [(method-expr "method" args return-ann ":" doc body check (end (~or "end" ";")))
      (s-method (loc stx)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
