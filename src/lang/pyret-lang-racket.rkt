@@ -12,6 +12,7 @@
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
+(define cs173 (p:get-field p:dummy-loc moorings "cs173"))
 
 (provide
   #%module-begin
@@ -28,6 +29,7 @@
   builtins
   checkers
   option
+  cs173
 
   (all-from-out "runtime.rkt")
   print-pyret

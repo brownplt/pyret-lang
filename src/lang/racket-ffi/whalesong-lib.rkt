@@ -22,21 +22,12 @@ are each converted into a list [\"string\", <the-string>].
 For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
   [[-13, 14, 88.8], \"cats\", \"++\", [\"string\", \"dogs\"]]
 "
-  (let [[str (ffi-unwrap pyret-str)]]
-    (with-handlers [[(λ (x) #t) (λ (e) (handle-read-exn str e))]]
-      (ffi-wrap (sexpr->list (parse-expr str)))))))
+  (ffi-wrap (sexpr->list (parse-expr (ffi-unwrap pyret-str))))))
 
 (define read-sexprs-pfun
   (p:pλ (pyret-str)
     "Read a sequence of s-expressions from a string. See read-sexpr."
-    (let [[str (ffi-unwrap pyret-str)]]
-      (with-handlers [[(λ (x) #t) (λ (e) (handle-read-exn str e))]]
-        (ffi-wrap (sexpr->list (parse-exprs str)))))))
-
-(define (handle-read-exn str x)
-  (raise (p:pyret-error
-          p:dummy-loc "read-sexpr"
-          (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
+    (ffi-wrap (sexpr->list (parse-exprs (ffi-unwrap pyret-str))))))
 
 (define (sexpr->list x)
   (cond [(list? x)   (map sexpr->list x)]
@@ -57,10 +48,14 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
 (define-struct buffer (str index) #:transparent)
 
 (define (parse x str)
+  (define (raise-read-sexpr-exn str)
+    (raise (p:pyret-error
+  	        p:dummy-loc "read-sexpr"
+            (format "read-sexpr: Invalid s-expression: \"~a\"" str))))
   (let [[answer (x (buffer str 0))]]
     (if (succ? answer)
         (succ-value answer)
-        (raise "Failed to parse s-expression"))))
+        (raise-read-sexpr-exn str))))
 
 (define (eof? input)
   (eq? (string-length (buffer-str input))

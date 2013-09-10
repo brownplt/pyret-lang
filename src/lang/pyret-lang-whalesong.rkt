@@ -15,6 +15,7 @@
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
 (define option (p:get-field p:dummy-loc moorings "option"))
+(define cs173 (p:get-field p:dummy-loc moorings "cs173"))
 
 ;; WARNING: Did you remember to update src/lang/type-env.rkt?
 (provide
@@ -30,6 +31,7 @@
   builtins
   checkers
   option
+  cs173
 
   (rename-out
     [pyret-List List]

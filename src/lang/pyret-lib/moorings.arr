@@ -6,7 +6,8 @@ provide {
   builtins: builtins,
   error: error,
   checkers: checkers,
-  option: option
+  option: option,
+  cs173: cs173
 }
 end
 
@@ -1163,3 +1164,124 @@ checkers = {
   is-err: is-err
 }
 
+
+### cs 173 ###
+
+
+fun interp-basic():    
+
+    data Value:
+      | numV(value :: Number)
+      | strV(value :: String)
+      | funV(params :: List<String>, body :: Expr, env :: Env)
+    end
+
+    data Env:
+      | mt-env
+      | an-env(name :: String, val :: Value, env :: Env)
+    end
+
+    data Expr:
+      | id(name :: String)
+      | num(value :: Number)
+      | str(value :: String)
+      | bop(op :: Operator, left :: Expr, right :: Expr)
+      | cif(cond :: Expr, consq :: Expr, altern :: Expr)
+      | let(name :: String, expr :: Expr, body :: Expr)
+      | lam(params :: List<String>, body :: Expr)
+      | app(func :: Expr, args :: List<Expr>)
+    end
+    
+    data Operator:
+      | plus
+      | minus
+      | append
+      | str-eq
+    end
+    
+    fun parse(prog) -> Expr:
+      doc: "Parse an s-expr in Paret's concrete syntax into an Expr."
+    
+      fun check-params(params :: List<String>) -> List<String>:
+        doc: "Ensure that a function has no duplicate parameter names."
+        for each(param from params):
+          when params.filter(fun(x): x == param end).length() > 1:
+            raise("parse: function has duplicate parameter " + param)
+          end
+        end
+        params
+      end
+    
+      fun convert(sexpr):
+        doc: "Convert an s-expression into an Expr."
+        if List(sexpr):
+          head = sexpr.first
+          if head == "string":
+            str(sexpr.get(1))
+          else if head == "if":
+            cif(convert(sexpr.get(1)),
+    		    convert(sexpr.get(2)),
+                convert(sexpr.get(3)))
+          else if head == "let":
+            let(sexpr.get(1).get(0),
+                convert(sexpr.get(1).get(1)),
+                convert(sexpr.get(2)))
+          else if head == "fun":
+            lam(check-params(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "+":
+            bop(plus, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "-":
+            bop(minus, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "++":
+            bop(append, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else if head == "==":
+            bop(str-eq, convert(sexpr.get(1)), convert(sexpr.get(2)))
+          else:
+            func = convert(head)
+            args = map(convert, sexpr.rest)
+            app(func, args)
+          end
+        else if Number(sexpr):
+          num(sexpr)
+        else if String(sexpr):
+          id(sexpr)
+        end
+      end
+      convert(prog)
+    end
+
+    {
+     Value: Value,
+     numV: numV, is-numV: is-numV,
+     strV: strV, is-strV: is-strV,
+     funV: funV, is-funV: is-funV,
+
+     Env: Env,
+     mt-env: mt-env, is-mt-env: is-mt-env,
+     an-env: an-env, is-an-env: is-an-env,
+
+     Expr: Expr,
+     id:id, is-id:is-id,
+     num:num, is-num:is-num,
+     str:str, is-str:is-str,
+     bop:bop, is-bop:is-bop,
+     cif:cif, is-cif:is-cif,
+     let:let, is-let:is-let,
+     lam:lam, is-lam:is-lam,
+     app:app, is-app:is-app,
+
+     Operator: Operator,
+     plus:plus, is-plus:is-plus,
+     minus:minus, is-minus:is-minus,
+     append:append, is-append:is-append,
+     str-eq:str-eq, is-str-eq:is-str-eq,
+
+     parse:parse
+    }
+end
+
+cs173 = {
+
+  interp-basic: interp-basic()
+     
+}
