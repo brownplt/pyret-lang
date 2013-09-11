@@ -9,9 +9,9 @@
 
 (struct check-info (srcloc name check-body))
 
-(define standalone-counter 0)
 
 (define (get-checks stmts)
+  (define standalone-counter 0)
   (define (add-check stmt lst)
     (match stmt
       [(s-fun s name _ _ _ _ _ check)
