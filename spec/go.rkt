@@ -7,25 +7,25 @@
      (chan number)
      (num number)]
 
-  [e+ø e ø]
+  [e+⊥ e ⊥]
 
   [v+ø v ø]
 
-  [e (make-chan e) (e e) (go e) (seq e e) (e >! e e) (<! e e) x v]
+  [e (make-chan e) (e e) (go e e) (seq e e) (e >! e e) (<! e e) x v]
   [(x y z c) (variable-except λ seq go make-chan <! >! qread qwrite qgo)]
 
   [q (qread number (λ (x) e))
      (qwrite number v (λ (x) e))
-     (qgo (λ (x) e))]
+     (qgo e)]
 
   [Q [q ...]]
   [C [(number v+ø) ...]]
 
-  [E hole (E e) (v E) (go E) (seq E e) (seq v E)
+  [E hole (E e) (v E) (go E e) (go v E) (seq E e) (seq v E)
           (E >! e e) (v >! E e) (v >! v E)
           (<! E e) (<! v E)]
 
-  [p {Q C e+ø}])
+  [p {Q C e+⊥}])
 
 (define-metafunction πsync
   subst : x any e -> e
@@ -37,7 +37,7 @@
   [(subst x any (num number)) (num number)]
   [(subst x any (chan number)) (chan number)]
   [(subst x any (seq e_1 e_2)) (seq (subst x any e_1) (subst x any e_2))]
-  [(subst x any (go e)) (go (subst x any e))]
+  [(subst x any (go e_1 e_2)) (go (subst x any e_1) (subst x any e_2))]
   [(subst x any (e_1 >! e_2 e_3))
    ((subst x any e_1) >! (subst x any e_2) (subst x any e_3))]
   [(subst x any (<! e_1 e_2)) (<! (subst x any e_1) (subst x any e_2))]
@@ -56,22 +56,42 @@
          (where number_0 ,(+ 1 (length (term (number ...))))))
 
     (--> {[q ...] C (v >! (chan number_this) (λ (x) e))}
-         {[(qwrite number_this v (λ (x) e))] C ø})
+         {[q ... (qwrite number_this v (λ (x) e))] C ⊥})
     (--> {[q ...] C (<! (chan number_this) (λ (x) e))}
-         {[(qread number_this (λ (x) e))] C ø})
+         {[q ... (qread number_this (λ (x) e))] C ⊥})
 
-    (--> {[(qread number_this (λ (x) e)) q ...]
+    (--> {[q_0 ... (qread number_this (λ (x) e)) q ...]
           [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
-          ø}
-         {[q ...]
+          ⊥}
+         {[q_0 ... q ...]
           [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
           (subst x v e)})
-    (--> {[(qwrite number_this v (λ (x) e)) q ...]
+    #;(--> {[(qread number_this (λ (x) e)) q ...]
           [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
-          ø}
-         {[q ...]
+          ⊥}
+         {[q ... (qread number_this (λ (x) e))]
+          [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
+          ⊥})
+    (--> {[q_0 ... (qwrite number_this v (λ (x) e)) q ...]
+          [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
+          ⊥}
+         {[q_0 ... q ...]
           [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
           (subst x v e)})
+    #;(--> {[(qwrite number_this v_0 (λ (x) e)) q ...]
+          [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
+          ⊥}
+         {[q ... (qwrite number_this v_0 (λ (x) e))]
+          [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
+          ⊥})
+    (--> {[q_0 ... (qgo e) q ...] C ⊥}
+         {[q_0 ... q ...] C e})
+
+    (--> {[q ...] [(number v+ø) ...] (go e_1 (λ (c) e_2))}
+         {[q ... (qgo (e_1 (λ (z) (z >! (chan number_new) (λ (x_done) ⊥)))))]
+          [(number_new ø) (number v+ø) ...]
+          ((λ (c) e_2) (chan number_new))}
+         (where number_new ,(+ 1 (length (term (number ...))))))
 
    with 
    [(--> {Q C e_1} {Q C e_2})
@@ -79,7 +99,29 @@
 
 ;(traces →πsync (term ([] [] (make-chan))))
 
-(define rw
+#;(define rw
   (term ([] []
          (make-chan (λ (c) ((num 5) >! c (λ (z) (<! c (λ (y) y)))))))))
-(traces →πsync rw)
+
+(define g2 (term (go
+                      (λ (k)
+                        (<! c (λ (v) (k v))))
+                      (λ (c2)
+                        (<! c2 (λ (x) x))))))
+(define g1 (term (go
+                  (λ (k)
+                    ((num 5) >! c (λ (y) (k (num 0)))))
+                  (λ (z) ,g2))))
+
+(define is-e (term-match πsync [e #t]))
+
+(define g1-matches (is-e g1))
+(define g2-matches (is-e g2))
+(printf "~a, ~a" g1-matches g2-matches)
+(flush-output)
+
+(define gotest
+  (term ([] []
+          (make-chan
+            (λ (c) ,g1)))))
+(traces →πsync gotest)
