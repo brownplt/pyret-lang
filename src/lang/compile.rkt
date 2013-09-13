@@ -207,11 +207,10 @@
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
                     [field (compile-string-literal l2 field env)])
-         (mark l
           #`(r:let* ([%obj obj]
                      [%field (p:get-raw-field #,(loc-stx l) %obj field)]
                      [argid arg] ...)
-              ((p:p-base-method %field) %obj argid ...))))]
+              ((p:p-base-method %field) %obj argid ...)))]
 
 
     [(s-app l fun args)
@@ -226,7 +225,7 @@
      (attach l
         (with-syntax ([fun (compile-fun-expr fun)]
                       [(arg ...) (map (curryr compile-expr env) args)])
-          (mark l #'(fun arg ...))))]
+          #'(fun arg ...)))]
 
     [(s-obj l fields)
      (attach l
