@@ -56,13 +56,6 @@
           names
           placeholder-names))))
 
-(define (add-parameterizer s params variants obj)
-  (define add-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
-  (define check-fun (s-lam s empty empty (a-blank) "" (s-block s empty) (s-block s empty)))
-  (s-extend s obj
-      (list (s-data-field s (s-str s "parameterize_add") add-fun)
-            (s-data-field s (s-str s "parameterize_check") check-fun))))
-
 (define (variant-defs/list super-brand mixins-names super-fields variants)
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
@@ -223,8 +216,7 @@
        (let [(best-guess-name (if (s-str? name) (s-str-s name)
                                   ""))]
        (s-data-field s (desugar-internal name)
-          (add-lam-tostring s "method" best-guess-name args
-          (s-method s args ann doc (desugar-internal body) (desugar-internal check)))))]))
+          (s-method s args ann doc (desugar-internal body) (desugar-internal check))))]))
 
 (define (desugar-ann ann)
   (match ann
@@ -324,8 +316,7 @@
                    bind-mixins
                    (variant-defs/list brander-name mixins-names share-members variants)
                    (s-let s (s-bind s name (a-blank))
-                                (add-parameterizer s params variants
-                                  (s-dot s (s-id s brander-name) 'test)))))))]
+                                  (s-dot s (s-id s brander-name) 'test))))))]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
@@ -343,24 +334,21 @@
 
     [(s-fun s name typarams args ann doc body check)
      (s-let s (s-bind s name (a-blank))
-            (add-lam-tostring s "fun" name args
             (s-lam s typarams (map (replace-typarams-binds typarams)
                                    (ds-args args))
                    ((replace-typarams typarams) (desugar-ann ann))
-                   doc (ds body) (ds check))))]
+                   doc (ds body) (ds check)))]
 
     [(s-check s body) (s-id s 'nothing)]
 
     [(s-lam s typarams args ann doc body check)
-     (add-lam-tostring s "fun" "" args
      (s-lam s typarams (map (replace-typarams-binds typarams)
                             (ds-args args))
             ((replace-typarams typarams) (desugar-ann ann))
-            doc (ds body) (ds check)))]
+            doc (ds body) (ds check))]
 
     [(s-method s args ann doc body check)
-     (add-lam-tostring s "method" "" args
-     (s-method s args ann doc (ds body) (ds check)))]
+     (s-method s args ann doc (ds body) (ds check))]
 
     [(s-when s test body)
      (s-if-else s (list (s-if-branch s (ds test) (ds body)))
