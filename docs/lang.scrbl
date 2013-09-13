@@ -441,7 +441,10 @@ data-expr: "data" NAME ty-params data-mixins ":"
     where-clause
   "end"
 data-mixins: ["deriving" mixins]
-data-variant: "|" NAME args data-with | "|" NAME data-with
+data-variant: "|" NAME variant-members data-with | "|" NAME data-with
+variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
+list-variant-member: variant-member ","
+variant-member: ["mutable"|"cyclic"] binding
 data-with: ["with:" fields]
 data-sharing: ["sharing:" fields]
 }
@@ -572,11 +575,126 @@ directly, but they are present on each instance:
 
 @;{ TODO: singleton variants and mixins }
 
+@toc-target-element[#f @emph{Mutable and Cyclic Fields} (make-section-tag "s:mutable-data")]
+
+@margin-note{In the future, we plan to support both @tt{cyclic} and
+@tt{mutable} on the same field.  For now, only one is allowed.}
+
+Fields of variants can be optionally be defined with one of the special
+modifiers @tt{cyclic} or @tt{mutable}.  These allow for different kinds of
+stateful update of those fields.
+
+In the variant constructor, a field marked @tt{mutable} is wrapped in a
+@seclink["s:mutables" @tt{Mutable}] container.  The @tt{Mutable} container is
+initialized with both read and write guards for the annotation on the variant
+member, if one is present.  That field can be subsequently updated with
+@seclink["s:update-expr" "update expressions"] and accessed with
+@seclink["s:get-bang-expr" "mutable lookup"].
+
+Example:
+
+@justcode{
+data Node:
+  | node(mutable in :: List<Node>)
+where:
+  n1 = node([])
+  n2 = node([n1])
+  n1!{in : [n2]}
+  n1!in.first is n2
+  n2!in.first is n1
+end
+}
+
+Accessing a @tt{mutable} field with a @seclink["s:dot-expr" "dot expression"]
+will result in an error.
+
+Cyclic fields allow for mutually-referential data to be created without
+allowing it to be mutable for its entire lifetime.  Variant constructors with
+@tt{cyclic} fields do no extra work when handed most values.  However, if a
+@seclink["s:placeholders" @tt{Placeholder}] value is passed for a @tt{cyclic}
+field, it is @emph{guarded} with the annotation on the field (if any).  Most
+Pyret programs should not construct @tt{Placeholders} directly, but should
+instead use the @seclink["s:graph-expr" @tt{graph}] form, which creates
+@tt{Placeholders} and sets up mutual references between @tt{cyclic} fields.
+
+@margin-note{Pedantically, @tt{cyclic} and @tt{mutable} fields in Pyret only
+have @emph{intensional} equality, while objects with no mutable fields enjoy
+@emph{extensional} equality.  With more sophisticated equality algorithms, it
+is meaningful to provide extensional equality for @tt{cyclic} fields.  It is
+unclear if extensional equality is meaningful for @tt{mutable} fields, because
+of temporal concerns.}
+
+@bold{A note on equality.}  Both @tt{cyclic} and @tt{mutable} allow the
+creation of objects that create cyclic data structures.  This is problematic
+from the point of view of equality for two reasons:
+
+@itemlist[
+
+@item{If a naïve structural equality algorithm compared two such objects, it
+might not terminate.  A more sophisticated graph-isomorphism algorithm quickly
+becomes computationally complex.}
+
+@item{For @tt{mutable} data, an equality algorithm that compares the contents
+of two @tt{Mutable} containers could return @tt{true} at one point in time and
+@tt{false} at another.}
+
+]
+
+For these reasons, equality on @tt{mutable} and @tt{cyclic} fields only
+succeeds if the @tt{Mutable} or @tt{Placeholder} values are @emph{the same
+value}, rather than checking the equality of their contents.  This has the
+benefit of being efficient, and supporting object-identity style equality in
+one case where it is often relevant: graph algorithms.
+
 @subsubsection[#:tag "s:var-expr"]{Variable Declarations}
 
 @subsubsection[#:tag "s:assign-expr"]{Assignment Statements}
 
+@subsection{Values}
+
+@subsubsection[#:tag "s:mutables"]{Mutables}
+
+@subsubsection[#:tag "s:placeholders"]{Placeholders}
+
 @subsection{Expressions}
+
+@subsubsection[#:tag "s:get-bang-expr"]{Mutable Lookup Expressions}
+
+A mutable dot expression looks like a @seclink["s:dot-expr" "dot expression"],
+but with the dot replaced with an exclamation point (pronounced ``bang''):
+
+@justcode{
+get-bang-expr: expr "!" NAME
+}
+
+A mutable dot expression first evaluates the @tt{expr} on the left to an
+object, and then looks to see if @tt{NAME} is present in the fields of that
+object.  If it is, and if the value of the field is a @seclink["s:mutables"
+@tt{Mutable}], the expression evaluates to the value currently in that
+@tt{Mutable} (after annotation checking).  If the value is not a @tt{Mutable}
+or is not present, an exception is signalled.
+
+@subsubsection[#:tag "s:update-expr"]{Update Expressions}
+
+An update expression looks like a @seclink["s:extend-expr" "object extension"]
+expression, but with the dot replaced with an exclamation point:
+
+@justcode{
+update-expr: expr "!" "{" fields "}"
+}
+
+An update expression first evaluates the expression to the left of the @tt{!}.
+It then evaluates @emph{all} of the expressions in @tt{fields}, to produce a
+list of field names mapping to values.  It then, in order from left to right,
+checks that each name is present on the object, and is a @seclink["s:mutables"
+@tt{Mutable}] value.  If any value is not present or not a @tt{Mutable}, an
+exception is signalled.  If @emph{all} values are @tt{Mutable}, they are all
+set to the corresponding new values in the field list.  If the name-to-value
+mapping appears more than once in the list, the right-most value ``wins,'' and
+is the resulting value in the @tt{Mutable} after the update.
+
+See @seclink["s:mutables" @tt{Mutables}] for details on checking annotations on
+update.
 
 @subsubsection[#:tag "s:lam-expr"]{Lambda Expressions}
 
