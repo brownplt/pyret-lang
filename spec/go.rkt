@@ -126,65 +126,6 @@
    [(--> {Q C (in-hole E e_1)} {Q C (in-hole E e_2)})
     (==> e_1 e_2)]))
 
-;(traces →πsync (term ([] [] (make-chan))))
-
-#;(define rw
-  (term ([] []
-         (make-chan (λ (c) ((num 5) >! c (λ (z) (<! c (λ (y) y)))))))))
-
-(define g2 (term (go
-                      (λ (k)
-                        (<! c (λ (v) (k v))))
-                      (λ (c2)
-                        (<! c2 (λ (x) x))))))
-(define g1 (term (go
-                  (λ (k)
-                    ((num 5) >! c (λ (y) (k (num 0)))))
-                  (λ (z) ,g2))))
-
-(define is-e (term-match πsync [e #t]))
-
-(define g1-matches (is-e g1))
-(define g2-matches (is-e g2))
-
-
-#;(printf "~a, ~a" g1-matches g2-matches)
-#;(flush-output)
-
-(define gotest
-  (term ([] []
-          (make-chan
-            (λ (c) ,g1)))))
-;(traces →πsync gotest)
-
-(define loop2
-  (term
-    (go
-      (λ (k)
-        ((λ (y)
-            (y y))
-          (λ (y)
-            (<! c (λ (v) (y y))))))
-      (λ (x) x))))
-(define loop1
-  (term (go
-    (λ (k)
-      ((λ (y)
-          (y y))
-        (λ (y)
-          ((num 5) >! c (λ (v) (y y))))))
-    (λ (c2) ,loop2)))) 
-(define looptest
-  (term ([] []
-          (make-chan
-            (λ (c) ,loop1)))))
-;(traces →πsync looptest)
-
-(define justgo
-  (term
-    (go (num 5))))
-;(traces →πsync (term ([] [] (cps-gos ,justgo))))
-
 (define gosendtwice
   (term
     ((λ (c)
@@ -200,17 +141,3 @@
       (make-chan))))
 (traces →πsync (term ([] [] (cps-gos ,gosendtwice))))
 
-
-
-    #;(--> {[(qread number_this (λ (x) e)) q ...]
-          [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
-          ⊥}
-         {[q ... (qread number_this (λ (x) e))]
-          [(number_1 v+ø_1) ...  (number_this ø) (number_n v+ø_n) ...]
-          ⊥})
-    #;(--> {[(qwrite number_this v_0 (λ (x) e)) q ...]
-          [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
-          ⊥}
-         {[q ... (qwrite number_this v_0 (λ (x) e))]
-          [(number_1 v+ø_1) ...  (number_this v) (number_n v+ø_n) ...]
-          ⊥})
