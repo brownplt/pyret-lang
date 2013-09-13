@@ -21,7 +21,7 @@
   [Q [q ...]]
   [C [(number v+ø) ...]]
 
-  [E hole (E e) (v E) (go1 E) (go E e) (go v E) (seq E e) (seq v E)]
+  [E hole (E e) (v E) (go E) (seq E e) (seq v E)]
 
   [p {Q C e+⊥}])
 
