@@ -492,34 +492,34 @@
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
-(define (get-raw-field loc v f)
-  (string-map-ref (get-dict v) f
-    (lambda()
-      (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
+(define-syntax (get-raw-field stx)
+  (syntax-case stx ()
+    [(_ loc v f)
+     #'(string-map-ref (get-dict v) f
+       (lambda()
+         (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v))))))]))
 
 ;; get-field : Loc Value String -> Value
-(define (get-field loc v f)
-  (define vfield (get-raw-field loc v f))
-  (cond
-    [(p-mutable? vfield)
-     (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
-    [(p-placeholder? vfield)
-     (get-placeholder-value loc vfield)]
-    [(p-method? vfield)
-     (let [(curried
-            (mk-fun (λ args (apply (p-base-method vfield)
-                                   (cons v args)))
-                    (λ args (apply (p-base-method vfield)
-                                   (cons v (rest args))))
-                    ;; NOTE(dbp 2013-08-09): If _doc isn't a string, this will blow up...
-                    (p-str-s (get-field loc vfield "_doc"))))]
-       (if (has-field? vfield "tostring")
-           (extend loc curried
-                   (list
-                    (cons "tostring"
-                          (get-field loc vfield "tostring"))))
-           curried))]
-    [else vfield]))
+(define-syntax (get-field stx)
+  (syntax-case stx ()
+    [(_ loc v f)
+     #'(let ()
+       (define vfield (get-raw-field loc v f))
+       (cond
+         [(p-mutable? vfield)
+          (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
+         [(p-placeholder? vfield)
+          (get-placeholder-value loc vfield)]
+         [(p-method? vfield)
+          (let [(curried
+                 (mk-fun (λ args (apply (p-base-method vfield)
+                                        (cons v args)))
+                         (λ args (apply (p-base-method vfield)
+                                        (cons v (rest args))))
+                         ;; NOTE(dbp 2013-08-09): If _doc isn't a string, this will blow up...
+                         ""))]
+                curried)]
+         [else vfield]))]))
 
 ;; get-mutable-field : Loc Value String -> Value
 (define (get-mutable-field loc v f)
