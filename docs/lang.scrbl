@@ -664,7 +664,7 @@ one case where it is often relevant: graph algorithms.
 
 @subsubsection[#:tag "s:var-expr"]{Variable Declarations}
 
-Variable declarations look like @sec-link["s:let-expr" "let bindings"], but
+Variable declarations look like @seclink["s:let-expr" "let bindings"], but
 with an extra @tt{var} keyword in the beginning:
 
 @justcode{
@@ -697,16 +697,6 @@ expression with a @tt{var} declaration, the program fails with a static error.
 
 At runtime, an assignment expression changes the value of the assignable
 variable @tt{NAME} to the result of the right-hand side expression.
-
-@subsection{Values}
-
-@subsubsection[#:tag "s:mutables"]{Mutables}
-
-[COMING SOON]
-
-@subsubsection[#:tag "s:placeholders"]{Placeholders}
-
-[COMING SOON]
 
 @subsection{Expressions}
 
@@ -745,8 +735,10 @@ set to the corresponding new values in the field list.  If the name-to-value
 mapping appears more than once in the list, the right-most value ``wins,'' and
 is the resulting value in the @tt{Mutable} after the update.
 
-See @seclink["s:mutables" @tt{Mutables}] for details on checking annotations on
-update.
+Each update also checks the annotations for the field (if any were provided),
+and signals an exception if any were violated.  @seclink["s:mutables"
+@tt{Mutables}] has some additional technical details on this annotation
+checking.
 
 @subsubsection[#:tag "s:lam-expr"]{Lambda Expressions}
 
@@ -1009,6 +1001,14 @@ binding.  It is written as a dot expression, but with @tt{:} rather than @tt{.}.
 @justcode{
 colon-expr: expr ":" NAME
 }
+
+A colon expression evaluates @tt{expr} and then evaluates to the @tt{NAME}
+value from the resulting object.  It signals an error if @tt{NAME} is absent.
+The key distinction between @tt{:} and @tt{.} is that a colon expression does
+not pre-apply methods, signal an exception on @seclink["s:mutables"
+@tt{Mutables}], or automatically unwrap @seclink["s:placeholders"
+@tt{Placeholder}] values.  This has value in more sophisticated patterns, like
+those used by Pyret's generic equality and @tt{tostring} algorithms.
 
 @subsubsection[#:tag "s:extend-expr"]{Extend Expressions}
 
@@ -1284,7 +1284,7 @@ end
 There are two syntactic forms that are helpful for testing programs inside
 @tt{check:} and @tt{where:} blocks.
 
-@toc-element[#f @bold{@tt{is}} (make-section-tag "s:is")]
+@toc-target-element[#f @bold{@tt{is}} (make-section-tag "s:is")]
 
 The @tt{is} form accepts two expressions on either side of the @tt{is} operator:
 
@@ -1302,7 +1302,7 @@ Under the hood, the @tt{is} form is calling the built-in library function
 @tt{checkers.check-is} [REF].
 
 
-@toc-element[#f @bold{@tt{raises}} (make-section-tag "s:raises")]
+@toc-target-element[#f @bold{@tt{raises}} (make-section-tag "s:raises")]
 
 The @tt{raises} form accepts two expressions on either side of the @tt{raises}
 operator:
@@ -1596,4 +1596,132 @@ are converted into a list [\"string\", <the-string>].'
   torepr
   read-sexpr
   ))
+
+@section[#:tag "s:mutables"]{Mutables}
+
+A @tt{Mutable} value is created implicitly by use of the @tt{mutable} keyword
+on a field, or explicitly with the @tt{mk-mutable} function.  Most Pyret
+programs do not need to create @tt{Mutable}s explicitly.
+
+@(label "mk-mutable")
+
+@justcode{
+<a> mk-mutable(
+      val :: a,
+      read :: (a -> Bool),
+      write :: (a -> Bool)
+    )
+    -> Mutable<a>
+}
+
+This creates a mutable value holding @tt{val} as a value, and with predicates
+@tt{read} and @tt{write} checked on access and update, respectively.  These
+predicates are automatically filled in based on annotations for @tt{Mutable}s
+created by @tt{data}.  If the predicate fails in either case, a type error is
+signalled.
+
+Aside from constructing a @tt{Mutable} directly, they can be accessed directly
+by using a @seclink["s:colon-expr" "colon expression"], which gives access to
+several methods:
+
+@(label "Mutable.get")
+
+@justcode{
+get(self :: Mutable<a>) -> a
+}
+
+Returns the value in the @tt{Mutable}.  
+
+@(label "Mutable._equals")
+
+@justcode{
+get(self :: Mutable<a>, other :: Any) -> Bool
+}
+
+Returns @tt{true} if @tt{other} is the @emph{same} mutable as this one,
+@tt{false} otherwise.
+
+@(label "Mutable.tostring")
+
+@justcode{
+tostring(self :: Mutable<a>) -> String
+}
+
+Returns a string representation of the mutable.  To avoid cyclic printing, this
+just gives the string @tt{"mutable-field"}.
+
+@section[#:tag "s:placeholders"]{Placeholders}
+
+Placeholder values are created automatically by @tt{graph} declarations, and
+can be explicitly created with @tt{mk-placeholder}, though most Pyret programs
+will not need to.  This section is mainly for those wishing a deeper
+understanding of how @tt{graph} and @tt{cyclic} interact.
+
+A @tt{Placeholder} is a value that supports a single @emph{update}, and
+multiple @emph{guards} before being updated.  The design goal of
+@tt{Placeholder}s is to support many contexts sharing the same (possibly
+un-initialized) value, with each context placing its own constraints on the
+value prior to it being initialized.  The following methods are on each
+@tt{Placeholder} value:
+
+@(label "Placeholder.get")
+
+@justcode{
+get(self :: Placeholder<a>) -> a
+}
+
+Get the value in the placeholder.  Signals an exception if the value has yet to
+be initialized with the @tt{set} method.
+
+@(label "Placeholder.guard")
+
+@justcode{
+guard(self :: Placeholder<a>, guard :: (a -> Bool)) -> Nothing
+}
+
+Update the placeholder with an additional check @tt{guard}.  Signals an
+exception if the value has yet to be initialized with the @tt{set} method.
+
+@(label "Placeholder.set")
+
+@justcode{
+set(self :: Placeholder<a>, value :: a) -> a
+}
+
+Initialize the placeholder with @tt{value}.  Signals an exception if any of the
+guards on the placeholder return non-@tt{true} values when applied to
+@tt{value}, or if the placeholder has already been @tt{set}. 
+
+These three methods are used in concert by @tt{graph} and @tt{cyclic} to safely
+and lazily intialize mutually-referential data.  Each left-hand side in a
+@tt{graph} binding gets a new placeholder value with no guards.  Each
+constructor with a @tt{cyclic} modifier on a field that is called adds a guard
+to the placeholder based on the annotation on that field.  Then, at the end of
+the @tt{graph} declaration, the placeholders are all @tt{set} to the values on
+the right-hand side of the graph bindings.  If any placeholder was used in an
+incorrect context, a type error is signalled at this point.  After graph
+initialization, subsequent accesses of the placeholder fields with
+@seclink["s:dot-expr" "dot expressions"] use the @tt{get} operation to access
+the initialized value.
+
+A few other methods are on @tt{Placeholder} values, as well:
+
+@(label "Placeholder._equals")
+
+@justcode{
+get(self :: Placeholder<a>, other :: Any) -> Bool
+}
+
+Returns @tt{true} if @tt{other} is the @emph{same} @tt{Placeholer} as this one,
+@tt{false} otherwise.
+
+@(label "Placeholder.tostring")
+
+@justcode{
+tostring(self :: Placeholder<a>) -> String
+}
+
+Returns a string representation of the placeholder.  To avoid cyclic printing, this
+just gives the string @tt{"placeholder-field"}.
+
 
