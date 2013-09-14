@@ -617,6 +617,22 @@ Pyret programs should not construct @tt{Placeholders} directly, but should
 instead use the @seclink["s:graph-expr" @tt{graph}] form, which creates
 @tt{Placeholders} and sets up mutual references between @tt{cyclic} fields.
 
+Example:
+
+@justcode{
+data Node:
+  | node(cyclic in :: Node)
+where:
+  graph:
+  n1 = node(n2)
+  n2 = node(n1)
+  end
+
+  n1.in is n2
+  n2.in is n1
+end
+}
+
 @margin-note{Pedantically, @tt{cyclic} and @tt{mutable} fields in Pyret only
 have @emph{intensional} equality, while objects with no mutable fields enjoy
 @emph{extensional} equality.  With more sophisticated equality algorithms, it
@@ -648,13 +664,49 @@ one case where it is often relevant: graph algorithms.
 
 @subsubsection[#:tag "s:var-expr"]{Variable Declarations}
 
+Variable declarations look like @sec-link["s:let-expr" "let bindings"], but
+with an extra @tt{var} keyword in the beginning:
+
+@justcode{
+var-expr: "var" binding "=" expr
+}
+
+A @tt{var} expression creates a new @emph{assignable variable} in the current
+scope, initialized to the value of the expression on the right of the @tt{=}.
+It can be accessed simply by using the variable name, which will always
+evaluate to the last-assigned value of the variable.  @seclink["s:assign-expr"
+"Assignment statements"] can be used to update the value stored in an
+assignable variable.
+
+If the @tt{binding} contains an annotation, the initial value is checked
+against the annotation, and all @seclink["s:assign-expr" "assignment
+statements"] to the variable check the annotation on the new value before
+updating.
+
 @subsubsection[#:tag "s:assign-expr"]{Assignment Statements}
+
+Assignment statements have a name on the left, and an expression on the right
+of @tt{:=}:
+
+@justcode{
+assign-expr: NAME ":=" binop-expr
+}
+
+If @tt{NAME} is not declared in the same or an outer scope of the assignment
+expression with a @tt{var} declaration, the program fails with a static error.
+
+At runtime, an assignment expression changes the value of the assignable
+variable @tt{NAME} to the result of the right-hand side expression.
 
 @subsection{Values}
 
 @subsubsection[#:tag "s:mutables"]{Mutables}
 
+[COMING SOON]
+
 @subsubsection[#:tag "s:placeholders"]{Placeholders}
+
+[COMING SOON]
 
 @subsection{Expressions}
 
@@ -1161,6 +1213,7 @@ f(3)
 
 @(apply joincode (rest (file->lines (collection-file-path "lang/grammar.rkt" "pyret"))))
 
+
 @section[#:tag "s:testing"]{Testing in Pyret}
 
 Pyret's definition forms---@prod{data-expr} and @prod{fun-expr}---both
@@ -1225,6 +1278,60 @@ where:
                   # have been run (13 + 1)
 end
 }
+
+@subsection[#:tag "s:checkers"]{Check Mode Helpers}
+
+There are two syntactic forms that are helpful for testing programs inside
+@tt{check:} and @tt{where:} blocks.
+
+@toc-element[#f @bold{@tt{is}} (make-section-tag "s:is")]
+
+The @tt{is} form accepts two expressions on either side of the @tt{is} operator:
+
+@justcode{
+expr "is" expr
+}
+
+This first evaluates the left expression, and then the right.  If either
+signals an exception, the whole @tt{is} test fails with that exception as the
+reason.  If both expressions evaluate to values, they are compared for
+equality.  If the equality check succeeds, the test is registered as a success,
+otherwise it fails with a message about the two values not being equal.
+
+Under the hood, the @tt{is} form is calling the built-in library function
+@tt{checkers.check-is} [REF].
+
+
+@toc-element[#f @bold{@tt{raises}} (make-section-tag "s:raises")]
+
+The @tt{raises} form accepts two expressions on either side of the @tt{raises}
+operator:
+
+@justcode{
+expr "raises" expr
+}
+
+This first evaluates the expression on the @emph{right} and expects it to be a
+string.  It then evaluates the expression on the left.  If the left expression
+completes without error, the test fails with a message indicating that an
+exception was expected and none occurred.  If the left expression signals an
+exception, the exceptions value is compared against the provided string as
+follows:
+
+@itemlist[
+  @item{
+    If the exception value is a string, @tt{raises} checks for containment of
+    the provided test string in the exception value.
+  }
+
+  @item{
+    If the exception value is an error object, @tt{raises} checks for
+    containment of the provided test string in the @tt{message} field of the
+    exception value.
+  }
+]
+
+
 
 @section[#:tag "s:lists"]{Lists}
 
