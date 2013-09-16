@@ -58,29 +58,17 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
         (raise-read-sexpr-exn str))))
 
 (define (eof? input)
-  (= (string-length (buffer-str input))
-     (buffer-index input)))
-
-(define PRINT #f)
-(define (debug-printf template . args)
-  (when PRINT
-    (apply printf (cons template args))))
-(define (mk-print-wrapper str f)
-  (λ (input)
-    (debug-printf "Entering ~a with input ~a\n" str input)
-    (f input)))
-(define (id-wrapper str) (mk-print-wrapper str (λ (x) x)))
+  (eq? (string-length (buffer-str input))
+       (buffer-index input)))
 
 (define eof
-  (mk-print-wrapper "eof"
-    (λ (input)
-      (if (eof? input)
-          (succ (void) input)
-          (fail)))))
+  (λ (input)
+    (if (eof? input)
+        (succ (void) input)
+        (fail))))
 
 (define (char pred?)
   (λ (input)
-    (debug-printf "char ~a ~a" (char-whitespace? #\2) (string-ref (buffer-str input) (buffer-index input)))
     (if (eof? input)
         (fail)
         (let [[c (string-ref (buffer-str input)
@@ -92,7 +80,6 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
               (fail))))))
 
 (define (star x [result (list)])
-  (mk-print-wrapper "star"
   (λ (input)
     (if (eof? input)
         (succ result input)
@@ -100,20 +87,18 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
           (if (succ? answer)
               ((star x (append result (list (succ-value answer))))
                (succ-input answer))
-              (succ result input)))))))
+              (succ result input))))))
 
 (define (option . xs)
-  (mk-print-wrapper "option"
   (λ (input)
     (if (empty? xs)
         (fail)
         (let [[answer ((car xs) input)]]
           (if (succ? answer)
               answer
-              ((apply option (cdr xs)) input)))))))
+              ((apply option (cdr xs)) input))))))
 
 (define (seq . xs)
-  (mk-print-wrapper "seq"
   (λ (input)
     (if (empty? xs)
         (succ (list) input)
@@ -127,38 +112,34 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
                            (succ-value answers))
                      (succ-input answers))
                     (fail)))
-              (fail)))))))
+              (fail))))))
 
 (define (action f x)
-  (mk-print-wrapper "action"
   (λ (input)
     (let [[answer (x input)]]
       (if (succ? answer)
           (succ (f (succ-value answer)) (succ-input answer))
-          (fail))))))
+          (fail)))))
 
 (define (plus x)
-  (mk-print-wrapper "plus"
   (action (λ (x) (cons (first x) (second x)))
-          (seq x (star x)))))
+          (seq x (star x))))
 
 (define-syntax-rule (tie-knot x)
-  (mk-print-wrapper "tie-knot"
-  (λ (input) (x input))))
+  (λ (input) (x input)))
 
 
 #| Reading S-expressions |#
 
 (define whitespace
-  (action (id-wrapper "whitespace")
-    (star (char char-whitespace?))))
+  (star (char char-whitespace?)))
 
 (define num
-  (action (mk-print-wrapper "num" (λ (x)
+  (action (λ (x)
             (let [[sign (first x)]
                   [digits (second x)]]
               (* (if (equal? sign "-") -1 1)
-                 (string->number (apply string-append digits))))))
+                 (string->number (apply string-append digits)))))
           (seq (option (char (λ (c) (eq? c #\-)))
                        (char (λ (c) (eq? c #\+)))
                        (seq))
@@ -166,7 +147,7 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
                                       (eq? c #\.))))))))
 
 (define string
-  (action (mk-print-wrapper "string" (λ (x) (apply string-append (second x))))
+  (action (λ (x) (apply string-append (second x)))
           (seq (char (λ (c) (eq? c #\")))
                (star (char (λ (c) (not (eq? c #\")))))
                (char (λ (c) (eq? c #\"))))))
@@ -177,26 +158,26 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
       (char-numeric? c)
       (member c symbol-chars)))
 (define symbol
-  (action (mk-print-wrapper "symbol" (λ (x) (string->symbol (apply string-append x))))
+  (action (λ (x) (string->symbol (apply string-append x)))
           (plus (char symbol-char?))))
 
 (define (token x)
-  (action (mk-print-wrapper "token" (λ (x) (second x)))
+  (action (λ (x) (second x))
           (seq whitespace
                x
                whitespace)))
 
 (define exprs
-  (action (id-wrapper "exprs") (star (token (tie-knot expr)))))
+  (star (token (tie-knot expr))))
 
 (define parens
-  (action (mk-print-wrapper "parens" (λ (x) (second x)))
+  (action (λ (x) (second x))
           (seq (token (char (λ (c) (eq? c #\())))
                exprs
                (token (char (λ (c) (eq? c #\))))))))
 
 (define expr
-  (action (id-wrapper "expr") (token (option parens string num symbol))))
+  (token (option parens string num symbol)))
 
 (define (f x)
   (parse-expr x))
