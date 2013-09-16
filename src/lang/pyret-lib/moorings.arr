@@ -1227,9 +1227,15 @@ fun interp-basic():
   		    convert(sexpr.get(2)),
               convert(sexpr.get(3)))
         else if head == "let":
-          let(sexpr.get(1).get(0),
-              convert(sexpr.get(1).get(1)),
-              convert(sexpr.get(2)))
+          if List(sexpr.get(1)):
+            let(sexpr.get(1).get(0),
+                convert(sexpr.get(1).get(1)),
+                convert(sexpr.get(2)))
+          else:
+            let(sexpr.get(1),
+                convert(sexpr.get(2)),
+                convert(sexpr.get(3)))
+          end
         else if head == "fun":
           lam(check-params(sexpr.get(1)), convert(sexpr.get(2)))
         else if head == "+":
