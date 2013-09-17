@@ -13,6 +13,15 @@ should not be required for evaluating the ast node, and only used for
 these metadata purposes.
 
 |#
+(define (ok-last-stmt stmt)
+  (match stmt
+    [(s-let _ _ _) #f]
+    [(s-var _ _ _) #f]
+    [(s-fun _ _ _ _ _ _ _ _) #f]
+    [(s-data _ _ _ _ _ _ _) #f]
+    [(s-graph _ _) #f]
+    [(s-check _ _) #f]
+    [else #t]))
 
 (define (src->module-name e)
   (cond
