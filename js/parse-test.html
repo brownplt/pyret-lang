@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pyret Parse Tests in JS</title>
+<link rel="stylesheet" href="../lib/jasmine/lib/jasmine-core/jasmine.css">
+</head>
+
+<body>
+
+</body>
+
+<script src="../lib/jasmine/lib/jasmine-core/jasmine.js"></script>
+<script src="../lib/jasmine/lib/jasmine-core/jasmine-html.js"></script>
+<script src="../lib/jasmine/lib/jasmine-core/boot.js"></script>
+<script>window.module = {};</script>
+<script src="parser.js"></script>
+<script>window.parser = module.exports;</script>
+<script>
+"use strict";
+describe("parser", function() {
+
+  it("should work", function() {
+    var result = parser.parse("5 5");
+    expect(result).toBeDefined();
+  });
+
+});
+</script>
+
+</html>

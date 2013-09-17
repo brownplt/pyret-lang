@@ -5,7 +5,7 @@ all:
 dep:
 	@echo Downloading and linking to helper libraries...
 	git submodule init
-	git submodule update lib/ragg lib/whalesong/
+	git submodule update lib/ragg lib/whalesong/ lib/jasmine
 	raco link lib/ragg/ragg/
 	raco link lib/whalesong/whalesong/
 	@echo Linking and building Pyret locally...
