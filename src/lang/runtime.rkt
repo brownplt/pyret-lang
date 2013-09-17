@@ -568,21 +568,40 @@ And the object was:
 
           (- (length argnames) 1)
           (- (length args) 1)
-          (string-join (map to-string (drop args 1)) "\n")
+          (string-join (map to-repr (drop args 1)) "\n")
           (to-string (first args)))))]))
 
 (define (arity-error loc argnames args)
-  (raise
-    (pyret-error
-      loc
-      "arity-mismatch"
-      (format
-"Expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+  (define (pluralize str lst)
+    (string-append str (if (= (length lst) 1) "" "s")))
+  (define expected-names (pluralize "argument" argnames))
+  (define expected-args (pluralize "argument" args))
+  (define were/was (if (= (length args) 1) "was" "were"))
+  (cond
+    [(= (length args) 0)
+     (raise
+        (pyret-error
+          loc
+          "arity-mismatch"
+          (format
+"Expected ~a ~a, but got none."
+            (length argnames)
+            expected-names)))]
+    [else
+     (raise
+       (pyret-error
+         loc
+         "arity-mismatch"
+         (format
+"Expected ~a ~a, but got ~a.  The ~a provided ~a ~a:
 ~a"
-        (length argnames)
-        (length args)
-        (length args)
-        (string-join (map to-string args) "\n")))))
+           (length argnames)
+           expected-names
+           (length args)
+           (length args)
+           expected-args
+           were/was
+           (string-join (map to-repr args) "\n"))))]))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
