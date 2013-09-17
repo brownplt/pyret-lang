@@ -46,7 +46,8 @@
 (define pyret-fold (get-list-lib "fold"))
 (define pyret-fold2 (get-list-lib "fold2"))
 (define pyret-fold3 (get-list-lib "fold3"))
-(define pyret-fold4 (get-list-lib "fold"))
+(define pyret-fold4 (get-list-lib "fold4"))
+(define pyret-index (get-list-lib "index"))
 (define pyret-Set (get-set-lib "Set"))
 (define pyret-set (get-set-lib "set"))
 

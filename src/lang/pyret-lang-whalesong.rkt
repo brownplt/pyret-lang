@@ -65,6 +65,7 @@
     [pyret-fold2 fold2]
     [pyret-fold3 fold3]
     [pyret-fold4 fold4]
+    [pyret-index index]
     [pyret-read-sexpr read-sexpr]
     [pyret-read-sexpr-list read-sexpr-list]
     [pyret-Set Set]

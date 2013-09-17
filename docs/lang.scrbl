@@ -1422,6 +1422,7 @@ help manipulate lists.
     fold2
     fold3
     fold4
+    index
  ))
 
 

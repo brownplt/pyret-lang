@@ -114,6 +114,8 @@
       'fold2
       'fold3
       'fold4
+      'index
+
       'random
       'animate
       'circle
