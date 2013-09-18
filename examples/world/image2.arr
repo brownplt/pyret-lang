@@ -44,6 +44,8 @@ sharing:
   end,
   rotate(self, angle :: Number):
     rotated(self, angle)
-  end
+  end,
+  width(self): image.image-width(self.to-image()) end,
+  height(self): image.image-height(self.to-image()) end
 end
 
