@@ -6,7 +6,8 @@ provide {
   circle: circle,
   rectangle: rectangle,
   triangle: triangle,
-  isosceles-triangle: isosceles-triangle
+  isosceles-triangle: isosceles-triangle,
+  overlay: overlay
 } end
 
 data Image:
@@ -47,5 +48,9 @@ sharing:
   end,
   width(self): image.image-width(self.to-image()) end,
   height(self): image.image-height(self.to-image()) end
+end
+
+fun overlay(image1, image2):
+  image1.place-image(image1.height() / 2, image1.width() / 2, image2)
 end
 
