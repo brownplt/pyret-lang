@@ -13,7 +13,7 @@ height = 100
 
 init-world = []
 
-# UFO.png is from http://world.cs.brown.edu/1/clipart/ufo.png
+# ufo.png is from http://world.cs.brown.edu/1/clipart/ufo.png
 ufo = image.bitmap("ufo.png")
 
 fun draw(w):
@@ -47,7 +47,18 @@ fun tick(w):
   end
 end
 
+final-positions =
 big-bang(init-world,
   { on-key: key,
     to-draw: draw,
     on-tick: tick })
+
+fun sum-all-ys(ps):
+  cases (List) ps:
+    | empty => 0
+    | link(f, r) => f.y + sum-all-ys(r)
+  end
+end
+
+# This should be close to height / 2
+print((sum-all-ys(final-positions) / final-positions.length()) * 1.0)
