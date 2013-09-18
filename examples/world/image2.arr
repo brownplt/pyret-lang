@@ -7,6 +7,7 @@ provide {
   rectangle: rectangle,
   triangle: triangle,
   isosceles-triangle: isosceles-triangle,
+  bitmap: bitmap,
   overlay: overlay
 } end
 
@@ -38,6 +39,14 @@ data Image:
   | rotated(img :: Image, angle :: Number) with:
     to-image(self):
       image.rotate(self.angle, self.img.to-image())
+    end,
+  | bitmap(file :: String) with:
+    to-image(self):
+      image.bitmap-file(self.file)
+    end
+  | scaled(img :: Image, factor :: Number) with:
+    to-image(self):
+      image.scale(self.factor, self.img.to-image())
     end
 sharing:
   place-image(self, x :: Number, y :: Number, other :: Image):
@@ -47,7 +56,8 @@ sharing:
     rotated(self, angle)
   end,
   width(self): image.image-width(self.to-image()) end,
-  height(self): image.image-height(self.to-image()) end
+  height(self): image.image-height(self.to-image()) end,
+  scale(self, n :: Number): scaled(self, n) end
 end
 
 fun overlay(image1, image2):
