@@ -13,7 +13,7 @@ height = 100
 
 init-world = []
 
-# UFO.png is free graphic from: http://www.clker.com/clipart-ufo-in-metalic-style.html
+# UFO.png is from http://world.cs.brown.edu/1/clipart/ufo.png
 ufo = image.bitmap("ufo.png")
 
 fun draw(w):
