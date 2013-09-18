@@ -13,7 +13,8 @@ height = 100
 
 init-world = []
 
-ufo = image.circle(15, "solid", "red")
+# UFO.png is free graphic from: http://www.clker.com/clipart-ufo-in-metalic-style.html
+ufo = image.bitmap("ufo.png")
 
 fun draw(w):
   fun draw-help(w2):
