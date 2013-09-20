@@ -1447,8 +1447,9 @@ help manipulate lists.
 Construct sets using @tt{sets.set(lst)}.
 Sets have the type @tt{sets.Set}.
 
-In @tt{#lang pyret/whalesong}, @tt{set} and @tt{Set} are available
-directly.
+@margin-note{In Captain Teach and in @tt{#lang pyret/whalesong}, @tt{set}
+and @tt{Set} are in the environment by default, so you can just use their
+names as identifiers.}
 
 @justcode{data Set: | ... end}
 
