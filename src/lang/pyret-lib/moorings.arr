@@ -1051,9 +1051,10 @@ fun clear-results():
   all-results := empty
   nothing
 end
-fun get-results(): {
+fun get-results(val): {
   results: all-results,
-  format(self): format-check-results(self.results) end
+  format(self): format-check-results(self.results) end,
+  val: val
 } end
 
 fun format-check-results(results-list):

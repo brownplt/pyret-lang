@@ -1422,6 +1422,7 @@ help manipulate lists.
     fold2
     fold3
     fold4
+    index
  ))
 
 
@@ -1586,6 +1587,9 @@ are converted into a list [\"string\", <the-string>].'
   where:
       read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
     is [[-13, 14, 88.8], 'cats', '++', ['string', 'dogs']]
+  end
+  fun random(n :: Number) -> Number:
+    doc: 'Take a number as input, and return a random number between 0 and n-1 (inclusive'
   end"
   )
 @(define misc-ast (parse-pyret misc))

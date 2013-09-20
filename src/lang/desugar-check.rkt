@@ -201,9 +201,24 @@
      ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.
      ;; The toplevel may end in a statement that we cannot let-bind (which is
      ;; what desugar-check/internal will try to do), so we add a nothing at
-     ;; the end
-     (define with-checks (desugar-check/internal (s-block s2 (append stmts (list (s-id s2 'nothing))))))
-     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) empty))
+     ;; the end if this is true, and if not, we bind the result for use here
+     ;; before passing it off.  (The toplevel is hopeless, etc.)
+     (define last-stmt (last stmts))
+     (define all-but-last (take stmts (- (length stmts) 1)))
+     (define ok-last (ok-last-stmt last-stmt))
+     (define result-id (gensym 'result))
+     (define with-checks
+      (cond
+        [ok-last
+         (define bind-result (s-let s (s-bind s result-id (a-blank)) last-stmt))
+         (define new-stmts
+          (append all-but-last (list bind-result (s-id s 'nothing))))
+          (desugar-check/internal (s-block s2 new-stmts))]
+        [else
+         (define bind-result (s-let s (s-bind s result-id (a-blank)) (s-id s2 'nothing)))
+         (desugar-check/internal (s-block s2 (append stmts (list bind-result (s-id s2 'nothing)))))]))
+     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s result-id))))
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list get-results))))]
     [ast (desugar-check/internal ast)]))
+

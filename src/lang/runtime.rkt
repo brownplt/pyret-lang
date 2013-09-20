@@ -492,34 +492,29 @@
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
-(define-syntax (get-raw-field stx)
-  (syntax-case stx ()
-    [(_ loc v f)
-     #'(string-map-ref (get-dict v) f
-       (lambda()
-         (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v))))))]))
+(define (get-raw-field loc v f)
+ (string-map-ref (get-dict v) f
+   (lambda()
+     (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
 
 ;; get-field : Loc Value String -> Value
-(define-syntax (get-field stx)
-  (syntax-case stx ()
-    [(_ loc v f)
-     #'(let ()
-       (define vfield (get-raw-field loc v f))
-       (cond
-         [(p-mutable? vfield)
-          (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
-         [(p-placeholder? vfield)
-          (get-placeholder-value loc vfield)]
-         [(p-method? vfield)
-          (let [(curried
-                 (mk-fun (λ args (apply (p-base-method vfield)
-                                        (cons v args)))
-                         (λ args (apply (p-base-method vfield)
-                                        (cons v (rest args))))
-                         ;; NOTE(dbp 2013-08-09): If _doc isn't a string, this will blow up...
-                         ""))]
-                curried)]
-         [else vfield]))]))
+(define (get-field loc v f)
+ (define vfield (get-raw-field loc v f))
+ (cond
+   [(p-mutable? vfield)
+    (raise (pyret-error loc "lookup-mutable" (format "Cannot look up mutable field \"~a\" using dot or bracket" f)))]
+   [(p-placeholder? vfield)
+    (get-placeholder-value loc vfield)]
+   [(p-method? vfield)
+    (let [(curried
+           (mk-fun (λ args (apply (p-base-method vfield)
+                                  (cons v args)))
+                   (λ args (apply (p-base-method vfield)
+                                  (cons v (rest args))))
+                   ;; NOTE(dbp 2013-08-09): If _doc isn't a string, this will blow up...
+                   ""))]
+          curried)]
+   [else vfield]))
 
 ;; get-mutable-field : Loc Value String -> Value
 (define (get-mutable-field loc v f)
@@ -573,21 +568,40 @@ And the object was:
 
           (- (length argnames) 1)
           (- (length args) 1)
-          (string-join (map to-string (drop args 1)) "\n")
+          (string-join (map to-repr (drop args 1)) "\n")
           (to-string (first args)))))]))
 
 (define (arity-error loc argnames args)
-  (raise
-    (pyret-error
-      loc
-      "arity-mismatch"
-      (format
-"Expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+  (define (pluralize str lst)
+    (string-append str (if (= (length lst) 1) "" "s")))
+  (define expected-names (pluralize "argument" argnames))
+  (define expected-args (pluralize "argument" args))
+  (define were/was (if (= (length args) 1) "was" "were"))
+  (cond
+    [(= (length args) 0)
+     (raise
+        (pyret-error
+          loc
+          "arity-mismatch"
+          (format
+"Expected ~a ~a, but got none."
+            (length argnames)
+            expected-names)))]
+    [else
+     (raise
+       (pyret-error
+         loc
+         "arity-mismatch"
+         (format
+"Expected ~a ~a, but got ~a.  The ~a provided ~a ~a:
 ~a"
-        (length argnames)
-        (length args)
-        (length args)
-        (string-join (map to-string args) "\n")))))
+           (length argnames)
+           expected-names
+           (length args)
+           (length args)
+           expected-args
+           were/was
+           (string-join (map to-repr args) "\n"))))]))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
