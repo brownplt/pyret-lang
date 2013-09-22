@@ -147,6 +147,21 @@
     end
    end"
   "Cannot end a block with a graph definition")
+
+(check-pyret-exn
+  "block:
+    x = 5
+    y = 10
+   end"
+  "Cannot end a block in a let-binding")
+
+(check-pyret-exn
+  "block:
+    x = 5
+    graph: y = 10 end
+   end"
+  "Cannot end a block with a graph definition")
+
 ))
 
 (run-tests all)

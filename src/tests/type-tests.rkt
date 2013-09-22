@@ -190,4 +190,20 @@
    end"
   (p:mk-num 1))
 
+(check-pyret-exn
+  "block:
+     x = 10
+     x
+   end
+   x"
+  "Unbound identifier: x")
+
+(check-pyret-exn
+  "block:
+     var x = 10
+     x
+   end
+   x"
+  "Unbound identifier: x")
+
 (run-tests all)

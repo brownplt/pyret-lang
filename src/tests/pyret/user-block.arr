@@ -42,4 +42,11 @@ check:
       end
     end
   end is 5
+
+  var b = 1
+  block:
+    b := 2
+  end
+  b is 2
+
 end

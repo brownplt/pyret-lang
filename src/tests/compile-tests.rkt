@@ -729,7 +729,7 @@ o2.m().called" true)
   ))
 
 (define user-blocks (test-suite "user blocks"
-  (check-pyret-match/check "pyret/user-block.arr" _ 10)
+  (check-pyret-match/check "pyret/user-block.arr" _ 11)
   (check-pyret "f = block:
       var x = 0
       fun():
