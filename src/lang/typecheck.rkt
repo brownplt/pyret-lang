@@ -282,6 +282,8 @@
      (s-var s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
     [(s-let s bnd val)
      (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
+    [(s-user-block s body)
+     (s-user-block s (cc body))]
 
     [(s-lam s typarams args ann doc body check)
      (define (new-arg b)

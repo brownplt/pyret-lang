@@ -332,6 +332,8 @@
 
     [(s-graph s bindings) (desugar-graph s bindings)]
 
+    [(s-user-block s body) (s-user-block s (ds body))]
+
     [(s-fun s name typarams args ann doc body check)
      (s-let s (s-bind s name (a-blank))
             (s-lam s typarams (map (replace-typarams-binds typarams)

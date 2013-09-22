@@ -69,6 +69,9 @@
      [(s-let l bind expr)
       (find expr matcher)]
 
+     [(s-user-block l body)
+      (find body matcher)]
+
      [(s-var l bind expr)
       (find expr matcher)]
      

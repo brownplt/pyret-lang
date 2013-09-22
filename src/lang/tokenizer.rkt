@@ -32,7 +32,7 @@
          "cases"
          "when" "if" "else if" "else:"
          "data" "with:" "sharing:" "mutable" "cyclic"
-         "graph:"
+         "graph:" "block:"
          "for" "from"
          "end" ";"))
 

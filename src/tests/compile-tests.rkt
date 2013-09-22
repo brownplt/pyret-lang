@@ -728,6 +728,20 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
 
+(define user-blocks (test-suite "user blocks"
+  (check-pyret-match/check "pyret/user-block.arr" _ 10)
+  (check-pyret "f = block:
+      var x = 0
+      fun():
+        x := x + 1
+        x
+      end
+    end
+    f()
+    f()"
+    (p:mk-num 2))))
+
+
 
 (define exceptions (test-suite "exceptions"
   (check-pyret-exn
@@ -757,7 +771,7 @@ o2.m().called" true)
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
-  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
   (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
@@ -1038,6 +1052,7 @@ o2.m().called" true)
   tag-tests
   built-in-libraries
   for-block
+  user-blocks
   methods
   mutables
   exceptions

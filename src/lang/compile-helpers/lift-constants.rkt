@@ -109,6 +109,10 @@
        (cons (append obj-list field-list)
              (s-colon-bracket l obj field))]
 
+      [(s-user-block l body)
+       (match-define (cons body-list new-body) (get-and-replace-constants body))
+       (cons body-list (s-user-block l new-body))]
+
       [(s-let l bind expr)
        (match-define (cons expr-list new-expr) (get-and-replace-constants expr))
        (cons expr-list (s-let l bind new-expr))]

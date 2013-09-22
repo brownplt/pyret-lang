@@ -90,6 +90,8 @@
      (build s_program (tp-loc s) (map tp-header imports) (tp block))]
     [(s-block s stmts)
      (build s_block (tp-loc s) (map tp stmts))]
+    [(s-user-block s body)
+     (build s_user_block (tp-loc s) (tp body))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -436,6 +438,8 @@
       (map tr-expr e)]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
+     [(has-brand e s_user_block)
+      (tr-obj e s-user-block (tr-loc l) (tr-expr body))]
      [(has-brand e s_fun)
       (tr-obj e s-fun
               (tr-loc l) (string->symbol name) (map symbol->string params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]

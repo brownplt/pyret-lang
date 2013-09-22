@@ -150,6 +150,8 @@
      (with-syntax ([(stmt ...) (compile-block l stmts new-env)])
        (attach l #'(r:let () stmt ...)))]
 
+    [(s-user-block l body) (compile-expr body env)]
+
     [(s-num l n) #`(p:mk-num #,(d->stx n l))]
     [(s-bool l #t) #`p:p-true]
     [(s-bool l #f) #`p:p-false]

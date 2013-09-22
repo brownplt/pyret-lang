@@ -327,6 +327,7 @@
     [(for-bind name "from" expr)
      (s-for-bind (loc stx) (parse-binding #'name) (parse-binop-expr #'expr))]))
 
+
 (define (parse-expr stx)
   (syntax-parse stx
     #:datum-literals (
@@ -341,6 +342,7 @@
       colon-bracket-expr
       for-expr
       try-expr
+      let-expr let-binding
       lambda-expr
       method-expr
       extend-expr
@@ -403,6 +405,8 @@
             (parse-block #'body)
             (parse-binding #'arg-elt)
             (parse-block #'except))]
+    [(user-block-expr "block:" body (end (~or "end" ";")))
+     (s-user-block (loc stx) (parse-block #'body))]
     [(lambda-expr "fun" ty-params args return-ann ":" doc body check (end (~or "end" ";")))
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)

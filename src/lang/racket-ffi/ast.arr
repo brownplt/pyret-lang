@@ -22,7 +22,8 @@ data ImportType:
 end
 
 data Expr:
-  | s_block(l :: Loc, stmts :: List<Expr>) # List<Expr U Expr>, actually
+  | s_block(l :: Loc, stmts :: List<Expr>) # list<expr u expr>, actually
+  | s_user_block(l :: Loc, body :: Expr)
   | s_fun(
       l :: Loc,
       name :: String,
