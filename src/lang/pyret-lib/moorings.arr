@@ -1098,7 +1098,7 @@ fun format-check-results(results-list):
         when has-field(fail.exception, "trace"):
           print("Trace:")
           for each(loc from fail.exception.trace):
-            print(loc)
+            print(loc.format())
           end
         end
       end
