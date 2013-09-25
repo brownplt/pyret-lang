@@ -61,5 +61,5 @@
 (define pyret-none (get-option-lib "none"))
 (define pyret-some (get-option-lib "some"))
 
-(define pyret-read-sexpr read-sexpr)
-(define pyret-read-sexpr-list read-sexpr-list)
+(define pyret-read-sexpr %read-sexpr)
+(define pyret-read-sexpr-list %read-sexpr-list)

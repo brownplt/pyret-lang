@@ -108,6 +108,6 @@
            ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
           [else (void)])]
         [else
-         (printf "~a\n" (p:to-string val))])]
+         (printf "~a\n" (p:to-repr val))])]
      [_ (void)])))
 

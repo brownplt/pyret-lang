@@ -4,10 +4,12 @@
 
 (require
    (except-in "../runtime.rkt" raise)
+   "../string-map.rkt"
    "../ffi-helpers.rkt")
 
-(provide (rename-out [read-sexpr-pfun read-sexpr]
-                     [read-sexprs-pfun read-sexpr-list]))
+(provide (rename-out [read-sexpr-pfun %read-sexpr]
+                     [read-sexprs-pfun %read-sexpr-list]
+                     [sexp-obj %PYRET-PROVIDE]))
 
 ; read-sexpr: Convert an sexpr string into nested Pyret lists.
 ;             Symbols are wrapped in ("symbol" ***).
@@ -199,3 +201,10 @@ For example, read-sexpr(\"((-13 +14 88.8) cats ++ \\\"dogs\\\")\") will return
 (parse-exprs "- 385")
 (parse-exprs "(_) (3 4)")
 |#
+(define sexp-obj (p:mk-object
+  (make-string-map
+    (list
+      (cons "read-sexpr" read-sexpr-pfun)
+      (cons "read-sexprs" read-sexprs-pfun)))))
+    
+
