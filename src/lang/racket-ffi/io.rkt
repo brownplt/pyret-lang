@@ -6,7 +6,8 @@ provide {
   flush-output: flush-output,
   flush-error: flush-error,
   read-line: read-line,
-  read-sexpr: w.read-sexpr
+  read-sexpr: read-sexpr-wrap,
+  sexpr-from-string: w.read-sexpr
 } end
 
 base = R("racket/base")
@@ -28,5 +29,12 @@ s-any = base("string->symbol", "any")
 
 fun read-line():
   base("read-line", ip, s-any)
+end
+
+fun read-sexpr-wrap():
+  p = base("open-output-string")
+  d = base("read", ip)
+  base("write", d, p)
+  w.read-sexpr(base("get-output-string", p))
 end
 
