@@ -41,8 +41,9 @@ syn match op ' <> '
 
 syn match comment '\#.*$'
 
-syn match string '"[^"]*"'
-syn match string "'[^']*'"
+
+syntax region string start=/\v"/ skip=/\v\\./ end=/\v"/
+syntax region string start=/\v'/ skip=/\v\\./ end=/\v'/
 
 syn match number "[0-9]+"
 
