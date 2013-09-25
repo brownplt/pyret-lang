@@ -972,6 +972,10 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/mixins.arr" _ 9)
 ))
 
+(define currying (test-suite "currying"
+  (check-pyret-match/check "pyret/currying.arr" _ 8)
+))
+
 (define checks (test-suite "checks"
 
   (let ()
@@ -1060,6 +1064,7 @@ o2.m().called" true)
   binary-operators
   ffi
   mixins
+  currying
   checks
   examples))
 

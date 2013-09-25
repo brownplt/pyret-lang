@@ -218,6 +218,55 @@
        (s-data-field s (desugar-internal name)
           (s-method s args ann doc (desugar-internal body) (desugar-internal check))))]))
 
+(define (ds-curry-args s args)
+  (let ((params-and-args
+         (foldl
+          (lambda (arg l)
+            (cond
+             [(and (s-id? arg) (equal? (s-id-id arg) '_))
+              (let ((next-arg (gensym "arg-")))
+                (list (cons (s-bind s next-arg (a-blank)) (first l))
+                      (cons (s-id s next-arg) (second l))))]
+             [else
+              (list (first l) (cons arg (second l)))]))
+          (list (list) (list))
+          args)))
+    (list (reverse (first params-and-args)) (reverse (second params-and-args)))))
+
+(define (ds-curry-binop s e1 e2 rebuild)
+  (define params-and-args (ds-curry-args s (list e1 e2)))
+  (define params (first params-and-args))
+  (cond
+   [(null? params)
+    (rebuild e1 e2)]
+   [else
+    (define curry-args (second params-and-args))
+    (s-lam s (list) params (a-blank) ""
+           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))    
+(define (ds-curry-unop s e1 rebuild)
+  (define params-and-args (ds-curry-args s (list e1)))
+  (define params (first params-and-args))
+  (cond
+   [(null? params)
+    (rebuild e1)]
+   [else
+    (define curry-args (second params-and-args))
+    (s-lam s (list) params (a-blank) ""
+           (rebuild (first curry-args)) (s-block s empty))]))
+    
+(define (ds-curry ast-node)
+  (match ast-node
+    [(s-app s f args)
+     (define params-and-args (ds-curry-args s args))
+     (define params (first params-and-args))
+     (cond
+        [(null? params)
+         ast-node]
+        [else
+         (s-lam s (list) params (a-blank) ""
+              (s-app s f (second params-and-args)) (s-block s empty))])]
+    [_ ast-node]))
+
 (define (desugar-ann ann)
   (match ann
     [(a-pred s a pred) (a-pred s (desugar-ann a) (desugar-internal pred))]
@@ -271,8 +320,10 @@
 (define (desugar-internal ast)
   (define ds desugar-internal)
   (define (ds-== s e1 e2)
-    (s-app s (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
-              (list (ds e1) (ds e2))))
+    (ds-curry-binop s (ds e1) (ds e2)
+                    (lambda (ds-e1 ds-e2)
+                      (s-app s (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
+                             (list ds-e1 ds-e2)))))
   (define (ds-bind b)
     (match b
       [(s-bind s id a) (s-bind s id (desugar-ann a))]))
@@ -400,10 +451,10 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s fun args) (s-app s (ds fun) (map ds args))]
+    [(s-app s fun args) (ds-curry (s-app s (ds fun) (map ds args)))]
 
     [(s-left-app s target fun args)
-     (s-app s (ds fun) (cons (ds target) (map ds args)))]
+     (ds-curry (s-app s (ds fun) (cons (ds target) (map ds args))))]
 
     [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
 
@@ -431,8 +482,12 @@
     [(s-paren _ e) (ds e)]
 
 
-    [(s-not s e) (s-app s (s-bracket s (ds e)
-                                     (s-str s "_not")) (list))]
+    [(s-not s e)
+     (ds-curry-unop
+      s (ds e)
+      (lambda (ds-e)
+        (define e-curry (s-bracket s ds-e (s-str s "_not")))
+        (s-app s e-curry (list))))]
 
     [(s-op s 'opis e1 e2)
      (s-app
@@ -457,15 +512,21 @@
     [(s-op s 'op== e1 e2) (ds-== s e1 e2)]
 
     [(s-op s 'op<> e1 e2)
-     (s-app s (s-bracket s (ds-== s e1 e2) (s-str s "_not")) (list))]
+     (ds-curry-binop
+      s (ds e1) (ds e2)
+      (lambda (ds-e1 ds-e2)
+        (s-app s (s-bracket s (ds-== s ds-e1 ds-e2) (s-str s "_not")) (list))))]
 
     [(s-op s op e1 e2)
-     (define e2-maybe-thunked
-      (if (is-lazy-method? op)
-          (s-lam s empty empty (a-blank) "" (ds e2) (s-block s empty))
-          (ds e2)))
-     (s-app s (s-bracket s (ds e1) (s-str s (hash-ref op-method-table op)))
-                      (list e2-maybe-thunked))]
+     (ds-curry-binop
+      s (ds e1) (ds e2)
+      (lambda (ds-e1 ds-e2)
+        (define e2-maybe-thunked
+          (if (is-lazy-method? op)
+              (s-lam s empty empty (a-blank) "" ds-e2 (s-block s empty))
+              ds-e2))
+        (s-app s (s-bracket s ds-e1 (s-str s (hash-ref op-method-table op)))
+               (list e2-maybe-thunked))))]
 
     [(or (s-num _ _)
          (s-bool _ _)
