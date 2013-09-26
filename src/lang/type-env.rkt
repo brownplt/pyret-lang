@@ -63,6 +63,15 @@
      'Nothing
      'Mutable
      'Placeholder
+     'is-bool
+     'is-function
+     'is-method
+     'is-number
+     'is-object
+     'is-string
+     'is-nothing
+     'is-mutable
+     'is-placeholder
      'brander
      'check-brand
      'mk-mutable
