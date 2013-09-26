@@ -1590,6 +1590,33 @@ are converted into a list [\"string\", <the-string>].'
   end
   fun random(n :: Number) -> Number:
     doc: 'Take a number as input, and return a random number between 0 and n-1 (inclusive'
+  end
+  fun is-number(v :: Any) -> Bool:
+    doc: 'True if v is a number, false otherwise'
+  end
+  fun is-string(v :: Any) -> Bool:
+    doc: 'True if v is a string, false otherwise'
+  end
+  fun is-object(v :: Any) -> Bool:
+    doc: 'True if v is a object, false otherwise'
+  end
+  fun is-bool(v :: Any) -> Bool:
+    doc: 'True if v is a bool, false otherwise'
+  end
+  fun is-function(v :: Any) -> Bool:
+    doc: 'True if v is a function, false otherwise'
+  end
+  fun is-method(v :: Any) -> Bool:
+    doc: 'True if v is a method, false otherwise'
+  end
+  fun is-mutable(v :: Any) -> Bool:
+    doc: 'True if v is a mutable, false otherwise'
+  end
+  fun is-placeholder(v :: Any) -> Bool:
+    doc: 'True if v is a placeholder, false otherwise'
+  end
+  fun is-number(v :: Any) -> Bool:
+    doc: 'True if v is a number, false otherwise'
   end"
   )
 @(define misc-ast (parse-pyret misc))
