@@ -4,7 +4,7 @@ provide {
   PPrintDoc: PPrintDoc,
   empty: empty,
   is-empty: is-empty,
-  string: string,
+  str: str,
   number: number,
   hardline: hardline,
   blank: blank,
@@ -44,7 +44,7 @@ provide {
 
 data PPrintDoc:
   | empty
-  | string(s :: String)
+  | str(s :: String)
   | hardline
   | blank(n :: Number)
   | concat(fst :: PPrintDoc, snd :: PPrintDoc)
@@ -107,7 +107,7 @@ sharing:
     end
     fun run(pdoc):
       if is-empty(pdoc): emit_string("", 0)
-      else if is-string(pdoc): emit_string(pdoc.s, pdoc.s.length())
+      else if is-str(pdoc): emit_string(pdoc.s, pdoc.s.length())
       else if is-hardline(pdoc):
         if is-flat: raise("Hardline isn't flat")
         else: emit_newline()
@@ -156,18 +156,18 @@ sharing:
   end
 end
 
-fun number(n :: Number): string(tostring(n)) end
-lparen = string("(")
-rparen = string(")")
-lbrace = string("{")
-rbrace = string("}")
-lbrack = string("[")
-rbrack = string("]")
-langle = string("<")
-rangle = string(">")
-comma = string(",")
+fun number(n :: Number): str(tostring(n)) end
+lparen = str("(")
+rparen = str(")")
+lbrace = str("{")
+rbrace = str("}")
+lbrack = str("[")
+rbrack = str("]")
+langle = str("<")
+rangle = str(">")
+comma = str(",")
 fun break(n): ifFlat(blank(n), hardline) end
-commabreak = string(",") + break(1)
+commabreak = str(",") + break(1)
 
 fun flow_map(sep, f, items):
   for list.fold(acc from empty, item from items):
@@ -178,8 +178,8 @@ fun flow_map(sep, f, items):
 end
 fun flow(items): flow_map(break(1), fun(x): x end, items) end
 fun vert(items): flow_map(hardline, fun(x): x end, items) end
-fun parens(d): group(string("(") + d + string(")")) end
-fun dquote(s): group(string("\"") + s + string("\"")) end
+fun parens(d): group(str("(") + d + str(")")) end
+fun dquote(s): group(str("\"") + s + str("\"")) end
 
 fun align(d):
   column(fun(col): nesting(fun(indent): nest(col - indent, d) end) end)
@@ -219,7 +219,7 @@ fun label-align-surround(label, open, sep, contents, close):
   group(label + align(open + align(separate(sep, contents)) + group(break(0) + close)))
 end
 
-# test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(string)
+# test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
 # test = flow(test-words)
 # print(tostring(test))
 # print("")
