@@ -13,7 +13,8 @@ data File:
     close-file(self): F.close-input-file(self.inner-file) end
   | out-fd(inner-file :: Any) with:
     display(self, val): F.display(self.inner-file, val) end,
-    close-file(self): F.close-output-file(self.inner-file) end
+    close-file(self): F.close-output-file(self.inner-file) end,
+    flush(self): F.flush-output-file(self.inner-file) end
 end
 
 fun input-file(path :: String):
