@@ -1615,8 +1615,8 @@ are converted into a list [\"string\", <the-string>].'
   fun is-placeholder(v :: Any) -> Bool:
     doc: 'True if v is a placeholder, false otherwise'
   end
-  fun is-number(v :: Any) -> Bool:
-    doc: 'True if v is a number, false otherwise'
+  fun is-nothing(v :: Any) -> Bool:
+    doc: 'True if v is nothing, false otherwise'
   end"
   )
 @(define misc-ast (parse-pyret misc))
@@ -1627,6 +1627,15 @@ are converted into a list [\"string\", <the-string>].'
   print
   torepr
   read-sexpr
+  is-number
+  is-string
+  is-bool
+  is-function
+  is-method
+  is-object
+  is-mutable
+  is-placeholder
+  is-nothing
   ))
 
 @section[#:tag "s:mutables"]{Mutables}
