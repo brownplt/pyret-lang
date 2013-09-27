@@ -1074,7 +1074,7 @@ fun format-check-results(results-list):
         total: inner-acc.total + inner-results.length()
       }
       when (new-failed <> 0) or (new-errors <> 0) or (other-errors <> 0):
-        print("In check block at " + check-result.location.format())
+        print("\n\nIn check block at " + check-result.location.format())
       end
       for each(fail from inner-results.filter(is-failure)):
         cases(Option) fail.location:
@@ -1093,7 +1093,7 @@ fun format-check-results(results-list):
             print("In test at " + loc.format())
         end
         print("Test " + fail.name + " raised an error:")
-        print(fail.exception)
+        print(fail.exception.tostring())
         print("")
         when has-field(fail.exception, "trace"):
           print("Trace:")
@@ -1104,7 +1104,11 @@ fun format-check-results(results-list):
       end
       when is-error-result(check-result):
         print("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
-        print(check-result.err)
+        if Error(check-result.err):
+          print(check-result.err.format())
+        else:
+          print(check-result.err)
+        end
         print("")
         when has-field(check-result.err, "trace"):
           print("Trace:")
