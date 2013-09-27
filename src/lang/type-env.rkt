@@ -7,6 +7,7 @@
   update
   update-list-any
   lookup
+  env-to-hash
   LIBRARY-ENV
   DEFAULT-ENV
   WHALESONG-ENV
@@ -22,6 +23,7 @@
   r)
 (define (update id b env)
   (hash-set env id b))
+(define (env-to-hash env) env)
 
 (define type-check-loc
   (srcloc "builtin-value" #f #f #f #f))
