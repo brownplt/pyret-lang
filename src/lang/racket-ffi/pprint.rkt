@@ -38,8 +38,6 @@ provide {
   rbrack: rbrack,
   langle: langle,
   rangle: rangle,
-  squote: squote,
-  dquote: dquote,
   comma: comma,
   commabreak: commabreak
 } end
@@ -66,7 +64,7 @@ sharing:
   tostring(self):
     cases(PPrintDoc) self:
       | empty => "Empty"
-      | string(s) => "Str(" + s + ")"
+      | str(s) => "Str(" + s + ")"
       | hardline => "CRLF"
       | blank(n) => "Blank(" + tostring(n) + ")"
       | concat(fst, snd) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
@@ -168,8 +166,6 @@ lbrack = str("[")
 rbrack = str("]")
 langle = str("<")
 rangle = str(">")
-squote = str("'")
-dquote = str('"')
 comma = str(",")
 fun break(n): ifFlat(blank(n), hardline) end
 commabreak = comma + break(1)
@@ -184,8 +180,10 @@ end
 fun flow(items): flow_map(break(1), fun(x): x end, items) end
 fun vert(items): flow_map(hardline, fun(x): x end, items) end
 fun parens(d): group(lparen + d + rparen) end
-fun dquote(s): group(dquote + s + dquote) end
-fun squote(s): group(squote + s + squote) end
+str-squote = str("'")
+str-dquote = str('"')
+fun dquote(s): group(str-dquote + s + str-dquote) end
+fun squote(s): group(str-squote + s + str-squote) end
 
 fun align(d):
   column(fun(col): nesting(fun(indent): nest(col - indent, d) end) end)
