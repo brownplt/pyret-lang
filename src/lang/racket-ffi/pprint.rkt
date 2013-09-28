@@ -38,6 +38,8 @@ provide {
   rbrack: rbrack,
   langle: langle,
   rangle: rangle,
+  squote: squote,
+  dquote: dquote,
   comma: comma,
   commabreak: commabreak
 } end
@@ -166,9 +168,11 @@ lbrack = str("[")
 rbrack = str("]")
 langle = str("<")
 rangle = str(">")
+squote = str("'")
+dquote = str('"')
 comma = str(",")
 fun break(n): ifFlat(blank(n), hardline) end
-commabreak = str(",") + break(1)
+commabreak = comma + break(1)
 
 fun flow_map(sep, f, items):
   for list.fold(acc from empty, item from items):
@@ -179,9 +183,9 @@ fun flow_map(sep, f, items):
 end
 fun flow(items): flow_map(break(1), fun(x): x end, items) end
 fun vert(items): flow_map(hardline, fun(x): x end, items) end
-fun parens(d): group(str("(") + d + str(")")) end
-fun dquote(s): group(str("\"") + s + str("\"")) end
-fun squote(s): group(str("'") + s + str("'")) end
+fun parens(d): group(lparen + d + rparen) end
+fun dquote(s): group(dquote + s + dquote) end
+fun squote(s): group(squote + s + squote) end
 
 fun align(d):
   column(fun(col): nesting(fun(indent): nest(col - indent, d) end) end)
