@@ -109,7 +109,7 @@ be written without the quotes or square brackets.
 The fields can be accessed with dotted notation, with the same rules
 about square brackets for arbitrary expressions, and identifier-like keys
 written without (note: confused about `check`? It's a Pyret language feature,
-explained it detail later in the introduction
+explained it detail later in the introduction).
 
     check:
       {foo: 10}.["fo" + "o"] is 10
