@@ -867,7 +867,83 @@ check:
 end
 }
 
+@subsubsection[#:tag "s:curried-apply-expr"]{Curried Application Expressions}
 
+Suppose a function is defined with multiple arguments:
+
+@justcode{
+fun f(v, w, x, y, z): ... end
+}
+
+Sometimes, it is particularly convenient to define a new function that
+calls @tt{f} with some arguments pre-specified:
+
+@justcode{
+call-f-with-123 = fun(y, z): f(1, 2, 3, y, z) end
+}
+
+Pyret provides syntactic sugar to make writing such helper functions
+easier:
+
+@justcode{
+call-f-with-123 = f(1, 2, 3, _, _) # same as the fun expression above
+}
+
+Specifically, when Pyret code contains a function application some of
+whose arguments are underscores, it constructs an anonymous function
+with the same number of arguments as there were underscores in the
+original expression, whose body is simply the original function
+application, with the underscores replaced by the names of the
+arguments to the anonymous function.
+
+This syntactic sugar also works with
+@seclink["s:left-apply-expr" "caret application expressions"], and
+with operators.  For example, the following are two ways to sum a list
+of numbers:
+
+@justcode{
+[1, 2, 3, 4].foldl(fun(a, b): a + b end, 0)
+
+[1, 2, 3, 4].foldl(_ + _, 0)
+}
+
+Likewise, the following are two ways to compare two lists for
+equality:
+
+@justcode{
+list.map_2(fun(x, y): x == y end, first-list, second-list)
+
+list.map_2(_ == _, first-list, second-list)
+}
+
+Note that there are some limitations to this syntactic sugar.  You
+cannot use it with the @tt{is} or @tt{raises} expressions in
+@seclink["s:checkers" "check: blocks"], since both test expressions and expected
+outcomes are known when writing tests.  Also, note that the sugar is
+applied only to one function application at a time.  As a result, the
+following code:
+
+@justcode{
+_ + _ + _
+}
+
+desugars to
+
+@justcode{
+fun(z):
+  (fun (x, y): x + y end) + z
+end
+}
+
+which is probably not what was intended.  You can still write the
+intended expression manually:
+
+@justcode{
+fun(x, y, z): x + y + z end
+}
+
+Pyret just does not provide syntactic sugar to help in this case
+(or other more complicated ones).
 
 @subsubsection[#:tag "s:obj-expr"]{Object Expressions}
 
@@ -1080,7 +1156,7 @@ check:
     | empty => "empty"
     | link(f, r) => "link"
   end
-  result is "link
+  result is "link"
 
   result2 = cases(list.List) [1,2,3]:
     | empty => "empty"
