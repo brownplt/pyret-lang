@@ -1,5 +1,9 @@
 ## Pyret Language Introduction
 
+### Getting Started
+
+You can install Pyret by cloning this repository and running `make`, or `raco setup pyret`, in the repository. You must have Racket >= 5.3.5 installed for this to work. Then put pyret code it `filename.arr` files with `#lang pyret/whalesong` at the top, and run them with `raco pyret /path/to/file.arr`.
+
 ### Basics
 
 #### Hello world
@@ -104,11 +108,16 @@ be written without the quotes or square brackets.
 
 The fields can be accessed with dotted notation, with the same rules
 about square brackets for arbitrary expressions, and identifier-like keys
-written without.
+written without (note: confused about `check`? It's a Pyret language feature,
+explained it detail later in the introduction).
 
-    {foo: 10}.["fo" + "o"] # evaluates to 10
+    check:
+      {foo: 10}.["fo" + "o"] is 10
+    end
 
-    {["foobar"]: 300}.foobar # evaluates to 300
+    check:
+      {["foobar"]: 300}.foobar is 300
+    end
 
 Objects in Pyret are not mutable. To construct a new object with a new or
 changed field from an old object, you use the following notation:
@@ -133,9 +142,12 @@ in other languages) is accessed as the `first` field, and the rest of
 the list (which is another list, potentially empty) is the `rest`
 field.
 
-    [1,2,3].first # evaluates to 1
-    [1,2,3].rest # evaluates to [2,3]
-    [].first # is an error, since the list is empty
+    check:
+      [1,2,3].first is 1
+      [1,2,3].rest  is [2,3]
+      [].first raises "first was not found"
+      link(1,link(2,link(3,empty))) is [1,2,3]
+    end
 
 List notation is actually syntax sugar for a data definition in the Pyret
 standard libraries. `[1,2,3]` is really `link(1,link(2,link(3,empty)))`
@@ -159,7 +171,9 @@ the last statement in the block) is the value that the function returns. For exa
 Functions can be applied with parenthesis and then a comma separated
 list of values.
 
-    (fun(x): x end)(10) # evaluates to 10
+    check:
+      (fun(x): x end)(10) is 10
+    end
 
 Note that parenthesis can be added around any expression to either
 disambiguate (in the case of binary operators), or simply for
@@ -177,7 +191,7 @@ But it might be more confusing. In general though, functions will
 usually be bound to variables or passed as arguments instead of being used
 immediately after construction.
 
-You can (and should) add documentation to your functions. The best way to do that is with `doc`. On the first line of the function, you can write a documentation string. This will be available as the `_doc` attribute on your functions. Also, if you print out a function (or call the `tostring` built-in on it), it will print with the header and the doc string. For example:
+You can (and should) add documentation to your functions. The best way to do that is with `doc`. On the first line of the function, you can write a documentation string. This will be available as the `_doc` attribute on your functions. For example:
 
     fun foo(x):
       doc: "my great foo function!"
@@ -185,15 +199,18 @@ You can (and should) add documentation to your functions. The best way to do tha
       x + y # NOTE: improve!
     end
 
-    print(foo) # prints "fun foo(x): 'my great foo function' end"
+    check:
+      foo._doc is "my great foo function"
+    end
 
 ### Variables, Named Functions and Methods
 
-We can bind any value to a name with `=`. This value cannot be changed
-(though the binding can be shadowed). For example:
+We can bind any value to a name with `=`. This value cannot be changed, and no other bindings with the same name are permitted in the same scope (ie, 'shadowing' is not permitted). For example:
 
     f = fun(x): x end
-    f(10) # evaluates to 10
+    check:
+      f(10) is 10
+    end
 
 Since we often want names for our functions, the following shorthand is possible:
 
@@ -234,7 +251,9 @@ written with the `method` keyword instead of `fun`. An example:
 When a method is put in an object, it can be called as follows:
 
     o = {foo: method(self): 10 end}
-    o.foo()
+    check:
+      o.foo() is 10
+    end
 
 The first argument to the method will be bound to the value of the
 object when it is called - the rest will be what is passed to the
@@ -243,7 +262,9 @@ convention of naming it `self`. Since defining methods in objects is a
 common pattern, we provide shorthand for the previous example:
 
     o = {foo(self): 10 end}
-    o.foo()
+    check:
+      o.foo() is 10
+    end
 
 Given a method, you can get a normal function with the `_fun` method, as follows:
 
@@ -254,13 +275,9 @@ This could then be applied as a normal function, passing in a value for `self`:
 
     m = method(self): 10 end
     f = m._fun()
-    f({bar: 20}) # evaluates to 10
-
-Methods can also have doc strings, like functions, and they also print them out when
-you call `tostring()` on them. For example:
-
-    o = {foo(self): doc: "This function needs help..." 10 end}
-    tostring(o.foo) # evaluates to "method foo(self): 'This function needs help...' end"
+    check:
+      f({bar: 20}) is 10
+    end
 
 Finally, if you want to just get out the raw method value (this also
 will get out any other raw value, but as of now, methods are the only
@@ -268,14 +285,21 @@ things that are treated specially), you can access fields with
 colon. For example:
 
     o = { foo(self): 10 end, b: 20 }
-    o:b == o.b # is true - there isn't anything special about non-methods
+    check:
+      o:b is o.b
+    end
     m = o:foo
-    m() # an error - can't apply bare methods
+    check:
+      m() raises ""
+    end
     f = m._fun()
-    f({}) # evaluates to 10 - note that you have to apply it to a self
-    o2 = o.{ newmeth = m }
-    o2.newmeth() # evaluates to 10 - because now we accessed it with normal dot.
-
+    check:
+      f({}) is 10 # note that you have to apply it to a self
+    end
+    o2 = o.{ newmeth: m }
+    check:
+      o2.newmeth() is 10 # because now we accessed it with normal dot.
+    end
 
 ### Operators
 
@@ -313,7 +337,7 @@ built in numbers:
     <
 
 Furthermore, like with equality, we support using math operators on your own
-data types - any object that defines a "_plus" can be used with `+`, similar
+data types - any object that defines a `_plus` can be used with `+`, similar
 for `_minus`, `_divide`, `_times`, `_lessequal`, `_greaterequal`, `_greaterthan`,
 `_lessthan`.
 
@@ -368,8 +392,8 @@ the arguments are the values from the right side of the `from` clauses. For exam
 
     fun keep-every-other(body-fun, l):
       fun iter(flip, lst):
-	cases(List) lst:
-	  | empty => empty
+        cases(List) lst:
+          | empty => empty
 	  | link(first, rst) =>
 	    if flip:
 	      link(body-fun(first), iter(not flip, rst))
@@ -404,7 +428,7 @@ cause side effects, write a `when` block instead. A few examples:
     end
 
     if false:
-      # ...
+      # this is a runtime error, you need an else branch
     end
 
     if true and false:
@@ -576,11 +600,11 @@ with the arguments to the outer function from outer `where` blocks,
 which allows sensible testing of nested functions. For example:
 
     fun fact(n):
-      fun fact_(n, acc):
-        if n <= 1:
+      fun fact_(n1, acc):
+        if n1 <= 1:
           acc
         else:
-          fact_(n - 1, acc * n)
+          fact_(n1 - 1, acc * n1)
         end
       where:
         fact_(0, 0) is 0
@@ -605,7 +629,7 @@ defined as 1, 5, and 3).
 `check` blocks can go anywhere, like:
 
     check:
-      1 + 1 is 2
+      (1 + 1) is 2
     end
 
 ### Annotations
