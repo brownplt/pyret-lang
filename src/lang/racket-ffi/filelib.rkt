@@ -22,6 +22,7 @@
           (ffi-wrap
            (lambda (filename exists)
              (open-output-file filename #:exists exists))))
+    (cons "file-exists" (ffi-wrap file-exists?))
     (cons "read-line" (ffi-wrap (lambda (f) (read-line f))))
     (cons "read-file" (ffi-wrap (lambda (f) (port->string f))))
     (cons "close-input-file" (ffi-wrap (lambda (f) (close-input-port f))))

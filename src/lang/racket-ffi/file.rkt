@@ -4,6 +4,7 @@ import filelib as F
 provide {
   input-file : input-file,
   output-file : output-file,
+  file-exists: file-exists
 } end
 
 data File:
@@ -19,6 +20,10 @@ end
 
 fun input-file(path :: String):
   in-fd(F.open-input-file(path))
+end
+
+fun file-exists(path :: String):
+  F.file-exists(path)
 end
 
 fun output-file(path :: String, append :: Bool):
