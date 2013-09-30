@@ -102,7 +102,8 @@
       to-repr
       nothing
       pyret-true?
-      dummy-loc))
+      dummy-loc
+      loc-list))
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
@@ -933,12 +934,14 @@ And the object was:
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
+(define (truncate-str str n) (substring str 0 (min n (string-length str))))
+
 (define (throw-type-error! typname o)
   (raise (pyret-error
           (get-top-loc)
            "type-error"
-           (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o)))))
+           (format "typecheck failed; expected ~a and got\n~a"
+                              typname (truncate-str (to-repr o) 100)))))
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
