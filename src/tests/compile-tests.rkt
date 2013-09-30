@@ -449,6 +449,8 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/list-tests.arr" _ 3)
 
+  (check-pyret-match/check "pyret/json.arr" _ 8)
+
   (check-pyret-match
     "prim-keys({x : 5})"
     (? p:p-object? _))
@@ -812,13 +814,13 @@ o2.m().called" true)
   x = 5
   var x = 5
   "
-  "x defined twice")
+  "x is defined twice")
 
   (check-pyret-exn "
   var x = 5
   x = 5
   "
-  "x defined twice")
+  "x is defined twice")
 
   (check-pyret-exn "
   var x = 5
@@ -902,7 +904,7 @@ o2.m().called" true)
    "var x = 5
     var x = x
     y"
-   "x defined twice")
+   "x is defined twice")
 
   ;; check behavior of _, which should always disappear
   (check-pyret
@@ -927,12 +929,12 @@ o2.m().called" true)
     _foo"
    (p:mk-num 10))
 
-  (check-pyret-exn "x = 4 x = 5" "x defined twice")
-  (check-pyret-exn "x = 4 y = 6 x = 5" "x defined twice")
-  (check-pyret-exn "x = 4 fun x(): 5 end" "x defined twice")
-  (check-pyret-exn "fun x(): 4 end y = 7 x = 3" "x defined twice")
-  (check-pyret-exn "fun x(): 4 end fun x(): 3 end" "x defined twice")
-  (check-pyret-exn "var x = 3 var x = 7" "x defined twice")
+  (check-pyret-exn "x = 4 x = 5" "x is defined twice")
+  (check-pyret-exn "x = 4 y = 6 x = 5" "x is defined twice")
+  (check-pyret-exn "x = 4 fun x(): 5 end" "x is defined twice")
+  (check-pyret-exn "fun x(): 4 end y = 7 x = 3" "x is defined twice")
+  (check-pyret-exn "fun x(): 4 end fun x(): 3 end" "x is defined twice")
+  (check-pyret-exn "var x = 3 var x = 7" "x is defined twice")
 ))
 
 (define binary-operators (test-suite "binary-operators"
