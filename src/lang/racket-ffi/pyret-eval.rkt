@@ -26,7 +26,7 @@
       (define name-of-identifier (string->symbol key))
       (namespace-set-variable-value!
         name-of-identifier
-        (ffi-unwrap value)
+        value
         #f
         ns)))
   ns)
@@ -37,6 +37,18 @@
       (update (string->symbol key) (binding p:dummy-loc (a-any) #f) running-env))
     env
     (string-map-keys dict)))
+
+(define (run-for-n-seconds thnk n (default #f))
+  (define current (current-thread))
+  (define (wrapped-thunk)
+    (define result (thnk))
+    (thread-send current result))
+  (define handle (thread wrapped-thunk))
+  (define receive (thread-receive-evt))
+  (define got-result (sync/timeout n receive))
+  (define result (if got-result (thread-receive) default))
+  (when (not got-result) (break-thread handle))
+  result)
 
 (define (pyret-eval ast env settings)
   (define (compile-and-run pyret-stx)
@@ -54,7 +66,9 @@
    (define environment (extend-namespace-with-dict (make-fresh-namespace) env-dict))
    (with-handlers
        ([exn:fail?
-         (lambda (e) (raise (p:pyret-error p:dummy-loc "eval-error" (format "An error occurred while evaluating an eval: ~a" (exn-message e)))))])
+         (lambda (e)
+          (define marks (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark))
+          (raise (p:pyret-error p:dummy-loc "eval-error" (format "An error occurred while evaluating an eval: ~a ~a" (exn-message e) marks))))])
      (eval racket-stx environment)))
   (define (get-or-false name)
     (cond
@@ -63,11 +77,16 @@
       [else #f]))
   (define check-mode (get-or-false "check-mode")) 
   (define indentation (get-or-false "indentation")) 
+  (define timeout (get-or-false "timeout"))
   (define pyret-stx (ffi-unwrap ast))
+  (define run (lambda () (compile-and-run pyret-stx)))
   (match pyret-stx
     [(s-prog s (? cons? headers) block)
      (raise (p:pyret-error p:dummy-loc "eval-error" (format "Import and provide not allowed in eval")))]
-    [_ (compile-and-run pyret-stx)]))
+    [_
+     (cond
+      [timeout (run-for-n-seconds run timeout (p:mk-bool #f))]
+      [else (compile-and-run pyret-stx)])]))
       
 
 (define eval-lib
