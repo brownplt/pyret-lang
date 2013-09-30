@@ -5,10 +5,15 @@
   "../load.rkt"
   "../desugar.rkt"
   "../desugar-check.rkt"
-  "../runtime.rkt"
+  (except-in "../runtime.rkt" raise)
   "../ffi-helpers.rkt"
   "../string-map.rkt"
+  pyret/lang/well-formed
+  pyret/lang/indentation
+  pyret/lang/eval
+  ragg/support
   racket/match
+  racket/list
   (rename-in "ast.arr" [%PYRET-PROVIDE ast]))
 
 (define-syntax-rule (build type arg ...)
@@ -527,6 +532,25 @@
 
 
 
+(define (parse-error-wrap f)
+  (define (single-or-first l)
+    (cond
+      [(list? l) (first l)]
+      [else l]))
+  (lambda args
+    (with-handlers
+      ([(lambda (e) #t)
+        (lambda (e)
+         (match e
+           [(exn:fail:parsing message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "parse-error" message))]
+           [(exn:fail:pyret/wf message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "wf-error" message))]
+           [(exn:fail:pyret/indent message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "indent-error" message))]
+           [(exn:fail message cms)
+            (raise (p:pyret-error p:dummy-loc "other-parse-error" message))]))])
+    (apply f args))))
 
 
 (define export
@@ -535,7 +559,7 @@
     ast
     (list
       (cons "parse"
-            (ffi-wrap pyret-pair-from-string))
+            (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
       (cons "to-native"
             (ffi-wrap to-racket))
       (cons "to-pyret"
