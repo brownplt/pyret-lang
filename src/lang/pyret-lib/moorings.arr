@@ -634,6 +634,18 @@ fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   end
 end
 
+fun fold_n(f, num :: Number, base, lst :: List):
+  fun help(n, acc, partial-list):
+    if is-empty(partial-list):
+      acc
+    else:
+      help(n + 1, f(n, base, partial-list.first), partial-list.rest)
+    end
+  end
+  help(0, base, lst)
+end
+
+
 fun raw-fold(f, base, lst :: List):
   if is-empty(lst):
     base
@@ -691,6 +703,7 @@ list = {
     fold2: fold2,
     fold3: fold3,
     fold4: fold4,
+    fold_n: fold_n,
     index: index,
     to-set: list-to-set
   }
@@ -1058,7 +1071,15 @@ fun get-results(val): {
 } end
 
 fun format-check-results(results-list):
-  init = { passed: 0, failed : 0, test-errors: 0, other-errors: 0, total: 0}
+  print(check-results-summary(results-list).message)
+end
+
+fun check-results-summary(results-list):
+  init = { passed: 0, failed : 0, test-errors: 0, other-errors: 0, total: 0 }
+  var message = ""
+  fun append-str(appendage):
+    message := message + appendage + "\n"
+  end
   counts = for fold(acc from init, results from results-list):
     for fold(inner-acc from acc, check-result from results):
       inner-results = check-result.results
@@ -1074,42 +1095,46 @@ fun format-check-results(results-list):
         total: inner-acc.total + inner-results.length()
       }
       when (new-failed <> 0) or (new-errors <> 0) or (other-errors <> 0):
-        print("In check block at " + check-result.location.format())
+        append-str("\n\nIn check block at " + check-result.location.format())
       end
       for each(fail from inner-results.filter(is-failure)):
         cases(Option) fail.location:
           | none => nothing
           | some(loc) =>
-            print("In test at " + loc.format())
+            append-str("In test at " + loc.format())
         end
-        print("Test " + fail.name + " failed:")
-        print(fail.reason)
-        print("")
+        append-str("Test " + fail.name + " failed:")
+        append-str(fail.reason)
+        append-str("")
       end
       for each(fail from inner-results.filter(is-err)):
         cases(Option) fail.location:
           | none => nothing
           | some(loc) =>
-            print("In test at " + loc.format())
+            append-str("In test at " + loc.format())
         end
-        print("Test " + fail.name + " raised an error:")
-        print(fail.exception)
-        print("")
+        append-str("Test " + fail.name + " raised an error:")
+        append-str(fail.exception.tostring())
+        append-str("")
         when has-field(fail.exception, "trace"):
-          print("Trace:")
+          append-str("Trace:")
           for each(loc from fail.exception.trace):
-            print(loc.format())
+            append-str(loc.format())
           end
         end
       end
       when is-error-result(check-result):
-        print("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
-        print(check-result.err)
-        print("")
+        append-str("Check block " + check-result.name + " " + check-result.location.format() + " ended in an error: ")
+        if Error(check-result.err):
+          append-str(check-result.err.format())
+        else:
+          append-str(check-result.err)
+        end
+        append-str("")
         when has-field(check-result.err, "trace"):
-          print("Trace:")
+          append-str("Trace:")
           for each(loc from check-result.err.trace):
-            print("  " + loc.format())
+            append-str("  " + loc.format())
           end
         end
       end
@@ -1118,30 +1143,32 @@ fun format-check-results(results-list):
   end
   if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
     if counts.passed == 0:
-      print("
+      append-str("
 WARNING: Your program didn't define any tests.  Add some where: and check:
 blocks to test your code, or run with the --no-checks option to signal that you
 don't want tests run.
 ")
     else:
       if counts.passed == 1:
-        print("Looks shipshape, your " + counts.passed.tostring() + " test passed, mate!")
+        append-str("Looks shipshape, your " + counts.passed.tostring() + " test passed, mate!")
       else:
-        print("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
+        append-str("Looks shipshape, all " + counts.passed.tostring() + " tests passed, mate!")
       end
     end
   else:
-    print("Avast, there be bugs!")
-    print("Total: " + counts.total.tostring() +
+    append-str("Avast, there be bugs!")
+    append-str("Total: " + counts.total.tostring() +
           ", Passed: " + counts.passed.tostring() +
           ", Failed: " + counts.failed.tostring() +
           ", Errors in tests: " + counts.test-errors.tostring() +
           ", Errors in between tests: " + counts.other-errors.tostring())
   end
-  nothing
+  counts.{ message: message }
 end
 
 checkers = {
+  CheckResultList: CheckResultList,
+  CheckResult: CheckResult,
   check-is: check-is,
   check-raises: check-raises,
   check-true: check-true,
@@ -1151,6 +1178,7 @@ checkers = {
   check-exn: check-exn,
   run-checks: run-checks,
   format-check-results: format-check-results,
+  check-results-summary: check-results-summary,
   clear-results: clear-results,
   get-results: get-results,
   normal-result: normal-result,

@@ -449,6 +449,8 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/list-tests.arr" _ 3)
 
+  (check-pyret-match/check "pyret/json.arr" _ 8)
+
   (check-pyret-match
     "prim-keys({x : 5})"
     (? p:p-object? _))
@@ -639,6 +641,22 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "Bool(false)" true)
   (check-pyret "Bool({})" false)
 
+  (check-pyret "is-function(fun: nothing end)" true)
+  (check-pyret "is-function(method(self): nothing end)" false)
+  (check-pyret "is-method(fun: nothing end)" false)
+  (check-pyret "is-method(method(self): nothing end)" true)
+  (check-pyret "is-object(method(self): nothing end)" false)
+  (check-pyret "is-object({})" true)
+  (check-pyret "is-string('')" true)
+  (check-pyret "is-string(5)" false)
+  (check-pyret "is-number(5)" true)
+  (check-pyret "is-number('str')" false)
+  (check-pyret "is-bool(true)" true)
+  (check-pyret "is-bool(false)" true)
+  (check-pyret "is-bool({})" false)
+  (check-pyret "is-mutable(mk-mutable(4, fun: end, fun: end))" true)
+  (check-pyret "is-placeholder(mk-placeholder())" true)
+
   (check-pyret "Number(5.{ x: 'some-new-field' })" true)
   (check-pyret "String('str'.{ x: 'some-new-field' })" true)
   (check-pyret "Bool(true.{ x: 'some-new-field' })" true)
@@ -796,13 +814,13 @@ o2.m().called" true)
   x = 5
   var x = 5
   "
-  "x defined twice")
+  "x is defined twice")
 
   (check-pyret-exn "
   var x = 5
   x = 5
   "
-  "x defined twice")
+  "x is defined twice")
 
   (check-pyret-exn "
   var x = 5
@@ -886,7 +904,7 @@ o2.m().called" true)
    "var x = 5
     var x = x
     y"
-   "x defined twice")
+   "x is defined twice")
 
   ;; check behavior of _, which should always disappear
   (check-pyret
@@ -911,12 +929,12 @@ o2.m().called" true)
     _foo"
    (p:mk-num 10))
 
-  (check-pyret-exn "x = 4 x = 5" "x defined twice")
-  (check-pyret-exn "x = 4 y = 6 x = 5" "x defined twice")
-  (check-pyret-exn "x = 4 fun x(): 5 end" "x defined twice")
-  (check-pyret-exn "fun x(): 4 end y = 7 x = 3" "x defined twice")
-  (check-pyret-exn "fun x(): 4 end fun x(): 3 end" "x defined twice")
-  (check-pyret-exn "var x = 3 var x = 7" "x defined twice")
+  (check-pyret-exn "x = 4 x = 5" "x is defined twice")
+  (check-pyret-exn "x = 4 y = 6 x = 5" "x is defined twice")
+  (check-pyret-exn "x = 4 fun x(): 5 end" "x is defined twice")
+  (check-pyret-exn "fun x(): 4 end y = 7 x = 3" "x is defined twice")
+  (check-pyret-exn "fun x(): 4 end fun x(): 3 end" "x is defined twice")
+  (check-pyret-exn "var x = 3 var x = 7" "x is defined twice")
 ))
 
 (define binary-operators (test-suite "binary-operators"
