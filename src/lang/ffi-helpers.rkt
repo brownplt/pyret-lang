@@ -37,11 +37,11 @@
             val)]
        [(default _) val])]))
 
-(define (create-pyret-list l)
+(define (create-pyret-list l (wrapper ffi-wrap))
   (define d (p:get-dict pyret-list))
   (define link (string-map-ref d "link"))
   (define empty (string-map-ref d "empty"))
-  (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (ffi-wrap elem) lst)) empty l))
+  (foldr (λ (elem lst) (p:apply-fun link p:dummy-loc (wrapper elem) lst)) empty l))
 
 (define (pyret-list? l)
   (define is-list (p:get-raw-field p:dummy-loc pyret-list "List"))
