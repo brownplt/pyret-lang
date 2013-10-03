@@ -412,6 +412,17 @@ where:
   any(fun(x): false end, []) is false
 end
 
+fun all(f :: (Any -> Bool), lst :: List) -> Bool:
+  doc: "Returns true if f(elem) returns true for all elems of lst"
+  is-none(find(fun(v): not f(v) end, lst))
+where:
+  all(fun(n): n > 1 end, [1,2,3]) is false
+  all(fun(n): n <= 3 end, [1,2,3]) is true
+  all(fun(x): true end, []) is true
+  all(fun(x): false end, []) is true
+end
+
+
 fun find(f :: (Any -> Bool), lst :: List) -> Option:
   doc: "Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise"
@@ -682,6 +693,7 @@ list = {
     filter: filter,
     partition: partition,
     any: any,
+    all: all,
     find: find,
     map: map,
     map2: map2,
