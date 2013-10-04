@@ -3,8 +3,6 @@
 // kinds of TestPredicates in create-tests.arr to correspond to different
 // shapes of calls if you want, as well.
 
-// Patterns stolen from https://github.com/pivotal/jasmine/wiki/Matchers
-
 function pyretEquals(RUNTIME, pyretVal1, pyretVal2) {
   return RUNTIME.equal(pyretVal1, pyretVal2);
 }
@@ -35,6 +33,9 @@ function testPred(name, pyretProg, pred) {
 }
 
 
+// This just hooks things into Jasmine for pretty-printing the results.
+// Feel free to add more types of test and hook them in here; equality and
+// predicate testing should get you pretty far, however.
 beforeEach(function() {
   function wrap(f) {
     return function() {
