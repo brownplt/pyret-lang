@@ -332,7 +332,7 @@
     (make-string-map
       (list
         (cons "pre-desugar" (to-pyret ast))
-        (cons "post-desugar" (to-pyret (get-desugared str src ast)))))))
+        (cons "post-desugar" (to-pyret (get-desugared str src check-mode?)))))))
 
 (define-syntax-rule (has-brand obj brand)
   (ffi-unwrap (p:apply-fun (p:get-field p:dummy-loc ast (string-append "is-" (symbol->string (quote brand)))) p:dummy-loc (ffi-wrap obj))))
