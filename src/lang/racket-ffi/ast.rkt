@@ -11,6 +11,8 @@
   pyret/lang/well-formed
   pyret/lang/indentation
   pyret/lang/eval
+  pyret/lang/typecheck
+  pyret/lang/type-env
   ragg/support
   racket/match
   racket/list
@@ -309,18 +311,28 @@
     [else
      (error (format "ast: don't know how to convert ann: ~a" ann))]))
 
-(define (pyret-pair-from-string str src options)
+(define (get-desugared str src check-mode?)
   (define ast (parse-pyret (string-append " " str) src))
-  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (define desugar
     (cond
       [check-mode? (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
+  (desugar ast))
+
+(define (pyret/tc str src options)
+  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
+  (define desugared (get-desugared str src check-mode?))
+  (define with-contracts (contract-check-pyret desugared DEFAULT-ENV))
+  (to-pyret with-contracts))
+
+(define (pyret-pair-from-string str src options)
+  (define ast (parse-pyret (string-append " " str) src))
+  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (p:mk-object
     (make-string-map
       (list
         (cons "pre-desugar" (to-pyret ast))
-        (cons "post-desugar" (to-pyret (desugar ast)))))))
+        (cons "post-desugar" (to-pyret (get-desugared str src ast)))))))
 
 (define-syntax-rule (has-brand obj brand)
   (ffi-unwrap (p:apply-fun (p:get-field p:dummy-loc ast (string-append "is-" (symbol->string (quote brand)))) p:dummy-loc (ffi-wrap obj))))
@@ -560,9 +572,12 @@
     (list
       (cons "parse"
             (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
+      (cons "parse-tc"
+            (ffi-wrap (parse-error-wrap pyret/tc)))
       (cons "to-native"
             (ffi-wrap to-racket))
       (cons "to-pyret"
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
+
