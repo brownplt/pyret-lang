@@ -2,6 +2,7 @@
 *~
 *.swp
 *.swo
+*.out
 docs/lang.html
 src/lang/pyret-lib/moorings.rkt
 *#
