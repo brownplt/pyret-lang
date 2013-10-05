@@ -3,7 +3,6 @@
 import Racket as R
 import whalesong-lib as w
 provide {
-  with-output-to-string: with-output-to-string,
   flush-output: flush-output,
   flush-error: flush-error,
   read-line: read-line,
@@ -15,27 +14,6 @@ base = R("racket/base")
 ip = base("current-input-port")
 op = base("current-output-port")
 ep = base("current-error-port")
-
-fun with-output-to-string(f):
-  stdout = base("open-output-string")
-  stderr = base("open-output-string")
-  base("current-output-port", stdout)
-#  base("current-error-port", stderr)
-  try:
-    f()
-  except(e):
-    print(e)
-    base("current-output-port", ip)
-#    base("current-error-port", ep)
-    raise(e)
-  end
-  base("current-output-port", ip)
-#  base("current-error-port", ep)
-  {
-    stdout: base("get-output-string", stdout),
-    stderr: base("get-output-string", stderr)
-  }
-end
 
 fun flush-output():
   base("flush-output", op)
