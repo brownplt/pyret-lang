@@ -1,6 +1,7 @@
 #lang pyret
 
 import ast as A
+import json as J
 import format as format
 
 provide *
@@ -33,6 +34,10 @@ fun program-to-js(ast, runtime-ids):
   end
 end
 
+fun do-block(str):
+  format("(function() { ~a })()", [str])
+end
+
 fun expr-to-js(ast):
   cases(A.Expr) ast:
     | s_block(_, stmts) =>
@@ -61,7 +66,7 @@ fun expr-to-js(ast):
         | else => raise("Non-string lookups not supported")
       end
     | s_id(_, id) => js-id-of(id)
-    | else => raise("Not yet implemented: " + torepr(ast))
+    | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end
 

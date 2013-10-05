@@ -36,8 +36,8 @@ function testPrint(name, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
-      pyretProg(RUNTIME);
-      var stdout = RUNTIME.getTestPrintOutput();
+      var val = pyretProg(RUNTIME);
+      var stdout = RUNTIME.getTestPrintOutput(val);
       expect(stdout).toEqual(output.expected);
     }
   }

@@ -60,18 +60,18 @@ var PYRET = (function () {
       return false;
     }
 
-    function toStringJS(val) {
+    function toRepr(val) {
       if(isNumber(val)) {
-        return String(val.n);
+        return makeString(String(val.n));
       }
       else if (isString(val)) {
-        return val.s;
+        return makeString('"' + val.s + '"');
       }
       else if (isFunction(val)) {
-        return "fun: end";
+        return makeString("fun: end");
       }
       else if (isMethod(val)) {
-        return "method: end";
+        return makeString("method: end");
       }
       throw ("toStringJS on an unknown type: " + val);
     }
@@ -90,7 +90,7 @@ var PYRET = (function () {
 
     var testPrintOutput = "";
     function testPrint(val) {
-      var str = toStringJS(val);
+      var str = toRepr(val).s;
       console.log("testPrint: ", val, str);
       testPrintOutput += str + "\n";
       return val;
@@ -103,7 +103,9 @@ var PYRET = (function () {
       equal: equal,
       getField: getField,
       "test-print": makeFunction(testPrint),
-      getTestPrintOutput: function() { return testPrintOutput; }
+      getTestPrintOutput: function(val) {
+        return testPrintOutput + toRepr(val).s;
+      }
     }
   }
 

@@ -14,15 +14,17 @@
 </body>
 <script src="tests.js"></script>
 <script>
-var THE_RUNTIME = PYRET.makeRuntime();
-describe("Pyret in JS --- ", function() {
-  var tester;
-  Object.keys(TESTS).forEach(function(key) {
-      var elt = TESTS[key];
-      it(key, function() {
-        elt.test(THE_RUNTIME);
+Object.keys(TESTS).forEach(function(key) {
+  describe(key, function() {
+    Object.keys(TESTS[key]).forEach(function(key2) {
+        var tester;
+          var elt = TESTS[key][key2];
+          it(key2, function() {
+            var RUNTIME = PYRET.makeRuntime();
+            elt.test(RUNTIME);
+          });
+        })
       });
-    })
 });
 </script>
 

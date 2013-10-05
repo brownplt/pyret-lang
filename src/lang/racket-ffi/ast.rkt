@@ -374,7 +374,7 @@
     (define (tr-variant-member vm)
       (cond
         [(has-brand vm s_variant_member)
-         (tr-obj vm s-variant-member (tr-loc l) (ffi-unwrap member-type) (tr-bind bind))]))
+         (tr-obj vm s-variant-member (tr-loc l) (string->symbol member_type) (tr-bind bind))]))
     (cond
      [(has-brand variant s_variant)
       (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
@@ -523,7 +523,7 @@
       (tr-obj e s-colon-bracket (tr-loc l) (tr-expr obj) (tr-expr field))]
      [(has-brand e s_data)
       (tr-obj e s-data
-              (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
+              (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-expr mixins) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
      [(has-brand e s_for)
       (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
      [(has-brand e s_check)
