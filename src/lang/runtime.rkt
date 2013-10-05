@@ -173,7 +173,7 @@
 ;; p-method: p-base Proc -> p-method
 (struct p-method p-base () #:transparent)
 ;; p-mutable p-base Box (Listof (Value -> Value)) (Listof (Value -> Value))
-(struct p-mutable p-base (b read-wrappers write-wrappers))
+(struct p-mutable p-base (b read-wrappers write-wrappers) #:transparent)
 ;; p-placeholder p-base Box (Listof (Value -> Value))
 (struct p-placeholder p-base (b wrappers) #:mutable)
 (struct p-opaque (val))
