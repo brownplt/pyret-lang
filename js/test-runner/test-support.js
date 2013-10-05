@@ -16,8 +16,8 @@ function testEquals(name, pyretProg1, pyretProg2) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var val1 = pyretProg1(RUNTIME)();
-      var val2 = pyretProg2(RUNTIME)();
+      var val1 = pyretProg1(RUNTIME);
+      var val2 = pyretProg2(RUNTIME);
       expect(val1).toBePyretEqual(val2, RUNTIME);
     }
   };
@@ -27,9 +27,20 @@ function testPred(name, pyretProg, pred) {
   return {
     name: name,
     test: function(RUNTIME) {
-      expect(pyretProg(RUNTIME)()).toSatisfyPyretPred(pred, RUNTIME);
+      expect(pyretProg(RUNTIME)).toSatisfyPyretPred(pred, RUNTIME);
     }
   };
+}
+
+function testPrint(name, pyretProg, output) {
+  return {
+    name: name,
+    test: function(RUNTIME) {
+      pyretProg(RUNTIME);
+      var stdout = RUNTIME.getTestPrintOutput();
+      expect(stdout).toEqual(output.expected);
+    }
+  }
 }
 
 

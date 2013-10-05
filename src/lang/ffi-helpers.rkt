@@ -2,6 +2,8 @@
 
 (require "runtime.rkt"
          "string-map.rkt"
+         "type-env.rkt"
+         "ast.rkt"
          (rename-in "pyret-lib/moorings.rkt" (%PYRET-PROVIDE pyret-moorings)))
 (provide (all-defined-out))
 
@@ -46,3 +48,11 @@
 (define (pyret-list? l)
   (define is-list (p:get-raw-field p:dummy-loc pyret-list "List"))
   (ffi-unwrap (p:apply-fun is-list p:dummy-loc l)))
+
+(define (extend-env-with-dict env dict)
+  (foldr
+    (lambda (key running-env)
+      (update (string->symbol key) (binding p:dummy-loc (a-any) #f) running-env))
+    env
+    (string-map-keys dict)))
+

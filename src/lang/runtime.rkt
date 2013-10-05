@@ -2,6 +2,7 @@
 
 ;(require racket/set ;; set add union member intersect map)
 (require (for-syntax racket/base))
+(require (only-in racket/string string-replace))
 (require "string-map.rkt")
 
 (define (hash-fold f h init)
@@ -842,6 +843,7 @@ And the object was:
           ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
           ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("replace" . ,(mk-prim-fun string-replace 'replace mk-str (p-str-s p-str-s p-str-s) (s1 s2 s3) (p-str? p-str? p-str?)))
           ("substring" . ,(mk-prim-fun substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))

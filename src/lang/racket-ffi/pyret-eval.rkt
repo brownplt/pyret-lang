@@ -31,13 +31,6 @@
         ns)))
   ns)
 
-(define (extend-env-with-dict env dict)
-  (foldr
-    (lambda (key running-env)
-      (update (string->symbol key) (binding p:dummy-loc (a-any) #f) running-env))
-    env
-    (string-map-keys dict)))
-
 (define (run-for-n-seconds thnk n (default #f))
   (define current (current-thread))
   (define (wrapped-thunk)

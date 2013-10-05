@@ -5,13 +5,31 @@ import format as format
 
 provide *
 
-fun program-to-js(ast):
+js-id-of = block:
+  var js-ids = {}
+  fun(id :: String):
+    if builtins.has-field(js-ids, id):
+      js-ids.[id]
+    else:
+      no-hyphens = id.replace("-", "_DASH_")
+      safe-id = gensym(no-hyphens)
+      js-ids := js-ids.{ [id]: safe-id }
+      safe-id
+    end
+  end
+end
+
+fun program-to-js(ast, runtime-ids):
   cases(A.Program) ast:
     # import/provide ignored
     | s_program(_, _, block) =>
+      bindings = for list.fold(bs from "", id from runtime-ids):
+        bs + format("var ~a = RUNTIME['~a'];\n", [js-id-of(id), id])
+      end
       format("(function(RUNTIME) {
+         ~a
          return ~a;
-       })", [expr-to-js(block)])
+       })", [bindings, expr-to-js(block)])
   end
 end
 
@@ -31,7 +49,7 @@ fun expr-to-js(ast):
               end
           end
         end
-        format("(function(){ ~a })", [sequence-return-last(stmts)])
+        format("(function(){\n ~a \n})()", [sequence-return-last(stmts)])
       end
     | s_num(_, n) =>
       format("RUNTIME.makeNumber(~a)", [n])
@@ -42,7 +60,8 @@ fun expr-to-js(ast):
         | s_str(_, s) => format("RUNTIME.getField(~a, '~a')", [expr-to-js(obj), s])
         | else => raise("Non-string lookups not supported")
       end
-    | else => raise("Not yet implemented") 
+    | s_id(_, id) => js-id-of(id)
+    | else => raise("Not yet implemented: " + torepr(ast))
   end
 end
 

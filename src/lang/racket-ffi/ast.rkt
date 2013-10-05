@@ -321,8 +321,9 @@
 
 (define (pyret/tc str src options)
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
+  (define env (p:get-dict (p:get-field p:dummy-loc options "env")))
   (define desugared (get-desugared str src check-mode?))
-  (define with-contracts (contract-check-pyret desugared DEFAULT-ENV))
+  (define with-contracts (contract-check-pyret desugared (extend-env-with-dict DEFAULT-ENV env)))
   (to-pyret with-contracts))
 
 (define (pyret-pair-from-string str src options)

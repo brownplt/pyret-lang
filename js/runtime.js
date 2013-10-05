@@ -35,11 +35,45 @@ var PYRET = (function () {
       dict : numberDict
     };
 
+    var stringDict = {
+      _plus: makeMethod(function(left, right) {
+        return makeString(left.s + right.s);
+      })
+    };
+
+    function PString(s) {
+      this.s = s;
+    }
+    function makeString(s) { return new PString(s); }
+    function isString(v) { return v instanceof PString; }
+    PString.prototype = {
+      dict : stringDict
+    };
+
     function equal(val1, val2) {
       if(isNumber(val1) && isNumber(val2)) {
         return val1.n === val2.n;
       }
+      else if (isString(val1) && isString(val2)) {
+        return val1.s === val2.s;
+      }
       return false;
+    }
+
+    function toStringJS(val) {
+      if(isNumber(val)) {
+        return String(val.n);
+      }
+      else if (isString(val)) {
+        return val.s;
+      }
+      else if (isFunction(val)) {
+        return "fun: end";
+      }
+      else if (isMethod(val)) {
+        return "method: end";
+      }
+      throw ("toStringJS on an unknown type: " + val);
     }
 
     function getField(val, str) {
@@ -54,12 +88,22 @@ var PYRET = (function () {
       }
     }
 
+    var testPrintOutput = "";
+    function testPrint(val) {
+      var str = toStringJS(val);
+      console.log("testPrint: ", val, str);
+      testPrintOutput += str + "\n";
+      return val;
+    }
+
     return {
       nothing: {},
       makeNumber: makeNumber,
       isNumber: isNumber,
       equal: equal,
-      getField: getField
+      getField: getField,
+      "test-print": makeFunction(testPrint),
+      getTestPrintOutput: function() { return testPrintOutput; }
     }
   }
 
