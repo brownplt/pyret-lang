@@ -1,0 +1,1 @@
+test-print("a-str")

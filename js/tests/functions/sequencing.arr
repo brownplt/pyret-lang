@@ -1,0 +1,1 @@
+fun f(x): x end fun g(x): x end f(2) g(10) f(2)
