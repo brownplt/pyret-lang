@@ -54,6 +54,7 @@
     [(s-check syntax body) (ic body)]
     [(s-var syntax name value) (ic value)]
     [(s-let syntax name value) (ic value)]
+    [(s-user-block s body) (ic body)]
     [(s-when syntax test block) (begin (ic test) (ic block))]
     [(s-if syntax branches) (map ic branches)]
     [(s-if-else syntax branches else) (begin (map ic branches)

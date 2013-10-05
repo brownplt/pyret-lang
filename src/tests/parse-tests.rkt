@@ -225,6 +225,68 @@ line string\"" (s-str _ "multi\nline string"))
                 
                 ))
 
+(define user-block (test-suite "user-block"
+
+  (check/block "f = block: nothing end"
+    (s-let _ (s-bind _ 'f (a-blank))
+     (s-user-block _ (s-block _ (list (s-id _ 'nothing))))))
+
+  (check/block "f = block:
+      x = block: 5 end
+      nothing
+    end"
+    (s-let _ (s-bind _ 'f (a-blank))
+      (s-user-block _
+        (s-block _ (list
+          (s-let _ (s-bind _ 'x (a-blank))
+            (s-user-block _ (s-block _ (list (s-num _ 5)))))
+          (s-id _ 'nothing))))))
+
+))
+
+#;(define let-block (test-suite "let-block"
+
+  (check/block "let: x end"
+    (s-let-block _ (list)
+      (s-block _ (list (s-id _ 'x)))))
+
+
+  (check/block "let x = 10: x end"
+    (s-let-block _ (list
+                    (s-let _ (s-bind _ 'x (a-blank)) (s-num 10))))
+      (s-block _ (list (s-id _ 'x))))
+
+  (check/block "let var x = 10: x end"
+    (s-let-block _ (list
+                    (s-var _ (s-bind _ 'x (a-blank)) (s-num 10))))
+      (s-block _ (list (s-id _ 'x))))
+
+  (check/block "let var x = 10, y = 5: x end"
+    (s-let-block _ (list
+                    (s-var _ (s-bind _ 'x (a-blank)) (s-num 10))
+                    (s-let _ (s-bind _ 'y (a-blank)) (s-num 5))))
+      (s-block _ (list (s-id _ 'x))))
+
+  (check/block "let var x = 10, var y = 5: x end"
+    (s-let-block _ (list
+                    (s-var _ (s-bind _ 'x (a-blank)) (s-num 10))
+                    (s-var _ (s-bind _ 'y (a-blank)) (s-num 5))))
+      (s-block _ (list (s-id _ 'x))))
+
+  (check/block "let x = 10, var y = 5: x end"
+    (s-let-block _ (list
+                    (s-let _ (s-bind _ 'x (a-blank)) (s-num 10))
+                    (s-var _ (s-bind _ 'y (a-blank)) (s-num 5))))
+      (s-block _ (list (s-id _ 'x))))
+
+  (check/block "let x = 10, y = 5, z = 52: x end"
+    (s-let-block _ (list
+                    (s-let _ (s-bind _ 'x (a-blank)) (s-num 10))
+                    (s-let _ (s-bind _ 'y (a-blank)) (s-num 5))
+                    (s-let _ (s-bind _ 'z (a-blank)) (s-num 52))))
+      (s-block _ (list (s-id _ 'x))))
+
+))
 
 (define fields (test-suite "fields"
 
@@ -997,6 +1059,7 @@ line string\"" (s-str _ "multi\nline string"))
   cases
   data
   graph
+  user-block
   for
   modules
   caret

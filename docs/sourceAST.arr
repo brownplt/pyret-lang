@@ -436,7 +436,7 @@ fun generic-topprint(obj):
       pp-fields = for list.map(f from fields):
         if list.List(f):
           PP.label-align-surround(
-            PP.string(""),
+            PP.str(""),
             PP.lbrack,
             PP.commabreak,
             f.map(h),
@@ -453,9 +453,9 @@ fun generic-topprint(obj):
         PP.rparen)
     else:
       if String(cur-obj):
-        PP.string("\"" + cur-obj + "\"")
+        PP.str("\"" + cur-obj + "\"")
       else:
-        PP.string(tostring(cur-obj))
+        PP.str(tostring(cur-obj))
       end
     end
   end
@@ -836,7 +836,7 @@ fun funlam_tosource(funtype, name, params, args :: ASTList,
   typarams =
     if is-nothing(params): PP.empty
     else: PP.surround-separate(INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
-        params.fields().map(fun(p): PP.string(p) end))
+        params.fields().map(fun(p): PP.str(p) end))
     end
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
@@ -844,22 +844,22 @@ fun funlam_tosource(funtype, name, params, args :: ASTList,
   ftype = funtype + typarams
   fname = 
     if is-nothing(name): ftype
-    else if PP.is-empty(ftype): PP.string(name)
-    else: ftype + PP.string(" " + name)
+    else if PP.is-empty(ftype): PP.str(name)
+    else: ftype + PP.str(" " + name)
     end
   fann =
     if is-a_blank(ann) or is-nothing(ann): PP.empty
-    else: PP.break(1) + PP.string("-> ") + ann.tosource()
+    else: PP.break(1) + PP.str("-> ") + ann.tosource()
     end
-  header = PP.group(fname + arg-list + fann + PP.string(":"))
+  header = PP.group(fname + arg-list + fann + PP.str(":"))
   checker = _check.tosource()
   footer =
-    if PP.is-empty(checker): PP.string("end")
-    else: PP.surround(INDENT, 1, PP.string("where:"), _check.tosource(), PP.string("end"))
+    if PP.is-empty(checker): PP.str("end")
+    else: PP.surround(INDENT, 1, PP.str("where:"), _check.tosource(), PP.str("end"))
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.empty
-    else: PP.string("doc: ") + PP.dquote(PP.string(doc)) + PP.hardline
+    else: PP.str("doc: ") + PP.dquote(PP.str(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
@@ -899,20 +899,20 @@ data Header:
     fields(self): [self.file, self.name] end,
     node-name(self): t_import end,
     tosource(self):
-      PP.flow([PP.string("import"), PP.quote(PP.string(self.file)),
-          PP.string("as"), PP.string(self.name)])
+      PP.flow([PP.str("import"), PP.quote(PP.str(self.file)),
+          PP.str("as"), PP.str(self.name)])
     end
   | s_provide(block :: Expr) with:
     fields(self): [self.block] end,
     node-name(self): t_provide end,
     tosource(self):
-      PP.soft-surround(INDENT, 1, PP.string("provide"),
-        self.block.tosource(), PP.string("end"))
+      PP.soft-surround(INDENT, 1, PP.str("provide"),
+        self.block.tosource(), PP.str("end"))
     end
   | s_provide_all with:
     fields(self): [] end,
     node-name(self): t_provide_all end,
-    tosource(self): PP.string("provide *") end
+    tosource(self): PP.str("provide *") end
 sharing:
   arity(self): self.fields().length() end,
   to-labelled(self, T): generic-to-labelled(self, T) end,
@@ -936,11 +936,11 @@ data ImportType:
   | s_file_import(file :: String) with:
     fields(self): [self.file] end,
     node-name(self): t_file_import end,
-    tosource(self): PP.string("import") + PP.break(1) + PP.dquote(PP.string(self.file)) end
+    tosource(self): PP.str("import") + PP.break(1) + PP.dquote(PP.str(self.file)) end
   | s_const_import(module :: String) with:
     fields(self): [self.module] end,
     node-name(self): t_const_import end,
-    tosource(self): PP.string("import") + PP.break(1) + PP.string(self.module) end
+    tosource(self): PP.str("import") + PP.break(1) + PP.str(self.module) end
 sharing:
   arity(self): self.fields().length() end,
   to-labelled(self, T): generic-to-labelled(self, T) end,
@@ -982,93 +982,93 @@ data Expr:
       self.doc, self.body, self.check] end,
     node-name(self): t_fun end,
     tosource(self):
-      funlam_tosource(PP.string("fun"),
+      funlam_tosource(PP.str("fun"),
         self.name, self.params, self.args, self.ann, self.doc, self.body, self.check)
     end
   | s_var(name :: Bind, value :: Expr)  with:
     fields(self): [self.name, self.value] end,
     node-name(self): t_var end,
     tosource(self):
-      PP.string("var ")
+      PP.str("var ")
         + PP.group(PP.nest(INDENT, self.name.tosource()
-            + PP.string(" =") + PP.break(1) + self.value.tosource()))
+            + PP.str(" =") + PP.break(1) + self.value.tosource()))
     end
   | s_let(name :: Bind, value :: Expr)  with:
     fields(self): [self.name, self.value] end,
     node-name(self): t_let end,
     tosource(self):
-      PP.group(PP.nest(INDENT, self.name.tosource() + PP.string(" =") + PP.break(1) + self.value.tosource()))
+      PP.group(PP.nest(INDENT, self.name.tosource() + PP.str(" =") + PP.break(1) + self.value.tosource()))
     end
   | s_when(test :: Expr, block :: Expr) with:
     fields(self): [self.test, self.block] end,
     node-name(self): t_when end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        PP.string("when") + PP.parens(self.test.tosource()) + PP.string(":"),
+        PP.str("when") + PP.parens(self.test.tosource()) + PP.str(":"),
         self.block.tosource(),
-        PP.string("end"))
+        PP.str("end"))
     end
   | s_assign(id :: String, value :: Expr) with:
     fields(self): [self.id, self.value] end,
     node-name(self): t_assign end,
     tosource(self):
-      PP.nest(INDENT, PP.string(self.id) + PP.string(" :=") + PP.break(1) + self.value.tosource())
+      PP.nest(INDENT, PP.str(self.id) + PP.str(" :=") + PP.break(1) + self.value.tosource())
     end
   | s_if(branches :: ASTList) with:
     fields(self): [self.branches] end,
     node-name(self): t_if end,
     tosource(self):
-      branches = PP.separate(PP.break(1) + PP.string("else "),
+      branches = PP.separate(PP.break(1) + PP.str("else "),
         self.branches.fields().map(fun(b): b.tosource() end))
-      PP.group(branches + PP.break(1) + PP.string("end"))
+      PP.group(branches + PP.break(1) + PP.str("end"))
     end      
   | s_if_else(branches :: ASTList, _else :: Expr) with:
     fields(self): [self.branches, self._else] end,
     node-name(self): t_if_else end,
     tosource(self):
-      branches = PP.separate(PP.break(1) + PP.string("else "),
+      branches = PP.separate(PP.break(1) + PP.str("else "),
         self.branches.fields().map(fun(b): b.tosource() end))
-      _else = PP.string("else:") + PP.nest(INDENT, PP.break(1) + self._else.tosource())
-      PP.group(branches + PP.break(1) + _else + PP.break(1) + PP.string("end"))
+      _else = PP.str("else:") + PP.nest(INDENT, PP.break(1) + self._else.tosource())
+      PP.group(branches + PP.break(1) + _else + PP.break(1) + PP.str("end"))
     end
   | s_cases(type :: Ann, val :: Expr, branches :: ASTList) with:
     fields(self): [self.type, self.val, self.branches] end,
     node-name(self): t_cases end,
     tosource(self):
-      header = PP.string("cases") + PP.parens(self.type.tosource()) + PP.break(1)
-        + self.val.tosource() + PP.string(":")
-      PP.surround-separate(INDENT, 1, header + PP.string(" end"),
-        PP.group(header), PP.break(1), PP.string("end"),
+      header = PP.str("cases") + PP.parens(self.type.tosource()) + PP.break(1)
+        + self.val.tosource() + PP.str(":")
+      PP.surround-separate(INDENT, 1, header + PP.str(" end"),
+        PP.group(header), PP.break(1), PP.str("end"),
         self.branches.fields().map(fun(b): PP.group(b.tosource()) end))
     end
   | s_cases_else(type :: Ann, val :: Expr, branches :: ASTList, _else :: Expr) with:
     fields(self): [self.type, self.val, self.branches, self._else] end,
     node-name(self): t_cases_else end,
     tosource(self):
-      header = PP.string("cases") + PP.parens(self.type.tosource()) + PP.break(1)
-        + self.val.tosource() + PP.string(":")
+      header = PP.str("cases") + PP.parens(self.type.tosource()) + PP.break(1)
+        + self.val.tosource() + PP.str(":")
       body = PP.separate(PP.break(1), self.branches.fields().map(fun(b): PP.group(b.tosource()) end))
-        + PP.break(1) + PP.group(PP.string("| else =>") + PP.break(1) + self._else.tosource())
-      PP.surround(INDENT, 1, PP.group(header), body, PP.string("end"))
+        + PP.break(1) + PP.group(PP.str("| else =>") + PP.break(1) + self._else.tosource())
+      PP.surround(INDENT, 1, PP.group(header), body, PP.str("end"))
     end
   | s_try(body :: Expr, id :: Bind, _except :: Expr)  with:
     fields(self): [self.body, self.id, self._except] end,
     node-name(self): t_try end,
     tosource(self):
-      _try = PP.string("try:") + PP.break(1)
+      _try = PP.str("try:") + PP.break(1)
         + PP.nest(INDENT, self.body.tosource()) + PP.break(1)
-      _except = PP.string("except") + PP.parens(self.id.tosource()) + PP.string(":") + PP.break(1)
+      _except = PP.str("except") + PP.parens(self.id.tosource()) + PP.str(":") + PP.break(1)
         + PP.nest(INDENT, self._except.tosource()) + PP.break(1)
-      PP.group(_try + _except + PP.string("end"))
+      PP.group(_try + _except + PP.str("end"))
     end
   | s_op(op :: String, left :: Expr, right :: Expr)  with:
     fields(self): [self.op, self.left, self.right] end,
     node-name(self): t_op end,
-    tosource(self): PP.infix(INDENT, 1, PP.string(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
+    tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
   | s_not(expr :: Expr)  with:
     fields(self): [self.expr] end,
     node-name(self): t_not end,
-    tosource(self): PP.nest(INDENT, PP.flow([PP.string("not"), self.expr.tosource()])) end
+    tosource(self): PP.nest(INDENT, PP.flow([PP.str("not"), self.expr.tosource()])) end
   | s_paren(expr :: Expr)  with:
     fields(self): [self.expr] end,
     node-name(self): t_paren end,
@@ -1085,7 +1085,7 @@ data Expr:
       self.doc, self.body, self.check] end,
     node-name(self): t_lam end,
     tosource(self):
-      funlam_tosource(PP.string("fun"),
+      funlam_tosource(PP.str("fun"),
         nothing, self.params, self.args, self.ann, self.doc, self.body, self.check)
     end
   | s_method(
@@ -1098,14 +1098,14 @@ data Expr:
     fields(self): [self.args, self.ann, self.doc, self.body, self.check] end,
     node-name(self): t_method end,
     tosource(self):
-      funlam_tosource(PP.string("method"),
+      funlam_tosource(PP.str("method"),
         nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
     end
   | s_extend(super :: Expr, flds :: ASTList)  with:
     fields(self): [self.super, self.flds] end,
     node-name(self): t_extend end,
     tosource(self):
-      PP.group(self.super.tosource() + PP.string(".")
+      PP.group(self.super.tosource() + PP.str(".")
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.flds.fields().map(fun(f): f.todatafield() end)))
     end
@@ -1120,7 +1120,7 @@ data Expr:
     fields(self): [self.values] end,
     node-name(self): t_list end,
     tosource(self):
-      PP.surround-separate(INDENT, 0, PP.string("[]"), PP.lbrack, PP.commabreak, PP.rbrack,
+      PP.surround-separate(INDENT, 0, PP.str("[]"), PP.lbrack, PP.commabreak, PP.rbrack,
         self.values.fields().map(fun(v): v.tosource() end))
     end
   | s_app(_fun :: Expr, args :: ASTList) with:
@@ -1135,13 +1135,13 @@ data Expr:
     fields(self): [self.obj, self._fun, self.args] end,
     node-name(self): t_left_app end,
     tosource(self):
-      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + PP.string(".") + self._fun.tosource())
+      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + PP.str(".") + self._fun.tosource())
           + PP.parens(PP.separate(PP.commabreak, self.args.fields().map(fun(f): f.tosource() end))))
     end
   | s_id(id :: String) with:
     fields(self): [self.id] end,
     node-name(self): t_id end,
-    tosource(self): PP.string(self.id) end
+    tosource(self): PP.str(self.id) end
   | s_num(n :: Number) with:
     fields(self): [self.n] end,
     node-name(self): t_num end,
@@ -1149,29 +1149,29 @@ data Expr:
   | s_bool(b :: Bool) with:
     fields(self): [self.b] end,
     node-name(self): t_bool end,
-    tosource(self): PP.string(self.b.tostring()) end
+    tosource(self): PP.str(self.b.tostring()) end
   | s_str(s :: String) with:
     fields(self): [self.s] end,
     node-name(self): t_str end,
-    tosource(self): PP.dquote(PP.string(self.s)) end
+    tosource(self): PP.dquote(PP.str(self.s)) end
   | s_dot(obj :: Expr, field :: String) with:
     fields(self): [self.obj, self.field] end,
     node-name(self): t_dot end,
-    tosource(self): PP.infix(INDENT, 0, PP.string("."), self.obj.tosource(), PP.string(self.field)) end
+    tosource(self): PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.field)) end
   | s_bracket(obj :: Expr, field :: Expr) with:
     fields(self): [self.obj, self.field] end,
     node-name(self): t_bracket end,
-    tosource(self): PP.infix(INDENT, 0, PP.string("."), self.obj.tosource(),
+    tosource(self): PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s_colon(obj :: Expr, field :: String) with:
     fields(self): [self.obj, self.field] end,
     node-name(self): t_colon end,
-    tosource(self): PP.infix(INDENT, 0, PP.string(":"), self.obj.tosource(), PP.string(self.field)) end
+    tosource(self): PP.infix(INDENT, 0, PP.str(":"), self.obj.tosource(), PP.str(self.field)) end
   | s_colon_bracket(obj :: Expr, field :: Expr) with:
     fields(self): [self.obj, self.field] end,
     node-name(self): t_bracket end,
-    tosource(self): PP.infix(INDENT, 0, PP.string(":"), self.obj.tosource(),
+    tosource(self): PP.infix(INDENT, 0, PP.str(":"), self.obj.tosource(),
         PP.surround(PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s_data(
@@ -1193,15 +1193,15 @@ data Expr:
       end
       tys = PP.surround-separate(2*INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
         self.params.fields().map(fun(f): f.tosource() end))
-      header = PP.string("data ") + PP.string(self.name) + tys + PP.string(":")
+      header = PP.str("data ") + PP.str(self.name) + tys + PP.str(":")
       _deriving =
-        PP.surround-separate(INDENT, 0, PP.empty, PP.break(1) + PP.string("deriving "), PP.commabreak, PP.empty, self.mixins.fields().map(fun(m): m.tosource() end))
-      variants = PP.separate(PP.break(1) + PP.string("| "),
-        PP.string("")^list.link(self.variants.fields().map(fun(v): PP.nest(INDENT, v.tosource()) end)))
-      shared = optional_section(PP.string("sharing:"),
+        PP.surround-separate(INDENT, 0, PP.empty, PP.break(1) + PP.str("deriving "), PP.commabreak, PP.empty, self.mixins.fields().map(fun(m): m.tosource() end))
+      variants = PP.separate(PP.break(1) + PP.str("| "),
+        PP.str("")^list.link(self.variants.fields().map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+      shared = optional_section(PP.str("sharing:"),
         PP.separate(PP.commabreak, self.shared_members.fields().map(fun(s): s.todatafield() end)))
-      _check = optional_section(PP.string("where:"), self.check.tosource())
-      footer = PP.break(1) + PP.string("end")
+      _check = optional_section(PP.str("where:"), self.check.tosource())
+      footer = PP.break(1) + PP.str("end")
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
   | s_for(
@@ -1213,19 +1213,19 @@ data Expr:
     fields(self): [self.iterator, self.bindings, self.ann, self.body] end,
     node-name(self): t_for end,
     tosource(self):
-      header = PP.group(PP.string("for ")
+      header = PP.group(PP.str("for ")
           + self.iterator.tosource()
           + PP.surround-separate(2*INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
           self.bindings.fields().map(fun(b): b.tosource() end))
           + PP.group(PP.nest(2*INDENT,
-            PP.break(1) + PP.string("->") + PP.break(1) + self.ann.tosource() + PP.string(":"))))
-      PP.surround(INDENT, 1, header, self.body.tosource(), PP.string("end"))
+            PP.break(1) + PP.str("->") + PP.break(1) + self.ann.tosource() + PP.str(":"))))
+      PP.surround(INDENT, 1, header, self.body.tosource(), PP.str("end"))
     end
   | s_check(body :: Expr) with:
     fields(self): [self.body] end,
     node-name(self): t_check end,
     tosource(self):
-      PP.surround(INDENT, 1, PP.string("check:"), self.body.tosource(), PP.string("end"))
+      PP.surround(INDENT, 1, PP.str("check:"), self.body.tosource(), PP.str("end"))
     end
 sharing:
   arity(self): self.fields().length() end,
@@ -1278,8 +1278,8 @@ data Bind:
     fields(self): [self.id, self.ann] end,
     node-name(self): t_bind end,
     tosource(self):
-      if is-a_blank(self.ann): PP.string(self.id)
-      else: PP.infix(INDENT, 1, PP.string("::"), PP.string(self.id), self.ann.tosource())
+      if is-a_blank(self.ann): PP.str(self.id)
+      else: PP.infix(INDENT, 1, PP.str("::"), PP.str(self.id), self.ann.tosource())
       end
     end
 sharing:
@@ -1303,18 +1303,18 @@ data Member:
   | s_data_field(name :: Expr, value :: Expr) with:
     fields(self): [self.name, self.value] end,
     node-name(self): t_data_field end,
-    tosource(self): PP.nest(INDENT, self.name.tosource() + PP.string(": ") + self.value.tosource()) end,
-    todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
+    tosource(self): PP.nest(INDENT, self.name.tosource() + PP.str(": ") + self.value.tosource()) end,
+    todatafield(self): PP.nest(INDENT, PP.str(self.name.s) + PP.str(": ") + self.value.tosource()) end
   | s_mutable_field(name :: Expr, ann :: Ann, value :: Expr) with:
     fields(self): [self.name, self.value, self.ann] end,
     node-name(self): t_mutable_field end,
-    tosource(self): PP.nest(INDENT, PP.string("mutable") + self.name.tosource() + PP.string("::") + self.ann.tosource() + PP.string(": ") + self.value.tosource()) end,
-    todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
+    tosource(self): PP.nest(INDENT, PP.str("mutable") + self.name.tosource() + PP.str("::") + self.ann.tosource() + PP.str(": ") + self.value.tosource()) end,
+    todatafield(self): PP.nest(INDENT, PP.str(self.name.s) + PP.str(": ") + self.value.tosource()) end
   | s_once_field(name :: Expr, ann :: Ann, value :: Expr) with:
     fields(self): [self.name, self.value, self.ann] end,
     node-name(self): t_once_field end,
-    tosource(self): PP.nest(INDENT, PP.string("once") + self.name.tosource() + PP.string("::") + self.ann.tosource() + PP.string(": ") + self.value.tosource()) end,
-    todatafield(self): PP.nest(INDENT, PP.string(self.name.s) + PP.string(": ") + self.value.tosource()) end
+    tosource(self): PP.nest(INDENT, PP.str("once") + self.name.tosource() + PP.str("::") + self.ann.tosource() + PP.str(": ") + self.value.tosource()) end,
+    todatafield(self): PP.nest(INDENT, PP.str(self.name.s) + PP.str(": ") + self.value.tosource()) end
   | s_method_field(
       name :: Expr,
       args :: ASTList, # Value parameters
@@ -1328,7 +1328,7 @@ data Member:
     node-name(self): t_method_field end,
     tosource(self):
       name-part = cases(Expr) self.name:
-        | s_str(s) => PP.string(s)
+        | s_str(s) => PP.str(s)
         | else => self.name.tosource()
       end
       funlam_tosource(name-part,
@@ -1360,7 +1360,7 @@ data ForBind:
     fields(self): [self.bind, self.value] end,
     node-name(self): t_for_bind end,
     tosource(self):
-      PP.group(self.bind.tosource() + PP.break(1) + PP.string("from") + PP.break(1) + self.value.tosource())
+      PP.group(self.bind.tosource() + PP.break(1) + PP.str("from") + PP.break(1) + self.value.tosource())
     end
 sharing:
   arity(self): self.fields().length() end,
@@ -1384,7 +1384,7 @@ data VariantMember:
     fields(self): [self.member_type, self.bind] end,
     node-name(self): t_variant_member end,
     tosource(self):
-      PP.string(self.member_type) + PP.string(" ") + self.bind.tosource()
+      PP.str(self.member_type) + PP.str(" ") + self.bind.tosource()
     end
 end
 
@@ -1398,10 +1398,10 @@ data Variant:
     node-name(self): t_variant end,
     tosource(self):
       header-nowith = 
-        PP.string(self.name)
+        PP.str(self.name)
         + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
         self.binds.fields().map(fun(b): b.tosource() end))
-      header = PP.group(header-nowith + PP.break(1) + PP.string("with:"))
+      header = PP.group(header-nowith + PP.break(1) + PP.str("with:"))
       withs = self.with_members.fields().map(fun(m): m.todatafield() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, PP.break(1) + PP.separate(PP.commabreak, withs)))
@@ -1414,8 +1414,8 @@ data Variant:
     fields(self): [self.name, self.with_members] end,
     node-name(self): t_singleton_variant end,
     tosource(self):
-      header-nowith = PP.string(self.name)
-      header = PP.group(header-nowith + PP.break(1) + PP.string("with:"))
+      header-nowith = PP.str(self.name)
+      header = PP.group(header-nowith + PP.break(1) + PP.str("with:"))
       withs = self.with_members.fields().map(fun(m): m.todatafield() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, PP.break(1) + PP.separate(PP.commabreak, withs)))
@@ -1444,8 +1444,8 @@ data IfBranch:
     fields(self): [self.test, self.body] end,
     node-name(self): t_if_branch end,
     tosource(self):
-      PP.string("if ")
-        + PP.nest(2*INDENT, self.test.tosource()+ PP.string(":"))
+      PP.str("if ")
+        + PP.nest(2*INDENT, self.test.tosource()+ PP.str(":"))
         + PP.nest(INDENT, PP.break(1) + self.body.tosource())
     end
 sharing:
@@ -1470,9 +1470,9 @@ data CasesBranch:
     fields(self): [self.name, self.args, self.body] end,
     node-name(self): t_cases_branch end,
     tosource(self):
-      PP.group(PP.string("| " + self.name)
+      PP.group(PP.str("| " + self.name)
           + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
-          self.args.fields().map(fun(a): a.tosource() end)) + PP.break(1) + PP.string("=>")) + PP.break(1) +
+          self.args.fields().map(fun(a): a.tosource() end)) + PP.break(1) + PP.str("=>")) + PP.break(1) +
       self.body.tosource()
     end
 sharing:
@@ -1496,28 +1496,28 @@ data Ann:
   | a_blank with:
     fields(self): [] end,
     node-name(self): t_a_blank end,
-    tosource(self): PP.string("Any") end
+    tosource(self): PP.str("Any") end
   | a_any with:
     fields(self): [] end,
     node-name(self): t_a_any end,
-    tosource(self): PP.string("Any") end
+    tosource(self): PP.str("Any") end
   | a_name(id :: String)  with:
     fields(self): [self.id] end,
     node-name(self): t_a_name end,
-    tosource(self): PP.string(self.id) end
+    tosource(self): PP.str(self.id) end
   | a_arrow(args :: ASTList, ret :: Ann)  with:
     fields(self): [self.args, self.ret] end,
     node-name(self): t_a_arrow end,
     tosource(self):
       PP.surround(INDENT, 1, PP.lparen,
-        PP.separate(PP.string(" "),
+        PP.separate(PP.str(" "),
           [PP.separate(PP.commabreak,
-            self.args.fields().map(fun(f): f.tosource() end))] + [PP.string("->"), self.ret.tosource()]), PP.rparen)
+            self.args.fields().map(fun(f): f.tosource() end))] + [PP.str("->"), self.ret.tosource()]), PP.rparen)
     end
   | a_method(args :: ASTList, ret :: Ann)  with:
     fields(self): [self.args, self.ret] end,
     node-name(self): t_a_method end,
-    tosource(self): PP.string("NYI: A_method") end
+    tosource(self): PP.str("NYI: A_method") end
   | a_record(flds :: ASTList)  with:
     fields(self): [self.flds] end,
     node-name(self): t_a_record end,
@@ -1540,7 +1540,7 @@ data Ann:
   | a_dot(obj :: String, field :: String)  with:
     fields(self): [self.obj, self.field] end,
     node-name(self): t_a_dot end,
-    tosource(self): PP.string(self.obj + "." + self.field) end
+    tosource(self): PP.str(self.obj + "." + self.field) end
 sharing:
   arity(self): self.fields().length() end,
   to-labelled(self, T): generic-to-labelled(self, T) end,
@@ -1571,8 +1571,8 @@ data AField:
     fields(self): [self.name, self.ann] end,
     node-name(self): t_a_field end,
     tosource(self):
-      if is-a_blank(self.ann): PP.string(self.name)
-      else: PP.infix(INDENT, 1, PP.string("::"), PP.string(self.name), self.ann.tosource())
+      if is-a_blank(self.ann): PP.str(self.name)
+      else: PP.infix(INDENT, 1, PP.str("::"), PP.str(self.name), self.ann.tosource())
       end
     end
 sharing:
@@ -1601,7 +1601,7 @@ data ASTList:
     fields(self): self.l end,
     node-name(self): t_ast_list end,
     tosource(self):
-      PP.surround-separate(INDENT, 0, PP.string("[]"), PP.lbrack, PP.commabreak, PP.rbrack,
+      PP.surround-separate(INDENT, 0, PP.str("[]"), PP.lbrack, PP.commabreak, PP.rbrack,
         self.l.map(fun(v): v.tosource() end))
     end
 sharing:

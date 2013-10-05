@@ -26,7 +26,7 @@
       (exn:fail:pyret/tc-srclocs a-struct)))
 
 (define (tc-error str . locs)
-  (raise (exn:fail:pyret/tc (format "~a ~a"  locs str) (continuation-marks #f) locs)))
+  (raise (exn:fail:pyret/tc (format "~a" str) (continuation-marks #f) locs)))
 
 (define VAR-REMINDER "(Identifiers are declared with = and as the names of function arguments.  Variables are declared with var.)")
 
@@ -40,7 +40,7 @@
   (format "The name ~a cannot be used in two nested scopes.  Rename one of them to avoid confusion." name))
 
 (define (duplicate-identifier name)
-  (format "~a defined twice" name))
+  (format "I'm confused: ~a is defined twice" name))
 
 (define (skippable? a)
   (or (a-blank? a) (a-any? a) (and (a-name? a) (equal? (a-name-id a) 'Any))))
@@ -282,6 +282,8 @@
      (s-var s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
     [(s-let s bnd val)
      (s-let s bnd (wrap-ann-check s (s-bind-ann bnd) (cc val)))]
+    [(s-user-block s body)
+     (s-user-block s (cc body))]
 
     [(s-lam s typarams args ann doc body check)
      (define (new-arg b)

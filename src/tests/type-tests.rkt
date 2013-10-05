@@ -18,7 +18,7 @@
 ;; tests for type annotation runtime checks
 (check-pyret-exn
  "var x :: Number = 'hello'"
- "runtime:")
+ "expected Number")
 
 (check-pyret
  "var x :: String = 'hello' x"
@@ -34,34 +34,34 @@
   x.first"
  (p:mk-num 1))
 
-(check-pyret-exn "var x :: Number = true" "runtime:")
+(check-pyret-exn "var x :: Number = true" "expected Number")
 (check-pyret "var x :: Number = 48 x" forty8)
-(check-pyret-exn "var x :: Number = 37 x := 'not-a-num'" "runtime:")
+(check-pyret-exn "var x :: Number = 37 x := 'not-a-num'" "expected Number")
 
 (check-pyret "var x :: Number = 23 x := 6" six)
 (check-pyret "fun f(x :: Number) -> String: var y :: String = 'daniel' y end f(42)" (p:mk-str "daniel"))
 (check-pyret-exn "fun f(x :: Number) -> String: var y :: String = 'daniel' y := 6 end f(42)"
-                 "runtime:")
+                 "expected String")
 (check-pyret "var x :: Number = 6 fun f(): var y :: String = 'daniel' y := 'bobby' end f() x"
              six)
 (check-pyret-exn "var x :: Number = 6 fun f(): x := 'bobby' end f() x"
-                 "runtime:")
+                 "expected Number")
 (check-pyret-exn "fun g(h): h() end var x :: Number = 6 fun f(): x := 'bobby' end g(f) x"
-                 "runtime:")
+                 "expected Number")
 
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
   var g :: (Number -> String) = f
   g := fun(x :: String) -> String: x end
   g('foo')"
- "runtime:")
+ "expected Number")
 
 (check-pyret-exn
  "fun f(x :: Number) -> String: x.tostring() end
   var g :: (String -> String) = f
   g := fun(x :: String) -> String: x end
   g(6)"
- "runtime:")
+ "expected String")
 
 (check-pyret
  "fun f(g :: (Number -> String)): g(10) end
@@ -100,13 +100,13 @@
   "data Maybe(a) | some: value :: a end
   fun f(x :: Maybe<Number>) -> Number: x.value end
   f(some('hello'))"
-  "runtime:")
+  "expected Number")
 
 #;(check-pyret
  "data Maybe(a) | some: value :: a end
   fun f(x :: (Maybe<Number> -> Number)) -> Number: x(some('string')) end
   f(\\m: (m.value))"
- "runtime:")
+ "expected Number")
 
 (check-pyret-exn
  "fun even(x):
@@ -189,5 +189,21 @@
      | link(f :: Number, r :: list.List<Number>) => f
    end"
   (p:mk-num 1))
+
+(check-pyret-exn
+  "block:
+     x = 10
+     x
+   end
+   x"
+  "Unbound identifier: x")
+
+(check-pyret-exn
+  "block:
+     var x = 10
+     x
+   end
+   x"
+  "Unbound identifier: x")
 
 (run-tests all)

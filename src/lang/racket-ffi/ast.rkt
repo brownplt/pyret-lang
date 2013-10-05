@@ -5,10 +5,17 @@
   "../load.rkt"
   "../desugar.rkt"
   "../desugar-check.rkt"
-  "../runtime.rkt"
+  (except-in "../runtime.rkt" raise)
   "../ffi-helpers.rkt"
   "../string-map.rkt"
+  pyret/lang/well-formed
+  pyret/lang/indentation
+  pyret/lang/eval
+  pyret/lang/typecheck
+  pyret/lang/type-env
+  ragg/support
   racket/match
+  racket/list
   (rename-in "ast.arr" [%PYRET-PROVIDE ast]))
 
 (define-syntax-rule (build type arg ...)
@@ -90,6 +97,8 @@
      (build s_program (tp-loc s) (map tp-header imports) (tp block))]
     [(s-block s stmts)
      (build s_block (tp-loc s) (map tp stmts))]
+    [(s-user-block s body)
+     (build s_user_block (tp-loc s) (tp body))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -302,18 +311,28 @@
     [else
      (error (format "ast: don't know how to convert ann: ~a" ann))]))
 
-(define (pyret-pair-from-string str src options)
+(define (get-desugared str src check-mode?)
   (define ast (parse-pyret (string-append " " str) src))
-  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (define desugar
     (cond
       [check-mode? (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
+  (desugar ast))
+
+(define (pyret/tc str src options)
+  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
+  (define desugared (get-desugared str src check-mode?))
+  (define with-contracts (contract-check-pyret desugared DEFAULT-ENV))
+  (to-pyret with-contracts))
+
+(define (pyret-pair-from-string str src options)
+  (define ast (parse-pyret (string-append " " str) src))
+  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (p:mk-object
     (make-string-map
       (list
         (cons "pre-desugar" (to-pyret ast))
-        (cons "post-desugar" (to-pyret (desugar ast)))))))
+        (cons "post-desugar" (to-pyret (get-desugared str src check-mode?)))))))
 
 (define-syntax-rule (has-brand obj brand)
   (ffi-unwrap (p:apply-fun (p:get-field p:dummy-loc ast (string-append "is-" (symbol->string (quote brand)))) p:dummy-loc (ffi-wrap obj))))
@@ -436,6 +455,8 @@
       (map tr-expr e)]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
+     [(has-brand e s_user_block)
+      (tr-obj e s-user-block (tr-loc l) (tr-expr body))]
      [(has-brand e s_fun)
       (tr-obj e s-fun
               (tr-loc l) (string->symbol name) (map symbol->string params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
@@ -523,6 +544,25 @@
 
 
 
+(define (parse-error-wrap f)
+  (define (single-or-first l)
+    (cond
+      [(list? l) (first l)]
+      [else l]))
+  (lambda args
+    (with-handlers
+      ([(lambda (e) #t)
+        (lambda (e)
+         (match e
+           [(exn:fail:parsing message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "parse-error" message))]
+           [(exn:fail:pyret/wf message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "wf-error" message))]
+           [(exn:fail:pyret/indent message cms locs)
+            (raise (p:pyret-error (p:loc-list (first locs)) "indent-error" message))]
+           [(exn:fail message cms)
+            (raise (p:pyret-error p:dummy-loc "other-parse-error" message))]))])
+    (apply f args))))
 
 
 (define export
@@ -531,10 +571,13 @@
     ast
     (list
       (cons "parse"
-            (ffi-wrap pyret-pair-from-string))
+            (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
+      (cons "parse-tc"
+            (ffi-wrap (parse-error-wrap pyret/tc)))
       (cons "to-native"
             (ffi-wrap to-racket))
       (cons "to-pyret"
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
+

@@ -13,6 +13,7 @@
     triangle
     isosceles-triangle
     rotate
+    scale
     bitmap/url
     bitmap/file
     save-image
@@ -38,6 +39,7 @@
       (cons "isosceles-triangle" (ffi-wrap isosceles-triangle))
       (cons "triangle" (ffi-wrap triangle))
       (cons "rotate" (ffi-wrap rotate))
+      (cons "scale" (ffi-wrap scale))
       (cons "rectangle" (ffi-wrap rectangle))
       (cons "bitmap-url" (ffi-wrap bitmap/url))
       (cons "bitmap-file" (ffi-wrap bitmap/file))

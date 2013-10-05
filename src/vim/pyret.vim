@@ -27,7 +27,7 @@ syn match delimeter '}'
 syn match delimeter ':'
 syn match delimeter '::'
 
-syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph:
+syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph: block:
 
 syn match op ' + '
 syn match op ' - '
@@ -41,8 +41,9 @@ syn match op ' <> '
 
 syn match comment '\#.*$'
 
-syn match string '"[^"]*"'
-syn match string "'[^']*'"
+
+syntax region string start=/\v"/ skip=/\v\\./ end=/\v"/
+syntax region string start=/\v'/ skip=/\v\\./ end=/\v'/
 
 syn match number "[0-9]+"
 

@@ -150,6 +150,8 @@
      (with-syntax ([(stmt ...) (compile-block l stmts new-env)])
        (attach l #'(r:let () stmt ...)))]
 
+    [(s-user-block l body) (compile-expr body env)]
+
     [(s-num l n) #`(p:mk-num #,(d->stx n l))]
     [(s-bool l #t) #`p:p-true]
     [(s-bool l #f) #`p:p-false]
@@ -207,10 +209,10 @@
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
                     [field (compile-string-literal l2 field env)])
-          #`(r:let* ([%obj obj]
+          (mark l #`(r:let* ([%obj obj]
                      [%field (p:get-raw-field #,(loc-stx l) %obj field)]
                      [argid arg] ...)
-              ((p:p-base-method %field) %obj argid ...)))]
+              ((p:p-base-method %field) %obj argid ...))))]
 
 
     [(s-app l fun args)
@@ -222,10 +224,11 @@
          (with-syntax ([(arg ...) (args-stx l args)])
            #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env)))]
         [_ #`(p:p-base-app #,(compile-expr fun env))]))
+     (mark l
      (attach l
         (with-syntax ([fun (compile-fun-expr fun)]
                       [(arg ...) (map (curryr compile-expr env) args)])
-          #'(fun arg ...)))]
+          #'(fun arg ...))))]
 
     [(s-obj l fields)
      (attach l

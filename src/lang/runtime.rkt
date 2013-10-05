@@ -102,7 +102,8 @@
       to-repr
       nothing
       pyret-true?
-      dummy-loc))
+      dummy-loc
+      loc-list))
   (rename-out [p-pi pi]
               [print-pfun print]
               [tostring-pfun tostring]
@@ -113,7 +114,6 @@
               [num-keys-pfun prim-num-keys]
               [has-field-pfun prim-has-field]
               [raise-pfun raise]
-              [is-nothing-pfun is-nothing]
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
               [mk-placeholder-pfun mk-placeholder]
@@ -129,6 +129,15 @@
   Method
   Mutable
   Placeholder
+  is-number
+  is-string
+  is-bool
+  is-object
+  is-nothing
+  is-function
+  is-method
+  is-mutable
+  is-placeholder
   nothing)
 
 
@@ -568,21 +577,40 @@ And the object was:
 
           (- (length argnames) 1)
           (- (length args) 1)
-          (string-join (map to-string (drop args 1)) "\n")
+          (string-join (map to-repr (drop args 1)) "\n")
           (to-string (first args)))))]))
 
 (define (arity-error loc argnames args)
-  (raise
-    (pyret-error
-      loc
-      "arity-mismatch"
-      (format
-"Expected ~a arguments, but got ~a.  The ~a provided argument(s) were:
+  (define (pluralize str lst)
+    (string-append str (if (= (length lst) 1) "" "s")))
+  (define expected-names (pluralize "argument" argnames))
+  (define expected-args (pluralize "argument" args))
+  (define were/was (if (= (length args) 1) "was" "were"))
+  (cond
+    [(= (length args) 0)
+     (raise
+        (pyret-error
+          loc
+          "arity-mismatch"
+          (format
+"Expected ~a ~a, but got none."
+            (length argnames)
+            expected-names)))]
+    [else
+     (raise
+       (pyret-error
+         loc
+         "arity-mismatch"
+         (format
+"Expected ~a ~a, but got ~a.  The ~a provided ~a ~a:
 ~a"
-        (length argnames)
-        (length args)
-        (length args)
-        (string-join (map to-string args) "\n")))))
+           (length argnames)
+           expected-names
+           (length args)
+           (length args)
+           expected-args
+           were/was
+           (string-join (map to-repr args) "\n"))))]))
 
 ;; add-brand : Value Symbol -> Value
 (define (add-brand v new-brand)
@@ -906,12 +934,14 @@ And the object was:
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
 
+(define (truncate-str str n) (substring str 0 (min n (string-length str))))
+
 (define (throw-type-error! typname o)
   (raise (pyret-error
           (get-top-loc)
            "type-error"
-           (format "runtime: typecheck failed; expected ~a and got\n~a"
-                              typname (to-repr o)))))
+           (format "typecheck failed; expected ~a and got\n~a"
+                              typname (truncate-str (to-repr o) 100)))))
 
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
@@ -944,9 +974,6 @@ And the object was:
 
 (define raise-pfun (pλ/internal (loc) (o)
   (raise (mk-pyret-exn (exn+loc->message o (get-top-loc)) (get-top-loc) o #f))))
-
-(define is-nothing-pfun (pλ/internal (loc) (specimen)
-  (mk-bool (equal? specimen nothing))))
 
 ;; tie the knot of mutual state problems
 (void
@@ -1051,3 +1078,14 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+
+(mk-pred is-number p-num?)
+(mk-pred is-string p-str?)
+(mk-pred is-bool p-bool?)
+(mk-pred is-object p-object?)
+(mk-pred is-nothing p-nothing?)
+(mk-pred is-function p-fun?)
+(mk-pred is-method p-method?)
+(mk-pred is-mutable p-mutable?)
+(mk-pred is-placeholder p-placeholder?)
+

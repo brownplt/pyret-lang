@@ -1,0 +1,29 @@
+<html>
+<head>
+
+<link rel="stylesheet" href="../../lib/jasmine/lib/jasmine-core/jasmine.css"></link>
+<script src="../../lib/jasmine/lib/jasmine-core/jasmine.js"></script>
+<script src="../../lib/jasmine/lib/jasmine-core/jasmine-html.js"></script>
+<script src="../../lib/jasmine/lib/jasmine-core/boot.js"></script>
+
+<script src="../runtime.js"></script>
+<script src="test-support.js"></script>
+
+</head>
+<body>
+</body>
+<script src="tests.js"></script>
+<script>
+var THE_RUNTIME = PYRET.makeRuntime();
+describe("Pyret in JS --- ", function() {
+  var tester;
+  Object.keys(TESTS).forEach(function(key) {
+      var elt = TESTS[key];
+      it(key, function() {
+        elt.test(THE_RUNTIME);
+      });
+    })
+});
+</script>
+
+</html>

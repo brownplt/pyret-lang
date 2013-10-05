@@ -13,6 +13,15 @@ should not be required for evaluating the ast node, and only used for
 these metadata purposes.
 
 |#
+(define (ok-last-stmt stmt)
+  (match stmt
+    [(s-let _ _ _) #f]
+    [(s-var _ _ _) #f]
+    [(s-fun _ _ _ _ _ _ _ _) #f]
+    [(s-data _ _ _ _ _ _ _) #f]
+    [(s-graph _ _) #f]
+    [(s-check _ _) #f]
+    [else #t]))
 
 (define (src->module-name e)
   (cond
@@ -68,6 +77,8 @@ these metadata purposes.
 (struct s-let (syntax name value) #:transparent)
 
 (struct s-graph (syntax bindings) #:transparent)
+
+(struct s-user-block (syntax body) #:transparent)
 
 
 ;; s-when : srcloc (Listof Expr s-block) -> s-when
@@ -281,6 +292,7 @@ these metadata purposes.
       [else (s-for s (sub iterator) (map sub bindings) ann (sub body))])]
     [(s-graph s bindings)
      (s-graph (map sub bindings))]
+    [(s-user-block s body) (s-user-block s (sub body))]
     [(s-check s body) (s-check s (sub body))]
     [(s-var s name value) (s-var s name (sub value))]
     [(s-let s name value) (s-let s name (sub value))]
@@ -338,6 +350,7 @@ these metadata purposes.
     [(s-var syntax name value) syntax]
     [(s-let syntax name value) syntax]
     [(s-graph syntax bindings) syntax]
+    [(s-user-block syntax _) syntax]
     [(s-when syntax test block) syntax]
     [(s-if syntax branches) syntax]
     [(s-if-else syntax branches else) syntax]

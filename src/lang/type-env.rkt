@@ -5,7 +5,9 @@
   (struct-out binding)
   bound?
   update
+  update-list-any
   lookup
+  env-to-hash
   LIBRARY-ENV
   DEFAULT-ENV
   WHALESONG-ENV
@@ -21,9 +23,15 @@
   r)
 (define (update id b env)
   (hash-set env id b))
+(define (env-to-hash env) env)
 
 (define type-check-loc
   (srcloc "builtin-value" #f #f #f #f))
+
+(define (update-list-any ids env)
+  (foldr (lambda (x env) (hash-set env x (binding type-check-loc (a-blank) #f)))
+         env
+         ids))
 
 (define (env-binding ann)
   (binding type-check-loc ann #f))
@@ -57,6 +65,15 @@
      'Nothing
      'Mutable
      'Placeholder
+     'is-bool
+     'is-function
+     'is-method
+     'is-number
+     'is-object
+     'is-string
+     'is-nothing
+     'is-mutable
+     'is-placeholder
      'brander
      'check-brand
      'mk-mutable
@@ -114,6 +131,8 @@
       'fold2
       'fold3
       'fold4
+      'index
+
       'random
       'animate
       'circle
@@ -140,3 +159,4 @@
 
 (define WHALESONG-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list whalesong-env-list)))
+

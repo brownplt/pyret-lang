@@ -67,6 +67,7 @@ expr: paren-expr | id-expr | prim-expr
     | extend-expr
     | if-expr | cases-expr
     | for-expr | try-expr
+    | user-block-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
@@ -131,6 +132,8 @@ for-bind-elt: for-bind ","
 for-expr: "for" expr PARENNOSPACE [for-bind-elt* for-bind] ")" return-ann ":" block end
 
 try-expr: "try:" block "except" (PARENSPACE|PARENNOSPACE) binding ")" ":" block end
+
+user-block-expr: "block:" block end
 
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 

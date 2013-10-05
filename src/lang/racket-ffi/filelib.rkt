@@ -22,11 +22,13 @@
           (ffi-wrap
            (lambda (filename exists)
              (open-output-file filename #:exists exists))))
+    (cons "file-exists" (ffi-wrap file-exists?))
     (cons "read-line" (ffi-wrap (lambda (f) (read-line f))))
     (cons "read-file" (ffi-wrap (lambda (f) (port->string f))))
     (cons "close-input-file" (ffi-wrap (lambda (f) (close-input-port f))))
     (cons "close-output-file" (ffi-wrap (lambda (f) (close-output-port f))))
-    (cons "display" (ffi-wrap (lambda (f val) (display val f)))))))
+    (cons "display" (ffi-wrap (lambda (f val) (display val f))))
+    (cons "flush-output-file" (ffi-wrap (lambda (f) (flush-output f)))))))
 
 (define file-obj (p:mk-object file-dict))
 

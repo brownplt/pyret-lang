@@ -867,7 +867,83 @@ check:
 end
 }
 
+@subsubsection[#:tag "s:curried-apply-expr"]{Curried Application Expressions}
 
+Suppose a function is defined with multiple arguments:
+
+@justcode{
+fun f(v, w, x, y, z): ... end
+}
+
+Sometimes, it is particularly convenient to define a new function that
+calls @tt{f} with some arguments pre-specified:
+
+@justcode{
+call-f-with-123 = fun(y, z): f(1, 2, 3, y, z) end
+}
+
+Pyret provides syntactic sugar to make writing such helper functions
+easier:
+
+@justcode{
+call-f-with-123 = f(1, 2, 3, _, _) # same as the fun expression above
+}
+
+Specifically, when Pyret code contains a function application some of
+whose arguments are underscores, it constructs an anonymous function
+with the same number of arguments as there were underscores in the
+original expression, whose body is simply the original function
+application, with the underscores replaced by the names of the
+arguments to the anonymous function.
+
+This syntactic sugar also works with
+@seclink["s:left-apply-expr" "caret application expressions"], and
+with operators.  For example, the following are two ways to sum a list
+of numbers:
+
+@justcode{
+[1, 2, 3, 4].foldl(fun(a, b): a + b end, 0)
+
+[1, 2, 3, 4].foldl(_ + _, 0)
+}
+
+Likewise, the following are two ways to compare two lists for
+equality:
+
+@justcode{
+list.map_2(fun(x, y): x == y end, first-list, second-list)
+
+list.map_2(_ == _, first-list, second-list)
+}
+
+Note that there are some limitations to this syntactic sugar.  You
+cannot use it with the @tt{is} or @tt{raises} expressions in
+@seclink["s:checkers" "check: blocks"], since both test expressions and expected
+outcomes are known when writing tests.  Also, note that the sugar is
+applied only to one function application at a time.  As a result, the
+following code:
+
+@justcode{
+_ + _ + _
+}
+
+desugars to
+
+@justcode{
+fun(z):
+  (fun (x, y): x + y end) + z
+end
+}
+
+which is probably not what was intended.  You can still write the
+intended expression manually:
+
+@justcode{
+fun(x, y, z): x + y + z end
+}
+
+Pyret just does not provide syntactic sugar to help in this case
+(or other more complicated ones).
 
 @subsubsection[#:tag "s:obj-expr"]{Object Expressions}
 
@@ -1080,7 +1156,7 @@ check:
     | empty => "empty"
     | link(f, r) => "link"
   end
-  result is "link
+  result is "link"
 
   result2 = cases(list.List) [1,2,3]:
     | empty => "empty"
@@ -1422,6 +1498,7 @@ help manipulate lists.
     fold2
     fold3
     fold4
+    index
  ))
 
 
@@ -1447,8 +1524,9 @@ help manipulate lists.
 Construct sets using @tt{sets.set(lst)}.
 Sets have the type @tt{sets.Set}.
 
-In @tt{#lang pyret/whalesong}, @tt{set} and @tt{Set} are available
-directly.
+@margin-note{In Captain Teach and in @tt{#lang pyret/whalesong}, @tt{set}
+and @tt{Set} are in the environment by default, so you can just use their
+names as identifiers.}
 
 @justcode{data Set: | ... end}
 
@@ -1585,6 +1663,36 @@ are converted into a list [\"string\", <the-string>].'
   where:
       read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
     is [[-13, 14, 88.8], 'cats', '++', ['string', 'dogs']]
+  end
+  fun random(n :: Number) -> Number:
+    doc: 'Take a number as input, and return a random number between 0 and n-1 (inclusive'
+  end
+  fun is-number(v :: Any) -> Bool:
+    doc: 'True if v is a number, false otherwise'
+  end
+  fun is-string(v :: Any) -> Bool:
+    doc: 'True if v is a string, false otherwise'
+  end
+  fun is-object(v :: Any) -> Bool:
+    doc: 'True if v is a object, false otherwise'
+  end
+  fun is-bool(v :: Any) -> Bool:
+    doc: 'True if v is a bool, false otherwise'
+  end
+  fun is-function(v :: Any) -> Bool:
+    doc: 'True if v is a function, false otherwise'
+  end
+  fun is-method(v :: Any) -> Bool:
+    doc: 'True if v is a method, false otherwise'
+  end
+  fun is-mutable(v :: Any) -> Bool:
+    doc: 'True if v is a mutable, false otherwise'
+  end
+  fun is-placeholder(v :: Any) -> Bool:
+    doc: 'True if v is a placeholder, false otherwise'
+  end
+  fun is-nothing(v :: Any) -> Bool:
+    doc: 'True if v is nothing, false otherwise'
   end"
   )
 @(define misc-ast (parse-pyret misc))
@@ -1595,6 +1703,15 @@ are converted into a list [\"string\", <the-string>].'
   print
   torepr
   read-sexpr
+  is-number
+  is-string
+  is-bool
+  is-function
+  is-method
+  is-object
+  is-mutable
+  is-placeholder
+  is-nothing
   ))
 
 @section[#:tag "s:mutables"]{Mutables}
