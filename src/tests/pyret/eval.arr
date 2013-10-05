@@ -2,6 +2,7 @@
 
 import pyret-eval as E
 import ast as ast
+import namespaces as N
 
 fun eval(str, env, settings):
   stx = ast.parse(str, "simple-parse", { ["check"]: false })
@@ -64,5 +65,7 @@ check:
   block-results.length() is 1
   checkers.is-normal-result(block-results.first) is true
   checkers.is-success(block-results.first.results.first) is true
+
+  eval("try: raise(43) except(e): 22 end", N.pyret-env, {}) is 22
 end
 
