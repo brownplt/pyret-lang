@@ -1,0 +1,1 @@
+var x = 2 fun f(g): g() end f(fun: x := 10 end) x
