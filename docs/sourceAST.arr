@@ -1384,7 +1384,11 @@ data VariantMember:
     fields(self): [self.member_type, self.bind] end,
     node-name(self): t_variant_member end,
     tosource(self):
-      PP.str(self.member_type) + PP.str(" ") + self.bind.tosource()
+      if self.member_type <> "normal":
+        PP.str(self.member_type) + PP.str(" ") + self.bind.tosource()
+      else:
+        self.bind.tosource()
+      end
     end
 end
 
@@ -1522,7 +1526,7 @@ data Ann:
     fields(self): [self.flds] end,
     node-name(self): t_a_record end,
     tosource(self):
-      PP.soft-surround(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.flds.fields().map(fun(f): f.tosource() end))
     end
   | a_app(ann :: Ann, args :: ASTList)  with:

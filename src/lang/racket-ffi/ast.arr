@@ -380,7 +380,11 @@ end
 data VariantMember:
   | s_variant_member(l :: Loc, member_type :: String, bind :: Bind) with:
     tosource(self):
-      PP.str(self.member_type) + str-space + self.bind.tosource()
+      if self.member_type <> "normal":
+        PP.str(self.member_type) + str-space + self.bind.tosource()
+      else:
+        self.bind.tosource()
+      end
     end
 end
 
