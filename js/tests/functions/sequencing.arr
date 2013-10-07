@@ -1,1 +1,1 @@
-fun f(x): x end fun g(x): x end f(2) g(10) f(2)
+fun f(x): x end fun g(x): x end test-print(f(2)) test-print(g(10)) test-print(f(2))

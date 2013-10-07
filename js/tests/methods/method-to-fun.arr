@@ -1,0 +1,1 @@
+method(self): doc: 'hello' 1 end._fun()._doc
