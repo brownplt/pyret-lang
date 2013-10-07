@@ -1,4 +1,7 @@
-# Run Makefile from a fresh directory, such as a site/ subdirectory.
+# Run Makefile from a fresh directory, such as a site/ subdirectory
+# cd site
+# make -f ../Makefile
+# This keeps the main dir clean, and the subdir nukeable
 
 all:
 	scribble ++style ../my-style-changes.css --html ../index.scrbl

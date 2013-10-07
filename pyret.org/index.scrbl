@@ -88,10 +88,9 @@ toolset. Furthermore, programming functionally relates well to
 specification and improving performance. Pyret is therefore designed
 to support functional programming well from the start.
 
-@emph{Objects} are now a well-understood and beneficial program
-structuring mechanism. Pyret therefore provides strong support for
-objects without imposing religious beliefs about classes, inheritance,
-and so on.
+Simple @emph{objects} are now a well-understood and beneficial program
+structuring mechanism. Pyret therefore supports objects without
+imposing religious beliefs about classes, inheritance, and so on.
 
 Pyret's knowledge is @emph{portable}.  When you transition to other
 languages, most of your knowledge of programming will come along with
@@ -99,11 +98,11 @@ you. Of course, you may need to work harder to write certain parts of
 your programs in subsequent languages (e.g., data definitions in
 Python, test cases in OCaml, types in Racket)---if any other language
 were just as convenient, Pyret wouldn't need to exist at
-all. Nevertheless, after programming in Pyret, you will feel frissons
+all! Nevertheless, after programming in Pyret, you will feel frissons
 of familiarity in every part of the linguistic menagerie, from
 serpents to dromedaries.
 
-@section[#:tag "Specification-Enriched"]{Specification-Enriched}
+@section[#:tag "Specification-Enriched"]{Pyret Will be Specification-Enriched}
 
 One of our secret goals is to bring the joyous world of rich program
 specification to the power of not only scripting programmers but even
@@ -122,7 +121,7 @@ untrained in the delights of mathematical logic. We are looking, for
 instance, at ways in which testing oracles can be harnessed for this
 purpose. More as it happens.
 
-@section[#:tag "Scripting-Rebooted"]{Scripting Rebooted}
+@section[#:tag "Scripting-Rebooted"]{Pyret is Scripting Rebooted}
 
 Over the past few years, we've spent a 
 @(hyperlink "http://cs.brown.edu/~sk/Publications/Papers/Published/gsk-essence-javascript/"
@@ -169,14 +168,14 @@ information to the developer.
 
 @section[#:tag "Other-Novelties"]{Other Novelties}
 
-In addition to reexamining the foundations of scripting
-(@(secref "Scripting-Rebooted")), we are looking to grow the language
+In addition to reexamining the foundations of scripting,
+we are looking to grow the language
 in other interesting ways. View this mostly as a wish-list, and also
 an invitation for outsiders to contribute! Some of the design
 areas in which we are wrestling with options include:
 @itemlist[
 
-  @item{@emph{Lightweight processes.} Building complex systems such as
+  @item{@emph{Defining lightweight processes.} Building complex systems such as
   interactive evaluators, programming environments, load-balancing Web
   servers, and so on requires
   @(hyperlink  "http://cs.brown.edu/~sk/Publications/Papers/Published/ffkf-mred/"
@@ -194,9 +193,9 @@ areas in which we are wrestling with options include:
   into (poorly) restoring lost information from outside the
   program. Can we usefully alter this balance?}
 
-  @item{@emph{Programming reactive systems with callbacks leads to
-  poor program structure.} Numerous people have noted this, and built
-  entire languages around the problem: for instance,
+  @item{@emph{Avoiding callbacks in reactive systems.} Numerous people
+  have noted that callbacks lead to poor program structure, and some
+  have built entire languages around the problem: for instance,
   @(hyperlink "http://cs.brown.edu/~sk/Publications/Papers/Published/ck-frtime/"
 	      "FrTime") 
   and
