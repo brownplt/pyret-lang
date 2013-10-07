@@ -80,11 +80,6 @@ MISC = [
       "addition",
       "2 + 2",
       equal-to("4")
-    ),
-  str-test-case(
-      "print 5",
-      "test-print(5)",
-      test-print(F.input-file("tests/numbers/five.arr.out").read-file())
     )
 ]
 
@@ -123,8 +118,6 @@ fun all-tests(path):
   end
 end
 
-all-tests("tests")
-
 # one level of sections for now
 fun get-dir-sections(path):
   dir = D.dir(path)
@@ -151,8 +144,7 @@ fun get-dir-sections(path):
   end
 end
 
-#generate-output("tests/numbers/five.arr")
-
+all-tests("tests")
 FILE-TESTS = get-dir-sections("tests")
 
 generate-test-files([test-section("misc", MISC)] + FILE-TESTS)
