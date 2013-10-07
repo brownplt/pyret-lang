@@ -7,10 +7,11 @@ all:
 	scribble ++style ../my-style-changes.css --html ../index.scrbl
 
 pub:
-	scp -r site/* browncs:/pro/web/web/courses/...
-
-staged:
-	scp -r site/* browncs:/u/sk/.Web/tmp/pyret-lang/
+	# Assumed to be running from
+	# .Web/Sites/pyret.org/pyret-lang/pyret.org/
+	# and need to copy into
+	# .Web/Sites/pyret.org/
+	scp -r site/* ../..
 
 clean:
 	rm -rf site/*
