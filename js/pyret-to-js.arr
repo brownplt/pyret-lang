@@ -28,8 +28,12 @@ fun program-to-js(ast, runtime-ids):
         bs + format("var ~a = RUNTIME['~a'];\n", [js-id-of(id), id])
       end
       format("(function(RUNTIME) {
-         ~a
-         return ~a;
+        try {
+          ~a
+          return RUNTIME.makeNormalResult(~a);
+        } catch(e) {
+          return RUNTIME.makeFailResult(e);
+        }
        })", [bindings, expr-to-js(block)])
   end
 end

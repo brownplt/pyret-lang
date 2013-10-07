@@ -8,7 +8,7 @@ function pyretEquals(RUNTIME, pyretVal1, pyretVal2) {
 }
 
 function isNumber(RUNTIME, pyretVal) {
-  return RUNTIME.isNumber(pyretVal);
+  return RUNTIME.isNumber(pyretVal.val);
 }
 
 
@@ -16,9 +16,12 @@ function testEquals(name, pyretProg1, pyretProg2) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var val1 = pyretProg1(RUNTIME);
-      var val2 = pyretProg2(RUNTIME);
-      expect(val1).toBePyretEqual(val2, RUNTIME);
+      var result1 = pyretProg1(RUNTIME);
+      var result2 = pyretProg2(RUNTIME);
+      if (result1 instanceof RUNTIME.NormalResult &&
+          result2 instanceof RUNTIME.NormalResult) {
+        expect(result1.val).toBePyretEqual(result2.val, RUNTIME);
+      }
     }
   };
 }
@@ -36,9 +39,16 @@ function testPrint(name, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var val = pyretProg(RUNTIME);
-      var stdout = RUNTIME.getTestPrintOutput(val);
-      expect(stdout).toEqual(output.expected);
+      var result = pyretProg(RUNTIME);
+      if (result instanceof RUNTIME.NormalResult) {
+        var stdout = RUNTIME.getTestPrintOutput(result.val);
+        expect(stdout).toEqual(output["expected-out"]);
+        expect("").toEqual(output["expected-err"])
+      }
+      else if (result instanceof RUNTIME.FailResult) {
+        expect(stdout).toEqual(output.expected);
+        expect(RUNTIME.errToJSON(result.exn)).toEqual(output["expected-err"]);
+      }
     }
   }
 }
