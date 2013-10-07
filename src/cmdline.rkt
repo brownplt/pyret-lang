@@ -18,7 +18,8 @@
   racket/pretty
   racket/runtime-path
   racket/syntax
-  srfi/13)
+  srfi/13
+  "parameters.rkt")
 
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
 (module test-shell "lang/pyret-lang-racket.rkt"
@@ -98,6 +99,7 @@
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
+(define mark-mode #f)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"
@@ -105,6 +107,10 @@
    (pretty-write (syntax->datum (read-syntax path pyret-file))))
   ("--no-checks" "Run without checks"
    (set! check-mode #f))
+  ("--show-marks" "Mark all call frames"
+   (set! mark-mode #t))
+  ("--no-marks" "Do not mark call frames"
+   (set! mark-mode #f))
   ("--no-indentation" "Run without indentation checking"
    (current-indentation-mode #f))
   ("--allow-shadow" "Run without checking for shadowed vars"
@@ -117,11 +123,13 @@
       (cond
         [check-mode
          (parameterize ([current-check-mode #t]
+                        [current-mark-mode mark-mode]
                         [current-print (print-pyret #t)]
                         [current-whalesong-repl-print #f])
           (dynamic-require pyret-file #f))]
         [else
-         (dynamic-require pyret-file #f)]))
+         (parameterize ([current-mark-mode mark-mode])
+           (dynamic-require pyret-file #f))]))
     (with-handlers
       ([exn:break?
         (lambda (e)

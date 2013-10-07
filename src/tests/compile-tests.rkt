@@ -606,7 +606,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
   ;; NOTE(joe): allow this here because checkers
-  (parameterize [(current-allow-shadowed-vars #t)]
+  (parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
     (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 35))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
