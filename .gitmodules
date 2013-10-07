@@ -7,6 +7,3 @@
 [submodule "lib/whalesong"]
 	path = lib/whalesong
 	url = https://github.com/jpolitz/whalesong
-[submodule "lib/jasmine"]
-	path = lib/jasmine
-	url = https://github.com/pivotal/jasmine.git
