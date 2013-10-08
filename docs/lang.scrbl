@@ -141,18 +141,49 @@ Numbers have a number of useful methods:
 @(define strings
   "data String:
     | str with:
-      append(self, other :: String) -> String: end,
-      contains(self, other :: String) -> Bool: end,
-      substring(self, start :: Number, stop :: Number) -> String: end,
-      char-at(self, index :: Number) -> String: end,
-      repeat(self, reps :: Number) -> Number: end,
-      length(self) -> Number: end,
-      tonumber(self) -> Number: end,
-      tostring(self) -> String: end
+      append(self, other :: String) -> String:
+        doc: 'Append other after this string.'
+      where:
+        'hello '.append('world') is 'hello world'
+      end,
+      contains(self, other :: String) -> Bool:
+        doc: 'Return true if other is contained in this string, false otherwise'
+      where:
+        'ahoy, matey'.contains('matey') is true
+      end,
+      substring(self, start :: Number, stop :: Number) -> String:
+        doc: 'Return the substring of this string starting at index start and ending at index (stop - 1)'
+      where:
+        'a-str'.substring(0, 0) is ''
+        'a-str'.substring(2, 5) is 'str'
+      end,
+      char-at(self, index :: Number) -> String:
+        doc: 'Return the character at index as a string of length 1'
+      where:
+        'a'.char-at(0) is 'a'
+        'ahoy'.char-at(3) is 'y'
+      end,
+      repeat(self, reps :: Number) -> Number:
+        doc: 'Return a string that is this string repeated reps times'
+      where:
+        'yohoho'.repeat(3) is 'yohohoyohohoyohoho'
+        ''.repeat(10) is ''
+      end,
+      length(self) -> Number:
+        ''.length() is 0
+        'yar'.length() is 3
+      end,
+      tonumber(self) -> Number:
+        doc: 'Return this string parsed as a number.  Returns the special nothing value if the string is not a valid number'
+      where:
+        '5'.tonumber() is 5
+        is-nothing('not-a-number'.tonumber()) is true
+      end,
+      tostring(self) -> String:
+        doc: 'Returns this string'
+      end
   end")
 @(define strings-ast (parse-pyret strings))
-
-Strings have a number methods:
 
 @(flatten (for/list ((name '(
   "append"
