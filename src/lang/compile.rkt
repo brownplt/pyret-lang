@@ -7,6 +7,7 @@
   racket/match
   racket/splicing
   racket/syntax
+  "../parameters.rkt"
   "ast.rkt"
   "compile-helpers/find.rkt"
   "compile-helpers/lift-constants.rkt")
@@ -136,6 +137,8 @@
   (define (mark l expr)
     (with-syntax [((loc-param ...) (loc-list l))]
       #`(r:with-continuation-mark (r:quote pyret-mark) (r:srcloc loc-param ...) #,expr)))
+  (define (mark-if mark-mode l expr)
+    (if mark-mode (mark l expr) expr))
   (define (compile-body l body new-env)
     (mark l (compile-expr body new-env)))
   (define (compile-lookup l obj field lookup-type)
@@ -209,7 +212,8 @@
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
                     [field (compile-string-literal l2 field env)])
-          (mark l #`(r:let* ([%obj obj]
+          (mark-if (current-mark-mode) l
+          #`(r:let* ([%obj obj]
                      [%field (p:get-raw-field #,(loc-stx l) %obj field)]
                      [argid arg] ...)
               ((p:p-base-method %field) %obj argid ...))))]
@@ -224,7 +228,7 @@
          (with-syntax ([(arg ...) (args-stx l args)])
            #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env)))]
         [_ #`(p:p-base-app #,(compile-expr fun env))]))
-     (mark l
+     (mark-if (current-mark-mode) l
      (attach l
         (with-syntax ([fun (compile-fun-expr fun)]
                       [(arg ...) (map (curryr compile-expr env) args)])

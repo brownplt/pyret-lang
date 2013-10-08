@@ -1,5 +1,5 @@
 all:
-	raco setup pyret
+	raco setup -j 2 pyret
 	@echo Pyret build completed successfully
 
 dep:

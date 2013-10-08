@@ -606,7 +606,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
   ;; NOTE(joe): allow this here because checkers
-  (parameterize [(current-allow-shadowed-vars #t)]
+  (parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
     (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 35))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
@@ -789,7 +789,7 @@ o2.m().called" true)
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
-  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 1))
 
   (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))

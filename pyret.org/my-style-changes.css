@@ -1,0 +1,18 @@
+/* Colors derived from nothing resembling good taste */
+
+body { background-color: black; color: white; }
+
+.tocview { background-color: red; }
+.tocsub { background-color: red; }
+
+.tocviewlink { color: red; }
+.tocviewselflink { color: red; }
+
+.plainlink { color: #7CAC96; }
+.refcolumn { color: black; }
+
+.navsettop { background-color: red; }
+.navsetbottom { background-color: red; }
+
+a:link, a:hover, a:active { color: #FDF94A; }
+a:visited { color: white; }
