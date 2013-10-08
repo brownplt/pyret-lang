@@ -4,6 +4,6 @@ data Foo:
 end
 
 cases(Foo) bar:
-  | baz => "match me!"
-  | baz => "don't match me!"
+  | baz => "match me"
+  | baz => "do not match me"
 end

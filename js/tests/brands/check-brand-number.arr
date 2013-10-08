@@ -1,1 +1,1 @@
-check-brand(Number, 5, "won't be used")
+check-brand(Number, 5, "will not be used")
