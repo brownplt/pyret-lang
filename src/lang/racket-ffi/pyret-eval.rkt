@@ -58,7 +58,9 @@
          #:type-env (extend-env-with-dict LIBRARY-ENV env-dict))))
    (define environment (extend-namespace-with-dict (make-fresh-namespace) env-dict))
    (with-handlers
-       ([exn:fail?
+       ([p:exn:fail:pyret?
+         (lambda (e) (raise e))]
+        [exn:fail?
          (lambda (e)
           (define marks (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark))
           (raise (p:pyret-error p:dummy-loc "eval-error" (format "An error occurred while evaluating an eval: ~a ~a" (exn-message e) marks))))])

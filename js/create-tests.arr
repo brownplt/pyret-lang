@@ -87,7 +87,11 @@ fun out-file-of(filename): filename + ".out";
 fun err-file-of(filename): filename + ".err";
 
 fun error-to-json(e):
-  ""
+  if builtins.has-field(e, "message"):
+    e.message
+  else:
+    tostring(e)
+  end
 end
 
 fun generate-output(filename):
