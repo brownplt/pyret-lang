@@ -1,0 +1,7 @@
+p1 = mk-placeholder()
+p2 = mk-placeholder()
+test-print(p1 == p2)
+p1.set(5)
+p2.set(5)
+test-print(p1 == p2)
+(p1 == p1) and (p2 == p2)
