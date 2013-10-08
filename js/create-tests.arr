@@ -63,6 +63,7 @@ fun generate-test-files(tests :: list.List<TestSection>):
       end
     end
   end
+  tests-file.close-file()
 end
 
 MISC = [
@@ -125,6 +126,7 @@ fun generate-output(filename):
   end
   stdout.close-file()
   stderr.close-file()
+  in.close-file()
 end
 
 
@@ -143,6 +145,13 @@ fun all-tests(path):
   end
 end
 
+fun read-then-close(path):
+  file = F.input-file(path)
+  contents = file.read-file()
+  file.close-file()
+  contents
+end
+            
 # one level of sections for now
 fun get-dir-sections(path):
   dir = D.dir(path)
@@ -155,10 +164,10 @@ fun get-dir-sections(path):
         if file-path.substring(l - 4, l) == ".arr":
           [str-test-case(
               test-file,
-              F.input-file(file-path).read-file(),
+              read-then-close(file-path),
               test-print(
-                  F.input-file(out-file-of(file-path)).read-file(),
-                  F.input-file(err-file-of(file-path)).read-file()
+                  read-then-close(out-file-of(file-path)),
+                  read-then-close(err-file-of(file-path))
                 )
             )] + ts
         else:
