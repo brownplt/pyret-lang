@@ -1,0 +1,1 @@
+is-placeholder(mk-mutable(4, fun(): end, fun(): end))

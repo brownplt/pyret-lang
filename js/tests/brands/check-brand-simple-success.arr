@@ -1,0 +1,1 @@
+check-brand(fun(): true end, 42, "won't be used")
