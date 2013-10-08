@@ -12,6 +12,7 @@ width = 400
 height = 100
 
 init-world = []
+background = image.rectangle(width * 3, height * 4, "solid", "white")
 
 # ufo.png is from http://world.cs.brown.edu/1/clipart/ufo.png
 ufo = image.bitmap("ufo.png")
@@ -19,7 +20,7 @@ ufo = image.bitmap("ufo.png")
 fun draw(w):
   fun draw-help(w2):
     cases (List) w2:
-      | empty => image.rectangle(width * 3, height * 4, "solid", "white")
+      | empty => background
       | link(h, t) => draw-help(t).place-image(h.x, h.y, ufo)
     end
   end
