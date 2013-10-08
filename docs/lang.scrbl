@@ -170,6 +170,7 @@ Numbers have a number of useful methods:
         ''.repeat(10) is ''
       end,
       length(self) -> Number:
+      where:
         ''.length() is 0
         'yar'.length() is 3
       end,
