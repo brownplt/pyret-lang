@@ -1,18 +1,36 @@
 /* Colors derived from nothing resembling good taste */
 
-body { background-color: grey; color: white; }
+body { background-color: #eee; color: #111; }
 
-.tocview { background-color: black; }
-.tocsub { background-color: black; }
+.tocset { width: 14em; }
+.tocview { position: absolute; top: 12em; background-color: black; display: none;}
+.tocsub { border: 1px solid #111; border-radius: 1em; padding: .5em; background-color: #eee; }
 
-.tocviewlink { color: black; }
-.tocviewselflink { color: black; }
+.tocviewlink { color: yellow; }
+.tocviewselflink { color: yellow; }
+h2 { display: none; }
+.SAuthorListBox { display: none; }
 
 .plainlink { color: #7CAC96; }
 .refcolumn { color: black; }
 
+.maincolumn { width: 50em; margin-left: 16em; }
+
 .navsettop { background-color: black; }
 .navsetbottom { background-color: black; }
 
-a:link, a:hover, a:active { color: #FDF94A; }
-a:visited { color: white; }
+.versionbox { bottom: 0; position: fixed; }
+
+.main a { color: #0c46ff; text-decoration: none; }
+
+a:visited { color: #ee1e10; }
+
+.top-part {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ background-color: #669;
+ padding: 1em;
+ text-align: center;
+}

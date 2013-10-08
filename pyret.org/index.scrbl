@@ -1,22 +1,20 @@
 #lang scribble/base
 
-@(require racket/date)
+@(require racket/date scribble/core scribble/html-properties)
 
 @(define (two-langs other-lang pyret-code other-code)
    (tabular #:sep (hspace 4)
      (list (list (bold "Pyret") (bold other-lang))
            (list (verbatim pyret-code) (verbatim other-code)))))
 
-@title[#:version (date->string (current-date) #t)]{The Pyret Programming Language}
+@title[#:version (date->string (current-date) #t)]{Pyret}
 
 @author{The Pyrets}
 
-@(centered (image "pyret-banner.png"))
+@(centered (image #:scale 0.6 "pyret-banner.png"))
 
-Welcome to the home of the Pyret Programming Language! Pyret is a new
-programming language designed to serve as an outstanding choice for
-introductory programming, while also serving as a testbed for
-interesting new programming language research ideas.
+Pyret is a programming language designed to serve as an outstanding choice for
+introductory programming.
 
 Though we are making progress along multiple dimensions, creating a
 pleasant and pedagogically sound language will always take priority in
