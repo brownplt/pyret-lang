@@ -1,0 +1,2 @@
+b = brander()
+b.brand({}, {})

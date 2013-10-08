@@ -3,6 +3,7 @@
 *.swp
 *.swo
 *.out
+*.err
 docs/*.html
 docs/*.css
 docs/*.js
