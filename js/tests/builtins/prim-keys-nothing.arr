@@ -1,0 +1,1 @@
+prim-keys({}).is-empty

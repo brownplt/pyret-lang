@@ -1,0 +1,1 @@
+is-function(fun(): end)

@@ -1,0 +1,1 @@
+is-method(method(self): self.x end)
