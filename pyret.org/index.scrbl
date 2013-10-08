@@ -2,9 +2,16 @@
 
 @(require racket/date)
 
+@(define (two-langs other-lang pyret-code other-code)
+   (tabular #:sep (hspace 4)
+     (list (list (bold "Pyret") (bold other-lang))
+           (list (verbatim pyret-code) (verbatim other-code)))))
+
 @title[#:version (date->string (current-date) #t)]{The Pyret Programming Language}
 
 @author{The Pyrets}
+
+@(centered (image "pyret-banner.png"))
 
 Welcome to the home of the Pyret Programming Language! Pyret is a new
 programming language designed to serve as an outstanding choice for
@@ -34,6 +41,14 @@ lightweight---there are no class declarations, access control
 specifications, or type definitions that get in the way of you writing
 your first program.
 
+@(two-langs "Java"
+"1 + 2"
+"class Main {
+  public static void main(String[] args) {
+    System.out.println(1 + 2);
+  }
+}")
+
 Pyret recognizes that students must learn to add @emph{annotations} to
 their programs. However, opinions differ on when this should
 begin. Pyret takes a @emph{gradual} philosophy, accommodating a
@@ -41,17 +56,66 @@ variety of learning and teaching styles. Our continuing work on
 specifications (@(secref "Specification-Enriched")) will let you grow
 the richness of annotations on demand.
 
+@(two-langs "Python"
+"fun square(n :: Number) -> Number:
+  n * n
+end"
+"def square(n):
+  return n * n")
+
+@(two-langs "Java"
+"fun square(n :: Number): # you decide!
+  n * n
+end"
+"static int square(int n) {
+  return n * n;
+}")
+
+@(two-langs "Python"
+"fun root(n :: Number(non-negative)):
+  n.sqrt()
+end"
+"# n must not be negative
+def root(n):
+  return n.sqrt()")
+
+Pyret has @emph{numbers}.
+
+@(two-langs "Java"
+"# this is true
+((1 / 3) * 3) == 1"
+"// this is not true
+((1 / 3) * 3) == 1")
+
 Being able to describe @emph{data} well is central to designing and
 structuring programs. Pyret offers elegant mechanisms for writing data
 definitions without the overhead of classes.
 
-Any modern programming language needs to run seamlessly on the
-@emph{Web}. One of Pyret's native execution environments is the
-browser, though you can also run it on a desktop.
+@(two-langs "Python"
+"data BinTree:
+  | leaf
+  | node(v, l, r)
+end"
+"blurg")
 
 @emph{Testing} is a central component of all modern programming. Pyret
 integrates convenient syntactic support for writing tests so that
 testing becomes a natural part of software development.
+
+@(two-langs "Python"
+"fun square(x):
+  x * x
+where:
+  square(10) is 100
+  square(-1) is 1
+end"
+"def square(x):
+  return x * x
+...")
+
+Any modern programming language needs to run seamlessly on the
+@emph{Web}. One of Pyret's native execution environments is the
+browser, though you can also run it on a desktop.
 
 @emph{Indentation} will matter, but not necessarily in the way you
 think. We believe well-indented programs are vital to
@@ -82,11 +146,27 @@ require students to learn complex APIs or control
 operators. Furthermore, our style of interactive programming lends
 itself naturally to testing.
 
+@(two-langs "Java"
+"big-bang(\"Press a key!\", {
+  on-key: fun(w, k): k end,
+  to-draw: fun(w):
+    text(\"You last pressed \" + w, 12, \"blue\")
+  end
+})"
+"...")
+
 @emph{Functional programming} is no longer an exotic evolutionary
 spur; rather, it is now a central component in a programmer's
 toolset. Furthermore, programming functionally relates well to
 specification and improving performance. Pyret is therefore designed
 to support functional programming well from the start.
+
+@(two-langs "Python"
+"fun square(n):
+  n * n
+end"
+"def square(n):
+  return n * n")
 
 Simple @emph{objects} are now a well-understood and beneficial program
 structuring mechanism. Pyret therefore supports objects without
