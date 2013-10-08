@@ -1,0 +1,1 @@
+"yahhhh".replace("h", "r")
