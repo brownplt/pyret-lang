@@ -172,27 +172,35 @@
    style="fill:#ffffff"><text
    style="font-size:199.27610779px;fill:#ffffff;font-family:GillSansMTPro-Heavy"
    y="1040.3798"
-   x="290.08804"
+   x="309.9385"
    id="text3200"
    font-size="138.397"><tspan
      id="tspan3206"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#ffffff;font-family:Treasure Map Deadhand;-inkscape-font-specification:Treasure Map Deadhand">pyret</tspan></text>
 
 
-<text
-   style="font-size:220.19979858px;fill:#ffffff;font-family:GillSansMTPro-Heavy"
-   y="1036.7708"
-   x="665.93268"
-   id="text3200-0"
-   font-size="138.397"><tspan
-     id="tspan3206-1"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#ffffff;font-family:Treasure Map Deadhand;-inkscape-font-specification:Treasure Map Deadhand">org</tspan></text>
+<text transform="matrix(1.1028 0 0 1.1028 685.7838 1036.7704)" enable-background="new    ">
+  <tspan x="0" y="0" 
+         fill="#FFFFFF"
+         font-family="'TreasureMapDeadhand'" 
+         font-size="199.6716"
+         letter-spacing="2">o</tspan>
+  <tspan x="56.904" y="0" 
+         fill="#FFFFFF"
+         font-family="'TreasureMapDeadhand'" 
+         font-size="199.6716"
+         letter-spacing="-17">r</tspan>
+  <tspan x="102.797" y="0" 
+         fill="#FFFFFF"
+         font-family="'TreasureMapDeadhand'"
+         font-size="199.6716">g</tspan>
+</text>
 
 
 <text
    style="font-size:145.50942993px;fill:#ffffff;font-family:GillSansMTPro-Heavy"
    y="1031.3729"
-   x="602.26758"
+   x="618.26758"
    id="text3200-0-4"
    font-size="138.397"><tspan
      id="tspan3206-1-6"
