@@ -109,6 +109,8 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "\"here come some stilted string escapes: \\\\\\\"\\\\\\\'\\\\\\\" there they are\""
     (s-str _ "here come some stilted string escapes: \\\"\\\'\\\" there they are"))
   (check/block "'\\''" (s-str _ "'"))
+
+  (check-parse/fail "\"str\\\"" "lexer")
 ))
 
 (define methods (test-suite "methods"
