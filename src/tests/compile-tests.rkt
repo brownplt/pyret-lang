@@ -625,7 +625,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/sets.arr" _ 15)
 
-  (check-pyret-match/check "pyret/strings.arr" _ 5)
+  (check-pyret-match/check "pyret/strings.arr" _ 8)
 ))
 
 (define tag-tests (test-suite "tag-tests"
