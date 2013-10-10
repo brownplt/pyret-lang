@@ -8,7 +8,7 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize)
+(provide tokenize fix-escapes)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -51,19 +51,34 @@
             (position-line pos)
             (+ n (position-col pos))))
 
-;; NOTE(dbp): actual escape chars are not allowed in strings, but escaped escapes
-;; should turn into actual escape characters in the resulting strings.
-;; This is a mediocre solution, but I'm not sure of a better way.
+(define escapes (pregexp "\\\\([\\\\\"'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})"))
+(define specials
+  (hash
+    "\n" ""
+    "\r" ""
+    "\n\r" ""
+    "\r\n" ""
+    "n" "\n"
+    "r" "\r"
+    "t" "\t"
+    "\"" "\""
+    "'" "'"
+    "\\" "\\"))
+
 (define (fix-escapes s)
-  (string-replace
-   (string-replace
-    (string-replace
-     (string-replace
-      (string-replace s "\\n" "\n")
-      "\\t" "\t")
-     "\\r" "\r")
-    "\\\"" "\"")
-   "\\'" "'"))
+  (regexp-replace* escapes s
+   (lambda (x match)
+     (define m-oct (string->number match 8))
+     (define s-oct (if m-oct (string (integer->char m-oct)) #f))
+     (define m-hex 
+       (if (or (string=? (substring match 0 1) "u") (string=? (substring match 0 1) "x"))
+           (string->number (substring match 1) 16)
+           #f))
+     (define s-hex
+       (if m-hex (string (integer->char m-hex)) #f))
+     (if s-oct s-oct
+         (if s-hex s-hex
+             (hash-ref specials match))))))
 
 (define (tokenize ip)
   (port-count-lines! ip)
@@ -147,12 +162,26 @@
       ;; strings
       [(concatenation
         "\""
-        (repetition 0 +inf.0 (union "\\\"" (char-complement #\")))
+        (repetition 0 +inf.0
+                    (union
+                     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+                     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+                     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+                     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+                     (concatenation "\\" (char-set "nrt\"'\\"))
+                     (char-complement (union #\\ #\"))))
         "\"")
        (token STRING (fix-escapes lexeme))]
       [(concatenation
         "'"
-        (repetition 0 +inf.0 (union "\\'" (char-complement #\')))
+        (repetition 0 +inf.0
+                    (union
+                     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+                     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+                     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+                     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+                     (concatenation "\\" (char-set "nrt\"'\\"))
+                     (char-complement (union #\\ #\'))))
         "'")
        (token STRING (fix-escapes lexeme))]
       ;; brackets

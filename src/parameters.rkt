@@ -11,4 +11,4 @@
 (define current-indentation-mode (make-parameter #t))
 (define current-whalesong-repl-print (make-parameter #t))
 (define current-allow-shadowed-vars (make-parameter #f))
-(define current-mark-mode (make-parameter #f))
+(define current-mark-mode (make-parameter #t))

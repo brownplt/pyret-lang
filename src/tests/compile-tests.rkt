@@ -624,6 +624,8 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
 
   (check-pyret-match/check "pyret/sets.arr" _ 15)
+
+  (check-pyret-match/check "pyret/strings.arr" _ 22)
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -789,7 +791,7 @@ o2.m().called" true)
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
-  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
   (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
@@ -983,7 +985,7 @@ o2.m().called" true)
 
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
-  (check-pyret-match/check "pyret/eval.arr" _ 20)
+  (check-pyret-match/check "pyret/eval.arr" _ 21)
 ))
 
 (define mixins (test-suite "mixins"

@@ -760,7 +760,7 @@ data Error:
   | type-error(message :: String, location :: Location, trace :: List<Location>) with:
     name(self): "Type Error" end
   | lazy-error(message :: String, location :: Location, trace :: List<Location>) with:
-    name(self): "Email joe@cs.brown.edu and dbpatter@cs.brown.edu and complain that they were lazy" end
+    name(self): "Error" end
 sharing:
   tostring(self): self.format() end,
   format(self):
