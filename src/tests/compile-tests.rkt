@@ -789,7 +789,7 @@ o2.m().called" true)
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
-  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
   (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
@@ -983,7 +983,7 @@ o2.m().called" true)
 
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
-  (check-pyret-match/check "pyret/eval.arr" _ 20)
+  (check-pyret-match/check "pyret/eval.arr" _ 21)
 ))
 
 (define mixins (test-suite "mixins"
