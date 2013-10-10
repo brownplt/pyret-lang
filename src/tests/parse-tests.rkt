@@ -12,7 +12,7 @@
   "../lang/desugar.rkt")
 
 (define verbose #f)
-(set! verbose #t)
+(set! verbose #f)
 
 (define round-trip-test #f)
 (set! round-trip-test #f)
@@ -102,6 +102,12 @@ line string\"" (s-str _ "multi\nline string"))
                (s-str _ "string\nwith\r\nspecial\tcharacters"))
 
   (check/block "\"\\\"\"" (s-str _ "\""))
+  (check/block "\"here come some string escapes: \\\"\\\"\\\" there they are\""
+    (s-str _ "here come some string escapes: \"\"\" there they are"))
+  (check/block "\"here come some string escapes: \\\'\\\'\\\' there they are\""
+    (s-str _ "here come some string escapes: \'\'\' there they are"))
+  (check/block "\"here come some stilted string escapes: \\\\\\\"\\\\\\\'\\\\\\\" there they are\""
+    (s-str _ "here come some stilted string escapes: \\\"\\\'\\\" there they are"))
   (check/block "'\\''" (s-str _ "'"))
 ))
 
