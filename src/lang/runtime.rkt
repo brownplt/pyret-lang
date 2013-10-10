@@ -848,7 +848,7 @@ And the object was:
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
-          ("_torepr" . ,(mk-prim-fun (lambda (x) (format "\"~a\"" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
+          ("_torepr" . ,(mk-prim-fun (lambda (x) (format "~s" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
       ))))
   meta-str-store)
 

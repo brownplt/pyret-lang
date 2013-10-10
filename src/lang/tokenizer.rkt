@@ -8,7 +8,7 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize)
+(provide tokenize fix-escapes)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -54,16 +54,18 @@
 ;; NOTE(dbp): actual escape chars are not allowed in strings, but escaped escapes
 ;; should turn into actual escape characters in the resulting strings.
 ;; This is a mediocre solution, but I'm not sure of a better way.
+(define ESCAPE-CHARS (list "n" "r" "t" "\"" "'" "\\"))
+(define escapes (regexp "\\\\([\\\\\"'nrt])"))
+(define specials
+  (hash
+    "n" "\n"
+    "r" "\r"
+    "t" "\t"
+    "\"" "\""
+    "'" "'"
+    "\\" "\\"))
 (define (fix-escapes s)
-  (string-replace
-   (string-replace
-    (string-replace
-     (string-replace
-      (string-replace s "\\n" "\n")
-      "\\t" "\t")
-     "\\r" "\r")
-    "\\\"" "\"")
-   "\\'" "'"))
+  (regexp-replace* escapes s (lambda (_ char) (hash-ref specials char))))
 
 (define (tokenize ip)
   (port-count-lines! ip)

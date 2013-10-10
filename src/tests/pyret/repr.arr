@@ -3,9 +3,9 @@
 check:
   torepr(5) is "5"
   torepr('f') is '"f"'
-  torepr('f\ns') is '"f\ns"'
-  torepr(torepr('f\ns')) is '""f\ns""'
-  tostring(torepr('f\ns')) is '"f\ns"'
+  torepr('f\ns') is '"f\\ns"'
+  torepr(torepr('f\ns')) is '"\\"f\\\\ns\\""'
+  tostring(torepr('f\ns')) is '"f\\ns"'
   torepr(true) is "true"
   torepr(false) is "false"
   torepr(nothing) is "nothing"
