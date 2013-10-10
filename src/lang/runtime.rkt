@@ -820,7 +820,7 @@ And the object was:
 ;; Pyret's char-at just returns a single character string
 (define (char-at s n)
   (cond
-    [(> n (string-length s))
+    [(>= n (string-length s))
      (raise (pyret-error (get-top-loc) "char-at"
       (format "char-at: Index too large for string.  Index was ~a, length was ~a" n (string-length s))))]
     [else (substring s n (+ n 1))]))

@@ -10,4 +10,5 @@ check:
 
   "".char-at(4) raises "Index too large"
   "abc".char-at(2) is "c"
+  "abc".char-at(3) raises "Index too large"
 end
