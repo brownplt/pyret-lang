@@ -27,3 +27,6 @@ of a multi-line string \\\\
 that someone put stuff at the \\r\\n ends of")
 "This is an example\nof a multi-line string \\\nthat someone put stuff at the \r\n ends of")
 
+(check-equal? (fix-escapes "(\\\\") "(\\")
+
+(check-equal? (fix-escapes "\"(\\\\\"") "\"(\\\"")

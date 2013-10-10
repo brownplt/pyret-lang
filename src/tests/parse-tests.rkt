@@ -12,7 +12,7 @@
   "../lang/desugar.rkt")
 
 (define verbose #f)
-(set! verbose #f)
+(set! verbose #t)
 
 (define round-trip-test #f)
 (set! round-trip-test #f)
@@ -37,7 +37,7 @@
        (let ([parse-test (format "import ast as A
                              parsed = A.parse(~s, 'parse-tests', {['check']: false})
                              A.is-s_program(parsed.pre-desugar)"
-                             (string-subst (string-subst str "\r" " ") "\n" " "))])
+                             str)])
        (when verbose
          (printf "Testing: \n~a\n\n" str)
          (printf "For ast-test: \n~a\n\n" parse-test))
@@ -67,8 +67,10 @@
   (check/block "'str'" (s-str _ "str"))
   (check/block "'multi
 line string'" (s-str _ "multi\nline string"))
-  #;(check/block "\"multi
+  (check/block "\"multi
 line string\"" (s-str _ "multi\nline string"))
+  (check/block "\"\\\\\" + \"another str\""
+    (s-op _ 'op+ (s-str _ "\\") (s-str _ "another str")))
   (check/block "5" (s-num _ 5))
   (check/block "-7" (s-num _ -7))
   (check/block "10.2" (s-num _ 10.2))

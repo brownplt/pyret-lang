@@ -149,13 +149,29 @@
       ;; strings
       [(concatenation
         "\""
-        (repetition 0 +inf.0 (union "\\\"" (char-complement #\")))
-        "\"")
+        (concatenation
+          (repetition 0 +inf.0 "\\\"")
+          (repetition 0 +inf.0 (union 
+            (concatenation (char-complement #\\) "\\\"")
+            (concatenation
+              (repetition 1 +inf.0 "\\\\")
+              "\\"
+              "\"")
+            (char-complement #\")))
+          "\""))
        (token STRING (fix-escapes lexeme))]
       [(concatenation
         "'"
-        (repetition 0 +inf.0 (union "\\'" (char-complement #\')))
-        "'")
+        (concatenation
+          (repetition 0 +inf.0 "\\\'")
+          (repetition 0 +inf.0 (union 
+            (concatenation (char-complement #\\) "\\\'")
+            (concatenation
+              (repetition 1 +inf.0 "\\\\")
+              "\\"
+              "\'")
+             (char-complement #\')))
+          "'"))
        (token STRING (fix-escapes lexeme))]
       ;; brackets
       [(union "[" "]" "{" "}" ")")
