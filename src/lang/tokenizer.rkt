@@ -8,7 +8,7 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize fix-escapes)
+(provide tokenize fix-escapes pyret-keyword?)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -20,6 +20,7 @@
 (define BACKSLASH 'BACKSLASH)
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
+(define OPENSTR 'OPENSTR)
 
 (define-lex-abbrev
   keywords
@@ -35,6 +36,12 @@
          "graph:" "block:"
          "for" "from"
          "end" ";"))
+
+(define (pyret-keyword? str)
+  ((lexer
+    [keywords #t]
+    [any-string #f])
+   (open-input-string (symbol->string str))))
 
 (define-lex-abbrev
   identifier-chars
@@ -79,6 +86,26 @@
      (if s-oct s-oct
          (if s-hex s-hex
              (hash-ref specials match))))))
+(define-lex-abbrev single-quote-contents
+  (repetition 0 +inf.0
+    (union
+     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+     (concatenation "\\" (char-set "nrt\"'\\"))
+     (char-complement (union #\\ #\')))))
+
+(define-lex-abbrev double-quote-contents
+  (repetition 0 +inf.0
+    (union
+     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+     (concatenation "\\" (char-set "nrt\"'\\"))
+     (char-complement (union #\\ #\")))))
+
 
 (define (tokenize ip)
   (port-count-lines! ip)
@@ -160,29 +187,9 @@
                 (repetition 1 +inf.0 numeric))))
        (token NUMBER lexeme)]
       ;; strings
-      [(concatenation
-        "\""
-        (repetition 0 +inf.0
-                    (union
-                     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
-                     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
-                     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
-                     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
-                     (concatenation "\\" (char-set "nrt\"'\\"))
-                     (char-complement (union #\\ #\"))))
-        "\"")
+      [(concatenation "\"" double-quote-contents "\"")
        (token STRING (fix-escapes lexeme))]
-      [(concatenation
-        "'"
-        (repetition 0 +inf.0
-                    (union
-                     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
-                     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
-                     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
-                     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
-                     (concatenation "\\" (char-set "nrt\"'\\"))
-                     (char-complement (union #\\ #\'))))
-        "'")
+      [(concatenation "'" single-quote-contents "'")
        (token STRING (fix-escapes lexeme))]
       ;; brackets
       [(union "[" "]" "{" "}" ")")
@@ -205,7 +212,11 @@
        (token BACKSLASH lexeme)])
      ;; match eof
      [(eof)
-      (void)]))
+      (void)]
+     [(concatenation "\'" (concatenation single-quote-contents (repetition 0 1 "\\")))
+      (token OPENSTR lexeme)]
+     [(concatenation "\"" (concatenation double-quote-contents (repetition 0 1 "\\")))
+      (token OPENSTR lexeme)]))
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)
