@@ -162,6 +162,13 @@
    end"
   "Cannot end a block with a graph definition")
 
+(check-pyret-exn
+  "if x < y:
+    print('x less than y')
+   end"
+  "Cannot have an if with a single case"
+)
+
 ))
 
 (run-tests all)

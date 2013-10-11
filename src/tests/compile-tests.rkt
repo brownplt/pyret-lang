@@ -128,7 +128,7 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
-     if true-branded: 5 end"
+     when true-branded: 5 end"
      five)
 
   (check-pyret
@@ -180,9 +180,6 @@
   "
   nothing)
 
-  (check-pyret-exn "if false: 5 end" "if: no tests matched")
-  (check-pyret-exn "if false: 5 else if false: 8 end" "if: no tests matched")
-  (check-pyret "if true: 5 end" five)
   (check-pyret "if false: 5 else if true: 6 end" (p:mk-num 6))
   (check-pyret "if true: 5 else if true: 6 end" five)
   (check-pyret "if true: 5 else: 6 end" five)

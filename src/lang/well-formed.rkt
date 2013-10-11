@@ -35,7 +35,9 @@
 ;;
 ;; - all blocks end in a non-binding form
 ;;
-;; - check as an identifier
+;; - check and where identifiers
+;;
+;; - if has at least two branches
 ;;
 ;; - `is` outside of a check block.
 
@@ -203,7 +205,11 @@
      (well-formed/internal body #t)]
 
 
-    [(s-if s if-bs) (map wf-if-branch if-bs)]
+    [(s-if s if-bs)
+     (when (= (length if-bs) 1)
+      (wf-error "Cannot have an if with a single case." s))
+     (map wf-if-branch if-bs)]
+
     [(s-if-else s if-bs else) (begin
                                 (map wf-if-branch if-bs)
                                 (wf else))]
