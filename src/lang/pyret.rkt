@@ -40,11 +40,6 @@
 
          [(PARENSPACE) 'parenthesis]
          [(PARENNOSPACE) 'parenthesis]
-         [(")") 'parenthesis]
-         [("[") 'parenthesis]
-         [("]") 'parenthesis]
-         [("{") 'parenthesis]
-         [("{") 'parenthesis]
 
          [(WS) 'whitespace]
 
