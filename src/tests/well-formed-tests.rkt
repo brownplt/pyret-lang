@@ -166,7 +166,7 @@
   "if x < y:
     print('x less than y')
    end"
-  "Cannot have an if with a single case"
+  "Cannot have an if with a single branch"
 )
 
 ))

@@ -207,7 +207,7 @@
 
     [(s-if s if-bs)
      (when (= (length if-bs) 1)
-      (wf-error "Cannot have an if with a single case." s))
+      (wf-error "Cannot have an if with a single branch." s))
      (map wf-if-branch if-bs)]
 
     [(s-if-else s if-bs else) (begin
