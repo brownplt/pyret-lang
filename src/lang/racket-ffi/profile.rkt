@@ -21,7 +21,9 @@
   p:nothing)
 
 (define profile-pfun (p:mk-fun-nodoc-slow profile-wrapper))
+(define time-pfun (p:mk-fun-nodoc-slow (lambda (f) (time ((p:p-base-app f))))))
 
 (define export (p:mk-object
-  (make-string-map (list (cons "profile" profile-pfun)))))
+  (make-string-map (list (cons "profile" profile-pfun)
+                         (cons "time" time-pfun)))))
 
