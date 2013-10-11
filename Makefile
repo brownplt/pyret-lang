@@ -30,6 +30,9 @@ doc:
 	cd docs; \
 	scribble --htmls lang.scrbl
 
+pack:
+	raco pack --collect pyret.plt ragg whalesong pyret
+
 clean:
 	raco setup -c pyret
 	rm src/lang/pyret-lib/*.rkt
