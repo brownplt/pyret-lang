@@ -261,6 +261,7 @@ are converted into a list [\"string\", <the-string>].'
 
 @(pretty-functions misc-ast '(
   gensym
+  random
   raise
   print
   torepr
