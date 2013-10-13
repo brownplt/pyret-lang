@@ -60,21 +60,17 @@
   (print-test str)
   (py-eval (compile-str str)))
 
-(define (eval-pyret/check str)
+(define (eval-pyret/check str #:path [path utils-path])
   (print-test str)
-  (py-eval (compile-str/check str)))
-
-(define (eval-pyret/check/lib str)
-  (print-test str)
-  (py-eval (compile-str/check str)))
+  (py-eval (compile-str/check str #:path path)))
 
 (define-runtime-path utils-path "test-utils.rkt")
 
-(define (compile-str str)
-  (pyret->racket utils-path (open-input-string str)))
+(define (compile-str str #:path [path utils-path])
+  (pyret->racket path (open-input-string str)))
 
-(define (compile-str/check str)
-  (pyret->racket utils-path (open-input-string str) #:check #t))
+(define (compile-str/check str #:path [path utils-path])
+  (pyret->racket path (open-input-string str) #:check #t))
 
 (define (check-parse-exn str message)
   (check-exn (regexp (regexp-quote message)) (lambda () (parse-pyret str))))
@@ -140,7 +136,7 @@
               (parameterize ([current-output-port output]
                              [current-load-relative-directory base])
                 (define check-results
-                 (eval-pyret/check (port->string (open-input-file file))))
+                 (eval-pyret/check (port->string (open-input-file file)) #:path file))
                 ((p:p-base-method (p:get-raw-field p:dummy-loc check-results "format")) check-results)))
             (define stdout (get-output-string output))
             #,(quasisyntax/loc stx
