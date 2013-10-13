@@ -5,7 +5,6 @@ import pprint as PP
 
 Loc = error.Location
 loc = error.location
-List = list.List
 
 INDENT = 2
 

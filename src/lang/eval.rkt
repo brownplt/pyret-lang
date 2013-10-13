@@ -34,7 +34,7 @@
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
-          #:type-env [type-env DEFAULT-ENV])
+          #:type-env [type-env WHALESONG-ENV])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
