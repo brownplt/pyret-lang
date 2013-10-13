@@ -54,9 +54,9 @@
   (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
-  (position (+ n (position-offset pos))
+  (position (+ n 1 (position-offset pos))
             (position-line pos)
-            (+ n (position-col pos))))
+            (+ n 1 (position-col pos))))
 
 (define escapes (pregexp "\\\\([\\\\\"'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})"))
 (define specials
