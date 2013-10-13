@@ -295,17 +295,22 @@
                  [(prov ...) (map compile-header (filter s-provide? headers))])
      #`(r:begin req ... #,(compile-pyret block) prov ...))))
 
+(define (maybe-lift-constants ast)
+  (cond
+    [(current-compile-lift-constants) (lift-constants ast)]
+    [else ast]))
+
 (define (compile-pyret ast)
   (match ast
     [(s-prog l headers block) (compile-prog l headers block)]
     [(s-block l stmts)
-     (match-define (s-block l2 new-stmts) (lift-constants ast))
+     (match-define (s-block l2 new-stmts) (maybe-lift-constants ast))
      (with-syntax ([(stmt ...) (compile-block l2 new-stmts (compile-env (set) #t))])
        (attach l #'(r:begin stmt ...)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 
 (define (compile-expr pre-ast)
-  (define ast (lift-constants pre-ast))
+  (define ast (maybe-lift-constants pre-ast))
   (compile-expr/internal ast (compile-env (set) #f)))
 
 (define (discard-_ name)

@@ -27,7 +27,10 @@
       (define this-tok (tokenize ip))
       (hash-set! TOKENIZERS ip this-tok)
       this-tok)))
-  (define t (tok))
+  (define t
+    (with-handlers
+      [(exn:fail? (lambda (e) (position-token (void) #f #f)))]
+      (tok)))
   (define (token->name token)
     (cond
       [(member (symbol->string token) '("(" ")" "[" "]" "{" "}")) 'parenthesis]

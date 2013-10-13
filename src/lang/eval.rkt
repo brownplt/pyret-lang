@@ -72,7 +72,8 @@
   ;; the parameterize is stolen from
   ;; http://docs.racket-lang.org/reference/eval.html?(def._((quote._~23~25kernel)._current-read-interaction))
   (parameterize ([read-accept-reader #t]
-                 [read-accept-lang #f])
+                 [read-accept-lang #f]
+                 [current-compile-lift-constants #f])
     (if (not (byte-ready? in))
         eof
         (pyret->racket src in #:toplevel #t #:type-env #f #:check #f))))
