@@ -115,6 +115,8 @@
    (current-indentation-mode #f))
   ("--allow-shadow" "Run without checking for shadowed vars"
    (current-allow-shadowed-vars #t))
+  ("--print-desugared" "Print code after desugaring"
+   (current-print-desugared #t))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
