@@ -62,7 +62,7 @@
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
-          #:type-env [type-env DEFAULT-ENV])
+          #:type-env [type-env WHALESONG-ENV])
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
   (stx->racket
