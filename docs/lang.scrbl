@@ -354,8 +354,8 @@ value prior to it being initialized.  The following methods are on each
 get(self :: Placeholder<a>) -> a
 }
 
-Get the value in the placeholder.  Signals an exception if the value has yet to
-be initialized with the @tt{set} method.
+Get the value in the placeholder.  Signals an exception if the value has
+@emph{yet to be} initialized with the @tt{set} method.
 
 @(label "Placeholder.guard")
 
@@ -364,7 +364,8 @@ guard(self :: Placeholder<a>, guard :: (a -> Bool)) -> Nothing
 }
 
 Update the placeholder with an additional check @tt{guard}.  Signals an
-exception if the value has yet to be initialized with the @tt{set} method.
+exception if the value has @emph{already been} initialized with the @tt{set}
+method.
 
 @(label "Placeholder.set")
 
