@@ -4,7 +4,8 @@
   rackunit
   rackunit/text-ui
   "test-utils.rkt"
-  "../lang/runtime.rkt")
+  "../lang/runtime.rkt"
+  "../lang/string-map.rkt")
 
 (verbose! #f)
 
@@ -23,6 +24,30 @@
 (check-pyret
  "var x :: String = 'hello' x"
  (p:mk-str "hello"))
+
+(check-pyret-exn
+ "x :: String = {}"
+ "expected String")
+
+(check-pyret-exn
+ "x :: {foo : String} = {}"
+ "missing field foo")
+
+(check-pyret-exn
+ "x :: {foo : String} = {foo: 10}"
+ "expected String")
+
+(check-pyret-exn
+ "x :: {foo : String} = 10"
+ "missing field foo")
+
+(check-pyret
+ "x :: {foo : String} = {foo: 'some string', bar: 10} x.bar"
+ (p:mk-num 10))
+
+(check-pyret
+ "x :: {} = {foo: 'some string'} x.foo"
+ (p:mk-str "some string"))
 
 (check-pyret
  "var x :: list.List = [1]
