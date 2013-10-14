@@ -111,7 +111,7 @@
          (cond
           [(p:has-field? val "format")
            ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
-          [else (void)])]
+          [else (printf "~a\n" (p:to-repr val))])]
         [else
          (printf "~a\n" (p:to-repr val))])]
      [_ (void)])))
