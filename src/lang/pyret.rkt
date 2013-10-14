@@ -89,7 +89,6 @@
 
 (define (get-info in mod line col pos)
   (lambda (key default)
-    (display (format "Key: ~a, default: ~a\n" key default))
     (case key
       [(color-lexer) get-token]
       [else default])))
