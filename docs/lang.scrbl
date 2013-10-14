@@ -30,6 +30,10 @@ document also occasionally references ``Captain Teach'', which is a programming
 and learning environment that uses Pyret, and has some of its own environmental
 behavior that is worth noting.
 
+@include-section{installing.scrbl}
+
+@include-section{running.scrbl}
+
 @include-section{forms.scrbl}
 
 @include-section{testing.scrbl}

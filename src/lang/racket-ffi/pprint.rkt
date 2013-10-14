@@ -214,7 +214,7 @@ fun separate(sep :: PPrintDoc, docs :: list.List):
   end
 end
 fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrintDoc, sep :: PPrintDoc, close :: PPrintDoc, docs :: list.List):
-  if list.is-mt-doc(docs): void
+  if list.is-empty(docs): void
   else: surround(n, b, open, separate(sep, docs), close)
   end
 end
