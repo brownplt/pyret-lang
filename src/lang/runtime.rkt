@@ -831,10 +831,9 @@ And the object was:
   (define l (string-length s))
   (cond
     [(< start 0) (err (format "substring: Requires a non-negative start value; ~a was provided" start))]
-    [(> end l) (err (format "substring: End index is past the length of the string: end was ~a, length was ~a" end l))]
     [(> start l) (err (format "substring:  Start index is past the length of the string: start was ~a, length was ~a" start l))]
     [(< end start) (err (format "substring: Requires end to be greater than start, got start of ~a and end of ~a" start end))]
-    [else (substring s start end)]))
+    [else (substring s start (min l end))]))
 
 (define (string-repeat s n)
   (cond
