@@ -27,6 +27,7 @@
   "indentation.rkt"
   "compile.rkt"
   "load.rkt"
+  "pretty.rkt"
   "runtime.rkt")
 
 (define (stx->racket
@@ -34,7 +35,8 @@
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
-          #:type-env [type-env WHALESONG-ENV])
+          #:type-env [type-env WHALESONG-ENV]
+          #:print-desugared [print-desugared (current-print-desugared)])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
@@ -49,6 +51,8 @@
     (if type-env
         (contract-check-pyret desugared type-env)
         desugared))
+  (when print-desugared
+      (printf "\n[pyret desugared]\n\n~a\n\n[code running follows]\n\n" (pretty type-checked)))
   (define compiled (compile type-checked))
   (strip-context compiled))
 
@@ -111,4 +115,3 @@
         [else
          (printf "~a\n" (p:to-repr val))])]
      [_ (void)])))
-
