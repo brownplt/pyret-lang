@@ -31,7 +31,7 @@ doc:
 	scribble --htmls lang.scrbl
 
 pack:
-	raco pack --collect pyret.plt ragg whalesong pyret
+	raco pack --replace --collect pyret.plt ragg whalesong pyret
 
 clean:
 	raco setup -c pyret
