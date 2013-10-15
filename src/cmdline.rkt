@@ -78,16 +78,21 @@
      (eprintf "~a\n" message)]
     [(exn:fail message cms)
      (cond
+      [(string-contains message "default-load-handler: expected a `module' declaration")
+       (display "This file doesn't look right.  Did you forget #lang pyret/check, #lang pyret, or #lang pyret/whalesong at the top of the file?\n")
+       (display message)
+       (newline)]
+      [(string-contains message "PYRET-PROVIDE")
+       (display "It looks like you tried to import a file that lacks a provide statement.  The file is listed in the error message below:\n")
+       (newline)
+       (display message)
+       (newline)]
       [(exn:srclocs? p)
        (define locs ((exn:srclocs-accessor p) p))
        (eprintf "[pyret]\n~a\n" message)
        (eprintf "\nAt:\n")
        (void (map print-loc locs))
        (print-pyret-locs cms)]
-      [(string-contains message "default-load-handler: expected a `module' declaration")
-       (display "This file doesn't look right.  Did you forget #lang pyret or #lang pyret/whalesong at the top of the file?\n")
-       (display message)
-       (newline)]
       [else
        (display "Uncaught Racket-land error that Pyret does not understand yet:\n")
        (print-pyret-locs cms)
