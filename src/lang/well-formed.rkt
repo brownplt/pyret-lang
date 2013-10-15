@@ -3,6 +3,7 @@
 (require
   racket/match
   racket/list
+  "../parameters.rkt"
   "ast.rkt")
 
 (provide well-formed (struct-out exn:fail:pyret/wf))
@@ -54,10 +55,11 @@
   ast)
 
 (define (ensure-empty-block loc type check)
-  (match check
-    [(s-block s (list)) (void)]
-    [(s-block s _)
-     (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)]))
+  (when (not (current-where-everywhere))
+    (match check
+      [(s-block s (list)) (void)]
+      [(s-block s _)
+       (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)])))
 
 (define (ensure-unique-ids bindings)
   (cond

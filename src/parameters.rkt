@@ -1,6 +1,7 @@
 #lang racket
 
 (provide
+  current-where-everywhere
   current-indentation-mode
   current-check-mode
   current-whalesong-repl-print
@@ -9,6 +10,7 @@
   current-compile-lift-constants
   current-print-desugared)
 
+(define current-where-everywhere (make-parameter #f))
 (define current-check-mode (make-parameter #f))
 (define current-indentation-mode (make-parameter #t))
 (define current-whalesong-repl-print (make-parameter #t))
