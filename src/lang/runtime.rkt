@@ -129,6 +129,7 @@
   Method
   Mutable
   Placeholder
+  Opaque
   is-number
   is-string
   is-bool
@@ -1092,6 +1093,7 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+(mk-pred Opaque p-opaque?)
 
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
