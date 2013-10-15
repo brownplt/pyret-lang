@@ -20,10 +20,71 @@ var PYRET = (function () {
       dict: {} 
     };
 
+    function typeCheck(arg1, type1, arg2, type2, name){
+        if (!(type1(arg1) && type2(arg2))) {
+            //Raise Error
+            throw makeError("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+        }
+        return;
+    }
+
+    function checkBothNum(arg1, arg2, fname) {
+        typeCheck(arg1, isNumber, arg2, isNumber, fname);
+        return;
+    }
+
     var numberDict = {
       _plus: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'plus');
         return makeNumber(left.n + right.n);
-      })
+      }),
+      _minus: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'minus');
+        return makeNumber(left.n - right.n);
+      }),
+      _divide: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'divide');
+        return makeNumber(left.n / right.n);
+      }),
+      _times: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'times');
+        return makeNumber(left.n * right.n);
+      }),
+      _lessthan: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'lessthan');
+        return makeBoolean(left.n < right.n);
+      }),
+      _greaterthan: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'greaterthan');
+        return makeBoolean(left.n > right.n);
+      }),
+      _lessequal: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'lessequal');
+        return makeBoolean(left.n <= right.n);
+      }),
+      _greaterequal: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'greaterequal');
+        return makeBoolean(left.n >= right.n);
+      }),
+      max: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'max');
+        return makeBoolean(Math.max(left.n, right.n));
+      }),
+      min: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'min');
+        return makeBoolean(Math.min(left.n, right.n));
+      }),
+      abs: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'abs');
+        return makeBoolean(Math.abs(left.n, right.n));
+      }),
+      modulo: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'modulo');
+        return makeBoolean(left.n % right.n);
+      }),
+      tostring : makeMethod(function(me) {
+        return makeString(String(me.n));
+      }),
     };
 
     function PNumber(n) {
@@ -32,13 +93,17 @@ var PYRET = (function () {
     function makeNumber(n) { return new PNumber(n); }
     function isNumber(v) { return v instanceof PNumber; }
     PNumber.prototype = {
-      dict : numberDict
+      dict : numberDict,
+      toString : (function() {return String(this.n);}) 
     };
 
     var stringDict = {
       _plus: makeMethod(function(left, right) {
         return makeString(left.s + right.s);
-      })
+      }),
+      tostring : makeMethod(function(me) {
+        return makeString(me.s);
+      }),
     };
 
     function PString(s) {
@@ -47,7 +112,22 @@ var PYRET = (function () {
     function makeString(s) { return new PString(s); }
     function isString(v) { return v instanceof PString; }
     PString.prototype = {
-      dict : stringDict
+      dict : stringDict,
+      toString : (function() {return this.s;}),
+    };
+
+
+    var booleanDict = {
+    };
+
+    function PBoolean(b) {
+      this.b = b;
+    }
+    function makeBoolean(b) { return new PBoolean(b); }
+    function isBoolean(v) { return v instanceof PBoolean; }
+    PBoolean.prototype = {
+      dict : booleanDict,
+      toString : (function() {return String(this.b);}),
     };
 
     function equal(val1, val2) {
@@ -57,8 +137,18 @@ var PYRET = (function () {
       else if (isString(val1) && isString(val2)) {
         return val1.s === val2.s;
       }
-      return false;
+      else if (isBoolean(val1) && isBoolean(val2)) {
+        return val1.b === val2.b;
+      }
+      return val1 === val2;
     }
+
+    function PError(msg) {
+      this.msg = msg;
+    }
+    function makeError(msg) { return new PError(msg); }
+    function isError(v) { return v instanceof PError; }
+
 
     function toRepr(val) {
       if(isNumber(val)) {
@@ -66,6 +156,9 @@ var PYRET = (function () {
       }
       else if (isString(val)) {
         return makeString('"' + val.s + '"');
+      }
+      else if(isBoolean(val)) {
+        return makeString(String(val.b));
       }
       else if (isFunction(val)) {
         return makeString("fun: end");
@@ -104,16 +197,22 @@ var PYRET = (function () {
     function FailResult(exn) {
       this.exn = exn;
     }
-    function makeFailResult(exn) { return new FailResult(exn); }
+    function makeFailResult(exn) { return new FailResult(exn.msg); }
 
-    function errToJSON(exn) {
-      return JSON.stringify({exn: String(exn)})
-    }
+    function errToJSON(exn) {return exn;}
 
     return {
       nothing: {},
       makeNumber: makeNumber,
+      makeString: makeString,
+      makeBoolean: makeBoolean,
       isNumber: isNumber,
+      isString: isString,
+      isBoolean: isBoolean,
+      
+      makeFunction: makeFunction,
+      isFunction: isFunction,
+
       equal: equal,
       getField: getField,
       getTestPrintOutput: function(val) {
@@ -125,6 +224,8 @@ var PYRET = (function () {
       makeFailResult: makeFailResult,
       toReprJS: toRepr,
       errToJSON: errToJSON,
+
+      ids:{},
 
       "test-print": makeFunction(testPrint),
     }

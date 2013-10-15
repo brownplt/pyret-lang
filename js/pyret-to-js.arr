@@ -20,6 +20,10 @@ js-id-of = block:
   end
 end
 
+fun id-access(id :: String):
+    format("RUNTIME.ids[\"~a\"]" ,[js-id-of(id)])
+end
+
 fun program-to-js(ast, runtime-ids):
   cases(A.Program) ast:
     # import/provide ignored
@@ -62,6 +66,14 @@ fun expr-to-js(ast):
       end
     | s_num(_, n) =>
       format("RUNTIME.makeNumber(~a)", [n])
+    | s_str(_, s) =>
+      format("RUNTIME.makeString(\"~a\")", [s])
+    | s_bool(_, b) =>
+      format("RUNTIME.makeBoolean(~a)", [b])
+    | s_lam(_, _, args, _, _, body, _) =>
+      format("RUNTIME.makeFunction(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
+    #Should check that body is a block
+
     | s_app(_, f, args) =>
       format("~a.app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
@@ -69,7 +81,21 @@ fun expr-to-js(ast):
         | s_str(_, s) => format("RUNTIME.getField(~a, '~a')", [expr-to-js(obj), s])
         | else => raise("Non-string lookups not supported")
       end
-    | s_id(_, id) => js-id-of(id)
+    | s_id(_, id) => id-access(id)
+    | s_var(_, bind, value) =>
+      js_id = id-access(bind.id)
+      format("~a = ~a", [js_id, expr-to-js(value)])
+    | s_assign(_, id, value) =>
+      format("~a = ~a", [id-access(id), expr-to-js(value)])
+    | s_let(_, bind, value) => 
+      js_id = id-access(bind.id)
+      format("(function(){
+            if(typeof ~a === \'undefined\') {
+                return ~a = ~a;
+            } else {
+                throw \"NO SHADOWING\";
+                }
+            })()",[js_id, js_id, expr-to-js(value)])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end
