@@ -39,7 +39,9 @@
 ;;
 ;; - if has at least two branches
 ;;
-;; - `is` outside of a check block.
+;; - `is` outside of a check block
+;;
+;; - misplaced `where:` blocks
 
 (define (well-formed ast)
   (match ast
@@ -50,6 +52,12 @@
     [(s-block s stmts) (map (λ (ast) (well-formed/internal ast #f)) stmts)]
     [else (well-formed/internal ast #f)])
   ast)
+
+(define (ensure-empty-block loc type check)
+  (match check
+    [(s-block s (list)) (void)]
+    [(s-block s _)
+     (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)]))
 
 (define (ensure-unique-ids bindings)
   (cond
@@ -118,6 +126,7 @@
       (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
           (begin
            (ensure-unique-ids args)
+           (ensure-empty-block s "methods" check)
            (map wf-bind args)
            (wf-ann ann)
            (wf body)
@@ -185,6 +194,7 @@
 
     [(s-lam s typarams args ann doc body check)
      (begin (ensure-unique-ids args)
+            (ensure-empty-block s "anonymous functions" check)
             (map wf-bind args)
             (wf-ann ann)
             (wf body)
@@ -193,6 +203,7 @@
     [(s-method s args ann doc body check)
      (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
+                (ensure-empty-block s "methods" check)
                 (map wf-bind args)
                 (wf-ann ann)
                 (wf body)
