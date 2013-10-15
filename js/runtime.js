@@ -5,10 +5,18 @@ var PYRET = (function () {
       this.method = f;
     }
     function makeMethod(f) { return new PMethod(f); } 
-    function isMethod(v) { return v instanceof PMethod; }
-    PMethod.prototype = {
+    function isMethod(v) { return v instanceof PMethod; } PMethod.prototype = {
       app: function() { throw "Cannot apply method directly."; },
       dict: {}
+    };
+
+    //Base of all objects
+    function PBase() {}
+    function isPBase(v) { return v instanceof PBase; }
+    PBase.prototype = {
+      dict: {},
+      brands: [],
+      app: (function() {throw "Cannot apply this data type";}),
     };
 
     function PFunction(f) {
@@ -16,18 +24,21 @@ var PYRET = (function () {
     }
     function makeFunction(f) { return new PFunction(f); }
     function isFunction(v) { return v instanceof PFunction; }
-    PFunction.prototype = {
-      dict: {} 
-    };
+    PFunction.prototype = Object.create(PBase.prototype);
+        
 
     function typeCheck(arg1, type1, arg2, type2, name){
         if (!(type1(arg1) && type2(arg2))) {
             //Raise Error
-            throw makeError("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+            throw ("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
         }
         return;
     }
 
+
+    /**********************************
+    * Numbers
+    ***********************************/
     function checkBothNum(arg1, arg2, fname) {
         typeCheck(arg1, isNumber, arg2, isNumber, fname);
         return;
@@ -92,10 +103,14 @@ var PYRET = (function () {
     }
     function makeNumber(n) { return new PNumber(n); }
     function isNumber(v) { return v instanceof PNumber; }
-    PNumber.prototype = {
-      dict : numberDict,
-      toString : (function() {return String(this.n);}) 
-    };
+     PNumber.prototype = Object.create(PBase.prototype);
+     PNumber.prototype.dict=  numberDict;    
+     PNumber.prototype.toString = (function() {return String(this.n);});
+     PNumber.prototype.clone = (function() {
+        newNum = makeNumber(this.n);
+        newNum.brands = this.brands.slice(0);
+        return newNum;
+     });
 
     var stringDict = {
       _plus: makeMethod(function(left, right) {
@@ -111,15 +126,17 @@ var PYRET = (function () {
     }
     function makeString(s) { return new PString(s); }
     function isString(v) { return v instanceof PString; }
-    PString.prototype = {
-      dict : stringDict,
-      toString : (function() {return this.s;}),
-    };
-
+    PString.prototype = Object.create(PBase.prototype);
+    PString.prototype.dict = stringDict;
+    PString.prototype.toString = (function() {return this.s;});
+    PString.prototype.clone = (function() {
+        newStr = makeString(this.s);
+        newStr.brands = this.brands.slice(0);
+        return newStr;
+     });
 
     var booleanDict = {
     };
-
     function PBoolean(b) {
       this.b = b;
     }
@@ -148,7 +165,6 @@ var PYRET = (function () {
     }
     function makeError(msg) { return new PError(msg); }
     function isError(v) { return v instanceof PError; }
-
 
     function toRepr(val) {
       if(isNumber(val)) {
@@ -197,9 +213,39 @@ var PYRET = (function () {
     function FailResult(exn) {
       this.exn = exn;
     }
-    function makeFailResult(exn) { return new FailResult(exn.msg); }
+    function makeFailResult(exn) { return new FailResult(exn); }
 
     function errToJSON(exn) {return exn;}
+
+    //Object
+    function PObj(d) {
+      this.dict = d;
+    }
+    function makeObj(b) { return new PObj(b); }
+    function isObj(v) { return v instanceof PObj; }
+    PObj.prototype = {
+        fieldTypes : {},
+    };
+
+    //Brander
+    var brandCount = 0;
+    brander = makeFunction(function() {
+    var myBrand = brandCount++; 
+    branderDict = {
+        brand: makeFunction(function(toBrand) {
+            var newO = toBrand.clone();
+            newO.brands.push(myBrand);
+            return newO;
+        }),
+        test: makeFunction(function(o) {
+            if(o.brands.indexOf(myBrand) != -1) {
+                return makeBoolean(true);
+            }
+            else {return makeBoolean(false);}
+        }),
+    }
+    return makeObj(branderDict);
+    });
 
     return {
       nothing: {},
@@ -212,6 +258,8 @@ var PYRET = (function () {
       
       makeFunction: makeFunction,
       isFunction: isFunction,
+
+      brander:brander,
 
       equal: equal,
       getField: getField,

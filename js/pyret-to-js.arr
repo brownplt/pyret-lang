@@ -29,7 +29,7 @@ fun program-to-js(ast, runtime-ids):
     # import/provide ignored
     | s_program(_, _, block) =>
       bindings = for list.fold(bs from "", id from runtime-ids):
-        bs + format("var ~a = RUNTIME['~a'];\n", [js-id-of(id), id])
+        bs + format("~a = RUNTIME['~a'];\n", [id-access(id), id]) #Was var ~a
       end
       format("(function(RUNTIME) {
         try {
@@ -47,6 +47,7 @@ fun do-block(str):
 end
 
 fun expr-to-js(ast):
+print(ast)
   cases(A.Expr) ast:
     | s_block(_, stmts) =>
       if stmts.length() == 0:
@@ -96,6 +97,8 @@ fun expr-to-js(ast):
                 throw \"NO SHADOWING\";
                 }
             })()",[js_id, js_id, expr-to-js(value)])
+#    | s_obj(_, fields) =>
+#        fun(
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end
