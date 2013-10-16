@@ -12,7 +12,7 @@ var PYRET = (function () {
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.f);
         return newMet;
-    });
+return     });
     PMethod.prototype.toString = function() {return 'fun ... end'}
 
     //Base of all objects
@@ -40,7 +40,7 @@ var PYRET = (function () {
     PFunction.prototype.getType = (function() {return 'function';});
     PFunction.prototype.toString = function() {return 'fun: end'}
     PFunction.prototype.clone = (function() {
-        newFun = makeFunction(this.f);
+        var newFun = makeFunction(this.f);
         return newFun;
     });
         
@@ -128,7 +128,7 @@ var PYRET = (function () {
      PNumber.prototype.dict=  numberDict;    
      PNumber.prototype.toString = (function() {return String(this.n);});
      PNumber.prototype.clone = (function() {
-        newNum = makeNumber(this.n);
+        var newNum = makeNumber(this.n);
         return newNum;
      });
      PNumber.prototype.getType = function(){return 'number';};
@@ -156,7 +156,7 @@ var PYRET = (function () {
     PString.prototype.dict = stringDict;
     PString.prototype.toString = (function() {return this.s;});
     PString.prototype.clone = (function() {
-        newStr = makeString(this.s);
+        var newStr = makeString(this.s);
         return newStr;
      });
     PString.prototype.getType = function() {return 'string';};
@@ -217,7 +217,7 @@ var PYRET = (function () {
     PBoolean.prototype.dict = booleanDict;
     PBoolean.prototype.toString = (function() {return String(this.b);});
     PBoolean.prototype.clone = (function() {
-        newBool = makeBoolean(this.b);
+        var newBool = makeBoolean(this.b);
         return newBool;
     });
     PBoolean.prototype.getType = function() {return String(this.b);};
@@ -295,7 +295,7 @@ var PYRET = (function () {
     function isObj(v) { return v instanceof PObj; }
     PObj.prototype = Object.create(PBase.prototype);
     PObj.prototype.clone = (function() {
-        newObj = makeObj(this.dict);
+        var newObj = makeObj(this.dict);
         //Deep Clone, clone each field
         for(var f in newObj.dict) {
             newObj[f] = newObj.dict[f].clone();
@@ -322,7 +322,7 @@ var PYRET = (function () {
     branderDict = {
         brand: makeFunction(function(toBrand) {
             var newO = toBrand.clone();
-            newObj.brands = toBrand.brands.slice(0);
+            newO.brands = toBrand.brands.slice(0);
             newO.brands.push(myBrand);
             return newO;
         }),

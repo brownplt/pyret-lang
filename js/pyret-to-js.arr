@@ -68,6 +68,7 @@ fun expr-to-js(ast):
         end
         format("(function(){\n ~a \n})()", [sequence-return-last(stmts)])
       end
+    | s_user_block(s, expr) => expr-to-js(expr)
     | s_num(_, n) =>
       format("RUNTIME.makeNumber(~a)", [n])
     | s_str(_, s) =>
