@@ -72,6 +72,35 @@ the path to Racket on your machine, and it will be set this way each time you
 open a new terminal.  (Your terminal uses the value of @tt{$PATH} to decide
 which directories to look in for commands to run.)
 
+@emph{For OSX 10.8+} (and perhaps lower), creating a .bashrc file in the home
+folder will not work in a standard terminal window, as it opens a login shell
+by default, and @tt{~/.bashrc} is only used for non-login shells. This method
+does work for a standard terminal window however (i.e. just clicking on the
+terminal application).
+
+In a blank terminal window, you should type @tt{sudo nano /etc/paths}. You will 
+then have to enter an administrator password which will open the nano editor on
+the path file. Use the arrow keys to navigate to the first line below the 
+directories already present and type:
+
+@verbatim{
+          /Applications/Racket v5.3.6/bin
+          }
+
+Then hold the control key and tap the "x" key.  Nano will then prompt you if you
+want to save the modified buffer; tap the "y" key to save.
+
+If you quit your terminal window, open a new one, and type @tt{echo $PATH}, you
+should see something similar to this:
+
+@verbatim{
+          /opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local
+          /bin:/Applications/Racket v5.3.6/bin:/opt/X11/bin:/usr/texbin
+          }
+
+As long as you see @tt{:/Applications/Racket v5.3.6/bin} somewhere in the output, 
+the directory has been added correctly.
+
 @subsection[#:tag "s:editors"]{Editors}
 
 Pyret currently has modes written for Emacs and Vim.
