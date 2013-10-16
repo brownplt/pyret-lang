@@ -262,6 +262,9 @@ return     });
           return fieldVal.method.apply(null, [val].concat(argList));
         });
       } else {
+        if(fieldVal === undefined) {
+            throw "Field does not exist in object";
+        }
         return fieldVal;
       }
     }
@@ -332,7 +335,7 @@ return     });
             }
             else {return makeBoolean(false);}
         }),
-    }
+    };
     return makeObj(branderDict);
     });
 
@@ -340,6 +343,12 @@ return     });
     raise = makeFunction(function(expr) {
         throw expr.toString();
     });
+
+    //Error
+    errorDict = {
+        'make-error' : makeFunction(function(s) {return s;})
+    };
+    error = makeObj(errorDict);
 
     return {
       nothing: {},
@@ -364,6 +373,7 @@ return     });
       //Builtins
       brander:brander,
       raise:raise,
+      error:error,
 
       equal: equal,
       getField: getField,
