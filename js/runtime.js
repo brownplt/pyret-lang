@@ -195,6 +195,17 @@ var PYRET = (function () {
             }
         }),
     };
+
+    //Checks that something is a boolean, returns its boolean value
+    function checkBool(b) {
+        if(isBoolean(b)) {
+            return b.b;
+        }
+        else {
+            throw 'check-bool: expected boolean, got ' + o.getType();
+        }
+    }
+        
     function PBoolean(b) {
       this.b = b;
     }
@@ -327,6 +338,7 @@ var PYRET = (function () {
       isNumber: isNumber,
       isString: isString,
       isBoolean: isBoolean,
+      checkBool: checkBool,
       
       makeFunction: makeFunction,
       isFunction: isFunction,

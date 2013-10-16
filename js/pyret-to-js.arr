@@ -105,6 +105,12 @@ fun expr-to-js(ast):
         format("RUNTIME.makeObj({~a})",[fields.map(make-field-js).join-str(",\n")])
     | s_extend(_, obj, fields) =>
         format("~a.extendWith({~a})", [expr-to-js(obj), fields.map(make-field-js).join-str(",\n")])
+    | s_if_else(_, branches,_else) =>
+       all_but_else = cases(list.List) branches:
+        | link(f, r) => format("if(RUNTIME.checkBool(~a)) {return ~a;}\n~a",[expr-to-js(f.test), expr-to-js(f.body), r.map(fun(x): format("else if(RUNTIME.checkBool(~a)) {return ~a;}",[expr-to-js(x.test), expr-to-js(x.body)]);).join-str("\n")])
+        end
+        ifblock = format("~a else{return ~a;}", [all_but_else, expr-to-js(_else)])
+        format("(function() {~a})()",[ifblock])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end
