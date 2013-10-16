@@ -24,10 +24,6 @@
       (s-num s (srcloc-line s))
       (s-num s (srcloc-column s)))))
 
-;; variant checker name
-(define (make-checker-name s)
-    (string->symbol (string-append "is-" (symbol->string s))))
-
 (define (make-checker s name tyname brander)
   (s-let s (s-bind s name (a-blank)) (s-dot s brander 'test)))
 
@@ -560,22 +556,6 @@
                      (s-str loc "_plus"))
                     (list end))))
                    (s-block loc empty))))))
-
-(define (top-level-ids block)
-  (define (_top-level-ids expr)
-    (define (variant-ids variant)
-      (match variant
-        [(s-variant _ name _ _)
-         (list name (make-checker-name name))]
-        [(s-singleton-variant _ name _)
-         (list name (make-checker-name name))]))
-    (match expr
-      [(s-let _ (s-bind _ x _) _) (list x)]
-      [(s-fun _ name _ _ _ _ _ _) (list name)]
-      [(s-data s name _ _ variants _ _)
-       (cons name (flatten (map variant-ids variants)))]
-      [else (list)]))
-  (flatten (map _top-level-ids (s-block-stmts block))))
 
 (define (desugar-pyret ast)
   ;; This is the magic that turns `import foo as bar` into

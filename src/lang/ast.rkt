@@ -1,7 +1,7 @@
 #lang racket/base
 
 (provide (all-defined-out))
-(require racket/match racket/path racket/bool racket/list)
+(require racket/match racket/path racket/bool racket/list racket/set)
 
 #|
 
@@ -398,3 +398,164 @@ these metadata purposes.
     [(a-app syntax ann parameters) syntax]
     [(a-pred syntax ann exp) syntax]
     [(a-dot syntax obj field) syntax]))
+
+;; variant checker name
+(define (make-checker-name s)
+    (string->symbol (string-append "is-" (symbol->string s))))
+
+(define (top-level-ids block)
+  (define (_top-level-ids expr)
+    (define (variant-ids variant)
+      (match variant
+        [(s-variant _ name _ _)
+         (list name (make-checker-name name))]
+        [(s-singleton-variant _ name _)
+         (list name (make-checker-name name))]))
+    (match expr
+      [(s-let _ (s-bind _ x _) _) (list x)]
+      [(s-fun _ name _ _ _ _ _ _) (list name)]
+      [(s-data s name _ _ variants _ _)
+       (cons name (flatten (map variant-ids variants)))]
+      [else (list)]))
+  (flatten (map _top-level-ids (s-block-stmts block))))
+
+(define (free-ids expr)
+  (define (unions l)
+    (apply set-union (cons (set) l)))
+  (define (free-ids-member m)
+    (match m
+      [(s-data-field _ name value) (free-ids value)]
+      [(s-method-field _ name args ann doc body check)
+       (free-ids-fun args ann body check)]))
+  (define (free-ids-variant-member m)
+    (match m
+      [(s-variant-member _ type bind) (free-ids-bind bind)]))
+  (define (free-ids-bind b)
+    (match b
+      [(s-bind _ id ann) (free-ids-ann ann)]))
+  (define (free-ids-for-binding b)
+    (match b
+      [(s-for-bind _ bind value)
+       (set-union (free-ids-bind bind) (free-ids value))]))
+  (define (free-ids-if-branch b)
+    (match b
+      [(s-if-branch _ expr body) (set-union (free-ids expr) (free-ids body))]))
+  (define (free-ids-cases-branch cb)
+    (match cb
+      [(s-cases-branch _ name args body)
+       (define bound-args (list->set (map s-bind-id args)))
+       (define body-free (set-subtract (free-ids body) bound-args))
+       (set-union (unions (map free-ids-bind args)) body-free)]))
+  (define (free-ids-variant v)
+    (match v
+      [(s-variant _ name binds with-members)
+       (set-union
+        (unions (map free-ids-variant-member binds))
+        (unions (map free-ids-member with-members)))]
+      [(s-singleton-variant _ name with-members)
+       (unions (map free-ids-member with-members))]))
+  (define (free-ids-ann a)
+    (match a
+      [(a-any) (set)]
+      [(a-blank) (set)]
+      [(a-name _ id) (set id)]
+      [(a-pred _ a pred) (set-union (free-ids-ann a) (free-ids pred))]
+      [(a-arrow _ args ret)
+       (set-union (unions (map free-ids-ann args)) ret)]
+      [(a-method _ args ret)
+       (set-union (unions (map free-ids-ann args)) ret)]
+      [(a-field _ name ann) (free-ids-ann ann)]
+      [(a-record _ fields) (unions (map free-ids-ann a-field))]
+      [(a-app _ ann parameters)
+       (set-union (free-ids-ann ann) (unions (map free-ids-ann parameters)))]
+      [(a-dot _ obj field) (set obj)]
+      [_ (error (format "NYI ann: ~a" a))]))
+  (define (free-ids-fun args ann body check (name (set)))
+     (define args-bound (list->set (map s-bind-id args)))
+     (define arg-ids (unions (map free-ids-bind args)))
+     (define ann-ids (free-ids-ann ann))
+     (define body-ids-init (free-ids body))
+     (define body-ids (set-subtract body-ids-init (set-union args-bound name)))
+     (define check-ids (free-ids check))
+     (set-union arg-ids ann-ids body-ids check-ids))
+    
+  (match expr
+    [(s-prog _ imports block)
+     (unions (cons (free-ids block) (map free-ids imports)))]
+    [(s-import _ file name) (set)]
+    [(s-provide _ expr) (free-ids expr)]
+    [(s-provide-all _) (set)]
+    [(s-block _ stmts)
+     (define bound-ids (list->set (top-level-ids expr)))
+     (set-subtract (unions (map free-ids stmts)) bound-ids)]
+    [(s-bind _ id ann) (free-ids-ann ann)]
+    [(s-fun _ name params args ann doc body check)
+     (free-ids-fun args ann body check (set name))]
+    [(s-lam _ typarams args ann doc body check)
+     (free-ids-fun args ann body check)]
+    [(s-method _ args ann doc body check)
+     (free-ids-fun args ann body check)]
+    [(s-check _ body) (free-ids body)]
+    [(s-var _ name value) (set-union (free-ids-bind name) (free-ids value))]
+    [(s-let _ name value) (set-union (free-ids-bind name) (free-ids value))]
+    [(s-id _ id) (set id)]
+    [(s-graph s bindings)
+     (define bound-ids (list->set (top-level-ids (s-block s bindings))))
+     (set-subtract (unions (map free-ids bindings)) bound-ids)]
+    [(s-list _ values) (unions (map free-ids values))]
+    [(s-op _ _ left right) (set-union (free-ids left) (free-ids right))]
+    [(s-user-block _ block) (free-ids block)]
+    [(s-when _ test block) (set-union (free-ids test) (free-ids block))]
+    [(s-if _ branches) (unions (map free-ids-if-branch branches))]
+    [(s-if-else _ branches else)
+     (set-union (unions (map free-ids-if-branch branches)) (free-ids else))]
+    [(s-try _ body id except)
+     (set-union (free-ids body) (set-subtract (free-ids except) (set id)))]
+    [(s-cases _ type val branches)
+     (set-union
+      (free-ids-ann type)
+      (free-ids val)
+      (unions (map free-ids-cases-branch branches)))]
+    [(s-cases-else _ type val branches else)
+     (set-union
+      (free-ids-ann type)
+      (free-ids val)
+      (unions (map free-ids-cases-branch branches))
+      (free-ids else))]
+    [(s-not _ expr) (free-ids expr)]
+    [(s-paren _ expr) (free-ids expr)]
+    [(s-extend _ super fields)
+     (set-union (free-ids super) (unions (map free-ids-member fields)))]
+    [(s-update _ super fields)
+     (set-union (free-ids super) (unions (map free-ids-member fields)))]
+    [(s-obj _ fields)
+     (unions (map free-ids-member fields))]
+    [(s-app _ fun args)
+     (set-union (free-ids fun) (unions (map free-ids args)))]
+    [(s-left-app _ obj fun args)
+     (set-union (free-ids obj) (free-ids fun) (unions (map free-ids args)))]
+    [(s-assign _ id value) (free-ids value)]
+    [(s-dot _ obj field) (free-ids obj)]
+    [(s-get-bang _ obj field) (free-ids obj)]
+    [(s-bracket _ obj field) (set-union (free-ids obj) (free-ids field))]
+    [(s-colon _ obj field) (free-ids obj)]
+    [(s-colon-bracket _ obj field) (set-union (free-ids obj) (free-ids field))]
+    [(s-for _ iterator bindings ann body)
+     (define iterator-ids (free-ids iterator))
+     (define bindings-ids (unions (map free-ids-for-binding bindings)))
+     (define bindings (list->set (map s-bind-id (map s-for-bind-bind bindings))))
+     (define ann-ids (free-ids-ann ann))
+     (define body-ids (set-subtract (free-ids body) bindings))
+     (set-union iterator-ids bindings-ids ann-ids body-ids)]
+     
+    [(s-data _ name params mixins variants shared-members check)
+     (set-union
+       (unions (map free-ids mixins))
+       (unions (map free-ids-variant variants))
+       (unions (map free-ids-member shared-members))
+       (free-ids check))]
+
+    [(s-num _ _) (set)]
+    [(s-bool _ b) (set)]
+    [(s-str _ s) (set)]
+    [_ (error (format "NYI: ~a" expr))]))
