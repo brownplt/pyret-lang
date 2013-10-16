@@ -150,6 +150,27 @@ return     });
       tostring : makeMethod(function(me) {
         return makeString(me.s);
       }),
+      contains: makeMethod(function(me, sub){
+        return makeBoolean(me.s.indexOf(sub) != -1);
+      }),
+      'char-at': makeMethod(function(me, n) {
+        return makeString(String(me.s.charAt(n)));
+      }),
+      replace: makeMethod(function(me, forStr, withStr) {
+          return makeString(me.s.replace(new RegExp(forStr,"g"), withStr));
+      }),
+      tonumber: makeMethod(function(me) {
+          toNum = Number(me.s);
+          if(!isNaN(toNum)) {
+            return makeNumber(Number(me.s));
+          }
+          else {
+            return {};
+          }
+      }),
+      substring: makeMethod(function(me, start, stop) {
+        return makeString(me.s.substring(start,stop));
+      }),
     };
 
     function PString(s) {
@@ -469,6 +490,7 @@ return     });
       "check-brand": checkBrand,
       "mk-placeholder": makePlaceholder,
       "Number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
+      "String": makeFunction(function(x){return makeBoolean(isString(x));}),
     }
   }
 
