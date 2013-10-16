@@ -235,26 +235,40 @@ data List:
 
   | link(cyclic first :: Any, cyclic rest :: List) with:
 
-    length(self): 1 + self.rest.length() end,
+    length(self):
+    doc: "List.length() returns the number of links in the list"
+    1 + self.rest.length() end,
 
     each(self, f):
       f(self.first)
       self.rest.each(f)
     end,
 
-    map(self, f): f(self.first)^link(self.rest.map(f)) end,
+    map(self, f):
+    doc: "List.map(f) returns a list of function f applied to each element of the list"
+    f(self.first)^link(self.rest.map(f)) end,
 
     filter(self, f):
+    doc: "List.filter(f) returns a list of all the elements in the list that satisfy 
+    the predicate f"
       if f(self.first): self.first^link(self.rest.filter(f))
       else:             self.rest.filter(f)
       end
     end,
 
-    partition(self, f): partition(f, self) end,
+    partition(self, f):
+    doc: "List.partition(f) returns two lists, one containing all elements for which predicate
+    f evaluates to true, and one containing all elements for which predicate f does not."
+    partition(f, self) end,
 
-    find(self, f): find(f, self) end,
+    find(self, f):
+    doc: "List.find(f) returns some(elem) where elem is the first elem in lst for which
+        predicate f returns true, or none if f returns false for all elements"
+    find(f, self) end,
 
-    member(self, elt): (elt == self.first) or self.rest.member(elt) end,
+    member(self, elt): 
+    doc: "List.member(elt) returns true if elt is a member of the list, and false otherwise"
+    (elt == self.first) or self.rest.member(elt) end,
 
     foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
 
@@ -331,8 +345,8 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
-  to-set(self :: List): list-to-set(self) end
+  _plus(self, other): self.append(other) end,
+  to-set(self): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
