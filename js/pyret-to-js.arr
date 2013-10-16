@@ -11,8 +11,7 @@ js-id-of = block:
   fun(id :: String):
     if builtins.has-field(js-ids, id):
       js-ids.[id]
-    else:
-      no-hyphens = id.replace("-", "_DASH_")
+    else: no-hyphens = id.replace("-", "_DASH_")
       safe-id = gensym(no-hyphens)
       js-ids := js-ids.{ [id]: safe-id }
       safe-id
@@ -46,8 +45,11 @@ fun do-block(str):
   format("(function() { ~a })()", [str])
 end
 
+fun make-field-js(field):
+    format("'~a' : ~a", [field.name.s, expr-to-js(field.value)])
+end
+
 fun expr-to-js(ast):
-print(ast)
   cases(A.Expr) ast:
     | s_block(_, stmts) =>
       if stmts.length() == 0:
@@ -74,7 +76,8 @@ print(ast)
     | s_lam(_, _, args, _, _, body, _) =>
       format("RUNTIME.makeFunction(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
     #Should check that body is a block
-
+    | s_method(_, args, _, _, body, _) =>
+      format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
     | s_app(_, f, args) =>
       format("~a.app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
@@ -97,8 +100,8 @@ print(ast)
                 throw \"NO SHADOWING\";
                 }
             })()",[js_id, js_id, expr-to-js(value)])
-#    | s_obj(_, fields) =>
-#        fun(
+    | s_obj(_, fields) =>
+        format("RUNTIME.makeObj({~a})",[fields.map(make-field-js).join-str(",\n")])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end

@@ -5,10 +5,14 @@ var PYRET = (function () {
       this.method = f;
     }
     function makeMethod(f) { return new PMethod(f); } 
-    function isMethod(v) { return v instanceof PMethod; } PMethod.prototype = {
-      app: function() { throw "Cannot apply method directly."; },
-      dict: {}
-    };
+    function isMethod(v) { return v instanceof PMethod; }
+    PMethod.prototype = Object.create(PBase.prototype);
+    PMethod.prototype.app = function() { throw "Cannot apply method directly."; };
+    PMethod.prototype.clone = (function() {
+        newMet = makeMethod(this.f);
+        newMet.brands = this.brands.slice(0);
+        return newMet;
+    });
 
     //Base of all objects
     function PBase() {}
@@ -25,14 +29,22 @@ var PYRET = (function () {
     function makeFunction(f) { return new PFunction(f); }
     function isFunction(v) { return v instanceof PFunction; }
     PFunction.prototype = Object.create(PBase.prototype);
+    PFunction.prototype.clone = (function() {
+        newFun = makeFunction(this.f);
+        newFun.brands = this.brands.slice(0);
+        return newFun;
+    });
         
 
     function typeCheck(arg1, type1, arg2, type2, name){
         if (!(type1(arg1) && type2(arg2))) {
-            //Raise Error
-            throw ("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+            raiseTypeError(arg1,arg2, name);
         }
         return;
+    }
+
+    function raiseTypeError(arg1, arg2, name) {
+        throw ("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
 
@@ -112,6 +124,11 @@ var PYRET = (function () {
         return newNum;
      });
 
+
+    /**********************************
+    * Strings
+    ***********************************/
+
     var stringDict = {
       _plus: makeMethod(function(left, right) {
         return makeString(left.s + right.s);
@@ -135,17 +152,55 @@ var PYRET = (function () {
         return newStr;
      });
 
+    /**********************************
+    * Booleans
+    ***********************************/
     var booleanDict = {
+        _and : makeMethod(function(left, right) {
+            if(!isBoolean(left)) {
+                raiseTypeError(left, right, 'and');
+            }
+            if(left.b) {
+                var rightVal = right.app();
+                if(!isBoolean(rightVal)) {
+                    raiseTypeError(left, right, 'and');
+                }
+                return makeBoolean(rightVal.b);
+            }
+            else {
+                return makeBoolean(false);
+            }
+        }),
+
+        _or : makeMethod(function(left, right) {
+            if(!isBoolean(left)) {
+                raiseTypeError(left, right, 'or');
+            }
+            if(left.b) {
+                return makeBoolean(true);
+            }
+            else {
+                var rightVal = right.app();
+                if(!isBoolean(rightVal)) {
+                    raiseTypeError(left, right, 'or');
+                }
+                return makeBoolean(rightVal.b);
+            }
+        }),
     };
     function PBoolean(b) {
       this.b = b;
     }
     function makeBoolean(b) { return new PBoolean(b); }
     function isBoolean(v) { return v instanceof PBoolean; }
-    PBoolean.prototype = {
-      dict : booleanDict,
-      toString : (function() {return String(this.b);}),
-    };
+    PBoolean.prototype = Object.create(PBase.prototype);
+    PBoolean.prototype.dict = booleanDict;
+    PBoolean.prototype.toString = (function() {return String(this.b);});
+    PBoolean.prototype.clone = (function() {
+        newBool = makeBoolean(this.b);
+        newBool.brands = this.brands.slice(0);
+        return newBool;
+    });
 
     function equal(val1, val2) {
       if(isNumber(val1) && isNumber(val2)) {
@@ -159,12 +214,6 @@ var PYRET = (function () {
       }
       return val1 === val2;
     }
-
-    function PError(msg) {
-      this.msg = msg;
-    }
-    function makeError(msg) { return new PError(msg); }
-    function isError(v) { return v instanceof PError; }
 
     function toRepr(val) {
       if(isNumber(val)) {
@@ -200,8 +249,7 @@ var PYRET = (function () {
     var testPrintOutput = "";
     function testPrint(val) {
       var str = toRepr(val).s;
-      console.log("testPrint: ", val, str);
-      testPrintOutput += str + "\n";
+      console.log("testPrint: ", val, str); testPrintOutput += str + "\n";
       return val;
     }
 
@@ -217,15 +265,24 @@ var PYRET = (function () {
 
     function errToJSON(exn) {return exn;}
 
-    //Object
+    /**********************************
+    * Objects
+    ***********************************/
     function PObj(d) {
       this.dict = d;
     }
     function makeObj(b) { return new PObj(b); }
     function isObj(v) { return v instanceof PObj; }
-    PObj.prototype = {
-        fieldTypes : {},
-    };
+    PObj.prototype = Object.create(PBase.prototype);
+    PObj.prototype.clone = (function() {
+        newObj = makeObj(this.d);
+        newObj.brands = this.brands.slice(0);
+        //Deep Clone, clone each field
+        for(var f in newObj.dict) {
+            newObj[f] = f.clone();
+        }
+        return newObj;
+    });
 
     //Brander
     var brandCount = 0;
@@ -259,6 +316,12 @@ var PYRET = (function () {
       makeFunction: makeFunction,
       isFunction: isFunction,
 
+      makeMethod: makeMethod,
+      isMethod: isMethod,
+
+      makeObj: makeObj,
+      isObj: isObj,
+      
       brander:brander,
 
       equal: equal,
