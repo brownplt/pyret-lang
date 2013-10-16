@@ -13,6 +13,7 @@ var PYRET = (function () {
         newMet = makeMethod(this.f);
         return newMet;
     });
+    PMethod.prototype.toString = function() {return 'fun ... end'}
 
     //Base of all objects
     function PBase() {}
@@ -37,6 +38,7 @@ var PYRET = (function () {
     function isFunction(v) { return v instanceof PFunction; }
     PFunction.prototype = Object.create(PBase.prototype);
     PFunction.prototype.getType = (function() {return 'function';});
+    PFunction.prototype.toString = function() {return 'fun: end'}
     PFunction.prototype.clone = (function() {
         newFun = makeFunction(this.f);
         return newFun;
@@ -308,7 +310,11 @@ var PYRET = (function () {
         }
         return newObj;
     }
+    PObj.prototype.toString = function() {return '{object}'}
 
+    /**********************************
+    * Builtins
+    ***********************************/
     //Brander
     var brandCount = 0;
     brander = makeFunction(function() {
@@ -330,6 +336,11 @@ var PYRET = (function () {
     return makeObj(branderDict);
     });
 
+    //Raise
+    raise = makeFunction(function(expr) {
+        throw expr.toString();
+    });
+
     return {
       nothing: {},
       makeNumber: makeNumber,
@@ -349,8 +360,10 @@ var PYRET = (function () {
 
       makeObj: makeObj,
       isObj: isObj,
-      
+     
+      //Builtins
       brander:brander,
+      raise:raise,
 
       equal: equal,
       getField: getField,
