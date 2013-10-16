@@ -79,7 +79,7 @@ fun expr-to-js(ast):
     | s_method(_, args, _, _, body, _) =>
       format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
     | s_app(_, f, args) =>
-      format("~a.app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
+      format("RUNTIME.checkFun(~a).app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
       cases (A.Expr) f:
         | s_str(_, s) => format("RUNTIME.getField(~a, '~a')", [expr-to-js(obj), s])
@@ -92,14 +92,15 @@ fun expr-to-js(ast):
     | s_assign(_, id, value) =>
       format("~a = ~a", [id-access(id), expr-to-js(value)])
     | s_let(_, bind, value) => 
-      js_id = id-access(bind.id)
-      format("(function(){
-            if(typeof ~a === \'undefined\') {
-                return ~a = ~a;
-            } else {
-                throw \"NO SHADOWING\";
-                }
-            })()",[js_id, js_id, expr-to-js(value)])
+      format("~a = ~a",[id-access(bind.id), expr-to-js(value)])
+      #js_id = id-access(bind.id)
+      #format("(function(){
+            #if(typeof ~a === \'undefined\') {
+                #return ~a = ~a;
+            #} else {
+                #throw \"NO SHADOWING\";
+                #}
+            #})()",[js_id, js_id, expr-to-js(value)])
     | s_obj(_, fields) =>
         format("RUNTIME.makeObj({~a})",[fields.map(make-field-js).join-str(",\n")])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))

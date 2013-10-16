@@ -8,6 +8,7 @@ var PYRET = (function () {
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = Object.create(PBase.prototype);
     PMethod.prototype.app = function() { throw "Cannot apply method directly."; };
+    PMethod.prototype.getType = function() {return 'method';};
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.f);
         newMet.brands = this.brands.slice(0);
@@ -21,7 +22,14 @@ var PYRET = (function () {
       dict: {},
       brands: [],
       app: (function() {throw "Cannot apply this data type";}),
+      type : 'base'
     };
+
+    //Checks to see that an object is a function and returns it, raises error otherwise
+    function checkFun(o) {
+        if(isFunction(o)) {return o;}
+        throw 'check-fun: expected function, got ' + o.getType();
+    }
 
     function PFunction(f) {
       this.app = f;
@@ -29,6 +37,7 @@ var PYRET = (function () {
     function makeFunction(f) { return new PFunction(f); }
     function isFunction(v) { return v instanceof PFunction; }
     PFunction.prototype = Object.create(PBase.prototype);
+    PFunction.prototype.getType = (function() {return 'function';});
     PFunction.prototype.clone = (function() {
         newFun = makeFunction(this.f);
         newFun.brands = this.brands.slice(0);
@@ -123,6 +132,7 @@ var PYRET = (function () {
         newNum.brands = this.brands.slice(0);
         return newNum;
      });
+     PNumber.prototype.getType = function(){return 'number';};
 
 
     /**********************************
@@ -151,6 +161,7 @@ var PYRET = (function () {
         newStr.brands = this.brands.slice(0);
         return newStr;
      });
+    PString.prototype.getType = function() {return 'string';};
 
     /**********************************
     * Booleans
@@ -201,6 +212,7 @@ var PYRET = (function () {
         newBool.brands = this.brands.slice(0);
         return newBool;
     });
+    PBoolean.prototype.getType = function() {return String(this.b);};
 
     function equal(val1, val2) {
       if(isNumber(val1) && isNumber(val2)) {
@@ -283,6 +295,7 @@ var PYRET = (function () {
         }
         return newObj;
     });
+    PObj.prototype.getType = function() {return 'object';};
 
     //Brander
     var brandCount = 0;
@@ -315,6 +328,7 @@ var PYRET = (function () {
       
       makeFunction: makeFunction,
       isFunction: isFunction,
+      checkFun: checkFun,
 
       makeMethod: makeMethod,
       isMethod: isMethod,
