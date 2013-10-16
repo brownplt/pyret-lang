@@ -20,7 +20,8 @@ js-id-of = block:
 end
 
 fun id-access(id :: String):
-    format("RUNTIME.ids[\"~a\"]" ,[js-id-of(id)])
+#    format("RUNTIME.ids[\"~a\"]" ,[js-id-of(id)])
+js-id-of(id)
 end
 
 fun program-to-js(ast, runtime-ids):
@@ -74,10 +75,12 @@ fun expr-to-js(ast):
     | s_bool(_, b) =>
       format("RUNTIME.makeBoolean(~a)", [b])
     | s_lam(_, _, args, _, _, body, _) =>
-      format("RUNTIME.makeFunction(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
+      #format("RUNTIME.makeFunction(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
+      format("RUNTIME.makeFunction(function(~a) {return ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body)])
     #Should check that body is a block
     | s_method(_, args, _, _, body, _) =>
-      format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
+      #format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
+      format("RUNTIME.makeMethod(function(~a) {return ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body)])
     | s_app(_, f, args) =>
       format("RUNTIME.checkFun(~a).app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
@@ -111,6 +114,8 @@ fun expr-to-js(ast):
         end
         ifblock = format("~a else{return ~a;}", [all_but_else, expr-to-js(_else)])
         format("(function() {~a})()",[ifblock])
+    | s_try(_, body, bind, _except) =>
+        format("(function() {\n try{\n  return ~a; \n} catch(~a) {\n return ~a; \n}})()", [expr-to-js(body), js-id-of(bind.id), expr-to-js(_except)])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end

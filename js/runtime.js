@@ -380,6 +380,12 @@ var PYRET = (function () {
       ids:{},
 
       "test-print": makeFunction(testPrint),
+
+      "is-number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
+      "is-string": makeFunction(function(x){return makeBoolean(isString(x));}),
+      "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
+      "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
+      "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
     }
   }
 
