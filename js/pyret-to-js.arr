@@ -103,6 +103,8 @@ fun expr-to-js(ast):
             #})()",[js_id, js_id, expr-to-js(value)])
     | s_obj(_, fields) =>
         format("RUNTIME.makeObj({~a})",[fields.map(make-field-js).join-str(",\n")])
+    | s_extend(_, obj, fields) =>
+        format("~a.extendWith({~a})", [expr-to-js(obj), fields.map(make-field-js).join-str(",\n")])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end

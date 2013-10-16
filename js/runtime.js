@@ -11,7 +11,6 @@ var PYRET = (function () {
     PMethod.prototype.getType = function() {return 'method';};
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.f);
-        newMet.brands = this.brands.slice(0);
         return newMet;
     });
 
@@ -40,7 +39,6 @@ var PYRET = (function () {
     PFunction.prototype.getType = (function() {return 'function';});
     PFunction.prototype.clone = (function() {
         newFun = makeFunction(this.f);
-        newFun.brands = this.brands.slice(0);
         return newFun;
     });
         
@@ -129,7 +127,6 @@ var PYRET = (function () {
      PNumber.prototype.toString = (function() {return String(this.n);});
      PNumber.prototype.clone = (function() {
         newNum = makeNumber(this.n);
-        newNum.brands = this.brands.slice(0);
         return newNum;
      });
      PNumber.prototype.getType = function(){return 'number';};
@@ -158,7 +155,6 @@ var PYRET = (function () {
     PString.prototype.toString = (function() {return this.s;});
     PString.prototype.clone = (function() {
         newStr = makeString(this.s);
-        newStr.brands = this.brands.slice(0);
         return newStr;
      });
     PString.prototype.getType = function() {return 'string';};
@@ -209,7 +205,6 @@ var PYRET = (function () {
     PBoolean.prototype.toString = (function() {return String(this.b);});
     PBoolean.prototype.clone = (function() {
         newBool = makeBoolean(this.b);
-        newBool.brands = this.brands.slice(0);
         return newBool;
     });
     PBoolean.prototype.getType = function() {return String(this.b);};
@@ -287,15 +282,21 @@ var PYRET = (function () {
     function isObj(v) { return v instanceof PObj; }
     PObj.prototype = Object.create(PBase.prototype);
     PObj.prototype.clone = (function() {
-        newObj = makeObj(this.d);
-        newObj.brands = this.brands.slice(0);
+        newObj = makeObj(this.dict);
         //Deep Clone, clone each field
         for(var f in newObj.dict) {
-            newObj[f] = f.clone();
+            newObj[f] = newObj.dict[f].clone();
         }
         return newObj;
     });
     PObj.prototype.getType = function() {return 'object';};
+    PObj.prototype.extendWith = function(fields) {
+        var newObj = this.clone();
+        for(var field in fields) {
+            newObj.dict[field] = fields[field];
+        }
+        return newObj;
+    }
 
     //Brander
     var brandCount = 0;
@@ -304,6 +305,7 @@ var PYRET = (function () {
     branderDict = {
         brand: makeFunction(function(toBrand) {
             var newO = toBrand.clone();
+            newObj.brands = toBrand.brands.slice(0);
             newO.brands.push(myBrand);
             return newO;
         }),
