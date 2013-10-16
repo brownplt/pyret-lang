@@ -117,6 +117,10 @@ fun expr-to-js(ast):
         format("(function() {~a})()",[ifblock])
     | s_try(_, body, bind, _except) =>
         format("(function() {\n try{\n  return ~a; \n} catch(~a) {\n return ~a; \n}})()", [expr-to-js(body), js-id-of(bind.id), expr-to-js(_except)])
+    | s_get_bang(l, obj, field) => 
+        format("RUNTIME.getField(RUNTIME.getField(~a, '~a'), 'get').app()", [expr-to-js(obj), field])
+    |s_update(l, super, fields) => 
+        format("~a.updateWith({~a})", [expr-to-js(super), fields.map(make-field-js).join-str(",\n")])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
   end
 end

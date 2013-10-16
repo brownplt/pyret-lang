@@ -1,20 +1,5 @@
 var PYRET = (function () {
-
   function makeRuntime() {
-    function PMethod(f) {
-      this.method = f;
-    }
-    function makeMethod(f) { return new PMethod(f); } 
-    function isMethod(v) { return v instanceof PMethod; }
-    PMethod.prototype = Object.create(PBase.prototype);
-    PMethod.prototype.app = function() { makeError( "Cannot apply method directly."); };
-    PMethod.prototype.getType = function() {return 'method';};
-    PMethod.prototype.clone = (function() {
-        newMet = makeMethod(this.f);
-        return newMet;
-return     });
-    PMethod.prototype.toString = function() {return 'fun ... end'}
-
     //Base of all objects
     function PBase() {}
     function isPBase(v) { return v instanceof PBase; }
@@ -24,6 +9,22 @@ return     });
       app: (function() { makeError("Cannot apply this data type");}),
       type : 'base'
     };
+
+    function PMethod(f) {
+      this.method = f;
+    }
+    function makeMethod(f) { return new PMethod(f); } 
+    function isMethod(v) { return v instanceof PMethod; }
+    PMethod.prototype = Object.create(PBase.prototype);
+    PMethod.prototype.app = function() { makeError( "Cannot apply method directly."); };
+    PMethod.prototype.getType = function() {return 'method';};
+    PMethod.prototype.clone = (function() {
+        newMet = makeMethod(this.method);
+        return newMet;
+return     });
+    PMethod.prototype.toString = function() {return 'fun ... end'}
+    PMethod.prototype.dict["_doc"] = makeString("\"hello\"");
+
 
     //Throws An Error
     function makeError(message){
@@ -133,9 +134,9 @@ return     });
         return makeNumber(Math.exp(me.n));
       }),
       expt: makeMethod(function(me, pow) {
-        return makeNumber(Math.pow(me.n, pow));
+        return makeNumber(Math.pow(me.n, pow.n));
       }),
-      equiv: makeMethod(function(me, other) {
+      _equals: makeMethod(function(me, other) {
         return makeBoolean(me.n === other.n);
       }),
     };
@@ -186,6 +187,19 @@ return     });
       }),
       substring: makeMethod(function(me, start, stop) {
         return makeString(me.s.substring(start,stop));
+      }),
+      append : makeMethod(function(me, o) {
+        return makeString(me.s + o.s);
+      }),
+      length : makeMethod(function(me) {
+        return makeNumber(me.s.length);
+      }),
+      repeat : makeMethod(function(me, n) {
+        var result = "";i
+        for(var x = n.n; x>0; n.n--){
+           result = result + me.s;
+        }
+        return makeString(result);
       }),
     };
 
@@ -238,6 +252,10 @@ return     });
                 return makeBoolean(rightVal.b);
             }
         }),
+
+      _not: makeMethod(function(me) {
+        return makeBoolean(!(me.b));
+      }),
     };
 
     //Checks that something is a boolean, returns its boolean value
@@ -294,7 +312,11 @@ return     });
         return makeString("method: end");
       }
       else if (isObj(val)) {
-        return makeString("{}");
+        var fields = [];
+        for(f in val.dict) {
+            fields.push(f + ": " + val.dict[f].toString());
+        }
+        return makeString('{' +fields.join(", ")+ '}');
       }
       makeError("toStringJS on an unknown type: " + val);
     }
@@ -331,13 +353,16 @@ return     });
     }
     function makeFailResult(exn) { return new FailResult(exn); }
 
-    function errToJSON(exn) {return exn.dict['message'].s;}
+    function errToJSON(exn) {if(isObj(exn)){return  exn.dict['message'].s;} else {var res = exn.s; if(res === undefined) {return exn;} return res;}}
 
     /**********************************
     * Objects
     ***********************************/
     function PObj(d) {
       this.dict = d;
+      //this.dict['_torepr'] = makeMethod(function(me) {
+        //return toRepr(me);
+      //});
     }
     function makeObj(b) { return new PObj(b); }
     function isObj(v) { return v instanceof PObj; }
@@ -346,7 +371,7 @@ return     });
         var newObj = makeObj(this.dict);
         //Deep Clone, clone each field
         for(var f in newObj.dict) {
-            newObj[f] = newObj.dict[f].clone();
+            newObj.dict[f] = newObj.dict[f].clone();
         }
         return newObj;
     });
@@ -358,7 +383,23 @@ return     });
         }
         return newObj;
     }
-    PObj.prototype.toString = function() {return '{object}'}
+    PObj.prototype.updateWith = function(fields) {
+        var newObj = this.clone();
+        for(var field in fields) {
+            if(newObj.dict[field].isMutable) {
+                newObj.dict[field].set(fields[field]);
+            }
+            else makeError("Attempted to update a non-mutable field");
+        }
+        return newObj;
+    }
+    PObj.prototype.toString = function() {
+        var fields = "";
+        for(f in this.dict) {
+            fields += f + ": " + dict[f].toString();
+        }
+        return '{' +fields+ '}';
+    }
 
     /**********************************
     * Builtins
@@ -386,8 +427,7 @@ return     });
 
     //Raise
     raise = makeFunction(function(expr) {
-        makeError(expr.toString());
-    });
+        throw expr; });
 
     //Error
     errorDict = {
@@ -427,7 +467,7 @@ return     });
 
             guard : makeMethod(function(me, guard) {
                if(isSet) {
-                   makeError("Placeholder: value already set"); 
+                   makeError("Tried to add guard on an already-initialized placeholder");
                 }
                else {
                     guards.push(guard);
@@ -436,6 +476,9 @@ return     });
             }),
 
             set : makeMethod(function(me, val) {
+                if(isSet) {
+                    makeError("Tried to set value in already-initialized placeholder");
+                }
                 for(var g in guards) {
                     var test = guards[g].app(val);
                     if(isBoolean(test)) {
@@ -452,12 +495,160 @@ return     });
                 return value;
             }),
 
+           tostring : makeMethod(function(me) {
+            return makeString("placeholder-field");
+           }),
+
+           _torepr : makeMethod(function(me) {
+                return toRepr(me);
+            }),
+
         }
+        
         return makeObj(placeholderDict);
     });
 
+    //Muteable
+    function makeMutable(val, r, w) {
+        var a = val;
+
+        if(!isFunction(r)) {
+            makeError('typecheck failed; expected Function and got\n' + toRepr(r).s);
+        }
+        if(!isFunction(w)) {
+            makeError('typecheck failed; expected Function and got\n' + toRepr(w).s);
+        }
+
+        var writeVal = w.app(a);
+        if(!(isBoolean(writeVal) && writeVal.b)) {
+            makeError('Predicate failed upon write');
+        }
+
+
+        var mut = makeObj({
+            tostring: makeMethod(function(me) {
+            return makeString("mutable-field");
+            }),
+            'get': makeMethod(function(me) {
+            
+            var  readVal = r.app(a);
+            if(!(isBoolean(readVal) && readVal.b)) {
+                makeError('Predicate failed upon read ');
+            }
+                return a;
+            }),
+        });
+
+        mut.set = (function(newVal) { 
+            var  wVal = w.app(newVal);
+            if(!(isBoolean(wVal) && wVal.b)) {
+                makeError('Predicate failed upon set');
+            }
+                return a = newVal;
+            });
+
+        mut.isMutable = true;
+
+        
+        mut.clone = (function() {
+            var newObj = makeObj(this.dict);
+            //Deep Clone, clone each field
+            for(var f in newObj.dict) {
+            newObj.dict[f] = newObj.dict[f].clone();
+            }
+            newObj.isMutable = true;
+            
+           newObj.set = (function(newVal) { 
+            var  wVal = w.app(newVal);
+            if(!(isBoolean(wVal) && wVal.b)) {
+                makeError('Predicate failed upon set');
+            }
+                return a = newVal;
+            });
+        return newObj;
+         });
+        return mut;
+    };
+
+    function isMutable(val) {
+        return makeBoolean(Boolean(val.isMutable));
+    }
+
+    var alwaysTrue = makeFunction(function() {return makeBoolean(true);});
+    function makeSimpleMutable(val) {return makeMutable(val,alwaysTrue, alwaysTrue);}
+
+    //List
+    function PList() {}
+    function makeList() { return new PList(); }
+    function isList(v) { return v instanceof PList; }
+    PList.prototype = Object.create(PObj.prototype);
+   
+    function Empty() {}
+    Empty.prototype = Object.create(PList.prototype);
+    function makeEmpty() {
+        e = new Empty(); 
+    }
+    function isEmpty(v) {
+        return v instanceof Empty;
+    }
+    Empty.prototype.dict.length = makeMethod(function(me) {
+        return makeNumber(0);
+    })
+
+    function Link(f,r) {
+        this.dict.f = f;
+        this.dict.r = r;
+    }
+    Link.prototype = Object.create(PList.prototype);
+    function makeLink(f, r) {
+        var e = new Link(f,r);
+    }
+    function isLink(v) {
+        return v instanceof Link;
+    }
+    Link.prototype.dict.length = makeMethod(function(me) {
+        return makeNumber(1 + me.dict['r']['length'].method(me['dict']['r']).n);
+    });
+
+    listDict  = {
+        empty : makeMethod(function(me) {
+            return makeEmpty(); 
+        }),
+        link : makeMethod(function(me, f, r) {
+            return makeLink(f,r); 
+        }),
+    }
+    var list = makeObj(listDict);
+
+    //Equiv
+    function equiv(obj1, obj2) {
+        if(obj1.dict.hasOwnProperty("_equals")) {
+            return getField(obj1, "_equals").app(obj2);
+        }
+        else if(Object.keys(obj1.dict).length == Object.keys(obj2.dict).length) { return makeBoolean(isAllSame(obj1, obj2));}
+        else {return makeBoolean(false);}
+    }
+
+    function isAllSame(obj1, obj2) {
+        if(isMethod(obj1) || isFunction(obj1)) {
+            return false;
+        }
+       
+        for(key in obj1.dict){
+            if(obj2.dict.hasOwnProperty(key)) {
+                if(!(equiv(obj1.dict[key], obj2.dict[key]).b)) {
+                    return false;
+                }
+            }
+            else {
+                return false;
+            }
+        }
+
+        return true;
+    }   
     return {
-      nothing: {},
+      nothing: {dict : {}},
       makeNumber: makeNumber,
       makeString: makeString,
       makeBoolean: makeBoolean,
@@ -481,6 +672,12 @@ return     });
       raise:raise,
       error:error,
 
+      //Builtins Obj
+      builtins : makeObj(
+      {
+      equiv: makeFunction(equiv),
+      }),
+
       equal: equal,
       getField: getField,
       getTestPrintOutput: function(val) {
@@ -502,11 +699,35 @@ return     });
       "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
       "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
       "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
-      "to-string": makeFunction(function(x){return makeString(x.toString());}),
+//      "to-string": makeFunction(function(x){return makeString(x.toString());}),
+      "is-mutable" : makeFunction(isMutable),
       "check-brand": checkBrand,
       "mk-placeholder": makePlaceholder,
+      "mk-mutable": makeFunction(makeMutable),
+      "mk-simple-mutable": makeFunction(makeSimpleMutable),
       "Number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
       "String": makeFunction(function(x){return makeBoolean(isString(x));}),
+
+      "list" : list,
+      "link" : makeFunction(makeLink),
+      "empty" :makeFunction(makeEmpty),
+
+      "List" : makeFunction(function(x){return makeBoolean(isList(x));}),
+      "Empty" : makeFunction(function(x){return makeBoolean(isEmpty(x));}),
+      "Link" : makeFunction(function(x){return makeBoolean(isLink(x));}),
+      "is-list" : makeFunction(function(x){return makeBoolean(isList(x));}),
+      "is-empty" : makeFunction(function(x){return makeBoolean(isEmpty(x));}),
+      "is-link" : makeFunction(function(x){return makeBoolean(isLink(x));}),
+      "torepr" : makeFunction(toRepr),
+      "tostring" : makeFunction(function(x) {
+        return getField(x, 'tostring').app();
+      }), 
+      "prim-has-field" : makeFunction(function(prim, field) {
+        return makeBoolean(prim.dict.hasOwnProperty(field));
+      }),
+      "prim-num-keys" : makeFunction(function(prim) {
+        return makeNumber(Object.keys(prim.dict).length);
+      }),
     }
   }
 
