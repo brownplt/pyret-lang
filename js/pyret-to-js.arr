@@ -29,7 +29,7 @@ fun program-to-js(ast, runtime-ids):
     # import/provide ignored
     | s_program(_, _, block) =>
       bindings = for list.fold(bs from "", id from runtime-ids):
-        bs + format("var ~a = RUNTIME['~a'];\n", [id-access(id), id]) #Was var ~a
+        bs + format("~a = RUNTIME['~a'];\n", [id-access(id), id]) #Was var ~a
       end
       format("(function(RUNTIME) {
         try {
@@ -92,7 +92,7 @@ fun expr-to-js(ast):
     | s_id(_, id) => id-access(id)
     | s_var(_, bind, value) =>
       js_id = id-access(bind.id)
-      format("var ~a = ~a", [js_id, expr-to-js(value)])
+      format("~a = ~a", [js_id, expr-to-js(value)])
     | s_assign(_, id, value) =>
       format("~a = ~a", [id-access(id), expr-to-js(value)])
     | s_let(_, bind, value) => 

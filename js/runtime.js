@@ -7,7 +7,7 @@ var PYRET = (function () {
     function makeMethod(f) { return new PMethod(f); } 
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = Object.create(PBase.prototype);
-    PMethod.prototype.app = function() { throw "Cannot apply method directly."; };
+    PMethod.prototype.app = function() { makeError( "Cannot apply method directly."); };
     PMethod.prototype.getType = function() {return 'method';};
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.f);
@@ -21,19 +21,19 @@ return     });
     PBase.prototype = {
       dict: {},
       brands: [],
-      app: (function() {throw "Cannot apply this data type";}),
+      app: (function() { makeError("Cannot apply this data type");}),
       type : 'base'
     };
 
     //Throws An Error
     function makeError(message){
-        throw makeObj({'message' : makeString(String(message))});
+       throw makeObj({'message' : makeString(String(message))});
     }
 
     //Checks to see that an object is a function and returns it, raises error otherwise
     function checkFun(o) {
         if(isFunction(o)) {return o;}
-        throw 'check-fun: expected function, got ' + o.getType();
+        makeError( 'check-fun: expected function, got ' + o.getType());
     }
 
     function PFunction(f) {
@@ -58,7 +58,7 @@ return     });
     }
 
     function raiseTypeError(arg1, arg2, name) {
-        throw ("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+        makeError("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
 
@@ -209,7 +209,7 @@ return     });
             return b.b;
         }
         else {
-            throw 'check-bool: expected boolean, got ' + o.getType();
+            makeError('check-bool: expected boolean, got ' + o.getType());
         }
     }
         
@@ -259,7 +259,7 @@ return     });
       else if (isObj(val)) {
         return makeString("{obj...}");
       }
-      throw ("toStringJS on an unknown type: " + val);
+      makeError("toStringJS on an unknown type: " + val);
     }
 
     function getField(val, str) {
@@ -271,7 +271,7 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            throw "Field does not exist in object";
+            makeError("Field does not exist in object");
         }
         return fieldVal;
       }
@@ -294,7 +294,7 @@ return     });
     }
     function makeFailResult(exn) { return new FailResult(exn); }
 
-    function errToJSON(exn) {return exn;}
+    function errToJSON(exn) {return exn.dict['message'].s;}
 
     /**********************************
     * Objects
@@ -349,7 +349,7 @@ return     });
 
     //Raise
     raise = makeFunction(function(expr) {
-        throw expr.toString();
+        makeError(expr.toString());
     });
 
     //Error
@@ -365,11 +365,11 @@ return     });
                 return obj;
             }
             else {
-               throw msg; 
+               makeError("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
             }
         }
         else {
-            throw "Check brand with non-function"
+            makeError("Check brand with non-function");
         }
     });
 
@@ -393,14 +393,14 @@ return     });
                    makeError("Placeholder: value already set"); 
                 }
                else {
-                    guards = guards.push(guard);
+                    guards.push(guard);
                }
                return {};
             }),
 
             set : makeMethod(function(me, val) {
                 for(var g in guards) {
-                    var test = g.app(val);
+                    var test = guards[g].app(val);
                     if(isBoolean(test)) {
                         if(!test.b) {
                         makeError("Guard failed");
@@ -467,7 +467,8 @@ return     });
       "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
       "to-string": makeFunction(function(x){return makeString(x.toString());}),
       "check-brand": checkBrand,
-      "mk-placeholder": makePlaceholder
+      "mk-placeholder": makePlaceholder,
+      "Number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
     }
   }
 
