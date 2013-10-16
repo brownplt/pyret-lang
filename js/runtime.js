@@ -395,6 +395,7 @@ return     });
                else {
                     guards = guards.push(guard);
                }
+               return {};
             }),
 
             set : makeMethod(function(me, val) {
@@ -411,6 +412,7 @@ return     });
                 }
                 value = val;
                 isSet = true;
+                return value;
             }),
 
         }
