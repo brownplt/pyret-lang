@@ -25,6 +25,11 @@ return     });
       type : 'base'
     };
 
+    //Throws An Error
+    function makeError(message){
+        throw makeObj({'message' : makeString(String(message))});
+    }
+
     //Checks to see that an object is a function and returns it, raises error otherwise
     function checkFun(o) {
         if(isFunction(o)) {return o;}
@@ -251,6 +256,9 @@ return     });
       else if (isMethod(val)) {
         return makeString("method: end");
       }
+      else if (isObj(val)) {
+        return makeString("{obj...}");
+      }
       throw ("toStringJS on an unknown type: " + val);
     }
 
@@ -350,6 +358,65 @@ return     });
     };
     error = makeObj(errorDict);
 
+    //check-brand
+    checkBrand = makeFunction(function(test, obj, msg){
+        if(isFunction(test)){
+            if(test.app(obj).b) {
+                return obj;
+            }
+            else {
+               throw msg; 
+            }
+        }
+        else {
+            throw "Check brand with non-function"
+        }
+    });
+
+    //Placeholder
+    var makePlaceholder = makeFunction(function() {
+        var isSet = false;
+        var value = undefined;
+        var guards = [];
+        var placeholderDict = {
+            get : makeMethod(function(me) { 
+               if(isSet){
+                   return value;
+               }
+               else {
+                  makeError("Tried to get value from uninitialized placeholder");
+               }
+            }),
+
+            guard : makeMethod(function(me, guard) {
+               if(isSet) {
+                   makeError("Placeholder: value already set"); 
+                }
+               else {
+                    guards = guards.push(guard);
+               }
+            }),
+
+            set : makeMethod(function(me, val) {
+                for(var g in guards) {
+                    var test = g.app(val);
+                    if(isBoolean(test)) {
+                        if(!test.b) {
+                        makeError("Guard failed");
+                        }
+                    }
+                    else {
+                        makeError("Test did not result in boolean");
+                    }
+                }
+                value = val;
+                isSet = true;
+            }),
+
+        }
+        return makeObj(placeholderDict);
+    });
+
     return {
       nothing: {},
       makeNumber: makeNumber,
@@ -389,13 +456,16 @@ return     });
 
       ids:{},
 
-      "test-print": makeFunction(testPrint),
+     "test-print": makeFunction(testPrint),
 
       "is-number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
       "is-string": makeFunction(function(x){return makeBoolean(isString(x));}),
       "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
       "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
       "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
+      "to-string": makeFunction(function(x){return makeString(x.toString());}),
+      "check-brand": checkBrand,
+      "mk-placeholder": makePlaceholder
     }
   }
 
@@ -403,4 +473,3 @@ return     });
     makeRuntime: makeRuntime
   };
 })();
-
