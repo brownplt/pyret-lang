@@ -235,47 +235,81 @@ data List:
 
   | link(cyclic first :: Any, cyclic rest :: List) with:
 
-    length(self): 1 + self.rest.length() end,
+    length(self):
+    doc: "List.length() returns the number of links in the list"
+    1 + self.rest.length() end,
 
     each(self, f):
+    doc: "List.each(f) Calls f for each element in the list, and returns nothing"
       f(self.first)
       self.rest.each(f)
     end,
 
-    map(self, f): f(self.first)^link(self.rest.map(f)) end,
+    map(self, f):
+    doc: "List.map(f) returns a list of function f applied to each element of the list"
+    f(self.first)^link(self.rest.map(f)) end,
 
     filter(self, f):
+    doc: "List.filter(f) returns a list of all the elements in the list that satisfy 
+    the predicate f"
       if f(self.first): self.first^link(self.rest.filter(f))
       else:             self.rest.filter(f)
       end
     end,
 
-    partition(self, f): partition(f, self) end,
+    partition(self, f):
+    doc: "List.partition(f) returns two lists, one containing all elements for which predicate
+    f evaluates to true, and one containing all elements for which predicate f does not."
+    partition(f, self) end,
 
-    find(self, f): find(f, self) end,
+    find(self, f):
+    doc: "List.find(f) returns some(elem) where elem is the first elem in lst for which
+        predicate f returns true, or none if f returns false for all elements"
+    find(f, self) end,
 
-    member(self, elt): (elt == self.first) or self.rest.member(elt) end,
+    member(self, elt): 
+    doc: "List.member(elt) returns true if elt is a member of the list, and false otherwise"
+    (elt == self.first) or self.rest.member(elt) end,
 
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
+    foldr(self, f, base):
+    doc: "List.foldr(f,base) returns base, where base is an accumulator that takes the result
+    of function f operating on each element of the list in turn and the current value of
+    base"
+    f(self.first, self.rest.foldr(f, base)) end,
 
     foldl(self, f, base): self.rest.foldl(f, f(self.first, base)) end,
 
-    append(self, other): self.first^link(self.rest.append(other)) end,
+    append(self, other):
+    doc: "List.append(l1) returns a list having elements that are the elements of the list
+    the function is called on in the same order followed by the elements of list l1 in the
+    same order as they appear in l1"
+    self.first^link(self.rest.append(other)) end,
 
     last(self):
+    doc: "List.last() returns the last element of the input list"
       if is-empty(self.rest): self.first
       else: self.rest.last()
       end
     end,
 
-    reverse(self): reverse-help(self, empty) end,
+    reverse(self): 
+    doc: "List.reverse() returns a list whose last value is the first value of the input
+    list, second to last value is the second value of the input list, etc."
+    reverse-help(self, empty) end,
 
-    take(self, n): take-help(self, n) end,
+    take(self, n):
+    doc: "List.take(n) returns a list that includes the first n values of the input list,
+    in the same order that they appear"
+    take-help(self, n) end,
 
-    drop(self, n): drop-help(self, n) end,
+    drop(self, n):
+    doc: "List.drop(n) returns a list that includes all values of the input list except
+    the first n values.  These appear in the same order that they appear in the input list"
+    drop-help(self, n) end,
 
     get(self, n): get-help(self, n) end,
-
+    doc: "List.get(n) returns the value of the input list at index n, where the list is
+    indexed from 0 to n-1"
     set(self, n, e): set-help(self, n, e) end,
 
     _equals(self, other):
@@ -288,6 +322,7 @@ data List:
     end,
 
     tostring(self):
+    doc: "List.tostring() returns a string that is of the form \"[elt1, elt2, ..., eltx]\""
       "[" +
         for raw-fold(combined from tostring(self:first), elt from self:rest):
           combined + ", " + tostring(elt)
@@ -315,6 +350,8 @@ data List:
     end,
 
     sort(self):
+    doc: "List.sort() runs the sort-by command for the comparator elt1 < elt2
+    and the equality procedure elt1 = elt2"
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
     end,
 
@@ -331,8 +368,8 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
-  to-set(self :: List): list-to-set(self) end
+  _plus(self, other): self.append(other) end,
+  to-set(self): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
