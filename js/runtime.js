@@ -43,7 +43,7 @@ return     });
     function isFunction(v) { return v instanceof PFunction; }
     PFunction.prototype = Object.create(PBase.prototype);
     PFunction.prototype.getType = (function() {return 'function';});
-    PFunction.prototype.toString = function() {return 'fun: end'}
+    PFunction.prototype.toString = function() {return 'fun(): end'}
     PFunction.prototype.clone = (function() {
         var newFun = makeFunction(this.f);
         return newFun;
@@ -81,6 +81,7 @@ return     });
       }),
       _divide: makeMethod(function(left, right) {
         checkBothNum(left, right, 'divide');
+        if(right.n === 0) {makeError('Division by zero');}
         return makeNumber(left.n / right.n);
       }),
       _times: makeMethod(function(left, right) {
@@ -121,6 +122,21 @@ return     });
       }),
       tostring : makeMethod(function(me) {
         return makeString(String(me.n));
+      }),
+      floor : makeMethod(function(me) {
+        return makeNumber(Math.floor(me.n).toFixed(1));
+      }),
+      ceiling : makeMethod(function(me) {
+        return makeNumber(Math.ceil(me.n).toFixed(1));
+      }),
+      exp: makeMethod(function(me) {
+        return makeNumber(Math.exp(me.n));
+      }),
+      expt: makeMethod(function(me, pow) {
+        return makeNumber(Math.pow(me.n, pow));
+      }),
+      equiv: makeMethod(function(me, other) {
+        return makeBoolean(me.n === other.n);
       }),
     };
 
@@ -272,13 +288,13 @@ return     });
         return makeString(String(val.b));
       }
       else if (isFunction(val)) {
-        return makeString("fun: end");
+        return makeString("fun(): end");
       }
       else if (isMethod(val)) {
         return makeString("method: end");
       }
       else if (isObj(val)) {
-        return makeString("{obj...}");
+        return makeString("{}");
       }
       makeError("toStringJS on an unknown type: " + val);
     }
@@ -292,7 +308,7 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            makeError("Field does not exist in object");
+            makeError(str + " was not found on " + toRepr(val).s);
         }
         return fieldVal;
       }
