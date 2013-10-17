@@ -75,18 +75,23 @@ fun expr-to-js(ast):
       format("RUNTIME.makeString(\"~a\")", [s])
     | s_bool(_, b) =>
       format("RUNTIME.makeBoolean(~a)", [b])
-    | s_lam(_, _, args, _, _, body, _) =>
+    | s_lam(_, _, args, _, doc, body, _) =>
       #format("RUNTIME.makeFunction(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
-      format("RUNTIME.makeFunction(function(~a) {return ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body)])
+      format("RUNTIME.makeFunction(function(~a) {return ~a; }, '~a')", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body), doc])
     #Should check that body is a block
-    | s_method(_, args, _, _, body, _) =>
+    | s_method(_, args, _, doc, body, _) =>
       #format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
-      format("RUNTIME.makeMethod(function(~a) {return ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body)])
+      format("RUNTIME.makeMethod(function(~a) {return ~a; }, '~a')", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body), doc])
     | s_app(_, f, args) =>
       format("RUNTIME.checkFun(~a).app(~a)", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
       cases (A.Expr) f:
         | s_str(_, s) => format("RUNTIME.getField(~a, '~a')", [expr-to-js(obj), s])
+        | else => raise("Non-string lookups not supported")
+      end
+    | s_colon_bracket(_, obj, f) =>
+      cases (A.Expr) f:
+        | s_str(_, s) => format("RUNTIME.getColonField(~a, '~a')", [expr-to-js(obj), s])
         | else => raise("Non-string lookups not supported")
       end
     | s_id(_, id) => id-access(id)
@@ -118,7 +123,7 @@ fun expr-to-js(ast):
     | s_try(_, body, bind, _except) =>
         format("(function() {\n try{\n  return ~a; \n} catch(~a) {\n return ~a; \n}})()", [expr-to-js(body), js-id-of(bind.id), expr-to-js(_except)])
     | s_get_bang(l, obj, field) => 
-        format("RUNTIME.getField(RUNTIME.getField(~a, '~a'), 'get').app()", [expr-to-js(obj), field])
+        format("RUNTIME.getField(RUNTIME.getMutField(~a, '~a'), 'get').app()", [expr-to-js(obj), field])
     |s_update(l, super, fields) => 
         format("~a.updateWith({~a})", [expr-to-js(super), fields.map(make-field-js).join-str(",\n")])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))

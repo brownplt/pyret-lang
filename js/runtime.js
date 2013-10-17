@@ -13,7 +13,22 @@ var PYRET = (function () {
     function PMethod(f) {
       this.method = f;
     }
-    function makeMethod(f) { return new PMethod(f); } 
+    function makeMethod(f, doc) { 
+        var meth =  new PMethod(f); 
+        meth.dict = {};
+        meth.dict["_doc"] = makeString(doc);
+        
+        var _fun = new PMethod((function(me) {
+            return  makeFunction(me.method, me.dict._doc);
+        }));
+        _fun.dict = {};
+        _fun.dict["_doc"] = makeString("");
+        _fun.dict["_fun"] = _fun;
+
+        meth.dict._fun = _fun;
+
+        return meth;
+    } 
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = Object.create(PBase.prototype);
     PMethod.prototype.app = function() { makeError( "Cannot apply method directly."); };
@@ -23,8 +38,6 @@ var PYRET = (function () {
         return newMet;
 return     });
     PMethod.prototype.toString = function() {return 'fun ... end'}
-    PMethod.prototype.dict["_doc"] = makeString("\"hello\"");
-
 
     //Throws An Error
     function makeError(message){
@@ -40,7 +53,16 @@ return     });
     function PFunction(f) {
       this.app = f;
     }
-    function makeFunction(f) { return new PFunction(f); }
+    function makeFunction(f,doc) { 
+        var fun = new PFunction(f); 
+        fun.dict ={};
+        fun.dict._doc = doc;
+        fun.dict._method = makeMethod(function(me) {
+            return makeMethod(me.app, me.dict._doc);
+        });
+
+        return fun;
+    }
     function isFunction(v) { return v instanceof PFunction; }
     PFunction.prototype = Object.create(PBase.prototype);
     PFunction.prototype.getType = (function() {return 'function';});
@@ -311,6 +333,20 @@ return     });
       else if (isMethod(val)) {
         return makeString("method: end");
       }
+      else if(isLink(val)) {
+        var rep = "[" ;
+        var items  = [];
+        var remain = val;
+        do {
+            items.push(toRepr(remain.dict.first).s)
+            remain = remain.dict.rest;
+        } while(!isEmpty(remain));
+        rep += items.join(", ") + "]";
+        return makeString(rep);
+      }
+      else if(isEmpty(val)) {
+        return makeString("[]");
+      }
       else if (isObj(val)) {
         var fields = [];
         for(f in val.dict) {
@@ -318,10 +354,35 @@ return     });
         }
         return makeString('{' +fields.join(", ")+ '}');
       }
+
       makeError("toStringJS on an unknown type: " + val);
     }
 
     function getField(val, str) {
+      var fieldVal = val.dict[str];
+      if (isMethod(fieldVal)) {
+        return makeFunction(function() {
+          var argList = Array.prototype.slice.call(arguments);
+          return fieldVal.method.apply(null, [val].concat(argList));
+        });
+      } else {
+        if(fieldVal === undefined) {
+            makeError(str + " was not found on " + toRepr(val).s);
+        }
+        if(fieldVal.isMutable) {    
+            makeError('Cannot look up mutable field "'+ str +'" using dot or bracket');
+        }
+        return fieldVal;
+      }
+    }
+    function getColonField(val, str) {
+      var fieldVal = val.dict[str];
+        if(fieldVal === undefined) {
+            makeError(str + " was not found on " + toRepr(val).s);
+        }
+        return fieldVal;
+      }
+    function getMutField(val, str) {
       var fieldVal = val.dict[str];
       if (isMethod(fieldVal)) {
         return makeFunction(function() {
@@ -519,12 +580,6 @@ return     });
             makeError('typecheck failed; expected Function and got\n' + toRepr(w).s);
         }
 
-        var writeVal = w.app(a);
-        if(!(isBoolean(writeVal) && writeVal.b)) {
-            makeError('Predicate failed upon write');
-        }
-
-
         var mut = makeObj({
             tostring: makeMethod(function(me) {
             return makeString("mutable-field");
@@ -583,37 +638,86 @@ return     });
     function isList(v) { return v instanceof PList; }
     PList.prototype = Object.create(PObj.prototype);
    
-    function Empty() {}
+    function Empty() {this.dict = {}}
     Empty.prototype = Object.create(PList.prototype);
     function makeEmpty() {
         e = new Empty(); 
+        e.dict ={ 
+            length : makeMethod(function(me) {
+            return makeNumber(0);
+            }),
+            _plus : makeMethod(function(me, toConcat) {
+                return me.concat(toConcat);
+            }),
+        
+            map : makeMethod(function(me,f) {
+                return makeEmpty();
+            }),
+
+            _equals : makeMethod(function(me, other) {
+                return makeBoolean(isEmpty(other));
+            }),
+        };
+        
+        e.concat = function concat(toConcat) {
+        return toConcat;
+        };
+        return e;
     }
     function isEmpty(v) {
         return v instanceof Empty;
     }
-    Empty.prototype.dict.length = makeMethod(function(me) {
-        return makeNumber(0);
-    })
 
     function Link(f,r) {
-        this.dict.f = f;
-        this.dict.r = r;
+        this.dict = {};
+        this.dict.first = f;
+        this.dict.rest = r;
     }
     Link.prototype = Object.create(PList.prototype);
     function makeLink(f, r) {
         var e = new Link(f,r);
-    }
+        
+        e.dict.length = makeMethod(function(me) {
+        return makeNumber(1 + me.dict['rest']['length'].method(me['dict']['rest']).n);
+        });
+
+        e.dict._plus = makeMethod(function(me, toConcat) {
+            return me.concat(toConcat);
+        });
+
+        
+        e.concat = function concat(toConcat) {
+                return makeLink(this.dict.first, this.dict.rest.concat(toConcat));
+        }
+    
+        e.dict.map = makeMethod(function(me, f) {
+            checkFun(f);
+
+            return makeLink(f.app(me.dict.first), me.dict.rest.dict.map.method(me.dict.rest, f));
+        });
+
+        e.dict._equals = makeMethod(function(me, other) {
+            if(!(isLink(other))) 
+                {return makeBoolean(false);}
+            if(equiv(me.dict.first, other.dict.first)) {
+                return equiv(me.dict.rest, other.dict.rest);
+            }
+            else {
+                return makeBoolean(false);
+            }
+        });
+        return e;
+      }
+
     function isLink(v) {
         return v instanceof Link;
     }
-    Link.prototype.dict.length = makeMethod(function(me) {
-        return makeNumber(1 + me.dict['r']['length'].method(me['dict']['r']).n);
-    });
 
     listDict  = {
-        empty : makeMethod(function(me) {
-            return makeEmpty(); 
-        }),
+        //empty : makeMethod(function(me) {
+            //return makeEmpty(); 
+        //}),
+        empty : makeEmpty(),
         link : makeMethod(function(me, f, r) {
             return makeLink(f,r); 
         }),
@@ -676,10 +780,17 @@ return     });
       builtins : makeObj(
       {
       equiv: makeFunction(equiv),
+
+      "has-field" : makeFunction(function(prim, field) {
+        return makeBoolean(prim.dict.hasOwnProperty(field));
+      }),
+    
       }),
 
       equal: equal,
       getField: getField,
+      getMutField: getMutField,
+      getColonField: getColonField,
       getTestPrintOutput: function(val) {
         return testPrintOutput + toRepr(val).s;
       },
