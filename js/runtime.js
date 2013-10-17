@@ -61,7 +61,7 @@ return     });
     //Broken
    var checkArgs= function(fn) {
        return function() {
-           if (arguments.length != fn.length) {
+           if (arguments.length < fn.length) {
                 throw(["Expected", fn.length, "arguments, but got", arguments.length, ". The ", arguments.length ,
                     (arguments.length > 1 ? " arguments provided were" : "argument provided was"), ].join(" "));
                     }
@@ -70,7 +70,7 @@ return     });
    } 
     
     function PFunction(f) {
-      this.app = (f);
+      this.app = checkArgs(f);
       this.brands = [];
     }
     function makeFunction(f,doc) { 
@@ -592,10 +592,7 @@ return     });
             return newO;
         }),
         test: makeFunction(function(o) {
-            if(o.brands.indexOf(myBrand) != -1) {
-                return makeBoolean(true);
-            }
-            else {return makeBoolean(false);}
+            return makeBoolean(o.brands.indexOf(myBrand) != -1);
         }),
     };
     return makeObj(branderDict);
