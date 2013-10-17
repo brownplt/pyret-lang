@@ -364,9 +364,10 @@ EOF
 
 (check-equiv-ast (parse-pyret list1) (parse-pyret list1))
 
+(check-false (equiv-ast (parse-pyret "x = 10") (parse-pyret "x :: Any = 11")))
+(check-false (equiv-ast (parse-pyret "import 'file' as f") (parse-pyret "import file as f")))
+
 (define moorings-lines (file->lines "../lang/pyret-lib/moorings.arr"))
 
-
-
 (check-equiv-ast (parse-pyret (string-join moorings-lines "\n") "moorings")
-                 (parse-pyret (string-join moorings-lines "\n\n\n") "another-filename"))
+                 (parse-pyret (string-join moorings-lines "\n") "another-filename"))

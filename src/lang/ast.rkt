@@ -847,7 +847,5 @@ these metadata purposes.
       [(cons _ (? (negate s-ast?) a2))
        (error (format "Non-ast value in equiv-ast: ~a\n" a2))]
       [_ #f]))
-   (when (not result)
-    (error (format "First unequals: ~a\n\n\n\n ~a" ast1 ast2)))
    result)
 
