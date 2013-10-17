@@ -480,13 +480,13 @@ return     });
             newObj.dict[field] = fields[field];
         }
         if(allNewFields) {
-            newObj.brands = this.brands.slice(0);
+
         }
 
         return newObj;
     }
     PObj.prototype.updateWith = function(fields) {
-        var newObj = this.clone();
+        var newObj = this; //Don't clone, this is mutation
         for(var field in fields) {
             if(newObj.dict[field].isMutable) {
                 newObj.dict[field].set(fields[field]);
@@ -624,6 +624,31 @@ return     });
         return obj;
     });
 
+    var mutClone = function(val, r, w) {
+        return function clone() {
+            var newObj = makeObj(this.dict);
+            //Deep Clone, clone each field
+            for(var f in newObj.dict) {
+            newObj.dict[f] = newObj.dict[f].clone();
+            }
+            newObj.isMutable = true;
+            
+           newObj.set = (function(newVal) { 
+            var  wVal = w.app(newVal);
+            if(!(isBoolean(wVal) && wVal.b)) {
+                makeError('Predicate failed upon set');
+            }
+                return a = newVal;
+            });
+            
+           newObj.r = r;
+           newObj.w = w;
+           newObj.a = val;
+
+           newObj.clone = clone;
+           return newObj;
+    }
+};
     //Muteable
     function makeMutable(val, r, w) {
         var a = val;
@@ -663,25 +688,10 @@ return     });
 
         mut.isMutable = true;
         
-        mut.clone = (function() {
-            var newObj = makeObj(this.dict);
-            //Deep Clone, clone each field
-            for(var f in newObj.dict) {
-            newObj.dict[f] = newObj.dict[f].clone();
-            }
-            newObj.isMutable = true;
-            
-           newObj.set = (function(newVal) { 
-            var  wVal = w.app(newVal);
-            if(!(isBoolean(wVal) && wVal.b)) {
-                makeError('Predicate failed upon set');
-            }
-                return a = newVal;
-            });
-        return newObj;
-         });
+        mut.clone = mutClone(val, r,w);
         return mut;
     };
+
 
     function isMutable(val) {
         return makeBoolean(Boolean(val.isMutable));
