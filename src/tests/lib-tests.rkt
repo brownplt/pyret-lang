@@ -367,6 +367,16 @@ EOF
 (check-false (equiv-ast (parse-pyret "x = 10") (parse-pyret "x :: Any = 11")))
 (check-false (equiv-ast (parse-pyret "import 'file' as f") (parse-pyret "import file as f")))
 
+(define d1 "data D: |var1 end")
+(define d2 "data D: |var1(x) end")
+
+(check-false (equiv-ast (parse-pyret d1) (parse-pyret d2)))
+
+(define o1 "{x:5}")
+(define o2 "{x(self):5;}")
+
+(check-false (equiv-ast (parse-pyret o1) (parse-pyret o2)))
+
 (define moorings-lines (file->lines "../lang/pyret-lib/moorings.arr"))
 
 (check-equiv-ast (parse-pyret (string-join moorings-lines "\n") "moorings")

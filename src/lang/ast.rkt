@@ -589,7 +589,8 @@ these metadata purposes.
         (equiv-ast-ann ann1 ann2)
         (string=? doc1 doc2)
         (equiv-ast body1 body2)
-        (equiv-ast check1 check2))]))
+        (equiv-ast check1 check2))]
+      [_ #f]))
   (define (equiv-ast-bind b1 b2)
     (match (cons b1 b2)
       [(cons
@@ -645,7 +646,8 @@ these metadata purposes.
         (s-singleton-variant _ name2 with-members2))
        (and
         (symbol=? name1 name2)
-        (andmap equiv-ast-member with-members1 with-members2))]))
+        (andmap equiv-ast-member with-members1 with-members2))]
+      [_ #f]))
   (define (equiv-ast-ann a1 a2)
     (match (cons a1 a2)
       [(cons (a-any) (a-any)) #t]
