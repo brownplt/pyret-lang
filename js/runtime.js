@@ -10,8 +10,15 @@ var PYRET = (function () {
       type : 'base'
     };
 
+    //Nothing
+    function PNothing(){}
+    function makeNothing() {return new PNothing();}
+    PNothing.prototype = Object.create(PBase.prototype);
+    function isNothing(val) {return val instanceof PNothing;}
+
     function PMethod(f) {
       this.method = f;
+      this.brands = [];
     }
     function makeMethod(f, doc) { 
         var meth =  new PMethod(f); 
@@ -50,8 +57,21 @@ return     });
         makeError( 'check-fun: expected function, got ' + o.getType());
     }
 
+    //Wraps to ensure # arguments correct
+    //Broken
+   var checkArgs= function(fn) {
+       return function() {
+           if (arguments.length != fn.length) {
+                throw(["Expected", fn.length, "arguments, but got", arguments.length, ". The ", arguments.length ,
+                    (arguments.length > 1 ? " arguments provided were" : "argument provided was"), ].join(" "));
+                    }
+                    return fn.apply(this, arguments);
+                };
+   } 
+    
     function PFunction(f) {
-      this.app = f;
+      this.app = (f);
+      this.brands = [];
     }
     function makeFunction(f,doc) { 
         var fun = new PFunction(f); 
@@ -68,7 +88,7 @@ return     });
     PFunction.prototype.getType = (function() {return 'function';});
     PFunction.prototype.toString = function() {return 'fun(): end'}
     PFunction.prototype.clone = (function() {
-        var newFun = makeFunction(this.f);
+        var newFun = makeFunction(this.app);
         return newFun;
     });
         
@@ -165,6 +185,7 @@ return     });
 
     function PNumber(n) {
       this.n = n;
+      this.brands = [];
     }
     function makeNumber(n) { return new PNumber(n); }
     function isNumber(v) { return v instanceof PNumber; }
@@ -204,7 +225,7 @@ return     });
             return makeNumber(Number(me.s));
           }
           else {
-            return {};
+              return makeNothing();
           }
       }),
       substring: makeMethod(function(me, start, stop) {
@@ -227,6 +248,7 @@ return     });
 
     function PString(s) {
       this.s = s;
+      this.brands = [];
     }
     function makeString(s) { return new PString(s); }
     function isString(v) { return v instanceof PString; }
@@ -292,6 +314,7 @@ return     });
         
     function PBoolean(b) {
       this.b = b;
+      this.brands = [];
     }
     function makeBoolean(b) { return new PBoolean(b); }
     function isBoolean(v) { return v instanceof PBoolean; }
@@ -348,13 +371,19 @@ return     });
         return makeString("[]");
       }
       else if (isObj(val)) {
+        if(val.isPlaceholder) {
+            return makeString("cyclic-field");
+        }
+
         var fields = [];
         for(f in val.dict) {
             fields.push(f + ": " + val.dict[f].toString());
         }
         return makeString('{' +fields.join(", ")+ '}');
       }
-
+      else if(isNothing(val)) {//Nothing
+        return makeString("nothing");
+      }
       makeError("toStringJS on an unknown type: " + val);
     }
 
@@ -371,6 +400,9 @@ return     });
         }
         if(fieldVal.isMutable) {    
             makeError('Cannot look up mutable field "'+ str +'" using dot or bracket');
+        }
+        if(fieldVal.isPlaceholder) {    
+            return getField(fieldVal, 'get').app();
         }
         return fieldVal;
       }
@@ -421,6 +453,7 @@ return     });
     ***********************************/
     function PObj(d) {
       this.dict = d;
+      this.brands = [];
       //this.dict['_torepr'] = makeMethod(function(me) {
         //return toRepr(me);
       //});
@@ -439,9 +472,17 @@ return     });
     PObj.prototype.getType = function() {return 'object';};
     PObj.prototype.extendWith = function(fields) {
         var newObj = this.clone();
+        var allNewFields = true;
         for(var field in fields) {
+            if(newObj.dict.hasOwnProperty(field)) {
+               allNewFields = false;
+            }
             newObj.dict[field] = fields[field];
         }
+        if(allNewFields) {
+            newObj.brands = this.brands.slice(0);
+        }
+
         return newObj;
     }
     PObj.prototype.updateWith = function(fields) {
@@ -557,16 +598,30 @@ return     });
             }),
 
            tostring : makeMethod(function(me) {
-            return makeString("placeholder-field");
+            return makeString("cyclic-field");
            }),
 
            _torepr : makeMethod(function(me) {
-                return toRepr(me);
+                return makeString("cyclic-field");
             }),
-
+            
+           _equals : makeMethod(function(me,other) {
+                return makeBoolean(me === other);  
+           }),
         }
         
-        return makeObj(placeholderDict);
+        var obj = makeObj(placeholderDict);
+        obj.isPlaceholder = true;
+        obj.clone = (function() {
+            var newObj = makeObj(this.dict);
+            //Deep Clone, clone each field
+            for(var f in newObj.dict) {
+            newObj.dict[f] = newObj.dict[f].clone();
+            }
+            newObj.isPlaceholder = true;
+             return newObj;
+         });
+        return obj;
     });
 
     //Muteable
@@ -592,6 +647,10 @@ return     });
             }
                 return a;
             }),
+
+            '_equals' : makeMethod(function(me, other) {
+                return makeBoolean(me === other);
+            }),
         });
 
         mut.set = (function(newVal) { 
@@ -603,7 +662,6 @@ return     });
             });
 
         mut.isMutable = true;
-
         
         mut.clone = (function() {
             var newObj = makeObj(this.dict);
@@ -633,12 +691,14 @@ return     });
     function makeSimpleMutable(val) {return makeMutable(val,alwaysTrue, alwaysTrue);}
 
     //List
-    function PList() {}
+    function PList() {
+      this.brands = [];
+    }
     function makeList() { return new PList(); }
     function isList(v) { return v instanceof PList; }
     PList.prototype = Object.create(PObj.prototype);
    
-    function Empty() {this.dict = {}}
+    function Empty() {this.dict = {}; this.brands=[];}
     Empty.prototype = Object.create(PList.prototype);
     function makeEmpty() {
         e = new Empty(); 
@@ -672,6 +732,7 @@ return     });
         this.dict = {};
         this.dict.first = f;
         this.dict.rest = r;
+        this.brands = [];
     }
     Link.prototype = Object.create(PList.prototype);
     function makeLink(f, r) {
@@ -752,7 +813,7 @@ return     });
         return true;
     }   
     return {
-      nothing: {dict : {}},
+      nothing: makeNothing(),
       makeNumber: makeNumber,
       makeString: makeString,
       makeBoolean: makeBoolean,
