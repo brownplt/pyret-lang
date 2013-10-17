@@ -477,6 +477,10 @@
     [(record-ann "{" "}") (a-record (loc stx) empty)]
     [(record-ann "{" (list-ann-field fields ",") ... lastfield "}")
      (a-record (loc stx) (map/stx parse-ann-field #'(fields ... lastfield)))]
+    [(arrow-ann "(" "->" result ")")
+     (a-arrow (loc stx)
+              empty
+              (parse-ann #'result))]
     [(arrow-ann "(" (arrow-ann-elt anns ",") ... last-ann "->" result ")")
      (a-arrow (loc stx)
               (map/stx parse-ann #'(anns ... last-ann))
