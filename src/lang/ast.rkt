@@ -1,7 +1,13 @@
 #lang racket/base
 
 (provide (all-defined-out))
-(require racket/match racket/path racket/bool racket/list racket/set)
+(require
+  racket/bool
+  racket/list
+  racket/match
+  racket/path
+  racket/function
+  racket/set)
 
 #|
 
@@ -32,21 +38,23 @@ these metadata purposes.
     [else (error (format "Non-symbol, non-string, non-path value for
                           source: ~a" e))]))
 
+(struct s-ast ())
+
 ;; s-prog : srcloc (Listof Header) s-block -> s-prog
-(struct s-prog (syntax imports block) #:transparent)
+(struct s-prog s-ast (syntax imports block) #:transparent)
 
 ;; A Header is a (U s-import s-provide)
 ;; s-import : srcloc (U String Symbol) Symbol -> srcloc
-(struct s-import (syntax file name) #:transparent)
+(struct s-import s-ast (syntax file name) #:transparent)
 ;; s-provide : srcloc expr -> srcloc
-(struct s-provide (syntax expr) #:transparent)
+(struct s-provide s-ast (syntax expr) #:transparent)
 ;; s-provide-all : srcloc -> srcloc
-(struct s-provide-all (syntax) #:transparent)
+(struct s-provide-all s-ast (syntax) #:transparent)
 
 
 ;; A Block is a (Listof Stmt)
 ;; s-block : srcloc Block -> s-block
-(struct s-block (syntax stmts) #:transparent)
+(struct s-block s-ast (syntax stmts) #:transparent)
 
 (define (flatten-blocks maybe-blocks)
   (cond
@@ -61,43 +69,43 @@ these metadata purposes.
 
 
 ;; s-bind : srcloc Symbol Ann -> s-bind
-(struct s-bind (syntax id ann) #:transparent)
+(struct s-bind s-ast (syntax id ann) #:transparent)
 
 ;; A Stmt is a (U s-fun s-var s-if s-try s-data s-import Expr)
 
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
-(struct s-fun (syntax name params args ann doc body check) #:transparent)
+(struct s-fun s-ast (syntax name params args ann doc body check) #:transparent)
 
 ;; s-check: srcloc s-block
-(struct s-check (syntax body) #:transparent)
+(struct s-check s-ast (syntax body) #:transparent)
 
 ;; s-var : srcloc bind Expr -> s-var
-(struct s-var (syntax name value) #:transparent)
+(struct s-var s-ast (syntax name value) #:transparent)
 ;; s-let : srcloc bind Expr -> s-let
-(struct s-let (syntax name value) #:transparent)
+(struct s-let s-ast (syntax name value) #:transparent)
 
-(struct s-graph (syntax bindings) #:transparent)
+(struct s-graph s-ast (syntax bindings) #:transparent)
 
-(struct s-user-block (syntax body) #:transparent)
+(struct s-user-block s-ast (syntax body) #:transparent)
 
 
 ;; s-when : srcloc (Listof Expr s-block) -> s-when
-(struct s-when (syntax test block) #:transparent)
+(struct s-when s-ast (syntax test block) #:transparent)
 ;; s-if : srcloc (Listof s-if-branch) -> s-if
-(struct s-if (syntax branches) #:transparent)
+(struct s-if s-ast (syntax branches) #:transparent)
 ;; s-if-else : srcloc (Listof s-if-branch) s-block -> s-if-else
-(struct s-if-else (syntax branches else) #:transparent)
+(struct s-if-else s-ast (syntax branches else) #:transparent)
 ;; s-if-branch : srcloc Expr s-block -> s-if-branch
-(struct s-if-branch (syntax expr body) #:transparent)
+(struct s-if-branch s-ast (syntax expr body) #:transparent)
 ;; s-try : srcloc Expr s-bind Expr -> s-try
-(struct s-try (syntax body id except) #:transparent)
+(struct s-try s-ast (syntax body id except) #:transparent)
 
 ;; s-cases : srcloc Expr Expr (Listof s-cases-branch) -> s-cases
-(struct s-cases (syntax type val branches) #:transparent)
+(struct s-cases s-ast (syntax type val branches) #:transparent)
 ;; s-cases-else : srcloc (Listof s-cases-branch) s-block -> s-cases-else
-(struct s-cases-else (syntax type val branches else) #:transparent)
+(struct s-cases-else s-ast (syntax type val branches else) #:transparent)
 ;; s-cases-branch : srcloc symbol (ListOf s-bind) s-block -> s-cases-branch
-(struct s-cases-branch (syntax name args body) #:transparent)
+(struct s-cases-branch s-ast (syntax name args body) #:transparent)
 
 (define op+ 'op+)
 (define op- 'op-)
@@ -137,14 +145,14 @@ these metadata purposes.
         (hash-keys op-lookup-table))))
 
 ;; s-op: srcloc op Expr Expr -> s-op
-(struct s-op (syntax op left right) #:transparent)
+(struct s-op s-ast (syntax op left right) #:transparent)
 
 ;; NOTE(dbp): our only unary op, so not generalized
 ;; s-not: srcloc Expr
-(struct s-not (syntax expr) #:transparent)
+(struct s-not s-ast (syntax expr) #:transparent)
 
 ;; s-paren: srcloc Expr -> s-paren
-(struct s-paren (syntax expr) #:transparent)
+(struct s-paren s-ast (syntax expr) #:transparent)
 
 ;; An Expr is a
 ;; (U s-obj s-extend s-list s-app s-left-app s-id
@@ -154,79 +162,79 @@ these metadata purposes.
 ;;    s-block s-method))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
-(struct s-lam (syntax typarams args ann doc body check) #:transparent)
+(struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)
 
 ;; s-method : srcloc (Listof s-bind) Ann String s-block s-block
-(struct s-method (syntax args ann doc body check) #:transparent)
+(struct s-method s-ast (syntax args ann doc body check) #:transparent)
 
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
-(struct s-data-field (syntax name value) #:transparent)
+(struct s-data-field s-ast (syntax name value) #:transparent)
 ;; s-mutable-field : srcloc Expr Ann Expr
-(struct s-mutable-field (syntax name ann value) #:transparent)
+(struct s-mutable-field s-ast (syntax name ann value) #:transparent)
 ;; s-once-field : srcloc Expr Ann Expr
-(struct s-once-field (syntax name ann value) #:transparent)
+(struct s-once-field s-ast (syntax name ann value) #:transparent)
 ;; s-method-field : srcloc Expr (Listof s-bind) Ann String s-block s-block
-(struct s-method-field (syntax name args ann doc body check) #:transparent)
+(struct s-method-field s-ast (syntax name args ann doc body check) #:transparent)
 
 ;; s-extend : srcloc Expr (Listof Member)
-(struct s-extend (syntax super fields) #:transparent)
+(struct s-extend s-ast (syntax super fields) #:transparent)
 ;; s-update : srcloc Expr (Listof Member)
-(struct s-update (syntax super fields) #:transparent)
+(struct s-update s-ast (syntax super fields) #:transparent)
 ;; s-obj : srcloc (Listof Member)
-(struct s-obj (syntax fields) #:transparent)
+(struct s-obj s-ast (syntax fields) #:transparent)
 
 ;; s-list : srcloc (Listof Expr)
-(struct s-list (syntax values) #:transparent)
+(struct s-list s-ast (syntax values) #:transparent)
 
 ;; s-app : srcloc Expr (Listof Expr)
-(struct s-app (syntax fun args) #:transparent)
+(struct s-app s-ast (syntax fun args) #:transparent)
 
 ;; s-left-app : srcloc Expr Expr (Listof Expr)
-(struct s-left-app (syntax obj fun args) #:transparent)
+(struct s-left-app s-ast (syntax obj fun args) #:transparent)
 
 ;; s-id : srcloc Symbol
-(struct s-id (syntax id) #:transparent)
+(struct s-id s-ast (syntax id) #:transparent)
 
 ;; s-assign : srcloc Symbol Expr
-(struct s-assign (syntax id value) #:transparent)
+(struct s-assign s-ast (syntax id value) #:transparent)
 
 ;; s-num : srcloc Number
-(struct s-num (syntax n) #:transparent)
+(struct s-num s-ast (syntax n) #:transparent)
 ;; s-bool : srcloc Boolean
-(struct s-bool (syntax b) #:transparent)
+(struct s-bool s-ast (syntax b) #:transparent)
 ;; s-str : srcloc String
-(struct s-str (syntax s) #:transparent)
+(struct s-str s-ast (syntax s) #:transparent)
 
 ;; s-dot : srcloc Expr Symbol
-(struct s-dot (syntax obj field) #:transparent)
+(struct s-dot s-ast (syntax obj field) #:transparent)
 ;; s-bracket : srcloc Expr Expr
-(struct s-bracket (syntax obj field) #:transparent)
+(struct s-bracket s-ast (syntax obj field) #:transparent)
 
 ;; s-dot : srcloc Expr Symbol
-(struct s-get-bang (syntax obj field) #:transparent)
+(struct s-get-bang s-ast (syntax obj field) #:transparent)
 
 ;; s-colon : srcloc Expr Symbol
-(struct s-colon (syntax obj field) #:transparent)
+(struct s-colon s-ast (syntax obj field) #:transparent)
 ;; s-colon-bracket : srcloc Expr Expr
-(struct s-colon-bracket (syntax obj field) #:transparent)
+(struct s-colon-bracket s-ast (syntax obj field) #:transparent)
 
 ;; s-data : srcloc Symbol (Listof Symbol) (Listof Expr) (Listof s-variant) (Listof Member) block
-(struct s-data (syntax name params mixins variants shared-members check) #:transparent)
+(struct s-data s-ast (syntax name params mixins variants shared-members check) #:transparent)
 
 ;; member-type is 'normal, 'mutable, or 'cyclic
 
-(struct s-variant-member (syntax member-type bind))
+(struct s-variant-member s-ast (syntax member-type bind) #:transparent)
 
 ;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
-(struct s-variant (syntax name binds with-members) #:transparent)
+(struct s-variant s-ast (syntax name binds with-members) #:transparent)
 ;; s-variant : srcloc Symbol (Listof Member)
-(struct s-singleton-variant (syntax name with-members) #:transparent)
+(struct s-singleton-variant s-ast (syntax name with-members) #:transparent)
 
 ;; s-for-bind : srcloc s-bind Expr
-(struct s-for-bind (syntax bind value) #:transparent)
+(struct s-for-bind s-ast (syntax bind value) #:transparent)
 ;; s-for : srcloc Expr (Listof s-for-bind) ann s-block
-(struct s-for (syntax iterator bindings ann body) #:transparent)
+(struct s-for s-ast (syntax iterator bindings ann body) #:transparent)
 
 ;; An Ann is a (U a-blank a-any a-name a-arrow a-method a-record a-app a-pred))
 (struct a-ann () #:transparent)
@@ -403,30 +411,32 @@ these metadata purposes.
 (define (make-checker-name s)
     (string->symbol (string-append "is-" (symbol->string s))))
 
+(define (binding-ids expr)
+  (define (variant-ids variant)
+    (match variant
+      [(s-variant _ name _ _)
+       (list name (make-checker-name name))]
+      [(s-singleton-variant _ name _)
+       (list name (make-checker-name name))]))
+  (match expr
+    [(s-let _ (s-bind _ x _) _) (list x)]
+    [(s-fun _ name _ _ _ _ _ _) (list name)]
+    [(s-data s name _ _ variants _ _)
+     (cons name (flatten (map variant-ids variants)))]
+    [else (list)]))
 (define (top-level-ids block)
-  (define (_top-level-ids expr)
-    (define (variant-ids variant)
-      (match variant
-        [(s-variant _ name _ _)
-         (list name (make-checker-name name))]
-        [(s-singleton-variant _ name _)
-         (list name (make-checker-name name))]))
-    (match expr
-      [(s-let _ (s-bind _ x _) _) (list x)]
-      [(s-fun _ name _ _ _ _ _ _) (list name)]
-      [(s-data s name _ _ variants _ _)
-       (cons name (flatten (map variant-ids variants)))]
-      [else (list)]))
-  (flatten (map _top-level-ids (s-block-stmts block))))
+  (flatten (map binding-ids (s-block-stmts block))))
 
 (define (free-ids expr)
   (define (unions l)
     (apply set-union (cons (set) l)))
   (define (free-ids-member m)
     (match m
-      [(s-data-field _ name value) (free-ids value)]
+      [(s-data-field _ name value) (set-union (free-ids name) (free-ids value))]
       [(s-method-field _ name args ann doc body check)
-       (free-ids-fun args ann body check)]))
+       (set-union
+        (free-ids name)
+        (free-ids-fun args ann body check))]))
   (define (free-ids-variant-member m)
     (match m
       [(s-variant-member _ type bind) (free-ids-bind bind)]))
@@ -461,11 +471,11 @@ these metadata purposes.
       [(a-name _ id) (set id)]
       [(a-pred _ a pred) (set-union (free-ids-ann a) (free-ids pred))]
       [(a-arrow _ args ret)
-       (set-union (unions (map free-ids-ann args)) ret)]
+       (set-union (unions (map free-ids-ann args)) (free-ids-ann ret))]
       [(a-method _ args ret)
-       (set-union (unions (map free-ids-ann args)) ret)]
+       (set-union (unions (map free-ids-ann args)) (free-ids-ann ret))]
       [(a-field _ name ann) (free-ids-ann ann)]
-      [(a-record _ fields) (unions (map free-ids-ann a-field))]
+      [(a-record _ fields) (unions (map free-ids-ann fields))]
       [(a-app _ ann parameters)
        (set-union (free-ids-ann ann) (unions (map free-ids-ann parameters)))]
       [(a-dot _ obj field) (set obj)]
@@ -543,9 +553,9 @@ these metadata purposes.
     [(s-for _ iterator bindings ann body)
      (define iterator-ids (free-ids iterator))
      (define bindings-ids (unions (map free-ids-for-binding bindings)))
-     (define bindings (list->set (map s-bind-id (map s-for-bind-bind bindings))))
+     (define bound (list->set (map s-bind-id (map s-for-bind-bind bindings))))
      (define ann-ids (free-ids-ann ann))
-     (define body-ids (set-subtract (free-ids body) bindings))
+     (define body-ids (set-subtract (free-ids body) bound))
      (set-union iterator-ids bindings-ids ann-ids body-ids)]
      
     [(s-data _ name params mixins variants shared-members check)
@@ -559,3 +569,285 @@ these metadata purposes.
     [(s-bool _ b) (set)]
     [(s-str _ s) (set)]
     [_ (error (format "NYI: ~a" expr))]))
+
+;; Equivalence modulo srclocs
+(define (equiv-ast ast1 ast2)
+  (define (equiv-ast-member m1 m2)
+    (match (cons m1 m2)
+      [(cons
+        (s-data-field _ name1 value1)
+        (s-data-field _ name2 value2))
+       (and
+        (equiv-ast name1 name2)
+        (equiv-ast value1 value2))]
+      [(cons
+        (s-method-field _ name1 args1 ann1 doc1 body1 check1)
+        (s-method-field _ name2 args2 ann2 doc2 body2 check2))
+       (and
+        (equiv-ast name1 name2)
+        (andmap equiv-ast-bind args1 args2)
+        (equiv-ast-ann ann1 ann2)
+        (string=? doc1 doc2)
+        (equiv-ast body1 body2)
+        (equiv-ast check1 check2))]))
+  (define (equiv-ast-bind b1 b2)
+    (match (cons b1 b2)
+      [(cons
+        (s-bind _ id1 ann1)
+        (s-bind _ id2 ann2))
+       (and
+        (equal? id1 id2)
+        (equiv-ast-ann ann1 ann2))]))
+  (define (equiv-ast-for-binding b1 b2)
+    (match (cons b1 b2)
+      [(cons
+        (s-for-bind _ bind1 value1)
+        (s-for-bind _ bind2 value2))
+       (and
+        (equiv-ast-bind bind1 bind2)
+        (equiv-ast value1 value2))]))
+  (define (equiv-ast-if-branch b1 b2)
+    (match (cons b1 b2)
+      [(cons
+        (s-if-branch _ expr1 body1)
+        (s-if-branch _ expr2 body2))
+       (and
+        (equiv-ast expr1 expr2)
+        (equiv-ast body1 body2))]))
+  (define (equiv-ast-cases-branch cb1 cb2)
+    (match (cons cb1 cb2)
+      [(cons
+        (s-cases-branch _ name1 args1 body1)
+        (s-cases-branch _ name2 args2 body2))
+       (and
+        (equal? name1 name2)
+        (andmap equiv-ast-bind args1 args2)
+        (equiv-ast body1 body2))]))
+  (define (equiv-ast-variant-member m1 m2)
+    (match (cons m1 m2)
+      [(cons
+        (s-variant-member _ type1 bind1)
+        (s-variant-member _ type2 bind2))
+       (and
+        (symbol=? type1 type2)
+        (equiv-ast-bind bind1 bind2))]))
+  (define (equiv-ast-variant v1 v2)
+    (match (cons v1 v2)
+      [(cons
+        (s-variant _ name1 binds1 with-members1)
+        (s-variant _ name2 binds2 with-members2))
+       (and
+        (symbol=? name1 name2)
+        (andmap equiv-ast-variant-member binds1 binds2)
+        (andmap equiv-ast-member with-members1 with-members2))]
+      [(cons
+        (s-singleton-variant _ name1 with-members1)
+        (s-singleton-variant _ name2 with-members2))
+       (and
+        (symbol=? name1 name2)
+        (andmap equiv-ast-member with-members1 with-members2))]))
+  (define (equiv-ast-ann a1 a2)
+    (match (cons a1 a2)
+      [(cons (a-any) (a-any)) #t]
+      [(cons (a-blank) (a-blank)) #t]
+      [(cons (a-name _ id1) (a-name _ id2)) (equal? id1 id2)]
+      [(cons (a-pred _ a1 pred1) (a-pred _ a2 pred2))
+       (and
+        (equiv-ast-ann a1 a2)
+        (equiv-ast pred1 pred2))]
+      [(cons (a-arrow _ args1 ret1) (a-arrow _ args2 ret2))
+       (and
+        (andmap equiv-ast-ann args1 args2)
+        (equiv-ast-ann ret1 ret2))]
+      [(cons (a-method _ args1 ret1) (a-method _ args2 ret2))
+       (and
+        (andmap equiv-ast-ann args1 args2)
+        (equiv-ast-ann ret1 ret2))]
+
+      [(cons (a-field _ name1 ann1) (a-field _ name2 ann2))
+       (and
+        (equal? name1 name2)
+        (equiv-ast-ann ann1 ann2))]
+
+      [(cons (a-record _ fields1) (a-record _ fields2))
+       (andmap equiv-ast-ann fields1 fields2)]
+      [(cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
+       (and
+        (equiv-ast-ann ann1 ann2)
+        (andmap equiv-ast-ann parameters1 parameters2))]
+      [(cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
+       (and
+        (equiv-ast-ann obj1 obj2)
+        (equal? field1 field2))]
+      ;; How to catch NYI things?  I wish for some sort of tag-match predicate on pairs
+      [_ #f]))
+  ;; I swear I didn't forget any
+  (define (equiv-ast-fun
+        params1 args1 ann1 doc1 body1 check1
+        params2 args2 ann2 doc2 body2 check2 (name1 'no-name) (name2 'no-name))
+     (and
+      (andmap symbol=? params1 params2)
+      (andmap equiv-ast-bind args1 args2)
+      (equiv-ast-ann ann1 ann2)
+      (string=? doc1 doc2)
+      (equiv-ast body1 body2)
+      (equiv-ast check1 check2)
+      (symbol=? name1 name2)))
+  (define result 
+    (match (cons ast1 ast2)
+      [(cons (s-prog _ imports1 block1) (s-prog _ imports2 block2))
+       (and
+        (andmap equiv-ast imports1 imports2)
+        (equiv-ast block1 block2))]
+      [(cons (s-import _ file1 name1) (s-import _ file2 name2))
+       (and (equal? file1 file2) (symbol=? name1 name2))]
+      [(cons (s-provide _ expr1) (s-provide _ expr2)) (equiv-ast expr1 expr2)]
+      [(cons (s-provide-all _) (s-provide-all _)) #t]
+      [(cons (s-block _ stmts1) (s-block _ stmts2))
+       (andmap equiv-ast stmts1 stmts2)]
+      [(cons (s-bind _ id1 ann1) (s-bind _ id2 ann2))
+       (and (symbol=? id1 id2) (equiv-ast-ann ann1 ann2))]
+      [(cons
+        (s-fun _ name1 params1 args1 ann1 doc1 body1 check1)
+        (s-fun _ name2 params2 args2 ann2 doc2 body2 check2))
+       (equiv-ast-fun params1 args1 ann1 doc1 body1 check1
+                      params2 args2 ann2 doc2 body2 check2
+                      name1 name2)]
+      [(cons
+        (s-lam _ params1 args1 ann1 doc1 body1 check1)
+        (s-lam _ params2 args2 ann2 doc2 body2 check2))
+       (equiv-ast-fun params1 args1 ann1 doc1 body1 check1
+                      params2 args2 ann2 doc2 body2 check2)]
+      [(cons
+        (s-method _ args1 ann1 doc1 body1 check1)
+        (s-method _ args2 ann2 doc2 body2 check2))
+       (equiv-ast-fun '() args1 ann1 doc1 body1 check1
+                      '() args2 ann2 doc2 body2 check2)]
+      [(cons (s-check _ body1) (s-check _ body2))
+       (equiv-ast body1 body2)]
+      [(cons (s-var _ name1 value1)
+             (s-var _ name2 value2))
+       (and
+        (equiv-ast-bind name1 name2)
+        (equiv-ast value1 value2))]
+      [(cons (s-let _ name1 value1)
+             (s-let _ name2 value2))
+       (and
+        (equiv-ast-bind name1 name2)
+        (equiv-ast value1 value2))]
+      [(cons (s-id _ id1) (s-id _ id2)) (symbol=? id1 id2)]
+      [(cons (s-graph _ bindings1) (s-graph _ bindings2))
+       (andmap equiv-ast bindings1 bindings2)]
+      [(cons (s-list _ values1) (s-list _ values2))
+       (andmap equiv-ast values1 values2)]
+      [(cons (s-op _ op1 left1 right1) (s-op _ op2 left2 right2))
+       (and
+        (symbol=? op1 op2)
+        (equiv-ast left1 left2)
+        (equiv-ast right1 right2))]
+      [(cons (s-user-block _ block1) (s-user-block _ block2))
+       (equiv-ast block1 block2)]
+      [(cons (s-when _ test1 block1) (s-when _ test2 block2))
+       (and
+        (equiv-ast test1 test2)
+        (equiv-ast block1 block2))]
+      [(cons (s-if _ branches1) (s-if _ branches2))
+       (andmap equiv-ast-if-branch branches1 branches2)]
+      [(cons (s-if-else _ branches1 else1) (s-if-else _ branches2 else2))
+       (and
+        (andmap equiv-ast-if-branch branches1 branches2)
+        (equiv-ast else1 else2))]
+      [(cons (s-try _ body1 id1 except1) (s-try _ body2 id2 except2))
+       (and
+        (equiv-ast body1 body2)
+        (equiv-ast-bind id1 id2)
+        (equiv-ast except1 except2))]
+      [(cons (s-cases _ type1 val1 branches1) (s-cases _ type2 val2 branches2))
+       (and
+        (equiv-ast-ann type1 type2)
+        (equiv-ast val1 val2)
+        (andmap equiv-ast-cases-branch branches1 branches2))]
+      [(cons (s-cases-else _ type1 val1 branches1 else1)
+             (s-cases-else _ type2 val2 branches2 else2))
+       (and
+        (equiv-ast-ann type1 type2)
+        (equiv-ast val1 val2)
+        (andmap equiv-ast-cases-branch branches1 branches2)
+        (equiv-ast else1 else2))]
+      [(cons (s-not _ expr1) (s-not _ expr2))
+       (equiv-ast expr1 expr2)]
+      [(cons (s-paren _ expr1) (s-paren _ expr2))
+       (equiv-ast expr1 expr2)]
+      [(cons (s-extend _ super1 fields1) (s-extend _ super2 fields2))
+       (and
+        (equiv-ast super1 super2)
+        (andmap equiv-ast-member fields1 fields2))]
+      [(cons (s-update _ super1 fields1) (s-update _ super2 fields2))
+       (and
+        (equiv-ast super1 super2)
+        (andmap equiv-ast-member fields1 fields2))]
+      [(cons (s-obj _ fields1) (s-obj _ fields2))
+       (andmap equiv-ast-member fields1 fields2)]
+      [(cons (s-app _ fun1 args1) (s-app _ fun2 args2))
+       (and
+        (equiv-ast fun1 fun2)
+        (andmap equiv-ast args1 args2))]
+      [(cons (s-left-app _ obj1 fun1 args1) (s-left-app _ obj2 fun2 args2))
+       (and
+        (equiv-ast obj1 obj2)
+        (equiv-ast fun1 fun2)
+        (andmap equiv-ast args1 args2))]
+      [(cons (s-assign _ id1 value1) (s-assign _ id2 value2))
+       (and
+        (symbol=? id1 id2)
+        (equiv-ast value1 value2))]
+      [(cons (s-dot _ obj1 field1) (s-dot _ obj2 field2))
+       (and
+        (equiv-ast obj1 obj2)
+        (symbol=? field1 field2))]
+      [(cons (s-get-bang _ obj1 field1) (s-get-bang _ obj2 field2))
+       (and
+        (equiv-ast obj1 obj2)
+        (symbol=? field1 field2))]
+      [(cons (s-bracket _ obj1 field1) (s-bracket _ obj2 field2))
+       (and
+        (equiv-ast obj1 obj2)
+        (equiv-ast field1 field2))]
+      [(cons (s-colon _ obj1 field1) (s-colon _ obj2 field2))
+       (and
+        (equiv-ast obj1 obj2)
+        (symbol=? field1 field2))]
+      [(cons (s-colon-bracket _ obj1 field1) (s-colon-bracket _ obj2 field2))
+       (and
+        (equiv-ast obj1 obj2)
+        (equiv-ast field1 field2))]
+      [(cons
+        (s-for _ iterator1 bindings1 ann1 body1)
+        (s-for _ iterator2 bindings2 ann2 body2))
+       (and
+        (equiv-ast iterator1 iterator2)
+        (andmap equiv-ast-for-binding bindings1 bindings2)
+        (equiv-ast-ann ann1 ann2)
+        (equiv-ast body1 body2))]
+      [(cons
+        (s-data _ name1 params1 mixins1 variants1 shared-members1 check1)
+        (s-data _ name2 params2 mixins2 variants2 shared-members2 check2))
+       (and
+        (symbol=? name1 name2)
+        (andmap symbol=? params1 params2)
+        (andmap equiv-ast mixins1 mixins2)
+        (andmap equiv-ast-variant variants1 variants2)
+        (andmap equiv-ast-member shared-members1 shared-members2)
+        (equiv-ast check1 check2))]
+      [(cons (s-num _ n1) (s-num _ n2)) (= n1 n2)]
+      [(cons (s-bool _ b1) (s-bool _ b2)) (boolean=? b1 b2)]
+      [(cons (s-str _ s1) (s-str _ s2)) (string=? s1 s2)]
+      [(cons (? (negate s-ast?) a1) _)
+       (error (format "Non-ast value in equiv-ast: ~a\n" a1))]
+      [(cons _ (? (negate s-ast?) a2))
+       (error (format "Non-ast value in equiv-ast: ~a\n" a2))]
+      [_ #f]))
+   (when (not result)
+    (error (format "First unequals: ~a\n\n\n\n ~a" ast1 ast2)))
+   result)
+
