@@ -114,6 +114,10 @@ return     });
     }
 
     var numberDict = {
+      _add: makeMethod(function(left, right) {
+        checkBothNum(left, right, 'plus');
+        return makeNumber(left.n + right.n);
+      }),
       _plus: makeMethod(function(left, right) {
         checkBothNum(left, right, 'plus');
         return makeNumber(left.n + right.n);
@@ -166,6 +170,9 @@ return     });
       tostring : makeMethod(function(me) {
         return makeString(String(me.n));
       }),
+      _torepr : makeMethod(function(me) {
+        return makeString(String(me.n));
+      }),
       floor : makeMethod(function(me) {
         return makeNumber(Math.floor(me.n).toFixed(1));
       }),
@@ -180,6 +187,39 @@ return     });
       }),
       _equals: makeMethod(function(me, other) {
         return makeBoolean(me.n === other.n);
+      }),
+      sin : makeMethod(function(me) {
+        return makeNumber(Math.sin(me.n));
+      }),
+      cos : makeMethod(function(me) {
+        return makeNumber(Math.cos(me.n));
+      }),
+      tan : makeMethod(function(me) {
+        return makeNumber(Math.tan(me.n));
+      }),
+      asin : makeMethod(function(me) {
+        return makeNumber(Math.asin(me.n));
+      }),
+      acos : makeMethod(function(me) {
+        return makeNumber(Math.acos(me.n));
+      }),
+      atan : makeMethod(function(me) {
+        return makeNumber(Math.atan(me.n));
+      }),
+      sqr : makeMethod(function(me) {
+        return makeNumber(Math.pow(me.n,2));
+      }),
+      sqrt : makeMethod(function(me) {
+        return makeNumber(Math.sqrt(me.n));
+      }),
+      truncate : makeMethod(function(me) {
+        return makeNumber(Math.round(me.n));
+      }),
+      exact : makeMethod(function(me) {
+        return makeNumber(me.n);
+      }),
+      log : makeMethod(function(me) {
+        return makeNumber(Math.log(me.n));
       }),
     };
 
@@ -244,6 +284,25 @@ return     });
         }
         return makeString(result);
       }),
+
+      _greatereqaul : makeMethod(function(me, n) {
+        return makeBoolean(me.s >= n.s);
+      }),
+      _greaterthan : makeMethod(function(me, n) {
+        return makeBoolean(me.s > n.s);
+      }),
+      _lessequal : makeMethod(function(me, n) {
+        return makeBoolean(me.s <= n.s);
+      }),
+      _lessthan : makeMethod(function(me, n) {
+        return makeBoolean(me.s < n.s);
+      }),
+      _equals : makeMethod(function(me, x) {
+        return makeBoolean(me.s === x.s);
+      }),
+      _torepr : makeMethod(function(me) {
+          return '"'+me.s+'"';
+      }),
     };
 
     function PString(s) {
@@ -300,6 +359,17 @@ return     });
       _not: makeMethod(function(me) {
         return makeBoolean(!(me.b));
       }),
+
+      _tostring: makeMethod(function(me) {
+       return toRepr(me); 
+      }),   
+      _torepr: makeMethod(function(me) {
+       return makeString(String(me.b)); 
+      }),   
+      _equals: makeMethod(function(me, other) {
+        if(!(isBoolean(other))){return makeBoolean(false);}
+       return makeBoolean(me.b === other.b); 
+      }),   
     };
 
     //Checks that something is a boolean, returns its boolean value
@@ -373,6 +443,10 @@ return     });
       else if (isObj(val)) {
         if(val.isPlaceholder) {
             return makeString("cyclic-field");
+        }
+        
+        if(val.dict.hasOwnProperty('_torepr')) {
+            return getField(val, 'torepr').app();
         }
 
         var fields = [];
@@ -480,7 +554,7 @@ return     });
             newObj.dict[field] = fields[field];
         }
         if(allNewFields) {
-
+            newObj.brands = this.brands;
         }
 
         return newObj;
@@ -727,6 +801,9 @@ return     });
             _equals : makeMethod(function(me, other) {
                 return makeBoolean(isEmpty(other));
             }),
+
+            'is-empty' : makeBoolean(true),
+            'is-link' :  makeBoolean(false),
         };
         
         e.concat = function concat(toConcat) {
@@ -777,6 +854,10 @@ return     });
                 return makeBoolean(false);
             }
         });
+
+
+        e.dict['is-empty'] =makeBoolean(false);
+        e.dict['is-link'] = makeBoolean(true);
         return e;
       }
 
@@ -883,6 +964,7 @@ return     });
       "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
 //      "to-string": makeFunction(function(x){return makeString(x.toString());}),
       "is-mutable" : makeFunction(isMutable),
+      "is-placeholder" : makeFunction(function(x) {return makeBoolean(Boolean(x.isPlaceholder));}),
       "check-brand": checkBrand,
       "mk-placeholder": makePlaceholder,
       "mk-mutable": makeFunction(makeMutable),
@@ -908,7 +990,15 @@ return     });
         return makeBoolean(prim.dict.hasOwnProperty(field));
       }),
       "prim-num-keys" : makeFunction(function(prim) {
+          if(isNothing(prim)) {return makeNumber(0);}
         return makeNumber(Object.keys(prim.dict).length);
+      }),
+      "prim-keys" : makeFunction(function(prim) {
+        var myKeys = makeEmpty();
+        for(key in prim.dict) {
+            myKeys = makeLink(makeString(String(key)), myKeys);
+        }
+        return myKeys;
       }),
     }
   }
