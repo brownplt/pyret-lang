@@ -570,6 +570,11 @@ these metadata purposes.
     [(s-str _ s) (set)]
     [_ (error (format "NYI: ~a" expr))]))
 
+(define (length-andmap pred l1 l2)
+  (and
+    (= (length l1) (length l2))
+    (andmap pred l1 l2)))
+
 ;; Equivalence modulo srclocs
 (define (equiv-ast ast1 ast2)
   (define (equiv-ast-member m1 m2)
@@ -585,7 +590,7 @@ these metadata purposes.
         (s-method-field _ name2 args2 ann2 doc2 body2 check2))
        (and
         (equiv-ast name1 name2)
-        (andmap equiv-ast-bind args1 args2)
+        (length-andmap equiv-ast-bind args1 args2)
         (equiv-ast-ann ann1 ann2)
         (string=? doc1 doc2)
         (equiv-ast body1 body2)
@@ -622,7 +627,7 @@ these metadata purposes.
         (s-cases-branch _ name2 args2 body2))
        (and
         (equal? name1 name2)
-        (andmap equiv-ast-bind args1 args2)
+        (length-andmap equiv-ast-bind args1 args2)
         (equiv-ast body1 body2))]))
   (define (equiv-ast-variant-member m1 m2)
     (match (cons m1 m2)
@@ -639,14 +644,14 @@ these metadata purposes.
         (s-variant _ name2 binds2 with-members2))
        (and
         (symbol=? name1 name2)
-        (andmap equiv-ast-variant-member binds1 binds2)
-        (andmap equiv-ast-member with-members1 with-members2))]
+        (length-andmap equiv-ast-variant-member binds1 binds2)
+        (length-andmap equiv-ast-member with-members1 with-members2))]
       [(cons
         (s-singleton-variant _ name1 with-members1)
         (s-singleton-variant _ name2 with-members2))
        (and
         (symbol=? name1 name2)
-        (andmap equiv-ast-member with-members1 with-members2))]
+        (length-andmap equiv-ast-member with-members1 with-members2))]
       [_ #f]))
   (define (equiv-ast-ann a1 a2)
     (match (cons a1 a2)
@@ -659,11 +664,11 @@ these metadata purposes.
         (equiv-ast pred1 pred2))]
       [(cons (a-arrow _ args1 ret1) (a-arrow _ args2 ret2))
        (and
-        (andmap equiv-ast-ann args1 args2)
+        (length-andmap equiv-ast-ann args1 args2)
         (equiv-ast-ann ret1 ret2))]
       [(cons (a-method _ args1 ret1) (a-method _ args2 ret2))
        (and
-        (andmap equiv-ast-ann args1 args2)
+        (length-andmap equiv-ast-ann args1 args2)
         (equiv-ast-ann ret1 ret2))]
 
       [(cons (a-field _ name1 ann1) (a-field _ name2 ann2))
@@ -672,11 +677,11 @@ these metadata purposes.
         (equiv-ast-ann ann1 ann2))]
 
       [(cons (a-record _ fields1) (a-record _ fields2))
-       (andmap equiv-ast-ann fields1 fields2)]
+       (length-andmap equiv-ast-ann fields1 fields2)]
       [(cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
        (and
         (equiv-ast-ann ann1 ann2)
-        (andmap equiv-ast-ann parameters1 parameters2))]
+        (length-andmap equiv-ast-ann parameters1 parameters2))]
       [(cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
        (and
         (equiv-ast-ann obj1 obj2)
@@ -688,8 +693,8 @@ these metadata purposes.
         params1 args1 ann1 doc1 body1 check1
         params2 args2 ann2 doc2 body2 check2 (name1 'no-name) (name2 'no-name))
      (and
-      (andmap symbol=? params1 params2)
-      (andmap equiv-ast-bind args1 args2)
+      (length-andmap symbol=? params1 params2)
+      (length-andmap equiv-ast-bind args1 args2)
       (equiv-ast-ann ann1 ann2)
       (string=? doc1 doc2)
       (equiv-ast body1 body2)
@@ -699,14 +704,14 @@ these metadata purposes.
     (match (cons ast1 ast2)
       [(cons (s-prog _ imports1 block1) (s-prog _ imports2 block2))
        (and
-        (andmap equiv-ast imports1 imports2)
+        (length-andmap equiv-ast imports1 imports2)
         (equiv-ast block1 block2))]
       [(cons (s-import _ file1 name1) (s-import _ file2 name2))
        (and (equal? file1 file2) (symbol=? name1 name2))]
       [(cons (s-provide _ expr1) (s-provide _ expr2)) (equiv-ast expr1 expr2)]
       [(cons (s-provide-all _) (s-provide-all _)) #t]
       [(cons (s-block _ stmts1) (s-block _ stmts2))
-       (andmap equiv-ast stmts1 stmts2)]
+       (length-andmap equiv-ast stmts1 stmts2)]
       [(cons (s-bind _ id1 ann1) (s-bind _ id2 ann2))
        (and (symbol=? id1 id2) (equiv-ast-ann ann1 ann2))]
       [(cons
@@ -739,9 +744,9 @@ these metadata purposes.
         (equiv-ast value1 value2))]
       [(cons (s-id _ id1) (s-id _ id2)) (symbol=? id1 id2)]
       [(cons (s-graph _ bindings1) (s-graph _ bindings2))
-       (andmap equiv-ast bindings1 bindings2)]
+       (length-andmap equiv-ast bindings1 bindings2)]
       [(cons (s-list _ values1) (s-list _ values2))
-       (andmap equiv-ast values1 values2)]
+       (length-andmap equiv-ast values1 values2)]
       [(cons (s-op _ op1 left1 right1) (s-op _ op2 left2 right2))
        (and
         (symbol=? op1 op2)
@@ -754,10 +759,10 @@ these metadata purposes.
         (equiv-ast test1 test2)
         (equiv-ast block1 block2))]
       [(cons (s-if _ branches1) (s-if _ branches2))
-       (andmap equiv-ast-if-branch branches1 branches2)]
+       (length-andmap equiv-ast-if-branch branches1 branches2)]
       [(cons (s-if-else _ branches1 else1) (s-if-else _ branches2 else2))
        (and
-        (andmap equiv-ast-if-branch branches1 branches2)
+        (length-andmap equiv-ast-if-branch branches1 branches2)
         (equiv-ast else1 else2))]
       [(cons (s-try _ body1 id1 except1) (s-try _ body2 id2 except2))
        (and
@@ -768,13 +773,13 @@ these metadata purposes.
        (and
         (equiv-ast-ann type1 type2)
         (equiv-ast val1 val2)
-        (andmap equiv-ast-cases-branch branches1 branches2))]
+        (length-andmap equiv-ast-cases-branch branches1 branches2))]
       [(cons (s-cases-else _ type1 val1 branches1 else1)
              (s-cases-else _ type2 val2 branches2 else2))
        (and
         (equiv-ast-ann type1 type2)
         (equiv-ast val1 val2)
-        (andmap equiv-ast-cases-branch branches1 branches2)
+        (length-andmap equiv-ast-cases-branch branches1 branches2)
         (equiv-ast else1 else2))]
       [(cons (s-not _ expr1) (s-not _ expr2))
        (equiv-ast expr1 expr2)]
@@ -783,22 +788,22 @@ these metadata purposes.
       [(cons (s-extend _ super1 fields1) (s-extend _ super2 fields2))
        (and
         (equiv-ast super1 super2)
-        (andmap equiv-ast-member fields1 fields2))]
+        (length-andmap equiv-ast-member fields1 fields2))]
       [(cons (s-update _ super1 fields1) (s-update _ super2 fields2))
        (and
         (equiv-ast super1 super2)
-        (andmap equiv-ast-member fields1 fields2))]
+        (length-andmap equiv-ast-member fields1 fields2))]
       [(cons (s-obj _ fields1) (s-obj _ fields2))
-       (andmap equiv-ast-member fields1 fields2)]
+       (length-andmap equiv-ast-member fields1 fields2)]
       [(cons (s-app _ fun1 args1) (s-app _ fun2 args2))
        (and
         (equiv-ast fun1 fun2)
-        (andmap equiv-ast args1 args2))]
+        (length-andmap equiv-ast args1 args2))]
       [(cons (s-left-app _ obj1 fun1 args1) (s-left-app _ obj2 fun2 args2))
        (and
         (equiv-ast obj1 obj2)
         (equiv-ast fun1 fun2)
-        (andmap equiv-ast args1 args2))]
+        (length-andmap equiv-ast args1 args2))]
       [(cons (s-assign _ id1 value1) (s-assign _ id2 value2))
        (and
         (symbol=? id1 id2)
@@ -828,7 +833,7 @@ these metadata purposes.
         (s-for _ iterator2 bindings2 ann2 body2))
        (and
         (equiv-ast iterator1 iterator2)
-        (andmap equiv-ast-for-binding bindings1 bindings2)
+        (length-andmap equiv-ast-for-binding bindings1 bindings2)
         (equiv-ast-ann ann1 ann2)
         (equiv-ast body1 body2))]
       [(cons
@@ -836,10 +841,10 @@ these metadata purposes.
         (s-data _ name2 params2 mixins2 variants2 shared-members2 check2))
        (and
         (symbol=? name1 name2)
-        (andmap symbol=? params1 params2)
-        (andmap equiv-ast mixins1 mixins2)
-        (andmap equiv-ast-variant variants1 variants2)
-        (andmap equiv-ast-member shared-members1 shared-members2)
+        (length-andmap symbol=? params1 params2)
+        (length-andmap equiv-ast mixins1 mixins2)
+        (length-andmap equiv-ast-variant variants1 variants2)
+        (length-andmap equiv-ast-member shared-members1 shared-members2)
         (equiv-ast check1 check2))]
       [(cons (s-num _ n1) (s-num _ n2)) (= n1 n2)]
       [(cons (s-bool _ b1) (s-bool _ b2)) (boolean=? b1 b2)]

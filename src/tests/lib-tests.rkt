@@ -377,6 +377,16 @@ EOF
 
 (check-false (equiv-ast (parse-pyret o1) (parse-pyret o2)))
 
+(define f1 "fun(x): end")
+(define f2 "fun(x, y): end")
+
+(check-false (equiv-ast (parse-pyret f1) (parse-pyret f2)))
+
+(define b1 "block: 4 5 end")
+(define b2 "block: 4 5 6 end")
+
+(check-false (equiv-ast (parse-pyret b1) (parse-pyret b2)))
+
 (define moorings-lines (file->lines "../lang/pyret-lib/moorings.arr"))
 
 (check-equiv-ast (parse-pyret (string-join moorings-lines "\n") "moorings")
