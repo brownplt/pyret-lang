@@ -52,7 +52,7 @@
           names
           placeholder-names))))
 
-(define (variant-defs/list super-brand mixins-names super-fields variants)
+(define (variant-defs/list params super-brand mixins-names super-fields variants)
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
@@ -179,7 +179,7 @@
                          (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
              (s-lam s
-                    (list)
+                    params
                     constructor-args
                     (a-blank)
                     (format
@@ -284,14 +284,7 @@
       [(a-method s args ret)
        (a-method s (map rt args) (rt ret))]
       [(a-app s name-or-dot params)
-       (a-app s
-              (match name-or-dot
-                [(? symbol?)
-                 (if (member name-or-dot typarams)
-                     (a-any)
-                     name-or-dot)]
-                [_ (rt name-or-dot)])
-              (map rt params))]
+       (a-app s (rt name-or-dot) (map rt params))]
       [(a-pred s ann exp) (a-pred s (rt ann) exp)]
       [(a-record s fields) (a-record s (map rt fields))]
       [(a-field s name ann) (a-field s name (rt ann))]
@@ -376,7 +369,7 @@
                    (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                    bind-mixins
-                   (variant-defs/list brander-name mixins-names share-members variants)
+                   (variant-defs/list params brander-name mixins-names share-members variants)
                    (s-let s (s-bind s name (a-blank))
                                   (s-dot s (s-id s brander-name) 'test))))))]
 
