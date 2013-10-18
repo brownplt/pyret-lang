@@ -124,6 +124,17 @@ following to your @tt{~/.emacs}:
   (add-to-list 'file-coding-system-alist '("\\.arr\\'" . utf-8)))
 }
 
+If you are on OSX, the @tt{~/.emacs} file is not created by default on running emacs
+for the first time. To create and edit this file (control key held abbreviated 
+by C-(other key to press):
+
+@verbatim{
+          C-x C-f ~/.emacs
+          }
+          
+You can then copy paste the code from above into the editor, and use 
+@tt{C-x C-s} to save the file.
+
 @subsubsection[#:tag "s:vim"]{Vim}
 
 The Vim mode is more spartan than the Emacs mode, only supporting syntax
