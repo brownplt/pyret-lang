@@ -14,9 +14,9 @@ There are several options for installing Pyret.
 You need to have installed at least Racket 5.3.4 (the current version, 5.3.6,
 works great).  You can get Racket at @url{http://download.racket-lang.org/}.
 
-@section[#:tag "s:url"]{Via Racket Automatic Download}
+@section[#:tag "s:url"]{Via DrRacket Automatic Download}
 
-Open a new definition in Racket, and using File -> Install .plt File, select
+Open a new definition in DrRacket, and using File -> Install .plt File, select
 the URL tab. Copy and paste the URL below into the space, and click "Okay"
 
 @url{http://cs.brown.edu/~joe/public/pyret/pyret-current.plt}
