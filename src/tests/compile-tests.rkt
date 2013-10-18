@@ -1061,7 +1061,10 @@ o2.m().called" true)
     ))
 
 (define annotations (test-suite "annotations"
-  (check-pyret-match/check "pyret/annotations/arrow.arr" _ 2)
+  (check-pyret-match/check "pyret/annotations/arrow.arr" _ 4)
+  (check-pyret-match/check "pyret/annotations/app.arr" _ 2)
+  (check-pyret-match/check "pyret/annotations/pred.arr" _ 1)
+  (check-pyret-match/check "pyret/annotations/record.arr" _ 1)
 ))
 
 (define all (test-suite "all"
