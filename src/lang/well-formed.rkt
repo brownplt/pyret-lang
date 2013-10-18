@@ -3,6 +3,7 @@
 (require
   racket/match
   racket/list
+  "../parameters.rkt"
   "ast.rkt")
 
 (provide well-formed (struct-out exn:fail:pyret/wf))
@@ -35,9 +36,13 @@
 ;;
 ;; - all blocks end in a non-binding form
 ;;
-;; - check as an identifier
+;; - check and where identifiers
 ;;
-;; - `is` outside of a check block.
+;; - if has at least two branches
+;;
+;; - `is` outside of a check block
+;;
+;; - misplaced `where:` blocks
 
 (define (well-formed ast)
   (match ast
@@ -48,6 +53,13 @@
     [(s-block s stmts) (map (λ (ast) (well-formed/internal ast #f)) stmts)]
     [else (well-formed/internal ast #f)])
   ast)
+
+(define (ensure-empty-block loc type check)
+  (when (not (current-where-everywhere))
+    (match check
+      [(s-block s (list)) (void)]
+      [(s-block s _)
+       (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)])))
 
 (define (ensure-unique-ids bindings)
   (cond
@@ -116,6 +128,7 @@
       (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
           (begin
            (ensure-unique-ids args)
+           (ensure-empty-block s "methods" check)
            (map wf-bind args)
            (wf-ann ann)
            (wf body)
@@ -183,6 +196,7 @@
 
     [(s-lam s typarams args ann doc body check)
      (begin (ensure-unique-ids args)
+            (ensure-empty-block s "anonymous functions" check)
             (map wf-bind args)
             (wf-ann ann)
             (wf body)
@@ -191,6 +205,7 @@
     [(s-method s args ann doc body check)
      (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
+                (ensure-empty-block s "methods" check)
                 (map wf-bind args)
                 (wf-ann ann)
                 (wf body)
@@ -203,7 +218,11 @@
      (well-formed/internal body #t)]
 
 
-    [(s-if s if-bs) (map wf-if-branch if-bs)]
+    [(s-if s if-bs)
+     (when (= (length if-bs) 1)
+      (wf-error "Cannot have an if with a single branch." s))
+     (map wf-if-branch if-bs)]
+
     [(s-if-else s if-bs else) (begin
                                 (map wf-if-branch if-bs)
                                 (wf else))]

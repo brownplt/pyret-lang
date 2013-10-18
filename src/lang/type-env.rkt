@@ -65,6 +65,7 @@
      'Nothing
      'Mutable
      'Placeholder
+     'Opaque
      'is-bool
      'is-function
      'is-method
@@ -141,7 +142,7 @@
       'place-image
       'read-sexpr
       'read-sexpr-list
-      
+
       'Option
       'some
       'is-some
@@ -159,4 +160,3 @@
 
 (define WHALESONG-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list whalesong-env-list)))
-

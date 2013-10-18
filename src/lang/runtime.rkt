@@ -130,6 +130,7 @@
   Method
   Mutable
   Placeholder
+  Opaque
   is-number
   is-string
   is-bool
@@ -832,10 +833,9 @@ And the object was:
   (define l (string-length s))
   (cond
     [(< start 0) (err (format "substring: Requires a non-negative start value; ~a was provided" start))]
-    [(> end l) (err (format "substring: End index is past the length of the string: end was ~a, length was ~a" end l))]
     [(> start l) (err (format "substring:  Start index is past the length of the string: start was ~a, length was ~a" start l))]
     [(< end start) (err (format "substring: Requires end to be greater than start, got start of ~a and end of ~a" start end))]
-    [else (substring s start end)]))
+    [else (substring s start (min l end))]))
 
 (define (string-repeat s n)
   (cond
@@ -973,7 +973,7 @@ And the object was:
          ;;  the call site as well as the destination
          (let ([typname (p-str-s s)])
           (throw-type-error! typname o)))]
-    [(p-str? s)
+    [(p-str? ck)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]
@@ -1095,6 +1095,7 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+(mk-pred Opaque p-opaque?)
 
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
@@ -1105,4 +1106,3 @@ And the object was:
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
-

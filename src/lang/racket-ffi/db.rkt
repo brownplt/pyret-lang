@@ -13,8 +13,6 @@ provide {
 }
 end
 
-List = list.List
-
 data DB:
   # | postgres with:
   #     connect(user :: String, database :: String, password :: String):

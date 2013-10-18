@@ -10,12 +10,12 @@ provide {
   pull-data: pull-data,
   get-one-alignment: get-one-alignment,
   get-all-alignments: get-all-alignments,
-  each: each
+  each-child: each-child
 } end
 
 import math as Math
 import "box.arr" as Box
-import "pprint.arr" as PP
+import pprint as PP
 
 Mut = Box.Mut
 box = Box.box
@@ -235,9 +235,9 @@ sharing:
 end
 
 
-fun each(f, n):
+fun each-child(f, n):
   f(n)
-  n.children.each(fun(c): each(f, c) end)
+  n.children.each(fun(c): each-child(f, c) end)
 end
 
 fun push-data(f, self, info, pos):

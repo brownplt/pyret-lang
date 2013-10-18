@@ -279,11 +279,10 @@ provide {
   t_when: t_when,
 } end
 
-import "pprint.arr" as PP
+import pprint as PP
 import ast as A
 import "labelled-tree.arr" as LT
 
-List = list.List
 
 INDENT = 2
 
@@ -834,8 +833,8 @@ end
 fun funlam_tosource(funtype, name, params, args :: ASTList,
     ann :: Ann, doc :: String, body :: Expr, _check :: Expr) -> PP.PPrintDoc:
   typarams =
-    if is-nothing(params): PP.empty
-    else: PP.surround-separate(INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+    if is-nothing(params): PP.mt-doc
+    else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         params.fields().map(fun(p): PP.str(p) end))
     end
   arg-list = PP.nest(INDENT,
@@ -844,21 +843,21 @@ fun funlam_tosource(funtype, name, params, args :: ASTList,
   ftype = funtype + typarams
   fname = 
     if is-nothing(name): ftype
-    else if PP.is-empty(ftype): PP.str(name)
+    else if PP.is-mt-doc(ftype): PP.str(name)
     else: ftype + PP.str(" " + name)
     end
   fann =
-    if is-a_blank(ann) or is-nothing(ann): PP.empty
+    if is-a_blank(ann) or is-nothing(ann): PP.mt-doc
     else: PP.break(1) + PP.str("-> ") + ann.tosource()
     end
   header = PP.group(fname + arg-list + fann + PP.str(":"))
   checker = _check.tosource()
   footer =
-    if PP.is-empty(checker): PP.str("end")
+    if PP.is-mt-doc(checker): PP.str("end")
     else: PP.surround(INDENT, 1, PP.str("where:"), _check.tosource(), PP.str("end"))
     end
   docstr =
-    if is-nothing(doc) or (doc == ""): PP.empty
+    if is-nothing(doc) or (doc == ""): PP.mt-doc
     else: PP.str("doc: ") + PP.dquote(PP.str(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
@@ -1187,15 +1186,15 @@ data Expr:
     node-name(self): t_data end,
     tosource(self):
       fun optional_section(lbl, section):
-        if PP.is-empty(section): PP.empty
+        if PP.is-mt-doc(section): PP.mt-doc
         else: PP.break(1) + PP.group(PP.nest(INDENT, lbl + PP.break(1) + section))
         end
       end
-      tys = PP.surround-separate(2*INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+      tys = PP.surround-separate(2*INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.fields().map(fun(f): f.tosource() end))
       header = PP.str("data ") + PP.str(self.name) + tys + PP.str(":")
       _deriving =
-        PP.surround-separate(INDENT, 0, PP.empty, PP.break(1) + PP.str("deriving "), PP.commabreak, PP.empty, self.mixins.fields().map(fun(m): m.tosource() end))
+        PP.surround-separate(INDENT, 0, PP.mt-doc, PP.break(1) + PP.str("deriving "), PP.commabreak, PP.mt-doc, self.mixins.fields().map(fun(m): m.tosource() end))
       variants = PP.separate(PP.break(1) + PP.str("| "),
         PP.str("")^list.link(self.variants.fields().map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(PP.str("sharing:"),
@@ -1335,7 +1334,7 @@ data Member:
         nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
     end,
     todatafield(self):
-      funlam_tosource(PP.empty, self.name.s, nothing, self.args, self.ann, self.doc, self.body, self.check)
+      funlam_tosource(PP.mt-doc, self.name.s, nothing, self.args, self.ann, self.doc, self.body, self.check)
     end
 sharing:
   arity(self): self.fields().length() end,
@@ -1403,7 +1402,7 @@ data Variant:
     tosource(self):
       header-nowith = 
         PP.str(self.name)
-        + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
+        + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
         self.binds.fields().map(fun(b): b.tosource() end))
       header = PP.group(header-nowith + PP.break(1) + PP.str("with:"))
       withs = self.with_members.fields().map(fun(m): m.todatafield() end)
@@ -1475,7 +1474,7 @@ data CasesBranch:
     node-name(self): t_cases_branch end,
     tosource(self):
       PP.group(PP.str("| " + self.name)
-          + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
+          + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
           self.args.fields().map(fun(a): a.tosource() end)) + PP.break(1) + PP.str("=>")) + PP.break(1) +
       self.body.tosource()
     end

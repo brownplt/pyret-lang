@@ -2,8 +2,8 @@
 
 provide {
   PPrintDoc: PPrintDoc,
-  empty: empty,
-  is-empty: is-empty,
+  mt-doc: mt-doc,
+  is-mt-doc: is-mt-doc,
   str: str,
   number: number,
   hardline: hardline,
@@ -44,7 +44,7 @@ provide {
 
 
 data PPrintDoc:
-  | empty
+  | mt-doc
   | str(s :: String)
   | hardline
   | blank(n :: Number)
@@ -56,14 +56,14 @@ data PPrintDoc:
   | group(d :: PPrintDoc)
 sharing:
   _plus(self, other):
-    if is-empty(self): other
-    else if is-empty(other): self
+    if is-mt-doc(self): other
+    else if is-mt-doc(other): self
     else: concat(self, other)
     end
   end,
   tostring(self):
     cases(PPrintDoc) self:
-      | empty => "Empty"
+      | mtdoc => "EmptyDoc"
       | str(s) => "Str(" + s + ")"
       | hardline => "CRLF"
       | blank(n) => "Blank(" + tostring(n) + ")"
@@ -107,7 +107,7 @@ sharing:
       emit_blanks(indent)
     end
     fun run(pdoc):
-      if is-empty(pdoc): emit_string("", 0)
+      if is-mt-doc(pdoc): emit_string("", 0)
       else if is-str(pdoc): emit_string(pdoc.s, pdoc.s.length())
       else if is-hardline(pdoc):
         if is-flat: raise("Hardline isn't flat")
@@ -171,8 +171,8 @@ fun break(n): ifFlat(blank(n), hardline) end
 commabreak = comma + break(1)
 
 fun flow_map(sep, f, items):
-  for list.fold(acc from empty, item from items):
-    if is-empty(acc): f(item)
+  for list.fold(acc from mt-doc, item from items):
+    if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
   end
@@ -195,20 +195,20 @@ fun infix(n :: Number, b :: Number, op :: PPrintDoc, x :: PPrintDoc, y :: PPrint
   prefix(n, b, (x + blank(b) + op), y)
 end
 fun surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrintDoc, close :: PPrintDoc):
-  if is-empty(close): group(open + nest(n, break(b) + contents))
+  if is-mt-doc(close): group(open + nest(n, break(b) + contents))
   else: group(open + nest(n, break(b) + contents) + break(b) + close)
   end
 end
 fun soft-surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrintDoc, close :: PPrintDoc):
-  if is-empty(close): group(open + nest(n, group(break(b) + contents)))
+  if is-mt-doc(close): group(open + nest(n, group(break(b) + contents)))
   else: group(open + nest(n, group(break(b) + contents)) + group(break(b) + close))
   end
 end
 
 fun separate(sep :: PPrintDoc, docs :: list.List):
-  for list.fold(acc from empty, d from docs):
-    if is-empty(d): acc
-    else if is-empty(acc): d
+  for list.fold(acc from mt-doc, d from docs):
+    if is-mt-doc(d): acc
+    else if is-mt-doc(acc): d
     else: acc + sep + d
     end
   end

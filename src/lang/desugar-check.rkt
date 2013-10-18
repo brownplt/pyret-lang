@@ -197,6 +197,10 @@
 
 (define (desugar-check ast)
   (match ast
+    [(s-prog s imports (s-block s2 (list)))
+     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s 'nothing))))
+     (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
+     (s-prog s imports (s-block s (list clear get-results)))]
     [(s-prog s imports (s-block s2 stmts))
      (define no-provides (filter (negate s-provide?) imports))
      ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.

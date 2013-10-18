@@ -1,24 +1,24 @@
 #lang pyret
 
 data NumList:
-  | empty()
+  | mt()
   | cons(first :: Number, rest :: NumList)
 end
 
-empty()
-cons(4,empty())
+mt()
+cons(4,mt())
 
 fun length(l :: NumList) -> Number:
   cases(NumList) l:
     | cons(_, rest) => 1 + length(rest)
-    | empty => 0
+    | mt => 0
   end
 where:
   checkers.check-equals("length of single elem list",
-                         length(cons(4,empty())), 1)
+                         length(cons(4,mt())), 1)
   checkers.check-equals("length of 2-elem list",
-                        length(cons(4,cons(3,empty()))), 2)
-  checkers.check-equals("length of empty list", length(empty()), 0)
+                        length(cons(4,cons(3,mt()))), 2)
+  checkers.check-equals("length of mt list", length(mt()), 0)
 end
 
 #print("should be: runtime typecheck failed")

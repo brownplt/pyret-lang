@@ -38,27 +38,31 @@ end
 fun equiv(obj1, obj2):
   doc: "Check if two objects are equal via an _equals method, or
         have all the same keys with equiv fields"
-  fun all_same(o1, o2):
-    if Method(o1) or Function(o1):
-      false
-    else:
-      left_keys = keys(o1)
-      for fold(same from true, key from left_keys):
-        if not (has-field(o2, key)): false
-        else:
-          left_val = o1:[key]
-          right_val = o2:[key]
-          same and equiv(left_val, right_val)
+  if Opaque(obj1) or Opaque(obj2):
+    false
+  else:
+    fun all_same(o1, o2):
+      if Method(o1) or Function(o1):
+        false
+      else:
+        left_keys = keys(o1)
+        for fold(same from true, key from left_keys):
+          if not (has-field(o2, key)): false
+          else:
+            left_val = o1:[key]
+            right_val = o2:[key]
+            same and equiv(left_val, right_val)
+          end
         end
       end
     end
-  end
-  if has-field(obj1, "_equals"):
-    obj1._equals(obj2)
-  else if num-keys(obj1)._equals(num-keys(obj2)):
-    all_same(obj1, obj2)
-  else:
-    false
+    if has-field(obj1, "_equals"):
+      obj1._equals(obj2)
+    else if num-keys(obj1)._equals(num-keys(obj2)):
+      all_same(obj1, obj2)
+    else:
+      false
+    end
   end
 where:
   eq = checkers.check-equals
@@ -327,8 +331,8 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self, other): self.append(other) end,
-  to-set(self): list-to-set(self) end
+  _plus(self :: List, other :: List): self.append(other) end,
+  to-set(self :: List): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
@@ -679,7 +683,7 @@ where:
   index(l1, 0) is 1
   index(l2, 1) is {some-other: "object"}
   index(l3, 2) is "c"
-end               
+end
 
 list = {
     List: List,
@@ -950,7 +954,7 @@ fun check-raises(name, thunk, expected-str :: String, loc):
         or an exception with a message that contains expected-str"
   fun bad-err(actual):
     add-result(failure(name, "Wrong error message.  The test expected:\n"
-                              + torepr(expected-str) 
+                              + torepr(expected-str)
                               + "\nBut this was actually raised:\n"
                               + torepr(actual),
                        some(loc)))
@@ -1014,14 +1018,14 @@ end
 fun check-exn(name, thunk, pred):
   try:
     thunk()
-    current-results := 
+    current-results :=
       current-results + [failure(name, "Thunk didn't throw an exception: " + tostring(thunk),
                                    none)]
   except(e):
     if pred(e):
       current-results := current-results + [success(name, none)]
     else:
-      current-results := 
+      current-results :=
         current-results + [failure(name, "Wrong exception thrown:" + tostring(e),
                                      none)]
     end
@@ -1213,7 +1217,7 @@ checkers = {
 ### cs 173 ###
 
 
-fun interp-basic():    
+fun interp-basic():
 
   data Value:
     | numV(value :: Number)
@@ -1236,17 +1240,17 @@ fun interp-basic():
     | lam(params :: List<String>, body :: Expr)
     | app(func :: Expr, args :: List<Expr>)
   end
-  
+
   data Operator:
     | plus
     | minus
     | append
     | str-eq
   end
-  
+
   fun parse(prog) -> Expr:
     doc: "Parse an s-expr in Paret's concrete syntax into an Expr."
-  
+
     fun check-params(params :: List<String>) -> List<String>:
       doc: "Ensure that a function has no duplicate parameter names."
       for each(param from params):
@@ -1256,7 +1260,7 @@ fun interp-basic():
       end
       params
     end
-  
+
     fun convert(sexpr):
       doc: "Convert an s-expression into an Expr."
       if List(sexpr):
@@ -1344,17 +1348,17 @@ fun calculate-locals():
     | let(name :: String, expr :: Expr, body :: Expr)
     | lam(params :: List<String>, body :: Expr)
     | app(func :: Expr, args :: List<Expr>)
-  
+
     | hole
   end
-  
+
   data Operator:
     | plus
     | minus
     | append
     | str-eq
   end
-  
+
   fun parse(prog) -> Expr:
     fun convert(sexpr):
       if List(sexpr):
@@ -1400,7 +1404,7 @@ fun calculate-locals():
     end
     convert(prog)
   end
-  
+
   {
    Expr: Expr,
    id:id, is-id:is-id,

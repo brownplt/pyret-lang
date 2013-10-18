@@ -30,6 +30,10 @@ document also occasionally references ``Captain Teach'', which is a programming
 and learning environment that uses Pyret, and has some of its own environmental
 behavior that is worth noting.
 
+@include-section{installing.scrbl}
+
+@include-section{running.scrbl}
+
 @include-section{forms.scrbl}
 
 @include-section{testing.scrbl}
@@ -261,6 +265,7 @@ are converted into a list [\"string\", <the-string>].'
 
 @(pretty-functions misc-ast '(
   gensym
+  random
   raise
   print
   torepr
@@ -287,17 +292,17 @@ programs do not need to create @tt{Mutable}s explicitly.
 @justcode{
 <a> mk-mutable(
       val :: a,
-      read :: (a -> Bool),
-      write :: (a -> Bool)
+      read :: (a -> a),
+      write :: (a -> a)
     )
     -> Mutable<a>
 }
 
-This creates a mutable value holding @tt{val} as a value, and with predicates
-@tt{read} and @tt{write} checked on access and update, respectively.  These
-predicates are automatically filled in based on annotations for @tt{Mutable}s
-created by @tt{data}.  If the predicate fails in either case, a type error is
-signalled.
+This creates a mutable value holding @tt{val} as a value, and with wrappers
+@tt{read} and @tt{write} applied on access and update, respectively.  These
+wrappers are automatically filled in based on annotations for @tt{Mutable}s
+created by @tt{data}, and can throw exceptions in case of, for example, a
+violation of an annotation.
 
 Aside from constructing a @tt{Mutable} directly, they can be accessed directly
 by using a @seclink["s:colon-expr" "colon expression"], which gives access to
@@ -309,7 +314,7 @@ several methods:
 get(self :: Mutable<a>) -> a
 }
 
-Returns the value in the @tt{Mutable}.  
+Returns the value in the @tt{Mutable}, wrapped by all read wrappers.
 
 @(label "Mutable._equals")
 
@@ -349,8 +354,8 @@ value prior to it being initialized.  The following methods are on each
 get(self :: Placeholder<a>) -> a
 }
 
-Get the value in the placeholder.  Signals an exception if the value has yet to
-be initialized with the @tt{set} method.
+Get the value in the placeholder.  Signals an exception if the value has
+@emph{yet to be} initialized with the @tt{set} method.
 
 @(label "Placeholder.guard")
 
@@ -359,7 +364,8 @@ guard(self :: Placeholder<a>, guard :: (a -> Bool)) -> Nothing
 }
 
 Update the placeholder with an additional check @tt{guard}.  Signals an
-exception if the value has yet to be initialized with the @tt{set} method.
+exception if the value has @emph{already been} initialized with the @tt{set}
+method.
 
 @(label "Placeholder.set")
 
@@ -367,9 +373,12 @@ exception if the value has yet to be initialized with the @tt{set} method.
 set(self :: Placeholder<a>, value :: a) -> a
 }
 
-Initialize the placeholder with @tt{value}.  Signals an exception if any of the
-guards on the placeholder return non-@tt{true} values when applied to
-@tt{value}, or if the placeholder has already been @tt{set}. 
+Initialize the placeholder with @tt{value}.  Signals an exception if the
+placeholder has already been @tt{set}.  Before setting @tt{value} as the value
+of the placeholder, first applies all wrappers to it in the reverse order they
+were added (so the first added guard is applied last).  The result of each
+application is passed to the next wrapper.  Note that these wrappers can throw
+exceptions, and do when compiled from annotations.
 
 These three methods are used in concert by @tt{graph} and @tt{cyclic} to safely
 and lazily intialize mutually-referential data.  Each left-hand side in a

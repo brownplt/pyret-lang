@@ -128,7 +128,7 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
-     if true-branded: 5 end"
+     when true-branded: 5 end"
      five)
 
   (check-pyret
@@ -180,9 +180,6 @@
   "
   nothing)
 
-  (check-pyret-exn "if false: 5 end" "if: no tests matched")
-  (check-pyret-exn "if false: 5 else if false: 8 end" "if: no tests matched")
-  (check-pyret "if true: 5 end" five)
   (check-pyret "if false: 5 else if true: 6 end" (p:mk-num 6))
   (check-pyret "if true: 5 else if true: 6 end" five)
   (check-pyret "if true: 5 else: 6 end" five)
@@ -272,44 +269,44 @@
     (p:p-str _ _ _ _ _))
 
   (check-pyret
-   "data List:
+   "data MyList:
       | cons(first, rest) with: length(self): 1._add(self.rest.length()) end
-      | empty() with: length(self): 0 end
+      | mt() with: length(self): 0 end
     end
-    cons(1, cons(2, empty())).length()"
+    cons(1, cons(2, mt())).length()"
    two)
 
   (check-pyret
-   "data List:
+   "data MyList:
       | cons(first, rest)
-      | empty()
+      | mt()
     sharing:
       length(self):
-        cases(List) self:
+        cases(MyList) self:
           | cons(_, rest) => 1._add(rest.length())
-          | empty => 0
+          | mt => 0
         end
       end
     end
-    cons(1, cons(2, empty())).length()"
+    cons(1, cons(2, mt())).length()"
     two)
 
 
   (check-pyret
-   "data List:
-     | empty with: length(self): 0 end
+   "data MyList:
+     | mt with: length(self): 0 end
     end
-    empty.length()
+    mt.length()
     "
     (p:mk-num 0))
 
   (check-pyret
-   "data List:
-     | empty
+   "data MyList:
+     | mt
     sharing:
       length(self): 0 end
     end
-    empty.length()
+    mt.length()
     "
     (p:mk-num 0))
 
@@ -447,7 +444,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 3)
+  (check-pyret-match/check "pyret/list-tests.arr" _ 7)
 
   (check-pyret-match/check "pyret/json.arr" _ 8)
 
@@ -606,7 +603,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
   ;; NOTE(joe): allow this here because checkers
-  (parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
+  #;(parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
     (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 35))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
