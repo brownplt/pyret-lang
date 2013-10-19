@@ -14,7 +14,11 @@ end
 # BUILTINS
 
 fun identical(obj1, obj2):
-  obj1.eq(obj2)
+  if has-field(obj1, "eq") and has-field(obj2, "eq"):
+    obj1.eq(obj2)
+  else:
+    raise("Identical got values that weren't created by data: " + torepr(obj1) + " and " + torepr(obj2))
+  end
 end
 
 fun mklist(obj):

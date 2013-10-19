@@ -49,3 +49,16 @@ check:
   
 end
 
+check:
+  identical(5, 5) raises "Identical got values that weren't created by data: 5 and 5"
+  identical(5, []) raises "Identical got values that weren't created by data: 5 and []"
+
+  l1 = []
+  l2 = [1,2]
+  l3 = [1,2]
+  identical(l2, l2) is true
+  identical(l2, l3) is false
+
+  identical(1, l2) raises "Identical got values"
+  identical(l2, 1) raises "Identical got values"
+end
