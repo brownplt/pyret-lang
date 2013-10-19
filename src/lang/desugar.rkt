@@ -358,8 +358,9 @@
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params mixins variants share-members check-ignored)
+    [(s-data s name params mixins-no-eq variants share-members check-ignored)
      (define brander-name (gensym name))
+     (define mixins (cons (s-dot s (s-id s 'builtins) 'Eq) mixins-no-eq))
      (define mixins-names
        (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
      (define bind-mixins
