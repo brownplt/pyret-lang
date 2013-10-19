@@ -74,7 +74,9 @@
     [pyret-is-none is-none]
     [pyret-is-some is-some]
     [pyret-none none]
-    [pyret-some some])
+    [pyret-some some]
+
+    [pyret-identical identical])
 
   (rename-out
     [pyret-random random])

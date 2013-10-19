@@ -63,3 +63,9 @@
 
 (define pyret-read-sexpr %read-sexpr)
 (define pyret-read-sexpr-list %read-sexpr-list)
+
+(define (get-builtin-lib name)
+  (p:get-field p:dummy-loc %builtin name))
+(define %builtins (p:get-field p:dummy-loc moorings "builtins"))
+(define pyret-identical (get-builtin-lib "identical))
+
