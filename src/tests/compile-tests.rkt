@@ -374,6 +374,8 @@
    "duplicate")
 
   (check-pyret-match/check "pyret/data-equals.arr" _ 27)
+  (check-pyret-match/check "pyret/data/params.arr" _ 4)
+
 
   ))
 
@@ -435,7 +437,7 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-match-file "pyret/print.arr" _ 
+  (check-match-file "pyret/print.arr" _
 "5
 {}
 Looks shipshape, all 2 tests passed, mate!
@@ -1060,7 +1062,12 @@ o2.m().called" true)
     (private-run "../../examples/pyret-lang-private/cs019/simple-updater.arr" 14)))
     ))
 
-
+(define annotations (test-suite "annotations"
+  (check-pyret-match/check "pyret/annotations/arrow.arr" _ 4)
+  (check-pyret-match/check "pyret/annotations/app.arr" _ 2)
+  (check-pyret-match/check "pyret/annotations/pred.arr" _ 1)
+  (check-pyret-match/check "pyret/annotations/record.arr" _ 1)
+))
 
 (define all (test-suite "all"
   constants
@@ -1083,7 +1090,8 @@ o2.m().called" true)
   mixins
   currying
   checks
-  examples))
+  examples
+  annotations))
 
 (run-tests all 'normal)
 

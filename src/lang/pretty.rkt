@@ -38,16 +38,22 @@
     (if (equal? "" doc) #f (format "doc: \"~a\"" doc)))
 
   (define (pretty-fun-header name params args ann)
-    (spaces
-     (if (empty? params) #f (angles (comma-sep (map pretty params))))
-     (concat (pretty name)
-             (parens (comma-sep (map pretty args))))
-     (pretty-return-ann ann)))
+    (concat
+     (spaces
+      (pretty "fun")
+      (if (empty? params) #f (angles (comma-sep (map pretty params))))
+      (concat (pretty name)
+              (parens (comma-sep (map pretty args))))
+      (pretty-return-ann ann))
+     (pretty ":")))
 
   (define (pretty-method-header args ann)
-    (spaces
-     (parens (comma-sep (map pretty args)))
-     (pretty-return-ann ann)))
+    (concat
+     (spaces
+      (pretty "method")
+      (parens (comma-sep (map pretty args)))
+      (pretty-return-ann ann))
+     (pretty ":")))
 
   (define (pretty-check block)
     (if (empty? (s-block-stmts block)) #f
@@ -78,25 +84,29 @@
          (format "~a :: ~a" (pretty id) (pretty-ann ann)))]
 
     [(s-fun _ name params args ann doc body check)
-     (newlines (format "fun ~a:" (pretty-fun-header name params args ann))
+     (newlines (pretty-fun-header name params args ann)
                (indented (pretty-doc doc))
                (indented (prettier body))
                (pretty-check check)
                "end")]
 
     [(s-method _ args ann doc body check)
-     (newlines (format "method~a:" (pretty-method-header args ann))
-               (indented (pretty-doc doc))
-               (indented (prettier body))
-               (indented (prettier check))
-               "end")]
+     (define one-line (and (equal? "" doc) (empty? (s-block-stmts check))))
+     ((if one-line spaces newlines)
+      (pretty-method-header args ann)
+      (indented (pretty-doc doc))
+      (if one-line (prettier body) (indented (prettier body)))
+      (pretty-check check)
+      "end")]
 
     [(s-lam _ params args ann doc body check)
-     (spaces (pretty-fun-header "fun" params args ann)
-             (pretty-doc doc)
-             (prettier body)
-             (pretty-check check)
-             "end")]
+     (define one-line (and (equal? "" doc) (empty? (s-block-stmts check))))
+     ((if one-line spaces newlines)
+      (pretty-fun-header "" params args ann)
+      (indented (pretty-doc doc))
+      (if one-line (prettier body) (indented (prettier body)))
+      (pretty-check check)
+      "end")]
 
     [(s-assign s name expr)
      (format "~a := ~a" name (pretty expr))]

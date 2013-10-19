@@ -250,7 +250,7 @@ these metadata purposes.
 (struct a-field a-ann (syntax name ann) #:transparent)
 ;; a-record : srcloc (Listof a-field)
 (struct a-record a-ann (syntax fields) #:transparent)
-;; a-app : srcloc (Symbol or a-dot) (Listof a-ann)
+;; a-app : srcloc (a-name or a-dot) (Listof a-ann)
 (struct a-app a-ann (syntax ann parameters) #:transparent)
 ;; a-pred : srcloc a-ann Expr
 (struct a-pred a-ann (syntax ann exp) #:transparent)
@@ -488,7 +488,7 @@ these metadata purposes.
      (define body-ids (set-subtract body-ids-init (set-union args-bound name)))
      (define check-ids (free-ids check))
      (set-union arg-ids ann-ids body-ids check-ids))
-    
+
   (match expr
     [(s-prog _ imports block)
      (unions (cons (free-ids block) (map free-ids imports)))]
@@ -557,7 +557,7 @@ these metadata purposes.
      (define ann-ids (free-ids-ann ann))
      (define body-ids (set-subtract (free-ids body) bound))
      (set-union iterator-ids bindings-ids ann-ids body-ids)]
-     
+
     [(s-data _ name params mixins variants shared-members check)
      (set-union
        (unions (map free-ids mixins))
@@ -700,7 +700,7 @@ these metadata purposes.
       (equiv-ast body1 body2)
       (equiv-ast check1 check2)
       (symbol=? name1 name2)))
-  (define result 
+  (define result
     (match (cons ast1 ast2)
       [(cons (s-prog _ imports1 block1) (s-prog _ imports2 block2))
        (and
@@ -855,4 +855,3 @@ these metadata purposes.
        (error (format "Non-ast value in equiv-ast: ~a\n" a2))]
       [_ #f]))
    result)
-
