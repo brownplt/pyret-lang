@@ -18,7 +18,7 @@ check:
   single.eq(single) is true
   single.eq(noargs()) is false
   identical(single, single) is true
-  identical(single, noargs()) is true
+  identical(single, noargs()) is false
 
   hasx(5).eq(hasx(5)) is false
   x1 = hasx(5)
@@ -35,7 +35,7 @@ check:
 
   inner-rec = rec2(single2, single)
   long-rec1 = rec(rec(single, inner-rec), single2)
-  long-rec2 = rec(rec(single, inner-rec)), single2)
+  long-rec2 = rec(rec(single, inner-rec), single2)
 
   identical(long-rec1, long-rec1) is true
   identical(long-rec1, long-rec2) is false
@@ -44,7 +44,8 @@ check:
   identical(long-rec1.b, long-rec2.b) is true
   identical(long-rec1.a.b, long-rec2.a.b) is true
 
-  override.eq(override) is false
+  # can't override this; mixin wins for now
+  override.eq(override) is true
   
 end
 
