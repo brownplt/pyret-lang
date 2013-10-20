@@ -12,11 +12,16 @@ import "pyret-to-js.arr" as P
 
 TESTS-PATH = "test-runner/tests.js"
 
+JS-ENV = N.library-env.{
+  equiv: true,
+  data-equals: true,
+  data-to-repr: true
+}
+
 fun toplevel-to-js(ast :: A.Program):
   free-in-prog = A.free-ids(A.to-native(ast))
   P.program-to-js(ast, free-in-prog)
 end
-lib-ids = builtins.keys(N.library-env)
 fun lib-to-js(ast :: A.Program, ids :: List<String>):
   P.program-to-js(ast, ids)
 end
@@ -54,7 +59,7 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
         J.stringify({expected-out: correct-output, expected-err: err-output})])
     | test-lib(lib, correct-output, err-output) =>
       ids = P.toplevel-ids(lib)
-      env = for fold(the-env from N.library-env.{test-print: true},
+      env = for fold(the-env from JS-ENV.{test-print: true},
                      id from ids):
         the-env.{[id]: true}
       end
@@ -223,9 +228,9 @@ end
 
 
 moorings-ast = A.parse-tc(
-    read-then-close("../src/lang/pyret-lib/moorings.arr"),
+    read-then-close("libs/moorings.arr"),
     "moorings.arr",
-     { check : false, env : N.library-env }
+     { check : false, env : JS-ENV }
   )
 fun create-moorings-test(name, program, out, err):
   print("Registering moorings test: " + name)
@@ -235,7 +240,7 @@ end
 list-lib-ast = A.parse-tc(
     read-then-close("libs/just-list.arr"),
     "just-list.arr",
-     { check : false, env : N.library-env }
+     { check : false, env : JS-ENV }
   )
 fun create-list-test(name, program, out, err):
   print("Registering list test: " + name)
