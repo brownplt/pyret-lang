@@ -66,7 +66,10 @@ function testWithLib(name, libProg, pyretProg, output) {
     name: name,
     test: function(RUNTIME) {
       var libResult = libProg(RUNTIME.runtime, RUNTIME.namespace);
-      console.log(libResult);
+      if (libResult instanceof RUNTIME.runtime.FailResult) {
+        console.error("libResult failure on " + name + ":", libResult);
+        throw new Error("Library ended in error (see console for failure object): " + name);
+      }
       var newNamepsace = RUNTIME.namespace.merge(libResult.namespace);
       var progResult = pyretProg(RUNTIME.runtime, newNamepsace);
       checkOutput(RUNTIME, progResult, output);

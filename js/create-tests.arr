@@ -12,7 +12,6 @@ import "pyret-to-js.arr" as P
 
 TESTS-PATH = "test-runner/tests.js"
 
-runtime-ids = ["test-print"] + builtins.keys(N.whalesong-env)
 fun toplevel-to-js(ast :: A.Program):
   free-in-prog = A.free-ids(A.to-native(ast))
   P.program-to-js(ast, free-in-prog)
@@ -59,6 +58,7 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
                      id from ids):
         the-env.{[id]: true}
       end
+      print("Env: " + torepr(env))
       ast = A.parse-tc(program, test-name, {check : false, env: env})
       free-in-lib = A.free-ids(A.to-native(lib))
       free-in-prog = A.free-ids(A.to-native(ast))
@@ -192,7 +192,7 @@ fun read-then-close(path):
 end
             
 # one level of sections for now
-fun get-dir-sections(path):
+fun get-dir-sections(path, create-test):
   dir = D.dir(path)
   for list.fold(sections from [], f from dir.list()):
     new-path = path + "/" + f
@@ -201,14 +201,10 @@ fun get-dir-sections(path):
         file-path = new-path + "/" + test-file
         l = file-path.length()
         if file-path.substring(l - 4, l) == ".arr":
-          [str-test-case(
-              test-file,
-              read-then-close(file-path),
-              test-print(
-                  read-then-close(out-file-of(file-path)),
-                  read-then-close(err-file-of(file-path))
-                )
-            )] + ts
+          file-contents = read-then-close(file-path)
+          out-contents = read-then-close(file-path + ".out")
+          err-contents = read-then-close(file-path + ".err")
+          [create-test(test-file, file-contents, out-contents, err-contents)] + ts
         else:
           ts
         end
@@ -221,10 +217,28 @@ fun get-dir-sections(path):
 end
 
 #all-tests("tests")
-FILE-TESTS = get-dir-sections("tests")
+fun create-print-test(name, program, out, err):
+  print("Registering basic test: " + name)
+  str-test-case(name, program, test-print(out, err))
+end
+
+
+moorings-ast = A.parse-tc(
+    read-then-close("../src/lang/pyret-lib/moorings.arr"),
+    "moorings.arr",
+     { check : false, env : N.library-env }
+  )
+fun create-moorings-test(name, program, out, err):
+  print("Registering moorings test: " + name)
+  str-test-case(name, program, test-lib(moorings-ast, out, err))
+end
+
+BASIC-TESTS = get-dir-sections("tests", create-print-test)
+MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
 
 generate-test-files(
   [test-section("misc", MISC)] +
-  FILE-TESTS)
+  BASIC-TESTS +
+  MOORINGS-TESTS)
 
 

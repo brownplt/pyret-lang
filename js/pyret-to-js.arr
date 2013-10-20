@@ -89,8 +89,6 @@ fun program-to-js(ast, runtime-ids):
             sequence-assign-last(stmts)
           end
           ids-to-export = toplevel-ids(ast)
-          print("To export:")
-          print(ids-to-export)
           export-fields = for list.fold(export from "", id from ids-to-export):
             export + format("EXPORT_NAMESPACE = EXPORT_NAMESPACE.set(\"~a\", ~a)\n",
               [id, js-id-of(id)])
@@ -146,7 +144,7 @@ fun expr-to-js(ast):
       end
     | s_id(_, id) => js-id-of(id)
     | s_let(_, bind, value) => format("var ~a = ~a;", [js-id-of(bind.id), expr-to-js(value)])
-    | else => do-block(format("throw new Error('Not yet implemented ~a')", [torepr(ast)]))
+    | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
   end
 end
 
