@@ -14,7 +14,8 @@ TESTS-PATH = "test-runner/tests.js"
 
 runtime-ids = ["test-print"] + builtins.keys(N.whalesong-env)
 fun toplevel-to-js(ast :: A.Program):
-  P.program-to-js(ast, runtime-ids)
+  free-in-prog = A.free-ids(A.to-native(ast))
+  P.program-to-js(ast, free-in-prog)
 end
 lib-ids = builtins.keys(N.library-env)
 fun lib-to-js(ast :: A.Program, ids :: List<String>):
@@ -23,7 +24,7 @@ end
 
 data TestPredicate:
   | test-print(correct-output :: String, correct-error :: String)
-  | test-lib(lib :: A.Program, lib-ids :: List<String>, correct-output :: String, correct-error :: String)
+  | test-lib(lib :: A.Program, correct-output :: String, correct-error :: String)
   | equal-to(result :: String)
   | predicate(pred-fun :: String)
 end
@@ -52,14 +53,20 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
       ast = A.parse-tc(program, test-name, {check : false, env: env})
       format("testPrint('~a', ~a, ~a)", [test-name, toplevel-to-js(ast),
         J.stringify({expected-out: correct-output, expected-err: err-output})])
-    | test-lib(lib, ids, correct-output, err-output) =>
-      env = for fold(the-env from N.whalesong-env.{test-print: true},
+    | test-lib(lib, correct-output, err-output) =>
+      ids = P.toplevel-ids(lib)
+      env = for fold(the-env from N.library-env.{test-print: true},
                      id from ids):
         the-env.{[id]: true}
       end
       ast = A.parse-tc(program, test-name, {check : false, env: env})
-      format("testWithLib('~a', ~a, ~a, ~a)", [test-name, P.program-to-js(ast, builtins.keys(env)), lib-to-js(lib, ids),
-        J.stringify({expected-out: correct-output, expected-err: err-output})])
+      free-in-lib = A.free-ids(A.to-native(lib))
+      free-in-prog = A.free-ids(A.to-native(ast))
+      format("testWithLib('~a', ~a, ~a, ~a)", [
+          test-name,
+          P.program-to-js(lib, free-in-lib),
+          P.program-to-js(ast, free-in-prog),
+          J.stringify({expected-out: correct-output, expected-err: err-output})])
   end
 end
 
@@ -98,6 +105,21 @@ MISC = [
       "addition",
       "2 + 2",
       equal-to("4")
+    ),
+  str-test-case("lib-test",
+      "test_field",
+      test-lib(
+          A.parse-tc(
+              "test_field = 22",
+              "lib-test",
+              {
+                check : false,
+                env : N.whalesong-env
+              }
+            ),
+          "22",
+          ""
+        )
     )
 ]
 
@@ -198,31 +220,11 @@ fun get-dir-sections(path):
   end
 end
 
-all-tests("tests")
+#all-tests("tests")
 FILE-TESTS = get-dir-sections("tests")
-
-LIB-TESTS = test-section("using libraries", [
-  str-test-case("lib-test",
-      "test_field",
-      test-lib(
-          A.parse-tc(
-              "nothing",
-              "lib-test",
-              {
-                check : false,
-                env : N.whalesong-env.{test_field: true }
-              }
-            ),
-          ["test_field"],
-          "22",
-          ""
-        )
-    )
-])
 
 generate-test-files(
   [test-section("misc", MISC)] +
-  FILE-TESTS +
-  [LIB-TESTS])
+  FILE-TESTS)
 
 

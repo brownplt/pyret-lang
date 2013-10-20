@@ -16,6 +16,7 @@
   ragg/support
   racket/match
   racket/list
+  racket/set
   (rename-in "ast.arr" [%PYRET-PROVIDE ast]))
 
 (define-syntax-rule (build type arg ...)
@@ -571,6 +572,8 @@
     p:dummy-loc
     ast
     (list
+      (cons "free-ids"
+            (ffi-wrap (lambda (ast) (map symbol->string (set->list (free-ids ast))))))
       (cons "parse"
             (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
       (cons "parse-tc"

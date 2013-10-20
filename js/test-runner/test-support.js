@@ -68,7 +68,7 @@ function testWithLib(name, libProg, pyretProg, output) {
       var libResult = libProg(RUNTIME.runtime, RUNTIME.namespace);
       console.log(libResult);
       var newNamepsace = RUNTIME.namespace.merge(libResult.namespace);
-      var progResult = libProg(RUNTIME.runtime, newNamepsace);
+      var progResult = pyretProg(RUNTIME.runtime, newNamepsace);
       checkOutput(RUNTIME, progResult, output);
     }
   };
