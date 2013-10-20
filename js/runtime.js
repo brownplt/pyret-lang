@@ -107,6 +107,13 @@ var PYRET = (function () {
     }
     function makeFailResult(exn) { return new FailResult(exn); }
 
+    function PyretException(exnVal) {
+      this.exnVal = exnVal;
+    }
+    function makePyretException(exnVal) {
+      return new PyretException(exnVal);
+    }
+
     function errToJSON(exn) {
       return JSON.stringify({exn: String(exn)})
     }
@@ -114,7 +121,17 @@ var PYRET = (function () {
     return {
       namespace: Namespace({
         nothing: {},
-        "test-print": makeFunction(testPrint)
+        "test-print": makeFunction(testPrint),
+        brander: makeFunction(function() {
+          throw "brander NYI";
+        }),
+        "check-brand": makeFunction(function() {
+          throw "check-brand NYI";
+        }),
+        Function: makeFunction(function() {
+          throw "function NYI";
+        }),
+        builtins: "Not yet implemented"
       }),
       runtime: {
         makeNumber: makeNumber,
@@ -126,8 +143,10 @@ var PYRET = (function () {
         },
         NormalResult: NormalResult,
         FailResult: FailResult,
+        PyretException: PyretException,
         makeNormalResult: makeNormalResult,
         makeFailResult: makeFailResult,
+        makePyretException: makePyretException,
         toReprJS: toRepr,
         errToJSON: errToJSON
       }

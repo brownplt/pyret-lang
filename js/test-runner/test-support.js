@@ -44,7 +44,8 @@ function checkOutput(RUNTIME, result, output) {
   }
   else if (result instanceof RUNTIME.runtime.FailResult) {
     expect(stdout).toEqual(output.expected);
-    expect(RUNTIME.runtime.errToJSON(result.exn)).toEqual(output["expected-err"]);
+    expect(result.exn instanceof RUNTIME.runtime.PyretException).toEqual(true, "JS threw a non-Pyret exception: " + jasmine.pp(result.exn));
+    expect(output["expected-err"]).not.toEqual("", "JS threw an error but Pyret did not: " + jasmine.pp(result));
   } else {
     fail("Runtime didn't produce a NormalResult or a FailResult");
   }

@@ -58,7 +58,6 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
                      id from ids):
         the-env.{[id]: true}
       end
-      print("Env: " + torepr(env))
       ast = A.parse-tc(program, test-name, {check : false, env: env})
       free-in-lib = A.free-ids(A.to-native(lib))
       free-in-prog = A.free-ids(A.to-native(ast))
@@ -233,12 +232,24 @@ fun create-moorings-test(name, program, out, err):
   str-test-case(name, program, test-lib(moorings-ast, out, err))
 end
 
+list-lib-ast = A.parse-tc(
+    read-then-close("libs/just-list.arr"),
+    "just-list.arr",
+     { check : false, env : N.library-env }
+  )
+fun create-list-test(name, program, out, err):
+  print("Registering list test: " + name)
+  str-test-case(name, program, test-lib(list-lib-ast, out, err))
+end
+
 BASIC-TESTS = get-dir-sections("tests", create-print-test)
 MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
+LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
   [test-section("misc", MISC)] +
   BASIC-TESTS +
-  MOORINGS-TESTS)
+  MOORINGS-TESTS +
+  LIST-LIB-TESTS)
 
 
