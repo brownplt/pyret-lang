@@ -150,7 +150,9 @@
       'is-none
 
       'Set
-      'set)))
+      'set
+      
+      'identical)))
 
 (define LIBRARY-ENV
   (make-immutable-hash runtime-env-list))

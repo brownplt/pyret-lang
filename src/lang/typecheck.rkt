@@ -128,13 +128,15 @@
      (mk-flat-checker (s-bracket s (s-id s obj)
                                  (s-str s (symbol->string fld))))]
     [(a-blank)
-     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+     (let ([argname (gensym "any-arg")])
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
              (mk-contract-doc ann)
-             (s-id loc '_))]
+             (s-id loc argname)))]
     [(a-any)
-     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+     (let ([argname (gensym "any-arg")])
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
              (mk-contract-doc ann)
-             (s-id loc '_))]
+             (s-id loc argname)))]
     [(a-record s fields)
      (record-wrapper s fields)]
     [(a-arrow s args result)

@@ -232,7 +232,7 @@ line string\"" (s-str _ "multi\nline string"))
                                         (list
                                           (s-id _ 'BOS)
                                           (s-id _ 'mempty)))))))
-                
+
                 ))
 
 (define user-block (test-suite "user-block"
@@ -446,6 +446,14 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "var x :: list.List<A> = 4"
                (s-var _ (s-bind _ 'x (a-app _ (a-dot _ 'list 'List)
                                             (list (a-name _ 'A))))
+                      (s-num _ 4)))
+
+  (check/block "var x :: ( -> Number) = 4"
+               (s-var _ (s-bind _ 'x (a-arrow _ empty (a-name _ 'Number)))
+                      (s-num _ 4)))
+
+  (check/block "var x :: (Number -> Number) = 4"
+               (s-var _ (s-bind _ 'x (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number)))
                       (s-num _ 4)))
 
 ))

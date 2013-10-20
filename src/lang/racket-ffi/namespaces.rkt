@@ -19,18 +19,23 @@
     (make-string-map empty)
     (hash-keys (env-to-hash env))))
 
-(define whalesong-env
+(define library-env
   (get-env-dict
-    'pyret/lang/pyret-lang-whalesong
-    WHALESONG-ENV))
+    'pyret/lang/pyret-lang-library
+    LIBRARY-ENV))
 (define pyret-env
   (get-env-dict
     'pyret/lang/pyret-lang-racket
     DEFAULT-ENV))
+(define whalesong-env
+  (get-env-dict
+    'pyret/lang/pyret-lang-whalesong
+    WHALESONG-ENV))
 (define namespaces
   (p:mk-object
     (make-string-map
       (list
+        (cons "library-env" (p:mk-object library-env))
         (cons "pyret-env" (p:mk-object pyret-env))
         (cons "whalesong-env" (p:mk-object whalesong-env))))))
 

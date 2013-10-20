@@ -96,10 +96,11 @@ var PYRET = (function () {
       return val;
     }
 
-    function NormalResult(val) {
+    function NormalResult(val, namespace) {
       this.val = val;
+      this.namespace = namespace;
     }
-    function makeNormalResult(val) { return new NormalResult(val); }
+    function makeNormalResult(val, ns) { return new NormalResult(val, ns); }
 
     function FailResult(exn) {
       this.exn = exn;
@@ -111,22 +112,25 @@ var PYRET = (function () {
     }
 
     return {
-      nothing: {},
-      makeNumber: makeNumber,
-      isNumber: isNumber,
-      equal: equal,
-      getField: getField,
-      getTestPrintOutput: function(val) {
-        return testPrintOutput + toRepr(val).s;
-      },
-      NormalResult: NormalResult,
-      FailResult: FailResult,
-      makeNormalResult: makeNormalResult,
-      makeFailResult: makeFailResult,
-      toReprJS: toRepr,
-      errToJSON: errToJSON,
-
-      "test-print": makeFunction(testPrint),
+      namespace: Namespace({
+        nothing: {},
+        "test-print": makeFunction(testPrint)
+      }),
+      runtime: {
+        makeNumber: makeNumber,
+        isNumber: isNumber,
+        equal: equal,
+        getField: getField,
+        getTestPrintOutput: function(val) {
+          return testPrintOutput + toRepr(val).s;
+        },
+        NormalResult: NormalResult,
+        FailResult: FailResult,
+        makeNormalResult: makeNormalResult,
+        makeFailResult: makeFailResult,
+        toReprJS: toRepr,
+        errToJSON: errToJSON
+      }
     }
   }
 

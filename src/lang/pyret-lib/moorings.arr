@@ -13,6 +13,14 @@ end
 
 # BUILTINS
 
+fun identical(obj1, obj2):
+  if has-field(obj1, "eq") and has-field(obj2, "eq"):
+    obj1.eq(obj2)
+  else:
+    raise("Identical got values that weren't created by data: " + torepr(obj1) + " and " + torepr(obj2))
+  end
+end
+
 fun mklist(obj):
   doc: "Creates a List from something with `first` and `rest` fields, recursively"
   if obj.is-empty: empty
@@ -116,6 +124,7 @@ fun Eq():
 end
 
 builtins = {
+  identical: identical,
   keys: keys,
   has-field: has-field,
   mklist: mklist,

@@ -52,7 +52,7 @@
           names
           placeholder-names))))
 
-(define (variant-defs/list super-brand mixins-names super-fields variants)
+(define (variant-defs/list params super-brand mixins-names super-fields variants)
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
@@ -95,7 +95,7 @@
     (define (fold-mixins s method base-obj)
       (foldl (lambda (mixin obj)
                (s-app s (s-dot s (s-id s mixin) method) (list obj))) base-obj local-mixins-names))
-    
+
     (match v
       [(s-singleton-variant s name with-members)
        (define torepr
@@ -179,7 +179,7 @@
                          (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
              (s-lam s
-                    (list)
+                    params
                     constructor-args
                     (a-blank)
                     (format
@@ -238,7 +238,7 @@
    [else
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
-           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))    
+           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))
 (define (ds-curry-unop s e1 rebuild)
   (define params-and-args (ds-curry-args s (list e1)))
   (define params (first params-and-args))
@@ -249,7 +249,7 @@
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
            (rebuild (first curry-args)) (s-block s empty))]))
-    
+
 (define (ds-curry ast-node)
   (match ast-node
     [(s-app s f args)
@@ -273,19 +273,28 @@
 ;; they are just stripping out parametric annotations, so
 ;; that code will compile with them present
 (define (replace-typarams typarams)
-  (lambda (ann)
+  (define (rt ann)
     (match ann
       [(a-name s name)
        (if (member name typarams)
            (a-any)
            ann)]
-      [_ ann])))
+      [(a-arrow s args ret)
+       (a-arrow s (map rt args) (rt ret))]
+      [(a-method s args ret)
+       (a-method s (map rt args) (rt ret))]
+      [(a-app s name-or-dot params)
+       (a-app s (rt name-or-dot) (map rt params))]
+      [(a-pred s ann exp) (a-pred s (rt ann) exp)]
+      [(a-record s fields) (a-record s (map rt fields))]
+      [(a-field s name ann) (a-field s name (rt ann))]
+      [_ ann]))
+  rt)
 (define (replace-typarams-binds typarams)
   (lambda (bind)
     (match bind
-      [(s-bind s1 id (a-name s2 name))
-       (if (member name typarams)
-           (s-bind s1 id (a-any)) bind)]
+      [(s-bind s id ann)
+       (s-bind s id ((replace-typarams typarams) ann))]
       [_ bind])))
 
 (define op-method-table
@@ -361,7 +370,7 @@
                    (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                    bind-mixins
-                   (variant-defs/list brander-name mixins-names share-members variants)
+                   (variant-defs/list params brander-name mixins-names share-members variants)
                    (s-let s (s-bind s name (a-blank))
                                   (s-dot s (s-id s brander-name) 'test))))))]
 
