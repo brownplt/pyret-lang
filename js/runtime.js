@@ -536,11 +536,12 @@ return     });
     function isObj(v) { return v instanceof PObj; }
     PObj.prototype = Object.create(PBase.prototype);
     PObj.prototype.clone = (function() {
-        var newObj = makeObj(this.dict);
-        //Deep Clone, clone each field
-        for(var f in newObj.dict) {
-            newObj.dict[f] = newObj.dict[f].clone();
+        //We don't need to do deep cloning, but we *do* need to clone the dict
+        var newDict = {};
+        for(var key in this.dict) {
+            newDict[key] = this.dict[key];
         }
+        var newObj = makeObj(newDict);
         return newObj;
     });
     PObj.prototype.getType = function() {return 'object';};
@@ -571,7 +572,7 @@ return     });
     }
     PObj.prototype.toString = function() {
         var fields = "";
-        for(f in this.dict) {
+        for(var f in this.dict) {
             fields += f + ": " + dict[f].toString();
         }
         return '{' +fields+ '}';
@@ -584,7 +585,7 @@ return     });
     var brandCount = 0;
     brander = makeFunction(function() {
     var myBrand = brandCount++; 
-    branderDict = {
+    var branderDict = {
         brand: makeFunction(function(toBrand) {
             var newO = toBrand.clone();
             newO.brands = toBrand.brands.slice(0);
@@ -628,7 +629,7 @@ return     });
         var isSet = false;
         var value = undefined;
         var guards = [];
-        var placeholderDict = {
+        function getPlaceholderDict(){  return {
             get : makeMethod(function(me) { 
                if(isSet){
                    return value;
@@ -679,29 +680,32 @@ return     });
            _equals : makeMethod(function(me,other) {
                 return makeBoolean(me === other);  
            }),
-        }
+        };}
         
-        var obj = makeObj(placeholderDict);
+        var obj = makeObj(getPlaceholderDict());
         obj.isPlaceholder = true;
         obj.clone = (function() {
-            var newObj = makeObj(this.dict);
-            //Deep Clone, clone each field
-            for(var f in newObj.dict) {
-            newObj.dict[f] = newObj.dict[f].clone();
+            //We don't need to do deep cloning, but we *do* need to clone the dict
+            var newDict = {};
+            for(var key in this.dict) {
+                newDict[key] = this.dict[key];
             }
+            var newObj = makeObj(newDict);
             newObj.isPlaceholder = true;
-             return newObj;
+            return newObj;
          });
         return obj;
     });
 
     var mutClone = function(val, r, w) {
         return function clone() {
-            var newObj = makeObj(this.dict);
-            //Deep Clone, clone each field
-            for(var f in newObj.dict) {
-            newObj.dict[f] = newObj.dict[f].clone();
+            //We don't need to do deep cloning, but we *do* need to clone the dict
+            var newDict = {};
+            for(var key in this.dict) {
+                newDict[key] = this.dict[key];
             }
+            var newObj = makeObj(newDict);
+            
             newObj.isMutable = true;
             
            newObj.set = (function(newVal) { 
@@ -782,7 +786,7 @@ return     });
     function Empty() {this.dict = {}; this.brands=[];}
     Empty.prototype = Object.create(PList.prototype);
     function makeEmpty() {
-        e = new Empty(); 
+        var e = new Empty(); 
         e.dict ={ 
             length : makeMethod(function(me) {
             return makeNumber(0);

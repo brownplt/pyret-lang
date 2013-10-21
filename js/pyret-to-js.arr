@@ -29,7 +29,7 @@ fun program-to-js(ast, runtime-ids):
     # import/provide ignored
     | s_program(_, _, block) =>
       bindings = for list.fold(bs from "", id from runtime-ids):
-        bs + format("~a = RUNTIME['~a'];\n", [id-access(id), id]) #Was var ~a
+        bs + format("var ~a = RUNTIME['~a'];\n", [id-access(id), id]) #Was var ~a
       end
       format("(function(RUNTIME) {
         try {
