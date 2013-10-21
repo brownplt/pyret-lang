@@ -62,36 +62,58 @@
             "col-md-4" divs, or 2 "col-md-6" divs. }
         <!-- Main column -->
         <div id="content" class="col-md-12">
-          @(when (string-ci=? uri-path "/index.html")
-@(define (pyret-example code description #:where (where 'left))
-  (define code-block
-@list{
-    <div class="col-md-6"> <pre>
-@|code|
-    </pre> </div>
-  })
-  (define description-block @list{
-    <div class="col-md-4">
-    @|description|
-    </div>
-  })
-  (cond
-    [(equal? where 'left) @list{
-  <div class="row">
-    <div class="col-md-1"></div>
-@|code-block|
-@|description-block|
-    <div class="col-md-1"></div>
-  </div>
-    }]
-    [(equal? where 'right) @list{
-  <div class="row">
-    <div class="col-md-1"></div>
-@|description-block|
-@|code-block|
-    <div class="col-md-1"></div>
-  </div>
-    }]))
+@(when (string-ci=? uri-path "/index.html")
+  @(define (info-code code info)
+    @disable-prefix{<span class="info" title="@|info|">@|code|</span>})
+
+  @(define (two-langs other-lang pyret-code other-code words)
+    (define other-block
+      @list{
+      <div class="col-md-4"><b>@|other-lang|</b><pre>@|other-code|</pre> </div>
+      })
+    (define pyret-block
+      @list{
+      <div class="col-md-4"><b>Pyret</b><pre>@|pyret-code|</pre> </div>
+      })
+    (define description-block
+      @list{
+      <div class="col-md-4">@|words|</div>
+      })
+    @list{
+      <div class="row">
+        @other-block
+        @description-block
+        @pyret-block
+      </div>
+    })
+
+  @(define (pyret-example code description #:where (where 'left))
+    (define code-block
+      @list{
+      <div class="col-md-6"> <pre>@|code|</pre> </div>
+      })
+    (define description-block @list{
+      <div class="col-md-4">
+      @|description|
+      </div>
+    })
+    (cond
+      [(equal? where 'left) @list{
+          <div class="row">
+            <div class="col-md-1"></div>
+        @|code-block|
+        @|description-block|
+            <div class="col-md-1"></div>
+          </div>
+            }]
+            [(equal? where 'right) @list{
+          <div class="row">
+            <div class="col-md-1"></div>
+        @|description-block|
+        @|code-block|
+            <div class="col-md-1"></div>
+          </div>
+        }]))
   
 
 @list{
@@ -116,15 +138,15 @@
       <div class="col-md-6">
       <pre>
 @disable-prefix{
-<span class="info" title="This creates a new type, called BinTree, and two constructors, leaf and node">data</span> BinTree:
+@(info-code "data" "This creates a new type, called BinTree, and two constructors, leaf and node") BinTree:
   | leaf
   | node(value, left, right)
 end
 
 fun tree-sum(t):
-  <span class="info" title="This cases form checks that t is a BinTree, and then evaluates the first or second branch depending on if t is a leaf or a node.">cases</span>(BinTree) t:
+  @(info-code "cases" "This cases form checks that t is a BinTree, and then evaluates the first or second branch depending on if t is a leaf or a node.")(BinTree) t:
     | leaf => 0
-    | <span class="info" title="This cases match clause binds v, l, and r to the value, left, and right fields of the given node for use on the right hand side">node(v, l, r)</span> => v + tree-sum(l) + tree-sum(r)
+    | @(info-code "node(v, l, r)" "This cases match clause binds v, l, and r to the value, left, and right fields of the given node for use on the right hand side") => v + tree-sum(l) + tree-sum(r)
   end
 where:
   tree-sum(leaf) is 0
@@ -137,10 +159,10 @@ end
   </div>
 </div>
 
+<a name="examples"></a>
 <h2>Programming in Pyret</h2>
 <div style="height:2em;"></div>
 <div class="container">
-  <a name="examples"></a>
   @(pyret-example
 @disable-prefix{
 fun to-celsius(f):
@@ -179,8 +201,60 @@ data BinTree:
 end
 }
 "Pyret allows for concise, expressive, recursive data declarations.  All type
-annotations are optional and can be used as much as your curriculum demands.")
+annotations are optional and can be used as often or as little as your
+curriculum needs.")
+
+  <hr/>
+  @(two-langs "Python"
+@disable-prefix{
+fun square(n :: Number) -> Number:
+  n * n
+end
+}
+@disable-prefix{
+def square(n):
+  return n * n
+}
+"Python doesn't support annotations for checking parameters and return values, Pyret does.")
+  <hr/>
+@(two-langs "Java"
+@disable-prefix{
+fun square(n :: Number): # you decide!
+  n * n
+end}
+@disable-prefix{
+static int square(int n) @"{"
+  return n * n;
+@"}"}
+"But Pyret doesn't force you to annotate everything (or anything), which other
+languages do.")
+  <hr/>
+@(two-langs "Python"
+@disable-prefix{
+data BinTree:
+  | leaf
+  | node(v, l, r)
+end}
+@disable-prefix{
+class BinTree:
+  pass
+class leaf(BinTree):
+  def __init__(self):
+    pass
+class node(BinTree):
+  def __init__(self, v, l, r):
+    self.v = v
+    self.l = l
+    self.r = r
+}
+@disable-prefix{
+Being able to describe <em>data</em> well is central to designing and
+structuring programs. Pyret offers elegant mechanisms for writing data
+definitions without the cognitive or syntactic overhead of classes.
+}
+)
 </div>
+
 }
 )
             
