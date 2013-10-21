@@ -66,7 +66,7 @@
   @(define (info-code code info)
     @disable-prefix{<span class="info" title="@|info|">@|code|</span>})
 
-  @(define (two-langs other-lang pyret-code other-code words)
+  @(define (two-langs header words other-lang pyret-code other-code)
     (define other-block
       @list{
       <div class="col-md-4"><b>@|other-lang|</b><pre>@|other-code|</pre> </div>
@@ -77,12 +77,12 @@
       })
     (define description-block
       @list{
-      <div class="col-md-4">@|words|</div>
+      <div class="col-md-4"><b>@|header|</b><p>@|words|</p></div>
       })
     @list{
       <div class="row">
-        @other-block
         @description-block
+        @other-block
         @pyret-block
       </div>
     })
@@ -123,9 +123,9 @@
       <div class="col-md-6">
       <img class="title-logo" src="/img/pyret-banner.png"></img>
       <p>
-      Pyret is a programming language designed to serve as an outstanding choice for
-      programming education.  We're now soliciting feedback and early adopters
-      to help the language improve.
+      Pyret is a programming language designed to serve as an outstanding
+      choice for programming education.  It's under active design and
+      development, and free to use, modify, and share.
       </p>
       <p>
         <a href="#examples" class="btn btn-primary btn-m">Examples</a>
@@ -205,7 +205,13 @@ annotations are optional and can be used as often or as little as your
 curriculum needs.")
 
   <hr/>
-  @(two-langs "Python"
+
+<h2>Pyret vs. Other Languages</h2>
+<div style="height:2em;"></div>
+  @(two-langs
+"Annotations"
+"Python doesn't support annotations for checking parameters and return values, Pyret does."
+"Python"
 @disable-prefix{
 fun square(n :: Number) -> Number:
   n * n
@@ -215,9 +221,13 @@ end
 def square(n):
   return n * n
 }
-"Python doesn't support annotations for checking parameters and return values, Pyret does.")
+)
   <hr/>
-@(two-langs "Java"
+@(two-langs
+"<em>Optional</em> Annotations"
+"But Pyret doesn't force you to annotate everything (or anything), which other
+languages do."
+"Java"
 @disable-prefix{
 fun square(n :: Number): # you decide!
   n * n
@@ -225,11 +235,16 @@ end}
 @disable-prefix{
 static int square(int n) @"{"
   return n * n;
-@"}"}
-"But Pyret doesn't force you to annotate everything (or anything), which other
-languages do.")
+@"}"})
   <hr/>
-@(two-langs "Python"
+@(two-langs
+"Structured Data"
+@disable-prefix{
+Being able to describe <em>data</em> well is central to designing and
+structuring programs. Pyret offers elegant mechanisms for writing data
+definitions without the cognitive or syntactic overhead of classes.
+}
+"Python"
 @disable-prefix{
 data BinTree:
   | leaf
@@ -247,12 +262,105 @@ class node(BinTree):
     self.l = l
     self.r = r
 }
+)
+
+<hr/>
+
+@(two-langs
+"Structural Data"
 @disable-prefix{
-Being able to describe <em>data</em> well is central to designing and
-structuring programs. Pyret offers elegant mechanisms for writing data
-definitions without the cognitive or syntactic overhead of classes.
+Pyret is somewhat flexible in the use of structured data, and exposes the
+simple object pattern underlying it to allow for ad hoc, structural code
+alongside more rigid patterns.
+}
+"OCaml"
+@disable-prefix{
+data Animal:
+  | elephant(name, weight)
+  | tiger(name, stripes)
+  | horse(name, races-won)
+  ...
+end
+
+fun animal-name(a :: Animal):
+  a.name
+end
+}
+@disable-prefix{
+type animal = 
+  | Elephant of string * float
+  | Tiger of string * float
+  | Horse of string * int
+  ...
+
+let name_of_animal a =
+  match a with
+    | Elephant(name, _)
+    | Tiger(name, _)
+    | Horse(name, _) -> name
+    ...
 }
 )
+
+@(two-langs "" "" "Racket"
+@disable-prefix{
+data Animal:
+  | elephant(name, weight)
+  | tiger(name, stripes)
+  | horse(name, races-won)
+  ...
+end
+
+fun animal-name(a :: Animal):
+  a.name
+end
+}
+@disable-prefix{
+(struct elephant (name weight))
+(struct tiger (name stripes))
+(struct horse (name races-won))
+...
+
+(define (animal-name a)
+  (cond
+    [(elephant? a) (elephant-name a)]
+    [(tiger? a) (tiger-name a)]
+    [(horse? a) (horse-name a)]
+    ...))
+}
+)
+
+<hr/>
+
+@(two-langs "Knowledge of Pitfalls"
+@disable-prefix{
+A design goal of Pyret is to feel both functional and scripty while avoiding
+known mistakes in languages that are related.
+}
+"JavaScript"
+@disable-prefix{
+o = @"{"
+  my-method(self, x): self.y + x end,
+  y: 10
+@"}"
+method-as-fun = o.my-method
+check:
+  method-as-fun(5) is 15
+end
+}
+@disable-prefix{
+var o = @"{"
+  my_method: function(x) @"{"
+    return this.y + x;
+  @"}",
+  y: 10
+@"}"
+method_as_fun = o.my_method
+method_as_fun(5)
+// either error or NaN
+// (depending on strict mode)
+})
+
 </div>
 
 }
