@@ -13,7 +13,7 @@ pre {
 }
 
 .navbar {
-  background-color: #669;
+  background-color: #eee;
 }
 
 img.navbar-logo {
@@ -31,5 +31,17 @@ img.title-logo {
 }
 
 .navbar-nav>li>a {
-  color: #eee !important;
+  color: #111 !important;
+}
+
+.popover-title {
+  word-break: normal;
+}
+
+.info {
+  background-color: #669;
+  color: white;
+  padding: 2px;
+  border-radius: 3px;
+  cursor: pointer;
 }

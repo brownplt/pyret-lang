@@ -1,3 +1,4 @@
+@(define disable-prefix (dynamic-require 'scribble/text 'disable-prefix))
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -62,7 +63,38 @@
         <!-- Main column -->
         <div id="content" class="col-md-12">
           @(when (string-ci=? uri-path "/index.html")
-#<<EOF
+@(define (pyret-example code description #:where (where 'left))
+  (define code-block
+@list{
+    <div class="col-md-6"> <pre>
+@|code|
+    </pre> </div>
+  })
+  (define description-block @list{
+    <div class="col-md-4">
+    @|description|
+    </div>
+  })
+  (cond
+    [(equal? where 'left) @list{
+  <div class="row">
+    <div class="col-md-1"></div>
+@|code-block|
+@|description-block|
+    <div class="col-md-1"></div>
+  </div>
+    }]
+    [(equal? where 'right) @list{
+  <div class="row">
+    <div class="col-md-1"></div>
+@|description-block|
+@|code-block|
+    <div class="col-md-1"></div>
+  </div>
+    }]))
+  
+
+@list{
 <div class="jumbotron">
   <div class="container">
     <div class="row">
@@ -83,37 +115,48 @@
       </div>
       <div class="col-md-6">
       <pre>
-data BinTree:
+@disable-prefix{
+<span class="info" title="This creates a new type, called BinTree, and two constructors, leaf and node">data</span> BinTree:
   | leaf
   | node(value, left, right)
 end
 
 fun tree-sum(t):
-  cases(BinTree) t:
+  <span class="info" title="This cases form checks that t is a BinTree, and then evaluates the first or second branch depending on if t is a leaf or a node.">cases</span>(BinTree) t:
     | leaf => 0
-    | node(v, l, r) => v + tree-sum(l) + tree-sum(r)
+    | <span class="info" title="This cases match clause binds v, l, and r to the value, left, and right fields of the given node for use on the right hand side">node(v, l, r)</span> => v + tree-sum(l) + tree-sum(r)
   end
 where:
   tree-sum(leaf) is 0
   tree-sum(node(5, node(4, leaf, leaf), leaf)) is 9
 end
+}
       </pre>
       </div>
     </div>
   </div>
 </div>
+
+<h2>Programming in Pyret</h2>
+<div style="height:2em;"></div>
 <div class="container">
   <a name="examples"></a>
-  <div class="row">
-    <div class="col-md-1"></div>
-    <div class="col-md-4">
-Pyret makes testing a natural part of the programming process.  Functions can
-contain a <code>where:</code> clause that holds unit tests for the function.
-When the program is run in testing mode, these assertions are checked.
-    </div>
-    <div class="col-md-6">
-<pre>
-fun sum(l :: List):
+  @(pyret-example
+@disable-prefix{
+fun to-celsius(f):
+  (f * (5 / 9)) - 32
+end
+
+for each(str from [Hello, world]):
+  print(str)
+end}
+"Pyret has Python-inspired syntax for functions, lists, and operators.
+Iteration constructs are designed to be evocative of those in other languages.")
+
+  <hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+fun sum(l):
   cases(List) l:
     | empty => 0
     | link(first, rest) => first + sum(rest)
@@ -122,28 +165,23 @@ where:
   sum([]) is 0
   sum([1, 2, 3]) is 6
 end
-</pre>
-    <div class="col-md-1"></div>
-    </div>
-  </div>
+}
+"Pyret makes testing a natural part of the programming process.  Functions can
+end in a <code>where:</code> clause that holds unit tests for the function.
+When the program is run, the assertions are checked.")
+
   <hr/>
-  <div class="row">
-    <div class="col-md-1"></div>
-    <div class="col-md-6">
-<pre>
+  @(pyret-example #:where 'left
+@disable-prefix{
 data BinTree:
   | leaf
   | node(value, left :: BinTree, right :: BinTree)
 end
-</pre>
-    </div>
-    <div class="col-md-4">
-Pyret allows for concise and expressive recursive data declarations.
-    </div>
-    <div class="col-md-1"></div>
-  </div>
+}
+"Pyret allows for concise, expressive, recursive data declarations.  All type
+annotations are optional and can be used as much as your curriculum demands.")
 </div>
-EOF
+}
 )
             
           @(when (string-ci=? uri-path "/blog/index.html")
@@ -172,5 +210,8 @@ EOF
     <!-- </body> JS -->
     <script type="text/javascript" src="//code.jquery.com/jquery.js"></script>
     <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+    <script>
+      $(".info").popover({ placement: "left" });
+    </script>
   </body>
 </html>
