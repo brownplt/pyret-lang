@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    @;{ The at-exp reader for a template treats this as a comment.
+        Also, notice the use template variables like @title,
+        @description etc. }
+    <meta charset="utf-8">
+    <title>Pyret</title>
+    <meta name="description" content="@|description|">
+    <meta name="author"      content="The Unknown Blogger">
+    <meta name="keywords"    content="@|keywords|">
+    <meta name="viewport"    content="width=device-width, initial-scale=1.0">
+    <link rel="icon"      href="/favicon.ico">
+    <link rel="canonical" href="@|full-uri|">
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/css/pygments.css">
+    <link rel="stylesheet" type="text/css" href="/css/scribble.css">
+    <link rel="stylesheet" type="text/css" href="/css/custom.css">
+    <!-- Feeds -->
+    <link ref="alternate" type="application/atom+xml"
+          href="@|atom-feed-uri|" title="Atom Feed">
+    <link ref="alternate" type="application/rss+xml"
+          href="@|rss-feed-uri|" title="RSS Feed">
+    <!-- JS -->
+    @;{ @google-analytics["UA-xxxxx" "example.com"] }
+  </head>
+  <body>
+    <!-- A standard Twitter Bootstrap nav bar -->
+    <header class="navbar navbar-default navbar-inverse"
+            role="banner">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button"
+                  class="navbar-toggle"
+                  data-toggle="collapse"
+                  data-target=".our-nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a href="/index.html" class="navbar-brand">
+            <img class="navbar-logo" src="/img/pyret-banner.png"></img> 
+          </a>
+        </div>
+        <div class="collapse navbar-collapse our-nav-collapse"
+             role="navigation">
+          <ul class="nav navbar-nav">
+            <li><a href="#examples">Examples</a></li>
+            <li><a href="#examples">Downloads</a></li>
+            <li><a href="#examples">Docs</a></li>
+            <li><a href="#examples">Team</a></li>
+            <li><a href="#examples">Plan</a></li>
+          </ul>
+        </div>
+    </header>
+    <div class="container">
+      <div class="row">
+        @;{ Remember that Twitter Bootstrap has a 12 cell model. The
+            col-md-N classes should add up to 12.  For instance 3
+            "col-md-4" divs, or 2 "col-md-6" divs. }
+        <!-- Main column -->
+        <div id="content" class="col-md-12">
+          @(when (string-ci=? uri-path "/index.html")
+#<<EOF
+<div class="jumbotron">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+      <img class="title-logo" src="/img/pyret-banner.png"></img>
+      <p>
+      Pyret is a programming language designed to serve as an outstanding choice for
+      programming education.  We're now soliciting feedback and early adopters
+      to help the language improve.
+      </p>
+      <p>
+        <a href="#examples" class="btn btn-primary btn-m">Examples</a>
+        <a class="btn btn-primary btn-m">Download</a>
+        <a class="btn btn-primary btn-m">Docs</a>
+        <a class="btn btn-primary btn-m">Team</a>
+        <a class="btn btn-primary btn-m">Plan</a>
+      </p>
+      </div>
+      <div class="col-md-6">
+      <pre>
+data BinTree:
+  | leaf
+  | node(value, left, right)
+end
+
+fun tree-sum(t):
+  cases(BinTree) t:
+    | leaf => 0
+    | node(v, l, r) => v + tree-sum(l) + tree-sum(r)
+  end
+where:
+  tree-sum(leaf) is 0
+  tree-sum(node(5, node(4, leaf, leaf), leaf)) is 9
+end
+      </pre>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container">
+  <a name="examples"></a>
+  <div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-4">
+Pyret makes testing a natural part of the programming process.  Functions can
+contain a <code>where:</code> clause that holds unit tests for the function.
+When the program is run in testing mode, these assertions are checked.
+    </div>
+    <div class="col-md-6">
+<pre>
+fun sum(l :: List):
+  cases(List) l:
+    | empty => 0
+    | link(first, rest) => first + sum(rest)
+  end
+where:
+  sum([]) is 0
+  sum([1, 2, 3]) is 6
+end
+</pre>
+    <div class="col-md-1"></div>
+    </div>
+  </div>
+  <hr/>
+  <div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-6">
+<pre>
+data BinTree:
+  | leaf
+  | node(value, left :: BinTree, right :: BinTree)
+end
+</pre>
+    </div>
+    <div class="col-md-4">
+Pyret allows for concise and expressive recursive data declarations.
+    </div>
+    <div class="col-md-1"></div>
+  </div>
+</div>
+EOF
+)
+            
+          @(when (string-ci=? uri-path "/blog/index.html")
+            @list{
+              <h1>Welcome</h1>
+              <p>Here is some text that only goes on the blog index page,
+                because <code>@"@"uri-path</code> is
+                <code>/blog-index.html</code>.</p> })
+          @;{ Index pages for posts have @tag that's not #f }
+          @(when tag
+            @list{<h1>Posts tagged <em>@|tag|</em></h1>})
+          @;{ The main page contents are in @contents }
+          @(when (not (string-ci=? uri-path "/blog/index.html"))
+            @|contents|)
+        </div>
+      </div>
+      <footer>
+        <hr />
+        <p>Site generated
+        by <a href="https://github.com/greghendershott/frog">Frog</a>,
+        the <strong>fr</strong>ozen bl<strong>og</strong> tool.</p>
+        <p>Using <a href="http://twitter.github.com/bootstrap/index.html">Bootstrap</a>.</p>
+        <p><em>Your legal notice here</em>.</p>
+      </footer>
+    </div>
+    <!-- </body> JS -->
+    <script type="text/javascript" src="//code.jquery.com/jquery.js"></script>
+    <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+  </body>
+</html>

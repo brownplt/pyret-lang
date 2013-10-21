@@ -1,0 +1,35 @@
+/* custom.css */
+
+code {
+    color: black;
+}
+
+/* When highlighted code blocks are too wide, they wrap. Resulting in the */
+/* line numbers column's rows not lining up with the code rows. Prevent */
+/* wrapping. */
+pre {
+  white-space: pre;
+  font-family: Consolas, monospace;
+}
+
+.navbar {
+  background-color: #669;
+}
+
+img.navbar-logo {
+  height: 2em;
+}
+
+img.title-logo {
+  width: 80%;
+  padding-bottom: 1em;
+}
+
+.navbar-nav {
+  float: right !important;
+  margin: auto;
+}
+
+.navbar-nav>li>a {
+  color: #eee !important;
+}
