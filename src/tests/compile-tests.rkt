@@ -374,7 +374,7 @@
    "duplicate")
 
   (check-pyret-match/check "pyret/data-equals.arr" _ 27)
-  (check-pyret-match/check "pyret/data-eq.arr" _ 16)
+  (check-pyret-match/check "pyret/data-eq.arr" _ 24)
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
 
 
