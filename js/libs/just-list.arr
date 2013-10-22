@@ -15,3 +15,4 @@ list = {
   empty: empty
 }
 
+checkers = {}

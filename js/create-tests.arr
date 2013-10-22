@@ -17,6 +17,12 @@ JS-ENV = N.library-env.{
   data-equals: true,
   data-to-repr: true
 }
+TEST-ENV = N.whalesong-env.{
+  equiv: true,
+  data-equals: true,
+  data-to-repr: true
+}
+
 
 fun toplevel-to-js(ast :: A.Program):
   free-in-prog = A.free-ids(A.to-native(ast))
@@ -59,8 +65,7 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
         J.stringify({expected-out: correct-output, expected-err: err-output})])
     | test-lib(lib, correct-output, err-output) =>
       ids = P.toplevel-ids(lib)
-      env = for fold(the-env from JS-ENV.{test-print: true},
-                     id from ids):
+      env = for fold(the-env from TEST-ENV.{test-print: true}, id from ids):
         the-env.{[id]: true}
       end
       ast = A.parse-tc(program, test-name, {check : false, env: env})
@@ -114,11 +119,12 @@ MISC = [
       "test_field",
       test-lib(
           A.parse-tc(
-              "test_field = 22",
+              "test_field = 22
+               checkers = {}",
               "lib-test",
               {
                 check : false,
-                env : N.whalesong-env
+                env : N.library-env
               }
             ),
           "22",
@@ -220,7 +226,6 @@ fun get-dir-sections(path, create-test):
   end
 end
 
-#all-tests("tests")
 fun create-print-test(name, program, out, err):
   print("Registering basic test: " + name)
   str-test-case(name, program, test-print(out, err))
@@ -247,14 +252,19 @@ fun create-list-test(name, program, out, err):
   str-test-case(name, program, test-lib(list-lib-ast, out, err))
 end
 
+#all-tests("tests")
+all-tests("moorings-tests")
+all-tests("list-lib-tests")
+
 BASIC-TESTS = get-dir-sections("tests", create-print-test)
 MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
 LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
-  [test-section("misc", MISC)] +
-  BASIC-TESTS +
-  MOORINGS-TESTS +
-  LIST-LIB-TESTS)
+    [test-section("misc", MISC)] +
+    BASIC-TESTS +
+    MOORINGS-TESTS +
+    LIST-LIB-TESTS
+  )
 
 
