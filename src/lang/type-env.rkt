@@ -151,6 +151,8 @@
 
       'Set
       'set
+      'list-set
+      'tree-set
       
       'identical)))
 

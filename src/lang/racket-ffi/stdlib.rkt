@@ -50,6 +50,8 @@
 (define pyret-index (get-list-lib "index"))
 (define pyret-Set (get-set-lib "Set"))
 (define pyret-set (get-set-lib "set"))
+(define pyret-list-set (get-set-lib "list-set"))
+(define pyret-tree-set (get-set-lib "tree-set"))
 
 (define %option (p:get-field p:dummy-loc moorings "option"))
 (define (get-option-lib name)

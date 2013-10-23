@@ -70,6 +70,8 @@
     [pyret-read-sexpr-list read-sexpr-list]
     [pyret-Set Set]
     [pyret-set set]
+    [pyret-list-set list-set]
+    [pyret-tree-set tree-set]
     [pyret-Option Option]
     [pyret-is-none is-none]
     [pyret-is-some is-some]
