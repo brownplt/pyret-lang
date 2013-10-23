@@ -19,6 +19,10 @@
   (set))
 
 (check-equal?
+  (free-ids (parse-pyret "var x = 3 fun: x := 5;() x"))
+  (set))
+
+(check-equal?
   (free-ids (parse-pyret "fun f(): f where: g end"))
   (set 'g))
 
