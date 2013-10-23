@@ -121,6 +121,7 @@ these metadata purposes.
 (define opor 'opor)
 (define opis 'opis)
 (define opraises 'opraises)
+(define opsatisfies 'opsatisfies)
 
 (define op-lookup-table
   (make-immutable-hash
@@ -137,7 +138,8 @@ these metadata purposes.
      ("and" . ,opand)
      ("or" . ,opor)
      ("is" . ,opis)
-     ("raises" . ,opraises))))
+     ("raises" . ,opraises)
+     ("satisfies" . ,opsatisfies))))
 
 (define reverse-op-lookup-table
   (make-immutable-hash
@@ -146,6 +148,8 @@ these metadata purposes.
 
 ;; s-op: srcloc op Expr Expr -> s-op
 (struct s-op s-ast (syntax op left right) #:transparent)
+
+(struct s-check-test s-ast (syntax op left right) #:transparent)
 
 ;; NOTE(dbp): our only unary op, so not generalized
 ;; s-not: srcloc Expr
@@ -317,6 +321,7 @@ these metadata purposes.
     [(s-cases-else s type val branches else) (s-cases-else s type (sub val) (map sub branches) (sub else))]
     [(s-cases-branch s name args body) (s-cases-branch s name args (sub body))]
     [(s-op s op left right) (s-op s op (sub left) (sub right))]
+    [(s-check-test s op left right) (s-check-test s op (sub left) (sub right))]
     [(s-not s expr) (s-not s (sub expr))]
     [(s-paren s expr) (s-paren s (sub expr))]
     [(s-data-field s name value) (s-data-field s name (sub value))]
@@ -368,6 +373,7 @@ these metadata purposes.
     [(s-cases-else syntax type val branches else) syntax]
     [(s-cases-branch syntax name args body) syntax]
     [(s-op syntax op left right) syntax]
+    [(s-check-test syntax op left right) syntax]
     [(s-not syntax expr) syntax]
     [(s-paren syntax expr) syntax]
     [(s-lam syntax typarams args ann doc body check) syntax]
@@ -515,6 +521,7 @@ these metadata purposes.
      (set-subtract (unions (map free-ids bindings)) bound-ids)]
     [(s-list _ values) (unions (map free-ids values))]
     [(s-op _ _ left right) (set-union (free-ids left) (free-ids right))]
+    [(s-check-test _ _ left right) (set-union (free-ids left) (free-ids right))]
     [(s-user-block _ block) (free-ids block)]
     [(s-when _ test block) (set-union (free-ids test) (free-ids block))]
     [(s-if _ branches) (unions (map free-ids-if-branch branches))]
@@ -749,6 +756,11 @@ these metadata purposes.
       [(cons (s-list _ values1) (s-list _ values2))
        (length-andmap equiv-ast values1 values2)]
       [(cons (s-op _ op1 left1 right1) (s-op _ op2 left2 right2))
+       (and
+        (symbol=? op1 op2)
+        (equiv-ast left1 left2)
+        (equiv-ast right1 right2))]
+      [(cons (s-check-test _ op1 left1 right1) (s-check-test _ op2 left2 right2))
        (and
         (symbol=? op1 op2)
         (equiv-ast left1 left2)

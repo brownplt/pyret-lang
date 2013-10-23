@@ -494,7 +494,7 @@
         (define e-curry (s-bracket s ds-e (s-str s "_not")))
         (s-app s e-curry (list))))]
 
-    [(s-op s 'opis e1 e2)
+    [(s-check-test s 'opis e1 e2)
      (s-app
       s
       (s-bracket s (s-id s 'checkers) (s-str s "check-is"))
@@ -504,7 +504,7 @@
         (lam s (list) (ds e2))
         (build-location s)))]
 
-    [(s-op s 'opraises e1 e2)
+    [(s-check-test s 'opraises e1 e2)
      (s-app
       s
       (s-bracket s (s-id s 'checkers) (s-str s "check-raises"))

@@ -204,6 +204,8 @@ data Expr:
     end
   | s_op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
+  | s_check_test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+    tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
   | s_not(l :: Loc, expr :: Expr) with:
     tosource(self): PP.nest(INDENT, PP.flow([str-not, self.expr.tosource()])) end
   | s_paren(l :: Loc, expr :: Expr) with:

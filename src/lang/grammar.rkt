@@ -14,7 +14,7 @@ provide-stmt: "provide" stmt end | "provide" "*"
 block: stmt*
 
 stmt: let-expr | fun-expr | data-expr | when-expr
-    | var-expr | assign-expr | binop-expr | check-expr
+    | var-expr | assign-expr | check-test | check-expr
     | graph-expr
 
 let-expr: binding "=" binop-expr
@@ -32,6 +32,7 @@ doc-string: ["doc:" STRING]
 where-clause: ["where:" block]
 
 check-expr: "check:" block end
+check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause end
 data-mixins: ["deriving" mixins]
@@ -57,7 +58,9 @@ binop-expr: not-expr | binop-expr binop binop-expr | expr
 not-expr: "not" expr
 
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
-     | "<>"  | "<"  | ">" | "and" | "or" | "is" | "raises"
+     | "<>"  | "<"  | ">" | "and" | "or"
+
+check-op: "is" | "raises"
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr | left-app-expr

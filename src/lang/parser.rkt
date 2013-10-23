@@ -59,9 +59,15 @@
     [(block stmts ...)
      (s-block (loc stx) (map/stx parse-stmt-wrapper #'(stmts ...)))]))
 
+(define (parse-check-block stx)
+  (syntax-parse stx
+    #:datum-literals (check-block)
+    [(check-block stmts ...)
+     (s-block (loc stx) (map/stx parse-stmt-wrapper #'(stmts ...)))]))
+
 (define (parse-stmt-wrapper stx)
   (syntax-parse stx
-    #:datum-literals (stmt)
+    #:datum-literals (stmt check-test)
     [(stmt s) (parse-stmt #'s)]))
 
 (define (parse-with stx)
@@ -97,7 +103,7 @@
       data-expr
       assign-expr
       when-expr
-      check-expr
+      check-expr check-test
       stmt
       expr
     )
@@ -134,7 +140,10 @@
 
     [(check-expr "check:" body (end (~or "end" ";")))
      (s-check (loc stx) (parse-block #'body))]
-
+    [(check-test expr) (parse-stmt #'expr)]
+    [(check-test left op right) (s-check-test (loc stx) (parse-check-op #'op)
+                                              (parse-binop-expr #'left)
+                                              (parse-binop-expr #'right))]
     [(stmt s) (parse-stmt #'s)]
     [(binop-expr e) (parse-binop-expr #'e)]
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
@@ -153,9 +162,14 @@
     [(where-clause) (s-block (loc stx) empty)]
     [(where-clause "where:" block) (parse-block #'block)]))
 
+(define (parse-check-op stx)
+  (syntax-parse stx
+    #:datum-literals (check-op)
+    [(check-op str) (hash-ref op-lookup-table (syntax->datum #'str))]))
+
 (define (parse-binop-expr stx)
   (syntax-parse stx
-    #:datum-literals (binop-expr expr)
+    #:datum-literals (binop-expr not-expr expr)
     [(binop-expr _ _ _) (parse-stmt stx)]
     [(expr e) (parse-expr #'e)]
     [(not-expr "not" e) (s-not (loc stx) (parse-expr #'e))]
