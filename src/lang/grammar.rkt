@@ -60,7 +60,7 @@ not-expr: "not" expr
 binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
      | "<>"  | "<"  | ">" | "and" | "or"
 
-check-op: "is" | "raises"
+check-op: "is" | "raises" | "satisfies"
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr | left-app-expr

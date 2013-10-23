@@ -1025,6 +1025,7 @@ line string\"" (s-str _ "multi\nline string"))
 
    (check/block "o raises e" (s-check-test _ 'opraises (s-id _ 'o) (s-id _ 'e)))
    (check/block "o is e" (s-check-test _ 'opis (s-id _ 'o) (s-id _ 'e)))
+   (check/block "o satisfies e" (s-check-test _ 'opsatisfies (s-id _ 'o) (s-id _ 'e)))
    ))
 
 (define semis (test-suite "semis"

@@ -116,7 +116,11 @@
 
 (check-pyret-exn
  "fun: 1 is 2 end"
- "Cannot use `is` or `raises` outside of a `check` or `where` block. Try `==`.")
+ "Cannot use `is` outside of a `check` or `where` block. Try `==`.")
+
+(check-pyret-exn
+ "fun: 1 raises 2 end"
+ "Cannot use a check-test form outside of a `check` or `where` block.")
 
 (check-pyret
  "fun f(): nothing where: 1 is 2 end 10"

@@ -958,6 +958,37 @@ fun check-is(name, thunk1, thunk2, loc):
   end
 end
 
+fun check-satisfies(name, thunk1, thunk2, loc):
+  doc: "Check that thunk1 produces a value that satisfies the predicate produced by thunk2"
+  try:
+    val = thunk1()
+    try:
+      pred = thunk2()
+      try:
+        if pred(val):
+          add-result(success(name, some(loc)))
+        else:
+          add-result(
+            failure(
+              name,
+              "Predicate failed: \n"
+                + torepr(pred)
+                + "\n\nfor value:\n"
+                + torepr(pred),
+              some(loc)
+              ))
+        end
+      except(e):
+        add-result(err(name, e, some(loc)))
+      end
+    except(e):
+      add-result(err(name, e, some(loc)))
+    end
+  except(e):
+    add-result(err(name, e, some(loc)))
+  end
+end            
+
 fun check-raises(name, thunk, expected-str :: String, loc):
   doc: "Check that thunk raises either a string that contains expected-str,
         or an exception with a message that contains expected-str"
@@ -1196,6 +1227,7 @@ checkers = {
   CheckResult: CheckResult,
   check-is: check-is,
   check-raises: check-raises,
+  check-satisfies: check-satisfies,
   check-true: check-true,
   check-false: check-false,
   check-equals: check-equals,

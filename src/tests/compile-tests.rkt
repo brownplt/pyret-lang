@@ -1023,6 +1023,8 @@ o2.m().called" true)
 
     (check-pyret-match/check "pyret/check/raises.arr" _ 5 3 2 0 0)
 
+    (check-pyret-match/check "pyret/check/satisfies.arr" _ 2)
+
     (check-pyret-match/check "pyret/errors/arity.arr" _ 11)
 
 ))
