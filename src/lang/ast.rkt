@@ -419,6 +419,7 @@ these metadata purposes.
       [(s-singleton-variant _ name _)
        (list name (make-checker-name name))]))
   (match expr
+    [(s-var _ (s-bind _ x _) _) (list x)]
     [(s-let _ (s-bind _ x _) _) (list x)]
     [(s-fun _ name _ _ _ _ _ _) (list name)]
     [(s-data s name _ _ variants _ _)
