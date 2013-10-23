@@ -217,7 +217,7 @@
         [ok-last
          (define bind-result (s-let s (s-bind s result-id (a-blank)) last-stmt))
          (define new-stmts
-          (append all-but-last (list bind-result (s-id s 'nothing))))
+          (append all-but-last (list bind-result (s-id s result-id) (s-id s 'nothing))))
           (desugar-check/internal (s-block s2 new-stmts))]
         [else
          (define bind-result (s-let s (s-bind s result-id (a-blank)) (s-id s2 'nothing)))
