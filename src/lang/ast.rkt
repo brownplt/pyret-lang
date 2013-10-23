@@ -520,7 +520,7 @@ these metadata purposes.
     [(s-if _ branches) (unions (map free-ids-if-branch branches))]
     [(s-if-else _ branches else)
      (set-union (unions (map free-ids-if-branch branches)) (free-ids else))]
-    [(s-try _ body id except)
+    [(s-try _ body (s-bind _ id _) except)
      (set-union (free-ids body) (set-subtract (free-ids except) (set id)))]
     [(s-cases _ type val branches)
      (set-union

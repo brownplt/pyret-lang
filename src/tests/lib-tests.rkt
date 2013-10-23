@@ -19,6 +19,14 @@
   (set))
 
 (check-equal?
+  (free-ids (parse-pyret "
+  p = mk-placeholder()
+  try: p.get() except(e): test-print(e.message) end
+  p.set(5)
+  p.get()"))
+  (set 'test-print 'mk-placeholder))
+
+(check-equal?
   (free-ids (parse-pyret "var x = 3 fun: x := 5;() x"))
   (set))
 
