@@ -971,10 +971,8 @@ fun check-satisfies(name, thunk1, thunk2, loc):
           add-result(
             failure(
               name,
-              "Predicate failed: \n"
-                + torepr(pred)
-                + "\n\nfor value:\n"
-                + torepr(pred),
+              "Predicate failed for value:\n"
+                + torepr(val),
               some(loc)
               ))
         end
