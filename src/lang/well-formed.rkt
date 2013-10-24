@@ -157,10 +157,10 @@
     [(s-check-test s op e1 e2)
      (if (not in-check-block)
          (if (eq? op 'opis)
-             (wf-error "Cannot use `is` outside of a `check` or `where` block. Try `==`." s)
+             (wf-error "Cannot use `is` outside of a `check` or `where` block." s)
              (wf-error "Cannot use a check-test form outside of a `check` or `where` block." s))
-         (begin (reachable-ops s op e1)
-                (reachable-ops s op e2)))]
+         (begin (wf e1)
+                (wf e2)))]
     [(s-op s op e1 e2) (begin (reachable-ops s op e1)
                               (reachable-ops s op e2))]
 
