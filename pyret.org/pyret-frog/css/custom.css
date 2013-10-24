@@ -49,3 +49,34 @@ img.title-logo {
 h1 {
   font-size: 24px;
 }
+
+div.carousel {
+  height : 100%;
+  min-height : 100%;
+}
+
+a.carousel-control.right {
+  color : #111;
+  background-color : transparent;
+  background-image : none;
+}
+
+a.carousel-control.left {
+  color : #111;
+  background-color : transparent;
+  background-image : none;
+}
+
+#main-carousel {
+  min-width : 20em;
+}
+
+div.carousel-inner pre {
+  min-width : 28em;
+}
+
+div.carousel-inner pre {
+  margin-left : 3em;
+  margin-right : 3em;
+  height : 25em;
+}

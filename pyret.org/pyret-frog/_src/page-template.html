@@ -48,10 +48,11 @@
              role="navigation">
           <ul class="nav navbar-nav">
             <li><a href="#examples">Examples</a></li>
-            <li><a href="#examples">Downloads</a></li>
-            <li><a href="#examples">Docs</a></li>
-            <li><a href="#examples">Team</a></li>
-            <li><a href="#examples">Plan</a></li>
+            <li><a href="/getting-started/">Set Sail</a></li>
+            <li><a href="/docs/">Documentation</a></li>
+            <li><a href="https://github.com/brownplt/pyret-lang">Code</a></li>
+            <li><a href="/team/">Team</a></li>
+            <li><a href="/plan/">Plan</a></li>
           </ul>
         </div>
     </header>
@@ -125,35 +126,96 @@
       <p>
       Pyret is a programming language designed to serve as an outstanding
       choice for programming education.  It's under active design and
-      development, and free to use, modify, and share.
+      development, and free to use or modify.
       </p>
       <p>
         <a href="#examples" class="btn btn-primary btn-m">Examples</a>
-        <a class="btn btn-primary btn-m">Download</a>
-        <a class="btn btn-primary btn-m">Docs</a>
-        <a class="btn btn-primary btn-m">Team</a>
-        <a class="btn btn-primary btn-m">Plan</a>
+        <a href="/getting-started/" class="btn btn-primary btn-m">Set Sail</a>
+        <a href="/plan/" class="btn btn-primary btn-m">Plan</a>
+        <a href="https://github.com/brownplt/pyret-lang" class="btn btn-primary btn-m">Code</a>
       </p>
       </div>
       <div class="col-md-6">
+<div id="main-carousel" class="container carousel slide" data-interval="false">
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner">
+    <div class="item active">
       <pre>
 @disable-prefix{
-@(info-code "data" "This creates a new type, called BinTree, and two constructors, leaf and node") BinTree:
+data BinTree:
   | leaf
   | node(value, left, right)
 end
 
 fun tree-sum(t):
-  @(info-code "cases" "This cases form checks that t is a BinTree, and then evaluates the first or second branch depending on if t is a leaf or a node.")(BinTree) t:
+  doc: "Calculate the sum of node values"
+  cases(BinTree) t:
     | leaf => 0
-    | @(info-code "node(v, l, r)" "This cases match clause binds v, l, and r to the value, left, and right fields of the given node for use on the right hand side") => v + tree-sum(l) + tree-sum(r)
+    | node(v, l, r) =>
+      v + tree-sum(l) + tree-sum(r)
   end
 where:
   tree-sum(leaf) is 0
-  tree-sum(node(5, node(4, leaf, leaf), leaf)) is 9
+  node4 = node(4, leaf, leaf)
+  tree-sum(node(5, node4, leaf)) is 9
 end
 }
       </pre>
+    </div>
+    <div class="item">
+      <pre>
+@disable-prefix{
+
+
+for map(n from [1,2,3]): n * n end
+# ==> [1, 4, 9]
+
+for filter(n from [1, 2, 3]):
+  n >= 2
+end
+# ==> [2, 3]
+
+for fold(sum from 0, n from [4, 5, 6]):
+  sum + n
+end
+# ==> 15
+}
+      </pre>
+    </div>
+    <div class="item">
+      <pre>
+@disable-prefix{
+eps = 0.001
+fun d-dx(f):
+  doc: "Calculate the derivative of f"
+  fun(x): (f(x + eps) - f(x)) / eps;
+where:
+  fun square(x): x * x;
+  fun two-x(x): 2 * x;
+  fun within(delta, target):
+    fun(actual):
+      (actual - target).abs() < delta;
+  end
+
+  d-dx(square)(5) satisfies
+    within(0.1, two-x(5))
+  d-dx(square)(10) satisfies
+    within(0.1, two-x(10))
+end
+}
+      </pre>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#main-carousel" data-slide="prev">
+    <span class="icon-prev"></span>
+  </a>
+  <a class="right carousel-control" href="#main-carousel" data-slide="next">
+    <span class="icon-next"></span>
+  </a>
+</div>
       </div>
     </div>
   </div>
