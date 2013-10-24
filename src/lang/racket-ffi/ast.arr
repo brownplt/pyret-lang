@@ -56,8 +56,8 @@ str-with = PP.str("with:")
 fun funlam_tosource(funtype, name, params, args :: List<is-s_bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Expr) -> PP.PPrintDoc:
   typarams =
-    if is-nothing(params): PP.empty
-    else: PP.surround-separate(INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+    if is-nothing(params): PP.mt-doc
+    else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         params.map(PP.str))
     end
   arg-list = PP.nest(INDENT,
@@ -66,21 +66,21 @@ fun funlam_tosource(funtype, name, params, args :: List<is-s_bind>,
   ftype = funtype + typarams
   fname = 
     if is-nothing(name): ftype
-    else if PP.is-empty(ftype): PP.str(name)
+    else if PP.is-mt-doc(ftype): PP.str(name)
     else: ftype + PP.str(" " + name)
     end
   fann =
-    if is-a_blank(ann) or is-nothing(ann): PP.empty
+    if is-a_blank(ann) or is-nothing(ann): PP.mt-doc
     else: break-one + str-arrowspace + ann.tosource()
     end
   header = PP.group(fname + arg-list + fann + str-colon)
   checker = _check.tosource()
   footer =
-    if PP.is-empty(checker): str-end
+    if PP.is-mt-doc(checker): str-end
     else: PP.surround(INDENT, 1, str-where, _check.tosource(), str-end)
     end
   docstr =
-    if is-nothing(doc) or (doc == ""): PP.empty
+    if is-nothing(doc) or (doc == ""): PP.mt-doc
     else: str-doc + PP.dquote(PP.str(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
@@ -239,13 +239,13 @@ data Expr:
     tosource(self):
       PP.group(self.super.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-          PP.lbrace, PP.commabreak, PP.rbrace, self.flds.map(fun(f): f.todatafield() end)))
+          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end)))
     end
   | s_update(l :: Loc, super :: Expr, fields :: List<Member>)
   | s_obj(l :: Loc, fields :: List<Member>) with:
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.flds.map(fun(f): f.todatafield() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
     end
   | s_list(l :: Loc, values :: List<Expr>) with:
     tosource(self):
@@ -270,7 +270,9 @@ data Expr:
   | s_bool(l :: Loc, b :: Bool) with:
     tosource(self): PP.str(self.b.tostring()) end
   | s_str(l :: Loc, s :: String) with:
-    tosource(self): PP.squote(PP.str(self.s)) end
+    tosource(self):
+      PP.squote(
+        PP.str(self.s)) end
   | s_dot(l :: Loc, obj :: Expr, field :: String) with:
     tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
   | s_get_bang(l :: Loc, obj :: Expr, field :: String)
@@ -295,19 +297,19 @@ data Expr:
     ) with:
     tosource(self):
       fun optional_section(lbl, section):
-        if PP.is-empty(section): PP.empty
+        if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
       end
-      tys = PP.surround-separate(2*INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+      tys = PP.surround-separate(2*INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(fun(f): f.tosource() end))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
-        PP.surround-separate(INDENT, 0, PP.empty, break-one + str-deriving, PP.commabreak, PP.empty, self.mixins.map(fun(m): m.tosource() end))
+        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(str-sharing,
-        PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.todatafield() end)))
+        PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
       _check = optional_section(str-where, self.check.tosource())
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
@@ -363,7 +365,7 @@ data Member:
     ) with:
     tosource(self):
       name-part = cases(Expr) self.name:
-        | s_str(s) => PP.str(s)
+        | s_str(l, s) => PP.str(s)
         | else => self.name.tosource()
       end
       funlam_tosource(name-part,
@@ -399,10 +401,10 @@ data Variant:
     tosource(self):
       header-nowith = 
         PP.str(self.name)
-        + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
-        self.binds.map(fun(b): b.tosource() end))
+        + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
+        self.members.map(fun(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with_members.map(fun(m): m.todatafield() end)
+      withs = self.with_members.map(fun(m): m.tosource() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
@@ -415,7 +417,7 @@ data Variant:
     tosource(self):
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with_members.map(fun(m): m.todatafield() end)
+      withs = self.with_members.map(fun(m): m.tosource() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
@@ -435,7 +437,7 @@ data CasesBranch:
   | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     tosource(self):
       PP.group(PP.str("| " + self.name)
-          + PP.surround-separate(INDENT, 0, PP.empty, PP.lparen, PP.commabreak, PP.rparen,
+          + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
           self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
       self.body.tosource()
     end
@@ -459,8 +461,8 @@ data Ann:
     tosource(self): PP.str("NYI: A_method") end
   | a_record(l :: Loc, fields :: List<AField>) with:
     tosource(self):
-      PP.soft-surround(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
-        self.flds.map(fun(f): f.tosource() end))
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
+        self.fields.map(fun(f): f.tosource() end))
     end
   | a_app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     tosource(self):
