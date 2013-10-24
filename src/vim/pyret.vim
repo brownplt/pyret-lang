@@ -1,7 +1,6 @@
 " Vim syntax file
 " Language: Pyret
 " Maintainer: Joe Gibbs Politz (joe@cs.brown.edu)
-" Latest Revision: 14 Aug 2013
 
 if exists("b:current_syntax")
   finish
