@@ -33,6 +33,7 @@
          "cases"
          "when" "if" "else if" "else:"
          "data" "with:" "sharing:" "mutable" "cyclic"
+         "datatype" "with constructor"
          "graph:" "block:"
          "for" "from"
          "end" ";"))
@@ -77,7 +78,7 @@
    (lambda (x match)
      (define m-oct (string->number match 8))
      (define s-oct (if m-oct (string (integer->char m-oct)) #f))
-     (define m-hex 
+     (define m-hex
        (if (or (string=? (substring match 0 1) "u") (string=? (substring match 0 1) "x"))
            (string->number (substring match 1) 16)
            #f))

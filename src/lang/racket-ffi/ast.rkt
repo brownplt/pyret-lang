@@ -58,7 +58,25 @@
           (tp-loc l)
           (symbol->string name)
           (map tp-member members))]
+      [(s-datatype-variant l name members constructor)
+       (build s_datatype_variant
+              (tp-loc l)
+              (symbol->string name)
+              (map tp-variant-member members)
+              (tp-constructor constructor))]
+      [(s-datatype-singleton-variant l name constructor)
+       (build s_datatype_singleton_variant
+              (tp-loc l)
+              (symbol->string name)
+              (tp-constructor constructor))]
       [_ (error (format "Not a variant: ~a" variant))]))
+  (define (tp-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (build s_datatype_constructor
+              (tp-loc s)
+              (symbol->string self)
+              (tp body))]))
   (define (tp-member m)
     (match m
       [(s-data-field s name e)
@@ -107,6 +125,14 @@
         (map tp mixins)
         (map tp-variant variants)
         (map tp-member share-members)
+        (tp check))]
+
+    [(s-datatype s name params variants check)
+     (build s_datatype
+        (tp-loc s)
+        (symbol->string name)
+        (map symbol->string params)
+        (map tp-variant variants)
         (tp check))]
 
     [(s-for s iter bindings ann body)
@@ -382,6 +408,10 @@
       (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
      [(has-brand variant s_singleton_variant)
       (tr-obj variant s-singleton-variant (tr-loc l) (string->symbol name) (map tr-member with_members))]
+     [(has-brand variant s_datatype_variant)
+      (tr-obj variant s-datatype-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (tr-constructor constructor))]
+     [(has-brand variant s_datatype_singleton_variant)
+      (tr-obj variant s-datatype-singleton-variant (tr-loc l) (string->symbol name) (tr-constructor constructor))]
      [else (error (format "Couldn't match variant: ~a" (p:to-string (ffi-unwrap variant))))]))
   (define (tr-member m)
     (cond
@@ -395,6 +425,11 @@
       (tr-obj m s-method-field
               (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [else (error (format "Couldn't match member: ~a" (p:to-string (ffi-unwrap m))))]))
+  (define (tr-constructor c)
+    (cond
+     [(has-brand c s_datatype_constructor)
+      (tr-obj c s-datatype-constructor (tr-loc l) (string->symbol self) (tr-expr body))]
+     [else (error (format "Couldn't match constructor: ~a" (p:to-string (ffi-unwrap c))))]))
   (define (tr-bind b)
     (cond
      [(has-brand b s_bind)
@@ -528,6 +563,9 @@
      [(has-brand e s_data)
       (tr-obj e s-data
               (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-expr mixins) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
+     [(has-brand e s_datatype)
+      (tr-obj e s-datatype
+              (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (tr-expr check))]
      [(has-brand e s_for)
       (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
      [(has-brand e s_check)
@@ -585,4 +623,3 @@
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
-

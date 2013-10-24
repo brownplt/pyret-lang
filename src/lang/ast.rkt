@@ -25,6 +25,7 @@ these metadata purposes.
     [(s-var _ _ _) #f]
     [(s-fun _ _ _ _ _ _ _ _) #f]
     [(s-data _ _ _ _ _ _ _) #f]
+    [(s-datatype _ _ _ _ _) #f]
     [(s-graph _ _) #f]
     [(s-check _ _) #f]
     [else #t]))
@@ -71,7 +72,7 @@ these metadata purposes.
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind s-ast (syntax id ann) #:transparent)
 
-;; A Stmt is a (U s-fun s-var s-if s-try s-data s-import Expr)
+;; A Stmt is a (U s-fun s-var s-if s-try s-data s-datatype s-import Expr)
 
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
 (struct s-fun s-ast (syntax name params args ann doc body check) #:transparent)
@@ -230,10 +231,22 @@ these metadata purposes.
 
 (struct s-variant-member s-ast (syntax member-type bind) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
+;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
 (struct s-variant s-ast (syntax name binds with-members) #:transparent)
-;; s-variant : srcloc Symbol (Listof Member)
+;; s-singleton-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant s-ast (syntax name with-members) #:transparent)
+
+;; s-datatype : srcloc Symbol (Listof Symbol) (Listof s-datatype-variant) block
+(struct s-datatype s-ast (syntax name params variants check) #:transparent)
+
+;; s-datatype-variant : srcloc Symbol (Listof s-bind) s-datatype-constructor
+(struct s-datatype-variant s-ast (syntax name binds constructor) #:transparent)
+
+;; s-datatype-singleton-variant : srcloc Symbol (s-datatype-constructor or #f)
+(struct s-datatype-singleton-variant s-ast (syntax name constructor) #:transparent)
+
+;; s-datatype-constructor : srcloc Symbol block
+(struct s-datatype-constructor s-ast (syntax self body))
 
 ;; s-for-bind : srcloc s-bind Expr
 (struct s-for-bind s-ast (syntax bind value) #:transparent)
@@ -347,6 +360,12 @@ these metadata purposes.
     [(s-variant s name binds with-members)
      (s-variant s name binds (map sub with-members))]
     [(s-singleton-variant s name with-members) expr1]
+    [(s-datatype s name params variants check)
+     (s-datatype s name params (map sub variants) (sub check))]
+    [(s-datatype-variant s name binds constructor)
+     (s-datatype-variant s name binds (sub constructor))]
+    [(s-datatype-singleton-variant s name constructor)
+     (s-datatype-singleton-variant s name (sub constructor))]
     [(s-for-bind s bind value) (s-for-bind s bind (sub value))]
     [_ (error (format "Cannot substitute into: ~a\n" expr1))]))
 
@@ -399,6 +418,9 @@ these metadata purposes.
     [(s-data syntax name params mixins variants shared-members check) syntax]
     [(s-variant syntax name binds with-members) syntax]
     [(s-singleton-variant syntax name with-members) syntax]
+    [(s-datatype syntax name params variants check) syntax]
+    [(s-datatype-variant syntax name args constructor) syntax]
+    [(s-datatype-singleton-variant syntax name constructor) syntax]
     [(s-for-bind syntax bind value) syntax]
     [(s-for syntax iterator bindings ann body) syntax]
     [(a-ann) (list "pyret-internal" #f #f #f #f)]
@@ -423,12 +445,18 @@ these metadata purposes.
       [(s-variant _ name _ _)
        (list name (make-checker-name name))]
       [(s-singleton-variant _ name _)
+       (list name (make-checker-name name))]
+      [(s-datatype-variant _ name _ _)
+       (list name (make-checker-name name))]
+      [(s-datatype-singleton-variant _ name _)
        (list name (make-checker-name name))]))
   (match expr
     [(s-var _ (s-bind _ x _) _) (list x)]
     [(s-let _ (s-bind _ x _) _) (list x)]
     [(s-fun _ name _ _ _ _ _ _) (list name)]
     [(s-data s name _ _ variants _ _)
+     (cons name (flatten (map variant-ids variants)))]
+    [(s-datatype s name _ variants _)
      (cons name (flatten (map variant-ids variants)))]
     [else (list)]))
 (define (top-level-ids block)
@@ -470,7 +498,17 @@ these metadata purposes.
         (unions (map free-ids-variant-member binds))
         (unions (map free-ids-member with-members)))]
       [(s-singleton-variant _ name with-members)
-       (unions (map free-ids-member with-members))]))
+       (unions (map free-ids-member with-members))]
+      [(s-datatype-variant _ name binds constructor)
+       (set-union
+        (unions (map free-ids-variant-member binds))
+        (unions (free-ids-constructor constructor)))]
+      [(s-datatype-singleton-variant _ name constructor)
+        (unions (free-ids-constructor constructor))]))
+  (define (free-ids-constructor c)
+    (match c
+      [(s-datatype-constructor _ name body)
+       (unions (free-ids body))]))
   (define (free-ids-ann a)
     (match a
       [(a-any) (set)]
@@ -573,6 +611,11 @@ these metadata purposes.
        (unions (map free-ids-member shared-members))
        (free-ids check))]
 
+    [(s-datatype _ name params variants check)
+     (set-union
+       (unions (map free-ids-variant variants))
+       (free-ids check))]
+
     [(s-num _ _) (set)]
     [(s-bool _ b) (set)]
     [(s-str _ s) (set)]
@@ -660,7 +703,27 @@ these metadata purposes.
        (and
         (symbol=? name1 name2)
         (length-andmap equiv-ast-member with-members1 with-members2))]
+      [(cons
+        (s-datatype-variant _ name1 binds1 constructor1)
+        (s-datatype-variant _ name2 binds2 constructor2))
+       (and
+        (symbol=? name1 name2)
+        (length-andmap equiv-ast-variant-member binds1 binds2)
+        (equiv-ast-constructor constructor1 constructor2))]
+      [(cons
+        (s-datatype-singleton-variant _ name1 constructor1)
+        (s-datatype-singleton-variant _ name2 constructor2))
+       (and
+        (symbol=? name1 name2)
+        (equiv-ast-constructor constructor1 constructor2))]
       [_ #f]))
+  (define (equiv-ast-constructor c1 c2)
+    (match (cons c1 c2)
+      [(cons (s-datatype-constructor _ self1 body1)
+             (s-datatype-constructor _ self2 body2))
+       (and
+        (symbol=? self1 self2)
+        (equiv-ast body1 body2))]))
   (define (equiv-ast-ann a1 a2)
     (match (cons a1 a2)
       [(cons (a-any) (a-any)) #t]
@@ -858,6 +921,14 @@ these metadata purposes.
         (length-andmap equiv-ast mixins1 mixins2)
         (length-andmap equiv-ast-variant variants1 variants2)
         (length-andmap equiv-ast-member shared-members1 shared-members2)
+        (equiv-ast check1 check2))]
+      [(cons
+        (s-datatype _ name1 params1 variants1 check1)
+        (s-datatype _ name2 params2 variants2 check2))
+       (and
+        (symbol=? name1 name2)
+        (length-andmap symbol=? params1 params2)
+        (length-andmap equiv-ast-variant variants1 variants2)
         (equiv-ast check1 check2))]
       [(cons (s-num _ n1) (s-num _ n2)) (= n1 n2)]
       [(cons (s-bool _ b1) (s-bool _ b2)) (boolean=? b1 b2)]
