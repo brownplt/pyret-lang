@@ -1,5 +1,11 @@
 all:
+	make pages
+	make doc
+
+pages:
 	cd pyret-frog && raco frog -b
+
+doc:
 	cd .. && make doc
 	rm -rf pyret-frog/docs
 	cp -r ../docs/lang/ pyret-frog/docs/

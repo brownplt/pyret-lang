@@ -45,3 +45,7 @@ img.title-logo {
   border-radius: 3px;
   cursor: pointer;
 }
+
+h1 {
+  font-size: 24px;
+}
