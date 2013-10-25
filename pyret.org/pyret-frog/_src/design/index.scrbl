@@ -28,9 +28,9 @@
     }
   })
 
-@title{Pyret's Design Principles}
+@title{What Pyret's About}
 
-@section{Pyret is For Programming Education}
+@section{Pyret is for Programming Education}
 
 Though we are making progress along multiple dimensions, creating a
 pleasant and pedagogically sound language will always take priority in
@@ -38,76 +38,31 @@ what we make public. Therefore, Pyret users in education never need
 worry that the language will gradually grow more and more warts to the
 point of unusability.
 
-Pyret is a @emph{lightweight} language. Its syntax is
-lightweight---there are no class declarations, access control
-specifications, or type definitions that get in the way of you writing
-your first program.
+Pyret is a @emph{lightweight} language. Its syntax is lightweight---there are
+no class declarations, access control specifications, or type definitions that
+get in the way of you writing your first program.  This means that live coding
+in class is quick and programs that do real work can be short.  It also means
+that there will probably be better choices for million-line codebases than
+Pyret.
 
-Pyret recognizes that students must learn to add @emph{annotations} to
-their programs. However, opinions differ on when this should
-begin. Pyret takes a @emph{gradual} philosophy, accommodating a
-variety of learning and teaching styles. Our continuing work on
-specifications (@(seclink "s:specs" "Specification-Enriched")) will let you grow
-the richness of annotations on demand.
+Pyret recognizes that students must learn to add @emph{annotations} to their
+programs. However, opinions differ on when this should begin. Pyret takes a
+@emph{gradual} philosophy, accommodating a variety of learning and teaching
+styles. Our continuing work on specifications (@(seclink "s:specs" "Pyret Will
+be Specification Enriched")) will let you grow the richness of annotations on
+demand.  This mixing of typed and untyped code requires some compromises on
+performance; we strive to push the performance burden onto untyped code,
+rewarding annotations with efficiency of evaluation.
 
-@(two-langs "Numbers" @list{Pyret has @emph{numbers}} "Java"
-"# this is true
-((1 / 3) * 3) == 1"
-"// this is not true
-((1 / 3) * 3) == 1"
-)
-
-
-@(two-langs "Structured Data"
-@list{
-Being able to describe @emph{data} well is central to designing and
-structuring programs. Pyret offers elegant mechanisms for writing data
-definitions without the overhead of classes.
-}
-"Python"
-"data BinTree:
-  | leaf
-  | node(v, l, r)
-end"
-"blurg")
+Being able to describe @emph{data} well is central to designing and structuring
+programs. Pyret offers elegant mechanisms for writing data definitions without
+the overhead of class hierarchies.  There is no downside to doing this well.
 
 @emph{Testing} is a central component of all modern programming. Pyret
-integrates convenient syntactic support for writing tests so that
-testing becomes a natural part of software development.
-
-@(two-langs "Testing" "" "Python"
-"fun square(x):
-  x * x
-where:
-  square(10) is 100
-  square(-1) is 1
-end"
-"def square(x):
-  return x * x
-...")
-
-Any modern programming language needs to run seamlessly on the
-@emph{Web}. One of Pyret's native execution environments is the
-browser, though you can also run it on a desktop.
-
-@emph{Indentation} will matter, but not necessarily in the way you
-think. We believe well-indented programs are vital to
-readability. However, rather than allowing indentation to determine
-meaning---e.g., if you indent a line a few more spaces, it suddenly
-becomes part of a loop rather than a statement beyond the end of
-it---in Pyret, meaning will determine indentation: that is, there will
-be a canonical indentation scheme. This, for instance, means you can
-safely paste code from the Web, or from email, into the desired place,
-and let the language's reindentation tool indent that fragment
-correctly.
-
-Inspired by Racket, Pyret will have @emph{language levels} or
-@emph{dialects}. The student levels will be feature-rich and very
-stable; we will also offer capability-safe and experimental dialects.
-
-Pyret will come with reasonable @emph{batteries included}. We know, we
-like to write programs, too. Indeed, we've been doing all our
-programming in Pyret since it's been ready to run.
+integrates convenient syntactic support for writing tests so that testing
+becomes a natural part of software development.  There are no libraries to
+install or separate test modules to instantiate.  Testing is a language
+feature.
 
 A great deal of motivational content for students depends on being
 able to quickly and easily write @emph{interactive}
@@ -119,31 +74,19 @@ require students to learn complex APIs or control
 operators. Furthermore, our style of interactive programming lends
 itself naturally to testing.
 
-@(two-langs "" "" "Java"
+@pre[
 "big-bang(\"Press a key!\", {
   on-key: fun(w, k): k end,
   to-draw: fun(w):
     text(\"You last pressed \" + w, 12, \"blue\")
   end
-})"
-"...")
+})"]
 
 @emph{Functional programming} is no longer an exotic evolutionary
 spur; rather, it is now a central component in a programmer's
 toolset. Furthermore, programming functionally relates well to
 specification and improving performance. Pyret is therefore designed
 to support functional programming well from the start.
-
-@(two-langs "" "" "Python"
-"fun square(n):
-  n * n
-end"
-"def square(n):
-  return n * n")
-
-Simple @emph{objects} are now a well-understood and beneficial program
-structuring mechanism. Pyret therefore supports objects without
-imposing religious beliefs about classes, inheritance, and so on.
 
 Pyret's knowledge is @emph{portable}.  When you transition to other
 languages, most of your knowledge of programming will come along with
@@ -155,8 +98,18 @@ all! Nevertheless, after programming in Pyret, you will feel frissons
 of familiarity in every part of the linguistic menagerie, from
 serpents to dromedaries.
 
+Making code readable is vital.  In Pyret @emph{indentation} will matter, but
+not necessarily in the way you think. We believe well-indented programs are
+vital to readability. However, rather than allowing indentation to determine
+meaning---e.g., if you indent a line a few more spaces, it suddenly becomes
+part of a loop rather than a statement beyond the end of it---in Pyret, meaning
+will determine indentation: that is, there will be a canonical indentation
+scheme. This, for instance, means you can safely paste code from the Web, or
+from email, into the desired place, and let the language's reindentation tool
+indent that fragment correctly.
 
-@section[#:tag "Specification-Enriched"]{Pyret Will be Specification-Enriched}
+
+@section[#:tag "s:specs"]{Pyret Will be Specification-Enriched}
 
 One of our secret goals is to bring the joyous world of rich program
 specification to the power of not only scripting programmers but even
@@ -175,7 +128,7 @@ untrained in the delights of mathematical logic. We are looking, for
 instance, at ways in which testing oracles can be harnessed for this
 purpose. More as it happens.
 
-@section[#:tag "Scripting-Rebooted"]{Pyret is Scripting Rebooted}
+@section[#:tag "s:rebooted"]{Pyret is Scripting Rebooted}
 
 Over the past few years, we've spent a 
 @(hyperlink "http://cs.brown.edu/~sk/Publications/Papers/Published/gsk-essence-javascript/"

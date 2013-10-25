@@ -80,3 +80,12 @@ div.carousel-inner pre {
   margin-right : 3em;
   height : 25em;
 }
+
+#content {
+
+}
+
+#content p {
+  font-family : Georgia;
+  font-size : 14pt;
+}
