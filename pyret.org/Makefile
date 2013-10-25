@@ -14,7 +14,8 @@ serve:
 	cd pyret-frog && raco frog -s
 
 pub:
-	scp -r site/* browncs:.Web/Sites/pyret.org/
+	scp -r pyret-frog/* ssh.cs.brown.edu:/web/cs/web/sites/pyret.org/
+	ssh ssh.cs.brown.edu chmod -R a+r /web/cs/web/sites/pyret.org/*
 
 clean:
 	rm -rf site/*

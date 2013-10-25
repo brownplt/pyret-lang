@@ -1,6 +1,5 @@
 #lang pyret
 
-import "sourceAST.arr" as SA
 import ast as A
 provide { get-pretty-str: get-pretty-str } end
 
