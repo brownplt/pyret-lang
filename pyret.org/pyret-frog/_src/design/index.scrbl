@@ -1,22 +1,42 @@
 #lang scribble/manual
 
-@(require racket/date scribble/core scribble/html-properties)
+@(require racket/date scribble/core scribble/html-properties scribble/text)
+@(require "../../lib/bootscrbl.rkt")
 
-@(define (two-langs other-lang pyret-code other-code)
-   (tabular #:sep (hspace 4)
-     (list (list (bold "Pyret") (bold other-lang))
-           (list (verbatim pyret-code) (verbatim other-code)))))
+@(define (two-langs header words other-lang pyret-code other-code)
+  (define other-block
+    @col[4]{
+      @bold[other-lang]
+      @pre[other-code]
+    })
+  (define pyret-block
+    @col[4]{
+      @bold{Pyret}
+      @pre[pyret-code]
+    })
+  (define description-block
+    @col[4]{
+      @bold[header]
+      @words
+    })
+
+  @container{
+    @row{
+      @description-block
+      @other-block
+      @pyret-block
+    }
+  })
 
 @title{Pyret's Design Principles}
+
+@section{Pyret is For Programming Education}
 
 Though we are making progress along multiple dimensions, creating a
 pleasant and pedagogically sound language will always take priority in
 what we make public. Therefore, Pyret users in education never need
 worry that the language will gradually grow more and more warts to the
 point of unusability.
-
-
-
 
 Pyret is a @emph{lightweight} language. Its syntax is
 lightweight---there are no class declarations, access control
@@ -30,19 +50,21 @@ variety of learning and teaching styles. Our continuing work on
 specifications (@(seclink "s:specs" "Specification-Enriched")) will let you grow
 the richness of annotations on demand.
 
-Pyret has @emph{numbers}.
-
-@(two-langs "Java"
+@(two-langs "Numbers" @list{Pyret has @emph{numbers}} "Java"
 "# this is true
 ((1 / 3) * 3) == 1"
 "// this is not true
-((1 / 3) * 3) == 1")
+((1 / 3) * 3) == 1"
+)
 
+
+@(two-langs "Structured Data"
+@list{
 Being able to describe @emph{data} well is central to designing and
 structuring programs. Pyret offers elegant mechanisms for writing data
 definitions without the overhead of classes.
-
-@(two-langs "Python"
+}
+"Python"
 "data BinTree:
   | leaf
   | node(v, l, r)
@@ -53,7 +75,7 @@ end"
 integrates convenient syntactic support for writing tests so that
 testing becomes a natural part of software development.
 
-@(two-langs "Python"
+@(two-langs "Testing" "" "Python"
 "fun square(x):
   x * x
 where:
@@ -97,7 +119,7 @@ require students to learn complex APIs or control
 operators. Furthermore, our style of interactive programming lends
 itself naturally to testing.
 
-@(two-langs "Java"
+@(two-langs "" "" "Java"
 "big-bang(\"Press a key!\", {
   on-key: fun(w, k): k end,
   to-draw: fun(w):
@@ -112,7 +134,7 @@ toolset. Furthermore, programming functionally relates well to
 specification and improving performance. Pyret is therefore designed
 to support functional programming well from the start.
 
-@(two-langs "Python"
+@(two-langs "" "" "Python"
 "fun square(n):
   n * n
 end"

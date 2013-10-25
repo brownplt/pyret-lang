@@ -4,6 +4,15 @@
 
 (provide (all-defined-out))
 
+(define (pre str)
+  (element
+    (style #f
+           (list
+            (alt-tag "pre")
+            (attributes (list))))
+    str))
+
+
 (define (div class . content)
   (element
     (style #f
