@@ -184,6 +184,28 @@ end
     <div class="item">
       <pre>
 @disable-prefix{
+# Note the refinements on the
+# l argument and the result.
+# The refinments are critical to the
+# correct behavior of insertion.
+
+fun insert(n :: Number,
+           l :: List<Number>(is-sorted-ascending))
+    -> List<Number>(is-sorted-ascending):
+  cases (List) l:
+    | empty => [n]
+    | link(f, r) =>
+      if n < f: link(n, l)
+      else:     link(f, insert(n, r))
+      end
+  end
+end
+}
+      </pre>
+    </div>
+    <div class="item">
+      <pre>
+@disable-prefix{
 eps = 0.001
 fun d-dx(f):
   doc: "Calculate the derivative of f"
