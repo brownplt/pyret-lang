@@ -107,6 +107,7 @@
       'fold
       'map
       'range
+      'range-by
       'repeat
       'filter
       'partition

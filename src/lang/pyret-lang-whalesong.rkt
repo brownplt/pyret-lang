@@ -40,6 +40,7 @@
     [pyret-empty empty]
     [pyret-link link]
     [pyret-range range]
+    [pyret-range-by range-by]
     [pyret-repeat repeat]
     [pyret-filter filter]
     [pyret-partition partition]
