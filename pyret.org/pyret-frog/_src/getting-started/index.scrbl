@@ -6,7 +6,22 @@
 
 @title{Getting Started}
 
-Pyret runs on top of Racket, so you'll first need to install Racket from:
+@section{Disclaimer}
+
+@bold{A word of warning:} Pyret is available to run, but doesn't
+yet have the stability or tool support of a true release.  We've
+used it in two of our undergraduate courses at Brown, and that's
+taught us a lot about how much the language needs going forward.
+These instructions are here for intrepid early adopters to give us
+feedback.  If you'd like to hear about stable releases of Pyret in
+the future, sign up for
+@link["https://groups.google.com/forum/#!forum/pyret-announce"
+"the announcements mailing list"].
+
+@section{Installing}
+
+Pyret runs on top of Racket, so you'll first need to install
+Racket from:
 
 @url{http://download.racket-lang.org/}
 
@@ -20,7 +35,7 @@ I want an IDE and a REPL and click-to-install.
 I want to use my favorite editor and the command line.
 }
 
-@section[#:tag "s:ide"]{Getting Started with an IDE}
+@subsection[#:tag "s:ide"]{Getting Started with an IDE}
 
 Open DrRacket, which comes with the Racket installation.  It has an icon that
 looks like this:
@@ -30,7 +45,7 @@ looks like this:
 Then, use File -> Install .plt File, select the Web tab, copy paste the URL
 below into the space, and click "OK"
 
-@url{http://pyret.org/download/pyret.plt}
+@url{http://pyret.org/download/pyret-0.1.plt}
 
 @image["img/install-via-url.png"]
 
@@ -56,13 +71,13 @@ Run this with "Ctrl-R" or by pressing the green arrow "Run" button.  You should
 see, in the interactions window, a success message like
 
 @pre[
-"Looks shipshape, all 2 tests passed, mate!"
+"Looks shipshape, all 3 tests passed, mate!"
 ]
 
 Once you've gotten this far, move on to the
 @link["/tour/" "tour of Pyret's features"].
 
-@section[#:tag "s:cli"]{Getting Started at the Command Line}
+@subsection[#:tag "s:cli"]{Getting Started at the Command Line}
 
 First, make sure that the Racket binaries are in your path.  Then, check
 out the @link["http://github.com/brownplt/pyret-lang" "Pyret repo"]:
