@@ -4,9 +4,10 @@
 
 @title{The Pyret Crew}
 
-Pyret is built by Brown PLT.  @link["http://blog.brownplt.org/"
-"Our blog"] is a good resource for understanding our experience
-and past work.  Pyret's design and development draw from our
+Pyret is built by the PLT group at Brown University in Providence,
+RI, USA. The @link["http://blog.brownplt.org/"
+"group blog"] is a good resource for understanding its (recent)
+research. Pyret's design and development draw on the group's
 experience in programming languages, education, web security, user
 interfaces, and more.
 
@@ -19,7 +20,7 @@ its feel and core features.
 number of significant contributions, particularly to the
 language's libraries.
 
-@link["http://cs.brown.edu/~justinpombrio" "Justin Pombrio"], Liam
+@link["http://cs.brown.edu/~justinpombrio/" "Justin Pombrio"], Liam
 Elberty, Kathi Fisler, and Jonah Kagan have voluntarily used Pyret
 and gives tons of valuable feedback while tolerating bugs and
 inconsistencies.

@@ -14,14 +14,10 @@ announcement when we make our first stable release, sign up for the
 @section{Discussion and Support}
 
 Much of the design discussion for Pyret happens on the @tt{pyret-discuss}
-mailing list, which is managed as a Google Group, but accepts email from
-anyone.  You can access it and sign up at
+mailing list.  You can access it and sign up at
 
 @url{https://groups.google.com/forum/#!forum/pyret-discuss}
 
 Use that list to ask questions about the language, complain about problems you
-have with Pyret, suggest improvements, or participate in discussions about the
-design of language features.
-
-
-
+have with Pyret, suggest improvements, participate in discussions about the
+design of language features, and peek at the language's future.
