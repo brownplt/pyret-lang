@@ -125,7 +125,8 @@
       <img class="title-logo" src="/img/pyret-banner.png"></img>
       <p>
       Pyret is a programming language designed to serve as an outstanding
-      choice for programming education.  It's under active design and
+      choice for programming education while exploring the confluence
+      of scripting and functional programming.  It's under active design and
       development, and free to use or modify.
       </p>
       <p>
@@ -296,8 +297,8 @@ where:
 end
 }
 "Pyret makes testing a natural part of the programming process.  Functions can
-end in a <code>where:</code> clause that holds unit tests for the function.
-When the program is run, the assertions are checked.")
+end in a <code>where:</code> clause that holds unit tests for the
+function. These assertions are checked dynamically.")
 
   <hr/>
   @(pyret-example #:where 'left
@@ -307,9 +308,31 @@ data BinTree:
   | node(value, left :: BinTree, right :: BinTree)
 end
 }
-"Pyret allows for concise, expressive, recursive data declarations.  All type
-annotations are optional and can be used as often or as little as your
-curriculum needs.")
+"Pyret allows for concise, expressive, recursive data declarations.  Type
+annotations are optional and can be added incrementally, to serve a
+variety of pedagogic styles and curricular needs.")
+
+  <hr/>
+
+  @(pyret-example #:where 'right
+@disable-prefix{
+check:
+  dbl = fdC("x", plusC(idC("x"), idC("x")))
+  quad = fdC("x", appC(dbl, appC(dbl, idC("x"))))
+  c5 = fdC("_", numC(5))
+  
+  fun i(e): interp(e, mt-env) end
+
+  i(plusC(numC(5), appC(quad, numC(3)))) is numV(17)
+  i(multC(appC(c5, numC(3)), numC(4))) is numV(20)
+end
+}
+"In addition to <code>where:</code> blocks, which are attached to
+  individual definitions (and hence usually contain unit tests), you
+  can also write <code>check:</code> blocks at the top level, for
+  general program testing. Both are scope delimiters. Therefore, you
+  can use them to write local definitions that are useful for testing
+  but not relevant to the program at large.")
 
   <hr/>
 
@@ -345,11 +368,11 @@ def square(n):
   <hr/>
 @(two-langs
 "<em>Optional</em> Annotations"
-"But Pyret doesn't force you to annotate everything (or anything), which other
+"But Pyret doesn't force you to annotate everything, as some other
 languages do."
 "Java"
 @disable-prefix{
-fun square(n :: Number): # you decide!
+fun square(n) -> Number:
   n * n
 end}
 @disable-prefix{
@@ -358,11 +381,25 @@ static int square(int n) @"{"
 @"}"})
   <hr/>
 @(two-langs
+"Refinements in Annotations"
+"Pyret allows you to (optionally) describe <em>refinements</em> of data."
+"Python"
+@disable-prefix{
+fun insert(e :: Number,
+           s :: BST(is-balanced))
+    -> BST(is-balanced):
+  # self-balancing tree insertion
+end}
+@disable-prefix{
+def insert(e, s):
+  # tree insertion but with
+  # invariants neither
+  # stated nor checked})
+  <hr/>
+@(two-langs
 "Numbers"
-"<code>int</code>s and <code>float</code>s are architectural artifacts that add
-painful complexity to many programs, and this holds double for
-beginners expecting math to behave like math.  Pyret has <em>numbers</em> to avoid
-this problem."
+"Pyret has numbers, because we believe an 8GB machine should not limit
+students to using just 32 bits."
 "Java"
 @disable-prefix{
 # this is true
@@ -378,7 +415,11 @@ this problem."
 @disable-prefix{
 Being able to describe <em>data</em> well is central to designing and
 structuring programs. Pyret offers elegant mechanisms for writing data
-definitions without the cognitive or syntactic overhead of classes.
+definitions without the cognitive or syntactic overhead of classes. We
+believe the only reason <code>__init__</code> will not become this
+generation's <code>public static void</code> is that Python textbooks
+have begun to shun structured data, returning us to the 1970s when
+everything was squeezed into a single-dimensional data structure.
 }
 "Python"
 @disable-prefix{
@@ -405,9 +446,9 @@ class node(BinTree):
 @(two-langs
 "Structural Data"
 @disable-prefix{
-Pyret is somewhat flexible in the use of structured data, and exposes the
-simple object pattern underlying it to allow for ad hoc, structural code
-alongside more rigid patterns.
+Pyret is flexible in the use of structured data, and exposes a
+simple object pattern underlying it to allow for structural code
+alongside more nominal patterns.
 }
 "OCaml"
 @disable-prefix{
