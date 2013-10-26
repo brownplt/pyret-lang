@@ -21,14 +21,20 @@
 @title{Pyret Language Reference}
 
 This document has detailed information on the Pyret grammar and the behavior of
-its expression forms.  The entire grammar is included at the end of the
-document for reference, with its pieces introduced individually first.  This
-document cannot be read beginning-to-end assuming no experience with Pyret.
-Rather, it explains in detail the semantics and grammar of each syntactic form,
-and is heavily cross-referential when describing features that interact.  This
-document also occasionally references ``Captain Teach'', which is a programming
-and learning environment that uses Pyret, and has some of its own environmental
-behavior that is worth noting.
+its expression forms and built-in libraries.  It is unfortunately incomplete
+and a work in progress; the language is moving somewhat quickly and the
+documentation sometimes lags, especially with respect to libraries.  If you
+want to do something in a program and you can't find how in this document, feel
+free to post a message on the
+@link["https://groups.google.com/forum/#!forum/pyret-discuss" "Pyret discussion
+list"], and we'll be happy to help.
+
+This document cannot be read beginning-to-end assuming no experience with
+Pyret.  Rather, it explains in detail the semantics and grammar of each
+syntactic form, and is heavily cross-referential when describing features that
+interact.  This document also occasionally references ``Captain Teach'', which
+is a programming and learning environment that uses Pyret, and has some of its
+own environmental behavior that is worth noting.
 
 @include-section{installing.scrbl}
 
