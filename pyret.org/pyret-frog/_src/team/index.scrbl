@@ -13,13 +13,13 @@ interfaces, and more.
 @link["http://dbpmail.net" "Daniel Patterson"] and
 @link["http://jpolitz.github.io" "Joe Gibbs Politz"] are
 responsible for Pyret in its current form; they designed and built
-the majority of its feel and features.
+its feel and core features.
 
 @link["http://cs.brown.edu/~blerner" "Ben Lerner"] has made a
 number of significant contributions, particularly to the
 language's libraries.
 
-@link["http://cs.brown.edu/~sk" "Shriram Krishnamurthi"], aside
+@link["http://cs.brown.edu/~sk" "Shriram Krishnamurthi"], aside from
 providing a budget for t-shirts and stickers, is one of its main
 users and provides insight from many years of programming
 language design and teaching.
