@@ -121,5 +121,5 @@ Pyret currently supports a few
 more will be added as time goes on.
 
 Once you see this program working, move on to the
-@seclink["/tour/" "tour of Pyret's features"].
+@link["/tour/" "tour of Pyret's features"].
 
