@@ -113,6 +113,17 @@ fun data-equals(self, other, brand, fields):
   end
 end
 
+fun string-to-list(str :: String):
+  for fold(lst from [], i from range(0, str.length()).reverse()):
+    link(str.char-at(i), lst)
+  end
+where:
+  string-to-list("") is []
+  string-to-list("a") is ["a"]
+  string-to-list("abc") is ["a","b","c"]
+  string-to-list("abcdef") is ["a","b","c","d","e","f"]
+end
+
 fun Eq():
   b = brander()
   {
@@ -131,6 +142,7 @@ builtins = {
   equiv: equiv,
   data-to-repr: data-to-repr,
   data-equals: data-equals,
+  string-to-list: string-to-list,
   Eq: Eq
 }
 

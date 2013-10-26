@@ -68,4 +68,5 @@
   (p:get-field p:dummy-loc %builtins name))
 (define %builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define pyret-identical (get-builtin-lib "identical"))
+(define pyret-string-to-list (get-builtin-lib "string-to-list"))
 

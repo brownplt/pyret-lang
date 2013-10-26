@@ -76,7 +76,8 @@
     [pyret-none none]
     [pyret-some some]
 
-    [pyret-identical identical])
+    [pyret-identical identical]
+    [pyret-string-to-list string-to-list])
 
   (rename-out
     [pyret-random random])
