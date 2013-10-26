@@ -154,6 +154,17 @@ The `raises` form is useful for checking explicit error conditions.  It
 succeeds if the expression on the left signals an error with a message that
 contains the string on the right.
 
+The `[]` notation is actually syntactic sugar for a more verbose form that
+creates the same lists.  The special `empty` value is equivalent to `[]`, and
+the `link` function attaches a value to the front of an existing list:
+
+    check:
+      empty is []
+      link(1, empty) is [1]
+      link(1, link(2, empty)) is [1,2]
+      link(empty, link(empty, empty)) is [[],[]]
+    end
+
 ## Functions
 
 In Pyret, most functions are defined with a function declaration.
@@ -184,7 +195,7 @@ using `where:`.  So we could write the above as:
       square(2) is 4
     end
 
-This runs the same tests as the `check:` block, but not it is
+This runs the same tests as the `check:` block, but it is now
 obvious to the reader (and to the programming environment!) that
 these tests go with the `square` function.
 
@@ -215,9 +226,153 @@ example:
       f(f(x))
     end
 
-### Control
+## Data
 
-#### For loops
+Pyret has a builtin form for declaring and manipulating structured data.
+
+### Definitions
+
+One example that you've already seen is `List`. A list is either
+`empty` (written `[]` as shorthand) or it is a `link` of an element
+and another list. While very important to the code that we write,
+`List`s are not a special internal value, they are just defined with
+the `data` form. A simplified version of it is:
+
+    data List:
+      | empty
+      | link(first, rest)
+    end
+
+Though this won't actually run, because Pyret will complain that you're trying
+to re-define `List`).  This is the general syntax of a `data` definition: the
+name of the data type, then a list of one or more variants, which may have
+attributes (like `link`) does, or may not. The values of the type are
+constructed just like the variants are written:
+
+    x = empty
+    y = link(10, empty)
+
+This is the basic form. In addition to the functions to construct the values,
+you also get functions to check whether values are of the type. In this case,
+there are two functions: `is-empty` checks if a value is the `empty` value, and
+`is-link` checks if a value is a `link` value.
+
+Note that `empty` is a singleton value, the only one of its kind.  It was
+constructed that way because the data definition didn't declare any fields for
+it (as with `link`).
+
+There's more that we can do with `data`.  Methods can be added to `data` by
+attaching them to the variants using `with:`:
+
+    data MyList:
+      | my-empty with:
+        length(self): 0 end
+      | my-link(first, rest) with:
+        length(self): 1 + self.rest.length() end
+    where:
+      my-link(1, my-link(2, my-empty)).length() is 2
+      my-empty.length() is 0
+    end
+
+We see here that each instance of a `my-link` or `my-empty` has a member named
+`length` that can be accessed with `.`, and then called like a function.  Also
+note that `data`, like `fun`, can have `where:` blocks for defining tests that
+go along with the data definition.
+
+### Cases
+
+A common pattern is to do different things based on the variant of your `data`
+definition: a program that dispatches over the different cases of data.  The
+`cases` expression allows you to write branches just like the data definition.
+For example:
+
+    fun length(l):
+      cases(List) l
+        | empty => 0
+        | link(f, r) => 1 + length(r)
+      end
+    end
+
+Note that if you don't care about a specific attribute, you can always replace
+it with an underscore. Since we did not use `f` in the previous example, we
+could write it as:
+
+    fun length(l):
+      cases(List) l
+        | empty => 0
+        | link(_, r) => 1 + length(r)
+      end
+    end
+
+Which makes it clearer to the reader, especially if the blocks become
+large, what we are and aren't going to use.
+
+Finally, it is an error, caught at runtime, to pass a value that isn't
+of the type inside the `cases`. And, you don't have to provide all the
+variants, and you can provide them in whatever order you want. If you
+want to have a catch-all, you can use `else`. For example:
+
+    check:
+      0 is cases(List) empty:
+        | link(first, _) => first
+        | else => 0
+      end
+    end
+
+It is an error to not match any branch.
+
+## Annotations
+
+Pyret is not currently a typed language, but it allows type-like annotations
+that are checked when running your programs. In the future, these will be
+checked statically, so that your annotated programs will become safer without
+paying any runtime cost. Annotations can be added to function arguments, to
+variable bindings, and to the attributes in data variants. For base types, the
+annotations should look like:
+
+    fun string-identity(y :: String): y end
+    data BinTree:
+      | leaf
+      | node(value :: Number, left :: BinTree, right :: BinTree)
+    end
+
+Note that `BinTree`, the name of a datatype, can be used as an annotation.  Any
+data type that you define can also be used in an annotation.  These annotations
+will stop the program from creating a `BinTree` with fields that don't match
+the annotations:
+
+    check:
+      string-identity(0) raises "expected String"
+      node("not-a-num", leaf, leaf) raises "expected Number"
+      node(37, leaf, "not-a-bin-tree") raises "expected BinTree"
+    end
+
+You can also define arbitrary predicates. For example:
+
+    fun non-negative(n :: Number) -> Bool:
+      n >= 0
+    end
+
+    fun replicate(n :: Number(non-negative), e) -> List:
+      if n == 0:
+        []
+      else:
+        link(e, replicate(n - 1, e))
+      end
+    end
+
+And if you were to call `replicate` with a negative number, it would
+not run (instead of running forever):
+
+    check:
+      replicate(-1, "val") raises "value did not match predicate"
+    end
+
+
+
+## Control
+
+### For loops
 
 We present the common pattern of iteration in a simplified syntax. To `map`
 over a list, running some block of code to produce a new value for each
@@ -264,13 +419,13 @@ this arity.  For example:
       fun iter(flip, lst):
         cases(List) lst:
           | empty => empty
-	  | link(first, rst) =>
-	    if flip:
-	      link(body-fun(first), iter(not flip, rst))
-		      else:
-	      iter(not flip, rst)
-	    end
-	end
+          | link(first, rst) =>
+            if flip:
+              link(body-fun(first), iter(not flip, rst))
+            else:
+              iter(not flip, rst)
+            end
+        end
       end
       iter(true, l)
     end
@@ -287,7 +442,7 @@ left-hand sides of the `from` clauses and the body, and pass that new function
 along with the values on the right of `from` to the operator
 (`keep-every-other`, in this case).
 
-#### If
+### If
 
 Branching on conditionals is an `if` branch followed by zero or more
 `else if` branches and an optional `else` branch. It is a runtime
@@ -312,193 +467,48 @@ cause side effects, write a `when` block instead. A few examples:
       #...
     end
 
-#### When blocks
+Pyret expects that `if` expressions are _total_, and signals an error if
+control falls off the end:
 
-Sometimes there is certain code that should only be run when something is true. This is
-code that exists solely to _do_ something. For example:
+    check:
+      fun if-falls-off():
+        if false:
+          ""
+        else if false:
+          ""
+        end
+      end
+      if-falls-off() raises "if: no tests matched"
+    end
+
+For this reason, Pyret syntactically rules out single-branch if expressions,
+which make little sense given this rule.
+
+### When blocks
+
+Sometimes there is certain code that should only be run when something is true.
+This is code that exists solely to _do_ something. For example:
 
     when n > 10:
       print("Oh No!")
     end
 
+This covers the cases that single-branch if expressions are usually used for,
+but makes it explicit that the body is used for its side effects.
 
-#### Exceptions
-
-Any value can be `raise`d, which causes control to immediately transfer to the
-`catch` block of the closest (in terms of nesting) `try/except` block. The value
-raised will be bound to the identifier inside the `except` clause. For example:
-
-    try:
-      10
-      raise("Help")
-      20 # control never reaches here
-    except(e):
-      e # is "Help"
-    end
-
-There can be any number of `try/except` blocks nested - the exception will
-hit the first one available. For example:
-
-
-    try:
-      try:
-        10
-        raise("Help")
-        20 # control never reaches here
-      except(e):
-        e # is "Help"
-      end
-    except(e):
-      # control never reaches here
-    end
-
-
-#### Blocks
+### Blocks
 
 There are many block forms in Pyret. In any block, any number of
 statements / expressions can be put. The last one will be what the block
 evaluates to, which has different meanings depending on the context. The
 blocks are:
 
-- top level of a `.arr` file (or Captain Teach editor)
-- `function` bodies
+- top level of a `.arr` file (or Captain Teach/DrRacket editor)
+- `fun` bodies
 - `method` bodies
 - `check` bodies
 - `if`, `else if`, and `else` branches
 - inside `when`
 - between `try` and `except`, and `except` and `end`
 - in the branches of `cases`
-
-### Data
-
-Pyret supports variant data types. This means that a single type may have
-several examples of it, with different constructors.
-
-#### Definitions
-
-One example that you've already seen is `List`. A list is either
-`empty` (written `[]` as shorthand) or it is a `link` of an element
-and another list. While very important to the code that we write,
-`List`s are not a special internal value, they are just defined with
-the `data` form. A simplified version of it is:
-
-    data List:
-      | empty
-      | link(first, rest)
-    end
-
-This is the general syntax of a `data` definition: the name of the data type,
-then a list of one or more variants, which may have attributes (like `link`)
-does, or may not. The values of the type are constructed just like the variants
-are written:
-
-    x = empty
-    y = link(10, empty)
-
-This is the basic form. In addition to the functions to construct the
-values, you also get functions to check whether values are of the
-type. In this case, there are three functions: `List` checks if a
-value is any type of `List`, `is-empty` checks if a value is the
-`empty` value, and `is-link` checks if a value is a `link` value.
-
-There's more that we can do with `data`. For example, if you define an
-`_equals` method on your data type, it can be compared with
-`==`. Methods can be added to `data` in two ways. They can either be
-attached to all values of the data type, or just some variants. If you
-define them per-variant, you should be careful if you don't define the
-same methods on all variants, because using them might be hard! Here are
-examples of the two ways:
-
-    data List:
-      | empty with:
-        length(self): 0 end
-      | link(first, rest) with:
-        length(self): 1 + self.rest.length() end
-    sharing:
-      my-special-method(self):
-        print("I'm a list!")
-      end
-    end
-
-In both forms, there can be any number of comma-separated methods.
-
-#### Cases
-
-A common pattern is to do different things based on the variant of
-your `data` definition. You could use `if` statements, but it gets
-clumsy quickly. Instead, `cases` allows you to write branches just like the
-data definition. For example:
-
-    cases(List) x:
-      | empty => print("An empty list!")
-      | link(first, rest) => print("A non-empty list!")
-    end
-
-Note that if you don't care about a specific attribute, you can always
-replace it with an underscore. Since we use neither `first` nor `rest`
-in the previous example, we could write it as:
-
-    cases(List) x:
-      | empty => print("An empty list!")
-      | link(_, _) => print("A non-empty list!")
-    end
-
-Which makes it clearer to the reader, especially if the blocks become
-large, what we are and aren't going to use.
-
-Finally, it is an error, caught at runtime, to pass a value that isn't
-of the type inside the `cases`. And, you don't have to provide all the
-variants, and you can provide them in whatever order you want. If you
-want to have a catch-all, `else` is valid. For example:
-
-    cases(List) x:
-      | link(first, _) => first
-      | else => nothing
-    end
-
-It is an error to not match any branch, so if you don't include all
-your variants, either include an `else` or be sure that only the
-variants listed will ever be passed in.
-
-
-### Annotations
-
-Pyret is not currently a typed language, but it allows type-like
-annotations that are checked when running your programs. In the
-future, some or most of these will be turned into compile time
-type-checking, so that your annotated programs will become safer
-without paying any runtime cost. Annotations can be added to function
-arguments, to variable bindings, and to the attributes in data
-variants. For base types, the annotations should look like:
-
-    x :: Number = 10
-    fun(y :: String) -> String: x end # an error
-    data Foo:
-      | foo(a :: Bool, b :: Nothing, c :: List, d :: Any)
-    end
-
-`Any` is a special annotation that matches anything. You can leave it
-off, but it makes it clear to anyone reading your code (including
-yourself) that you really mean it to be anything.
-
-If you noticed `List` in there, you'll realize that any data type
-that you define can also be used in an annotation.
-
-You can also define arbitrary predicates. For example:
-
-    fun non-negative(n :: Number) -> Bool:
-      n >= 0
-    end
-
-    fun replicate(n :: Number(non-negative), e) -> List:
-      if n == 0:
-        []
-      else:
-        link(e, replicate(n - 1, e))
-      end
-    end
-
-And if you were to call `replicate` with a negative number, it would
-not run (instead of running forever).
-
 
