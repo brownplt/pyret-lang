@@ -143,6 +143,29 @@
     <div class="item active">
       <pre>
 @disable-prefix{
+# Identifiers are immutable.
+# Variables are different from identifiers.
+fun mk-counter():
+  var ctr = 0
+  fun():
+    ctr := ctr + 1
+    ctr
+  end
+where:
+  l1 = mk-counter()
+  l1() is 1
+  l1() is 2
+  l2 = mk-counter()
+  l2() is 1
+  l1() is 3
+  l2() is 2
+end
+}
+      </pre>
+    </div>
+    <div class="item">
+      <pre>
+@disable-prefix{
 data BinTree:
   | leaf
   | node(value, left, right)
