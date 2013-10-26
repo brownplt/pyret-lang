@@ -11,7 +11,7 @@
 @bold{A word of warning:} Pyret is available to run, but doesn't
 yet have the stability or tool support of a true release.  We've
 used it in two of our undergraduate courses at Brown, and that's
-taught us a lot about how much the language needs going forward.
+taught us a lot about what the language needs going forward.
 These instructions are here for intrepid early adopters to give us
 feedback.  If you'd like to hear about stable releases of Pyret in
 the future, sign up for
