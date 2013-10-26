@@ -19,7 +19,6 @@ Pyret will dutifully print the value, and then complain:
     "Ahoy world!"
     
     WARNING: Your program didn't define any tests.  Add some
-    where: and check: blocks to test your code...
 
 To make this warning go away, you need to add at least one test.
 The simplest way to add a test to a Pyret program is to use a
@@ -110,7 +109,7 @@ intended by the test, we should write:
     end
 
 
-#### Strings
+### Strings
 
 Strings can be written single- or double- quoted.  They may span
 multiple lines. Character escapes like \n work, and the enclosing
@@ -125,7 +124,7 @@ quote character can be included if escaped like \".
 
     "an example\n\nwith explicit newline\ncharacters"
 
-#### Lists
+### Lists
 
 Lists aren't quite primitive values, since they are a form of
 structured data, but they _are_ built in to Pyret.  Lists group a
@@ -148,248 +147,67 @@ the `raises` test assertion to check the error that's signalled:
     end
 
 
-### Functions
+## Functions
 
-Function values are written with the `fun` keyword and then a comma separated
-list of arguments followed by a body and then the keyword `end`. There is
-no `return` statement as found in some languages - the last value produced (ie,
-the last statement in the block) is the value that the function returns. For example:
+In Pyret, most functions are defined with a function declaration.
+A function declaration looks like:
 
-    fun(x,y): x + y end
-
-    fun(y):
-      y * y
+    fun square(n):
+      n * n
     end
 
-Functions can be applied with parenthesis and then a comma separated
-list of values.
+This binds the name `square` to a function.  Note that Pyret has
+no explicit `return` keyword, and the function body “returns”
+whatever it evaluates to.  We can call `square` by passing
+arguments in parentheses:
 
     check:
-      (fun(x): x end)(10) is 10
+      square(4) is 16
+      square(2) is 4
     end
 
-Note that parenthesis can be added around any expression to either
-disambiguate (in the case of binary operators), or simply for
-clarity. We could just have easily written the previous example as:
+Since there are often tests that go along with a function
+declaration, a declaration can directly attach a testing block
+using `where:`.  So we could write the above as:
 
-    fun(x): x end(10)
-
-Or:
-
-    fun(x):
-      x
-    end(10)
-
-But it might be more confusing. In general though, functions will
-usually be bound to variables or passed as arguments instead of being used
-immediately after construction.
-
-You can (and should) add documentation to your functions. The best way to do that is with `doc`. On the first line of the function, you can write a documentation string. This will be available as the `_doc` attribute on your functions. For example:
-
-    fun foo(x):
-      doc: "my great foo function!"
-      y = 10
-      x + y # NOTE: improve!
+    fun square(n):
+      n * n
+    where:
+      square(4) is 16
+      square(2) is 4
     end
+
+This runs the same tests as the `check:` block, but not it is
+obvious to the reader (and to the programming environment!) that
+these tests go with the `square` function.
+
+Functions are first-class values in Pyret, so they can be passed
+as arguments to other functions or returned from them:
+
+    fun apply-twice(f, x):
+      f(f(x))
+    where:
+      apply-twice(square, 2) is 16
+      apply-twice(square, 3) is 81
+    end
+
+Functions don't need to have names.  An anonymous function can be
+written by eliding the `where:` clause and the name:
 
     check:
-      foo._doc is "my great foo function"
+      apply-twice(fun(x): x + 1 end, 10) is 12
     end
 
-#### Comments
+You can (and should) add documentation to your functions to
+describe their purpose. The best way to do that is with `doc:` For
+example:
 
-Are single line, starting from the `#` character and running to the end of the line.
-
-    # This is a comment
-    foo(bar) # this is another comment
-
-#### Whitespace
-
-Is not significant except to separate pieces of syntax. So there
-are places where you must place _some_ whitespace, but neither
-indentation, nor how much whitespace (and what combination of
-newlines and spaces) ever matters.
-
-On the other hand, whitespace is sometimes not allowed: if a
-keyword is followed by a colon, no whitespace may be present
-between the two. Also, `else if` must be written exactly this way
-- exactly one space between `else` and `if`.
-
-There are also no line end separators.
-
-#### Expressions
-
-Pyret is predominantly expression-based, which means that
-syntactic forms can appear nested within nearly any other. The
-exception are:
-
-1. Binding forms - named function definitions, data
-   declarations, and identifier/variable binding.
-2. Variable assignment `x := v`
-3. Testing forms `x is y`, `f() raises "err"`, `g() satisfies pred`
-
-These forms can only appear in [blocks](#blocks).
-
-#### Objects
-
-Most values in Pyret are objects. This means that the basic object operations
-(adding fields and methods, looking stuff up, `branding` (to be
-defined later) can be done on any of the normal types (the exceptions to this
-rule are the special `nothing` value, and values you get when interacting with
-the FFI, which gets you special wrapped up racket or javascript values).
-
-
-### Variables, Named Functions and Methods
-
-We can bind any value to a name with `=`. This value cannot be changed, and no other bindings with the same name are permitted in the same scope (ie, 'shadowing' is not permitted). For example:
-
-    f = fun(x): x end
-    check:
-      f(10) is 10
+    fun apply-twice(f, x):
+      doc: "Applies f to x, then applies f to that result.
+            f should be a function that takes a single argument."
+      f(f(x))
     end
 
-Since we often want names for our functions, the following shorthand is possible:
-
-    fun f(x): x end
-
-Which will do the same as the previous example. It's also usually
-preferred, as thinking / talking about functions is easier when they
-have names.
-
-Bindings are visible at the same scope level and in any nested scope
-(ie, local function definitions, etc).
-
-Sometimes you want to be able to change the value in a variable. For
-example, we might have a deeply nested computation that needs to
-record that something specific happened, and threading the result out
-isn't convenient.  For this, we have a separate declaration, and a way
-to update those variables:
-
-    var x = 10
-    # ...
-    x := 20
-
-Note that you cannot define a `var` to a identifier that is already
-bound. Also, if you try to use an identifier that has not been bound,
-that error will be caught before your program is run (or, really, as
-soon as you try to run your program, but before we spend any time
-executing your code).
-
-#### Methods
-
-Methods are a separate kind of value from functions. Given a function,
-you can get a corresponding method, and the same is true in reverse,
-but methods behave differently when inside objects. A method is
-written with the `method` keyword instead of `fun`. An example:
-
-    method(self): 10 end
-
-When a method is put in an object, it can be called as follows:
-
-    o = {foo: method(self): 10 end}
-    check:
-      o.foo() is 10
-    end
-
-The first argument to the method will be bound to the value of the
-object when it is called - the rest will be what is passed to the
-call. This can be named anything, but we generally follow the
-convention of naming it `self`. Since defining methods in objects is a
-common pattern, we provide shorthand for the previous example:
-
-    o = {foo(self): 10 end}
-    check:
-      o.foo() is 10
-    end
-
-Given a method, you can get a normal function with the `_fun` method, as follows:
-
-    m = method(self): 10 end
-    m._fun()
-
-This could then be applied as a normal function, passing in a value for `self`:
-
-    m = method(self): 10 end
-    f = m._fun()
-    check:
-      f({bar: 20}) is 10
-    end
-
-Finally, if you want to just get out the raw method value (this also
-will get out any other raw value, but as of now, methods are the only
-things that are treated specially), you can access fields with
-colon. For example:
-
-    o = { foo(self): 10 end, b: 20 }
-    check:
-      o:b is o.b
-    end
-    m = o:foo
-    check:
-      m() raises ""
-    end
-    f = m._fun()
-    check:
-      f({}) is 10 # note that you have to apply it to a self
-    end
-    o2 = o.{ newmeth: m }
-    check:
-      o2.newmeth() is 10 # because now we accessed it with normal dot.
-    end
-
-### Operators
-
-Pyret does not have precedence for operators. The result is not
-defined if you mix multiple types of operators - you must use
-parethesis to disambiguate. For example:
-
-    1 + 2 * 3 # undefined, and an error to write
-    1 + (2 * 3) # what you should write
-
-#### Equality
-
-Equality works on the built-in values and on objects structurally (ie,
-same keys and values). Functions and methods are never equal to
-anything. To create objects that have methods or functions within them but can
-be compared for equality, any object that has a "_equals" method that takes
-`self` and another object and returns `true` or `false` can also be compared.
-
-    2 == 3 # false
-    2 <> 4 # true - this is our not equals
-
-
-#### Arithmetic
-
-The following operators are supported, with their normal math definition on
-built in numbers:
-
-    +
-    -
-    *
-    /
-    <=
-    >=
-    >
-    <
-
-Furthermore, like with equality, we support using math operators on your own
-data types - any object that defines a `_plus` can be used with `+`, similar
-for `_minus`, `_divide`, `_times`, `_lessequal`, `_greaterequal`, `_greaterthan`,
-`_lessthan`.
-
-#### Boolean
-
-We use infix `and` and `or`, and prefix `not`. These work on booleans,
-and can also work on your own datatypes. You must define `_and`, `_or`
-and/or `_not` methods, and note that `and`/`or` pass their second argument
-as a zero-argument function. This is so that they can be
-short-circuiting - if the left side of an `and` is false, there is no
-need to evaluate the right side (so in your definitions, you can elect
-to call the function or not). For example:
-
-    true and true and false # evaluates to false
-    true and (false or true) # evaluates to true
-    not (true and false) # evaluates to true
 
 ### Control
 
@@ -622,52 +440,6 @@ your variants, either include an `else` or be sure that only the
 variants listed will ever be passed in.
 
 
-### Check/where blocks
-
-One of the more interesting features of Pyret are it's `check` and
-`where` blocks. At the end of any function or data definition, or in
-any block, you can add a `where` block, which contains code that
-asserts various properties about the function or data definition (or
-just tests things in general). You can put a `check` block anywhere,
-not attached to a particular function or data definition. If you run
-Pyret in `check` mode, we run these blocks. The novel feature is that
-you can put `where` blocks on nested functions, and they will be run
-with the arguments to the outer function from outer `where` blocks,
-which allows sensible testing of nested functions. For example:
-
-    fun fact(n):
-      fun fact_(n1, acc):
-        if n1 <= 1:
-          acc
-        else:
-          fact_(n1 - 1, acc * n1)
-        end
-      where:
-        fact_(0, 0) is 0
-        fact_(n, 0) is 0
-        fact_(3, 3) is 18
-        fact_(5, 1) is 120
-      end
-      fact_(n, 1)
-    where:
-      fact(1) is 1
-      fact(5) is 120
-      fact(3) is 6
-    end
-
-Note that in the inner tests, we were able to use `n`. In this case,
-it wasn't very important, but sometimes helper functions only make
-sense in the context of outer data, and setting up testing harnesses
-can be really hard. In this case, the inner data is provided by the
-outer tests (so the inner check block runs 3 times, once each with `n`
-defined as 1, 5, and 3).
-
-`check` blocks can go anywhere, like:
-
-    check:
-      (1 + 1) is 2
-    end
-
 ### Annotations
 
 Pyret is not currently a typed language, but it allows type-like
@@ -709,38 +481,3 @@ And if you were to call `replicate` with a negative number, it would
 not run (instead of running forever).
 
 
-### Brands
-
-Data is actually built from lower level constructs within Pyret. What
-Pyret uses to verify that different values are indeed different data
-types are `brands`.  A brand can be applied to any value (except
-`nothing`), and the presence of that brand can be checked later. New
-brands can be constructed at any time. For example, if you had an expensive
-computation you had to run to verify that a piece of data behaved a certain
-way and didn't want to have to re-run it, you could write code like:
-
-    verified = brander()
-    fun expensive-check(x):
-      #...
-      verified.brand(x)
-    end
-
-    fun run(x):
-      if not verified.test(x):
-        foo(expensive-check(x))
-      else:
-        foo(x)
-      end
-    end
-
-    y = []
-    z = expensive-check([])
-
-    run(y) # runs expensive-check
-    run(z) # doesn't run expensive-check
-
-Note that since objects are not mutable, the `.brand` method returns a
-new object with the brand added. You are welcome to use `brander`s for
-whatever you want - we think they are an interesting pattern for
-controlling a certain kind of truth within a program (of which a type
-is just one example).

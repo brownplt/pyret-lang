@@ -59,8 +59,8 @@ see, in the interactions window, a success message like
 "Looks shipshape, all 2 tests passed, mate!"
 ]
 
-Once you've gotten this far, you can jump ahead to a @seclink["s:tour" "tour of
-Pyret's features"].
+Once you've gotten this far, move on to the
+@link["/tour/" "tour of Pyret's features"].
 
 @section[#:tag "s:cli"]{Getting Started at the Command Line}
 
@@ -105,8 +105,6 @@ Pyret currently supports a few
 @link["/docs/s_running.html#%28part._s~3aeditors%29" "editor modes"],
 more will be added as time goes on.
 
-Once you see this program working, move on to the @seclink["s:tour" "tour
-of Pyret's features"].
-
-@section[#:tag "s:tour"]{A Tour of Programming in Pyret}
+Once you see this program working, move on to the
+@seclink["/tour/" "tour of Pyret's features"].
 
