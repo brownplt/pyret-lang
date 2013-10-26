@@ -22,8 +22,7 @@ Pyret will dutifully print the value, and then complain:
 
 To make this warning go away, you need to add at least one test.
 The simplest way to add a test to a Pyret program is to use a
-`check:` block and a testing assertion.  Here's a simple where
-block that uses the `is` assertion:
+`check:` block and a testing assertion.  Try running the following:
 
     check:
       "Ahoy " + "world!" is "Ahoy world!"
@@ -32,6 +31,12 @@ block that uses the `is` assertion:
 Running this will give you:
 
     Looks shipshape, your 1 test passed, mate!
+
+What this program does is use a `check:` block to register a set of tests to be
+run.  The special `is` statement inside the check block compares the
+expressions on the left and right for equality.  It reports the result to the
+built-in testing framework, which produces a report when all the tests have
+been run.
 
 If we break the test slightly, we can see that Pyret reports the
 error for us:
@@ -51,15 +56,14 @@ error for us:
     Avast, there be bugs!
     Total: 1, Passed: 0, Failed: 1, Errors in tests: 0, Errors in between tests: 0
 
-The usual flow of writing a Pyret program involves writing tests
-and your code, running your code to check the test output, and
-repeating.  The more tests you write, the more useful feedback you
-get.
+The usual flow of writing a Pyret program involves writing tests along with
+your code, running your code to check the test output, and repeating.  The more
+tests you write, the more useful feedback you get.
 
 The examples in this tour will all be presented in testing blocks
 (you'll see one kind other than `check:` later).  Unless we're
 explicitly pointing out a failure, you can assume that the tests
-all pass, and we're trying to show correct behavior.
+all pass, and we're showing correct behavior.
 
 
 ## Primitive Values and Operators
@@ -76,8 +80,8 @@ Numbers can be written with or without decimals.  For example:
       5.0 is 5
     end
 
-Pyret defines a number of binary operators over numbers (the full
-list is available at [FILL]):
+Pyret defines a number of binary operators over numbers (the full list is
+available in [the documentation](/docs/s_forms.html#%28part._s~3abinop-expr%29)):
 
     check:
       4 + 5 is 9
@@ -146,6 +150,9 @@ the `raises` test assertion to check the error that's signalled:
       [].first raises "first was not found on []"
     end
 
+The `raises` form is useful for checking explicit error conditions.  It
+succeeds if the expression on the left signals an error with a message that
+contains the string on the right.
 
 ## Functions
 
@@ -208,41 +215,50 @@ example:
       f(f(x))
     end
 
-
 ### Control
 
 #### For loops
 
-We present the common pattern of iteration in a simplified syntax. To `map` over a list,
-running some block of code to produce a new value for each existing value, we can write:
+We present the common pattern of iteration in a simplified syntax. To `map`
+over a list, running some block of code to produce a new value for each
+existing value, we can write:
 
     x = for map(elem from [1,2,3,4]):
       elem + 2
     end
     check:
-     x is [3,4,5,6]
+      x is [3,4,5,6]
     end
 
-There are also several other built in functions for this purpose:
+Note a few things:
+
+- `for` is an expression, and is legal to write on the right hand side of a
+  binding
+- The whole `for` expression evaluates to a value (in this case, a new list)
+
+The `for` syntax is designed to create patterns of functional iteration.
+Indeed, there are several other built in functions that work with `for`:
 
     z = for filter(elem from [1,2,3,4]):
       elem < 3
     end
     check:
-     z is [1,2]
+      z is [1,2]
     end
 
     y = for fold(sum from 0, elem from [1,2,3]):
       sum + elem
     end
     check:
-     y is 6
+      y is 6
     end
 
-And you are free to define your own `for` operators - they are functions that take
-as their first arguments a function with the argument names from the left side of
-the `from` clauses and has the body of the `for` block, and then the rest of
-the arguments are the values from the right side of the `from` clauses. For example:
+And you are free to define your own `for` operators.  A `for` operator is a
+function that takes a function as its first argument, and a number of other
+values as the rest of its arguments.  The function argument is expected to have
+the same arity as the number of initial values.  To use the operator in a `for`
+expression, the `for` header should have a number of `from` bindings equal to
+this arity.  For example:
 
     fun keep-every-other(body-fun, l):
       fun iter(flip, lst):
@@ -265,6 +281,11 @@ the arguments are the values from the right side of the `from` clauses. For exam
     check:
       w is [1, 3, 5, 7, 9]
     end
+
+What the `for` expression does is create a new function from the names on the
+left-hand sides of the `from` clauses and the body, and pass that new function
+along with the values on the right of `from` to the operator
+(`keep-every-other`, in this case).
 
 #### If
 
