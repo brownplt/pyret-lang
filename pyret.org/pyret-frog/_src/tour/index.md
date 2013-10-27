@@ -7,9 +7,9 @@ the language.
 
 ## Testing and Assertions
 
-Pyret has built-in support for testing, and tries to encourage it
-as much as possible.  In fact, by default, Pyret will complain
-when you run a program that _doesn't_ define any tests.  If you just run a program like
+Pyret has built-in support for testing, and encourages it as much as possible.
+By default, Pyret will complain when you run a program that _doesn't_ define
+any tests.  If you just run a program like
 
     #lang pyret/check
     "Ahoy world!"
@@ -18,7 +18,8 @@ Pyret will dutifully print the value, and then complain:
 
     "Ahoy world!"
     
-    WARNING: Your program didn't define any tests.  Add some
+    WARNING: Your program didn't define any tests.  Add some check:
+    or where: blocks.
 
 To make this warning go away, you need to add at least one test.
 The simplest way to add a test to a Pyret program is to use a
@@ -28,11 +29,11 @@ The simplest way to add a test to a Pyret program is to use a
       "Ahoy " + "world!" is "Ahoy world!"
     end
 
-Running this will give you:
+Upon running this program, Pyret reports:
 
     Looks shipshape, your 1 test passed, mate!
 
-What this program does is use a `check:` block to register a set of tests to be
+This program uses a `check:` block to register a set of tests to be
 run.  The special `is` statement inside the check block compares the
 expressions on the left and right for equality.  It reports the result to the
 built-in testing framework, which produces a report when all the tests have
@@ -57,8 +58,9 @@ error for us:
     Total: 1, Passed: 0, Failed: 1, Errors in tests: 0, Errors in between tests: 0
 
 The usual flow of writing a Pyret program involves writing tests along with
-your code, running your code to check the test output, and repeating.  The more
-tests you write, the more useful feedback you get.
+your code, running your code to check the test output, and repeating until
+you're satisfied with the functionality of your program.  The more tests you
+write, the more useful feedback you get.
 
 The examples in this tour will all be presented in testing blocks
 (you'll see one kind other than `check:` later).  Unless we're
@@ -112,6 +114,18 @@ intended by the test, we should write:
       (5 - 4) + 1 is 2
     end
 
+### Booleans
+
+Pyret has two distinguished boolean values, `true` and `false`.  Neither is a
+number or string or nullary or any other kind of value; both are booleans and
+they are the only two booleans.  The comparison operators on numbers evaluate
+to them, for instance:
+
+    check:
+      3 < 4 is true
+      (2 + 2) == 5 is false
+    end
+
 
 ### Strings
 
@@ -130,12 +144,12 @@ quote character can be included if escaped like \".
 
 ### Lists
 
-Lists aren't quite primitive values, since they are a form of
-structured data, but they _are_ built in to Pyret.  Lists group a
-sequence of values together.  They are most easily written as a
-comma-separated list of values enclosed in square brackets.  The
-elements of a list can be accessed through the dot lookup
-expression, via the members called called `first` and `rest`:
+Lists aren't quite primitive values, since they are a form of structured data,
+but they _are_ built in to Pyret.  Pyret's list are of the head-and-tail
+variety found in many functional languages.  They are most easily written as a
+comma-separated list of values enclosed in square brackets.  The elements of a
+list can be accessed through the dot lookup expression, via the members called
+called `first` and `rest`:
 
     check:
       [1,2,3].first is 1
@@ -156,14 +170,74 @@ contains the string on the right.
 
 The `[]` notation is actually syntactic sugar for a more verbose form that
 creates the same lists.  The special `empty` value is equivalent to `[]`, and
-the `link` function attaches a value to the front of an existing list:
+the `link` function attaches a value to the front of an existing list.  These
+constructors can be freely mixed with bracket notation:
 
     check:
       empty is []
       link(1, empty) is [1]
       link(1, link(2, empty)) is [1,2]
-      link(empty, link(empty, empty)) is [[],[]]
+      link(empty, link(empty, [])) is [[],[]]
     end
+
+## Identifiers and Binding
+
+### Identifiers
+
+It's often useful to name intermediate results of a computation.  Pyret uses
+`=` to bind identifiers to values:
+
+    check:
+      list1 = [2,3]
+      list2 = link(1, list1)
+      list2 is [1,2,3]
+    end
+
+Identifiers bound with `=` are *not* variables.  They cannot be updated, and
+they cannot even be re-bound.  So, for example, using `list1` twice gives an
+error:
+
+    check:
+      list1 = [2,3]
+      list1 = link(1, list1)
+      list1 is [1,2,3]
+    end
+
+    I'm confused, list1 is defined twice.
+
+Pyret takes a stronge stance on the integrity of the `=` statement.  If the
+program says the name is equal to the value, then it had better continue to be!
+This has a very real correlation to something every high school algebra class
+teaches: the substitutability of names for expressions.  Defining names that,
+by default, can later be changed conflicts with basic notions of reasoning
+about expressions and programs.
+
+### Variables
+
+For names that can be updated, Pyret provides *variables*, which are distinct
+from identifiers at their declaration site, using `var`.  Such declarations
+must always give an initial value for the name, which can be later updated with
+`:=`:
+
+    check:
+      var x = 10
+      x is 10
+      x := 15
+      x is 15
+    end
+
+Naturally, mixing variables and identifiers of the same name is disallowed, and
+all of the following programs are errors:
+
+    x = 10
+    x := 15
+
+    var x = 10
+    x = 15
+
+    x = 10
+    var x = 15
+
 
 ## Functions
 
@@ -232,11 +306,11 @@ Pyret has a builtin form for declaring and manipulating structured data.
 
 ### Definitions
 
-One example that you've already seen is `List`. A list is either
-`empty` (written `[]` as shorthand) or it is a `link` of an element
-and another list. While very important to the code that we write,
-`List`s are not a special internal value, they are just defined with
-the `data` form. A simplified version of it is:
+One example that you've already seen is `List`. A list is either `empty`
+(written `[]` as shorthand) or it is a `link` of an element and another list.
+While very important to the code that we write, `List`s are not a special
+internal value, they are just defined with the `data` form. A simplified
+version of what appears in the standard library of Pyret is:
 
     data List:
       | empty
@@ -244,22 +318,42 @@ the `data` form. A simplified version of it is:
     end
 
 Though this won't actually run, because Pyret will complain that you're trying
-to re-define `List`).  This is the general syntax of a `data` definition: the
-name of the data type, then a list of one or more variants, which may have
-attributes (like `link`) does, or may not. The values of the type are
-constructed just like the variants are written:
+to re-define `List`.  This is the general syntax of a `data` definition: the
+name of the datatype, then a list of one or more variants, which may have
+members (like `link` does), or may not. The values of the datatype are
+constructed by calling the constructor with initial members, if any were defined:
+
+    y = link(10, empty)
+
+Or by simply writing the name, if the variant doesn't have members defined on
+it, in which case it is a singleton value.
 
     x = empty
-    y = link(10, empty)
 
 This is the basic form. In addition to the functions to construct the values,
 you also get functions to check whether values are of the type. In this case,
 there are two functions: `is-empty` checks if a value is the `empty` value, and
-`is-link` checks if a value is a `link` value.
+`is-link` checks if a value is a `link` value:
 
-Note that `empty` is a singleton value, the only one of its kind.  It was
-constructed that way because the data definition didn't declare any fields for
-it (as with `link`).
+    check:
+      is-empty(empty) is true
+      is-link(link(1, empty)) is true
+    end
+
+*An aside on testing:*
+There's actually a more natural way to write the above test.  Along with `is`
+and `raises`, Pyret defines a test assertion called `satisfies` that checks if
+a predicate returns `true` on a test value.  We could instead write the above as:
+
+    check:
+      empty satisfies is-empty
+      link(1, empty) satisfies is-link
+    end
+
+The `satisfies` form is quite handy for testing properties of a value, rather
+than just that a value is equal to another.  The second form also gives better
+error reporting than the first (what happens if you swap `is-link` and
+`is-empty` in either approach?). *End aside on testing.*
 
 There's more that we can do with `data`.  Methods can be added to `data` by
 attaching them to the variants using `with:`:
@@ -275,7 +369,7 @@ attaching them to the variants using `with:`:
     end
 
 We see here that each instance of a `my-link` or `my-empty` has a member named
-`length` that can be accessed with `.`, and then called like a function.  Also
+`length` that can be accessed with `.`, and then called as a function.  Also
 note that `data`, like `fun`, can have `where:` blocks for defining tests that
 go along with the data definition.
 
@@ -283,8 +377,8 @@ go along with the data definition.
 
 A common pattern is to do different things based on the variant of your `data`
 definition: a program that dispatches over the different cases of data.  The
-`cases` expression allows you to write branches just like the data definition.
-For example:
+`cases` expression allows you to write branches that split computation along
+the boundaries defined by your data definition.  For example:
 
     fun length(l):
       cases(List) l
@@ -293,9 +387,9 @@ For example:
       end
     end
 
-Note that if you don't care about a specific attribute, you can always replace
-it with an underscore. Since we did not use `f` in the previous example, we
-could write it as:
+If you don't care about a specific attribute, you can replace it with an
+underscore. Since we did not use `f` in the `link` case in the previous
+example, we could write it instead as:
 
     fun length(l):
       cases(List) l
@@ -304,22 +398,21 @@ could write it as:
       end
     end
 
-Which makes it clearer to the reader, especially if the blocks become
-large, what we are and aren't going to use.
+This makes it clearer to the reader, especially if the blocks become large,
+what the program does and does not use.
 
-Finally, it is an error, caught at runtime, to pass a value that isn't
-of the type inside the `cases`. And, you don't have to provide all the
-variants, and you can provide them in whatever order you want. If you
-want to have a catch-all, you can use `else`. For example:
+Finally, it is an error, caught at runtime, to pass a value that isn't of the
+type inside the `cases`, or if a branch isn't defined for the variant that's
+passed to `cases`. If you want to have a catch-all, you can use `else` to
+create a branch that will run if no others match. For example:
 
     check:
-      0 is cases(List) empty:
+      result =  cases(List) empty:
         | link(first, _) => first
         | else => 0
       end
+      result is 0
     end
-
-It is an error to not match any branch.
 
 ## Annotations
 
@@ -327,10 +420,8 @@ Pyret is not currently a typed language, but it allows type-like annotations
 that are checked when running your programs. In the future, these will be
 checked statically, so that your annotated programs will become safer without
 paying any runtime cost. Annotations can be added to function arguments, to
-variable bindings, and to the attributes in data variants. For base types, the
-annotations should look like:
+variable bindings, and to the members in data variants. For example:
 
-    fun string-identity(y :: String): y end
     data BinTree:
       | leaf
       | node(value :: Number, left :: BinTree, right :: BinTree)
@@ -342,12 +433,12 @@ will stop the program from creating a `BinTree` with fields that don't match
 the annotations:
 
     check:
-      string-identity(0) raises "expected String"
       node("not-a-num", leaf, leaf) raises "expected Number"
       node(37, leaf, "not-a-bin-tree") raises "expected BinTree"
     end
 
-You can also define arbitrary predicates. For example:
+You can also define arbitrary predicates for use in annotations to *refine* the
+annotation with additional checks. For example:
 
     fun non-negative(n :: Number) -> Bool:
       n >= 0
@@ -369,14 +460,13 @@ not run (instead of running forever):
     end
 
 
-
 ## Control
 
 ### For loops
 
-We present the common pattern of iteration in a simplified syntax. To `map`
-over a list, running some block of code to produce a new value for each
-existing value, we can write:
+Pyret provides syntactic support for common patterns of iteration. For example,
+to `map` over a list, running some block of code to produce a new value for
+each existing value, we can write:
 
     x = for map(elem from [1,2,3,4]):
       elem + 2
@@ -391,7 +481,7 @@ Note a few things:
   binding
 - The whole `for` expression evaluates to a value (in this case, a new list)
 
-The `for` syntax is designed to create patterns of functional iteration.
+The `for` syntax is designed to create patterns for functional iteration.
 Indeed, there are several other built in functions that work with `for`:
 
     z = for filter(elem from [1,2,3,4]):
@@ -496,19 +586,14 @@ This is code that exists solely to _do_ something. For example:
 This covers the cases that single-branch if expressions are usually used for,
 but makes it explicit that the body is used for its side effects.
 
-### Blocks
+## And more
 
-There are many block forms in Pyret. In any block, any number of
-statements / expressions can be put. The last one will be what the block
-evaluates to, which has different meanings depending on the context. The
-blocks are:
+This introduction should get you to the point where you can write non-trivial
+Pyret programs.  From here, you can check out the [the documentation](/docs/)
+to learn more about the language and for reference.  If your interest is piqued
+by the tour, or if you have suggestions or questions, you should sign up for
+the Pyret discussion list at:
 
-- top level of a `.arr` file (or Captain Teach/DrRacket editor)
-- `fun` bodies
-- `method` bodies
-- `check` bodies
-- `if`, `else if`, and `else` branches
-- inside `when`
-- between `try` and `except`, and `except` and `end`
-- in the branches of `cases`
+@url{https://groups.google.com/forum/#!forum/pyret-discuss}
+
 
