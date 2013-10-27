@@ -248,22 +248,20 @@ end
     <div class="item">
       <pre>
 @disable-prefix{
+
+
 eps = 0.001
 fun d-dx(f):
   doc: "Calculate the derivative of f"
   fun(x): (f(x + eps) - f(x)) / eps;
 where:
   fun square(x): x * x;
-  fun two-x(x): 2 * x;
-  fun within(delta, target):
-    fun(actual):
-      (actual - target).abs() < delta;
-  end
+  fun within(delta, target): ...;
 
-  d-dx(square)(5) satisfies
-    within(0.1, two-x(5))
-  d-dx(square)(10) satisfies
-    within(0.1, two-x(10))
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
 end
 }
       </pre>

@@ -8,7 +8,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_keywords = 
     wordRegexp(["fun", "method", "var", "when", "import", "provide", 
                 "data", "end", "except", "for", "from", 
-                "and", "or", "not", "as", "if", "else", "cases"]);
+                "and", "or", "not", "as", "if", "else", "cases", "is", "raises", "satisfies"]);
   const pyret_keywords_colon = 
     wordRegexp(["doc", "try", "with", "sharing", "where", "check", "graph", "block"]);
   const pyret_single_punctuation = 
