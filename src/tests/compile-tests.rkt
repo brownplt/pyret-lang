@@ -379,17 +379,19 @@
 
 
   (check-pyret
-   "datatype D: | foo with constructor(self): self end
+   "datatype D: | foo with constructor(self): self end end
     is-foo(foo)"
    (p:mk-bool #t))
 
   (check-pyret
-   "datatype D: | foo(a) with constructor(self): self end
+   "datatype D: | foo(a) with constructor(self): self end end
     foo(10).a"
    (p:mk-num 10))
 
   (check-pyret
-   "datatype D<T>: | foo(a :: T) | bar(f :: D<Number>) end
+   "datatype D<T>: | foo(a :: T) with constructor(self): self end
+                   | bar(f :: D<Number>) with constructor(self): self end
+    end
     bar(foo(10)).f.a"
    (p:mk-num 10))
 
