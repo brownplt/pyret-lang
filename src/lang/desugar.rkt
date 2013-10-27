@@ -1,7 +1,8 @@
 #lang racket
 
 (provide
-  desugar-pyret)
+  desugar-pyret
+  desugar-internal)
 (require
   racket/runtime-path
   "ast.rkt"
@@ -354,6 +355,17 @@
           (s-let s (s-bind s val-temp-name type) val)
           (s-app s (s-dot s (s-id s val-temp-name) '_match) (list cases-object else-fun))))))
 
+  (define ((ds-datatype-variant typarams) v)
+    (define (ds-constructor c)
+      (match c
+        [(s-datatype-constructor s self body)
+         (s-datatype-constructor s self (ds body))]))
+    (match v
+      [(s-datatype-variant s name members constructor)
+       (s-datatype-variant s name members (ds-constructor constructor))]
+      [(s-datatype-singleton-variant s name constructor)
+       (s-datatype-singleton-variant s name (ds-constructor constructor))]))
+
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -373,6 +385,9 @@
                    (variant-defs/list params brander-name mixins-names share-members variants)
                    (s-let s (s-bind s name (a-blank))
                                   (s-dot s (s-id s brander-name) 'test))))))]
+
+    [(s-datatype s name params variants check-ignored)
+     (s-datatype s name params (map (ds-datatype-variant params) variants) check-ignored)]
 
     [(s-for s iter bindings ann body)
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))

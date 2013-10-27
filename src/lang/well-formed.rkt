@@ -92,6 +92,7 @@
       [(s-var s bind e) (wf-error "Cannot end a block in a var-binding." s)]
       [(s-fun s _ _ _ _ _ _ _) (wf-error "Cannot end a block in a fun-binding." s)]
       [(s-data s _ _ _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
+      [(s-datatype s _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
       [(s-graph s _) (wf-error "Cannot end a block with a graph definition." s)]
       [else #t]))
   (define (wf-cases-branch branch)
@@ -119,7 +120,18 @@
       (begin
         (ensure-unique-ids (map s-variant-member-bind binds))
         (map wf-variant-member binds)
-        (map wf-member members))]))
+        (map wf-member members))]
+     [(s-datatype-singleton-variant s name constructor)
+      (wf-constructor constructor)]
+     [(s-datatype-variant s name binds constructor)
+      (begin
+        (ensure-unique-ids (map s-variant-member-bind binds))
+        (map wf-variant-member binds)
+        (wf-constructor constructor))]))
+  (define (wf-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (wf body)]))
   (define (wf-member mem)
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
@@ -173,6 +185,11 @@
        (map wf mixins)
        (map wf-variant variants)
        (map wf-member shares)
+       (well-formed/internal check #t))]
+
+    [(s-datatype s name params variants check)
+     (begin
+       (map wf-variant variants)
        (well-formed/internal check #t))]
 
     [(s-for s iter bindings ann body)

@@ -378,6 +378,21 @@
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
 
 
+  (check-pyret
+   "datatype D: | foo with constructor(self): self end
+    is-foo(foo)"
+   (p:mk-bool #t))
+
+  (check-pyret
+   "datatype D: | foo(a) with constructor(self): self end
+    foo(10).a"
+   (p:mk-num 10))
+
+  (check-pyret
+   "datatype D<T>: | foo(a :: T) | bar(f :: D<Number>) end
+    bar(foo(10)).f.a"
+   (p:mk-num 10))
+
   ))
 
 (define modules (test-suite "modules"

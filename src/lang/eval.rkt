@@ -22,6 +22,7 @@
   "get-syntax.rkt"
   "desugar.rkt"
   "desugar-check.rkt"
+  "types-compile.rkt"
   "typecheck.rkt"
   "well-formed.rkt"
   "indentation.rkt"
@@ -47,10 +48,11 @@
                               (indentation-check well-formed-stx)
                               well-formed-stx))
   (define desugared (desugar indentation-stx))
+  (define typeless (types-compile-pyret desugared))
   (define type-checked
     (if type-env
-        (contract-check-pyret desugared type-env)
-        desugared))
+        (contract-check-pyret typeless type-env)
+        typeless))
   (when print-desugared
       (printf "\n[pyret desugared]\n\n~a\n\n[code running follows]\n\n" (pretty type-checked)))
   (define compiled (compile type-checked))
