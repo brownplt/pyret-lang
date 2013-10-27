@@ -589,6 +589,8 @@ method_as_fun(5)
     <script type="text/javascript" src="/js/codemirror.js"></script>
     <script type="text/javascript" src="/js/runmode.js"></script>
     <script type="text/javascript" src="/js/pyret.js"></script>
+@(when (string-ci=? uri-path "/index.html")
+@list{
     <script type="text/javascript">
       $(function(){
         $("pre").each(function(_,code) {
@@ -599,5 +601,7 @@ method_as_fun(5)
         });
       });
       </script>
+}
+)
   </body>
 </html>
