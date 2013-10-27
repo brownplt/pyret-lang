@@ -8,7 +8,7 @@
   racket/match
   racket/syntax
   "ast.rkt"
-  "desugar.rkt" ;; NOTE(dbp 2013-10-25): used locally to be able to write simpler code.
+  "desugar.rkt" ;; NOTE(dbp 2013-10-25): used locally to be able to write s-list
   )
 
 (define (types-compile-pyret ast)
