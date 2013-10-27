@@ -592,8 +592,6 @@ This introduction should get you to the point where you can write non-trivial
 Pyret programs.  From here, you can check out the [the documentation](/docs/)
 to learn more about the language and for reference.  If your interest is piqued
 by the tour, or if you have suggestions or questions, you should sign up for
-the Pyret discussion list at:
-
-@url{https://groups.google.com/forum/#!forum/pyret-discuss}
+the [Pyret discussion list](https://groups.google.com/forum/#!forum/pyret-discuss).
 
 
