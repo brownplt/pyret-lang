@@ -986,6 +986,8 @@ o2.m().called" true)
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
   (check-pyret-match/check "pyret/eval.arr" _ 21)
+  (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
+  (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
 ))
 
 (define mixins (test-suite "mixins"

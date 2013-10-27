@@ -202,7 +202,8 @@
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s imports (s-block s (list clear get-results)))]
     [(s-prog s imports (s-block s2 stmts))
-     (define no-provides (filter (negate s-provide?) imports))
+     (define (provide? e) (or (s-provide? e) (s-provide-all? e)))
+     (define no-provides (filter (negate provide?) imports))
      ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.
      ;; The toplevel may end in a statement that we cannot let-bind (which is
      ;; what desugar-check/internal will try to do), so we add a nothing at
