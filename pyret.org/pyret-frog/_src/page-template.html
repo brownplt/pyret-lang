@@ -16,6 +16,7 @@
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/css/pygments.css">
+    <link rel="stylesheet" type="text/css" href="/css/codemirror.css">
     <link rel="stylesheet" type="text/css" href="/css/scribble.css">
     <link rel="stylesheet" type="text/css" href="/css/custom.css">
     <!-- Feeds -->
@@ -56,7 +57,7 @@ s.parentNode.insertBefore(ga, s);
             <span class="icon-bar"></span>
           </button>
           <a href="/index.html" class="navbar-brand">
-            <img class="navbar-logo" src="/img/pyret-banner.png"></img> 
+            <img class="navbar-logo" src="/img/pyret-banner.png"></img>
           </a>
         </div>
         <div class="collapse navbar-collapse our-nav-collapse"
@@ -85,7 +86,7 @@ s.parentNode.insertBefore(ga, s);
   @(define (two-langs header words other-lang pyret-code other-code)
     (define other-block
       @list{
-      <div class="col-md-4"><b>@|other-lang|</b><pre>@|other-code|</pre> </div>
+      <div class="col-md-4"><b>@|other-lang|</b><pre class="non-pyret">@|other-code|</pre> </div>
       })
     (define pyret-block
       @list{
@@ -130,7 +131,7 @@ s.parentNode.insertBefore(ga, s);
             <div class="col-md-1"></div>
           </div>
         }]))
-  
+
 
 @list{
 <div class="jumbotron">
@@ -335,7 +336,7 @@ check:
   dbl = fdC("x", plusC(idC("x"), idC("x")))
   quad = fdC("x", appC(dbl, appC(dbl, idC("x"))))
   c5 = fdC("_", numC(5))
-  
+
   fun i(e): interp(e, mt-env) end
 
   i(plusC(numC(5), appC(quad, numC(3)))) is numV(17)
@@ -479,7 +480,7 @@ fun animal-name(a :: Animal):
 end
 }
 @disable-prefix{
-type animal = 
+type animal =
   | Elephant of string * float
   | Tiger of string * float
   | Horse of string * int
@@ -557,7 +558,7 @@ method_as_fun(5)
 
 }
 )
-            
+
           @(when (string-ci=? uri-path "/blog/index.html")
             @list{
               <h1>Welcome</h1>
@@ -585,5 +586,22 @@ method_as_fun(5)
     <script>
       $(".info").popover({ placement: "left" });
     </script>
+    <script type="text/javascript" src="/js/codemirror.js"></script>
+    <script type="text/javascript" src="/js/runmode.js"></script>
+    <script type="text/javascript" src="/js/pyret.js"></script>
+@(when (string-ci=? uri-path "/index.html")
+@list{
+    <script type="text/javascript">
+      $(function(){
+        $("pre").each(function(_,code) {
+          if(!$(code).hasClass("non-pyret")) {
+            CodeMirror.runMode($(code).text(), "pyret", code);
+            $(code).addClass("cm-s-default");
+          }
+        });
+      });
+      </script>
+}
+)
   </body>
 </html>
