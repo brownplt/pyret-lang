@@ -374,7 +374,7 @@
    "duplicate")
 
   (check-pyret-match/check "pyret/data-equals.arr" _ 27)
-  (check-pyret-match/check "pyret/data-eq.arr" _ 16)
+  (check-pyret-match/check "pyret/data-eq.arr" _ 24)
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
 
 
@@ -424,12 +424,12 @@
 
   (check-pyret
     "import 'modules/provide-star.arr' as P
-    (prim-num-keys(P) == 7) and
+    (prim-num-keys(P) == 8) and
     (for list.fold(all from true, field from
               ['Thing',
                'is-singleton', 'singleton',
                'is-non-singleton', 'non-singleton',
-               'foo', 'x']):
+               'foo', 'x', 'z']):
       all and builtins.has-field(P, field)
      end)"
    (p:mk-bool #t))
@@ -1021,7 +1021,9 @@ o2.m().called" true)
 
     (check-pyret-match/check "pyret/check/standalone.arr" _ 4 2 2 0 0)
 
-    (check-pyret-match/check "pyret/check/raises.arr" _ 4 2 2 0 0)
+    (check-pyret-match/check "pyret/check/raises.arr" _ 5 3 2 0 0)
+
+    (check-pyret-match/check "pyret/check/satisfies.arr" _ 2)
 
     (check-pyret-match/check "pyret/errors/arity.arr" _ 11)
 

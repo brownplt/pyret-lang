@@ -69,6 +69,7 @@
             (ic else))]
     [(s-cases-branch syntax name args body) (ic body)]
     [(s-op syntax op left right) (begin (ic left) (ic right))]
+    [(s-check-test syntax op left right) (begin (ic left) (ic right))]
     [(s-not syntax expr) (ic expr)]
     [(s-paren syntax expr) (ic expr)]
     [(s-lam syntax typarams args ann doc body check)

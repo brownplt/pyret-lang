@@ -58,6 +58,14 @@
                     (when (or (save-excursion (forward-char -7) (pyret-ELSEIF))
                               (save-excursion (forward-char -2) (pyret-IF)))
                       (pyret-smart-tab))))))
+    (define-key map (kbd "t")
+      (function (lambda (&optional N)
+                  (interactive "^p")
+                  (or N (setq N 1))
+                  (self-insert-command N)
+                  (ignore-errors
+                    (when (save-excursion (forward-char -6) (pyret-EXCEPT))
+                      (pyret-smart-tab))))))
     (define-key map (kbd ":")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -70,6 +78,7 @@
                               (save-excursion (forward-char -8) (pyret-SHARING))
                               (save-excursion (forward-char -6) (pyret-CHECK))
                               (save-excursion (forward-char -6) (pyret-WHERE))
+                              (save-excursion (forward-char -6) (pyret-BLOCK))
                               (save-excursion (forward-char -6) (pyret-GRAPH)))
                       (pyret-smart-tab))))))
     map)
@@ -80,7 +89,7 @@
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide"
      "data" "end" "except" "for" "from" "cases"
-     "and" "or" "not" "is" "raises" "mutable" "cyclic"
+     "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt

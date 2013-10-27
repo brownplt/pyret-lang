@@ -111,7 +111,10 @@
   (port-count-lines! ip)
   (define-values (p-line p-col p-pos) (port-next-location ip))
   ;; if we are at the beginning, we want to have open-parens be PARENSPACE
-  (define at-beginning (and (equal? p-line 1) (equal? p-col 0)))
+  (define at-beginning
+    (or
+      (and (equal? p-line 1) (equal? p-col 0))
+      (equal? (peek-char ip) #\()))
   ;; used so that after any number of parenthesis, the next
   ;; parenthesis is tokenized as a PARENSPACE, not a PARENNOSPACE
   (define after-paren at-beginning)

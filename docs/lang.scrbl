@@ -21,14 +21,20 @@
 @title{Pyret Language Reference}
 
 This document has detailed information on the Pyret grammar and the behavior of
-its expression forms.  The entire grammar is included at the end of the
-document for reference, with its pieces introduced individually first.  This
-document cannot be read beginning-to-end assuming no experience with Pyret.
-Rather, it explains in detail the semantics and grammar of each syntactic form,
-and is heavily cross-referential when describing features that interact.  This
-document also occasionally references ``Captain Teach'', which is a programming
-and learning environment that uses Pyret, and has some of its own environmental
-behavior that is worth noting.
+its expression forms and built-in libraries.  It is unfortunately incomplete
+and a work in progress; the language is moving somewhat quickly and the
+documentation sometimes lags, especially with respect to libraries.  If you
+want to do something in a program and you can't find how in this document, feel
+free to post a message on the
+@link["https://groups.google.com/forum/#!forum/pyret-discuss" "Pyret discussion
+list"], and we'll be happy to help.
+
+This document cannot be read beginning-to-end assuming no experience with
+Pyret.  Rather, it explains in detail the semantics and grammar of each
+syntactic form, and is heavily cross-referential when describing features that
+interact.  This document also occasionally references ``Captain Teach'', which
+is a programming and learning environment that uses Pyret, and has some of its
+own environmental behavior that is worth noting.
 
 @include-section{installing.scrbl}
 
@@ -121,13 +127,13 @@ names as identifiers.}
         doc: 'The natural logarithm of this number'
       end,
       exp(self) -> Number:
-        doc: \"Euler's constant raised to this number\"
+        doc: \"Euler's number raised to this number\"
       end,
       expt(self, power :: Number) -> Number:
         doc: 'This number raised to the specified power'
       end,
       exact(self) -> Number:
-        doc: 'Some functions and methods, like substring, require exact numbers as arguments.  This method returns an exact version of this number suitable for such functions'
+        doc: 'Some functions and methods, like substring, require exact numbers as arguments.  This method returns an exact version of this number suitable for such functions.'
       end
   end")
 @(define numbers-ast (parse-pyret numbers))
@@ -211,6 +217,9 @@ Numbers have a number of useful methods:
   "fun gensym(prefix :: String) -> String:
     doc: 'Generate a random string with the given prefix'
   end
+  fun identical(val1 :: Any, val2 :: Any) -> Boolean:
+    doc: 'Checks if val1 and val2 were constructed from the same datatype.  Raise an error on values that are not instances of datatypes constructed with data.  List is a valid datatype to check identicality on.'
+  end
   fun raise(value :: Any) -> Nothing:
     doc: 'Raises the given value, to be caught by except, raises, or to show an error to the user'
   end
@@ -270,6 +279,7 @@ are converted into a list [\"string\", <the-string>].'
   print
   torepr
   read-sexpr
+  identical
   is-number
   is-string
   is-bool
