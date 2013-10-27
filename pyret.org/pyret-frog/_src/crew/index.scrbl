@@ -22,7 +22,7 @@ language's libraries.
 
 @link["http://cs.brown.edu/~justinpombrio/" "Justin Pombrio"], Liam
 Elberty, Kathi Fisler, and Jonah Kagan have voluntarily used Pyret
-and gives tons of valuable feedback while tolerating bugs and
+and given tons of valuable feedback while tolerating bugs and
 inconsistencies.
 
 The students of Brown's CSCI 0190, CSCI 1729, and CSCI 1730 have had
