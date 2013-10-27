@@ -52,7 +52,7 @@
             <li><a href="/discuss/">News &amp; Discussion</a></li>
             <li><a href="/docs/">Documentation</a></li>
             <li><a href="https://github.com/brownplt/pyret-lang">Code</a></li>
-            <li><a href="/team/">Crew</a></li>
+            <li><a href="/crew/">Crew</a></li>
           </ul>
         </div>
     </header>
@@ -144,29 +144,6 @@
     <div class="item active">
       <pre>
 @disable-prefix{
-# Identifiers are immutable.
-# Variables are different from identifiers.
-fun mk-counter():
-  var ctr = 0
-  fun():
-    ctr := ctr + 1
-    ctr
-  end
-where:
-  l1 = mk-counter()
-  l1() is 1
-  l1() is 2
-  l2 = mk-counter()
-  l2() is 1
-  l1() is 3
-  l2() is 2
-end
-}
-      </pre>
-    </div>
-    <div class="item">
-      <pre>
-@disable-prefix{
 data BinTree:
   | leaf
   | node(value, left, right)
@@ -183,6 +160,29 @@ where:
   tree-sum(leaf) is 0
   node4 = node(4, leaf, leaf)
   tree-sum(node(5, node4, leaf)) is 9
+end
+}
+      </pre>
+    </div>
+    <div class="item">
+      <pre>
+@disable-prefix{
+# Identifiers are immutable.
+# Variables are different from identifiers.
+fun mk-counter():
+  var ctr = 0
+  fun():
+    ctr := ctr + 1
+    ctr
+  end
+where:
+  l1 = mk-counter()
+  l1() is 1
+  l1() is 2
+  l2 = mk-counter()
+  l2() is 1
+  l1() is 3
+  l2() is 2
 end
 }
       </pre>
