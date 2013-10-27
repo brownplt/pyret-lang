@@ -127,13 +127,13 @@ names as identifiers.}
         doc: 'The natural logarithm of this number'
       end,
       exp(self) -> Number:
-        doc: \"Euler's constant raised to this number\"
+        doc: \"Euler's number raised to this number\"
       end,
       expt(self, power :: Number) -> Number:
         doc: 'This number raised to the specified power'
       end,
       exact(self) -> Number:
-        doc: 'Some functions and methods, like substring, require exact numbers as arguments.  This method returns an exact version of this number suitable for such functions'
+        doc: 'Some functions and methods, like substring, require exact numbers as arguments.  This method returns an exact version of this number suitable for such functions.'
       end
   end")
 @(define numbers-ast (parse-pyret numbers))
@@ -217,6 +217,9 @@ Numbers have a number of useful methods:
   "fun gensym(prefix :: String) -> String:
     doc: 'Generate a random string with the given prefix'
   end
+  fun identical(val1 :: Any, val2 :: Any) -> Boolean:
+    doc: 'Checks if val1 and val2 were constructed from the same datatype.  Raise an error on values that are not instances of datatypes constructed with data.  List is a valid datatype to check identicality on.'
+  end
   fun raise(value :: Any) -> Nothing:
     doc: 'Raises the given value, to be caught by except, raises, or to show an error to the user'
   end
@@ -276,6 +279,7 @@ are converted into a list [\"string\", <the-string>].'
   print
   torepr
   read-sexpr
+  identical
   is-number
   is-string
   is-bool
