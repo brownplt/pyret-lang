@@ -73,7 +73,6 @@
                (list (s-let s (s-bind s brander-name (a-blank)) (s-app s (s-id s 'brander) (list)))
                      (map (data-variants params brander-name) variants)
                      (make-checker s name brander-name)
-                     (s-id s 'nothing)
                     ))
               )]))
 
@@ -88,9 +87,6 @@
     [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
 
 
-;; NOTE(dbp 2013-10-25): Right now, this is lifted pretty closely from data desugaring.
-;; once the conversion is complete, data desugaring will have these parts removed, so there
-;; won't be code duplication (and this comment should be removed at that point).
 (define ((data-variants params super-brand) variant)
   (define (make-equals s brander fields)
     (meth s (list 'self 'other)
