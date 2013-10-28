@@ -107,6 +107,7 @@
       'fold
       'map
       'range
+      'range-by
       'repeat
       'filter
       'partition
@@ -152,7 +153,8 @@
       'Set
       'set
       
-      'identical)))
+      'identical
+      'string-to-list)))
 
 (define LIBRARY-ENV
   (make-immutable-hash runtime-env-list))
