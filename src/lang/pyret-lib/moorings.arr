@@ -663,7 +663,7 @@ fun fold_n(f, num :: Number, base, lst :: List):
     if is-empty(partial-list):
       acc
     else:
-      help(n + 1, f(n, base, partial-list.first), partial-list.rest)
+      help(n + 1, f(n, acc, partial-list.first), partial-list.rest)
     end
   end
   help(0, base, lst)
