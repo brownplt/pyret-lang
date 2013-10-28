@@ -22,6 +22,7 @@
 (define pyret-empty (get-list-lib "empty"))
 (define pyret-link (get-list-lib "link"))
 (define pyret-range (get-list-lib "range"))
+(define pyret-range-by (get-list-lib "range-by"))
 (define pyret-repeat (get-list-lib "repeat"))
 (define pyret-filter (get-list-lib "filter"))
 (define pyret-partition (get-list-lib "partition"))
@@ -68,4 +69,5 @@
   (p:get-field p:dummy-loc %builtins name))
 (define %builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define pyret-identical (get-builtin-lib "identical"))
+(define pyret-string-to-list (get-builtin-lib "string-to-list"))
 

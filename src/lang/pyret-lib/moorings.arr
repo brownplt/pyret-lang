@@ -113,6 +113,17 @@ fun data-equals(self, other, brand, fields):
   end
 end
 
+fun string-to-list(str :: String):
+  for fold(lst from [], i from range-by(str.length() - 1, -1, -1)):
+    link(str.char-at(i), lst)
+  end
+where:
+  string-to-list("") is []
+  string-to-list("a") is ["a"]
+  string-to-list("abc") is ["a","b","c"]
+  string-to-list("abcdef") is ["a","b","c","d","e","f"]
+end
+
 fun Eq():
   b = brander()
   {
@@ -131,6 +142,7 @@ builtins = {
   equiv: equiv,
   data-to-repr: data-to-repr,
   data-equals: data-equals,
+  string-to-list: string-to-list,
   Eq: Eq
 }
 
@@ -371,6 +383,33 @@ fun range(start, stop):
                                  + stop.tostring()
                                  + ")")
   end
+end
+
+fun range-by(start, stop, step):
+  doc: "Creates a list of numbers from start (inclusive) to stop (exclusive) by step"
+  fun range-by-positive(start_):
+    if start_ < stop: link(start_, range-by-positive(start_ + step))
+    else: empty
+    end
+  end
+  fun range-by-negative(start_):
+    if start_ > stop: link(start_, range-by-negative(start_ + step))
+    else: empty
+    end
+  end
+  if step > 0: range-by-positive(start)
+  else if step < 0: range-by-negative(start)
+  else: raise("range-by: step must be nonzero")
+  end
+where:
+  range-by(0, 0, 1) is []
+  range-by(0, -1, 1) is []
+  range-by(0, 1, 1) is [0]
+  range-by(0, 5, 1) is [0, 1, 2, 3, 4]
+  range-by(0, 5, 2) is [0, 2, 4]
+  range-by(0, 5, 3) is [0, 3]
+  range-by(5, 0, -1) is [5, 4, 3, 2, 1]
+  range-by(5, 0, -2) is [5, 3, 1]
 end
 
 fun repeat(n :: Number, e :: Any) -> List:
@@ -663,10 +702,10 @@ fun fold_n(f, num :: Number, base, lst :: List):
     if is-empty(partial-list):
       acc
     else:
-      help(n + 1, f(n, base, partial-list.first), partial-list.rest)
+      help(n + 1, f(n, acc, partial-list.first), partial-list.rest)
     end
   end
-  help(0, base, lst)
+  help(num, base, lst)
 end
 
 
@@ -702,6 +741,7 @@ list = {
     link: link,
 
     range: range,
+    range-by: range-by,
     repeat: repeat,
     filter: filter,
     partition: partition,

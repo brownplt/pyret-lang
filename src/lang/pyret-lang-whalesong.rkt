@@ -40,6 +40,7 @@
     [pyret-empty empty]
     [pyret-link link]
     [pyret-range range]
+    [pyret-range-by range-by]
     [pyret-repeat repeat]
     [pyret-filter filter]
     [pyret-partition partition]
@@ -76,7 +77,8 @@
     [pyret-none none]
     [pyret-some some]
 
-    [pyret-identical identical])
+    [pyret-identical identical]
+    [pyret-string-to-list string-to-list])
 
   (rename-out
     [pyret-random random])
