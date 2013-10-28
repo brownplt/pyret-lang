@@ -87,33 +87,6 @@
   (match m
     [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
 
-;; NOTE(dbp): these functions are a temporary hack;
-;; they are just stripping out parametric annotations, so
-;; that code will compile with them present
-(define (replace-typarams typarams)
-  (define (rt ann)
-    (match ann
-      [(a-name s name)
-       (if (member name typarams)
-           (a-any)
-           ann)]
-      [(a-arrow s args ret)
-       (a-arrow s (map rt args) (rt ret))]
-      [(a-method s args ret)
-       (a-method s (map rt args) (rt ret))]
-      [(a-app s name-or-dot params)
-       (a-app s (rt name-or-dot) (map rt params))]
-      [(a-pred s ann exp) (a-pred s (rt ann) exp)]
-      [(a-record s fields) (a-record s (map rt fields))]
-      [(a-field s name ann) (a-field s name (rt ann))]
-      [_ ann]))
-  rt)
-(define (replace-typarams-binds typarams)
-  (lambda (bind)
-    (match bind
-      [(s-bind s id ann)
-       (s-bind s id ((replace-typarams typarams) ann))]
-      [_ bind])))
 
 ;; NOTE(dbp 2013-10-25): Right now, this is lifted pretty closely from data desugaring.
 ;; once the conversion is complete, data desugaring will have these parts removed, so there
