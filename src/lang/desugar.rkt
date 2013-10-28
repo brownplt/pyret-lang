@@ -2,7 +2,8 @@
 
 (provide
   desugar-pyret
-  desugar-internal)
+  desugar-internal
+  build-location)
 (require
   racket/runtime-path
   "ast.rkt"
@@ -190,22 +191,6 @@
   (define (ds-if branch)
     (match branch
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
-  (define (ds-cases s type val cases else)
-    (define (ds-cases-branch b)
-      (match b
-        [(s-cases-branch s2 name args body)
-         (s-data-field s2 (s-str s2 (symbol->string name))
-                       (s-lam s2 empty args (a-blank) "" body (s-block s2 empty)))]))
-    (define else-fun
-      (s-lam (get-srcloc else) empty empty (a-blank) "" else (s-block (get-srcloc else) empty)))
-    (define cases-object
-      (s-obj s (map ds-cases-branch cases)))
-    (define val-temp-name (gensym "cases-value"))
-    (ds
-      (s-block s
-        (list
-          (s-let s (s-bind s val-temp-name type) val)
-          (s-app s (s-dot s (s-id s val-temp-name) '_match) (list cases-object else-fun))))))
 
   (define ((ds-datatype-variant typarams) v)
     (define (ds-constructor c)
@@ -217,7 +202,10 @@
        (s-datatype-variant s name members (ds-constructor constructor))]
       [(s-datatype-singleton-variant s name constructor)
        (s-datatype-singleton-variant s name (ds-constructor constructor))]))
-
+  (define (ds-cases-branch b)
+    (match b
+        [(s-cases-branch s name args body)
+         (s-cases-branch s name (map ds-bind args) (ds body))]))
   (match ast
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
@@ -289,23 +277,9 @@
      (s-if-else s (map ds-if cases) if-fallthrough)]
 
     [(s-cases s type val cases)
-     ;; TODO(joe): call `cases-miss` from error.arr
-     (define cases-fallthrough
-       (s-block s
-                (list
-                 (s-app s
-                        (s-id s 'raise)
-                        (list
-                          (s-app s
-                            (s-bracket s (s-id s 'error) (s-str s "cases-miss"))
-                            (list
-                              (s-str s "cases: no cases matched")
-                              (build-location s)
-                              (s-list s (list)))))))))
-     (ds-cases s type val cases cases-fallthrough)]
-
+     (s-cases s (desugar-ann type) (ds val) (map ds-cases-branch cases))]
     [(s-cases-else s type val cases else-block)
-     (ds-cases s type val cases else-block)]
+     (s-cases-else s (desugar-ann type) (ds val) (map ds-cases-branch cases) (ds else-block))]
 
     [(s-try s try exn catch)
      (define exn-id (gensym))

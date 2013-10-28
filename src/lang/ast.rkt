@@ -101,9 +101,9 @@ these metadata purposes.
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try s-ast (syntax body id except) #:transparent)
 
-;; s-cases : srcloc Expr Expr (Listof s-cases-branch) -> s-cases
+;; s-cases : srcloc Ann Expr (Listof s-cases-branch) -> s-cases
 (struct s-cases s-ast (syntax type val branches) #:transparent)
-;; s-cases-else : srcloc (Listof s-cases-branch) s-block -> s-cases-else
+;; s-cases-else : srcloc Ann Expr (Listof s-cases-branch) s-block -> s-cases-else
 (struct s-cases-else s-ast (syntax type val branches else) #:transparent)
 ;; s-cases-branch : srcloc symbol (ListOf s-bind) s-block -> s-cases-branch
 (struct s-cases-branch s-ast (syntax name args body) #:transparent)

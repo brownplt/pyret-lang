@@ -17,7 +17,7 @@
      (s-prog s imps
              (types-compile-internal block))]))
 
-;; NOTE(dbp 2013-10-24): Just structural recursion, interesting case is below.
+;; NOTE(dbp 2013-10-24): Mostly structural recursion, interesting cases is below.
 (define (types-compile-internal ast)
   (define tci types-compile-internal)
   (match ast
@@ -41,6 +41,8 @@
      (s-method syntax args ann doc (tci body) check-ignored)]
     [(s-data-field syntax name value)
      (s-data-field syntax name (tci value))]
+    [(s-mutable-field syntax name ann value)
+     (s-mutable-field syntax name ann (tci value))]
     [(s-extend syntax super fields)
      (s-extend syntax (tci super) (map tci fields))]
     [(s-update syntax super fields)
@@ -59,11 +61,52 @@
      (s-colon-bracket syntax (tci obj) (tci field))]
     [(s-datatype syntax name params variants check)
      (types-compile-datatype ast)]
-    [else ast]
+    [(s-cases s type val cases)
+     ;; TODO(joe): call `cases-miss` from error.arr
+     (define cases-fallthrough
+       (s-block s
+                (list
+                 (s-app s
+                        (s-id s 'raise)
+                        (list
+                          (s-app s
+                            (s-bracket s (s-id s 'error) (s-str s "cases-miss"))
+                            (list
+                              (s-str s "cases: no cases matched")
+                              (build-location s)
+                              (desugar-internal (s-list s (list))))))))))
+     (types-compile-cases s type val cases cases-fallthrough)]
+
+    [(s-cases-else s type val cases else-block)
+     (types-compile-cases s type val cases else-block)]
+
+    [(or (s-id _ _)
+         (s-num _ _)
+         (s-bool _ _)
+         (s-str _ _)) ast]
+    [else (error (format "Missed a case in types-compile: ~a" ast))]
 ))
 
 ;; NOTE(dbp 2013-10-24): This is the stuff we actually care about - compiling datatypes
 ;; into runtime values.
+(define (types-compile-cases s type val cases else)
+  (define tci types-compile-internal)
+  (define (ds-cases-branch b)
+      (match b
+        [(s-cases-branch s2 name args body)
+         (s-data-field s2 (s-str s2 (symbol->string name))
+                       (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty)))]))
+    (define else-fun
+      (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty)))
+    (define cases-object
+      (s-obj s (map ds-cases-branch cases)))
+    (define val-temp-name (gensym "cases-value"))
+      (s-block s
+        (list
+          (s-let s (s-bind s val-temp-name type) (tci val))
+          (s-app s (s-bracket s (s-id s val-temp-name) (s-str s "_match"))
+                 (list cases-object else-fun)))))
+
 (define (types-compile-datatype ast)
   (match ast
     [(s-datatype s name params variants check)
@@ -122,7 +165,7 @@
                                   (a-blank)))
                     (a-blank)
                     (format "Constructor for ~a" (symbol->string name))
-                    (s-datatype-constructor-body constructor)
+                    (types-compile-internal (s-datatype-constructor-body constructor))
                     (s-block s empty))
            (list obj)))
   (match variant

@@ -4,6 +4,7 @@
   "../ast.rkt"
   "../load.rkt"
   "../desugar.rkt"
+  "../types-compile.rkt"
   "../desugar-check.rkt"
   (except-in "../runtime.rkt" raise)
   "../ffi-helpers.rkt"
@@ -346,7 +347,7 @@
     (cond
       [check-mode? (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
-  (desugar ast))
+  (types-compile-pyret (desugar ast)))
 
 (define (pyret/tc str src options)
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
