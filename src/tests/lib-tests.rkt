@@ -8,7 +8,9 @@
   pyret/lang/ast
   pyret/lang/load)
 
+(define (not-equiv-ast e1 e2) (not (equiv-ast e1 e2)))
 (define-binary-check (check-equiv-ast equiv-ast actual expected))
+(define-binary-check (check-not-equiv-ast not-equiv-ast actual expected))
 
 (check-equal?
   (free-ids (parse-pyret "
@@ -16,18 +18,21 @@
     is-foo(foo)"))
   (set))
 
-(check-equal?
-  (free-ids (parse-pyret
+(define datatype-variants
     "datatype Foo:
       | foo() with constructor(self): self end
       | bar(a) with constructor(self): self end
      end
-     Foo(bar(foo()))"))
-  (set))
+     Foo(bar(foo()))")
 
 (check-equal?
-  (free-ids (parse-pyret
-    "datatype Foo<T>: | foo() with constructor(self): self + x;;"))
+  (free-ids (parse-pyret datatype-variants))
+  (set))
+
+(define datatypeT "datatype Foo<T>: | foo() with constructor(self): self + x;;")
+
+(check-equal?
+  (free-ids (parse-pyret datatypeT))
   (set 'x))
 
 (check-equal?
@@ -423,3 +428,17 @@ EOF
 
 (check-equiv-ast (parse-pyret (string-join moorings-lines "\n") "moorings")
                  (parse-pyret (string-join moorings-lines "\n") "another-filename"))
+
+(check-equiv-ast (parse-pyret datatypeT) (parse-pyret datatypeT))
+
+(define not-datatypeT "datatype Foo<T>: | foo() with constructor(bar): bar + x;;")
+(check-not-equiv-ast (parse-pyret datatypeT) (parse-pyret not-datatypeT))
+
+(define not-datatype-variants 
+    "datatype Foo:
+      | foo() with constructor(z): z end
+      | bar(a) with constructor(self): self end
+     end
+     Foo(bar(foo()))")
+(check-not-equiv-ast (parse-pyret datatype-variants) (parse-pyret not-datatype-variants))
+
