@@ -32,7 +32,9 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 ;;
-;; - non-duplicated identifiers in arguments lists
+;; - duplicated identifiers in arguments lists
+;;
+;; - duplicated constructor names in data(type)
 ;;
 ;; - all blocks end in a non-binding form
 ;;
@@ -112,6 +114,23 @@
   (define (wf-variant-member vm)
     (match vm
      [(s-variant-member s mutable? bind) (wf-bind bind)]))
+  (define (wf-dt-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-datatype-singleton-variant s name _)
+           (s-datatype-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
+      
   (define (wf-variant var)
     (match var
      [(s-singleton-variant s name members)
@@ -189,6 +208,7 @@
 
     [(s-datatype s name params variants check)
      (begin
+       (wf-dt-variant-names variants)
        (map wf-variant variants)
        (well-formed/internal check #t))]
 
