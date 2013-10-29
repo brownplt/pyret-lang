@@ -3,6 +3,7 @@
 (require
   rackunit
   racket/file
+  racket/match
   racket/set
   racket/string
   pyret/lang/ast
@@ -11,6 +12,31 @@
 (define (not-equiv-ast e1 e2) (not (equiv-ast e1 e2)))
 (define-binary-check (check-equiv-ast equiv-ast actual expected))
 (define-binary-check (check-not-equiv-ast not-equiv-ast actual expected))
+
+(check-equiv-ast
+  (subst (parse-stmt "x") 'x (parse-stmt "5"))
+  (parse-stmt "5"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "datatype D: | foo(a) with constructor(self): self + x;;")
+    'x
+    (parse-stmt "5"))
+  (parse-stmt "datatype D: | foo(a) with constructor(self): self + 5;;"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "datatype D: | foo(a :: X(pred)) with constructor(self): self;;")
+    'pred
+    (parse-stmt "fun(x): false;"))
+  (parse-stmt "datatype D: | foo(a :: X(fun(x): false;)) with constructor(self): self;;"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "data D: | foo(a :: X(pred));")
+    'pred
+    (parse-stmt "fun(x): false;"))
+  (parse-stmt "data D: | foo(a :: X(fun(x): false;));"))
 
 (check-equal?
   (free-ids (parse-pyret "

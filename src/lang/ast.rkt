@@ -246,7 +246,7 @@ these metadata purposes.
 (struct s-datatype-singleton-variant s-ast (syntax name constructor) #:transparent)
 
 ;; s-datatype-constructor : srcloc Symbol block
-(struct s-datatype-constructor s-ast (syntax self body))
+(struct s-datatype-constructor s-ast (syntax self body) #:transparent)
 
 ;; s-for-bind : srcloc s-bind Expr
 (struct s-for-bind s-ast (syntax bind value) #:transparent)
@@ -275,9 +275,22 @@ these metadata purposes.
 (struct a-dot a-ann (syntax obj field) #:transparent)
 
 
+;; Subst expr2 FOR sub-id IN expr1
 (define (subst expr1 sub-id expr2)
   (define (sub e)
     (subst e sub-id expr2))
+  (define (subst-ann ann sub-id expr)
+    (define (ann-map anns)
+      (map (lambda (a) (subst-ann a sub-id expr)) anns))
+    (match ann
+     [(or (a-name _ _) (a-blank) (a-any) (a-dot _ _ _)) ann]
+     [(a-arrow s args ret) (a-arrow (ann-map args) (subst-ann ret))]
+     [(a-method s args ret) (a-method (ann-map args) (subst-ann ret))]
+     [(a-field s name a) (a-field name (subst-ann a sub-id expr))]
+     [(a-record s fields) (a-record s (ann-map fields))]
+     [(a-app s ann params) (a-app s (subst-ann ann sub-id expr) (ann-map params))]
+     [(a-pred s ann pred)
+      (a-pred s (subst-ann ann sub-id ann) (subst pred sub-id expr))]))
   (match expr1
     [(s-id s id)
      (cond
@@ -289,7 +302,7 @@ these metadata purposes.
     [(s-provide s expr) (s-provide s (sub expr))]
     [(s-provide-all s) expr1]
     [(s-block s stmts) (s-block s (map sub stmts))]
-    [(s-bind s id ann) expr1]
+    [(s-bind s id ann) (s-bind s id (subst-ann ann sub-id expr2))]
     [(s-fun s name params args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
      (cond
@@ -358,12 +371,17 @@ these metadata purposes.
     [(s-data s name params mixins variants shared-members check)
      (s-data s name params (map sub mixins) (map sub variants) (map sub shared-members) (sub check))]
     [(s-variant s name binds with-members)
-     (s-variant s name binds (map sub with-members))]
+     (s-variant s name (map sub binds) (map sub with-members))]
+    [(s-variant-member s type b) (s-variant-member s type (sub b))]
     [(s-singleton-variant s name with-members) expr1]
     [(s-datatype s name params variants check)
      (s-datatype s name params (map sub variants) (sub check))]
     [(s-datatype-variant s name binds constructor)
-     (s-datatype-variant s name binds (sub constructor))]
+     (s-datatype-variant s name (map sub binds) (sub constructor))]
+    [(s-datatype-constructor s self body)
+     (cond
+      [(equal? self sub-id) (s-datatype-constructor s self body)]
+      [else (s-datatype-constructor s self (sub body))])]
     [(s-datatype-singleton-variant s name constructor)
      (s-datatype-singleton-variant s name (sub constructor))]
     [(s-for-bind s bind value) (s-for-bind s bind (sub value))]
