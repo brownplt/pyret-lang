@@ -139,7 +139,9 @@
       (begin
         (ensure-unique-ids (map s-variant-member-bind binds))
         (map wf-variant-member binds)
-        (map wf-member members))]
+        (map wf-member members))]))
+  (define (wf-dt-variant var)
+    (match var
      [(s-datatype-singleton-variant s name constructor)
       (wf-constructor constructor)]
      [(s-datatype-variant s name binds constructor)
@@ -209,7 +211,7 @@
     [(s-datatype s name params variants check)
      (begin
        (wf-dt-variant-names variants)
-       (map wf-variant variants)
+       (map wf-dt-variant variants)
        (well-formed/internal check #t))]
 
     [(s-for s iter bindings ann body)
