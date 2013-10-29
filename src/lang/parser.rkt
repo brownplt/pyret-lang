@@ -21,7 +21,8 @@
     (substring str-val 1 (sub1 (string-length str-val)))))
 
 (define (parse-num stx)
-  (string->number (syntax->datum stx)))
+  (parameterize ([read-decimal-as-inexact #f])
+    (string->number (syntax->datum stx))))
 
 ;; NOTE(joe): syntax->datum followed by datum->syntax loses location
 ;; information if used naively, so do the unpacking with syntax/parse

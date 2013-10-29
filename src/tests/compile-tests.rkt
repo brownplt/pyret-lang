@@ -643,6 +643,16 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match/check "pyret/sets.arr" _ 15)
 
   (check-pyret-match/check "pyret/strings.arr" _ 22)
+
+  (check-pyret "5.is-integer()" true)
+  (check-pyret "5.5.is-integer()" false)
+  (check-pyret "((1 / 3) * 3).is-integer()" true)
+  (check-pyret "(5.5 * 2).is-integer()" true)
+  (check-pyret "0.is-integer()" true)
+  (check-pyret "(1.2 * -5).is-integer()" true)
+  (check-pyret "(78689768976987698762538756293847569384752693487652943785.5 * 2).is-integer()" true)
+  (check-pyret "(2987509274358762538756293847569384752693487652943785.5 * 2.7).is-integer()" false)
+
 ))
 
 (define tag-tests (test-suite "tag-tests"

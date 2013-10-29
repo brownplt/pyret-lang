@@ -815,6 +815,7 @@ And the object was:
           ("log" . ,(mk-num-1 log 'log))
           ("exp" . ,(mk-num-1 exp 'exp))
           ("exact" . ,(mk-num-1 inexact->exact 'exact))
+          ("is-integer" . ,(mk-prim-fun integer? 'is-integer mk-bool (p-num-n) (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))))))
   meta-num-store)
 
