@@ -283,9 +283,13 @@ these metadata purposes.
     (define (ann-map anns)
       (map (lambda (a) (subst-ann a sub-id expr)) anns))
     (match ann
-     [(or (a-name _ _) (a-blank) (a-any) (a-dot _ _ _)) ann]
-     [(a-arrow s args ret) (a-arrow (ann-map args) (subst-ann ret))]
-     [(a-method s args ret) (a-method (ann-map args) (subst-ann ret))]
+     [(or (a-name s id) (a-dot s id _))
+      (cond
+       [(symbol=? id sub-id) (error (format "Substitution into annotation names not supported(~a): ~a ~a" s ann id))]
+       [else ann])]
+     [(or (a-blank) (a-any)) ann]
+     [(a-arrow s args ret) (a-arrow (ann-map args) (subst-ann ret sub-id expr))]
+     [(a-method s args ret) (a-method (ann-map args) (subst-ann ret sub-id expr))]
      [(a-field s name a) (a-field name (subst-ann a sub-id expr))]
      [(a-record s fields) (a-record s (ann-map fields))]
      [(a-app s ann params) (a-app s (subst-ann ann sub-id expr) (ann-map params))]
@@ -332,8 +336,8 @@ these metadata purposes.
      (s-graph (map sub bindings))]
     [(s-user-block s body) (s-user-block s (sub body))]
     [(s-check s body) (s-check s (sub body))]
-    [(s-var s name value) (s-var s name (sub value))]
-    [(s-let s name value) (s-let s name (sub value))]
+    [(s-var s bind value) (s-var s (sub bind) (sub value))]
+    [(s-let s bind value) (s-let s (sub bind) (sub value))]
     [(s-when s test block) (s-when s (sub test) (sub block))]
     [(s-if s branches) (s-if s (map sub branches))]
     [(s-if-else s branches else) (s-if-else s (map sub branches) (sub else))]

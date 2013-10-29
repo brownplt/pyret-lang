@@ -38,6 +38,16 @@
     (parse-stmt "fun(x): false;"))
   (parse-stmt "data D: | foo(a :: X(fun(x): false;));"))
 
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "x :: ANAME = 5") 'ANAME (parse-stmt "22"))))
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "var x :: ANAME = 5") 'ANAME (parse-stmt "22"))))
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "fun(x :: ANAME): 5;") 'ANAME (parse-stmt "22"))))
+
 (check-equal?
   (free-ids (parse-pyret "
     datatype D: | foo with constructor(self): self end end
