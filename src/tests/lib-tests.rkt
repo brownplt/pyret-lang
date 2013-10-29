@@ -11,6 +11,26 @@
 (define-binary-check (check-equiv-ast equiv-ast actual expected))
 
 (check-equal?
+  (free-ids (parse-pyret "
+    datatype D: | foo with constructor(self): self end end
+    is-foo(foo)"))
+  (set))
+
+(check-equal?
+  (free-ids (parse-pyret
+    "datatype Foo:
+      | foo() with constructor(self): self end
+      | bar(a) with constructor(self): self end
+     end
+     Foo(bar(foo()))"))
+  (set))
+
+(check-equal?
+  (free-ids (parse-pyret
+    "datatype Foo<T>: | foo() with constructor(self): self + x;;"))
+  (set 'x))
+
+(check-equal?
   (free-ids (parse-pyret "x = y y = x"))
   (set))
 

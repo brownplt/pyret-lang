@@ -502,13 +502,13 @@ these metadata purposes.
       [(s-datatype-variant _ name binds constructor)
        (set-union
         (unions (map free-ids-variant-member binds))
-        (unions (free-ids-constructor constructor)))]
+        (free-ids-constructor constructor))]
       [(s-datatype-singleton-variant _ name constructor)
-        (unions (free-ids-constructor constructor))]))
+       (free-ids-constructor constructor)]))
   (define (free-ids-constructor c)
     (match c
       [(s-datatype-constructor _ name body)
-       (unions (free-ids body))]))
+       (set-subtract (free-ids body) (set name))]))
   (define (free-ids-ann a)
     (match a
       [(a-any) (set)]
