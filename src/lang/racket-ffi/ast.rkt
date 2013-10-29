@@ -341,13 +341,13 @@
     [else
      (error (format "ast: don't know how to convert ann: ~a" ann))]))
 
-(define (get-desugared str src check-mode?)
+(define (get-desugared str src check-mode? #:types-compile [types-compile #t])
   (define ast (parse-pyret (string-append " " str) src))
   (define desugar
     (cond
       [check-mode? (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
-  (types-compile-pyret (desugar ast)))
+  ((if types-compile types-compile-pyret (λ(x)x)) (desugar ast)))
 
 (define (pyret/tc str src options)
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
@@ -355,13 +355,14 @@
   (define with-contracts (contract-check-pyret desugared DEFAULT-ENV))
   (to-pyret with-contracts))
 
-(define (pyret-pair-from-string str src options)
+(define (pyret-triple-from-string str src options)
   (define ast (parse-pyret (string-append " " str) src))
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (p:mk-object
     (make-string-map
       (list
         (cons "pre-desugar" (to-pyret ast))
+        (cons "with-types" (to-pyret (get-desugared str src check-mode? #:types-compile #f)))
         (cons "post-desugar" (to-pyret (get-desugared str src check-mode?)))))))
 
 (define-syntax-rule (has-brand obj brand)
@@ -615,7 +616,7 @@
     ast
     (list
       (cons "parse"
-            (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
+            (ffi-wrap (parse-error-wrap pyret-triple-from-string)))
       (cons "parse-tc"
             (ffi-wrap (parse-error-wrap pyret/tc)))
       (cons "to-native"

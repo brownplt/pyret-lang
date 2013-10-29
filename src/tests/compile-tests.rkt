@@ -395,6 +395,8 @@
     bar(foo(10)).f.a"
    (p:mk-num 10))
 
+
+
   ))
 
 (define modules (test-suite "modules"
@@ -1013,6 +1015,7 @@ o2.m().called" true)
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
   (check-pyret-match/check "pyret/eval.arr" _ 21)
+  (check-pyret-match/check "pyret/parse-types.arr" _ 3)
   (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
   (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
 ))
