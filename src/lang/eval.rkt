@@ -37,7 +37,8 @@
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
           #:type-env [type-env WHALESONG-ENV]
-          #:print-desugared [print-desugared (current-print-desugared)])
+          #:print-desugared [print-desugared (current-print-desugared)]
+          #:print-typed-core [print-typed-core (current-print-typed-core)])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
@@ -48,6 +49,8 @@
                               (indentation-check well-formed-stx)
                               well-formed-stx))
   (define desugared (desugar indentation-stx))
+  (when print-typed-core
+      (printf "\n[pyret typed core]\n\n~a\n\n[rest follows]\n\n" (pretty desugared)))
   (define typeless (types-compile-pyret desugared))
   (define type-checked
     (if type-env

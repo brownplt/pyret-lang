@@ -8,7 +8,8 @@
   current-allow-shadowed-vars
   current-mark-mode
   current-compile-lift-constants
-  current-print-desugared)
+  current-print-desugared
+  current-print-typed-core)
 
 (define current-where-everywhere (make-parameter #f))
 (define current-check-mode (make-parameter #f))
@@ -18,3 +19,4 @@
 (define current-mark-mode (make-parameter #t))
 (define current-compile-lift-constants (make-parameter #t))
 (define current-print-desugared (make-parameter #f))
+(define current-print-typed-core (make-parameter #f))

@@ -122,6 +122,8 @@
    (current-allow-shadowed-vars #t))
   ("--print-desugared" "Print code after desugaring"
    (current-print-desugared #t))
+  ("--print-typed-core" "Print core code with types"
+   (current-print-typed-core #t))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
