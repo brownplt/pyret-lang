@@ -48,6 +48,16 @@
   #rx"Substitution into annotation names"
   (lambda () (subst (parse-stmt "fun(x :: ANAME): 5;") 'ANAME (parse-stmt "22"))))
 
+(define simple-for (parse-stmt "for each(i :: A(x) from y): print(i);"))
+
+(check-equiv-ast
+  (subst simple-for 'x (parse-stmt "5"))
+  (parse-stmt "for each(i :: A(5) from y): print(i);"))
+
+(check-equiv-ast
+  (subst simple-for 'y (parse-stmt "5"))
+  (parse-stmt "for each(i :: A(x) from 5): print(i);"))
+
 (check-equal?
   (free-ids (parse-pyret "
     datatype D: | foo with constructor(self): self end end

@@ -309,29 +309,38 @@ these metadata purposes.
     [(s-bind s id ann) (s-bind s id (subst-ann ann sub-id expr2))]
     [(s-fun s name params args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-fun s name params args ann doc body (sub check))]
-      [else (s-fun s name params args ann doc (sub body) (sub check))])]
+      [shadow? (s-fun s name params new-args new-ann doc body (sub check))]
+      [else (s-fun s name params new-args new-ann doc (sub body) (sub check))])]
     [(s-lam s typarams args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-lam s typarams args ann doc body (sub check))]
-      [else (s-lam s typarams args ann doc (sub body) (sub check))])]
+      [shadow? (s-lam s typarams new-args new-ann doc body (sub check))]
+      [else (s-lam s typarams new-args new-ann doc (sub body) (sub check))])]
     [(s-method s args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-method s args ann doc body (sub check))]
-      [else (s-method s args ann doc (sub body) (sub check))])]
+      [shadow? (s-method s new-args new-ann doc body (sub check))]
+      [else (s-method s new-args new-ann doc (sub body) (sub check))])]
     [(s-method-field s name args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-method-field s name args ann doc body (sub check))]
-      [else (s-method s name args ann doc (sub body) (sub check))])]
+      [shadow? (s-method-field s name new-args new-ann doc body (sub check))]
+      [else (s-method s name args new-ann doc (sub body) (sub check))])]
+    [(s-for-bind s bind value) (s-for-bind s (sub bind) (sub value))]
     [(s-for s iterator bindings ann body)
      (define shadow? (member sub-id (map s-bind-id (map s-for-bind-bind bindings))))
      (cond
-      [shadow? (s-for s (sub iterator) (map sub bindings) ann body)]
-      [else (s-for s (sub iterator) (map sub bindings) ann (sub body))])]
+      [shadow? (s-for s (sub iterator) (map sub bindings) (subst-ann ann sub-id expr2) body)]
+      [else (s-for s (sub iterator) (map sub bindings) (subst-ann ann sub-id expr2) (sub body))])]
     [(s-graph s bindings)
      (s-graph (map sub bindings))]
     [(s-user-block s body) (s-user-block s (sub body))]
@@ -388,7 +397,6 @@ these metadata purposes.
       [else (s-datatype-constructor s self (sub body))])]
     [(s-datatype-singleton-variant s name constructor)
      (s-datatype-singleton-variant s name (sub constructor))]
-    [(s-for-bind s bind value) (s-for-bind s bind (sub value))]
     [_ (error (format "Cannot substitute into: ~a\n" expr1))]))
 
 (define (get-srcloc ast)
