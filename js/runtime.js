@@ -440,7 +440,7 @@ return     });
         var remain = val;
         do {
             items.push(toRepr(remain.dict.first).s)
-            remain = remain.dict.rest;
+            remain = remain.dict.r;
         } while(!isEmpty(remain));
         rep += items.join(", ") + "]";
         return makeString(rep);
@@ -454,7 +454,7 @@ return     });
         }
         
         if(val.dict.hasOwnProperty('_torepr')) {
-            return applyFunction(getField(val, 'torepr'), []);
+            return applyFunction(getField(val, '_torepr'), []);
         }
 
         var fields = [];
@@ -818,8 +818,8 @@ return     });
 
     function Link(f,r) {
         this.dict = {};
-        this.dict.first = f;
-        this.dict.rest = r;
+        this.dict.f = f;
+        this.dict.r= r;
         this.brands = [];
     }
     Link.prototype = Object.create(PList.prototype);
@@ -827,7 +827,7 @@ return     });
         var e = new Link(f,r);
         
         e.dict.length = makeMethod(function(me) {
-        return makeNumber(1 + me.dict['rest']['length'].method(me['dict']['rest']).n);
+        return makeNumber(1 + me.dict['r']['length'].method(me['dict']['r']).n);
         });
 
         e.dict._plus = makeMethod(function(me, toConcat) {
@@ -836,20 +836,20 @@ return     });
 
         
         e.concat = function concat(toConcat) {
-                return makeLink(this.dict.first, this.dict.rest.concat(toConcat));
+                return makeLink(this.dict.f, this.dict.r.concat(toConcat));
         }
     
         e.dict.map = makeMethod(function(me, f) {
             checkFun(f);
 
-            return makeLink(applyFunction(f,[me.dict.first]), me.dict.rest.dict.map.method(me.dict.rest, f));
+            return makeLink(applyFunction(f,[me.dict.f]), me.dict.r.dict.map.method(me.dict.r, f));
         });
 
         e.dict._equals = makeMethod(function(me, other) {
             if(!(isLink(other))) 
                 {return makeBoolean(false);}
-            if(equiv(me.dict.first, other.dict.first)) {
-                return equiv(me.dict.rest, other.dict.rest);
+            if(equiv(me.dict.f, other.dict.f)) {
+                return equiv(me.dict.r, other.dict.r);
             }
             else {
                 return makeBoolean(false);
@@ -1031,9 +1031,15 @@ return     });
             //TODO: what does function do?
         }),
         'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
+        'Method': makeFunction(function(x){return makeBoolean(isMethod(x));}),
+        'Placeholder': makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
+        'Mutable': makeFunction(function(x){return makeBoolean(isMutable(x));}),
+        'Nothing': makeFunction(function(x){return makeBoolean(isNothing(x));}),
         'String': makeFunction(function(x) {
             return makeBoolean(isString(x)); //TODO: Implement with toString
         }),
+        'Any': makeFunction(function(x){return makeBoolean(isPBase(x));}),
+        'Bool': makeFunction(function(x){return makeBoolean(isBoolean(x));}),
         builtins: makeObj({
             'Eq': makeFunction(function(){
                 var b = applyFunction(brander,[]);
@@ -1053,6 +1059,37 @@ return     });
             }),
             
             equiv: makeFunction(equiv),
+
+            //data-to-repr(val ::Obj, name:: Str, fields ::ListObj)
+            'data-to-repr': makeFunction(function(val, name, fields){
+            var fieldsEmpty = true;
+            var repr = name.s + "(";
+            while(true){
+              try{
+                  var first = getField(fields, "f");
+                  var rest = getField(fields, "r");
+                  fields = rest;
+
+                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
+                  repr = repr + toRepr(getField(val, first.s)) + ", ";
+                  fieldsEmpty = false;
+              }
+              catch(e){
+                break;
+              }
+            }
+            if(fieldsEmpty) {
+                return makeString(name.s + "()");
+            }
+            else {
+                return makeString(repr.substring(0, repr.length-2) + ")");
+            }
+
+            }),
+
+
+            //TODO: Implement
+           'data-equals': makeFunction(function(dat1, dat2){return makeBoolean(dat1 === dat2);}),
 
             "has-field" : makeFunction(function(prim, field) {
               return makeBoolean(prim.dict.hasOwnProperty(field));
@@ -1090,6 +1127,10 @@ return     });
       "print" : makeFunction(function(x) {
         return applyFunction(getField(x, 'tostring'),[]);
       }), 
+
+      //Empty Bindings
+      "checkers" : makeObj({}),
+      "sets" : makeObj({}),
 
       "mk-placeholder": makePlaceholder,
       "mk-mutable": makeFunction(makeMutable),
