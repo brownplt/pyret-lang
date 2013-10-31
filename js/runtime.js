@@ -704,11 +704,8 @@ return     });
             newObj.isMutable = true;
             
            newObj.set = (function(newVal) { 
-            var  wVal = w.app(newVal);
-            if(!(isBoolean(wVal) && wVal.b)) {
-                throwPyretMessage('Predicate failed upon set');
-            }
-                return a = newVal;
+                newVal = w.app(newVal);
+                return (a = newVal);
             });
             
            newObj.r = r;
@@ -735,11 +732,7 @@ return     });
             return makeString("mutable-field");
             }),
             'get': makeMethod(function(me) {
-            
-            var  readVal = r.app(a);
-            if(!(isBoolean(readVal) && readVal.b)) {
-                throwPyretMessage('Predicate failed upon read ');
-            }
+                a = r.app(a);
                 return a;
             }),
 
@@ -749,8 +742,7 @@ return     });
         });
 
         mut.set = (function(newVal) { 
-            var  wVal = w.app(newVal);
-                throwPyretMessage('Predicate failed upon set');
+                newVal = w.app(newVal);
                 return (a = newVal);
             });
 
@@ -765,8 +757,8 @@ return     });
         return makeBoolean(Boolean(val.isMutable));
     }
 
-    var alwaysTrue = makeFunction(function() {return makeBoolean(true);});
-    function makeSimpleMutable(val) {return makeMutable(val,alwaysTrue, alwaysTrue);}
+    var identity = makeFunction(function(x) {return x;});
+    function makeSimpleMutable(val) {return makeMutable(val,identity,identity );}
 
     //List
     function PList() {
