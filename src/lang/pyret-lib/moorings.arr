@@ -343,6 +343,7 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
+  to-set: mk-placeholder(),
   _plus(self :: List, other :: List): self.append(other) end,
 
 where:
@@ -763,131 +764,6 @@ list = {
   }
 
 # TREES
-
-data AVLTree:
-  | leaf with:
-      height(self) -> Number: 0 end,
-      contains(self, val :: Any) -> Bool: false end,
-      insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
-      remove(self, val :: Any) -> AVLTree: leaf end,
-      preorder(self) -> List: [] end,
-      inorder(self) -> List: [] end,
-      postorder(self) -> List: [] end
-      
-  | branch(cyclic value :: Any, h :: Number, cyclic left :: AVLTree, cyclic right :: AVLTree) with:
-      height(self) -> Number: self.h end,
-      contains(self, val :: Any) -> Bool:
-        if val == self.value: true
-        else if val < self.value: self.left.contains(val)
-        else: self.right.contains(val)
-        end
-      end,
-      insert(self, val :: Any) -> AVLTree:
-        if val == self.value: mkbranch(val, self.left, self.right)
-        else if val < self.value:
-          rebalance(mkbranch(self.value, self.left.insert(val), self.right))
-        else:
-          rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
-        end
-      end,
-      remove(self, val :: Any) -> AVLTree:
-        if val == self.value: remove-root(self)
-        else if val < self.value:
-          rebalance(mkbranch(self.value, self.left.remove(val), self.right))
-        else:
-          rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
-        end
-      end,
-      preorder(self) -> List: link(self.value, self.left.preorder() + self.right.preorder()) end,
-      inorder(self) -> List: self.left.inorder() + link(self.value, self.right.inorder()) end,
-      postorder(self) -> List: self.left.postorder() + self.right.postorder() + [self.value] end
-sharing:
-  to-list(self) -> List: self.inorder() end,
-  _equals(self, other):
-    AVLTree(other) and (self.inorder() == other.inorder())
-  end
-end
-
-fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
-  branch(val, left.height().max(right.height()) + 1, left, right)
-end
-
-fun rebalance(tree :: AVLTree):
-  fun left-left(t):
-    mkbranch(t.left.value, t.left.left, mkbranch(t.value, t.left.right, t.right))
-  end
-  fun right-right(t):
-    mkbranch(t.right.value, mkbranch(t.value, t.left, t.right.left), t.right.right)
-  end
-  fun left-right(t):
-    mkbranch(t.left.right.value,
-             mkbranch(t.left.value, t.left.left, t.left.right.left),
-             mkbranch(t.value, t.left.right.right, t.right))
-  end
-  fun right-left(t):
-    mkbranch(t.right.left.value,
-             mkbranch(t.value, t.left, t.right.left.left),
-             mkbranch(t.right.value, t.right.left.right, t.right.right))
-  end
-  lh = tree.left.height()
-  rh = tree.right.height()
-  if (lh - rh).abs() <= 1:
-    tree
-  else if (lh - rh) == 2:
-    if tree.left.left.height() > tree.left.right.height():
-      left-left(tree)
-    else:
-      left-right(tree)
-    end
-  else if (rh - lh) == 2:
-    if tree.right.right.height() > tree.right.left.height():
-      right-right(tree)
-    else:
-      right-left(tree)
-    end
-  else:
-    raise("AVL tree invariant has been broken!")
-  end
-end
-
-fun remove-root(tree :: AVLTree):
-  if is-leaf(tree.left):
-    if is-leaf(tree.right):
-      leaf
-    else:
-      tree.right
-    end
-  else:
-    if is-leaf(tree.right):
-      tree.left
-    else:
-      swap-next-lowest(tree)
-    end
-  end
-end
-
-fun swap-next-lowest(tree :: AVLTree):
-  fun greatest(t):
-    cases(AVLTree) t:
-      | leaf => raise("Went too far in traversal step")
-      | branch(_, _, _, right) => if is-leaf(right): t else: greatest(right) end
-    end
-  end
-  fun remove-greatest-and-rebalance(t):
-    cases(AVLTree) t:
-      | leaf => raise("Went too far in removal step")
-      | branch(val, _, left, right) =>
-        if is-leaf(right):
-          left
-        else:
-          rebalance(mkbranch(val, left, remove-greatest-and-rebalance(right)))
-        end
-    end
-  end
-  rebalance(mkbranch(greatest(tree.left).value,
-                     remove-greatest-and-rebalance(tree.left),
-                     tree.right))
-end
 
 # ERROR
 

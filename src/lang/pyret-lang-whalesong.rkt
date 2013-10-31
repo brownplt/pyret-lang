@@ -4,7 +4,6 @@
   (except-in whalesong/lang/whalesong list error raise pi else gensym)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "racket-ffi/animate.rkt"
-  (rename-in "racket-ffi/sets.rkt" [%PYRET-PROVIDE sets])
   "racket-ffi/stdlib.rkt"
   "runtime.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
@@ -26,7 +25,6 @@
   #%app
 
   list
-  sets
   error
   builtins
   checkers
@@ -69,6 +67,7 @@
     [pyret-index index]
     [pyret-read-sexpr read-sexpr]
     [pyret-read-sexpr-list read-sexpr-list]
+    [pyret-sets sets]
     [pyret-Set Set]
     [pyret-set set]
     [pyret-list-set list-set]
