@@ -1032,7 +1032,7 @@ return     });
         }),
         'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
         'String': makeFunction(function(x) {
-            return makeString(String(x)); //TODO: Implement with toString
+            return makeBoolean(isString(x)); //TODO: Implement with toString
         }),
         builtins: makeObj({
             'Eq': makeFunction(function(){
