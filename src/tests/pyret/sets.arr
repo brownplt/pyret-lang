@@ -1,8 +1,5 @@
 #lang pyret
 
-set = sets.set
-Set = sets.Set
-
 check:
   Set(set([1, 2])) is true
   Set(set([])) is true

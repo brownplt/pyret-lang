@@ -1,6 +1,7 @@
 #lang racket
 
-(require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt")
+(require "ast.rkt" "pretty.rkt" "type-env.rkt" "../parameters.rkt" "helpers.rkt"
+         (only-in  "runtime.rkt" p:mk-exn p:pyret-error))
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
 (define (build-location s)
@@ -85,6 +86,28 @@
                                (s-bracket s
                                           (s-id s funname)
                                           (s-str s "_doc")))))))))
+  (define (record-wrapper s fields)
+    (define recname (gensym "specimen"))
+    (define (add-field-check field obj)
+      (define fname (a-field-name field))
+      (define fann (a-field-ann field))
+      (s-if-else s
+                 (list
+                  (s-if-branch s
+                               (s-app s (s-id s 'prim-has-field) (list (s-id s recname) (s-str s fname)))
+                               (s-extend
+                                s
+                                obj
+                                (list
+                                 (s-data-field s (s-str s fname) (wrap-ann-check s fann (s-bracket s (s-id s recname) (s-str s fname))))))))
+
+                 (s-app s (s-id s 'raise)
+                        (list (s-app s (s-bracket s (s-id s 'error) (s-str s "make-error"))
+                                     (list (loc+msg->ast-error s "typecheck-record-field-missing"
+                                                               (format "typecheck: object missing field ~a" fname))))))))
+    (mk-lam s (list (s-bind s recname (a-blank))) ann
+            (mk-contract-doc ann)
+            (foldr add-field-check (s-id s recname) fields)))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
   (define (mk-flat-checker checker)
@@ -105,13 +128,17 @@
      (mk-flat-checker (s-bracket s (s-id s obj)
                                  (s-str s (symbol->string fld))))]
     [(a-blank)
-     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+     (let ([argname (gensym "any-arg")])
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
              (mk-contract-doc ann)
-             (s-id loc '_))]
+             (s-id loc argname)))]
     [(a-any)
-     (mk-lam loc (list (s-bind loc '_ (a-blank))) (a-blank)
+     (let ([argname (gensym "any-arg")])
+     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
              (mk-contract-doc ann)
-             (s-id loc '_))]
+             (s-id loc argname)))]
+    [(a-record s fields)
+     (record-wrapper s fields)]
     [(a-arrow s args result)
      (code-wrapper s args result mk-lam (λ (e) e) (s-id s 'Function))]
     [(a-method s args result)
@@ -157,7 +184,7 @@
                                   (list
                                     (s-app s (s-id s 'torepr)
                                       (list (s-id s tempname)))))
-                                  
+
                                 (build-location s)
                                 (s-bracket s (s-id s 'list) (s-str s "empty")))))))))
                )))]
@@ -173,7 +200,7 @@
     ;; _ in id positions is turned into a gensym. Thus, it never will conflict
     ;; with another binding with the same name. So if we block it here, this is
     ;; confusing, but equally, to do the conversion before here (ie, in the parser)
-    ;; seems odd. 
+    ;; seems odd.
     [(equal? id '_) (void)]
     [else
      (match (cons (lookup env id) mutable?)

@@ -27,6 +27,7 @@
   "indentation.rkt"
   "compile.rkt"
   "load.rkt"
+  "pretty.rkt"
   "runtime.rkt")
 
 (define (stx->racket
@@ -34,7 +35,8 @@
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
-          #:type-env [type-env DEFAULT-ENV])
+          #:type-env [type-env WHALESONG-ENV]
+          #:print-desugared [print-desugared (current-print-desugared)])
   (define desugar
     (cond
       [check (lambda (e) (desugar-pyret (desugar-check e)))]
@@ -49,6 +51,8 @@
     (if type-env
         (contract-check-pyret desugared type-env)
         desugared))
+  (when print-desugared
+      (printf "\n[pyret desugared]\n\n~a\n\n[code running follows]\n\n" (pretty type-checked)))
   (define compiled (compile type-checked))
   (strip-context compiled))
 
@@ -58,7 +62,7 @@
           #:toplevel [toplevel #f]
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
-          #:type-env [type-env DEFAULT-ENV])
+          #:type-env [type-env WHALESONG-ENV])
   (define pyret-stx (get-syntax src in))
   (define parsed-stx (parse-eval pyret-stx))
   (stx->racket
@@ -72,7 +76,8 @@
   ;; the parameterize is stolen from
   ;; http://docs.racket-lang.org/reference/eval.html?(def._((quote._~23~25kernel)._current-read-interaction))
   (parameterize ([read-accept-reader #t]
-                 [read-accept-lang #f])
+                 [read-accept-lang #f]
+                 [current-compile-lift-constants #f])
     (if (not (byte-ready? in))
         eof
         (pyret->racket src in #:toplevel #t #:type-env #f #:check #f))))
@@ -106,8 +111,7 @@
          (cond
           [(p:has-field? val "format")
            ((p:p-base-method (p:get-raw-field p:dummy-loc val "format")) val)]
-          [else (void)])]
+          [else (printf "~a\n" (p:to-repr val))])]
         [else
          (printf "~a\n" (p:to-repr val))])]
      [_ (void)])))
-

@@ -128,7 +128,7 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
-     if true-branded: 5 end"
+     when true-branded: 5 end"
      five)
 
   (check-pyret
@@ -180,9 +180,6 @@
   "
   nothing)
 
-  (check-pyret-exn "if false: 5 end" "if: no tests matched")
-  (check-pyret-exn "if false: 5 else if false: 8 end" "if: no tests matched")
-  (check-pyret "if true: 5 end" five)
   (check-pyret "if false: 5 else if true: 6 end" (p:mk-num 6))
   (check-pyret "if true: 5 else if true: 6 end" five)
   (check-pyret "if true: 5 else: 6 end" five)
@@ -272,44 +269,44 @@
     (p:p-str _ _ _ _ _))
 
   (check-pyret
-   "data List:
+   "data MyList:
       | cons(first, rest) with: length(self): 1._add(self.rest.length()) end
-      | empty() with: length(self): 0 end
+      | mt() with: length(self): 0 end
     end
-    cons(1, cons(2, empty())).length()"
+    cons(1, cons(2, mt())).length()"
    two)
 
   (check-pyret
-   "data List:
+   "data MyList:
       | cons(first, rest)
-      | empty()
+      | mt()
     sharing:
       length(self):
-        cases(List) self:
+        cases(MyList) self:
           | cons(_, rest) => 1._add(rest.length())
-          | empty => 0
+          | mt => 0
         end
       end
     end
-    cons(1, cons(2, empty())).length()"
+    cons(1, cons(2, mt())).length()"
     two)
 
 
   (check-pyret
-   "data List:
-     | empty with: length(self): 0 end
+   "data MyList:
+     | mt with: length(self): 0 end
     end
-    empty.length()
+    mt.length()
     "
     (p:mk-num 0))
 
   (check-pyret
-   "data List:
-     | empty
+   "data MyList:
+     | mt
     sharing:
       length(self): 0 end
     end
-    empty.length()
+    mt.length()
     "
     (p:mk-num 0))
 
@@ -377,6 +374,9 @@
    "duplicate")
 
   (check-pyret-match/check "pyret/data-equals.arr" _ 27)
+  (check-pyret-match/check "pyret/data-eq.arr" _ 16)
+  (check-pyret-match/check "pyret/data/params.arr" _ 4)
+
 
   ))
 
@@ -438,7 +438,7 @@
 
 (define built-in-libraries (test-suite "built-in-libraries"
 
-  (check-match-file "pyret/print.arr" _ 
+  (check-match-file "pyret/print.arr" _
 "5
 {}
 Looks shipshape, all 2 tests passed, mate!
@@ -447,7 +447,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 3)
+  (check-pyret-match/check "pyret/list-tests.arr" _ 7)
 
   (check-pyret-match/check "pyret/json.arr" _ 8)
 
@@ -606,7 +606,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "option.none.orelse(5)" (p:mk-num 5))
 
   ;; NOTE(joe): allow this here because checkers
-  (parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
+  #;(parameterize [(current-allow-shadowed-vars #t) (current-mark-mode #f)]
     (check-pyret-match/check "../lang/pyret-lib/moorings.arr" _ 35))
 
   (check-pyret "prim-num-keys({})" (p:mk-num 0))
@@ -624,6 +624,8 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
 
   (check-pyret-match/check "pyret/sets.arr" _ 15)
+
+  (check-pyret-match/check "pyret/strings.arr" _ 22)
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -789,7 +791,7 @@ o2.m().called" true)
   (check-pyret-exn "try: raise(5) except(_): _ end" "undefined")
 
   (check-pyret "try: {}.not-a-field except(e): e.trace.length() end" (p:mk-num 1))
-  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 1))
+  (check-pyret "try: fun f(): {}.not-a-field end f() except(e): e.trace.length() end" (p:mk-num 2))
 
   (check-pyret "try: 1 / 0 except(e): error.is-div-0(e) end" true)
 ))
@@ -983,7 +985,7 @@ o2.m().called" true)
 
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
-  (check-pyret-match/check "pyret/eval.arr" _ 20)
+  (check-pyret-match/check "pyret/eval.arr" _ 21)
 ))
 
 (define mixins (test-suite "mixins"
@@ -1061,7 +1063,12 @@ o2.m().called" true)
     (private-run "../../examples/pyret-lang-private/cs019/simple-updater.arr" 14)))
     ))
 
-
+(define annotations (test-suite "annotations"
+  (check-pyret-match/check "pyret/annotations/arrow.arr" _ 4)
+  (check-pyret-match/check "pyret/annotations/app.arr" _ 2)
+  (check-pyret-match/check "pyret/annotations/pred.arr" _ 1)
+  (check-pyret-match/check "pyret/annotations/record.arr" _ 1)
+))
 
 (define all (test-suite "all"
   constants
@@ -1084,7 +1091,8 @@ o2.m().called" true)
   mixins
   currying
   checks
-  examples))
+  examples
+  annotations))
 
 (run-tests all 'normal)
 

@@ -4,11 +4,11 @@
 // shapes of calls if you want, as well.
 
 function pyretEquals(RUNTIME, pyretVal1, pyretVal2) {
-  return RUNTIME.equal(pyretVal1, pyretVal2);
+  return RUNTIME.runtime.equal(pyretVal1, pyretVal2);
 }
 
 function isNumber(RUNTIME, pyretVal) {
-  return RUNTIME.isNumber(pyretVal.val);
+  return RUNTIME.runtime.isNumber(pyretVal.val);
 }
 
 
@@ -16,10 +16,10 @@ function testEquals(name, pyretProg1, pyretProg2) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var result1 = pyretProg1(RUNTIME);
-      var result2 = pyretProg2(RUNTIME);
-      if (result1 instanceof RUNTIME.NormalResult &&
-          result2 instanceof RUNTIME.NormalResult) {
+      var result1 = pyretProg1(RUNTIME.runtime, RUNTIME.namespace);
+      var result2 = pyretProg2(RUNTIME.runtime, RUNTIME.namespace);
+      if (result1 instanceof RUNTIME.runtime.NormalResult &&
+          result2 instanceof RUNTIME.runtime.NormalResult) {
         expect(result1.val).toBePyretEqual(result2.val, RUNTIME);
       }
     }
@@ -30,29 +30,53 @@ function testPred(name, pyretProg, pred) {
   return {
     name: name,
     test: function(RUNTIME) {
-      expect(pyretProg(RUNTIME)).toSatisfyPyretPred(pred, RUNTIME);
+      expect(pyretProg(RUNTIME.runtime, RUNTIME.namespace)).toSatisfyPyretPred(pred, RUNTIME);
     }
   };
 }
+
+
+function checkOutput(RUNTIME, result, output) {
+  if (result instanceof RUNTIME.runtime.NormalResult) {
+    var stdout = RUNTIME.runtime.getTestPrintOutput(result.val);
+    expect(stdout).toEqual(output["expected-out"]);
+    expect("").toEqual(output["expected-err"])
+  }
+  else if (result instanceof RUNTIME.runtime.FailResult) {
+    expect(stdout).toEqual(output.expected);
+    expect(result.exn instanceof RUNTIME.runtime.PyretException).toEqual(true, "JS threw a non-Pyret exception: " + jasmine.pp(result.exn));
+    expect(output["expected-err"]).not.toEqual("", "JS threw an error but Pyret did not: " + jasmine.pp(result));
+  } else {
+    fail("Runtime didn't produce a NormalResult or a FailResult");
+  }
+}
+
 
 function testPrint(name, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var result = pyretProg(RUNTIME);
-      if (result instanceof RUNTIME.NormalResult) {
-        var stdout = RUNTIME.getTestPrintOutput(result.val);
-        expect(stdout).toEqual(output["expected-out"]);
-        expect("").toEqual(output["expected-err"])
-      }
-      else if (result instanceof RUNTIME.FailResult) {
-        expect(stdout).toEqual(output.expected);
-        expect(RUNTIME.errToJSON(result.exn)).toEqual(output["expected-err"]);
-      }
+      var result = pyretProg(RUNTIME.runtime, RUNTIME.namespace);
+      checkOutput(RUNTIME, result, output);
     }
   }
 }
 
+function testWithLib(name, libProg, pyretProg, output) {
+  return {
+    name: name,
+    test: function(RUNTIME) {
+      var libResult = libProg(RUNTIME.runtime, RUNTIME.namespace);
+      if (libResult instanceof RUNTIME.runtime.FailResult) {
+        console.error("libResult failure on " + name + ":", libResult);
+        throw new Error("Library ended in error (see console for failure object): " + name);
+      }
+      var newNamepsace = RUNTIME.namespace.merge(libResult.namespace);
+      var progResult = pyretProg(RUNTIME.runtime, newNamepsace);
+      checkOutput(RUNTIME, progResult, output);
+    }
+  };
+}
 
 // This just hooks things into Jasmine for pretty-printing the results.
 // Feel free to add more types of test and hook them in here; equality and

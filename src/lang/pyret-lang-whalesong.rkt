@@ -69,14 +69,14 @@
     [pyret-read-sexpr read-sexpr]
     [pyret-read-sexpr-list read-sexpr-list]
     [pyret-Set Set]
-    [pyret-set set])
-
-  (rename-out
+    [pyret-set set]
     [pyret-Option Option]
     [pyret-is-none is-none]
     [pyret-is-some is-some]
     [pyret-none none]
-    [pyret-some some])
+    [pyret-some some]
+
+    [pyret-identical identical])
 
   (rename-out
     [pyret-random random])

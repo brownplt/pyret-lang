@@ -24,10 +24,6 @@
       (s-num s (srcloc-line s))
       (s-num s (srcloc-column s)))))
 
-;; variant checker name
-(define (make-checker-name s)
-    (string->symbol (string-append "is-" (symbol->string s))))
-
 (define (make-checker s name tyname brander)
   (s-let s (s-bind s name (a-blank)) (s-dot s brander 'test)))
 
@@ -56,7 +52,7 @@
           names
           placeholder-names))))
 
-(define (variant-defs/list super-brand mixins-names super-fields variants)
+(define (variant-defs/list params super-brand mixins-names super-fields variants)
   (define (apply-brand s brander-name arg)
     (s-app s (s-dot s (s-id s brander-name) 'brand) (list arg)))
   (define (variant-defs v)
@@ -99,7 +95,7 @@
     (define (fold-mixins s method base-obj)
       (foldl (lambda (mixin obj)
                (s-app s (s-dot s (s-id s mixin) method) (list obj))) base-obj local-mixins-names))
-    
+
     (match v
       [(s-singleton-variant s name with-members)
        (define torepr
@@ -183,7 +179,7 @@
                          (s-id s brander-name))
            (s-let s (s-bind s name (a-blank))
              (s-lam s
-                    (list)
+                    params
                     constructor-args
                     (a-blank)
                     (format
@@ -242,7 +238,7 @@
    [else
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
-           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))    
+           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))
 (define (ds-curry-unop s e1 rebuild)
   (define params-and-args (ds-curry-args s (list e1)))
   (define params (first params-and-args))
@@ -253,7 +249,7 @@
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
            (rebuild (first curry-args)) (s-block s empty))]))
-    
+
 (define (ds-curry ast-node)
   (match ast-node
     [(s-app s f args)
@@ -277,19 +273,28 @@
 ;; they are just stripping out parametric annotations, so
 ;; that code will compile with them present
 (define (replace-typarams typarams)
-  (lambda (ann)
+  (define (rt ann)
     (match ann
       [(a-name s name)
        (if (member name typarams)
            (a-any)
            ann)]
-      [_ ann])))
+      [(a-arrow s args ret)
+       (a-arrow s (map rt args) (rt ret))]
+      [(a-method s args ret)
+       (a-method s (map rt args) (rt ret))]
+      [(a-app s name-or-dot params)
+       (a-app s (rt name-or-dot) (map rt params))]
+      [(a-pred s ann exp) (a-pred s (rt ann) exp)]
+      [(a-record s fields) (a-record s (map rt fields))]
+      [(a-field s name ann) (a-field s name (rt ann))]
+      [_ ann]))
+  rt)
 (define (replace-typarams-binds typarams)
   (lambda (bind)
     (match bind
-      [(s-bind s1 id (a-name s2 name))
-       (if (member name typarams)
-           (s-bind s1 id (a-any)) bind)]
+      [(s-bind s id ann)
+       (s-bind s id ((replace-typarams typarams) ann))]
       [_ bind])))
 
 (define op-method-table
@@ -353,8 +358,9 @@
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     ;; NOTE(joe): generative...
-    [(s-data s name params mixins variants share-members check-ignored)
+    [(s-data s name params mixins-no-eq variants share-members check-ignored)
      (define brander-name (gensym name))
+     (define mixins (cons (s-dot s (s-id s 'builtins) 'Eq) mixins-no-eq))
      (define mixins-names
        (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
      (define bind-mixins
@@ -364,7 +370,7 @@
                    (s-let s (s-bind s brander-name (a-blank))
                                 (s-app s (s-id s 'brander) (list)))
                    bind-mixins
-                   (variant-defs/list brander-name mixins-names share-members variants)
+                   (variant-defs/list params brander-name mixins-names share-members variants)
                    (s-let s (s-bind s name (a-blank))
                                   (s-dot s (s-id s brander-name) 'test))))))]
 
@@ -560,22 +566,6 @@
                      (s-str loc "_plus"))
                     (list end))))
                    (s-block loc empty))))))
-
-(define (top-level-ids block)
-  (define (_top-level-ids expr)
-    (define (variant-ids variant)
-      (match variant
-        [(s-variant _ name _ _)
-         (list name (make-checker-name name))]
-        [(s-singleton-variant _ name _)
-         (list name (make-checker-name name))]))
-    (match expr
-      [(s-let _ (s-bind _ x _) _) (list x)]
-      [(s-fun _ name _ _ _ _ _ _) (list name)]
-      [(s-data s name _ _ variants _ _)
-       (cons name (flatten (map variant-ids variants)))]
-      [else (list)]))
-  (flatten (map _top-level-ids (s-block-stmts block))))
 
 (define (desugar-pyret ast)
   ;; This is the magic that turns `import foo as bar` into

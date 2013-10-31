@@ -30,6 +30,10 @@ document also occasionally references ``Captain Teach'', which is a programming
 and learning environment that uses Pyret, and has some of its own environmental
 behavior that is worth noting.
 
+@include-section{installing.scrbl}
+
+@include-section{running.scrbl}
+
 @include-section{forms.scrbl}
 
 @include-section{testing.scrbl}
@@ -141,18 +145,50 @@ Numbers have a number of useful methods:
 @(define strings
   "data String:
     | str with:
-      append(self, other :: String) -> String: end,
-      contains(self, other :: String) -> Bool: end,
-      substring(self, start :: Number, stop :: Number) -> String: end,
-      char-at(self, index :: Number) -> String: end,
-      repeat(self, reps :: Number) -> Number: end,
-      length(self) -> Number: end,
-      tonumber(self) -> Number: end,
-      tostring(self) -> String: end
+      append(self, other :: String) -> String:
+        doc: 'Append other after this string.'
+      where:
+        'hello '.append('world') is 'hello world'
+      end,
+      contains(self, other :: String) -> Bool:
+        doc: 'Return true if other is contained in this string, false otherwise'
+      where:
+        'ahoy, matey'.contains('matey') is true
+      end,
+      substring(self, start :: Number, stop :: Number) -> String:
+        doc: 'Return the substring of this string starting at index start and ending at index (stop - 1)'
+      where:
+        'a-str'.substring(0, 0) is ''
+        'a-str'.substring(2, 5) is 'str'
+      end,
+      char-at(self, index :: Number) -> String:
+        doc: 'Return the character at index as a string of length 1'
+      where:
+        'a'.char-at(0) is 'a'
+        'ahoy'.char-at(3) is 'y'
+      end,
+      repeat(self, reps :: Number) -> Number:
+        doc: 'Return a string that is this string repeated reps times'
+      where:
+        'yohoho'.repeat(3) is 'yohohoyohohoyohoho'
+        ''.repeat(10) is ''
+      end,
+      length(self) -> Number:
+      where:
+        ''.length() is 0
+        'yar'.length() is 3
+      end,
+      tonumber(self) -> Number:
+        doc: 'Return this string parsed as a number.  Returns the special nothing value if the string is not a valid number'
+      where:
+        '5'.tonumber() is 5
+        is-nothing('not-a-number'.tonumber()) is true
+      end,
+      tostring(self) -> String:
+        doc: 'Returns this string'
+      end
   end")
 @(define strings-ast (parse-pyret strings))
-
-Strings have a number methods:
 
 @(flatten (for/list ((name '(
   "append"
@@ -229,6 +265,7 @@ are converted into a list [\"string\", <the-string>].'
 
 @(pretty-functions misc-ast '(
   gensym
+  random
   raise
   print
   torepr
@@ -255,17 +292,17 @@ programs do not need to create @tt{Mutable}s explicitly.
 @justcode{
 <a> mk-mutable(
       val :: a,
-      read :: (a -> Bool),
-      write :: (a -> Bool)
+      read :: (a -> a),
+      write :: (a -> a)
     )
     -> Mutable<a>
 }
 
-This creates a mutable value holding @tt{val} as a value, and with predicates
-@tt{read} and @tt{write} checked on access and update, respectively.  These
-predicates are automatically filled in based on annotations for @tt{Mutable}s
-created by @tt{data}.  If the predicate fails in either case, a type error is
-signalled.
+This creates a mutable value holding @tt{val} as a value, and with wrappers
+@tt{read} and @tt{write} applied on access and update, respectively.  These
+wrappers are automatically filled in based on annotations for @tt{Mutable}s
+created by @tt{data}, and can throw exceptions in case of, for example, a
+violation of an annotation.
 
 Aside from constructing a @tt{Mutable} directly, they can be accessed directly
 by using a @seclink["s:colon-expr" "colon expression"], which gives access to
@@ -277,7 +314,7 @@ several methods:
 get(self :: Mutable<a>) -> a
 }
 
-Returns the value in the @tt{Mutable}.  
+Returns the value in the @tt{Mutable}, wrapped by all read wrappers.
 
 @(label "Mutable._equals")
 
@@ -317,8 +354,8 @@ value prior to it being initialized.  The following methods are on each
 get(self :: Placeholder<a>) -> a
 }
 
-Get the value in the placeholder.  Signals an exception if the value has yet to
-be initialized with the @tt{set} method.
+Get the value in the placeholder.  Signals an exception if the value has
+@emph{yet to be} initialized with the @tt{set} method.
 
 @(label "Placeholder.guard")
 
@@ -327,7 +364,8 @@ guard(self :: Placeholder<a>, guard :: (a -> Bool)) -> Nothing
 }
 
 Update the placeholder with an additional check @tt{guard}.  Signals an
-exception if the value has yet to be initialized with the @tt{set} method.
+exception if the value has @emph{already been} initialized with the @tt{set}
+method.
 
 @(label "Placeholder.set")
 
@@ -335,9 +373,12 @@ exception if the value has yet to be initialized with the @tt{set} method.
 set(self :: Placeholder<a>, value :: a) -> a
 }
 
-Initialize the placeholder with @tt{value}.  Signals an exception if any of the
-guards on the placeholder return non-@tt{true} values when applied to
-@tt{value}, or if the placeholder has already been @tt{set}. 
+Initialize the placeholder with @tt{value}.  Signals an exception if the
+placeholder has already been @tt{set}.  Before setting @tt{value} as the value
+of the placeholder, first applies all wrappers to it in the reverse order they
+were added (so the first added guard is applied last).  The result of each
+application is passed to the next wrapper.  Note that these wrappers can throw
+exceptions, and do when compiled from annotations.
 
 These three methods are used in concert by @tt{graph} and @tt{cyclic} to safely
 and lazily intialize mutually-referential data.  Each left-hand side in a

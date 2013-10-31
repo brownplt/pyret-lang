@@ -143,7 +143,7 @@ record-ann: "{" [list-ann-field* ann-field] "}"
 list-ann-field: ann-field ","
 ann-field: NAME ":" ann
 
-arrow-ann: (PARENSPACE|PARENNOSPACE) arrow-ann-elt* ann "->" ann ")"
+arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] "->" ann ")"
 arrow-ann-elt: ann ","
 
 app-ann: (name-ann|dot-ann) "<" app-ann-elt* ann ">"

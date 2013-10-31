@@ -6,7 +6,7 @@ var PYRET = (function () {
     PBase.prototype = {
       dict: {},
       brands: [],
-      app: (function() { makeError("Cannot apply this data type");}),
+      app: (function() { throwPyretException("Cannot apply this data type");}),
       type : 'base'
     };
 
@@ -38,7 +38,7 @@ var PYRET = (function () {
     } 
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = Object.create(PBase.prototype);
-    PMethod.prototype.app = function() { makeError( "Cannot apply method directly."); };
+    PMethod.prototype.app = function() { throwPyretException( "Cannot apply method directly."); };
     PMethod.prototype.getType = function() {return 'method';};
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.method);
@@ -47,14 +47,14 @@ return     });
     PMethod.prototype.toString = function() {return 'fun ... end'}
 
     //Throws An Error
-    function makeError(message){
+    function throwPyretException(message){
        throw makeObj({'message' : makeString(String(message))});
     }
 
     //Checks to see that an object is a function and returns it, raises error otherwise
     function checkFun(o) {
         if(isFunction(o)) {return o;}
-        makeError( 'check-fun: expected function, got ' + o.getType());
+        throwPyretException( 'check-fun: expected function, got ' + o.getType());
     }
 
     //Wraps to ensure # arguments correct
@@ -70,7 +70,7 @@ return     });
    } 
     
     function PFunction(f) {
-      this.app = checkArgs(f);
+      this.app = f;
       this.brands = [];
     }
     function makeFunction(f,doc) { 
@@ -101,7 +101,7 @@ return     });
     }
 
     function raiseTypeError(arg1, arg2, name) {
-        makeError("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+        throwPyretException("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
 
@@ -128,7 +128,7 @@ return     });
       }),
       _divide: makeMethod(function(left, right) {
         checkBothNum(left, right, 'divide');
-        if(right.n === 0) {makeError('Division by zero');}
+        if(right.n === 0) {throwPyretException('Division by zero');}
         return makeNumber(left.n / right.n);
       }),
       _times: makeMethod(function(left, right) {
@@ -378,7 +378,7 @@ return     });
             return b.b;
         }
         else {
-            makeError('check-bool: expected boolean, got ' + o.getType());
+            throwPyretException('check-bool: expected boolean, got ' + b.getType());
         }
     }
         
@@ -458,7 +458,7 @@ return     });
       else if(isNothing(val)) {//Nothing
         return makeString("nothing");
       }
-      makeError("toStringJS on an unknown type: " + val);
+      throwPyretException("toStringJS on an unknown type: " + val);
     }
 
     function getField(val, str) {
@@ -470,10 +470,10 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            makeError(str + " was not found on " + toRepr(val).s);
+            throwPyretException(str + " was not found on " + toRepr(val).s);
         }
         if(fieldVal.isMutable) {    
-            makeError('Cannot look up mutable field "'+ str +'" using dot or bracket');
+            throwPyretException('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
         if(fieldVal.isPlaceholder) {    
             return getField(fieldVal, 'get').app();
@@ -484,7 +484,7 @@ return     });
     function getColonField(val, str) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            makeError(str + " was not found on " + toRepr(val).s);
+            throwPyretException(str + " was not found on " + toRepr(val).s);
         }
         return fieldVal;
       }
@@ -497,7 +497,7 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            makeError(str + " was not found on " + toRepr(val).s);
+            throwPyretException(str + " was not found on " + toRepr(val).s);
         }
         return fieldVal;
       }
@@ -510,10 +510,11 @@ return     });
       return val;
     }
 
-    function NormalResult(val) {
+    function NormalResult(val, namespace) {
       this.val = val;
+      this.namespace = namespace;
     }
-    function makeNormalResult(val) { return new NormalResult(val); }
+    function makeNormalResult(val, ns) { return new NormalResult(val, ns); }
 
     function FailResult(exn) {
       this.exn = exn;
@@ -554,8 +555,11 @@ return     });
             }
             newObj.dict[field] = fields[field];
         }
+        newObj.brands = [];
         if(allNewFields) {
-            newObj.brands = this.brands;
+            for(var brand in this.brands){
+                newObj.brands[brand] = this.brands[brand];
+            }
         }
 
         return newObj;
@@ -566,7 +570,7 @@ return     });
             if(newObj.dict[field].isMutable) {
                 newObj.dict[field].set(fields[field]);
             }
-            else makeError("Attempted to update a non-mutable field");
+            else throwPyretException("Attempted to update a non-mutable field");
         }
         return newObj;
     }
@@ -616,11 +620,11 @@ return     });
                 return obj;
             }
             else {
-               makeError("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
+               throwPyretException("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
             }
         }
         else {
-            makeError("Check brand with non-function");
+            throwPyretException("Check brand with non-function");
         }
     });
 
@@ -635,13 +639,13 @@ return     });
                    return value;
                }
                else {
-                  makeError("Tried to get value from uninitialized placeholder");
+                  throwPyretException("Tried to get value from uninitialized placeholder");
                }
             }),
 
             guard : makeMethod(function(me, guard) {
                if(isSet) {
-                   makeError("Tried to add guard on an already-initialized placeholder");
+                   throwPyretException("Tried to add guard on an already-initialized placeholder");
                 }
                else {
                     guards.push(guard);
@@ -651,17 +655,17 @@ return     });
 
             set : makeMethod(function(me, val) {
                 if(isSet) {
-                    makeError("Tried to set value in already-initialized placeholder");
+                    throwPyretException("Tried to set value in already-initialized placeholder");
                 }
                 for(var g in guards) {
                     var test = guards[g].app(val);
                     if(isBoolean(test)) {
                         if(!test.b) {
-                        makeError("Guard failed");
+                        throwPyretException("Guard failed");
                         }
                     }
                     else {
-                        makeError("Test did not result in boolean");
+                        throwPyretException("Test did not result in boolean");
                     }
                 }
                 value = val;
@@ -711,7 +715,7 @@ return     });
            newObj.set = (function(newVal) { 
             var  wVal = w.app(newVal);
             if(!(isBoolean(wVal) && wVal.b)) {
-                makeError('Predicate failed upon set');
+                throwPyretException('Predicate failed upon set');
             }
                 return a = newVal;
             });
@@ -729,10 +733,10 @@ return     });
         var a = val;
 
         if(!isFunction(r)) {
-            makeError('typecheck failed; expected Function and got\n' + toRepr(r).s);
+            throwPyretException('typecheck failed; expected Function and got\n' + toRepr(r).s);
         }
         if(!isFunction(w)) {
-            makeError('typecheck failed; expected Function and got\n' + toRepr(w).s);
+            throwPyretException('typecheck failed; expected Function and got\n' + toRepr(w).s);
         }
 
         var mut = makeObj({
@@ -743,7 +747,7 @@ return     });
             
             var  readVal = r.app(a);
             if(!(isBoolean(readVal) && readVal.b)) {
-                makeError('Predicate failed upon read ');
+                throwPyretException('Predicate failed upon read ');
             }
                 return a;
             }),
@@ -755,10 +759,8 @@ return     });
 
         mut.set = (function(newVal) { 
             var  wVal = w.app(newVal);
-            if(!(isBoolean(wVal) && wVal.b)) {
-                makeError('Predicate failed upon set');
-            }
-                return a = newVal;
+                throwPyretException('Predicate failed upon set');
+                return (a = newVal);
             });
 
         mut.isMutable = true;
@@ -865,6 +867,19 @@ return     });
     function isLink(v) {
         return v instanceof Link;
     }
+    function PyretException(exnVal) {
+      this.exnVal = exnVal;
+    }
+    function makePyretException(exnVal) {
+      return new PyretException(exnVal);
+    }
+    function throwPyretException(exnVal) {
+      throw makePyretException(exnVal);
+    }
+
+    function errToJSON(exn) {
+      return JSON.stringify({exn: String(exn)})
+    }
 
     listDict  = {
         //empty : makeMethod(function(me) {
@@ -903,8 +918,8 @@ return     });
         }
 
         return true;
-    }   
-    return {
+    }  /* 
+    return 
       nothing: makeNothing(),
       makeNumber: makeNumber,
       makeString: makeString,
@@ -1001,6 +1016,113 @@ return     });
         }
         return myKeys;
       }),
+=======*/
+    return{
+      namespace: Namespace({
+        nothing: {},
+        "test-print": makeFunction(testPrint),
+         brander:brander,
+        "check-brand": checkBrand,
+        'Function': makeFunction(function(obj) {
+            return makeBoolean(isFunction(obj));
+            //TODO: what does function do?
+        }),
+        'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
+        'String': makeFunction(function(x) {
+            return makeString(String(x)); //TODO: Implement with toString
+        }),
+        builtins: makeObj({
+            'Eq': makeFunction(function(){
+                var b = brander.app();
+                return makeObj(
+                    {
+                        brand: makeFunction(function(obj){
+                                return getField(b,'brand').app(obj);
+                        }),
+                        extend: makeFunction(function(obj){
+                            return obj.extendWith({
+                            'eq': makeMethod(function(me, other){
+                                    return makeBoolean(getField(b,'test').app(me).b && getField(b, 'test').app(other).b);
+                                },""),
+                            });
+                        }),
+                    }); 
+            }),
+            
+        }),
+        //Raise
+          raise: raise,
+        //is-*
+          "is-number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
+          "is-string": makeFunction(function(x){return makeBoolean(isString(x));}),
+          "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
+          "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
+          "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
+          "is-mutable" : makeFunction(function(x) {return makeBoolean(Boolean(x.isMutable));}),
+          "is-placeholder" : makeFunction(function(x) {return makeBoolean(Boolean(x.isPlaceholder));}),
+          "is-object" : makeFunction(function(x) {return makeBoolean(isObj(x));}),
+          "prim-num-keys" : makeFunction(function(prim) {
+              if(isNothing(prim)) {return makeNumber(0);}
+            return makeNumber(Object.keys(prim.dict).length);
+          }),
+          "prim-keys" : makeFunction(function(prim) {
+            var myKeys = makeEmpty();
+            for(key in prim.dict) {
+                myKeys = makeLink(makeString(String(key)), myKeys);
+            }
+            return myKeys;
+      }),
+      "tostring" : makeFunction(function(x) {
+        return getField(x, 'tostring').app();
+      }), 
+
+      "mk-placeholder": makePlaceholder,
+      "mk-mutable": makeFunction(makeMutable),
+      "mk-simple-mutable": makeFunction(makeSimpleMutable),
+      equiv: makeFunction(equiv),
+      list: list,
+      error: makeObj({}),
+      }),
+      runtime: {
+        makeNumber: makeNumber,
+        isNumber: isNumber,
+        equal: equal,
+        getField: getField,
+        getTestPrintOutput: function(val) {
+          return testPrintOutput + toRepr(val).s;
+        },
+        NormalResult: NormalResult,
+        FailResult: FailResult,
+        PyretException: PyretException,
+        makeNormalResult: makeNormalResult,
+        makeFailResult: makeFailResult,
+        makePyretException: makePyretException,
+        toReprJS: toRepr,
+        errToJSON: errToJSON,
+        
+        //prims
+          makeString: makeString,
+          makeBoolean: makeBoolean,
+          isNumber: isNumber,
+          isString: isString,
+          isBoolean: isBoolean,
+          checkBool: checkBool,
+          
+          makeFunction: makeFunction,
+          isFunction: isFunction,
+          checkFun: checkFun,
+
+          makeMethod: makeMethod,
+          isMethod: isMethod,
+
+          makeObj: makeObj,
+          isObj: isObj,
+        //etc
+          equal: equal,
+          getField: getField,
+          getMutField: getMutField,
+          getColonField: getColonField,
+      }
     }
   }
 

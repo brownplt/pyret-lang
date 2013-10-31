@@ -8,7 +8,7 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize)
+(provide tokenize fix-escapes pyret-keyword?)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -20,6 +20,7 @@
 (define BACKSLASH 'BACKSLASH)
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
+(define OPENSTR 'OPENSTR)
 
 (define-lex-abbrev
   keywords
@@ -36,6 +37,12 @@
          "for" "from"
          "end" ";"))
 
+(define (pyret-keyword? str)
+  ((lexer
+    [keywords #t]
+    [any-string #f])
+   (open-input-string (symbol->string str))))
+
 (define-lex-abbrev
   identifier-chars
   (union #\_ (char-range #\a #\z) (char-range #\A #\Z)))
@@ -47,23 +54,58 @@
   (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
-  (position (+ n (position-offset pos))
+  (position (+ n 1 (position-offset pos))
             (position-line pos)
-            (+ n (position-col pos))))
+            (+ n 1 (position-col pos))))
 
-;; NOTE(dbp): actual escape chars are not allowed in strings, but escaped escapes
-;; should turn into actual escape characters in the resulting strings.
-;; This is a mediocre solution, but I'm not sure of a better way.
+(define escapes (pregexp "\\\\([\\\\\"'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})"))
+(define specials
+  (hash
+    "\n" ""
+    "\r" ""
+    "\n\r" ""
+    "\r\n" ""
+    "n" "\n"
+    "r" "\r"
+    "t" "\t"
+    "\"" "\""
+    "'" "'"
+    "\\" "\\"))
+
 (define (fix-escapes s)
-  (string-replace
-   (string-replace
-    (string-replace
-     (string-replace
-      (string-replace s "\\n" "\n")
-      "\\t" "\t")
-     "\\r" "\r")
-    "\\\"" "\"")
-   "\\'" "'"))
+  (regexp-replace* escapes s
+   (lambda (x match)
+     (define m-oct (string->number match 8))
+     (define s-oct (if m-oct (string (integer->char m-oct)) #f))
+     (define m-hex 
+       (if (or (string=? (substring match 0 1) "u") (string=? (substring match 0 1) "x"))
+           (string->number (substring match 1) 16)
+           #f))
+     (define s-hex
+       (if m-hex (string (integer->char m-hex)) #f))
+     (if s-oct s-oct
+         (if s-hex s-hex
+             (hash-ref specials match))))))
+(define-lex-abbrev single-quote-contents
+  (repetition 0 +inf.0
+    (union
+     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+     (concatenation "\\" (char-set "nrt\"'\\"))
+     (char-complement (union #\\ #\')))))
+
+(define-lex-abbrev double-quote-contents
+  (repetition 0 +inf.0
+    (union
+     (concatenation "\\" (repetition 1 3 (char-set "01234567")))
+     (concatenation "\\x" (repetition 1 2 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\u" (repetition 1 4 (char-set "0123456789abcdefABCDEF")))
+     (concatenation "\\" (repetition 1 2 (char-set "\r\n")))
+     (concatenation "\\" (char-set "nrt\"'\\"))
+     (char-complement (union #\\ #\")))))
+
 
 (define (tokenize ip)
   (port-count-lines! ip)
@@ -145,15 +187,9 @@
                 (repetition 1 +inf.0 numeric))))
        (token NUMBER lexeme)]
       ;; strings
-      [(concatenation
-        "\""
-        (repetition 0 +inf.0 (union "\\\"" (char-complement #\")))
-        "\"")
+      [(concatenation "\"" double-quote-contents "\"")
        (token STRING (fix-escapes lexeme))]
-      [(concatenation
-        "'"
-        (repetition 0 +inf.0 (union "\\'" (char-complement #\')))
-        "'")
+      [(concatenation "'" single-quote-contents "'")
        (token STRING (fix-escapes lexeme))]
       ;; brackets
       [(union "[" "]" "{" "}" ")")
@@ -176,7 +212,11 @@
        (token BACKSLASH lexeme)])
      ;; match eof
      [(eof)
-      (void)]))
+      (void)]
+     [(concatenation "\'" (concatenation single-quote-contents (repetition 0 1 "\\")))
+      (token OPENSTR lexeme)]
+     [(concatenation "\"" (concatenation double-quote-contents (repetition 0 1 "\\")))
+      (token OPENSTR lexeme)]))
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)

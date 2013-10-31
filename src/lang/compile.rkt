@@ -7,25 +7,12 @@
   racket/match
   racket/splicing
   racket/syntax
+  "helpers.rkt"
   "../parameters.rkt"
   "ast.rkt"
   "compile-helpers/find.rkt"
   "compile-helpers/lift-constants.rkt")
 
-(define (loc-list loc)
-  (define (serialize-source e)
-    (cond
-      [(symbol? e) (symbol->string e)]
-      [(string? e) e]
-      [(path? e) (path->string e)]
-      [(false? e) "unknown source"]
-      [else (error (format "Non-symbol, non-string, non-path value for
-                            source: ~a" e))]))
-  (list (serialize-source (srcloc-source loc))
-        (srcloc-line loc)
-        (srcloc-column loc)
-        (srcloc-position loc)
-        (srcloc-span loc)))
 
 (define (loc-stx loc)
   (with-syntax ([(loc-param ...) (loc-list loc)])
@@ -64,7 +51,7 @@
   (define (compile-stmt ast-node env)
     (match ast-node
       [(s-var s (s-bind _ id _) val)
-        (list 
+        (list
           #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))]
       [(s-let s (s-bind _ id _) val)
        (define (match-id-use e)
@@ -125,7 +112,7 @@
      (attach l
        (with-syntax*
         ([name-stx (compile-string-literal l name env)]
-         [val-stx (compile-expr/internal value env)]) 
+         [val-stx (compile-expr/internal value env)])
          #`(r:cons name-stx val-stx)))]))
 (define (compile-string-literal l e env)
   (match e
@@ -147,7 +134,7 @@
          ([field-stx (compile-string-literal l field env)])
        #`(#,lookup-type #,(loc-stx l) #,(compile-expr obj env) field-stx))))
   (match ast-node
-    
+
     [(s-block l stmts)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (with-syntax ([(stmt ...) (compile-block l stmts new-env)])
@@ -166,7 +153,7 @@
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body new-env)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
-    
+
     [(s-method l args ann doc body _)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
@@ -184,7 +171,7 @@
      (attach l
        (with-syntax ([(branch ...) (d->stx (map compile-if-branch c-bs) l)])
          #`(r:cond branch ... [#t #,(compile-expr else-block env)])))]
-    
+
     [(s-try l try (s-bind l2 id ann) catch)
      (attach l
        #`(r:with-handlers
@@ -238,7 +225,7 @@
      (attach l
        (with-syntax ([(member ...) (map (curryr compile-member env) fields)])
          #'(p:mk-object (p:make-string-map (r:list member ...)))))]
-    
+
     [(s-extend l super fields)
      (attach l
        (with-syntax ([(member ...) (map (curryr compile-member env) fields)]
@@ -254,14 +241,14 @@
         #`(p:update #,(loc-stx l)
                     super
                     (r:list member ...))))]
-    
+
     [(s-bracket l obj field)
      (compile-lookup l obj field #'p:get-field)]
 
     [(s-get-bang l obj field)
      (attach l
       #`(p:get-mutable-field #,(loc-stx l) #,(compile-expr obj env) #,(symbol->string field)))]
-    
+
     [(s-colon-bracket l obj field)
      (compile-lookup l obj field #'p:get-raw-field)]
 
@@ -295,19 +282,23 @@
                  [(prov ...) (map compile-header (filter s-provide? headers))])
      #`(r:begin req ... #,(compile-pyret block) prov ...))))
 
+(define (maybe-lift-constants ast)
+  (cond
+    [(current-compile-lift-constants) (lift-constants ast)]
+    [else ast]))
+
 (define (compile-pyret ast)
   (match ast
     [(s-prog l headers block) (compile-prog l headers block)]
     [(s-block l stmts)
-     (match-define (s-block l2 new-stmts) (lift-constants ast))
+     (match-define (s-block l2 new-stmts) (maybe-lift-constants ast))
      (with-syntax ([(stmt ...) (compile-block l2 new-stmts (compile-env (set) #t))])
        (attach l #'(r:begin stmt ...)))]
     [else (error (format "Didn't match a case in compile-pyret: ~a" ast))]))
 
 (define (compile-expr pre-ast)
-  (define ast (lift-constants pre-ast))
+  (define ast (maybe-lift-constants pre-ast))
   (compile-expr/internal ast (compile-env (set) #f)))
 
 (define (discard-_ name)
   (if (equal? name '_) (gensym) name))
-

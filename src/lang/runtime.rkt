@@ -130,6 +130,7 @@
   Method
   Mutable
   Placeholder
+  Opaque
   is-number
   is-string
   is-bool
@@ -820,7 +821,21 @@ And the object was:
 
 ;; Pyret's char-at just returns a single character string
 (define (char-at s n)
-  (substring s n (+ n 1)))
+  (cond
+    [(>= n (string-length s))
+     (raise (pyret-error (get-top-loc) "char-at"
+      (format "char-at: Index too large for string.  Index was ~a, length was ~a" n (string-length s))))]
+    [else (substring s n (+ n 1))]))
+
+(define (safe-substring s start end)
+  (define (err message)
+     (raise (pyret-error (get-top-loc) "substring" message)))
+  (define l (string-length s))
+  (cond
+    [(< start 0) (err (format "substring: Requires a non-negative start value; ~a was provided" start))]
+    [(> start l) (err (format "substring:  Start index is past the length of the string: start was ~a, length was ~a" start l))]
+    [(< end start) (err (format "substring: Requires end to be greater than start, got start of ~a and end of ~a" start end))]
+    [else (substring s start (min l end))]))
 
 (define (string-repeat s n)
   (cond
@@ -844,13 +859,13 @@ And the object was:
           ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("replace" . ,(mk-prim-fun string-replace 'replace mk-str (p-str-s p-str-s p-str-s) (s1 s2 s3) (p-str? p-str? p-str?)))
-          ("substring" . ,(mk-prim-fun substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
+          ("substring" . ,(mk-prim-fun safe-substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
-          ("_torepr" . ,(mk-prim-fun (lambda (x) (format "\"~a\"" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
+          ("_torepr" . ,(mk-prim-fun (lambda (x) (format "~s" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
       ))))
   meta-str-store)
 
@@ -958,7 +973,7 @@ And the object was:
          ;;  the call site as well as the destination
          (let ([typname (p-str-s s)])
           (throw-type-error! typname o)))]
-    [(p-str? s)
+    [(p-str? ck)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]
@@ -1080,6 +1095,7 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+(mk-pred Opaque p-opaque?)
 
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
@@ -1090,4 +1106,3 @@ And the object was:
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
-

@@ -11,3 +11,4 @@ docs/lang/*
 src/lang/pyret-lib/moorings.rkt
 js/test-runner/tests.js
 *#
+pyret.plt

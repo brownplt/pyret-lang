@@ -16,6 +16,7 @@
   ragg/support
   racket/match
   racket/list
+  racket/set
   (rename-in "ast.arr" [%PYRET-PROVIDE ast]))
 
 (define-syntax-rule (build type arg ...)
@@ -323,7 +324,7 @@
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (define env (p:get-dict (p:get-field p:dummy-loc options "env")))
   (define desugared (get-desugared str src check-mode?))
-  (define with-contracts (contract-check-pyret desugared (extend-env-with-dict DEFAULT-ENV env)))
+  (define with-contracts (contract-check-pyret desugared (extend-env-with-dict LIBRARY-ENV env)))
   (to-pyret with-contracts))
 
 (define (pyret-pair-from-string str src options)
@@ -571,6 +572,8 @@
     p:dummy-loc
     ast
     (list
+      (cons "free-ids"
+            (ffi-wrap (lambda (ast) (map symbol->string (set->list (free-ids ast))))))
       (cons "parse"
             (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
       (cons "parse-tc"
