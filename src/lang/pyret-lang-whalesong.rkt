@@ -4,13 +4,13 @@
   (except-in whalesong/lang/whalesong list error raise pi else gensym)
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "racket-ffi/animate.rkt"
+  (rename-in "racket-ffi/sets.rkt" [%PYRET-PROVIDE sets])
   "racket-ffi/stdlib.rkt"
   "runtime.rkt"
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
   )
 
 (define list (p:get-field p:dummy-loc moorings "list"))
-(define sets (p:get-field p:dummy-loc moorings "sets"))
 (define error (p:get-field p:dummy-loc moorings "error"))
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
