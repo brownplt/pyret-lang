@@ -642,7 +642,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
 
-  (check-pyret-match/check "pyret/sets.arr" _ 15)
+  (check-pyret-match/check "pyret/sets.arr" _ 180)
 
   (check-pyret-match/check "pyret/strings.arr" _ 22)
 
