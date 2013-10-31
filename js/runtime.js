@@ -605,12 +605,13 @@ return     });
 
     //Raise
     raise = makeFunction(function(expr) {
-        throw expr; });
+        throwPyretException(expr); });
 
     //Error
     errorDict = {
         'make-error' : makeFunction(function(s) {
-            return makePyretException(s);
+            //Assuming s is a Pyret Exception
+            return s.exnVal;
         })
     };
     error = makeObj(errorDict);
@@ -1053,6 +1054,10 @@ return     });
             }),
             
             equiv: makeFunction(equiv),
+
+            "has-field" : makeFunction(function(prim, field) {
+              return makeBoolean(prim.dict.hasOwnProperty(field));
+              }),
         }),
         //Raise
           raise: raise,
