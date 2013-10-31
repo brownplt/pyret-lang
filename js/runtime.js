@@ -435,18 +435,18 @@ return     });
         return makeString("method: end");
       }
       else if(isLink(val)) {
-        var rep = "[" ;
+        var rep ="[" ;
         var items  = [];
         var remain = val;
         do {
-            items.push(toRepr(remain.dict.first).s)
+            items.push(toRepr(remain.dict.f).s)
             remain = remain.dict.r;
         } while(!isEmpty(remain));
         rep += items.join(", ") + "]";
         return makeString(rep);
       }
       else if(isEmpty(val)) {
-        return makeString("[]");
+        return makeString("empty");
       }
       else if (isObj(val)) {
         if(val.isPlaceholder) {
@@ -820,6 +820,10 @@ return     });
         this.dict = {};
         this.dict.f = f;
         this.dict.r= r;
+
+        this.dict.rest = r;
+        this.dict.first =f;
+
         this.brands = [];
     }
     Link.prototype = Object.create(PList.prototype);
