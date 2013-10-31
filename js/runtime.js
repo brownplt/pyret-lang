@@ -1072,6 +1072,9 @@ return     });
             }
             return myKeys;
       }),
+      "prim-has-field" : makeFunction(function(prim, field) {
+        return makeBoolean(prim.dict.hasOwnProperty(field));
+      }),
       "tostring" : makeFunction(function(x) {
         return getField(x, 'tostring').app();
       }), 
