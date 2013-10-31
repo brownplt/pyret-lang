@@ -36,7 +36,8 @@
     [(s-try syntax body id except)
      (s-try syntax (tci body) id (tci except))]
     [(s-lam syntax typarams args ann doc body check-ignored)
-     (s-lam syntax typarams args ann doc (tci body) check-ignored)]
+     (s-lam syntax typarams (map (replace-typarams-binds typarams) args)
+            ((replace-typarams typarams) ann) doc (tci body) check-ignored)]
     [(s-method syntax args ann doc body check-ignored)
      (s-method syntax args ann doc (tci body) check-ignored)]
     [(s-data-field syntax name value)

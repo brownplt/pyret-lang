@@ -243,17 +243,15 @@
 
     [(s-fun s name typarams args ann doc body check)
      (s-let s (s-bind s name (a-blank))
-            (s-lam s typarams (map (replace-typarams-binds typarams)
-                                   (ds-args args))
-                   ((replace-typarams typarams) (desugar-ann ann))
+            (s-lam s typarams (ds-args args)
+                   (desugar-ann ann)
                    doc (ds body) (ds check)))]
 
     [(s-check s body) (s-id s 'nothing)]
 
     [(s-lam s typarams args ann doc body check)
-     (s-lam s typarams (map (replace-typarams-binds typarams)
-                            (ds-args args))
-            ((replace-typarams typarams) (desugar-ann ann))
+     (s-lam s typarams (ds-args args)
+            (desugar-ann ann)
             doc (ds body) (ds check))]
 
     [(s-method s args ann doc body check)
