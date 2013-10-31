@@ -6,7 +6,7 @@ var PYRET = (function () {
     PBase.prototype = {
       dict: {},
       brands: [],
-      app: (function() { throwPyretException("Cannot apply this data type");}),
+      app: (function() { throwPyretMessage("Cannot apply this data type");}),
       type : 'base'
     };
 
@@ -38,7 +38,7 @@ var PYRET = (function () {
     } 
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = Object.create(PBase.prototype);
-    PMethod.prototype.app = function() { throwPyretException( "Cannot apply method directly."); };
+    PMethod.prototype.app = function() { throwPyretMessage( "Cannot apply method directly."); };
     PMethod.prototype.getType = function() {return 'method';};
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.method);
@@ -46,15 +46,11 @@ var PYRET = (function () {
 return     });
     PMethod.prototype.toString = function() {return 'fun ... end'}
 
-    //Throws An Error
-    function throwPyretException(message){
-       throw makeObj({'message' : makeString(String(message))});
-    }
 
     //Checks to see that an object is a function and returns it, raises error otherwise
     function checkFun(o) {
         if(isFunction(o)) {return o;}
-        throwPyretException( 'check-fun: expected function, got ' + o.getType());
+        throwPyretMessage( 'check-fun: expected function, got ' + o.getType());
     }
 
     //Wraps to ensure # arguments correct
@@ -101,7 +97,7 @@ return     });
     }
 
     function raiseTypeError(arg1, arg2, name) {
-        throwPyretException("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+        throwPyretMessage("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
 
@@ -128,7 +124,7 @@ return     });
       }),
       _divide: makeMethod(function(left, right) {
         checkBothNum(left, right, 'divide');
-        if(right.n === 0) {throwPyretException('Division by zero');}
+        if(right.n === 0) {throwPyretMessage('Division by zero');}
         return makeNumber(left.n / right.n);
       }),
       _times: makeMethod(function(left, right) {
@@ -378,7 +374,7 @@ return     });
             return b.b;
         }
         else {
-            throwPyretException('check-bool: expected boolean, got ' + b.getType());
+            throwPyretMessage('check-bool: expected boolean, got ' + b.getType());
         }
     }
         
@@ -458,7 +454,7 @@ return     });
       else if(isNothing(val)) {//Nothing
         return makeString("nothing");
       }
-      throwPyretException("toStringJS on an unknown type: " + val);
+      throwPyretMessage("toStringJS on an unknown type: " + val);
     }
 
     function getField(val, str) {
@@ -470,10 +466,10 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            throwPyretException(str + " was not found on " + toRepr(val).s);
+            throwPyretMessage(str + " was not found on " + toRepr(val).s);
         }
         if(fieldVal.isMutable) {    
-            throwPyretException('Cannot look up mutable field "'+ str +'" using dot or bracket');
+            throwPyretMessage('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
         if(fieldVal.isPlaceholder) {    
             return getField(fieldVal, 'get').app();
@@ -484,7 +480,7 @@ return     });
     function getColonField(val, str) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            throwPyretException(str + " was not found on " + toRepr(val).s);
+            throwPyretMessage(str + " was not found on " + toRepr(val).s);
         }
         return fieldVal;
       }
@@ -497,7 +493,7 @@ return     });
         });
       } else {
         if(fieldVal === undefined) {
-            throwPyretException(str + " was not found on " + toRepr(val).s);
+            throwPyretMessage(str + " was not found on " + toRepr(val).s);
         }
         return fieldVal;
       }
@@ -570,7 +566,7 @@ return     });
             if(newObj.dict[field].isMutable) {
                 newObj.dict[field].set(fields[field]);
             }
-            else throwPyretException("Attempted to update a non-mutable field");
+            else throwPyretMessage("Attempted to update a non-mutable field");
         }
         return newObj;
     }
@@ -623,11 +619,11 @@ return     });
                 return obj;
             }
             else {
-               throwPyretException("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
+               throwPyretMessage("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
             }
         }
         else {
-            throwPyretException("Check brand with non-function");
+            throwPyretMessage("Check brand with non-function");
         }
     });
 
@@ -642,13 +638,13 @@ return     });
                    return value;
                }
                else {
-                  throwPyretException("Tried to get value from uninitialized placeholder");
+                  throwPyretMessage("Tried to get value from uninitialized placeholder");
                }
             }),
 
             guard : makeMethod(function(me, guard) {
                if(isSet) {
-                   throwPyretException("Tried to add guard on an already-initialized placeholder");
+                   throwPyretMessage("Tried to add guard on an already-initialized placeholder");
                 }
                else {
                     guards.push(guard);
@@ -658,18 +654,10 @@ return     });
 
             set : makeMethod(function(me, val) {
                 if(isSet) {
-                    throwPyretException("Tried to set value in already-initialized placeholder");
+                    throwPyretMessage("Tried to set value in already-initialized placeholder");
                 }
                 for(var g in guards) {
-                    var test = guards[g].app(val);
-                    if(isBoolean(test)) {
-                        if(!test.b) {
-                        throwPyretException("Guard failed");
-                        }
-                    }
-                    else {
-                        throwPyretException("Test did not result in boolean");
-                    }
+                    val = guards[g].app(val);
                 }
                 value = val;
                 isSet = true;
@@ -718,7 +706,7 @@ return     });
            newObj.set = (function(newVal) { 
             var  wVal = w.app(newVal);
             if(!(isBoolean(wVal) && wVal.b)) {
-                throwPyretException('Predicate failed upon set');
+                throwPyretMessage('Predicate failed upon set');
             }
                 return a = newVal;
             });
@@ -736,10 +724,10 @@ return     });
         var a = val;
 
         if(!isFunction(r)) {
-            throwPyretException('typecheck failed; expected Function and got\n' + toRepr(r).s);
+            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(r).s);
         }
         if(!isFunction(w)) {
-            throwPyretException('typecheck failed; expected Function and got\n' + toRepr(w).s);
+            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(w).s);
         }
 
         var mut = makeObj({
@@ -750,7 +738,7 @@ return     });
             
             var  readVal = r.app(a);
             if(!(isBoolean(readVal) && readVal.b)) {
-                throwPyretException('Predicate failed upon read ');
+                throwPyretMessage('Predicate failed upon read ');
             }
                 return a;
             }),
@@ -762,7 +750,7 @@ return     });
 
         mut.set = (function(newVal) { 
             var  wVal = w.app(newVal);
-                throwPyretException('Predicate failed upon set');
+                throwPyretMessage('Predicate failed upon set');
                 return (a = newVal);
             });
 
@@ -878,6 +866,10 @@ return     });
     }
     function throwPyretException(exnVal) {
       throw makePyretException(exnVal);
+    }
+    function throwPyretMessage(msg) {
+      var eDict = {message : makeString(msg)};
+      throwPyretException(makeObj(eDict));
     }
 
     function errToJSON(exn) {
@@ -1085,6 +1077,10 @@ return     });
         return makeBoolean(prim.dict.hasOwnProperty(field));
       }),
       "tostring" : makeFunction(function(x) {
+        return getField(x, 'tostring').app();
+      }), 
+
+      "print" : makeFunction(function(x) {
         return getField(x, 'tostring').app();
       }), 
 
