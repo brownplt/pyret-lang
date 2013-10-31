@@ -1020,6 +1020,7 @@ return     });
     return{
       namespace: Namespace({
         nothing: {},
+        "torepr" : makeFunction(toRepr),
         "test-print": makeFunction(testPrint),
          brander:brander,
         "check-brand": checkBrand,
