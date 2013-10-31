@@ -51,6 +51,8 @@
      'prim-has-field
      'prim-keys
      'prim-num-keys
+     'mk-link
+     'mk-empty
      'print
      'raise
      'tostring
