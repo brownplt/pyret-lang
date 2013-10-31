@@ -64,13 +64,25 @@ return     });
                     return fn.apply(this, arguments);
                 };
    } 
+
+   function applyFunction(fn, args) {
+        if(!isFunction(fn)) {
+            throwPyretMessage("Cannot apply non-function: " + toRepr(fn));
+        }
+        if(args.length != fn.arity) {
+            throwPyretMessage("Check arity failed: " + toRepr(fn) + " expected " + fn.app.length + " arguments, but given " + args.length);
+        }
+        return fn.app.apply(this, args);
+   }
     
-    function PFunction(f) {
+    function PFunction(f,arity) {
       this.app = f;
       this.brands = [];
+      this.arity = arity;
+
     }
     function makeFunction(f,doc) { 
-        var fun = new PFunction(f); 
+        var fun = new PFunction(f, f.length); 
         fun.dict ={};
         fun.dict._doc = doc;
         fun.dict._method = makeMethod(function(me) {
@@ -325,7 +337,7 @@ return     });
                 raiseTypeError(left, right, 'and');
             }
             if(left.b) {
-                var rightVal = right.app();
+                var rightVal = applyFunction(right,[]);
                 if(!isBoolean(rightVal)) {
                     raiseTypeError(left, right, 'and');
                 }
@@ -344,7 +356,7 @@ return     });
                 return makeBoolean(true);
             }
             else {
-                var rightVal = right.app();
+                var rightVal = applyFunction(right,[]);
                 if(!isBoolean(rightVal)) {
                     raiseTypeError(left, right, 'or');
                 }
@@ -442,7 +454,7 @@ return     });
         }
         
         if(val.dict.hasOwnProperty('_torepr')) {
-            return getField(val, 'torepr').app();
+            return applyFunction(getField(val, 'torepr'), []);
         }
 
         var fields = [];
@@ -460,10 +472,13 @@ return     });
     function getField(val, str) {
       var fieldVal = val.dict[str];
       if (isMethod(fieldVal)) {
-        return makeFunction(function() {
+        var func =  makeFunction(function() {
           var argList = Array.prototype.slice.call(arguments);
           return fieldVal.method.apply(null, [val].concat(argList));
         });
+        func.arity = fieldVal.method.length-1;
+
+        return func;
       } else {
         if(fieldVal === undefined) {
             throwPyretMessage(str + " was not found on " + toRepr(val).s);
@@ -472,7 +487,7 @@ return     });
             throwPyretMessage('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
         if(fieldVal.isPlaceholder) {    
-            return getField(fieldVal, 'get').app();
+            return applyFunction(getField(fieldVal, 'get'),[]);
         }
         return fieldVal;
       }
@@ -615,7 +630,7 @@ return     });
     //check-brand
     checkBrand = makeFunction(function(test, obj, msg){
         if(isFunction(test)){
-            if(test.app(obj).b) {
+            if(applyFunction(test,[obj]).b) {
                 return obj;
             }
             else {
@@ -657,7 +672,7 @@ return     });
                     throwPyretMessage("Tried to set value in already-initialized placeholder");
                 }
                 for(var g in guards) {
-                    val = guards[g].app(val);
+                    val = applyFunction(guards[g],[val]);
                 }
                 value = val;
                 isSet = true;
@@ -704,7 +719,7 @@ return     });
             newObj.isMutable = true;
             
            newObj.set = (function(newVal) { 
-                newVal = w.app(newVal);
+                newVal = applyFunction(w,[newVal]);
                 return (a = newVal);
             });
             
@@ -732,7 +747,7 @@ return     });
             return makeString("mutable-field");
             }),
             'get': makeMethod(function(me) {
-                a = r.app(a);
+                a = applyFunction(r,[a]);
                 return a;
             }),
 
@@ -742,7 +757,7 @@ return     });
         });
 
         mut.set = (function(newVal) { 
-                newVal = w.app(newVal);
+                newVal = applyFunction(w,[newVal]);
                 return (a = newVal);
             });
 
@@ -827,7 +842,7 @@ return     });
         e.dict.map = makeMethod(function(me, f) {
             checkFun(f);
 
-            return makeLink(f.app(me.dict.first), me.dict.rest.dict.map.method(me.dict.rest, f));
+            return makeLink(applyFunction(f,[me.dict.first]), me.dict.rest.dict.map.method(me.dict.rest, f));
         });
 
         e.dict._equals = makeMethod(function(me, other) {
@@ -882,7 +897,7 @@ return     });
     //Equiv
     function equiv(obj1, obj2) {
         if(obj1.dict.hasOwnProperty("_equals")) {
-            return getField(obj1, "_equals").app(obj2);
+            return applyFunction(getField(obj1, "_equals"),[obj2]);
         }
         else if(Object.keys(obj1.dict).length == Object.keys(obj2.dict).length) { return makeBoolean(isAllSame(obj1, obj2));}
         else {return makeBoolean(false);}
@@ -1021,16 +1036,16 @@ return     });
         }),
         builtins: makeObj({
             'Eq': makeFunction(function(){
-                var b = brander.app();
+                var b = applyFunction(brander,[]);
                 return makeObj(
                     {
                         brand: makeFunction(function(obj){
-                                return getField(b,'brand').app(obj);
+                                return applyFunction(getField(b,'brand'),[obj]);
                         }),
                         extend: makeFunction(function(obj){
                             return obj.extendWith({
                             'eq': makeMethod(function(me, other){
-                                    return makeBoolean(getField(b,'test').app(me).b && getField(b, 'test').app(other).b);
+                                    return makeBoolean(applyFunction(getField(b,'test'),[me]).b && applyFunction(getField(b, 'test'),[other]).b);
                                 },""),
                             });
                         }),
@@ -1069,11 +1084,11 @@ return     });
         return makeBoolean(prim.dict.hasOwnProperty(field));
       }),
       "tostring" : makeFunction(function(x) {
-        return getField(x, 'tostring').app();
+        return applyFunction(getField(x, 'tostring'),[]);
       }), 
 
       "print" : makeFunction(function(x) {
-        return getField(x, 'tostring').app();
+        return applyFunction(getField(x, 'tostring'),[]);
       }), 
 
       "mk-placeholder": makePlaceholder,
@@ -1099,6 +1114,7 @@ return     });
         makePyretException: makePyretException,
         toReprJS: toRepr,
         errToJSON: errToJSON,
+        applyFunction: applyFunction,
         
         //prims
           makeString: makeString,
