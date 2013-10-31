@@ -156,6 +156,25 @@
     [(s-data-field _ name value)
      (format "~a : ~a" (pretty name) (pretty value))]
 
+    [(s-datatype _ name params variants check)
+     (newlines (format "datatype ~a~a:" name (if (empty? params) ""
+                                                 (comma-sep (map symbol->string params))))
+               (apply newlines (map pretty variants))
+               "end")]
+
+    [(s-datatype-variant _ name binds (s-datatype-constructor _ self body))
+     (indented (format "| ~a(~a) with constructor(~a): ~a end"
+                       name
+                       (comma-sep (map pretty binds))
+                       (symbol->string self)
+                       (pretty body)))]
+
+    [(s-datatype-singleton-variant _ name (s-datatype-constructor _ self body))
+     (indented (format "| ~a with constructor(~a): ~a end"
+                       name
+                       (symbol->string self)
+                       (pretty body)))]
+
     ; TODO: method-field
 
     [(s-app _ fun args)

@@ -378,6 +378,25 @@
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
 
 
+  (check-pyret
+   "datatype D: | foo with constructor(self): self end end
+    is-foo(foo)"
+   (p:mk-bool #t))
+
+  (check-pyret
+   "datatype D: | foo(a) with constructor(self): self end end
+    foo(10).a"
+   (p:mk-num 10))
+
+  (check-pyret
+   "datatype D<T>: | foo(a :: T) with constructor(self): self end
+                   | bar(f :: D<Number>) with constructor(self): self end
+    end
+    bar(foo(10)).f.a"
+   (p:mk-num 10))
+
+
+
   ))
 
 (define modules (test-suite "modules"
@@ -996,6 +1015,7 @@ o2.m().called" true)
 (define ffi (test-suite "ffi"
   (check-pyret-match/check "pyret/test-ast.arr" _ 10)
   (check-pyret-match/check "pyret/eval.arr" _ 21)
+  (check-pyret-match/check "pyret/parse-types.arr" _ 3)
   (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
   (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
 ))

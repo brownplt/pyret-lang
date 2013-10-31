@@ -13,7 +13,7 @@ provide-stmt: "provide" stmt end | "provide" "*"
 
 block: stmt*
 
-stmt: let-expr | fun-expr | data-expr | when-expr
+stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
     | graph-expr
 
@@ -45,6 +45,10 @@ data-sharing: ["sharing:" fields]
 
 mixins: list-mixin* binop-expr
 list-mixin: binop-expr ","
+
+datatype-expr: "datatype" NAME ty-params ":" datatype-variant* where-clause end
+datatype-variant: "|" NAME variant-members constructor-clause | "|" NAME constructor-clause
+constructor-clause: "with constructor" (PARENSPACE|PARENNOSPACE) NAME ")" ":" block end
 
 var-expr: "var" binding "=" binop-expr
 assign-expr: NAME ":=" binop-expr

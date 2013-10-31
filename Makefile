@@ -24,7 +24,8 @@ test:
 	racket type-tests.rkt; \
 	racket well-formed-tests.rkt; \
 	racket indentation-tests.rkt; \
-  racket lib-tests.rkt
+	racket lib-tests.rkt; \
+	racket test-tokenizer.rkt
 
 doc:
 	@echo Building docs

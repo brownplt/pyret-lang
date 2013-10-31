@@ -88,12 +88,29 @@
     [(data-variant "|" name with)
      (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]))
 
+(define (parse-datatype-variant stx)
+  (syntax-parse stx
+    #:datum-literals (datatype-variant)
+    [(datatype-variant "|" name args constructor)
+     (s-datatype-variant (loc stx)
+                         (parse-name #'name)
+                         (parse-variant-members #'args)
+                         (parse-constructor #'constructor))]
+    [(datatype-variant "|" name constructor)
+     (s-datatype-singleton-variant (loc stx) (parse-name #'name) (parse-constructor #'constructor))]))
+
+
 (define (parse-sharing stx)
   (syntax-parse stx
     #:datum-literals (data-sharing)
     [(data-sharing "sharing:" fields) (parse-fields #'fields)]
     [(data-sharing) empty]))
 
+(define (parse-constructor stx)
+  (syntax-parse stx
+    #:datum-literals (constructor-clause)
+    [(constructor-clause "with constructor" "(" name ")" ":" block (end (~or "end" ";")))
+     (s-datatype-constructor (loc stx) (parse-name #'name) (parse-block #'block))]))
 
 (define (parse-stmt stx)
   (syntax-parse stx
@@ -102,6 +119,7 @@
       let-expr
       fun-expr fun-header fun-body
       data-expr
+      datatype-expr
       assign-expr
       when-expr
       check-expr check-test
@@ -132,6 +150,13 @@
              (map/stx parse-variant #'(variant ...))
              (parse-sharing #'sharing-part)
              (parse-where-clause #'check))]
+
+    [(datatype-expr "datatype" name params ":" variant ... check (end (~or "end" ";")))
+     (s-datatype (loc stx)
+                 (parse-name #'name)
+                 (parse-ty-params #'params)
+                 (map/stx parse-datatype-variant #'(variant ...))
+                 (parse-where-clause #'check))]
 
     [(assign-expr id ":=" e)
      (s-assign (loc stx) (parse-name #'id) (parse-binop-expr #'e))]
