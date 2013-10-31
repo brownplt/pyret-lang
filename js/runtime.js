@@ -609,7 +609,9 @@ return     });
 
     //Error
     errorDict = {
-        'make-error' : makeFunction(function(s) {return s;})
+        'make-error' : makeFunction(function(s) {
+            return makePyretException(s);
+        })
     };
     error = makeObj(errorDict);
 
@@ -1050,6 +1052,7 @@ return     });
                     }); 
             }),
             
+            equiv: makeFunction(equiv),
         }),
         //Raise
           raise: raise,
@@ -1085,7 +1088,7 @@ return     });
       "mk-simple-mutable": makeFunction(makeSimpleMutable),
       equiv: makeFunction(equiv),
       list: list,
-      error: makeObj({}),
+      error: error,
       }),
       runtime: {
         makeNumber: makeNumber,
