@@ -51,7 +51,7 @@
           names
           placeholder-names))))
 
-(define ((ds-data mixins-names shared-members) variant)
+(define ((ds-data mixins-names) base-fields variant)
   (define local-mixins-names
     (map (lambda (m) (gensym "mixin")) mixins-names))
   (define (local-bind-mixins s)
@@ -76,7 +76,7 @@
             (fold-mixins s "extend"
             ;; NOTE(dbp 2013-10-27): generative, in order to get method fields desugared
              (desugar-internal
-              (s-extend s (s-id s 'self) (append with-members shared-members))))))))))
+              (s-extend s (s-id s 'self) base-fields)))))))))
   (match variant
     [(s-singleton-variant s name with-members)
      (s-datatype-singleton-variant s name (variant-constructor s with-members))]
@@ -215,12 +215,39 @@
        (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
      (define bind-mixins
        (map (lambda (m-name m) (s-let s (s-bind s m-name (a-blank)) (ds m))) mixins-names mixins))
+     (define shared-id (gensym 'data-shared))
+     (define base-names (map (lambda (v) (gensym 'variant)) variants))
+     (define (get-with variant)
+       (match variant
+         [(s-singleton-variant _ _ with) with]
+         [(s-variant _ _ _ with) with]))
+     (define bind-base-objs
+       (map (lambda (v-name v)
+              (s-let s (s-bind s v-name (a-blank))
+                     (ds (s-extend s (s-id s shared-id) (get-with v)))))
+            base-names variants))
+     (define (member-name m)
+       (match m
+         [(s-data-field _ n _) n]
+         [(s-method-field _ n _ _ _ _ _) n]))
+     (define ((wrap-field obj-id) f)
+       (s-data-field s (member-name f)
+                     (s-colon-bracket s (s-id s obj-id)
+                                (member-name f))))
+     (define base-fields
+       (map (lambda (b-name v)
+              (append
+               (map (wrap-field shared-id) share-members)
+               (map (wrap-field b-name) (get-with v))))
+            base-names variants))
      (s-block
       s
       (flatten
        (list
         bind-mixins
-        (s-datatype s name params (map (ds-data mixins-names share-members) variants) check-ignored))))]
+        (s-let s (s-bind s shared-id (a-blank)) (ds (s-obj s share-members)))
+        bind-base-objs
+        (s-datatype s name params (map (ds-data mixins-names) base-fields variants) check-ignored))))]
 
     [(s-datatype s name params variants check-ignored)
      (s-datatype s name params (map (ds-datatype-variant params) variants) check-ignored)]
