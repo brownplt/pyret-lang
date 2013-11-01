@@ -88,7 +88,6 @@
   (blankify
     (list
       'list
-      'sets
       'error
       'builtins
       'checkers
@@ -151,6 +150,7 @@
       'is-none
 
       'Set
+      'sets
       'set
       'list-set
       'tree-set

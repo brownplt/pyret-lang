@@ -343,7 +343,6 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  to-set: mk-placeholder(),
   _plus(self :: List, other :: List): self.append(other) end,
 
 where:

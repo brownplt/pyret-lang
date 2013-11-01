@@ -467,7 +467,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 9)
+  (check-pyret-match/check "pyret/list-tests.arr" _ 8)
 
   (check-pyret-match/check "pyret/json.arr" _ 8)
 
@@ -643,7 +643,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/math-libs.arr" _ 7)
 
-  (check-pyret-match/check "pyret/sets.arr" _ 180)
+  (check-pyret-match/check "pyret/sets.arr" _ 177)
 
   (check-pyret-match/check "pyret/strings.arr" _ 22)
 

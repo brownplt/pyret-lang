@@ -39,7 +39,6 @@ check:
     s([1, 2]).remove(18) is s([1, 2])
     s([1, 2]).remove(2) is s([1])
     s([3, 1, 2]).to-list() is [1, 2, 3]
-    [2, 1, 3].to-set() is s([3, 2, 1])
     s([1, 2]).union(s([2, 3])) is s([1, 2, 3])
     s([1, 2]).union(s([4])) is s([1, 2, 4])
     s([1, 2]).intersect(s([2, 3])) is s([2])

@@ -4,7 +4,7 @@ provide {
   Set: Set,
   set: list-to-tree-set,
   list-set: list-to-list-set,
-  tree-set: list-to-tree-set
+  tree-set: list-to-tree-set,
 } end
 
 import "../pyret-lib/moorings.rkt" as M
@@ -261,8 +261,6 @@ fun list-to-set(lst :: List, base-set :: Set) -> Set:
     s.add(elem)
   end
 end
-
-[]:to-set.set(method(self): list-to-set(self);)
 
 fun list-to-list-set(lst :: List) -> Set:
   doc: "Convert a list into a list-based set."

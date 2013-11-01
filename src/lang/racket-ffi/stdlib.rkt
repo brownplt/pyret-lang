@@ -5,7 +5,7 @@
   "../string-map.rkt"
   "../ffi-helpers.rkt"
   "whalesong-lib.rkt"
-  (rename-in "sets.rkt" [%PYRET-PROVIDE pyret-sets])
+  (rename-in "sets.rkt" [%PYRET-PROVIDE sets])
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 (provide (all-defined-out) pyret-sets)
 
@@ -14,6 +14,8 @@
 
 (define (get-set-lib name)
   (p:get-field p:dummy-loc pyret-sets name))
+
+(define pyret-sets sets)
 
 (define %list (p:get-field p:dummy-loc moorings "list"))
 (define pyret-List (get-list-lib "List"))
