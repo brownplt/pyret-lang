@@ -1,7 +1,18 @@
 #lang pyret
 
-
-builtins = {}
+fun Eq():
+  b = brander()
+    {
+            extend: fun(obj):
+                    obj.{eq(self, other): b.test(self) and b.test(other) end}
+                          end,
+                              brand: fun(obj): b.brand(obj) end
+                                }
+      end
+builtins = {
+    Eq : Eq,
+    data-to-repr: data-to-repr, 
+    }
 
 data List:
   | empty with:
@@ -15,4 +26,4 @@ list = {
   empty: empty
 }
 
-checkers = {}
+checker = {}

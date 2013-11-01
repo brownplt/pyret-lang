@@ -7,7 +7,8 @@ var PYRET = (function () {
       dict: {},
       brands: [],
       app: (function() { throwPyretMessage("Cannot apply this data type");}),
-      type : 'base'
+      type : 'base',
+      extendWith : extendWith,
     };
 
     //Nothing
@@ -88,7 +89,8 @@ return     });
         fun.dict._method = makeMethod(function(me) {
             return makeMethod(me.app, me.dict._doc);
         });
-
+        fun.isMutable = false;
+        fun.isPlaceholder = false;
         return fun;
     }
     function isFunction(v) { return v instanceof PFunction; }
@@ -99,6 +101,27 @@ return     });
         var newFun = makeFunction(this.app);
         return newFun;
     });
+
+    
+    function extendWith(fields) {
+        var newObj = this.clone();
+        var allNewFields = true;
+        for(var field in fields) {
+            if(newObj.dict.hasOwnProperty(field)) {
+               allNewFields = false;
+            }
+            newObj.dict[field] = fields[field];
+        }
+        newObj.brands = [];
+        if(allNewFields) {
+            for(var brand in this.brands){
+                newObj.brands[brand] = this.brands[brand];
+            }
+        }
+
+        return newObj;
+    }
+
         
 
     function typeCheck(arg1, type1, arg2, type2, name){
@@ -914,8 +937,11 @@ return     });
        
         for(key in obj1.dict){
             if(obj2.dict.hasOwnProperty(key)) {
-                if(!(equiv(obj1.dict[key], obj2.dict[key]).b)) {
+                if(isObj(obj1.dict[key]) && !(equiv(obj1.dict[key], obj2.dict[key]).b)) {
                     return false;
+                }
+                else {
+                    return obj1.dict[key] == obj2.dict[key];
                 }
             }
             else {
@@ -924,7 +950,55 @@ return     });
         }
 
         return true;
-    }  /* 
+    }  
+
+ function dataToRepr(val, name, fields){
+            var fieldsEmpty = true;
+            var repr = name.s + "(";
+            while(true){
+              try{
+                  var first = getField(fields, "f");
+                  var rest = getField(fields, "r");
+                  fields = rest;
+
+                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
+                  repr = repr + toRepr(getField(val, first.s)) + ", ";
+                  fieldsEmpty = false;
+              }
+              catch(e){
+                break;
+              }
+            }
+            if(fieldsEmpty) {
+                return makeString(name.s + "()");
+            }
+            else {
+                return makeString(repr.substring(0, repr.length-2) + ")");
+            }
+
+            }   
+
+    function dataEquals(me, other, brand, fields) {
+        var b = applyFunction(brand, [other]);
+        var acc = true;
+        while(true){
+          try{
+              var first = getField(fields, "f");
+              var rest = getField(fields, "r");
+              fields = rest;
+
+              myVal = getField(me, first);
+              otherVal = getField(other, first);
+            
+              acc = acc && (myVal == otherVal)
+          }
+          catch(e) {
+            break;
+          }
+        }
+        return makeBoolean(b && acc);
+    }
+/* 
     return 
       nothing: makeNothing(),
       makeNumber: makeNumber,
@@ -1036,11 +1110,11 @@ return     });
         }),
         'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
         'Method': makeFunction(function(x){return makeBoolean(isMethod(x));}),
-        'Placeholder': makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
+        'Placeholder': makeFunction(function(x){return makeBoolean(x.isPlaceholder);}),
         'Mutable': makeFunction(function(x){return makeBoolean(isMutable(x));}),
         'Nothing': makeFunction(function(x){return makeBoolean(isNothing(x));}),
         'String': makeFunction(function(x) {
-            return makeBoolean(isString(x)); //TODO: Implement with toString
+            return makeBoolean(isString(x)); 
         }),
         'Any': makeFunction(function(x){return makeBoolean(isPBase(x));}),
         'Bool': makeFunction(function(x){return makeBoolean(isBoolean(x));}),
@@ -1065,35 +1139,11 @@ return     });
             equiv: makeFunction(equiv),
 
             //data-to-repr(val ::Obj, name:: Str, fields ::ListObj)
-            'data-to-repr': makeFunction(function(val, name, fields){
-            var fieldsEmpty = true;
-            var repr = name.s + "(";
-            while(true){
-              try{
-                  var first = getField(fields, "f");
-                  var rest = getField(fields, "r");
-                  fields = rest;
-
-                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
-                  repr = repr + toRepr(getField(val, first.s)) + ", ";
-                  fieldsEmpty = false;
-              }
-              catch(e){
-                break;
-              }
-            }
-            if(fieldsEmpty) {
-                return makeString(name.s + "()");
-            }
-            else {
-                return makeString(repr.substring(0, repr.length-2) + ")");
-            }
-
-            }),
+            'data-to-repr': makeFunction(dataToRepr),
 
 
             //TODO: Implement
-           'data-equals': makeFunction(function(dat1, dat2){return makeBoolean(dat1 === dat2);}),
+            'data-equals': makeFunction(dataEquals),
 
             "has-field" : makeFunction(function(prim, field) {
               return makeBoolean(prim.dict.hasOwnProperty(field));
@@ -1132,9 +1182,8 @@ return     });
         return applyFunction(getField(x, 'tostring'),[]);
       }), 
 
-      //Empty Bindings
-      "checkers" : makeObj({}),
-      "sets" : makeObj({}),
+        'data-to-repr': makeFunction(dataToRepr),
+        'data-equals': makeFunction(dataEquals),
 
       "mk-placeholder": makePlaceholder,
       "mk-mutable": makeFunction(makeMutable),
@@ -1142,6 +1191,13 @@ return     });
       equiv: makeFunction(equiv),
       list: list,
       error: error,
+
+      //Making moorings happy
+      "checkers" : makeNothing(),
+      "sets" : makeNothing(),
+      "option" : makeNothing(),
+      "cs173" : makeNothing(),
+
       }),
       runtime: {
         makeNumber: makeNumber,
