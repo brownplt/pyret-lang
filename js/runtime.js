@@ -442,6 +442,7 @@ return     });
     }
 
     function toRepr(val) {
+
       if(isNumber(val)) {
         return makeString(String(val.n));
       }
@@ -539,7 +540,7 @@ return     });
 
     var testPrintOutput = "";
     function testPrint(val) {
-      var str = toRepr(val).s;
+      var str = toRepr(val);
       console.log("testPrint: ", val, str); testPrintOutput += str + "\n";
       return val;
     }
@@ -957,12 +958,13 @@ return     });
             var repr = name.s + "(";
             while(true){
               try{
-                  var first = getField(fields, "f");
-                  var rest = getField(fields, "r");
+                  var first = getField(fields, "first");
+                  var rest = getField(fields, "rest");
                   fields = rest;
 
                   if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
-                  repr = repr + toRepr(getField(val, first.s)) + ", ";
+
+                  repr = repr + toRepr(getField(val, first)).s + ", ";
                   fieldsEmpty = false;
               }
               catch(e){
@@ -983,8 +985,8 @@ return     });
         var acc = true;
         while(true){
           try{
-              var first = getField(fields, "f");
-              var rest = getField(fields, "r");
+              var first = getField(fields, "first");
+              var rest = getField(fields, "rest");
               fields = rest;
 
               myVal = getField(me, first);
