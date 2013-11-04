@@ -37,4 +37,20 @@ linebreak" is "no linebreak"
   "".char-at(4) raises "Index too large"
   "abc".char-at(2) is "c"
   "abc".char-at(3) raises "Index too large"
+
+  "".to-lower() is ""
+  "".to-upper() is ""
+  "a".to-upper() is "A"
+  "aBc".to-upper() is "ABC"
+  "aB-c%a".to-upper() is "AB-C%A"
+  "λ".to-upper() is "Λ"
+
+  "λ".to-lower() is "λ"
+  "Λ".to-lower() is "λ"
+  "ß".to-upper() is "SS"
+  "ß".to-lower() is "ß"
+
+  "A".to-lower() is "a"
+  "aBc".to-lower() is "abc"
+  "aB-C%a".to-lower() is "ab-c%a"
 end

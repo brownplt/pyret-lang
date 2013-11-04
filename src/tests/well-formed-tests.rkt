@@ -187,6 +187,31 @@
   "{m(self): where: 5 end}"
   (wf-check "methods"))
 
+(check-pyret-exn
+  "datatype Foo:
+    | foo() with constructor(self): self end
+    | foo with constructor(self): self end
+   end"
+  "Constructor name foo appeared more than once.")
+
+(check-pyret-exn
+  "datatype Foo:
+    | foo() with constructor(self): self end
+    | bar() with constructor(self): self end
+    | baz() with constructor(self): self end
+    | foo(a) with constructor(self): self end
+   end"
+  "Constructor name foo appeared more than once.")
+
+(check-pyret-exn
+  "datatype Foo:
+    | bang with constructor(self): self end
+    | bar() with constructor(self): self end
+    | bang() with constructor(self): self end
+    | foo() with constructor(self): self end
+    | foo(a) with constructor(self): self end
+   end"
+  "Constructor name bang appeared more than once.")
 ))
 
 (run-tests all)

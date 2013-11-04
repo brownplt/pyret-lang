@@ -21,7 +21,9 @@ str-check = PP.str("check:")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(": ")
+str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
+str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
@@ -64,7 +66,7 @@ fun funlam_tosource(funtype, name, params, args :: List<is-s_bind>,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
       args.map(fun(a): a.tosource() end)))
   ftype = funtype + typarams
-  fname = 
+  fname =
     if is-nothing(name): ftype
     else if PP.is-mt-doc(ftype): PP.str(name)
     else: ftype + PP.str(" " + name)
@@ -170,7 +172,7 @@ data Expr:
       branches = PP.separate(break-one + str-elsespace,
         self.branches.map(fun(b): b.tosource() end))
       PP.group(branches + break-one + str-end)
-    end      
+    end
   | s_if_else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
@@ -314,6 +316,29 @@ data Expr:
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
+  | s_datatype(
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      variants :: List<Variant>,
+      check :: Expr
+    ) with:
+      label(self): "s_datatype" end,
+    tosource(self):
+      fun optional_section(lbl, section):
+        if PP.is-empty(section): PP.empty
+        else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
+        end
+      end
+      tys = PP.surround-separate(2*INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+        self.params.map(fun(f): f.tosource() end))
+      header = str-data + PP.str(self.name) + tys + str-colon
+      variants = PP.separate(break-one + str-pipespace,
+        str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+      _check = optional_section(str-where, self.check.tosource())
+      footer = break-one + str-end
+      header + PP.group(PP.nest(INDENT, variants) + _check + footer)
+    end
   | s_for(
       l :: Loc,
       iterator :: Expr,
@@ -399,7 +424,7 @@ data Variant:
       with_members :: List<Member>
     ) with:
     tosource(self):
-      header-nowith = 
+      header-nowith =
         PP.str(self.name)
         + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
         self.members.map(fun(b): b.tosource() end))
@@ -421,6 +446,37 @@ data Variant:
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
+    end
+  | s_datatype_variant(
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      constructor :: Constructor
+    ) with:
+    label(self): "s_datatype_variant" end,
+    tosource(self):
+      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
+    end
+  | s_datatype_singleton_variant(
+      l :: Loc,
+      name :: String,
+      constructor :: Constructor
+    ) with:
+    label(self): "s_datatype_singleton_variant" end,
+    tosource(self):
+      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
+    end
+end
+
+data Constructor:
+  | s_datatype_constructor(
+      l :: Loc,
+      self :: String,
+      body :: Expr
+      ) with:
+    label(self): "s_datatype_constructor" end,
+    tosource(self):
+      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
 end
 

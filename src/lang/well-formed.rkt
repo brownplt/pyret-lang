@@ -32,7 +32,9 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 ;;
-;; - non-duplicated identifiers in arguments lists
+;; - duplicated identifiers in arguments lists
+;;
+;; - duplicated constructor names in data(type)
 ;;
 ;; - all blocks end in a non-binding form
 ;;
@@ -92,6 +94,7 @@
       [(s-var s bind e) (wf-error "Cannot end a block in a var-binding." s)]
       [(s-fun s _ _ _ _ _ _ _) (wf-error "Cannot end a block in a fun-binding." s)]
       [(s-data s _ _ _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
+      [(s-datatype s _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
       [(s-graph s _) (wf-error "Cannot end a block with a graph definition." s)]
       [else #t]))
   (define (wf-cases-branch branch)
@@ -111,6 +114,23 @@
   (define (wf-variant-member vm)
     (match vm
      [(s-variant-member s mutable? bind) (wf-bind bind)]))
+  (define (wf-dt-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-datatype-singleton-variant s name _)
+           (s-datatype-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
+      
   (define (wf-variant var)
     (match var
      [(s-singleton-variant s name members)
@@ -120,6 +140,19 @@
         (ensure-unique-ids (map s-variant-member-bind binds))
         (map wf-variant-member binds)
         (map wf-member members))]))
+  (define (wf-dt-variant var)
+    (match var
+     [(s-datatype-singleton-variant s name constructor)
+      (wf-constructor constructor)]
+     [(s-datatype-variant s name binds constructor)
+      (begin
+        (ensure-unique-ids (map s-variant-member-bind binds))
+        (map wf-variant-member binds)
+        (wf-constructor constructor))]))
+  (define (wf-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (wf body)]))
   (define (wf-member mem)
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
@@ -173,6 +206,12 @@
        (map wf mixins)
        (map wf-variant variants)
        (map wf-member shares)
+       (well-formed/internal check #t))]
+
+    [(s-datatype s name params variants check)
+     (begin
+       (wf-dt-variant-names variants)
+       (map wf-dt-variant variants)
        (well-formed/internal check #t))]
 
     [(s-for s iter bindings ann body)

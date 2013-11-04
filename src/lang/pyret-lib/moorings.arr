@@ -1233,9 +1233,8 @@ fun check-results-summary(results-list):
   if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
     if counts.passed == 0:
       append-str("
-WARNING: Your program didn't define any tests.  Add some where: and check:
-blocks to test your code, or run with the --no-checks option to signal that you
-don't want tests run.
+WARNING: Your program didn't define any tests.  Try adding some where: or check:
+blocks to test your code.
 ")
     else:
       if counts.passed == 1:

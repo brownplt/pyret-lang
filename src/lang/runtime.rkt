@@ -788,6 +788,7 @@ And the object was:
           ("log" . ,(mk-num-1 log 'log))
           ("exp" . ,(mk-num-1 exp 'exp))
           ("exact" . ,(mk-num-1 inexact->exact 'exact))
+          ("is-integer" . ,(mk-prim-fun integer? 'is-integer mk-bool (p-num-n) (n) (p-num?)))
           ("expt" . ,(mk-num-2 expt 'expt))))))
   meta-num-store)
 
@@ -834,6 +835,8 @@ And the object was:
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
+          ("to-lower" . ,(mk-prim-fun string-downcase 'string-downcase mk-str (p-str-s) (s) (p-str?)))
+          ("to-upper" . ,(mk-prim-fun string-upcase 'string-upcase mk-str (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
           ("_torepr" . ,(mk-prim-fun (lambda (x) (format "~s" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
