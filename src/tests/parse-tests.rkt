@@ -456,6 +456,10 @@ line string\"" (s-str _ "multi\nline string"))
                (s-var _ (s-bind _ 'x (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number)))
                       (s-num _ 4)))
 
+  (check/block "x :: Any = 4"
+               (s-let _ (s-bind _ 'x (a-any))
+                      (s-num _ 4)))
+
 ))
 
 (define anon-func (test-suite "anon-func"

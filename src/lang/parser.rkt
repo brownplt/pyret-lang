@@ -513,6 +513,7 @@
       dot-ann
       ann
     )
+    [(name-ann "Any") (a-any)]
     [(name-ann n) (a-name (loc stx) (parse-name #'n))]
     [(record-ann "{" "}") (a-record (loc stx) empty)]
     [(record-ann "{" (list-ann-field fields ",") ... lastfield "}")
