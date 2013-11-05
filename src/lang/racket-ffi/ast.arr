@@ -286,7 +286,7 @@ data Expr:
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
   | s_colon_bracket(l :: Loc, obj :: Expr, field :: Expr) with:
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
-        PP.surround(PP.lbrack, self.field.tosource(), PP.rbrack))
+        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s_data(
       l :: Loc,
