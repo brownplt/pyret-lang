@@ -135,6 +135,22 @@
         [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
     (help vs empty empty))
       
+  (define (wf-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-singleton-variant s name _)
+           (s-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
   (define (wf-variant var)
     (match var
      [(s-singleton-variant s name members)
@@ -207,6 +223,7 @@
        (map wf stmts))]
     [(s-data s name params mixins variants shares check)
      (begin
+       (wf-variant-names variants)
        (map wf mixins)
        (map wf-variant variants)
        (map wf-member shares)
