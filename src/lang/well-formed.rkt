@@ -172,7 +172,7 @@
         (ensure-unique-ids (append (static-names-of-fields members) (map s-variant-member-bind binds) shared))
         (map wf-variant-member binds)
         (map wf-member members))]))
-  (define (wf-dt-variant var shared)
+  (define (wf-dt-variant var)
     (match var
      [(s-datatype-singleton-variant s name constructor)
       (wf-constructor constructor)]
