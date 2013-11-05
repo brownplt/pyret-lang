@@ -158,6 +158,7 @@
 
 (define (desugar-ann ann)
   (match ann
+    [(a-name s '_) (a-blank)]
     [(a-pred s a pred) (a-pred s (desugar-ann a) (desugar-internal pred))]
     [(? a-ann?) ann]
     [_ (error 'desugar-ann "Not an annotation: ~a" ann)]))
