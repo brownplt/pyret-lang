@@ -133,6 +133,18 @@
 
 (define (ds-curry ast-node)
   (match ast-node
+    [(s-app s (s-dot s1 (s-id s2 '_) m) args)
+     (define curried-obj (gensym "recv-"))
+     (define params-and-args (ds-curry-args s args))
+     (define params (first params-and-args))
+     (s-lam s (list) (cons curried-obj params) (a-blank) ""
+            (s-app s (s-dot s1 (s-id s2 curried-obj) m) (second params-and-args)) (s-block s empty))]
+    [(s-app s (s-bracket s1 (s-id s2 '_) m) args)
+     (define curried-obj (gensym "recv-"))
+     (define params-and-args (ds-curry-args s args))
+     (define params (cons (s-bind s curried-obj (a-blank)) (first params-and-args)))
+     (s-lam s (list) params (a-blank) ""
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) m) (second params-and-args)) (s-block s empty))]
     [(s-app s f args)
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))

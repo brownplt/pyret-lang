@@ -13,4 +13,7 @@ check:
   (_ == 4)(4) is true
   (_ == 4)(5) is false
   (_ <> 4)(5) is true
+  (_._plus(_))(3, 4) is 7
+  (_._plus)(3)(4) is 7
+  (_.["_plus"])(3)(4) is 7
 end
