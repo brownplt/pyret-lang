@@ -36,6 +36,8 @@
 ;;
 ;; - duplicated constructor names in data(type)
 ;;
+;; - a cases expression with a case named "_", rather than using else
+;;
 ;; - all blocks end in a non-binding form
 ;;
 ;; - check and where identifiers
@@ -101,6 +103,8 @@
     (match branch
       [(s-cases-branch s name args blk)
        (begin
+        (when (eq? name '_)
+          (wf-error "Found a cases branch using _ rather than a constructor name; use 'else' instead." s))
         (ensure-unique-ids args)
         (map wf-bind args)
         (wf blk))]))
