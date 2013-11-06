@@ -175,6 +175,22 @@
                        (symbol->string self)
                        (pretty body)))]
 
+    [(s-cases _ type val branches)
+     (newlines (format "cases(~a) ~a:" (pretty-ann type) (pretty val))
+               (apply newlines (map pretty branches))
+               "end")]
+
+    [(s-cases-else _ type val branches _else)
+     (newlines (format "cases(~a) ~a:" (pretty-ann type) (pretty val))
+               (apply newlines (map pretty branches))
+               (indented (format "| else => ~a" (pretty _else)))
+               "end")]
+
+    [(s-cases-branch _ name args body)
+     (indented (format "| ~a(~a) => ~a" (symbol->string name)
+                        (comma-sep (map (λ (b) (symbol->string (s-bind-id b))) args))
+                        (pretty body)))]
+
     ; TODO: method-field
 
     [(s-app _ fun args)

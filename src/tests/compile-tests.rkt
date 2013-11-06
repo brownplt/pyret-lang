@@ -645,7 +645,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/sets.arr" _ 15)
 
-  (check-pyret-match/check "pyret/strings.arr" _ 22)
+  (check-pyret-match/check "pyret/strings.arr" _ 35)
 
   (check-pyret "5.is-integer()" true)
   (check-pyret "5.5.is-integer()" false)
@@ -1026,7 +1026,7 @@ o2.m().called" true)
 ))
 
 (define currying (test-suite "currying"
-  (check-pyret-match/check "pyret/currying.arr" _ 8)
+  (check-pyret-match/check "pyret/currying.arr" _ 11)
 ))
 
 (define checks (test-suite "checks"
