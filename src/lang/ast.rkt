@@ -453,7 +453,6 @@ these metadata purposes.
     [(s-datatype-singleton-variant syntax name constructor) syntax]
     [(s-for-bind syntax bind value) syntax]
     [(s-for syntax iterator bindings ann body) syntax]
-    [(a-ann) (list "pyret-internal" #f #f #f #f)]
     [(a-blank) (list "pyret-internal" #f #f #f #f)]
     [(a-any) (list "pyret-internal" #f #f #f #f)]
     [(a-name syntax id) syntax]
