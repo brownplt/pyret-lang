@@ -57,6 +57,7 @@
      'torepr
      'Any
      'Bool
+     'Boolean
      'Function
      'Method
      'Number
@@ -67,6 +68,7 @@
      'Placeholder
      'Opaque
      'is-bool
+     'is-boolean
      'is-function
      'is-method
      'is-number

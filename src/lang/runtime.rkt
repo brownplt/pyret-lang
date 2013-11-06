@@ -123,6 +123,7 @@
   Number
   String
   Bool
+  Boolean
   Object
   Nothing
   Function
@@ -133,6 +134,7 @@
   is-number
   is-string
   is-bool
+  is-boolean
   is-object
   is-nothing
   is-function
@@ -1090,6 +1092,7 @@ And the object was:
 (mk-pred Number p-num?)
 (mk-pred String p-str?)
 (mk-pred Bool p-bool?)
+(mk-pred Boolean p-bool?)
 (mk-pred Object p-object?)
 (mk-pred Nothing p-nothing?)
 (mk-pred Function p-fun?)
@@ -1101,6 +1104,7 @@ And the object was:
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
 (mk-pred is-bool p-bool?)
+(mk-pred is-boolean p-bool?)
 (mk-pred is-object p-object?)
 (mk-pred is-nothing p-nothing?)
 (mk-pred is-function p-fun?)
