@@ -107,9 +107,7 @@ fun data-equals(self, other, brand, fields):
 end
 
 fun string-to-list(str :: String):
-  for fold(lst from [], i from range-by(str.length() - 1, -1, -1)):
-    link(str.char-at(i), lst)
-  end
+  str.explode()
 where:
   string-to-list("") is []
   string-to-list("a") is ["a"]
