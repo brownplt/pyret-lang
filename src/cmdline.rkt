@@ -104,7 +104,7 @@
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
-(define mark-mode #f)
+(define mark-mode #t)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"
@@ -129,17 +129,16 @@
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
     (define-values (base name dir?) (split-path pyret-file))
     (define (run)
-      (parameterize ([mark-mode #t])
-        (cond
-          [check-mode
-           (parameterize ([current-check-mode #t]
-                          [current-mark-mode mark-mode]
-                          [current-print (print-pyret #t)]
-                          [current-whalesong-repl-print #f])
-            (dynamic-require pyret-file #f))]
-          [else
-           (parameterize ([current-mark-mode mark-mode])
-             (dynamic-require pyret-file #f))])))
+      (cond
+        [check-mode
+         (parameterize ([current-check-mode #t]
+                        [current-mark-mode mark-mode]
+                        [current-print (print-pyret #t)]
+                        [current-whalesong-repl-print #f])
+          (dynamic-require pyret-file #f))]
+        [else
+         (parameterize ([current-mark-mode mark-mode])
+           (dynamic-require pyret-file #f))]))
     (with-handlers
       ([exn:break?
         (lambda (e)
