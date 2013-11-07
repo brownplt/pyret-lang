@@ -373,7 +373,7 @@
 (define-syntax-rule (tr-obj obj constr (trans args ... field) ...)
   (begin
     ;; (printf "\nconstr is ~a\n" constr)
-    ;; (printf "actual obj keys are ~a\n" (map ffi-unwrap (p:structural-list->list (p:apply-fun prim-keys p:dummy-loc obj))))
+    ;; (printf "actual obj keys are ~a\n" (map ffi-unwrap (pyret-list->list (p:apply-fun prim-keys p:dummy-loc obj))))
     ;; (printf "expected keys are ~a\n" (list (symbol->string (quote field)) ...))
     ;; (let ((argval (p:get-field p:dummy-loc (ffi-unwrap obj) (symbol->string (quote field)))))
     ;;   (printf "trans is ~a, args are ~a, field is ~a ==> ~a\n"

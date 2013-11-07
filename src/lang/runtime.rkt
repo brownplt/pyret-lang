@@ -82,9 +82,6 @@
       mk-fun-nodoc-slow
       pμ
       mk-method
-      mk-structural-list
-      structural-list?
-      structural-list->list
       mk-exn
       pyret-error
       empty-dict
@@ -141,6 +138,8 @@
   is-method
   is-mutable
   is-placeholder
+  ___set-link
+  ___set-empty
   nothing)
 
 
@@ -362,7 +361,7 @@
   (define trace-locs
     (cons loc (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark)))
   (define trace
-    (mk-structural-list
+    (mk-list
       (map (lambda (l) (mk-object (make-string-map (mk-loc l))))
       trace-locs)))
   (mk-object
@@ -670,35 +669,9 @@ And the object was:
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
-;; structural-list? : Value -> Boolean
-(define (structural-list? v)
-  (define d (get-dict v))
-  (and (string-map-has-key? d "first")
-       (string-map-has-key? d "rest")))
-
-;; structural-list->list : Value -> Listof Value
-(define (structural-list->list lst)
-  (define d (get-dict lst))
-  (cond
-    [(structural-list? lst)
-     (cons (string-map-ref d "first")
-           (structural-list->list (string-map-ref d "rest")))]
-    [else empty]))
-
-;; mk-structural-list : ListOf Value -> Value
-(define (mk-structural-list lst)
-  (cond
-    [(empty? lst) (mk-object (make-string-map
-        `(("is-empty" . ,(mk-bool #t)))))]
-    [(cons? lst) (mk-object (make-string-map
-        `(("first" . ,(first lst))
-          ("is-empty" . ,(mk-bool #f))
-          ("rest" . ,(mk-structural-list (rest lst))))))]
-    [else (error 'mk-structural-list (format "mk-structural-list got ~a" lst))]))
-
 ;; keys : Value -> Value
 (define keys-pfun (pλ/internal (loc) (object)
-  (mk-structural-list (map mk-str (string-map-keys (get-dict object))))))
+  (mk-list (map mk-str (string-map-keys (get-dict object))))))
 
 ;; TODO(joe): Quickify
 (define num-keys-pfun (pλ/internal (loc) (object)
@@ -1111,3 +1084,23 @@ And the object was:
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
+
+(define py-link #f)
+(define py-empty #f)
+
+(define ___set-link (pλ (link) "Set the internal function for creating links"
+  (when py-link
+    (raise (format "Runtime link is already set to ~a, and someone tried to update it to ~a." py-link link)))
+  (set! py-link link)
+  nothing))
+(define ___set-empty (pλ (empty) "Set the internal function for creating emptys"
+  (when py-empty
+    (raise (format "Runtime empty is already set to ~a, and someone tried to update it to ~a." py-empty empty)))
+  (set! py-empty empty)
+  nothing))
+
+(define (mk-list lst)
+  (define link py-link)
+  (define empty py-empty)
+  (foldl (λ (elt acc) (apply-fun link dummy-loc elt acc)) empty (reverse lst)))
+

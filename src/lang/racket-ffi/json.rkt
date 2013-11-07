@@ -49,7 +49,7 @@
       (p:p-num? val)
       (p:p-str? val)
       (p:p-bool? val)) (ffi-unwrap val)]
-    [(pyret-list? val) (map to-jsexpr (p:structural-list->list val))]
+    [(pyret-list? val) (map to-jsexpr (pyret-list->list val))]
     [(p:p-object? val)
      (define fields
        (string-map-map
