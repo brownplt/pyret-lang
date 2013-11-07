@@ -500,6 +500,8 @@
   (syntax-parse stx
     #:datum-literals (ann-field)
     [(ann-field n ":" ann)
+     (a-field (loc stx) (symbol->string (parse-name #'n)) (parse-ann #'ann))]
+    [(ann-field n "::" ann)
      (a-field (loc stx) (symbol->string (parse-name #'n)) (parse-ann #'ann))]))
 
 (define (parse-ann stx)
