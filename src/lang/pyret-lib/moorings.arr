@@ -376,8 +376,9 @@ where:
   [o2, o1].sort() is [o1, o2]
 end
 
-mk-link.set(link)
-mk-empty.set(empty)
+# NOTE(joe): bindings are to quash output
+_ = ___set-link(link)
+_ = ___set-empty(empty)
 
 fun range(start, stop):
   doc: "Creates a list of numbers, starting with start, ending with stop-1"

@@ -138,8 +138,8 @@
   is-method
   is-mutable
   is-placeholder
-  mk-link
-  mk-empty
+  ___set-link
+  ___set-empty
   nothing)
 
 
@@ -1085,11 +1085,22 @@ And the object was:
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
 
-(define mk-link (mk-placeholder))
-(define mk-empty (mk-placeholder))
+(define py-link #f)
+(define py-empty #f)
+
+(define ___set-link (pλ (link) "Set the internal function for creating links"
+  (when py-link
+    (raise (format "Runtime link is already set to ~a, and someone tried to update it to ~a." py-link link)))
+  (set! py-link link)
+  nothing))
+(define ___set-empty (pλ (empty) "Set the internal function for creating emptys"
+  (when py-empty
+    (raise (format "Runtime empty is already set to ~a, and someone tried to update it to ~a." py-empty empty)))
+  (set! py-empty empty)
+  nothing))
 
 (define (mk-list lst)
-  (define link (get-placeholder-value dummy-loc mk-link))
-  (define empty (get-placeholder-value dummy-loc mk-empty))
+  (define link py-link)
+  (define empty py-empty)
   (foldl (λ (elt acc) (apply-fun link dummy-loc elt acc)) empty (reverse lst)))
 

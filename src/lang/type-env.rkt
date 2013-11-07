@@ -51,8 +51,6 @@
      'prim-has-field
      'prim-keys
      'prim-num-keys
-     'mk-link
-     'mk-empty
      'print
      'raise
      'tostring
@@ -161,10 +159,11 @@
       'string-to-list)))
 
 (define LIBRARY-ENV
-  (make-immutable-hash runtime-env-list))
+  (make-immutable-hash (append runtime-env-list (blankify '(___set-link ___set-empty)))))
 
 (define DEFAULT-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list)))
 
 (define WHALESONG-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list whalesong-env-list)))
+

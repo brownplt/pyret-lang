@@ -5,7 +5,7 @@
   (prefix-in r: (only-in whalesong/lang/whalesong list error raise))
   "racket-ffi/animate.rkt"
   "racket-ffi/stdlib.rkt"
-  "runtime.rkt"
+  (except-in "runtime.rkt" ___set-link ___set-empty)
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings])
   )
 

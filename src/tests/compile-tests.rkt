@@ -1019,6 +1019,8 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/parse-types.arr" _ 3)
   (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
   (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
+  (check-pyret-exn "___set-link" "Unbound identifier")
+  (check-pyret-exn "___set-empty" "Unbound identifier")
 ))
 
 (define mixins (test-suite "mixins"
