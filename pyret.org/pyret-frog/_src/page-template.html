@@ -350,6 +350,83 @@ end
 
   <hr/>
 
+  @(pyret-example #:where 'left
+@disable-prefix{
+check:
+  [1, 2, 3].filter(_ > 1) is [2, 3]
+  ["one", "two"].map(_.to-upper()) is ["ONE", "TWO"]
+  [[1], [2]].map(_.first) is [1, 2]
+end
+}
+
+"Pyret embraces and provides syntactic sugar for functional patterns.  The
+special <code>_</code> syntax turns expressions into functions:
+<code>_ > 1</code> means <code>fun(x): x > 1 end</code>.  Pyret goes further
+and works this syntax into the common dot syntax for field lookup, blending
+functional and object-oriented styles.")
+
+
+  <hr/>
+
+  @(pyret-example #:where 'right
+@disable-prefix{
+point-methods = {
+  dist(self, other):
+    ysquared = (other.y - self.y).expt(2)
+    xsquared = (other.x - self.x).expt(2)
+    (ysquared + xsquared).sqrt()
+  end
+}
+
+fun make-point(x, y):
+  point-methods.{ x: x, y: y }
+end
+
+check:
+  p1 = make-point(1, 2)
+  p2 = make-point(1, 5)
+
+  p1.dist(p2) is 3
+end
+}
+
+"Pyret has a straightforward, functional object model, from which more complex
+patterns can be defined.  An object is defined by methods and fields within
+curly braces (as in <code>point-methods</code>), and can be extended
+functionally with <code>.{}</code>.  This example shows a simple class-like
+pattern built up from simple objects.  Objects, like most other values in
+Pyret, are immutable by default, so instances of points created by extending
+the object containing point methods.")
+
+  <hr/>
+
+  @(pyret-example #:where 'left
+@disable-prefix{
+data CyclicList:
+  | clink(cyclic first, rest)
+  | cempty
+end
+check:
+  graph:
+  BOSTON = clink(FRANKFURT, cempty)
+  BEIJING = clink(FRANKFURT, clink(BOSTON, cempty))
+  FRANKFURT = clink(BOSTON, cempty)
+  end
+
+  BOSTON.first is FRANKFURT
+  BEIJING.rest.first is BOSTON
+  BOSTON.first.first.first.first.first is FRANKFURT
+end
+}
+
+"Many real-world data structures are cyclic, like graphs connecting cities.  In
+most languages, a serialized encoding or mutation are required to introduce
+graphs.  Pyret's <code>graph:</code> and <code>cyclic</code> allow for a
+declarative description of cyclic data.")
+
+  <hr/>
+
+
 <div class="row">
   <div class="col-md-2"></div>
   <div class="col-md-8">
