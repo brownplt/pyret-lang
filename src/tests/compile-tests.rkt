@@ -1028,7 +1028,7 @@ o2.m().called" true)
 ))
 
 (define currying (test-suite "currying"
-  (check-pyret-match/check "pyret/currying.arr" _ 11)
+  (check-pyret-match/check "pyret/currying.arr" _ 14)
 ))
 
 (define checks (test-suite "checks"
