@@ -1078,6 +1078,9 @@ o2.m().called" true)
 
     (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
 
+    (private-run (example-path "queue.arr") 9)
+    (private-run (example-path "point.arr") 5)
+
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)
     (private-run (example-path "htdp/boolean.arr") 0)
