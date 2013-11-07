@@ -129,16 +129,17 @@
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
     (define-values (base name dir?) (split-path pyret-file))
     (define (run)
-      (cond
-        [check-mode
-         (parameterize ([current-check-mode #t]
-                        [current-mark-mode mark-mode]
-                        [current-print (print-pyret #t)]
-                        [current-whalesong-repl-print #f])
-          (dynamic-require pyret-file #f))]
-        [else
-         (parameterize ([current-mark-mode mark-mode])
-           (dynamic-require pyret-file #f))]))
+      (parameterize ([mark-mode #t])
+        (cond
+          [check-mode
+           (parameterize ([current-check-mode #t]
+                          [current-mark-mode mark-mode]
+                          [current-print (print-pyret #t)]
+                          [current-whalesong-repl-print #f])
+            (dynamic-require pyret-file #f))]
+          [else
+           (parameterize ([current-mark-mode mark-mode])
+             (dynamic-require pyret-file #f))])))
     (with-handlers
       ([exn:break?
         (lambda (e)
