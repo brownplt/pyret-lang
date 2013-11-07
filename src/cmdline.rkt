@@ -104,7 +104,7 @@
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
-(define mark-mode #f)
+(define mark-mode #t)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"

@@ -319,12 +319,23 @@ data List:
     sort-by(self, cmp, eq):
       doc: "Takes a comparator to check for elements that are strictly greater
         or less than one another, and an equality procedure for elements that are
-        equal, and sorts the list accordingly."
+        equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
       pivot = self.first
-      less = self.filter(fun(e): cmp(e,pivot) end).sort-by(cmp, eq)
-      equal = self.filter(fun(e): eq(e,pivot) end)
-      greater = self.filter(fun(e): cmp(pivot,e) end).sort-by(cmp, eq)
-      less.append(equal).append(greater)
+      # builds up three lists, split according to cmp and eq
+      # Note: We use foldl, which is tail-recursive, but which causes the three
+      # list parts to grow in reverse order.  This isn't a problem, since we're
+      # about to sort two of those parts anyway.
+      three-way-split = self.foldl(fun(e, acc):
+          if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
+          else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
+          else:                 acc.{are-gt: e^link(acc.are-gt)}
+          end
+        end,
+        {are-lt: [], are-eq: [], are-gt: []})
+      less =    three-way-split.are-lt.sort-by(cmp, eq)
+      equal =   three-way-split.are-eq
+      greater = three-way-split.are-gt.sort-by(cmp, eq)
+      less.append(equal.append(greater))
     end,
 
     sort(self):

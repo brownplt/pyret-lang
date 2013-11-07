@@ -148,7 +148,7 @@ name-ann: NAME
 record-ann: "{" [list-ann-field* ann-field] "}"
           | "{" "}"
 list-ann-field: ann-field ","
-ann-field: NAME ":" ann
+ann-field: NAME ":" ann | NAME "::" ann
 
 arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] "->" ann ")"
 arrow-ann-elt: ann ","
