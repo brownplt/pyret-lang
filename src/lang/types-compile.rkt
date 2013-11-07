@@ -8,6 +8,7 @@
   racket/match
   racket/syntax
   "ast.rkt"
+  "pretty.rkt"
   "desugar.rkt" ;; NOTE(dbp 2013-10-25): used locally to be able to write s-list
   )
 
@@ -85,7 +86,7 @@
          (s-num _ _)
          (s-bool _ _)
          (s-str _ _)) ast]
-    [else (error (format "Missed a case in types-compile: ~a" ast))]
+    [else (error (format "Missed a case in types-compile: ~a (at ~a)" (pretty ast) (get-srcloc ast)))]
 ))
 
 ;; NOTE(dbp 2013-10-24): This is the stuff we actually care about - compiling datatypes
