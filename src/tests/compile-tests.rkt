@@ -773,7 +773,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 29)
+  (check-pyret-match/check "pyret/update.arr" _ 38)
   (check-pyret-match/check "pyret/placeholder.arr" _ 15)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
@@ -1019,6 +1019,8 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/parse-types.arr" _ 3)
   (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
   (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
+  (check-pyret-exn "___set-link" "Unbound identifier")
+  (check-pyret-exn "___set-empty" "Unbound identifier")
 ))
 
 (define mixins (test-suite "mixins"
@@ -1026,7 +1028,7 @@ o2.m().called" true)
 ))
 
 (define currying (test-suite "currying"
-  (check-pyret-match/check "pyret/currying.arr" _ 11)
+  (check-pyret-match/check "pyret/currying.arr" _ 14)
 ))
 
 (define checks (test-suite "checks"
@@ -1075,6 +1077,9 @@ o2.m().called" true)
          (check-pyret-match/check name _ passing))))])
 
     (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
+
+    (private-run (example-path "queue.arr") 9)
+    (private-run (example-path "point.arr") 5)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)

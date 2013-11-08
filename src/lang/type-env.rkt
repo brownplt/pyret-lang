@@ -57,6 +57,7 @@
      'torepr
      'Any
      'Bool
+     'Boolean
      'Function
      'Method
      'Number
@@ -67,6 +68,7 @@
      'Placeholder
      'Opaque
      'is-bool
+     'is-boolean
      'is-function
      'is-method
      'is-number
@@ -157,10 +159,11 @@
       'string-to-list)))
 
 (define LIBRARY-ENV
-  (make-immutable-hash runtime-env-list))
+  (make-immutable-hash (append runtime-env-list (blankify '(___set-link ___set-empty)))))
 
 (define DEFAULT-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list)))
 
 (define WHALESONG-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list whalesong-env-list)))
+

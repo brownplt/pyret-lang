@@ -21,16 +21,9 @@ fun identical(obj1, obj2):
   end
 end
 
-fun mklist(obj):
-  doc: "Creates a List from something with `first` and `rest` fields, recursively"
-  if obj.is-empty: empty
-  else:            link(obj.first, mklist(obj.rest))
-  end
-end
-
 fun keys(obj):
   doc: "Returns a List of the keys of an object, as strings"
-  mklist(prim-keys(obj))
+  prim-keys(obj)
 end
 
 fun has-field(obj, name):
@@ -138,7 +131,6 @@ builtins = {
   identical: identical,
   keys: keys,
   has-field: has-field,
-  mklist: mklist,
   equiv: equiv,
   data-to-repr: data-to-repr,
   data-equals: data-equals,
@@ -383,6 +375,10 @@ where:
   }
   [o2, o1].sort() is [o1, o2]
 end
+
+# NOTE(joe): bindings are to quash output
+_ = ___set-link(link)
+_ = ___set-empty(empty)
 
 fun range(start, stop):
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -834,7 +830,7 @@ end
 
 fun make-error(obj):
   trace = if has-field(obj, "trace"):
-    for map(l from mklist(obj.trace)):
+    for map(l from obj.trace):
       location(l.path, l.line, l.column)
     end
   else:
@@ -1130,14 +1126,14 @@ var all-results :: List = empty
 
 fun run-checks(checks):
   when checks.length() <> 0:
-    fun lst-to-structural(lst):
-      if has-field(lst, 'first'):
-        { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
-      else:
-        { is-empty: true }
-      end
-    end
-    these-checks = mklist(lst-to-structural(checks))
+    # fun lst-to-structural(lst):
+    #   if has-field(lst, 'first'):
+    #     { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
+    #   else:
+    #     { is-empty: true }
+    #   end
+    # end
+    these-checks = checks
     old-results = current-results
     these-check-results =
       for map(chk from these-checks):

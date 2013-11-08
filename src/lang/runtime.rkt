@@ -82,9 +82,6 @@
       mk-fun-nodoc-slow
       pμ
       mk-method
-      mk-structural-list
-      structural-list?
-      structural-list->list
       mk-exn
       pyret-error
       empty-dict
@@ -123,6 +120,7 @@
   Number
   String
   Bool
+  Boolean
   Object
   Nothing
   Function
@@ -133,12 +131,15 @@
   is-number
   is-string
   is-bool
+  is-boolean
   is-object
   is-nothing
   is-function
   is-method
   is-mutable
   is-placeholder
+  ___set-link
+  ___set-empty
   nothing)
 
 
@@ -360,7 +361,7 @@
   (define trace-locs
     (cons loc (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark)))
   (define trace
-    (mk-structural-list
+    (mk-list
       (map (lambda (l) (mk-object (make-string-map (mk-loc l))))
       trace-locs)))
   (mk-object
@@ -649,7 +650,8 @@ And the object was:
       (define checks (p-mutable-write-wrappers mutable))
       (define value (foldr (lambda (c v) (c v)) (cdr pair) checks))
       (set-box! (p-mutable-b mutable) (cdr pair)))
-    extension)))
+    extension))
+  nothing)
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
@@ -668,35 +670,9 @@ And the object was:
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
-;; structural-list? : Value -> Boolean
-(define (structural-list? v)
-  (define d (get-dict v))
-  (and (string-map-has-key? d "first")
-       (string-map-has-key? d "rest")))
-
-;; structural-list->list : Value -> Listof Value
-(define (structural-list->list lst)
-  (define d (get-dict lst))
-  (cond
-    [(structural-list? lst)
-     (cons (string-map-ref d "first")
-           (structural-list->list (string-map-ref d "rest")))]
-    [else empty]))
-
-;; mk-structural-list : ListOf Value -> Value
-(define (mk-structural-list lst)
-  (cond
-    [(empty? lst) (mk-object (make-string-map
-        `(("is-empty" . ,(mk-bool #t)))))]
-    [(cons? lst) (mk-object (make-string-map
-        `(("first" . ,(first lst))
-          ("is-empty" . ,(mk-bool #f))
-          ("rest" . ,(mk-structural-list (rest lst))))))]
-    [else (error 'mk-structural-list (format "mk-structural-list got ~a" lst))]))
-
 ;; keys : Value -> Value
 (define keys-pfun (pλ/internal (loc) (object)
-  (mk-structural-list (map mk-str (string-map-keys (get-dict object))))))
+  (mk-list (map mk-str (string-map-keys (get-dict object))))))
 
 ;; TODO(joe): Quickify
 (define num-keys-pfun (pλ/internal (loc) (object)
@@ -999,6 +975,13 @@ And the object was:
   (meta-bool)
   (meta-str))
 
+(define (mutable-to-repr v)
+  (py-match v
+    [(p-str _ _ _ _ s) (mk-str (format "mutable(~s)" s))]
+    [(p-num _ _ _ _ n) (mk-str (format "mutable(~a)" n))]
+    [(p-bool _ _ _ _ b) (mk-str (format "mutable(~a)" (if b "true" "false")))]
+    [(p-nothing _ _ _ _) (mk-str "mutable(nothing)")]
+    [(default v) (mk-str "mutable-field")]))
 (define mutable-dict
   (make-string-map
     (list
@@ -1007,10 +990,10 @@ And the object was:
         (mk-bool (eq? self other))))
       (cons "_torepr" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "tostring" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in this mutable field"
         (when (not (p-mutable? self))
@@ -1049,7 +1032,8 @@ And the object was:
                       (format "Tried to set value in already-initialized placeholder"))))
         (define wrappers (p-placeholder-wrappers self))
         (define value-checked (foldr (lambda (c v) (c v)) new-value wrappers))
-        (set-box! (p-placeholder-b self) value-checked)))
+        (set-box! (p-placeholder-b self) value-checked)
+        nothing))
       (cons "guard" (pμ/internal (loc) (self pred)
         "Add a guard to the placeholder for when it is set"
         (when (not (p-placeholder? self))
@@ -1090,6 +1074,7 @@ And the object was:
 (mk-pred Number p-num?)
 (mk-pred String p-str?)
 (mk-pred Bool p-bool?)
+(mk-pred Boolean p-bool?)
 (mk-pred Object p-object?)
 (mk-pred Nothing p-nothing?)
 (mk-pred Function p-fun?)
@@ -1101,9 +1086,30 @@ And the object was:
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
 (mk-pred is-bool p-bool?)
+(mk-pred is-boolean p-bool?)
 (mk-pred is-object p-object?)
 (mk-pred is-nothing p-nothing?)
 (mk-pred is-function p-fun?)
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
+
+(define py-link #f)
+(define py-empty #f)
+
+(define ___set-link (pλ (link) "Set the internal function for creating links"
+  (when py-link
+    (raise (format "Runtime link is already set to ~a, and someone tried to update it to ~a." py-link link)))
+  (set! py-link link)
+  nothing))
+(define ___set-empty (pλ (empty) "Set the internal function for creating emptys"
+  (when py-empty
+    (raise (format "Runtime empty is already set to ~a, and someone tried to update it to ~a." py-empty empty)))
+  (set! py-empty empty)
+  nothing))
+
+(define (mk-list lst)
+  (define link py-link)
+  (define empty py-empty)
+  (foldl (λ (elt acc) (apply-fun link dummy-loc elt acc)) empty (reverse lst)))
+

@@ -25,6 +25,14 @@
  "var x :: String = 'hello' x"
  (p:mk-str "hello"))
 
+(check-pyret
+ "var b :: Boolean = true b"
+ (p:mk-bool #t))
+
+(check-pyret-exn
+ "var b :: Boolean = true b := 'foo'"
+ "expected Boolean")
+
 (check-pyret-exn
  "x :: String = {}"
  "expected String")

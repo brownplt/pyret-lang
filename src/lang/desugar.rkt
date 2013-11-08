@@ -110,6 +110,13 @@
           args)))
     (list (reverse (first params-and-args)) (reverse (second params-and-args)))))
 
+(define (ds-curry-nullary rebuild-node s obj m)
+  (match obj
+    [(s-id s2 '_)
+     (define curried-obj (gensym "recv-"))
+     (s-lam s (list) (list (s-bind s curried-obj (a-blank))) (a-blank) ""
+            (rebuild-node s (s-id s2 curried-obj) m) (s-block s empty))]
+    [else (rebuild-node s obj m)]))
 (define (ds-curry-binop s e1 e2 rebuild)
   (define params-and-args (ds-curry-args s (list e1 e2)))
   (define params (first params-and-args))
@@ -131,30 +138,29 @@
     (s-lam s (list) params (a-blank) ""
            (rebuild (first curry-args)) (s-block s empty))]))
 
-(define (ds-curry ast-node)
-  (match ast-node
-    [(s-app s (s-dot s1 (s-id s2 '_) m) args)
+(define (ds-curry s f args)
+  (match f
+    [(s-dot s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
-     (s-lam s (list) (cons curried-obj params) (a-blank) ""
-            (s-app s (s-dot s1 (s-id s2 curried-obj) m) (second params-and-args)) (s-block s empty))]
-    [(s-app s (s-bracket s1 (s-id s2 '_) m) args)
+     (s-lam s (list) (cons (s-bind s curried-obj (a-blank)) params) (a-blank) ""
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty))]
+    [(s-bracket s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (cons (s-bind s curried-obj (a-blank)) (first params-and-args)))
      (s-lam s (list) params (a-blank) ""
-            (s-app s (s-bracket s1 (s-id s2 curried-obj) m) (second params-and-args)) (s-block s empty))]
-    [(s-app s f args)
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty))]
+    [else
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
+     (define ds-f (desugar-internal f))
      (cond
-        [(null? params)
-         ast-node]
+        [(null? params) (s-app s ds-f args)]
         [else
          (s-lam s (list) params (a-blank) ""
-              (s-app s f (second params-and-args)) (s-block s empty))])]
-    [_ ast-node]))
+              (s-app s ds-f (second params-and-args)) (s-block s empty))])]))
 
 (define (desugar-ann ann)
   (match ann
@@ -331,14 +337,14 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s fun args) (ds-curry (s-app s (ds fun) (map ds args)))]
+    [(s-app s fun args) (ds-curry s fun (map ds args))] ;; NOTE: fun is NOT desugared yet
 
     [(s-left-app s target fun args)
-     (ds-curry (s-app s (ds fun) (cons (ds target) (map ds args))))]
+     (ds-curry s fun (cons (ds target) (map ds args)))] ;; NOTE: fun is NOT desugared yet
 
-    [(s-extend s super fields) (s-extend s (ds super) (map ds-member fields))]
+    [(s-extend s super fields) (ds-curry-nullary s-extend s (ds super) (map ds-member fields))]
 
-    [(s-update s super fields) (s-update s (ds super) (map ds-member fields))]
+    [(s-update s super fields) (ds-curry-nullary s-update s (ds super) (map ds-member fields))]
 
     [(s-obj s fields) (s-obj s (map ds-member fields))]
 
@@ -349,15 +355,15 @@
        (s-app s (get-lib "link") (list elt acc)))
      (foldr make-link (get-lib "empty") (map ds elts))]
 
-    [(s-dot s val field) (s-bracket s (ds val) (s-str s (symbol->string field)))]
+    [(s-dot s val field) (ds-curry-nullary s-bracket s (ds val) (s-str s (symbol->string field)))]
 
-    [(s-get-bang s val field) (s-get-bang s (ds val) field)]
+    [(s-get-bang s val field) (ds-curry-nullary s-get-bang s (ds val) field)]
 
-    [(s-bracket s val field) (s-bracket s (ds val) (ds field))]
+    [(s-bracket s val field) (ds-curry-nullary s-bracket s (ds val) (ds field))]
 
-    [(s-colon s obj field) (s-colon-bracket s (ds obj) (s-str s (symbol->string field)))]
+    [(s-colon s obj field) (ds-curry-nullary s-colon-bracket s (ds obj) (s-str s (symbol->string field)))]
 
-    [(s-colon-bracket s obj field) (s-colon-bracket s (ds obj) (ds field))]
+    [(s-colon-bracket s obj field) (ds-curry-nullary s-colon-bracket s (ds obj) (ds field))]
 
     [(s-paren _ e) (ds e)]
 
