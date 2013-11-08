@@ -18,7 +18,7 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | graph-expr
 
 let-expr: binding "=" binop-expr
-binding: NAME ["::" ann]
+binding: ["shadow"] NAME ["::" ann]
 
 fun-expr: "fun" fun-header ":" doc-string block where-clause end
 fun-header: ty-params NAME args return-ann

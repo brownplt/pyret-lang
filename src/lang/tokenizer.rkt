@@ -25,7 +25,7 @@
 (define-lex-abbrev
   keywords
   (union "import" "provide" "as"
-         "var"
+         "var" "shadow"
          "fun" "method" "doc:"
          "where:"
          "check:"

@@ -58,11 +58,11 @@
        (cons (flatten (cons else-list (map car branch-results)))
              (s-if-else l (map cdr branch-results) new-else))]
       
-      [(s-try l try (s-bind l2 id ann) catch)
+      [(s-try l try (s-bind l2 id ann shadow) catch)
        (match-define (cons try-list new-try) (get-and-replace-constants try))
        (match-define (cons catch-list new-catch) (get-and-replace-constants catch))
        (cons (append try-list catch-list)
-             (s-try l new-try (s-bind l2 id ann) new-catch))]
+             (s-try l new-try (s-bind l2 id ann shadow) new-catch))]
 
       [(s-assign l name expr)
        (match-define (cons lst new-expr) (get-and-replace-constants expr))
@@ -124,8 +124,8 @@
   (define (wrap l vals-and-ast)
     (define (binding-for v)
       (cond
-        [(number? v) (s-let l (s-bind l (num-name v) (a-blank)) (s-num l v))]
-        [(string? v) (s-let l (s-bind l (str-name v) (a-blank)) (s-str l v))]))
+        [(number? v) (s-let l (s-bind l (num-name v) (a-blank) #f) (s-num l v))]
+        [(string? v) (s-let l (s-bind l (str-name v) (a-blank) #f) (s-str l v))]))
     (define bindings (map binding-for (remove-duplicates (car vals-and-ast))))
     (match (cdr vals-and-ast)
       [(s-block l stmts) (s-block l (append bindings stmts))]

@@ -365,10 +365,16 @@ data Expr:
 end
 
 data Bind:
-  | s_bind(l :: Loc, id :: String, ann :: Ann) with:
+  | s_bind(l :: Loc, id :: String, ann :: Ann, shadows :: Bool) with:
     tosource(self):
-      if is-a_blank(self.ann): PP.str(self.id)
-      else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.id), self.ann.tosource())
+      if is-a_blank(self.ann):
+        if self.shadows: PP.str("shadow " + self.id)
+        else: PP.str(self.id)
+        end
+      else:
+        if self.shadows: PP.infix(INDENT, 1, str-coloncolon, PP.str("shadow " + self.id), self.ann.tosource())
+        else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.id), self.ann.tosource())
+        end
       end
     end
 end

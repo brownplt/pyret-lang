@@ -27,14 +27,18 @@
       (s-num s (srcloc-column s)))))
 
 (define (lam s args body)
-  (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+  (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank) #f)) args) (a-blank) "" body (s-block s empty)))
 
 (define (meth s args body)
-  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+  (s-method s (map (lambda (sym) (s-bind s sym (a-blank) #f)) args) (a-blank) "" body (s-block s empty)))
 
 (define (desugar-graph s bindings)
-  (define names (map s-bind-id (map s-let-name bindings)))
+  (define binds (map s-let-name bindings))
+  (define names (map s-bind-id binds))
   (define placeholder-names (map gensym names))
+  (define placeholder-binds
+    (map (lambda (bind placeholder) (s-bind (get-srcloc bind) placeholder (s-bind-ann bind) (s-bind-shadow bind)))
+         binds placeholder-names))
   (define (subst-expr e)
    (foldr (lambda (id new-id expr)
            (subst expr id (s-id s new-id)))
@@ -44,7 +48,7 @@
   (define subbed-statements (map subst-expr (map desugar-internal bindings)))
   (s-block s
     (append
-     (map (lambda (id) (s-let s (s-bind s id (a-blank)) (s-app s (s-id s 'mk-placeholder) (list)))) placeholder-names)
+     (map (lambda (ph-bind) (s-let s ph-bind (s-app s (s-id s 'mk-placeholder) (list)))) placeholder-binds)
      subbed-statements
      (map (lambda (id ph-id)
             (s-app s (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
@@ -56,7 +60,7 @@
     (map (lambda (m) (gensym "mixin")) mixins-names))
   (define (local-bind-mixins s)
     (map (lambda (local-name name)
-           (s-let s (s-bind s local-name (a-blank))
+           (s-let s (s-bind s local-name (a-blank) #f)
                   (s-if-else s
                              (list
                               (s-if-branch s (s-app s (s-id s 'Function) (list (s-id s name)))
@@ -102,7 +106,7 @@
             (cond
              [(and (s-id? arg) (equal? (s-id-id arg) '_))
               (let ((next-arg (gensym "arg-")))
-                (list (cons (s-bind s next-arg (a-blank)) (first l))
+                (list (cons (s-bind s next-arg (a-blank) #f) (first l))
                       (cons (s-id s next-arg) (second l))))]
              [else
               (list (first l) (cons arg (second l)))]))
@@ -114,7 +118,7 @@
   (match obj
     [(s-id s2 '_)
      (define curried-obj (gensym "recv-"))
-     (s-lam s (list) (list (s-bind s curried-obj (a-blank))) (a-blank) ""
+     (s-lam s (list) (list (s-bind s curried-obj (a-blank) #f)) (a-blank) ""
             (rebuild-node s (s-id s2 curried-obj) m) (s-block s empty))]
     [else (rebuild-node s obj m)]))
 (define (ds-curry-binop s e1 e2 rebuild)
@@ -144,12 +148,12 @@
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
-     (s-lam s (list) (cons (s-bind s curried-obj (a-blank)) params) (a-blank) ""
+     (s-lam s (list) (cons (s-bind s curried-obj (a-blank) #f) params) (a-blank) ""
             (s-app s (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty))]
     [(s-bracket s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
-     (define params (cons (s-bind s curried-obj (a-blank)) (first params-and-args)))
+     (define params (cons (s-bind s curried-obj (a-blank) #f) (first params-and-args)))
      (s-lam s (list) params (a-blank) ""
             (s-app s (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty))]
     [else
@@ -204,7 +208,7 @@
                              (list ds-e1 ds-e2)))))
   (define (ds-bind b)
     (match b
-      [(s-bind s id a) (s-bind s id (desugar-ann a))]))
+      [(s-bind s id a shadow) (s-bind s id (desugar-ann a) shadow)]))
   (define (ds-args binds)
     (map ds-bind binds))
   (define (ds-if branch)
@@ -233,7 +237,7 @@
      (define mixins-names
        (map (lambda (m) (gensym (string-append (symbol->string name) "-mixins"))) mixins))
      (define bind-mixins
-       (map (lambda (m-name m) (s-let s (s-bind s m-name (a-blank)) (ds m))) mixins-names mixins))
+       (map (lambda (m-name m) (s-let s (s-bind s m-name (a-blank) #f) (ds m))) mixins-names mixins))
      (define shared-id (gensym 'data-shared))
      (define base-names (map (lambda (v) (gensym 'variant)) variants))
      (define (get-with variant)
@@ -242,7 +246,7 @@
          [(s-variant _ _ _ with) with]))
      (define bind-base-objs
        (map (lambda (v-name v)
-              (s-let s (s-bind s v-name (a-blank))
+              (s-let s (s-bind s v-name (a-blank) #f)
                      (ds (s-extend s (s-id s shared-id) (get-with v)))))
             base-names variants))
      (define (member-name m)
@@ -264,7 +268,7 @@
       (flatten
        (list
         bind-mixins
-        (s-let s (s-bind s shared-id (a-blank)) (ds (s-obj s share-members)))
+        (s-let s (s-bind s shared-id (a-blank) #f) (ds (s-obj s share-members)))
         bind-base-objs
         (s-datatype s name params (map (ds-data mixins-names) base-fields variants) check-ignored))))]
 
@@ -288,7 +292,7 @@
     [(s-user-block s body) (s-user-block s (ds body))]
 
     [(s-fun s name typarams args ann doc body check)
-     (s-let s (s-bind s name (a-blank))
+     (s-let s (s-bind s name (a-blank) #f)
             (s-lam s typarams (ds-args args)
                    (desugar-ann ann)
                    doc (ds body) (ds check)))]
@@ -330,7 +334,7 @@
      (define make-error (s-app s (s-bracket s (s-id s 'error)
 			                      (s-str s "make-error"))
 			         (list (s-id s exn-id))))
-     (s-try s (ds try) (s-bind (s-bind-syntax exn) exn-id (s-bind-ann exn))
+     (s-try s (ds try) (s-bind (s-bind-syntax exn) exn-id (s-bind-ann exn) #f)
 	    (s-block s
 		     (list
 		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
@@ -445,7 +449,7 @@
   (s-extend loc obj
             (list (s-data-field loc (s-str loc "tostring")
                    (s-method
-                   loc (list (s-bind loc 'self (a-blank)))
+                   loc (list (s-bind loc 'self (a-blank) #f))
                    (a-blank) ""
                    (s-block loc (list
                     (s-app loc

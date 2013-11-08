@@ -76,7 +76,7 @@
       [_ ast]))
   (define (ds-bind b)
     (match b
-     [(s-bind s name ann) (s-bind s name (ds-ann ann))]))
+     [(s-bind s name ann shadow) (s-bind s name (ds-ann ann) shadow)]))
   (define (ds-variant-member vm)
     (match vm
      [(s-variant-member s mutable? bind)
@@ -120,7 +120,7 @@
         (append
           (take ds-stmts (- (length ds-stmts) 1))
           (list
-              (s-let s (s-bind s id-result (a-blank)) last-expr)
+              (s-let s (s-bind s id-result (a-blank) #f) last-expr)
               do-checks
               (s-id s id-result))))])]
     [(s-data s name params mixins variants shares check)
@@ -232,12 +232,12 @@
      (define with-checks
       (cond
         [ok-last
-         (define bind-result (s-let s (s-bind s result-id (a-blank)) last-stmt))
+         (define bind-result (s-let s (s-bind s result-id (a-blank) #f) last-stmt))
          (define new-stmts
           (append all-but-last (list bind-result (s-id s result-id) (s-id s 'nothing))))
           (desugar-check/internal (s-block s2 new-stmts))]
         [else
-         (define bind-result (s-let s (s-bind s result-id (a-blank)) (s-id s2 'nothing)))
+         (define bind-result (s-let s (s-bind s result-id (a-blank) #f) (s-id s2 'nothing)))
          (desugar-check/internal (s-block s2 (append stmts (list bind-result (s-id s2 'nothing)))))]))
      (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s result-id))))
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))

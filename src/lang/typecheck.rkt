@@ -62,11 +62,11 @@
   (define (code-wrapper s args result type get-fun initial-check)
     (define funname (gensym "contract"))
     (define gotten-funname (gensym "fun"))
-    (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a)) args))
+    (define wrapargs (map (lambda (a) (s-bind s (gensym "arg") a #f)) args))
     (define (check-arg bind)
       (match bind
-        [(s-bind s id ann) (wrap-ann-check s ann (s-id s id))]))
-    (mk-lam s (list (s-bind s funname ann)) ann
+        [(s-bind s id ann shadow) (wrap-ann-check s ann (s-id s id))]))
+    (mk-lam s (list (s-bind s funname ann #f)) ann
      (mk-contract-doc ann)
      (s-block s
       (list
@@ -75,7 +75,7 @@
               (list initial-check
                     (s-id loc funname)
                     ann-str))
-       (s-let s (s-bind s gotten-funname (a-blank)) (get-fun (s-id s funname)))
+       (s-let s (s-bind s gotten-funname (a-blank) #f) (get-fun (s-id s funname)))
        (s-extend
          s
          (type s wrapargs result
@@ -105,14 +105,14 @@
                         (list (s-app s (s-bracket s (s-id s 'error) (s-str s "make-error"))
                                      (list (loc+msg->ast-error s "typecheck-record-field-missing"
                                                                (format "typecheck: object missing field ~a" fname))))))))
-    (mk-lam s (list (s-bind s recname (a-blank))) ann
+    (mk-lam s (list (s-bind s recname (a-blank) #f)) ann
             (mk-contract-doc ann)
             (foldr add-field-check (s-id s recname) fields)))
   (define (mk-contract-doc ann)
     (format "internal contract for ~a" (pretty-ann ann)))
   (define (mk-flat-checker checker)
     (define argname (gensym "specimen"))
-    (mk-lam loc (list (s-bind loc argname (a-blank))) ann
+    (mk-lam loc (list (s-bind loc argname (a-blank) #f)) ann
             (mk-contract-doc ann)
             (s-app
              loc
@@ -129,12 +129,12 @@
                                  (s-str s (symbol->string fld))))]
     [(a-blank)
      (let ([argname (gensym "any-arg")])
-     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
+     (mk-lam loc (list (s-bind loc argname (a-blank) #f)) (a-blank)
              (mk-contract-doc ann)
              (s-id loc argname)))]
     [(a-any)
      (let ([argname (gensym "any-arg")])
-     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
+     (mk-lam loc (list (s-bind loc argname (a-blank) #f)) (a-blank)
              (mk-contract-doc ann)
              (s-id loc argname)))]
     [(a-record s fields)
@@ -154,15 +154,15 @@
      (define argname (gensym "pred-arg"))
      (define tempname (gensym "pred-temp"))
      (define result (gensym "pred-result"))
-     (mk-lam loc (list (s-bind loc argname (a-blank))) (a-blank)
+     (mk-lam loc (list (s-bind loc argname (a-blank) #f)) (a-blank)
              (mk-contract-doc ann)
              (s-block s
                (list
-                 (s-var s (s-bind s tempname (a-blank))
+                 (s-var s (s-bind s tempname (a-blank) #f)
                           (s-app loc
                                  ann-wrapper
                                  (list (s-id loc argname))))
-                 (s-var s (s-bind s result (a-blank))
+                 (s-var s (s-bind s result (a-blank) #f)
                           (s-app loc
                                  pred
                                  (list (s-id s tempname))))
@@ -215,8 +215,9 @@
 
 (define ((update-for-bind mutable?) bind env)
   (match bind
-    [(s-bind loc id ann)
-     (check-consistent env loc id mutable?)
+    [(s-bind loc id ann shadow)
+     (if shadow (void)
+         (check-consistent env loc id mutable?))
      (update id (binding loc ann mutable?) env)]
     [_ (error (format "Expected a bind and got something else: ~a" bind))]))
 
@@ -224,29 +225,31 @@
 (define (cc-block-env stmts env)
   (define (get-bind stmt)
     (match stmt
-      [(s-var _ _ _) stmt]
-      [(s-let _ _ _) stmt]
+      [(s-var _ (s-bind _ _ _ #f) _) stmt]
+      [(s-let _ (s-bind _ _ _ #f) _) stmt]
       [_ #f]))
   (define bind-stmts (filter-map get-bind stmts))
   (define (update-for-node node env)
     (match node
-      [(s-var loc (s-bind _ id ann) _)
-       (check-consistent env loc id #t)
+      [(s-var loc (s-bind _ id ann shadow) _)
+       (if shadow (void)
+           (check-consistent env loc id #t))
        (update id (binding loc ann #t) env)]
-      [(s-let loc (s-bind _ id ann) _)
-       (check-consistent env loc id #f)
+      [(s-let loc (s-bind _ id ann shadow) _)
+       (if shadow (void)
+           (check-consistent env loc id #f))
        (update id (binding loc ann #f) env)]))
   (find-duplicate bind-stmts empty)
   (foldl update-for-node env bind-stmts))
 
 (define (get-id stmt)
   (match stmt
-    [(s-var _ (s-bind _ id _) _) id]
-    [(s-let _ (s-bind _ id _) _) id]))
+    [(s-var _ (s-bind _ id _ _) _) id]
+    [(s-let _ (s-bind _ id _ _) _) id]))
 (define (get-loc stmt)
   (match stmt
-    [(s-var loc (s-bind _ _ _) _) loc]
-    [(s-let loc (s-bind _ _ _) _) loc]))
+    [(s-var loc (s-bind _ _ _ _) _) loc]
+    [(s-let loc (s-bind _ _ _ _) _) loc]))
 (define (find-duplicate stmts stmts-seen)
   (define ((matching-bind stmt-chk) stmt)
     (define id-chk (get-id stmt-chk))
@@ -287,7 +290,7 @@
          (define field-block
           (s-block s
             (list
-              (s-let s (s-bind s val-id (a-blank)) (cc-env value env))
+              (s-let s (s-bind s val-id (a-blank) #f) (cc-env value env))
               (s-if-else s
                 (list (s-if-branch s is-placeholder (s-block s (list do-guard val-expr))))
                 (s-block s (list (s-app s checker (list val-expr))))))))
@@ -315,7 +318,7 @@
     [(s-lam s typarams args ann doc body check)
      (define (new-arg b)
       (match b
-        [(s-bind s id ann) (s-bind s (gensym id) (a-blank))]))
+        [(s-bind s id ann shadow) (s-bind s (gensym id) (a-blank) #f)]))
      (define new-args (map new-arg args))
      (define new-argnames (map s-bind-id new-args))
      (define new-locs (map s-bind-syntax new-args))

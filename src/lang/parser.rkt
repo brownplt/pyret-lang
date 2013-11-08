@@ -215,9 +215,12 @@
 (define (parse-binding stx)
   (syntax-parse stx
     #:datum-literals (binding)
-    [(binding name) (s-bind (loc stx) (parse-name #'name) (a-blank))]
+    [(binding name) (s-bind (loc stx) (parse-name #'name) (a-blank) #f)]
     [(binding name "::" ann)
-     (s-bind (loc stx) (parse-name #'name) (parse-ann #'ann))]))
+     (s-bind (loc stx) (parse-name #'name) (parse-ann #'ann) #f)]
+    [(binding "shadow" name) (s-bind (loc stx) (parse-name #'name) (a-blank) #t)]
+    [(binding "shadow" name "::" ann)
+     (s-bind (loc stx) (parse-name #'name) (parse-ann #'ann) #t)]))
 
 (define (parse-args stx)
   (syntax-parse stx
