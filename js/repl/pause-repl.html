@@ -1,0 +1,87 @@
+<html>
+  <head>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script> 
+    <style>
+      #input { width: 40%; float: left; }
+      #editor { width: 100%; height: 30em; }
+      #output { width: 40%; float: right; border: 1px solid black; }
+    </style>
+  </head>
+
+  <body>
+  <div id="input">
+    <textarea id="editor"></textarea>
+    <button id="run">Run!</button>
+    <button id="pause">Pause!</button>
+    <button id="restart">Restart!</button>
+  </div>
+  <div id="output">
+    <pre id="code-out"></pre>
+  </div>
+  <script src="pause-repl.js"></script>
+  </body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script>
+    $(function() {
+      var runtime = makeRuntime();
+      var editor = $("#editor");
+      var key = window.location.hash || "repl-code";
+      var restart = $("#restart");
+      restart.prop("disabled", true);
+      editor.val(window.localStorage.getItem(key) || "libs.updateOutput('Ahoy world')");
+      setInterval(function() {
+        window.localStorage.setItem(key, editor.val());
+      }, 100);
+      var button = $("#run");
+      button.on("click", function() {
+        var code = editor.val();
+        function updateOutput(str) {
+          $("#code-out").text(str);
+        }
+        runtime.start(code, { updateOutput: updateOutput });
+      });
+      var pause = $("#pause");
+      pause.on("click", function() {
+        runtime.requestPause(function(restarter) {
+           pause.prop("disabled", true);
+           restart.off("click");
+           restart.prop("disabled", false);
+           restart.on("click", function() {
+             pause.prop("disabled", false);
+             restart.prop("disabled", true);
+             restarter();
+           });
+        });
+      });
+    });
+  </script>
+
+</html>
