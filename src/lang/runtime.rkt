@@ -650,7 +650,8 @@ And the object was:
       (define checks (p-mutable-write-wrappers mutable))
       (define value (foldr (lambda (c v) (c v)) (cdr pair) checks))
       (set-box! (p-mutable-b mutable) (cdr pair)))
-    extension)))
+    extension))
+  nothing)
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
@@ -1024,7 +1025,8 @@ And the object was:
                       (format "Tried to set value in already-initialized placeholder"))))
         (define wrappers (p-placeholder-wrappers self))
         (define value-checked (foldr (lambda (c v) (c v)) new-value wrappers))
-        (set-box! (p-placeholder-b self) value-checked)))
+        (set-box! (p-placeholder-b self) value-checked)
+        nothing))
       (cons "guard" (pμ/internal (loc) (self pred)
         "Add a guard to the placeholder for when it is set"
         (when (not (p-placeholder? self))

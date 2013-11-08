@@ -4,7 +4,7 @@
 check:
 
   o = { mutable x: 5 }
-  o!{ x: 10 }
+  o!{ x: 10 } is nothing
   o!x is 10
   o.x raises 'Cannot look up mutable field "x" using dot or bracket'
 
@@ -14,7 +14,7 @@ check:
 
   mut-value = o:x
   o3 = o.{ x: mut-value }
-  o3!{ x: "o3-set"}
+  o3!{ x: "o3-set"} is nothing
   o3!x is "o3-set"
   o!x is "o3-set"
 
