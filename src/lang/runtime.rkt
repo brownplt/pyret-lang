@@ -823,6 +823,7 @@ And the object was:
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
           ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))
           ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
+          ("tostring-fixed" . ,(mk-prim-fun real->decimal-string 'tostring-fixed mk-str (p-num-n p-num-n) (n places) (p-num? p-num?)))
           ("modulo" . ,(mk-num-2 modulo 'modulo))
           ("truncate" . ,(mk-num-1 truncate 'truncate))
           ("abs" . ,(mk-num-1 abs 'abs))
