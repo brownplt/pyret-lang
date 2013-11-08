@@ -975,6 +975,13 @@ And the object was:
   (meta-bool)
   (meta-str))
 
+(define (mutable-to-repr v)
+  (py-match v
+    [(p-str _ _ _ _ s) (mk-str (format "mutable(~s)" s))]
+    [(p-num _ _ _ _ n) (mk-str (format "mutable(~a)" n))]
+    [(p-bool _ _ _ _ b) (mk-str (format "mutable(~a)" (if b "true" "false")))]
+    [(p-nothing _ _ _ _) (mk-str "mutable(nothing)")]
+    [(default v) (mk-str "mutable-field")]))
 (define mutable-dict
   (make-string-map
     (list
@@ -983,10 +990,10 @@ And the object was:
         (mk-bool (eq? self other))))
       (cons "_torepr" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "tostring" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in this mutable field"
         (when (not (p-mutable? self))

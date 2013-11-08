@@ -81,12 +81,21 @@ where:
 end
 
 check:
-  m = mk-simple-mutable(5)
+  m1 = mk-simple-mutable(5)
+  m2 = mk-simple-mutable("5")
+  m3 = mk-simple-mutable(true)
+  m4 = mk-simple-mutable(false)
 
-  m is m
+  m1 is m1
+  m2 is m2
+  m3 is m3
+  m4 is m4
+  m1 satisfies _ <> m2
+  m3 satisfies _ <> m4
 
-  String(torepr(m)) is true
-
-  torepr(m) is "mutable-field"
+  torepr(m1) is "mutable(5)"
+  torepr(m2) is "mutable(\"5\")"
+  torepr(m3) is "mutable(true)"
+  torepr(m4) is "mutable(false)"
 end
 
