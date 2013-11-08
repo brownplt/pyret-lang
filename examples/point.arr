@@ -12,12 +12,12 @@ point-methods = {
   end
 }
 
-fun Point(x, y):
+fun make-point(x, y):
   point-methods.{ x: x, y: y }
 end
 
 check:
-  Point(1, 1).dist(Point(1, 3)) is 2  
+  make-point(1, 1).dist(make-point(1, 3)) is 2  
 end
 
 data Color:
@@ -47,7 +47,7 @@ colorpoint-methods = point-methods.{
     midx = self.x + ((other.x - self.x) / 2)
     midy = self.y + ((other.y - self.y) / 2)
     midcolor = self.color.mix(other.color)
-    ColorPoint(midx, midy, midcolor)
+    make-color-point(midx, midy, midcolor)
   end,
   _equals(self, other):
     (self.x == other.x) and 
@@ -56,16 +56,16 @@ colorpoint-methods = point-methods.{
   end
 }
 
-fun ColorPoint(x, y, color):
+fun make-color-point(x, y, color):
   colorpoint-methods.{ x: x, y: y, color: color }
 end
 
 check:
-  ColorPoint(1, 3, red).dist(Point(1, 3)) is 0
-  ColorPoint(1, 3, red).dist(ColorPoint(3, 3, green)) is 2
-  ColorPoint(1, 3, green).midpoint(ColorPoint(2, 4, red))
-    is ColorPoint(1.5, 3.5, rgb(127.5, 127.5, 0))
-  ColorPoint(1, 3, green).midpoint(ColorPoint(2, 4, red))
+  make-color-point(1, 3, red).dist(make-point(1, 3)) is 0
+  make-color-point(1, 3, red).dist(make-color-point(3, 3, green)) is 2
+  make-color-point(1, 3, green).midpoint(make-color-point(2, 4, red))
+    is make-color-point(1.5, 3.5, rgb(127.5, 127.5, 0))
+  make-color-point(1, 3, green).midpoint(make-color-point(2, 4, red))
     is { x: 1.5, y: 3.5, color: rgb(127.5, 127.5, 0) }
 end
 
