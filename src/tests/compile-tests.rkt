@@ -373,10 +373,10 @@
     end"
    "duplicate")
 
-  (check-pyret-match/check "pyret/data-equals.arr" _ 27)
-  (check-pyret-match/check "pyret/data-eq.arr" _ 24)
+  (check-pyret-match/check "pyret/data/data-equals.arr" _ 27)
+  (check-pyret-match/check "pyret/data/data-eq.arr" _ 24)
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
-  (check-pyret-match/check "pyret/data-shared-mutable.arr" _ 4)
+  (check-pyret-match/check "pyret/data/data-shared-mutable.arr" _ 4)
 
 
   (check-pyret
