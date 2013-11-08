@@ -78,7 +78,7 @@
     [(s-var _ bnd val)
      (format "var ~a = ~a" (pretty bnd) (pretty val))]
 
-    [(s-bind _ id ann shadow)
+    [(s-bind _ shadow id ann)
      (if (a-blank? ann)
          (pretty id)
          (format "~a~a :: ~a" (if shadow "shadow " "") (pretty id) (pretty-ann ann)))]

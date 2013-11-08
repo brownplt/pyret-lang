@@ -48,7 +48,7 @@
                                [else (verify-distinct-lines stmts)])
                               (map ic stmts))]
     ;; NOTE(dbp 2013-08-14): The rest is just structural recursion
-    [(s-bind syntax id ann shadow) syntax]
+    [(s-bind syntax shadow id ann) syntax]
     [(s-fun syntax name params args ann doc body check)
      (begin (ic body) (ic check))]
     [(s-check syntax body) (ic body)]

@@ -127,16 +127,16 @@ line string\"" (s-str _ "multi\nline string"))
                                               (list) (a-blank) _ (s-block _ (list (s-id _ 'x))) _))))
 
   (check/block "method(x,y): 1 end"
-               (s-method _ (list (s-bind _ 'x (a-blank) #f) (s-bind _ 'y (a-blank) #f))
+               (s-method _ (list (s-bind _ #f 'x (a-blank)) (s-bind _ #f 'y (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1))) _))
 
   (check/block "method(self): 1 where: foo end"
-               (s-method _ (list (s-bind _ 'self (a-blank) #f))
+               (s-method _ (list (s-bind _ #f 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ (list (s-id _ 'foo)))))
 
   (check/block "method(self): 1 where: end"
-               (s-method _ (list (s-bind _ 'self (a-blank) #f))
+               (s-method _ (list (s-bind _ #f 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
                          (s-block _ empty)))
 
@@ -146,7 +146,7 @@ line string\"" (s-str _ "multi\nline string"))
                                               (s-block _ (list (s-num _ 1)))))))
 
   (check/block "method(self): doc: 'hello' 1 end"
-               (s-method _ (list (s-bind _ 'self (a-blank) #f))
+               (s-method _ (list (s-bind _ #f 'self (a-blank)))
                          (a-blank) "hello" (s-block _ (list (s-num _ 1)))
                          (s-block _ empty)))
 
@@ -167,15 +167,15 @@ line string\"" (s-str _ "multi\nline string"))
                      (s-block _ empty)))
 
   (check/block "fun g(g): 5 end"
-              (s-fun _ 'g empty (list (s-bind _ 'g (a-blank) #f)) (a-blank)
+              (s-fun _ 'g empty (list (s-bind _ #f 'g (a-blank))) (a-blank)
                      _
                      (s-block _ (list (s-num _ 5)))
                      (s-block _ empty)))
 
   (check/block "fun g(g,f,x): 5 end"
-               (s-fun _ 'g empty (list (s-bind _ 'g (a-blank) #f)
-                                       (s-bind _ 'f (a-blank) #f)
-                                       (s-bind _ 'x (a-blank) #f)) (a-blank)
+               (s-fun _ 'g empty (list (s-bind _ #f 'g (a-blank))
+                                       (s-bind _ #f 'f (a-blank))
+                                       (s-bind _ #f 'x (a-blank))) (a-blank)
                       _
                       (s-block _ (list (s-num _ 5)))
                       (s-block _ empty)))
@@ -201,12 +201,12 @@ line string\"" (s-str _ "multi\nline string"))
                   y = m.other-constr(x)
                 end"
                 (s-graph _
-                  (list (s-let _ (s-bind _ 'x (a-blank) #f)
+                  (list (s-let _ (s-bind _ #f 'x (a-blank))
                                  (s-app _ (s-dot _ (s-id _ 'm) 'constr)
                                         (list
                                          (s-num _ 1)
                                          (s-id _ 'y))))
-                        (s-let _ (s-bind _ 'y (a-blank) #f)
+                        (s-let _ (s-bind _ #f 'y (a-blank))
                                  (s-app _ (s-dot _ (s-id _ 'm) 'other-constr)
                                         (list
                                           (s-id _ 'x)))))))
@@ -216,18 +216,18 @@ line string\"" (s-str _ "multi\nline string"))
                   PVD = mlink(BOS, mempty)
                 end"
                 (s-graph _
-                  (list (s-let _ (s-bind _ 'BOS (a-blank) #f)
+                  (list (s-let _ (s-bind _ #f 'BOS (a-blank))
                                  (s-app _ (s-id _ 'mlink)
                                         (list
                                           (s-id _ 'PVD)
                                           (s-app _ (s-id _ 'mlink)
                                             (list (s-id _ 'WOR) (s-id s 'mempty))))))
-                        (s-let _ (s-bind _ 'WOR (a-blank) #f)
+                        (s-let _ (s-bind _ #f 'WOR (a-blank))
                                  (s-app _ (s-id _ 'mlink)
                                         (list
                                           (s-id _ 'BOS)
                                           (s-id _ 'mempty))))
-                        (s-let _ (s-bind _ 'PVD (a-blank) #f)
+                        (s-let _ (s-bind _ #f 'PVD (a-blank))
                                  (s-app _ (s-id _ 'mlink)
                                         (list
                                           (s-id _ 'BOS)
@@ -238,17 +238,17 @@ line string\"" (s-str _ "multi\nline string"))
 (define user-block (test-suite "user-block"
 
   (check/block "f = block: nothing end"
-    (s-let _ (s-bind _ 'f (a-blank) #f)
+    (s-let _ (s-bind _ #f 'f (a-blank))
      (s-user-block _ (s-block _ (list (s-id _ 'nothing))))))
 
   (check/block "f = block:
       x = block: 5 end
       nothing
     end"
-    (s-let _ (s-bind _ 'f (a-blank) #f)
+    (s-let _ (s-bind _ #f 'f (a-blank))
       (s-user-block _
         (s-block _ (list
-          (s-let _ (s-bind _ 'x (a-blank) #f)
+          (s-let _ (s-bind _ #f 'x (a-blank))
             (s-user-block _ (s-block _ (list (s-num _ 5)))))
           (s-id _ 'nothing))))))
 
@@ -263,37 +263,37 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block "let x = 10: x end"
     (s-let-block _ (list
-                    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num 10))))
+                    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num 10))))
       (s-block _ (list (s-id _ 'x))))
 
   (check/block "let var x = 10: x end"
     (s-let-block _ (list
-                    (s-var _ (s-bind _ 'x (a-blank) #f) (s-num 10))))
+                    (s-var _ (s-bind _ #f 'x (a-blank)) (s-num 10))))
       (s-block _ (list (s-id _ 'x))))
 
   (check/block "let var x = 10, y = 5: x end"
     (s-let-block _ (list
-                    (s-var _ (s-bind _ 'x (a-blank) #f) (s-num 10))
-                    (s-let _ (s-bind _ 'y (a-blank) #f) (s-num 5))))
+                    (s-var _ (s-bind _ #f 'x (a-blank)) (s-num 10))
+                    (s-let _ (s-bind _ #f 'y (a-blank)) (s-num 5))))
       (s-block _ (list (s-id _ 'x))))
 
   (check/block "let var x = 10, var y = 5: x end"
     (s-let-block _ (list
-                    (s-var _ (s-bind _ 'x (a-blank) #f) (s-num 10))
-                    (s-var _ (s-bind _ 'y (a-blank) #f) (s-num 5))))
+                    (s-var _ (s-bind _ #f 'x (a-blank)) (s-num 10))
+                    (s-var _ (s-bind _ #f 'y (a-blank)) (s-num 5))))
       (s-block _ (list (s-id _ 'x))))
 
   (check/block "let x = 10, var y = 5: x end"
     (s-let-block _ (list
-                    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num 10))
-                    (s-var _ (s-bind _ 'y (a-blank) #f) (s-num 5))))
+                    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num 10))
+                    (s-var _ (s-bind _ #f 'y (a-blank)) (s-num 5))))
       (s-block _ (list (s-id _ 'x))))
 
   (check/block "let x = 10, y = 5, z = 52: x end"
     (s-let-block _ (list
-                    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num 10))
-                    (s-let _ (s-bind _ 'y (a-blank) #f) (s-num 5))
-                    (s-let _ (s-bind _ 'z (a-blank) #f) (s-num 52))))
+                    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num 10))
+                    (s-let _ (s-bind _ #f 'y (a-blank)) (s-num 5))
+                    (s-let _ (s-bind _ #f 'z (a-blank)) (s-num 52))))
       (s-block _ (list (s-id _ 'x))))
 
 ))
@@ -386,14 +386,14 @@ line string\"" (s-str _ "multi\nline string"))
 (define annotations (test-suite "annotations"
   (check/block
    "fun <a> f(x :: a) -> a: x end"
-   (s-fun _ 'f (list 'a) (list (s-bind _ 'x (a-name _ 'a) #f)) (a-name _ 'a)
+   (s-fun _ 'f (list 'a) (list (s-bind _ #f 'x (a-name _ 'a))) (a-name _ 'a)
     _
     (s-block _ (list (s-id _ 'x)))
     (s-block _ empty)))
 
   (check/block
    "fun <a,b> f(x :: a) -> b: x end"
-   (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a) #f)) (a-name _ 'b)
+   (s-fun _ 'f (list 'a 'b) (list (s-bind _ #f 'x (a-name _ 'a))) (a-name _ 'b)
     _
     (s-block _ (list (s-id _ 'x)))
     (s-block _ empty)))
@@ -401,63 +401,63 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block
    "fun <a,b> f(x :: a) -> b: doc: 'some documentation' x end"
-   (s-fun _ 'f (list 'a 'b) (list (s-bind _ 'x (a-name _ 'a) #f)) (a-name _ 'b)
+   (s-fun _ 'f (list 'a 'b) (list (s-bind _ #f 'x (a-name _ 'a))) (a-name _ 'b)
     "some documentation"
     (s-block _ (list (s-id _ 'x)))
     (s-block _ empty)))
 
 
   (check/block "fun foo(x) -> (Number -> Number): 'should return a function from num to num' end"
-               (s-fun _ 'foo empty (list (s-bind _ 'x (a-blank) #f)) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
+               (s-fun _ 'foo empty (list (s-bind _ #f 'x (a-blank))) (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number))
                       _
                       (s-block _ (list (s-str _ _)))
                       (s-block _ empty)))
   (check/block "fun foo(x :: Bool) -> Bool: x end"
-               (s-fun _ 'foo empty (list (s-bind _ 'x (a-name _ 'Bool) #f)) (a-name _ 'Bool)
+               (s-fun _ 'foo empty (list (s-bind _ #f 'x (a-name _ 'Bool))) (a-name _ 'Bool)
                       _
                       (s-block _ (list (s-id _ 'x)))
                       (s-block _ empty)))
 
-  (check/block "var x :: Number = 5" (s-var _ (s-bind _ 'x (a-name _ 'Number) #f)
+  (check/block "var x :: Number = 5" (s-var _ (s-bind _ #f 'x (a-name _ 'Number))
                                              (s-num _ 5)))
-  (check/block "var x :: Number = 'hello'" (s-var _ (s-bind _ 'x (a-name _ 'Number) #f)
+  (check/block "var x :: Number = 'hello'" (s-var _ (s-bind _ #f 'x (a-name _ 'Number))
                                            (s-str _ "hello")))
 
   (check/block "var f :: (Number, Number -> Number) = plus"
-         (s-var _ (s-bind _ 'f (a-arrow _
+         (s-var _ (s-bind _ #f 'f (a-arrow _
                 (list (a-name _ 'Number) (a-name _ 'Number))
-                (a-name _ 'Number)) #f)
+                (a-name _ 'Number)))
           (s-id _ 'plus)))
 
 
-  (check/block "var x :: {} = 4" (s-var _ (s-bind _ 'x (a-record _ (list)) #f) (s-num _ 4)))
+  (check/block "var x :: {} = 4" (s-var _ (s-bind _ #f 'x (a-record _ (list))) (s-num _ 4)))
   (check/block "var x :: {foo: Number} = 4"
-               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number))) #f) (s-num _ 4)))
+               (s-var _ (s-bind _ #f 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
   (check/block "var x :: {foo: Number} = 4"
-               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" Number))) #f) (s-num _ 4)))
+               (s-var _ (s-bind _ #f 'x (a-record _ (list (a-field _ "foo" Number)))) (s-num _ 4)))
   (check/block "var x :: {foo: Number, a: Bool} = 4"
-               (s-var _ (s-bind _ 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number))
-                                                       (a-field _ "a" (a-name _ 'Bool)))) #f)
+               (s-var _ (s-bind _ #f 'x (a-record _ (list (a-field _ "foo" (a-name _ 'Number))
+                                                       (a-field _ "a" (a-name _ 'Bool)))))
                       (s-num _ 4)))
   (check/block "var x :: list.List = 4"
-               (s-var _ (s-bind _ 'x (a-dot _ 'list 'List) #f)
+               (s-var _ (s-bind _ #f 'x (a-dot _ 'list 'List))
                       (s-num _ 4)))
 
   (check/block "var x :: list.List<A> = 4"
-               (s-var _ (s-bind _ 'x (a-app _ (a-dot _ 'list 'List)
-                                            (list (a-name _ 'A))) #f)
+               (s-var _ (s-bind _ #f 'x (a-app _ (a-dot _ 'list 'List)
+                                            (list (a-name _ 'A))))
                       (s-num _ 4)))
 
   (check/block "var x :: ( -> Number) = 4"
-               (s-var _ (s-bind _ 'x (a-arrow _ empty (a-name _ 'Number)) #f)
+               (s-var _ (s-bind _ #f 'x (a-arrow _ empty (a-name _ 'Number)))
                       (s-num _ 4)))
 
   (check/block "var x :: (Number -> Number) = 4"
-               (s-var _ (s-bind _ 'x (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number)) #f)
+               (s-var _ (s-bind _ #f 'x (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number)))
                       (s-num _ 4)))
 
   (check/block "x :: Any = 4"
-               (s-let _ (s-bind _ 'x (a-any) #f)
+               (s-let _ (s-bind _ #f 'x (a-any))
                       (s-num _ 4)))
 
 ))
@@ -478,8 +478,8 @@ line string\"" (s-str _ "multi\nline string"))
                       _))
 
   (check/block "fun(x :: Number, y :: Bool) -> Number: x.send(y) end"
-               (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number) #f)
-                              (s-bind _ 'y (a-name _ 'Bool) #f))
+               (s-lam _ empty (list (s-bind _ #f 'x (a-name _ 'Number))
+                              (s-bind _ #f 'y (a-name _ 'Bool)))
                       (a-name _ 'Number)
                       _
                       (s-block _ (list (s-app _
@@ -488,16 +488,16 @@ line string\"" (s-str _ "multi\nline string"))
                       _))
 
   (check/block "fun(x,y,z): x end"
-               (s-lam _ empty (list (s-bind _ 'x (a-blank) #F)
-                              (s-bind _ 'y (a-blank) #f)
-                              (s-bind _ 'z (a-blank) #f))
+               (s-lam _ empty (list (s-bind _ #f 'x (a-blank))
+                              (s-bind _ #f 'y (a-blank))
+                              (s-bind _ #f 'z (a-blank)))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
                       _))
 
   (check/block "fun(x): x where: foo end"
-               (s-lam _ empty (list (s-bind _ 'x (a-blank) #f))
+               (s-lam _ empty (list (s-bind _ #f 'x (a-blank)))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
@@ -506,9 +506,9 @@ line string\"" (s-str _ "multi\nline string"))
 
 
 (check/block "fun (x,y,z): x end"
-               (s-lam _ empty (list (s-bind _ 'x (a-blank) #f)
-                              (s-bind _ 'y (a-blank) #f)
-                              (s-bind _ 'z (a-blank) #f))
+               (s-lam _ empty (list (s-bind _ #f 'x (a-blank))
+                              (s-bind _ #f 'y (a-blank))
+                              (s-bind _ #f 'z (a-blank)))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
@@ -524,24 +524,24 @@ line string\"" (s-str _ "multi\nline string"))
   ;; non-empty lists for x
   (check/block "var x :: List(list.is-cons) = 4"
     (s-var _
-           (s-bind _ 'x
+           (s-bind _ #f
+                     'x
                      (a-pred _
                              (a-name _ 'List)
                              (s-dot _ (s-id _ 'list)
-                                      'is-cons))
-                     #f)
+                                      'is-cons)))
            (s-num _ 4)))
 
   ;; non-empty lists of strings for x
   (check/block "var x :: List<String>(list.is-cons) = 4"
     (s-var _
-           (s-bind _ 'x
+           (s-bind _ #f
+                     'x
                      (a-pred _
                              (a-app _ (a-name _ 'List)
                                       (list (a-name _ 'String)))
                              (s-dot _ (s-id _ 'list)
-                                      'is-cons))
-                     #f)
+                                      'is-cons)))
            (s-num _ 4)))
 ))
 
@@ -609,8 +609,8 @@ line string\"" (s-str _ "multi\nline string"))
     end"
     (s-data _ 'NumList empty (list) (list
       (s-variant _ 'empty (list) (list))
-      (s-variant _ 'cons (list (s-variant-member _ 'normal (s-bind _ 'first (a-name _ 'Number) #f))
-                               (s-variant-member _ 'normal (s-bind _ 'rest (a-name _ 'NumList) #f)))
+      (s-variant _ 'cons (list (s-variant-member _ 'normal (s-bind _ #f 'first (a-name _ 'Number)))
+                               (s-variant-member _ 'normal (s-bind _ #f 'rest (a-name _ 'NumList))))
                  (list)))
            (list) (s-block _ _)))
   (check/block "data List<a>: | empty() end" (s-data _ 'List (list 'a) empty (list (s-variant _ 'empty (list) (list))) (list) (s-block _ _)))
@@ -621,9 +621,9 @@ line string\"" (s-str _ "multi\nline string"))
            (list (s-variant
                   _
                   'cons
-                  (list (s-variant-member _ 'normal (s-bind _ 'field (a-blank) #f))
-                        (s-variant-member _ 'normal (s-bind _ 'l (a-app _ (a-name _ 'List)
-                                            (list (a-name _ 'a))) #f)))
+                  (list (s-variant-member _ 'normal (s-bind _ #f 'field (a-blank)))
+                        (s-variant-member _ 'normal (s-bind _ #f 'l (a-app _ (a-name _ 'List)
+                                            (list (a-name _ 'a))))))
                   (list))) (list)
                   (s-block _ _)))
 
@@ -646,10 +646,10 @@ line string\"" (s-str _ "multi\nline string"))
     end"
     (s-data _ 'Mutable (list) (list)
       (list
-        (s-variant _ 'v1 (list (s-variant-member _ 'mutable (s-bind _ 'x (a-name _ 'String) #f))) (list))
+        (s-variant _ 'v1 (list (s-variant-member _ 'mutable (s-bind _ #f 'x (a-name _ 'String)))) (list))
         (s-variant _ 'v2 (list
-          (s-variant-member _ 'normal (s-bind _ 'x (a-blank) #f))
-          (s-variant-member _ 'mutable (s-bind _ 'y (a-blank) #f))) (list)))
+          (s-variant-member _ 'normal (s-bind _ #f 'x (a-blank)))
+          (s-variant-member _ 'mutable (s-bind _ #f 'y (a-blank)))) (list)))
       (list)
       (s-block _ _)))
 
@@ -669,7 +669,7 @@ line string\"" (s-str _ "multi\nline string"))
     (list (s-singleton-variant
            _
            'empty
-           (list (s-method-field _ (s-str _ "length") (list (s-bind _ 'self (a-blank) #f)) (a-blank) _ (s-block _ (list (s-num _ 0))) _))))
+           (list (s-method-field _ (s-str _ "length") (list (s-bind _ #f 'self (a-blank))) (a-blank) _ (s-block _ (list (s-num _ 0))) _))))
     (list)
     (s-block _ _)))
 
@@ -679,7 +679,7 @@ line string\"" (s-str _ "multi\nline string"))
            (list (s-variant _ 'bar (list)
                             (list (s-method-field _
                                                   (s-str _ "x")
-                                                  (list (s-bind _ 'self (a-blank) #f))
+                                                  (list (s-bind _ #f 'self (a-blank)))
                                                   (a-blank)
                                                   _
                                                   (s-block _ (list (s-id _ 'self)))
@@ -697,7 +697,7 @@ line string\"" (s-str _ "multi\nline string"))
                                           (list)
                                           (list (s-method-field _
                                                                 (s-str _ "x")
-                                                                (list (s-bind _ 'self (a-blank) #f))
+                                                                (list (s-bind _ #f 'self (a-blank)))
                                                                 (a-name _ 'Num)
                                                                 _
                                                                 (s-block _ (list (s-id _ 'self)))
@@ -725,7 +725,7 @@ line string\"" (s-str _ "multi\nline string"))
       | v(cyclic x :: Number)
      end"
     (s-data _ 'F empty empty
-      (list (s-variant _ 'v (list (s-variant-member _ 'cyclic (s-bind _ 'x (a-name _ 'Number) #f))) (list)))
+      (list (s-variant _ 'v (list (s-variant-member _ 'cyclic (s-bind _ #f 'x (a-name _ 'Number)))) (list)))
       (list)
       (s-block _ (list))))
 
@@ -750,7 +750,7 @@ line string\"" (s-str _ "multi\nline string"))
                                                         (s-block _ (list (s-id _ 'self)))))
                                    (s-datatype-variant _ 'bar (list (s-variant-member
                                                                      _ 'normal
-                                                                     (s-bind _ 'a (a-blank) #f)))
+                                                                     (s-bind _ #f 'a (a-blank))))
                                                        (s-datatype-constructor
                                                         _ 'self
                                                         (s-block _ (list (s-id _ 'self))))))
@@ -763,10 +763,10 @@ line string\"" (s-str _ "multi\nline string"))
      end"
     (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo (list (s-variant-member
                                                                      _ 'normal
-                                                                     (s-bind _ 'a (a-name _ 'Number) #f))
+                                                                     (s-bind _ #f 'a (a-name _ 'Number)))
                                                                     (s-variant-member
                                                                      _ 'normal
-                                                                     (s-bind _ 'b (a-name _ 'Foo) #f)))
+                                                                     (s-bind _ #f 'b (a-name _ 'Foo))))
                                                        (s-datatype-constructor
                                                         _ 'self
                                                         (s-block _ (list (s-id _ 'self)))))
@@ -782,7 +782,7 @@ line string\"" (s-str _ "multi\nline string"))
      end"
     (s-datatype _ 'Foo (list 'T) (list (s-datatype-variant _ 'foo (list (s-variant-member
                                                                          _ 'normal
-                                                                         (s-bind _ 'a (a-name _ 'T) #f)))
+                                                                         (s-bind _ #f 'a (a-name _ 'T))))
                                                        (s-datatype-constructor
                                                         _ 'self
                                                         (s-block _ (list (s-id _ 'self))))))
@@ -797,10 +797,10 @@ line string\"" (s-str _ "multi\nline string"))
      end"
     (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo (list (s-variant-member
                                                                      _ 'normal
-                                                                     (s-bind _ 'a (a-name _ 'Number) #f))
+                                                                     (s-bind _ #f 'a (a-name _ 'Number)))
                                                                     (s-variant-member
                                                                      _ 'normal
-                                                                     (s-bind _ 'b (a-name _ 'Foo) #f)))
+                                                                     (s-bind _ #f 'b (a-name _ 'Foo))))
                                                        (s-datatype-constructor
                                                         _ 'self
                                                         (s-block _ (list (s-id _ 'self)))))
@@ -817,7 +817,7 @@ line string\"" (s-str _ "multi\nline string"))
     "for map(elt from lst): elt.plus(42) end"
     (s-for _
            (s-id _ 'map)
-           (list (s-for-bind _ (s-bind _ elt (a-blank) #f) (s-id _ 'lst)))
+           (list (s-for-bind _ (s-bind _ #f elt (a-blank)) (s-id _ 'lst)))
            (a-blank)
            (s-block _ (list
                         (s-app _
@@ -837,9 +837,9 @@ line string\"" (s-str _ "multi\nline string"))
     (s-for _
            (s-id _ 'fold)
            (list
-            (s-for-bind _ (s-bind _ acc (a-name _ 'Number) #f)
+            (s-for-bind _ (s-bind _ #f acc (a-name _ 'Number))
                           (s-num _ 0))
-            (s-for-bind _ (s-bind _ elt (a-name _ 'Number) #f)
+            (s-for-bind _ (s-bind _ #f elt (a-name _ 'Number))
                           (s-list _ (list (s-num _ 1) (s-num _ 2) (s-num _ 3)))))
            (a-blank)
            (s-block _ (list
@@ -885,25 +885,25 @@ line string\"" (s-str _ "multi\nline string"))
       (s-block _ (list (s-id _ 'a)
                        (s-id _ 'b)
                        (s-id _ 'c)))
-      (s-bind _ 'e (a-blank) #f)
+      (s-bind _ #f 'e (a-blank))
       (s-block _ (list (s-num _ 5)))))
 
   (check/block "try: try: a except(e): 5 end b c except(e): 5 end"
     (s-try _
       (s-block _ (list
         (s-try _ (s-block _ (list (s-id _ 'a)))
-                 (s-bind _ 'e (a-blank) #f)
+                 (s-bind _ #f 'e (a-blank))
                  (s-block _ (list (s-num _ 5))))
         (s-id _ 'b)
         (s-id _ 'c)))
-      (s-bind _ 'e (a-blank) #f)
+      (s-bind _ #f 'e (a-blank))
       (s-block _ (list (s-num _ 5)))))
 
   ;; try/except should be an expression
   (check/block "x = try: a except(e): 5 end"
-        (s-let _ (s-bind _ 'x (a-blank) #f)
+        (s-let _ (s-bind _ #f 'x (a-blank))
                (s-try _ (s-block _ (list (s-id _ 'a)))
-                           (s-bind _ 'e (a-blank) #f)
+                           (s-bind _ #f 'e (a-blank))
                            (s-block _ (list (s-num _ 5))))))
 ))
 
@@ -911,29 +911,29 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "x" (s-id _ 'x))
   (check/block "_foo" (s-id _ '_foo))
   (check/block "x = 5"
-    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num _ 5)))
+    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num _ 5)))
 
   (check/block "x := 1" (s-assign _ 'x (s-num _ 1)))
 
   (check/block "var g = 5"
-               (s-var _ (s-bind _ 'g (a-blank) #f) (s-num _ 5)))
+               (s-var _ (s-bind _ #f 'g (a-blank)) (s-num _ 5)))
 
   (check/block "x = 5 y = 10"
-    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num _ 5))
-    (s-let _ (s-bind _ 'y (a-blank) #f) (s-num _ 10)))
+    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num _ 5))
+    (s-let _ (s-bind _ #f 'y (a-blank)) (s-num _ 10)))
 
   (check/block "duplicates-ok-in-parse = 5 duplicates-ok-in-parse = 10"
-    (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank) #f) (s-num _ 5))
-    (s-let _ (s-bind _ 'duplicates-ok-in-parse (a-blank) #f) (s-num _ 10)))
+    (s-let _ (s-bind _ #f 'duplicates-ok-in-parse (a-blank)) (s-num _ 5))
+    (s-let _ (s-bind _ #f 'duplicates-ok-in-parse (a-blank)) (s-num _ 10)))
 
   (check/block "x = 5 x"
-    (s-let _ (s-bind _ 'x (a-blank) #f) (s-num _ 5))
+    (s-let _ (s-bind _ #f 'x (a-blank)) (s-num _ 5))
     (s-id _ 'x))
 
   (check-parse/fail "var x = x = 5" "parsing error")
 
   (check/block "x :: Number = 22"
-    (s-let _ (s-bind _ 'x (a-name _ 'Number) #f) (s-num _ 22)))
+    (s-let _ (s-bind _ #f 'x (a-name _ 'Number)) (s-num _ 22)))
 ))
 
 (define check-blocks (test-suite "check-blocks"
@@ -993,7 +993,7 @@ line string\"" (s-str _ "multi\nline string"))
                                   (s-num _ 2)))))
                       (s-num _ 3)))
    (check/block "x = 3 + 4"
-                (s-let _ (s-bind _ 'x _ #f) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
+                (s-let _ (s-bind _ #f 'x _) (s-op _ op+ (s-num _ 3) (s-num _ 4))))
    (check/block "3 + if true: 7 end"
                 (s-op _ op+
                       (s-num _ 3)
@@ -1125,7 +1125,7 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "for iter(thing from somewhere): dostuff();"
       (s-for _
            (s-id _ 'iter)
-           (list (s-for-bind _ (s-bind _ 'thing (a-blank) #f) (s-id _ 'somewhere)))
+           (list (s-for-bind _ (s-bind _ #f 'thing (a-blank)) (s-id _ 'somewhere)))
            (a-blank)
            (s-block _ (list
                         (s-app _
@@ -1148,8 +1148,8 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "{ m(x): 5;, m2(self): 6; }"
                 (s-obj _
                   (list
-                    (s-method-field _ (s-str _ "m") (list (s-bind _ 'x (a-blank) #f)) _ _ (s-block _ (list (s-num _ 5))) _)
-                    (s-method-field _ (s-str _ "m2") (list (s-bind _ 'self (a-blank) #f)) _ _ (s-block _ (list (s-num _ 6))) _))))
+                    (s-method-field _ (s-str _ "m") (list (s-bind _ #f 'x (a-blank))) _ _ (s-block _ (list (s-num _ 5))) _)
+                    (s-method-field _ (s-str _ "m2") (list (s-bind _ #f 'self (a-blank))) _ _ (s-block _ (list (s-num _ 6))) _))))
 
 
 ))

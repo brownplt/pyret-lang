@@ -365,7 +365,7 @@ data Expr:
 end
 
 data Bind:
-  | s_bind(l :: Loc, id :: String, ann :: Ann, shadows :: Bool) with:
+  | s_bind(l :: Loc, shadows :: Bool, id :: String, ann :: Ann) with:
     tosource(self):
       if is-a_blank(self.ann):
         if self.shadows: PP.str("shadow " + self.id)
