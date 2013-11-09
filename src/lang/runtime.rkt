@@ -34,24 +34,75 @@
 
 (define (sqr x) (* x x))
 
-;; NOTE(joe): slow enough for government work
+;; Adapted from https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
+(define (string-index haystack needle)
+  (define nlen (string-length needle))
+  (define hlen (string-length haystack))
+  (define (fold-min-max f init min max)
+    (define (help i acc)
+      (cond
+       [(>= i max) acc]
+       [else (help (+ 1 i) (f i acc))]))
+    (help min init))
+  (define (make-table)
+    (define kmp-table (make-vector nlen))
+    (vector-set! kmp-table 0 -1)
+    (define (help pos cnd)
+      (cond
+       [(>= pos nlen) #f]
+       [(char=? (string-ref needle (- pos 1)) (string-ref needle cnd))
+        (vector-set! kmp-table pos (+ 1 cnd))
+        (+ 1 cnd)]
+       [(> cnd 0) (vector-ref kmp-table cnd)]
+       [else
+        (vector-set! kmp-table pos 0)
+        cnd]))
+    (fold-min-max help 0 2 nlen)
+    kmp-table)
+  (define (search)
+    (define T (make-table))
+    (define (help m i)
+      (if (>= (+ m i) hlen)
+          #f
+          (if (char=? (string-ref needle i) (string-ref haystack (+ m i)))
+              (if (= i (- nlen 1))
+                  m
+                  (help m (+ 1 i)))
+              (let ((Ti (vector-ref T i)))
+                (help (- (+ m i) Ti)
+                      (if (> Ti -1) Ti 0))))))
+    (help 0 0))
+  (search))  
+    
 (define (string-contains str substr)
-  (define strlen (string-length str))
-  (define sublen (string-length substr))
-  (cond
-    [(> sublen strlen) #f]
-    [(string=? substr (substring str 0 sublen)) #t]
-    [else (string-contains (substring str 1 strlen) substr)]))
+  (not (not (string-index str substr))))
 
+(define (string-split s sep repeated)
+  (define sep-len (string-length sep))
+  (define (help s)
+    (define i (string-index s sep))
+    (cond
+     [i
+      (let [(front (substring s 0 i))
+            (back (substring s (+ i sep-len) (string-length s)))]
+        (if repeated
+            (cons front (help back))
+            (list front back)))]
+     [else (list s)]))
+  (cond
+   [(string=? sep "") (map string (string->list s))]
+   [else (help s)]))
+
+(define (string-explode s)
+  (map string (string->list s)))
 
 (define (string-join strs sep)
-  (cond
-    [(empty? strs) ""]
-    [(empty? (rest strs)) (first strs)]
-    [(cons? (rest strs))
-     (string-append (first strs)
-      (string-append sep
-       (string-join (rest strs) sep)))]))
+  (define (interleave lst acc)
+    (cond
+     [(empty? lst) (reverse (rest acc))]
+     [else (interleave (rest lst) (cons sep (cons (first lst) acc)))]))
+  ;; Better to allocate lists and string-append once than to repeatedly allocate strings
+  (apply string-append (interleave strs (list ""))))
 
 (provide
   (prefix-out p:
@@ -773,6 +824,7 @@ And the object was:
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
           ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))
           ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
+          ("tostring-fixed" . ,(mk-prim-fun real->decimal-string 'tostring-fixed mk-str (p-num-n p-num-n) (n places) (p-num? p-num?)))
           ("modulo" . ,(mk-num-2 modulo 'modulo))
           ("truncate" . ,(mk-num-1 truncate 'truncate))
           ("abs" . ,(mk-num-1 abs 'abs))
@@ -834,7 +886,10 @@ And the object was:
           ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
           ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("index-of" . ,(mk-prim-fun string-index 'index-of mk-num-or-nothing (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("substring" . ,(mk-prim-fun safe-substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
+          ("split" . ,(mk-prim-fun string-split 'string-split mk-list (p-str-s p-str-s p-bool-b) (s sep b) (p-str? p-str? p-bool?)))
+          ("explode" . ,(mk-prim-fun string-explode 'explode mk-list (p-str-s) (s) (p-str?)))
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
