@@ -1024,7 +1024,7 @@ o2.m().called" true)
 ))
 
 (define mixins (test-suite "mixins"
-  (check-pyret-match/check "pyret/mixins.arr" _ 9)
+  (check-pyret-match/check "pyret/data/mixins.arr" _ 9)
 ))
 
 (define currying (test-suite "currying"
