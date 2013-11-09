@@ -167,6 +167,22 @@ Numbers have a number of useful methods:
         'a-str'.substring(0, 0) is ''
         'a-str'.substring(2, 5) is 'str'
       end,
+      to-upper(self) -> String:
+        doc: 'Return the uppercase version of this string'
+      where:
+        'abc'.to-upper() is 'ABC'
+        'aBc'.to-upper() is 'ABC'
+        'aB-C'.to-upper() is 'AB-C'
+        'ß'.to-upper() is 'SS'
+      end,
+      to-lower(self) -> String:
+        doc: 'Return the lowercase version of this string'
+      where:
+        'ABC'.to-lower() is 'abc'
+        'aBc'.to-lower() is 'abc'
+        'aB-C'.to-lower() is 'ab-c'
+        'ß'.to-lower() is 'ß'
+      end,
       char-at(self, index :: Number) -> String:
         doc: 'Return the character at index as a string of length 1'
       where:
@@ -200,6 +216,8 @@ Numbers have a number of useful methods:
   "append"
   "contains"
   "substring"
+  "to-lower"
+  "to-upper"
   "char-at"
   "repeat"
   "length"
