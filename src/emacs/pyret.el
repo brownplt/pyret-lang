@@ -126,10 +126,17 @@
    )
   "Minimal highlighting expressions for Pyret mode")
 
+(defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 (defconst pyret-font-lock-keywords-2
   (append
    pyret-font-lock-keywords-1
    (list
+    ;; "data IDENT: IDENT" without the leading |
+    ;; or "data IDENT<blah>: IDENT
+    `(,(concat "\\(\\<data\\>\\)" pyret-ws-regex "+"
+               "\\(" pyret-ident-regex "\\)\\(<.*?>\\)?"
+               pyret-ws-regex "*\\(:\\)" pyret-ws-regex "*\\(" pyret-ident-regex "\\)")
+      (1 font-lock-keyword-face) (2 font-lock-type-face) (4 font-lock-builtin-face) (5 font-lock-type-face))
     ;; "data IDENT"
     `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
       (1 font-lock-keyword-face) (2 font-lock-type-face))
@@ -140,7 +147,7 @@
     `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
       (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
     ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\)")
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\|end\\|;\\)")
       (1 font-lock-builtin-face) (2 font-lock-type-face))
     `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
       (1 font-lock-variable-name-face) (2 font-lock-type-face))

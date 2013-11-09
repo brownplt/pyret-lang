@@ -96,13 +96,15 @@
 (define (string-explode s)
   (map string (string->list s)))
 
+(define (interleave sep lst acc)
+  (cond
+   [(empty? lst) (reverse (rest acc))]
+   [else (interleave sep (rest lst) (cons sep (cons (first lst) acc)))]))
 (define (string-join strs sep)
-  (define (interleave lst acc)
-    (cond
-     [(empty? lst) (reverse (rest acc))]
-     [else (interleave (rest lst) (cons sep (cons (first lst) acc)))]))
-  ;; Better to allocate lists and string-append once than to repeatedly allocate strings
-  (apply string-append (interleave strs (list ""))))
+  (if (string=? sep "")
+      (apply string-append strs)
+      ;; Better to allocate lists and string-append once than to repeatedly allocate strings
+      (apply string-append (interleave sep strs (list "")))))
 
 (provide
   (prefix-out p:
