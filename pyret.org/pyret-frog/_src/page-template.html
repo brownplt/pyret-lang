@@ -318,6 +318,28 @@ function. These assertions are checked dynamically.")
   <hr/>
   @(pyret-example #:where 'left
 @disable-prefix{
+eps = 0.001
+fun d-dx(f):
+  doc: "Approximate the derivative of f"
+  fun(x): (f(x + eps) - f(x)) / eps;
+where:
+  fun square(x): x * x;
+  fun within(delta, target):
+    fun(actual): (actual - target).abs() < delta;;
+
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
+end
+}
+"Real tests need to accomodate more than equality tests.  Pyret supports these
+generally with the <code>satisfies</code> form, which can be used to check
+satisfaction of an arbitrary predicate.")
+
+  <hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
 data BinTree:
   | leaf
   | node(value, left :: BinTree, right :: BinTree)
@@ -329,7 +351,7 @@ variety of pedagogic styles and curricular needs.")
 
   <hr/>
 
-  @(pyret-example #:where 'right
+  @(pyret-example #:where 'left
 @disable-prefix{
 check:
   dbl = fdC("x", plusC(idC("x"), idC("x")))
