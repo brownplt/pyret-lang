@@ -698,68 +698,6 @@ end
 
 <hr/>
 
-@(two-langs "Lexical Scope"
-@disable-prefix{
-Some scripting languages have failed to nail lexical scope in fundamental ways.
-Pyret is designed with a deep understanding of and
-appreciation for the benefits of lexical scoping, so functional programming
-works.
-}
-"Ruby"
-@disable-prefix{
-fun f(x):
-  fun g(y):
-    x + y
-  end
-  g(2)
-where:
-  f(2) is 4
-end
-}
-@disable-prefix{
-def f(x)
-  def g(y)
-    x + y
-  end
-  g(2)
-end
-f(2)
-# undefined local variable or method `x'
-})
-
-<hr/>
-
-@(two-langs "Lexical Scope"
-@disable-prefix{
-Some scripting languages have failed to nail lexical scope in fundamental ways.
-Pyret is designed with a deep understanding of and
-appreciation for the benefits of lexical scoping, so functional programming
-works.
-}
-"Ruby"
-@disable-prefix{
-fun f(x):
-  fun g(y):
-    x + y
-  end
-  g(2)
-where:
-  f(2) is 4
-end
-}
-@disable-prefix{
-def f(x)
-  def g(y)
-    x + y
-  end
-  g(2)
-end
-f(2)
-# undefined local variable or method `x'
-})
-
-<hr/>
-
 @(two-langs "Knowledge of Pitfalls"
 @disable-prefix{
 A design goal of Pyret is to feel both functional and scripty while avoiding
@@ -809,7 +747,7 @@ end
 def o.y
   10
 end
-method_as_fun = o.my-method
+method_as_fun = o.my_method
 # Wrong number of arguments, 0 for 1
 method_as_fun(5) # not reached
 })
