@@ -292,7 +292,7 @@ fun to-celsius(f):
   (f - 32) * (5 / 9)
 end
 
-for each(str from ["Hello", "world"]):
+for each(str from ["Ahoy", "world!"]):
   print(str)
 end}
 "Pyret has Python-inspired syntax for functions, lists, and operators.
@@ -318,28 +318,6 @@ function. These assertions are checked dynamically.")
   <hr/>
   @(pyret-example #:where 'left
 @disable-prefix{
-eps = 0.001
-fun d-dx(f):
-  doc: "Approximate the derivative of f"
-  fun(x): (f(x + eps) - f(x)) / eps;
-where:
-  fun square(x): x * x;
-  fun within(delta, target):
-    fun(actual): (actual - target).abs() < delta;;
-
-  dsquare = d-dx(square)
-
-  dsquare(5) satisfies within(0.1, 10)
-  dsquare(10) satisfies within(0.1, 20)
-end
-}
-"Real tests need to accomodate more than equality tests.  Pyret supports these
-generally with the <code>satisfies</code> form, which can be used to check
-satisfaction of an arbitrary predicate.")
-
-  <hr/>
-  @(pyret-example #:where 'right
-@disable-prefix{
 data BinTree:
   | leaf
   | node(value, left :: BinTree, right :: BinTree)
@@ -351,7 +329,7 @@ variety of pedagogic styles and curricular needs.")
 
   <hr/>
 
-  @(pyret-example #:where 'left
+  @(pyret-example #:where 'right
 @disable-prefix{
 check:
   dbl = fdC("x", plusC(idC("x"), idC("x")))
@@ -427,10 +405,32 @@ special <code>_</code> syntax turns expressions into functions:
 and works this syntax into the common dot syntax for field lookup, blending
 functional and object-oriented styles.")
 
+  <hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+eps = 0.001
+fun d-dx(f):
+  doc: "Approximate the derivative of f"
+  fun(x): (f(x + eps) - f(x)) / eps;
+where:
+  fun square(x): x * x;
+  fun within(delta, target):
+    fun(actual): (actual - target).abs() < delta;;
+
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
+end
+}
+"Real tests need to accomodate more than equality tests.  Pyret supports these
+generally with the <code>satisfies</code> form, which can be used to check
+satisfaction of an arbitrary predicate.")
+
 
   <hr/>
 
-  @(pyret-example #:where 'right
+  @(pyret-example #:where 'left
 @disable-prefix{
 point-methods = {
   dist(self, other):
@@ -462,7 +462,7 @@ extending the object containing point methods.")
 
   <hr/>
 
-  @(pyret-example #:where 'left
+  @(pyret-example #:where 'right
 @disable-prefix{
 data CyclicList:
   | clink(cyclic first, rest)
@@ -698,6 +698,67 @@ end
 
 <hr/>
 
+@(two-langs "Lexical Scope"
+@disable-prefix{
+Some scripting languages have failed to nail lexical scope in fundamental ways.
+Pyret is designed with a deep understanding of and
+appreciation for the benefits of lexical scoping, so functional programming
+works.
+}
+"Ruby"
+@disable-prefix{
+fun f(x):
+  fun g(y):
+    x + y
+  end
+  g(2)
+where:
+  f(2) is 4
+end
+}
+@disable-prefix{
+def f(x)
+  def g(y)
+    x + y
+  end
+  g(2)
+end
+f(2)
+# undefined local variable or method `x'
+})
+
+<hr/>
+
+@(two-langs "Lexical Scope"
+@disable-prefix{
+Some scripting languages have failed to nail lexical scope in fundamental ways.
+Pyret is designed with a deep understanding of and
+appreciation for the benefits of lexical scoping, so functional programming
+works.
+}
+"Ruby"
+@disable-prefix{
+fun f(x):
+  fun g(y):
+    x + y
+  end
+  g(2)
+where:
+  f(2) is 4
+end
+}
+@disable-prefix{
+def f(x)
+  def g(y)
+    x + y
+  end
+  g(2)
+end
+f(2)
+# undefined local variable or method `x'
+})
+
+<hr/>
 
 @(two-langs "Knowledge of Pitfalls"
 @disable-prefix{
@@ -728,6 +789,30 @@ method_as_fun(5)
 // (depending on strict mode)
 })
 
+@(two-langs "" "" 
+"Ruby"
+@disable-prefix{
+o = @"{"
+  my-method(self, x): self.y + x end,
+  y: 10
+@"}"
+method-as-fun = o.my-method
+check:
+  method-as-fun(5) is 15
+end
+}
+@disable-prefix{
+o = Object.new
+def o.my_method(x)
+  self.y + x
+end
+def o.y
+  10
+end
+method_as_fun = o.my-method
+# Wrong number of arguments, 0 for 1
+method_as_fun(5) # not reached
+})
 </div>
 
 }
