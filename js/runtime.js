@@ -77,8 +77,6 @@ var PYRET = (function () {
         fun.dict._method = makeMethod(function(me) {
             return makeMethod(me.app, me.dict._doc);
         });
-        fun.isMutable = false;
-        fun.isPlaceholder = false;
         return fun;
     }
     function isFunction(v) { return v instanceof PFunction; }
@@ -461,10 +459,6 @@ var PYRET = (function () {
         return makeString("empty");
       }
       else if (isObj(val)) {
-        if(val.isPlaceholder) {
-            return makeString("cyclic-field");
-        }
-        
         if(val.dict.hasOwnProperty('_torepr')) {
             return applyFunction(getField(val, '_torepr'), []);
         }
@@ -477,6 +471,9 @@ var PYRET = (function () {
       }
       else if(isNothing(val)) {//Nothing
         return makeString("nothing");
+      }
+      else if(isPlaceholder(val)) {
+            return makeString("cyclic-field");
       }
       throwPyretMessage("toStringJS on an unknown type: " + val);
     }
@@ -498,7 +495,7 @@ var PYRET = (function () {
         else if(fieldVal.isMutable) {    
             throwPyretMessage('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
-        else if(fieldVal.isPlaceholder) {    
+        else if(isPlaceholder(fieldVal)) {    
             return applyFunction(getField(fieldVal, 'get'),[]);
         }
         else{
@@ -570,24 +567,7 @@ var PYRET = (function () {
         return newObj;
     });
     PObj.prototype.getType = function() {return 'object';};
-    PObj.prototype.extendWith = function(fields) {
-        var newObj = this.clone();
-        var allNewFields = true;
-        for(var field in fields) {
-            if(newObj.dict.hasOwnProperty(field)) {
-               allNewFields = false;
-            }
-            newObj.dict[field] = fields[field];
-        }
-        newObj.brands = [];
-        if(allNewFields) {
-            for(var brand in this.brands){
-                newObj.brands[brand] = this.brands[brand];
-            }
-        }
-
-        return newObj;
-    }
+    
     PObj.prototype.updateWith = function(fields) {
         var newObj = this; //Don't clone, this is mutation
         for(var field in fields) {
@@ -655,70 +635,93 @@ var PYRET = (function () {
         }
     });
 
-    //Placeholder
-    var makePlaceholder = makeFunction(function() {
+    /**********************************
+    * Placeholder
+    ***********************************/
+    function PPlaceholder(d) {
+      this.dict = d;
+      this.brands = [];
+      //this.dict['_torepr'] = makeMethod(function(me) {
+        //return toRepr(me);
+      //});
+    }
+
+    
+    function getPlaceholderDict(){  
         var isSet = false;
         var value = undefined;
         var guards = [];
-        function getPlaceholderDict(){  return {
-            get : makeMethod(function(me) { 
-               if(isSet){
-                   return value;
-               }
-               else {
-                  throwPyretMessage("Tried to get value from uninitialized placeholder");
-               }
-            }),
-
-            guard : makeMethod(function(me, guard) {
-               if(isSet) {
-                   throwPyretMessage("Tried to add guard on an already-initialized placeholder");
-                }
-               else {
-                    guards.push(guard);
-               }
-               return {};
-            }),
-
-            set : makeMethod(function(me, val) {
-                if(isSet) {
-                    throwPyretMessage("Tried to set value in already-initialized placeholder");
-                }
-                for(var g in guards) {
-                    val = applyFunction(guards[g],[val]);
-                }
-                value = val;
-                isSet = true;
-                return value;
-            }),
-
-           tostring : makeMethod(function(me) {
-            return makeString("cyclic-field");
-           }),
-
-           _torepr : makeMethod(function(me) {
-                return makeString("cyclic-field");
-            }),
-            
-           _equals : makeMethod(function(me,other) {
-                return makeBoolean(me === other);  
-           }),
-        };}
         
-        var obj = makeObj(getPlaceholderDict());
-        obj.isPlaceholder = true;
-        obj.clone = (function() {
-            //We don't need to do deep cloning, but we *do* need to clone the dict
-            var newDict = {};
-            for(var key in this.dict) {
-                newDict[key] = this.dict[key];
+        return {
+        get : makeMethod(function(me) { 
+           if(isSet){
+               return value;
+           }
+           else {
+              throwPyretMessage("Tried to get value from uninitialized placeholder");
+           }
+        }),
+
+        guard : makeMethod(function(me, guard) {
+           if(isSet) {
+               throwPyretMessage("Tried to add guard on an already-initialized placeholder");
             }
-            var newObj = makeObj(newDict);
-            newObj.isPlaceholder = true;
-            return newObj;
-         });
-        return obj;
+           else {
+                guards.push(guard);
+           }
+           return {};
+        }),
+
+        set : makeMethod(function(me, val) {
+            if(isSet) {
+                throwPyretMessage("Tried to set value in already-initialized placeholder");
+            }
+            for(var g in guards) {
+                val = applyFunction(guards[g],[val]);
+            }
+            value = val;
+            isSet = true;
+            return value;
+        }),
+
+       tostring : makeMethod(function(me) {
+        return makeString("cyclic-field");
+       }),
+
+       _torepr : makeMethod(function(me) {
+            return makeString("cyclic-field");
+        }),
+        
+       _equals : makeMethod(function(me,other) {
+            return makeBoolean(me === other);  
+       }),
+     };
+    }
+
+    function isPlaceholder(v) { return v instanceof PPlaceholder; }
+
+    PPlaceholder.prototype = Object.create(PBase.prototype);
+    PPlaceholder.prototype.clone = (function() {
+        //We don't need to do deep cloning, but we *do* need to clone the dict
+        var newDict = {};
+        for(var key in this.dict) {
+            newDict[key] = this.dict[key];
+        }
+        var newPlac = makePlaceholder(newDict);
+        return newPlac;
     });
+    PObj.prototype.getType = function() {return 'placeholder';};
+    //Placeholder
+
+    function makePlaceholder() {
+        var plac = new PPlaceholder(getPlaceholderDict());
+        return plac;
+    }
+
+    
+
+///-----
+
 
     var mutClone = function(val, r, w) {
         return function clone() {
@@ -1051,7 +1054,6 @@ var PYRET = (function () {
       "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
 //      "to-string": makeFunction(function(x){return makeString(x.toString());}),
       "is-mutable" : makeFunction(isMutable),
-      "is-placeholder" : makeFunction(function(x) {return makeBoolean(Boolean(x.isPlaceholder));}),
       "check-brand": checkBrand,
       "mk-placeholder": makePlaceholder,
       "mk-mutable": makeFunction(makeMutable),
@@ -1101,7 +1103,7 @@ var PYRET = (function () {
         }),
         'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
         'Method': makeFunction(function(x){return makeBoolean(isMethod(x));}),
-        'Placeholder': makeFunction(function(x){return makeBoolean(x.isPlaceholder);}),
+        'Placeholder': makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
         'Mutable': makeFunction(function(x){return makeBoolean(isMutable(x));}),
         'Nothing': makeFunction(function(x){return makeBoolean(isNothing(x));}),
         'String': makeFunction(function(x) {
@@ -1149,7 +1151,7 @@ var PYRET = (function () {
           "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
           "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
           "is-mutable" : makeFunction(function(x) {return makeBoolean(Boolean(x.isMutable));}),
-          "is-placeholder" : makeFunction(function(x) {return makeBoolean(Boolean(x.isPlaceholder));}),
+          "is-placeholder": makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
           "is-object" : makeFunction(function(x) {return makeBoolean(isObj(x));}),
           "prim-num-keys" : makeFunction(function(prim) {
               if(isNothing(prim)) {return makeNumber(0);}
@@ -1176,7 +1178,7 @@ var PYRET = (function () {
         'data-to-repr': makeFunction(dataToRepr),
         'data-equals': makeFunction(dataEquals),
 
-      "mk-placeholder": makePlaceholder,
+      "mk-placeholder": makeFunction(makePlaceholder),
       "mk-mutable": makeFunction(makeMutable),
       "mk-simple-mutable": makeFunction(makeSimpleMutable),
       equiv: makeFunction(equiv),
