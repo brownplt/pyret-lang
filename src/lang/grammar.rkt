@@ -34,8 +34,9 @@ where-clause: ["where:" block]
 check-expr: "check:" block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
-data-expr: "data" NAME ty-params data-mixins ":" data-variant* data-sharing where-clause end
+data-expr: "data" NAME ty-params data-mixins ":" [first-data-variant] data-variant* data-sharing where-clause end
 data-mixins: ["deriving" mixins]
+first-data-variant: NAME variant-members data-with | NAME data-with
 data-variant: "|" NAME variant-members data-with | "|" NAME data-with
 variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] ")"
 list-variant-member: variant-member ","
@@ -46,7 +47,8 @@ data-sharing: ["sharing:" fields]
 mixins: list-mixin* binop-expr
 list-mixin: binop-expr ","
 
-datatype-expr: "datatype" NAME ty-params ":" datatype-variant* where-clause end
+datatype-expr: "datatype" NAME ty-params ":" [first-datatype-variant] datatype-variant* where-clause end
+first-datatype-variant: NAME variant-members constructor-clause | NAME constructor-clause
 datatype-variant: "|" NAME variant-members constructor-clause | "|" NAME constructor-clause
 constructor-clause: "with constructor" (PARENSPACE|PARENNOSPACE) NAME ")" ":" block end
 
@@ -148,7 +150,7 @@ name-ann: NAME
 record-ann: "{" [list-ann-field* ann-field] "}"
           | "{" "}"
 list-ann-field: ann-field ","
-ann-field: NAME ":" ann
+ann-field: NAME ":" ann | NAME "::" ann
 
 arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] "->" ann ")"
 arrow-ann-elt: ann ","

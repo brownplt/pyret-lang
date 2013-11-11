@@ -20,16 +20,9 @@ fun identical(obj1, obj2):
   end
 end
 
-fun mklist(obj):
-  doc: "Creates a List from something with `first` and `rest` fields, recursively"
-  if obj.is-empty: empty
-  else:            link(obj.first, mklist(obj.rest))
-  end
-end
-
 fun keys(obj):
   doc: "Returns a List of the keys of an object, as strings"
-  mklist(prim-keys(obj))
+  prim-keys(obj)
 end
 
 fun has-field(obj, name):
@@ -113,9 +106,7 @@ fun data-equals(self, other, brand, fields):
 end
 
 fun string-to-list(str :: String):
-  for fold(lst from [], i from range-by(str.length() - 1, -1, -1)):
-    link(str.char-at(i), lst)
-  end
+  str.explode()
 where:
   string-to-list("") is []
   string-to-list("a") is ["a"]
@@ -137,7 +128,6 @@ builtins = {
   identical: identical,
   keys: keys,
   has-field: has-field,
-  mklist: mklist,
   equiv: equiv,
   data-to-repr: data-to-repr,
   data-equals: data-equals,
@@ -318,12 +308,23 @@ data List:
     sort-by(self, cmp, eq):
       doc: "Takes a comparator to check for elements that are strictly greater
         or less than one another, and an equality procedure for elements that are
-        equal, and sorts the list accordingly."
+        equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
       pivot = self.first
-      less = self.filter(fun(e): cmp(e,pivot) end).sort-by(cmp, eq)
-      equal = self.filter(fun(e): eq(e,pivot) end)
-      greater = self.filter(fun(e): cmp(pivot,e) end).sort-by(cmp, eq)
-      less.append(equal).append(greater)
+      # builds up three lists, split according to cmp and eq
+      # Note: We use foldl, which is tail-recursive, but which causes the three
+      # list parts to grow in reverse order.  This isn't a problem, since we're
+      # about to sort two of those parts anyway.
+      three-way-split = self.foldl(fun(e, acc):
+          if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
+          else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
+          else:                 acc.{are-gt: e^link(acc.are-gt)}
+          end
+        end,
+        {are-lt: [], are-eq: [], are-gt: []})
+      less =    three-way-split.are-lt.sort-by(cmp, eq)
+      equal =   three-way-split.are-eq
+      greater = three-way-split.are-gt.sort-by(cmp, eq)
+      less.append(equal.append(greater))
     end,
 
     sort(self):
@@ -362,6 +363,10 @@ where:
   }
   [o2, o1].sort() is [o1, o2]
 end
+
+# NOTE(joe): bindings are to quash output
+_ = ___set-link(link)
+_ = ___set-empty(empty)
 
 fun range(start, stop):
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -816,7 +821,7 @@ end
 
 fun make-error(obj):
   trace = if has-field(obj, "trace"):
-    for map(l from mklist(obj.trace)):
+    for map(l from obj.trace):
       location(l.path, l.line, l.column)
     end
   else:
@@ -1052,14 +1057,14 @@ var all-results :: List = empty
 
 fun run-checks(checks):
   when checks.length() <> 0:
-    fun lst-to-structural(lst):
-      if has-field(lst, 'first'):
-        { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
-      else:
-        { is-empty: true }
-      end
-    end
-    these-checks = mklist(lst-to-structural(checks))
+    # fun lst-to-structural(lst):
+    #   if has-field(lst, 'first'):
+    #     { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
+    #   else:
+    #     { is-empty: true }
+    #   end
+    # end
+    these-checks = checks
     old-results = current-results
     these-check-results =
       for map(chk from these-checks):
@@ -1171,9 +1176,8 @@ fun check-results-summary(results-list):
   if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
     if counts.passed == 0:
       append-str("
-WARNING: Your program didn't define any tests.  Add some where: and check:
-blocks to test your code, or run with the --no-checks option to signal that you
-don't want tests run.
+WARNING: Your program didn't define any tests.  Try adding some where: or check:
+blocks to test your code.
 ")
     else:
       if counts.passed == 1:

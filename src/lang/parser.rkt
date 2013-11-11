@@ -79,25 +79,41 @@
 
 (define (parse-variant stx)
   (syntax-parse stx
-    #:datum-literals (data-variant)
+    #:datum-literals (data-variant first-data-variant)
     [(data-variant "|" name args with)
      (s-variant (loc stx)
                 (parse-name #'name)
                 (parse-variant-members #'args)
                 (parse-with #'with))]
     [(data-variant "|" name with)
-     (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]))
+     (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]
+    [(first-data-variant name args with)
+     (s-variant (loc stx)
+                (parse-name #'name)
+                (parse-variant-members #'args)
+                (parse-with #'with))]
+    [(first-data-variant name with)
+     (s-singleton-variant (loc stx) (parse-name #'name) (parse-with #'with))]
+    ))
 
 (define (parse-datatype-variant stx)
   (syntax-parse stx
-    #:datum-literals (datatype-variant)
+    #:datum-literals (datatype-variant first-datatype-variant)
     [(datatype-variant "|" name args constructor)
      (s-datatype-variant (loc stx)
                          (parse-name #'name)
                          (parse-variant-members #'args)
                          (parse-constructor #'constructor))]
     [(datatype-variant "|" name constructor)
-     (s-datatype-singleton-variant (loc stx) (parse-name #'name) (parse-constructor #'constructor))]))
+     (s-datatype-singleton-variant (loc stx) (parse-name #'name) (parse-constructor #'constructor))]
+    [(first-datatype-variant name args constructor)
+     (s-datatype-variant (loc stx)
+                         (parse-name #'name)
+                         (parse-variant-members #'args)
+                         (parse-constructor #'constructor))]
+    [(first-datatype-variant name constructor)
+     (s-datatype-singleton-variant (loc stx) (parse-name #'name) (parse-constructor #'constructor))]
+    ))
 
 
 (define (parse-sharing stx)
@@ -500,6 +516,8 @@
   (syntax-parse stx
     #:datum-literals (ann-field)
     [(ann-field n ":" ann)
+     (a-field (loc stx) (symbol->string (parse-name #'n)) (parse-ann #'ann))]
+    [(ann-field n "::" ann)
      (a-field (loc stx) (symbol->string (parse-name #'n)) (parse-ann #'ann))]))
 
 (define (parse-ann stx)
@@ -513,6 +531,7 @@
       dot-ann
       ann
     )
+    [(name-ann "Any") (a-any)]
     [(name-ann n) (a-name (loc stx) (parse-name #'n))]
     [(record-ann "{" "}") (a-record (loc stx) empty)]
     [(record-ann "{" (list-ann-field fields ",") ... lastfield "}")

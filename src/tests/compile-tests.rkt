@@ -147,6 +147,20 @@
     "b = brander()
      b.test(b.brand([4]).{ first: [] })"
     false)
+
+  (check-pyret
+    "check-brand(fun(o): true end, 5, 'Num')"
+    (p:mk-num 5))
+  (check-pyret-exn
+    "check-brand(5, {}, 'foo')"
+    "cannot check-brand with non-function")
+  (check-pyret-exn
+    "check-brand(fun(): end, {}, 5)"
+    "cannot check-brand with non-string")
+  (check-pyret-exn
+    "check-brand(2, {}, 5)"
+    "check-brand failed")
+
 ))
 
 
@@ -373,10 +387,10 @@
     end"
    "duplicate")
 
-  (check-pyret-match/check "pyret/data-equals.arr" _ 27)
-  (check-pyret-match/check "pyret/data-eq.arr" _ 24)
+  (check-pyret-match/check "pyret/data/data-equals.arr" _ 27)
+  (check-pyret-match/check "pyret/data/data-eq.arr" _ 24)
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
-  (check-pyret-match/check "pyret/data-shared-mutable.arr" _ 2)
+  (check-pyret-match/check "pyret/data/data-shared-mutable.arr" _ 4)
 
 
   (check-pyret
@@ -467,9 +481,9 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 8)
+  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 9)
 
-  (check-pyret-match/check "pyret/json.arr" _ 8)
+  (check-pyret-match/check "pyret/libs/json.arr" _ 8)
 
   (check-pyret-match
     "prim-keys({x : 5})"
@@ -641,11 +655,11 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "gensym('foo') <> gensym('foo')" true)
   (check-pyret "String(gensym('foo'))" true)
 
-  (check-pyret-match/check "pyret/math-libs.arr" _ 7)
+  (check-pyret-match/check "pyret/libs/math-libs.arr" _ 7)
 
-  (check-pyret-match/check "pyret/sets.arr" _ 177)
+  (check-pyret-match/check "pyret/libs/sets.arr" _ 177)
 
-  (check-pyret-match/check "pyret/strings.arr" _ 22)
+  (check-pyret-match/check "pyret/libs/strings.arr" _ 35)
 
   (check-pyret "5.is-integer()" true)
   (check-pyret "5.5.is-integer()" false)
@@ -773,7 +787,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 29)
+  (check-pyret-match/check "pyret/update.arr" _ 38)
   (check-pyret-match/check "pyret/placeholder.arr" _ 15)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
@@ -1014,19 +1028,21 @@ o2.m().called" true)
 ))
 
 (define ffi (test-suite "ffi"
-  (check-pyret-match/check "pyret/test-ast.arr" _ 10)
-  (check-pyret-match/check "pyret/eval.arr" _ 21)
+  (check-pyret-match/check "pyret/libs/test-ast.arr" _ 10)
+  (check-pyret-match/check "pyret/libs/eval.arr" _ 21)
   (check-pyret-match/check "pyret/parse-types.arr" _ 3)
   (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
   (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
+  (check-pyret-exn "___set-link" "Unbound identifier")
+  (check-pyret-exn "___set-empty" "Unbound identifier")
 ))
 
 (define mixins (test-suite "mixins"
-  (check-pyret-match/check "pyret/mixins.arr" _ 9)
+  (check-pyret-match/check "pyret/data/mixins.arr" _ 9)
 ))
 
 (define currying (test-suite "currying"
-  (check-pyret-match/check "pyret/currying.arr" _ 8)
+  (check-pyret-match/check "pyret/currying.arr" _ 14)
 ))
 
 (define checks (test-suite "checks"
@@ -1075,6 +1091,9 @@ o2.m().called" true)
          (check-pyret-match/check name _ passing))))])
 
     (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
+
+    (private-run (example-path "queue.arr") 9)
+    (private-run (example-path "point.arr") 5)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)

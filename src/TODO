@@ -1,5 +1,5 @@
 Need-to-have (soon):
-[] Documentation
+[x] Documentation
   [x] Extract docs from code
 [] Type-checking up to List(a) and arrows/records
   [] "Also, we've been talking about and working on the untyped to typed
@@ -43,11 +43,11 @@ CS019 Assignments
 [] Rocket
 [x] Filesystem
 [x] Sortacle
-[] Oracle
-[] Brown Heaps
+[x] Oracle
+[x] Brown Heaps
 [x] Updater
-[] ||ism
-[] Tour Guide
+[x] ||ism
+[x] Tour Guide
 [x] Seam Carving (image libs)
 
 Need-to-have (eventually):
@@ -65,17 +65,18 @@ Nice-to-have (eventually):
 [] Data urls for inline images
 [] macros for creating objects/lists/functions in pyret desugaring
 [] implicit cond if you start fun with a |
-[] DrRacket syntax highlighting
+[x] DrRacket syntax highlighting
 [] Figure out how to/if we can use list.arr lists in runtime.rkt
-[] currying
+[x] currying
 [] srcloc for a-any
 [] Make objects retain order w.r.t syntax of literal and update
-[] Vim highlight numbers
-[] better pretty-printing libraries
+[x] Vim highlight numbers
+[x] better pretty-printing libraries
 [] Constructed types and brands
 [] brand names for debugging and general user-friendliness
-[] pretty-printing objects
-   - Take brands into account (names for them)
+[x] pretty-printing objects
+  - Take brands into account (names for them)
+  - torepr
 
 Redex
 [] Redex the initial semantics

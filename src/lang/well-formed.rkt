@@ -36,6 +36,8 @@
 ;;
 ;; - duplicated constructor names in data(type)
 ;;
+;; - a cases expression with a case named "_", rather than using else
+;;
 ;; - all blocks end in a non-binding form
 ;;
 ;; - check and where identifiers
@@ -101,6 +103,8 @@
     (match branch
       [(s-cases-branch s name args blk)
        (begin
+        (when (eq? name '_)
+          (wf-error "Found a cases branch using _ rather than a constructor name; use 'else' instead." s))
         (ensure-unique-ids args)
         (map wf-bind args)
         (wf blk))]))
@@ -131,13 +135,41 @@
         [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
     (help vs empty empty))
       
-  (define (wf-variant var)
+  (define (wf-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-singleton-variant s name _)
+           (s-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
+  (define (static-names-of-fields fields)
+    (remove*
+     (list #f)
+     (map (λ(m) (match m
+                  [(s-data-field s (s-str _ name) _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-mutable-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-once-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-method-field s (s-str _ name) _ _ _ _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [else #f]))
+          fields)))
+  (define (wf-variant var shared)
     (match var
      [(s-singleton-variant s name members)
-      (map wf-member members)]
+      (begin
+        (ensure-unique-ids (append (static-names-of-fields members) shared))
+        (map wf-member members))]
      [(s-variant s name binds members)
       (begin
-        (ensure-unique-ids (map s-variant-member-bind binds))
+        (ensure-unique-ids (append (static-names-of-fields members) (map s-variant-member-bind binds) shared))
         (map wf-variant-member binds)
         (map wf-member members))]))
   (define (wf-dt-variant var)
@@ -203,8 +235,10 @@
        (map wf stmts))]
     [(s-data s name params mixins variants shares check)
      (begin
+       (wf-variant-names variants)
        (map wf mixins)
-       (map wf-variant variants)
+       (define shared (static-names-of-fields shares))
+       (map (λ(v) (wf-variant v shared)) variants)
        (map wf-member shares)
        (well-formed/internal check #t))]
 

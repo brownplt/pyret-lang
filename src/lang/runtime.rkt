@@ -34,24 +34,77 @@
 
 (define (sqr x) (* x x))
 
-;; NOTE(joe): slow enough for government work
+;; Adapted from https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
+(define (string-index haystack needle)
+  (define nlen (string-length needle))
+  (define hlen (string-length haystack))
+  (define (fold-min-max f init min max)
+    (define (help i acc)
+      (cond
+       [(>= i max) acc]
+       [else (help (+ 1 i) (f i acc))]))
+    (help min init))
+  (define (make-table)
+    (define kmp-table (make-vector nlen))
+    (vector-set! kmp-table 0 -1)
+    (define (help pos cnd)
+      (cond
+       [(>= pos nlen) #f]
+       [(char=? (string-ref needle (- pos 1)) (string-ref needle cnd))
+        (vector-set! kmp-table pos (+ 1 cnd))
+        (+ 1 cnd)]
+       [(> cnd 0) (vector-ref kmp-table cnd)]
+       [else
+        (vector-set! kmp-table pos 0)
+        cnd]))
+    (fold-min-max help 0 2 nlen)
+    kmp-table)
+  (define (search)
+    (define T (make-table))
+    (define (help m i)
+      (if (>= (+ m i) hlen)
+          #f
+          (if (char=? (string-ref needle i) (string-ref haystack (+ m i)))
+              (if (= i (- nlen 1))
+                  m
+                  (help m (+ 1 i)))
+              (let ((Ti (vector-ref T i)))
+                (help (- (+ m i) Ti)
+                      (if (> Ti -1) Ti 0))))))
+    (help 0 0))
+  (search))  
+    
 (define (string-contains str substr)
-  (define strlen (string-length str))
-  (define sublen (string-length substr))
+  (not (not (string-index str substr))))
+
+(define (string-split s sep repeated)
+  (define sep-len (string-length sep))
+  (define (help s)
+    (define i (string-index s sep))
+    (cond
+     [i
+      (let [(front (substring s 0 i))
+            (back (substring s (+ i sep-len) (string-length s)))]
+        (if repeated
+            (cons front (help back))
+            (list front back)))]
+     [else (list s)]))
   (cond
-    [(> sublen strlen) #f]
-    [(string=? substr (substring str 0 sublen)) #t]
-    [else (string-contains (substring str 1 strlen) substr)]))
+   [(string=? sep "") (map string (string->list s))]
+   [else (help s)]))
 
+(define (string-explode s)
+  (map string (string->list s)))
 
+(define (interleave sep lst acc)
+  (cond
+   [(empty? lst) (reverse (rest acc))]
+   [else (interleave sep (rest lst) (cons sep (cons (first lst) acc)))]))
 (define (string-join strs sep)
-  (cond
-    [(empty? strs) ""]
-    [(empty? (rest strs)) (first strs)]
-    [(cons? (rest strs))
-     (string-append (first strs)
-      (string-append sep
-       (string-join (rest strs) sep)))]))
+  (if (string=? sep "")
+      (apply string-append strs)
+      ;; Better to allocate lists and string-append once than to repeatedly allocate strings
+      (apply string-append (interleave sep strs (list "")))))
 
 (provide
   (prefix-out p:
@@ -82,9 +135,6 @@
       mk-fun-nodoc-slow
       pμ
       mk-method
-      mk-structural-list
-      structural-list?
-      structural-list->list
       mk-exn
       pyret-error
       empty-dict
@@ -123,6 +173,7 @@
   Number
   String
   Bool
+  Boolean
   Object
   Nothing
   Function
@@ -133,12 +184,15 @@
   is-number
   is-string
   is-bool
+  is-boolean
   is-object
   is-nothing
   is-function
   is-method
   is-mutable
   is-placeholder
+  ___set-link
+  ___set-empty
   nothing)
 
 
@@ -360,7 +414,7 @@
   (define trace-locs
     (cons loc (continuation-mark-set->list (exn-continuation-marks e) 'pyret-mark)))
   (define trace
-    (mk-structural-list
+    (mk-list
       (map (lambda (l) (mk-object (make-string-map (mk-loc l))))
       trace-locs)))
   (mk-object
@@ -649,7 +703,8 @@ And the object was:
       (define checks (p-mutable-write-wrappers mutable))
       (define value (foldr (lambda (c v) (c v)) (cdr pair) checks))
       (set-box! (p-mutable-b mutable) (cdr pair)))
-    extension)))
+    extension))
+  nothing)
 
 ;; extend : Loc Value Dict -> Value
 (define (extend loc base extension)
@@ -668,35 +723,9 @@ And the object was:
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
     [(default _) (error (format "update: Cannot update ~a" base))]))
 
-;; structural-list? : Value -> Boolean
-(define (structural-list? v)
-  (define d (get-dict v))
-  (and (string-map-has-key? d "first")
-       (string-map-has-key? d "rest")))
-
-;; structural-list->list : Value -> Listof Value
-(define (structural-list->list lst)
-  (define d (get-dict lst))
-  (cond
-    [(structural-list? lst)
-     (cons (string-map-ref d "first")
-           (structural-list->list (string-map-ref d "rest")))]
-    [else empty]))
-
-;; mk-structural-list : ListOf Value -> Value
-(define (mk-structural-list lst)
-  (cond
-    [(empty? lst) (mk-object (make-string-map
-        `(("is-empty" . ,(mk-bool #t)))))]
-    [(cons? lst) (mk-object (make-string-map
-        `(("first" . ,(first lst))
-          ("is-empty" . ,(mk-bool #f))
-          ("rest" . ,(mk-structural-list (rest lst))))))]
-    [else (error 'mk-structural-list (format "mk-structural-list got ~a" lst))]))
-
 ;; keys : Value -> Value
 (define keys-pfun (pλ/internal (loc) (object)
-  (mk-structural-list (map mk-str (string-map-keys (get-dict object))))))
+  (mk-list (map mk-str (string-map-keys (get-dict object))))))
 
 ;; TODO(joe): Quickify
 (define num-keys-pfun (pλ/internal (loc) (object)
@@ -797,6 +826,7 @@ And the object was:
           ("_lessequal" . ,(mk-num-2-bool <= 'lessequal))
           ("_greaterequal" . ,(mk-num-2-bool >= 'greaterequal))
           ("tostring" . ,(mk-prim-fun number->string 'tostring mk-str (p-num-n) (n) (p-num?)))
+          ("tostring-fixed" . ,(mk-prim-fun real->decimal-string 'tostring-fixed mk-str (p-num-n p-num-n) (n places) (p-num? p-num?)))
           ("modulo" . ,(mk-num-2 modulo 'modulo))
           ("truncate" . ,(mk-num-1 truncate 'truncate))
           ("abs" . ,(mk-num-1 abs 'abs))
@@ -858,10 +888,15 @@ And the object was:
           ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
           ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("index-of" . ,(mk-prim-fun string-index 'index-of mk-num-or-nothing (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("substring" . ,(mk-prim-fun safe-substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
+          ("split" . ,(mk-prim-fun string-split 'string-split mk-list (p-str-s p-str-s p-bool-b) (s sep b) (p-str? p-str? p-bool?)))
+          ("explode" . ,(mk-prim-fun string-explode 'explode mk-list (p-str-s) (s) (p-str?)))
           ("char-at" . ,(mk-prim-fun char-at 'char-at mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("repeat" . ,(mk-prim-fun string-repeat 'repeat mk-str (p-str-s p-num-n) (s n) (p-str? p-num?)))
           ("length" . ,(mk-prim-fun string-length 'length mk-num (p-str-s) (s) (p-str?)))
+          ("to-lower" . ,(mk-prim-fun string-downcase 'string-downcase mk-str (p-str-s) (s) (p-str?)))
+          ("to-upper" . ,(mk-prim-fun string-upcase 'string-upcase mk-str (p-str-s) (s) (p-str?)))
           ("tonumber" . ,(mk-prim-fun string->number 'tonumber mk-num-or-nothing (p-str-s) (s) (p-str?)))
           ("tostring" . ,(mk-prim-fun (lambda (x) x) 'tostring mk-str (p-str-s) (s) (p-str?)))
           ("_torepr" . ,(mk-prim-fun (lambda (x) (format "~s" x)) '_torepr mk-str (p-str-s) (s) (p-str?)))
@@ -962,7 +997,7 @@ And the object was:
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
-    [(p-str? s)
+    [(and (p-str? s) (p-fun? ck))
      (define f (p-base-app ck))
      (define check-v (f o))
      (if (pyret-true? check-v)
@@ -972,7 +1007,7 @@ And the object was:
          ;;  the call site as well as the destination
          (let ([typname (p-str-s s)])
           (throw-type-error! typname o)))]
-    [(p-str? ck)
+    [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]
@@ -997,6 +1032,13 @@ And the object was:
   (meta-bool)
   (meta-str))
 
+(define (mutable-to-repr v)
+  (py-match v
+    [(p-str _ _ _ _ s) (mk-str (format "mutable(~s)" s))]
+    [(p-num _ _ _ _ n) (mk-str (format "mutable(~a)" n))]
+    [(p-bool _ _ _ _ b) (mk-str (format "mutable(~a)" (if b "true" "false")))]
+    [(p-nothing _ _ _ _) (mk-str "mutable(nothing)")]
+    [(default v) (mk-str "mutable-field")]))
 (define mutable-dict
   (make-string-map
     (list
@@ -1005,10 +1047,10 @@ And the object was:
         (mk-bool (eq? self other))))
       (cons "_torepr" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "tostring" (pμ/internal (loc) (self)
         "Print this mutable field"
-        (mk-str "mutable-field")))
+        (mutable-to-repr (unbox (p-mutable-b self)))))
       (cons "get" (pμ/internal (loc) (self)
         "Get the value in this mutable field"
         (when (not (p-mutable? self))
@@ -1047,7 +1089,8 @@ And the object was:
                       (format "Tried to set value in already-initialized placeholder"))))
         (define wrappers (p-placeholder-wrappers self))
         (define value-checked (foldr (lambda (c v) (c v)) new-value wrappers))
-        (set-box! (p-placeholder-b self) value-checked)))
+        (set-box! (p-placeholder-b self) value-checked)
+        nothing))
       (cons "guard" (pμ/internal (loc) (self pred)
         "Add a guard to the placeholder for when it is set"
         (when (not (p-placeholder? self))
@@ -1088,6 +1131,7 @@ And the object was:
 (mk-pred Number p-num?)
 (mk-pred String p-str?)
 (mk-pred Bool p-bool?)
+(mk-pred Boolean p-bool?)
 (mk-pred Object p-object?)
 (mk-pred Nothing p-nothing?)
 (mk-pred Function p-fun?)
@@ -1099,9 +1143,30 @@ And the object was:
 (mk-pred is-number p-num?)
 (mk-pred is-string p-str?)
 (mk-pred is-bool p-bool?)
+(mk-pred is-boolean p-bool?)
 (mk-pred is-object p-object?)
 (mk-pred is-nothing p-nothing?)
 (mk-pred is-function p-fun?)
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
+
+(define py-link #f)
+(define py-empty #f)
+
+(define ___set-link (pλ (link) "Set the internal function for creating links"
+  (when py-link
+    (raise (format "Runtime link is already set to ~a, and someone tried to update it to ~a." py-link link)))
+  (set! py-link link)
+  nothing))
+(define ___set-empty (pλ (empty) "Set the internal function for creating emptys"
+  (when py-empty
+    (raise (format "Runtime empty is already set to ~a, and someone tried to update it to ~a." py-empty empty)))
+  (set! py-empty empty)
+  nothing))
+
+(define (mk-list lst)
+  (define link py-link)
+  (define empty py-empty)
+  (foldl (λ (elt acc) (apply-fun link dummy-loc elt acc)) empty (reverse lst)))
+
