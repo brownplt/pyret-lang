@@ -156,6 +156,21 @@
       'set
       'list-set
       'tree-set
+
+      'RandomAccessList
+      'rempty
+      'rlink
+      'is-rempty
+      'is-rlink
+      'rfirst
+      'rrest
+      'rget
+      'rset
+      'rlength
+      'rmap
+      'rfold
+      'rlist-to-list
+      'list-to-rlist
       
       'identical
       'string-to-list)))

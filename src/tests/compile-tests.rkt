@@ -657,6 +657,8 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/libs/math-libs.arr" _ 7)
 
+  (check-pyret-match/check "pyret/libs/ralist.arr" _ 37)
+
   (check-pyret-match/check "pyret/libs/sets.arr" _ 177)
 
   (check-pyret-match/check "pyret/libs/strings.arr" _ 35)
