@@ -6,8 +6,10 @@
   "../ffi-helpers.rkt"
   "whalesong-lib.rkt"
   (rename-in "sets.rkt" [%PYRET-PROVIDE sets])
+  (rename-in "ralist.rkt" [%PYRET-PROVIDE ralist])
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 (provide (all-defined-out) pyret-sets)
+(provide (all-defined-out) pyret-ralist)
 
 (define (get-list-lib name)
   (p:get-field p:dummy-loc %list name))
@@ -15,7 +17,11 @@
 (define (get-set-lib name)
   (p:get-field p:dummy-loc pyret-sets name))
 
+(define (get-ralist-lib name)
+  (p:get-field p:dummy-loc pyret-ralist name))
+
 (define pyret-sets sets)
+(define pyret-ralist ralist)
 
 (define %list (p:get-field p:dummy-loc moorings "list"))
 (define pyret-List (get-list-lib "List"))
@@ -51,10 +57,26 @@
 (define pyret-fold3 (get-list-lib "fold3"))
 (define pyret-fold4 (get-list-lib "fold4"))
 (define pyret-index (get-list-lib "index"))
+
 (define pyret-Set (get-set-lib "Set"))
 (define pyret-set (get-set-lib "set"))
 (define pyret-list-set (get-set-lib "list-set"))
 (define pyret-tree-set (get-set-lib "tree-set"))
+
+(define pyret-RandomAccessList (get-ralist-lib "RandomAccessList"))
+(define pyret-rempty (get-ralist-lib "rempty"))
+(define pyret-rlink (get-ralist-lib "rlink"))
+(define pyret-is-rempty (get-ralist-lib "is-rempty"))
+(define pyret-is-rlink (get-ralist-lib "is-rlink"))
+(define pyret-rfirst (get-ralist-lib "rfirst"))
+(define pyret-rrest (get-ralist-lib "rrest"))
+(define pyret-rget (get-ralist-lib "rget"))
+(define pyret-rset (get-ralist-lib "rset"))
+(define pyret-rlength (get-ralist-lib "rlength"))
+(define pyret-rmap (get-ralist-lib "rmap"))
+(define pyret-rfold (get-ralist-lib "rfold"))
+(define pyret-rlist-to-list (get-ralist-lib "rlist-to-list"))
+(define pyret-list-to-rlist (get-ralist-lib "list-to-rlist"))
 
 (define %option (p:get-field p:dummy-loc moorings "option"))
 (define (get-option-lib name)
