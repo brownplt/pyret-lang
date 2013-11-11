@@ -481,7 +481,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 9)
+  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 8)
 
   (check-pyret-match/check "pyret/libs/json.arr" _ 8)
 
