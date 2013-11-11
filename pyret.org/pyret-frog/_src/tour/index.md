@@ -381,7 +381,7 @@ definition: a program that dispatches over the different cases of data.  The
 the boundaries defined by your data definition.  For example:
 
     fun length(l):
-      cases(List) l
+      cases(List) l:
         | empty => 0
         | link(f, r) => 1 + length(r)
       end
@@ -392,7 +392,7 @@ underscore. Since we did not use `f` in the `link` case in the previous
 example, we could write it instead as:
 
     fun length(l):
-      cases(List) l
+      cases(List) l:
         | empty => 0
         | link(_, r) => 1 + length(r)
       end

@@ -145,6 +145,7 @@ s.parentNode.insertBefore(ga, s);
       of scripting and functional programming.  It's under active design and
       development, and free to use or modify.
       </p>
+      <p><a target="_blank" href="https://news.ycombinator.com/item?id=6701688">Discussion on HackerNews</a></p>
       <p>
         <a href="/#examples" class="btn btn-primary btn-m">Examples</a>
         <a href="/getting-started/" class="btn btn-primary btn-m">Set Sail</a>
@@ -228,7 +229,7 @@ end
 @disable-prefix{
 # Note the refinements on the
 # l argument and the result.
-# The refinments are critical to the
+# The refinements are critical to the
 # correct behavior of insertion.
 
 fun insert(n :: Number,
@@ -288,10 +289,10 @@ end
   @(pyret-example
 @disable-prefix{
 fun to-celsius(f):
-  (f * (5 / 9)) - 32
+  (f - 32) * (5 / 9)
 end
 
-for each(str from ["Hello", "world"]):
+for each(str from ["Ahoy", "world!"]):
   print(str)
 end}
 "Pyret has Python-inspired syntax for functions, lists, and operators.
@@ -350,6 +351,45 @@ end
 
   <hr/>
 
+<div class="row">
+  <div class="col-md-2"></div>
+  <div class="col-md-8">
+    <p><b>Some thoughts on syntax</b></p>
+<p>
+We believe indentation is critical for readable code, but we don't
+want the whitespace of the program to determine its meaning. Rather,
+the meaning of the program should determine its indentation
+structure. Indentation becomes just another context-sensitive rule.
+</p>
+
+<p> Unambiguous syntax (the reason for explicit <code>end</code> delimiters,
+among other things) means you can copy-and-paste code from email or the Web,
+and its meaning won't change. Your IDE can help you reindent code without
+worrying that doing so will change the meaning of the program.  </p>
+
+<p>
+We haven't yet decided on the indentation rules because we want to see
+the language in use for a while before we codify these.
+</p>
+
+  </div>
+  <div class="col-md-2"></div>
+</div>
+
+<hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+data BinTree: | leaf | node(value, left, right);
+
+fun square(n): n * n;
+}
+"Pyret supports both <code>end</code> and <code>;</code> as block terminators.
+It requires <em>some</em> terminator in order to parse unambiguously without
+resorting to whitespace, but <code>end</code> can be verbose in short programs."
+)
+
+<hr/>
+
   @(pyret-example #:where 'left
 @disable-prefix{
 check:
@@ -365,10 +405,32 @@ special <code>_</code> syntax turns expressions into functions:
 and works this syntax into the common dot syntax for field lookup, blending
 functional and object-oriented styles.")
 
+  <hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+eps = 0.001
+fun d-dx(f):
+  doc: "Approximate the derivative of f"
+  fun(x): (f(x + eps) - f(x)) / eps;
+where:
+  fun square(x): x * x;
+  fun within(delta, target):
+    fun(actual): (actual - target).abs() < delta;;
+
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
+end
+}
+"Real tests need to accomodate more than equality tests.  Pyret supports these
+generally with the <code>satisfies</code> form, which can be used to check
+satisfaction of an arbitrary predicate.")
+
 
   <hr/>
 
-  @(pyret-example #:where 'right
+  @(pyret-example #:where 'left
 @disable-prefix{
 point-methods = {
   dist(self, other):
@@ -395,12 +457,12 @@ patterns can be defined.  An object is defined by methods and fields within
 curly braces (as in <code>point-methods</code>), and can be extended
 functionally with <code>.{}</code>.  This example shows a simple class-like
 pattern built up from simple objects.  Objects, like most other values in
-Pyret, are immutable by default, so instances of points created by extending
-the object containing point methods.")
+Pyret, are immutable by default, so instances of points are created by
+extending the object containing point methods.")
 
   <hr/>
 
-  @(pyret-example #:where 'left
+  @(pyret-example #:where 'right
 @disable-prefix{
 data CyclicList:
   | clink(cyclic first, rest)
@@ -501,6 +563,42 @@ students to using just 32 bits."
 ((1 / 3) * 3) == 1
 })
   <hr/>
+@(two-langs "Simple Testing"
+@disable-prefix{
+Friction in the testing process makes it hard to work even simple unit tests
+into early programming.  Pyret removes boilerplate to put testing front and
+center in the programming process.}
+"Python"
+@disable-prefix{
+check:
+  empty.first raises "not found"
+  [1,2,3,4,5].first is 1
+  [2,4,6,8].first is 2
+end
+}
+@disable-prefix{
+import unittest
+class TestLists(unittest.TestCase):
+  def test_empty_first(self):
+    def lookup_first(lst):
+      lst[0]
+    self.assertRaises(
+        IndexError,
+        lookup_first,
+        [])
+
+  def test_1to5(self):
+    self.assertEqual([1,2,3,4,5][0], 1)
+
+  def test_evens(self):
+    self.assertEqual([2,4,6,8][0], 2)
+
+if __name__ == '__main__':
+    unittest.main()
+})
+
+
+<hr/>
 @(two-langs
 "Structured Data"
 @disable-prefix{
@@ -629,6 +727,30 @@ method_as_fun(5)
 // (depending on strict mode)
 })
 
+@(two-langs "" "" 
+"Ruby"
+@disable-prefix{
+o = @"{"
+  my-method(self, x): self.y + x end,
+  y: 10
+@"}"
+method-as-fun = o.my-method
+check:
+  method-as-fun(5) is 15
+end
+}
+@disable-prefix{
+o = Object.new
+def o.my_method(x)
+  self.y + x
+end
+def o.y
+  10
+end
+method_as_fun = o.my_method
+# Wrong number of arguments, 0 for 1
+method_as_fun(5) # not reached
+})
 </div>
 
 }
