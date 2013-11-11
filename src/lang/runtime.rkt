@@ -72,7 +72,9 @@
                 (help (- (+ m i) Ti)
                       (if (> Ti -1) Ti 0))))))
     (help 0 0))
-  (search))  
+  (cond
+    [(string=? needle "") 0]
+    [else (search)]))
     
 (define (string-contains str substr)
   (not (not (string-index str substr))))
