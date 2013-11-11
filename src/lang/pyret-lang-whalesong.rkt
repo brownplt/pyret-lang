@@ -79,21 +79,6 @@
     [pyret-list-set list-set]
     [pyret-tree-set tree-set]
 
-    [pyret-RandomAccessList RandomAccessList]
-    [pyret-rempty rempty]
-    [pyret-rlink rlink]
-    [pyret-is-rempty is-rempty]
-    [pyret-is-rlink is-rlink]
-    [pyret-rfirst rfirst]
-    [pyret-rrest rrest]
-    [pyret-rget rget]
-    [pyret-rset rset]
-    [pyret-rlength rlength]
-    [pyret-rmap rmap]
-    [pyret-rfold rfold]
-    [pyret-rlist-to-list rlist-to-list]
-    [pyret-list-to-rlist list-to-rlist]
-
     [pyret-identical identical]
     [pyret-string-to-list string-to-list])
 
