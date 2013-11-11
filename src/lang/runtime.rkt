@@ -997,7 +997,7 @@ And the object was:
 ;; check-brand-pfun : Loc -> Value * -> Value
 (define check-brand-pfun (pλ/internal (loc) (ck o s)
   (cond
-    [(p-str? s)
+    [(and (p-str? s) (p-fun? ck))
      (define f (p-base-app ck))
      (define check-v (f o))
      (if (pyret-true? check-v)
@@ -1007,7 +1007,7 @@ And the object was:
          ;;  the call site as well as the destination
          (let ([typname (p-str-s s)])
           (throw-type-error! typname o)))]
-    [(p-str? ck)
+    [(p-str? s)
      (error "runtime: cannot check-brand with non-function")]
     [(p-fun? ck)
      (error "runtime: cannot check-brand with non-string")]

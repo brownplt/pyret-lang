@@ -147,6 +147,20 @@
     "b = brander()
      b.test(b.brand([4]).{ first: [] })"
     false)
+
+  (check-pyret
+    "check-brand(fun(o): true end, 5, 'Num')"
+    (p:mk-num 5))
+  (check-pyret-exn
+    "check-brand(5, {}, 'foo')"
+    "cannot check-brand with non-function")
+  (check-pyret-exn
+    "check-brand(fun(): end, {}, 5)"
+    "cannot check-brand with non-string")
+  (check-pyret-exn
+    "check-brand(2, {}, 5)"
+    "check-brand failed")
+
 ))
 
 
