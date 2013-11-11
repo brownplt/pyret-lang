@@ -492,7 +492,7 @@ var PYRET = (function () {
         else if(fieldVal === undefined) {
             throwPyretMessage(str + " was not found on " + toRepr(val).s);
         }
-        else if(fieldVal.isMutable) {    
+        else if(isMutable(fieldVal)) {    
             throwPyretMessage('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
         else if(isPlaceholder(fieldVal)) {    
@@ -516,7 +516,7 @@ var PYRET = (function () {
       if(fieldVal === undefined) {
             throwPyretMessage(str + " was not found on " + toRepr(val).s);
       }
-      else if(fieldVal.isMutable) {
+      else if(isMutable(fieldVal)) {
         return fieldVal;
       }
       else {
@@ -571,7 +571,7 @@ var PYRET = (function () {
     PObj.prototype.updateWith = function(fields) {
         var newObj = this; //Don't clone, this is mutation
         for(var field in fields) {
-            if(newObj.dict[field].isMutable) {
+            if(isMutable(newObj.dict[field])) {
                 newObj.dict[field].set(fields[field]);
             }
             else throwPyretMessage("Attempted to update a non-mutable field");
@@ -721,9 +721,19 @@ var PYRET = (function () {
     
 
 ///-----
+    /************************
+            Mutables
+      **********************/
+    function PMutable(d) {
+      this.dict = d;
+      this.brands = [];
+      //this.dict['_torepr'] = makeMethod(function(me) {
+        //return toRepr(me);
+      //});
+    }
+    PMutable.prototype = Object.create(PBase.prototype);
 
-
-    var mutClone = function(val, r, w) {
+    function mutClone(val, r, w) {
         return function clone() {
             //We don't need to do deep cloning, but we *do* need to clone the dict
             var newDict = {};
@@ -731,8 +741,6 @@ var PYRET = (function () {
                 newDict[key] = this.dict[key];
             }
             var newObj = makeObj(newDict);
-            
-            newObj.isMutable = true;
             
            newObj.set = (function(newVal) { 
                 newVal = applyFunction(w,[newVal]);
@@ -745,8 +753,9 @@ var PYRET = (function () {
 
            newObj.clone = clone;
            return newObj;
+          }
     }
-};
+
     //Muteable
     function makeMutable(val, r, w) {
         var a = val;
@@ -758,7 +767,7 @@ var PYRET = (function () {
             throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(w).s);
         }
 
-        var mut = makeObj({
+        var mut = new PMutable({
             tostring: makeMethod(function(me) {
             return makeString("mutable-field");
             }),
@@ -777,7 +786,6 @@ var PYRET = (function () {
                 return (a = newVal);
             });
 
-        mut.isMutable = true;
         
         mut.clone = mutClone(val, r,w);
         return mut;
@@ -785,7 +793,7 @@ var PYRET = (function () {
 
 
     function isMutable(val) {
-        return makeBoolean(Boolean(val.isMutable));
+        return val instanceof PMutable;
     }
 
     var identity = makeFunction(function(x) {return x;});
@@ -1150,7 +1158,7 @@ var PYRET = (function () {
           "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
           "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
           "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
-          "is-mutable" : makeFunction(function(x) {return makeBoolean(Boolean(x.isMutable));}),
+          "is-mutable" : makeFunction(function(x) {return makeBoolean(isMutable(x));}),
           "is-placeholder": makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
           "is-object" : makeFunction(function(x) {return makeBoolean(isObj(x));}),
           "prim-num-keys" : makeFunction(function(prim) {
