@@ -650,6 +650,11 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
   (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
+  (check-pyret "'foobar'.contains('foo')" true)
+  (check-pyret "'foobar'.contains('')" true)
+  (check-pyret "''.contains('foo')" false)
+  (check-pyret "''.contains('')" true)
+
   (check-pyret "gensym('foo').contains('foo')" true)
   (check-pyret "gensym('foo').length() > 3" true)
   (check-pyret "gensym('foo') <> gensym('foo')" true)
