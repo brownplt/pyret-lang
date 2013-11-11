@@ -44,7 +44,7 @@ var PYRET = (function () {
     PMethod.prototype.clone = (function() {
         newMet = makeMethod(this.method);
         return newMet;
-return     });
+    });
     PMethod.prototype.toString = function() {return 'fun ... end'}
 
 
@@ -53,18 +53,6 @@ return     });
         if(isFunction(o)) {return o;}
         throwPyretMessage( 'check-fun: expected function, got ' + o.getType());
     }
-
-    //Wraps to ensure # arguments correct
-    //Broken
-   var checkArgs= function(fn) {
-       return function() {
-           if (arguments.length < fn.length) {
-                throw(["Expected", fn.length, "arguments, but got", arguments.length, ". The ", arguments.length ,
-                    (arguments.length > 1 ? " arguments provided were" : "argument provided was"), ].join(" "));
-                    }
-                    return fn.apply(this, arguments);
-                };
-   } 
 
    function applyFunction(fn, args) {
         if(!isFunction(fn)) {
@@ -115,7 +103,7 @@ return     });
         newObj.brands = [];
         if(allNewFields) {
             for(var brand in this.brands){
-                newObj.brands[brand] = this.brands[brand];
+                newObj.brands[brand] = this.brands[brand];  //Lookup how to better copy arrays: TODO
             }
         }
 
@@ -503,16 +491,17 @@ return     });
         func.arity = fieldVal.method.length-1;
 
         return func;
-      } else {
-        if(fieldVal === undefined) {
+      }
+        else if(fieldVal === undefined) {
             throwPyretMessage(str + " was not found on " + toRepr(val).s);
         }
-        if(fieldVal.isMutable) {    
+        else if(fieldVal.isMutable) {    
             throwPyretMessage('Cannot look up mutable field "'+ str +'" using dot or bracket');
         }
-        if(fieldVal.isPlaceholder) {    
+        else if(fieldVal.isPlaceholder) {    
             return applyFunction(getField(fieldVal, 'get'),[]);
         }
+        else{
         return fieldVal;
       }
     }
@@ -523,18 +512,18 @@ return     });
         }
         return fieldVal;
       }
+
+
     function getMutField(val, str) {
       var fieldVal = val.dict[str];
-      if (isMethod(fieldVal)) {
-        return makeFunction(function() {
-          var argList = Array.prototype.slice.call(arguments);
-          return fieldVal.method.apply(null, [val].concat(argList));
-        });
-      } else {
-        if(fieldVal === undefined) {
+      if(fieldVal === undefined) {
             throwPyretMessage(str + " was not found on " + toRepr(val).s);
-        }
+      }
+      else if(fieldVal.isMutable) {
         return fieldVal;
+      }
+      else {
+            throwPyretMessage(str + " is not a mutable field.");
       }
     }
 
