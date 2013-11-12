@@ -24,7 +24,7 @@ provide {
 } end
 
 data NodeTree:
-  | nt-leaf
+  | nt-leaf(val :: Any)
   | nt-branch(val :: Any, left :: NodeTree, right :: NodeTree)
 end
 
@@ -39,7 +39,7 @@ rempty = ra-empty
 fun rlink(val :: Any, rlist :: RandomAccessList) -> RandomAccessList:
   doc: "Constructs a random access list from a value and a list"
   fun simple-link(v, l):
-    ra-link(1, nt-branch(v, nt-leaf, nt-leaf), l)
+    ra-link(1, nt-leaf(v), l)
   end
   cases(RandomAccessList) rlist:
     | ra-empty => simple-link(val, ra-empty)
@@ -57,26 +57,18 @@ fun rlink(val :: Any, rlist :: RandomAccessList) -> RandomAccessList:
       end
   end
 where:
-  rlink("foo", rempty) is ra-link(1, nt-branch("foo", nt-leaf, nt-leaf), ra-empty)
+  rlink("foo", rempty) is ra-link(1, nt-leaf("foo"), ra-empty)
   rlink("foo", rlink("bar", rempty))
-    is ra-link(1, nt-branch("foo", nt-leaf, nt-leaf),
-               ra-link(1, nt-branch("bar", nt-leaf, nt-leaf), ra-empty))
+    is ra-link(1, nt-leaf("foo"), ra-link(1, nt-leaf("bar"), ra-empty))
   rlink("foo", rlink("bar", rlink("baz", rempty)))
-    is ra-link(3,
-               nt-branch("foo", nt-branch("bar", nt-leaf, nt-leaf),
-                                nt-branch("baz", nt-leaf, nt-leaf)),
-               ra-empty)
+    is ra-link(3, nt-branch("foo", nt-leaf("bar"), nt-leaf("baz")), ra-empty)
 end
 
 fun rfirst(rlist :: RandomAccessList) -> Any:
   doc: "Gets the first element of the random access list"
   cases(RandomAccessList) rlist:
     | ra-empty => raise("first called on empty list")
-    | ra-link(size, tree, _) =>
-      cases(NodeTree) tree:
-        | nt-leaf => raise("Empty node tree on list!")
-        | nt-branch(val, _, _) => val
-      end
+    | ra-link(size, tree, _) => tree.val
   end
 where:
   rfirst(rempty) raises "first"
@@ -90,8 +82,8 @@ fun rrest(rlist :: RandomAccessList) -> RandomAccessList:
     | ra-empty => raise("rest called on empty list")
     | ra-link(size, tree, next) =>
       cases(NodeTree) tree:
-        | nt-leaf => raise("Empty node tree on list!")
-        | nt-branch(val, left, right) =>
+        | nt-leaf(_) => next
+        | nt-branch(_, left, right) =>
           if size == 1:
             next
           else:
@@ -112,7 +104,11 @@ fun rget(rlist :: RandomAccessList, n :: Number) -> Any:
   doc: "Gets the element at index n in the random access list"
   fun nt-search(nt, size, ind):
     cases(NodeTree) nt:
-      | nt-leaf => raise("Shouldn't be reaching leaf nodes!")
+      | nt-leaf(val) =>
+        when ind <> 0:
+          raise("nt-search called with invalid index")
+        end
+        val
       | nt-branch(val, left, right) =>
         if ind == 0:
           val
@@ -147,7 +143,11 @@ fun rset(rlist :: RandomAccessList, n :: Number, new-val :: Any) -> RandomAccess
   doc: "Gets a new random access list with the element at index n changed to be new-val"
   fun nt-change(nt, size, ind, nv):
     cases(NodeTree) nt:
-      | nt-leaf => raise("Shouldn't be reaching leaf nodes!")
+      | nt-leaf(val) =>
+        when ind <> 0:
+          raise("nt-search called with invalid index")
+        end
+        nt-leaf(nv)
       | nt-branch(val, left, right) =>
         if ind == 0:
           nt-branch(nv, left, right)
@@ -196,7 +196,7 @@ fun rmap(f, rlist :: RandomAccessList) -> RandomAccessList:
   doc: "Maps the function f over every element in the random access list"
   fun nt-map(nt):
     cases(NodeTree) nt:
-      | nt-leaf => nt-leaf
+      | nt-leaf(val) => nt-leaf(f(val))
       | nt-branch(val, left, right) => nt-branch(f(val), nt-map(left), nt-map(right))
     end
   end
@@ -218,7 +218,7 @@ fun reach(f, rlist :: RandomAccessList):
   doc: "Calls f on each element in the list, and returns nothing"
   fun nt-each(nt):
     cases(NodeTree) nt:
-      | nt-leaf => nothing
+      | nt-leaf(val) => f(val)
       | nt-branch(val, left, right) =>
         f(val)
         nt-each(left)
@@ -249,7 +249,7 @@ fun rfold(f, base, rlist :: RandomAccessList):
   doc: "Accumulates all elements in the random access list using f"
   fun nt-fold(b, nt):
     cases(NodeTree) nt:
-      | nt-leaf => b
+      | nt-leaf(val) => f(val, b)
       | nt-branch(val, left, right) => nt-fold(nt-fold(f(val, b), left), right)
     end
   end
@@ -271,20 +271,16 @@ fun rfilter(f, rlist :: RandomAccessList) -> RandomAccessList:
   cases(RandomAccessList) rlist:
     | ra-empty => ra-empty
     | ra-link(size, tree, next) =>
-      cases(NodeTree) tree:
-        | nt-leaf => raise("Empty tree encountered in filter!")
+      next-list = cases(NodeTree) tree:
+        | nt-leaf(val) => next
         | nt-branch(val, left, right) =>
-          next-list = if size == 1:
-            next
-          else:
-            child-size = (size - 1) / 2
-            ra-link(child-size, left, ra-link(child-size, right, next))
-          end
-          if f(val):
-            rlink(val, rfilter(f, next-list))
-          else:
-            rfilter(f, next-list)
-          end
+          child-size = (size - 1) / 2
+          ra-link(child-size, left, ra-link(child-size, right, next))
+      end
+      if f(tree.val):
+        rlink(tree.val, rfilter(f, next-list))
+      else:
+        rfilter(f, next-list)
       end
   end
 where:
@@ -301,7 +297,7 @@ fun rany(f, rlist :: RandomAccessList) -> Bool:
   doc: "Returns true if the predicate f is true for any element in the list"
   fun nt-any(nt):
     cases(NodeTree) nt:
-      | nt-leaf => false
+      | nt-leaf(val) => f(val)
       | nt-branch(val, left, right) => f(val) or nt-any(left) or nt-any(right)
     end
   end
@@ -322,7 +318,7 @@ fun rall(f, rlist :: RandomAccessList) -> Bool:
   doc: "Returns true if the predicate f is true for all elements in the list"
   fun nt-all(nt):
     cases(NodeTree) nt:
-      | nt-leaf => true
+      | nt-leaf(val) => f(val)
       | nt-branch(val, left, right) => f(val) and nt-all(left) and nt-all(right)
     end
   end
@@ -342,17 +338,17 @@ end
 fun rfind(f, rlist :: RandomAccessList) -> Option:
   doc: "Finds the first element of the list satisfying the predicate"
   fun nt-find(nt):
-    cases(NodeTree) nt:
-      | nt-leaf => none
-      | nt-branch(val, left, right) =>
-        if f(val):
-          some(val)
-        else: 
+    if f(nt.val):
+      some(nt.val)
+    else:
+      cases(NodeTree) nt:
+        | nt-leaf(val) => none
+        | nt-branch(val, left, right) =>
           cases(Option) nt-find(left):
             | none => nt-find(right)
             | some(v) => some(v)
           end
-        end
+      end
     end
   end
   cases(RandomAccessList) rlist:
@@ -377,21 +373,17 @@ fun rpartition(f, rlist :: RandomAccessList):
   cases(RandomAccessList) rlist:
     | ra-empty => { is-true: ra-empty, is-false: ra-empty }
     | ra-link(size, tree, next) =>
-      cases(NodeTree) tree:
-        | nt-leaf => raise("Empty tree encountered in partition!")
+      next-list = cases(NodeTree) tree:
+        | nt-leaf(val) => next
         | nt-branch(val, left, right) =>
-          next-list = if size == 1:
-            next
-          else:
-            child-size = (size - 1) / 2
-            ra-link(child-size, left, ra-link(child-size, right, next))
-          end
-          part-result = rpartition(f, next-list)
-          if f(val):
-            { is-true: rlink(val, part-result.is-true), is-false: part-result.is-false }
-          else:
-            { is-true: part-result.is-true, is-false: rlink(val, part-result.is-false) }
-          end
+          child-size = (size - 1) / 2
+          ra-link(child-size, left, ra-link(child-size, right, next))
+      end
+      part-result = rpartition(f, next-list)
+      if f(tree.val):
+        { is-true: rlink(tree.val, part-result.is-true), is-false: part-result.is-false }
+      else:
+        { is-true: part-result.is-true, is-false: rlink(tree.val, part-result.is-false) }
       end
   end
 where:
@@ -409,8 +401,8 @@ fun rlist-to-list(rlist :: RandomAccessList) -> List:
   doc: "Convert a random access list to a normal list"
   fun nt-to-list(nt):
     cases(NodeTree) nt:
-      | nt-leaf => []
-      | nt-branch(val, left, right) => list.link(val, nt-to-list(left)) + nt-to-list(right)
+      | nt-leaf(val) => [val]
+      | nt-branch(val, left, right) => link(val, nt-to-list(left)) + nt-to-list(right)
     end
   end
   cases(RandomAccessList) rlist:
