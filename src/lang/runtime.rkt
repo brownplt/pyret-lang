@@ -72,7 +72,9 @@
                 (help (- (+ m i) Ti)
                       (if (> Ti -1) Ti 0))))))
     (help 0 0))
-  (search))  
+  (cond
+    [(string=? needle "") 0]
+    [else (search)]))
     
 (define (string-contains str substr)
   (not (not (string-index str substr))))
@@ -83,18 +85,18 @@
     (define i (string-index s sep))
     (cond
      [i
-      (let [(front (substring s 0 i))
+      (let [(front (mk-str (substring s 0 i)))
             (back (substring s (+ i sep-len) (string-length s)))]
         (if repeated
             (cons front (help back))
-            (list front back)))]
-     [else (list s)]))
+            (list front (mk-str back))))]
+     [else (list (mk-str s))]))
   (cond
-   [(string=? sep "") (map string (string->list s))]
+   [(string=? sep "") (map (λ(c) (mk-str (string c))) (string->list s))]
    [else (help s)]))
 
 (define (string-explode s)
-  (map string (string->list s)))
+  (map (λ(c) (mk-str (string c))) (string->list s)))
 
 (define (interleave sep lst acc)
   (cond
@@ -556,10 +558,39 @@
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
+(define in-get-raw-field empty)
 (define (get-raw-field loc v f)
- (string-map-ref (get-dict v) f
+  (string-map-ref (get-dict v) f
    (lambda()
-     (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
+     ;; (printf "get-raw-field failed for ~a and ~a\n" (raw-repr v) f)
+     (if (empty? in-get-raw-field)
+         (begin
+           (set! in-get-raw-field (cons f in-get-raw-field))
+           (with-handlers
+               ([(λ(e) (not (empty? in-get-raw-field)))
+                 (λ(e)
+                   ;; (printf "In-g-r-f, in-g-r-f isn't empty and to-repr failed,\ne = ~s\nin-g-r-f = ~a\nf = ~a" e in-get-raw-field f)
+                   (let* ((outer-f (first in-get-raw-field))
+                          (e-loc (exn:fail:pyret-srcloc e))
+                          (e-loc-list (if (srcloc? e-loc) (loc-list e-loc) e-loc))
+                          (e-val (exn:fail:pyret-val e))
+                          (e-msg (if (p-str? e-val) (p-str-s e-val)
+                                     (p-str-s (get-raw-field loc e-val "message"))))
+                          (msg (format "While reporting that ~a was not found in ~a, to-repr raised an error: ~a"
+                                       outer-f (raw-repr v) e-msg)))
+                     (set! in-get-raw-field (rest in-get-raw-field))
+                     (with-continuation-mark
+                      'pyret-mark (apply srcloc loc)
+                      (raise (pyret-error e-loc-list "field-not-found" msg)))))])
+             ;; (printf "In-g-r-f, in-g-r-f is empty, field ~a wasn't found on ~a, trying to-repr\n" f (raw-repr v))
+             (let ((v-repr (to-repr v)))
+               (set! in-get-raw-field (rest in-get-raw-field))
+               ;; (printf "In-g-r-f, to-repr succeeded: ~a" v-repr)
+               (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f v-repr))))))
+         (begin
+           ;; (printf "In-g-r-f, field ~a wasn't found, in-g-r-f isn't empty: ~a\n" f in-get-raw-field)
+           (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (raw-repr v))))))
+     )))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -927,9 +958,9 @@ And the object was:
   meta-bool-store)
 
 ;; serialize : Value String (method name) -> String
-(define (serialize v method)
+(define (serialize v method override)
   (define (serialize-internal v fallback)
-    (if (has-field? v method)
+    (if (and (has-field? v method) (not override))
         (let [(m (get-raw-field dummy-loc v method))]
           (if (p-method? m)
               ;; NOTE(dbp): this will fail if tostring isn't defined
@@ -954,11 +985,13 @@ And the object was:
     [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
     [(p-mutable _ _ _ _ _ _ _) (serialize-internal v (λ () "mutable-field"))]
     [(p-placeholder _ _ _ _ _ _) (serialize-internal v (λ () "cyclic-field"))]
+    [(p-str _ _ _ _ s) (if (string=? method "tostring") s (format "~s" s))]
+    [(p-num _ _ _ _ n) (number->string n)]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
          (define (serialize-field f v)
-           (format "~a: ~a" f (serialize v method)))
+           (format "~a: ~a" f (serialize v method override)))
          (format "{~a}"
                  (string-join (string-map-map h serialize-field) ", ")))
        (serialize-internal
@@ -966,13 +999,14 @@ And the object was:
         (λ () (serialize-raw-object h))))]
     [(default _) (format "~a" v)]))
 
-(define to-string (lambda (o) (serialize o "tostring")))
-(define to-repr (lambda (o) (serialize o "_torepr")))
+(define to-string (lambda (o) (serialize o "tostring" #f)))
+(define to-repr (lambda (o) (serialize o "_torepr" #f)))
+(define raw-repr (lambda (o) (serialize o "_torepr" #t)))
 
 (define tostring-pfun (pλ/internal (loc) (o)
-  (mk-str (serialize o "tostring"))))
+  (mk-str (to-string o))))
 (define torepr-pfun (pλ/internal (loc) (o)
-  (mk-str (serialize o "_torepr"))))
+  (mk-str (to-repr o))))
 
 (define (pyret-print o)
   (define str
