@@ -12,7 +12,13 @@ provide {
   rset: rset,
   rlength: rlength,
   rmap: rmap,
+  reach: reach,
   rfold: rfold,
+  rfilter: rfilter,
+  rany: rany,
+  rall: rall,
+  rfind: rfind,
+  rpartition: rpartition,
   rlist-to-list: rlist-to-list,
   list-to-rlist: list-to-rlist
 } end
@@ -188,15 +194,15 @@ end
 
 fun rmap(f, rlist :: RandomAccessList) -> RandomAccessList:
   doc: "Maps the function f over every element in the random access list"
-  fun nt-map(fn, nt):
+  fun nt-map(nt):
     cases(NodeTree) nt:
       | nt-leaf => nt-leaf
-      | nt-branch(val, left, right) => nt-branch(fn(val), nt-map(fn, left), nt-map(fn, right))
+      | nt-branch(val, left, right) => nt-branch(f(val), nt-map(left), nt-map(right))
     end
   end
   cases(RandomAccessList) rlist:
     | ra-empty => ra-empty
-    | ra-link(size, tree, next) => ra-link(size, nt-map(f, tree), rmap(f, next))
+    | ra-link(size, tree, next) => ra-link(size, nt-map(tree), rmap(f, next))
   end
 where:
   rmap-inc = fun(rl): rmap(fun(n): n + 1 end, rl) end
@@ -208,17 +214,48 @@ where:
     is rlink(2, rlink(3, rlink(4, rlink(5, rempty))))
 end
 
+fun reach(f, rlist :: RandomAccessList):
+  doc: "Calls f on each element in the list, and returns nothing"
+  fun nt-each(nt):
+    cases(NodeTree) nt:
+      | nt-leaf => nothing
+      | nt-branch(val, left, right) =>
+        f(val)
+        nt-each(left)
+        nt-each(right)
+    end
+  end
+  cases(RandomAccessList) rlist:
+    | ra-empty => nothing
+    | ra-link(_, tree, next) =>
+      nt-each(tree)
+      reach(f, next)
+  end
+where:
+  var x = 0
+  reach-inc-x = fun(rl): reach(fun(dummy): x := x + 1 end, rl) end
+  
+  reach-inc-x(rempty)
+  x is 0
+  reach-inc-x(rlink(1, rempty))
+  x is 1
+  reach-inc-x(rlink(1, rlink(2, rempty)))
+  x is 3
+  reach-inc-x(rlink(1, rlink(2, rlink(3, rlink(4, rempty)))))
+  x is 7
+end
+
 fun rfold(f, base, rlist :: RandomAccessList):
   doc: "Accumulates all elements in the random access list using f"
-  fun nt-fold(fn, b, nt):
+  fun nt-fold(b, nt):
     cases(NodeTree) nt:
       | nt-leaf => b
-      | nt-branch(val, left, right) => nt-fold(fn, nt-fold(fn, fn(val, b), left), right)
+      | nt-branch(val, left, right) => nt-fold(nt-fold(f(val, b), left), right)
     end
   end
   cases(RandomAccessList) rlist:
     | ra-empty => base
-    | ra-link(_, tree, next) => rfold(f, nt-fold(f, base, tree), next)
+    | ra-link(_, tree, next) => rfold(f, nt-fold(base, tree), next)
   end
 where:
   rfold-sum = fun(rl): rfold(fun(n, m): n + m end, 0, rl) end
@@ -227,6 +264,145 @@ where:
   rfold-sum(rlink(1, rempty)) is 1
   rfold-sum(rlink(1, rlink(2, rempty))) is 3
   rfold-sum(rlink(1, rlink(2, rlink(3, rlink(4, rempty))))) is 10
+end
+
+fun rfilter(f, rlist :: RandomAccessList) -> RandomAccessList:
+  doc: "Returns a random access list containing only elements for which the given predicate is true"
+  cases(RandomAccessList) rlist:
+    | ra-empty => ra-empty
+    | ra-link(size, tree, next) =>
+      cases(NodeTree) tree:
+        | nt-leaf => raise("Empty tree encountered in filter!")
+        | nt-branch(val, left, right) =>
+          next-list = if size == 1:
+            next
+          else:
+            child-size = (size - 1) / 2
+            ra-link(child-size, left, ra-link(child-size, right, next))
+          end
+          if f(val):
+            rlink(val, rfilter(f, next-list))
+          else:
+            rfilter(f, next-list)
+          end
+      end
+  end
+where:
+  rfilter-even = fun(rl): rfilter(fun(n): (n.modulo(2)) == 0 end, rl) end
+
+  rfilter-even(rempty) is rempty
+  rfilter-even(rlink(1, rempty)) is rempty
+  rfilter-even(rlink(1, rlink(2, rempty))) is rlink(2, rempty)
+  rfilter-even(rlink(1, rlink(2, rlink(3, rlink(4, rempty)))))
+    is rlink(2, rlink(4, rempty))
+end
+
+fun rany(f, rlist :: RandomAccessList) -> Bool:
+  doc: "Returns true if the predicate f is true for any element in the list"
+  fun nt-any(nt):
+    cases(NodeTree) nt:
+      | nt-leaf => false
+      | nt-branch(val, left, right) => f(val) or nt-any(left) or nt-any(right)
+    end
+  end
+  cases(RandomAccessList) rlist:
+    | ra-empty => false
+    | ra-link(_, tree, next) => nt-any(tree) or rany(f, next)
+  end
+where:
+  rany-even = fun(rl): rany(fun(n): (n.modulo(2)) == 0 end, rl) end
+
+  rany-even(rempty) is false
+  rany-even(rlink(1, rempty)) is false
+  rany-even(rlink(1, rlink(2, rempty))) is true
+  rany-even(rlink(1, rlink(2, rlink(3, rlink(4, rempty))))) is true
+end
+
+fun rall(f, rlist :: RandomAccessList) -> Bool:
+  doc: "Returns true if the predicate f is true for all elements in the list"
+  fun nt-all(nt):
+    cases(NodeTree) nt:
+      | nt-leaf => true
+      | nt-branch(val, left, right) => f(val) and nt-all(left) and nt-all(right)
+    end
+  end
+  cases(RandomAccessList) rlist:
+    | ra-empty => true
+    | ra-link(_, tree, next) => nt-all(tree) and rall(f, next)
+  end
+where:
+  rall-even = fun(rl): rall(fun(n): (n.modulo(2)) == 0 end, rl) end
+
+  rall-even(rempty) is true
+  rall-even(rlink(1, rempty)) is false
+  rall-even(rlink(1, rlink(2, rempty))) is false
+  rall-even(rlink(2, rlink(4, rlink(6, rlink(8, rempty))))) is true
+end
+
+fun rfind(f, rlist :: RandomAccessList) -> Option:
+  doc: "Finds the first element of the list satisfying the predicate"
+  fun nt-find(nt):
+    cases(NodeTree) nt:
+      | nt-leaf => none
+      | nt-branch(val, left, right) =>
+        if f(val):
+          some(val)
+        else: 
+          cases(Option) nt-find(left):
+            | none => nt-find(right)
+            | some(v) => some(v)
+          end
+        end
+    end
+  end
+  cases(RandomAccessList) rlist:
+    | ra-empty => none
+    | ra-link(_, tree, next) =>
+      cases(Option) nt-find(tree):
+        | none => rfind(f, next)
+        | some(val) => some(val)
+      end
+  end
+where:
+  rfind-even = fun(rl): rfind(fun(n): (n.modulo(2)) == 0 end, rl) end
+
+  rfind-even(rempty) is none
+  rfind-even(rlink(1, rempty)) is none
+  rfind-even(rlink(1, rlink(2, rempty))) is some(2)
+  rfind-even(rlink(1, rlink(2, rlink(3, rlink(4, rempty))))) is some(2)
+end
+
+fun rpartition(f, rlist :: RandomAccessList):
+  doc: "Splits the list into two lists depending on the result of the predicate on each element"
+  cases(RandomAccessList) rlist:
+    | ra-empty => { is-true: ra-empty, is-false: ra-empty }
+    | ra-link(size, tree, next) =>
+      cases(NodeTree) tree:
+        | nt-leaf => raise("Empty tree encountered in partition!")
+        | nt-branch(val, left, right) =>
+          next-list = if size == 1:
+            next
+          else:
+            child-size = (size - 1) / 2
+            ra-link(child-size, left, ra-link(child-size, right, next))
+          end
+          part-result = rpartition(f, next-list)
+          if f(val):
+            { is-true: rlink(val, part-result.is-true), is-false: part-result.is-false }
+          else:
+            { is-true: part-result.is-true, is-false: rlink(val, part-result.is-false) }
+          end
+      end
+  end
+where:
+  rpartition-even = fun(rl): rpartition(fun(n): (n.modulo(2)) == 0 end, rl) end
+
+  rpartition-even(rempty) is { is-true: rempty, is-false: rempty }
+  rpartition-even(rlink(1, rempty)) is { is-true: rempty, is-false: rlink(1, rempty) }
+  rpartition-even(rlink(1, rlink(2, rempty)))
+    is { is-true: rlink(2, rempty), is-false: rlink(1, rempty) }
+  rpartition-even(rlink(1, rlink(2, rlink(3, rlink(4, rempty)))))
+    is { is-true: rlink(2, rlink(4, rempty)), is-false: rlink(1, rlink(3, rempty)) }
 end
 
 fun rlist-to-list(rlist :: RandomAccessList) -> List:
