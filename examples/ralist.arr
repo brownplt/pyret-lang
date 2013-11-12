@@ -84,12 +84,8 @@ fun rrest(rlist :: RandomAccessList) -> RandomAccessList:
       cases(NodeTree) tree:
         | nt-leaf(_) => next
         | nt-branch(_, left, right) =>
-          if size == 1:
-            next
-          else:
-            child-size = (size - 1) / 2
-            ra-link(child-size, left, ra-link(child-size, right, next))
-          end
+          child-size = (size - 1) / 2
+          ra-link(child-size, left, ra-link(child-size, right, next))
       end
   end
 where:
