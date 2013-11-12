@@ -1062,6 +1062,10 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/currying.arr" _ 14)
 ))
 
+(define nested-errors (test-suite "nested errors"
+  (check-pyret-match/check "pyret/nested-errors.arr" _ 20)
+))
+
 (define checks (test-suite "checks"
 
   (let ()
@@ -1161,6 +1165,7 @@ o2.m().called" true)
   ffi
   mixins
   currying
+  nested-errors
   checks
   examples
   annotations))
