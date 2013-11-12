@@ -655,6 +655,18 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "''.contains('foo')" false)
   (check-pyret "''.contains('')" true)
 
+  (check-pyret "'blahblah'.split('a', false) == ['bl', 'hblah']" true)
+  (check-pyret "'blahblah'.split('a', true) == ['bl', 'hbl', 'h']" true)
+  (check-pyret "String('blahblah'.split('a', false).first)" true)
+  (check-pyret "'blahblah'.split('z', false) == ['blahblah']" true)
+  (check-pyret "'blahblah'.split('z', true) == ['blahblah']" true)
+  (check-pyret "String('blahblah'.split('z', false).first)" true)
+  (check-pyret "'blah'.split('a', false).map(_.length()) == [2, 1]" true)
+
+  (check-pyret "''.explode() == []" true)
+  (check-pyret "'abcde'.explode() == ['a', 'b', 'c', 'd', 'e']" true)
+  
+
   (check-pyret "gensym('foo').contains('foo')" true)
   (check-pyret "gensym('foo').length() > 3" true)
   (check-pyret "gensym('foo') <> gensym('foo')" true)

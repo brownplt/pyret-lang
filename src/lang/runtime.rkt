@@ -85,18 +85,18 @@
     (define i (string-index s sep))
     (cond
      [i
-      (let [(front (substring s 0 i))
+      (let [(front (mk-str (substring s 0 i)))
             (back (substring s (+ i sep-len) (string-length s)))]
         (if repeated
             (cons front (help back))
-            (list front back)))]
-     [else (list s)]))
+            (list front (mk-str back))))]
+     [else (list (mk-str s))]))
   (cond
-   [(string=? sep "") (map string (string->list s))]
+   [(string=? sep "") (map (λ(c) (mk-str (string c))) (string->list s))]
    [else (help s)]))
 
 (define (string-explode s)
-  (map string (string->list s)))
+  (map (λ(c) (mk-str (string c))) (string->list s)))
 
 (define (interleave sep lst acc)
   (cond
