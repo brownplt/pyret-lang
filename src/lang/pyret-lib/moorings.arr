@@ -2,7 +2,6 @@
 
 provide {
   list: list,
-  sets: sets,
   builtins: builtins,
   error: error,
   checkers: checkers,
@@ -189,14 +188,6 @@ fun drop-help(lst, n :: Number):
   end
 end
 
-
-fun list-to-set(lst :: List):
-  doc: "Convert a list into a set."
-  for fold(s from __set([]), elem from lst):
-    s.add(elem)
-  end
-end
-
 data List:
   | empty with:
 
@@ -354,7 +345,6 @@ sharing:
     link(elt, self)
   end,
   _plus(self :: List, other :: List): self.append(other) end,
-  to-set(self :: List): list-to-set(self) end
 
 where:
   eq = checkers.check-equals
@@ -774,9 +764,12 @@ list = {
     fold3: fold3,
     fold4: fold4,
     fold_n: fold_n,
-    index: index,
-    to-set: list-to-set
+    index: index
   }
+
+# TREES
+
+# ERROR
 
 data Location:
   | location(file :: String, line, column) with:
@@ -872,67 +865,7 @@ error = {
   is-location: is-location
 }
 
-
-data Set:
-  | __set(elems :: List) with:
-
-      member(self, elem :: Any) -> Bool:
-        doc: 'Check to see if an element is in a set.'
-        self.elems.member(elem)
-      where:
-        sets.set([1, 2, 3]).member(2) is true
-        sets.set([1, 2, 3]).member(4) is false
-      end,
-
-      add(self, elem :: Any) -> Set:
-        doc: "Add an element to the set if it is not already present."
-        if (self.elems.member(elem)):
-          self
-        else:
-          __set(link(elem, self.elems))
-        end
-      where:
-        sets.set([]).add(1) is sets.set([1])
-        sets.set([1]).add(1) is sets.set([1])
-        sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
-        sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
-      end,
-
-      remove(self, elem :: Any) -> Set:
-        doc: "Remove an element from the set if it is present."
-        __set(self.elems.filter(fun (x): x <> elem end))
-      where:
-        sets.set([1, 2]).remove(18) is sets.set([1, 2])
-        sets.set([1, 2]).remove(2) is sets.set([1])
-      end,
-
-      to-list(self) -> List:
-        doc: 'Convert a set into a sorted list of elements.'
-        self.elems.sort()
-      where:
-        sets.set([3, 1, 2]).to-list() is [1, 2, 3]
-      end,
-
-      union(self, other :: Set):
-        doc: "Take the union of two sets."
-        list-to-set(self.to-list().append(other.to-list()))
-      where:
-        sets.set([1, 2]).union(sets.set([2, 3])) is sets.set([1, 2, 3])
-      end,
-
-      _equals(self, other):
-        Set(other) and (self.elems.sort() == other.elems.sort())
-      where:
-        (sets.set([1, 2.1, 3]) <> sets.set([1, 2.2, 3])) is true
-        sets.set([1, 2, 4]) is sets.set([2, 1, 4])
-      end
-end
-
-sets = {
-  Set: Set,
-  set: list-to-set
-}
-
+# OPTION
 
 data Option:
   | none with:

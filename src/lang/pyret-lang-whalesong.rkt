@@ -10,7 +10,6 @@
   )
 
 (define list (p:get-field p:dummy-loc moorings "list"))
-(define sets (p:get-field p:dummy-loc moorings "sets"))
 (define error (p:get-field p:dummy-loc moorings "error"))
 (define builtins (p:get-field p:dummy-loc moorings "builtins"))
 (define checkers (p:get-field p:dummy-loc moorings "checkers"))
@@ -26,7 +25,6 @@
   #%app
 
   list
-  sets
   error
   builtins
   checkers
@@ -69,8 +67,11 @@
     [pyret-index index]
     [pyret-read-sexpr read-sexpr]
     [pyret-read-sexpr-list read-sexpr-list]
+    [pyret-sets sets]
     [pyret-Set Set]
     [pyret-set set]
+    [pyret-list-set list-set]
+    [pyret-tree-set tree-set]
     [pyret-Option Option]
     [pyret-is-none is-none]
     [pyret-is-some is-some]

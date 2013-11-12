@@ -21,9 +21,6 @@ check:
 
   ([] + 5) raises "expected List"
 
-  o = {m: [1,2,3]:to-set}
-  o.m() raises "expected List"
-
   list.fold_n(fun(i, sum, elt): sum + elt;, 0, 0, [1,2,3]) is 6
   list.fold_n(fun(i, _, _): i;, 5, 0, [1]) is 5
 end
