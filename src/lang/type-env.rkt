@@ -156,7 +156,7 @@
       'set
       'list-set
       'tree-set
-      
+
       'identical
       'string-to-list)))
 
