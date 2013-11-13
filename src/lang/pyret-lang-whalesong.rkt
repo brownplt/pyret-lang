@@ -67,16 +67,17 @@
     [pyret-index index]
     [pyret-read-sexpr read-sexpr]
     [pyret-read-sexpr-list read-sexpr-list]
-    [pyret-sets sets]
-    [pyret-Set Set]
-    [pyret-set set]
-    [pyret-list-set list-set]
-    [pyret-tree-set tree-set]
     [pyret-Option Option]
     [pyret-is-none is-none]
     [pyret-is-some is-some]
     [pyret-none none]
     [pyret-some some]
+
+    [pyret-sets sets]
+    [pyret-Set Set]
+    [pyret-set set]
+    [pyret-list-set list-set]
+    [pyret-tree-set tree-set]
 
     [pyret-identical identical]
     [pyret-string-to-list string-to-list])
