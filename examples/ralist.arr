@@ -30,8 +30,10 @@ data NodeTree:
 end
 
 data RandomAccessList:
-  | ra-empty
-  | ra-link(size :: Number, tree :: NodeTree, next :: RandomAccessList)
+  | ra-empty with:
+      join-str(self, str): "" end
+  | ra-link(size :: Number, tree :: NodeTree, next :: RandomAccessList) with:
+      join-str(self, str): rjoinr(fun(l, r): l + str + r end, self) end,
 sharing:
   first(self): rfirst(self) end,
   rest(self): rrest(self) end,
@@ -53,8 +55,8 @@ sharing:
   set(self, n, e): rset(self, n, e) end,
   sort-by(self, cmp, eq): rsort(self, cmp, eq) end,
   sort(self): rsort(self, fun(l, r): l < r end, fun(l, r): l == r end) end,
-  join-str(self, str): rjoinr(fun(l, r): l + str + r end, self) end,
 
+  to-list(self): rlist-to-list(self) end,
   tostring(self): tostring(rlist-to-list(self)) end,
   _torepr(self): torepr(rlist-to-list(self)) end,
   _plus(self, other): rappend(self, other) end
@@ -527,6 +529,22 @@ where:
   rdrop(rlink(1, rlink(2, rlink(3, rlink(4, rempty)))), 2) is rlink(3, rlink(4, rempty))
 end
 
+fun rjoinl(joiner, rlist :: RandomAccessList):
+  doc: "Joins elements of the list together using the specified joiner function"
+  cases(RandomAccessList) rlist:
+    | ra-empty => raise("join called on empty list")
+    | ra-link(_, _, _) =>
+      rfoldl(joiner, rfirst(rlist), rrest(rlist))
+  end
+where:
+  join-sum = fun(rl): rjoinl(fun(l, r): l + r end, rl) end
+
+  join-sum(rempty) raises "join"
+  join-sum(rlink(1, rempty)) is 1
+  join-sum(rlink(1, rlink(2, rempty))) is 3
+  join-sum(rlink(1, rlink(2, rlink(3, rlink(4, rempty))))) is 10
+end
+
 fun rjoinr(joiner, rlist :: RandomAccessList):
   doc: "Joins elements of the list together using the specified joiner function, in list order"
   cases(RandomAccessList) rlist:
@@ -603,4 +621,8 @@ end
 check:
   RandomAccessList(rempty) is true
   RandomAccessList(rlink(1, rempty)) is true
+
+  rempty.join-str(", ") is ""
+  rlink("foo", rempty).join-str(", ") is "foo"
+  rlink("foo", rlink("bar", rempty)).join-str(", ") is "foo, bar"
 end
