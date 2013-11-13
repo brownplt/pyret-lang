@@ -237,47 +237,89 @@ data List:
 
   | link(cyclic first :: Any, cyclic rest :: List) with:
 
-    length(self): 1 + self.rest.length() end,
+     length(self):
+    doc: "Takes no other arguments and returns the number of links in the list"
+    1 + self.rest.length() end,
 
     each(self, f):
+    doc: "Takes a function and calls that function for each element in the list. 
+    ,but returns nothing"
       f(self.first)
       self.rest.each(f)
     end,
 
-    map(self, f): f(self.first)^link(self.rest.map(f)) end,
+    map(self, f):
+    doc: "Takes function returns a list of function f applied to each element of the list"
+    f(self.first)^link(self.rest.map(f)) end,
 
     filter(self, f):
+    doc: "Takes a predicate and returns a list of all the elements in the list that satisfy 
+    that predicate"
       if f(self.first): self.first^link(self.rest.filter(f))
       else:             self.rest.filter(f)
       end
     end,
 
-    partition(self, f): partition(f, self) end,
+    partition(self, f):
+    doc: "Takes a predicate and returns two lists, one containing all elements for which 
+    the predicate evaluates to true, and one containing all elements for which the 
+    predicate evaluates to false."
+    partition(f, self) end,
 
-    find(self, f): find(f, self) end,
+    find(self, f):
+    doc: "Takes a predicate returns some(elem) where elem is the first element in the list
+    for which the predicate returns true, or none if the predicate returns false for all 
+    elements"
+    find(f, self) end,
 
-    member(self, elt): (elt == self.first) or self.rest.member(elt) end,
+    member(self, elt): 
+    doc: "Takes an element and returns true if the element is a member of the list, and 
+    false otherwise"
+    (elt == self.first) or self.rest.member(elt) end,
 
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
+    foldr(self, f, base):
+    doc: "Takes a two-input function and a base and returns base, where base is an 
+    accumulator that takes the result of function f operating on each element of the 
+    list in turn and the current value of base"
+    f(self.first, self.rest.foldr(f, base)) end,
 
     foldl(self, f, base): self.rest.foldl(f, f(self.first, base)) end,
 
-    append(self, other): self.first^link(self.rest.append(other)) end,
+    append(self, other):
+    doc: "Takes another list and returns a list having elements that are the elements of 
+    the list the function is called on in the same order followed by the elements of 
+    the input list in the same order as they appear in that list"
+    self.first^link(self.rest.append(other)) end,
 
     last(self):
+    doc: "Takes no other arguments and returns the last element of the list the function
+    is called upon"
       if is-empty(self.rest): self.first
       else: self.rest.last()
       end
     end,
 
-    reverse(self): reverse-help(self, empty) end,
+    reverse(self): 
+    doc: "Takes no other agruments and returns a list whose values are the same as the
+    list the function is called upon in reverse order"
+    reverse-help(self, empty) end,
 
-    take(self, n): take-help(self, n) end,
+    take(self, n):
+    doc: "Takes a natural n and returns a list that includes the first n values of the 
+    list the function is called on, in the same order that they appear. Returns the 
+    entire list if n is larger than the length of the list."
+    take-help(self, n) end,
 
-    drop(self, n): drop-help(self, n) end,
+    drop(self, n):
+    doc: "Takes a natural n returns a list that includes all values of the list the
+    function is called upon except the first n values in the same order that they 
+    appear in the list the function is called upon.  Returns empty if n is larger
+    than the length of the list."
+    drop-help(self, n) end,
 
     get(self, n): get-help(self, n) end,
-
+    doc: "Takes a natural n and returns the value of the input list at index n, 
+    where the list is indexed from 0 to n-1"
     set(self, n, e): set-help(self, n, e) end,
 
     _equals(self, other):
@@ -290,6 +332,9 @@ data List:
     end,
 
     tostring(self):
+    doc: "Takes no other arguments and returns a string that is of the form
+    \"[elt1, elt2, ..., eltx]\" where eltn is an element of the list the 
+    function is called on."
       "[" +
         for raw-fold(combined from tostring(self:first), elt from self:rest):
           combined + ", " + tostring(elt)
@@ -328,6 +373,8 @@ data List:
     end,
 
     sort(self):
+    doc: "Takes no other arguments and runs the sort-by command for the comparator
+    elt1 < elt2 and the equality procedure elt1 = elt2"
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
     end,
 
