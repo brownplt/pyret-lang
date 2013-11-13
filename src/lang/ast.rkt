@@ -167,10 +167,10 @@ these metadata purposes.
 ;;    s-block s-method))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
-(struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)
+(struct s-lam s-ast (syntax typarams args ann doc body check force-loc) #:transparent)
 
 ;; s-method : srcloc (Listof s-bind) Ann String s-block s-block
-(struct s-method s-ast (syntax args ann doc body check) #:transparent)
+(struct s-method s-ast (syntax args ann doc body check force-loc) #:transparent)
 
 ;; A Member is a (U s-data-field s-method-field)
 ;; s-data-field : srcloc Expr Expr
@@ -314,27 +314,27 @@ these metadata purposes.
      (cond
       [shadow? (s-fun s name params new-args new-ann doc body (sub check))]
       [else (s-fun s name params new-args new-ann doc (sub body) (sub check))])]
-    [(s-lam s typarams args ann doc body check)
+    [(s-lam s typarams args ann doc body check force-loc)
      (define shadow? (member sub-id (map s-bind-id args)))
      (define new-args (map sub args))
      (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-lam s typarams new-args new-ann doc body (sub check))]
-      [else (s-lam s typarams new-args new-ann doc (sub body) (sub check))])]
-    [(s-method s args ann doc body check)
+      [shadow? (s-lam s typarams new-args new-ann doc body (sub check) force-loc)]
+      [else (s-lam s typarams new-args new-ann doc (sub body) (sub check) force-loc)])]
+    [(s-method s args ann doc body check force-loc)
      (define shadow? (member sub-id (map s-bind-id args)))
      (define new-args (map sub args))
      (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-method s new-args new-ann doc body (sub check))]
-      [else (s-method s new-args new-ann doc (sub body) (sub check))])]
+      [shadow? (s-method s new-args new-ann doc body (sub check) force-loc)]
+      [else (s-method s new-args new-ann doc (sub body) (sub check) force-loc)])]
     [(s-method-field s name args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
      (define new-args (map sub args))
      (define new-ann (subst-ann ann sub-id expr2))
      (cond
       [shadow? (s-method-field s name new-args new-ann doc body (sub check))]
-      [else (s-method s name args new-ann doc (sub body) (sub check))])]
+      [else (s-method s name args new-ann doc (sub body) (sub check) #f)])]
     [(s-for-bind s bind value) (s-for-bind s (sub bind) (sub value))]
     [(s-for s iterator bindings ann body)
      (define shadow? (member sub-id (map s-bind-id (map s-for-bind-bind bindings))))
@@ -425,8 +425,8 @@ these metadata purposes.
     [(s-check-test syntax op left right) syntax]
     [(s-not syntax expr) syntax]
     [(s-paren syntax expr) syntax]
-    [(s-lam syntax typarams args ann doc body check) syntax]
-    [(s-method syntax args ann doc body check) syntax]
+    [(s-lam syntax typarams args ann doc body check force-loc) syntax]
+    [(s-method syntax args ann doc body check force-loc) syntax]
     [(s-data-field syntax name value) syntax]
     [(s-method-field syntax name args ann doc body check) syntax]
     [(s-extend syntax super fields) syntax]
@@ -575,9 +575,9 @@ these metadata purposes.
     [(s-bind _ id ann) (free-ids-ann ann)]
     [(s-fun _ name params args ann doc body check)
      (free-ids-fun args ann body check (set name))]
-    [(s-lam _ typarams args ann doc body check)
+    [(s-lam _ typarams args ann doc body check force-loc)
      (free-ids-fun args ann body check)]
-    [(s-method _ args ann doc body check)
+    [(s-method _ args ann doc body check force-loc)
      (free-ids-fun args ann body check)]
     [(s-check _ body) (free-ids body)]
     [(s-var _ name value) (set-union (free-ids-bind name) (free-ids value))]
@@ -821,13 +821,13 @@ these metadata purposes.
                       params2 args2 ann2 doc2 body2 check2
                       name1 name2)]
       [(cons
-        (s-lam _ params1 args1 ann1 doc1 body1 check1)
-        (s-lam _ params2 args2 ann2 doc2 body2 check2))
+        (s-lam _ params1 args1 ann1 doc1 body1 check1 force-loc1)
+        (s-lam _ params2 args2 ann2 doc2 body2 check2 force-loc2))
        (equiv-ast-fun params1 args1 ann1 doc1 body1 check1
                       params2 args2 ann2 doc2 body2 check2)]
       [(cons
-        (s-method _ args1 ann1 doc1 body1 check1)
-        (s-method _ args2 ann2 doc2 body2 check2))
+        (s-method _ args1 ann1 doc1 body1 check1 force-loc1)
+        (s-method _ args2 ann2 doc2 body2 check2 force-loc2))
        (equiv-ast-fun '() args1 ann1 doc1 body1 check1
                       '() args2 ann2 doc2 body2 check2)]
       [(cons (s-check _ body1) (s-check _ body2))

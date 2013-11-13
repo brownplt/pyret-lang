@@ -36,11 +36,11 @@
      (s-if-branch syntax (tci expr) (tci body))]
     [(s-try syntax body id except)
      (s-try syntax (tci body) id (tci except))]
-    [(s-lam syntax typarams args ann doc body check-ignored)
+    [(s-lam syntax typarams args ann doc body check-ignored force-loc)
      (s-lam syntax typarams (map (replace-typarams-binds typarams) args)
-            ((replace-typarams typarams) ann) doc (tci body) check-ignored)]
-    [(s-method syntax args ann doc body check-ignored)
-     (s-method syntax args ann doc (tci body) check-ignored)]
+            ((replace-typarams typarams) ann) doc (tci body) check-ignored force-loc)]
+    [(s-method syntax args ann doc body check-ignored force-loc)
+     (s-method syntax args ann doc (tci body) check-ignored force-loc)]
     [(s-data-field syntax name value)
      (s-data-field syntax name (tci value))]
     [(s-mutable-field syntax name ann value)
@@ -97,9 +97,9 @@
       (match b
         [(s-cases-branch s2 name args body)
          (s-data-field s2 (s-str s2 (symbol->string name))
-                       (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty)))]))
+                       (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty) #t))]))
     (define else-fun
-      (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty)))
+      (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty) #t))
     (define cases-object
       (s-obj s (map ds-cases-branch cases)))
     (define val-temp-name (gensym "cases-value"))
@@ -125,8 +125,8 @@
   (s-let s (s-bind s name (a-blank)) (s-bracket s (s-id s brander-name) (s-str s "test"))))
 (define (apply-brand s brander-name arg)
   (s-app s (s-bracket s (s-id s brander-name) (s-str s "brand")) (list arg)))
-(define (meth s args body)
-  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+(define (meth force-loc s args body)
+  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty) force-loc))
 (define (bind->string m)
   (match m
     [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
@@ -134,7 +134,7 @@
 
 (define ((data-variants params super-brand) variant)
   (define (make-equals s brander fields)
-    (meth s (list 'self 'other)
+    (meth #f s (list 'self 'other)
         (s-app s (s-bracket s (s-id s 'builtins) (s-str s "data-equals"))
           (append
             (list
@@ -144,7 +144,7 @@
             (desugar-internal (s-list s (map bind->string fields))))))))
   (define (make-match s case-name fields)
     (define call-match-case (gensym (string-append "call-" case-name)))
-      (meth s (list 'self 'cases-funs 'else-clause)
+      (meth #f s (list 'self 'cases-funs 'else-clause)
         (s-if-else s
          (list
           (s-if-branch s
@@ -168,7 +168,7 @@
                     (a-blank)
                     (format "Constructor for ~a" (symbol->string name))
                     (types-compile-internal (s-datatype-constructor-body constructor))
-                    (s-block s empty))
+                    (s-block s empty) #f)
            (list obj)))
   (match variant
     [(s-datatype-variant s name members constructor)
@@ -192,7 +192,7 @@
              ['cyclic (s-once-field s2 name-str ann val)]
              [_ (error (format "Bad variant type: ~a" member-type))])]))
      (define torepr
-       (meth s (list 'self)
+       (meth #f s (list 'self)
              (s-app s (s-bracket s (s-id s 'builtins) (s-str s "data-to-repr"))
                     (list (s-id s 'self)
                           (s-str s (symbol->string name))
@@ -232,11 +232,12 @@
                        (apply-brand s super-brand
                         (apply-brand s brander-name
                          (apply-constructor s constructor params name obj)))))
-                    (s-block s empty))))
+                    (s-block s empty)
+                    #f)))
      ]
     [(s-datatype-singleton-variant s name constructor)
      (define torepr
-       (meth s (list 'self)
+       (meth #f s (list 'self)
              (s-str s (symbol->string name))))
      (define brander-name (gensym name))
      (define equals (make-equals s (make-checker-name name) (list)))

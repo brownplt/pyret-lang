@@ -93,7 +93,7 @@
    (match v
      [(s-method-field loc (s-str _ name) args ann doc body check)
       (if (equal? name method-name)
-          (s-method loc args ann doc body check)
+          (s-method loc args ann doc body check #f)
           #f)]
      [_ #f]))
  (match data
@@ -108,16 +108,16 @@
 
 (define (pretty-method method-field)
  (match method-field
-  [(s-method loc args ann doc body check)
-   (pretty (s-method loc args ann "" (s-block loc empty) check))]
+  [(s-method loc args ann doc body check force-loc)
+   (pretty (s-method loc args ann "" (s-block loc empty) check force-loc))]
   [(s-method-field loc name args ann doc body check)
    (pretty (s-method-field loc name args ann "" (s-block loc empty) check))]
   [_ (error (format "Not a method: ~a\n" method-field))]))
 
 (define (pretty-method-with-doc method-field)
  (match method-field
-  [(s-method loc args ann doc body check)
-   (pretty (s-method loc args ann doc (s-block loc empty) check))]
+  [(s-method loc args ann doc body check force-loc)
+   (pretty (s-method loc args ann doc (s-block loc empty) check force-loc))]
   [(s-method-field loc name args ann doc body check)
    (pretty (s-method-field loc name args ann doc (s-block loc empty) check))]
   [_ (error (format "Not a method: ~a\n" method-field))]))

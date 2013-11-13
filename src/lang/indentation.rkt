@@ -72,9 +72,9 @@
     [(s-check-test syntax op left right) (begin (ic left) (ic right))]
     [(s-not syntax expr) (ic expr)]
     [(s-paren syntax expr) (ic expr)]
-    [(s-lam syntax typarams args ann doc body check)
+    [(s-lam syntax typarams args ann doc body check force-loc)
      (begin (ic body) (ic check))]
-    [(s-method syntax args ann doc body check)
+    [(s-method syntax args ann doc body check force-loc)
      (begin (ic body) (ic check))]
     [(s-data-field syntax name value) (ic name) (ic value)]
     [(s-mutable-field syntax name ann value) (ic name) (ic value)]

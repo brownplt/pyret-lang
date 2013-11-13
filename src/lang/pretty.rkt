@@ -90,18 +90,20 @@
                (pretty-check check)
                "end")]
 
-    [(s-method _ args ann doc body check)
+    [(s-method l args ann doc body check force-loc)
      (define one-line (and (equal? "" doc) (empty? (s-block-stmts check))))
      ((if one-line spaces newlines)
+      ;(if force-loc (format "forced loc ~a:~a:~a" (srcloc-source l) (srcloc-line l) (srcloc-column l)) "unforced")
       (pretty-method-header args ann)
       (indented (pretty-doc doc))
       (if one-line (prettier body) (indented (prettier body)))
       (pretty-check check)
       "end")]
 
-    [(s-lam _ params args ann doc body check)
+    [(s-lam l params args ann doc body check force-loc)
      (define one-line (and (equal? "" doc) (empty? (s-block-stmts check))))
      ((if one-line spaces newlines)
+      ;(if force-loc (format "forced loc ~a:~a:~a" (srcloc-source l) (srcloc-line l) (srcloc-column l)) "unforced")
       (pretty-fun-header "" params args ann)
       (indented (pretty-doc doc))
       (if one-line (prettier body) (indented (prettier body)))

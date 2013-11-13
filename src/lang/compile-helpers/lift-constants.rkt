@@ -35,13 +35,13 @@
        (cons (flatten (map car stmts-results))
              (s-block l (map cdr stmts-results)))]
 
-      [(s-lam l params args ann doc body check)
+      [(s-lam l params args ann doc body check force-loc)
        (match-define (cons lst new-body) (get-and-replace-constants body))
-       (cons lst (s-lam l params args ann doc new-body check))]
+       (cons lst (s-lam l params args ann doc new-body check force-loc))]
       
-      [(s-method l args ann doc body check)
+      [(s-method l args ann doc body check force-loc)
        (match-define (cons lst new-body) (get-and-replace-constants body))
-       (cons lst (s-method l args ann doc new-body check))]
+       (cons lst (s-method l args ann doc new-body check force-loc))]
 
       [(s-if-else l c-bs else)
        (define (process-if-branch b)

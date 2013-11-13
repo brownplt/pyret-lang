@@ -46,7 +46,8 @@
                (a-blank)
                (format "~a: Tests for ~a" srcloc-str name)
                body
-               (s-block s empty)))
+               (s-block s empty)
+               #f))
        (s-obj s (list (s-data-field s (s-str s "name") (s-str s (symbol->string name)))
                       (s-data-field s (s-str s "run") check-fun)
                       (s-data-field s (s-str s "location")
@@ -152,11 +153,11 @@
     [(s-fun s name typarams args ann doc body check)
      (s-fun s name typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
 
-    [(s-lam s typarams args ann doc body check)
-     (s-lam s typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
+    [(s-lam s typarams args ann doc body check force-loc)
+     (s-lam s typarams (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)) force-loc)]
 
-    [(s-method s args ann doc body check)
-     (s-method s (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)))]
+    [(s-method s args ann doc body check force-loc)
+     (s-method s (map ds-bind args) (ds-ann ann) doc (ds body) (s-block s (list)) force-loc)]
 
     [(s-when s test body)
      (s-when s (ds test) (ds body))]

@@ -53,9 +53,9 @@
     [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
-  (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty)))
+  (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty) #f))
 (define (mk-method loc args result doc body)
-  (s-method loc args result doc (s-block loc (list body)) (s-block loc empty)))
+  (s-method loc args result doc (s-block loc (list body)) (s-block loc empty) #f))
 
 (define (ann-check loc ann)
   (define ann-str (s-str loc (pretty-ann ann)))
@@ -312,7 +312,7 @@
     [(s-user-block s body)
      (s-user-block s (cc body))]
 
-    [(s-lam s typarams args ann doc body check)
+    [(s-lam s typarams args ann doc body check force-loc)
      (define (new-arg b)
       (match b
         [(s-bind s id ann) (s-bind s (gensym id) (a-blank))]))
@@ -330,14 +330,14 @@
      (define full-body
       (s-block s
         (append checked-args (list wrapped-body))))
-     (s-lam s typarams new-args ann doc full-body (cc check))]
+     (s-lam s typarams new-args ann doc full-body (cc check) force-loc)]
 
     ;; TODO(joe): give methods an annotation position for result
-    [(s-method s args ann doc body check)
+    [(s-method s args ann doc body check force-loc)
      (define body-env (foldl (update-for-bind #f) env args))
      (wrap-ann-check s
       (a-method s (map s-bind-ann args) (a-blank))
-      (s-method s args ann doc (cc-env body body-env) (cc-env check body-env)))]
+      (s-method s args ann doc (cc-env body body-env) (cc-env check body-env) force-loc))]
 
     [(s-if-else s if-bs else-block)
      (define (cc-branch branch)

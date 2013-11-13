@@ -219,7 +219,8 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Expr,
+      force-loc :: Bool
     ) with:
     tosource(self):
       funlam_tosource(str-fun,
@@ -231,7 +232,8 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Expr,
+      force-loc :: Bool
     ) with:
     tosource(self):
       funlam_tosource(str-method,

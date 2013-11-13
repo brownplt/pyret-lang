@@ -31,8 +31,8 @@
 (define (block-fun-ids stmts)
   (define (stmt-id stmt)
     (match stmt
-      [(s-let _ (s-bind _ id _) (s-lam _ _ _ _ _ _ _)) id]
-      [(s-let _ (s-bind _ id _) (s-extend s (s-lam _ _ _ _ _ _ _) fields)) id]
+      [(s-let _ (s-bind _ id _) (s-lam _ _ _ _ _ _ _ _)) id]
+      [(s-let _ (s-bind _ id _) (s-extend s (s-lam _ _ _ _ _ _ _ _) fields)) id]
       [_ #f]))
   (list->set (filter-map stmt-id stmts)))
 
@@ -65,11 +65,14 @@
        (define id-used (or (> (length (remove-duplicates ids)) 1)
                            (= (length ids) 1)))
        (match val
-        [(s-lam l _ args _ doc body _)
+        [(s-lam l _ args _ doc body _ force-loc)
          (define inline-binding
           (with-syntax ([(arg ...) (args-stx l args)])
-            #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+            (if force-loc
+                #`(r:define #,(make-immediate-id id)
+                    (p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) l))
+                #`(r:define #,(make-immediate-id id)
+                    (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))))
          (cond
           [(or (compile-env-toplevel? env) id-used)
             (list inline-binding
@@ -78,11 +81,14 @@
                     #`(r:define #,(discard-_ id)
                           (p:pλ (arg ...) #,doc (f-id arg ...)))))]
           [else (list inline-binding)])]
-        [(s-extend s (s-lam l _ args _ doc body _) fields)
+        [(s-extend s (s-lam l _ args _ doc body _ force-loc) fields)
          (define inline-binding
           (with-syntax ([(arg ...) (args-stx l args)])
-            #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+            (if force-loc
+                #`(r:define #,(make-immediate-id id)
+                   (p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) l))
+                #`(r:define #,(make-immediate-id id)
+                   (p:arity-catcher (arg ...) #,(compile-expr/internal body env))))))
          (cond
           [(or (compile-env-toplevel? env) id-used)
             (list inline-binding
@@ -147,19 +153,23 @@
     [(s-bool l #f) #`p:p-false]
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
-    [(s-lam l params args ann doc body _)
+    [(s-lam l params args ann doc body _ force-loc)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body new-env)])
-         #`(p:pλ (arg ...) #,doc body-stx)))]
+         (if force-loc
+             #`(p:pλ/loc (arg ...) #,doc body-stx #,(loc-stx l))
+             #`(p:pλ (arg ...) #,doc body-stx))))]
 
-    [(s-method l args ann doc body _)
+    [(s-method l args ann doc body _ force-loc)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body new-env)])
-         #`(p:pμ (arg ...) #,doc body-stx)))]
+         (if force-loc
+             #`(p:pμ/loc (arg ...) #,doc body-stx #,(loc-stx l))
+             #`(p:pμ (arg ...) #,doc body-stx))))]
 
     [(s-if-else l c-bs else-block)
      (define (compile-if-branch b)
@@ -211,9 +221,11 @@
       (match fun
         [(s-id l2 (? (λ (s) (set-member? (compile-env-functions-to-inline env) s)) id))
          (make-immediate-id id)]
-        [(s-lam l _ args _ doc body _)
+        [(s-lam l _ args _ doc body _ force-loc)
          (with-syntax ([(arg ...) (args-stx l args)])
-           #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env)))]
+           (if force-loc
+               #`(p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) l)
+               #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env))))]
         [_ #`(p:p-base-app #,(compile-expr fun env))]))
      (mark-if (current-mark-mode) l
      (attach l

@@ -128,17 +128,17 @@ line string\"" (s-str _ "multi\nline string"))
 
   (check/block "method(x,y): 1 end"
                (s-method _ (list (s-bind _ 'x (a-blank)) (s-bind _ 'y (a-blank)))
-                         (a-blank) _ (s-block _ (list (s-num _ 1))) _))
+                         (a-blank) _ (s-block _ (list (s-num _ 1))) _ _))
 
   (check/block "method(self): 1 where: foo end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
-                         (s-block _ (list (s-id _ 'foo)))))
+                         (s-block _ (list (s-id _ 'foo))) _))
 
   (check/block "method(self): 1 where: end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) _ (s-block _ (list (s-num _ 1)))
-                         (s-block _ empty)))
+                         (s-block _ empty) _))
 
   (check/block "{f(): x where: 1 end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) _
@@ -148,7 +148,7 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "method(self): doc: 'hello' 1 end"
                (s-method _ (list (s-bind _ 'self (a-blank)))
                          (a-blank) "hello" (s-block _ (list (s-num _ 1)))
-                         (s-block _ empty)))
+                         (s-block _ empty) _))
 
   (check/block "{f(): doc: 'hello' 1 end}"
                (s-obj _ (list (s-method-field _ (s-str _ "f") (list) (a-blank) "hello"
@@ -468,14 +468,14 @@ line string\"" (s-str _ "multi\nline string"))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      _))
+                      _ _))
 
   (check/block "fun -> Number: x end"
                (s-lam _ empty (list)
                       (a-name _ 'Number)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      _))
+                      _ _))
 
   (check/block "fun(x :: Number, y :: Bool) -> Number: x.send(y) end"
                (s-lam _ empty (list (s-bind _ 'x (a-name _ 'Number))
@@ -485,7 +485,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-block _ (list (s-app _
                                               (s-dot _ (s-id _ 'x) 'send)
                                               (list (s-id _ 'y)))))
-                      _))
+                      _ _))
 
   (check/block "fun(x,y,z): x end"
                (s-lam _ empty (list (s-bind _ 'x (a-blank))
@@ -494,14 +494,14 @@ line string\"" (s-str _ "multi\nline string"))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      _))
+                      _ _))
 
   (check/block "fun(x): x where: foo end"
                (s-lam _ empty (list (s-bind _ 'x (a-blank)))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      (s-block _ (list (s-id _ 'foo)))))
+                      (s-block _ (list (s-id _ 'foo))) _))
 
 
 
@@ -512,14 +512,14 @@ line string\"" (s-str _ "multi\nline string"))
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      _))
+                      _ _))
 
 (check/block "fun (): x end"
                (s-lam _ empty (list)
                       (a-blank)
                       _
                       (s-block _ (list (s-id _ 'x)))
-                      _))
+                      _ _))
 
   ;; non-empty lists for x
   (check/block "var x :: List(list.is-cons) = 4"
@@ -1118,7 +1118,7 @@ line string\"" (s-str _ "multi\nline string"))
                  (a-blank)
                  _
                  (s-block _ (list))
-                 _))
+                 _ _))
 
   (check/block "for iter(thing from somewhere): dostuff();"
       (s-for _

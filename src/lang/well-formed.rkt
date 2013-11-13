@@ -272,7 +272,7 @@
             (wf body)
             (well-formed/internal check #t))]
 
-    [(s-lam s typarams args ann doc body check)
+    [(s-lam s typarams args ann doc body check force-loc)
      (begin (ensure-unique-ids args)
             (ensure-empty-block s "anonymous functions" check)
             (map wf-bind args)
@@ -280,7 +280,7 @@
             (wf body)
             (well-formed/internal check #t))]
 
-    [(s-method s args ann doc body check)
+    [(s-method s args ann doc body check force-loc)
      (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
                 (ensure-empty-block s "methods" check)

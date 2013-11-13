@@ -167,7 +167,7 @@
         (tp body)
         (tp check))]
 
-    [(s-lam s typarams args ann doc body check)
+    [(s-lam s typarams args ann doc body check force-loc)
      (build s_lam
         (tp-loc s)
         (map symbol->string typarams)
@@ -175,16 +175,18 @@
         (tp-ann ann)
         doc
         (tp body)
-        (tp check))]
+        (tp check)
+        force-loc)]
 
-    [(s-method s args ann doc body check)
+    [(s-method s args ann doc body check force-loc)
      (build s_method
         (tp-loc s)
         (map tp-bind args)
         (tp-ann ann)
         doc
         (tp body)
-        (tp check))]
+        (tp check)
+        force-loc)]
 
     [(s-when s test body)
      (build s_when
@@ -529,9 +531,9 @@
      [(has-brand e s_paren)
       (tr-obj e s-paren (tr-loc l) (tr-expr expr))]
      [(has-brand e s_lam)
-      (tr-obj e s-lam (tr-loc l) (map string->symbol params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+      (tr-obj e s-lam (tr-loc l) (map string->symbol params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check) (noop force-loc))]
      [(has-brand e s_method)
-      (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
+      (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check) (noop force-loc))]
      [(has-brand e s_extend)
       (tr-obj e s-extend (tr-loc l) (tr-expr super) (map tr-member fields))]
      [(has-brand e s_update)
