@@ -17,14 +17,14 @@ pyret-dev: dep
 
 test:
 	@echo Compiling and running tests, should say 0 errors and 0 failures
-	cd src/tests; \
-	raco make compile-tests.rkt parse-tests.rkt type-tests.rkt well-formed-tests.rkt indentation-tests.rkt; \
-	racket parse-tests.rkt; \
-	racket compile-tests.rkt; \
-	racket type-tests.rkt; \
-	racket well-formed-tests.rkt; \
-	racket indentation-tests.rkt; \
-	racket lib-tests.rkt; \
+	cd src/tests && \
+	raco make compile-tests.rkt parse-tests.rkt type-tests.rkt well-formed-tests.rkt indentation-tests.rkt && \
+	racket parse-tests.rkt && \
+	racket compile-tests.rkt && \
+	racket type-tests.rkt && \
+	racket well-formed-tests.rkt && \
+	racket indentation-tests.rkt && \
+	racket lib-tests.rkt && \
 	racket test-tokenizer.rkt
 
 doc:
