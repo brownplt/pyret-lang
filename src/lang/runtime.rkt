@@ -355,7 +355,7 @@
   (case-lambda
     [(arg ...) e ...]
     [arity-mismatch-args-list
-     (arity-error (get-top-loc) (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
+     (arity-error loc (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
 
 
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
