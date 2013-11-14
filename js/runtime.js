@@ -100,16 +100,16 @@ var PYRET = (function () {
         }
         newObj.brands = [];
         if(allNewFields) {
-            for(var brand in this.brands){
-                newObj.brands[brand] = this.brands[brand];  //Lookup how to better copy arrays: TODO
-            }
+            newObj.brands = this.brands.slice(0);
         }
-
         return newObj;
     }
 
         
 
+    /**********************************
+    * Type Checking
+    ***********************************/
     function typeCheck(arg1, type1, arg2, type2, name){
         if (!(type1(arg1) && type2(arg2))) {
             raiseTypeError(arg1,arg2, name);
@@ -121,7 +121,12 @@ var PYRET = (function () {
         throwPyretMessage("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
-
+    function checkIf(arg1, type1, name) {
+        if(!type1(arg1)) {
+           throwPyretMessage("Incorrect type of value for method \""+name+"\": " + arg1.toString());
+        }
+        return;
+    }
     /**********************************
     * Numbers
     ***********************************/
@@ -185,57 +190,75 @@ var PYRET = (function () {
         return makeBoolean(left.n % right.n);
       }),
       tostring : makeMethod(function(me) {
+        checkIf(me, isNumber, 'tostring');
         return makeString(String(me.n));
       }),
       _torepr : makeMethod(function(me) {
+        checkIf(me, isNumber, 'torepr');
         return makeString(String(me.n));
       }),
       floor : makeMethod(function(me) {
+        checkIf(me, isNumber, 'floor');
         return makeNumber(Math.floor(me.n).toFixed(1));
       }),
       ceiling : makeMethod(function(me) {
+        checkIf(me, isNumber, 'ceiling');
         return makeNumber(Math.ceil(me.n).toFixed(1));
       }),
       exp: makeMethod(function(me) {
+        checkIf(me, isNumber, 'exp');
         return makeNumber(Math.exp(me.n));
       }),
       expt: makeMethod(function(me, pow) {
+        checkBothNum(me, pow, 'expt');
         return makeNumber(Math.pow(me.n, pow.n));
       }),
       _equals: makeMethod(function(me, other) {
+        checkBothNum(me, other, 'equals');
         return makeBoolean(me.n === other.n);
       }),
       sin : makeMethod(function(me) {
+        checkIf(me, isNumber, 'sin');
         return makeNumber(Math.sin(me.n));
       }),
       cos : makeMethod(function(me) {
+        checkIf(me, isNumber, 'cos');
         return makeNumber(Math.cos(me.n));
       }),
       tan : makeMethod(function(me) {
+        checkIf(me, isNumber, 'tan');
         return makeNumber(Math.tan(me.n));
       }),
       asin : makeMethod(function(me) {
+        checkIf(me, isNumber, 'asin');
         return makeNumber(Math.asin(me.n));
       }),
       acos : makeMethod(function(me) {
+        checkIf(me, isNumber, 'acos');
         return makeNumber(Math.acos(me.n));
       }),
       atan : makeMethod(function(me) {
+        checkIf(me, isNumber, 'atan');
         return makeNumber(Math.atan(me.n));
       }),
       sqr : makeMethod(function(me) {
+        checkIf(me, isNumber, 'sqr');
         return makeNumber(Math.pow(me.n,2));
       }),
       sqrt : makeMethod(function(me) {
+        checkIf(me, isNumber, 'sqrt');
         return makeNumber(Math.sqrt(me.n));
       }),
       truncate : makeMethod(function(me) {
+        checkIf(me, isNumber, 'truncate');
         return makeNumber(Math.round(me.n));
       }),
       exact : makeMethod(function(me) {
+        checkIf(me, isNumber, 'exact');
         return makeNumber(me.n);
       }),
       log : makeMethod(function(me) {
+        checkIf(me, isNumber, 'log');
         return makeNumber(Math.log(me.n));
       }),
     };
@@ -260,23 +283,36 @@ var PYRET = (function () {
     * Strings
     ***********************************/
 
+    function checkBothStr(arg1, arg2, fname) {
+        typeCheck(arg1, isString, arg2, isString, fname);
+        return;
+    }
+
     var stringDict = {
       _plus: makeMethod(function(left, right) {
+        checkBothStr(left, right, 'string-plus')
         return makeString(left.s + right.s);
       }),
       tostring : makeMethod(function(me) {
+        checkIf(me, isString, 'tostring')
         return makeString(me.s);
       }),
       contains: makeMethod(function(me, sub){
+        checkBothStr(me, sub, 'contains')
         return makeBoolean(me.s.indexOf(sub) != -1);
       }),
       'char-at': makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isNumber, 'char-at');
         return makeString(String(me.s.charAt(n)));
       }),
       replace: makeMethod(function(me, forStr, withStr) {
+          checkIf(me, isString, 'tostring')
+          checkIf(forStr, isString, 'tostring')
+          checkIf(withStr, isString, 'tostring')
           return makeString(me.s.replace(new RegExp(forStr,"g"), withStr));
       }),
       tonumber: makeMethod(function(me) {
+          checkIf(me, isString, 'tonumber')
           toNum = Number(me.s);
           if(!isNaN(toNum)) {
             return makeNumber(Number(me.s));
@@ -286,15 +322,21 @@ var PYRET = (function () {
           }
       }),
       substring: makeMethod(function(me, start, stop) {
+          checkIf(me, isString, 'substring')
+          checkIf(start, isNumber, 'substring')
+          checkIf(stop, isNumber, 'substring')
         return makeString(me.s.substring(start,stop));
       }),
       append : makeMethod(function(me, o) {
+        checkBothStr(me,o, 'append')
         return makeString(me.s + o.s);
       }),
       length : makeMethod(function(me) {
+          checkIf(me, isString, 'length')
         return makeNumber(me.s.length);
       }),
       repeat : makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isNumber, 'repeat');
         var result = "";i
         for(var x = n.n; x>0; n.n--){
            result = result + me.s;
@@ -303,21 +345,27 @@ var PYRET = (function () {
       }),
 
       _greatereqaul : makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isString, 'greaterequal');
         return makeBoolean(me.s >= n.s);
       }),
       _greaterthan : makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isString, 'greaterthan');
         return makeBoolean(me.s > n.s);
       }),
       _lessequal : makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isString, 'lessequal');
         return makeBoolean(me.s <= n.s);
       }),
       _lessthan : makeMethod(function(me, n) {
+        typeCheck(me, isString, n, isString, 'lessthan');
         return makeBoolean(me.s < n.s);
       }),
       _equals : makeMethod(function(me, x) {
+        typeCheck(me, isString, x, isString, 'equals');
         return makeBoolean(me.s === x.s);
       }),
       _torepr : makeMethod(function(me) {
+          checkIf(me, isString, 'torepr')
           return '"'+me.s+'"';
       }),
     };
@@ -340,6 +388,11 @@ var PYRET = (function () {
     /**********************************
     * Booleans
     ***********************************/
+    function checkBothBool(arg1, arg2, fname) {
+        typeCheck(arg1, isBoolean, arg2, isBoolean, fname);
+        return;
+    }
+
     var booleanDict = {
         _and : makeMethod(function(left, right) {
             if(!isBoolean(left)) {
@@ -374,17 +427,20 @@ var PYRET = (function () {
         }),
 
       _not: makeMethod(function(me) {
+        checkIf(me, isBoolean, 'not');
         return makeBoolean(!(me.b));
       }),
 
       _tostring: makeMethod(function(me) {
+        checkIf(b, isBoolean, 'toString');
        return toRepr(me); 
       }),   
       _torepr: makeMethod(function(me) {
+       checkIf(b, isBoolean, 'torepr');
        return makeString(String(me.b)); 
       }),   
       _equals: makeMethod(function(me, other) {
-        if(!(isBoolean(other))){return makeBoolean(false);}
+        checkBothBool(me, other);
        return makeBoolean(me.b === other.b); 
       }),   
     };
@@ -938,11 +994,8 @@ var PYRET = (function () {
        
         for(key in obj1.dict){
             if(obj2.dict.hasOwnProperty(key)) {
-                if(isObj(obj1.dict[key]) && !(equiv(obj1.dict[key], obj2.dict[key]).b)) {
+                if(!(equiv(obj1.dict[key], obj2.dict[key]).b)) {
                     return false;
-                }
-                else {
-                    return obj1.dict[key] == obj2.dict[key];
                 }
             }
             else {
@@ -964,7 +1017,7 @@ var PYRET = (function () {
 
                   if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
 
-                  repr = repr + toRepr(getField(val, first)).s + ", ";
+                  repr = repr + toRepr(getField(val, first.s)).s + ", ";
                   fieldsEmpty = false;
               }
               catch(e){
@@ -981,7 +1034,8 @@ var PYRET = (function () {
             }   
 
     function dataEquals(me, other, brand, fields) {
-        var b = applyFunction(brand, [other]);
+        var b = applyFunction(brand, [other]).b;
+        
         var acc = true;
         while(true){
           try{
@@ -989,16 +1043,36 @@ var PYRET = (function () {
               var rest = getField(fields, "rest");
               fields = rest;
 
-              myVal = getField(me, first);
-              otherVal = getField(other, first);
+              myVal = getField(me, first.s);
+              otherVal = getField(other, first.s);
             
-              acc = acc && (myVal == otherVal)
+              acc = acc && (equiv(myVal, otherVal).b)
           }
           catch(e) {
             break;
           }
         }
+        //var sameBrands = checkSameBrands(me.brands, other.brands);
         return makeBoolean(b && acc);
+    }
+
+    function checkSameBrands(myBrands, theirBrands) {
+        if(myBrands === undefined || theirBrands === undefined) {
+            return false;
+        }
+
+        var counter = myBrands.length;
+        if(theirBrands.length != counter) {
+            return false;
+        }
+
+        while(counter--) {
+            if(theirBrands.indexOf(myBrands[counter]) === -1) {
+                return false;
+            }
+        }
+
+        return true;
     }
 /* 
     return 
