@@ -1,6 +1,11 @@
 var PYRET = (function () {
   function makeRuntime() {
+    
     //Base of all objects
+    //DEF
+    /*************************
+    *       Base
+    *************************/
     function PBase() {}
     function isPBase(v) { return v instanceof PBase; }
     PBase.prototype = {
@@ -11,12 +16,43 @@ var PYRET = (function () {
       extendWith : extendWith,
     };
 
-    //Nothing
+    /*
+        Extends an object with the new fields in fields
+        If all the fields are new, the brands are kept,
+        otherwise, the extended object has no brands
+
+        fields: a PObj whose fields will be added to the Pyret base
+        If any of the fields exist, they will be overwritten with the new value
+    */
+    function extendWith(fields) {
+        var newObj = this.clone();
+        var allNewFields = true;
+        for(var field in fields) {
+            if(newObj.dict.hasOwnProperty(field)) {
+               allNewFields = false;
+            }
+            newObj.dict[field] = fields[field];
+        }
+        newObj.brands = [];
+        if(allNewFields) {
+            newObj.brands = this.brands.slice(0);
+        }
+        return newObj;
+    }
+
+    //DEF
+    /*************************
+    *       Nothing
+    *************************/
     function PNothing(){}
     function makeNothing() {return new PNothing();}
     PNothing.prototype = Object.create(PBase.prototype);
     function isNothing(val) {return val instanceof PNothing;}
 
+    //DEF
+    /*************************
+    *       Method
+    *************************/
     function PMethod(f) {
       this.method = f;
       this.brands = [];
@@ -48,12 +84,25 @@ var PYRET = (function () {
     PMethod.prototype.toString = function() {return 'fun ... end'}
 
 
-    //Checks to see that an object is a function and returns it, raises error otherwise
+    //DEF
+    /*************************
+    *       Function
+    *************************/
+    /*Checks to see that an object is a function and returns it, raises error otherwise
+      o : object to test
+    */
     function checkFun(o) {
         if(isFunction(o)) {return o;}
         throwPyretMessage( 'check-fun: expected function, got ' + o.getType());
     }
 
+    /**
+        Applies a function to the given list of arguments
+        Performs arity checking (arrity!!) 
+
+        fn: a PFunction to apply
+        args: a list of arguments to apply to the function
+    */
    function applyFunction(fn, args) {
         if(!isFunction(fn)) {
             throwPyretMessage("Cannot apply non-function: " + toRepr(fn));
@@ -89,21 +138,6 @@ var PYRET = (function () {
     });
 
     
-    function extendWith(fields) {
-        var newObj = this.clone();
-        var allNewFields = true;
-        for(var field in fields) {
-            if(newObj.dict.hasOwnProperty(field)) {
-               allNewFields = false;
-            }
-            newObj.dict[field] = fields[field];
-        }
-        newObj.brands = [];
-        if(allNewFields) {
-            newObj.brands = this.brands.slice(0);
-        }
-        return newObj;
-    }
 
         
 
@@ -127,6 +161,8 @@ var PYRET = (function () {
         }
         return;
     }
+
+    //DEF
     /**********************************
     * Numbers
     ***********************************/
@@ -278,7 +314,7 @@ var PYRET = (function () {
      });
      PNumber.prototype.getType = function(){return 'number';};
 
-
+    //DEF
     /**********************************
     * Strings
     ***********************************/
@@ -385,6 +421,7 @@ var PYRET = (function () {
      });
     PString.prototype.getType = function() {return 'string';};
 
+    //DEF
     /**********************************
     * Booleans
     ***********************************/
@@ -483,6 +520,13 @@ var PYRET = (function () {
       return val1 === val2;
     }
 
+
+    /**
+        toRepr(val) 
+
+        Returns the string representation of the pyret value.
+        Val: A pyret value to represent
+    **/
     function toRepr(val) {
 
       if(isNumber(val)) {
@@ -534,6 +578,19 @@ var PYRET = (function () {
       throwPyretMessage("toStringJS on an unknown type: " + val);
     }
 
+    /**
+        getField(val, str)
+
+        Gets the field of the given name from the pyret value
+        If the field is:
+            a method: turns it into a function to be applied, with the first argument bound to val
+            a mutable: error, cannot access mutable field with dot or bracket
+            a placeholder: obtains the value using the 'get' method of the placeholder
+            other: returns the value
+
+        Val: A pyret value
+        Str: The name of the field to retrieve
+    **/
     function getField(val, str) {
       var fieldVal = val.dict[str];
       if (isMethod(fieldVal)) {
@@ -558,6 +615,17 @@ var PYRET = (function () {
         return fieldVal;
       }
     }
+
+    /**
+        getColonField(val, str)
+
+        Gets the field of the given name from the pyret value
+        Does not retrieve the value from placeholders, mutables or methods
+        Instead it returns them "raw"
+
+        Val: A pyret value
+        Str: The name of the field to retrieve
+    **/
     function getColonField(val, str) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
@@ -567,6 +635,15 @@ var PYRET = (function () {
       }
 
 
+    /**
+        getMutField(val, str)
+
+        Gets the field of the given name from the pyret value
+        The field must be a mutable field, else error
+
+        Val: A pyret value
+        Str: The name of the field to retrieve
+    **/
     function getMutField(val, str) {
       var fieldVal = val.dict[str];
       if(fieldVal === undefined) {
@@ -599,7 +676,8 @@ var PYRET = (function () {
     function makeFailResult(exn) { return new FailResult(exn); }
 
     function errToJSON(exn) {if(isObj(exn)){return  exn.dict['message'].s;} else {var res = exn.s; if(res === undefined) {return exn;} return res;}}
-
+    
+    //DEF
     /**********************************
     * Objects
     ***********************************/
@@ -691,6 +769,7 @@ var PYRET = (function () {
         }
     });
 
+    //DEF
     /**********************************
     * Placeholder
     ***********************************/
@@ -776,7 +855,7 @@ var PYRET = (function () {
 
     
 
-///-----
+    //DEF
     /************************
             Mutables
       **********************/
@@ -812,7 +891,7 @@ var PYRET = (function () {
           }
     }
 
-    //Muteable
+    //Mutable
     function makeMutable(val, r, w) {
         var a = val;
 
@@ -855,7 +934,10 @@ var PYRET = (function () {
     var identity = makeFunction(function(x) {return x;});
     function makeSimpleMutable(val) {return makeMutable(val,identity,identity );}
 
-    //List
+    //DEF
+    /************************
+            List
+      **********************/
     function PList() {
       this.brands = [];
     }
@@ -979,18 +1061,31 @@ var PYRET = (function () {
     var list = makeObj(listDict);
 
     //Equiv
+    /**
+        equiv(obj1, obj2)
+
+        Tests if two objects are equivalent.
+        Uses obj1's _equals method if one exists
+        Otherwise, recursively checks each field in the objects' dictionaries
+    **/
     function equiv(obj1, obj2) {
         if(obj1.dict.hasOwnProperty("_equals")) {
             return applyFunction(getField(obj1, "_equals"),[obj2]);
         }
-        else if(Object.keys(obj1.dict).length == Object.keys(obj2.dict).length) { return makeBoolean(isAllSame(obj1, obj2));}
-        else {return makeBoolean(false);}
+        else { return makeBoolean(isAllSame(obj1, obj2));}
     }
 
+    /**
+      isAllSame(obj1, obj2)
+
+      Checks that the objects have the same fields 
+      Internal only, returns a JS Boolean
+    **/
     function isAllSame(obj1, obj2) {
         if(isMethod(obj1) || isFunction(obj1)) {
             return false;
         }
+        else if(Object.keys(obj1.dict).length !== Object.keys(obj2.dict).length) {return makeBoolean(false);}
        
         for(key in obj1.dict){
             if(obj2.dict.hasOwnProperty(key)) {
@@ -1005,8 +1100,14 @@ var PYRET = (function () {
 
         return true;
     }  
+    
+    /**
+      dataToRepr(val, name, fields)
 
- function dataToRepr(val, name, fields){
+      Creates a string representation of the data
+      using the value, name of object type and field names
+    **/
+     function dataToRepr(val, name, fields){
             var fieldsEmpty = true;
             var repr = name.s + "(";
             while(true){
@@ -1033,6 +1134,12 @@ var PYRET = (function () {
 
             }   
 
+    /**
+      dataEquals(me, other, brand, fields)
+
+      Checks if the data objects are equal
+      Uses the list of fields to check for equality
+    **/
     function dataEquals(me, other, brand, fields) {
         var b = applyFunction(brand, [other]).b;
         
@@ -1056,6 +1163,7 @@ var PYRET = (function () {
         return makeBoolean(b && acc);
     }
 
+    /* Not currently used
     function checkSameBrands(myBrands, theirBrands) {
         if(myBrands === undefined || theirBrands === undefined) {
             return false;
@@ -1074,104 +1182,11 @@ var PYRET = (function () {
 
         return true;
     }
-/* 
-    return 
-      nothing: makeNothing(),
-      makeNumber: makeNumber,
-      makeString: makeString,
-      makeBoolean: makeBoolean,
-      isNumber: isNumber,
-      isString: isString,
-      isBoolean: isBoolean,
-      checkBool: checkBool,
-      
-      makeFunction: makeFunction,
-      isFunction: isFunction,
-      checkFun: checkFun,
+    */
 
-      makeMethod: makeMethod,
-      isMethod: isMethod,
-
-      makeObj: makeObj,
-      isObj: isObj,
-     
-      //Builtins
-      brander:brander,
-      raise:raise,
-      error:error,
-
-      //Builtins Obj
-      builtins : makeObj(
-      {
-      equiv: makeFunction(equiv),
-
-      "has-field" : makeFunction(function(prim, field) {
-        return makeBoolean(prim.dict.hasOwnProperty(field));
-      }),
-    
-      }),
-
-      equal: equal,
-      getField: getField,
-      getMutField: getMutField,
-      getColonField: getColonField,
-      getTestPrintOutput: function(val) {
-        return testPrintOutput + toRepr(val).s;
-      },
-      NormalResult: NormalResult,
-      FailResult: FailResult,
-      makeNormalResult: makeNormalResult,
-      makeFailResult: makeFailResult,
-      toReprJS: toRepr,
-      errToJSON: errToJSON,
-
-      ids:{},
-
-     "test-print": makeFunction(testPrint),
-
-      "is-number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
-      "is-string": makeFunction(function(x){return makeBoolean(isString(x));}),
-      "is-bool": makeFunction(function(x){return makeBoolean(isBoolean(x));}),
-      "is-function": makeFunction(function(x){return makeBoolean(isFunction(x));}),
-      "is-method": makeFunction(function(x){return makeBoolean(isMethod(x));}),
-//      "to-string": makeFunction(function(x){return makeString(x.toString());}),
-      "is-mutable" : makeFunction(isMutable),
-      "check-brand": checkBrand,
-      "mk-placeholder": makePlaceholder,
-      "mk-mutable": makeFunction(makeMutable),
-      "mk-simple-mutable": makeFunction(makeSimpleMutable),
-      "Number": makeFunction(function(x){return makeBoolean(isNumber(x));}),
-      "String": makeFunction(function(x){return makeBoolean(isString(x));}),
-
-      "list" : list,
-      "link" : makeFunction(makeLink),
-      "empty" :makeFunction(makeEmpty),
-
-      "List" : makeFunction(function(x){return makeBoolean(isList(x));}),
-      "Empty" : makeFunction(function(x){return makeBoolean(isEmpty(x));}),
-      "Link" : makeFunction(function(x){return makeBoolean(isLink(x));}),
-      "is-list" : makeFunction(function(x){return makeBoolean(isList(x));}),
-      "is-empty" : makeFunction(function(x){return makeBoolean(isEmpty(x));}),
-      "is-link" : makeFunction(function(x){return makeBoolean(isLink(x));}),
-      "torepr" : makeFunction(toRepr),
-      "tostring" : makeFunction(function(x) {
-        return getField(x, 'tostring').app();
-      }), 
-      "prim-has-field" : makeFunction(function(prim, field) {
-        return makeBoolean(prim.dict.hasOwnProperty(field));
-      }),
-      "prim-num-keys" : makeFunction(function(prim) {
-          if(isNothing(prim)) {return makeNumber(0);}
-        return makeNumber(Object.keys(prim.dict).length);
-      }),
-      "prim-keys" : makeFunction(function(prim) {
-        var myKeys = makeEmpty();
-        for(key in prim.dict) {
-            myKeys = makeLink(makeString(String(key)), myKeys);
-        }
-        return myKeys;
-      }),
-=======*/
+    /*
+        Build the namespace and runtime
+    */
     return{
       namespace: Namespace({
         nothing: {},
@@ -1216,8 +1231,6 @@ var PYRET = (function () {
             //data-to-repr(val ::Obj, name:: Str, fields ::ListObj)
             'data-to-repr': makeFunction(dataToRepr),
 
-
-            //TODO: Implement
             'data-equals': makeFunction(dataEquals),
 
             "has-field" : makeFunction(function(prim, field) {
@@ -1257,8 +1270,8 @@ var PYRET = (function () {
         return applyFunction(getField(x, 'tostring'),[]);
       }), 
 
-        'data-to-repr': makeFunction(dataToRepr),
-        'data-equals': makeFunction(dataEquals),
+      'data-to-repr': makeFunction(dataToRepr),
+      'data-equals': makeFunction(dataEquals),
 
       "mk-placeholder": makeFunction(makePlaceholder),
       "mk-mutable": makeFunction(makeMutable),
@@ -1293,27 +1306,26 @@ var PYRET = (function () {
         applyFunction: applyFunction,
         
         //prims
-          makeString: makeString,
-          makeBoolean: makeBoolean,
-          isNumber: isNumber,
-          isString: isString,
-          isBoolean: isBoolean,
-          checkBool: checkBool,
-          
-          makeFunction: makeFunction,
-          isFunction: isFunction,
-          checkFun: checkFun,
+        makeString: makeString,
+        makeBoolean: makeBoolean,
+        isNumber: isNumber,
+        isString: isString,
+        isBoolean: isBoolean,
+        checkBool: checkBool,
+        
+        makeFunction: makeFunction,
+        isFunction: isFunction,
+        checkFun: checkFun,
 
-          makeMethod: makeMethod,
-          isMethod: isMethod,
+        makeMethod: makeMethod,
+        isMethod: isMethod,
 
-          makeObj: makeObj,
-          isObj: isObj,
-        //etc
-          equal: equal,
-          getField: getField,
-          getMutField: getMutField,
-          getColonField: getColonField,
+        makeObj: makeObj,
+        isObj: isObj,
+        equal: equal,
+        getField: getField,
+        getMutField: getMutField,
+        getColonField: getColonField,
       }
     }
   }
