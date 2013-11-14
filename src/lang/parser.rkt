@@ -470,8 +470,7 @@
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-where-clause #'check)
-            #f)]
+            (parse-where-clause #'check))]
     [(lambda-expr "fun" ty-params return-ann ":" doc body check (end (~or "end" ";")))
      (s-lam (loc stx)
             (parse-ty-params #'ty-params)
@@ -479,16 +478,14 @@
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-where-clause #'check)
-            #f)]
+            (parse-where-clause #'check))]
     [(method-expr "method" args return-ann ":" doc body check (end (~or "end" ";")))
      (s-method (loc stx)
             (parse-args #'args)
             (parse-return-ann #'return-ann)
             (parse-doc-string #'doc)
             (parse-block #'body)
-            (parse-where-clause #'check)
-            #f)]
+            (parse-where-clause #'check))]
     [(extend-expr e "." "{" fields "}")
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(update-expr e "!" "{" fields "}")

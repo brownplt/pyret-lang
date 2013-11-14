@@ -219,6 +219,8 @@
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
 
+    [(s-hint-exp s h e) (wf e)]
+
     [(s-check-test s op e1 e2)
      (if (not in-check-block)
          (if (eq? op 'opis)
@@ -272,7 +274,7 @@
             (wf body)
             (well-formed/internal check #t))]
 
-    [(s-lam s typarams args ann doc body check force-loc)
+    [(s-lam s typarams args ann doc body check)
      (begin (ensure-unique-ids args)
             (ensure-empty-block s "anonymous functions" check)
             (map wf-bind args)
@@ -280,7 +282,7 @@
             (wf body)
             (well-formed/internal check #t))]
 
-    [(s-method s args ann doc body check force-loc)
+    [(s-method s args ann doc body check)
      (if (= (length args) 0) (wf-error "Cannot have a method with zero arguments." s)
          (begin (ensure-unique-ids args)
                 (ensure-empty-block s "methods" check)

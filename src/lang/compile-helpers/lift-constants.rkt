@@ -34,14 +34,18 @@
        (define stmts-results (map get-and-replace-constants stmts))
        (cons (flatten (map car stmts-results))
              (s-block l (map cdr stmts-results)))]
-
-      [(s-lam l params args ann doc body check force-loc)
-       (match-define (cons lst new-body) (get-and-replace-constants body))
-       (cons lst (s-lam l params args ann doc new-body check force-loc))]
       
-      [(s-method l args ann doc body check force-loc)
+      [(s-hint-exp s h e)
+       (match-define (cons val-list new-val) (get-and-replace-constants e))
+       (cons val-list (s-hint-exp s h new-val))]
+      
+      [(s-lam l params args ann doc body check)
        (match-define (cons lst new-body) (get-and-replace-constants body))
-       (cons lst (s-method l args ann doc new-body check force-loc))]
+       (cons lst (s-lam l params args ann doc new-body check))]
+      
+      [(s-method l args ann doc body check)
+       (match-define (cons lst new-body) (get-and-replace-constants body))
+       (cons lst (s-method l args ann doc new-body check))]
 
       [(s-if-else l c-bs else)
        (define (process-if-branch b)
@@ -119,7 +123,9 @@
 
       [(s-var l bind expr)
        (match-define (cons expr-list new-expr) (get-and-replace-constants expr))
-       (cons expr-list (s-var l bind new-expr))]))
+       (cons expr-list (s-var l bind new-expr))]
+
+      [else (error (format "Unknown ast node type to get-and-replace-constants: ~a" ast))]))
 
   (define (wrap l vals-and-ast)
     (define (binding-for v)

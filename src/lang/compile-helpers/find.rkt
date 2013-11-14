@@ -25,10 +25,12 @@
      [(s-block l stmts)
       (append* (map (curryr find matcher) stmts))]
 
-     [(s-lam l params args ann doc body check force-loc)
+     [(s-hint-exp s h e) (find e matcher)]
+     
+     [(s-lam l params args ann doc body check)
       (append (find body matcher) (find check matcher))]
      
-     [(s-method l args ann doc body check force-loc)
+     [(s-method l args ann doc body check)
       (append (find body matcher) (find check matcher))]
 
      [(s-if-else l c-bs else)

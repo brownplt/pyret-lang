@@ -118,6 +118,8 @@
      (build s_block (tp-loc s) (map tp stmts))]
     [(s-user-block s body)
      (build s_user_block (tp-loc s) (tp body))]
+    [(s-hint-exp s hints e)
+     (build s_hint_exp (tp-loc s) (map tp-hint hints) (tp e))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -167,7 +169,7 @@
         (tp body)
         (tp check))]
 
-    [(s-lam s typarams args ann doc body check force-loc)
+    [(s-lam s typarams args ann doc body check)
      (build s_lam
         (tp-loc s)
         (map symbol->string typarams)
@@ -175,18 +177,16 @@
         (tp-ann ann)
         doc
         (tp body)
-        (tp check)
-        force-loc)]
+        (tp check))]
 
-    [(s-method s args ann doc body check force-loc)
+    [(s-method s args ann doc body check)
      (build s_method
         (tp-loc s)
         (map tp-bind args)
         (tp-ann ann)
         doc
         (tp body)
-        (tp check)
-        force-loc)]
+        (tp check))]
 
     [(s-when s test body)
      (build s_when
@@ -318,6 +318,11 @@
         (tp check))]
     [_ (error "No transformation for ~a" ast)]))
 
+(define (tp-hint hint)
+  (match hint
+    [(h-use-loc l)
+     (build h_use_loc (tp-loc l))]))
+
 (define (tp-ann ann)
   (match ann
     [(a-name s id)
@@ -392,6 +397,11 @@
     (tr-obj l mini-srcloc (noop file) (noop line) (noop column))]))
 
 (define (to-racket ast)
+  (define (tr-hint h)
+    (cond
+     [(has-brand h h_use_loc)
+      (tr-obj h h-use-loc (tr-loc l))]
+     [else (error (format "Couldn't match hint: ~a" (p:to-string (ffi-unwrap h))))]))
   (define (tr-ifBranch b)
     (cond
      [(has-brand b s_if_branch)
@@ -495,6 +505,8 @@
     (cond
      [(list? e)
       (map tr-expr e)]
+     [(has-brand e s_hint_exp)
+      (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hint) (tr-expr e))]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
      [(has-brand e s_user_block)
@@ -531,9 +543,9 @@
      [(has-brand e s_paren)
       (tr-obj e s-paren (tr-loc l) (tr-expr expr))]
      [(has-brand e s_lam)
-      (tr-obj e s-lam (tr-loc l) (map string->symbol params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check) (noop force-loc))]
+      (tr-obj e s-lam (tr-loc l) (map string->symbol params) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [(has-brand e s_method)
-      (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check) (noop force-loc))]
+      (tr-obj e s-method (tr-loc l) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [(has-brand e s_extend)
       (tr-obj e s-extend (tr-loc l) (tr-expr super) (map tr-member fields))]
      [(has-brand e s_update)
@@ -586,6 +598,7 @@
    [(has-type ast Variant) (tr-variant ast)]
    [(has-type ast IfBranch) (tr-ifBranch ast)]
    [(has-type ast CasesBranch) (tr-casesBranch ast)]
+   [(has-type ast Hint) (tr-hint ast)]
    [(has-type ast Ann) (tr-ann ast)]
    [else (error (format "Unknown AST expression: ~a" (p:to-string (ffi-unwrap ast))))]))
 

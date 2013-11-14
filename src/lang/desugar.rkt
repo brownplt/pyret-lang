@@ -27,10 +27,10 @@
       (s-num s (srcloc-column s)))))
 
 (define (lam s args body)
-  (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty) #f))
+  (s-lam s empty (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
 (define (meth s args body)
-  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty) #f))
+  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 
 (define (desugar-graph s bindings)
   (define names (map s-bind-id (map s-let-name bindings)))
@@ -93,7 +93,7 @@
        (s-data-field s (desugar-internal name) (desugar-internal value))]
       [(s-method-field s name args ann doc body check)
        (s-data-field s (desugar-internal name)
-          (s-method s args ann doc (desugar-internal body) (desugar-internal check) #f))]))
+          (s-method s args ann doc (desugar-internal body) (desugar-internal check)))]))
 
 (define (ds-curry-args s args)
   (let ((params-and-args
@@ -115,7 +115,7 @@
     [(s-id s2 '_)
      (define curried-obj (gensym "recv-"))
      (s-lam s (list) (list (s-bind s curried-obj (a-blank))) (a-blank) ""
-            (rebuild-node s (s-id s2 curried-obj) m) (s-block s empty) #f)]
+            (rebuild-node s (s-id s2 curried-obj) m) (s-block s empty))]
     [else (rebuild-node s obj m)]))
 (define (ds-curry-binop s e1 e2 rebuild)
   (define params-and-args (ds-curry-args s (list e1 e2)))
@@ -126,7 +126,7 @@
    [else
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
-           (rebuild (first curry-args) (second curry-args)) (s-block s empty) #f)]))
+           (rebuild (first curry-args) (second curry-args)) (s-block s empty))]))
 (define (ds-curry-unop s e1 rebuild)
   (define params-and-args (ds-curry-args s (list e1)))
   (define params (first params-and-args))
@@ -136,7 +136,7 @@
    [else
     (define curry-args (second params-and-args))
     (s-lam s (list) params (a-blank) ""
-           (rebuild (first curry-args)) (s-block s empty) #f)]))
+           (rebuild (first curry-args)) (s-block s empty))]))
 
 (define (ds-curry s f args)
   (match f
@@ -145,13 +145,13 @@
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
      (s-lam s (list) (cons (s-bind s curried-obj (a-blank)) params) (a-blank) ""
-            (s-app s (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty) #f)]
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty))]
     [(s-bracket s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (cons (s-bind s curried-obj (a-blank)) (first params-and-args)))
      (s-lam s (list) params (a-blank) ""
-            (s-app s (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty) #f)]
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty))]
     [else
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
@@ -160,7 +160,7 @@
         [(null? params) (s-app s ds-f args)]
         [else
          (s-lam s (list) params (a-blank) ""
-              (s-app s ds-f (second params-and-args)) (s-block s empty) #f)])]))
+              (s-app s ds-f (second params-and-args)) (s-block s empty))])]))
 
 (define (desugar-ann ann)
   (match ann
@@ -226,6 +226,7 @@
         [(s-cases-branch s name args body)
          (s-cases-branch s name (map ds-bind args) (ds body))]))
   (match ast
+    [(s-hint-exp s hints e) (s-hint-exp s hints (ds e))]
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     [(s-data s name params mixins-no-eq variants share-members check-ignored)
@@ -275,7 +276,7 @@
      (define (expr-of b) (match b [(s-for-bind _ _ e) (ds e)]))
      (define (bind-of b) (match b [(s-for-bind _ b _) b]))
      (define the-function
-      (s-lam s (list) (map bind-of bindings) ann "" (ds body) (s-block s empty) #f))
+      (s-lam s (list) (map bind-of bindings) ann "" (ds body) (s-block s empty)))
      (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
@@ -291,17 +292,17 @@
      (s-let s (s-bind s name (a-blank))
             (s-lam s typarams (ds-args args)
                    (desugar-ann ann)
-                   doc (ds body) (ds check) #f))]
+                   doc (ds body) (ds check)))]
 
     [(s-check s body) (s-id s 'nothing)]
 
-    [(s-lam s typarams args ann doc body check force-loc)
+    [(s-lam s typarams args ann doc body check)
      (s-lam s typarams (ds-args args)
             (desugar-ann ann)
-            doc (ds body) (ds check) force-loc)]
+            doc (ds body) (ds check))]
 
-    [(s-method s args ann doc body check force-loc)
-     (s-method s args ann doc (ds body) (ds check) force-loc)]
+    [(s-method s args ann doc body check)
+     (s-method s args ann doc (ds body) (ds check))]
 
     [(s-when s test body)
      (s-if-else s (list (s-if-branch s (ds test) (ds body)))
@@ -333,7 +334,7 @@
      (s-try s (ds try) (s-bind (s-bind-syntax exn) exn-id (s-bind-ann exn))
 	    (s-block s
 		     (list
-		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty) #f) (list make-error)))))]
+		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
@@ -420,7 +421,7 @@
       (lambda (ds-e1 ds-e2)
         (define e2-maybe-thunked
           (if (is-lazy-method? op)
-              (s-lam s empty empty (a-blank) "" ds-e2 (s-block s empty) #f)
+              (s-lam s empty empty (a-blank) "" ds-e2 (s-block s empty))
               ds-e2))
         (s-app s (s-bracket s ds-e1 (s-str s (hash-ref op-method-table op)))
                (list e2-maybe-thunked))))]
@@ -457,7 +458,7 @@
                                    (s-str loc "_doc"))))
                      (s-str loc "_plus"))
                     (list end))))
-                   (s-block loc empty) #f)))))
+                   (s-block loc empty))))))
 
 (define (desugar-pyret ast)
   ;; This is the magic that turns `import foo as bar` into
