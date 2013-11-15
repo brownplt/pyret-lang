@@ -21,8 +21,14 @@ var PYRET = (function () {
     };
 
     var numberDict = {
-      _plus: makeMethod(function(left, right) {
+      _plus: makeMethod(function(k, f, left, right) {
         return makeNumber(left.n + right.n);
+      }),
+      _minus: makeMethod(function(left, right) {
+        return makeNumber(left.n - right.n);
+      }),
+      _times: makeMethod(function(left, right) {
+        return makeNumber(left.n * right.n);
       })
     };
 
@@ -118,7 +124,59 @@ var PYRET = (function () {
       return JSON.stringify({exn: String(exn)})
     }
 
+    function TrampolineException(k) {
+      this.k = k;
+    }
+    function trampoline(k) { throw new TrampolineException(k); }
+    var runtime = {
+      trampoline: trampoline,
+      onDone: function(v) {
+        console.log("Success: ", v);
+      }
+    };
+
+    function PauseAction(onPause) {
+      this.onPause = onPause; 
+    }
+
+    var pauseRequested = false;
+    var nopause = function() { throw "No current pause"; }
+    var currentPause = nopause;
+    function start(fun, runtime, namespace, onDone) {
+      function nextTurn(k) { setTimeout(k, 0); }
+      function run(k) {
+        try {
+          k();
+        } catch(e) {
+          console.log("Caught ", e);
+          if(e instanceof TrampolineException) {
+            if(!pauseRequested) {
+              nextTurn(function() { run(e.k); });
+            }
+            else {
+              var restart = function() { run(e.k); };
+              pauseRequested = false;
+              var thisPause = currentPause;
+              currentPause = nopause;
+              nextTurn(function() { thisPause(restart); });
+            }
+          }
+          else {
+            console.error("[start] Uncaught exception: ", e);
+          }
+        }
+      }
+      run(function() { fun(runtime, namespace, onDone); });
+    }
+
+    function requestPause(k) {
+      pauseRequested = true;
+      currentPause = k;
+    }
+
     return {
+      start: start,
+      requestPause: requestPause,
       namespace: Namespace({
         nothing: {},
         "test-print": makeFunction(testPrint),
@@ -135,6 +193,7 @@ var PYRET = (function () {
       }),
       runtime: {
         makeNumber: makeNumber,
+        makeFunction: makeFunction,
         isNumber: isNumber,
         equal: equal,
         getField: getField,
@@ -150,7 +209,7 @@ var PYRET = (function () {
         toReprJS: toRepr,
         errToJSON: errToJSON
       }
-    }
+    };
   }
 
   return {

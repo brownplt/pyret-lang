@@ -56,8 +56,22 @@ function testPrint(name, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
-      var result = pyretProg(RUNTIME.runtime, RUNTIME.namespace);
-      checkOutput(RUNTIME, result, output);
+      var response = false;
+      RUNTIME.start(pyretProg, RUNTIME.runtime, RUNTIME.namespace,
+          {
+            success: function(result) {
+              response = true;
+              console.log("Returned with result: ", result);
+              checkOutput(RUNTIME, result, output);
+            },
+            failure: function(result) {
+              response = true;
+              console.log("Returned with failure: ", result);
+              checkOutput(RUNTIME, result, output);
+            }
+          }
+        );
+      setTimeout(function() { if(!response) { console.error("Never returned"); }}, 500);
     }
   }
 }
