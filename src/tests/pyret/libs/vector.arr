@@ -116,3 +116,16 @@ check:
   f(vector([])).to-list() is []
   f(vector([])) satisfies is-vector
 end
+
+check:
+  data D:
+    | single
+    | multi(a, b)
+  end
+  v = vector([single, multi(1, "2")])
+  torepr(v) is "vector([single, multi(1, \"2\")])"
+  v.set(0, v.get(1)).to-list() is [multi(1, "2"), multi(1, "2")]
+  v.get(0) satisfies identical(_, v.get(1))
+  v.length() is 2
+end
+
