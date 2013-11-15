@@ -66,6 +66,7 @@
      'Nothing
      'Mutable
      'Placeholder
+     'Vector
      'Opaque
      'is-bool
      'is-boolean
@@ -77,12 +78,14 @@
      'is-nothing
      'is-mutable
      'is-placeholder
+     'is-vector
+     'is-nothing
      'brander
      'check-brand
      'mk-mutable
      'mk-simple-mutable
      'mk-placeholder
-     'is-nothing
+     'const-vector
      'nothing
      'gensym)))
 
@@ -135,6 +138,12 @@
       'fold3
       'fold4
       'index
+      
+      'vector
+      'vector-set
+      'vector-get
+      'vector-length
+      'vector-to-list
 
       'random
       'animate

@@ -169,6 +169,7 @@
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
               [mk-placeholder-pfun mk-placeholder]
+              [mk-const-vector-pfun const-vector]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -182,6 +183,7 @@
   Method
   Mutable
   Placeholder
+  Vector
   Opaque
   is-number
   is-string
@@ -193,6 +195,7 @@
   is-method
   is-mutable
   is-placeholder
+  is-vector
   ___set-link
   ___set-empty
   nothing)
@@ -232,6 +235,8 @@
 (struct p-mutable p-base (b read-wrappers write-wrappers))
 ;; p-placeholder p-base Box (Listof (Value -> Value))
 (struct p-placeholder p-base (b wrappers) #:mutable)
+;; p-vector p-base Vector
+(struct p-vector p-base (v) #:mutable)
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -245,6 +250,7 @@
     [(eq? p-method typ) p-method?]
     [(eq? p-mutable typ) p-mutable?]
     [(eq? p-placeholder typ) p-placeholder?]
+    [(eq? p-vector typ) p-vector?]
     [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
@@ -285,6 +291,10 @@
     [(_ p-str matchval (s) body)
      (with-syntax [(s-id (datum->syntax #'body (syntax->datum #'s)))]
       #'(maybe-bind [(s (p-str-s matchval))] body))]
+    [(_ p-vector matchval (v) body)
+     (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
+      #'(maybe-bind [(v-id (p-vector-v matchval))]
+          body))]
     [(_ p-bool matchval (b) body)
      (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
       #'(maybe-bind [(b-id (p-bool-b matchval))] body))]))
@@ -546,6 +556,12 @@
 
 (define mk-placeholder-pfun (pλ/internal (loc) ()
   (mk-placeholder)))
+
+(define vector-bad-app (bad-app "vector"))
+(define vector-bad-meth (bad-meth "vector"))
+(define mk-const-vector-pfun (pλ/internal (loc) (val num)
+  (when (not (p-num? num)) (throw-type-error! "Number" num))
+  (p-vector no-brands vector-dict vector-bad-app vector-bad-meth (make-vector (p-num-n num) val))))
 
 (define exn-brand (gensym 'exn))
 
@@ -1138,6 +1154,67 @@ And the object was:
         (set-p-placeholder-wrappers! self (cons (p-base-app pred) wrappers))
         nothing)))))
 
+(define vector-dict
+  (make-string-map
+    (list
+      (cons "_equals"
+        (pμ/internal (loc) (self other)
+          "Check equality of this vector with another"
+          (mk-bool (eq? self other))))
+      (cons "eq"
+        (pμ/internal (loc) (self other)
+          "Check equality of this vector with another"
+          (mk-bool (eq? self other))))
+      (cons "_torepr"
+        (pμ/internal (loc) (self)
+          "Get a printable representation of the vector"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (mk-str (format "vector(~a)" (serialize (mk-list (vector->list (p-vector-v self))) "_torepr" #f)))))
+      (cons "tostring"
+        (pμ/internal (loc) (self)
+          "Get a printable representation of the vector"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (mk-str (format "vector(~a)" (serialize (mk-list (vector->list (p-vector-v self))) "tostring" #f)))))
+      (cons "get"
+        (pμ/internal (loc) (self n)
+          "Get the value at index n"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (when (not (p-num? n)) (throw-type-error! "Number" n))
+          (define index (p-num-n n))
+          (define vec (p-vector-v self))
+          (when (not (exact-nonnegative-integer? index))
+            (raise (pyret-error (get-top-loc) "vector-get-non-integer"
+              (format "Index ~a is negative or a non-integer value, which cannot be used for a vector access" index))))
+          (when (> index (sub1 (vector-length vec)))
+            (raise (pyret-error (get-top-loc) "vector-get-too-large"
+              (format "Index ~a too large for vector ~a in vector-get" index (to-repr self)))))
+          (vector-ref vec index)))
+      (cons "set"
+        (pμ/internal (loc) (self n v)
+          "Set the value at index n to v"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (when (not (p-num? n)) (throw-type-error! "Number" n))
+          (define index (p-num-n n))
+          (define vec (p-vector-v self))
+          (when (not (exact-nonnegative-integer? index))
+            (raise (pyret-error (get-top-loc) "vector-set-non-integer"
+              (format "Index ~a is negative or a non-integer value, which cannot be used for a vector update" index))))
+          (when (> index (sub1 (vector-length vec)))
+            (raise (pyret-error (get-top-loc) "vector-set-too-large"
+              (format "Index ~a too large for vector ~a in vector-set" index (to-repr self)))))
+          (vector-set! vec index v)
+          self))
+      (cons "length"
+        (pμ/internal (loc) (self)
+          "Get the length of this vector"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (mk-num (vector-length (p-vector-v self)))))
+      (cons "to-list"
+        (pμ/internal (loc) (self)
+          "Get a list of the elements in this vector"
+          (when (not (p-vector? self)) (throw-type-error! "Vector" self))
+          (mk-list (vector->list (p-vector-v self))))))))
+
 (define gensym-pfun (pλ (s)
   "Generate a random string with the given prefix"
   (cond
@@ -1172,6 +1249,7 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+(mk-pred Vector p-vector?)
 (mk-pred Opaque p-opaque?)
 
 (mk-pred is-number p-num?)
@@ -1184,6 +1262,7 @@ And the object was:
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
+(mk-pred is-vector p-vector?)
 
 (define py-link #f)
 (define py-empty #f)
