@@ -265,7 +265,7 @@
        #'(let [(x val)] (maybe-bind [(y val-rest) ...] e))])]))
 
 (define-syntax (type-specific-bind stx)
-  (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
+  (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method p-vector)
     [(_ p-nothing _ () body) #'body]
     [(_ p-object _ () body) #'body]
     [(_ p-base _ () body) #'body]
@@ -291,13 +291,13 @@
     [(_ p-str matchval (s) body)
      (with-syntax [(s-id (datum->syntax #'body (syntax->datum #'s)))]
       #'(maybe-bind [(s (p-str-s matchval))] body))]
+    [(_ p-bool matchval (b) body)
+     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
+      #'(maybe-bind [(b-id (p-bool-b matchval))] body))]
     [(_ p-vector matchval (v) body)
      (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
       #'(maybe-bind [(v-id (p-vector-v matchval))]
-          body))]
-    [(_ p-bool matchval (b) body)
-     (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
-      #'(maybe-bind [(b-id (p-bool-b matchval))] body))]))
+          body))]))
 
 (define-syntax (py-match stx)
   (syntax-case stx (default)
