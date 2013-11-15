@@ -116,4 +116,4 @@ check:
 end
 }
 
-Return the number of elements in the vector.  Method version of @code{vector-length}.
+Return the number of elements in the vector.  Method version of @code{vector-to-list}.
