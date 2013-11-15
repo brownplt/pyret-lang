@@ -4,6 +4,7 @@
   (only-in racket collection-path)
   racket/list
   racket/file
+  racket/bool
   scribble/core
   scribble/manual
   (only-in racket/string string-join)
@@ -35,11 +36,14 @@
  (define (name-matches? sym) (equal? sym name))
  (match ast
    [(s-prog _ _ (s-block _ stmts))
-    (findf (lambda (s)
+    (define result (findf (lambda (s)
      (match s
        [(s-fun _ (? name-matches? test-name) _ _ _ _ _ _) s]
        [(s-data _ (? name-matches? test-name) _ _ _ _ _) s]
-       [_ #f])) stmts)]))
+       [_ #f])) stmts))
+    (when (false? result)
+      (error (format "Declaration not found: ~a" name)))
+    result]))
 
 (define (label name)
  (toc-target-element #f (bold name) (list (string->symbol name) name)))
@@ -97,13 +101,14 @@
           #f)]
      [_ #f]))
  (match data
-   [(s-data loc name params mixins variants _ _)
+   [(s-data loc name params mixins variants sharing _)
     (define with-members (filter-map (lambda (v) (variant-matches v variant-name)) variants))
     (when (< (length with-members) 1)
      (error "No such variant: ~a\n" variant-name))
-    (define method-fields (filter-map member-matches (first with-members)))
+    (define search-members (append (first with-members) sharing))
+    (define method-fields (filter-map member-matches search-members))
     (when (< (length method-fields) 1)
-     (error "No such field: ~a\n" method-name))
+     (error (format "No such field: ~a ~a\n" method-name search-members)))
     (first method-fields)]))
 
 (define (pretty-method method-field)
