@@ -88,7 +88,7 @@ check:
 end
 
 check:
-  a1 = const-array("init", 5)
+  a1 = array-of("init", 5)
 
   a1 satisfies is-array
 
@@ -107,7 +107,7 @@ end
 check:
   torepr(array([1,2,"3"])) is 'array([1, 2, "3"])'
   torepr(array([])) is 'array([])'
-  torepr(const-array(3, 3)) is 'array([3, 3, 3])'
+  torepr(array-of(3, 3)) is 'array([3, 3, 3])'
 end
 
 check:

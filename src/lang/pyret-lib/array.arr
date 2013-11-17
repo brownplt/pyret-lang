@@ -19,7 +19,7 @@ List = list.List
 
 fun array(l :: List) -> Array:
   n = l.length()
-  v = const-array(nothing, n)
+  v = array-of(nothing, n)
   for list.each2(elt from l, i from list.range(0, n)): v.set(i, elt);
   v
 end

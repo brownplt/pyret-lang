@@ -169,7 +169,7 @@
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
               [mk-placeholder-pfun mk-placeholder]
-              [mk-const-array-pfun const-array]
+              [mk-array-of-pfun array-of]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -559,7 +559,7 @@
 
 (define array-bad-app (bad-app "array"))
 (define array-bad-meth (bad-meth "array"))
-(define mk-const-array-pfun (pλ/internal (loc) (val num)
+(define mk-array-of-pfun (pλ/internal (loc) (val num)
   (when (not (p-num? num)) (throw-type-error! "Number" num))
   (p-array no-brands array-dict array-bad-app array-bad-meth (make-vector (p-num-n num) val))))
 

@@ -24,13 +24,13 @@ contents.
 fun array(l :: List<a>) -> Array<a>:
   doc: 'Create a new array with the elements of l'
 end
-fun const-array(v :: a, n :: Number) -> Array<a>:
+fun array-of(v :: a, n :: Number) -> Array<a>:
   doc: 'Create a new array of length n with all elements initially set to v'
 end
 ")
 @(define array-constructors-ast (parse-pyret array-constructors))
 
-@(pretty-functions array-constructors-ast '(array const-array))
+@(pretty-functions array-constructors-ast '(array array-of))
 
 @section[#:tag "s:array-access"]{Manipulating Arrays}
 

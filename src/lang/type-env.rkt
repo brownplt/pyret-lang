@@ -85,7 +85,7 @@
      'mk-mutable
      'mk-simple-mutable
      'mk-placeholder
-     'const-array
+     'array-of
      'nothing
      'gensym)))
 
