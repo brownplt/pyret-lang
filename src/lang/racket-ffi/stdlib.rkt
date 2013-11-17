@@ -5,8 +5,8 @@
   "../string-map.rkt"
   "../ffi-helpers.rkt"
   "whalesong-lib.rkt"
-  (rename-in "sets.rkt" [%PYRET-PROVIDE sets])
-  (rename-in "vector.rkt" [%PYRET-PROVIDE vectors])
+  (rename-in pyret/lang/pyret-lib/sets [%PYRET-PROVIDE sets])
+  (rename-in pyret/lang/pyret-lib/vector [%PYRET-PROVIDE vectors])
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
 (provide (all-defined-out) pyret-sets vectors)
 

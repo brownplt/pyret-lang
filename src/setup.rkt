@@ -12,7 +12,7 @@
   "library/lang/reader.rkt")
 (provide pre-installer)
 (define LIB-BASE (collection-file-path "lang/pyret-lib/" "pyret"))
-(define LIB-FILES (list "moorings"))
+(define LIB-FILES (list "moorings" "sets" "vector"))
 (define LIBS
   (map (lambda (p) (build-path LIB-BASE p))
        LIB-FILES))
