@@ -8,6 +8,8 @@ docs/*.css
 docs/*.js
 docs/lang/*
 src/lang/pyret-lib/moorings.rkt
+src/lang/pyret-lib/sets.rkt
+src/lang/pyret-lib/vector.rkt
 ../js/test-runner/tests.js
 *#
 pyret.plt
