@@ -46,7 +46,7 @@ own environmental behavior that is worth noting.
 
 @include-section{list.scrbl}
 
-@include-section{vector.scrbl}
+@include-section{array.scrbl}
 
 
 @section[#:tag "s:option"]{Option}
@@ -76,7 +76,7 @@ names as identifiers.}
 
 @justcode{data Set: | ... end}
 
-@(define set-ast (get-pyret-lib "lang/racket-ffi/sets.rkt"))
+@(define set-ast (get-pyret-lib "lang/pyret-lib/sets.arr"))
 
 @(define set (get-decl set-ast 'Set))
 
@@ -288,8 +288,8 @@ are converted into a list [\"string\", <the-string>].'
   fun is-placeholder(v :: Any) -> Bool:
     doc: 'True if v is a placeholder, false otherwise'
   end
-  fun is-vector(v :: Any) -> Bool:
-    doc: 'True if v is a vector, false otherwise'
+  fun is-array(v :: Any) -> Bool:
+    doc: 'True if v is a array, false otherwise'
   end
   fun is-nothing(v :: Any) -> Bool:
     doc: 'True if v is nothing, false otherwise'
@@ -313,7 +313,7 @@ are converted into a list [\"string\", <the-string>].'
   is-object
   is-mutable
   is-placeholder
-  is-vector
+  is-array
   is-nothing
   ))
 

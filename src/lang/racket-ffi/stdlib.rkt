@@ -6,9 +6,9 @@
   "../ffi-helpers.rkt"
   "whalesong-lib.rkt"
   (rename-in pyret/lang/pyret-lib/sets [%PYRET-PROVIDE sets])
-  (rename-in pyret/lang/pyret-lib/vector [%PYRET-PROVIDE vectors])
+  (rename-in pyret/lang/pyret-lib/array [%PYRET-PROVIDE arrays])
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
-(provide (all-defined-out) pyret-sets vectors)
+(provide (all-defined-out) pyret-sets arrays)
 
 (define (get-list-lib name)
   (p:get-field p:dummy-loc %list name))
@@ -16,11 +16,11 @@
 (define (get-set-lib name)
   (p:get-field p:dummy-loc pyret-sets name))
 
-(define (get-vector-lib name)
-  (p:get-field p:dummy-loc pyret-vectors name))
+(define (get-array-lib name)
+  (p:get-field p:dummy-loc pyret-arrays name))
 
 (define pyret-sets sets)
-(define pyret-vectors vectors)
+(define pyret-arrays arrays)
 
 (define %list (p:get-field p:dummy-loc moorings "list"))
 (define pyret-List (get-list-lib "List"))
@@ -62,11 +62,11 @@
 (define pyret-list-set (get-set-lib "list-set"))
 (define pyret-tree-set (get-set-lib "tree-set"))
 
-(define pyret-vector (get-vector-lib "vector"))
-(define pyret-vector-get (get-vector-lib "vector-get"))
-(define pyret-vector-set (get-vector-lib "vector-set"))
-(define pyret-vector-length (get-vector-lib "vector-length"))
-(define pyret-vector-to-list (get-vector-lib "vector-to-list"))
+(define pyret-array (get-array-lib "array"))
+(define pyret-array-get (get-array-lib "array-get"))
+(define pyret-array-set (get-array-lib "array-set"))
+(define pyret-array-length (get-array-lib "array-length"))
+(define pyret-array-to-list (get-array-lib "array-to-list"))
 
 (define %option (p:get-field p:dummy-loc moorings "option"))
 (define (get-option-lib name)

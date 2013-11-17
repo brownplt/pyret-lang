@@ -66,7 +66,7 @@
      'Nothing
      'Mutable
      'Placeholder
-     'Vector
+     'Array
      'Opaque
      'is-bool
      'is-boolean
@@ -78,14 +78,14 @@
      'is-nothing
      'is-mutable
      'is-placeholder
-     'is-vector
+     'is-array
      'is-nothing
      'brander
      'check-brand
      'mk-mutable
      'mk-simple-mutable
      'mk-placeholder
-     'const-vector
+     'const-array
      'nothing
      'gensym)))
 
@@ -139,11 +139,11 @@
       'fold4
       'index
       
-      'vector
-      'vector-set
-      'vector-get
-      'vector-length
-      'vector-to-list
+      'array
+      'array-set
+      'array-get
+      'array-length
+      'array-to-list
 
       'random
       'animate
