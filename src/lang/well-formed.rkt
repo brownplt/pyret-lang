@@ -219,6 +219,8 @@
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
 
+    [(s-hint-exp s h e) (wf e)]
+
     [(s-check-test s op e1 e2)
      (if (not in-check-block)
          (if (eq? op 'opis)

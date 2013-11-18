@@ -302,6 +302,7 @@
          (s-data-field s name (s-app s (s-id s 'mk-mutable)
           (list (cc-env value env) check-read-expr check-write-expr)))])]))
   (match ast
+    [(s-hint-exp s h e) (s-hint-exp s h (cc e))]
     [(s-block s stmts)
      (define new-env (cc-block-env stmts env))
      (s-block s (map (curryr cc-env new-env) stmts))]

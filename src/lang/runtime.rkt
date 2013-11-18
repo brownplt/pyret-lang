@@ -131,11 +131,14 @@
       mk-bool
       mk-str
       arity-catcher
+      arity-catcher-loc
       pλ
+      pλ/loc
       mk-fun
       mk-fun-nodoc
       mk-fun-nodoc-slow
       pμ
+      pμ/loc
       mk-method
       mk-exn
       pyret-error
@@ -347,11 +350,22 @@
     [arity-mismatch-args-list
      (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)]))
 
+(define-syntax-rule (arity-catcher-loc (arg ...) e ... loc)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error loc (quote (arg ...)) arity-mismatch-args-list)]))
+
 (define-syntax-rule (lambda-arity-catcher (arg ...) e ...)
   (case-lambda
     [(arg ...) e ...]
     [arity-mismatch-args-list
      (arity-error (get-top-loc) (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
+(define-syntax-rule (lambda-arity-catcher-loc (arg ...) e ... loc)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error loc (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
 
 
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
@@ -363,6 +377,15 @@
       (mk-fun
         #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))
+        doc))]))
+
+(define-syntax (pλ/loc stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ... loc)
+     (quasisyntax/loc stx
+      (mk-fun
+        #,(syntax/loc stx (arity-catcher-loc (arg ...) e ... loc))
+        #,(syntax/loc stx (lambda-arity-catcher-loc (_ arg ...) e ... loc))
         doc))]))
 
 (define-syntax (pλ/internal stx)
@@ -382,6 +405,17 @@
           #,(syntax/loc stx [(arg ...) e ...])
           [arity-mismatch-args-list
            (arity-method-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])
+       doc))]))
+
+(define-syntax (pμ/loc stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ... loc)
+     (quasisyntax/loc stx
+      (mk-method
+        (case-lambda
+          #,(syntax/loc stx [(arg ...) e ...])
+          [arity-mismatch-args-list
+           (arity-method-error loc '(arg ...) arity-mismatch-args-list)])
        doc))]))
 
 (define-syntax (pμ/internal stx)

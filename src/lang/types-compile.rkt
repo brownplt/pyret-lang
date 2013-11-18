@@ -24,6 +24,8 @@
   (match ast
     [(s-block syntax stmts)
      (s-block syntax (flatten-blocks (map tci stmts)))]
+    [(s-hint-exp syntax hints e)
+     (s-hint-exp syntax hints (tci e))]
     [(s-var syntax name value)
      (s-var syntax name (tci value))]
     [(s-let syntax name value)
@@ -97,9 +99,11 @@
       (match b
         [(s-cases-branch s2 name args body)
          (s-data-field s2 (s-str s2 (symbol->string name))
-                       (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty)))]))
+                       (s-hint-exp s2 (list (h-use-loc s2))
+                               (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty))))]))
     (define else-fun
-      (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty)))
+      (s-hint-exp (get-srcloc else) (list (h-use-loc (get-srcloc else)))
+              (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty))))
     (define cases-object
       (s-obj s (map ds-cases-branch cases)))
     (define val-temp-name (gensym "cases-value"))

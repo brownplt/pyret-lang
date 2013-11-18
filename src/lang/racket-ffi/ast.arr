@@ -21,6 +21,7 @@ str-check = PP.str("check:")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(": ")
+str-comment = PP.str("# ")
 str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
 str-datatype = PP.str("datatype ")
@@ -49,6 +50,7 @@ str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
 str-thickarrow = PP.str("=>")
 str-try = PP.str("try:")
+str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
 str-when = PP.str("when")
 str-where = PP.str("where:")
@@ -121,12 +123,20 @@ data ImportType:
     tosource(self): str-import + break-one + PP.str(self.module) end
 end
 
+data Hint:
+  | h_use_loc(l :: Loc) with:
+    tosource(self): str-use-loc + PP.parens(PP.str(self.l.tostring())) end
+end
+
 data Expr:
+  | s_hint_exp(l :: Loc, hints :: List<Hint>, e :: Expr) with:
+    tosource(self):
+      PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
+        + self.e.tosource()
+    end
   | s_block(l :: Loc, stmts :: List<Expr>) with:
     tosource(self):
-      PP.flow_map(PP.hardline, fun(s):
-          s.tosource()
-      end, self.stmts) end
+      PP.flow_map(PP.hardline, _.tosource(), self.stmts) end
   | s_user_block(l :: Loc, body :: Expr) with:
     tosource(self):
       PP.surround(INDENT, 1, str-block, self.body.tosource(), str-end)

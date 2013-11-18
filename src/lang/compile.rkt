@@ -64,12 +64,7 @@
        (define ids (find (s-block l stmts) match-id-use))
        (define id-used (or (> (length (remove-duplicates ids)) 1)
                            (= (length ids) 1)))
-       (match val
-        [(s-lam l _ args _ doc body _)
-         (define inline-binding
-          (with-syntax ([(arg ...) (args-stx l args)])
-            #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+       (define (help-λ inline-binding l args doc body)
          (cond
           [(or (compile-env-toplevel? env) id-used)
             (list inline-binding
@@ -77,24 +72,49 @@
                                 [f-id (make-immediate-id id)])
                     #`(r:define #,(discard-_ id)
                           (p:pλ (arg ...) #,doc (f-id arg ...)))))]
-          [else (list inline-binding)])]
+          [else (list inline-binding)]))
+       (define (help-extend inline-binding l args doc body fields)
+         (cond
+          [(or (compile-env-toplevel? env) id-used)
+           (list inline-binding
+                 (with-syntax ([(arg ...) (args-stx l args)]
+                               [f-id (make-immediate-id id)]
+                               [(field ...) (map (curryr compile-member env) fields)])
+                   #`(r:define #,(discard-_ id)
+                               (p:extend
+                                #,(loc-stx s)
+                                (p:pλ (arg ...) #,doc (f-id arg ...))
+                                (r:list field ...)))))]
+          [else (list inline-binding)]))
+       (define (uses-loc hints)
+         (findf h-use-loc? hints))
+       (match val
+        [(s-hint-exp _ (? uses-loc hints) (s-lam l _ args _ doc body _))
+         (define loc (h-use-loc-loc (uses-loc hints)))
+         (define inline-binding
+          (with-syntax ([(arg ...) (args-stx l args)])
+            #`(r:define #,(make-immediate-id id)
+               (p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) loc))))
+         (help-λ inline-binding l args doc body)]
+        [(s-lam l _ args _ doc body _)
+         (define inline-binding
+          (with-syntax ([(arg ...) (args-stx l args)])
+            #`(r:define #,(make-immediate-id id)
+               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
+         (help-λ inline-binding l args doc body)]
+        [(s-hint-exp _ (? uses-loc hints) (s-extend s (s-lam l _ args _ doc body _) fields))
+         (define loc (h-use-loc-loc (uses-loc hints)))
+         (define inline-binding
+          (with-syntax ([(arg ...) (args-stx l args)])
+            #`(r:define #,(make-immediate-id id)
+               (p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) loc))))
+         (help-extend inline-binding l args doc body fields)]
         [(s-extend s (s-lam l _ args _ doc body _) fields)
          (define inline-binding
           (with-syntax ([(arg ...) (args-stx l args)])
             #`(r:define #,(make-immediate-id id)
                (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
-         (cond
-          [(or (compile-env-toplevel? env) id-used)
-            (list inline-binding
-                  (with-syntax ([(arg ...) (args-stx l args)]
-                                [f-id (make-immediate-id id)]
-                                [(field ...) (map (curryr compile-member env) fields)])
-                    #`(r:define #,(discard-_ id)
-                        (p:extend
-                          #,(loc-stx s)
-                          (p:pλ (arg ...) #,doc (f-id arg ...))
-                          (r:list field ...)))))]
-           [else (list inline-binding)])]
+         (help-extend inline-binding l args doc body fields)]
         [_ (list #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))])]
       [_ (list (compile-expr/internal ast-node env))]))
   (define ids (block-ids stmts))
@@ -113,7 +133,8 @@
        (with-syntax*
         ([name-stx (compile-string-literal l name env)]
          [val-stx (compile-expr/internal value env)])
-         #`(r:cons name-stx val-stx)))]))
+         #`(r:cons name-stx val-stx)))]
+    [else (error (format "Unexpected ast node passed to compile-member: ~a\n" ast-node))]))
 (define (compile-string-literal l e env)
   (match e
     [(s-str _ s) (d->stx s l)]
@@ -133,6 +154,8 @@
       (with-syntax*
          ([field-stx (compile-string-literal l field env)])
        #`(#,lookup-type #,(loc-stx l) #,(compile-expr obj env) field-stx))))
+  (define (uses-loc hints)
+    (findf h-use-loc? hints))
   (match ast-node
 
     [(s-block l stmts)
@@ -147,6 +170,13 @@
     [(s-bool l #f) #`p:p-false]
     [(s-str l s) #`(p:mk-str #,(d->stx s l))]
 
+    [(s-hint-exp _ (? uses-loc hints) (s-lam l params args ann doc body _))
+     (define loc (h-use-loc-loc (uses-loc hints)))
+     (define new-env (compile-env (compile-env-functions-to-inline env) #f))
+     (attach l
+       (with-syntax ([(arg ...) (args-stx l args)]
+                     [body-stx (compile-body l body new-env)])
+         #`(p:pλ/loc (arg ...) #,doc body-stx #,(loc-stx loc))))]
     [(s-lam l params args ann doc body _)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
@@ -154,6 +184,13 @@
                      [body-stx (compile-body l body new-env)])
          #`(p:pλ (arg ...) #,doc body-stx)))]
 
+    [(s-hint-exp _ (? uses-loc hints) (s-method l args ann doc body _))
+     (define loc (h-use-loc-loc (uses-loc hints)))
+     (define new-env (compile-env (compile-env-functions-to-inline env) #f))
+     (attach l
+       (with-syntax ([(arg ...) (args-stx l args)]
+                     [body-stx (compile-body l body new-env)])
+         #`(p:pμ/loc (arg ...) #,doc body-stx #,(loc-stx loc))))]
     [(s-method l args ann doc body _)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
@@ -211,6 +248,10 @@
       (match fun
         [(s-id l2 (? (λ (s) (set-member? (compile-env-functions-to-inline env) s)) id))
          (make-immediate-id id)]
+        [(s-hint-exp _ (? uses-loc hints) (s-lam l _ args _ doc body _))
+         (define loc (h-use-loc-loc (uses-loc hints)))
+         (with-syntax ([(arg ...) (args-stx l args)])
+           #`(p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) loc))]
         [(s-lam l _ args _ doc body _)
          (with-syntax ([(arg ...) (args-stx l args)])
            #`(p:arity-catcher (arg ...) #,(compile-expr/internal body env)))]
@@ -253,6 +294,9 @@
      (compile-lookup l obj field #'p:get-raw-field)]
 
     [(s-prog l headers block) (compile-prog l headers block)]
+
+    [(s-hint-exp _ h e)
+     (error (format "Saw a hint that wasn't used: ~a" h))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
