@@ -1,7 +1,5 @@
 #lang pyret
 
-import dblib as dblib
-
 provide {
   DB: DB,
   sqlite: sqlite,
@@ -12,6 +10,8 @@ provide {
   rows_result: rows_result
 }
 end
+
+import dblib as dblib
 
 data DB:
   # | postgres with:

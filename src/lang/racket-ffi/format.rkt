@@ -1,7 +1,8 @@
 #lang pyret
 
-import "format-lib.rkt" as format-internal
 provide format end
+
+import "format-lib.rkt" as format-internal
 
 fun format(template :: String, args :: list.List):
   format-internal(template, args.map(tostring))

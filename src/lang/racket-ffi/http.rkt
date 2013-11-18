@@ -1,8 +1,8 @@
 #lang pyret
 
-import url as U
-
 provide *
+
+import url as U
 
 # Data definitions for HTTP requests and responses
 # Modelled after Racket's web-server/http, but we use "string" instead of
