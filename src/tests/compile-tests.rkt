@@ -1117,6 +1117,7 @@ o2.m().called" true)
     (private-run (example-path "queue.arr") 9)
     (private-run (example-path "point.arr") 5)
     (private-run (example-path "ralist.arr") 110)
+    (private-run (example-path "heap.arr") 31)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)
