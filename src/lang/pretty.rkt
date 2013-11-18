@@ -5,6 +5,7 @@
   racket/string
   racket/function
   racket/list
+  "../parameters.rkt"
   "ast.rkt")
 
 (provide
@@ -237,7 +238,10 @@
 
     [(s-paren _ e) (format "(~a)" (pretty e))]
 
-    [(s-hint-exp _ h e) (format "HINTS(~a)~a" (string-join (map pretty-hint h) ",") (pretty e))]
+    [(s-hint-exp _ h e)
+     (if (current-print-hints)
+         (format "HINTS(~a)~a" (string-join (map pretty-hint h) ",") (pretty e))
+         (pretty e))]
 
     [else "<unprintable-expr>"]))
 
