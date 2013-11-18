@@ -296,9 +296,7 @@
     [(s-prog l headers block) (compile-prog l headers block)]
 
     [(s-hint-exp _ h e)
-     (begin
-       (printf "Saw hints ~a but didn't use them\n" h)
-       (compile-expr e env))]
+     (error (format "Saw a hint that wasn't used: ~a" h))]
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
