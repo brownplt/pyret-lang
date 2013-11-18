@@ -4,6 +4,8 @@
 
 provide {
   BinomialHeap: BinomialHeap,
+  heap: list-to-heap,
+  hempty: bh-empty,
   merge: merge,
   insert: insert,
   peek: peek,
@@ -11,17 +13,17 @@ provide {
   heap-to-list: heap-to-list
 } end
 
-data BinomialTree:
-  | bt-node(val :: Any, children :: List<BinomialTree>)
+data BinomialTree<a>:
+  | bt-node(val :: a, children :: List<BinomialTree<a>>)
 end
 
-data TaggedTree:
-  | tt(order :: Number, tree :: BinomialTree)
+data TaggedTree<a>:
+  | tt(order :: Number, tree :: BinomialTree<a>)
 end
 
-data BinomialHeap:
+data BinomialHeap<a>:
   | bh-empty
-  | bh-link(order :: Number, tree :: BinomialTree, next :: BinomialHeap)
+  | bh-link(order :: Number, tree :: BinomialTree<a>, next :: BinomialHeap<a>)
 sharing:
   merge(self, other): merge(self, other) end,
   insert(self, val): insert(self, val) end,
@@ -29,13 +31,13 @@ sharing:
   remove-min(self): remove-min(self) end,
 
   to-list(self): heap-to-list(self) end,
-  tostring(self): "heap {" + tostring(heap-to-list(self)) + "}" end,
-  torepr(self): "heap {" + torepr(heap-to-list(self)) + "}" end,
+  tostring(self): "heap(" + tostring(heap-to-list(self)) + ")" end,
+  _torepr(self): "heap(" + torepr(heap-to-list(self)) + ")" end,
   _equals(self, other): heap-to-list(self) == heap-to-list(other) end,
   _plus(self, other): merge(self, other) end
 end
 
-fun merge(lbh :: BinomialHeap, rbh :: BinomialHeap) -> BinomialHeap:
+fun<a> merge(lbh :: BinomialHeap<a>, rbh :: BinomialHeap<a>) -> BinomialHeap<a>:
   doc: "Merge two binomial heaps"
   fun merge-same-size(l, r):
     if l.val < r.val:
@@ -113,7 +115,7 @@ where:
                                bt-node(40, [])]), bh-empty)
 end
 
-fun insert(bh :: BinomialHeap, val) -> BinomialHeap:
+fun<a> insert(bh :: BinomialHeap<a>, val :: a) -> BinomialHeap<a>:
   merge(bh, bh-link(0, bt-node(val, []), bh-empty))
 where:
   bh-empty^insert(10) is bh-link(0, bt-node(10, []), bh-empty)
@@ -128,7 +130,7 @@ where:
                        bh-empty))
 end
 
-fun peek(bh :: BinomialHeap):
+fun<a> peek(bh :: BinomialHeap<a>):
   fun peek-tree(h, min):
     cases(BinomialHeap) h:
       | bh-empty => min
@@ -153,7 +155,7 @@ where:
     is -5
 end
 
-fun remove-min(bh :: BinomialHeap) -> BinomialHeap:
+fun<a> remove-min(bh :: BinomialHeap<a>) -> BinomialHeap<a>:
   fun find-tree(h, min-h):
     cases(BinomialHeap) h:
       | bh-empty => min-h
@@ -215,7 +217,7 @@ where:
     is 25
 end
 
-fun heap-to-list(bh :: BinomialHeap) -> List:
+fun<a> heap-to-list(bh :: BinomialHeap<a>) -> List<a>:
   cases(BinomialHeap) bh:
     | bh-empty => empty
     | bh-link(_, _, _) => link(peek(bh), heap-to-list(remove-min(bh)))
@@ -249,4 +251,19 @@ where:
           ^insert(-5)^insert(45)^insert(0)
           ^remove-min()^remove-min()^heap-to-list()
     is [25, 30, 40, 45]
+end
+
+fun<a> list-to-heap(lst :: List<a>) -> BinomialHeap<a>:
+  fold(insert, bh-empty, lst)
+where:
+  fun check-compose(l):
+    l.sort() == l^list-to-heap()^heap-to-list()
+  end
+
+  [] satisfies check-compose
+  [1] satisfies check-compose
+  [1,2] satisfies check-compose
+  [2,1] satisfies check-compose
+  [4,2,3,1] satisfies check-compose
+  [1,5,1,3,4] satisfies check-compose
 end
