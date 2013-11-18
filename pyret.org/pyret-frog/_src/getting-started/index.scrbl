@@ -45,7 +45,7 @@ looks like this:
 Then, use File -> Install .plt File, select the Web tab, copy paste the URL
 below into the space, and click "OK"
 
-@url{http://pyret.org/download/pyret-0.1.plt}
+@url{http://pyret.org/download/pyret-0.2.plt}
 
 @image["img/install-via-url.png"]
 

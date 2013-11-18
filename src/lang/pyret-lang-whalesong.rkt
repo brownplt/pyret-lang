@@ -79,6 +79,12 @@
     [pyret-list-set list-set]
     [pyret-tree-set tree-set]
 
+    [pyret-array array]
+    [pyret-array-get array-get]
+    [pyret-array-set array-set]
+    [pyret-array-length array-length]
+    [pyret-array-to-list array-to-list]
+
     [pyret-identical identical]
     [pyret-string-to-list string-to-list])
 

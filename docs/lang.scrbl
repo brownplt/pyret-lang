@@ -46,6 +46,8 @@ own environmental behavior that is worth noting.
 
 @include-section{list.scrbl}
 
+@include-section{array.scrbl}
+
 
 @section[#:tag "s:option"]{Option}
 
@@ -74,7 +76,9 @@ names as identifiers.}
 
 @justcode{data Set: | ... end}
 
-@(define set (get-decl moorings-ast 'Set))
+@(define set-ast (get-pyret-lib "lang/pyret-lib/sets.arr"))
+
+@(define set (get-decl set-ast 'Set))
 
 @(define set-constructor-code
   "fun set(lst :: List):
@@ -88,19 +92,19 @@ names as identifiers.}
    '(set))
 
 @(label "Set.member()")
-@(pretty-method-with-doc (get-method set '__set "member"))
+@(pretty-method-with-doc (get-method set 'list-set "member"))
 
 @(label "Set.add()")
-@(pretty-method-with-doc (get-method set '__set "add"))
+@(pretty-method-with-doc (get-method set 'list-set "add"))
 
 @(label "Set.remove()")
-@(pretty-method-with-doc (get-method set '__set "remove"))
+@(pretty-method-with-doc (get-method set 'list-set "remove"))
 
 @(label "Set.to-list()")
-@(pretty-method-with-doc (get-method set '__set "to-list"))
+@(pretty-method-with-doc (get-method set 'list-set "to-list"))
 
 @(label "Set.union()")
-@(pretty-method-with-doc (get-method set '__set "union"))
+@(pretty-method-with-doc (get-method set 'list-set "union"))
 
 
 @section[#:tag "s:numbers"]{Numbers}
@@ -284,6 +288,9 @@ are converted into a list [\"string\", <the-string>].'
   fun is-placeholder(v :: Any) -> Bool:
     doc: 'True if v is a placeholder, false otherwise'
   end
+  fun is-array(v :: Any) -> Bool:
+    doc: 'True if v is a array, false otherwise'
+  end
   fun is-nothing(v :: Any) -> Bool:
     doc: 'True if v is nothing, false otherwise'
   end"
@@ -306,6 +313,7 @@ are converted into a list [\"string\", <the-string>].'
   is-object
   is-mutable
   is-placeholder
+  is-array
   is-nothing
   ))
 
