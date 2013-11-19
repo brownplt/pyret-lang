@@ -11,6 +11,15 @@ check:
 end
 
 check:
+  a1 = build-array(fun(i): i * i end, 6)
+  a1.to-list() is [0, 1, 4, 9, 16, 25]
+  a2 = for build-array(i from 7):
+    (i * i) - i
+  end
+  a2.to-list() is [0, 0, 2, 6, 12, 20, 30]
+end
+
+check:
   fun negate(f): fun(x): not f(x);;
 
   a1 = array([1, 2, 3])
