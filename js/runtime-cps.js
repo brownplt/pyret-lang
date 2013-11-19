@@ -1,4 +1,4 @@
-var PYRET = (function () {
+var PYRET_CPS = (function () {
 
   function makeRuntime() {
     function PObject(d) {
@@ -87,6 +87,9 @@ var PYRET = (function () {
       }
       else if (isMethod(val)) {
         return makeString("method: end");
+      }
+      else if (isObject(val)) {
+        return makeString("{in: complete}");
       }
       throw ("toStringJS on an unknown type: " + val);
     }
