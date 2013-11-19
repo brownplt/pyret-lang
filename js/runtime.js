@@ -1,15 +1,6 @@
 var PYRET = (function () {
 
   function makeRuntime() {
-    function PObject(d) {
-      this.dict = d;
-    }
-    function makeObject(d) { return new PObject(d); }
-    function isObject(v) { return v instanceof PObject; }
-    PObject.prototype = {
-      app: function() { throw "Cannot apply object." }
-    };
-
     function PMethod(f) {
       this.method = f;
     }
@@ -30,14 +21,8 @@ var PYRET = (function () {
     };
 
     var numberDict = {
-      _plus: makeMethod(function(k, f, left, right) {
+      _plus: makeMethod(function(left, right) {
         return makeNumber(left.n + right.n);
-      }),
-      _minus: makeMethod(function(left, right) {
-        return makeNumber(left.n - right.n);
-      }),
-      _times: makeMethod(function(left, right) {
-        return makeNumber(left.n * right.n);
       })
     };
 
@@ -133,67 +118,7 @@ var PYRET = (function () {
       return JSON.stringify({exn: String(exn)})
     }
 
-    // TODO(students): Make sure this returns a JavaScript dictionary with
-    // the same contents as the Pyret dictionary (your field name may not
-    // be dict, or there may be more work to do here, depending on your
-    // representation).
-    function pyretToJSDict(v) {
-      return v.dict;
-    }
-
-    function TrampolineException(k) {
-      this.k = k;
-    }
-    function trampoline(k) { throw new TrampolineException(k); }
-    var runtime = {
-      trampoline: trampoline,
-      onDone: function(v) {
-        console.log("Success: ", v);
-      }
-    };
-
-    function PauseAction(onPause) {
-      this.onPause = onPause; 
-    }
-
-    var pauseRequested = false;
-    var nopause = function() { throw "No current pause"; }
-    var currentPause = nopause;
-    function start(fun, runtime, namespace, onDone) {
-      function nextTurn(k) { setTimeout(k, 0); }
-      function run(k) {
-        try {
-          k();
-        } catch(e) {
-          console.log("Caught ", e);
-          if(e instanceof TrampolineException) {
-            if(!pauseRequested) {
-              nextTurn(function() { run(e.k); });
-            }
-            else {
-              var restart = function() { run(e.k); };
-              pauseRequested = false;
-              var thisPause = currentPause;
-              currentPause = nopause;
-              nextTurn(function() { thisPause(restart); });
-            }
-          }
-          else {
-            console.error("[start] Uncaught exception: ", e);
-          }
-        }
-      }
-      run(function() { fun(runtime, namespace, onDone); });
-    }
-
-    function requestPause(k) {
-      pauseRequested = true;
-      currentPause = k;
-    }
-
     return {
-      start: start,
-      requestPause: requestPause,
       namespace: Namespace({
         nothing: {},
         "test-print": makeFunction(testPrint),
@@ -210,8 +135,6 @@ var PYRET = (function () {
       }),
       runtime: {
         makeNumber: makeNumber,
-        makeObject: makeObject,
-        makeFunction: makeFunction,
         isNumber: isNumber,
         equal: equal,
         getField: getField,
@@ -225,14 +148,12 @@ var PYRET = (function () {
         makeFailResult: makeFailResult,
         makePyretException: makePyretException,
         toReprJS: toRepr,
-        errToJSON: errToJSON,
-        pyretToJSDict: pyretToJSDict
+        errToJSON: errToJSON
       }
-    };
+    }
   }
 
   return {
     makeRuntime: makeRuntime
   };
 })();
-
