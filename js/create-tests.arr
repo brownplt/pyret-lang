@@ -260,10 +260,10 @@ fun create-list-test(name, program, out, err):
   str-test-case(name, program, test-lib(list-lib-ast, out, err, USE-CPS))
 end
 
-all-tests("tests")
+#all-tests("tests")
 all-tests("class")
-all-tests("moorings-tests")
-all-tests("list-lib-tests")
+#all-tests("moorings-tests")
+#all-tests("list-lib-tests")
 
 BASIC-TESTS = get-dir-sections("tests", create-print-test)
 CLASS-TESTS = get-dir-sections("class", create-print-test)
@@ -272,10 +272,10 @@ LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
 #    [test-section("misc", MISC)] +
-    BASIC-TESTS +
-    CLASS-TESTS +
-    MOORINGS-TESTS +
-    LIST-LIB-TESTS
+#    BASIC-TESTS +
+    CLASS-TESTS
+#    MOORINGS-TESTS +
+#    LIST-LIB-TESTS
   )
 
 

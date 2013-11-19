@@ -107,11 +107,12 @@ var PYRET_CPS = (function () {
     }
 
     var testPrintOutput = "";
-    function testPrint(val) {
+    function testPrint(k, val) {
       var str = toRepr(val).s;
       console.log("testPrint: ", val, str);
       testPrintOutput += str + "\n";
-      return val;
+      // Should be applyFunc, or whatever your implementation calls it
+      k.app(val);
     }
 
     function NormalResult(val, namespace) {

@@ -68,7 +68,7 @@ function testPrintCPS(name, pyretProg, output, namespace) {
     test: function(RUNTIME) {
       var namespaceToUse = namespace || RUNTIME.namespace;
       var response = false;
-      RUNTIME.start(pyretProg, RUNTIME.runtime, namespace,
+      RUNTIME.start(pyretProg, RUNTIME.runtime, namespaceToUse,
           {
             success: function(result) {
               response = true;

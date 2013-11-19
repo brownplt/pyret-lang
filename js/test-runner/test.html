@@ -22,7 +22,7 @@ Object.keys(TESTS).forEach(function(key) {
         var tester;
           var elt = TESTS[key][key2];
           it(key2, function() {
-            var RUNTIME = elt.cpsruntime ? PYRET.makeRuntime() : PYRET_CPS.makeRuntime();
+            var RUNTIME = elt.cpsruntime ? PYRET_CPS.makeRuntime() : PYRET.makeRuntime();
             elt.test(RUNTIME);
           });
         })

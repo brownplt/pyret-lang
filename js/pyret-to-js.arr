@@ -195,21 +195,40 @@ end
 
 fun arg(l, name): A.s_bind(l, name, A.a_blank);
 fun lam(l, args, body): A.s_lam(l, [], args, A.a_blank, "anon lam", body, A.s_block(l, []));
+app = A.s_app
 
 K = "$k"
+fun mk-K(): gensym("$k");
 
 fun cps(ast):
+  # punt can be used when you don't know how to CPS yet
+  fun punt():
+    l = ast.l
+    lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [ast]));
+  id = A.s_id
   cases(A.Expr) ast:
-    | s_block(l, stmts) =>
+    | s_block(l, pre-stmts) =>
+      stmts = if pre-stmts.length() == 0: [A.s_id(l, "nothing")] else: pre-stmts;
       ids = block-ids(ast)
-      vars = ids.map(fun(id): A.s_var(l, A.s_bind(l, id, A.a_blank), A.s_id(l, "nothing"));)
+      vars = ids.map(fun(v): A.s_var(l, A.s_bind(l, v, A.a_blank), A.s_id(l, "nothing"));)
+
       cont = for fold(
-            k from A.s_id(l, K),
-            s from stmts
-          ):
-        lam(l, [arg(l, K)], A.s_app(l, cps(s), [k]))
+            k from fun(e): A.s_app(l, cps(e), [A.s_id(l, K)]) end,
+            s from stmts.take(stmts.length() - 1).reverse()):
+        fun(e): A.s_app(l, cps(s), [lam(l, [arg(l, "ignored")], k(e))]);;
+
+      body = lam(l, [arg(l, K)], cont(stmts.last()))
+
+      A.s_block(l, vars + [body])
+    | s_app(l, f, es) =>
+      if es.length() == 1:
+        lam(l, [arg(l, K)],
+          app(l, cps(f), [lam(l, [arg(l, "$fv")],
+            app(l, cps(es.first), [lam(l, [arg(l, "$argv")],
+              app(l, id(l, "$fv"), [id(l, K), id(l, "$argv")]))]))]))
+      else:
+        punt()
       end
-      A.s_block(l, vars + [cont])
     # Cheating a little here: Since we explicitly lift the block variables
     # above, we just turn lets and vars into assignment statements, and rely
     # on the well-formedness checking that's already happened
@@ -217,9 +236,7 @@ fun cps(ast):
     | s_var(l, b, e) => cps(A.s_assign(l, b.id, e))
     | s_num(l, n) =>
       lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [A.s_num(l, n)]))
-    | else => 
-      l = ast.l
-      lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [ast]))
+    | else => punt()
   end
 end
 
