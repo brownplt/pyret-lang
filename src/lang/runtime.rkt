@@ -598,7 +598,7 @@
   (when (not (p-num? num)) (throw-type-error! "Number" num))
   (p-array no-brands array-dict array-bad-app array-bad-meth (make-vector (p-num-n num) val))))
 (define mk-build-array-pfun (pλ/internal (loc) (fun len)
-  (when (not (p-num? len)) (throw-type-error! "Numer" len))
+  (when (not (p-num? len)) (throw-type-error! "Number" len))
   (p-array no-brands array-dict array-bad-app array-bad-meth
            (build-vector (p-num-n len) (λ(i) (apply-fun fun dummy-loc (mk-num i)))))))
 
