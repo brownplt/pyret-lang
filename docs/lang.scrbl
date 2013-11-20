@@ -48,6 +48,8 @@ own environmental behavior that is worth noting.
 
 @include-section{array.scrbl}
 
+@include-section{timing.scrbl}
+
 
 @section[#:tag "s:option"]{Option}
 
@@ -433,7 +435,7 @@ A few other methods are on @tt{Placeholder} values, as well:
 @(label "Placeholder._equals")
 
 @justcode{
-get(self :: Placeholder<a>, other :: Any) -> Bool
+_equals(self :: Placeholder<a>, other :: Any) -> Bool
 }
 
 Returns @tt{true} if @tt{other} is the @emph{same} @tt{Placeholer} as this one,
