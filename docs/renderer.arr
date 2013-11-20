@@ -1,7 +1,7 @@
 #lang pyret
 
-import ast as A
 provide { get-pretty-str: get-pretty-str } end
+import ast as A
 
 fun get-pretty-str(raw-ast):
   this-ast = A.to-pyret(raw-ast)
