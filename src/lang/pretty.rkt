@@ -224,6 +224,9 @@
     [(s-bracket _ val field)
      (format "~a.[~a]" (pretty val) (pretty field))]
 
+    [(s-get-bang _ val field)
+     (format "~a!~a" (pretty val) field)]
+    
     [(s-colon _ obj field)
      (format "~a:~a" (pretty obj) field)]
 
