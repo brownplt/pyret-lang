@@ -805,7 +805,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 38)
+  (check-pyret-match/check "pyret/update.arr" _ 41)
   (check-pyret-match/check "pyret/placeholder.arr" _ 15)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))

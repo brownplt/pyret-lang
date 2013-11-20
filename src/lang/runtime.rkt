@@ -673,8 +673,7 @@
     [(p-mutable? vfield)
      (define checks (p-mutable-read-wrappers vfield))
      (foldr (lambda (c v) (c v)) (unbox (p-mutable-b vfield)) checks)]
-    [else
-     (raise (pyret-error loc "immutable-mutable-lookup" (format "Cannot look up immutable field \"~a\" with the ! operator" f)))]))
+    [else (get-field loc v f)]))
 
 (define (check-str v l)
   (cond

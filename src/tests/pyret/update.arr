@@ -10,7 +10,7 @@ check:
 
   o2 = o.{ x: 15 }
   o2.x is 15
-  o2!x raises 'Cannot look up immutable field "x" with the ! operator'
+  o2!x is 15
 
   mut-value = o:x
   o3 = o.{ x: mut-value }
@@ -29,6 +29,8 @@ data D:
 where:
     my-d1 = no-ann(5)
     my-d1!x is 5
+
+    cases(D) my-d1: | no-ann(x) => x; is 5
 
     my-d1!{x : 10}
 
@@ -58,15 +60,19 @@ where:
     my-d3!f(5) raises "expected String"
 
     my-d4 = multi-field(1, 2, 3)
+    cases(D) my-d4: | multi-field(a, b, c) => [a, b, c]; is [1,2,3]
+
     my-d4!{a : "new-a", b : "new-b" }
     my-d4!a is "new-a"
     my-d4!b is "new-b"
+
+    cases(D) my-d4: | multi-field(a, b, c) => [a, b, c]; is ["new-a","new-b",3]
 
     my-d4!{c : 5} raises "Updating immutable field"
     my-d4!{a : 5, c : 10} raises "Updating immutable field"
     my-d4!a is "new-a" # doesn't get updated unless all updates work
 
-    my-d4!c raises "look up immutable field"
+    my-d4!c is 3
 end
 
 data Node deriving builtins.Eq:

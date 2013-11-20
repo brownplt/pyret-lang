@@ -159,9 +159,7 @@
                 (s-let s (s-bind s call-match-case (a-blank))
                        (s-bracket s (s-id s 'cases-funs) (s-str s case-name)))
                 (s-app s (s-id s call-match-case)
-                       (map (lambda (field-name) (s-bracket s (s-id s 'self)
-                                                            (s-str s (symbol->string
-                                                                      (s-bind-id field-name)))))
+                       (map (lambda (field-name) (s-get-bang s (s-id s 'self) (s-bind-id field-name)))
                             fields))))))
          (s-app s (s-id s 'else-clause) (list)))))
   (define strip-param-bind (replace-typarams-binds params))
