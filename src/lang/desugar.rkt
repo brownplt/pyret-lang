@@ -77,11 +77,15 @@
             ;; NOTE(dbp 2013-10-27): generative, in order to get method fields desugared
              (desugar-internal
               (s-extend s (s-id s 'self) base-fields)))))))))
+  (define (ds-variant-member vm)
+    (match vm
+      [(s-variant-member s type bind)
+       (s-variant-member s type (desugar-bind bind))]))
   (match variant
     [(s-singleton-variant s name with-members)
      (s-datatype-singleton-variant s name (variant-constructor s with-members))]
     [(s-variant s name variant-members with-members)
-     (s-datatype-variant s name variant-members (variant-constructor s with-members))]))
+     (s-datatype-variant s name (map ds-variant-member variant-members) (variant-constructor s with-members))]))
 
 (define (ds-member ast-node)
     (match ast-node
@@ -195,16 +199,18 @@
     [(or 'opand 'opor) #t]
     [_ #f]))
 
+(define (desugar-bind b)
+  (match b
+    [(s-bind s id a) (s-bind s id (desugar-ann a))]))
+
 (define (desugar-internal ast)
   (define ds desugar-internal)
+  (define ds-bind desugar-bind)
   (define (ds-== s e1 e2)
     (ds-curry-binop s (ds e1) (ds e2)
                     (lambda (ds-e1 ds-e2)
                       (s-app s (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
                              (list ds-e1 ds-e2)))))
-  (define (ds-bind b)
-    (match b
-      [(s-bind s id a) (s-bind s id (desugar-ann a))]))
   (define (ds-args binds)
     (map ds-bind binds))
   (define (ds-if branch)

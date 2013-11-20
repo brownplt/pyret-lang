@@ -239,4 +239,13 @@
    x"
   "Unbound identifier: x")
 
+(check-pyret
+  "data D:
+    | v(a :: D(fun(v): not is-v(v) end))
+    | v2(b)
+   end
+   v(v2(4)).a.b
+   "
+   (p:mk-num 4))
+
 (run-tests all)
