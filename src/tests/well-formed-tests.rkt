@@ -212,6 +212,53 @@
     | foo(a) with constructor(self): self end
    end"
   "Constructor name bang appeared more than once.")
+
+(check-pyret-exn
+  "cases(List) []:
+    | empty => 1
+    | empty => 2
+   end"
+  "Duplicate case for empty")
+
+(check-pyret-exn
+  "cases(List) []:
+    | empty => 1
+    | link(f, r) => 2
+    | empty => 2
+   end"
+  "Duplicate case for empty")
+
+(check-pyret-exn
+  "cases(List) []:
+    | empty => 1
+    | empty => 2
+    | else => 3
+   end"
+  "Duplicate case for empty")
+
+(check-pyret-exn
+  "cases(List) []:
+    | link(f, r) => 2
+    | bogus => 'bogus'
+    | bogus2 => 'bogus'
+    | empty => 1
+    | bogus3 => 'bogus'
+    | empty => 2
+    | else => 3
+   end"
+  "Duplicate case for empty")
+
+(check-pyret-exn
+  "cases(List) []:
+    | empty => 2
+    | bogus => 'bogus'
+    | bogus2 => 'bogus'
+    | link(f, r) => 1
+    | bogus3 => 'bogus'
+    | link(_, _) => 2
+   end"
+  "Duplicate case for link")
+
 ))
 
 (run-tests all)

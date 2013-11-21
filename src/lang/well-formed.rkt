@@ -36,6 +36,8 @@
 ;;
 ;; - duplicated constructor names in data(type)
 ;;
+;; - duplicated cases
+;;
 ;; - a cases expression with a case named "_", rather than using else
 ;;
 ;; - all blocks end in a non-binding form
@@ -64,6 +66,20 @@
       [(s-block s (list)) (void)]
       [(s-block s _)
        (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)])))
+
+(define (ensure-unique-cases cases)
+  (define (help cases seen-cases) 
+    (cond
+      [(empty? cases) (void)]
+      [(cons? cases)
+       (define f (first cases))
+       (define loc (s-cases-branch-syntax f))
+       (define name (s-cases-branch-name f))
+       (define seen (findf (lambda (c) (equal? (car c) name)) seen-cases))
+       (when seen
+        (wf-error (format "Duplicate case for ~a" name) (cdr seen) loc))
+       (help (rest cases) (cons (cons name loc) seen-cases))]))
+  (help cases empty))
 
 (define (ensure-unique-ids bindings)
   (cond
@@ -308,10 +324,12 @@
                                 (wf else))]
 
     [(s-cases s type val c-bs)
-     (begin (wf-ann type) (wf val) (map wf-cases-branch c-bs))]
+     (begin (wf-ann type) (wf val) (ensure-unique-cases c-bs) (map wf-cases-branch c-bs))]
+
     [(s-cases-else s type val c-bs else)
      (begin (wf-ann type)
             (wf val)
+            (ensure-unique-cases c-bs)
             (map wf-cases-branch c-bs)
             (wf else))]
 
