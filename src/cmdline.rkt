@@ -140,7 +140,8 @@
                         [current-mark-mode mark-mode]
                         [current-print (print-pyret #t)]
                         [current-whalesong-repl-print #f]
-                        [current-print-hints print-hints])
+                        [current-print-hints print-hints]
+                        [command-line-arguments file-and-maybe-other-stuff])
           (dynamic-require pyret-file #f))]
         [else
          (parameterize ([current-mark-mode mark-mode])
