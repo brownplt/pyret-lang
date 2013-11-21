@@ -50,6 +50,7 @@ own environmental behavior that is worth noting.
 
 @include-section{timing.scrbl}
 
+@include-section{cmdline.scrbl}
 
 @section[#:tag "s:option"]{Option}
 

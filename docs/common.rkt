@@ -26,6 +26,9 @@
  (apply tt name))
 (define (in-code . code)
  (apply tt code))
+(define (tt-nodecode . str)
+  (element 'tt str))
+
 
 (define (pretty ast)
  (define lines 
