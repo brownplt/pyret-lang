@@ -195,6 +195,12 @@ Numbers have a number of useful methods:
         'a'.char-at(0) is 'a'
         'ahoy'.char-at(3) is 'y'
       end,
+      explode(self) -> List<String>:
+        doc: 'Returns a list of the characters in this string'
+      where:
+        'ahoy'.explode() is ['a', 'h', 'o', 'y']
+        ''.explode() is []
+      end,
       repeat(self, reps :: Number) -> Number:
         doc: 'Return a string that is this string repeated reps times'
       where:
@@ -225,6 +231,7 @@ Numbers have a number of useful methods:
   "to-lower"
   "to-upper"
   "char-at"
+  "explode"
   "repeat"
   "length"
   "tonumber"
@@ -262,6 +269,9 @@ are converted into a list [\"string\", <the-string>].'
   where:
       read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
     is [[-13, 14, 88.8], 'cats', '++', ['string', 'dogs']]
+  end
+  fun string-to-list(s :: String) -> List<String>:
+    doc: 'Take a string as input, and return a list of the characters in it'
   end
   fun random(n :: Number) -> Number:
     doc: 'Take a number as input, and return a random number between 0 and n-1 (inclusive'
@@ -304,6 +314,7 @@ are converted into a list [\"string\", <the-string>].'
   random
   raise
   print
+  string-to-list
   torepr
   read-sexpr
   identical
