@@ -31,7 +31,7 @@ var PYRET_CPS = (function () {
 
     var numberDict = {
       _plus: makeMethod(function(k, f, left, right) {
-        return makeNumber(left.n + right.n);
+        k.app(makeNumber(left.n + right.n));
       }),
       _minus: makeMethod(function(left, right) {
         return makeNumber(left.n - right.n);
@@ -98,8 +98,8 @@ var PYRET_CPS = (function () {
       var fieldVal = val.dict[str];
       if (isMethod(fieldVal)) {
         return makeFunction(function() {
-          var argList = Array.prototype.slice.call(arguments);
-          return fieldVal.method.apply(null, [val].concat(argList));
+          var argList = Array.prototype.slice.call(arguments, 1);
+          return fieldVal.method.apply(null, [arguments[0], val].concat(argList));
         });
       } else {
         return fieldVal;

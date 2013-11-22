@@ -203,6 +203,7 @@ fun mk-K(): gensym("$k");
 fun cps(ast):
   # punt can be used when you don't know how to CPS yet
   fun punt():
+    print("Punting on: " + torepr(ast))
     l = ast.l
     lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [ast]));
   id = A.s_id
@@ -221,7 +222,9 @@ fun cps(ast):
 
       A.s_block(l, vars + [body])
     | s_app(l, f, es) =>
+      print("Args: " + torepr(es))
       if es.length() == 1:
+        print("Length was one for: " + torepr(ast))
         lam(l, [arg(l, K)],
           app(l, cps(f), [lam(l, [arg(l, "$fv")],
             app(l, cps(es.first), [lam(l, [arg(l, "$argv")],
@@ -236,6 +239,11 @@ fun cps(ast):
     | s_var(l, b, e) => cps(A.s_assign(l, b.id, e))
     | s_num(l, n) =>
       lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [A.s_num(l, n)]))
+    | s_bracket(l, obj, field) =>
+      lam(l, [arg(l, K)],
+        app(l, cps(obj), [lam(l, [arg(l, "$obj")],
+                    app(l, A.s_id(l, K), [
+                        A.s_bracket(l, id(l, "$obj"), field)]))]))
     | else => punt()
   end
 end
