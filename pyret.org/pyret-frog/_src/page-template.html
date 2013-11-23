@@ -332,10 +332,14 @@ variety of pedagogic styles and curricular needs.")
 @disable-prefix{
 check:
   fun get-status(url):
-    request({ url: url, type: "get", params: [] }).status-code
+    request({
+        url: url,
+        type: "get",
+        params: []
+      }).status-code
   end
   get-status("http://google.com/") is 200
-  get-status("http://not-a-site-that-i-know.gov") is 404
+  get-status("http://healthcare.gov/") is 500
 end
 }
 "In addition to <code>where:</code> blocks, which are attached to
@@ -694,10 +698,12 @@ end
 
 <hr/>
 
-@(two-langs "Knowledge of Pitfalls"
+@(two-langs "Embracing Substitutability"
 @disable-prefix{
-A design goal of Pyret is to feel both functional and scripty while avoiding
-known mistakes in languages that are related.
+A design goal of Pyret's syntax and semantics is to embrace the
+substitutability of equivalent expressions as much as possible.  This is in
+contrast to, for example, some scripting languages, in which what looks like
+binding an expression to a temporary name changes program behavior.
 }
 "JavaScript"
 @disable-prefix{
@@ -707,6 +713,7 @@ o = @"{"
 @"}"
 method-as-fun = o.my-method
 check:
+  o.my-method(5) is 15
   method-as-fun(5) is 15
 end
 }
@@ -717,6 +724,7 @@ var o = @"{"
   @"}",
   y: 10
 @"}"
+o.my_method(5) === 15 // true
 method_as_fun = o.my_method
 method_as_fun(5)
 // either error or NaN
@@ -732,6 +740,7 @@ o = @"{"
 @"}"
 method-as-fun = o.my-method
 check:
+  o.my_method(5) is 15
   method-as-fun(5) is 15
 end
 }
@@ -743,9 +752,9 @@ end
 def o.y
   10
 end
+o.my_method(5) == 15 # true
 method_as_fun = o.my_method
 # Wrong number of arguments, 0 for 1
-method_as_fun(5) # not reached
 })
 </div>
 
