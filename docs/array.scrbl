@@ -27,14 +27,18 @@ end
 fun array-of(v :: a, n :: Number) -> Array<a>:
   doc: 'Create a new array of length n with all elements initially set to v'
 end
+fun <a> build-array(f :: (Number -> a), n :: Number) -> Array<a>:
+  doc: 'Call f with numbers from 0 to n, creating an array from the results'
+end
 ")
 @(define array-constructors-ast (parse-pyret array-constructors))
 
-@(pretty-functions array-constructors-ast '(array array-of))
+@(pretty-functions array-constructors-ast '(array array-of build-array))
 
 @section[#:tag "s:array-access"]{Manipulating Arrays}
 
-There are a few constructs for working with arrays:
+There are a few constructs for working with arrays.  Array indexing is 0-based,
+so the first element is at position 0.
 
 @(define array-accessors
 "
