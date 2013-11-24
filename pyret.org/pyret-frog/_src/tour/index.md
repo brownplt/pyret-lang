@@ -130,8 +130,8 @@ to them, for instance:
 ### Strings
 
 Strings can be written single- or double- quoted.  They may span
-multiple lines. Character escapes like \n work, and the enclosing
-quote character can be included if escaped like \".
+multiple lines. Character escapes like \\n work, and the enclosing
+quote character can be included if escaped like \\".
 
     "hello world"
 
