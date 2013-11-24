@@ -109,7 +109,7 @@ Return the number of elements in the array.  Method version of @code{array-lengt
 @(label "Array.to-list")
 
 @justcode{
-length(self :: Array<a>) -> List<a>
+to-list(self :: Array<a>) -> List<a>
 
 check:
   a = array([1,2])
@@ -117,4 +117,4 @@ check:
 end
 }
 
-Return the number of elements in the array.  Method version of @code{array-to-list}.
+Return the elements in the array as a list.  Method version of @code{array-to-list}.
