@@ -128,8 +128,13 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
+     if true-branded: 5 else: 6 end"
+    five)
+  (check-pyret
+    "b = brander()
+     true-branded = b.brand(true)
      when true-branded: 5 end"
-     five)
+    nothing)
 
   (check-pyret
     "b = brander()
@@ -172,11 +177,11 @@
 
   (check-pyret "
   when true: 5 end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when true: 5 end end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when false: 5 end end
@@ -343,9 +348,17 @@
    "data Foo:
      | single
     end
-    fun f(s :: is-single): when is-single(s): true end end
+    fun f(s :: is-single): if is-single(s): true else: false end end
     f(single)"
     (p:mk-bool #t))
+
+  (check-pyret
+   "data Foo:
+     | single
+    end
+    fun f(s :: is-single): when is-single(s): true end end
+    f(single)"
+    nothing)
 
   (check-pyret-exn
    "data Foo:
