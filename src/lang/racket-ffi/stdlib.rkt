@@ -33,6 +33,7 @@
 (define pyret-repeat (get-list-lib "repeat"))
 (define pyret-filter (get-list-lib "filter"))
 (define pyret-partition (get-list-lib "partition"))
+(define pyret-split-at (get-list-lib "split-at"))
 (define pyret-any (get-list-lib "any"))
 (define pyret-find (get-list-lib "find"))
 (define pyret-map (get-list-lib "map"))

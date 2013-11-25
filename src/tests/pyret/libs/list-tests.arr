@@ -23,4 +23,12 @@ check:
 
   list.fold_n(fun(i, sum, elt): sum + elt;, 0, 0, [1,2,3]) is 6
   list.fold_n(fun(i, _, _): i;, 5, 0, [1]) is 5
+
+  list.split-at(-1, []) raises ""
+  list.split-at(0, []) is { prefix: [], suffix: [] }
+  list.split-at(1, []) raises ""
+  list.split-at(0, [1]) is { prefix: [], suffix: [1] }
+  list.split-at(1, [1]) is { prefix: [1], suffix: [] }
+  list.split-at(2, [1,2,3]) is { prefix: [1,2], suffix: [3] }
+  list.split-at(5, [1,2,3]) raises ""
 end

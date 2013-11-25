@@ -42,6 +42,7 @@
     [pyret-repeat repeat]
     [pyret-filter filter]
     [pyret-partition partition]
+    [pyret-split-at split-at]
     [pyret-any any]
     [pyret-find find]
     [pyret-map map]
