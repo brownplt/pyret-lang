@@ -203,6 +203,8 @@ data List:
 
     partition(self, f): { is-true: empty, is-false: empty } end,
 
+    split-at(self, n): split-at(n, self) end,
+
     foldr(self, f, base): base end,
 
     foldl(self, f, base): base end,
@@ -253,6 +255,8 @@ data List:
     end,
 
     partition(self, f): partition(f, self) end,
+
+    split-at(self, n): split-at(n, self) end,
 
     find(self, f): find(f, self) end,
 
@@ -447,6 +451,26 @@ fun partition(f, lst :: List):
     end
   end
   help(lst)
+end
+
+fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
+  doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
+  when n < 0:
+    raise("Invalid index")
+  end
+  fun help(ind, l):
+    if ind == 0:
+      { prefix: [], suffix: l }
+    else:
+      cases(List) l:
+        | empty => raise("Index too large")
+        | link(fst, rst) =>
+          split = help(ind - 1, rst)
+          { prefix: link(fst, split.prefix), suffix: split.suffix }
+      end
+    end
+  end
+  help(n, lst)
 end
 
 fun any(f :: (Any -> Bool), lst :: List) -> Bool:
@@ -740,6 +764,7 @@ list = {
     repeat: repeat,
     filter: filter,
     partition: partition,
+    split-at: split-at,
     any: any,
     all: all,
     find: find,

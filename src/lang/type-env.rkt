@@ -116,6 +116,7 @@
       'repeat
       'filter
       'partition
+      'split-at
       'any
       'find
       'map

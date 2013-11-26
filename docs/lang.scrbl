@@ -109,6 +109,12 @@ names as identifiers.}
 @(label "Set.union()")
 @(pretty-method-with-doc (get-method set 'list-set "union"))
 
+@(label "Set.intersect()")
+@(pretty-method-with-doc (get-method set 'list-set "intersect"))
+
+@(label "Set.difference()")
+@(pretty-method-with-doc (get-method set 'list-set "difference"))
+
 
 @section[#:tag "s:numbers"]{Numbers}
 

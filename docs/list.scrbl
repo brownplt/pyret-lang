@@ -31,6 +31,7 @@ defined on all lists (instances of @tt{empty} and @tt{link}):
     "filter"
     "find"
     "partition"
+    "split-at"
     "foldr"
     "foldl"
     "member"
@@ -62,6 +63,7 @@ help manipulate lists.
     repeat
     filter
     partition
+    split-at
     any
     find
     map
