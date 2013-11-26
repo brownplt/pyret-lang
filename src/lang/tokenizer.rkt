@@ -21,6 +21,16 @@
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
 (define OPENSTR 'OPENSTR)
+(define BINOP+ 'BINOP+)
+(define BINOP- 'BINOP-)
+(define BINOP* 'BINOP*)
+(define BINOP/ 'BINOP/)
+(define BINOP<= 'BINOP<=)
+(define BINOP>= 'BINOP>=)
+(define BINOP== 'BINOP==)
+(define BINOP<> 'BINOP<>)
+(define BINOP< 'BINOP<)
+(define BINOP> 'BINOP>)
 
 (define-lex-abbrev
   keywords
@@ -51,8 +61,8 @@
 ;; NOTE(dbp): '-' is lexed as misc, so that it can be used as a prefix for
 ;; numbers as well as for binops
 (define-lex-abbrev
-  operator-chars
-  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
+  word-operator-chars
+  (union  "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
   (position (+ n 1 (position-offset pos))
@@ -148,7 +158,8 @@
          (return-without-pos
           (list (position-token (token t "(") start-pos middle-pos)
                 (position-token (token PARENSPACE "(") middle-pos end-pos))))]
-      [(concatenation operator-chars "(")
+      ;; NOTE(dbp 2013-11-26): operators need space around them, so this is invalid.
+      #;[(concatenation operator-chars "(")
        (let* [(op (substring lexeme 0
                              (- (string-length lexeme) 1)))
               (op-len (string-length op))
@@ -170,8 +181,28 @@
              [else
               (token NAME lexeme)])]
       ;; operators
-      [operator-chars
+      [word-operator-chars
        (token lexeme lexeme)]
+      [(concatenation whitespace "+" whitespace)
+       (token BINOP+ "+")]
+      [(concatenation whitespace "-" whitespace)
+       (token BINOP- "-")]
+      [(concatenation whitespace "*" whitespace)
+       (token BINOP* "*")]
+      [(concatenation whitespace "/" whitespace)
+       (token BINOP/ "/")]
+      [(concatenation whitespace "<=" whitespace)
+       (token BINOP<= "<=")]
+      [(concatenation whitespace ">=" whitespace)
+       (token BINOP>= ">=")]
+      [(concatenation whitespace "==" whitespace)
+       (token BINOP== "==")]
+      [(concatenation whitespace "<>" whitespace)
+       (token BINOP<> "<>")]
+      [(concatenation whitespace "<" whitespace)
+       (token BINOP< "<")]
+      [(concatenation whitespace ">" whitespace)
+       (token BINOP> ">")]
       ;; names
       [(concatenation identifier-chars
                       (repetition 0 +inf.0
@@ -202,7 +233,7 @@
       [whitespace
        (token WS lexeme #:skip? #t)]
       ;; misc
-      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=")
+      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=" "<" ">")
        (token lexeme lexeme)]
       ;; comments
       [(concatenation #\# (repetition 0 +inf.0

@@ -63,8 +63,8 @@ binop-expr: not-expr | binop-expr binop binop-expr | expr
 
 not-expr: "not" expr
 
-binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
-     | "<>"  | "<"  | ">" | "and" | "or"
+binop: BINOP+  | BINOP-  | BINOP*  | BINOP/  | BINOP<=  | BINOP>=  | BINOP==
+     | BINOP<>  | BINOP<  | BINOP> | "and" | "or"
 
 check-op: "is" | "raises" | "satisfies"
 
