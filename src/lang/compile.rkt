@@ -56,7 +56,7 @@
       [(s-let s (s-bind _ id _) val)
        (define (match-id-use e)
         (match e
-          [(s-app s (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
+          [(s-app s params (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
            (s-id s2 x)]
           [(s-id s (? (lambda (x) (equal? id x)) x))
            (s-id s x)]
@@ -231,7 +231,7 @@
              (r:set! name-stx temp)
              temp)))]
 
-    [(s-app l (s-bracket l2 obj field) args)
+    [(s-app l params (s-bracket l2 obj field) args)
      (with-syntax* ([obj (compile-expr obj env)]
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
@@ -243,7 +243,7 @@
               ((p:p-base-method %field) %obj argid ...))))]
 
 
-    [(s-app l fun args)
+    [(s-app l params fun args)
      (define (compile-fun-expr fun)
       (match fun
         [(s-id l2 (? (λ (s) (set-member? (compile-env-functions-to-inline env) s)) id))

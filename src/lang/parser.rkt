@@ -342,6 +342,13 @@
     [(app-args "(" (app-arg-elt e1 ",") ... elast ")")
      (map/stx parse-binop-expr #'(e1 ... elast))]))
 
+(define (parse-app-params stx)
+  (syntax-parse stx
+    #:datum-literals (app-params app-params-elt)
+    [(app-params) empty]
+    [(app-params "<" (app-params-elt e1 ",") ... elast ">")
+     (map/stx parse-ann #'(e1 ... elast))]))
+
 (define (parse-cases-branch stx)
   (syntax-parse stx
     #:datum-literals (cases-branch)
@@ -413,8 +420,8 @@
     [(list-expr "[" "]") (s-list (loc stx) empty)]
     [(list-expr "[" (list-elt e1 ",") ... elast "]")
      (s-list (loc stx) (map/stx parse-binop-expr #'(e1 ... elast)))]
-    [(app-expr efun eargs)
-     (s-app (loc stx) (parse-expr #'efun) (parse-app-args #'eargs))]
+    [(app-expr efun eparams eargs)
+     (s-app (loc stx) (parse-app-params #'eparams) (parse-expr #'efun) (parse-app-args #'eargs))]
     [(id-expr x) (s-id (loc stx) (parse-name #'x))]
     [(dot-expr obj "." field)
      (s-dot (loc stx) (parse-expr #'obj) (parse-name #'field))]

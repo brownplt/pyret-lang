@@ -53,8 +53,8 @@
      (s-update syntax (tci super) (map tci fields))]
     [(s-obj syntax fields)
      (s-obj syntax (map tci fields))]
-    [(s-app syntax fun args)
-     (s-app syntax (tci fun) (map tci args))]
+    [(s-app syntax params fun args)
+     (s-app syntax params (tci fun) (map tci args))]
     [(s-assign syntax id value)
      (s-assign syntax id (tci value))]
     [(s-get-bang syntax obj field)
@@ -70,10 +70,10 @@
      (define cases-fallthrough
        (s-block s
                 (list
-                 (s-app s
+                 (s-app s empty
                         (s-id s 'raise)
                         (list
-                          (s-app s
+                          (s-app s empty
                             (s-bracket s (s-id s 'error) (s-str s "cases-miss"))
                             (list
                               (s-str s "cases: no cases matched")
@@ -110,7 +110,7 @@
       (s-block s
         (list
           (s-let s (s-bind s val-temp-name type) (tci val))
-          (s-app s (s-bracket s (s-id s val-temp-name) (s-str s "_match"))
+          (s-app s empty (s-bracket s (s-id s val-temp-name) (s-str s "_match"))
                  (list cases-object else-fun)))))
 
 (define (types-compile-datatype ast)
@@ -119,7 +119,7 @@
      (define brander-name (gensym name))
      (s-block s
               (flatten
-               (list (s-let s (s-bind s brander-name (a-blank)) (s-app s (s-id s 'brander) (list)))
+               (list (s-let s (s-bind s brander-name (a-blank)) (s-app s empty (s-id s 'brander) (list)))
                      (map (data-variants params brander-name) variants)
                      (make-checker s name brander-name)
                     ))
@@ -128,7 +128,7 @@
 (define (make-checker s name brander-name)
   (s-let s (s-bind s name (a-blank)) (s-bracket s (s-id s brander-name) (s-str s "test"))))
 (define (apply-brand s brander-name arg)
-  (s-app s (s-bracket s (s-id s brander-name) (s-str s "brand")) (list arg)))
+  (s-app s empty (s-bracket s (s-id s brander-name) (s-str s "brand")) (list arg)))
 (define (meth s args body)
   (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 (define (bind->string m)
@@ -139,7 +139,7 @@
 (define ((data-variants params super-brand) variant)
   (define (make-equals s brander fields)
     (meth s (list 'self 'other)
-        (s-app s (s-bracket s (s-id s 'builtins) (s-str s "data-equals"))
+        (s-app s empty (s-bracket s (s-id s 'builtins) (s-str s "data-equals"))
           (append
             (list
             (s-id s 'self)
@@ -152,13 +152,13 @@
         (s-if-else s
          (list
           (s-if-branch s
-            (s-app s (s-bracket s (s-id s 'builtins) (s-str s "has-field"))
+            (s-app s empty (s-bracket s (s-id s 'builtins) (s-str s "has-field"))
                    (list (s-id s 'cases-funs) (s-str s case-name)))
             (s-block s
               (list
                 (s-let s (s-bind s call-match-case (a-blank))
                        (s-bracket s (s-id s 'cases-funs) (s-str s case-name)))
-                (s-app s (s-id s call-match-case)
+                (s-app s empty (s-id s call-match-case)
                        (map (lambda (field)
                               (if (equal? (s-variant-member-member-type field) 'normal)
                                   (s-bracket s (s-id s 'self)
@@ -166,10 +166,10 @@
                                                     (symbol->string (s-bind-id (s-variant-member-bind field)))))
                                   (s-get-bang s (s-id s 'self) (s-bind-id (s-variant-member-bind field)))))
                             fields))))))
-         (s-app s (s-id s 'else-clause) (list)))))
+         (s-app s empty (s-id s 'else-clause) (list)))))
   (define strip-param-bind (replace-typarams-binds params))
   (define (apply-constructor s constructor params name obj)
-    (s-app s (s-lam s params
+    (s-app s empty (s-lam s params
                     (list (s-bind s (s-datatype-constructor-self constructor)
                                   (a-blank)))
                     (a-blank)
@@ -200,7 +200,7 @@
              [_ (error (format "Bad variant type: ~a" member-type))])]))
      (define torepr
        (meth s (list 'self)
-             (s-app s (s-bracket s (s-id s 'builtins) (s-str s "data-to-repr"))
+             (s-app s empty (s-bracket s (s-id s 'builtins) (s-str s "data-to-repr"))
                     (list (s-id s 'self)
                           (s-str s (symbol->string name))
                           (desugar-internal (s-list s (map bind->string id-members)))))))
@@ -223,7 +223,7 @@
      (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
-                    (s-app s (s-id s 'brander) (list)))
+                    (s-app s empty (s-id s 'brander) (list)))
            (make-checker s (make-checker-name name) brander-name)
            (s-let s (s-bind s name (a-blank))
              (s-lam s
@@ -257,7 +257,7 @@
      (list
            (s-let s (s-bind s base-name (a-blank)) base-obj)
            (s-let s (s-bind s brander-name (a-blank))
-                    (s-app s (s-id s 'brander) (list)))
+                    (s-app s empty (s-id s 'brander) (list)))
            (make-checker s (make-checker-name name)  brander-name)
            (s-let s (s-bind s name (a-blank))
                     (apply-brand s super-brand

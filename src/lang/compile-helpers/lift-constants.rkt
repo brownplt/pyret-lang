@@ -34,15 +34,15 @@
        (define stmts-results (map get-and-replace-constants stmts))
        (cons (flatten (map car stmts-results))
              (s-block l (map cdr stmts-results)))]
-      
+
       [(s-hint-exp s h e)
        (match-define (cons val-list new-val) (get-and-replace-constants e))
        (cons val-list (s-hint-exp s h new-val))]
-      
+
       [(s-lam l params args ann doc body check)
        (match-define (cons lst new-body) (get-and-replace-constants body))
        (cons lst (s-lam l params args ann doc new-body check))]
-      
+
       [(s-method l args ann doc body check)
        (match-define (cons lst new-body) (get-and-replace-constants body))
        (cons lst (s-method l args ann doc new-body check))]
@@ -61,7 +61,7 @@
        (match-define (cons else-list new-else) (get-and-replace-constants else))
        (cons (flatten (cons else-list (map car branch-results)))
              (s-if-else l (map cdr branch-results) new-else))]
-      
+
       [(s-try l try (s-bind l2 id ann) catch)
        (match-define (cons try-list new-try) (get-and-replace-constants try))
        (match-define (cons catch-list new-catch) (get-and-replace-constants catch))
@@ -72,17 +72,17 @@
        (match-define (cons lst new-expr) (get-and-replace-constants expr))
        (cons lst (s-assign l name new-expr))]
 
-      [(s-app l f args)
+      [(s-app l params f args)
        (match-define (cons f-list new-f) (get-and-replace-constants f))
        (define args-results (map get-and-replace-constants args))
        (cons (flatten (cons f-list (map car args-results)))
-             (s-app l new-f (map cdr args-results)))]
+             (s-app l params new-f (map cdr args-results)))]
 
       [(s-obj l fields)
        (define fields-results (map process-member fields))
        (cons (flatten (map car fields-results))
              (s-obj l (map cdr fields-results)))]
-      
+
       [(s-extend l super fields)
        (match-define
         (cons super-list new-super) (get-and-replace-constants super))
@@ -96,7 +96,7 @@
        (define fields-results (map process-member fields))
        (cons (flatten (cons super-list (map car fields-results)))
              (s-update l new-super (map cdr fields-results)))]
-      
+
       [(s-bracket l obj field)
        (match-define (cons obj-list new-obj) (get-and-replace-constants obj))
        (match-define (cons field-list new-field) (get-and-replace-constants field))
@@ -106,7 +106,7 @@
       [(s-get-bang l obj field)
        (match-define (cons obj-list new-obj) (get-and-replace-constants obj))
        (cons obj-list (s-get-bang l obj field))]
-      
+
       [(s-colon-bracket l obj field)
        (match-define (cons obj-list new-obj) (get-and-replace-constants obj))
        (match-define (cons field-list new-field) (get-and-replace-constants field))
@@ -140,4 +140,3 @@
     [(s-prog l imports block)
      (s-prog l imports (wrap l (get-and-replace-constants block)))]
     [_ (wrap (srcloc 'pyret-compile #f #f #f #f) (get-and-replace-constants ast))]))
-

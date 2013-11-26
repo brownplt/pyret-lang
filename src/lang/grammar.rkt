@@ -94,11 +94,13 @@ lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block where-clause
 
 method-expr: "method" args return-ann ":" doc-string block where-clause end
 
-app-expr: expr app-args
+app-expr: expr app-params app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
 app-arg-elt: binop-expr ","
+app-params: ["<" app-param-elt* ann ">"]
+app-param-elt: ann ","
 
 left-app-expr: expr "^" left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr "." NAME

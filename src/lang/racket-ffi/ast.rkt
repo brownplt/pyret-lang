@@ -230,9 +230,10 @@
         (symbol->string name)
         (tp expr))]
 
-    [(s-app s fun args)
+    [(s-app s params fun args)
      (build s_app
         (tp-loc s)
+        (map tp-ann params)
         (tp fun)
         (map tp args))]
 
@@ -555,7 +556,7 @@
      [(has-brand e s_list)
       (tr-obj e s-list (tr-loc l) (map tr-expr values))]
      [(has-brand e s_app)
-      (tr-obj e s-app (tr-loc l) (tr-expr _fun) (map tr-expr args))]
+      (tr-obj e s-app (tr-loc l) (map tr-ann params) (tr-expr _fun) (map tr-expr args))]
      [(has-brand e s_left_app)
       (tr-obj e s-left-app (tr-loc l) (tr-expr obj) (tr-expr _fun) (map tr-expr args))]
      [(has-brand e s_id)

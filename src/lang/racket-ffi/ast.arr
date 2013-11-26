@@ -264,9 +264,15 @@ data Expr:
       PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
         self.values.map(fun(v): v.tosource() end))
     end
-  | s_app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
+  | s_app(l :: Loc, params :: List<Ann>, _fun :: Expr, args :: List<Expr>) with:
     tosource(self):
+      params =
+        if is-empty(self.params): PP.mt-doc
+        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+            self.params.map(_.tosource))
+        end
       PP.group(self._fun.tosource()
+          + params
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end

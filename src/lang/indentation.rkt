@@ -84,7 +84,7 @@
     [(s-update syntax super fields) (begin (ic super) (map ic fields))]
     [(s-obj syntax fields) (map ic fields)]
     [(s-list syntax values) (map ic values)]
-    [(s-app syntax fun args) (begin (ic fun) (map ic args))]
+    [(s-app syntax params fun args) (begin (ic fun) (map ic args))]
     [(s-left-app syntax obj fun args) (begin (ic obj) (ic fun)
                                              (map ic args))]
     [(s-assign syntax id value) (ic value)]

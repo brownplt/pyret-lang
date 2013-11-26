@@ -194,8 +194,13 @@
 
     ; TODO: method-field
 
-    [(s-app _ fun args)
-     (format "~a(~a)" (pretty fun) (comma-sep (map pretty args)))]
+    [(s-app _ params fun args)
+     (format "~a~a(~a)"
+             (pretty fun)
+             (if (= 0 (length params))
+                 ""
+                 (string-append "<" (comma-sep (map pretty-ann params)) ">"))
+             (comma-sep (map pretty args)))]
 
     [(s-left-app _ obj fun args)
      (concat (pretty obj) "^" (pretty fun) (parens (comma-sep (map pretty args))))]
@@ -226,7 +231,7 @@
 
     [(s-get-bang _ val field)
      (format "~a!~a" (pretty val) field)]
-    
+
     [(s-colon _ obj field)
      (format "~a:~a" (pretty obj) field)]
 
