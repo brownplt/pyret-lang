@@ -102,19 +102,6 @@
             #`(r:define #,(make-immediate-id id)
                (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
          (help-λ inline-binding l args doc body)]
-        [(s-hint-exp _ (? uses-loc hints) (s-extend s (s-lam l _ args _ doc body _) fields))
-         (define loc (h-use-loc-loc (uses-loc hints)))
-         (define inline-binding
-          (with-syntax ([(arg ...) (args-stx l args)])
-            #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher-loc (arg ...) #,(compile-expr/internal body env) loc))))
-         (help-extend inline-binding l args doc body fields)]
-        [(s-extend s (s-lam l _ args _ doc body _) fields)
-         (define inline-binding
-          (with-syntax ([(arg ...) (args-stx l args)])
-            #`(r:define #,(make-immediate-id id)
-               (p:arity-catcher (arg ...) #,(compile-expr/internal body env)))))
-         (help-extend inline-binding l args doc body fields)]
         [_ (list #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))])]
       [_ (list (compile-expr/internal ast-node env))]))
   (define ids (block-ids stmts))

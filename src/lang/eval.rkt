@@ -3,7 +3,6 @@
 (provide
   src->module-name
   repl-eval-pyret
-  pyret-to-printable
   print-pyret
   pyret->racket
   stx->racket)
@@ -86,25 +85,6 @@
     (if (not (byte-ready? in))
         eof
         (pyret->racket src in #:toplevel #t #:type-env #f #:check #f))))
-
-(define (simplify-pyret val)
-  (match val
-    [(? (λ (v) (eq? v nothing))) nothing]
-    [(p:p-num _ _ _ _ n) n]
-    [(p:p-str _ _ _ _ s) s]
-    [(p:p-bool _ _ _ _ b) b]
-    [(p:p-object _ d _ _)
-     (make-hash (hash-map d (lambda (s v) (cons s (simplify-pyret v)))))]
-    [(? p:p-base?) val]
-    [_ (void)]))
-
-(define (pyret-to-printable val)
-  (when (not (equal? val nothing))
-    (match val
-      [(p:p-opaque v) v]
-      [(? p:p-base?) (p:to-string val)]
-      [_ (void)])))
-
 
 (define ((print-pyret check-mode) val)
   (when (not (equal? val nothing))

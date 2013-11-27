@@ -205,7 +205,7 @@ error:
 
     I'm confused, list1 is defined twice.
 
-Pyret takes a stronge stance on the integrity of the `=` statement.  If the
+Pyret takes a strong stance on the integrity of the `=` statement.  If the
 program says the name is equal to the value, then it had better continue to be!
 This has a very real correlation to something every high school algebra class
 teaches: the substitutability of names for expressions.  Defining names that,

@@ -9,6 +9,15 @@
   pyret/lang/ast
   pyret/lang/load)
 
+(check-equal?
+  (binding-ids (parse-stmt "graph: x = 5 end"))
+  '(x))
+
+(check-equal?
+  (binding-ids (parse-stmt "graph: x = 5 y = 6 end"))
+  '(x y))
+
+
 (define (not-equiv-ast e1 e2) (not (equiv-ast e1 e2)))
 (define-binary-check (check-equiv-ast equiv-ast actual expected))
 (define-binary-check (check-not-equiv-ast not-equiv-ast actual expected))
