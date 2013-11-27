@@ -189,7 +189,7 @@
     [(stmt s) (parse-stmt #'s)]
     [(binop-expr e) (parse-binop-expr #'e)]
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
-                                      (parse-binop-expr-paren #'left)
+                                      (parse-binop-expr #'left)
                                       (parse-binop-expr-paren #'right))]))
 
 (define (parse-doc-string stx)
@@ -220,7 +220,7 @@
 (define (parse-binop-expr-paren stx)
   (syntax-parse stx
     #:datum-literals (binop-expr-paren binop-expr paren-nospace-expr)
-    [(binop-expr-paren (paren-nospace-expr _ e _)) (parse-binop-expr #'e)]
+    [(binop-expr-paren (paren-nospace-expr _ e _)) (s-paren (loc stx)(parse-binop-expr #'e))]
     [(binop-expr-paren e) (parse-binop-expr #'e)]))
 
 (define (parse-op stx)
@@ -350,9 +350,9 @@
 
 (define (parse-app-params stx)
   (syntax-parse stx
-    #:datum-literals (app-params app-params-elt)
+    #:datum-literals (app-params app-param-elt)
     [(app-params) empty]
-    [(app-params "<" (app-params-elt e1 ",") ... elast ">")
+    [(app-params "<" (app-param-elt e1 ",") ... elast ">")
      (map/stx parse-ann #'(e1 ... elast))]))
 
 (define (parse-cases-branch stx)

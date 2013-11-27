@@ -59,7 +59,7 @@ graph-expr: "graph:" let-expr* end
 
 when-expr: "when" binop-expr ":" block end
 
-binop-expr: not-expr | binop-expr-paren binop binop-expr-paren | expr
+binop-expr: not-expr | binop-expr binop binop-expr-paren | expr
 
 binop-expr-paren: binop-expr | paren-nospace-expr
 

@@ -678,7 +678,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret "''.explode() == []" true)
   (check-pyret "'abcde'.explode() == ['a', 'b', 'c', 'd', 'e']" true)
-  
+
 
   (check-pyret "gensym('foo').contains('foo')" true)
   (check-pyret "gensym('foo').length() > 3" true)
@@ -1029,11 +1029,11 @@ o2.m().called" true)
   (check-pyret "fun f(y):
                   y
                 end
-                f(1+2)" (p:mk-num 3))
+                f(1 + 2)" (p:mk-num 3))
   (check-pyret "fun f(y):
                   y
                 end
-                f((1+2))" (p:mk-num 3))
+                f((1 + 2))" (p:mk-num 3))
   (check-pyret "'hello' + ' world'" (p:mk-str "hello world"))
   (check-pyret-exn "5 + 'foo'" "Bad args to prim")
   (check-pyret "x = {_lessequal(s,o): 3 end} x <= 5" (p:mk-num 3))

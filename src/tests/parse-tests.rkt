@@ -466,7 +466,7 @@ line string\"" (s-str _ "multi\nline string"))
                (s-app _ (list (a-name _ 'Number) (a-name _ 'String))
                       (s-id _ 'foo) (list (s-id _ 'a))))
   (check/block "foo<{x :: Number}>(a)"
-               (s-app _ (list (a-record _ (list (a-field _ 'x (a-name _ 'Number)))))
+               (s-app _ (list (a-record _ (list (a-field _ "x" (a-name _ 'Number)))))
                       (s-id _ 'foo) (list (s-id _ 'a))))
 
   (check/block "foo<Option<String>>(a)"
@@ -474,7 +474,7 @@ line string\"" (s-str _ "multi\nline string"))
                       (s-id _ 'foo) (list (s-id _ 'a))))
 
   (check/block "foo<Number(positive)>(a)"
-               (s-app _ (list (a-pred _ (a-name _ 'Number) (list (s-id _ 'positive))))
+               (s-app _ (list (a-pred _ (a-name _ 'Number) (s-id _ 'positive)))
                       (s-id _ 'foo) (list (s-id _ 'a))))
 
   (check/block "foo<list.List>(a)"
@@ -882,7 +882,7 @@ line string\"" (s-str _ "multi\nline string"))
    (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
        (s-block _ (list))))
 
-  (check-match (parse-pyret "provide *")
+  (check-match (parse-pyret "provide * ")
     (s-prog _ (list (s-provide-all _)) (s-block _ (list))))
 ))
 
@@ -1026,27 +1026,27 @@ line string\"" (s-str _ "multi\nline string"))
                                  (s-if-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
 
-   (check/block "1+(2*3)"
+   (check/block "1 + (2 * 3)"
                 (s-op _ op+
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1*(2-3)"
+   (check/block "1 * (2 - 3)"
                 (s-op _ op*
                       (s-num _ 1)
                       (s-paren _ (s-op _ op- (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1/(2*3)"
+   (check/block "1 / (2 * 3)"
                 (s-op _ op/
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1-(2*3)"
+   (check/block "1 - (2 * 3)"
                 (s-op _ op-
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "foo((2+3))"
+   (check/block "foo((2 + 3))"
                 (s-app _ _
                        (s-id _ 'foo)
                        (list
@@ -1055,9 +1055,9 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "fun f(y):
                   y
                 end
-                f((1+2))" _ _)
+                f((1 + 2))" _ _)
 
-   (check/block "foo((2+3)*2)"
+   (check/block "foo((2 + 3) * 2)"
                 (s-app _ _
                        (s-id _ 'foo)
                        (list
@@ -1082,7 +1082,7 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "1 <> 2"
                 (s-op _ op<> (s-num _ 1) (s-num _ 2)))
 
-   (check/block "1 <= (1+2)"
+   (check/block "1 <= (1 + 2)"
                 (s-op _ op<= (s-num _ 1)
                       (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
 

@@ -2,7 +2,7 @@
 
 fun check-random-adds(n :: Number, set-constructor) -> Bool:
   nums = for map(elt from range(0,n)):
-    random(n*n)
+    random(n * n)
   end
   expect = for fold(s from [], elt from nums):
     if s.member(elt): s else: link(elt, s) end
@@ -12,7 +12,7 @@ end
 
 fun check-random-removes(n :: Number, set-constructor) -> Bool:
   nums = for map(elt from range(0,n)):
-    random(2*n)
+    random(2 * n)
   end
   orig = range(0,n)
   expect = for filter(elt from orig):
@@ -50,8 +50,8 @@ check:
 
     # oracle tests
     for each(n from range(1,21)):
-      check-random-adds(n*5, s) is true
-      check-random-removes(n*5, s) is true
+      check-random-adds(n * 5, s) is true
+      check-random-removes(n * 5, s) is true
     end
   end
 end

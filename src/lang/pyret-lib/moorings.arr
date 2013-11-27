@@ -988,7 +988,7 @@ fun check-satisfies(name, thunk1, thunk2, loc):
   except(e):
     add-result(err(name, e, some(loc)))
   end
-end            
+end
 
 fun check-raises(name, thunk, expected-str :: String, loc):
   doc: "Check that thunk raises either a string that contains expected-str,

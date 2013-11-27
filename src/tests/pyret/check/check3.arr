@@ -8,7 +8,7 @@ fun expt(x, n):
   where:
     eq("mult(3,4)=12",mult(3,4), 12)
     for list.map(i from list.range(0, 10)):
-      eq("mult(0,"+tostring(i)+")=0", mult(0,i), 0)
+      eq("mult(0," + tostring(i) + ")=0", mult(0,i), 0)
     end
   end
 
