@@ -118,7 +118,7 @@
      (char-complement (union #\\ #\")))))
 
 
-(define (tokenize ip)
+(define (tokenize ip name)
   (port-count-lines! ip)
   (define-values (p-line p-col p-pos) (port-next-location ip))
   ;; if we are at the beginning, we want to have open-parens be PARENSPACE
@@ -157,15 +157,6 @@
              (t (if after-paren PARENSPACE PARENNOSPACE))]
          (return-without-pos
           (list (position-token (token t "(") start-pos middle-pos)
-                (position-token (token PARENSPACE "(") middle-pos end-pos))))]
-      ;; NOTE(dbp 2013-11-26): operators need space around them, so this is invalid.
-      #;[(concatenation operator-chars "(")
-       (let* [(op (substring lexeme 0
-                             (- (string-length lexeme) 1)))
-              (op-len (string-length op))
-              (middle-pos (get-middle-pos op-len start-pos))]
-         (return-without-pos
-          (list (position-token (token op op) start-pos middle-pos)
                 (position-token (token PARENSPACE "(") middle-pos end-pos))))]
       [(concatenation whitespace "(")
        (token PARENSPACE "(")]
@@ -255,12 +246,13 @@
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)
-    (cond [(cons? token-queue) (let [(tok (first token-queue))]
-                                 (set! token-queue (rest token-queue))
-                                 tok)]
-          [(empty? token-queue) (set! token-queue (my-lexer ip))
-                                (next-token)]
-          [else (let [(tok token-queue)]
-                  (set! token-queue empty)
-                  tok)]))
+    (parameterize [(file-path name)]
+      (cond [(cons? token-queue) (let [(tok (first token-queue))]
+                                   (set! token-queue (rest token-queue))
+                                   tok)]
+            [(empty? token-queue) (set! token-queue (my-lexer ip))
+                                  (next-token)]
+            [else (let [(tok token-queue)]
+                    (set! token-queue empty)
+                    tok)])))
   next-token)
