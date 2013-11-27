@@ -5,9 +5,10 @@
   "../string-map.rkt"
   "../ffi-helpers.rkt"
   "whalesong-lib.rkt"
-  (rename-in "sets.rkt" [%PYRET-PROVIDE sets])
+  (rename-in pyret/lang/pyret-lib/sets [%PYRET-PROVIDE sets])
+  (rename-in pyret/lang/pyret-lib/array [%PYRET-PROVIDE arrays])
   (rename-in pyret/lang/pyret-lib/moorings [%PYRET-PROVIDE moorings]))
-(provide (all-defined-out) pyret-sets)
+(provide (all-defined-out) pyret-sets arrays)
 
 (define (get-list-lib name)
   (p:get-field p:dummy-loc %list name))
@@ -15,7 +16,11 @@
 (define (get-set-lib name)
   (p:get-field p:dummy-loc pyret-sets name))
 
+(define (get-array-lib name)
+  (p:get-field p:dummy-loc pyret-arrays name))
+
 (define pyret-sets sets)
+(define pyret-arrays arrays)
 
 (define %list (p:get-field p:dummy-loc moorings "list"))
 (define pyret-List (get-list-lib "List"))
@@ -28,6 +33,7 @@
 (define pyret-repeat (get-list-lib "repeat"))
 (define pyret-filter (get-list-lib "filter"))
 (define pyret-partition (get-list-lib "partition"))
+(define pyret-split-at (get-list-lib "split-at"))
 (define pyret-any (get-list-lib "any"))
 (define pyret-find (get-list-lib "find"))
 (define pyret-map (get-list-lib "map"))
@@ -51,10 +57,17 @@
 (define pyret-fold3 (get-list-lib "fold3"))
 (define pyret-fold4 (get-list-lib "fold4"))
 (define pyret-index (get-list-lib "index"))
+
 (define pyret-Set (get-set-lib "Set"))
 (define pyret-set (get-set-lib "set"))
 (define pyret-list-set (get-set-lib "list-set"))
 (define pyret-tree-set (get-set-lib "tree-set"))
+
+(define pyret-array (get-array-lib "array"))
+(define pyret-array-get (get-array-lib "array-get"))
+(define pyret-array-set (get-array-lib "array-set"))
+(define pyret-array-length (get-array-lib "array-length"))
+(define pyret-array-to-list (get-array-lib "array-to-list"))
 
 (define %option (p:get-field p:dummy-loc moorings "option"))
 (define (get-option-lib name)

@@ -105,6 +105,7 @@
 
 (define check-mode #t)
 (define mark-mode #t)
+(define print-hints #f)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"
@@ -116,6 +117,10 @@
    (set! mark-mode #t))
   ("--no-marks" "Do not mark call frames"
    (set! mark-mode #f))
+  ("--print-hints" "Print hint AST nodes"
+   (set! print-hints #t))
+  ("--no-hints" "Hide hint AST nodes"
+   (set! print-hints #f))
   ("--no-indentation" "Run without indentation checking"
    (current-indentation-mode #f))
   ("--allow-shadow" "Run without checking for shadowed vars"
@@ -134,7 +139,9 @@
          (parameterize ([current-check-mode #t]
                         [current-mark-mode mark-mode]
                         [current-print (print-pyret #t)]
-                        [current-whalesong-repl-print #f])
+                        [current-whalesong-repl-print #f]
+                        [current-print-hints print-hints]
+                        [command-line-arguments file-and-maybe-other-stuff])
           (dynamic-require pyret-file #f))]
         [else
          (parameterize ([current-mark-mode mark-mode])

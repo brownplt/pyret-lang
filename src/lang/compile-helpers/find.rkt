@@ -25,6 +25,8 @@
      [(s-block l stmts)
       (append* (map (curryr find matcher) stmts))]
 
+     [(s-hint-exp s h e) (find e matcher)]
+     
      [(s-lam l params args ann doc body check)
       (append (find body matcher) (find check matcher))]
      

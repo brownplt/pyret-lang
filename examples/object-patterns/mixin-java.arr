@@ -1,11 +1,11 @@
 #lang pyret
 
-import "check.arr" as Check
-
 provide {
   class: class,
   Objekt: Objekt
 } end
+
+import "check.arr" as Check
 
 # The base object for all hierarchies
 object-brander = brander()

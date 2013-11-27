@@ -145,7 +145,6 @@ s.parentNode.insertBefore(ga, s);
       of scripting and functional programming.  It's under active design and
       development, and free to use or modify.
       </p>
-      <p><a target="_blank" href="https://news.ycombinator.com/item?id=6701688">Discussion on HackerNews</a></p>
       <p>
         <a href="/#examples" class="btn btn-primary btn-m">Examples</a>
         <a href="/getting-started/" class="btn btn-primary btn-m">Set Sail</a>
@@ -332,14 +331,15 @@ variety of pedagogic styles and curricular needs.")
   @(pyret-example #:where 'right
 @disable-prefix{
 check:
-  dbl = fdC("x", plusC(idC("x"), idC("x")))
-  quad = fdC("x", appC(dbl, appC(dbl, idC("x"))))
-  c5 = fdC("_", numC(5))
-
-  fun i(e): interp(e, mt-env) end
-
-  i(plusC(numC(5), appC(quad, numC(3)))) is numV(17)
-  i(multC(appC(c5, numC(3)), numC(4))) is numV(20)
+  fun get-status(url):
+    request({
+        url: url,
+        type: "get",
+        params: []
+      }).status-code
+  end
+  get-status("http://google.com/") is 200
+  get-status("http://healthcare.gov/") is 500
 end
 }
 "In addition to <code>where:</code> blocks, which are attached to
@@ -362,10 +362,10 @@ the meaning of the program should determine its indentation
 structure. Indentation becomes just another context-sensitive rule.
 </p>
 
-<p> Unambiguous syntax (the reason for explicit <code>end</code> delimiters,
-among other things) means you can copy-and-paste code from email or the Web,
-and its meaning won't change. Your IDE can help you reindent code without
-worrying that doing so will change the meaning of the program.  </p>
+<p> Unambiguous syntax (the reason for explicit <code>end</code> delimiters)
+means you can copy-and-paste code from email or the Web, and its meaning won't
+change. Your IDE can help you reindent code without worrying that doing so will
+change the meaning of the program.  </p>
 
 <p>
 We haven't yet decided on the indentation rules because we want to see
@@ -452,10 +452,10 @@ check:
 end
 }
 
-"Pyret has a straightforward, functional object model, from which more complex
+"Pyret has a straightforward object model, from which more complex
 patterns can be defined.  An object is defined by methods and fields within
 curly braces (as in <code>point-methods</code>), and can be extended
-functionally with <code>.{}</code>.  This example shows a simple class-like
+with <code>.{}</code>.  This example shows a simple class-like
 pattern built up from simple objects.  Objects, like most other values in
 Pyret, are immutable by default, so instances of points are created by
 extending the object containing point methods.")
@@ -481,10 +481,10 @@ check:
 end
 }
 
-"Many real-world data structures are cyclic, like graphs connecting cities.  In
-most languages, a serialized encoding or mutation are required to introduce
-graphs.  Pyret's <code>graph:</code> and <code>cyclic</code> allow for a
-declarative description of cyclic data.")
+"Many real-world data structures are cyclic, like graphs of cities with direct
+flights between them.  In most languages, a serialized encoding or mutation are
+required to introduce graphs.  Pyret's <code>graph:</code> and
+<code>cyclic</code> allow for a declarative description of cyclic data.")
 
   <hr/>
 
@@ -506,7 +506,7 @@ href="/getting-started/">get started</a>!
   @(two-langs
 "Annotations"
 "Most “scripting” languages don't support annotations for checking parameters
-and return values, Pyret does."
+and return values; Pyret does."
 "Python"
 @disable-prefix{
 fun square(n :: Number) -> Number:
@@ -566,8 +566,8 @@ students to using just 32 bits."
 @(two-langs "Simple Testing"
 @disable-prefix{
 Friction in the testing process makes it hard to work even simple unit tests
-into early programming.  Pyret removes boilerplate to put testing front and
-center in the programming process.}
+into early programming.  Pyret removes boilerplate to put testing in its
+rightful place in the programming process.}
 "Python"
 @disable-prefix{
 check:
@@ -698,10 +698,12 @@ end
 
 <hr/>
 
-@(two-langs "Knowledge of Pitfalls"
+@(two-langs "Embracing Substitutability"
 @disable-prefix{
-A design goal of Pyret is to feel both functional and scripty while avoiding
-known mistakes in languages that are related.
+A design goal of Pyret's syntax and semantics is to embrace the
+substitutability of equivalent expressions as much as possible.  This is in
+contrast to, for example, some scripting languages, in which what looks like
+binding an expression to a temporary name changes program behavior.
 }
 "JavaScript"
 @disable-prefix{
@@ -711,6 +713,7 @@ o = @"{"
 @"}"
 method-as-fun = o.my-method
 check:
+  o.my-method(5) is 15
   method-as-fun(5) is 15
 end
 }
@@ -721,6 +724,7 @@ var o = @"{"
   @"}",
   y: 10
 @"}"
+o.my_method(5) === 15 // true
 method_as_fun = o.my_method
 method_as_fun(5)
 // either error or NaN
@@ -736,6 +740,7 @@ o = @"{"
 @"}"
 method-as-fun = o.my-method
 check:
+  o.my_method(5) is 15
   method-as-fun(5) is 15
 end
 }
@@ -747,9 +752,9 @@ end
 def o.y
   10
 end
+o.my_method(5) == 15 # true
 method_as_fun = o.my_method
 # Wrong number of arguments, 0 for 1
-method_as_fun(5) # not reached
 })
 </div>
 

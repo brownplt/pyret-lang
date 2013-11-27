@@ -12,13 +12,14 @@
 
 
 (define (profile-wrapper pyret-fun)
+  (define result #f)
   (define (wrapped)
-    ((p:p-base-app pyret-fun)))
+    (set! result ((p:p-base-app pyret-fun))))
   (define start (current-milliseconds))
-  (define result (profile-thunk wrapped #:threads #t))
+  (profile-thunk wrapped #:threads #t)
   (define end (current-milliseconds))
   (printf "Wall time for profiled code was: ~ams\n" (- end start))
-  p:nothing)
+  result)
 
 (define profile-pfun (p:mk-fun-nodoc-slow profile-wrapper))
 (define time-pfun (p:mk-fun-nodoc-slow (lambda (f) (time ((p:p-base-app f))))))

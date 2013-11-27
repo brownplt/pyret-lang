@@ -1,5 +1,5 @@
 #lang pyret
 
-import "C.arr" as c
-
 provide c end
+
+import "C.arr" as c

@@ -128,8 +128,13 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
+     if true-branded: 5 else: 6 end"
+    five)
+  (check-pyret
+    "b = brander()
+     true-branded = b.brand(true)
      when true-branded: 5 end"
-     five)
+    nothing)
 
   (check-pyret
     "b = brander()
@@ -172,11 +177,11 @@
 
   (check-pyret "
   when true: 5 end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when true: 5 end end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when false: 5 end end
@@ -342,9 +347,17 @@
    "data Foo:
      | single
     end
-    fun f(s :: is-single): when is-single(s): true end end
+    fun f(s :: is-single): if is-single(s): true else: false end end
     f(single)"
     (p:mk-bool #t))
+
+  (check-pyret
+   "data Foo:
+     | single
+    end
+    fun f(s :: is-single): when is-single(s): true end end
+    f(single)"
+    nothing)
 
   (check-pyret-exn
    "data Foo:
@@ -480,7 +493,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 8)
+  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 15)
 
   (check-pyret-match/check "pyret/libs/json.arr" _ 8)
 
@@ -649,6 +662,23 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
   (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
+  (check-pyret "'foobar'.contains('foo')" true)
+  (check-pyret "'foobar'.contains('')" true)
+  (check-pyret "''.contains('foo')" false)
+  (check-pyret "''.contains('')" true)
+
+  (check-pyret "'blahblah'.split('a', false) == ['bl', 'hblah']" true)
+  (check-pyret "'blahblah'.split('a', true) == ['bl', 'hbl', 'h']" true)
+  (check-pyret "String('blahblah'.split('a', false).first)" true)
+  (check-pyret "'blahblah'.split('z', false) == ['blahblah']" true)
+  (check-pyret "'blahblah'.split('z', true) == ['blahblah']" true)
+  (check-pyret "String('blahblah'.split('z', false).first)" true)
+  (check-pyret "'blah'.split('a', false).map(_.length()) == [2, 1]" true)
+
+  (check-pyret "''.explode() == []" true)
+  (check-pyret "'abcde'.explode() == ['a', 'b', 'c', 'd', 'e']" true)
+  
+
   (check-pyret "gensym('foo').contains('foo')" true)
   (check-pyret "gensym('foo').length() > 3" true)
   (check-pyret "gensym('foo') <> gensym('foo')" true)
@@ -657,6 +687,7 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match/check "pyret/libs/math-libs.arr" _ 7)
 
   (check-pyret-match/check "pyret/libs/sets.arr" _ 177)
+  (check-pyret-match/check "pyret/libs/array.arr" _ 68)
 
   (check-pyret-match/check "pyret/libs/strings.arr" _ 35)
 
@@ -786,7 +817,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 38)
+  (check-pyret-match/check "pyret/update.arr" _ 41)
   (check-pyret-match/check "pyret/placeholder.arr" _ 15)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
@@ -1116,6 +1147,10 @@ o2.m().called" true)
   (check-pyret-match/check "pyret/currying.arr" _ 14)
 ))
 
+(define nested-errors (test-suite "nested errors"
+  (check-pyret-match/check "pyret/nested-errors.arr" _ 20)
+))
+
 (define checks (test-suite "checks"
 
   (let ()
@@ -1165,6 +1200,8 @@ o2.m().called" true)
 
     (private-run (example-path "queue.arr") 9)
     (private-run (example-path "point.arr") 5)
+    (private-run (example-path "ralist.arr") 110)
+    (private-run (example-path "heap.arr") 37)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)
@@ -1215,6 +1252,7 @@ o2.m().called" true)
   ffi
   mixins
   currying
+  nested-errors
   checks
   examples
   annotations))

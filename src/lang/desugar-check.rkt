@@ -209,6 +209,8 @@
          (s-str _ _)
          (s-id _ _)) ast]
 
+    [(s-hint-exp s h e) (s-hint-exp s h (ds e))]
+
     [else (error (format "Missed a case in desugaring checks: ~a" ast))]))
 
 (define (desugar-check ast)

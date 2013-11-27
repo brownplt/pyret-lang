@@ -46,6 +46,11 @@ own environmental behavior that is worth noting.
 
 @include-section{list.scrbl}
 
+@include-section{array.scrbl}
+
+@include-section{timing.scrbl}
+
+@include-section{cmdline.scrbl}
 
 @section[#:tag "s:option"]{Option}
 
@@ -74,7 +79,9 @@ names as identifiers.}
 
 @justcode{data Set: | ... end}
 
-@(define set (get-decl moorings-ast 'Set))
+@(define set-ast (get-pyret-lib "lang/pyret-lib/sets.arr"))
+
+@(define set (get-decl set-ast 'Set))
 
 @(define set-constructor-code
   "fun set(lst :: List):
@@ -88,19 +95,25 @@ names as identifiers.}
    '(set))
 
 @(label "Set.member()")
-@(pretty-method-with-doc (get-method set '__set "member"))
+@(pretty-method-with-doc (get-method set 'list-set "member"))
 
 @(label "Set.add()")
-@(pretty-method-with-doc (get-method set '__set "add"))
+@(pretty-method-with-doc (get-method set 'list-set "add"))
 
 @(label "Set.remove()")
-@(pretty-method-with-doc (get-method set '__set "remove"))
+@(pretty-method-with-doc (get-method set 'list-set "remove"))
 
 @(label "Set.to-list()")
-@(pretty-method-with-doc (get-method set '__set "to-list"))
+@(pretty-method-with-doc (get-method set 'list-set "to-list"))
 
 @(label "Set.union()")
-@(pretty-method-with-doc (get-method set '__set "union"))
+@(pretty-method-with-doc (get-method set 'list-set "union"))
+
+@(label "Set.intersect()")
+@(pretty-method-with-doc (get-method set 'list-set "intersect"))
+
+@(label "Set.difference()")
+@(pretty-method-with-doc (get-method set 'list-set "difference"))
 
 
 @section[#:tag "s:numbers"]{Numbers}
@@ -189,6 +202,12 @@ Numbers have a number of useful methods:
         'a'.char-at(0) is 'a'
         'ahoy'.char-at(3) is 'y'
       end,
+      explode(self) -> List<String>:
+        doc: 'Returns a list of the characters in this string'
+      where:
+        'ahoy'.explode() is ['a', 'h', 'o', 'y']
+        ''.explode() is []
+      end,
       repeat(self, reps :: Number) -> Number:
         doc: 'Return a string that is this string repeated reps times'
       where:
@@ -219,6 +238,7 @@ Numbers have a number of useful methods:
   "to-lower"
   "to-upper"
   "char-at"
+  "explode"
   "repeat"
   "length"
   "tonumber"
@@ -257,6 +277,9 @@ are converted into a list [\"string\", <the-string>].'
       read-sexpr('((-13 +14 88.8) cats ++ \"dogs\")')
     is [[-13, 14, 88.8], 'cats', '++', ['string', 'dogs']]
   end
+  fun string-to-list(s :: String) -> List<String>:
+    doc: 'Take a string as input, and return a list of the characters in it'
+  end
   fun random(n :: Number) -> Number:
     doc: 'Take a number as input, and return a random number between 0 and n-1 (inclusive'
   end
@@ -284,6 +307,9 @@ are converted into a list [\"string\", <the-string>].'
   fun is-placeholder(v :: Any) -> Bool:
     doc: 'True if v is a placeholder, false otherwise'
   end
+  fun is-array(v :: Any) -> Bool:
+    doc: 'True if v is a array, false otherwise'
+  end
   fun is-nothing(v :: Any) -> Bool:
     doc: 'True if v is nothing, false otherwise'
   end"
@@ -295,6 +321,7 @@ are converted into a list [\"string\", <the-string>].'
   random
   raise
   print
+  string-to-list
   torepr
   read-sexpr
   identical
@@ -306,6 +333,7 @@ are converted into a list [\"string\", <the-string>].'
   is-object
   is-mutable
   is-placeholder
+  is-array
   is-nothing
   ))
 
@@ -425,7 +453,7 @@ A few other methods are on @tt{Placeholder} values, as well:
 @(label "Placeholder._equals")
 
 @justcode{
-get(self :: Placeholder<a>, other :: Any) -> Bool
+_equals(self :: Placeholder<a>, other :: Any) -> Bool
 }
 
 Returns @tt{true} if @tt{other} is the @emph{same} @tt{Placeholer} as this one,

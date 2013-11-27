@@ -5,6 +5,7 @@
   racket/string
   racket/function
   racket/list
+  "../parameters.rkt"
   "ast.rkt")
 
 (provide
@@ -223,6 +224,9 @@
     [(s-bracket _ val field)
      (format "~a.[~a]" (pretty val) (pretty field))]
 
+    [(s-get-bang _ val field)
+     (format "~a!~a" (pretty val) field)]
+    
     [(s-colon _ obj field)
      (format "~a:~a" (pretty obj) field)]
 
@@ -237,7 +241,17 @@
 
     [(s-paren _ e) (format "(~a)" (pretty e))]
 
+    [(s-hint-exp _ h e)
+     (if (current-print-hints)
+         (format "HINTS(~a)~a" (string-join (map pretty-hint h) ",") (pretty e))
+         (pretty e))]
+
     [else "<unprintable-expr>"]))
+
+(define (pretty-hint hint)
+  (match hint
+    [(h-use-loc loc) (format "UseLoc(~a:~a:~a)" (srcloc-source loc) (srcloc-line loc) (srcloc-column loc))]
+    [else "<unknown hint>"]))
 
 
 (define (pretty-ann ann)

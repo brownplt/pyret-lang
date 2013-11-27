@@ -24,6 +24,8 @@
   (match ast
     [(s-block syntax stmts)
      (s-block syntax (flatten-blocks (map tci stmts)))]
+    [(s-hint-exp syntax hints e)
+     (s-hint-exp syntax hints (tci e))]
     [(s-var syntax name value)
      (s-var syntax name (tci value))]
     [(s-let syntax name value)
@@ -97,9 +99,11 @@
       (match b
         [(s-cases-branch s2 name args body)
          (s-data-field s2 (s-str s2 (symbol->string name))
-                       (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty)))]))
+                       (s-hint-exp s2 (list (h-use-loc s2))
+                               (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty))))]))
     (define else-fun
-      (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty)))
+      (s-hint-exp (get-srcloc else) (list (h-use-loc (get-srcloc else)))
+              (s-lam (get-srcloc else) empty empty (a-blank) "" (tci else) (s-block (get-srcloc else) empty))))
     (define cases-object
       (s-obj s (map ds-cases-branch cases)))
     (define val-temp-name (gensym "cases-value"))
@@ -155,9 +159,12 @@
                 (s-let s (s-bind s #f call-match-case (a-blank))
                        (s-bracket s (s-id s 'cases-funs) (s-str s case-name)))
                 (s-app s (s-id s call-match-case)
-                       (map (lambda (field-name) (s-bracket s (s-id s 'self)
-                                                            (s-str s (symbol->string
-                                                                      (s-bind-id field-name)))))
+                       (map (lambda (field)
+                              (if (equal? (s-variant-member-member-type field) 'normal)
+                                  (s-bracket s (s-id s 'self)
+                                             (s-str s
+                                                    (symbol->string (s-bind-id (s-variant-member-bind field)))))
+                                  (s-get-bang s (s-id s 'self) (s-bind-id (s-variant-member-bind field)))))
                             fields))))))
          (s-app s (s-id s 'else-clause) (list)))))
   (define strip-param-bind (replace-typarams-binds params))
@@ -198,7 +205,7 @@
                           (s-str s (symbol->string name))
                           (desugar-internal (s-list s (map bind->string id-members)))))))
      (define equals (make-equals s (make-checker-name name) id-members))
-     (define matcher (make-match s (symbol->string name) id-members))
+     (define matcher (make-match s (symbol->string name) members))
      (define brander-name (gensym name))
      (define base-name (gensym (string-append (symbol->string name) "_base")))
      (define args (map gensym (map s-bind-id id-members)))

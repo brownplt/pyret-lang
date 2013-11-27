@@ -305,6 +305,7 @@
          (s-data-field s name (s-app s (s-id s 'mk-mutable)
           (list (cc-env value env) check-read-expr check-write-expr)))])]))
   (match ast
+    [(s-hint-exp s h e) (s-hint-exp s h (cc e))]
     [(s-block s stmts)
      (define new-env (cc-block-env stmts env))
      (s-block s (map (curryr cc-env new-env) stmts))]
@@ -410,9 +411,15 @@
       [(s-import l f n)
        (update n (binding l (a-blank) #f) env)]
       [_ env]))
+  (define (check-exports imp env)
+    (match imp
+      [(s-provide l e) (s-provide l (cc-env e env))]
+      [_ imp]))
   (match ast
-    ;; TODO(joe): typechecking provides expressions?
     [(s-prog s imps ast)
      (define imported-env (foldr bind-imports env imps))
-     (s-prog s imps (cc-env ast imported-env))]
+     (define new-body (cc-env ast imported-env))
+     (define body-env (cc-block-env (s-block-stmts new-body) imported-env))
+     (define new-imps (map (λ(i) (check-exports i body-env)) imps))
+     (s-prog s new-imps new-body)]
     [else (cc-env ast env)]))

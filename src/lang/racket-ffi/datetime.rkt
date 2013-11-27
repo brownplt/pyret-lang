@@ -1,12 +1,13 @@
 #lang pyret
 
-import Racket as R
 provide {
   current-time: current-time,
   current-seconds: current-seconds,
   current-milliseconds: current-milliseconds,
   display-formats : display-formats,
 } end
+
+import Racket as R
 
 fun EqSymbol(s :: String):
   b = brander()

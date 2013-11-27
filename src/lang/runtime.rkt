@@ -72,7 +72,9 @@
                 (help (- (+ m i) Ti)
                       (if (> Ti -1) Ti 0))))))
     (help 0 0))
-  (search))  
+  (cond
+    [(string=? needle "") 0]
+    [else (search)]))
     
 (define (string-contains str substr)
   (not (not (string-index str substr))))
@@ -83,18 +85,18 @@
     (define i (string-index s sep))
     (cond
      [i
-      (let [(front (substring s 0 i))
+      (let [(front (mk-str (substring s 0 i)))
             (back (substring s (+ i sep-len) (string-length s)))]
         (if repeated
             (cons front (help back))
-            (list front back)))]
-     [else (list s)]))
+            (list front (mk-str back))))]
+     [else (list (mk-str s))]))
   (cond
-   [(string=? sep "") (map string (string->list s))]
+   [(string=? sep "") (map (λ(c) (mk-str (string c))) (string->list s))]
    [else (help s)]))
 
 (define (string-explode s)
-  (map string (string->list s)))
+  (map (λ(c) (mk-str (string c))) (string->list s)))
 
 (define (interleave sep lst acc)
   (cond
@@ -129,11 +131,14 @@
       mk-bool
       mk-str
       arity-catcher
+      arity-catcher-loc
       pλ
+      pλ/loc
       mk-fun
       mk-fun-nodoc
       mk-fun-nodoc-slow
       pμ
+      pμ/loc
       mk-method
       mk-exn
       pyret-error
@@ -167,6 +172,8 @@
               [mk-mutable-pfun mk-mutable]
               [mk-simple-mutable-pfun mk-simple-mutable]
               [mk-placeholder-pfun mk-placeholder]
+              [mk-array-of-pfun array-of]
+              [mk-build-array-pfun build-array]
               [gensym-pfun gensym]
               [p-else else])
   Any
@@ -180,6 +187,7 @@
   Method
   Mutable
   Placeholder
+  Array
   Opaque
   is-number
   is-string
@@ -191,6 +199,7 @@
   is-method
   is-mutable
   is-placeholder
+  is-array
   ___set-link
   ___set-empty
   nothing)
@@ -230,6 +239,8 @@
 (struct p-mutable p-base (b read-wrappers write-wrappers))
 ;; p-placeholder p-base Box (Listof (Value -> Value))
 (struct p-placeholder p-base (b wrappers) #:mutable)
+;; p-array p-base Array
+(struct p-array p-base (v) #:mutable)
 (struct p-opaque (val))
 
 (define (value-predicate-for typ)
@@ -243,6 +254,7 @@
     [(eq? p-method typ) p-method?]
     [(eq? p-mutable typ) p-mutable?]
     [(eq? p-placeholder typ) p-placeholder?]
+    [(eq? p-array typ) p-array?]
     [(eq? p-base typ) p-base?]
     [else
      (error 'get-pred (format "py-match doesn't work over ~a" typ))]))
@@ -257,7 +269,7 @@
        #'(let [(x val)] (maybe-bind [(y val-rest) ...] e))])]))
 
 (define-syntax (type-specific-bind stx)
-  (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method)
+  (syntax-case stx (p-nothing p-object p-num p-str p-bool p-fun p-method p-array)
     [(_ p-nothing _ () body) #'body]
     [(_ p-object _ () body) #'body]
     [(_ p-base _ () body) #'body]
@@ -285,7 +297,11 @@
       #'(maybe-bind [(s (p-str-s matchval))] body))]
     [(_ p-bool matchval (b) body)
      (with-syntax [(b-id (datum->syntax #'body (syntax->datum #'b)))]
-      #'(maybe-bind [(b-id (p-bool-b matchval))] body))]))
+      #'(maybe-bind [(b-id (p-bool-b matchval))] body))]
+    [(_ p-array matchval (v) body)
+     (with-syntax [(v-id (datum->syntax #'body (syntax->datum #'v)))]
+      #'(maybe-bind [(v-id (p-array-v matchval))]
+          body))]))
 
 (define-syntax (py-match stx)
   (syntax-case stx (default)
@@ -335,11 +351,22 @@
     [arity-mismatch-args-list
      (arity-error (get-top-loc) (quote (arg ...)) arity-mismatch-args-list)]))
 
+(define-syntax-rule (arity-catcher-loc (arg ...) e ... loc)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error loc (quote (arg ...)) arity-mismatch-args-list)]))
+
 (define-syntax-rule (lambda-arity-catcher (arg ...) e ...)
   (case-lambda
     [(arg ...) e ...]
     [arity-mismatch-args-list
      (arity-error (get-top-loc) (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
+(define-syntax-rule (lambda-arity-catcher-loc (arg ...) e ... loc)
+  (case-lambda
+    [(arg ...) e ...]
+    [arity-mismatch-args-list
+     (arity-error loc (rest (quote (arg ...))) (rest arity-mismatch-args-list))]))
 
 
 ;; NOTE(joe): the nested syntax/loc below appears necessary to get good
@@ -351,6 +378,15 @@
       (mk-fun
         #,(syntax/loc stx (arity-catcher (arg ...) e ...))
         #,(syntax/loc stx (lambda-arity-catcher (_ arg ...) e ...))
+        doc))]))
+
+(define-syntax (pλ/loc stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ... loc)
+     (quasisyntax/loc stx
+      (mk-fun
+        #,(syntax/loc stx (arity-catcher-loc (arg ...) e ... loc))
+        #,(syntax/loc stx (lambda-arity-catcher-loc (_ arg ...) e ... loc))
         doc))]))
 
 (define-syntax (pλ/internal stx)
@@ -370,6 +406,17 @@
           #,(syntax/loc stx [(arg ...) e ...])
           [arity-mismatch-args-list
            (arity-method-error (get-top-loc) '(arg ...) arity-mismatch-args-list)])
+       doc))]))
+
+(define-syntax (pμ/loc stx)
+  (syntax-case stx ()
+    [(_ (arg ...) doc e ... loc)
+     (quasisyntax/loc stx
+      (mk-method
+        (case-lambda
+          #,(syntax/loc stx [(arg ...) e ...])
+          [arity-mismatch-args-list
+           (arity-method-error loc '(arg ...) arity-mismatch-args-list)])
        doc))]))
 
 (define-syntax (pμ/internal stx)
@@ -545,6 +592,16 @@
 (define mk-placeholder-pfun (pλ/internal (loc) ()
   (mk-placeholder)))
 
+(define array-bad-app (bad-app "array"))
+(define array-bad-meth (bad-meth "array"))
+(define mk-array-of-pfun (pλ/internal (loc) (val num)
+  (when (not (p-num? num)) (throw-type-error! "Number" num))
+  (p-array no-brands array-dict array-bad-app array-bad-meth (make-vector (p-num-n num) val))))
+(define mk-build-array-pfun (pλ/internal (loc) (fun len)
+  (when (not (p-num? len)) (throw-type-error! "Number" len))
+  (p-array no-brands array-dict array-bad-app array-bad-meth
+           (build-vector (p-num-n len) (λ(i) (apply-fun fun dummy-loc (mk-num i)))))))
+
 (define exn-brand (gensym 'exn))
 
 ;; pyret-error : Loc String String -> p-exn
@@ -556,10 +613,39 @@
   (mk-pyret-exn full-error loc obj #t))
 
 ;; get-raw-field : Loc Value String -> Value
+(define in-get-raw-field empty)
 (define (get-raw-field loc v f)
- (string-map-ref (get-dict v) f
+  (string-map-ref (get-dict v) f
    (lambda()
-     (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (to-repr v)))))))
+     ;; (printf "get-raw-field failed for ~a and ~a\n" (raw-repr v) f)
+     (if (empty? in-get-raw-field)
+         (begin
+           (set! in-get-raw-field (cons f in-get-raw-field))
+           (with-handlers
+               ([(λ(e) (not (empty? in-get-raw-field)))
+                 (λ(e)
+                   ;; (printf "In-g-r-f, in-g-r-f isn't empty and to-repr failed,\ne = ~s\nin-g-r-f = ~a\nf = ~a" e in-get-raw-field f)
+                   (let* ((outer-f (first in-get-raw-field))
+                          (e-loc (exn:fail:pyret-srcloc e))
+                          (e-loc-list (if (srcloc? e-loc) (loc-list e-loc) e-loc))
+                          (e-val (exn:fail:pyret-val e))
+                          (e-msg (if (p-str? e-val) (p-str-s e-val)
+                                     (p-str-s (get-raw-field loc e-val "message"))))
+                          (msg (format "While reporting that ~a was not found in ~a, to-repr raised an error: ~a"
+                                       outer-f (raw-repr v) e-msg)))
+                     (set! in-get-raw-field (rest in-get-raw-field))
+                     (with-continuation-mark
+                      'pyret-mark (apply srcloc loc)
+                      (raise (pyret-error e-loc-list "field-not-found" msg)))))])
+             ;; (printf "In-g-r-f, in-g-r-f is empty, field ~a wasn't found on ~a, trying to-repr\n" f (raw-repr v))
+             (let ((v-repr (to-repr v)))
+               (set! in-get-raw-field (rest in-get-raw-field))
+               ;; (printf "In-g-r-f, to-repr succeeded: ~a" v-repr)
+               (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f v-repr))))))
+         (begin
+           ;; (printf "In-g-r-f, field ~a wasn't found, in-g-r-f isn't empty: ~a\n" f in-get-raw-field)
+           (raise (pyret-error loc "field-not-found" (format "~a was not found on ~a" f (raw-repr v))))))
+     )))
 
 ;; get-field : Loc Value String -> Value
 (define (get-field loc v f)
@@ -587,8 +673,7 @@
     [(p-mutable? vfield)
      (define checks (p-mutable-read-wrappers vfield))
      (foldr (lambda (c v) (c v)) (unbox (p-mutable-b vfield)) checks)]
-    [else
-     (raise (pyret-error loc "immutable-mutable-lookup" (format "Cannot look up immutable field \"~a\" with the ! operator" f)))]))
+    [else (get-field loc v f)]))
 
 (define (check-str v l)
   (cond
@@ -927,9 +1012,9 @@ And the object was:
   meta-bool-store)
 
 ;; serialize : Value String (method name) -> String
-(define (serialize v method)
+(define (serialize v method override)
   (define (serialize-internal v fallback)
-    (if (has-field? v method)
+    (if (and (has-field? v method) (not override))
         (let [(m (get-raw-field dummy-loc v method))]
           (if (p-method? m)
               ;; NOTE(dbp): this will fail if tostring isn't defined
@@ -954,11 +1039,13 @@ And the object was:
     [(p-fun _ _ _ _) (serialize-internal v (λ () "fun(): end"))]
     [(p-mutable _ _ _ _ _ _ _) (serialize-internal v (λ () "mutable-field"))]
     [(p-placeholder _ _ _ _ _ _) (serialize-internal v (λ () "cyclic-field"))]
+    [(p-str _ _ _ _ s) (if (string=? method "tostring") s (format "~s" s))]
+    [(p-num _ _ _ _ n) (number->string n)]
     [(p-base _ h _ _)
      (let ()
        (define (serialize-raw-object h)
          (define (serialize-field f v)
-           (format "~a: ~a" f (serialize v method)))
+           (format "~a: ~a" f (serialize v method override)))
          (format "{~a}"
                  (string-join (string-map-map h serialize-field) ", ")))
        (serialize-internal
@@ -966,13 +1053,14 @@ And the object was:
         (λ () (serialize-raw-object h))))]
     [(default _) (format "~a" v)]))
 
-(define to-string (lambda (o) (serialize o "tostring")))
-(define to-repr (lambda (o) (serialize o "_torepr")))
+(define to-string (lambda (o) (serialize o "tostring" #f)))
+(define to-repr (lambda (o) (serialize o "_torepr" #f)))
+(define raw-repr (lambda (o) (serialize o "_torepr" #t)))
 
 (define tostring-pfun (pλ/internal (loc) (o)
-  (mk-str (serialize o "tostring"))))
+  (mk-str (to-string o))))
 (define torepr-pfun (pλ/internal (loc) (o)
-  (mk-str (serialize o "_torepr"))))
+  (mk-str (to-repr o))))
 
 (define (pyret-print o)
   (define str
@@ -1104,6 +1192,67 @@ And the object was:
         (set-p-placeholder-wrappers! self (cons (p-base-app pred) wrappers))
         nothing)))))
 
+(define array-dict
+  (make-string-map
+    (list
+      (cons "_equals"
+        (pμ/internal (loc) (self other)
+          "Check equality of this array with another"
+          (mk-bool (eq? self other))))
+      (cons "eq"
+        (pμ/internal (loc) (self other)
+          "Check equality of this array with another"
+          (mk-bool (eq? self other))))
+      (cons "_torepr"
+        (pμ/internal (loc) (self)
+          "Get a printable representation of the array"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (mk-str (format "array(~a)" (serialize (mk-list (vector->list (p-array-v self))) "_torepr" #f)))))
+      (cons "tostring"
+        (pμ/internal (loc) (self)
+          "Get a printable representation of the array"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (mk-str (format "array(~a)" (serialize (mk-list (vector->list (p-array-v self))) "tostring" #f)))))
+      (cons "get"
+        (pμ/internal (loc) (self n)
+          "Get the value at index n"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (when (not (p-num? n)) (throw-type-error! "Number" n))
+          (define index (p-num-n n))
+          (define vec (p-array-v self))
+          (when (not (exact-nonnegative-integer? index))
+            (raise (pyret-error (get-top-loc) "array-get-non-integer"
+              (format "Index ~a is negative or a non-integer value, which cannot be used for a array access" index))))
+          (when (> index (sub1 (vector-length vec)))
+            (raise (pyret-error (get-top-loc) "array-get-too-large"
+              (format "Index ~a too large for array ~a in array-get" index (to-repr self)))))
+          (vector-ref vec index)))
+      (cons "set"
+        (pμ/internal (loc) (self n v)
+          "Set the value at index n to v"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (when (not (p-num? n)) (throw-type-error! "Number" n))
+          (define index (p-num-n n))
+          (define vec (p-array-v self))
+          (when (not (exact-nonnegative-integer? index))
+            (raise (pyret-error (get-top-loc) "array-set-non-integer"
+              (format "Index ~a is negative or a non-integer value, which cannot be used for a array update" index))))
+          (when (> index (sub1 (vector-length vec)))
+            (raise (pyret-error (get-top-loc) "array-set-too-large"
+              (format "Index ~a too large for array ~a in array-set" index (to-repr self)))))
+          (vector-set! vec index v)
+          self))
+      (cons "length"
+        (pμ/internal (loc) (self)
+          "Get the length of this array"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (mk-num (vector-length (p-array-v self)))))
+      (cons "to-list"
+        (pμ/internal (loc) (self)
+          "Get a list of the elements in this array"
+          (when (not (p-array? self)) (throw-type-error! "Array" self))
+          (mk-list (vector->list (p-array-v self))))))))
+
 (define gensym-pfun (pλ (s)
   "Generate a random string with the given prefix"
   (cond
@@ -1138,6 +1287,7 @@ And the object was:
 (mk-pred Method p-method?)
 (mk-pred Mutable p-mutable?)
 (mk-pred Placeholder p-placeholder?)
+(mk-pred Array p-array?)
 (mk-pred Opaque p-opaque?)
 
 (mk-pred is-number p-num?)
@@ -1150,6 +1300,7 @@ And the object was:
 (mk-pred is-method p-method?)
 (mk-pred is-mutable p-mutable?)
 (mk-pred is-placeholder p-placeholder?)
+(mk-pred is-array p-array?)
 
 (define py-link #f)
 (define py-empty #f)

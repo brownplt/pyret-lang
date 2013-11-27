@@ -4,7 +4,7 @@ program: prelude block
 
 end: "end" | ";"
 
-prelude: (import-stmt|provide-stmt)*
+prelude: [provide-stmt] import-stmt*
 
 import-stmt: "import" (import-name | import-string) "as" NAME
 import-name: NAME
