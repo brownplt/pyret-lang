@@ -68,8 +68,8 @@
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
   (define (ds-cases-branch branch)
     (match branch
-      [(s-cases-branch s name args blk)
-       (s-cases-branch s name (map ds-bind args) (ds blk))]))
+      [(s-cases-branch s name params args blk)
+       (s-cases-branch s name (map ds-ann params) (map ds-bind args) (ds blk))]))
   (define (ds-ann ast)
     (match ast
       [(a-pred s t e) (a-pred s t (ds e))]

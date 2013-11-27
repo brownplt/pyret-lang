@@ -105,8 +105,8 @@ these metadata purposes.
 (struct s-cases s-ast (syntax type val branches) #:transparent)
 ;; s-cases-else : srcloc Ann Expr (Listof s-cases-branch) s-block -> s-cases-else
 (struct s-cases-else s-ast (syntax type val branches else) #:transparent)
-;; s-cases-branch : srcloc symbol (ListOf s-bind) s-block -> s-cases-branch
-(struct s-cases-branch s-ast (syntax name args body) #:transparent)
+;; s-cases-branch : srcloc symbol (ListOf Ann) (ListOf s-bind) s-block -> s-cases-branch
+(struct s-cases-branch s-ast (syntax name params args body) #:transparent)
 
 (define op+ 'op+)
 (define op- 'op-)
@@ -364,7 +364,7 @@ these metadata purposes.
       [else (s-try s (sub body) id (sub except))])]
     [(s-cases s type val branches) (s-cases s type (sub val) (map sub branches))]
     [(s-cases-else s type val branches else) (s-cases-else s type (sub val) (map sub branches) (sub else))]
-    [(s-cases-branch s name args body) (s-cases-branch s name args (sub body))]
+    [(s-cases-branch s name params args body) (s-cases-branch params name args (sub body))]
     [(s-op s op left right) (s-op s op (sub left) (sub right))]
     [(s-check-test s op left right) (s-check-test s op (sub left) (sub right))]
     [(s-not s expr) (s-not s (sub expr))]
@@ -426,7 +426,7 @@ these metadata purposes.
     [(s-try syntax body id except) syntax]
     [(s-cases syntax type val branches) syntax]
     [(s-cases-else syntax type val branches else) syntax]
-    [(s-cases-branch syntax name args body) syntax]
+    [(s-cases-branch syntax name params args body) syntax]
     [(s-op syntax op left right) syntax]
     [(s-check-test syntax op left right) syntax]
     [(s-not syntax expr) syntax]
@@ -524,7 +524,7 @@ these metadata purposes.
       [(s-if-branch _ expr body) (set-union (free-ids expr) (free-ids body))]))
   (define (free-ids-cases-branch cb)
     (match cb
-      [(s-cases-branch _ name args body)
+      [(s-cases-branch _ name params args body)
        (define bound-args (list->set (map s-bind-id args)))
        (define body-free (set-subtract (free-ids body) bound-args))
        (set-union (unions (map free-ids-bind args)) body-free)]))
@@ -711,10 +711,11 @@ these metadata purposes.
   (define (equiv-ast-cases-branch cb1 cb2)
     (match (cons cb1 cb2)
       [(cons
-        (s-cases-branch _ name1 args1 body1)
-        (s-cases-branch _ name2 args2 body2))
+        (s-cases-branch _ name1 params1 args1 body1)
+        (s-cases-branch _ name2 params2 args2 body2))
        (and
         (equal? name1 name2)
+        (length-andmap equiv-ast-ann params1 params2)
         (length-andmap equiv-ast-bind args1 args2)
         (equiv-ast body1 body2))]))
   (define (equiv-ast-variant-member m1 m2)

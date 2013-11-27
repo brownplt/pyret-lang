@@ -39,8 +39,9 @@
      [_ (error (format "Not an if-branch: ~a" b))]))
   (define (tp-cases-branch b)
    (match b
-     [(s-cases-branch s name args blk)
-      (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-bind args) (tp blk))]
+     [(s-cases-branch s name params args blk)
+      (build s_cases_branch (tp-loc s) (symbol->string name) (map tp-ann params)
+             (map tp-bind args) (tp blk))]
      [_ (error (format "Not a cases-branch: ~a" b))]))
   (define (tp-variant variant)
     (define (tp-variant-member vm)
@@ -411,7 +412,8 @@
   (define (tr-casesBranch b)
     (cond
      [(has-brand b s_cases_branch)
-      (tr-obj b s-cases-branch (tr-loc l) (string->symbol name) (map tr-bind args) (tr-expr body))]
+      (tr-obj b s-cases-branch (tr-loc l) (string->symbol name) (map tr-ann params)
+              (map tr-bind args) (tr-expr body))]
      [else (error (format "Couldn't match cases-branch: ~a" (p:to-string (ffi-unwrap b))))]))
   (define (tr-variant variant)
     (define (tr-variant-member vm)

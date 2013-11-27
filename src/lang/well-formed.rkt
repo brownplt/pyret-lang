@@ -117,7 +117,7 @@
       [else #t]))
   (define (wf-cases-branch branch)
     (match branch
-      [(s-cases-branch s name args blk)
+      [(s-cases-branch s name params args blk)
        (begin
         (when (eq? name '_)
           (wf-error "Found a cases branch using _ rather than a constructor name; use 'else' instead." s))
