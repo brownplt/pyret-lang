@@ -21,10 +21,10 @@
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
 (define OPENSTR 'OPENSTR)
-(define BINOP+ 'BINOP+)
-(define BINOP- 'BINOP-)
-(define BINOP* 'BINOP*)
-(define BINOP/ 'BINOP/)
+(define BINOP-PLUS 'BINOP-PLUS)
+(define BINOP-MINUS 'BINOP-MINUS)
+(define BINOP-TIMES 'BINOP-TIMES)
+(define BINOP-DIVIDE 'BINOP-DIVIDE)
 (define BINOP<= 'BINOP<=)
 (define BINOP>= 'BINOP>=)
 (define BINOP== 'BINOP==)
@@ -184,13 +184,13 @@
       [word-operator-chars
        (token lexeme lexeme)]
       [(concatenation whitespace "+" whitespace)
-       (token BINOP+ "+")]
+       (token BINOP-PLUS "+")]
       [(concatenation whitespace "-" whitespace)
-       (token BINOP- "-")]
+       (token BINOP-MINUS "-")]
       [(concatenation whitespace "*" whitespace)
-       (token BINOP* "*")]
+       (token BINOP-TIMES "*")]
       [(concatenation whitespace "/" whitespace)
-       (token BINOP/ "/")]
+       (token BINOP-DIVIDE "/")]
       [(concatenation whitespace "<=" whitespace)
        (token BINOP<= "<=")]
       [(concatenation whitespace ">=" whitespace)
@@ -233,7 +233,7 @@
       [whitespace
        (token WS lexeme #:skip? #t)]
       ;; misc
-      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=" "<" ">")
+      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=" "<" ">" "-")
        (token lexeme lexeme)]
       ;; comments
       [(concatenation #\# (repetition 0 +inf.0

@@ -111,7 +111,7 @@ data Date:
       year-day :: Number,
       is-dst :: Bool,
       time-zone-offset :: Number)
-sharing:  
+sharing:
   tostring(self): self.format(iso-8601-long, true) end,
   format(self, fmt :: DateDisplayFormat, show-time :: Bool):
     year = pad-left(4, self.year, "0")
@@ -160,8 +160,8 @@ sharing:
       neg = self.time-zone-offset < 0
       tz = if neg: 0 - self.time-zone-offset else: self.time-zone-offset end
       tz-sec = tz.modulo(60)
-      tz-min = ((tz - tz-sec)/60).modulo(60)
-      tz-hour = ((tz - (60*tz-min) - tz-sec)/3600).modulo(60)
+      tz-min = ((tz - tz-sec) / 60).modulo(60)
+      tz-hour = ((tz - (60 * tz-min) - tz-sec) / 3600).modulo(60)
       sign =
         if neg: "-"
         else: "+"
