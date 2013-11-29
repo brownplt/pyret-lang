@@ -103,8 +103,7 @@ app-expr: expr app-params app-args
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
 app-arg-elt: binop-expr ","
-app-params: ["<" app-param-elt* ann ">"]
-app-param-elt: ann ","
+app-params: ["<" app-ann-elt* ann ">"]
 
 left-app-expr: expr "^" left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr "." NAME
@@ -140,7 +139,7 @@ if-expr: "if" binop-expr ":" block else-if* ["else:" block] end
 else-if: "else if" binop-expr ":" block
 
 cases-expr: "cases" (PARENSPACE|PARENNOSPACE) ann ")" expr ":" cases-branch* ["|" "else" "=>" block] end
-cases-branch: "|" NAME [args] "=>" block
+cases-branch: "|" NAME ["<" app-ann-elt* ann ">"] [args] "=>" block
 
 for-bind: binding "from" binop-expr
 for-bind-elt: for-bind ","

@@ -97,7 +97,7 @@
   (define tci types-compile-internal)
   (define (ds-cases-branch b)
       (match b
-        [(s-cases-branch s2 name args body)
+        [(s-cases-branch s2 name params args body)
          (s-data-field s2 (s-str s2 (symbol->string name))
                        (s-hint-exp s2 (list (h-use-loc s2))
                                (s-lam s2 empty args (a-blank) "" (tci body) (s-block s2 empty))))]))

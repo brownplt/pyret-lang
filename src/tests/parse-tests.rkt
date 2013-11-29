@@ -628,11 +628,11 @@ line string\"" (s-str _ "multi\nline string"))
   (check/block "cases(List) 5: | empty() => 1 end"
                (s-cases _ (a-name _ 'List) (s-num _ 5)
                   (list
-                    (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
+                    (s-cases-branch _ 'empty empty empty (s-block _ (list (s-num _ 1)))))))
   (check/block "cases(List<a>) 5: | empty() => 1 end"
                (s-cases _ (a-app _ (a-name _ 'List) (list (a-name _ 'a))) (s-num _ 5)
                   (list
-                    (s-cases-branch _ 'empty empty (s-block _ (list (s-num _ 1)))))))
+                    (s-cases-branch _ 'empty empty empty (s-block _ (list (s-num _ 1)))))))
 
   (check/block "when true: 5 end"
     (s-when _ (s-bool _ #t) (s-block _ (list (s-num _ 5)))))
@@ -642,6 +642,12 @@ line string\"" (s-str _ "multi\nline string"))
       (s-block _ (list
         (s-app _ _ (s-id _ 'print) (list (s-str _ "got it")))
         (s-app _ _ (s-id _ 'print) (list (s-str _ "the answer")))))))
+
+  (check/block "cases(Foo) 1: |foo<Number> => 1 |bar<Number, String>() => 1 end"
+               (s-cases _ (a-name _ 'Foo) (s-num _ 1)
+                  (list
+                    (s-cases-branch _ 'foo (list (a-name _ 'Number)) empty (s-block _ (list (s-num _ 1))))
+                    (s-cases-branch _ 'bar (list (a-name _ 'Number) (a-name _ 'String)) empty (s-block _ (list (s-num _ 1)))))))
 
 ))
 

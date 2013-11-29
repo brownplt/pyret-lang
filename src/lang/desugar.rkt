@@ -232,8 +232,8 @@
        (s-datatype-singleton-variant s name (ds-constructor constructor))]))
   (define (ds-cases-branch b)
     (match b
-        [(s-cases-branch s name args body)
-         (s-cases-branch s name (map ds-bind args) (ds body))]))
+        [(s-cases-branch s name params args body)
+         (s-cases-branch s name (map desugar-ann params) (map ds-bind args) (ds body))]))
   (match ast
     [(s-hint-exp s hints e) (s-hint-exp s hints (ds e))]
     [(s-block s stmts)
@@ -350,7 +350,7 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s params fun args) (ds-curry s params fun (map ds args))] ;; NOTE: fun is NOT desugared yet
+    [(s-app s params fun args) (ds-curry s (map desugar-ann params) fun (map ds args))] ;; NOTE: fun is NOT desugared yet
 
     [(s-left-app s target fun args)
      (ds-curry s empty fun (cons (ds target) (map ds args)))] ;; NOTE: fun is NOT desugared yet
