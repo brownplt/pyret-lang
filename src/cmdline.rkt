@@ -9,6 +9,7 @@
   pyret/lang/typecheck
   pyret/lang/well-formed
   pyret/lang/indentation
+  pyret/lang/tokenizer
   pyret/lang/eval
   pyret/parameters
   ragg/support
@@ -49,6 +50,10 @@
       (print-loc mark)))
   (match p
     [(exn:fail:parsing message cms locs)
+     (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
+     (eprintf "\nAt:\n")
+     (void (map print-loc locs))]
+    [(exn:fail:read:pyret message cms locs lexeme start end)
      (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc locs))]
