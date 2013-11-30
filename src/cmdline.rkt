@@ -19,6 +19,7 @@
   racket/runtime-path
   racket/syntax
   srfi/13
+  "lang/unparser.rkt"
   "parameters.rkt")
 
 (define-runtime-path pyret-lang-racket "lang/pyret-lang-racket.rkt")
@@ -48,8 +49,11 @@
     (for ((mark marks))
       (print-loc mark)))
   (match p
-    [(exn:fail:parsing message cms locs)
+    [(exn:fail:read:pyret message cms locs)
      (eprintf "[pyret] Error in parsing:\n\n~a\n" message)
+     (void (map print-loc locs))]
+    [(exn:fail:parsing message cms locs)
+     (eprintf "[pyret] Error in parsing (uncaught):\n\n~a\n" message)
      (eprintf "\nAt:\n")
      (void (map print-loc locs))]
     [(exn:fail:pyret/tc message cms srclocs)

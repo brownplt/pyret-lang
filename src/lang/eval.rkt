@@ -67,8 +67,7 @@
           #:check [check (current-check-mode)]
           #:indentation [indentation (current-indentation-mode)]
           #:type-env [type-env WHALESONG-ENV])
-  (define pyret-stx (get-syntax src in))
-  (define parsed-stx (parse-eval pyret-stx))
+  (define parsed-stx (parse-pyret/port in src))
   (stx->racket
     parsed-stx
     #:toplevel toplevel
