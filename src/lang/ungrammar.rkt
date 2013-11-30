@@ -11,7 +11,8 @@ import-name: NAME
 import-string: STRING
 provide-stmt: "provide" stmt end | "provide" "*"
 
-block: stmt*
+block: block-elt*
+block-elt: stmt [";"]
 
 stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
@@ -20,7 +21,7 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
 let-expr: binding "=" binop-expr
 binding: NAME ["::" ann]
 
-fun-expr: "fun" fun-header ":" doc-string block where-clause end
+fun-expr: "fun" fun-header ":" doc-string block where-clause [end]
 fun-header: ty-params NAME args return-ann
 ty-params:
   ["<" list-ty-param* NAME ">"]
@@ -100,7 +101,7 @@ app-expr: expr app-args
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] ")"
 app-arg-elt: binop-expr ","
 
-left-app-expr: expr "^" left-app-fun-expr app-args
+left-app-expr: expr "^" left-app-fun-expr [app-args]
 left-app-fun-expr: id-expr | id-expr "." NAME
 
 obj-expr: "{" obj-fields "}" | "{" "}"

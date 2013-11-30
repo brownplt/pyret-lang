@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (require
+  racket/list
   (only-in racket/list empty)
   syntax/parse
   "ast.rkt")
@@ -10,6 +11,11 @@
 
 (struct exn:fail:read:pyret:else-colon exn:fail:read:pyret () #:transparent)
 (struct exn:fail:read:pyret:missing-end exn:fail:read:pyret () #:transparent)
+(struct exn:fail:read:pyret:block-semi exn:fail:read:pyret () #:transparent)
+(struct exn:fail:read:pyret:caret-no-parens exn:fail:read:pyret () #:transparent)
+
+(define (format-loc loc)
+  (format "~a:~a:~a" (srcloc-source loc) (srcloc-line loc) (srcloc-column loc)))
 
 (define (loc stx)
     (srcloc (syntax-source stx)
@@ -60,8 +66,12 @@
 
 (define (parse-block stx)
   (syntax-parse stx
-    #:datum-literals (block)
-    [(block stmts ...)
+    #:datum-literals (block block-elt)
+    [(block stmts1 ... (block-elt stmt ";") stmts2 ...)
+     (raise-syntax-error! exn:fail:read:pyret:block-semi stx
+      (format "The semicolon after the statement at ~a may be unncessary.  Semicolons are not necessary to split up lines within blocks." (format-loc (loc #'stmt)))
+      (list (loc #'stmt)))]
+    [(block (block-elt stmts) ...)
      (s-block (loc stx) (map/stx parse-stmt-wrapper #'(stmts ...)))]))
 
 (define (parse-check-block stx)
@@ -152,6 +162,9 @@
      (s-let (loc stx) (parse-binding #'bind) (parse-binop-expr #'e))]
     [(graph-expr "graph:" binding ... (end (~or "end" ";")))
      (s-graph (loc stx) (map/stx parse-stmt #'(binding ...)))]
+    [(fun-expr "fun" (fun-header params fun-name args return) ":" doc body check)
+     (raise-syntax-error! exn:fail:read:pyret:missing-end stx
+      (format "An end is missing.  It might be at the end of the function definition at ~a." (format-loc (loc stx))))]
     [(fun-expr "fun" (fun-header params fun-name args return) ":"
                doc body check (end (~or "end" ";")))
      (s-fun (loc stx)
@@ -387,12 +400,12 @@
     [(for-bind name "from" expr)
      (s-for-bind (loc stx) (parse-binding #'name) (parse-binop-expr #'expr))]))
  
-(define (raise-syntax-error! constructor stx message)
+(define (raise-syntax-error! constructor stx message (locs (list (loc stx))))
   (raise
     (constructor
       message
       (current-continuation-marks)
-      (list (loc stx)))))
+      locs)))
   
 
 (define (parse-if-ender stx)
@@ -458,7 +471,10 @@
       (map/stx parse-cases-branch #'(branch ...)))]
     [(if-expr "if" test ":" body branch ... (if-ender stuff ...))
      (raise-syntax-error! exn:fail:read:pyret:missing-end stx
-      "An end is missing at the end of this if expression")]
+      (format
+        "An end is missing.  It might be at the end of the if expression at ~a."
+        (format-loc (loc stx)))
+      (list (loc stx)))]
     [(if-expr "if" test ":" body branch ... (if-ender stuff ...) (end (~or "end" ";")))
      (s-if-else (loc stx)
        (cons
@@ -516,6 +532,10 @@
      (s-extend (loc stx) (parse-expr #'e) (parse-fields #'fields))]
     [(update-expr e "!" "{" fields "}")
      (s-update (loc stx) (parse-expr #'e) (parse-fields #'fields))]
+    [(left-app-expr e "^" fun-expr)
+     (raise-syntax-error! exn:fail:read:pyret:caret-no-parens stx
+      (format "Caret application expressions require a sequence of arguments in parentheses immediately following the function expression")
+      (list (loc #'fun-expr)))]
     [(left-app-expr e "^" fun-expr app-args)
      (s-left-app (loc stx)
                  (parse-expr #'e)
