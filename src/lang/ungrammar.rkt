@@ -89,7 +89,8 @@ prim-expr: num-expr | bool-expr | string-expr
 
 num-expr: NUMBER | "-" NUMBER
 bool-expr: "true" | "false"
-string-expr: STRING
+string-expr: STRING | open-str
+open-str: OPENSTR
 
 lambda-expr: "fun" ty-params [args] return-ann ":" doc-string block where-clause end
 
@@ -131,7 +132,8 @@ colon-bracket-expr: expr ":" "[" binop-expr "]"
 extend-expr: expr "." "{" fields "}"
 update-expr: expr "!" "{" fields "}"
 
-if-expr: "if" binop-expr ":" block else-if* [if-ender] [end]
+if-expr: "if" binop-expr ":" block else-if* [if-ender] maybe-end
+maybe-end: [end]
 if-ender:
     "else:" block
   | "else" ":" block

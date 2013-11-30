@@ -13,6 +13,7 @@
 (struct exn:fail:read:pyret:missing-end exn:fail:read:pyret () #:transparent)
 (struct exn:fail:read:pyret:block-semi exn:fail:read:pyret () #:transparent)
 (struct exn:fail:read:pyret:caret-no-parens exn:fail:read:pyret () #:transparent)
+(struct exn:fail:read:pyret:open-string exn:fail:read:pyret () #:transparent)
 
 (define (format-loc loc)
   (format "~a:~a:~a" (srcloc-source loc) (srcloc-line loc) (srcloc-column loc)))
@@ -416,7 +417,7 @@
     [(if-ender "else:" block) 'ok]
     [(if-ender "else" ":" block)
      (raise-syntax-error! exn:fail:read:pyret:else-colon stx
-      "The final else in an if expression must have the colon immediately after else, as in \"else:\"")]))
+      "The final else in an if expression must look like \"else:\", with no space before the colon" (list (loc #'block)))]))
 
 
 (define (parse-expr stx)
@@ -469,19 +470,25 @@
     [(cases-expr "cases" "(" type ")" val ":" branch ... (end (~or "end" ";")))
      (s-cases (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...)))]
-    [(if-expr "if" test ":" body branch ... (if-ender stuff ...))
+    [(if-expr "if" test ":" body branch ... (maybe-end))
      (raise-syntax-error! exn:fail:read:pyret:missing-end stx
       (format
         "An end is missing.  It might be at the end of the if expression at ~a."
         (format-loc (loc stx)))
       (list (loc stx)))]
-    [(if-expr "if" test ":" body branch ... (if-ender stuff ...) (end (~or "end" ";")))
+    [(if-expr "if" test ":" body branch ... (if-ender stuff ...) (maybe-end))
+     (raise-syntax-error! exn:fail:read:pyret:missing-end stx
+      (format
+        "An end is missing.  It might be at the end of the if expression at ~a."
+        (format-loc (loc stx)))
+      (list (loc stx)))]
+    [(if-expr "if" test ":" body branch ... (if-ender stuff ...) (maybe-end (end (~or "end" ";"))))
      (s-if-else (loc stx)
        (cons
          (s-if-branch (loc #'test) (parse-binop-expr #'test) (parse-block #'body))
          (map/stx parse-else-if #'(branch ...)))
        (parse-if-ender #'(if-ender stuff ...)))]
-    [(if-expr "if" test ":" body branch ... (end (~or "end" ";")))
+    [(if-expr "if" test ":" body branch ... (maybe-end (end (~or "end" ";"))))
      (s-if (loc stx)
        (cons
          (s-if-branch (loc #'test) (parse-binop-expr #'test) (parse-block #'body))
@@ -550,12 +557,17 @@
     #:datum-literals (
       bool-expr
       num-expr
-      string-expr
+      string-expr open-str
     )
     [(bool-expr "true") (s-bool (loc stx) #t)]
     [(bool-expr "false") (s-bool (loc stx) #f)]
     [(num-expr n) (s-num (loc stx) (parse-num #'n))]
     [(num-expr "-" n) (s-num (loc stx) (- (parse-num #'n)))]
+    [(string-expr (open-str s))
+     (raise-syntax-error!
+       exn:fail:read:pyret:open-string
+       stx
+       (format "There is an open string without a terminating close quote starting at ~a" (format-loc (loc stx))))]
     [(string-expr s) (s-str (loc stx) (parse-string #'s))]))
 
 (define (parse-ann-field stx)
