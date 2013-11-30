@@ -26,7 +26,9 @@
     (define racket-file (open-output-file lib-out #:exists 'replace))
     (parameterize ([current-check-mode #f]
                    [current-where-everywhere #t])
-      (pretty-write (syntax->datum (read-syntax lib-in pyret-file))
-                    racket-file))
+      (with-handlers
+        ([exn:fail? (lambda (e) (printf "~a\n" e))])
+        (pretty-write (syntax->datum (read-syntax lib-in pyret-file))
+                      racket-file)))
     (close-output-port racket-file)
     (close-input-port pyret-file)))
