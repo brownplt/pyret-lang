@@ -350,25 +350,18 @@
 
 (define (parse-app-params stx)
   (syntax-parse stx
-    #:datum-literals (app-params app-ann-elt)
+    #:datum-literals (app-params app-param-elt)
     [(app-params) empty]
-    [(app-params "<" (app-ann-elt e1 ",") ... elast ">")
+    [(app-params "<" (app-param-elt e1 ",") ... elast ">")
      (map/stx parse-ann #'(e1 ... elast))]))
 
 (define (parse-cases-branch stx)
   (syntax-parse stx
-    #:datum-literals (cases-branch app-ann-elt ann)
+    #:datum-literals (cases-branch)
     [(cases-branch "|" name "=>" body)
-     (s-cases-branch (loc stx) (parse-name #'name) empty empty (parse-block #'body))]
-    [(cases-branch "|" name "<" (app-ann-elt e1 ",") ... (ann elast) ">" "=>" body)
-     (s-cases-branch (loc stx) (parse-name #'name) (map/stx parse-ann #'(e1 ... (ann elast)))
-                     empty (parse-block #'body))]
+     (s-cases-branch (loc stx) (parse-name #'name) empty (parse-block #'body))]
     [(cases-branch "|" name args "=>" body)
-     (s-cases-branch (loc stx) (parse-name #'name) empty (parse-args #'args) (parse-block #'body))]
-    [(cases-branch "|" name "<" (app-ann-elt e1 ",") ... (ann elast) ">" args "=>" body)
-     (s-cases-branch (loc stx) (parse-name #'name) (map/stx parse-ann #'(e1 ... (ann elast)))
-                     (parse-args #'args) (parse-block #'body))]
-    ))
+     (s-cases-branch (loc stx) (parse-name #'name) (parse-args #'args) (parse-block #'body))]))
 
 
 (define (parse-else-if stx)

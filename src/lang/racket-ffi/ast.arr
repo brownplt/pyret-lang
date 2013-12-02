@@ -506,16 +506,9 @@ data IfBranch:
 end
 
 data CasesBranch:
-  | s_cases_branch(l :: Loc, name :: String, params :: List<Ann>,
-      args :: List<Bind>, body :: Expr) with:
+  | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     tosource(self):
-      params =
-        if is-empty(self.params): PP.mt-doc
-        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-            self.params.map(_.tosource))
-        end
       PP.group(PP.str("| " + self.name)
-          + params
           + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
           self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
       self.body.tosource()

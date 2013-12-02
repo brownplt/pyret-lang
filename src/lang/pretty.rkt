@@ -187,11 +187,8 @@
                (indented (format "| else => ~a" (pretty _else)))
                "end")]
 
-    [(s-cases-branch _ name params args body)
-     (indented (format "| ~a~a(~a) => ~a" (symbol->string name)
-                       (if (= 0 (length params))
-                           ""
-                           (string-append "<" (comma-sep (map pretty-ann params)) ">"))
+    [(s-cases-branch _ name args body)
+     (indented (format "| ~a(~a) => ~a" (symbol->string name)
                         (comma-sep (map (λ (b) (symbol->string (s-bind-id b))) args))
                         (pretty body)))]
 
