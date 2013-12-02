@@ -8,7 +8,12 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize fix-escapes pyret-keyword?)
+(provide tokenize fix-escapes pyret-keyword?
+  (struct-out exn:fail:read:pyret)
+  (struct-out exn:fail:read:pyret:binop))
+
+(struct exn:fail:read:pyret exn:fail:read (lexeme start-pos end-pos) #:transparent)
+(struct exn:fail:read:pyret:binop exn:fail:read:pyret () #:transparent)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -57,6 +62,9 @@
 (define-lex-abbrev
   identifier-chars
   (union #\_ (char-range #\a #\z) (char-range #\A #\Z)))
+
+(define (is-operator char)
+  (member char (list "+" "-" "/" "*" "<" "<=" ">" ">=")))
 
 ;; NOTE(dbp): '-' is lexed as misc, so that it can be used as a prefix for
 ;; numbers as well as for binops
@@ -117,6 +125,26 @@
      (concatenation "\\" (char-set "nrt\"'\\"))
      (char-complement (union #\\ #\")))))
 
+(define (lex-error! name lexeme start-pos end-pos)
+  (define loc (srcloc name (position-line start-pos) (position-col start-pos) (position-offset start-pos) 1))
+  (cond
+    [(is-operator lexeme)
+     (raise (exn:fail:read:pyret:binop
+        (format
+            "Found a binary operator starting with ~a, but expected whitespace around it" lexeme)
+        (current-continuation-marks)
+        (list loc)
+        lexeme
+        start-pos
+        end-pos))]
+    [else
+     (raise (exn:fail:read:pyret
+        (format "Lexer failed while reading ~a" lexeme)
+        (current-continuation-marks)
+        (list loc)
+        lexeme
+        start-pos
+        end-pos))]))
 
 (define (tokenize ip name)
   (port-count-lines! ip)
@@ -242,7 +270,9 @@
      [(concatenation "\'" (concatenation single-quote-contents (repetition 0 1 "\\")))
       (token OPENSTR lexeme)]
      [(concatenation "\"" (concatenation double-quote-contents (repetition 0 1 "\\")))
-      (token OPENSTR lexeme)]))
+      (token OPENSTR lexeme)]
+     [any-char
+      (lex-error! name lexeme start-pos end-pos)]))
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)

@@ -6,6 +6,7 @@
   srfi/13
   (rename-in (only-in racket/string string-replace) [string-replace string-subst])
   "test-utils.rkt"
+  "../lang/tokenizer.rkt"
   "../lang/runtime.rkt"
   "../lang/ast.rkt"
   "../lang/pretty.rkt"
@@ -62,6 +63,32 @@
               (when verbose
                 (printf "Printed to: \n~a\n\n" pr))
               (parse-pyret pr))))))]))
+
+(define-syntax check-tokenize-exn
+  (syntax-rules ()
+    [(_ name str pred)
+     (let ()
+       (define tokenizer (tokenize (open-input-string str) name))
+       (check-exn pred (lambda ()
+        (define (get-tokens)
+          (define next (tokenizer))
+          (if (void? next)
+              #t
+              (get-tokens)))
+        (get-tokens)) str))]))
+
+(define tokenizer (test-suite "tokenizer"
+  (check-tokenize-exn "plus-no-space" "5+4"
+    (lambda (e)
+      (and
+        (exn:fail:read:pyret:binop? e)
+        (string=? (exn:fail:read:pyret-lexeme e) "+")))) 
+  (check-tokenize-exn "plus-no-space-after" "5 +4"
+    (lambda (e)
+      (and
+        (exn:fail:read:pyret:binop? e)
+        (string=? (exn:fail:read:pyret-lexeme e) "+")))) 
+))
 
 (define literals (test-suite "literals"
   (check/block "'str'" (s-str _ "str"))
@@ -1180,6 +1207,7 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define all (test-suite "all"
+  tokenizer
   literals
   methods
   functions
