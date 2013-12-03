@@ -741,7 +741,10 @@ Grammar.prototype = {
       // console.log("State_stack = [" + state_stack + "]")
       // console.log("op_stack = [" + op_stack + "]");
       var actions = this.actionTable[state_stack[state_stack.length - 1]][next_tok];
-      if (actions.size() == 0 && !next_tok instanceof Lit) {
+      if (actions === undefined) {
+        console.log("Parse error at token #" + tokensParsed + ", unexpected token " + next_tok);
+        return null;
+      } else if (actions.size() == 0 && !next_tok instanceof Lit) {
         actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
       }
       if (actions.size() === 0) {
