@@ -71,7 +71,7 @@ OrderedSet.prototype.indexOf = function(item) {
 OrderedSet.prototype.indexOfHelp = function(items, item) {
   for (var i = 0; i < items.length; i++) {
     if ((this.comparison && this.comparison(items[i], item)) ||
-        (!this.comparison && items[i] == item)) {
+        ((!this.comparison) && (items[i] == item))) {
       return i;
     }
   }
@@ -134,9 +134,9 @@ OrderedSet.prototype.toJSON = function(f) {
 function Atom() {}
 Atom.equals = function(thiz, that) {
   if (thiz === that) return true;
-  if (thiz instanceof Nonterm && that instanceof Nonterm && thiz.name == that.name) return true;
-  if (thiz instanceof Token && that instanceof Token && thiz.name == that.name) return true;
-  if (thiz instanceof Lit && that instanceof Lit && thiz.str == that.str) return true;
+  if ((thiz instanceof Nonterm) && (that instanceof Nonterm) && (thiz.name == that.name)) return true;
+  if ((thiz instanceof Token) && (that instanceof Token) && (thiz.name == that.name)) return true;
+  if ((thiz instanceof Lit) && (that instanceof Lit) && (thiz.str == that.str)) return true;
   return false;
 }
 Atom.fromJSON = function(obj) {
@@ -204,27 +204,27 @@ function ReduceAction(rule) {
 }
 ReduceAction.prototype = Object.create(Action.prototype);
 ReduceAction.prototype.toString = function() { return "Reduce " + this.rule.coreString; }
-ReduceAction.prototype.equals = function(that) { return that instanceof ReduceAction && this.rule == that.rule; }
+ReduceAction.prototype.equals = function(that) { return (that instanceof ReduceAction) && (this.rule == that.rule); }
 function ShiftAction(dest) {
   this.type = "Shift";
   this.dest = dest;
 }
 ShiftAction.prototype = Object.create(Action.prototype);
 ShiftAction.prototype.toString = function() { return "Shift " + this.dest; }
-ShiftAction.prototype.equals = function(that) { return that instanceof ShiftAction && this.dest == that.dest; }
+ShiftAction.prototype.equals = function(that) { return (that instanceof ShiftAction) && (this.dest == that.dest); }
 function GotoAction(dest) {
   this.type = "Goto";
   this.dest = dest;
 }
 GotoAction.prototype = Object.create(Action.prototype);
 GotoAction.prototype.toString = function() { return "Goto " + this.dest; }
-GotoAction.prototype.equals = function(that) { return that instanceof GotoAction && this.dest == that.dest; }
+GotoAction.prototype.equals = function(that) { return (that instanceof GotoAction) && (this.dest == that.dest); }
 function AcceptAction() {
   this.type = "Accept";
 }
 AcceptAction.prototype = Object.create(Action.prototype);
 AcceptAction.prototype.toString = function() { return "Accept"; }
-AcceptAction.prototype.equals = function(that) { return that instanceof AcceptAction; }
+AcceptAction.prototype.equals = function(that) { return (that instanceof AcceptAction); }
 
 
 
@@ -484,7 +484,7 @@ Grammar.prototype = {
     function merge(dest, source, skipEpsilon) {
       var ret = false;
       for (var tok in source)
-        if ((!skipEpsilon) || source[tok] !== EPSILON)
+        if ((!skipEpsilon) || (source[tok] !== EPSILON))
           ret = addFollow(dest, source[tok]) || ret;
       return ret;
     }
@@ -741,11 +741,14 @@ Grammar.prototype = {
       // console.log("State_stack = [" + state_stack + "]")
       // console.log("op_stack = [" + op_stack + "]");
       var actions = this.actionTable[state_stack[state_stack.length - 1]][next_tok];
-      if (actions === undefined) {
-        console.log("Parse error at token #" + tokensParsed + ", unexpected token " + next_tok);
-        return null;
-      } else if (actions.size() == 0 && !next_tok instanceof Lit) {
-        actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
+      if ((actions === undefined) || (actions.size() === 0)) {
+        if (!(next_tok instanceof Lit)) {
+          actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
+        }
+        if ((actions === undefined) || (actions.size() === 0)) {
+          console.log("Parse error at token #" + tokensParsed + ", unexpected token " + next_tok);
+          return null;
+        }
       }
       if (actions.size() === 0) {
         console.log("No actions found for state #" + state_stack[state_stack.length - 1] + " and " + next_tok);
@@ -780,7 +783,7 @@ Grammar.prototype = {
           console.log("Current action is " + JSON.stringify(action));
           return null;
         }
-      } else if (action.type === "Accept" && !token_source.hasNext() && next_tok === EOF) {
+      } else if ((action.type === "Accept") && (!token_source.hasNext()) && (next_tok === EOF)) {
         return op_stack.pop();
       } else {
         console.log("Parse error at token #" + tokensParsed + ": " + next_tok)
