@@ -164,7 +164,7 @@
      (define params (first params-and-args))
      (define ds-f (desugar-internal f))
      (cond
-        [(null? params) (s-app s empty ds-f args)]
+        [(null? params) (s-app s typarams ds-f args)]
         [else
          (s-lam s (list) params (a-blank) ""
               (s-app s typarams ds-f (second params-and-args)) (s-block s empty))])]))
@@ -350,7 +350,7 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s params fun args) (ds-curry s params fun (map ds args))] ;; NOTE: fun is NOT desugared yet
+    [(s-app s params fun args) (ds-curry s (map desugar-ann params) fun (map ds args))] ;; NOTE: fun is NOT desugared yet
 
     [(s-left-app s target fun args)
      (ds-curry s empty fun (cons (ds target) (map ds args)))] ;; NOTE: fun is NOT desugared yet

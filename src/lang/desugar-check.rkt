@@ -175,7 +175,7 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s params fun args) (s-app s params (ds fun) (map ds args))]
+    [(s-app s params fun args) (s-app s (map ds-ann params) (ds fun) (map ds args))]
 
     [(s-left-app s target fun args)
      (s-left-app s (ds target) (ds fun) (map ds args))]
