@@ -237,6 +237,8 @@
 
     [(s-hint-exp s h e) (wf e)]
 
+    [(s-instantiate s e ps) (wf e)]
+
     [(s-check-test s op e1 e2)
      (if (not in-check-block)
          (if (eq? op 'opis)
@@ -337,7 +339,7 @@
 
     [(s-assign s name expr) (wf expr)]
 
-    [(s-app s params fun args) (begin (wf fun) (map wf args))]
+    [(s-app s fun args) (begin (wf fun) (map wf args))]
 
     [(s-left-app s target fun args)
      (begin (wf target) (wf fun) (map wf args))]

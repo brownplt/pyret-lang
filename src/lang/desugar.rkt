@@ -19,7 +19,7 @@
       [(false? e) "unknown source"]
       [else (error (format "Non-symbol, non-string, non-path value for
                             source: ~a" e))]))
-  (s-app s empty
+  (s-app s
     (s-bracket s (s-id s 'error) (s-str s "location"))
     (list
       (s-str s (serialize-source (srcloc-source s)))
@@ -44,13 +44,13 @@
   (define subbed-statements (map subst-expr (map desugar-internal bindings)))
   (s-block s
     (append
-     (map (lambda (id) (s-let s (s-bind s id (a-blank)) (s-app s empty (s-id s 'mk-placeholder) (list)))) placeholder-names)
+     (map (lambda (id) (s-let s (s-bind s id (a-blank)) (s-app s (s-id s 'mk-placeholder) (list)))) placeholder-names)
      subbed-statements
      (list
        (s-let s (s-bind s (gensym) (a-blank)) (s-user-block s
         (s-block s
          (map (lambda (id ph-id)
-                (s-app s empty (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
+                (s-app s (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
               names
               placeholder-names))))))))
 
@@ -62,12 +62,12 @@
            (s-let s (s-bind s local-name (a-blank))
                   (s-if-else s
                              (list
-                              (s-if-branch s (s-app s empty (s-id s 'Function) (list (s-id s name)))
-                                           (s-app s empty (s-id s name) (list))))
+                              (s-if-branch s (s-app s (s-id s 'Function) (list (s-id s name)))
+                                           (s-app s (s-id s name) (list))))
                              (s-id s name)))) local-mixins-names mixins-names))
   (define (fold-mixins s method base-obj)
     (foldl (lambda (mixin obj)
-             (s-app s empty (s-bracket s (s-id s mixin) (s-str s method)) (list obj)))
+             (s-app s (s-bracket s (s-id s mixin) (s-str s method)) (list obj)))
            base-obj local-mixins-names))
   (define (variant-constructor s with-members)
     (s-datatype-constructor
@@ -145,29 +145,29 @@
     (s-lam s (list) params (a-blank) ""
            (rebuild (first curry-args)) (s-block s empty))]))
 
-(define (ds-curry s typarams f args)
+(define (ds-curry s f args)
   (match f
     [(s-dot s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
      (s-lam s (list) (cons (s-bind s curried-obj (a-blank)) params) (a-blank) ""
-            (s-app s typarams (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty))]
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (s-str s1 (symbol->string m))) (second params-and-args)) (s-block s empty))]
     [(s-bracket s1 (s-id s2 '_) m)
      (define curried-obj (gensym "recv-"))
      (define params-and-args (ds-curry-args s args))
      (define params (cons (s-bind s curried-obj (a-blank)) (first params-and-args)))
      (s-lam s (list) params (a-blank) ""
-            (s-app s typarams (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty))]
+            (s-app s (s-bracket s1 (s-id s2 curried-obj) (desugar-internal m)) (second params-and-args)) (s-block s empty))]
     [else
      (define params-and-args (ds-curry-args s args))
      (define params (first params-and-args))
      (define ds-f (desugar-internal f))
      (cond
-        [(null? params) (s-app s typarams ds-f args)]
+        [(null? params) (s-app s ds-f args)]
         [else
          (s-lam s (list) params (a-blank) ""
-              (s-app s typarams ds-f (second params-and-args)) (s-block s empty))])]))
+              (s-app s ds-f (second params-and-args)) (s-block s empty))])]))
 
 (define (desugar-ann ann)
   (match ann
@@ -212,7 +212,7 @@
   (define (ds-== s e1 e2)
     (ds-curry-binop s (ds e1) (ds e2)
                     (lambda (ds-e1 ds-e2)
-                      (s-app s empty (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
+                      (s-app s (s-bracket s (s-id s 'builtins) (s-str s "equiv"))
                              (list ds-e1 ds-e2)))))
   (define (ds-args binds)
     (map ds-bind binds))
@@ -236,6 +236,7 @@
          (s-cases-branch s name (map ds-bind args) (ds body))]))
   (match ast
     [(s-hint-exp s hints e) (s-hint-exp s hints (ds e))]
+    [(s-instantiate s e ps) (s-instantiate s (ds e) (map desugar-ann ps))]
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     [(s-data s name params mixins-no-eq variants share-members check-ignored)
@@ -286,7 +287,7 @@
      (define (bind-of b) (match b [(s-for-bind _ b _) b]))
      (define the-function
       (s-lam s (list) (map bind-of bindings) ann "" (ds body) (s-block s empty)))
-     (s-app s empty (ds iter) (cons the-function (map expr-of bindings)))]
+     (s-app s (ds iter) (cons the-function (map expr-of bindings)))]
 
     [(s-var s name val)
      (s-var s (ds-bind name) (ds val))]
@@ -328,7 +329,7 @@
      (define if-fallthrough
        (s-block s
                 (list
-                 (s-app s empty
+                 (s-app s
                         (s-id s 'raise)
                         (list (s-str s "if: no tests matched"))))))
      (s-if-else s (map ds-if cases) if-fallthrough)]
@@ -340,20 +341,20 @@
 
     [(s-try s try exn catch)
      (define exn-id (gensym))
-     (define make-error (s-app s empty (s-bracket s (s-id s 'error)
+     (define make-error (s-app s (s-bracket s (s-id s 'error)
 			                      (s-str s "make-error"))
 			         (list (s-id s exn-id))))
      (s-try s (ds try) (s-bind (s-bind-syntax exn) exn-id (s-bind-ann exn))
 	    (s-block s
 		     (list
-		      (s-app s empty (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
+		      (s-app s (s-lam s (list) (list exn) (a-blank) "" (ds catch) (s-block s empty)) (list make-error)))))]
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s params fun args) (ds-curry s (map desugar-ann params) fun (map ds args))] ;; NOTE: fun is NOT desugared yet
+    [(s-app s fun args) (ds-curry s fun (map ds args))] ;; NOTE: fun is NOT desugared yet
 
     [(s-left-app s target fun args)
-     (ds-curry s empty fun (cons (ds target) (map ds args)))] ;; NOTE: fun is NOT desugared yet
+     (ds-curry s fun (cons (ds target) (map ds args)))] ;; NOTE: fun is NOT desugared yet
 
     [(s-extend s super fields) (ds-curry-nullary s-extend s (ds super) (map ds-member fields))]
 
@@ -365,7 +366,7 @@
      (define (get-lib name)
        (s-bracket s (s-id s 'list) (s-str s name)))
      (define (make-link elt acc)
-       (s-app s empty (get-lib "link") (list elt acc)))
+       (s-app s (get-lib "link") (list elt acc)))
      (foldr make-link (get-lib "empty") (map ds elts))]
 
     [(s-dot s val field) (ds-curry-nullary s-bracket s (ds val) (s-str s (symbol->string field)))]
@@ -386,12 +387,11 @@
       s (ds e)
       (lambda (ds-e)
         (define e-curry (s-bracket s ds-e (s-str s "_not")))
-        (s-app s empty e-curry (list))))]
+        (s-app s e-curry (list))))]
 
     [(s-check-test s 'opis e1 e2)
      (s-app
       s
-      empty
       (s-bracket s (s-id s 'checkers) (s-str s "check-is"))
       (list
         (s-str s (pretty (s-op s 'opis e1 e2)))
@@ -402,7 +402,6 @@
     [(s-check-test s 'opraises e1 e2)
      (s-app
       s
-      empty
       (s-bracket s (s-id s 'checkers) (s-str s "check-raises"))
       (list
         (s-str s (pretty (s-op s 'opraises e1 e2)))
@@ -413,7 +412,6 @@
     [(s-check-test s 'opsatisfies e1 e2)
      (s-app
       s
-      empty
       (s-bracket s (s-id s 'checkers) (s-str s "check-satisfies"))
       (list
         (s-str s (pretty (s-op s 'opsatisfies e1 e2)))
@@ -428,7 +426,7 @@
      (ds-curry-binop
       s (ds e1) (ds e2)
       (lambda (ds-e1 ds-e2)
-        (s-app s empty (s-bracket s (ds-== s ds-e1 ds-e2) (s-str s "_not")) (list))))]
+        (s-app s (s-bracket s (ds-== s ds-e1 ds-e2) (s-str s "_not")) (list))))]
 
     [(s-op s op e1 e2)
      (ds-curry-binop
@@ -438,7 +436,7 @@
           (if (is-lazy-method? op)
               (s-lam s empty empty (a-blank) "" ds-e2 (s-block s empty))
               ds-e2))
-        (s-app s empty (s-bracket s ds-e1 (s-str s (hash-ref op-method-table op)))
+        (s-app s (s-bracket s ds-e1 (s-str s (hash-ref op-method-table op)))
                (list e2-maybe-thunked))))]
 
     [(or (s-num _ _)
@@ -464,9 +462,9 @@
                    loc (list (s-bind loc 'self (a-blank)))
                    (a-blank) ""
                    (s-block loc (list
-                    (s-app loc empty
+                    (s-app loc
                     (s-bracket loc
-                     (s-app loc empty
+                     (s-app loc
                       (s-bracket loc (s-str loc prefix)
                              (s-str loc "_plus"))
                       (list (s-bracket loc (s-id loc 'self)

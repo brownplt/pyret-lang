@@ -120,6 +120,8 @@
      (build s_user_block (tp-loc s) (tp body))]
     [(s-hint-exp s hints e)
      (build s_hint_exp (tp-loc s) (map tp-hint hints) (tp e))]
+    [(s-instantiate s e ps)
+     (build s_instantiate (tp-loc s) (tp e) (map tp-ann ps))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -230,10 +232,9 @@
         (symbol->string name)
         (tp expr))]
 
-    [(s-app s params fun args)
+    [(s-app s fun args)
      (build s_app
         (tp-loc s)
-        (map tp-ann params)
         (tp fun)
         (map tp args))]
 
@@ -508,6 +509,8 @@
       (map tr-expr e)]
      [(has-brand e s_hint_exp)
       (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hint) (tr-expr e))]
+     [(has-brand e s_instantiate)
+      (tr-obj e s-instantiate (tr-loc l) (tr-expr expr) (map tr-ann params))]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
      [(has-brand e s_user_block)
@@ -556,7 +559,7 @@
      [(has-brand e s_list)
       (tr-obj e s-list (tr-loc l) (map tr-expr values))]
      [(has-brand e s_app)
-      (tr-obj e s-app (tr-loc l) (map tr-ann params) (tr-expr _fun) (map tr-expr args))]
+      (tr-obj e s-app (tr-loc l) (tr-expr _fun) (map tr-expr args))]
      [(has-brand e s_left_app)
       (tr-obj e s-left-app (tr-loc l) (tr-expr obj) (tr-expr _fun) (map tr-expr args))]
      [(has-brand e s_id)

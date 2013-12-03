@@ -39,6 +39,10 @@
        (match-define (cons val-list new-val) (get-and-replace-constants e))
        (cons val-list (s-hint-exp s h new-val))]
 
+      [(s-instantiate s e ps)
+       (match-define (cons lst new-expr) (get-and-replace-constants e))
+       (cons lst (s-instantiate s new-expr ps))]
+
       [(s-lam l params args ann doc body check)
        (match-define (cons lst new-body) (get-and-replace-constants body))
        (cons lst (s-lam l params args ann doc new-body check))]
@@ -72,11 +76,11 @@
        (match-define (cons lst new-expr) (get-and-replace-constants expr))
        (cons lst (s-assign l name new-expr))]
 
-      [(s-app l params f args)
+      [(s-app l f args)
        (match-define (cons f-list new-f) (get-and-replace-constants f))
        (define args-results (map get-and-replace-constants args))
        (cons (flatten (cons f-list (map car args-results)))
-             (s-app l params new-f (map cdr args-results)))]
+             (s-app l new-f (map cdr args-results)))]
 
       [(s-obj l fields)
        (define fields-results (map process-member fields))

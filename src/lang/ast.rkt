@@ -164,13 +164,16 @@ these metadata purposes.
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
 ;;    s-colon s-colon-bracket s-lam
-;;    s-block s-method s-hint))
+;;    s-block s-method s-hint s-instantiate))
 
 ;; s-hint : srcloc (Listof Hint) Expr
 (struct s-hint-exp s-ast (syntax hints exp) #:transparent)
 
 (struct s-hint ())
 (struct h-use-loc s-hint (loc) #:transparent)
+
+;; s-instantiate : srcloc Expr (Listof Ann)
+(struct s-instantiate s-ast (syntax expr params))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
 (struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)
@@ -198,8 +201,8 @@ these metadata purposes.
 ;; s-list : srcloc (Listof Expr)
 (struct s-list s-ast (syntax values) #:transparent)
 
-;; s-app : srcloc (Listof Ann) Expr (Listof Expr)
-(struct s-app s-ast (syntax params fun args) #:transparent)
+;; s-app : srcloc Expr (Listof Expr)
+(struct s-app s-ast (syntax fun args) #:transparent)
 
 ;; s-left-app : srcloc Expr Expr (Listof Expr)
 (struct s-left-app s-ast (syntax obj fun args) #:transparent)
@@ -376,7 +379,7 @@ these metadata purposes.
     [(s-update s super fields) (s-update s (sub super) (map sub fields))]
     [(s-obj s fields) (s-obj s (map sub fields))]
     [(s-list s values) (s-list s (map sub values))]
-    [(s-app s params fun args) (s-app s params (sub fun) (map sub args))]
+    [(s-app s fun args) (s-app s (sub fun) (map sub args))]
     [(s-left-app s obj fun args) (s-left-app s (sub obj) (sub fun) (map sub args))]
     [(s-assign s id value) (error "Can't substitute into a mutable variable")]
     [(s-num s n) expr1]
@@ -439,7 +442,7 @@ these metadata purposes.
     [(s-update syntax super fields) syntax]
     [(s-obj syntax fields) syntax]
     [(s-list syntax values) syntax]
-    [(s-app syntax params fun args) syntax]
+    [(s-app syntax fun args) syntax]
     [(s-left-app syntax obj fun args) syntax]
     [(s-id syntax id) syntax]
     [(s-assign syntax id value) syntax]
@@ -623,7 +626,7 @@ these metadata purposes.
      (set-union (free-ids super) (unions (map free-ids-member fields)))]
     [(s-obj _ fields)
      (unions (map free-ids-member fields))]
-    [(s-app _ _ fun args)
+    [(s-app _ fun args)
      (set-union (free-ids fun) (unions (map free-ids args)))]
     [(s-left-app _ obj fun args)
      (set-union (free-ids obj) (free-ids fun) (unions (map free-ids args)))]
@@ -908,9 +911,8 @@ these metadata purposes.
         (length-andmap equiv-ast-member fields1 fields2))]
       [(cons (s-obj _ fields1) (s-obj _ fields2))
        (length-andmap equiv-ast-member fields1 fields2)]
-      [(cons (s-app _ params1 fun1 args1) (s-app _ params2 fun2 args2))
+      [(cons (s-app _ fun1 args1) (s-app _ fun2 args2))
        (and
-        (length-andmap equiv-ast-ann params1 params2)
         (equiv-ast fun1 fun2)
         (length-andmap equiv-ast args1 args2))]
       [(cons (s-left-app _ obj1 fun1 args1) (s-left-app _ obj2 fun2 args2))
