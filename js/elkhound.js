@@ -1,3 +1,5 @@
+const assert = require('assert');
+
 function OrderedSet(items, comparison) {
   this.elements = {};
   this.ordered = [];
@@ -12,7 +14,17 @@ function OrderedSet(items, comparison) {
       this.add(items[i]);
   }
 }
-OrderedSet.equals = function(thiz, that) {
+OrderedSet.fromJSON = function(obj, f) {
+  var ret = new OrderedSet([], eval(obj.comparison));
+  for (var i = 0; i < obj.items.length; i++) {
+    if (f)
+      ret.add(f(obj.items[i]));
+    else
+      ret.add(obj.items[i]);
+  }
+  return ret;
+}
+OrderedSet.equals = function orderedSetEquals(thiz, that) {
   if (thiz.size() !== that.size()) return false;
   for (var i = 0; i < thiz.ordered.length; i++)
     if (!that.contains(thiz.ordered[i]))
@@ -105,7 +117,16 @@ OrderedSet.prototype.inter = function(that) {
       ret.add(start.ordered[i])
   return ret;
 }
-  
+OrderedSet.prototype.toJSON = function(f) {
+  var ret = {items: [], comparison: this.comparison.toString()};
+  for (var i = 0; i < this.ordered.length; i++) {
+    if (f)
+      ret.items[i] = f(this.ordered[i]);
+    else
+      ret.items[i] = this.ordered[i];
+  }
+  return ret;
+}  
 
 
 
@@ -118,6 +139,15 @@ Atom.equals = function(thiz, that) {
   if (thiz instanceof Lit && that instanceof Lit && thiz.str == that.str) return true;
   return false;
 }
+Atom.fromJSON = function(obj) {
+  if (obj === undefined) return undefined;
+  if (obj.type === "Nonterm") return new Nonterm(obj.name);
+  if (obj.type === "Token") return new Token(obj.name, obj.value);
+  if (obj.type === "Lit") return new Lit(obj.str);
+  if (obj.type === "EOF") return EOF;
+  if (obj.type === "EPSILON") return EPSILON;
+  return null;
+}
 function Nonterm(name) {
   this.name = name;
 }
@@ -127,6 +157,7 @@ function Token(name, value) {
   this.name = name;
   this.value = value || name;
 }
+Nonterm.prototype.toJSON = function() { return {type: "Nonterm", name: this.name}; }
 Token.prototype = Object.create(Atom.prototype);
 Token.prototype.toString = function(showVal) { 
   if (showVal)
@@ -134,19 +165,66 @@ Token.prototype.toString = function(showVal) {
   else
     return "'" + this.name; 
 }
+Token.prototype.toJSON = function() { return {type: "Token", name: this.name, value: this.value}; }
 function Lit(str) {
   this.str = str;
   this.asString = '"' + this.str.toString().replace(/[\\"']/g, '\\$&') + '"';
 }
 Lit.prototype = Object.create(Token.prototype);
 Lit.prototype.toString = function() { return this.asString; }
+Lit.prototype.toJSON = function() { return {type: "Lit", str: this.str}; }
 
 const EOF = Object.create(Token.prototype, 
                           {name: {enumerable: true, value: "EOF"}, 
-                           toString: {value: function() { return "$"; }}});
+                           toString: {value: function() { return "$"; }},
+                           toJSON: {value: function() { return {type:"EOF"}; } }});
 const EPSILON = Object.create(Atom.prototype, 
                               {name: {enumerable: true, value: "EPSILON"}, 
-                               toString: {value: function() { return "ε"; }}});
+                               toString: {value: function() { return "ε"; }},
+                               toJSON: {value: function() { return {type:"EPSILON"}; } }});
+
+
+function Action() { }
+Action.equals = function actionEquals(thiz, that) {
+  return (thiz.type === that.type && thiz.rule === that.rule && thiz.dest == that.dest);
+}
+Action.equals.toString = function() { return "Action.equals"; }
+Action.fromJSON = function(obj) {
+  if (obj === undefined) return undefined;
+  if (obj.type === "Reduce") return new ReduceAction(Rule.fromJSON(obj.rule));
+  if (obj.type === "Shift") return new ShiftAction(obj.dest);
+  if (obj.type === "Goto") return new GotoAction(obj.dest);
+  if (obj.type === "Accept") return new AcceptAction();
+  return null;
+}
+Action.prototype.toJSON = function() { return this; }
+function ReduceAction(rule) {
+  this.type = "Reduce";
+  this.rule = rule;
+}
+ReduceAction.prototype = Object.create(Action.prototype);
+ReduceAction.prototype.toString = function() { return "Reduce " + this.rule.coreString; }
+ReduceAction.prototype.equals = function(that) { return that instanceof ReduceAction && this.rule == that.rule; }
+function ShiftAction(dest) {
+  this.type = "Shift";
+  this.dest = dest;
+}
+ShiftAction.prototype = Object.create(Action.prototype);
+ShiftAction.prototype.toString = function() { return "Shift " + this.dest; }
+ShiftAction.prototype.equals = function(that) { return that instanceof ShiftAction && this.dest == that.dest; }
+function GotoAction(dest) {
+  this.type = "Goto";
+  this.dest = dest;
+}
+GotoAction.prototype = Object.create(Action.prototype);
+GotoAction.prototype.toString = function() { return "Goto " + this.dest; }
+GotoAction.prototype.equals = function(that) { return that instanceof GotoAction && this.dest == that.dest; }
+function AcceptAction() {
+  this.type = "Accept";
+}
+AcceptAction.prototype = Object.create(Action.prototype);
+AcceptAction.prototype.toString = function() { return "Accept"; }
+AcceptAction.prototype.equals = function(that) { return that instanceof AcceptAction; }
 
 
 
@@ -161,24 +239,8 @@ function Rule(name, symbols, lookahead, position, action) {
   this.symbols = symbols;
   this.lookahead = lookahead
   this.action = action;
-  if (action === undefined) {
-    this.action = function(kids) {
-      var rev_kids = [];
-      for (var i = kids.length - 1; i >= 0; i--) {
-        if (kids[i] instanceof Lit) continue;
-        else rev_kids.push(kids[i]);
-      }
-      var toStr = name + "(";
-      for (var i = 0; i < rev_kids.length; i++) {
-        if (i === 0)
-          toStr += rev_kids[i].toString(true);
-        else
-          toStr += ", " + rev_kids[i].toString(true);
-      }
-      toStr += ")";
-      return { name: name, kids: rev_kids, toString: function() { return toStr; }};
-    }
-  }
+  if (action === undefined)
+    this.action = Rule.defaultAction
   this.position = position || 0;
   var s = this.name.toString() + " =>";
   var c = s
@@ -195,6 +257,34 @@ function Rule(name, symbols, lookahead, position, action) {
     s = "[" + s + ", " + this.lookahead.toString() + "]";
   this.asString = s;
 }
+Rule.defaultAction = function(kids) {
+  var rev_kids = [];
+  for (var i = kids.length - 1; i >= 0; i--) {
+    if (kids[i] instanceof Lit) continue;
+    else rev_kids.push(kids[i]);
+  }
+  return { name: this.name, kids: rev_kids, toString: function() { 
+    var toStr = this.name + "(";
+    for (var i = 0; i < rev_kids.length; i++) {
+      if (i === 0)
+        toStr += rev_kids[i].toString(true);
+      else
+        toStr += ", " + rev_kids[i].toString(true);
+    }
+    toStr += ")";
+    return toStr; 
+  }};
+}
+Rule.defaultAction.toString = function() { return "Rule.defaultAction"; }
+
+Rule.fromJSON = function(obj) {
+  var sym = [];
+  sym.length = obj.symbols.length;
+  for (var i = 0; i < obj.symbols.length; i++)
+    sym[i] = Atom.fromJSON(obj.symbols[i]);
+  return new Rule(obj.name, sym, Atom.fromJSON(obj.lookahead), obj.position, eval(obj.action));
+}
+
 Rule.NextRuleId = 0;
 Rule.equals = function(thiz, that) {
   return (thiz.id === that.id) ||
@@ -215,6 +305,19 @@ Rule.prototype = {
   toString: function() { return this.asString; },
   withLookahead: function(lookahead) { 
     return new Rule(this.name, this.symbols, lookahead, this.position, this.action); 
+  },
+  toJSON: function() {
+    var ret = {};
+    ret.name = this.name;
+    if (this.lookahead)
+      ret.lookahead = this.lookahead.toJSON();
+    if (this.action)
+      ret.action = this.action.toString();
+    ret.position = this.position;
+    ret.symbols = [];
+    for (var i = 0; i < this.symbols.length; i++)
+      ret.symbols[i] = this.symbols[i].toJSON();
+    return ret;
   }
 }
 
@@ -222,10 +325,35 @@ function Grammar(name, start) {
   this.name = name;
   this.rules = {};
   this.start = start;
+  this.actionTable = [];
+  this.gotoTable = [];
   this.atoms = new OrderedSet([EOF, EPSILON], Atom.equals);
   this.tokens = new OrderedSet([EOF, EPSILON], Atom.equals);
   this.nonterms = new OrderedSet([], Atom.equals);
 }
+
+Grammar.fromJSON = function(obj) {
+  var g = new Grammar(obj.name, obj.start);
+  for (var i = 0; i < obj.rules.length; i++) {
+    g.addRule(Rule.fromJSON(obj.rules[i]));
+  }
+  g.actionTable = [];
+  for (var i = 0; i < obj.actionTable.length; i++) {
+    var tableRow = obj.actionTable[i];
+    var newRow = g.actionTable[i] = {};
+    for (var name in tableRow)
+      newRow[name] = OrderedSet.fromJSON(tableRow[name], Action.fromJSON)
+  }
+  g.gotoTable = [];
+  for (var i = 0; i < obj.gotoTable.length; i++) {
+    var tableRow = obj.gotoTable[i];
+    var newRow = g.gotoTable[i] = {};
+    for (var name in tableRow)
+      newRow[name] = OrderedSet.fromJSON(tableRow[name], Action.fromJSON)
+  }
+  return g;
+}
+
 Grammar.prototype = {
   toString: function() {
     var s = "Grammar " + this.name + ": (initial rule " + this.start + ")\n";
@@ -237,10 +365,48 @@ Grammar.prototype = {
     return s;
   },
 
+  toJSON: function() {
+    var ret = {};
+    ret.start = this.start;
+    ret.name = this.name;
+    ret.rules = [];
+    for (var name in this.rules) {
+      for (var i = 0; i < this.rules[name].length; i++) {
+        ret.rules.push(this.rules[name][i].toJSON());
+      }
+    }
+    ret.actionTable = [];
+    for (var i = 0; i < this.actionTable.length; i++) {
+      ret.actionTable[i] = {};
+      var tableRow = this.actionTable[i];
+      for (var name in tableRow) {
+        if (tableRow.hasOwnProperty(name))
+          ret.actionTable[i][name] = tableRow[name].toJSON(Action.toJSON);
+      }
+    }
+    ret.gotoTable = [];
+    for (var i = 0; i < this.gotoTable.length; i++) {
+      ret.gotoTable[i] = {};
+      var tableRow = this.gotoTable[i];
+      for (var name in tableRow) {
+        if (tableRow.hasOwnProperty(name))
+          ret.gotoTable[i][name] = tableRow[name].toJSON(Action.toJSON);
+      }
+    }
+    return ret;
+  },
+
   addRule: function(name, symbols, lookahead, position, action) {
+    var new_rule;
+    if (name instanceof Rule) {
+      new_rule = name;
+      name = new_rule.name;
+      symbols = new_rule.symbols;
+    } else {
+      new_rule = new Rule(name, symbols, lookahead, position, action);
+    }
     if (!(this.rules.hasOwnProperty(name)))
       this.rules[name] = [];
-    var new_rule = new Rule(name, symbols, lookahead, position, action);
     this.rules[name].push(new_rule);
     this.atoms.add(new Nonterm(name));
     this.nonterms.add(new Nonterm(name));
@@ -300,9 +466,8 @@ Grammar.prototype = {
     }
     for (var name in this.first) {
       for (var i in this.first[name]) {
-        if (!(this.first[name][i] instanceof Atom)) {
-          console.log("This.first[" + name + "][" + i + "] = " + this.first[name][i])
-        }
+        assert.ok(this.first[name][i] instanceof Atom,
+          "This.first[" + name + "][" + i + "] = " + this.first[name][i]);
       }
     }
   },
@@ -454,34 +619,18 @@ Grammar.prototype = {
     this.actionTable = [];
     this.gotoTable = [];
     const thiz = this;
-    function action(type, info) {
-      var ret = {type: type}
-      if (type === "Reduce") {
-        ret.rule = info;
-        ret.toString = function() { return "Reduce " + info.coreString; }
-      } else if (type === "Accept") {
-        ret.toString = function() { return "Accept"; }
-      } else {
-        ret.dest = info;
-        ret.toString = function() { return type + " " + info; }
-      }
-      return ret;
-    }
-    function actionEquals(thiz, that) {
-      return (thiz.type === that.type && thiz.rule === that.rule && thiz.dest == that.dest);
-    }        
     function initTables(index) {
       if (thiz.actionTable[index] === undefined) {
         thiz.actionTable[index] = {};
         for (var k = 0; k < thiz.tokens.size(); k++)
           if (thiz.actionTable[index][thiz.tokens.get(k)] === undefined)
-            thiz.actionTable[index][thiz.tokens.get(k)] = new OrderedSet([], actionEquals);
+            thiz.actionTable[index][thiz.tokens.get(k)] = new OrderedSet([], Action.equals);
       }
       if (thiz.gotoTable[index] === undefined) {
         thiz.gotoTable[index] = {};
         for (var k = 0; k < thiz.nonterms.size(); k++)
           if (thiz.gotoTable[index][thiz.nonterms.get(k)] === undefined)
-            thiz.gotoTable[index][thiz.nonterms.get(k)] = new OrderedSet([], actionEquals);
+            thiz.gotoTable[index][thiz.nonterms.get(k)] = new OrderedSet([], Action.equals);
       }
     }
 
@@ -536,17 +685,17 @@ Grammar.prototype = {
           }
           initTables(state_num);
           if (this.atoms.get(j) instanceof Token) {
-            this.actionTable[i][this.atoms.get(j)].add(action("Shift", state_num));
+            this.actionTable[i][this.atoms.get(j)].add(new ShiftAction(state_num));
           } else {
-            this.gotoTable[i][this.atoms.get(j)].add(action("Goto", state_num));
+            this.gotoTable[i][this.atoms.get(j)].add(new GotoAction(state_num));
           }
           for (var k = 0; k < new_state.size(); k++) {
             var item = new_state.get(k);
             if (item.position == item.symbols.length) {
               if (item.name == this.start) {
-                this.actionTable[state_num][EOF].add(action("Accept"));
+                this.actionTable[state_num][EOF].add(new AcceptAction());
               } else {
-                this.actionTable[state_num][item.lookahead].add(action("Reduce", item));
+                this.actionTable[state_num][item.lookahead].add(new ReduceAction(item));
               }
             }
           }
@@ -557,7 +706,8 @@ Grammar.prototype = {
 
 
   printTables: function() {
-    for (var i = 0; i < this.states.size(); i++) {
+    var ret = "";
+    for (var i = 0; i < this.actionTable.length; i++) {
       var str_action = ""
       for (var j = 0; j < this.tokens.size(); j++) {
         action = this.actionTable[i][this.tokens.get(j)]
@@ -575,8 +725,10 @@ Grammar.prototype = {
         s += "\n  Actions:" + str_action;
       if (str_goto)
         s += "\n  Gotos:" + str_goto;
-      console.log(s);
+      if (s !== "") s += "\n";
+      ret += s;
     }
+    return ret;
   },
 
   parseLALR: function(token_source) {

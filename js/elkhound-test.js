@@ -77,7 +77,7 @@ g.computeStates();
 console.log("All reachable LR(1) states:")
 for (var i = 0; i < g.states.size(); i++)
   console.log(g.states.get(i).toString(true) + "\n")
-g.printTables();
+console.log(g.printTables());
 
 function token_stream(toks) {
   var cur = 0;
@@ -93,12 +93,38 @@ function token_stream(toks) {
         cur++;
         return E.EOF;
       }
-    }
+    },
+    reset: function() { cur = 0; }
   }
 }
 
 function id(x) { return new Token("id", x); }
-var ret = g.parseLALR(token_stream(["(", id("a"), "+", id("b"), ")", "*", id("c")]));
-console.log(JSON.stringify(ret, null, "  "));
+var tokens = token_stream(["(", id("a"), "+", id("b"), ")", "*", id("c")]);
+var parsed = g.parseLALR(tokens);
+console.log(JSON.stringify(parsed, null, "  "));
 
+
+var g_json = JSON.stringify(g.toJSON(), null, "  ")
+var g2 = Grammar.fromJSON(JSON.parse(g_json))
+
+tokens.reset();
+var reparsed = g2.parseLALR(tokens);
+function deepEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  var propCount1 = 0;
+  for (var name in obj1)
+    if (obj1.hasOwnProperty(name))
+      propCount1++;
+  var propCount2 = 0;
+  for (var name in obj2)
+    if (obj2.hasOwnProperty(name))
+      propCount2++;
+  if (propCount1 !== propCount2) return false;
+  for (var name in obj1)
+    if (obj1.hasOwnProperty(name))
+      if (!deepEqual(obj1[name], obj2[name]))
+        return false;
+  return true;
+}
+console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(parsed, reparsed))
 
