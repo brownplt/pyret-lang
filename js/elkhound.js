@@ -1,5 +1,9 @@
 const assert = require('assert');
 
+//////////////////////////////////
+////////// Ordered Sets //////////
+//////////////////////////////////
+
 function OrderedSet(items, comparison) {
   this.elements = {};
   this.ordered = [];
@@ -128,8 +132,9 @@ OrderedSet.prototype.toJSON = function(f) {
   return ret;
 }  
 
-
-
+//////////////////////////////////
+///////////// Atoms //////////////
+//////////////////////////////////
 
 function Atom() {}
 Atom.equals = function(thiz, that) {
@@ -183,6 +188,9 @@ const EPSILON = Object.create(Atom.prototype,
                                toString: {value: function() { return "ε"; }},
                                toJSON: {value: function() { return {type:"EPSILON"}; } }});
 
+//////////////////////////////////
+//////////// Actions /////////////
+//////////////////////////////////
 
 function Action() { }
 Action.equals = function actionEquals(thiz, that) {
@@ -226,7 +234,9 @@ AcceptAction.prototype = Object.create(Action.prototype);
 AcceptAction.prototype.toString = function() { return "Accept"; }
 AcceptAction.prototype.equals = function(that) { return (that instanceof AcceptAction); }
 
-
+//////////////////////////////////
+///////////// Rules //////////////
+//////////////////////////////////
 
 // name :: string
 // symbols :: array of Atoms
@@ -320,6 +330,10 @@ Rule.prototype = {
     return ret;
   }
 }
+
+//////////////////////////////////
+//////////// Grammars ////////////
+//////////////////////////////////
 
 function Grammar(name, start) {
   this.name = name;
@@ -420,6 +434,10 @@ Grammar.prototype = {
     return new_rule;
   },
 
+  //////////////////////////////////
+  // Computes the set of first tokens in a rule
+  // If a rule is nullable, then EPSILON is one possible token
+  //////////////////////////////////
   computeFirstSets: function() {
     var thiz = this;
     var changed = true;
@@ -472,7 +490,11 @@ Grammar.prototype = {
     }
   },
 
+  //////////////////////////////////
+  // Computes the follow sets for a rule: all possible tokens 
+  // that can immediately follow a nonterminal
   // Following rules from http://www.cs.uaf.edu/~cs331/notes/FirstFollow.pdf
+  // NOTE: This function isn't currently used
   computeFollowSets: function() {
     this.follow = {};
     var thiz = this;
@@ -545,6 +567,12 @@ Grammar.prototype = {
     }
   },
 
+  //////////////////////////////////
+  // Computes the tokens that can immediately follow the specified position
+  // in the current rule.  This is a subset of the Follow set for the given
+  // nonterminal, and is therefore more precise and less prone to producing
+  // parsing conflicts.
+  //////////////////////////////////
   computeFollowAtPosition: function(rule, pos) {
     var ret = new OrderedSet([], Rule.equals);
     var start_pos = (pos !== undefined ? pos : rule.position);
@@ -568,6 +596,13 @@ Grammar.prototype = {
     return ret;
   },
 
+  //////////////////////////////////
+  // Computes the LR(1) closure of a rule set: 
+  // For a given rule [A -> a.Bb, x] in the set, it adds [B -> .g, x]
+  // for all [B -> g] in the grammar.
+  // 
+  // If inline = true, then it mutates the provided argument
+  // otherwise it constructs a new set and returns that.
   completeClosure: function(rule_set, inline) {
     var ret = inline ? rule_set : new OrderedSet(rule_set);
     var worklist = ret.ordered.slice(0);
@@ -594,6 +629,11 @@ Grammar.prototype = {
     return ret;
   },
   
+  //////////////////////////////////
+  // Computes the LR(1) Goto set for a given rule and symbol:
+  // If [A -> a.Xb, x] is in the set, and X is the symbol, then
+  // add [A -> aX.b, x] to the output set
+  // Finally, compute the closure of it.
   completeGoto: function(rule_set, symbol) {
     // console.log("GOTO(" + symbol + ") for rule_set " + rule_set.toString());
     var ret = new OrderedSet([], Rule.equals);
@@ -612,6 +652,14 @@ Grammar.prototype = {
   },
 
 
+  //////////////////////////////////
+  // Computes the LALR(1) states:
+  // Essentially computes LR(1) states and merges them as soon as possible,
+  // and enqueues any new items that were produced, in case they lead to more transitions
+  // (This is subtle, and essential for proper execution)
+  // Also computes the Action and Goto tables as it computes the states
+  // Ultimately, only these two tables are needed to run the parser.
+  //////////////////////////////////
   computeStates: function() {
     var init_rule = this.rules[this.start][0].withLookahead(EOF);
     this.init_set = this.completeClosure(new OrderedSet([init_rule], Rule.equals), true);
@@ -731,6 +779,32 @@ Grammar.prototype = {
     return ret;
   },
 
+  //////////////////////////////////
+  // A LALR(1) ambiguity is a state/token pair that has multiple enabled actions
+  // Returns a list of warning messages
+  //////////////////////////////////
+  checkForLALRAmbiguity: function() {
+    var ambiguities = []
+    for (var i = 0; i < this.actionTable.length; i++) {
+      var tableRow = this.actionTable[i];
+      for (var name in tableRow) {
+        if (tableRow.hasOwnProperty(name)) {
+          var actions = tableRow[name];
+          if (actions.size() > 1) {
+            ambiguities.push("In state #" + i + ", conflicting actions on token " + name + ": " + actions);
+          }
+        }
+      }
+    }
+    return ambiguities;
+  },
+
+
+  //////////////////////////////////
+  // The LALR parsing algorithm
+  // Does not explicitly track source locations -- that's left to the semantic action
+  // and presumes that tokens come equipped with source locations
+  //////////////////////////////////
   parseLALR: function(token_source) {
     var state_stack = [0];
     var op_stack = [];
@@ -740,13 +814,21 @@ Grammar.prototype = {
       // console.log("Parsing token " + next_tok.toString(true));
       // console.log("State_stack = [" + state_stack + "]")
       // console.log("op_stack = [" + op_stack + "]");
-      var actions = this.actionTable[state_stack[state_stack.length - 1]][next_tok];
+      var tableRow = this.actionTable[state_stack[state_stack.length - 1]];
+      var actions = tableRow[next_tok];
       if ((actions === undefined) || (actions.size() === 0)) {
-        if (!(next_tok instanceof Lit)) {
+        if (!(next_tok instanceof Lit) && (next_tok !== EOF)) {
+          console.log("next_tok = " + next_tok.toString(true));
           actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
         }
         if ((actions === undefined) || (actions.size() === 0)) {
           console.log("Parse error at token #" + tokensParsed + ", unexpected token " + next_tok);
+          var expected = new OrderedSet([]);
+          for (var name in tableRow) {
+            if (tableRow[name].size() > 0)
+              expected.add(name);
+          }
+          console.log("Expected one of: " + expected);
           return null;
         }
       }
@@ -756,8 +838,8 @@ Grammar.prototype = {
       }
       var action;
       if (actions.size() > 1) {
-        console.log("Conflict in actions: " + actions.toString());
-        action = actions.get(0);
+        console.log("Conflict in actions on token " + next_tok + ": " + actions.toString());
+        return null;
       } else {
         action = actions.get(0);
       }
@@ -779,8 +861,12 @@ Grammar.prototype = {
           next_tok = token_source.next();
         } else {
           console.log("Parse error at token #" + tokensParsed + ": needed a new token but none remain")
-          console.log("Current state is " + state_stack[state_stack.length - 1])
-          console.log("Current action is " + JSON.stringify(action));
+          var expected = new OrderedSet([]);
+          for (var name in tableRow) {
+            if (tableRow[name].size() > 0)
+              expected.add(name);
+          }
+          console.log("Expected one of: " + expected);
           return null;
         }
       } else if ((action.type === "Accept") && (!token_source.hasNext()) && (next_tok === EOF)) {
@@ -792,7 +878,7 @@ Grammar.prototype = {
         return null;
       }
     }
-  }
+  },
 }
 
 
