@@ -332,6 +332,10 @@ var PYRET_CPS = (function () {
       else if (isNothing(val)) {
         return makeString("nothing");
       }
+      else if (isMutable(val)) {
+        return makeString("mutable field")
+      }
+      
       throw ("toStringJS on an unknown type: " + val);
     }
 
@@ -353,6 +357,48 @@ var PYRET_CPS = (function () {
         return fieldVal;
       }
     }
+
+    /**
+        getColonField(val, str)
+
+        Gets the field of the given name from the pyret value
+        Does not retrieve the value from placeholders, mutables or methods
+        Instead it returns them "raw"
+
+        Val: A pyret value
+        Str: The name of the field to retrieve
+    **/
+    function getColonField(val, str) {
+      var fieldVal = val.dict[str];
+        if(fieldVal === undefined) {
+            throwPyretMessage(str + " was not found on " + toRepr(val).s);
+        }
+        return fieldVal;
+      }
+
+
+    /**
+        getMutField(val, str)
+
+        Gets the field of the given name from the pyret value
+        The field must be a mutable field, else error
+
+        Val: A pyret value
+        Str: The name of the field to retrieve
+    **/
+    function getMutField(val, str) {
+      var fieldVal = val.dict[str];
+      if(fieldVal === undefined) {
+            throwPyretMessage(str + " was not found on " + toRepr(val).s);
+      }
+      else if(isMutable(fieldVal)) {
+        return fieldVal;
+      }
+      else {
+            throwPyretMessage(str + " is not a mutable field.");
+      }
+    }
+
 
     var testPrintOutput = "";
     function testPrint(k, val) {
@@ -447,6 +493,91 @@ var PYRET_CPS = (function () {
     }
 
 
+    //DEF
+    /************************
+            Mutables
+      **********************/
+    function PMutable(d) {
+      this.dict = d;
+      this.brands = [];
+      //this.dict['_torepr'] = makeMethod(function(me) {
+        //return toRepr(me);
+      //});
+    }
+    PMutable.prototype = Object.create(PBase.prototype);
+
+    function mutClone(val, r, w) {
+        return function clone() {
+            //We don't need to do deep cloning, but we *do* need to clone the dict
+            var newDict = {};
+            for(var key in this.dict) {
+                newDict[key] = this.dict[key];
+            }
+            var newObj = makeObj(newDict);
+            
+           newObj.set = (function(newVal) { 
+                newVal = applyFunction(w,[newVal]);
+                return (a = newVal);
+            });
+            
+           newObj.r = r;
+           newObj.w = w;
+           newObj.a = val;
+
+           newObj.clone = clone;
+           return newObj;
+          }
+    }
+
+    //Mutable
+    function makeMutable(k, f, val, r, w) {
+        var a = val;
+
+        if(!isFunction(r)) {
+            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(r).s);
+        }
+        if(!isFunction(w)) {
+            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(w).s);
+        }
+
+        var mut = new PMutable({
+            tostring: makeMethod(function(k, f, me) {
+                applyFunction(k, [makeString("mutable-field")]);
+            }),
+
+            'get': makeMethod(function(k, f, me) {
+                var newk = makeFunction(function(a_val) {
+                    a = a_val;
+                    applyFunction(k, [a])
+                });
+                applyFunction(r,[newk,f, a]);
+            }),
+
+            '_equals' : makeMethod(function(k, f, me, other) {
+                applyFunction(k, [makeBoolean(me === other)]);
+            }),
+        });
+
+        mut.set = (function(newVal) { 
+                var newk = makeFunction(function(a_val) {
+                    a = a_val;
+                    applyFunction(k, [a])
+                });
+                applyFunction(w ,[newk,f, newVal]);
+            });
+
+        
+        mut.clone = mutClone(val, r,w);
+        applyFunction(k, [mut]);
+    };
+
+
+    function isMutable(val) {
+        return val instanceof PMutable;
+    }
+
+    var identity = makeFunction(function(k, f, x) {applyFunction(k, [x]);});
+    function makeSimpleMutable(k, f, val) { makeMutable(k, f, val,identity,identity );}
 
 
     // TODO(students): Make sure this returns a JavaScript dictionary with
@@ -526,6 +657,8 @@ var PYRET_CPS = (function () {
             equiv : makeFunction(equiv)
         }),
 
+        "mk-simple-mutable" : makeFunction(makeSimpleMutable),
+
         raise : raise,
         error : error
       }),
@@ -540,6 +673,8 @@ var PYRET_CPS = (function () {
         isNumber: isNumber,
         equal: equal,
         getField: getField,
+        getMutField: getMutField,
+        getColonField: getColonField,
         getTestPrintOutput: function(val) {
           return testPrintOutput + toRepr(val).s;
         },
@@ -554,6 +689,8 @@ var PYRET_CPS = (function () {
         errToJSON: errToJSON,
         pyretToJSDict: pyretToJSDict,
         applyFunction : applyFunction
+
+        
       }
     };
   }

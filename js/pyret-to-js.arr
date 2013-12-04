@@ -327,6 +327,10 @@ fun cps(ast):
                 [lam(l, [arg(l, '$ov')], 
                     app(l, id(l, K), [A.s_colon_bracket(l, id(l, '$ov'), f)])), id(l, F)]))
 
+    | s_get_bang(l, obj, field) => 
+        desugared = A.s_app(l, A.s_bracket(l, A.s_colon_bracket(l, obj, A.s_str(l, field)), A.s_str(l, "get")), [])
+        cps(desugared)
+
     |s_app(l, f, es) =>
      # if es.length() == 1:
      #   lam(l, [arg(l, K)],
