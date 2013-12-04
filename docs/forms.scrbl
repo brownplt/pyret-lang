@@ -815,6 +815,43 @@ fun(x, y, z): x + y + z end
 Pyret just does not provide syntactic sugar to help in this case
 (or other more complicated ones).
 
+@subsection[#:tag "s:binop-expr"]{Binary Operators}
+
+There are a number of binary operators in Pyret.  A binary operator expression
+is written by putting an operator between two other expressions, as in:
+
+@justcode{
+binop-expr: binop-expr BINOP binop-expr
+}
+
+Each binary operator is syntactic sugar for a particular method or function
+call.  The following table lists the operators, their intended use, and the
+corresponding call:
+
+@tabular[#:sep @hspace[2]
+  (list
+    (list @tt{left + right} @tt{left._plus(right)})
+    (list @tt{left - right} @tt{left._minus(right)})
+    (list @tt{left * right} @tt{left._times(right)})
+    (list @tt{left / right} @tt{left._divide(right)})
+    (list @tt{left <= right} @tt{left._lessequal(right)})
+    (list @tt{left < right} @tt{left._lessthan(right)})
+    (list @tt{left >= right} @tt{left._greaterequal(right)})
+    (list @tt{left > right} @tt{left._greaterthan(right)})
+    (list @tt{left and right} @tt{left._and(fun(): right;)})
+    (list @tt{left or right} @tt{left._or(fun(): right;)})
+    (list @tt{left == right} @tt{builtins.equiv(left, right)})
+    (list @tt{left <> right} @tt{builtins.equiv(left, right)._not()}))
+]
+
+For builtin values like lists, strings, numbers, and booleans, all of these
+calls are already defined.  The special names allow a form of operator
+overloading, and avoid adding an extra concept beyond function and method calls
+to the core to account for these binary operations.
+
+The boolean operators @tt{and} and @tt{or} are defined to wrap their argument
+in a function to allow for short-circuiting.
+
 @subsection[#:tag "s:obj-expr"]{Object Expressions}
 
 Object expressions map field names to values:

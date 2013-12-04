@@ -25,4 +25,4 @@ end
 
 x = "toplevel x"
 
-var z = "do not include z"
+var z = "changed to include z"

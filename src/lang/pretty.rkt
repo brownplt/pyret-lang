@@ -176,6 +176,9 @@
     [(s-op _ op e1 e2)
      (format "~a ~a ~a" (pretty e1) (substring (symbol->string op) 2) (pretty e2))]
 
+    [(s-check-test _ op e1 e2)
+     (format "~a ~a ~a" (pretty e1) (substring (symbol->string op) 2) (pretty e2))]
+
     [(s-not _ e)
      (format "not ~a" (pretty e))]
 

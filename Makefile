@@ -23,7 +23,8 @@ test:
 	racket compile-tests.rkt; \
 	racket type-tests.rkt; \
 	racket well-formed-tests.rkt; \
-	racket indentation-tests.rkt
+	racket indentation-tests.rkt; \
+  racket lib-tests.rkt
 
 doc:
 	@echo Building docs

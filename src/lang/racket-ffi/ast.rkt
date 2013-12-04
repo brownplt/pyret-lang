@@ -270,6 +270,9 @@
     [(s-op s op e1 e2)
      (build s_op (tp-loc s) (symbol->string op) (tp e1) (tp e2))]
 
+    [(s-check-test s op e1 e2)
+     (build s_check_test (tp-loc s) (symbol->string op) (tp e1) (tp e2))]
+
     [(s-num s n) (build s_num (tp-loc s) n)]
     [(s-str s str) (build s_str (tp-loc s) str)]
     [(s-bool s b) (build s_bool (tp-loc s) b)]
@@ -484,6 +487,8 @@
       (tr-obj e s-try (tr-loc l) (tr-expr body) (tr-bind id) (tr-expr _except))]
      [(has-brand e s_op)
       (tr-obj e s-op (tr-loc l) (string->symbol op) (tr-expr left) (tr-expr right))]
+     [(has-brand e s_check_test)
+      (tr-obj e s-check-test (tr-loc l) (string->symbol op) (tr-expr left) (tr-expr right))]
      [(has-brand e s_not)
       (tr-obj e s-not (tr-loc l) (tr-expr expr))]
      [(has-brand e s_paren)

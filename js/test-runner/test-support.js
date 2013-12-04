@@ -51,8 +51,7 @@ function checkOutput(RUNTIME, result, output) {
   }
 }
 
-
-function testPrint(name, pyretProg, output) {
+function testPrintNormal(name, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
@@ -62,7 +61,42 @@ function testPrint(name, pyretProg, output) {
   }
 }
 
-function testWithLib(name, libProg, pyretProg, output) {
+function testPrintCPS(name, pyretProg, output, namespace) {
+  return {
+    cpsruntime: true,
+    name: name,
+    test: function(RUNTIME) {
+      var namespaceToUse = namespace || RUNTIME.namespace;
+      var response = false;
+      RUNTIME.start(pyretProg, RUNTIME.runtime, namespaceToUse,
+          {
+            success: function(result) {
+              response = true;
+              console.log("Returned with result: ", result);
+              checkOutput(RUNTIME, result, output);
+            },
+            failure: function(result) {
+              response = true;
+              console.log("Returned with failure: ", result);
+              checkOutput(RUNTIME, result, output);
+            }
+          }
+        );
+      setTimeout(function() { if(!response) { console.error("Never returned"); }}, 500);
+    }
+  }
+}
+
+function testPrint(name, pyretProg, output, cps) {
+  if (!cps) {
+    return testPrintNormal(name, pyretProg, output);
+  }
+  else {
+    return testPrintCPS(name, pyretProg, output);
+  }
+}
+
+function testWithLibNormal(name, libProg, pyretProg, output) {
   return {
     name: name,
     test: function(RUNTIME) {
@@ -76,6 +110,36 @@ function testWithLib(name, libProg, pyretProg, output) {
       checkOutput(RUNTIME, progResult, output);
     }
   };
+}
+
+function testWithLibCPS(name, libProg, pyretProg, output) {
+  return {
+    cpsruntime: true,
+    name: name,
+    test: function(RUNTIME) {
+      var response = false;
+      RUNTIME.start(libProg, RUNTIME.runtime, RUNTIME.namespace,
+          {
+            success: function(libResult) {
+              response = true;
+              var newNamespace = RUNTIME.namespace.merge(libResult.namespace);
+              testPrintCPS(name, pyretProg, output, newNamespace).test(RUNTIME);
+            },
+            failure: function(result) {
+              response = true;
+              console.log("Returned with failure: ", result);
+              throw new Error("Library ended in error (see console for failure object): " + name);
+            }
+          }
+        );
+      setTimeout(function() { if(!response) { console.error("Never returned"); }}, 500);
+    }
+  };
+}
+
+function testWithLib(name, libProg, pyretProg, output, cps) {
+  if(!cps) { return testWithLibNormal(name, libProg, pyretProg, output); }
+  else { return testWithLibCPS(name, libProg, pyretProg, output); }
 }
 
 // This just hooks things into Jasmine for pretty-printing the results.

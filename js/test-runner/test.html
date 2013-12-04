@@ -8,6 +8,7 @@
 
 <script src="../namespace.js"></script>
 <script src="../runtime.js"></script>
+<script src="../runtime-cps.js"></script>
 <script src="test-support.js"></script>
 
 </head>
@@ -21,7 +22,7 @@ Object.keys(TESTS).forEach(function(key) {
         var tester;
           var elt = TESTS[key][key2];
           it(key2, function() {
-            var RUNTIME = PYRET.makeRuntime();
+            var RUNTIME = elt.cpsruntime ? PYRET_CPS.makeRuntime() : PYRET.makeRuntime();
             elt.test(RUNTIME);
           });
         })

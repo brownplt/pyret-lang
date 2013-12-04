@@ -12,6 +12,8 @@ import "pyret-to-js.arr" as P
 
 TESTS-PATH = "test-runner/tests.js"
 
+USE-CPS = true
+
 JS-ENV = N.library-env.{
   equiv: true,
   data-equals: true,
@@ -28,13 +30,15 @@ fun toplevel-to-js(ast :: A.Program):
   free-in-prog = A.free-ids(A.to-native(ast))
   P.program-to-js(ast, free-in-prog)
 end
-fun lib-to-js(ast :: A.Program, ids :: List<String>):
-  P.program-to-js(ast, ids)
+
+fun toplevel-to-cps-js(ast :: A.Program):
+  free-in-prog = A.free-ids(A.to-native(ast))
+  P.program-to-cps-js(ast, free-in-prog)
 end
 
 data TestPredicate:
-  | test-print(correct-output :: String, correct-error :: String)
-  | test-lib(lib :: A.Program, correct-output :: String, correct-error :: String)
+  | test-print(correct-output :: String, correct-error :: String, cps :: Bool)
+  | test-lib(lib :: A.Program, correct-output :: String, correct-error :: String, cps :: Bool)
   | equal-to(result :: String)
   | predicate(pred-fun :: String)
 end
@@ -58,12 +62,14 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
       env = N.whalesong-env.{test-print: nothing}
       ast = A.parse-tc(program, test-name, {check : false, env: env})
       format("testPred('~a', ~a, ~a)", [test-name, toplevel-to-js(ast), pred-fun])
-    | test-print(correct-output, err-output) =>
+    | test-print(correct-output, err-output, cps) =>
       env = N.whalesong-env.{test-print: nothing}
       ast = A.parse-tc(program, test-name, {check : false, env: env})
-      format("testPrint('~a', ~a, ~a)", [test-name, toplevel-to-js(ast),
-        J.stringify({expected-out: correct-output, expected-err: err-output})])
-    | test-lib(lib, correct-output, err-output) =>
+      compiler = if not cps: toplevel-to-js else: toplevel-to-cps-js;
+      format("testPrint('~a', ~a, ~a, ~a)", [test-name, compiler(ast),
+        J.stringify({expected-out: correct-output, expected-err: err-output}), cps])
+    | test-lib(lib, correct-output, err-output, cps) =>
+      compiler = if not cps: P.program-to-js else: P.program-to-cps-js;
       ids = P.toplevel-ids(lib)
       env = for fold(the-env from TEST-ENV.{test-print: true}, id from ids):
         the-env.{[id]: true}
@@ -71,11 +77,12 @@ fun make-test(test-name :: String, program :: String, pred :: TestPredicate):
       ast = A.parse-tc(program, test-name, {check : false, env: env})
       free-in-lib = A.free-ids(A.to-native(lib))
       free-in-prog = A.free-ids(A.to-native(ast))
-      format("testWithLib('~a', ~a, ~a, ~a)", [
+      format("testWithLib('~a', ~a, ~a, ~a, ~a)", [
           test-name,
-          P.program-to-js(lib, free-in-lib),
-          P.program-to-js(ast, free-in-prog),
-          J.stringify({expected-out: correct-output, expected-err: err-output})])
+          compiler(lib, free-in-lib),
+          compiler(ast, free-in-prog),
+          J.stringify({expected-out: correct-output, expected-err: err-output}),
+          cps])
   end
 end
 
@@ -128,7 +135,8 @@ MISC = [
               }
             ),
           "22",
-          ""
+          "",
+          false
         )
     )
 ]
@@ -228,7 +236,7 @@ end
 
 fun create-print-test(name, program, out, err):
   print("Registering basic test: " + name)
-  str-test-case(name, program, test-print(out, err))
+  str-test-case(name, program, test-print(out, err, USE-CPS))
 end
 
 
@@ -239,7 +247,7 @@ moorings-ast = A.parse-tc(
   )
 fun create-moorings-test(name, program, out, err):
   print("Registering moorings test: " + name)
-  str-test-case(name, program, test-lib(moorings-ast, out, err))
+  str-test-case(name, program, test-lib(moorings-ast, out, err, USE-CPS))
 end
 
 list-lib-ast = A.parse-tc(
@@ -249,22 +257,25 @@ list-lib-ast = A.parse-tc(
   )
 fun create-list-test(name, program, out, err):
   print("Registering list test: " + name)
-  str-test-case(name, program, test-lib(list-lib-ast, out, err))
+  str-test-case(name, program, test-lib(list-lib-ast, out, err, USE-CPS))
 end
 
 #all-tests("tests")
-all-tests("moorings-tests")
-all-tests("list-lib-tests")
+all-tests("class")
+#all-tests("moorings-tests")
+#all-tests("list-lib-tests")
 
 BASIC-TESTS = get-dir-sections("tests", create-print-test)
+CLASS-TESTS = get-dir-sections("class", create-print-test)
 MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
 LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
-    [test-section("misc", MISC)] +
-    BASIC-TESTS +
-    MOORINGS-TESTS +
-    LIST-LIB-TESTS
+#    [test-section("misc", MISC)] +
+#    BASIC-TESTS +
+    CLASS-TESTS
+#    MOORINGS-TESTS +
+#    LIST-LIB-TESTS
   )
 
 

@@ -101,9 +101,9 @@
  "fun: var x = 5 y = 4 fun f(): end end"
  "Cannot end a block in a fun-binding")
 
-(check-pyret-exn
- "fun f(): nothing where: 5 + 2 is 7 end"
- "well-formedness:")
+;; returns and object because we're really just checking OK parse/wf,
+;; and this is (void) otherwise
+(check-pyret-match "fun f(): nothing where: 5 + 2 is 7 end {}" (p:p-object _ _ _ _))
 
 ;; NOTE(dbp 2013-08-09): The more "obvious" occurence of these two get
 ;; caught by typechecking / parsing.
@@ -116,7 +116,11 @@
 
 (check-pyret-exn
  "fun: 1 is 2 end"
- "Cannot use `is` outside of a `check` or `where` block. Try `==`.")
+ "Cannot use `is` outside of a `check` or `where` block.")
+
+(check-pyret-exn
+ "fun: 1 raises 2 end"
+ "Cannot use a check-test form outside of a `check` or `where` block.")
 
 (check-pyret
  "fun f(): nothing where: 1 is 2 end 10"

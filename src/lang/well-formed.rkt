@@ -154,10 +154,15 @@
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
 
-    [(s-op s op e1 e2) (if (and (not in-check-block) (equal? op 'opis))
-                           (wf-error "Cannot use `is` outside of a `check` or `where` block. Try `==`." s)
-                           (begin (reachable-ops s op e1)
-                                  (reachable-ops s op e2)))]
+    [(s-check-test s op e1 e2)
+     (if (not in-check-block)
+         (if (eq? op 'opis)
+             (wf-error "Cannot use `is` outside of a `check` or `where` block." s)
+             (wf-error "Cannot use a check-test form outside of a `check` or `where` block." s))
+         (begin (wf e1)
+                (wf e2)))]
+    [(s-op s op e1 e2) (begin (reachable-ops s op e1)
+                              (reachable-ops s op e2))]
 
     [(s-block s stmts)
      (begin

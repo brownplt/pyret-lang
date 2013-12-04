@@ -1,0 +1,63 @@
+# Required: Should NOT end in trailing slash.
+scheme/host = http://pyret.org
+
+title = The Pyret Language
+author = The Pyrets
+
+# Whether to show the count of posts next to each tag in sidebar
+show-tag-counts? = true
+
+# Pattern for blog post permalinks
+# Optional: Default is "/{year}/{month}/{title}.html".
+# Here's an example of the Jekyll "pretty" style:
+permalink = /blog/{year}/{month}/{day}/{title}/index.html
+# There is also {filename}, which is the `this-part` portion of
+# your post's YYYY-MM-DD-this-part.md file name. This is in case
+# you don't like Frog's encoding of your post title and want to
+# specify it exactly yourself, e.g. to match a previous blog URI.
+
+# Should index page items contain full posts -- more than just the
+# portion above "the jump" <!-- more --> marker (if any)?
+index-full? = false
+
+# Should feed items contain full posts -- more than just the portion
+# above "the jump" <!-- more --> marker (if any)?
+feed-full? = true
+
+# How many posts per page for index pages?
+posts-per-page = 10
+
+# How many items to include in feeds?
+# Older items in excess of this will not appear in the feed at all.
+max-feed-items = 20
+
+# Decorate feed URIs with Google Analytics query parameters like
+# utm_source ?
+decorate-feed-uris? = true
+
+# Insert in each feed item an image bug whose URI is decorated with
+# Google Analytics query parameters like utm_source ?
+feed-image-bugs? = true
+
+# Replace links to tweets with embedded tweets?
+# In Markdown, must be auto-links alone in a pargraph (blank lines
+# above and below), for example:
+#
+# <https://twitter.com/racketlang/status/332176422003163138>
+#
+auto-embed-tweets? = true
+
+# Try to automatically link symbols in Markdown ```racket fenced code
+# blocks, to Racket documentation?
+racket-doc-link-code? = true
+
+# Try to automatically link Markdown of the form `symbol`[racket] to
+# Racket documentation? i.e. This is similar to the @racket[] form in
+# Scribble.
+racket-doc-link-prose? = true
+
+# The URI for the index of blog posts. Defaults to /index.html but you
+# could change to e.g. /blog/index.html or /posts-index.html, and use
+# some other /index.html for your site. This also effects the URI used
+# in the Atom and RSS feed files for posts.
+posts-index-uri = /blog/index.html

@@ -1,7 +1,6 @@
 " Vim syntax file
 " Language: Pyret
 " Maintainer: Joe Gibbs Politz (joe@cs.brown.edu)
-" Latest Revision: 14 Aug 2013
 
 if exists("b:current_syntax")
   finish
@@ -27,7 +26,7 @@ syn match delimeter '}'
 syn match delimeter ':'
 syn match delimeter '::'
 
-syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph: block:
+syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph: block: satisfies
 
 syn match op ' + '
 syn match op ' - '
