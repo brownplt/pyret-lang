@@ -66,9 +66,10 @@ fun less-than(x :: Any, y :: Any):
   if builtins.has-field(x, '_lessthan'):
     x < y
   else:
-    raise("Set: You can only construct sets from elements with "
-          + "a '_lessthan' method. Consider adding one. "
-          + "The offending element was: " + torepr(x))
+    raise("Sets can only contain elements that have a '_lessthan method. "
+          + "Most builtin data types, like strings and numbers have one, "
+          + "but user defined data types do not unless you give them one. "
+          + "The element encountered was: " + torepr(x))
   end
 end
 
