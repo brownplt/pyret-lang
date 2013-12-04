@@ -206,10 +206,10 @@ var PYRET_CPS = (function () {
         applyFunction(k, [(makeNumber(left.n + right.n))]);
       }),
       _minus: makeMethod(function(k, left, right) {
-        return makeNumber(left.n - right.n);
+        applyFunction(k, [(makeNumber(left.n - right.n))]);
       }),
-      _times: makeMethod(function(left, right) {
-        return makeNumber(left.n * right.n);
+      _times: makeMethod(function(k, left, right) {
+        applyFunction(k, [(makeNumber(left.n * right.n))]);
       })
     };
 
@@ -283,9 +283,10 @@ var PYRET_CPS = (function () {
         var methFun = makeFunction(function() {
           var argList = Array.prototype.slice.call(arguments);
           var $k = argList[0];
+          var $f = argList[1];
 
             //TODO: Make this CPS'y
-            fieldVal.method.apply(null, [$k, val].concat(argList.slice(1)));
+            fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(1)));
         });
     
         methFun.arity = fieldVal.method.length - 1;
@@ -374,7 +375,8 @@ var PYRET_CPS = (function () {
             if(isMutable(newObj.dict[field])) {
                 newObj.dict[field].set(fields[field]);
             }
-            else throwPyretMessage("Attempted to update a non-mutable field");
+            else 
+                throwPyretMessage("Attempted to update a non-mutable field");
         }
         return newObj;
     }

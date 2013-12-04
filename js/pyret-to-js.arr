@@ -1,5 +1,4 @@
-#lang pyret
-
+#lang pyret 
 import ast as A
 import json as J
 import format as format
@@ -132,7 +131,7 @@ fun program-to-cps-js(ast, runtime-ids):
                 var f = RUNTIME.makeFunction(function(ERR) {
                     $K.failure(RUNTIME.makeFailResult(ERR));
                   });
-                (function() { return ~a})().app(k);
+                (function() { return ~a})().app(k, f);
               })();
             } catch(e) {
               $K.failure(RUNTIME.makeFailResult(e));
@@ -211,13 +210,14 @@ fun lam(l, args, body :: A.Expr): A.s_lam(l, [], args, A.a_blank, "anon lam", bo
 app = A.s_app
 
 K = "$k"
+F = "$f"
 fun mk-K(): gensym("$k");
 
 fun cps(ast):
   # punt can be used when you don't know how to CPS yet
   fun punt():
     l = ast.l
-    lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [ast]));
+    lam(l, [arg(l, K), arg(l, F)], A.s_app(l, A.s_id(l, K), [ast]));
   id = A.s_id
   cases(A.Expr) ast:
     | s_block(l, pre-stmts) =>
@@ -226,44 +226,44 @@ fun cps(ast):
       vars = ids.map(fun(v): A.s_var(l, A.s_bind(l, v, A.a_blank), A.s_id(l, "nothing"));)
 
       cont = for fold(
-            k from fun(e): A.s_app(l, cps(e), [A.s_id(l, K)]) end,
+            k from fun(e): A.s_app(l, cps(e), [A.s_id(l, K), A.s_id(l, F)]) end,
             s from stmts.take(stmts.length() - 1).reverse()):
-        fun(e): A.s_app(l, cps(s), [lam(l, [arg(l, "ignored")], k(e))]);;
+        fun(e): A.s_app(l, cps(s), [lam(l, [arg(l, "ignored")], k(e)), A.s_id(l, F)]);;
 
-      body = lam(l, [arg(l, K)], cont(stmts.last()))
+      body = lam(l, [arg(l, K), arg(l, F)], cont(stmts.last()))
 
       A.s_block(l, vars + [body])
 
     #Primitives
     | s_num(l, _) =>
-        lam(l, [arg(l, K)], app(l, id(l, K), [ast]))
+        lam(l, [arg(l, K), arg(l, F)], app(l, id(l, K), [ast]))
     | s_str(l, _) =>
         #app(l, id(l, K), [ast])
-        lam(l, [arg(l, K)], app(l, id(l, K), [ast]))
+        lam(l, [arg(l, K), arg(l, F)], app(l, id(l, K), [ast]))
     | s_bool(l, _) =>
         #app(l, id(l, K), [ast])
-        lam(l, [arg(l, K)], app(l, id(l, K), [ast]))
+        lam(l, [arg(l, K), arg(l, F)], app(l, id(l, K), [ast]))
    
     #Lambdas and Methods
     | s_lam(l, _, args, _, _, body, _) =>
-        lam(l, [arg(l, K)], app(l, id(l, K), 
-            [lam(l, link(arg(l,"$dyn"), args), app(l, cps(body), [id(l, "$dyn")]))]))
+        lam(l, [arg(l, K), arg(l, F)], app(l, id(l, K), 
+            [lam(l, link(arg(l,"$dynK"), link(arg(l, "$dynF"), args)), app(l, cps(body), [id(l, "$dynK"), id(l, "$dynF")]))]))
     | s_method(l, a, args, b, c, body, d) =>
         #app(l, id(l,K), [lam(l, args, cps(body))])
-        lam(l, [arg(l, K)], app(l, id(l, K), 
-            [A.s_method(l, a, link(arg(l,"$dyn"),args), b, c, app(l, cps(body), [id(l, "$dyn")]),d)]))
+        lam(l, [arg(l, K), arg(l, F)], app(l, id(l, K), 
+            [A.s_method(l, a, link(arg(l,"$dynK"), link(arg(l, "$dynF"), args)), b, c, app(l, cps(body), [id(l, "$dynK"), id(l,"$dynF")]),d)]))
     | s_if_else(l, branches, _else) =>
         
         fun cps_branches(branchesToCps):
         cases(List) branchesToCps:
             | empty => 
-                lam(l, [arg(l,K)], app(l, cps(_else), [id(l, K)]))
+                lam(l, [arg(l,K) , arg(l, F)], app(l, cps(_else), [id(l, K), id(l, F)]))
             | link(branch, rest) => 
-                lam(l, [arg(l,K)], app(l, cps(branch.test), 
+                lam(l, [arg(l,K), arg(l, F)], app(l, cps(branch.test), 
                     [lam(l,  [arg(l, "$condVal")], 
-                    A.s_if_else(l, [A.s_if_branch(l, id(l, "$condVal"), app(l, cps(branch.body), [id(l, K)]))],
-                    app(l, cps_branches(rest), [id(l, K)]))
-                    )])
+                        A.s_if_else(l, [A.s_if_branch(l, id(l, "$condVal"), app(l, cps(branch.body), [id(l, K), id(l,F)]))],
+                        app(l, cps_branches(rest), [id(l, K) , id(l, F)]))
+                        ), id(l, F)])
                 )
             end
         end
@@ -275,7 +275,7 @@ fun cps(ast):
             cases(List) fds:
                 | empty => 
                     #print(acc.reverse())
-                    lam(l, [arg(l, K)] ,app(l, id(l, K), [A.s_obj(l, acc.reverse())]))
+                    lam(l, [arg(l, K), arg(l, F)] ,app(l, id(l, K), [A.s_obj(l, acc.reverse())]))
                 | link(mem, rest) =>
                     #Treating mem like they have string names, not going to cps      
                     fname = gensym(mem.name.s) #Assuming string name
@@ -283,24 +283,25 @@ fun cps(ast):
 
                     #print("mem: " + torepr(cps(mem.value)))
                    # lam(l, [arg(l, K)], 
-                    app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields))])
+                   # lam(l, [arg(l, K), arg(l,F)],
+                    app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
             end
         end
         makeFields(fields, [])
 
     | s_bracket(l, obj, f) =>
         #Not cps'ing f because we assume its a static string
-       lam(l, [arg(l, K)],
+       lam(l, [arg(l, K), arg(l, F)],
             app(l, cps(obj),
                 [lam(l, [arg(l, '$ov')], 
-                    app(l, id(l, K), [A.s_bracket(l, id(l, '$ov'), f)]))]))
+                    app(l, id(l, K), [A.s_bracket(l, id(l, '$ov'), f)])), id(l, F)]))
 
     | s_colon_bracket(l, obj, f) =>
         #Not cps'ing f because we assume its a static string
-       lam(l, [arg(l, K)],
+       lam(l, [arg(l, K), arg(l, F)],
             app(l, cps(obj),
                 [lam(l, [arg(l, '$ov')], 
-                    app(l, id(l, K), [A.s_colon_bracket(l, id(l, '$ov'), f)]))]))
+                    app(l, id(l, K), [A.s_colon_bracket(l, id(l, '$ov'), f)])), id(l, F)]))
 
     |s_app(l, f, es) =>
      # if es.length() == 1:
@@ -312,29 +313,27 @@ fun cps(ast):
      #   punt()
          fun makeArgChain(args, id-acc :: List<Expr>):
             cases(List) args:
-                | empty =>  app(l, id(l, "$fv"), link(id(l,K) , id-acc.reverse()))
+                | empty =>  app(l, id(l, "$fv"), link(id(l,K) , link(id(l, F), id-acc.reverse())))
                 | link(first, r) => 
                     varName = gensym("$var") 
-                    app(l, cps(first), [lam(l, [arg(l, varName)], makeArgChain(r, link(id(l, varName), id-acc)))])
+                    app(l, cps(first), [lam(l, [arg(l, varName)], makeArgChain(r, link(id(l, varName), id-acc))), id(l, F)])
             end        
          end
 
 
-         lam(l, [arg(l, K)],
-            app(l, cps(f), [lam(l, [arg(l, "$fv")], makeArgChain(es,[]))]))
+         lam(l, [arg(l, K), arg(l, F)],
+            app(l, cps(f), [lam(l, [arg(l, "$fv")], makeArgChain(es,[])), id(l, F)]))
     #end
     | s_id(l, d) => 
-         lam(l, [arg(l, K)] , app(l, id(l, K), [ast]))
+         lam(l, [arg(l, K), arg(l, F)] , app(l, id(l, K), [ast]))
     | s_assign(l, b, e) =>
-         lam(l, [arg(l, K)] , app(l, cps(e), 
-            [lam(l, [arg(l, '$v')], app(l, id(l, K), [A.s_assign(l, b, id(l, "$v"))] ))]))
+         lam(l, [arg(l, K), arg(l, F)] , app(l, cps(e), 
+            [lam(l, [arg(l, '$v')], app(l, id(l, K), [A.s_assign(l, b, id(l, "$v"))] )), id(l,F)]))
     # Cheating a little here: Since we explicitly lift the block variables
     # above, we just turn lets and vars into assignment statements, and rely
     # on the well-formedness checking that's already happened
     | s_let(l, b, e) => cps(A.s_assign(l, b.id, e))
     | s_var(l, b, e) => cps(A.s_assign(l, b.id, e))
-    | s_num(l, n) =>
-      lam(l, [arg(l, K)], A.s_app(l, A.s_id(l, K), [A.s_num(l, n)]))
     | else => 
         print(ast)
         punt()
@@ -377,7 +376,7 @@ fun expr-to-js(ast):
       format("RUNTIME.makeBoolean(~a)", [b])
     | s_lam(_, _, args, _, doc, body, _) =>
       #format("RUNTIME.makeFunction(function(~a) {\n~a \nreturn ~a; \n})", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
-      format("RUNTIME.makeFunction(function(~a) {\nreturn ~a; \n}, ~s)", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body), doc])
+      format("RUNTIME.makeFunction(function(~a) {\nreturn \t~a; \n}, ~s)", [args.map(fun(b): js-id-of(b.id);).join-str(","),expr-to-js(body), doc])
     #Should check that body is a block
     | s_method(_, args, _, doc, body, _) =>
       #format("RUNTIME.makeMethod(function(~a) {~a \nreturn ~a; })", [args.map(fun(b): js-id-of(b.id);).join-str(","),args.map(fun(b): format("~a = ~a;\n", [id-access(b.id), js-id-of(b.id)]);).join-str(""),expr-to-js(body)])
