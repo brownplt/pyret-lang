@@ -289,7 +289,7 @@ var PYRET_CPS = (function () {
             fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(1)));
         });
     
-        methFun.arity = fieldVal.method.length - 1;
+        methFun.arity = fieldVal.method.length - 2;
         return methFun;
       } else {
         return fieldVal;
@@ -339,7 +339,7 @@ var PYRET_CPS = (function () {
             throwPyretMessage("Cannot apply non-function: " + toRepr(fn));
         }
         if(args.length != fn.arity) {
-            throwPyretMessage("Check arity failed: " + toRepr(fn) + " expected " + fn.app.length + " arguments, but given " + args.length);
+            throwPyretMessage("Check arity failed: " + toRepr(fn) + " expected " + fn.arity + " arguments, but given " + args.length);
         }
         return fn.app.apply(this, args);
    }
