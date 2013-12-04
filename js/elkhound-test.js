@@ -42,6 +42,8 @@ console.log(g.toString());
 
 g.computeFirstSets();
 g.computeFollowSets();
+g.computeDerivability();
+g.topoSortNonterms();
 
 function printColl(col) {
   var s = ""
@@ -66,6 +68,11 @@ console.log(printColl(g.first))
 
 console.log("Follow sets:");
 console.log(printColl(g.follow))
+
+console.log("Derivability:");
+console.log(JSON.stringify(g.derivable, null, "  "))
+console.log("Nonterm ordinals:");
+console.log(JSON.stringify(g.nontermOrdinals, null, "  "))
 
 // var init_rule = g.rules[g.start][0].withLookahead(E.EOF);
 // var init_set = new OrderedSet([init_rule]);
@@ -106,14 +113,15 @@ function token_stream(toks) {
 }
 
 function id(x) { return new Token("id", x); }
-var tokens = token_stream([id("i"), new Token("+"), id("i"), new Token("*"), id("i")]);
+var tokens = token_stream([id("i"), new Token("+"), id("j"), new Token("*"), id("k"), new Token("+"), id("m"),
+                          new Token("*"), id("p")]);
 var parsed = g.parseLALR(tokens);
 console.log(JSON.stringify(parsed, null, "  "));
 
 tokens.reset();
 console.log("\n\n\nTrying GLR parsing now...");
 var glr_parsed = g.parseGLR(tokens);
-console.log(JSON.stringify(glr_parsed, null, "  "));
+console.log(glr_parsed.toString());
 
 
 // var g_json = JSON.stringify(g.toJSON(), null, "  ")
