@@ -286,10 +286,10 @@ var PYRET_CPS = (function () {
           var $f = argList[1];
 
             //TODO: Make this CPS'y
-            fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(1)));
+            fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(2)));
         });
     
-        methFun.arity = fieldVal.method.length - 2;
+        methFun.arity = fieldVal.method.length;
         return methFun;
       } else {
         return fieldVal;

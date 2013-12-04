@@ -275,7 +275,8 @@ fun cps(ast):
             cases(List) fds:
                 | empty => 
                     #print(acc.reverse())
-                    lam(l, [arg(l, K), arg(l, F)] ,app(l, id(l, K), [A.s_obj(l, acc.reverse())]))
+                    #lam(l, [arg(l, K), arg(l, F)] ,
+                    app(l, id(l, K), [A.s_obj(l, acc.reverse())])
                 | link(mem, rest) =>
                     #Treating mem like they have string names, not going to cps      
                     fname = gensym(mem.name.s) #Assuming string name
@@ -287,7 +288,9 @@ fun cps(ast):
                     app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
             end
         end
-        makeFields(fields, [])
+        lam(l, [arg(l, K), arg(l,F)],
+        makeFields(fields, []))
+        
 
     | s_bracket(l, obj, f) =>
         #Not cps'ing f because we assume its a static string
