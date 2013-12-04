@@ -15,23 +15,23 @@ var g = new Grammar("Example", "S");
 // g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
 // g.addRule("F", [new Token("id")]);
 
-g.addRule("S", [new Nonterm("E")]);
-g.addRule("E", [new Nonterm("E"), new Lit("+"), new Nonterm("T")]);
-g.addRule("E", [new Nonterm("T")]);
-g.addRule("T", [new Nonterm("T"), new Lit("*"), new Nonterm("F")]);
-g.addRule("T", [new Nonterm("F")]);
-g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
-g.addRule("F", [new Token("id")]);
+// g.addRule("S", [new Nonterm("E")]);
+// g.addRule("E", [new Nonterm("E"), new Lit("+"), new Nonterm("T")]);
+// g.addRule("E", [new Nonterm("T")]);
+// g.addRule("T", [new Nonterm("T"), new Lit("*"), new Nonterm("F")]);
+// g.addRule("T", [new Nonterm("F")]);
+// g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
+// g.addRule("F", [new Token("id")]);
 
 // g.addRule("S'", [new Nonterm("S")]);
 // g.addRule("S", [new Nonterm("C"), new Nonterm("C")]);
 // g.addRule("C", [new Lit("e"), new Nonterm("C")]);
 // g.addRule("C", [new Lit("d")]);
 
-// g.addRule("S", [new Nonterm("E"), E.EOF]);
-// g.addRule("E", [new Lit("i")]);
-// g.addRule("E", [new Nonterm("E"), new Lit("+"), new Nonterm("E")]);
-// g.addRule("E", [new Nonterm("E"), new Lit("*"), new Nonterm("E")]);
+g.addRule("S", [new Nonterm("E"), E.EOF]);
+g.addRule("E", [new Token("id")]);
+g.addRule("E", [new Nonterm("E"), new Token("*"), new Nonterm("E")]);
+g.addRule("E", [new Nonterm("E"), new Token("+"), new Nonterm("E")]);
 
 // g.addRule("S", [new Nonterm("A")])
 // g.addRule("A", [new Nonterm("A"), new Lit("+"), new Nonterm("B")]);
@@ -78,6 +78,13 @@ console.log("All reachable LR(1) states:")
 for (var i = 0; i < g.states.size(); i++)
   console.log(g.states.get(i).toString(true) + "\n")
 console.log(g.printTables());
+var ambiguities = g.checkForLALRAmbiguity();
+if (ambiguities.length == 0) {
+  console.log("Unambiguous grammar!");
+} else {
+  for (var i = 0; i < ambiguities.length; i++)
+    console.log(ambiguities[i]);
+}
 
 function token_stream(toks) {
   var cur = 0;
@@ -87,7 +94,7 @@ function token_stream(toks) {
       if (cur < toks.length) {
         var t = toks[cur++]; 
         if (typeof t === "string")
-          return new Lit(t)
+          t = new Lit(t)
         return t;
       } else {
         cur++;
@@ -99,32 +106,37 @@ function token_stream(toks) {
 }
 
 function id(x) { return new Token("id", x); }
-var tokens = token_stream(["(", id("a"), "+", id("b"), ")", "*", id("c")]);
+var tokens = token_stream([id("i"), new Token("+"), id("i"), new Token("*"), id("i")]);
 var parsed = g.parseLALR(tokens);
 console.log(JSON.stringify(parsed, null, "  "));
 
-
-var g_json = JSON.stringify(g.toJSON(), null, "  ")
-var g2 = Grammar.fromJSON(JSON.parse(g_json))
-
 tokens.reset();
-var reparsed = g2.parseLALR(tokens);
-function deepEqual(obj1, obj2) {
-  if (obj1 === obj2) return true;
-  var propCount1 = 0;
-  for (var name in obj1)
-    if (obj1.hasOwnProperty(name))
-      propCount1++;
-  var propCount2 = 0;
-  for (var name in obj2)
-    if (obj2.hasOwnProperty(name))
-      propCount2++;
-  if (propCount1 !== propCount2) return false;
-  for (var name in obj1)
-    if (obj1.hasOwnProperty(name))
-      if (!deepEqual(obj1[name], obj2[name]))
-        return false;
-  return true;
-}
-console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(parsed, reparsed))
+console.log("\n\n\nTrying GLR parsing now...");
+var glr_parsed = g.parseGLR(tokens);
+console.log(JSON.stringify(glr_parsed, null, "  "));
+
+
+// var g_json = JSON.stringify(g.toJSON(), null, "  ")
+// var g2 = Grammar.fromJSON(JSON.parse(g_json))
+
+// tokens.reset();
+// var reparsed = g2.parseLALR(tokens);
+// function deepEqual(obj1, obj2) {
+//   if (obj1 === obj2) return true;
+//   var propCount1 = 0;
+//   for (var name in obj1)
+//     if (obj1.hasOwnProperty(name))
+//       propCount1++;
+//   var propCount2 = 0;
+//   for (var name in obj2)
+//     if (obj2.hasOwnProperty(name))
+//       propCount2++;
+//   if (propCount1 !== propCount2) return false;
+//   for (var name in obj1)
+//     if (obj1.hasOwnProperty(name))
+//       if (!deepEqual(obj1[name], obj2[name]))
+//         return false;
+//   return true;
+// }
+// console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(parsed, reparsed))
 

@@ -267,23 +267,24 @@ function Rule(name, symbols, lookahead, position, action) {
     s = "[" + s + ", " + this.lookahead.toString() + "]";
   this.asString = s;
 }
+Rule.defaultASTToString = function() {
+  var toStr = this.name + "(";
+  for (var i = 0; i < this.kids.length; i++) {
+    if (i === 0)
+      toStr += this.kids[i].toString(true);
+    else
+      toStr += ", " + this.kids[i].toString(true);
+  }
+  toStr += ")";
+  return toStr; 
+}
 Rule.defaultAction = function(kids) {
   var rev_kids = [];
   for (var i = kids.length - 1; i >= 0; i--) {
     if (kids[i] instanceof Lit) continue;
     else rev_kids.push(kids[i]);
   }
-  return { name: this.name, kids: rev_kids, toString: function() { 
-    var toStr = this.name + "(";
-    for (var i = 0; i < rev_kids.length; i++) {
-      if (i === 0)
-        toStr += rev_kids[i].toString(true);
-      else
-        toStr += ", " + rev_kids[i].toString(true);
-    }
-    toStr += ")";
-    return toStr; 
-  }};
+  return { name: this.name, kids: rev_kids, toString: Rule.defaultASTToString };
 }
 Rule.defaultAction.toString = function() { return "Rule.defaultAction"; }
 
@@ -341,6 +342,7 @@ function Grammar(name, start) {
   this.start = start;
   this.actionTable = [];
   this.gotoTable = [];
+  this.acceptStates = [];
   this.atoms = new OrderedSet([EOF, EPSILON], Atom.equals);
   this.tokens = new OrderedSet([EOF, EPSILON], Atom.equals);
   this.nonterms = new OrderedSet([], Atom.equals);
@@ -363,8 +365,9 @@ Grammar.fromJSON = function(obj) {
     var tableRow = obj.gotoTable[i];
     var newRow = g.gotoTable[i] = {};
     for (var name in tableRow)
-      newRow[name] = OrderedSet.fromJSON(tableRow[name], Action.fromJSON)
+      newRow[name] = Action.fromJSON(tableRow[name])
   }
+  g.acceptStates = obj.acceptStates;
   return g;
 }
 
@@ -383,6 +386,7 @@ Grammar.prototype = {
     var ret = {};
     ret.start = this.start;
     ret.name = this.name;
+    ret.acceptStates = this.acceptStates;
     ret.rules = [];
     for (var name in this.rules) {
       for (var i = 0; i < this.rules[name].length; i++) {
@@ -403,8 +407,12 @@ Grammar.prototype = {
       ret.gotoTable[i] = {};
       var tableRow = this.gotoTable[i];
       for (var name in tableRow) {
-        if (tableRow.hasOwnProperty(name))
-          ret.gotoTable[i][name] = tableRow[name].toJSON(Action.toJSON);
+        if (tableRow.hasOwnProperty(name)) {
+          var _goto = tableRow[name];
+          if (_goto !== undefined)
+            _goto = _goto.toJSON();
+          ret.gotoTable[i][name] = _goto;
+        }
       }
     }
     return ret;
@@ -678,7 +686,7 @@ Grammar.prototype = {
         thiz.gotoTable[index] = {};
         for (var k = 0; k < thiz.nonterms.size(); k++)
           if (thiz.gotoTable[index][thiz.nonterms.get(k)] === undefined)
-            thiz.gotoTable[index][thiz.nonterms.get(k)] = new OrderedSet([], Action.equals);
+            thiz.gotoTable[index][thiz.nonterms.get(k)] = undefined;
       }
     }
 
@@ -735,13 +743,14 @@ Grammar.prototype = {
           if (this.atoms.get(j) instanceof Token) {
             this.actionTable[i][this.atoms.get(j)].add(new ShiftAction(state_num));
           } else {
-            this.gotoTable[i][this.atoms.get(j)].add(new GotoAction(state_num));
+            this.gotoTable[i][this.atoms.get(j)] = new GotoAction(state_num);
           }
           for (var k = 0; k < new_state.size(); k++) {
             var item = new_state.get(k);
             if (item.position == item.symbols.length) {
               if (item.name == this.start) {
                 this.actionTable[state_num][EOF].add(new AcceptAction());
+                this.acceptStates[state_num] = true;
               } else {
                 this.actionTable[state_num][item.lookahead].add(new ReduceAction(item));
               }
@@ -765,10 +774,12 @@ Grammar.prototype = {
       var str_goto = ""
       for (var j = 0; j < this.nonterms.size(); j++) {
         _goto = this.gotoTable[i][this.nonterms.get(j)]
-        if (_goto && _goto.size() > 0)
+        if (_goto)
           str_goto += "\n    On " + this.nonterms.get(j) + ", " + _goto;
       }
       var s = "In state #" + i + ":";
+      if (this.acceptStates[i])
+        s += " (ACCEPT STATE)";
       if (str_action)
         s += "\n  Actions:" + str_action;
       if (str_goto)
@@ -818,7 +829,7 @@ Grammar.prototype = {
       var actions = tableRow[next_tok];
       if ((actions === undefined) || (actions.size() === 0)) {
         if (!(next_tok instanceof Lit) && (next_tok !== EOF)) {
-          console.log("next_tok = " + next_tok.toString(true));
+          // console.log("next_tok = " + next_tok.toString(true));
           actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
         }
         if ((actions === undefined) || (actions.size() === 0)) {
@@ -850,7 +861,7 @@ Grammar.prototype = {
         state_stack.splice(-arity);
         var new_val = action.rule.action(ops);
         op_stack.push(new_val);
-        var new_state = this.gotoTable[state_stack[state_stack.length - 1]][action.rule.name].get(0).dest;
+        var new_state = this.gotoTable[state_stack[state_stack.length - 1]][action.rule.name].dest;
         state_stack.push(new_state);
       } else if (action.type === "Shift") {
         op_stack.push(next_tok);
@@ -879,6 +890,255 @@ Grammar.prototype = {
       }
     }
   },
+
+
+  //////////////////////////////////
+  // The GLR/Elkhound algorithm
+  // Following McPeak '04 Technical Report, with errata from 
+  // http://scottmcpeak.com/elkhound/reduceViaPath_bug.html
+  //////////////////////////////////
+  topmost: [],
+  pathQueue: [],
+  parseGLR: function(token_source) {
+    var start = new StackNode(0, 1);
+    this.topmost = [start];
+    this.pathQueue = [];
+    this.curColumn = 0;
+    while (token_source.hasNext()) {
+      var next_token = token_source.next();
+      // console.log("\nGLR Parsing token " + next_token);
+      // console.log("Phase 1: reductions");
+      this.doReductions(next_token);
+      // console.log("Phase 3: shifts");
+      this.doShifts(next_token);
+      this.curColumn++;
+    }
+    
+    // Assumes that the main rule is start : something EOF
+    if (this.topmost.length !== 1) {
+      console.log("Somehow, didn't parse the start rule correctly, and finished with multiple active parse heads");
+      return null;
+    }
+    var last = this.topmost[0];
+    if (last.links.length !== 1) {
+      console.log("Somehow, the root rule of the grammar didn't parse uniquely");
+      return null;
+    }
+    var lastVal = last.links[0].val;
+    if (lastVal.name !== "EOF") {
+      console.log("Somehow, we didn't parse the root rule as expected!");
+      return null;
+    }
+    var main = last.links[0].prev;
+    if (main.links.length !== 1) {
+      console.log("Somehow, the main rule of the grammar wasn't of the form expected");
+      return null;
+    }
+    return main.links[0].val;
+  },
+  doReductions: function(t) {
+    for (var i = 0; i < this.topmost.length; i++) {
+      var current = this.topmost[i];
+      var actions = this.actionTable[current.state][t];
+      for (var j = 0; j < actions.size(); j++) {
+        var action = actions.get(j);
+        if (action instanceof ReduceAction) {
+          var rule = action.rule
+          var len = rule.symbols.length;
+          var thiz = this;
+          // console.log("Found an active reduce action: " + action + ", len = " + len);
+          // console.log("Current links = " + JSON.stringify(current.links, null, "  "));
+          current.forPathsOfLength(len, function(p) {
+            // console.log("1. Enqueuing path {" + p.vals + ", " + p.leftSib.state + "} for rule " + rule);
+            thiz.addToQueue(p, rule);
+          });
+        }
+      }
+    }
+
+    // Conceptually, this is shifting off the queue
+    // But it's more efficient not to actually do that...
+    // console.log("Phase 2: process worklist");
+    for (var i = 0; i < this.pathQueue.length; i++) {
+      // console.log("Processing path {" + this.pathQueue[i].path.vals + ", " + this.pathQueue[i].path.leftSib.state + "}")
+      this.reduceViaPath(this.pathQueue[i].path, this.pathQueue[i].rule, t);
+    }
+    this.pathQueue = [];
+  },
+  doShifts: function(t) {
+    var prevTops = this.topmost;
+    this.topmost = [];
+    for (var i = 0; i < prevTops.length; i++) {
+      var current = prevTops[i];
+      var actions = this.actionTable[current.state][t];
+      for (var j = 0; j < actions.size(); j++) {
+        var action = actions.get(j);
+        if (action instanceof ShiftAction) {
+          var dest = action.dest;
+          var rightSib = undefined;
+          for (var k = 0; k < this.topmost.length; k++) {
+            if (this.topmost[k].state === dest) {
+              rightSib = this.topmost[k];
+              break;
+            }
+          }
+          if (rightSib === undefined) {
+            rightSib = new StackNode(dest, current.determineDepth + 1);
+            this.topmost.push(rightSib);
+          }
+          this.addLink(current, rightSib, t);
+        }
+      }
+    }
+  },
+  reduceViaPath: function(path, rule, t) {
+    var newSemanticValue = rule.action(path.vals);
+    var leftSib = path.leftSib;
+    var rightSib = undefined;
+    var gotoState = this.gotoTable[leftSib.state][rule.name].dest;
+    for (var i = 0; i < this.topmost.length; i++) {
+      if (gotoState == this.topmost[i].state) {
+        rightSib = this.topmost[i];
+        break;
+      }
+    }
+    if (rightSib !== undefined) {
+      var link = undefined;
+      for (var i = 0; i < rightSib.links.length; i++) {
+        if (rightSib.links[i].prev === leftSib) {
+          link = rightSib.links[i];
+          break;
+        }
+      }
+      if (link !== undefined) {
+        // console.log("**** Huzzah! Merging ambiguous parses");
+        link.val = this.mergeAmbiguous(rule.name, link.val, newSemanticValue);
+      } else {
+        // console.log("### enqueueLimitedReductions needed");
+        link = this.addLink(leftSib, rightSib, newSemanticValue, rule.name);
+        this.enqueueLimitedReductions(link, t);
+      }      
+    } else {
+      rightSib = new StackNode(gotoState, leftSib.determineDepth + 1);
+      this.addLink(leftSib, rightSib, newSemanticValue, rule.name);
+      this.topmost.push(rightSib);
+      // Addendum from http://scottmcpeak.com/elkhound/reduceViaPath_bug.html
+      var actions = this.actionTable[gotoState][t];
+      for (var i = 0; i < actions.size(); i++) {
+        var action = actions.get(i);
+        if (action instanceof ReduceAction) {
+          var rule = action.rule
+          var len = rule.symbols.length;
+          var thiz = this;
+          rightSib.forPathsOfLength(len, function(p) {
+            // console.log("2. Enqueuing path {" + p.vals + ", " + p.leftSib.state + "} for rule " + rule);
+            thiz.addToQueue(p, rule);
+          });
+        }
+      }
+    }
+  },
+  addToQueue: function(p, rule) {
+    for (var i = 0; i < this.pathQueue.length; i++) {
+      if (this.pathQueue[i].startColumn > this.startColumn ||
+          this.pathQueue[i].rule.name < rule.name) {
+        this.pathQueue.splice(i, 0, {startColumn: this.startColumn, path: p, rule: rule});
+        return;
+      }
+    }
+    this.pathQueue.push({startColumn: this.startColumn, path: p, rule: rule});
+  },
+  mergeAmbiguous: function(rule_name, old_val, new_val) {
+    if (old_val.name === "##AMBIG##") {
+      old_val.kids.push(new_val);
+      return old_val;
+    } else {
+      return { name: "##AMBIG##", kids: [old_val, new_val], toString: Rule.defaultASTToString };
+    }
+  },
+  addLink: function(leftSib, rightSib, val, name) {
+    var link = undefined;
+    for (var i = 0; i < rightSib.links.length; i++) {
+      if (rightSib.links[i].prev === leftSib) {
+        link = rightSib.links[i];
+        break;
+      }
+    }
+    if (link === undefined) {
+      var link = new Link(leftSib, val);
+      rightSib.links.push(link);
+      // console.log("Linking " + leftSib.state + " <-- " + rightSib.state + " with val " + val);
+    } else {
+      // console.log("Merging!!")
+      link.val = this.mergeAmbiguous(name, link.val, val);
+    }
+    return link;
+  },
+  enqueueLimitedReductions: function(link, t) {
+    // console.log("** EnqueueLimitedReductions for t = " + t + " and link = " + JSON.stringify(link));
+    for (var i = 0; i < this.topmost.length; i++) {
+      var n = this.topmost[i];
+      var actions = this.actionsTable[n.state][t];
+      for (var i = 0; i < actions.size(); i++) {
+        var action = actions.get(i);
+        if (action instanceof ReduceAction) {
+          var rule = action.rule
+          var len = rule.symbols.length;
+          var thiz = this;
+          // console.log("enqueueLimitedReductions for rule = " + rule + " in state " + n.state + " and token " + t)
+          rightSib.forPathsOfLengthUsing(len, function(p) {
+            // console.log("3. Enqueuing path {" + p.vals + ", " + p.leftSib.state + "} for rule " + rule);
+            thiz.addToQueue(p, rule);
+          }, link);
+        }
+      }
+    }
+  }
+}
+
+function StackNode(state, determineDepth) {
+  this.state = state;
+  this.links = [];
+  this.determineDepth = determineDepth;
+  this.referenceCount = 0;
+}
+StackNode.prototype.forPathsOfLength = function(len, callback, vals) {
+  vals = vals || []
+  if (len === 0) {
+    callback({vals: [], leftSib: this});
+  } else {
+    for (var i = 0; i < this.links.length; i++)
+      pathLengthHelp(this.links[i], len, vals, callback);
+  }
+}
+StackNode.prototype.forPathsOfLengthUsing = function(len, callback, link) {
+  if (len === 0) {
+    return; // No way to have zero path-length while using link
+  } else {
+    var vals = [];
+    vals[len - 1] = link.val;
+    link.prev.forPathsOfLength(len - 1, callback, vals);
+  }
+}
+  
+function Link(prev, val) {
+  this.prev = prev;
+  this.val = val;
+  prev.referenceCount++;
+}
+function pathLengthHelp(link, len, vals, callback) {
+  vals[len - 1] = link.val;
+  if (len == 1) { 
+    // console.log("Calling callback with [" + vals + "] and leftSib.state " + link.prev.state);
+    callback({vals: vals, leftSib: link.prev}); 
+  } else {
+    var prev_links = link.prev.links;
+    for (var i = 0; i < prev_links.length - 1; i++)
+      pathLengthHelp(prev_links[i], len - 1, vals.slice(0), callback);
+    // Last one doesn't need to clone array
+    if (prev_links.length > 0)
+      pathLengthHelp(prev_links[prev_links.length - 1], len - 1, vals, callback);
+  }
 }
 
 
