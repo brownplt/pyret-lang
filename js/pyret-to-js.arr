@@ -250,7 +250,8 @@ fun cps(ast):
             [lam(l, link(arg(l,"$dyn"), args), app(l, cps(body), [id(l, "$dyn")]))]))
     | s_method(l, a, args, b, c, body, d) =>
         #app(l, id(l,K), [lam(l, args, cps(body))])
-        lam(l, [arg(l, K)], app(l, id(l, K), [A.s_method(l, a, link(arg(l,K),args), b, c, app(l, cps(body), [id(l, K)]),d)]))
+        lam(l, [arg(l, K)], app(l, id(l, K), 
+            [A.s_method(l, a, link(arg(l,"$dyn"),args), b, c, app(l, cps(body), [id(l, "$dyn")]),d)]))
     | s_if_else(l, branches, _else) =>
         
         fun cps_branches(branchesToCps):

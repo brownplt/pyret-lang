@@ -203,7 +203,7 @@ var PYRET_CPS = (function () {
     
     var numberDict = {
       _plus: makeMethod(function(k, left, right) {
-        k(makeNumber(left.n + right.n));
+        applyFunction(k, [(makeNumber(left.n + right.n))]);
       }),
       _minus: makeMethod(function(k, left, right) {
         return makeNumber(left.n - right.n);
