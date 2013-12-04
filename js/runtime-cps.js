@@ -202,7 +202,7 @@ var PYRET_CPS = (function () {
     
     
     var numberDict = {
-      _plus: makeMethod(function(k, left, right) {
+      _plus: makeMethod(function(k, f, left, right) {
         applyFunction(k, [(makeNumber(left.n + right.n))]);
       }),
       _minus: makeMethod(function(k, left, right) {
@@ -289,7 +289,7 @@ var PYRET_CPS = (function () {
             fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(2)));
         });
     
-        methFun.arity = fieldVal.method.length;
+        methFun.arity = fieldVal.method.length - 1;
         return methFun;
       } else {
         return fieldVal;
