@@ -290,8 +290,29 @@ fun cps(ast):
         end
         lam(l, [arg(l, K), arg(l,F)],
         makeFields(fields, []))
-        
 
+    | s_extend(l, obj, fields) =>
+        fun makeFields(fds :: List<Members>, acc :: List<Members>):
+            cases(List) fds:
+                | empty => 
+                    #print(acc.reverse())
+                    #lam(l, [arg(l, K), arg(l, F)] ,
+                    app(l, id(l, K), [A.s_extend(l, id(l, '$ov'),acc.reverse())])
+                | link(mem, rest) =>
+                    #Treating mem like they have string names, not going to cps      
+                    fname = gensym(mem.name.s) #Assuming string name
+                    new_fields = link(A.s_data_field(l, mem.name, id(l, fname)), acc)
+
+                    #print("mem: " + torepr(cps(mem.value)))
+                   # lam(l, [arg(l, K)], 
+                   # lam(l, [arg(l, K), arg(l,F)],
+                    app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
+            end
+        end
+
+        lam(l, [arg(l, K), arg(l,F)],
+            app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
+        
     | s_bracket(l, obj, f) =>
         #Not cps'ing f because we assume its a static string
        lam(l, [arg(l, K), arg(l, F)],
@@ -300,7 +321,7 @@ fun cps(ast):
                     app(l, id(l, K), [A.s_bracket(l, id(l, '$ov'), f)])), id(l, F)]))
 
     | s_colon_bracket(l, obj, f) =>
-        #Not cps'ing f because we assume its a static string
+        #Not ps'ing f because we assume its a static string
        lam(l, [arg(l, K), arg(l, F)],
             app(l, cps(obj),
                 [lam(l, [arg(l, '$ov')], 
@@ -327,6 +348,12 @@ fun cps(ast):
          lam(l, [arg(l, K), arg(l, F)],
             app(l, cps(f), [lam(l, [arg(l, "$fv")], makeArgChain(es,[])), id(l, F)]))
     #end
+
+    | s_try(l, body, bind, _except) => 
+        lam(l, [arg(l, K), arg(l, F)], 
+            app(l, cps(body), [id(l, K), 
+                                lam(l, [arg(l, bind.id)], app(l, cps(_except), [id(l, K), id(l, F)]))]))
+        
     | s_id(l, d) => 
          lam(l, [arg(l, K), arg(l, F)] , app(l, id(l, K), [ast]))
     | s_assign(l, b, e) =>

@@ -1060,19 +1060,19 @@ var PYRET = (function () {
     }
     var list = makeObj(listDict);
 
-    //Equiv
+    //equiv
     /**
         equiv(obj1, obj2)
 
-        Tests if two objects are equivalent.
-        Uses obj1's _equals method if one exists
-        Otherwise, recursively checks each field in the objects' dictionaries
+        tests if two objects are equivalent.
+        uses obj1's _equals method if one exists
+        otherwise, recursively checks each field in the objects' dictionaries
     **/
     function equiv(obj1, obj2) {
-        if(obj1.dict.hasOwnProperty("_equals")) {
-            return applyFunction(getField(obj1, "_equals"),[obj2]);
+        if(obj1.dict.hasownproperty("_equals")) {
+            return applyfunction(getfield(obj1, "_equals"),[obj2]);
         }
-        else { return makeBoolean(isAllSame(obj1, obj2));}
+        else { return makeBoolean(isallsame(obj1, obj2));}
     }
 
     /**

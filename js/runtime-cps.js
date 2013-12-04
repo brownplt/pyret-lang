@@ -199,17 +199,75 @@ var PYRET_CPS = (function () {
       var eDict = {message : makeString(msg)};
       throwPyretException(makeObj(eDict));
     }
+
+    //Raise
+    var raise = makeFunction(function(k, f, eVal) {
+        applyFunction(f, [makePyretException(eVal)])
+    });
+    
+    //Error
+    errorDict = {
+        'make-error' : makeFunction(function(k, f, s) {
+            //Assuming s is a Pyret Exception
+            applyFunction(k,[s.exnVal]);
+        })
+    };
+    error = makeObj(errorDict);
+
+    //Equiv
+    /**
+        equiv(obj1, obj2)
+
+        Tests if two objects are equivalent.
+        Uses obj1's _equals method if one exists
+        Otherwise, recursively checks each field in the objects' dictionaries
+    **/
+    function equiv(k, f, obj1, obj2) {
+        if(obj1.dict.hasOwnProperty("_equals")) {
+             applyFunction(getField(obj1, "_equals"),[k, f, obj2]);
+        }
+        else { applyFunction(k, [makeBoolean(isAllSame(obj1, obj2))]);}
+    }
+
+    /**
+      isAllSame(obj1, obj2)
+
+      Checks that the objects have the same fields 
+      Internal only, returns a JS Boolean
+    **/
+    function isAllSame(obj1, obj2) {
+        if(isMethod(obj1) || isFunction(obj1)) {
+            return false;
+        }
+        else if(Object.keys(obj1.dict).length !== Object.keys(obj2.dict).length) {return makeBoolean(false);}
+       
+        for(key in obj1.dict){
+            if(obj2.dict.hasOwnProperty(key)) {
+                if(!(equiv(obj1.dict[key], obj2.dict[key]).b)) {
+                    return false;
+                }
+            }
+            else {
+                return false;
+            }
+        }
+
+        return true;
+    }  
     
     
     var numberDict = {
       _plus: makeMethod(function(k, f, left, right) {
         applyFunction(k, [(makeNumber(left.n + right.n))]);
       }),
-      _minus: makeMethod(function(k, left, right) {
+      _minus: makeMethod(function(k, f, left, right) {
         applyFunction(k, [(makeNumber(left.n - right.n))]);
       }),
-      _times: makeMethod(function(k, left, right) {
+      _times: makeMethod(function(k, f, left, right) {
         applyFunction(k, [(makeNumber(left.n * right.n))]);
+      }),
+      _equals: makeMethod(function(k, f, left, right) {
+          applyFunction(k, [(makeBoolean(left.n ===  right.n))]);
       })
     };
 
@@ -387,6 +445,10 @@ var PYRET_CPS = (function () {
         }
         return '{' +fields+ '}';
     }
+
+
+
+
     // TODO(students): Make sure this returns a JavaScript dictionary with
     // the same contents as the Pyret dictionary (your field name may not
     // be dict, or there may be more work to do here, depending on your
@@ -460,7 +522,12 @@ var PYRET_CPS = (function () {
         Function: makeFunction(function() {
           throw "function NYI";
         }),
-        builtins: "Not yet implemented"
+        builtins: makeObj({
+            equiv : makeFunction(equiv)
+        }),
+
+        raise : raise,
+        error : error
       }),
       runtime: {
         makeNumber: makeNumber,
@@ -476,6 +543,7 @@ var PYRET_CPS = (function () {
         getTestPrintOutput: function(val) {
           return testPrintOutput + toRepr(val).s;
         },
+
         NormalResult: NormalResult,
         FailResult: FailResult,
         PyretException: PyretException,
