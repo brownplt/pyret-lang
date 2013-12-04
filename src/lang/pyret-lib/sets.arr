@@ -32,13 +32,13 @@ data AVLTree:
       height(self) -> Number: self.h end,
       contains(self, val :: Any) -> Bool:
         if val == self.value: true
-        else if val < self.value: self.left.contains(val)
+        else if less-than(val, self.value): self.left.contains(val)
         else: self.right.contains(val)
         end
       end,
       insert(self, val :: Any) -> AVLTree:
         if val == self.value: mkbranch(val, self.left, self.right)
-        else if val < self.value:
+        else if less-than(val, self.value):
           rebalance(mkbranch(self.value, self.left.insert(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
@@ -46,7 +46,7 @@ data AVLTree:
       end,
       remove(self, val :: Any) -> AVLTree:
         if val == self.value: remove-root(self)
-        else if val < self.value:
+        else if less-than(val, self.value):
           rebalance(mkbranch(self.value, self.left.remove(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
@@ -59,6 +59,16 @@ sharing:
   to-list(self) -> List: self.inorder() end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
+  end
+end
+
+fun less-than(x :: Any, y :: Any):
+  if builtins.has-field(x, '_lessthan'):
+    x < y
+  else:
+    raise("Set: You can only construct sets from elements with "
+          + "a '_lessthan' method. Consider adding one. "
+          + "The offending element was: " + torepr(x))
   end
 end
 
