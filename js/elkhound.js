@@ -1078,16 +1078,16 @@ Grammar.prototype = {
     // console.log("** EnqueueLimitedReductions for t = " + t + " and link = " + JSON.stringify(link));
     for (var i = 0; i < this.topmost.length; i++) {
       var n = this.topmost[i];
-      var actions = this.actionsTable[n.state][t];
-      for (var i = 0; i < actions.size(); i++) {
-        var action = actions.get(i);
+      var actions = this.actionTable[n.state][t];
+      for (var j = 0; j < actions.size(); j++) {
+        var action = actions.get(j);
         if (action instanceof ReduceAction) {
           var rule = action.rule
           var len = rule.symbols.length;
           var thiz = this;
           // console.log("enqueueLimitedReductions for rule = " + rule + " in state " + n.state + " and token " + t)
-          rightSib.forPathsOfLengthUsing(len, function(p) {
-            // console.log("3. Enqueuing path {" + p.vals + ", " + p.leftSib.state + "} for rule " + rule);
+          n.forPathsOfLengthUsing(len, function(p) {
+            console.log("3. Enqueuing path {" + p.vals + ", " + p.leftSib.state + "} for rule " + rule);
             thiz.addToQueue(p, rule);
           }, link);
         }
