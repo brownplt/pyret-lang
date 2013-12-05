@@ -312,6 +312,37 @@ fun cps(ast):
 
         lam(l, [arg(l, K), arg(l,F)],
             app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
+
+    | s_update(l, obj, fields) =>
+         fun makeFields(fds :: List<Members>, acc :: List<Members>):
+             cases(List) fds:
+                 | empty => 
+                     #print(acc.reverse())
+                     #lam(l, [arg(l, K), arg(l, F)] ,
+                     app(l, id(l, K), [A.s_update(l, id(l, '$ov'),acc.reverse())])
+                 | link(mem, rest) =>
+                    #Treating mem like they have string names, not going to cps      
+                    fname = gensym(mem.name.s) #Assuming string name
+                    new_fields = link(A.s_data_field(l, mem.name, id(l, fname)), acc)
+
+                    #print("mem: " + torepr(cps(mem.value)))
+                   # lam(l, [arg(l, K)], 
+                   # lam(l, [arg(l, K), arg(l,F)],
+                    app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
+            end
+        end
+
+         lam(l, [arg(l, K), arg(l,F)],
+             app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
+        
+
+       # lam(l, [arg(l, K), arg(l,F)], 
+       #    app(l, cps(obj), [lam(l, [arg(l, '$ov')], 
+       #        for fold(
+       #            acc from app(l, id(l, K), [A.s_update(l, id(l, '$ov'),acc.reverse())])
+       #            field from fields)
+       #                 
+       #        end)]))
         
     | s_bracket(l, obj, f) =>
         #Not cps'ing f because we assume its a static string
