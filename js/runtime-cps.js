@@ -753,6 +753,68 @@ var PYRET_CPS = (function () {
     };
     applyFunction(k, makeObj(branderDict));
     });
+
+    /**
+      dataToRepr(val, name, fields)
+
+      Creates a string representation of the data
+      using the value, name of object type and field names
+    **/
+     function dataToRepr(k, f, val, name, fields){
+            var fieldsEmpty = true;
+            var repr = name.s + "(";
+            while(true){
+              try{
+                  var first = getField(fields, "first");
+                  var rest = getField(fields, "rest");
+                  fields = rest;
+
+                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
+
+                  repr = repr + toRepr(getField(val, first.s)).s + ", ";
+                  fieldsEmpty = false;
+              }
+              catch(e){
+                break;
+              }
+            }
+            if(fieldsEmpty) {
+                applyFunction(k,[ makeString(name.s + "()")]);
+            }
+            else {
+              applyFunction(k,[ makeString(repr.substring(0, repr.length-2) + ")")]);
+            }
+
+            }   
+
+    /**
+      dataEquals(me, other, brand, fields)
+
+      Checks if the data objects are equal
+      Uses the list of fields to check for equality
+    **/
+    function dataEquals(k, f, me, other, brand, fields) {
+        var b = applyFunction(brand, [other]).b;
+        
+        var acc = true;
+        while(true){
+          try{
+              var first = getField(fields, "first");
+              var rest = getField(fields, "rest");
+              fields = rest;
+
+              myVal = getField(me, first.s);
+              otherVal = getField(other, first.s);
+            
+              acc = acc && (equiv(myVal, otherVal).b)
+          }
+          catch(e) {
+            break;
+          }
+        }
+        //var sameBrands = checkSameBrands(me.brands, other.brands);
+        applyFunction(k, [makeBoolean(b && acc)]);
+    }
  //-------------------
 
     // TODO(students): Make sure this returns a JavaScript dictionary with
@@ -829,6 +891,13 @@ var PYRET_CPS = (function () {
           throw "function NYI";
         }),
         builtins: makeObj({
+            'data-to-repr': makeFunction(dataToRepr),
+
+            'data-equals': makeFunction(dataEquals),
+
+            "has-field" : makeFunction(function(prim, field) {
+              applyFunction(k,[makeBoolean(prim.dict.hasOwnProperty(field))]);
+              }),
             equiv : makeFunction(equiv)
         }),
 
