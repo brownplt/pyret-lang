@@ -122,6 +122,13 @@ names as identifiers.}
   "data Number:
     | num with:
       tostring(self) -> String: end,
+      tostring-fixed(self, num-digits) -> String:
+        doc: 'Produces a fixed-precision string representation of the number, with the specified number of digits"
+      where:
+        (4/3).tostring-fixed(5) is "1.33333"
+        (4/5).tostring-fixed(4) is "0.8000"
+        (2/3).tostring-fixed(3) is "0.667"
+      end
       modulo(self) -> Number: end,
       truncate(self) -> Number: end,
       sin(self) -> Number: end,
