@@ -319,7 +319,9 @@ fun cps(ast):
    #             | empty => 
    #                 #print(acc.reverse())
    #                 #lam(l, [arg(l, K), arg(l, F)] ,
-   #                 app(l, id(l, K), [A.s_update(l, id(l, '$ov'),acc.reverse())])
+   #                 
+   #                # app(l, id(l, K), [A.s_update_cps(l, id(l, '$ov'),acc.reverse(), id(l, K), id(l,F))])
+   #                A.supdate_cps(l, id(l, $ov), acc.reverse(), lam(l, [arg(l, "$wv")], s_update, id(l,F))
    #             | link(mem, rest) =>
    #                #Treating mem like they have string names, not going to cps      
    #                fname = gensym(mem.name.s) #Assuming string name
@@ -492,6 +494,8 @@ fun expr-to-js(ast):
         format("RUNTIME.applyFunction(RUNTIME.getField(RUNTIME.getMutField(~a, '~a'), 'get'),[])", [expr-to-js(obj), field])
     |s_update(l, super, fields) => 
         format("~a.updateWith({~a})", [expr-to-js(super), fields.map(make-field-js).join-str(",\n")])
+    |s_update_cps(l, super, fields, k, f) => 
+        format("~a.updateWithCPS({~a}, ~a ,~a)", [expr-to-js(super), fields.map(make-field-js).join-str(",\n"), expr-to-js(k), expr-to-js(f)])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
   end
 end

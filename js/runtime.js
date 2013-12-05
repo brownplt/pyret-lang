@@ -1194,18 +1194,13 @@ var PYRET = (function () {
         "test-print": makeFunction(testPrint),
          brander:brander,
         "check-brand": checkBrand,
-        'Function': makeFunction(function(obj) {
-            return makeBoolean(isFunction(obj));
-            //TODO: what does function do?
-        }),
+        'Function': makeFunction(function(obj) {return makeBoolean(isFunction(obj));}),
         'Number': makeFunction(function(x){return makeBoolean(isNumber(x));}),
         'Method': makeFunction(function(x){return makeBoolean(isMethod(x));}),
         'Placeholder': makeFunction(function(x){return makeBoolean(isPlaceholder(x));}),
         'Mutable': makeFunction(function(x){return makeBoolean(isMutable(x));}),
         'Nothing': makeFunction(function(x){return makeBoolean(isNothing(x));}),
-        'String': makeFunction(function(x) {
-            return makeBoolean(isString(x)); 
-        }),
+        'String': makeFunction(function(x) {return makeBoolean(isString(x)); }),
         'Any': makeFunction(function(x){return makeBoolean(isPBase(x));}),
         'Bool': makeFunction(function(x){return makeBoolean(isBoolean(x));}),
         builtins: makeObj({

@@ -269,6 +269,8 @@ data Expr:
     end
   | s_update(l :: Loc, super :: Expr, fields :: List<Member>) with:
     label(self): "s_update" end,
+  | s_update_cps(l :: Loc, super :: Expr, fields :: List<Member>, k :: Expr, f :: Expr) with: #Special ast for cpsing, allows you to get the continuations to pass to set
+    label(self): "s_update" end,
   | s_obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s_obj" end,
     tosource(self):
