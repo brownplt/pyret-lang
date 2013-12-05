@@ -462,10 +462,110 @@ var PYRET_CPS = (function () {
       dict : numberDict
     };
 
+    //DEF
+    /**********************************
+    * Strings
+    ***********************************/
+
+    function checkBothStr(f, arg1, arg2, fname) {
+        return typeCheck(f, arg1, isString, arg2, isString, fname);
+    }
+
     var stringDict = {
-      _plus: makeMethod(function(left, right) {
-        return makeString(left.s + right.s);
-      })
+      _plus: makeMethod(function(k, f,left, right) {
+        if(checkBothStr(f, left, right, 'string-plus')){
+        applyFunction(k, [ makeString(left.s + right.s)]);
+        }
+      }),
+      tostring : makeMethod(function(k, f, me) {
+        if(checkIf(f, me, isString, 'tostring')){
+        applyFunction(k, [ makeString(me.s)]);
+      }
+      }),
+      contains: makeMethod(function(k, f, me, sub){
+        if(checkBothStr(f, me, sub, 'contains')){
+        applyFunction(k, [ makeBoolean(me.s.indexOf(sub.s) != -1)]);
+        }
+      }),
+      'char-at': makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isNumber, 'char-at')){
+        applyFunction(k, [ makeString(String(me.s.charAt(n.n)))]);
+        }
+      }),
+      replace: makeMethod(function(k, f, me, forStr, withStr) {
+          if(checkIf(f, me, isString, 'tostring') &&
+          checkIf(f, forStr, isString, 'tostring') && 
+          checkIf(f, withStr, isString, 'tostring')) { 
+          applyFunction(k, [ makeString(me.s.replace(new RegExp(forStr.s ,"g"), withStr.s))]);
+          }
+      }),
+      tonumber: makeMethod(function(k, f, me) {
+          checkIf(f, me, isString, 'tonumber')
+          toNum = Number(me.s);
+          if(!isNaN(toNum)) {
+            applyFunction(k, [ makeNumber(Number(me.s))]);
+          }
+          else {
+              applyFunction(k, [ makeNothing()]);
+          }
+      }),
+      substring: makeMethod(function(k, f, me, start, stop) {
+          if(checkIf(f, me, isString, 'substring') && 
+          checkIf(f, start, isNumber, 'substring') &&
+          checkIf(f, stop, isNumber, 'substring')) {
+        applyFunction(k, [ makeString(me.s.substring(start.n,stop.n))]);
+          }
+      }),
+      append : makeMethod(function(k, f, me, o) {
+        if(checkBothStr(f, me,o, 'append')){
+        applyFunction(k, [ makeString(me.s + o.s)]);
+        }
+      }),
+      length : makeMethod(function(k, f, me) {
+        if(checkIf(f, me, isString, 'length')){
+        applyFunction(k, [ makeNumber(me.s.length)]);
+        }
+      }),
+      repeat : makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isNumber, 'repeat')){
+        var result = "";i
+        for(var x = n.n; x>0; n.n--){
+           result = result + me.s;
+        }
+        applyFunction(k, [ makeString(result)]);
+        }
+      }),
+
+      _greatereqaul : makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isString, 'greaterequal')){
+        applyFunction(k, [ makeBoolean(me.s >= n.s)]);
+        }
+      }),
+      _greaterthan : makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isString, 'greaterthan')){
+        applyFunction(k, [ makeBoolean(me.s > n.s)]);
+        }
+      }),
+      _lessequal : makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isString, 'lessequal')){
+        applyFunction(k, [ makeBoolean(me.s <= n.s)]);
+        }
+      }),
+      _lessthan : makeMethod(function(k, f, me, n) {
+        if(typeCheck(f, me, isString, n, isString, 'lessthan')){
+        applyFunction(k, [ makeBoolean(me.s < n.s)]);
+        }
+      }),
+      _equals : makeMethod(function(k, f, me, x) {
+        if(typeCheck(f, me, isString, x, isString, 'equals')){
+        applyFunction(k, [ makeBoolean(me.s === x.s)]);
+        }
+      }),
+      _torepr : makeMethod(function(k, f, me) {
+          if(checkIf(f, me, isString, 'torepr')){
+          applyFunction(k, [ '"'+me.s+'"']);
+      }
+      }),
     };
 
     function PString(s) {
@@ -586,12 +686,12 @@ var PYRET_CPS = (function () {
 
 
     var testPrintOutput = "";
-    function testPrint(k, val) {
+    function testPrint(k, f, val) {
       var str = toRepr(val).s;
       console.log("testPrint: ", val, str);
       testPrintOutput += str + "\n";
       // Should be applyFunc, or whatever your implementation calls it
-      applyFunction(k, []);
+      applyFunction(k, [val]);
     }
 
     function NormalResult(val, namespace) {
