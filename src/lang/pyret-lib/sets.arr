@@ -32,13 +32,13 @@ data AVLTree:
       height(self) -> Number: self.h end,
       contains(self, val :: Any) -> Bool:
         if val == self.value: true
-        else if less-than(val, self.value): self.left.contains(val)
+        else if val < self.value: self.left.contains(val)
         else: self.right.contains(val)
         end
       end,
       insert(self, val :: Any) -> AVLTree:
         if val == self.value: mkbranch(val, self.left, self.right)
-        else if less-than(val, self.value):
+        else if val < self.value:
           rebalance(mkbranch(self.value, self.left.insert(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
@@ -46,7 +46,7 @@ data AVLTree:
       end,
       remove(self, val :: Any) -> AVLTree:
         if val == self.value: remove-root(self)
-        else if less-than(val, self.value):
+        else if val < self.value:
           rebalance(mkbranch(self.value, self.left.remove(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
@@ -59,17 +59,6 @@ sharing:
   to-list(self) -> List: self.inorder() end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
-  end
-end
-
-fun less-than(x :: Any, y :: Any):
-  if builtins.has-field(x, '_lessthan'):
-    x < y
-  else:
-    raise("Sets can only contain elements that have a '_lessthan method. "
-          + "Most builtin data types, like strings and numbers have one, "
-          + "but user defined data types do not unless you give them one. "
-          + "The element encountered was: " + torepr(x))
   end
 end
 
@@ -154,7 +143,6 @@ fun swap-next-lowest(tree :: AVLTree):
                      tree.right))
 end
 
-
 data Set:
   | list-set(elems :: List) with:
 
@@ -189,8 +177,8 @@ data Set:
       end,
 
       to-list(self) -> List:
-        doc: 'Convert a set into a sorted list of elements.'
-        self.elems.sort()
+        doc: 'Convert a set into a list of elements.'
+        self.elems
       #where:
       #  sets.set([3, 1, 2]).to-list() is [1, 2, 3]
       end
@@ -199,6 +187,7 @@ data Set:
 
       member(self, elem :: Any) -> Bool:
         doc: 'Check to see if an element is in a set.'
+        less-than-check(elem)
         self.elems.contains(elem)
       #where:
       #  sets.tree-set([1, 2, 3]).member(2) is true
@@ -207,6 +196,7 @@ data Set:
 
       add(self, elem :: Any) -> Set:
         doc: "Add an element to the set if it is not already present."
+        less-than-check(elem)
         tree-set(self.elems.insert(elem))
       #where:
       #  sets.tree-set([]).add(1) is sets.tree-set([1])
@@ -217,6 +207,7 @@ data Set:
 
       remove(self, elem :: Any) -> Set:
         doc: "Remove an element from the set if it is present."
+        less-than-check(elem)
         tree-set(self.elems.remove(elem))
       #where:
       #  sets.tree-set([1, 2]).remove(18) is sets.tree-set([1, 2])
@@ -224,8 +215,8 @@ data Set:
       end,
 
       to-list(self) -> List:
-        doc: 'Convert a set into a sorted list of elements.'
-        self.elems.to-list()
+        doc: 'Convert a set into a list of elements.'
+        self.elems.preorder()
       #where:
       #  sets.tree-set([3, 1, 2]).to-list() is [1, 2, 3]
       end
@@ -259,11 +250,25 @@ sharing:
       end
     end
   end,
+
+  symmetric_difference(self :: Set, other :: Set) -> Set:
+    doc: 'Compute the symmetric difference of this set and another set.'
+    self.union(other).difference(self.intersect(other))
+  end,
     
   _equals(self, other):
-    Set(other) and (self.to-list() == other.to-list())
+    Set(other) and (self.to-list().sort() == other.to-list().sort())
   end
 
+end
+
+fun less-than-check(x :: Any):
+  when not builtins.has-field(x, '_lessthan'):
+    raise("Tree-based sets can only contain elements that have a '_lessthan' method. "
+          + "Most builtin data types, like strings and numbers have one, "
+          + "but user defined data types do not unless you give them one. "
+          + "The datum encountered was: " + torepr(x))
+  end
 end
 
 fun list-to-set(lst :: List, base-set :: Set) -> Set:
