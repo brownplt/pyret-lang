@@ -414,8 +414,7 @@ fun expr-to-js(ast):
   cases(A.Expr) ast:
     | s_block(_, stmts) =>
       if stmts.length() == 0:
-        "NAMESPACE.get('nothing')"
-      else:
+        "NAMESPACE.get('nothing')" else:
         fun sequence-return-last(ss):
           cases(list.List) ss:
             | link(f, r) =>
@@ -454,7 +453,14 @@ fun expr-to-js(ast):
       format("RUNTIME.applyFunction(~a, [~a])", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
       cases (A.Expr) f:
-        | s_str(_, s) => format("RUNTIME.getField(~a, '~a')", [expr-to-js(obj), s])
+        | s_str(_, s) => format("(function(){
+                                    try{
+                                       return RUNTIME.getField(~a, '~a')
+                                    }
+                                    catch(e) {
+                                       return RUNTIME.applyFunction(f, [e])    
+                                    }
+                                })() ", [expr-to-js(obj), s])
         | else => raise("Non-string lookups not supported")
       end
     | s_colon_bracket(_, obj, f) =>

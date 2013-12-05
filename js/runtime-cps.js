@@ -628,7 +628,10 @@ var PYRET_CPS = (function () {
         return makeString("nothing");
       }
       else if (isMutable(val)) {
-        return makeString("mutable field")
+        return makeString("mutable field");
+      }
+      else if (isPlaceholder(val)) {
+        return makeString("mutable field");
       }
       
       throw ("toStringJS on an unknown type: " + val);
@@ -833,9 +836,9 @@ var PYRET_CPS = (function () {
                 return;
             }
             for(var g in guards) {
-                var newK = function(newVal) {
+                var newK = makeFunction(function(newVal) {
                     val = newVal;
-                }
+                });
                 applyFunction(guards[g],[newK, f, val]);
             }
             value = val;
@@ -921,10 +924,12 @@ var PYRET_CPS = (function () {
         var a = val;
 
         if(!isFunction(r)) {
-            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(r).s);
+            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(r).s);
+            return;
         }
         if(!isFunction(w)) {
-            throwPyretMessage('typecheck failed; expected Function and got\n' + toRepr(w).s);
+            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(w).s);
+            return;
         }
 
         var mut = new PMutable({
@@ -1168,6 +1173,10 @@ var PYRET_CPS = (function () {
         'is-bool': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
         'is-object': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isObj(x))]);}),
 
+          "prim-num-keys" : makeFunction(function(k,f ,prim) {
+              if(isNothing(prim)) {return makeNumber(0);}
+            applyFunction(k, [makeNumber(Object.keys(prim.dict).length)]);
+          }),
         "prim-keys" : makeFunction(function(k, f, prim) {
             var myKeys = makeEmpty();
             for(key in prim.dict) {
