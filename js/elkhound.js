@@ -166,7 +166,7 @@ Nonterm.prototype.toJSON = function() { return {type: "Nonterm", name: this.name
 Token.prototype = Object.create(Atom.prototype);
 Token.prototype.toString = function(showVal) { 
   if (showVal)
-    return this.value; //"'" + this.name + "(" + this.value + ")";
+    return "('" + this.name + " " + JSON.stringify(this.value) + ")";
   else
     return "'" + this.name; 
 }
@@ -279,13 +279,13 @@ Rule.defaultASTToString = function() {
   return toStr; 
 }
 Rule.defaultAction = function(kids) {
-  var rev_kids = [];
-  for (var i = kids.length - 1; i >= 0; i--) {
+  var useful_kids = [];
+  for (var i = 0; i < kids.length; i++) {
     if (kids[i] instanceof Lit) continue;
-    else rev_kids.push(kids[i]);
+    else useful_kids.push(kids[i]);
   }
   var start = (kids.length > 0 ? kids[kids.length - 1].startColumn : undefined);
-  return { name: this.name, kids: rev_kids, toString: Rule.defaultASTToString, startColumn: start };
+  return { name: this.name, kids: useful_kids, toString: Rule.defaultASTToString, startColumn: start };
 }
 Rule.defaultAction.toString = function() { return "Rule.defaultAction"; }
 
@@ -369,10 +369,45 @@ Grammar.fromJSON = function(obj) {
       newRow[name] = Action.fromJSON(tableRow[name])
   }
   g.acceptStates = obj.acceptStates;
+  g.derivable = obj.derivable;
+  g.mode = obj.mode;
   return g;
 }
 
 Grammar.prototype = {
+  initializeParser: function(forceGLR) {
+    var new_start;
+    if (!this.initialized) {
+      new_start = "START";
+      while (this.rules.hasOwnProperty(new_start))
+        new_start += "_";
+      this.addRule(new_start, [new Nonterm(this.start)]);
+      this.start = new_start;
+      this.initialized = true;
+    }
+    this.computeFirstSets();
+    this.computeFollowSets();
+    this.computeStates();
+    this.mode = "LALR";
+    if (forceGLR || this.checkForLALRAmbiguity().length > 0) {
+      var orig_start = this.rules[this.start][0].symbols[0];
+      this.rules[this.start] = []
+      this.addRule(this.start, [orig_start, EOF]);
+      this.computeFirstSets();
+      this.computeFollowSets();
+      this.computeDerivability();
+      this.topoSortNonterms();
+      this.computeStates();
+      this.mode = "GLR";
+    }
+  },
+  parse: function(token_stream) {
+    if (this.mode === "LALR")
+      return this.parseLALR(token_stream);
+    else if (this.mode === "GLR")
+      return this.parseGLR(token_stream);
+    return "Unknown parsing mode -- can't actually parse!"
+  },
   toString: function() {
     var s = "Grammar " + this.name + ": (initial rule " + this.start + ")\n";
     for (var name in this.rules) {
@@ -388,6 +423,8 @@ Grammar.prototype = {
     ret.start = this.start;
     ret.name = this.name;
     ret.acceptStates = this.acceptStates;
+    ret.mode = this.mode;
+    ret.derivable = this.derivable;
     ret.rules = [];
     for (var name in this.rules) {
       for (var i = 0; i < this.rules[name].length; i++) {
@@ -458,34 +495,29 @@ Grammar.prototype = {
         var rules = this.rules[name]
         for (var i = 0; i < rules.length; i++) {
           var rule = rules[i];
-          console.log("Processing " + rule);
           if (rule.symbols.length === 0) {
-            changed = changed || (!!this.derivable[name][EPSILON]);
+            changed = changed || (!this.derivable[name][EPSILON]);
             this.derivable[name][EPSILON] = true; // Rule <name> is nullable
           }
           for (var j = 0; j < rule.symbols.length; j++) {
             var sym = rule.symbols[j]
             if ((sym instanceof Token) && (sym !== EOF))
               break; // A token in the RHS of a rule means it can't derive a nonterminal on its own
-            if (this.derivable[name][sym])
-              continue; // We've already shown that this rule can derive this nonterm
-            else {
-              var restNullable = true;
-              for (k = j + 1; k < rule.symbols.length; k++) {
-                if (rule.symbols[k] === EOF) continue;
-                if ((rule.symbols[k] instanceof Token) || 
-                    (this.first[rule.symbols[k]][EPSILON] !== true)) {
-                  console.log("Rule " + rule + " isn't nullable after symbol #" + k + "(" + rule.symbols[k] + ")");
-                  restNullable = false;
-                  break;
-                }
+            var restNullable = true;
+            for (k = j + 1; k < rule.symbols.length; k++) {
+              if (rule.symbols[k] === EOF) continue;
+              if ((rule.symbols[k] instanceof Token) || 
+                  (this.derivable[rule.symbols[k]][EPSILON] !== true)) {
+                restNullable = false;
+                break;
               }
-              if (restNullable) {
-                changed = changed || (!!this.derivable[name][sym]);
-                this.derivable[name][sym] = true;
-              }
-              if (this.first[name][EPSILON] !== true)
-                break; // This nonterminal isn't nullable, so skip the rest of the rule
+            }
+            if (restNullable) {
+              changed = changed || (!this.derivable[name][sym]);
+              this.derivable[name][sym] = true;
+            }
+            if ((!this.derivable[sym]) || this.derivable[sym][EPSILON] !== true) {
+              break; // This nonterminal isn't nullable, so skip the rest of the rule
             }
           }
         }
@@ -499,7 +531,7 @@ Grammar.prototype = {
           for (var k = 0; k < this.nonterms.size(); k++) {
             var term_k = this.nonterms.get(k);
             if (j == k || !this.derivable[term_j][term_k]) continue;
-            changed = changed || (!!this.derivable[term_i][term_k])
+            changed = changed || (!this.derivable[term_i][term_k])
             this.derivable[term_i][term_k] = true;
           }
         }
@@ -906,24 +938,8 @@ Grammar.prototype = {
       // console.log("Parsing token " + next_tok.toString(true));
       // console.log("State_stack = [" + state_stack + "]")
       // console.log("op_stack = [" + op_stack + "]");
-      var tableRow = this.actionTable[state_stack[state_stack.length - 1]];
-      var actions = tableRow[next_tok];
-      if ((actions === undefined) || (actions.size() === 0)) {
-        if (!(next_tok instanceof Lit) && (next_tok !== EOF)) {
-          // console.log("next_tok = " + next_tok.toString(true));
-          actions = this.actionTable[state_stack[state_stack.length - 1]][new Lit(next_tok.value)];
-        }
-        if ((actions === undefined) || (actions.size() === 0)) {
-          console.log("Parse error at token #" + tokensParsed + ", unexpected token " + next_tok);
-          var expected = new OrderedSet([]);
-          for (var name in tableRow) {
-            if (tableRow[name].size() > 0)
-              expected.add(name);
-          }
-          console.log("Expected one of: " + expected);
-          return null;
-        }
-      }
+      var actions = this.getActions(state_stack[state_stack.length - 1], next_tok);
+      if (actions === null) return null;
       if (actions.size() === 0) {
         console.log("No actions found for state #" + state_stack[state_stack.length - 1] + " and " + next_tok);
         return null;
@@ -937,9 +953,8 @@ Grammar.prototype = {
       }
       if (action.type === "Reduce") {
         var arity = action.rule.symbols.length;
-        var ops = op_stack.slice(-arity);
-        op_stack.splice(-arity);
-        state_stack.splice(-arity);
+        var ops = op_stack.splice(-arity, arity);
+        state_stack.splice(-arity, arity);
         var new_val = action.rule.action(ops);
         op_stack.push(new_val);
         var new_state = this.gotoTable[state_stack[state_stack.length - 1]][action.rule.name].dest;
@@ -952,8 +967,8 @@ Grammar.prototype = {
           var old_tok = next_tok;
           next_tok = token_source.next();
         } else {
-          console.log("Parse error at token #" + tokensParsed + ": needed a new token but none remain")
           var expected = new OrderedSet([]);
+          var tableRow = this.actionTable[state_stack[state_stack.length - 1]];
           for (var name in tableRow) {
             if (tableRow[name].size() > 0)
               expected.add(name);
@@ -998,6 +1013,7 @@ Grammar.prototype = {
     // Assumes that the main rule is start : something EOF
     if (this.topmost.length !== 1) {
       console.log("Somehow, didn't parse the start rule correctly, and finished with multiple active parse heads");
+      console.log(JSON.stringify(this.topmost));
       return null;
     }
     var last = this.topmost[0];
@@ -1017,10 +1033,32 @@ Grammar.prototype = {
     }
     return main.links[0].val;
   },
+  getActions: function(state, t) {
+    var tableRow = this.actionTable[state];
+    var actions = tableRow[t];
+    if ((actions === undefined) || (actions.size() === 0)) {
+      if (!(t instanceof Lit) && (t !== EOF)) {
+        // console.log("next_tok = " + next_tok.toString(true));
+        actions = tableRow[new Lit(t.value)];
+      }
+      if ((actions === undefined) || (actions.size() === 0)) {
+        console.log("Parse error at token #" + tokensParsed + ", unexpected token " + t);
+        var expected = new OrderedSet([]);
+        for (var name in tableRow) {
+          if (tableRow[name].size() > 0)
+            expected.add(name);
+        }
+        console.log("Expected one of: " + expected);
+        return null;
+      }
+    }
+    return actions;
+  },
   doReductions: function(t) {
     for (var i = 0; i < this.topmost.length; i++) {
       var current = this.topmost[i];
-      var actions = this.actionTable[current.state][t];
+      var actions = this.getActions(current.state, t);
+      if (actions === null) return null;
       for (var j = 0; j < actions.size(); j++) {
         var action = actions.get(j);
         if (action instanceof ReduceAction) {
@@ -1050,7 +1088,7 @@ Grammar.prototype = {
     this.topmost = [];
     for (var i = 0; i < prevTops.length; i++) {
       var current = prevTops[i];
-      var actions = this.actionTable[current.state][t];
+      var actions = this.getActions(current.state, t);
       for (var j = 0; j < actions.size(); j++) {
         var action = actions.get(j);
         if (action instanceof ShiftAction) {
@@ -1114,7 +1152,8 @@ Grammar.prototype = {
       this.addLink(leftSib, rightSib, newSemanticValue, rule.name);
       this.topmost.push(rightSib);
       // Addendum from http://scottmcpeak.com/elkhound/reduceViaPath_bug.html
-      var actions = this.actionTable[gotoState][t];
+      var actions = this.getActions(gotoState, t);
+      if (actions === null) return null;
       for (var i = 0; i < actions.size(); i++) {
         var action = actions.get(i);
         if (action instanceof ReduceAction) {
@@ -1151,21 +1190,21 @@ Grammar.prototype = {
     var start = old_val.startColumn;
     if (new_val.startColumn < start)
       start = new_val.startColumn;
-    if (old_val.name === "##AMBIG##" && new_val.name === "##AMBIG##") {
+    if (old_val.name === "--CHOICE--" && new_val.name === "--CHOICE--") {
       // console.log("Consolidating " + old_val.kids + " and " + new_val.kids)
-      return { name: "##AMBIG##", kids: old_val.kids.concat(new_val.kids), 
+      return { name: "--CHOICE--", kids: old_val.kids.concat(new_val.kids), 
                startColumn: start, toString: Rule.defaultASTToString };
-    } else if (old_val.name === "##AMBIG##") {
+    } else if (old_val.name === "--CHOICE--") {
       // console.log("Pushing new kid " + new_val + " onto " + old_val.kids);
-      return { name: "##AMBIG##", kids: old_val.kids.concat([new_val]), 
+      return { name: "--CHOICE--", kids: old_val.kids.concat([new_val]), 
                startColumn: start, toString: Rule.defaultASTToString };
-    } else if (new_val.name === "##AMBIG##") {
+    } else if (new_val.name === "--CHOICE--") {
       // console.log("Pushing old kid " + old_val + " onto " + new_val.kids);
-      return { name: "##AMBIG##", kids: new_val.kids.concat([old_val]), 
+      return { name: "--CHOICE--", kids: new_val.kids.concat([old_val]), 
                startColumn: start, toString: Rule.defaultASTToString };
     } else {
       // console.log("Merging " + old_val + " and " + new_val);
-      return { name: "##AMBIG##", kids: [old_val, new_val], 
+      return { name: "--CHOICE--", kids: [old_val, new_val], 
                startColumn: start, toString: Rule.defaultASTToString };
     }
   },
@@ -1265,7 +1304,7 @@ function Link(prev, val) {
 }
 
 function pathLengthHelp(link, len, links, stack, callback) {
-  links.push(link);
+  links[len - 1] = link;
   stack.push("" + link.prev.id + ":" + link.prev.state)
   if (len == 1) { 
     // console.log("Constructed path via [" + stack + "]");
