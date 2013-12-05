@@ -733,6 +733,28 @@ var PYRET_CPS = (function () {
     function makeSimpleMutable(k, f, val) { makeMutable(k, f, val,identity,identity );}
 
 
+    /**********************************
+    * Builtins
+    ***********************************/
+    //Brander
+    var brandCount = 0;
+    brander = makeFunction(function(k,f) {
+    var myBrand = brandCount++; 
+    var branderDict = {
+        brand: makeFunction(function(k, f, toBrand) {
+            var newO = toBrand.clone();
+            newO.brands = toBrand.brands.slice(0);
+            newO.brands.push(myBrand);
+            applyFunction(k, [newO]);
+        }),
+        test: makeFunction(function(k,f ,o) {
+            applyFunction(k, [makeBoolean(o.brands.indexOf(myBrand) != -1)])
+        }),
+    };
+    applyFunction(k, makeObj(branderDict));
+    });
+ //-------------------
+
     // TODO(students): Make sure this returns a JavaScript dictionary with
     // the same contents as the Pyret dictionary (your field name may not
     // be dict, or there may be more work to do here, depending on your
@@ -812,6 +834,28 @@ var PYRET_CPS = (function () {
 
         "mk-simple-mutable" : makeFunction(makeSimpleMutable),
         "mk-mutable" : makeFunction(makeMutable),
+        brander : brander,
+
+        'Function': makeFunction(function(obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
+        'Number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
+        'Method': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
+        'Placeholder': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
+        'Mutable': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMutable(x))]);}),
+        'Nothing': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNothing(x))]);}),
+        'String': makeFunction(function(k, f, x) {applyFunction(k, [ makeBoolean(isString(x))]);}),
+        'Any': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPBase(x))]);}),
+        'Bool': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
+
+        "prim-keys" : makeFunction(function(k, f, prim) {
+            var myKeys = makeEmpty();
+            for(key in prim.dict) {
+                myKeys = makeLink(makeString(String(key)), myKeys);
+            }
+            applyFunction(k,[ myKeys]);
+         }),
+          "prim-has-field" : makeFunction(function(k, f, prim, field) {
+            applyFunction(k, [ makeBoolean(prim.dict.hasOwnProperty(field))]);
+          }),
 
         raise : raise,
         error : error
