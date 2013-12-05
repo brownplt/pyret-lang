@@ -787,6 +787,98 @@ var PYRET_CPS = (function () {
         return '{' +fields+ '}';
     }
 
+    //DEF
+    /**********************************
+    * Placeholder
+    ***********************************/
+    function PPlaceholder(d) {
+      this.dict = d;
+      this.brands = [];
+      //this.dict['_torepr'] = makeMethod(function(me) {
+        //return toRepr(me);
+      //});
+    }
+
+    
+    function getPlaceholderDict(){  
+        var isSet = false;
+        var value = undefined;
+        var guards = [];
+        
+        return {
+        get : makeMethod(function(k, f, me) { 
+           if(isSet){
+               applyFunction(k, [value])
+           }
+           else {
+              raisePyretMessage(f, "Tried to get value from uninitialized placeholder");
+              return;
+           }
+        }),
+
+        guard : makeMethod(function(k, f, me, guard) {
+           if(isSet) {
+               raisePyretMessage(f, "Tried to add guard on an already-initialized placeholder");
+               return;
+            }
+           else {
+                guards.push(guard);
+           }
+           applyFunction(k, [makeNothing()]);
+        }),
+
+        set : makeMethod(function(k, f, me, val) {
+            if(isSet) {
+                raisePyretMessage(f, "Tried to set value in already-initialized placeholder");
+                return;
+            }
+            for(var g in guards) {
+                var newK = function(newVal) {
+                    val = newVal;
+                }
+                applyFunction(guards[g],[newK, f, val]);
+            }
+            value = val;
+            isSet = true;
+            applyFunction(k, [value]);
+        }),
+
+       tostring : makeMethod(function(k, f, me) {
+        applyFunction(k, [ makeString("cyclic-field")]);
+       }),
+
+       _torepr : makeMethod(function(k, f, me) {
+            applyFunction(k, [ makeString("cyclic-field")]);
+        }),
+        
+       _equals : makeMethod(function(k, f, me,other) {
+            applyFunction(k, [ makeBoolean(me === other)]);
+       }),
+     };
+    }
+
+    function isPlaceholder(v) { return v instanceof PPlaceholder; }
+
+    PPlaceholder.prototype = Object.create(PBase.prototype);
+    PPlaceholder.prototype.clone = (function() {
+        //We don't need to do deep cloning, but we *do* need to clone the dict
+        var newDict = {};
+        for(var key in this.dict) {
+            newDict[key] = this.dict[key];
+        }
+        var newPlac = makePlaceholder(newDict);
+        return newPlac;
+    });
+    PObj.prototype.getType = function() {return 'placeholder';};
+    //Placeholder
+
+    function makePlaceholder(k, f) {
+        var plac = new PPlaceholder(getPlaceholderDict());
+        applyFunction(k,  [plac]);
+    }
+
+    
+
 
     //DEF
     /************************
@@ -893,21 +985,16 @@ var PYRET_CPS = (function () {
             applyFunction(k, [makeBoolean(o.brands.indexOf(myBrand) != -1)])
         }),
     };
-    applyFunction(k, makeObj(branderDict));
+    applyFunction(k, [makeObj(branderDict)]);
     });
 
     //check-brand
-    checkBrand = makeFunction(function(test, obj, msg){
+    checkBrand = makeFunction(function(k, f, test, obj, msg){
         if(isFunction(test)){
-            if(applyFunction(test,[obj]).b) {
-                return obj;
-            }
-            else {
-               throwPyretMessage("typecheck failed; expected " + msg  + " and got\n" + toRepr(obj).s); 
-            }
+            applyFunction(test,[k, f, obj, msg]);
         }
         else {
-            throwPyretMessage("Check brand with non-function");
+            raisePyretMessage(f, "Check brand with non-function");
         }
     });
 
@@ -1052,20 +1139,23 @@ var PYRET_CPS = (function () {
             equiv : makeFunction(equiv)
         }),
 
+        "mk-placeholder": makeFunction(makePlaceholder),
         "mk-simple-mutable" : makeFunction(makeSimpleMutable),
         "mk-mutable" : makeFunction(makeMutable),
         brander : brander,
         "check-brand": checkBrand,
 
+        //TODO: These aren't neccessarily right, they should probably raise errors
         'Function': makeFunction(function(obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
-        'Number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
-        'Method': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
-        'Placeholder': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
-        'Mutable': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMutable(x))]);}),
-        'Nothing': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNothing(x))]);}),
-        'String': makeFunction(function(k, f, x) {applyFunction(k, [ makeBoolean(isString(x))]);}),
-        'Any': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPBase(x))]);}),
-        'Bool': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
+        'Number': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
+        'Method': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
+        'Placeholder': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
+        'Mutable': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMutable(x))]);}),
+        'Nothing': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNothing(x))]);}),
+        'String': makeFunction(function(k, f, x, m) {applyFunction(k, [ makeBoolean(isString(x))]);}),
+        'Any': makeFunction(function(k, f, x,m ){applyFunction(k, [ makeBoolean(isPBase(x))]);}),
+        'Bool': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
+        'Object': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isObj(x))]);}),
 
         'is-function': makeFunction(function(obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
         'is-number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
@@ -1076,6 +1166,7 @@ var PYRET_CPS = (function () {
         'is-string': makeFunction(function(k, f, x) {applyFunction(k, [ makeBoolean(isString(x))]);}),
         'is-any': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPBase(x))]);}),
         'is-bool': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
+        'is-object': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isObj(x))]);}),
 
         "prim-keys" : makeFunction(function(k, f, prim) {
             var myKeys = makeEmpty();
@@ -1095,6 +1186,7 @@ var PYRET_CPS = (function () {
         makeNumber: makeNumber,
         makeString: makeString,
         makeFunction: makeFunction,
+        makeMethod: makeMethod,
         makeObj: makeObj,
         makeBoolean: makeBoolean,
         makeNothing: makeNothing,
