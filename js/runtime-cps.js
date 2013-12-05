@@ -200,7 +200,7 @@ var PYRET_CPS = (function () {
     }
     function raisePyretMessage(f, msg) {
       var eDict = {message : makeString(msg)};
-      raisePyretException(f, makeObj(eDict));
+      raisePyretException(makeObj(eDict));
     }
     function throwPyretMessage(msg) {
       var eDict = {message : makeString(msg)};
@@ -267,157 +267,157 @@ var PYRET_CPS = (function () {
     * Type Checking
     ***********************************/
     //TODO: Make it so it throws to f
-    function typeCheck(k, f, arg1, type1, arg2, type2, name, expr){
+    function typeCheck (arg1, type1, arg2, type2, name){
         if (!(type1(arg1) && type2(arg2))) {
-            raiseTypeError(f, arg1,arg2, name);
+            raiseTypeError(arg1,arg2, name);
         }
-        applyFunction(k, [expr]);
+        return;
     }
 
-    function raiseTypeError(f, arg1, arg2, name) {
-        raisePyretMessage(f, "Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
+    function raiseTypeError(arg1, arg2, name) {
+        throwPyretMessage("Bad args to prim: " + name +" : " + arg1.toString() + ", " + arg2.toString());
     }
 
-    function checkIf(k, f, arg1, type1, name, expr) {
+    function checkIf( arg1, type1, name) {
         if(!type1(arg1)) {
-           raisePyretMessage(f, "Incorrect type of value for method \""+name+"\": " + arg1.toString());
+            throwwPyretMessage("Incorrect type of value for method \""+name+"\": " + arg1.toString());
         }
-        applyFunction(k, [expr]);
+        return;
     }
 
     //DEF
     /**********************************
     * Numbers
     ***********************************/
-    function checkBothNum(k, f, arg1, arg2, fname, expr) {
-        typeCheck(k, f, arg1, isNumber, arg2, isNumber, fname, expr);
+    function checkBothNum(arg1, arg2, fname) {
+        typeCheck(arg1, isNumber, arg2, isNumber, fname);
         return;
     }
     var numberDict = {
       _add: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'plus', 
-        makeNumber(left.n + right.n));
+        checkBothNum(left, right, 'plus');
+        applyFunction(k,[ makeNumber(left.n + right.n)]);
       }),
       _plus: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'plus', 
-        makeNumber(left.n + right.n));
+        checkBothNum(left, right, 'plus');
+        applyFunction(k,[ makeNumber(left.n + right.n)]);
       }),
       _minus: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'minus', 
-        makeNumber(left.n - right.n));
+        checkBothNum(left, right, 'minus');
+        applyFunction(k,[ makeNumber(left.n - right.n)]);
       }),
       _divide: makeMethod(function(k, f, left, right) {
-        if(right.n === 0) {raisePyretMessage(f, 'Division by zero');}
-        checkBothNum(k, f, left, right, 'divide', 
-        makeNumber(left.n / right.n));
+        checkBothNum(left, right, 'divide');
+        if(right.n === 0) {throwPyretMessage('Division by zero');}
+        applyFunction(k,[ makeNumber(left.n / right.n)]);
       }),
       _times: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'times', 
-        makeNumber(left.n * right.n));
+        checkBothNum(left, right, 'times');
+        applyFunction(k,[ makeNumber(left.n * right.n)]);
       }),
       _lessthan: makeMethod(function(k, kf, left, right) {
-        checkBothNum(k, f, left, right, 'lessthan', 
-        makeBoolean(left.n < right.n));
+        checkBothNum(left, right, 'lessthan');
+        applyFunction(k,[makeBoolean(left.n < right.n)]);
       }),
       _greaterthan: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'greaterthan', 
-        makeBoolean(left.n > right.n));
+        checkBothNum(left, right, 'greaterthan');
+        applyFunction(k,[ makeBoolean(left.n > right.n)]);
       }),
       _lessequal: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'lessequal', 
-        makeBoolean(left.n <= right.n));
+        checkBothNum(left, right, 'lessequal');
+        applyFunction(k,[ makeBoolean(left.n <= right.n)]);
       }),
       _greaterequal: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'greaterequal', 
-        makeBoolean(left.n >= right.n));
+        checkBothNum(left, right, 'greaterequal');
+        applyFunction(k,[ makeBoolean(left.n >= right.n)]);
       }),
       max: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'max', 
-        makeBoolean(Math.max(left.n, right.n)));
+        checkBothNum(left, right, 'max');
+        applyFunction(k,[ makeBoolean(Math.max(left.n, right.n))]);
       }),
       min: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'min', 
-        makeBoolean(Math.min(left.n, right.n)));
+        checkBothNum(left, right, 'min');
+        applyFunction(k,[ makeBoolean(Math.min(left.n, right.n))]);
       }),
       abs: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'abs', 
-        makeBoolean(Math.abs(left.n, right.n)));
+        checkBothNum(left, right, 'abs');
+        applyFunction(k,[ makeBoolean(Math.abs(left.n, right.n))]);
       }),
       modulo: makeMethod(function(k, f, left, right) {
-        checkBothNum(k, f, left, right, 'modulo', 
-        makeBoolean(left.n % right.n));
+        checkBothNum(left, right, 'modulo');
+        applyFunction(k,[ makeBoolean(left.n % right.n)]);
       }),
       tostring : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'tostring', 
-        makeString(String(me.n)));
+        checkIf(me, isNumber, 'tostring');
+        applyFunction(k,[ makeString(String(me.n))]);
       }),
       _torepr : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'torepr', 
-        makeString(String(me.n)));
+        checkIf(me, isNumber, 'torepr');
+        applyFunction(k,[ makeString(String(me.n))]);
       }),
       floor : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'floor', 
-        makeNumber(Math.floor(me.n).toFixed(1)));
+        checkIf(me, isNumber, 'floor');
+        applyFunction(k,[ makeNumber(Math.floor(me.n).toFixed(1))]);
       }),
       ceiling : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'ceiling', 
-        makeNumber(Math.ceil(me.n).toFixed(1)));
+        checkIf(me, isNumber, 'ceiling');
+        applyFunction(k,[ makeNumber(Math.ceil(me.n).toFixed(1))]);
       }),
       exp: makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'exp', 
-        makeNumber(Math.exp(me.n)));
+        checkIf(me, isNumber, 'exp');
+        applyFunction(k,[ makeNumber(Math.exp(me.n))]);
       }),
       expt: makeMethod(function(k, f, me, pow) {
-        checkBothNum(k, f, me, pow, 'expt', 
-        makeNumber(Math.pow(me.n, pow.n)));
+        checkBothNum(me, pow, 'expt');
+        applyFunction(k,[ makeNumber(Math.pow(me.n, pow.n))]);
       }),
       _equals: makeMethod(function(k, f, me, other) {
-        checkBothNum(k, f, me, other, 'equals', 
-        makeBoolean(me.n === other.n));
+        checkBothNum(me, other, 'equals');
+        applyFunction(k,[ makeBoolean(me.n === other.n)]);
       }),
       sin : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'sin', 
-        makeNumber(Math.sin(me.n)));
+        checkIf(me, isNumber, 'sin');
+        applyFunction(k,[ makeNumber(Math.sin(me.n))]);
       }),
       cos : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'cos', 
-        makeNumber(Math.cos(me.n)));
+        checkIf(me, isNumber, 'cos');
+        applyFunction(k,[ makeNumber(Math.cos(me.n))]);
       }),
       tan : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'tan', 
-        makeNumber(Math.tan(me.n)));
+        checkIf(me, isNumber, 'tan');
+        applyFunction(k,[ makeNumber(Math.tan(me.n))]);
       }),
       asin : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'asin', 
-        makeNumber(Math.asin(me.n)));
+        checkIf(me, isNumber, 'asin');
+        applyFunction(k,[ makeNumber(Math.asin(me.n))]);
       }),
       acos : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'acos', 
-        makeNumber(Math.acos(me.n)));
+        checkIf(me, isNumber, 'acos');
+        applyFunction(k,[ makeNumber(Math.acos(me.n))]);
       }),
       atan : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'atan', 
-        makeNumber(Math.atan(me.n)));
+        checkIf(me, isNumber, 'atan');
+        applyFunction(k,[ makeNumber(Math.atan(me.n))]);
       }),
       sqr : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'sqr', 
-        makeNumber(Math.pow(me.n,2)));
+        checkIf(me, isNumber, 'sqr');
+        applyFunction(k,[ makeNumber(Math.pow(me.n,2))]);
       }),
       sqrt : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'sqrt', 
-        makeNumber(Math.sqrt(me.n)));
+        checkIf(me, isNumber, 'sqrt');
+        applyFunction(k,[ makeNumber(Math.sqrt(me.n))]);
       }),
       truncate : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'truncate', 
-        makeNumber(Math.round(me.n)));
+        checkIf(me, isNumber, 'truncate');
+        applyFunction(k,[ makeNumber(Math.round(me.n))]);
       }),
       exact : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'exact', 
-        makeNumber(me.n));
+        checkIf(me, isNumber, 'exact');
+        applyFunction(k,[ makeNumber(me.n)]);
       }),
       log : makeMethod(function(k, f, me) {
-        checkIf(k, f, me, isNumber, 'log', 
-        makeNumber(Math.log(me.n)));
+        checkIf(me, isNumber, 'log');
+        applyFunction(k,[ makeNumber(Math.log(me.n))]);
       }),
     };
 
@@ -461,6 +461,9 @@ var PYRET_CPS = (function () {
       }
       else if (isString(val)) {
         return makeString('"' + val.s + '"');
+      }
+      else if (isBoolean(val)) {
+        return makeString(String(val.b));
       }
       else if (isMethod(val)) {
         return makeString("method: end");
