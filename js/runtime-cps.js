@@ -88,60 +88,70 @@ var PYRET_CPS = (function () {
     /**********************************
     * Booleans
     ***********************************/
-    function checkBothBool(arg1, arg2, fname) {
-        typeCheck(arg1, isBoolean, arg2, isBoolean, fname);
-        return;
+    function checkBothBool(f, arg1, arg2, fname) {
+        return typeCheck(f, arg1, isBoolean, arg2, isBoolean, fname);
     }
 
     var booleanDict = {
-        _and : makeMethod(function(left, right) {
+        _and : makeMethod(function(k, f,left, right) {
             if(!isBoolean(left)) {
                 raiseTypeError(left, right, 'and');
+                return;
             }
             if(left.b) {
-                var rightVal = applyFunction(right,[]);
+                var rK = makeFunction(function(rightVal) {
                 if(!isBoolean(rightVal)) {
-                    raiseTypeError(left, right, 'and');
+                    raiseTypeError(f, left, right, 'and');
+                    return;
                 }
-                return makeBoolean(rightVal.b);
+                    applyFunction(k, [makeBoolean(rightVal.b)]);
+                });
+                applyFunction(right, [rK, f]);
             }
             else {
-                return makeBoolean(false);
+               applyFunction(k,[ makeBoolean(false)]);
             }
         }),
 
-        _or : makeMethod(function(left, right) {
+        _or : makeMethod(function(k, f, left, right) {
             if(!isBoolean(left)) {
                 raiseTypeError(left, right, 'or');
             }
             if(left.b) {
-                return makeBoolean(true);
+                applyFunction(k, [makeBoolean(true)]);
             }
             else {
-                var rightVal = applyFunction(right,[]);
+                var rK = makeFunction(function(rightVal) {
                 if(!isBoolean(rightVal)) {
-                    raiseTypeError(left, right, 'or');
+                    raiseTypeError(f, left, right, 'and');
+                    return;
                 }
-                return makeBoolean(rightVal.b);
+                    applyFunction(k, [makeBoolean(rightVal.b)]);
+                });
+                applyFunction(right, [rK, f]);
             }
         }),
 
-      _not: makeMethod(function(me) {
-        checkIf(me, isBoolean, 'not');
-        return makeBoolean(!(me.b));
+      _not: makeMethod(function(k, f, me) {
+        if(checkIf(f, me, isBoolean, 'not')) {
+            applyFunction(k, [ makeBoolean(!(me.b))]);
+        }
       }),
 
-      _tostring: makeMethod(function(me) {
-        checkIf(b, isBoolean, 'toString');
-       return toRepr(me); 
+      _tostring: makeMethod(function(k, f, me) {
+        if(checkIf(f, b, isBoolean, 'toString')){ 
+       applyFunction(k, [ toRepr(me)]);
+        }
       }),   
-      _torepr: makeMethod(function(me) {
-       checkIf(b, isBoolean, 'torepr');
-       return makeString(String(me.b)); 
+      _torepr: makeMethod(function(k, f, me) {
+       if(checkIf(f, b, isBoolean, 'torepr')){
+       applyFunction(k, [ makeString(String(me.b))]);
+       }
       }),   
-      _equals: makeMethod(function(me, other) {
-        checkBothBool(me, other);
-       return makeBoolean(me.b === other.b); 
+      _equals: makeMethod(function(k, f, me, other) {
+        if(checkBothBool(f, me, other)) {
+       applyFunction(k, [ makeBoolean(me.b === other.b)]);
+        }
       }),   
     };
 
