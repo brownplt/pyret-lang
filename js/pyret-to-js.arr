@@ -360,7 +360,8 @@ fun cps(ast):
        lam(l, [arg(l, K), arg(l, F)],
             app(l, cps(obj),
                 [lam(l, [arg(l, '$ov')], 
-                    app(l, id(l, K), [A.s_colon_bracket(l, id(l, '$ov'), f)])), id(l, F)]))
+                    app(l, id(l, K), [A.s_colon_bracket_k(l, A.s_obj(l, [A.s_data_field(l, A.s_str(l,K), id(l, K)), A.s_data_field(l, A.s_str(l,F), id(l, F))]),
+                    id(l, '$ov'), f)])), id(l, F)]))
 
     | s_get_bang(l, obj, field) => 
         desugared = A.s_app(l, A.s_bracket(l, A.s_colon_bracket(l, obj, A.s_str(l, field)), A.s_str(l, "get")), [])
@@ -464,8 +465,10 @@ fun expr-to-js(ast):
         | else => raise("Non-string lookups not supported")
       end
     | s_colon_bracket(_, obj, f) =>
+        raise("NOPE: Shouldn't have these with cps")
+    | s_colon_bracket_k(_, conts, obj, f) =>
       cases (A.Expr) f:
-        | s_str(_, s) => format("RUNTIME.getColonField(~a, '~a')", [expr-to-js(obj), s])
+        | s_str(_, s) => format("RUNTIME.getColonField(~a, '~a', ~a)", [expr-to-js(obj), s, expr-to-js(conts)])
         | else => raise("Non-string lookups not supported")
       end
     | s_id(_, id) => id-access(id)

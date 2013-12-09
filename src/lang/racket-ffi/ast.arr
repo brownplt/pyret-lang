@@ -269,8 +269,6 @@ data Expr:
     end
   | s_update(l :: Loc, super :: Expr, fields :: List<Member>) with:
     label(self): "s_update" end,
-  | s_update_cps(l :: Loc, super :: Expr, fields :: List<Member>, k :: Expr, f :: Expr) with: #Special ast for cpsing, allows you to get the continuations to pass to set
-    label(self): "s_update" end,
   | s_obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s_obj" end,
     tosource(self):
@@ -380,6 +378,28 @@ data Expr:
       label(self): "s_check" end,
     tosource(self):
       PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
+    end
+  | s_update_k(l :: Loc, conts :: Expr, super :: Expr, fields :: List<Member>) with: #Special ast for cpsing, allows you to get the continuations to pass to set
+    label(self): "s_update" end,
+
+  | s_app_k(l :: Loc, conts :: Expr, _fun :: Expr, args :: List<Expr>) with:
+    label(self): "s_app" end,
+    tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+    end
+
+  | s_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
+    label(self): "s_bracket" end,
+    tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(),
+        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+    end
+
+  | s_colon_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
+    label(self): "s_colon_bracket" end,
+    tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
+        PP.surround(PP.lbrack, self.field.tosource(), PP.rbrack))
     end
 end
 

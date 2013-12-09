@@ -272,10 +272,10 @@ LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
 #    [test-section("misc", MISC)] +
-    BASIC-TESTS +
-    CLASS-TESTS + 
+    #BASIC-TESTS +
+    CLASS-TESTS
     #MOORINGS-TESTS
-    LIST-LIB-TESTS
+    #LIST-LIB-TESTS
   )
 
 

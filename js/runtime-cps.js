@@ -666,12 +666,14 @@ var PYRET_CPS = (function () {
         Val: A pyret value
         Str: The name of the field to retrieve
     **/
-    function getColonField(val, str) {
+    function getColonField(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            throwPyretMessage(str + " was not found on " + toRepr(val).s);
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
         }
+        else{
         return fieldVal;
+        }
       }
 
 
