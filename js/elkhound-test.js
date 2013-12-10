@@ -7,14 +7,18 @@ const OrderedSet = E.OrderedSet
 
 var g = new Grammar("Example", "E");
 // g.addRule("S", [new Nonterm("E"), E.EOF]);
-g.addRule("E", [new Nonterm("T"), new Nonterm("E'")]);
-g.addRule("E'", [new Lit("+"), new Nonterm("T"), new Nonterm("E'")]);
-g.addRule("E'", []);
-g.addRule("T", [new Nonterm("F"), new Nonterm("T'")]);
-g.addRule("T'", [new Lit("*"), new Nonterm("F"), new Nonterm("T'")]);
-g.addRule("T'", []);
-g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
-g.addRule("F", [new Token("id")]);
+// g.addRule("E", [new Nonterm("T"), new Nonterm("E'")]);
+// g.addRule("E'", [new Lit("+"), new Nonterm("T"), new Nonterm("E'")]);
+// g.addRule("E'", []);
+// g.addRule("T", [new Nonterm("F"), new Nonterm("T'")]);
+// g.addRule("T'", [new Lit("*"), new Nonterm("F"), new Nonterm("T'")]);
+// g.addRule("T'", []);
+// g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
+// g.addRule("F", [new Token("id")]);
+
+g.addRule("E", [new Nonterm("E"), new Nonterm("E")]);
+g.addRule("E", []);
+g.addRule("E", [new Lit("a")]);
 
 // g.addRule("S", [new Nonterm("E")]);
 // g.addRule("E", [new Nonterm("E"), new Lit("+"), new Nonterm("T")]);
@@ -110,8 +114,9 @@ function token_stream(toks) {
 }
 
 function id(x) { return new Token("id", x); }
-var tokens = token_stream([id("i"), new Token("+"), id("j"), new Token("*"), id("k")]) //, new Token("+"), id("m"),
-//                          new Token("*"), id("p")]);
+// var tokens = token_stream([id("i"), new Token("+"), id("j"), new Token("*"), id("k")]) //, new Token("+"), id("m"),
+// //                          new Token("*"), id("p")]);
+var tokens = token_stream([id("a")]);
 var parsed = g.parse(tokens);
 console.log(parsed.toString());
 
