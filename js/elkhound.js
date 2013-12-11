@@ -18,13 +18,13 @@ function OrderedSet(items, comparison) {
       this.add(items[i]);
   }
 }
-OrderedSet.fromJSON = function(obj, f) {
-  var ret = new OrderedSet([], eval(obj.comparison));
-  for (var i = 0; i < obj.items.length; i++) {
+OrderedSet.fromSerializable = function(obj, comparison, f) {
+  var ret = new OrderedSet([], comparison);
+  for (var i = 0; i < obj.length; i++) {
     if (f)
-      ret.add(f(obj.items[i]));
+      ret.add(f(obj[i]));
     else
-      ret.add(obj.items[i]);
+      ret.add(obj[i]);
   }
   return ret;
 }
@@ -129,15 +129,13 @@ OrderedSet.prototype.inter = function(that) {
       ret.add(start.ordered[i])
   return ret;
 }
-OrderedSet.prototype.toJSON = function() {
-  var ret = {items: []};
-  if (this.comparison)
-    ret.comparison = this.comparison.toString();
+OrderedSet.prototype.toSerializable = function() {
+  var ret = [];
   for (var i = 0; i < this.ordered.length; i++) {
-    if (this.ordered[i].toJSON)
-      ret.items[i] = this.ordered[i].toJSON()
+    if (this.ordered[i].toSerializable)
+      ret[i] = this.ordered[i].toSerializable()
     else
-      ret.items[i] = this.ordered[i];
+      ret[i] = this.ordered[i];
   }
   return ret;
 }  
@@ -190,7 +188,7 @@ Atom.equals = function(thiz, that) {
   return false;
 }
 Atom.equals.toString = function() { return "Atom.equals" };
-Atom.fromJSON = function(obj) {
+Atom.fromSerializable = function(obj) {
   if (obj === undefined) return undefined;
   if (obj.type === "Nonterm") return new Nonterm(obj.name);
   if (obj.type === "Token") return new Token(obj.name, obj.value);
@@ -212,35 +210,35 @@ function Token(name, value) {
   else
     this.value = name;
 }
-Nonterm.prototype.toJSON = function() { return {type: "Nonterm", name: this.name}; }
+Nonterm.prototype.toSerializable = function() { return {type: "Nonterm", name: this.name}; }
 Token.prototype = Object.create(Atom.prototype);
 Token.prototype.toString = function(showVal) { 
-  if (showVal)
+  if (showVal && this.name !== this.value)
     return "('" + this.name + " " + JSON.stringify(this.value) + ")";
   else
     return "'" + this.name; 
 }
-Token.prototype.toJSON = function() { return {type: "Token", name: this.name, value: this.value}; }
+Token.prototype.toSerializable = function() { return {type: "Token", name: this.name, value: this.value}; }
 function Lit(str) {
   this.str = str;
   this.asString = '"' + this.str.toString().replace(/[\\"']/g, '\\$&') + '"';
 }
 Lit.prototype = Object.create(Token.prototype);
 Lit.prototype.toString = function() { return this.asString; }
-Lit.prototype.toJSON = function() { return {type: "Lit", str: this.str}; }
+Lit.prototype.toSerializable = function() { return {type: "Lit", str: this.str}; }
 
 const EOF = Object.create(Token.prototype, 
                           {name: {enumerable: true, value: "EOF"}, 
                            toString: {value: function() { return "$"; }},
-                           toJSON: {value: function() { return {type:"EOF"}; } }});
+                           toSerializable: {value: function() { return {type:"EOF"}; } }});
 const EPSILON = Object.create(Atom.prototype, 
                               {name: {enumerable: true, value: "EPSILON"}, 
                                toString: {value: function() { return "ε"; }},
-                               toJSON: {value: function() { return {type:"EPSILON"}; } }});
+                               toSerializable: {value: function() { return {type:"EPSILON"}; } }});
 const HASH = Object.create(Atom.prototype, 
                               {name: {enumerable: true, value: "HASH"}, 
                                toString: {value: function() { return "#"; }},
-                               toJSON: {value: function() { return {type:"HASH"}; } }});
+                               toSerializable: {value: function() { return {type:"HASH"}; } }});
 
 //////////////////////////////////
 //////////// Actions /////////////
@@ -251,21 +249,28 @@ Action.equals = function actionEquals(thiz, that) {
   return (thiz.type === that.type && Rule.equals(thiz.rule, that.rule) && thiz.dest == that.dest);
 }
 Action.equals.toString = function() { return "Action.equals"; }
-Action.fromJSON = function(obj) {
-  if (obj === undefined) return undefined;
-  if (obj.type === "Reduce") return new ReduceAction(Rule.fromJSON(obj.rule));
-  if (obj.type === "Shift") return new ShiftAction(obj.dest);
-  if (obj.type === "Goto") return new GotoAction(obj.dest);
-  if (obj.type === "Accept") return new AcceptAction();
+Action.prototype.toSerializable = function() { return this.toString(true); }
+Action.fromSerializable = function (rulesByOldId) { return function(str) {
+  if (str === undefined) return undefined;
+  var parts = str.split(" ");
+  if (parts[0] === "Reduce") return new ReduceAction(rulesByOldId[parts[1]]);
+  if (parts[0] === "Shift") return new ShiftAction(parseInt(parts[1]));
+  if (parts[0] === "Goto") return new GotoAction(parseInt(parts[1]));
+  if (parts[0] === "Accept") return new AcceptAction();
   return null;
-}
-Action.prototype.toJSON = function() { return this; }
+} }
 function ReduceAction(rule) {
   this.type = "Reduce";
   this.rule = rule;
 }
 ReduceAction.prototype = Object.create(Action.prototype);
-ReduceAction.prototype.toString = function() { return "Reduce " + this.rule.id + ":" + this.rule.asString; }
+ReduceAction.prototype.toSerializable = function() { return "Reduce " + this.rule.id; }
+ReduceAction.prototype.toString = function(hideRule) { 
+  if (hideRule)
+    return "Reduce " + this.rule.id;
+  else
+    return "Reduce " + this.rule.id + ":" + this.rule.asString;
+}
 ReduceAction.prototype.equals = function(that) { return (that instanceof ReduceAction) && (this.rule == that.rule); }
 function ShiftAction(dest) {
   this.type = "Shift";
@@ -428,13 +433,20 @@ RuleFactory.make = function(name, symbols, lookahead, pos, action) {
     return rule;
   }
 }
-Rule.fromJSON = function(obj) {
-  var sym = [];
-  sym.length = obj.symbols.length;
-  for (var i = 0; i < obj.symbols.length; i++) {
-    sym[i] = Atom.fromJSON(obj.symbols[i]);
+Rule.fromSerializable = function(rulesByOldId, id) {
+  var obj = rulesByOldId[id];
+  if (obj.hasOwnProperty("like")) {
+    var base = Rule.fromSerializable(rulesByOldId, obj.like);
+    var lookahead = obj.lookahead;
+    return RuleFactory.make(base.name, base.symbols, Atom.fromSerializable(lookahead), obj.position, base.action);
+  } else {
+    var sym = [];
+    sym.length = obj.symbols.length;
+    for (var i = 0; i < obj.symbols.length; i++) {
+      sym[i] = Atom.fromSerializable(obj.symbols[i]);
+    }
+    return RuleFactory.make(obj.name, sym, Atom.fromSerializable(obj.lookahead), obj.position, eval(obj.action));
   }
-  return RuleFactory.make(obj.name, sym, Atom.fromJSON(obj.lookahead), obj.position, eval(obj.action));
 }
 
 Rule.NextRuleId = 0;
@@ -462,17 +474,20 @@ Rule.prototype = {
   withLookahead: function(lookahead) { 
     return RuleFactory.make(this.name, this.symbols, lookahead, this.position, this.action); 
   },
-  toJSON: function() {
+  toSerializable: function() {
     var ret = {};
+    if (this.lookahead) {
+      ret.lookahead = this.lookahead.toSerializable();
+      ret.like = this.withLookahead(undefined).id;
+      return ret;
+    }
     ret.name = this.name;
-    if (this.lookahead)
-      ret.lookahead = this.lookahead.toJSON();
     if (this.action)
       ret.action = this.action.toString();
     ret.position = this.position;
     ret.symbols = [];
     for (var i = 0; i < this.symbols.length; i++)
-      ret.symbols[i] = this.symbols[i].toJSON();
+      ret.symbols[i] = this.symbols[i].toSerializable();
     return ret;
   }
 }
@@ -493,27 +508,43 @@ function Grammar(name, start) {
   this.nonterms = new OrderedSet([], Atom.equals);
 }
 
-Grammar.fromJSON = function(obj) {
+Grammar.fromSerializable = function(obj) {
   var g = new Grammar(obj.name, obj.start);
-  for (var i = 0; i < obj.rules.length; i++) {
-    g.addRule(Rule.fromJSON(obj.rules[i]));
+  var rulesByOldId = {};
+  for (var id in obj.rulesByOldId) {
+    rulesByOldId[id] = Rule.fromSerializable(obj.rulesByOldId, id);
   }
+  for (var i = 0; i < obj.rules.length; i++)
+    g.addRule(rulesByOldId[obj.rules[i]]);
   g.actionTable = [];
   for (var i = 0; i < obj.actionTable.length; i++) {
     var tableRow = obj.actionTable[i];
     var newRow = g.actionTable[i] = {};
-    for (var name in tableRow)
-      newRow[name] = OrderedSet.fromJSON(tableRow[name], Action.fromJSON)
+    for (var j = 0; j < g.atoms.size(); j++) {
+      var atom = g.atoms.get(i);
+      if (atom in tableRow)
+        newRow[atom] = OrderedSet.fromSerializable(tableRow[atom], Action.equals, 
+                                                   Action.fromSerializable(rulesByOldId))
+      else
+        newRow[atom] = new OrderedSet([], Action.equals);
+    }
   }
   g.gotoTable = [];
   for (var i = 0; i < obj.gotoTable.length; i++) {
     var tableRow = obj.gotoTable[i];
     var newRow = g.gotoTable[i] = {};
     for (var name in tableRow)
-      newRow[name] = Action.fromJSON(tableRow[name])
+      newRow[name] = Action.fromSerializable(rulesByOldId)(tableRow[name])
   }
-  g.acceptStates = obj.acceptStates;
-  g.derivable = obj.derivable;
+  g.acceptStates = [];
+  for (var i = 0; i < obj.acceptStates.length; i++)
+    g.acceptStates[obj.acceptStates[i]] = true;
+  g.derivable = {};
+  for (var name in obj.derivable) {
+    g.derivable[name] = {};
+    for (var i = 0; i < obj.derivable[name].length; i++)
+      g.derivable[name][obj.derivable[name][i]] = true;
+  }
   g.mode = obj.mode;
   return g;
 }
@@ -539,43 +570,45 @@ Grammar.prototype = {
       this.start = new_start;
       this.initialized = true;
     }
-    console.log("Computing first sets");
-    this.computeFirstSets();
-    console.log("Computing follow sets");
-    this.computeFollowSets();
-    console.log("Computing states");
-    // this.computeStates();
-    // var oldStyleTables = this.printTables();
-    // var oldStyleStates = "";
-    // for (var i = 0; i < this.states.size(); i++)
-    //   oldStyleStates += "State " + i + ": " + this.states.get(i).toString(true, true) + "\n";
-    // this.resetParser();
-    // this.computeFirstSets();
-    // this.computeFollowSets();
-    this.computeStateKernels();
-    this.computeActions();
-    // var newStyleTables = this.printTables();
-    // var newStyleStates = "";
-    // for (var i = 0; i < this.states.size(); i++)
-    //   newStyleStates += "State " + i + ": " + this.completeClosure(this.states.get(i)).toString(true, true) + "\n";
-    // if (oldStyleStates != newStyleStates) {
-    //   console.log("LALR Discrepancies in state sets between two approaches:");
-    //   console.log("Old approach:");
-    //   console.log(oldStyleStates);
-    //   console.log("New approach:");
-    //   console.log(newStyleStates);
-    //   throw("failure");
-    // }
-    // if (oldStyleTables != newStyleTables) {
-    //   console.log("LALR Discrepancies in action tables between two approaches:");
-    //   console.log("Old approach:");
-    //   console.log(oldStyleTables);
-    //   console.log("New approach:");
-    //   console.log(newStyleTables);
-    //   throw("failure");
-    // }
-    this.mode = "LALR";
-    console.log("Checking for ambiguity in " + this.name);
+    if (!forceGLR) {
+      console.log("Computing first sets");
+      this.computeFirstSets();
+      console.log("Computing follow sets");
+      this.computeFollowSets();
+      console.log("Computing states");
+      // this.computeStates();
+      // var oldStyleTables = this.printTables();
+      // var oldStyleStates = "";
+      // for (var i = 0; i < this.states.size(); i++)
+      //   oldStyleStates += "State " + i + ": " + this.states.get(i).toString(true, true) + "\n";
+      // this.resetParser();
+      // this.computeFirstSets();
+      // this.computeFollowSets();
+      this.computeStateKernels();
+      this.computeActions();
+      // var newStyleTables = this.printTables();
+      // var newStyleStates = "";
+      // for (var i = 0; i < this.states.size(); i++)
+      //   newStyleStates += "State " + i + ": " + this.completeClosure(this.states.get(i)).toString(true, true) + "\n";
+      // if (oldStyleStates != newStyleStates) {
+      //   console.log("LALR Discrepancies in state sets between two approaches:");
+      //   console.log("Old approach:");
+      //   console.log(oldStyleStates);
+      //   console.log("New approach:");
+      //   console.log(newStyleStates);
+      //   throw("failure");
+      // }
+      // if (oldStyleTables != newStyleTables) {
+      //   console.log("LALR Discrepancies in action tables between two approaches:");
+      //   console.log("Old approach:");
+      //   console.log(oldStyleTables);
+      //   console.log("New approach:");
+      //   console.log(newStyleTables);
+      //   throw("failure");
+      // }
+      this.mode = "LALR";
+      console.log("Checking for ambiguity in " + this.name);
+    }
     var ambiguity = forceGLR || this.checkForLALRAmbiguity()
     if (forceGLR === true || ambiguity.length > 0) {
       var orig_start = this.rules[this.start][0].symbols[0];
@@ -658,17 +691,31 @@ Grammar.prototype = {
     return s;
   },
 
-  toJSON: function() {
+  toSerializable: function() {
     var ret = {};
     ret.start = this.start;
     ret.name = this.name;
-    ret.acceptStates = this.acceptStates;
+    ret.acceptStates = [];
+    for (var i = 0; i < this.acceptStates.length; i++)
+      if (this.acceptStates[i])
+        ret.acceptStates.push(i);
     ret.mode = this.mode;
-    ret.derivable = this.derivable;
+    ret.derivable = {};
+    for (var name in this.derivable) {
+      ret.derivable[name] = [];
+      for (var der in this.derivable[name])
+        ret.derivable[name].push(der);
+    }
+    ret.rulesByOldId = {};
     ret.rules = [];
     for (var name in this.rules) {
       for (var i = 0; i < this.rules[name].length; i++) {
-        ret.rules.push(this.rules[name][i].toJSON());
+        var rule = this.rules[name][i];
+        var id = rule.id;
+        ret.rulesByOldId[id] = rule.toSerializable();
+        ret.rules.push(id);
+        var rule_noLookahead = rule.withLookahead(undefined);
+        ret.rulesByOldId[rule_noLookahead.id] = rule_noLookahead.toSerializable();
       }
     }
     ret.actionTable = [];
@@ -676,8 +723,17 @@ Grammar.prototype = {
       ret.actionTable[i] = {};
       var tableRow = this.actionTable[i];
       for (var name in tableRow) {
-        if (tableRow.hasOwnProperty(name))
-          ret.actionTable[i][name] = tableRow[name].toJSON();
+        if (tableRow.hasOwnProperty(name) && tableRow[name].size() > 0) {
+          ret.actionTable[i][name] = tableRow[name].toSerializable();
+          for (var j = 0; j < tableRow[name].size(); j++) {
+            var act = tableRow[name].get(j);
+            if (act instanceof ReduceAction) {
+              ret.rulesByOldId[act.rule.id] = act.rule.toSerializable();
+              var rule_noLookahead = act.rule.withLookahead(undefined);
+              ret.rulesByOldId[rule_noLookahead.id] = rule_noLookahead.toSerializable();
+            }
+          }
+        }
       }
     }
     ret.gotoTable = [];
@@ -688,7 +744,7 @@ Grammar.prototype = {
         if (tableRow.hasOwnProperty(name)) {
           var _goto = tableRow[name];
           if (_goto !== undefined)
-            _goto = _goto.toJSON();
+            _goto = _goto.toSerializable();
           ret.gotoTable[i][name] = _goto;
         }
       }

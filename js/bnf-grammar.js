@@ -195,6 +195,8 @@ g.initializeParser();
 
 
 
+
+
 function generateGrammar(bnf, name) {
   var ret = [];
   var firstRule = undefined;
@@ -328,11 +330,12 @@ if (parsed !== null) {
   var grammar_name = "grammar";
   var bnfJS = generateGrammar(parsed, grammar_name);
   var out = fs.createWriteStream("grammar.js");
+  out.write("const fs = require('fs');\n");
   out.write("const E = require('./elkhound.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
   out.write("const Lit = E.Lit\nconst Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
   out.write(bnfJS.join("\n"));
   out.write("\n\n");
-  out.write("g.initializeParser();\n")
+  out.write("g.initializeParser(true);\n")
   out.write("var ambiguities = g.checkForLALRAmbiguity();\n");
   out.write("if (ambiguities.length == 0) {\n");
   out.write("  console.log(\"Unambiguous grammar!\");\n");
@@ -340,6 +343,13 @@ if (parsed !== null) {
   out.write("  for (var i = 0; i < ambiguities.length; i++)\n");
   out.write("    console.log(ambiguities[i]);\n");
   out.write("}\n");
+  out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
+  out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
+  out.write("out.write(\"const E = require('./elkhound.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
+  out.write("out.write(\"const Lit = E.Lit\\nconst Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
+  out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
+  out.write("out.write(\"var g = Grammar.fromSerializable(g_json);\\n\");\n");
+  out.write("out.end();\n");
   out.end();
 }
 

@@ -105,7 +105,6 @@ g.computeStateKernels();
 console.log("All reachable LR(1) states:")
 for (var i = 0; i < g.states.size(); i++)
   console.log(g.states.get(i).toString(true) + "\n")
-g.gotoTable = g.gotoStates;
 g.computeActions();
 console.log(g.printTables());
 g.initializeParser(false);
@@ -160,8 +159,9 @@ console.log(g.printTables());
 // console.log(glr_parsed.toString());
 
 
-// var g_json = JSON.stringify(g.toJSON(), null, "  ")
-// var g2 = Grammar.fromJSON(JSON.parse(g_json))
+var g_json = JSON.stringify(g.toSerializable(), null, "  ")
+console.log(g_json);
+var g2 = Grammar.fromSerializable(JSON.parse(g_json))
 
 // tokens.reset();
 // var reparsed = g2.parse(tokens);
