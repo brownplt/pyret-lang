@@ -35,13 +35,18 @@ OrderedSet.equals = function orderedSetEquals(thiz, that) {
       return false;
   return true;
 }
-OrderedSet.prototype.toString = function(sep_lines) {
+OrderedSet.prototype.toString = function(sep_lines, sorted) {
   var s = "";
-  for (var i = 0; i < this.ordered.length; i++) {
+  var items_strs = []
+  for (var i = 0; i < this.ordered.length; i++)
+    items_strs[i] = this.ordered[i].toString();
+  if (sorted)
+    items_strs.sort();
+  for (var i = 0; i < items_strs.length; i++) {
     if (s == "")
-      s += "{" + this.ordered[i].toString();
+      s += "{" + items_strs[i]
     else
-      s += (sep_lines ? ",\n " : ", ") + this.ordered[i].toString();
+      s += (sep_lines ? ",\n " : ", ") + items_strs[i];
   }
   if (s == "")
     return "{}";
@@ -62,12 +67,14 @@ OrderedSet.prototype.add = function(item) {
     if (index === -1) {
       items.push(item);
       this.ordered.push(item);
+      return true;
     }
   } else {
     this.elements[key] = [item];
     this.ordered.push(item);
+    return true;
   }
-  return this;
+  return false;
 }
 OrderedSet.prototype.indexOf = function(item) {
   return this.indexOfHelp(this.ordered, item);
@@ -100,9 +107,10 @@ OrderedSet.prototype.union = function(that) {
   return res;
 }
 OrderedSet.prototype.merge = function(that) {
+  var ret = false;
   for (var i = 0; i < that.ordered.length; i++)
-    this.add(that.ordered[i]);
-  return this;
+    ret = this.add(that.ordered[i]) || ret;
+  return ret;
 }
 OrderedSet.prototype.subtract = function(that) {
   for (var i = 0; i < that.ordered.length; i++)
@@ -121,13 +129,14 @@ OrderedSet.prototype.inter = function(that) {
       ret.add(start.ordered[i])
   return ret;
 }
-OrderedSet.prototype.toJSON = function(f) {
-  var ret = {items: [], comparison: this.comparison.toString()};
+OrderedSet.prototype.toJSON = function() {
+  var ret = {items: []};
+  if (this.comparison)
+    ret.comparison = this.comparison.toString();
   for (var i = 0; i < this.ordered.length; i++) {
-    if (f) {
-      console.log(f);
-      ret.items[i] = f(this.ordered[i]);
-    } else
+    if (this.ordered[i].toJSON)
+      ret.items[i] = this.ordered[i].toJSON()
+    else
       ret.items[i] = this.ordered[i];
   }
   return ret;
@@ -161,7 +170,7 @@ Queue.prototype.get = function(idx) {
 }
 Queue.prototype.insertAt = function(idx, item) {
   if (this.start + idx < this.end) {
-    this.splice(this.start + idx, 0, item);
+    this.items.splice(this.start + idx, 0, item);
     this.end++;
     this.length++;
   } else
@@ -180,6 +189,7 @@ Atom.equals = function(thiz, that) {
   if ((thiz instanceof Lit) && (that instanceof Lit) && (thiz.str == that.str)) return true;
   return false;
 }
+Atom.equals.toString = function() { return "Atom.equals" };
 Atom.fromJSON = function(obj) {
   if (obj === undefined) return undefined;
   if (obj.type === "Nonterm") return new Nonterm(obj.name);
@@ -187,6 +197,7 @@ Atom.fromJSON = function(obj) {
   if (obj.type === "Lit") return new Lit(obj.str);
   if (obj.type === "EOF") return EOF;
   if (obj.type === "EPSILON") return EPSILON;
+  if (obj.type === "HASH") return HASH;
   return null;
 }
 function Nonterm(name) {
@@ -226,6 +237,10 @@ const EPSILON = Object.create(Atom.prototype,
                               {name: {enumerable: true, value: "EPSILON"}, 
                                toString: {value: function() { return "ε"; }},
                                toJSON: {value: function() { return {type:"EPSILON"}; } }});
+const HASH = Object.create(Atom.prototype, 
+                              {name: {enumerable: true, value: "HASH"}, 
+                               toString: {value: function() { return "#"; }},
+                               toJSON: {value: function() { return {type:"HASH"}; } }});
 
 //////////////////////////////////
 //////////// Actions /////////////
@@ -356,45 +371,55 @@ Rule.Inline = function(kids) {
 Rule.Inline.toString = function() { return "Rule.Inline"; }
 
 var RuleFactory = {};
+RuleFactory.cache = {};
+RuleFactory.byId = {};
 RuleFactory.make = function(name, symbols, lookahead, pos, action) {
-  var byName = RuleFactory.cache[name];
-  if (byName) {
-    var bySymbols = byName[symbols];
-    if (bySymbols) {
-      var byLookahead = bySymbols[lookahead];
-      if (byLookahead) {
-        var byPos = byLookahead[pos];
-        if (byPos) {
-          var byAction = byPos[action];
-          if (byAction) return byAction;
+  if (action === undefined)
+    action = Rule.defaultAction
+  pos = pos || 0;
+  var findByName = RuleFactory.cache[name];
+  if (findByName) {
+    var findBySymbols = findByName[symbols];
+    if (findBySymbols) {
+      var findByLookahead = findBySymbols[lookahead];
+      if (findByLookahead) {
+        var findByPos = findByLookahead[pos];
+        if (findByPos) {
+          var findByAction = findByPos[action];
+          if (findByAction) return findByAction;
           else {
             var rule = new Rule(name, symbols, lookahead, pos, action);
-            byPos[action] = rule;
+            RuleFactory.byId[rule.id] = rule;
+            findByPos[action] = rule;
             return rule;
           }
         } else {
           var rule = new Rule(name, symbols, lookahead, pos, action);
+          RuleFactory.byId[rule.id] = rule;
           var byAction = {}; byAction[action] = rule;
-          byLookahead[pos] = byAction;
+          findByLookahead[pos] = byAction;
           return rule;
         }
       } else {
         var rule = new Rule(name, symbols, lookahead, pos, action);
+        RuleFactory.byId[rule.id] = rule;
         var byAction = {}; byAction[action] = rule;
         var byPos = {}; byPos[pos] = byAction;
-        bySymbols[lookahead] = byPos;
+        findBySymbols[lookahead] = byPos;
         return rule;
       }
     } else {
       var rule = new Rule(name, symbols, lookahead, pos, action);
+      RuleFactory.byId[rule.id] = rule;
       var byAction = {}; byAction[action] = rule;
       var byPos = {}; byPos[pos] = byAction;
       var byLookahead = {}; byLookahead[lookahead] = byPos;
-      byName[symbols] = byLookahead;
+      findByName[symbols] = byLookahead;
       return rule;
     }
   } else {
     var rule = new Rule(name, symbols, lookahead, pos, action);
+    RuleFactory.byId[rule.id] = rule;
     var byAction = {}; byAction[action] = rule;
     var byPos = {}; byPos[pos] = byAction;
     var byLookahead = {}; byLookahead[lookahead] = byPos;
@@ -403,12 +428,12 @@ RuleFactory.make = function(name, symbols, lookahead, pos, action) {
     return rule;
   }
 }
-RuleFactory.cache = {}
 Rule.fromJSON = function(obj) {
   var sym = [];
   sym.length = obj.symbols.length;
-  for (var i = 0; i < obj.symbols.length; i++)
+  for (var i = 0; i < obj.symbols.length; i++) {
     sym[i] = Atom.fromJSON(obj.symbols[i]);
+  }
   return RuleFactory.make(obj.name, sym, Atom.fromJSON(obj.lookahead), obj.position, eval(obj.action));
 }
 
@@ -494,6 +519,15 @@ Grammar.fromJSON = function(obj) {
 }
 
 Grammar.prototype = {
+  resetParser: function() {
+    this.actionTable = [];
+    this.gotoTable = [];
+    this.acceptStates = [];
+    delete this.first;
+    delete this.nontermFirst;
+    delete this.follow;
+    delete this.states;
+  },
   initializeParser: function(forceGLR) {
     console.log("Initializing " + this.name);
     var new_start;
@@ -510,14 +544,45 @@ Grammar.prototype = {
     console.log("Computing follow sets");
     this.computeFollowSets();
     console.log("Computing states");
-    this.computeStates();
+    // this.computeStates();
+    // var oldStyleTables = this.printTables();
+    // var oldStyleStates = "";
+    // for (var i = 0; i < this.states.size(); i++)
+    //   oldStyleStates += "State " + i + ": " + this.states.get(i).toString(true, true) + "\n";
+    // this.resetParser();
+    // this.computeFirstSets();
+    // this.computeFollowSets();
+    this.computeStateKernels();
+    this.computeActions();
+    // var newStyleTables = this.printTables();
+    // var newStyleStates = "";
+    // for (var i = 0; i < this.states.size(); i++)
+    //   newStyleStates += "State " + i + ": " + this.completeClosure(this.states.get(i)).toString(true, true) + "\n";
+    // if (oldStyleStates != newStyleStates) {
+    //   console.log("LALR Discrepancies in state sets between two approaches:");
+    //   console.log("Old approach:");
+    //   console.log(oldStyleStates);
+    //   console.log("New approach:");
+    //   console.log(newStyleStates);
+    //   throw("failure");
+    // }
+    // if (oldStyleTables != newStyleTables) {
+    //   console.log("LALR Discrepancies in action tables between two approaches:");
+    //   console.log("Old approach:");
+    //   console.log(oldStyleTables);
+    //   console.log("New approach:");
+    //   console.log(newStyleTables);
+    //   throw("failure");
+    // }
     this.mode = "LALR";
     console.log("Checking for ambiguity in " + this.name);
-    if (forceGLR || this.checkForLALRAmbiguity().length > 0) {
+    var ambiguity = forceGLR || this.checkForLALRAmbiguity()
+    if (forceGLR === true || ambiguity.length > 0) {
       var orig_start = this.rules[this.start][0].symbols[0];
       this.rules[this.start] = []
       this.addRule(this.start, [orig_start, EOF]);
       console.log("Computing first sets");
+      this.resetParser();
       this.computeFirstSets();
       console.log("Computing follow sets");
       this.computeFollowSets();
@@ -526,8 +591,53 @@ Grammar.prototype = {
       console.log("Sorting nonterminals");
       this.topoSortNonterms();
       console.log("Computing states");
-      this.computeStates();
+      delete this.gotoTable;
+      this.computeStateKernels();
+      this.computeActions();
+      // var newGotoStatesStr = JSON.stringify(this.gotoTable, null, "  ");
+      // newStyleTables = this.printTables();
+      // newStyleStates = "";
+      // for (var i = 0; i < this.states.size(); i++)
+      //   newStyleStates += "State " + i + ": " + this.completeClosure(this.states.get(i)).toString(true, true) + "\n";
+      // this.resetParser();
+      // this.computeFirstSets();
+      // this.computeFollowSets();
+      // this.computeStates();
+      // var oldGotoTableStr = JSON.stringify(this.gotoTable, null, "  ");
+      // oldStyleTables = this.printTables();
+      // oldStyleStates = "";
+      // for (var i = 0; i < this.states.size(); i++)
+      //   oldStyleStates += "State " + i + ": " + this.states.get(i).toString(true, true) + "\n";
+      // if (oldStyleStates != newStyleStates) {
+      //   console.log("GLR Discrepancies in state sets between two approaches:");
+      //   console.log("Old approach:");
+      //   console.log(oldStyleStates);
+      //   console.log("New approach:");
+      //   console.log(newStyleStates);
+      //   throw("failure 1");
+      // }
+      // if (oldGotoTableStr != newGotoStatesStr) {
+      //   console.log("GLR Discrepancies in state sets between two approaches:");
+      //   console.log("Old approach:");
+      //   console.log(oldGotoTableStr);
+      //   console.log("New approach:");
+      //   console.log(newGotoStatesStr);
+      //   throw("failure 2");
+      // }
+      // if (oldStyleTables != newStyleTables) {
+      //   console.log("GLR Discrepancies in action tables between two approaches:");
+      //   console.log("States:");
+      //   console.log(newStyleStates);
+      //   console.log("Old approach:");
+      //   console.log(oldStyleTables);
+      //   console.log("New approach:");
+      //   console.log(newStyleTables);
+      //   throw("failure 3");
+      // }
       this.mode = "GLR";
+    } else {
+      console.log("No ambiguity, sticking to LALR mode");
+      console.log(this.printTables());
     }
     console.log("Done initializing " + this.name);
   },
@@ -567,7 +677,7 @@ Grammar.prototype = {
       var tableRow = this.actionTable[i];
       for (var name in tableRow) {
         if (tableRow.hasOwnProperty(name))
-          ret.actionTable[i][name] = tableRow[name].toJSON(Action.toJSON);
+          ret.actionTable[i][name] = tableRow[name].toJSON();
       }
     }
     ret.gotoTable = [];
@@ -720,9 +830,11 @@ Grammar.prototype = {
       return ret;
     }
     this.first = {};
+    this.nontermFirst = {};
     for (var name in this.rules) {
       if (this.rules.hasOwnProperty(name)) {
         this.first[name] = {};
+        this.nontermFirst[name] = new OrderedSet([], Atom.equals);
         for (var i = 0; i < this.rules[name].length; i++)
           if (this.rules[name][i].symbols.length == 0)
             addFirst(name, EPSILON);
@@ -731,6 +843,7 @@ Grammar.prototype = {
     while (changed) {
       changed = false;
       for (var name in this.rules) {
+        this.nontermFirst[name].add(name);
         if (this.rules.hasOwnProperty(name)) {
           var name_rules = this.rules[name];
           for (var i = 0; i < name_rules.length; i++) {
@@ -738,6 +851,7 @@ Grammar.prototype = {
             for (var j = 0; j < name_rule.symbols.length; j++) {
               if (name_rule.symbols[j] instanceof Nonterm) {
                 changed = merge(name, name_rule.symbols[j]) || changed;
+                this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
                 if (this.first[name_rule.symbols[j]][EPSILON] !== true)
                   break;
               } else {
@@ -843,23 +957,60 @@ Grammar.prototype = {
   computeFollowAtPosition: function(rule, pos) {
     var ret = new OrderedSet([], Atom.equals);
     var start_pos = (pos !== undefined ? pos : rule.position);
-    for (var i = start_pos; i < rule.symbols.length; i++) {
-      if (rule.symbols[i] instanceof Token) { // Tokens aren't nullable, so we're done
-        ret.add(rule.symbols[i]);
-        return ret;
-      } else {
-        var first = this.first[rule.symbols[i]];
-        for (var name in first) {
-          if (first[name] !== EPSILON) {
-            ret.add(first[name]);
+    return this.computeFirstOfStrings(rule.symbols.slice(start_pos), [rule.lookahead]);
+    // for (var i = start_pos; i < rule.symbols.length; i++) {
+    //   if (rule.symbols[i] instanceof Token) {
+    //     ret.add(rule.symbols[i]);
+    //     return ret;
+    //   } else {
+    //     var first = this.first[rule.symbols[i]];
+    //     for (var name in first) {
+    //       if (first[name] !== EPSILON) {
+    //         ret.add(first[name]);
+    //       }
+    //     }
+    //     if (first[EPSILON] === undefined) {
+    //       return ret;
+    //     }
+    //   }
+    // }
+    // ret.add(rule.lookahead);
+    // return ret;
+  },
+
+  //////////////////////////////////
+  // Lifts the first relation from non-terminals to strings of grammar symbols
+  computeFirstOfStrings: function() {
+    var ret = new OrderedSet([], Atom.equals);
+    var nullable = true;
+    for (var i = 0; i < arguments.length; i++) {
+      nullable = true;
+      var syms_i = arguments[i];
+      // console.log("syms[" + i + "] = [" + syms_i + "], length = " + syms_i.length);
+      for (var j = 0; j < syms_i.length; j++) {
+        if (syms_i[j] instanceof Token || syms_i[j] === HASH) { // Tokens aren't nullable, so we're done
+          ret.add(syms_i[j]);
+          nullable = false;
+          break;
+        } else {
+          var first = this.first[syms_i[j]];
+          if (first === undefined) {
+            console.log("WTF? syms_i[j] = " + syms_i[j] + " but first is undefined");
+          }
+          for (var name in first) {
+            if (first[name] !== EPSILON)
+              ret.add(first[name]);
+          }
+          if (first[EPSILON] === undefined) { // This nonterminal isn't nullable, so we're done
+            nullable = false;
+            break;
           }
         }
-        if (first[EPSILON] === undefined) { // This nonterminal isn't nullable, so we're done
-          return ret;
-        }
       }
+      if (!nullable) break;
     }
-    ret.add(rule.lookahead);
+    if (nullable)
+      ret.add(EPSILON);
     return ret;
   },
 
@@ -915,8 +1066,320 @@ Grammar.prototype = {
     // console.log("After pushing dot, new state has size " + ret.size() + " and is " + ret.toString(true));
     this.completeClosure(ret, true);
     // console.log("After closure, new state has size " + ret.size() + " and is " + ret.toString(true));
+
+
+
+    // var kernel = this.computeGotoKernel(rule_set, symbol);
+    // var complete = this.completeClosure(kernel);
+    // var equal_sets = OrderedSet.equals(complete, ret);
+    // console.log("Are completed kernels and this set equal? " + equal_sets);
+    // if (!equal_sets) {
+    //   console.log("Rule_set = " + rule_set + " and symbol = " + symbol);
+    //   console.log("Kernel = " + kernel);
+    //   console.log("Completed kernel = " + complete);
+    //   console.log("ret = " + ret);
+    // }
     return ret;
   },
+
+  //////////////////////////////////
+  // Computes the kernel of the LR(1) Goto set for a given kernel and symbol
+  // Dragon book, p241
+  computeGotoKernel: function(i, rule_set, symbol) {
+    // console.log("--> Rule_set #" + i + " = " + rule_set + ", symbol = " + symbol);
+    var ret = new OrderedSet([], Rule.equals);
+    for (var i = 0; i < rule_set.size(); i++) {
+      var rule = rule_set.get(i);
+      // console.log("    Processing rule " + rule);
+      if (rule.position < rule.symbols.length) {
+        if (rule.symbols[rule.position].toString() == symbol) {
+          var new_rule = RuleFactory.make(rule.name, rule.symbols, undefined, rule.position + 1, rule.action);
+          // console.log("      Pushing " + symbol + " over in rule " + rule + " ==> " + new_rule);
+          ret.add(new_rule);
+        }
+        if (rule.symbols[rule.position] instanceof Nonterm) {
+          var C = rule.symbols[rule.position];
+          var ntFirst = this.nontermFirst[C];
+          // console.log("      nontermFirst[" + C + "] = " + ntFirst.toString());
+          // console.log("      first[" + C + "] = " + JSON.stringify(this.first[C]));
+          for (var idx = 0; idx < ntFirst.size(); idx++) {
+            var a = ntFirst.get(idx);
+            var rules_a = this.rules[a];
+            for (var j = 0; j < rules_a.length; j++) {
+              var rule_a = rules_a[j];
+              // console.log("      Rule " + rule + " can derive " + a + " so examining " + rule_a + " for "+ symbol);
+              if (rule_a.symbols.length > 0 && rule_a.symbols[0].toString() == symbol) {
+                // console.log("      Adding " + rule_a);
+                var new_rule = RuleFactory.make(rule_a.name, rule_a.symbols, undefined, 1, rule_a.action);
+                ret.add(new_rule);
+              }
+            }
+          }
+        }
+      }
+    }
+    // console.log("<-- Result = " + ret);
+    return ret;
+  },
+
+  computeActions: function() {
+    const thiz = this;
+    function initTables(index) {
+      if (thiz.actionTable[index] === undefined) {
+        thiz.actionTable[index] = {};
+        for (var k = 0; k < thiz.tokens.size(); k++)
+          if (thiz.actionTable[index][thiz.tokens.get(k)] === undefined)
+            thiz.actionTable[index][thiz.tokens.get(k)] = new OrderedSet([], Action.equals);
+      }
+      if (thiz.gotoTable[index] === undefined) {
+        thiz.gotoTable[index] = {};
+        for (var k = 0; k < thiz.nonterms.size(); k++)
+          if (thiz.gotoTable[index][thiz.nonterms.get(k)] === undefined)
+            thiz.gotoTable[index][thiz.nonterms.get(k)] = undefined;
+      }
+    }
+
+    // console.log("Goto Table = ");
+    // console.log(JSON.stringify(this.gotoTable, null, "  "));
+    for (var i = 0; i < this.states.size(); i++) {
+      var state_i = this.states.get(i);
+      initTables(i);
+      var full_state = this.completeClosure(state_i);
+      for (var j = 0; j < this.atoms.size(); j++) {
+        var _goto = this.gotoTable[i][this.atoms.get(j)];
+        if (_goto) {
+          if (this.atoms.get(j) instanceof Token) {
+            delete this.gotoTable[i][this.atoms.get(j)]; // This shouldn't be a Goto, it should be a Shift
+            this.actionTable[i][this.atoms.get(j)].add(new ShiftAction(_goto.dest));
+          } else {
+            // Done already
+            // this.gotoTable[i][this.atoms.get(j)] = new GotoAction(state_num);
+          }
+        } // else
+          // console.log("State " + i + " doesn't have a goto for token " + this.atoms.get(j))
+        for (var k = 0; k < full_state.size(); k++) {
+          var item = full_state.get(k);
+          if (item.position == item.symbols.length) {
+            if (item.name == this.start) {
+              this.actionTable[i][EOF].add(new AcceptAction());
+              this.acceptStates[i] = true;
+            } else {
+              this.actionTable[i][item.lookahead].add(new ReduceAction(item));
+            }
+          }
+        }
+      }
+    }
+  },
+
+
+    //   // Add a shift action on token if there's a rule with the dot preceding it, and
+    //   // goto the state in the goto table for that token
+    //   for (var k = 0; k < this.tokens.size(); k++) {
+    //     var token = this.token.get(k);
+    //     for (j = 0; j < state_i.size(); j++) {
+    //       var rule_j = state_i.get(j);
+    //       if (rule_j.position < rule_j.symbols.length &&
+    //           this.computeFirstOfStrings(rule_j.symbols.slice(rule_j.position)).contains(token)) {
+    //         var gotoNum = this.gotoTable[i][token].dest;
+    //         this.actionTable[i][token].add(new ShiftAction(gotoNum));
+    //       }
+    //     }
+    //   }
+    //   // Add A -> epsilon if A -> epsilon exists and
+    //   // If there's a rule [B -> g.Cd, b] such that C =>* An, and a in FIRST(ndb), then
+    //   for (var k = 0; k < this.nonterms.size(); k++) {
+    //     var A = this.nonterms.get(k);
+    //     var eps_A = undefined;
+    //     for (var l = 0; l < this.rules[A].length; l++)
+    //       if (this.rules[A][l].symbols.length === 0) {
+    //         eps_A = this.rules[A][l];
+    //         break;
+    //       }
+    //     if (eps_A !== undefined) {
+    //       for (var j = 0; j < state_i.size(); j++) {
+    //         var rule_j = state_i.get(j); // candidate [B -> g.Cd, b]
+    //         if (rule_j.position < rule_j.symbols.length) {
+    //           var C = rule_j.symbols[rule_j.position];
+    //           if (C instanceof Nonterm && this.nontermFirst[C] && this.nontermFirst[C][A]) {
+    //             if this.computeFirstOfStrings(rule_j
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    //   for (var j = 0; j < state_i.size(); j++) {
+    //     var rule_j = state_i.get(j);
+    //     var rule_j_eps = undefined;
+    //     for (var k = 0; k < this.rules[rule_j.name].length; k++)
+    //       if (this.rules[rule_j.name][k].symbols.length === 0) {
+    //         rule_j_eps = this.rules[rule_j.name][k];
+    //         break;
+    //       }
+    //     if (rule_j.position === rule_j.symbols.length) {
+    //       if (rule_j.name === this.start) {
+    //         this.actionTable[i][EOF].add(new AcceptAction());
+    //         this.acceptStates[i] = true;
+    //       } else {
+    //         this.actionTable[i][rule_j.lookahead].add(new ReduceAction(rule_j));
+    //       }
+    //     }
+    //   }
+
+  //////////////////////////////////
+  // Algorithm 4.13 (p242-243) in Dragon book
+  computeStateKernels: function() {
+    var init_rule = this.rules[this.start][0].withLookahead(EOF);
+    this.init_set = new OrderedSet([init_rule], Rule.equalsCore);
+    var kernelStates = new OrderedSet([this.init_set], OrderedSet.equals);
+    this.gotoTable = [];
+    // Step 1
+    var worklist = new Queue([this.init_set]);
+    var state_num = -1;
+    while (worklist.length > 0) {
+      var set = worklist.shift();
+      state_num++;
+      this.gotoTable[state_num] = undefined;
+      for (var j = 0; j < this.atoms.size(); j++) {
+        var new_set = this.computeGotoKernel(state_num, set, this.atoms.get(j));
+        if (new_set.size() > 0) {
+          var gotoStateNum = undefined;
+          if (kernelStates.add(new_set)) {
+            gotoStateNum = kernelStates.size() - 1;
+            worklist.push(new_set);
+          } else {
+            gotoStateNum = kernelStates.indexOf(new_set);
+          }
+          if (this.gotoTable[state_num] === undefined)
+            this.gotoTable[state_num] = {}
+          this.gotoTable[state_num][this.atoms.get(j)] = new GotoAction(gotoStateNum);
+        }
+      }
+    }
+    console.log("Done with step 1");
+    // for (var i = 0; i < kernelStates.size(); i++) {
+    //   console.log("State " + i + "\n" + kernelStates.get(i));
+    // }
+    // console.log("Goto table = " + JSON.stringify(this.gotoTable, null, "  "));
+    // Step 2
+    this.states = [];
+    var spontLookaheads = {};
+    var propLookaheads = {};
+    for (var i = 0; i < kernelStates.size(); i++) {
+      this.states.push(new OrderedSet([], Rule.equals));
+      spontLookaheads[i] = {};
+      propLookaheads[i] = {};
+    }
+    init_rule = this.rules[this.start][0];
+    spontLookaheads[0][init_rule.id] = new OrderedSet([EOF], Atom.equals);
+    var closureCache = {}
+    for (var i = 0; i < kernelStates.size(); i++) {
+      for (var j = 0; j < this.atoms.size(); j++) {
+        this.applyLookaheads(closureCache, spontLookaheads, propLookaheads, kernelStates.get(i), i, this.atoms.get(j));
+        // console.log("i = " + i + " j = " + this.atoms.get(j));
+      }
+    }
+    console.log("Done with step 2");
+    // Step 3
+    var allLookaheads = {}
+    for (var i = 0; i < kernelStates.size(); i++) {
+      allLookaheads[i] = {};
+      for (var j in spontLookaheads[i]) {
+        // console.log("i = " + i + ", j = " + j + ", spontLookaheads[i][j] = " + spontLookaheads[i][j]);
+        allLookaheads[i][j] = new OrderedSet(spontLookaheads[i][j]);
+      }
+    }
+    console.log("Done with step 3");
+    // Step 4
+    // console.log("\n\n\n");
+    // console.log("spontLookaheads = " + JSON.stringify(spontLookaheads, null, "  "));
+    // console.log("propLookaheads = " + JSON.stringify(propLookaheads, null, "  "));
+    var changed = true;
+    var pass = 0;
+    while (changed) {
+      changed = false;
+      pass++;
+      for (var i = 0; i < kernelStates.size(); i++) {
+        var state_i = kernelStates.get(i);
+        var gotoTable_i = this.gotoTable[i]
+        for (var gs in gotoTable_i) {
+          var gotoState = gotoTable_i[gs].dest;
+          for (var j = 0; j < state_i.size(); j++) {
+            var rule_j = state_i.get(j).withLookahead(undefined);
+            var prop = propLookaheads[i][rule_j.id] ? propLookaheads[i][rule_j.id][gotoState] : undefined;
+            var look = allLookaheads[i][rule_j.id];
+            if (prop !== undefined && look !== undefined) {
+              for (var k = 0; k < prop.size(); k++) {
+                var id_k = prop.get(k);
+                if (allLookaheads[gotoState][id_k] === undefined)
+                  allLookaheads[gotoState][id_k] = new OrderedSet([], Atom.equals);
+                changed = allLookaheads[gotoState][id_k].merge(look) || changed;
+              }
+            }
+          }
+        }
+      }
+    }
+    console.log("Done with step 4");
+    // console.log("allLookaheads = " + JSON.stringify(allLookaheads, null, "  "));
+    // console.log("All rules:")
+    // for (var r in RuleFactory.byId)
+    //   console.log(r + ": " + RuleFactory.byId[r]);
+    // Step 5 -- expand
+    for (var i = 0; i < kernelStates.size(); i++) {
+      var kernelState_i = kernelStates.get(i);
+      var state_i = this.states[i];
+      for (var j = 0; j < kernelState_i.size(); j++) {
+        var rule_j = kernelState_i.get(j).withLookahead(undefined);
+        var lookahead = allLookaheads[i][rule_j.id];
+        if (lookahead) {
+          for (var k = 0; k < lookahead.size(); k++)
+            state_i.add(RuleFactory.make(rule_j.name, rule_j.symbols, lookahead.get(k), rule_j.position, rule_j.action));
+        }
+      }
+    }
+    this.states = new OrderedSet(this.states, OrderedSet.equals);
+  },
+
+  //////////////////////////////////
+  // Algorithm 4.12 (p242) in Dragon book
+  applyLookaheads: function(closureCache, spont, prop, rule_set, set_num, symbol) {
+    if (this.gotoTable[set_num] === undefined) return;
+    if (this.gotoTable[set_num][symbol] === undefined) return;
+    var goto_set_num = this.gotoTable[set_num][symbol].dest;
+    
+    for (var i = 0; i < rule_set.size(); i++) {
+      var rule = rule_set.get(i).withLookahead(undefined);
+      var jPrime_rule = RuleFactory.make(rule.name, rule.symbols, HASH, rule.position, rule.action);
+      var jPrime = closureCache[jPrime_rule];
+      if (jPrime === undefined)
+        jPrime = closureCache[jPrime_rule] = this.completeClosure(new OrderedSet([jPrime_rule], Rule.equals), true);
+      for (var j = 0; j < jPrime.size(); j++) {
+        var rule_j = jPrime.get(j);
+        if (rule_j.position < rule_j.symbols.length && rule_j.symbols[rule_j.position].toString() == symbol) {
+          if (rule_j.lookahead !== HASH) {
+            var new_rule = RuleFactory.make(rule_j.name, rule_j.symbols, undefined, rule_j.position + 1, rule_j.action);
+            if (spont[goto_set_num][new_rule.id] === undefined)
+              spont[goto_set_num][new_rule.id] = new OrderedSet([], Atom.equals);
+            spont[goto_set_num][new_rule.id].add(rule_j.lookahead);
+          } else {
+            var new_rule = RuleFactory.make(rule_j.name, rule_j.symbols, undefined, rule_j.position + 1, rule_j.action);
+            for (var k = 0; k < rule_set.size(); k++) {
+              var rule_k = rule_set.get(k).withLookahead(undefined);
+              if (Rule.equalsCore(rule, rule_k)) {
+                if (prop[set_num][rule_k.id] === undefined)
+                  prop[set_num][rule_k.id] = {};
+                if (prop[set_num][rule_k.id][goto_set_num] === undefined)
+                  prop[set_num][rule_k.id][goto_set_num] = new OrderedSet([]);
+                prop[set_num][rule_k.id][goto_set_num].add(new_rule.id);
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
 
 
   //////////////////////////////////
@@ -984,7 +1447,7 @@ Grammar.prototype = {
       var temp = worklist.shift();
       var cur_state = temp.state;
       var i = temp.i;
-      console.log("Working on " + i);
+      // console.log("Working on " + i);
       initTables(i);
       for (var j = 0; j < this.atoms.size(); j++) {
         var new_state = this.completeGoto(cur_state, this.atoms.get(j));
@@ -993,17 +1456,33 @@ Grammar.prototype = {
           if (state_num == -1) {
             state_num = this.states.size();
             this.states.add(new_state);
-            console.log("Constructing state #" + state_num + " with " + new_state.size() + " items");
+            // console.log("Constructing state #" + state_num + " with " + new_state.size() + " items");
             worklist.push({i: state_num, state: new_state});
           } else { // Merge
             var state_to_merge = this.states.get(state_num)
             new_state.subtract(state_to_merge);
-            if (new_state.size() > 0) {
-              console.log("Merging " + new_state.size() + " items into state #" + state_num);
+            var addsToCore = false;
+            for (var k = 0; k < new_state.size(); k++) {
+              var cantFind = true;
+              var rule_k = new_state.get(k);
+              for (l = 0; l < state_to_merge.size(); l++) {
+                if (Rule.equalsCore(rule_k, state_to_merge.get(l))) {
+                  cantFind = false;
+                  break;
+                }
+              }
+              if (!cantFind) {
+                addsToCore = true;
+                break;
+              }
+            }
+            if (addsToCore) {
+              // console.log("Merging " + new_state.size() + " items into state #" + state_num);
               worklist.push({i: state_num, state: new_state}); // Make sure to re-enqueue the new rules
               // in case any other sets might wind up growing
             }
-            new_state = state_to_merge.merge(new_state);
+            state_to_merge.merge(new_state);
+            new_state = state_to_merge;
           }
           initTables(state_num);
           if (this.atoms.get(j) instanceof Token) {
@@ -1089,9 +1568,9 @@ Grammar.prototype = {
     var tokensParsed = 0;
     var next_tok = token_source.next();
     while (true) {
-      // console.log("Parsing token " + next_tok.toString(true));
-      // console.log("State_stack = [" + state_stack + "]")
-      // console.log("op_stack = [" + op_stack + "]");
+      console.log("Parsing token " + next_tok.toString(true));
+      console.log("State_stack = [" + state_stack + "]")
+      console.log("op_stack = [" + op_stack + "]");
       var actions = this.getActions(state_stack[state_stack.length - 1], next_tok);
       if (actions === null) return null;
       if (actions.size() === 0) {
@@ -1295,7 +1774,13 @@ Grammar.prototype = {
     // console.log("Constructed " + newSemanticValue + "\n");
     var leftSib = path.leftSib;
     var rightSib = undefined;
-    var gotoState = this.gotoTable[leftSib.state][rule.name].dest;
+    var gotoState = this.gotoTable[leftSib.state][rule.name];
+    if (gotoState) {
+      gotoState = gotoState.dest;
+    } else {
+      console.log("Couldn't find a goto rule for " + leftSib.state + " and " + rule.name);
+      return;
+    }
     for (var i = 0; i < this.topmost.length; i++) {
       if (gotoState == this.topmost[i].state) {
         rightSib = this.topmost[i];
@@ -1348,10 +1833,10 @@ Grammar.prototype = {
     var rule_ordinal = this.nontermOrdinals[rule.name];
     // console.log("p_start = " + p_start + " and rule_ordinal = " + rule_ordinal);
     for (var i = 0; i < this.pathQueue.length; i++) {
-      // console.log("pq[" + i + "].startColumn = " + this.pathQueue[i].startColumn
-      //             + " and rule_ordinal is " + this.nontermOrdinals[this.pathQueue[i].rule.name]);
+      // console.log("pq[" + i + "].startColumn = " + this.pathQueue.get(i).startColumn
+      //             + " and rule_ordinal is " + this.nontermOrdinals[this.pathQueue.get(i).rule.name]);
       if (p_start > this.pathQueue.get(i).startColumn ||
-          rule_ordinal < this.nontermOrdinals[this.pathQueue[i].rule.name]) {
+          rule_ordinal < this.nontermOrdinals[this.pathQueue.get(i).rule.name]) {
         // console.log("   Enqueuing id " + this.nextQid + " at index " + i);
         this.pathQueue.insertAt(i, {id: this.nextQid++, startColumn: p_start, path: p, rule: rule});
         return;

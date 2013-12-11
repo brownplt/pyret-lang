@@ -16,9 +16,15 @@ var g = new Grammar("Example", "E");
 // g.addRule("F", [new Lit("("), new Nonterm("E"), new Lit(")")]);
 // g.addRule("F", [new Token("id")]);
 
-g.addRule("E", [new Nonterm("E"), new Nonterm("E")]);
-g.addRule("E", []);
-g.addRule("E", [new Lit("a")]);
+// g.addRule("E", [new Nonterm("E"), new Nonterm("E")]);
+// g.addRule("E", []);
+// g.addRule("E", [new Lit("a")]);
+
+g.addRule("E", [new Nonterm("L"), new Lit("="), new Nonterm("R")]);
+g.addRule("E", [new Nonterm("R")]);
+g.addRule("L", [new Lit("*"), new Nonterm("R")]);
+g.addRule("L", [new Token("id")]);
+g.addRule("R", [new Nonterm("L")]);
 
 // g.addRule("S", [new Nonterm("E")]);
 // g.addRule("E", [new Nonterm("E"), new Lit("+"), new Nonterm("T")]);
@@ -61,20 +67,34 @@ function printColl(col) {
   return s;
 }
 
-g.initializeParser();
-console.log(g.toString());
+
+// g.initializeParser();
+// console.log(g.toString());
 
 
-console.log("First sets:");
-console.log(printColl(g.first))
+// console.log("First sets:");
+// console.log(printColl(g.first))
 
-console.log("Follow sets:");
-console.log(printColl(g.follow))
+// console.log("Follow sets:");
+// console.log(printColl(g.follow))
 
-console.log("Derivability:");
-console.log(JSON.stringify(g.derivable, null, "  "))
-console.log("Nonterm ordinals:");
-console.log(JSON.stringify(g.nontermOrdinals, null, "  "))
+// console.log("Derivability:");
+// console.log(JSON.stringify(g.derivable, null, "  "))
+// console.log("Nonterm ordinals:");
+// console.log(JSON.stringify(g.nontermOrdinals, null, "  "))
+
+if (!g.initialized) {
+  new_start = "START";
+  while (g.rules.hasOwnProperty(new_start))
+    new_start += "_";
+  g.addRule(new_start, [new Nonterm(g.start)]);
+  g.start = new_start;
+  g.initialized = true;
+}
+g.computeFirstSets();
+g.computeFollowSets();
+
+g.computeStateKernels();
 
 // var init_rule = g.rules[g.start][0].withLookahead(E.EOF);
 // var init_set = new OrderedSet([init_rule]);
@@ -85,72 +105,82 @@ console.log(JSON.stringify(g.nontermOrdinals, null, "  "))
 console.log("All reachable LR(1) states:")
 for (var i = 0; i < g.states.size(); i++)
   console.log(g.states.get(i).toString(true) + "\n")
+g.gotoTable = g.gotoStates;
+g.computeActions();
 console.log(g.printTables());
-var ambiguities = g.checkForLALRAmbiguity();
-if (ambiguities.length == 0) {
-  console.log("Unambiguous grammar!");
-} else {
-  for (var i = 0; i < ambiguities.length; i++)
-    console.log(ambiguities[i]);
-}
+g.initializeParser(false);
+console.log("All reachable LR(1) states:")
+for (var i = 0; i < g.states.size(); i++)
+  console.log(g.states.get(i).toString(true) + "\n")
+console.log(g.printTables());
 
-function token_stream(toks) {
-  var cur = 0;
-  return { 
-    hasNext: function() { return cur <= toks.length; },
-    next: function() { 
-      if (cur < toks.length) {
-        var t = toks[cur++]; 
-        if (typeof t === "string")
-          t = new Lit(t)
-        return t;
-      } else {
-        cur++;
-        return E.EOF;
-      }
-    },
-    reset: function() { cur = 0; }
-  }
-}
+// var ambiguities = g.checkForLALRAmbiguity();
+// if (ambiguities.length == 0) {
+//   console.log("Unambiguous grammar!");
+// } else {
+//   for (var i = 0; i < ambiguities.length; i++)
+//     console.log(ambiguities[i]);
+// }
 
-function id(x) { return new Token("id", x); }
-// var tokens = token_stream([id("i"), new Token("+"), id("j"), new Token("*"), id("k")]) //, new Token("+"), id("m"),
-// //                          new Token("*"), id("p")]);
-var tokens = token_stream([id("a")]);
-var parsed = g.parse(tokens);
-console.log(parsed.toString());
+// function token_stream(toks) {
+//   var cur = 0;
+//   return { 
+//     hasNext: function() { return cur <= toks.length; },
+//     next: function() { 
+//       if (cur < toks.length) {
+//         var t = toks[cur++]; 
+//         if (typeof t === "string")
+//           t = new Lit(t)
+//         return t;
+//       } else {
+//         cur++;
+//         return E.EOF;
+//       }
+//     },
+//     reset: function() { cur = 0; }
+//   }
+// }
 
-tokens.reset();
-console.log("\n\n\nTrying GLR parsing now...");
-g.initializeParser(true);
-console.log(g.toString());
-console.log("Derivability:");
-console.log(JSON.stringify(g.derivable, null, "  "))
-var glr_parsed = g.parse(tokens);
-console.log(glr_parsed.toString());
+// function id(x) { return new Token("id", x); }
+// // var tokens = token_stream([id("i"), new Token("+"), id("j"), new Token("*"), id("k")]) //, new Token("+"), id("m"),
+// // //                          new Token("*"), id("p")]);
 
 
-var g_json = JSON.stringify(g.toJSON(), null, "  ")
-var g2 = Grammar.fromJSON(JSON.parse(g_json))
+// var tokens = token_stream([id("a")]);
+// var parsed = g.parse(tokens);
+// console.log(parsed.toString());
 
-tokens.reset();
-var reparsed = g2.parse(tokens);
-function deepEqual(obj1, obj2) {
-  if (obj1 === obj2) return true;
-  var propCount1 = 0;
-  for (var name in obj1)
-    if (obj1.hasOwnProperty(name))
-      propCount1++;
-  var propCount2 = 0;
-  for (var name in obj2)
-    if (obj2.hasOwnProperty(name))
-      propCount2++;
-  if (propCount1 !== propCount2) return false;
-  for (var name in obj1)
-    if (obj1.hasOwnProperty(name))
-      if (!deepEqual(obj1[name], obj2[name]))
-        return false;
-  return true;
-}
-console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(glr_parsed, reparsed))
-console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(parsed, reparsed))
+// tokens.reset();
+// console.log("\n\n\nTrying GLR parsing now...");
+// g.initializeParser(true);
+// console.log(g.toString());
+// console.log("Derivability:");
+// console.log(JSON.stringify(g.derivable, null, "  "))
+// var glr_parsed = g.parse(tokens);
+// console.log(glr_parsed.toString());
+
+
+// var g_json = JSON.stringify(g.toJSON(), null, "  ")
+// var g2 = Grammar.fromJSON(JSON.parse(g_json))
+
+// tokens.reset();
+// var reparsed = g2.parse(tokens);
+// function deepEqual(obj1, obj2) {
+//   if (obj1 === obj2) return true;
+//   var propCount1 = 0;
+//   for (var name in obj1)
+//     if (obj1.hasOwnProperty(name))
+//       propCount1++;
+//   var propCount2 = 0;
+//   for (var name in obj2)
+//     if (obj2.hasOwnProperty(name))
+//       propCount2++;
+//   if (propCount1 !== propCount2) return false;
+//   for (var name in obj1)
+//     if (obj1.hasOwnProperty(name))
+//       if (!deepEqual(obj1[name], obj2[name]))
+//         return false;
+//   return true;
+// }
+// console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(glr_parsed, reparsed))
+// console.log("After picking the parse tables and reloading, are parse trees equal? " + deepEqual(parsed, reparsed))
