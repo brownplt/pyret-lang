@@ -98,9 +98,9 @@ length(self :: Array<a>) -> Number
 
 check:
   a = array([1,2])
-  a.get(0) is 1
-  a.set(0, 42) is a
-  a.get(0) is 42
+  a.length() is 2
+  a = array([])
+  a.length() is 0
 end
 }
 
