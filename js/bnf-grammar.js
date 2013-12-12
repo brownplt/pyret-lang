@@ -348,7 +348,7 @@ if (parsed !== null) {
   out.write("out.write(\"const E = require('./elkhound.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
   out.write("out.write(\"const Lit = E.Lit\\nconst Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
-  out.write("out.write(\"var g = Grammar.fromSerializable(g_json);\\n\");\n");
+  out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
   out.write("out.end();\n");
   out.end();
 }

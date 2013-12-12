@@ -221,7 +221,7 @@ Token.prototype.toString = function(showVal) {
 Token.prototype.toSerializable = function() { return {type: "Token", name: this.name, value: this.value}; }
 function Lit(str) {
   this.str = str;
-  this.asString = '"' + this.str.toString().replace(/[\\"']/g, '\\$&') + '"';
+  this.asString = JSON.stringify(str);
 }
 Lit.prototype = Object.create(Token.prototype);
 Lit.prototype.toString = function() { return this.asString; }
@@ -361,7 +361,7 @@ Rule.ListCons = function(hd, tl, shouldInline) {
       } else if (kids[i].name === tl) useful_kids = useful_kids.concat(kids[i].kids); 
     }
     var start = (kids.length > 0 ? kids[kids.length - 1].startColumn : undefined);
-    return { name: tl, kids: useful_kids, toString: E.Rule.defaultASTToString, startColumn: start,
+    return { name: tl, kids: useful_kids, toString: Rule.defaultASTToString, startColumn: start,
              shouldInline: shouldInline };
   }
   ret.toString = function() { return "Rule.ListCons(" + JSON.stringify(hd) + ", " + JSON.stringify(tl) + ")"; };
@@ -369,7 +369,7 @@ Rule.ListCons = function(hd, tl, shouldInline) {
 }
 
 Rule.Inline = function(kids) {
-  var ret = E.Rule.defaultAction.call(this, kids);
+  var ret = Rule.defaultAction.call(this, kids);
   ret.shouldInline = true;
   return ret;
 }
@@ -441,7 +441,6 @@ Rule.fromSerializable = function(rulesByOldId, id) {
     return RuleFactory.make(base.name, base.symbols, Atom.fromSerializable(lookahead), obj.position, base.action);
   } else {
     var sym = [];
-    sym.length = obj.symbols.length;
     for (var i = 0; i < obj.symbols.length; i++) {
       sym[i] = Atom.fromSerializable(obj.symbols[i]);
     }
@@ -521,7 +520,7 @@ Grammar.fromSerializable = function(obj) {
     var tableRow = obj.actionTable[i];
     var newRow = g.actionTable[i] = {};
     for (var j = 0; j < g.atoms.size(); j++) {
-      var atom = g.atoms.get(i);
+      var atom = g.atoms.get(j);
       if (atom in tableRow)
         newRow[atom] = OrderedSet.fromSerializable(tableRow[atom], Action.equals, 
                                                    Action.fromSerializable(rulesByOldId))
@@ -576,6 +575,7 @@ Grammar.prototype = {
       console.log("Computing follow sets");
       this.computeFollowSets();
       console.log("Computing states");
+
       // this.computeStates();
       // var oldStyleTables = this.printTables();
       // var oldStyleStates = "";
@@ -584,8 +584,10 @@ Grammar.prototype = {
       // this.resetParser();
       // this.computeFirstSets();
       // this.computeFollowSets();
+
       this.computeStateKernels();
       this.computeActions();
+
       // var newStyleTables = this.printTables();
       // var newStyleStates = "";
       // for (var i = 0; i < this.states.size(); i++)
@@ -614,13 +616,19 @@ Grammar.prototype = {
       var orig_start = this.rules[this.start][0].symbols[0];
       this.rules[this.start] = []
       this.addRule(this.start, [orig_start, EOF]);
+      console.log("Grammar productions:");
+      for (var name in this.rules)
+        for (var i = 0; i < this.rules[name].length; i++)
+          console.log("  " + this.rules[name][i].toString(true));
       console.log("Computing first sets");
       this.resetParser();
       this.computeFirstSets();
+      console.log(JSON.stringify(this.first, null, "  "));
       console.log("Computing follow sets");
       this.computeFollowSets();
       console.log("Computing derivability");
       this.computeDerivability();
+      console.log(JSON.stringify(this.derivable, null, "  "))
       console.log("Sorting nonterminals");
       this.topoSortNonterms();
       console.log("Computing states");
@@ -890,7 +898,7 @@ Grammar.prototype = {
     for (var name in this.rules) {
       if (this.rules.hasOwnProperty(name)) {
         this.first[name] = {};
-        this.nontermFirst[name] = new OrderedSet([], Atom.equals);
+        this.nontermFirst[name] = new OrderedSet([name], Atom.equals);
         for (var i = 0; i < this.rules[name].length; i++)
           if (this.rules[name][i].symbols.length == 0)
             addFirst(name, EPSILON);
@@ -899,21 +907,18 @@ Grammar.prototype = {
     while (changed) {
       changed = false;
       for (var name in this.rules) {
-        this.nontermFirst[name].add(name);
-        if (this.rules.hasOwnProperty(name)) {
-          var name_rules = this.rules[name];
-          for (var i = 0; i < name_rules.length; i++) {
-            var name_rule = name_rules[i];
-            for (var j = 0; j < name_rule.symbols.length; j++) {
-              if (name_rule.symbols[j] instanceof Nonterm) {
-                changed = merge(name, name_rule.symbols[j]) || changed;
-                this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
-                if (this.first[name_rule.symbols[j]][EPSILON] !== true)
-                  break;
-              } else {
-                changed = addFirst(name, name_rule.symbols[j]) || changed;
+        var name_rules = this.rules[name];
+        for (var i = 0; i < name_rules.length; i++) {
+          var name_rule = name_rules[i];
+          for (var j = 0; j < name_rule.symbols.length; j++) {
+            if (name_rule.symbols[j] instanceof Nonterm) {
+              changed = merge(name, name_rule.symbols[j]) || changed;
+              this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
+              if (this.first[name_rule.symbols[j]][EPSILON] !== EPSILON)
                 break;
-              }
+            } else {
+              changed = addFirst(name, name_rule.symbols[j]) || changed;
+              break;
             }
           }
         }
@@ -1012,9 +1017,8 @@ Grammar.prototype = {
   //////////////////////////////////
   computeFollowAtPosition: function(rule, pos) {
     var ret = new OrderedSet([], Atom.equals);
-    var start_pos = (pos !== undefined ? pos : rule.position);
-    return this.computeFirstOfStrings(rule.symbols.slice(start_pos), [rule.lookahead]);
-    // for (var i = start_pos; i < rule.symbols.length; i++) {
+    return this.computeFirstOfStrings(rule.symbols.slice(pos), [rule.lookahead]);
+    // for (var i = pos; i < rule.symbols.length; i++) {
     //   if (rule.symbols[i] instanceof Token) {
     //     ret.add(rule.symbols[i]);
     //     return ret;
@@ -1072,8 +1076,8 @@ Grammar.prototype = {
 
   //////////////////////////////////
   // Computes the LR(1) closure of a rule set: 
-  // For a given rule [A -> a.Bb, x] in the set, it adds [B -> .g, x]
-  // for all [B -> g] in the grammar.
+  // For a given rule [A -> a.Bb, x] in the set, it adds [B -> .g, y]
+  // for all [B -> g] in the grammar, and all y in FIRST(bx).
   // 
   // If inline = true, then it mutates the provided argument
   // otherwise it constructs a new set and returns that.
@@ -1085,12 +1089,13 @@ Grammar.prototype = {
       if (rule.position < rule.symbols.length) {
         var next_symbol = rule.symbols[rule.position];
         if (next_symbol instanceof Nonterm) {
-          var first = this.computeFollowAtPosition(rule, rule.position + 1);
-          // console.log("first(" + rule + ") = " + first);
-          for (var j = 0; j < this.rules[next_symbol].length; j++) {
-            var rule_to_add = this.rules[next_symbol][j];
-            for (var k = 0; k < first.size(); k++) {
-              var new_rule = RuleFactory.make(rule_to_add.name, rule_to_add.symbols, first.get(k), 0, rule_to_add.action)
+          var next = this.computeFollowAtPosition(rule, rule.position + 1);
+          // console.log("next(" + rule + ") = " + next);
+          var rules_to_add = this.rules[next_symbol]
+          for (var j = 0; j < rules_to_add.length; j++) {
+            var rule_to_add = rules_to_add[j];
+            for (var k = 0; k < next.size(); k++) {
+              var new_rule = RuleFactory.make(rule_to_add.name, rule_to_add.symbols, next.get(k), 0, rule_to_add.action)
               if (!ret.contains(new_rule)) {
                 ret.add(new_rule);
                 worklist.push(new_rule);
@@ -1195,8 +1200,6 @@ Grammar.prototype = {
       }
     }
 
-    // console.log("Goto Table = ");
-    // console.log(JSON.stringify(this.gotoTable, null, "  "));
     for (var i = 0; i < this.states.size(); i++) {
       var state_i = this.states.get(i);
       initTables(i);
@@ -1689,19 +1692,20 @@ Grammar.prototype = {
     this.topmost = [start];
     this.pathQueue = new Queue([]);
     this.curColumn = 0;
-    while (token_source.hasNext()) {
+    while (token_source.hasNext() && this.topmost.length > 0) {
       var next_token = token_source.next();
-      // console.log("\nGLR Parsing token #" + this.curColumn + ": " + next_token.toString(true));
-      // console.log("Phase 1: reductions");
+      console.log("\nGLR Parsing token #" + this.curColumn + ": " + next_token.toString(true));
+      console.log("Phase 1: reductions");
       this.doReductions(next_token);
-      // console.log("Phase 3: shifts");
+      console.log("Phase 3: shifts");
       this.doShifts(next_token);
       this.curColumn++;
     }
     
     // Assumes that the main rule is start : something EOF
     if (this.topmost.length !== 1) {
-      console.log("Somehow, didn't parse the start rule correctly, and finished with multiple active parse heads");
+      console.log("Somehow, didn't parse the start rule correctly, and finished with " + 
+                  (this.topmost.length > 1 ? "multiple" : "zero") + " active parse heads");
       console.log(JSON.stringify(this.topmost));
       return null;
     }
@@ -1748,19 +1752,19 @@ Grammar.prototype = {
           // console.log("Found an active reduce action: " + action + ", len = " + len);
           // console.log("Current links = " + JSON.stringify(current.links, null, "  "));
           current.forPathsOfLength(len, function(p) {
-            // console.log("1. Enqueuing path {" + p.links + ", " + p.leftSib.state + "} for rule " + rule);
+            console.log("1. Enqueuing path {" + p.links + ", " + p.leftSib.state + "} for rule " + rule);
             thiz.addToQueue(p, rule);
           });
         }
       }
     }
 
-    // console.log("Phase 2: process worklist");
+    console.log("Phase 2: process worklist");
     //for (var idx = 0; idx < this.pathQueue.length; idx++) {
     while (this.pathQueue.length > 0) {
       var pq = this.pathQueue.shift();
-      // console.log("Processing item " + pq.id);
-      // console.log("Processing path {" + pq.path.links + ", " + pq.path.leftSib.state + "}")
+      console.log("Processing item " + pq.id);
+      console.log("Processing path {" + pq.path.links + ", " + pq.path.leftSib.state + "}")
       this.reduceViaPath(pq.path, pq.rule, t);
     }
   },
@@ -1782,7 +1786,7 @@ Grammar.prototype = {
           lit_t.pos = t.pos;
         }
         cur_t = lit_t
-        actions = this.actionTable[current.state][cur_t];
+        actions = this.actionTable[current.state][cur_t.toString()];
       }
       if (actions === undefined) continue;
       for (var j = 0; j < actions.size(); j++) {
@@ -1827,7 +1831,7 @@ Grammar.prototype = {
       path.links[i].reduced = true;
     }
     var newSemanticValue = rule.action(vals);
-    // console.log("Constructed " + newSemanticValue + "\n");
+    console.log("Constructed " + newSemanticValue + "\n");
     var leftSib = path.leftSib;
     var rightSib = undefined;
     var gotoState = this.gotoTable[leftSib.state][rule.name];
@@ -1837,6 +1841,7 @@ Grammar.prototype = {
       console.log("Couldn't find a goto rule for " + leftSib.state + " and " + rule.name);
       return;
     }
+    console.log("Goto state = " + gotoState);
     for (var i = 0; i < this.topmost.length; i++) {
       if (gotoState == this.topmost[i].state) {
         rightSib = this.topmost[i];
@@ -1862,7 +1867,7 @@ Grammar.prototype = {
         link = this.addLink(leftSib, rightSib, newSemanticValue, rule.name);
         // console.log("### enqueueLimitedReductions needed");
         if (link) this.enqueueLimitedReductions(link, t);
-      }      
+      }
     } else {
       rightSib = new StackNode(gotoState, leftSib.determineDepth + 1);
       this.addLink(leftSib, rightSib, newSemanticValue, rule.name);
@@ -1877,7 +1882,7 @@ Grammar.prototype = {
           var len = rule.symbols.length;
           var thiz = this;
           rightSib.forPathsOfLength(len, function(p) {
-            // console.log("2. Enqueuing path {" + p.links + ", " + p.leftSib.state + "} for rule " + rule);
+            console.log("2. Enqueuing path {" + p.links + ", " + p.leftSib.state + "} for rule " + rule);
             thiz.addToQueue(p, rule);
           });
         }
@@ -1893,12 +1898,12 @@ Grammar.prototype = {
       //             + " and rule_ordinal is " + this.nontermOrdinals[this.pathQueue.get(i).rule.name]);
       if (p_start > this.pathQueue.get(i).startColumn ||
           rule_ordinal < this.nontermOrdinals[this.pathQueue.get(i).rule.name]) {
-        // console.log("   Enqueuing id " + this.nextQid + " at index " + i);
+        console.log("   Enqueuing id " + this.nextQid + " at index " + i);
         this.pathQueue.insertAt(i, {id: this.nextQid++, startColumn: p_start, path: p, rule: rule});
         return;
       }
     }
-    // console.log("   Enqueuing id " + this.nextQid + " at end");
+    console.log("   Enqueuing id " + this.nextQid + " at end");
     this.pathQueue.push({id: this.nextQid++, startColumn: p_start, path: p, rule: rule});
   },
   nextQid: 0,
@@ -1945,7 +1950,7 @@ Grammar.prototype = {
     }
   },
   enqueueLimitedReductions: function(link, t) {
-    // console.log("** EnqueueLimitedReductions for t = " + t + " and link = " + JSON.stringify(link));
+    console.log("** EnqueueLimitedReductions for t = " + t + " and link = {" + link + "}");
     for (var i = 0; i < this.topmost.length; i++) {
       var n = this.topmost[i];
       var actions = this.getActions(n.state, t);
@@ -1957,14 +1962,7 @@ Grammar.prototype = {
           var len = rule.symbols.length;
           var thiz = this;
           n.forPathsOfLengthUsing(len, function(p) {
-            // var s = "";
-            // for (var i = 0; i < p.links.length; i++) {
-            //   if (s === "")
-            //     s += p.links[i].val + "@" + p.links[i].val.startColumn;
-            //   else
-            //     s += "," + p.links[i].val + "@" + p.links[i].val.startColumn;
-            // }
-            // console.log("3. Enqueuing path {" + s + ", " + p.leftSib.state + "} for rule " + rule);
+            console.log("3. Enqueuing path {" + p.links + ", " + p.leftSib.state + "} for rule " + rule);
             thiz.addToQueue(p, rule);
           }, link);
         }
