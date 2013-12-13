@@ -639,6 +639,10 @@ var PYRET_CPS = (function () {
 
     function getField(val, str) {
       var fieldVal = val.dict[str];
+        if(fieldVal === undefined) {
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+        }
+
       if (isMethod(fieldVal)) {
         var methFun = makeFunction(function() {
           var argList = Array.prototype.slice.call(arguments);
@@ -655,6 +659,30 @@ var PYRET_CPS = (function () {
         return fieldVal;
       }
     }
+    
+    function getFieldK(val, str, conts) {
+      var fieldVal = val.dict[str];
+        if(fieldVal === undefined) {
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+            return;
+        }
+
+      if (isMethod(fieldVal)) {
+        var methFun = makeFunction(function() {
+          var argList = Array.prototype.slice.call(arguments);
+          var $k = argList[0];
+          var $f = argList[1];
+
+            //TODO: Make this CPS'y
+            fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(2)));
+        });
+    
+        methFun.arity = fieldVal.method.length - 1;
+        applyFunction(conts.dict['$k'], [methFun]);
+      } else {
+        applyFunction(conts.dict['$k'], [fieldVal]);
+      }
+    }
 
     /**
         getColonField(val, str)
@@ -666,13 +694,13 @@ var PYRET_CPS = (function () {
         Val: A pyret value
         Str: The name of the field to retrieve
     **/
-    function getColonField(val, str, conts) {
+    function getColonFieldK(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
             raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
         }
         else{
-        return fieldVal;
+        applyFunction(conts.dict['$k'], [fieldVal]);
         }
       }
 
@@ -1206,7 +1234,8 @@ var PYRET_CPS = (function () {
         equal: equal,
         getField: getField,
         getMutField: getMutField,
-        getColonField: getColonField,
+        getFieldK: getFieldK,
+        getColonFieldK: getColonFieldK,
         getTestPrintOutput: function(val) {
           return testPrintOutput + toRepr(val).s;
         },
