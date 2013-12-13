@@ -773,7 +773,15 @@ var PYRET_CPS = (function () {
         if(args.length != fn.arity) {
             throwPyretMessage("Check arity failed: " + toRepr(fn) + " expected " + fn.arity + " arguments, but given " + args.length);
         }
-        return fn.app.apply(this, args);
+
+        gas -= 1;
+
+        if(gas > 0) { 
+            return fn.app.apply(this, args);
+        }
+        else {
+            trampoline(function() { fn.app.apply(this,args)});
+        }
    }
 
     //DEF
@@ -1104,6 +1112,11 @@ var PYRET_CPS = (function () {
       return v.dict;
     }
 
+
+    //GLOBAL GAS VAR    
+    var START_GAS = 500;
+    var gas = START_GAS;
+
     function TrampolineException(k) {
       this.k = k;
     }
@@ -1131,6 +1144,7 @@ var PYRET_CPS = (function () {
           console.log("Caught ", e);
           if(e instanceof TrampolineException) {
             if(!pauseRequested) {
+              gas = START_GAS; //Reset gas
               nextTurn(function() { run(e.k); });
             }
             else {
@@ -1249,8 +1263,8 @@ var PYRET_CPS = (function () {
         toReprJS: toRepr,
         errToJSON: errToJSON,
         pyretToJSDict: pyretToJSDict,
-        applyFunction : applyFunction
-
+        applyFunction : applyFunction,
+        TrampolineException : TrampolineException
         
       }
     };

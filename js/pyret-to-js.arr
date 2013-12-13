@@ -134,6 +134,9 @@ fun program-to-cps-js(ast, runtime-ids):
                 (function() { return ~a})().app(k, f);
               })();
             } catch(e) {
+              if(e instanceof RUNTIME.TrampolineException) {
+                throw e;
+              }
               $K.failure(RUNTIME.makeFailResult(e));
             }
           })", [bindings, expr-to-js(cps(block-for-cps))])
@@ -462,9 +465,9 @@ fun expr-to-js(ast):
     | s_app(_, f, args) =>
       format("RUNTIME.applyFunction(~a, [~a])", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
-        raise("NOPE: Shouldn't have these with cps")
+        raise("NOPE: Shouldn't have these with cps (bracket)\n\n" + torepr(ast))
     | s_colon_bracket(_, obj, f) =>
-        raise("NOPE: Shouldn't have these with cps")
+        raise("NOPE: Shouldn't have these with cps (colon)")
     | s_colon_bracket_k(_, conts, obj, f) =>
       cases (A.Expr) f:
         | s_str(_, s) => format("RUNTIME.getColonFieldK(~a, '~a', ~a)", [expr-to-js(obj), s, expr-to-js(conts)])
