@@ -1,9 +1,9 @@
-const E = require('./elkhound.js');
+const E = require('./rnglr.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
-const Lit = E.Lit
 const Token = E.Token
 const OrderedSet = E.OrderedSet
+const SrcLoc = E.SrcLoc
 
 function Tokenizer(str, ignore_ws) {
   this.str = str;
@@ -66,27 +66,16 @@ function countChar(haystack, needle) {
   return count;
 }
 
-
-function SrcLoc(startRow, startCol, startChar, endRow, endCol, endChar) {
-  this.startRow = startRow;
-  this.startCol = startCol;
-  this.startChar = startChar;
-  this.endRow = endRow;
-  this.endCol = endCol;
-  this.endChar = endChar;
-}
-SrcLoc.prototype.toString = function(show_span) {
-  var ret = this.startRow + ":" + this.startCol;
-  if (show_span)
-    ret += "-" + this.endRow + ":" + this.endCol;
-  return ret;
-}
-
 Tokenizer.prototype.hasNext = function() { return this.pos <= this.len; }
+Tokenizer.prototype.isEmpty = function() { return this.length == 0; }
 if (STICKY_REGEXP === 'y') {
   Tokenizer.prototype.next = function() {
     while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { this.pos++; return E.EOF; }
+      if (this.pos == this.len) { 
+        this.pos++; 
+        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
+        return E.EOF; 
+      }
       for (var tok_type in Tokens) {
         var tok = Tokens[tok_type];
         if (!tok instanceof RegExp) continue;
@@ -109,7 +98,7 @@ if (STICKY_REGEXP === 'y') {
             break;
           }
           var t = new E.Token(tok_type, match[0]);
-          t.pos = new SrcLoc(l, c, p, this.curLine, this.curCol, this.pos);
+          t.pos = SrcLoc.make(l, c, p, this.curLine, this.curCol, this.pos);
           return t;
         }
       }
@@ -118,7 +107,11 @@ if (STICKY_REGEXP === 'y') {
 } else {
   Tokenizer.prototype.next = function() {
     while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { this.pos++; return E.EOF; }
+      if (this.pos == this.len) { 
+        this.pos++; 
+        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
+        return E.EOF; 
+      }
       for (var tok_type in Tokens) {
         var tok = Tokens[tok_type];
         if (!tok instanceof RegExp) continue;
@@ -141,7 +134,7 @@ if (STICKY_REGEXP === 'y') {
             break;
           }
           var t = new E.Token(tok_type, match[0]);
-          t.pos = new SrcLoc(l, c, p, this.curLine, this.curCol, this.pos);
+          t.pos = SrcLoc.make(l, c, p, this.curLine, this.curCol, this.pos);
           return t;
         }
       }
@@ -149,34 +142,15 @@ if (STICKY_REGEXP === 'y') {
   }
 }
 
-function ListCons(hd, tl, shouldInline) {
-  return function(kids) {
-    var useful_kids = [];
-    for (var i = 0; i < kids.length; i++) {
-      if (kids[i].name === hd) {
-        if (kids[i].shouldInline === true)
-          useful_kids = useful_kids.concat(kids[i].kids);
-        else
-          useful_kids.push(kids[i]);
-      } else if (kids[i].name === tl) useful_kids = useful_kids.concat(kids[i].kids); 
-    }
-    var start = (kids.length > 0 ? kids[kids.length - 1].startColumn : undefined);
-    return { name: tl, kids: useful_kids, toString: E.Rule.defaultASTToString, startColumn: start,
-             shouldInline: shouldInline };
-  }
-}
-
-function Inline(kids) {
-  var ret = E.Rule.defaultAction.call(this, kids);
-  ret.shouldInline = true;
-  return ret;
-}
+const Inline = E.Rule.Inline;
+const ListCons = E.Rule.ListCons;
+const KeepOnly = E.Rule.KeepOnly;
 
 var g = new Grammar("BNF", "G");
 g.addRule("G", [new Nonterm("Rule"), new Nonterm("G")], ListCons("Rule", "G"));
 g.addRule("G", [new Nonterm("Rule")]);
-g.addRule("Rule", [new Token("NAME"), new Lit(":"), new Nonterm("Alts")]);
-g.addRule("Alts", [new Nonterm("Items"), new Lit("|"), new Nonterm("Alts")], ListCons("Items", "Alts"));
+g.addRule("Rule", [new Token("NAME"), new Token("COLON"), new Nonterm("Alts")]);
+g.addRule("Alts", [new Nonterm("Items"), new Token("BAR"), new Nonterm("Alts")], ListCons("Items", "Alts"));
 g.addRule("Alts", [new Nonterm("Items")]);
 g.addRule("Items", [new Nonterm("Item"), new Nonterm("Items")], ListCons("Item", "Items"));
 g.addRule("Items", []);
@@ -188,9 +162,9 @@ g.addRule("Item", [new Nonterm("Paren")], Inline);
 g.addRule("Name", [new Token("NAME")]);
 g.addRule("Str", [new Token("DQUOT_STR")]);
 g.addRule("Str", [new Token("SQUOT_STR")]);
-g.addRule("Opt", [new Lit("["), new Nonterm("Alts"), new Lit("]")]);
-g.addRule("Paren", [new Lit("("), new Nonterm("Alts"), new Lit(")")], Inline);
-g.addRule("Star", [new Nonterm("Item"), new Lit("*")]);
+g.addRule("Opt", [new Token("LBRACK"), new Nonterm("Alts"), new Token("RBRACK")], KeepOnly(["Alts"]));
+g.addRule("Paren", [new Token("LPAREN"), new Nonterm("Alts"), new Token("RPAREN")], KeepOnly(["Alts"], true));
+g.addRule("Star", [new Nonterm("Item"), new Token("STAR")], KeepOnly(["Item"]));
 g.initializeParser();
 
 
@@ -218,7 +192,7 @@ function generateGrammar(bnf, name) {
 function generateRule(rule) {
   var ruleName = rule.kids[0].value;
   var ret = {rules: []}
-  var gen = generateAlts(ruleName, rule.kids[1], false);
+  var gen = generateAlts(ruleName, rule.kids[2], false);
   ret.rules = ret.rules.concat(gen.rules);
   return ret;
 }
@@ -291,7 +265,7 @@ function generateItem(ruleName, item) {
       var gen = generateItem(newNameOne, item.kids[0]);
       ret.rules.push("g.addRule(" + json_newNameOne + ", [" + gen.rhs + "], E.Rule.Inline);");
     } else {
-      console.log("Got a star item with multiple direct children? " + JSON.stringify(item));
+      console.log("Got a star item with multiple direct children? " + JSON.stringify(item, null, "  "));
     }
     ret.rhs = "new Nonterm(" + json_newNameStar + ")";
     return ret;
@@ -319,38 +293,42 @@ function generateItem(ruleName, item) {
 
 
 const fs = require("fs");
-var data = fs.readFileSync("../src/lang/grammar.rkt", "utf8");
-// var data = "app-args: PARENNOSPACE [app-arg-elt* binop-expr] \")\"\n" +
-// "app-arg-elt: binop-expr \",\""
+//var data = fs.readFileSync("../src/lang/grammar.rkt", "utf8");
+var data = fs.readFileSync("grammar.rkt", "utf8");
 
 var toks = new Tokenizer(data, true);
 var parsed = g.parse(toks);
-if (parsed !== null) {
+if (parsed !== undefined) {
   //console.log(parsed.toString(true));
   var grammar_name = "grammar";
-  var bnfJS = generateGrammar(parsed, grammar_name);
+  var parses = g.constructAllParses(parsed, "");
+  console.log("Found " + parses.length + " parses");
+  console.log(parses[0].toString());
+  var bnfJS = generateGrammar(parses[0], grammar_name);
   var out = fs.createWriteStream("grammar.js");
   out.write("const fs = require('fs');\n");
-  out.write("const E = require('./elkhound.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
+  out.write("const E = require('./rnglr.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
   out.write("const Lit = E.Lit\nconst Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
   out.write(bnfJS.join("\n"));
   out.write("\n\n");
   out.write("g.initializeParser(true);\n")
-  out.write("var ambiguities = g.checkForLALRAmbiguity();\n");
-  out.write("if (ambiguities.length == 0) {\n");
-  out.write("  console.log(\"Unambiguous grammar!\");\n");
+  out.write("var cycles = g.checkForCycles();\n");
+  out.write("if (cycles) {\n");
+  out.write("  console.log(\"Non-cyclic grammar!\");\n");
   out.write("} else {\n");
-  out.write("  for (var i = 0; i < ambiguities.length; i++)\n");
-  out.write("    console.log(ambiguities[i]);\n");
+  out.write("  for (var i = 0; i < cycles.length; i++)\n");
+  out.write("    console.log(cycles[i]);\n");
   out.write("}\n");
   out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
   out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
-  out.write("out.write(\"const E = require('./elkhound.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
+  out.write("out.write(\"const E = require('./rnglr.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
   out.write("out.write(\"const Lit = E.Lit\\nconst Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
   out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
   out.write("out.end();\n");
   out.end();
 }
+
+
 
 
