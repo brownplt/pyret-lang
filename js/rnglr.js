@@ -243,9 +243,9 @@ Queue.prototype.insertAt = function(idx, item) {
   } else
     this.push(item);
 }
-Queue.prototype.debugPrint = function() {
+Queue.prototype.debugPrint = function() { 
   console.log("********** Debug print of queue: start = " + this.start + ", end = " + this.end + ", length = " + this.length);
-  for (var i = 0; i < this.items.length; i++) {
+  for (var i = this.start; i < this.end; i++) {
     if (this.end === i) console.log("<<-- END");
     if (this.start === i) console.log("-->> START");
     if (this.items[i].hasOwnProperty("debugPrint"))
@@ -611,35 +611,40 @@ ReductionItem.prototype.toString = function() {
     + JSON.stringify(this.label, null, "  ") + ")";
 }
 function GSSNode(label) {
+  this.gssId = GSSNode.NextNodeId++;
   this.label = label;
   this.key = label;
   this.links = [];
   GSSNode.allNodes.push(this);
 }
+GSSNode.NextNodeId = 0;
 GSSNode.allNodes = [];
-GSSNode.prototype.toString = function() { return "GSSNode(" + JSON.stringify(this.label) + ")"; }
+GSSNode.prototype.toString = function() { 
+  return "GSSNode(#" + this.gssId + ",s" + this.parentSetId + ":st" + this.label + ")"; 
+}
 GSSNode.prototype.forPathsOfLength = function(len, callback) {
   if (len === 0) {
     callback({labels: [], leftSib: this}); 
   } else {
     assert(this.links.length > 0, "Can't find any paths of length " + len + " from " + this)
     for (var i = 0; i < this.links.length; i++)
-      pathLengthHelp(this.links[i], len, [], ["" + this.id + ":" + this.state], callback);
+      pathLengthHelp(this.links[i], len, [], [this.toString()], callback);
   }
 }
 function pathLengthHelp(link, len, labels, stack, callback) {
   labels[len - 1] = link.val;
-  stack.push("" + link.prev.id + ":" + link.prev.state)
+  stack.push(link.prev.toString());
   if (len == 1) { 
     console.log("Constructed path via [" + stack + "]");
-    console.log("Calling callback with [" + labels + "] and leftSib.state " + link.prev.state);
+    console.log("Calling callback with [" + labels + "] and leftSib.state " + link.prev.label);
     callback({labels: labels, leftSib: link.prev}); 
   } else {
     var prev_links = link.prev.links;
     assert(prev_links.length > 0, "Can't find any paths of length " + len + " from " + this)
     for (var i = 0; i < prev_links.length; i++)
-      pathLengthHelp(prev_links[i], len - 1, labels.slice(0), stack.slice(0), callback);
+      pathLengthHelp(prev_links[i], len - 1, labels, stack, callback);
   }
+  stack.pop();
 }
 // GSSNode.prototype.forPathsOfLengthUsing = function(len, callback, link) {
 //   if (len === 0) {
@@ -678,10 +683,22 @@ function SPPFNode(label, pos) {
   this.rule = undefined;
   this.kids = undefined;
   this.ambig = undefined;
+  SPPFNode.allNodes.push(this);
 }
+SPPFNode.allNodes = [];
 SPPFNode.NextId = 0;
 SPPFNode.prototype.toString = function() {
-  return "SPPFNode(" + this.sppfId + ", " + this.label + "@" + this.pos.toString() + " " + this.rule + ")";
+  var posString = "null";
+  if (this.pos)
+    posString = this.pos.toString();
+  var ruleAmbig = "";
+  if (this.rule)
+    ruleAmbig = this.rule.toString();
+  else if (this.ambig)
+    ruleAmbig = "ambig";
+  else
+    ruleAmbig = "<unknown>";
+  return "SPPFNode(" + this.sppfId + ", " + this.label.toString(true) + "@" + posString + " " + ruleAmbig + ")";
 }
 SPPFNode.prototype.addChildren = function(rule, kids) {
   if (this.kids === undefined && this.ambig === undefined) {
@@ -1217,9 +1234,8 @@ Grammar.prototype = {
     var y_m = (m !== 0 ? y : undefined)
     var U_i = U[i]
     const thiz = this;
-    console.log("item.m = " + m);
     v.forPathsOfLength(m > 0 ? (m - 1) : 0, function(p) {
-      console.log("Found path " + JSON.stringify(p, null, "  "));
+      // console.log("Found path " + JSON.stringify(p, null, "  "));
       // p.labels contain the edge labels of the path
       var u = p.leftSib;
       var k = u.label;
@@ -1278,7 +1294,7 @@ Grammar.prototype = {
             var red = reductions.get(r);
             if (red.rule.position === 0)
               // the label here is irrelevant, because m == 0 means the rest of the rule derives EPSILON
-              R.push(new ReductionItem(w, red.rule, 0, f, EPSILON)); 
+              R.push(new ReductionItem(w, red.rule, 0, red.f, EPSILON)); 
           }
           if (m !== 0) {
             for (var r = 0; r < reductions.size(); r++) {
@@ -1293,7 +1309,7 @@ Grammar.prototype = {
         if (m !== 0) {
           var labels = p.labels.slice(0);
           labels.push(y_m);
-          thiz.addChildren(item.rule, z, labels, f);
+          thiz.addChildren(item.rule, z, labels, f, cur_tok.pos.posAtEnd());
         }
       }
     });
@@ -1310,7 +1326,7 @@ Grammar.prototype = {
     if (link === undefined) {
       var link = new Link(leftSib, val);
       rightSib.links.push(link);
-      // console.log("Linking " + leftSib.id + ":" + leftSib.state + " <-- " + rightSib.id + ":" + rightSib.state + " with val " + val + "@" + val.pos);
+      console.log("Linking " + leftSib.toString() + " <-- " + rightSib.toString() + " with val " + val + "@" + val.pos);
     }
   },
 
@@ -1386,10 +1402,10 @@ Grammar.prototype = {
     }
   },
 
-  addChildren: function(rule, y, kids, f) {
+  addChildren: function(rule, y, kids, f, pos) {
     var lambda = kids.slice(0);
     if (f !== 0)
-      lambda.push(this.getEpsilonSPPF(f, kids[kids.length - 1].pos.posAtEnd()));
+      lambda.push(this.getEpsilonSPPF(f, pos));
     // Find lambda in the kids of y
     function examine(y_rule, y_kids) {
       if (y_rule !== rule) return false;
@@ -1418,6 +1434,87 @@ Grammar.prototype = {
     return actions1;
   },
   
+  printSPPFasDot: function() {
+    var ret = [];
+    ret.push("digraph " + this.name + "_SPPF {");
+    ret.push("  rankdir=RL; clusterrank=local;");
+    ret.push("  // Nodes");
+    for (var i = 0; i < SPPFNode.allNodes.length; i++) {
+      var node = SPPFNode.allNodes[i];
+      var style = "";
+      if (node.inline)
+        style = ", style=dashed";
+      var label = "SPPFNode #" + node.sppfId;
+      if (node.inline)
+        label += "\nInlined e-SPPF for " + node.label;
+      else
+        label += "\nLabel: " + node.label.toString(true);
+      if (node.rule)
+        label += "\nRule: " + node.rule.toString();
+      else if (node.ambig)
+        label += "\nMultiple derivations";
+
+      ret.push("  " + node.sppfId + " [label=" + JSON.stringify(label) + style + "];");
+      if (node.ambig !== undefined) {
+        for (var j = 0; j < node.ambig.length; j++) {
+          ret.push("  \"" + node.sppfId + "_" + j 
+                   + "\" [label=" + JSON.stringify(node.ambig[j].rule.toString()) +", shape=box];");
+        }
+      }
+    }
+    ret.push("  // Edges");
+    for (var i = 0; i < SPPFNode.allNodes.length; i++) {
+      var node = SPPFNode.allNodes[i];
+      if (node.kids !== undefined)
+        for (var j = 0; j < node.kids.length; j++)
+          ret.push("  " + node.sppfId + " -> " + node.kids[j].sppfId
+                   + " [label=\"" + j + "\"];");
+      else if (node.ambig !== undefined) {
+        for (var j = 0; j < node.ambig.length; j++) {
+          ret.push("  " + node.sppfId + " -> \"" + node.sppfId + "_" + j + "\";");
+          for (k = 0; k < node.ambig[j].kids.length; k++)
+            ret.push("  \"" + node.sppfId + "_" + j + "\" -> " + node.ambig[j].kids[k].sppfId 
+                     + " [label=\"" + k + "\"];");
+        }
+      }
+    }
+    ret.push("}");
+    return ret.join("\n");
+  },
+
+  printGSSasDot: function() {
+    var ret = [];
+    ret.push("digraph " + this.name + "_GSS {");
+    ret.push("  rankdir=RL; clusterrank=local;");
+    ret.push("  // Nodes");
+    for (var i = 0; i < GSSNode.allNodes.length; i++) {
+      var node = GSSNode.allNodes[i];
+      ret.push("  " + node.gssId + "[label=" + JSON.stringify(node.toString()) + "];");
+    }
+    ret.push("  // Ranks");
+    for (var i = 0; i < this.U.length; i++) {
+      var s = "";
+      for (var j = 0; j < this.U[i].size(); j++)
+        s += " " + this.U[i].get(j).gssId + ";";
+      ret.push("  subgraph cluster" + i + " {");
+      ret.push("    rank = same; color=black;");
+      if (i > 0)
+        ret.push("    label=\"Token " + i + "\"");
+      ret.push("    " + s);
+      ret.push("  }");
+    }
+    ret.push("  // Edges");
+    for (var i = 0; i < GSSNode.allNodes.length; i++) {
+      var node = GSSNode.allNodes[i];
+      for (var j = 0; j < node.links.length; j++)
+        ret.push("  " + node.gssId + " -> " + node.links[j].prev.gssId 
+                 + "[label=" + JSON.stringify(node.links[j].val.toString()) + "]"
+                 //+ "[label=" + JSON.stringify(JSON.decycle(node.links[j].val), null, "  ") + "]"
+                 + ";");
+    }
+    ret.push("}");
+    return ret.join("\n");
+  },
 
   //////////////////////////////////
   // The RNGLR algorithm
@@ -1433,13 +1530,13 @@ Grammar.prototype = {
       }
     } else {
       oldConsoleLog = console.log;
-      console.log = function() { };
+      //console.log = function() { };
       var v0 = new GSSNode(0);
       var U0 = new OrderedSet([v0]);
       U0.id = 0;
       v0.parentSetId = U0.id;
-      var U = [];
-      U[0] = U0;
+      this.U = [];
+      this.U[0] = U0;
       var R = new Queue([]);
       var Q = new Queue([]);
       var hasNext = true;
@@ -1461,27 +1558,27 @@ Grammar.prototype = {
       console.log("R = ");
       R.debugPrint();
       var i = 0;
-      while (hasNext && U[i].size() > 0) {
+      while (hasNext && this.U[i].size() > 0) {
         var N = new Queue([]);
         oldConsoleLog("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
         while (R.length > 0) {
-          this.reducer(U, R, Q, N, i, cur_tok);
+          this.reducer(this.U, R, Q, N, i, cur_tok);
         }
         hasNext = token_source.hasNext();
         var next_tok = token_source.next();
         console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
-        this.shifter(U, R, Q, N, i, cur_tok, next_tok);
+        this.shifter(this.U, R, Q, N, i, cur_tok, next_tok);
         cur_tok = next_tok;
         i++;
       }
       console.log = oldConsoleLog;
       console.log("DONE WITH LOOP, i = " + i);
       if (!hasNext) i--;
-      console.log("Finalizing: i = " + i + " and U[i] = " + U[i]);
+      console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
       for (var acc = 0; acc < this.acceptStates.length; acc++) {
         if (this.acceptStates[acc]) {
           console.log("Searching for " + acc);
-          var t = U[i].itemsByKey(acc);
+          var t = this.U[i].itemsByKey(acc);
           if (t !== undefined) {
             assert(t.length == 1, "Should not have multiple items with key " + acc + " in set U[" + i + "]");
             t = t[0];
@@ -1510,6 +1607,7 @@ Grammar.prototype = {
 
   constructAllParses: function(sppfNode, indent) {
     if (sppfNode.label instanceof Token) {
+      console.log(indent + "<-- returning [" + sppfNode.label.toString(true) + "]");
       return [sppfNode.label];
     }
     var options = undefined;
@@ -1527,11 +1625,12 @@ Grammar.prototype = {
       for (var j = 0; j < kids.length; j++) {
         if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
           for (k = 0; k < kids[j].kids.length; k++) {
-            // console.log(indent + "inlining " + kids[j].kids[k]);
+            console.log(indent + "inlining " + kids[j].kids[k]);
             kidsParses.push([kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos)]);
           }
         } else {
-          kidsParses.push(this.constructAllParses(kids[j], indent + "  "));
+          console.log(indent + "  --> constructing all parses for kids[" + j + "]");
+          kidsParses.push(this.constructAllParses(kids[j], indent + "    "));
         }
       }
       ret = ret.concat(this.cartesian(kidsParses, 0, [], 

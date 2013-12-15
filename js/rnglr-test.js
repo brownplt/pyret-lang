@@ -79,3 +79,6 @@ if (parsed !== undefined) {
   for (var i = 0; i < parses.length; i++)
     console.log(parses[i].toString());
 }
+
+console.log(g.printGSSasDot());
+console.log(g.printSPPFasDot());
