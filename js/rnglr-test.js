@@ -6,10 +6,13 @@ const OrderedSet = E.OrderedSet
 const SrcLoc = E.SrcLoc
 
 var g = new Grammar("Example", "S");
-g.addRule("S", [new Token("id"), new Nonterm("B"), new Nonterm("S"), new Nonterm("S")]);
-g.addRule("S", [new Token("a")]);
-g.addRule("S", []);
-g.addRule("B", []);
+// g.addRule("S", [new Token("id"), new Nonterm("B"), new Nonterm("S"), new Nonterm("S")]);
+// g.addRule("S", [new Token("a")]);
+// g.addRule("S", []);
+// g.addRule("B", []);
+
+g.addRule("S", [new Nonterm("S"), new Token("+"), new Nonterm("S")]);
+g.addRule("S", [new Token("id")]);
 
 // g.addRule("S", [new Nonterm("A"), new Nonterm("B")]);
 // g.addRule("S", [new Nonterm("B"), new Nonterm("A")]);
@@ -70,8 +73,10 @@ function token_stream(toks) {
 }
 
 function id(x) { return new Token("id", x); }
+function tok(t) { return new Token(t); }
 //var tokens = token_stream([id("b"), id("b"), id("a"), id("a"), id("a"), id("b")]);
-var tokens = token_stream([id("b1"), id("b2"), new Token("a"), new Token("a")]);
+//var tokens = token_stream([id("b1"), id("b2"), new Token("a"), new Token("a")]);
+var tokens = token_stream([id("a"), tok("+"), id("b"), tok("+"), id("c"), tok("+"), id("d"), tok("+"), id("e"), tok("+"), id("f")]);
 var parsed = g.parse(tokens);
 if (parsed !== undefined) {
   var parses = g.constructAllParses(parsed, "");
@@ -80,5 +85,5 @@ if (parsed !== undefined) {
     console.log(parses[i].toString());
 }
 
-console.log(g.printGSSasDot());
-console.log(g.printSPPFasDot());
+// console.log(g.printGSSasDot());
+// console.log(g.printSPPFasDot());

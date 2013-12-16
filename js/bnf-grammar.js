@@ -293,8 +293,8 @@ function generateItem(ruleName, item) {
 
 
 const fs = require("fs");
-//var data = fs.readFileSync("../src/lang/grammar.rkt", "utf8");
-var data = fs.readFileSync("grammar.rkt", "utf8");
+//var data = fs.readFileSync("grammar-full.rkt", "utf8");
+var data = fs.readFileSync("grammar-small.rkt", "utf8");
 
 var toks = new Tokenizer(data, true);
 var parsed = g.parse(toks);
@@ -303,12 +303,12 @@ if (parsed !== undefined) {
   var grammar_name = "grammar";
   var parses = g.constructAllParses(parsed, "");
   console.log("Found " + parses.length + " parses");
-  console.log(parses[0].toString());
+  // console.log(parses[0].toString());
   var bnfJS = generateGrammar(parses[0], grammar_name);
   var out = fs.createWriteStream("grammar.js");
   out.write("const fs = require('fs');\n");
   out.write("const E = require('./rnglr.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
-  out.write("const Lit = E.Lit\nconst Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
+  out.write("const Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
   out.write(bnfJS.join("\n"));
   out.write("\n\n");
   out.write("g.initializeParser(true);\n")
@@ -322,10 +322,19 @@ if (parsed !== undefined) {
   out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
   out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
   out.write("out.write(\"const E = require('./rnglr.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
-  out.write("out.write(\"const Lit = E.Lit\\nconst Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
+  out.write("out.write(\"const Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
   out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
   out.write("out.end();\n");
+  out.write("\n\n");
+  out.write("const T = require('./pyret-tokenizer.js');\n");
+  out.write("var data = \"#lang pyret\n\nimport \\\"foo\\\" as bar\\na\";\n");
+  out.write("const toks = new T.Tokenizer(data, true);\n");
+  out.write("var parsed = g.parse(toks);\n");
+  out.write("console.log(g.printSPPFasDot());\n");
+  out.write("console.log(g.printGSSasDot());\n");
+  out.write("console.log(\"Result:\");\n");
+  out.write("console.log(g.constructAllParses(parsed)[0].toString(true));\n");
   out.end();
 }
 

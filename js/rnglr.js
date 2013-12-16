@@ -635,8 +635,8 @@ function pathLengthHelp(link, len, labels, stack, callback) {
   labels[len - 1] = link.val;
   stack.push(link.prev.toString());
   if (len == 1) { 
-    console.log("Constructed path via [" + stack + "]");
-    console.log("Calling callback with [" + labels + "] and leftSib.state " + link.prev.label);
+    // console.log("Constructed path via [" + stack + "]");
+    // console.log("Calling callback with [" + labels + "] and leftSib.state " + link.prev.label);
     callback({labels: labels, leftSib: link.prev}); 
   } else {
     var prev_links = link.prev.links;
@@ -732,6 +732,15 @@ function Grammar(name, start) {
 Grammar.fromSerializable = function(obj) {
   var g = new Grammar(obj.name, obj.start);
   var rulesByOldId = {};
+  function replaceRules(obj) {
+    if (obj instanceof Object) {
+      for (var name in obj)
+        replaceRules(obj[name])
+      if (obj.rule)
+        obj.rule = rulesByOldId[obj.rule];
+    }
+    return obj;
+  }
   g.nontermOrdinals = obj.nontermOrdinals;
   for (var id in obj.rulesByOldId) {
     rulesByOldId[id] = Rule.fromSerializable(obj.rulesByOldId, id);
@@ -744,11 +753,21 @@ Grammar.fromSerializable = function(obj) {
     var newRow = g.rnTable[i] = {};
     for (var j = 0; j < g.atoms.size(); j++) {
       var atom = g.atoms.get(j);
-      if (atom in tableRow)
-        newRow[atom] = OrderedSet.fromSerializable(tableRow[atom], Action.equals, 
-                                                   Action.fromSerializable(rulesByOldId))
-      else
-        newRow[atom] = new OrderedSet([], Action.equals);
+      newRow[atom] = {push: [], reductions: new OrderedSet([], Action.equals)};
+      if (atom in tableRow) {
+        if (tableRow[atom].accept)
+          newRow[atom].accept = true;
+        if (tableRow[atom].push) {
+          for (var k = 0; k < tableRow[atom].push.length; k++)
+            newRow[atom].push.push(new PushAction(tableRow[atom].push[k]));
+        }
+        if (tableRow[atom].reductions) {
+          for (var k = 0; k < tableRow[atom].reductions.length; k++) {
+            var red = tableRow[atom].reductions[k];
+            newRow[atom].reductions.add(new ReduceAction(rulesByOldId[red[0]], red[1]));
+          }
+        }
+      }
     }
   }
   g.acceptStates = [];
@@ -761,6 +780,8 @@ Grammar.fromSerializable = function(obj) {
       g.derivable[name][obj.derivable[name][i]] = true;
   }
   g.mode = obj.mode;
+  g.computeFirstSets(); // Unfortunate...
+  g.computeRequiredNullableParts(); // Need a better deserialization of eSPPF sets
   return g;
 }
 
@@ -793,10 +814,8 @@ Grammar.prototype = {
     console.log("Computing first sets");
     this.resetParser();
     this.computeFirstSets();
-    console.log(JSON.stringify(this.first, null, "  "));
     console.log("Computing derivability");
     this.computeDerivability();
-    console.log(JSON.stringify(this.derivable, null, "  "))
     console.log("Sorting nonterminals");
     this.topoSortNonterms();
     console.log("Computing states");
@@ -824,10 +843,22 @@ Grammar.prototype = {
   },
 
   toSerializable: function() {
+    function replaceRules(obj) {
+      if (obj instanceof Object) {
+        if (obj.rule) {
+          obj.rule = obj.rule.id;
+        }
+        for (var name in obj)
+          replaceRules(obj[name]);
+      }
+      return obj
+    }
     var ret = {};
     ret.start = this.start;
     ret.name = this.name;
     ret.nontermOrdinals = this.nontermOrdinals;
+    ret.I = this.I;
+    ret.eSPPFs = replaceRules(JSON.decycle(this.eSPPFs));
     ret.acceptStates = [];
     for (var i = 0; i < this.acceptStates.length; i++)
       if (this.acceptStates[i])
@@ -853,29 +884,31 @@ Grammar.prototype = {
     }
     ret.rnTable = []; // TODO: Fix this
     for (var i = 0; i < this.rnTable.length; i++) {
-      ret.rnTable[i] = {};
       var tableRow = this.rnTable[i];
+      ret.rnTable[i] = {};
       for (var name in tableRow) {
-        if (tableRow[name] instanceof OrderedSet && tableRow[name].size() > 0) {
-          ret.rnTable[i][name] = tableRow[name].toSerializable();
-          for (var j = 0; j < tableRow[name].size(); j++) {
-            var act = tableRow[name].get(j);
-            if (act instanceof ReduceAction) {
-              ret.rulesByOldId[act.rule.id] = act.rule.toSerializable();
-              var rule_noLookahead = act.rule.withLookahead(undefined);
+        if (tableRow[name].push.length === 0 && !tableRow[name].accept && tableRow[name].reductions.size() === 0) {
+          //ret.rnTable[i][name] = "empty";
+        } else {
+          var entry = tableRow[name];
+          var dest = ret.rnTable[i][name] = {};
+          if (entry.accept) dest.accept = true;
+          if (entry.push.length > 0) {
+            dest.push = [];
+            for (var j = 0; j < entry.push.length; j++)
+              dest.push.push(entry.push[j].dest);
+          }
+          if (entry.reductions.size() > 0) {
+            dest.reductions = [];
+            for (var j = 0; j < entry.reductions.size(); j++) {
+              var red = entry.reductions.get(j)
+              dest.reductions.push([red.rule.id, red.f]);
+              ret.rulesByOldId[red.rule.id] = red.rule.toSerializable();
+              var rule_noLookahead = red.rule.withLookahead(undefined);
               ret.rulesByOldId[rule_noLookahead.id] = rule_noLookahead.toSerializable();
             }
           }
-        } else if (tableRow[name].hasOwnProperty("length")) {
-          var arr = ret.rnTable[i][name] = [];
-          for (var j = 0; j < tableRow[name].length; j++) {
-            if (tableRow[name][j].hasOwnProperty("toSerializable"))
-              arr.push(tableRow[name][j].toSerializable());
-            else
-              arr.push(tableRow[name][j]);
-          }
-        } else
-          ret.rnTable[i][name] = tableRow[name];
+        }
       }
     }
     return ret;
@@ -1179,30 +1212,30 @@ Grammar.prototype = {
   // Computes the kernel of the LR(1) Goto set for a given kernel and symbol
   // Dragon book, p241
   computeGotoKernel: function(i, rule_set, symbol) {
-    console.log("--> Rule_set #" + i + " = " + rule_set + ", symbol = " + symbol);
+    // console.log("--> Rule_set #" + i + " = " + rule_set + ", symbol = " + symbol);
     var ret = new OrderedSet([], Rule.equals);
     for (var i = 0; i < rule_set.size(); i++) {
       var rule = rule_set.get(i);
-      console.log("    Processing rule " + rule);
+      // console.log("    Processing rule " + rule);
       if (rule.position < rule.symbols.length) {
         if (rule.symbols[rule.position].toString() == symbol) {
           var new_rule = RuleFactory.make(rule.name, rule.symbols, undefined, rule.position + 1, rule.action);
-          console.log("      Pushing " + symbol + " over in rule " + rule + " ==> " + new_rule);
+          // console.log("      Pushing " + symbol + " over in rule " + rule + " ==> " + new_rule);
           ret.add(new_rule);
         }
         if (rule.symbols[rule.position] instanceof Nonterm) {
           var C = rule.symbols[rule.position];
           var ntFirst = this.nontermFirst[C];
-          console.log("      nontermFirst[" + C + "] = " + ntFirst.toString());
-          console.log("      first[" + C + "] = " + JSON.stringify(this.first[C]));
+          // console.log("      nontermFirst[" + C + "] = " + ntFirst.toString());
+          // console.log("      first[" + C + "] = " + JSON.stringify(this.first[C]));
           for (var idx = 0; idx < ntFirst.size(); idx++) {
             var a = ntFirst.get(idx);
             var rules_a = this.rules[a];
             for (var j = 0; j < rules_a.length; j++) {
               var rule_a = rules_a[j];
-              console.log("      Rule " + rule + " can derive " + a + " so examining " + rule_a + " for "+ symbol);
+              // console.log("      Rule " + rule + " can derive " + a + " so examining " + rule_a + " for "+ symbol);
               if (rule_a.symbols.length > 0 && rule_a.symbols[0].toString() == symbol) {
-                console.log("      Adding " + rule_a);
+                // console.log("      Adding " + rule_a);
                 var new_rule = RuleFactory.make(rule_a.name, rule_a.symbols, undefined, 1, rule_a.action);
                 ret.add(new_rule);
               }
@@ -1211,7 +1244,7 @@ Grammar.prototype = {
         }
       }
     }
-    console.log("<-- Result = " + ret);
+    // console.log("<-- Result = " + ret);
     return ret;
   },
 
@@ -1235,7 +1268,7 @@ Grammar.prototype = {
     var U_i = U[i]
     const thiz = this;
     v.forPathsOfLength(m > 0 ? (m - 1) : 0, function(p) {
-      // console.log("Found path " + JSON.stringify(p, null, "  "));
+      console.log("Found path " + JSON.stringify(p, null, "  "));
       // p.labels contain the edge labels of the path
       var u = p.leftSib;
       var k = u.label;
@@ -1260,7 +1293,7 @@ Grammar.prototype = {
             z = nodes_X[c] = new SPPFNode(X, pos);
           }
         }
-        console.log("z = " + z);
+        console.log("z = " + z); // XXX Serializing of eSPPFs isn't working
         var w = U_i.itemsByKey(l);
         if (w !== undefined) {
           assert(w.length == 1, "Should not have multiple items with key " + l + " in set U[" + i + "]");
@@ -1326,7 +1359,7 @@ Grammar.prototype = {
     if (link === undefined) {
       var link = new Link(leftSib, val);
       rightSib.links.push(link);
-      console.log("Linking " + leftSib.toString() + " <-- " + rightSib.toString() + " with val " + val + "@" + val.pos);
+      // console.log("Linking " + leftSib.toString() + " <-- " + rightSib.toString() + " with val " + val + "@" + val.pos);
     }
   },
 
@@ -1542,7 +1575,7 @@ Grammar.prototype = {
       var hasNext = true;
       var cur_tok = token_source.next(); // need to peek at first token
       var actions = this.getActions(0, cur_tok);
-      console.log("Actions[0][" + cur_tok + "] = " + JSON.stringify(actions));
+      console.log("Actions[0][" + cur_tok.toString(true) + "] = " + JSON.stringify(actions));
       var pk = actions.push;
       for (var i = 0; i < pk.length; i++)
         Q.push(new ShiftPair(v0, pk[i].dest));
@@ -1560,7 +1593,7 @@ Grammar.prototype = {
       var i = 0;
       while (hasNext && this.U[i].size() > 0) {
         var N = new Queue([]);
-        oldConsoleLog("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
+        console.log("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
         while (R.length > 0) {
           this.reducer(this.U, R, Q, N, i, cur_tok);
         }
@@ -1593,7 +1626,6 @@ Grammar.prototype = {
               }
             }
             if (link !== undefined) {
-              console.log(JSON.stringify(JSON.decycle(link.val), null, "  "));
               return link.val;
             } else
               console.log("Couldn't find correct link in " + JSON.stringify(JSON.decycle(t), null, "  "));
@@ -1607,7 +1639,7 @@ Grammar.prototype = {
 
   constructAllParses: function(sppfNode, indent) {
     if (sppfNode.label instanceof Token) {
-      console.log(indent + "<-- returning [" + sppfNode.label.toString(true) + "]");
+      // console.log(indent + "<-- returning [" + sppfNode.label.toString(true) + "]");
       return [sppfNode.label];
     }
     var options = undefined;
@@ -1616,20 +1648,20 @@ Grammar.prototype = {
     else
       options = [{kids: sppfNode.kids, rule: sppfNode.rule}];
     var ret = [];
-    console.log(indent + options.length + " options for " + sppfNode);
+    // console.log(indent + options.length + " options for " + sppfNode);
     for (var i = 0; i < options.length; i++) {
       var kids = options[i].kids;
       var rule = options[i].rule;
-      console.log(indent + "-->" + i + ": sppfNode.label = " + sppfNode.label + " and rule = " + rule + ", kids.length = " + kids.length + ", sppfNode.pos = " + sppfNode.pos);
+      // console.log(indent + "-->" + i + ": sppfNode.label = " + sppfNode.label + " and rule = " + rule + ", kids.length = " + kids.length + ", sppfNode.pos = " + sppfNode.pos);
       var kidsParses = [];
       for (var j = 0; j < kids.length; j++) {
         if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
           for (k = 0; k < kids[j].kids.length; k++) {
-            console.log(indent + "inlining " + kids[j].kids[k]);
+            // console.log(indent + "inlining " + kids[j].kids[k]);
             kidsParses.push([kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos)]);
           }
         } else {
-          console.log(indent + "  --> constructing all parses for kids[" + j + "]");
+          // console.log(indent + "  --> constructing all parses for kids[" + j + "]");
           kidsParses.push(this.constructAllParses(kids[j], indent + "    "));
         }
       }
@@ -1823,7 +1855,7 @@ Grammar.prototype = {
           } else {
             gotoStateNum = kernelStates.indexOf(new_set);
           }
-          console.log(state_num + ":" + set + " goes to " + gotoStateNum + ":" + new_set + " via symbol " + atom_j);
+          // console.log(state_num + ":" + set + " goes to " + gotoStateNum + ":" + new_set + " via symbol " + atom_j);
           var tableRow = this.rnTable[state_num];
           if (tableRow === undefined)
             tableRow = this.rnTable[state_num] = {};
