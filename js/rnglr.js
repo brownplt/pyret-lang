@@ -607,8 +607,7 @@ function ReductionItem(gssNode, rule, m, f, label) {
   this.label = label;
 }
 ReductionItem.prototype.toString = function() {
-  return "RedItem(" + this.gssNode + ", " + this.rule + ", " + this.m + ", " + this.f + ", " 
-    + JSON.stringify(this.label, null, "  ") + ")";
+  return "RedItem(" + this.gssNode + ", " + this.rule + ", " + this.m + ", " + this.f + ", " + this.label + ")";
 }
 function GSSNode(label) {
   this.gssId = GSSNode.NextNodeId++;
@@ -696,6 +695,8 @@ SPPFNode.prototype.toString = function() {
     ruleAmbig = this.rule.toString();
   else if (this.ambig)
     ruleAmbig = "ambig";
+  else if (this.label instanceof Token)
+    ruleAmbig = "<Token " + this.label.toString(true) + ">";
   else
     ruleAmbig = "<unknown>";
   return "SPPFNode(" + this.sppfId + ", " + this.label.toString(true) + "@" + posString + " " + ruleAmbig + ")";
@@ -1046,7 +1047,8 @@ Grammar.prototype = {
     function merge(dest, source) {
       var ret = false;
       for (var tok in thiz.first[source])
-        ret = addFirst(dest, thiz.first[source][tok]) || ret;
+        if (thiz.first[source][tok] !== EPSILON)
+          ret = addFirst(dest, thiz.first[source][tok]) || ret;
       return ret;
     }
     this.first = {};
@@ -1056,7 +1058,7 @@ Grammar.prototype = {
         this.first[name] = {};
         this.nontermFirst[name] = new OrderedSet([name], Atom.equals);
         for (var i = 0; i < this.rules[name].length; i++)
-          if (this.rules[name][i].symbols.length == 0)
+          if (this.rules[name][i].symbols.length === 0)
             addFirst(name, EPSILON);
       }
     }
@@ -1066,16 +1068,23 @@ Grammar.prototype = {
         var name_rules = this.rules[name];
         for (var i = 0; i < name_rules.length; i++) {
           var name_rule = name_rules[i];
+          var allNullable = true;
           for (var j = 0; j < name_rule.symbols.length; j++) {
             if (name_rule.symbols[j] instanceof Nonterm) {
               changed = merge(name, name_rule.symbols[j]) || changed;
               this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
-              if (this.first[name_rule.symbols[j]][EPSILON] !== EPSILON)
+              if (this.first[name_rule.symbols[j]][EPSILON] !== EPSILON) {
+                allNullable = false;
                 break;
+              }
             } else {
               changed = addFirst(name, name_rule.symbols[j]) || changed;
+              allNullable = false;
               break;
             }
+          }
+          if (allNullable) {
+            addFirst(name, EPSILON);
           }
         }
       }
@@ -1256,7 +1265,7 @@ Grammar.prototype = {
     // N is the set of SPPF nodes created in this step
     // cur_tok is the current token
     var item = R.shift();
-    console.log("In reducer, i = " + i + ", cur_tok = " + cur_tok.toString(true) + ", and item = " + item);
+    // console.log("In reducer, i = " + i + ", cur_tok = " + cur_tok.toString(true) + ", and item = " + item);
     var v = item.gssNode; // GSS node from which the reduction is to be applied
     var X = item.rule.name; // the name of the reduction rule
     var m = item.m; // the length of the RHS of the reduction rule (maybe just item.rule.position?)
@@ -1268,13 +1277,13 @@ Grammar.prototype = {
     var U_i = U[i]
     const thiz = this;
     v.forPathsOfLength(m > 0 ? (m - 1) : 0, function(p) {
-      console.log("Found path " + JSON.stringify(p, null, "  "));
+      // console.log("Found path " + JSON.stringify(p, null, "  "));
       // p.labels contain the edge labels of the path
       var u = p.leftSib;
       var k = u.label;
       var pl = thiz.rnTable[k][X].push;
       for (var pl_index = 0; pl_index < pl.length; pl_index++) {
-        console.log("k = " + k + ", X = " + X + ", pl = " + pl[pl_index]);
+        // console.log("k = " + k + ", X = " + X + ", pl = " + pl[pl_index]);
         var l = pl[pl_index].dest;
         var z = undefined;
         if (m === 0)
@@ -1293,36 +1302,37 @@ Grammar.prototype = {
             z = nodes_X[c] = new SPPFNode(X, pos);
           }
         }
-        console.log("z = " + z); // XXX Serializing of eSPPFs isn't working
+        // console.log("z = " + z); // XXX Serializing of eSPPFs isn't working
         var w = U_i.itemsByKey(l);
         if (w !== undefined) {
           assert(w.length == 1, "Should not have multiple items with key " + l + " in set U[" + i + "]");
           w = w[0];
         }
         if (w !== undefined) {
-          console.log("1. Adding link from " + w + " to " + u + " labelled " + z);
-          thiz.addLink(/*from*/w, /*to*/u, /*labelled*/z);
-          if (m !== 0) {
-            var reductions = thiz.getActions(l, cur_tok).reductions;
-            for (var r = 0; r < reductions.size(); r++) {
-              var red = reductions.get(r);
-              if (red.rule.position !== 0)
-                R.push(new ReductionItem(u, red.rule, red.rule.position, red.f, z));
+          // console.log("1. Adding link from " + w + " to " + u + " labelled " + z);
+          if (thiz.addLink(/*from*/w, /*to*/u, /*labelled*/z)) {
+            if (m !== 0) {
+              var reductions = thiz.getActions(l, cur_tok).reductions;
+              for (var r = 0; r < reductions.size(); r++) {
+                var red = reductions.get(r);
+                if (red.rule.position !== 0)
+                  R.push(new ReductionItem(u, red.rule, red.rule.position, red.f, z));
+              }
             }
           }
         } else {
           w = new GSSNode(/*labelled*/l);
           w.parentSetId = U_i.id;
           U_i.add(w);
-          console.log("Added " + w + " to U[" + i + "] ==> " + U_i);
-          console.log("2. Adding link from " + w + " to " + u + " labelled " + z);
+          // console.log("Added " + w + " to U[" + i + "] ==> " + U_i);
+          // console.log("2. Adding link from " + w + " to " + u + " labelled " + z);
           thiz.addLink(/*from*/w,/*to*/u,/*labelled*/z);
           var actions = thiz.getActions(l, cur_tok);
           var ph = actions.push;
           for (var ph_index = 0; ph_index < ph.length; ph_index++)
             Q.push(new ShiftPair(w, ph[ph_index].dest));
           var reductions = actions.reductions;
-          console.log("reductions(" + l + ", " + cur_tok.toString(true) + ") = " + reductions);
+          // console.log("reductions(" + l + ", " + cur_tok.toString(true) + ") = " + reductions);
           for (var r = 0; r < reductions.size(); r++) {
             var red = reductions.get(r);
             if (red.rule.position === 0)
@@ -1336,8 +1346,8 @@ Grammar.prototype = {
                 R.push(new ReductionItem(u, red.rule, red.rule.position, red.f, z));
             }
           }
-          console.log("R = ");
-          R.debugPrint();
+          // console.log("R.length = " + R.length);
+          // R.debugPrint();
         }
         if (m !== 0) {
           var labels = p.labels.slice(0);
@@ -1357,9 +1367,13 @@ Grammar.prototype = {
       }
     }
     if (link === undefined) {
-      var link = new Link(leftSib, val);
+      link = new Link(leftSib, val);
       rightSib.links.push(link);
       // console.log("Linking " + leftSib.toString() + " <-- " + rightSib.toString() + " with val " + val + "@" + val.pos);
+      return link;
+    } else {
+      // console.log("Link already exists between " + leftSib.toString() + " <-- " + rightSib.toString());
+      return undefined;
     }
   },
 
@@ -1371,7 +1385,7 @@ Grammar.prototype = {
     // Q is the set of (GSS node, token) pairs of pending shifts
     // N is the set of SPPF nodes created in this step
     if (cur_tok !== EOF) { // if i != d, in the paper, where d is the last token number
-      Q.debugPrint();
+      // Q.debugPrint();
       var Qprime = new Queue([]);
       var z = new SPPFNode(cur_tok, cur_tok.pos);
       var U_i1 = U[i+1] = new OrderedSet([]);
@@ -1381,7 +1395,7 @@ Grammar.prototype = {
         var v = item.gssNode;
         var k = item.state;
         var w = U_i1.itemsByKey(k);
-        console.log("item = " + item + ", k = " + k + " and therefore w = " + w);
+        // console.log("item = " + item + ", k = " + k + " and therefore w = " + w);
         if (w !== undefined) {
           assert(w.length == 1, "Should not have multiple items with key " + k + " in set U[" + i + "]");
           w = w[0];
@@ -1398,21 +1412,22 @@ Grammar.prototype = {
           w = new GSSNode(/*labelled*/k);
           w.parentSetId = U_i1.id;
           U_i1.add(w);
-          console.log("Added " + w + " to U[" + (i + 1) + "] ==> " + U_i1);
+          // console.log("Added " + w + " to U[" + (i + 1) + "] ==> " + U_i1);
           this.addLink(/*from*/w, /*to*/v, /*labelled*/z);
 
           var actions = this.getActions(k, next_tok);
+          // console.log("next_tok = " + next_tok.toString(true) + ", k = " + k + ", actions = " + JSON.stringify(actions));
           var ph = actions.push;
           for (var ph_index = 0; ph_index < ph.length; ph_index++) {
             var sp = new ShiftPair(w, ph[ph_index].dest);
-            console.log("Pushing " + sp + " onto Q'");
+            // console.log("Pushing " + sp + " onto Q'");
             Qprime.push(sp);
           }
           var reductions = actions.reductions;
-          console.log("Reductions for k = " + k + " next_tok = " + next_tok + " are " + reductions);
+          // console.log("Reductions for k = " + k + " next_tok = " + next_tok + " are " + reductions);
           for (var r = 0; r < reductions.size(); r++) {
             var red = reductions.get(r);
-            console.log("red.f = " + red.f + ", red.rule.position = " + red.rule.position);
+            // console.log("red.f = " + red.f + ", red.rule.position = " + red.rule.position);
             if (red.rule.position !== 0) {
               R.push(new ReductionItem(v, red.rule, red.rule.position, red.f, z));
             }
@@ -1424,14 +1439,14 @@ Grammar.prototype = {
               R.push(new ReductionItem(w, red.rule, 0, red.f, EPSILON)); 
             }
           }
-          console.log("R = ");
-          R.debugPrint();
+          // console.log("R = ");
+          // R.debugPrint();
         }
       }
       while (Qprime.length > 0)
         Q.push(Qprime.shift());
-      console.log("At the end of shifter(" + i + "), Q = ");
-      Q.debugPrint();
+      // console.log("At the end of shifter(" + i + "), Q = ");
+      // Q.debugPrint();
     }
   },
 
@@ -1562,8 +1577,6 @@ Grammar.prototype = {
         return null;
       }
     } else {
-      oldConsoleLog = console.log;
-      //console.log = function() { };
       var v0 = new GSSNode(0);
       var U0 = new OrderedSet([v0]);
       U0.id = 0;
@@ -1575,12 +1588,12 @@ Grammar.prototype = {
       var hasNext = true;
       var cur_tok = token_source.next(); // need to peek at first token
       var actions = this.getActions(0, cur_tok);
-      console.log("Actions[0][" + cur_tok.toString(true) + "] = " + JSON.stringify(actions));
+      // console.log("Actions[0][" + cur_tok.toString(true) + "] = " + JSON.stringify(actions));
       var pk = actions.push;
       for (var i = 0; i < pk.length; i++)
         Q.push(new ShiftPair(v0, pk[i].dest));
-      console.log("Q = ");
-      Q.debugPrint();
+      // console.log("Q = ");
+      // Q.debugPrint();
       var reductions = actions.reductions;
       for (var r = 0; r < reductions.size(); r++) {
         var red = reductions.get(r);
@@ -1588,26 +1601,25 @@ Grammar.prototype = {
           // Again, label shouldn't matter because length is 0
           R.push(new ReductionItem(v0, red.rule, 0, red.f, EPSILON));
       }
-      console.log("R = ");
-      R.debugPrint();
+      // console.log("R = ");
+      // R.debugPrint();
       var i = 0;
       while (hasNext && this.U[i].size() > 0) {
         var N = new Queue([]);
-        console.log("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
+        // console.log("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
         while (R.length > 0) {
           this.reducer(this.U, R, Q, N, i, cur_tok);
         }
         hasNext = token_source.hasNext();
         var next_tok = token_source.next();
-        console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
+        // console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
         this.shifter(this.U, R, Q, N, i, cur_tok, next_tok);
         cur_tok = next_tok;
         i++;
       }
-      console.log = oldConsoleLog;
-      console.log("DONE WITH LOOP, i = " + i);
+      // console.log("DONE WITH LOOP, i = " + i);
       if (!hasNext) i--;
-      console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
+      // console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
       for (var acc = 0; acc < this.acceptStates.length; acc++) {
         if (this.acceptStates[acc]) {
           console.log("Searching for " + acc);
@@ -1697,15 +1709,14 @@ Grammar.prototype = {
     this.eSPPFs[0] = {null: new SPPFNode(EPSILON, null)};
     // Initialize all eSPPFs to empty nodes
     for (var name in this.rules) {
-      if (this.derivable[name][EPSILON] === EPSILON) continue;
-      var rules_name = this.rules[name];
+      if (this.derivable[name][EPSILON] !== true) continue;
       var name_eSPPF = new SPPFNode(name, null);
       this.I[name] = this.eSPPFs.length;
       this.eSPPFs.push({null: name_eSPPF});
     }
     // Compute the e-closure of the rules
     for (var name in this.rules) {
-      if (this.derivable[name][EPSILON] === EPSILON) continue;
+      if (this.derivable[name][EPSILON] !== true) continue;
       var rules_name = this.rules[name];
       var name_eSPPF = this.eSPPFs[this.I[name]].null;
       for (var i = 0; i < rules_name.length; i++) {
