@@ -1737,6 +1737,55 @@ Grammar.prototype = {
   },
 
   constructUniqueParse: function(sppfNode) {
+    if (sppfNode.label instanceof Token) {
+      return sppfNode.label;
+    } else if (sppfNode.ambig)
+      throw("Not a unique parse");
+    var kidsParses = [];
+    var kids = sppfNode.kids;
+    for (var j = 0; j < kids.length; j++) {
+      if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
+        for (k = 0; k < kids[j].kids.length; k++) {
+          kidsParses.push(kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos));
+        }
+      } else {
+        kidsParses.push(this.constructUniqueParse(kids[j]));
+      }
+    }
+    return sppfNode.rule.action(kidsParses, sppfNode.pos);
+  },
+
+  checkPositionContainment: function(sppfNode) {
+    var violations = [];
+    function helper(node) {
+      var pos = node.pos;
+      if (node.kids) {
+        for (var i = 0; i < node.kids.length; i++) {
+          var kidPos = node.kids[i].pos;
+          if (kidPos.startChar < pos.startChar || kidPos.endChar > pos.endChar) {
+            violations.push(node);
+            break;
+          }
+        }
+      } else if (node.ambig) {
+        for (var i = 0; i < node.ambig.length; i++) {
+          var kids = node.ambig[i].kids;
+          var shouldBreak = false
+          for (var j = 0; j < kids.lenth; j++) {
+            var kidPos = kids[j].pos;
+            if (kidPos.startChar < pos.startChar || kidPos.endChar > pos.endChar) {
+              violations.push(node);
+              shouldBreak = true;
+              break;
+            }
+          }
+          if (shouldBreak) break;
+        }
+      }
+    }
+    helper(sppfNode);
+    if (violations.length > 0) return violations;
+    return false;
   },
 
   computeRequiredNullableParts: function() {

@@ -17,14 +17,26 @@ var parsed = G.PyretGrammar.parse(toks);
 // console.log(G.PyretGrammar.printSPPFasDot());
 // console.log(G.PyretGrammar.printGSSasDot());
 console.log("Result:");
-console.log("There are " + G.PyretGrammar.countAllParses(parsed) + " potential parses");
+var countParses = G.PyretGrammar.countAllParses(parsed);
+console.log("There are " + countParses + " potential parses");
 // var out = fs.createWriteStream("out.txt");
 // out.write(JSON.stringify(JSON.decycle(parsed)));
 // out.end();
 // console.log("Done JSONing");
-var asts = G.PyretGrammar.constructAllParses(parsed)
-for (var i = 0; i < asts.length; i++)
-  console.log("Parse " + i + ": " + asts[i].toString());
+var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
+if (posViolations) {
+  console.log("Not all nodes conain their children!");
+} else {
+  if (countParses === 1) {
+    var ast = G.PyretGrammar.constructUniqueParse(parsed);
+    console.log(ast.toString());
+  } else {
+    var asts = G.PyretGrammar.constructAllParses(parsed)
+    for (var i = 0; i < asts.length; i++) {
+      console.log("Parse " + i + ": " + asts[i].toString());
+    }
+  }
+}
 // out.write(ast.toString(true));
 console.log("Done");
 // out.end();
