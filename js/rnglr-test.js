@@ -1,3 +1,7 @@
+const os = require('os');
+os.EOL = '\n';
+const log4js = require('log4js');
+const fs = require('fs');
 const E = require('./rnglr.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
@@ -41,14 +45,13 @@ function printColl(col) {
 
 
 g.initializeParser();
-console.log(g.toString());
+// console.log(g.toString());
 
-console.log("All reachable LR(1) states:")
-for (var i = 0; i < g.states.size(); i++)
-  console.log(g.completeClosure(g.states.get(i)).toString(true) + "\n")
-console.log(g.printTables());
+// console.log("All reachable LR(1) states:")
+// for (var i = 0; i < g.states.size(); i++)
+//   console.log(g.completeClosure(g.states.get(i)).toString(true) + "\n")
 
-console.log("Are any grammar productions cyclic? " + g.checkForCycles());
+// console.log("Are any grammar productions cyclic? " + g.checkForCycles());
 
 function token_stream(toks) {
   var cur = 0;
@@ -77,6 +80,13 @@ function tok(t) { return new Token(t); }
 //var tokens = token_stream([id("b"), id("b"), id("a"), id("a"), id("a"), id("b")]);
 //var tokens = token_stream([id("b1"), id("b2"), new Token("a"), new Token("a")]);
 var tokens = token_stream([id("a"), tok("+"), id("b"), tok("+"), id("c"), tok("+"), id("d"), tok("+"), id("e"), tok("+"), id("f")]);
+
+fs.unlink('parser-initial.txt');
+log4js.configure({
+  appenders: [ { type: 'file', filename: 'parser-initial.txt', layout: { type: 'pattern', pattern: "%m" } } ],
+  replaceConsole: true
+});
+console.log(g.printTables());
 var parsed = g.parse(tokens);
 if (parsed !== undefined) {
   var parses = g.constructAllParses(parsed, "");
@@ -85,5 +95,19 @@ if (parsed !== undefined) {
     console.log(parses[i].toString());
 }
 
-// console.log(g.printGSSasDot());
-// console.log(g.printSPPFasDot());
+tokens.reset();
+
+fs.unlink('parser-rebuilt.txt');
+log4js.configure({
+  appenders: [ { type: 'file', filename: 'parser-rebuilt.txt', layout: { type: 'pattern', pattern: "%m" } } ],
+  replaceConsole: true
+});
+var g2 = Grammar.fromSerializable(JSON.parse(JSON.stringify(g.toSerializable())));
+console.log(g2.printTables());
+var parsed2 = g2.parse(tokens);
+if (parsed2 !== undefined) {
+  var parses = g2.constructAllParses(parsed2, "");
+  console.log("Constructed " + parses.length + " parses:")
+  for (var i = 0; i < parses.length; i++)
+    console.log(parses[i].toString());
+}

@@ -258,14 +258,13 @@ function generateItem(ruleName, item) {
     ret.rules.push("g.addRule(" + json_newNameStar + ", " +
                    "[new Nonterm(" + json_newNameOne + ")" + ", new Nonterm(" + json_newNameStar + ")], " +
                    "E.Rule.ListCons(" + json_newNameOne + ", " + json_newNameStar + ", true));");
-    if ((item.kids.length === 1) && item.kids[0].name === "Items") {
-      var gen = generateItems(newNameOne, item.kids[0]);
+    if (item.kids[0].name === "Alts") {
+      var gen = generateAlts(newNameOne, item.kids[0], true);
       ret.rules = ret.rules.concat(gen.rules);
-    } else if (item.kids.length === 1) {
-      var gen = generateItem(newNameOne, item.kids[0]);
-      ret.rules.push("g.addRule(" + json_newNameOne + ", [" + gen.rhs + "], E.Rule.Inline);");
     } else {
-      console.log("Got a star item with multiple direct children? " + JSON.stringify(item, null, "  "));
+      var gen = generateItems(newNameOne, [item.kids[0]]);
+      ret.rules = ret.rules.concat(gen.rules);
+      ret.rules.push("g.addRule(" + JSON.stringify(newNameOne) + ", [" + gen.rhs + "])");
     }
     ret.rhs = "new Nonterm(" + json_newNameStar + ")";
     return ret;

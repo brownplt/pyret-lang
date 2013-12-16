@@ -59,7 +59,8 @@ graph-expr: GRAPH let-expr* end
 
 when-expr: WHEN binop-expr COLON block end
 
-binop-expr: not-expr | binop-expr binop binop-expr | expr
+binop-expr: binop-clause (binop binop-clause)*
+binop-clause: not-expr | expr
 
 not-expr: NOT expr
 

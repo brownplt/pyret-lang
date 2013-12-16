@@ -527,7 +527,7 @@ Rule.fromSerializable = function(rulesByOldId, id) {
   if (obj.hasOwnProperty("like")) {
     var base = Rule.fromSerializable(rulesByOldId, obj.like);
     var lookahead = obj.lookahead;
-    return RuleFactory.make(base.name, base.symbols, Atom.fromSerializable(lookahead), obj.position, base.action);
+    return RuleFactory.make(base.name, base.symbols, Atom.fromSerializable(lookahead), base.position, base.action);
   } else {
     var sym = [];
     for (var i = 0; i < obj.symbols.length; i++) {
@@ -733,22 +733,16 @@ function Grammar(name, start) {
 Grammar.fromSerializable = function(obj) {
   var g = new Grammar(obj.name, obj.start);
   var rulesByOldId = {};
-  function replaceRules(obj) {
-    if (obj instanceof Object) {
-      for (var name in obj)
-        replaceRules(obj[name])
-      if (obj.rule)
-        obj.rule = rulesByOldId[obj.rule];
-    }
-    return obj;
-  }
+  GSSNode.NextNodeId = 0;
+  Link.NextLinkId = 0;
+  SPPFNode.NextId = 0
   g.nontermOrdinals = obj.nontermOrdinals;
   for (var id in obj.rulesByOldId) {
     rulesByOldId[id] = Rule.fromSerializable(obj.rulesByOldId, id);
   }
   for (var i = 0; i < obj.rules.length; i++)
     g.addRule(rulesByOldId[obj.rules[i]]);
-  g.rnTable = [] // TODO
+  g.rnTable = [];
   for (var i = 0; i < obj.rnTable.length; i++) {
     var tableRow = obj.rnTable[i];
     var newRow = g.rnTable[i] = {};
@@ -757,7 +751,7 @@ Grammar.fromSerializable = function(obj) {
       newRow[atom] = {push: [], reductions: new OrderedSet([], Action.equals)};
       if (atom in tableRow) {
         if (tableRow[atom].accept)
-          newRow[atom].accept = true;
+          newRow[atom].accept = new AcceptAction();
         if (tableRow[atom].push) {
           for (var k = 0; k < tableRow[atom].push.length; k++)
             newRow[atom].push.push(new PushAction(tableRow[atom].push[k]));
@@ -781,8 +775,29 @@ Grammar.fromSerializable = function(obj) {
       g.derivable[name][obj.derivable[name][i]] = true;
   }
   g.mode = obj.mode;
-  g.computeFirstSets(); // Unfortunate...
-  g.computeRequiredNullableParts(); // Need a better deserialization of eSPPF sets
+  g.eSPPFs = [];
+  g.I = obj.I;
+  var Iinv = {};
+  for (var name in obj.I)
+    Iinv[obj.I[name]] = name;
+  allowNull = true;
+  for (var i = 0; i < obj.eSPPFs.length; i++) {
+    var label = obj.eSPPFs[i].label;
+    if (label === "EPSILON")
+      label = EPSILON;
+    g.eSPPFs[i] = {null: new SPPFNode(label, null)};
+  }
+  allowNull = false;
+  for (var i = 0; i < obj.eSPPFs.length; i++) {
+    var src = obj.eSPPFs[i];
+    var dest = g.eSPPFs[i].null;
+    if (src.kids) {
+      var kids = [];
+      for (var j = 0; j < src.kids.length; j++)
+        kids.push(g.eSPPFs[src.kids[j]].null);
+      dest.addChildren(rulesByOldId[src.rule], kids);
+    }
+  }
   return g;
 }
 
@@ -844,22 +859,10 @@ Grammar.prototype = {
   },
 
   toSerializable: function() {
-    function replaceRules(obj) {
-      if (obj instanceof Object) {
-        if (obj.rule) {
-          obj.rule = obj.rule.id;
-        }
-        for (var name in obj)
-          replaceRules(obj[name]);
-      }
-      return obj
-    }
     var ret = {};
     ret.start = this.start;
     ret.name = this.name;
     ret.nontermOrdinals = this.nontermOrdinals;
-    ret.I = this.I;
-    ret.eSPPFs = replaceRules(JSON.decycle(this.eSPPFs));
     ret.acceptStates = [];
     for (var i = 0; i < this.acceptStates.length; i++)
       if (this.acceptStates[i])
@@ -910,6 +913,23 @@ Grammar.prototype = {
             }
           }
         }
+      }
+    }
+    ret.I = this.I;
+    ret.eSPPFs = [];
+    for (var i = 0; i < this.eSPPFs.length; i++) {
+      var null_eSPPF = this.eSPPFs[i].null;
+      var label = null_eSPPF.label;
+      if (label === EPSILON) {
+        label = "EPSILON";
+      }
+      if (null_eSPPF.kids) {
+        var kids = [];
+        for (var j = 0; j < null_eSPPF.kids.length; j++)
+          kids.push(null_eSPPF.kids[j].sppfId);
+        ret.eSPPFs[i] = {label: label, kids: kids, rule: null_eSPPF.rule.id};
+      } else {
+        ret.eSPPFs[i] = {label: label};
       }
     }
     return ret;
@@ -1072,6 +1092,8 @@ Grammar.prototype = {
           for (var j = 0; j < name_rule.symbols.length; j++) {
             if (name_rule.symbols[j] instanceof Nonterm) {
               changed = merge(name, name_rule.symbols[j]) || changed;
+              if (this.nontermFirst[name_rule.symbols[j]] === undefined)
+                assert(false, "Couldn't find a nontermFirst for " + name_rule.symbols[j]);
               this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
               if (this.first[name_rule.symbols[j]][EPSILON] !== EPSILON) {
                 allNullable = false;
@@ -1614,12 +1636,14 @@ Grammar.prototype = {
         var next_tok = token_source.next();
         // console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
         this.shifter(this.U, R, Q, N, i, cur_tok, next_tok);
-        cur_tok = next_tok;
+        if (next_tok)
+          cur_tok = next_tok;
         i++;
       }
-      // console.log("DONE WITH LOOP, i = " + i);
+      console.log("DONE WITH LOOP, i = " + i 
+                  + ", last token = " + cur_tok.toString(true) + "@" + cur_tok.pos.toString(true));
       if (!hasNext) i--;
-      // console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
+      console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
       for (var acc = 0; acc < this.acceptStates.length; acc++) {
         if (this.acceptStates[acc]) {
           console.log("Searching for " + acc);
@@ -1691,7 +1715,28 @@ Grammar.prototype = {
     return ret;
   },
 
-  constructOneParse: function(sppfNode) {
+  countAllParses: function(sppfNode) {
+    if (sppfNode.label instanceof Token) return 1;
+    if (sppfNode.kids) {
+      var tot = 1;
+      for (var i = 0; i < sppfNode.kids.length; i++)
+        tot *= this.countAllParses(sppfNode.kids[i]);
+      return tot;
+    } else if (sppfNode.ambig) {
+      console.log("Found an ambiguous node: " + sppfNode);
+      var tot = 0;
+      for (var i = 0; i < sppfNode.ambig.length; i++) {
+        var part = 1;
+        for (var j = 0; j < sppfNode.ambig[i].kids.length; j++)
+          part *= this.countAllParses(sppfNode.ambig[i].kids[j]);
+        tot += part;
+      }
+      return tot;
+    } else
+      return 0;
+  },
+
+  constructUniqueParse: function(sppfNode) {
   },
 
   computeRequiredNullableParts: function() {
