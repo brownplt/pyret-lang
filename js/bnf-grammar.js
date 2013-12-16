@@ -293,8 +293,8 @@ function generateItem(ruleName, item) {
 
 
 const fs = require("fs");
-//var data = fs.readFileSync("grammar-full.rkt", "utf8");
-var data = fs.readFileSync("grammar-small.rkt", "utf8");
+var data = fs.readFileSync("grammar-full.rkt", "utf8");
+//var data = fs.readFileSync("grammar-small.rkt", "utf8");
 
 var toks = new Tokenizer(data, true);
 var parsed = g.parse(toks);
@@ -328,7 +328,7 @@ if (parsed !== undefined) {
   out.write("out.end();\n");
   out.write("\n\n");
   out.write("const T = require('./pyret-tokenizer.js');\n");
-  out.write("var data = \"#lang pyret\n\nimport \\\"foo\\\" as bar\\na\";\n");
+  out.write("var data = \"#lang pyret\\n\\nimport \\\"foo\\\" as bar\\na\";\n");
   out.write("const toks = new T.Tokenizer(data, true);\n");
   out.write("var parsed = g.parse(toks);\n");
   out.write("console.log(g.printSPPFasDot());\n");

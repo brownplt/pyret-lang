@@ -114,7 +114,7 @@ const Tokens = [
   {name: "PAREN?", val: parenparen, after: true},
   {name: "PAREN?", val: opparen, after: true},
   {name: "PARENSPACE", val: spaceparen, after: true},
-  {name: "LPAREN", val: lparen, after: true},
+  {name: "LPAREN?", val: lparen, after: true},
 
 
   {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
@@ -175,11 +175,11 @@ const Tokens = [
   {name: "COMMA", val: comma},
   {name: "THINARROW", val: thinarrow},
   {name: "THICKARROW", val: thickarrow},
+  {name: "COLONEQUALS", val: colonequals},
   {name: "COLONCOLON", val: coloncolon},
   {name: "COLON", val: colon},
   {name: "CARET", val: caret},
-  {name: "EQUAL", val: equals},
-  {name: "COLONEQUAL", val: colonequals},
+  {name: "EQUALS", val: equals},
   {name: "BAR", val: bar},
 
   {name: "COMMENT", val: comment}, 
@@ -222,19 +222,17 @@ if (STICKY_REGEXP === 'y') {
         if (match !== null) {
           if (tok_type === "PAREN?") {
             for (var j = 0; j < Tokens.length; j++) {
-              Tokens[i].val.lastIndex = 0
-              var op = Tokens[i].val.exec(match[0]);
+              Tokens[j].val.lastIndex = 0
+              var op = Tokens[j].val.exec(match[0]);
               if (op !== null) {
-                tok_type = Tokens[i].name;
+                tok_type = Tokens[j].name;
+                if (tok_type == "LPAREN?")
+                  tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
                 break;
               }
             }
-          } else if (tok_type === "KEYWORD?") {
-            console.log("Is " + match[0] + " a keyword? " + !!keywords_dict[match[0]])
-            if (!!keywords_dict[match[0]])
-              tok_type = "KEYWORD";
-            else
-              tok_type = "NAME";
+          } else if (tok_type == "LPAREN?") {
+            tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
           }
           this.afterParen = !!Tokens[i].after;
           var p = this.pos;
@@ -276,18 +274,17 @@ if (STICKY_REGEXP === 'y') {
         if (match !== null) {
           if (tok_type === "PAREN?") {
             for (var j = 0; j < Tokens.length; j++) {
-              Tokens[i].val.lastIndex = 0
-              var op = Tokens[i].val.exec(match[0]);
+              Tokens[j].val.lastIndex = 0
+              var op = Tokens[j].val.exec(match[0]);
               if (op !== null) {
-                tok_type = Tokens[i].name;
+                tok_type = Tokens[j].name;
+                if (tok_type == "LPAREN?")
+                  tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
                 break;
               }
             }
-          } else if (tok_type === "KEYWORD?") {
-            if (keywords_dict[match[0]])
-              tok_type = "KEYWORD";
-            else
-              tok_type = "NAME";
+          } else if (tok_type == "LPAREN?") {
+            tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
           }
           this.afterParen = !!Tokens[i].after;
           this.str = this.str.slice(match[0].length);
