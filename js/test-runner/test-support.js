@@ -131,14 +131,14 @@ function testWithLibCPS(name, libProg, pyretProg, output) {
   return {
     cpsruntime: true,
     name: name,
-    test: function(RUNTIME) {
+    test: function(RUNTIME, done) {
       var response = false;
       RUNTIME.start(libProg, RUNTIME.runtime, RUNTIME.namespace,
           {
             success: function(libResult) {
               response = true;
               var newNamespace = RUNTIME.namespace.merge(libResult.namespace);
-              testPrintCPS(name, pyretProg, output, newNamespace).test(RUNTIME);
+              testPrintCPS(name, pyretProg, output, newNamespace).test(RUNTIME, done);
             },
             failure: function(result) {
               response = true;

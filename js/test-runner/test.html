@@ -16,6 +16,8 @@
 </body>
 <script src="tests.js"></script>
 <script>
+//jasmine.getEnv().defaultTimeoutInterval = 2000;// e.g. 15000 milliseconds
+
 Object.keys(TESTS).forEach(function(key) {
   describe(key, function() {
     Object.keys(TESTS[key]).forEach(function(key2) {
@@ -26,7 +28,9 @@ Object.keys(TESTS).forEach(function(key) {
             elt.test(RUNTIME, done);
           });
         })
-      });
+        });
+
+    
 });
 </script>
 
