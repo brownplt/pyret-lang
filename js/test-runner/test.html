@@ -21,9 +21,9 @@ Object.keys(TESTS).forEach(function(key) {
     Object.keys(TESTS[key]).forEach(function(key2) {
         var tester;
           var elt = TESTS[key][key2];
-          it(key2, function() {
+          it(key2, function(done) {
             var RUNTIME = elt.cpsruntime ? PYRET_CPS.makeRuntime() : PYRET.makeRuntime();
-            elt.test(RUNTIME);
+            elt.test(RUNTIME, done);
           });
         })
       });

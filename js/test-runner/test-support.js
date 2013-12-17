@@ -65,10 +65,9 @@ function testPrintCPS(name, pyretProg, output, namespace) {
   return {
     cpsruntime: true,
     name: name,
-    test: function(){
+    test: function(RUNTIME, done){
     
-    it("Asynch", function(done) {
-    var toRun = function(RUNTIME) {
+    var toRun = function() {
       var namespaceToUse = namespace || RUNTIME.namespace;
       var response = false;
       RUNTIME.start(pyretProg, RUNTIME.runtime, namespaceToUse,
@@ -89,7 +88,8 @@ function testPrintCPS(name, pyretProg, output, namespace) {
         );
         };
 
-    });
+        toRun();
+
     //runs(toRun);
     /*
     waitsFor(function() {
@@ -160,7 +160,7 @@ function testWithLib(name, libProg, pyretProg, output, cps) {
 // This just hooks things into Jasmine for pretty-printing the results.
 // Feel free to add more types of test and hook them in here; equality and
 // predicate testing should get you pretty far, however.
-beforeEach(function() {
+beforeEach(function(done) {
   function wrap(f) {
     return function() {
       return {
@@ -180,4 +180,5 @@ beforeEach(function() {
     })
   });
 
+  done();
 });
