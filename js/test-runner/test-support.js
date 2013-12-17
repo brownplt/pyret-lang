@@ -65,24 +65,39 @@ function testPrintCPS(name, pyretProg, output, namespace) {
   return {
     cpsruntime: true,
     name: name,
-    test: function(RUNTIME) {
+    test: function(){
+    
+    it("Asynch", function(done) {
+    var toRun = function(RUNTIME) {
       var namespaceToUse = namespace || RUNTIME.namespace;
       var response = false;
       RUNTIME.start(pyretProg, RUNTIME.runtime, namespaceToUse,
           {
             success: function(result) {
-              response = true;
               console.log("Returned with result: ", result);
-              checkOutput(RUNTIME, result, output);
+              response = {runtime : RUNTIME, progResult : result, output : output};
+              checkOutput(response.runtime, response.progResult, response.output);
+              done();
             },
             failure: function(result) {
-              response = true;
               console.log("Returned with failure: ", result);
-              checkOutput(RUNTIME, result, output);
+              response = {runtime : RUNTIME, progResult : result, output : output};
+              checkOutput(response.runtime, response.progResult, response.output);
+              done();
             }
           }
         );
-      setTimeout(function() { if(!response) { console.error("Never returned"); }}, 500);
+        };
+
+    });
+    //runs(toRun);
+    /*
+    waitsFor(function() {
+        return response; //False while not done
+    });
+    */
+    //checkOutput(response.runtime, response.progResult, response.output);
+
     }
   }
 }
