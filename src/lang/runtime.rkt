@@ -807,7 +807,7 @@ And the object was:
     [(p-method _ _ f m) (p-method new-brands new-map f m)]
     [(p-bool _ _ f m t) (p-bool new-brands new-map f m t)]
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
-    [(default _) (error (format "update: Cannot update ~a" base))]))
+    [(default _) (error (format "update: Cannot update ~a" (to-repr base)))]))
 
 ;; keys : Value -> Value
 (define keys-pfun (pλ/internal (loc) (object)
