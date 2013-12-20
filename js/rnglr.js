@@ -428,7 +428,12 @@ Rule.ListCons = function(hd, tl, shouldInline) {
     return { name: tl, kids: useful_kids, toString: Rule.defaultASTToString, pos: pos,
              shouldInline: shouldInline };
   }
-  ret.toString = function() { return "Rule.ListCons(" + JSON.stringify(hd) + ", " + JSON.stringify(tl) + ")"; };
+  if (shouldInline) {
+    ret.toString = function() { return "Rule.ListCons(" + JSON.stringify(hd) + ", " + JSON.stringify(tl) + ", true)"; }
+  }
+  else {
+    ret.toString = function() { return "Rule.ListCons(" + JSON.stringify(hd) + ", " + JSON.stringify(tl) + ")"; }
+  }
   return ret;
 }
 

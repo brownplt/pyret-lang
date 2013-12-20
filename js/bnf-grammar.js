@@ -264,7 +264,7 @@ function generateItem(ruleName, item) {
     } else {
       var gen = generateItems(newNameOne, [item.kids[0]]);
       ret.rules = ret.rules.concat(gen.rules);
-      ret.rules.push("g.addRule(" + JSON.stringify(newNameOne) + ", [" + gen.rhs + "])");
+      ret.rules.push("g.addRule(" + JSON.stringify(newNameOne) + ", [" + gen.rhs + "], E.Rule.Inline)");
     }
     ret.rhs = "new Nonterm(" + json_newNameStar + ")";
     return ret;
