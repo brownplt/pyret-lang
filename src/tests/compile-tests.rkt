@@ -479,6 +479,8 @@
       all and builtins.has-field(P, field)
      end)"
    (p:mk-bool #t))
+
+  (check-pyret-match/check "pyret/modules/require-graph.arr" _ 1)
   ))
 
 

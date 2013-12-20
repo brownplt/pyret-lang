@@ -31,7 +31,6 @@ defined on all lists (instances of @tt{empty} and @tt{link}):
     "filter"
     "find"
     "partition"
-    "split-at"
     "foldr"
     "foldl"
     "member"

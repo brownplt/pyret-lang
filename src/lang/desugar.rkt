@@ -50,10 +50,13 @@
     (append
      (map (lambda (ph-bind) (s-let s ph-bind (s-app s (s-id s 'mk-placeholder) (list)))) placeholder-binds)
      subbed-statements
-     (map (lambda (id ph-id)
-            (s-app s (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
-          names
-          placeholder-names))))
+     (list
+       (s-let s (s-bind s (gensym) (a-blank)) (s-user-block s
+        (s-block s
+         (map (lambda (id ph-id)
+                (s-app s (s-bracket s (s-id s ph-id) (s-str s "set")) (list (s-id s id))))
+              names
+              placeholder-names))))))))
 
 (define ((ds-data mixins-names) base-fields variant)
   (define local-mixins-names

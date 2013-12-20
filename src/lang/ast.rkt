@@ -493,6 +493,8 @@ these metadata purposes.
      (cons name (flatten (map variant-ids variants)))]
     [(s-datatype s name _ variants _)
      (cons name (flatten (map variant-ids variants)))]
+    [(s-graph s binds)
+     (map (lambda (e) (s-bind-id (s-let-name e))) binds)]
     [else (list)]))
 (define (top-level-ids block)
   (flatten (map binding-ids (s-block-stmts block))))

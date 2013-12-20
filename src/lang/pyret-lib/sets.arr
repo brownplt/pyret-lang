@@ -32,13 +32,13 @@ data AVLTree:
       height(self) -> Number: self.h end,
       contains(self, val :: Any) -> Bool:
         if val == self.value: true
-        else if val < self.value: self.left.contains(val)
+        else if less-than(val, self.value): self.left.contains(val)
         else: self.right.contains(val)
         end
       end,
       insert(self, val :: Any) -> AVLTree:
         if val == self.value: mkbranch(val, self.left, self.right)
-        else if val < self.value:
+        else if less-than(val, self.value):
           rebalance(mkbranch(self.value, self.left.insert(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
@@ -46,7 +46,7 @@ data AVLTree:
       end,
       remove(self, val :: Any) -> AVLTree:
         if val == self.value: remove-root(self)
-        else if val < self.value:
+        else if less-than(val, self.value):
           rebalance(mkbranch(self.value, self.left.remove(val), self.right))
         else:
           rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
@@ -59,6 +59,17 @@ sharing:
   to-list(self) -> List: self.inorder() end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
+  end
+end
+
+fun less-than(x :: Any, y :: Any):
+  if builtins.has-field(x, '_lessthan'):
+    x < y
+  else:
+    raise("Sets can only contain elements that have a '_lessthan method. "
+          + "Most builtin data types, like strings and numbers have one, "
+          + "but user defined data types do not unless you give them one. "
+          + "The element encountered was: " + torepr(x))
   end
 end
 
@@ -88,13 +99,13 @@ fun rebalance(tree :: AVLTree):
   if (lh - rh).abs() <= 1:
     tree
   else if (lh - rh) == 2:
-    if tree.left.left.height() > tree.left.right.height():
+    if tree.left.left.height() >= tree.left.right.height():
       left-left(tree)
     else:
       left-right(tree)
     end
   else if (rh - lh) == 2:
-    if tree.right.right.height() > tree.right.left.height():
+    if tree.right.right.height() >= tree.right.left.height():
       right-right(tree)
     else:
       right-left(tree)

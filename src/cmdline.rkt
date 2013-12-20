@@ -144,7 +144,8 @@
                         [command-line-arguments file-and-maybe-other-stuff])
           (dynamic-require pyret-file #f))]
         [else
-         (parameterize ([current-mark-mode mark-mode])
+         (parameterize ([current-mark-mode mark-mode]
+                        [command-line-arguments file-and-maybe-other-stuff])
            (dynamic-require pyret-file #f))]))
     (with-handlers
       ([exn:break?
