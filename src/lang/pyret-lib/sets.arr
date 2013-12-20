@@ -88,13 +88,13 @@ fun rebalance(tree :: AVLTree):
   if (lh - rh).abs() <= 1:
     tree
   else if (lh - rh) == 2:
-    if tree.left.left.height() > tree.left.right.height():
+    if tree.left.left.height() >= tree.left.right.height():
       left-left(tree)
     else:
       left-right(tree)
     end
   else if (rh - lh) == 2:
-    if tree.right.right.height() > tree.right.left.height():
+    if tree.right.right.height() >= tree.right.left.height():
       right-right(tree)
     else:
       right-left(tree)
