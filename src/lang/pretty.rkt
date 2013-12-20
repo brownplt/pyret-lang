@@ -187,22 +187,16 @@
                (indented (format "| else => ~a" (pretty _else)))
                "end")]
 
-    [(s-cases-branch _ name params args body)
-     (indented (format "| ~a~a(~a) => ~a" (symbol->string name)
-                       (if (= 0 (length params))
-                           ""
-                           (string-append "<" (comma-sep (map pretty-ann params)) ">"))
+    [(s-cases-branch _ name args body)
+     (indented (format "| ~a(~a) => ~a" (symbol->string name)
                         (comma-sep (map (λ (b) (symbol->string (s-bind-id b))) args))
                         (pretty body)))]
 
     ; TODO: method-field
 
-    [(s-app _ params fun args)
-     (format "~a~a(~a)"
+    [(s-app _ fun args)
+     (format "~a(~a)"
              (pretty fun)
-             (if (= 0 (length params))
-                 ""
-                 (string-append "<" (comma-sep (map pretty-ann params)) ">"))
              (comma-sep (map pretty args)))]
 
     [(s-left-app _ obj fun args)
@@ -253,6 +247,12 @@
      (if (current-print-hints)
          (format "HINTS(~a)~a" (string-join (map pretty-hint h) ",") (pretty e))
          (pretty e))]
+
+    [(s-instantiate _ e params)
+     (format "~a~a"
+             (pretty e)
+             (string-append "<" (comma-sep (map pretty-ann params)) ">"))
+     ]
 
     [else "<unprintable-expr>"]))
 

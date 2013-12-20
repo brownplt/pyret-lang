@@ -134,6 +134,12 @@ data Expr:
       PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
+  | s_instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
+    tosource(self):
+      PP.group(self.expr.tosource() +
+        PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+            self.params.map(_.tosource)))
+    end
   | s_block(l :: Loc, stmts :: List<Expr>) with:
     tosource(self):
       PP.flow_map(PP.hardline, _.tosource(), self.stmts) end
@@ -264,15 +270,9 @@ data Expr:
       PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
         self.values.map(fun(v): v.tosource() end))
     end
-  | s_app(l :: Loc, params :: List<Ann>, _fun :: Expr, args :: List<Expr>) with:
+  | s_app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     tosource(self):
-      params =
-        if is-empty(self.params): PP.mt-doc
-        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-            self.params.map(_.tosource))
-        end
       PP.group(self._fun.tosource()
-          + params
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end
@@ -506,16 +506,9 @@ data IfBranch:
 end
 
 data CasesBranch:
-  | s_cases_branch(l :: Loc, name :: String, params :: List<Ann>,
-      args :: List<Bind>, body :: Expr) with:
+  | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     tosource(self):
-      params =
-        if is-empty(self.params): PP.mt-doc
-        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-            self.params.map(_.tosource))
-        end
       PP.group(PP.str("| " + self.name)
-          + params
           + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
           self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
       self.body.tosource()

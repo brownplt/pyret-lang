@@ -27,6 +27,8 @@
 
      [(s-hint-exp s h e) (find e matcher)]
 
+     [(s-instantiate s e ps) (find e matcher)]
+
      [(s-lam l params args ann doc body check)
       (append (find body matcher) (find check matcher))]
 
@@ -47,7 +49,7 @@
      [(s-assign l name expr)
       (find expr matcher)]
 
-     [(s-app l params f args)
+     [(s-app l f args)
       (append (find f matcher) (append* (map (curryr find matcher) args)))]
 
      [(s-obj l fields)

@@ -57,7 +57,7 @@
   (define checkers (map create-checker checks))
   (s-block s
     (list
-      (s-app s empty (s-dot s (s-id s 'checkers) 'run-checks)
+      (s-app s (s-dot s (s-id s 'checkers) 'run-checks)
                (list (s-list s checkers))))))
 
 
@@ -68,8 +68,8 @@
       [(s-if-branch s tst blk) (s-if-branch s (ds tst) (ds blk))]))
   (define (ds-cases-branch branch)
     (match branch
-      [(s-cases-branch s name params args blk)
-       (s-cases-branch s name (map ds-ann params) (map ds-bind args) (ds blk))]))
+      [(s-cases-branch s name args blk)
+       (s-cases-branch s name (map ds-bind args) (ds blk))]))
   (define (ds-ann ast)
     (match ast
       [(a-pred s t e) (a-pred s t (ds e))]
@@ -175,7 +175,7 @@
 
     [(s-assign s name expr) (s-assign s name (ds expr))]
 
-    [(s-app s params fun args) (s-app s params (ds fun) (map ds args))]
+    [(s-app s fun args) (s-app s (ds fun) (map ds args))]
 
     [(s-left-app s target fun args)
      (s-left-app s (ds target) (ds fun) (map ds args))]
@@ -211,13 +211,16 @@
 
     [(s-hint-exp s h e) (s-hint-exp s h (ds e))]
 
+    [(s-instantiate s e ps) (s-instantiate s (ds e) (map ds-ann ps))]
+
+
     [else (error (format "Missed a case in desugaring checks: ~a" ast))]))
 
 (define (desugar-check ast)
   (match ast
     [(s-prog s imports (s-block s2 (list)))
-     (define get-results (s-app s empty (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s 'nothing))))
-     (define clear (s-app s empty (s-dot s (s-id s 'checkers) 'clear-results) empty))
+     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s 'nothing))))
+     (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s imports (s-block s (list clear get-results)))]
     [(s-prog s imports (s-block s2 stmts))
      (define (provide? e) (or (s-provide? e) (s-provide-all? e)))
@@ -241,7 +244,7 @@
         [else
          (define bind-result (s-let s (s-bind s result-id (a-blank)) (s-id s2 'nothing)))
          (desugar-check/internal (s-block s2 (append stmts (list bind-result (s-id s2 'nothing)))))]))
-     (define get-results (s-app s empty (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s result-id))))
-     (define clear (s-app s empty (s-dot s (s-id s 'checkers) 'clear-results) empty))
+     (define get-results (s-app s (s-dot s (s-id s 'checkers) 'get-results) (list (s-id s result-id))))
+     (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list get-results))))]
     [ast (desugar-check/internal ast)]))

@@ -13,7 +13,7 @@
       [(false? e) "unknown source"]
       [else (error (format "Non-symbol, non-string, non-path value for
                             source: ~a" e))]))
-  (s-app s empty
+  (s-app s
     (s-bracket s (s-id s 'error) (s-str s "location"))
     (list
       (s-str s (serialize-source (srcloc-source s)))
@@ -50,7 +50,7 @@
     [(? skippable? a) e]
     [(a-arrow _  (list (? skippable? arg) ...) (? skippable? return)) e]
     [(a-method _  (list (? skippable? arg) ...) (? skippable? return)) e]
-    [_ (s-app loc empty (ann-check loc ann) (list e))]))
+    [_ (s-app loc (ann-check loc ann) (list e))]))
 
 (define (mk-lam loc args result doc body)
   (s-lam loc empty args result doc (s-block loc (list body)) (s-block loc empty)))
@@ -70,7 +70,7 @@
      (mk-contract-doc ann)
      (s-block s
       (list
-       (s-app loc empty
+       (s-app loc
               (s-id loc 'check-brand)
               (list initial-check
                     (s-id loc funname)
@@ -81,7 +81,7 @@
          (type s wrapargs result
           (mk-contract-doc ann)
           (wrap-ann-check s result
-           (s-app s empty (s-id s gotten-funname) (map check-arg wrapargs))))
+           (s-app s (s-id s gotten-funname) (map check-arg wrapargs))))
          (list (s-data-field s (s-str s "_doc")
                                (s-bracket s
                                           (s-id s funname)
@@ -94,15 +94,15 @@
       (s-if-else s
                  (list
                   (s-if-branch s
-                               (s-app s empty (s-id s 'prim-has-field) (list (s-id s recname) (s-str s fname)))
+                               (s-app s (s-id s 'prim-has-field) (list (s-id s recname) (s-str s fname)))
                                (s-extend
                                 s
                                 obj
                                 (list
                                  (s-data-field s (s-str s fname) (wrap-ann-check s fann (s-bracket s (s-id s recname) (s-str s fname))))))))
 
-                 (s-app s empty (s-id s 'raise)
-                        (list (s-app s empty (s-bracket s (s-id s 'error) (s-str s "make-error"))
+                 (s-app s (s-id s 'raise)
+                        (list (s-app s (s-bracket s (s-id s 'error) (s-str s "make-error"))
                                      (list (loc+msg->ast-error s "typecheck-record-field-missing"
                                                                (format "typecheck: object missing field ~a" fname))))))))
     (mk-lam s (list (s-bind s recname (a-blank))) ann
@@ -116,7 +116,6 @@
             (mk-contract-doc ann)
             (s-app
              loc
-             empty
              (s-id loc 'check-brand)
              (list checker
                    (s-id loc argname)
@@ -144,7 +143,7 @@
      (code-wrapper s args result mk-lam (λ (e) e) (s-id s 'Function))]
     [(a-method s args result)
      (define (get-fun e)
-       (s-app s empty (s-bracket s e (s-str s "_fun")) (list)))
+       (s-app s (s-bracket s e (s-str s "_fun")) (list)))
      (code-wrapper s args result mk-method get-fun (s-id s 'Method))]
     [(a-app s ann parameters)
      ;; NOTE(dbp): right now just checking the outer part, as if
@@ -160,11 +159,11 @@
              (s-block s
                (list
                  (s-var s (s-bind s tempname (a-blank))
-                          (s-app loc empty
+                          (s-app loc
                                  ann-wrapper
                                  (list (s-id loc argname))))
                  (s-var s (s-bind s result (a-blank))
-                          (s-app loc empty
+                          (s-app loc
                                  pred
                                  (list (s-id s tempname))))
                  (s-if-else s
@@ -173,17 +172,17 @@
                         (s-block s (list (s-id s tempname)))))
                       (s-block s
                         (list
-                          (s-app s empty (s-id s 'raise)
+                          (s-app s (s-id s 'raise)
                             (list
-                              (s-app s empty
+                              (s-app s
                               (s-bracket s (s-id s 'error) (s-str s "user-contract-failure"))
                               (list
-                                (s-app s empty
+                                (s-app s
                                   (s-bracket s
                                     (s-str s "contract check: value did not match predicate: ")
                                     (s-str s "_plus"))
                                   (list
-                                    (s-app s empty (s-id s 'torepr)
+                                    (s-app s (s-id s 'torepr)
                                       (list (s-id s tempname)))))
 
                                 (build-location s)
@@ -282,8 +281,8 @@
          (define checker (ann-check s ann))
          (define val-id (gensym 'maybe-placeholder))
          (define val-expr (s-id s val-id))
-         (define is-placeholder (s-app s empty (s-id s 'Placeholder) (list val-expr)))
-         (define do-guard (s-app s empty (s-bracket s val-expr (s-str s "guard"))
+         (define is-placeholder (s-app s (s-id s 'Placeholder) (list val-expr)))
+         (define do-guard (s-app s (s-bracket s val-expr (s-str s "guard"))
                                  (list checker)))
          (define field-block
           (s-block s
@@ -291,19 +290,20 @@
               (s-let s (s-bind s val-id (a-blank)) (cc-env value env))
               (s-if-else s
                 (list (s-if-branch s is-placeholder (s-block s (list do-guard val-expr))))
-                (s-block s (list (s-app s empty checker (list val-expr))))))))
+                (s-block s (list (s-app s checker (list val-expr))))))))
          (s-data-field s name field-block)])]
       [(s-mutable-field s name ann value)
        (cond
         [(skippable? ann)
-         (s-data-field s name (s-app s empty (s-id s 'mk-simple-mutable) (list (cc-env value env))))]
+         (s-data-field s name (s-app s (s-id s 'mk-simple-mutable) (list (cc-env value env))))]
         [else
          (define check-read-expr (ann-check s ann))
          (define check-write-expr (ann-check s ann))
-         (s-data-field s name (s-app s empty (s-id s 'mk-mutable)
+         (s-data-field s name (s-app s (s-id s 'mk-mutable)
           (list (cc-env value env) check-read-expr check-write-expr)))])]))
   (match ast
     [(s-hint-exp s h e) (s-hint-exp s h (cc e))]
+    [(s-instantiate s e ps) (s-instantiate s (cc e) ps)]
     [(s-block s stmts)
      (define new-env (cc-block-env stmts env))
      (s-block s (map (curryr cc-env new-env) stmts))]
@@ -362,8 +362,8 @@
          (tc-error (format "Assigning to unbound variable: ~a" name) s))]
 
 
-    [(s-app s params fun args)
-     (s-app s params (cc fun) (map cc args))]
+    [(s-app s fun args)
+     (s-app s (cc fun) (map cc args))]
 
     [(s-extend s super fields)
      (s-extend s (cc super) (map (curryr cc-member env) fields))]

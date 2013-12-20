@@ -105,8 +105,8 @@ these metadata purposes.
 (struct s-cases s-ast (syntax type val branches) #:transparent)
 ;; s-cases-else : srcloc Ann Expr (Listof s-cases-branch) s-block -> s-cases-else
 (struct s-cases-else s-ast (syntax type val branches else) #:transparent)
-;; s-cases-branch : srcloc symbol (ListOf Ann) (ListOf s-bind) s-block -> s-cases-branch
-(struct s-cases-branch s-ast (syntax name params args body) #:transparent)
+;; s-cases-branch : srcloc symbol (ListOf s-bind) s-block -> s-cases-branch
+(struct s-cases-branch s-ast (syntax name args body) #:transparent)
 
 (define op+ 'op+)
 (define op- 'op-)
@@ -164,13 +164,16 @@ these metadata purposes.
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
 ;;    s-colon s-colon-bracket s-lam
-;;    s-block s-method s-hint))
+;;    s-block s-method s-hint s-instantiate))
 
 ;; s-hint : srcloc (Listof Hint) Expr
 (struct s-hint-exp s-ast (syntax hints exp) #:transparent)
 
 (struct s-hint ())
 (struct h-use-loc s-hint (loc) #:transparent)
+
+;; s-instantiate : srcloc Expr (Listof Ann)
+(struct s-instantiate s-ast (syntax expr params))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
 (struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)
@@ -198,8 +201,8 @@ these metadata purposes.
 ;; s-list : srcloc (Listof Expr)
 (struct s-list s-ast (syntax values) #:transparent)
 
-;; s-app : srcloc (Listof Ann) Expr (Listof Expr)
-(struct s-app s-ast (syntax params fun args) #:transparent)
+;; s-app : srcloc Expr (Listof Expr)
+(struct s-app s-ast (syntax fun args) #:transparent)
 
 ;; s-left-app : srcloc Expr Expr (Listof Expr)
 (struct s-left-app s-ast (syntax obj fun args) #:transparent)
@@ -364,7 +367,7 @@ these metadata purposes.
       [else (s-try s (sub body) id (sub except))])]
     [(s-cases s type val branches) (s-cases s type (sub val) (map sub branches))]
     [(s-cases-else s type val branches else) (s-cases-else s type (sub val) (map sub branches) (sub else))]
-    [(s-cases-branch s name params args body) (s-cases-branch params name args (sub body))]
+    [(s-cases-branch s name args body) (s-cases-branch s name args (sub body))]
     [(s-op s op left right) (s-op s op (sub left) (sub right))]
     [(s-check-test s op left right) (s-check-test s op (sub left) (sub right))]
     [(s-not s expr) (s-not s (sub expr))]
@@ -376,7 +379,7 @@ these metadata purposes.
     [(s-update s super fields) (s-update s (sub super) (map sub fields))]
     [(s-obj s fields) (s-obj s (map sub fields))]
     [(s-list s values) (s-list s (map sub values))]
-    [(s-app s params fun args) (s-app s params (sub fun) (map sub args))]
+    [(s-app s fun args) (s-app s (sub fun) (map sub args))]
     [(s-left-app s obj fun args) (s-left-app s (sub obj) (sub fun) (map sub args))]
     [(s-assign s id value) (error "Can't substitute into a mutable variable")]
     [(s-num s n) expr1]
@@ -426,7 +429,7 @@ these metadata purposes.
     [(s-try syntax body id except) syntax]
     [(s-cases syntax type val branches) syntax]
     [(s-cases-else syntax type val branches else) syntax]
-    [(s-cases-branch syntax name params args body) syntax]
+    [(s-cases-branch syntax name args body) syntax]
     [(s-op syntax op left right) syntax]
     [(s-check-test syntax op left right) syntax]
     [(s-not syntax expr) syntax]
@@ -439,7 +442,7 @@ these metadata purposes.
     [(s-update syntax super fields) syntax]
     [(s-obj syntax fields) syntax]
     [(s-list syntax values) syntax]
-    [(s-app syntax params fun args) syntax]
+    [(s-app syntax fun args) syntax]
     [(s-left-app syntax obj fun args) syntax]
     [(s-id syntax id) syntax]
     [(s-assign syntax id value) syntax]
@@ -524,7 +527,7 @@ these metadata purposes.
       [(s-if-branch _ expr body) (set-union (free-ids expr) (free-ids body))]))
   (define (free-ids-cases-branch cb)
     (match cb
-      [(s-cases-branch _ name params args body)
+      [(s-cases-branch _ name args body)
        (define bound-args (list->set (map s-bind-id args)))
        (define body-free (set-subtract (free-ids body) bound-args))
        (set-union (unions (map free-ids-bind args)) body-free)]))
@@ -623,7 +626,7 @@ these metadata purposes.
      (set-union (free-ids super) (unions (map free-ids-member fields)))]
     [(s-obj _ fields)
      (unions (map free-ids-member fields))]
-    [(s-app _ _ fun args)
+    [(s-app _ fun args)
      (set-union (free-ids fun) (unions (map free-ids args)))]
     [(s-left-app _ obj fun args)
      (set-union (free-ids obj) (free-ids fun) (unions (map free-ids args)))]
@@ -711,11 +714,10 @@ these metadata purposes.
   (define (equiv-ast-cases-branch cb1 cb2)
     (match (cons cb1 cb2)
       [(cons
-        (s-cases-branch _ name1 params1 args1 body1)
-        (s-cases-branch _ name2 params2 args2 body2))
+        (s-cases-branch _ name1 args1 body1)
+        (s-cases-branch _ name2 args2 body2))
        (and
         (equal? name1 name2)
-        (length-andmap equiv-ast-ann params1 params2)
         (length-andmap equiv-ast-bind args1 args2)
         (equiv-ast body1 body2))]))
   (define (equiv-ast-variant-member m1 m2)
@@ -909,9 +911,8 @@ these metadata purposes.
         (length-andmap equiv-ast-member fields1 fields2))]
       [(cons (s-obj _ fields1) (s-obj _ fields2))
        (length-andmap equiv-ast-member fields1 fields2)]
-      [(cons (s-app _ params1 fun1 args1) (s-app _ params2 fun2 args2))
+      [(cons (s-app _ fun1 args1) (s-app _ fun2 args2))
        (and
-        (length-andmap equiv-ast-ann params1 params2)
         (equiv-ast fun1 fun2)
         (length-andmap equiv-ast args1 args2))]
       [(cons (s-left-app _ obj1 fun1 args1) (s-left-app _ obj2 fun2 args2))

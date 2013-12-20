@@ -56,7 +56,7 @@
       [(s-let s (s-bind _ id _) val)
        (define (match-id-use e)
         (match e
-          [(s-app s params (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
+          [(s-app s (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
            (s-id s2 x)]
           [(s-id s (? (lambda (x) (equal? id x)) x))
            (s-id s x)]
@@ -164,6 +164,8 @@
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body new-env)])
          #`(p:pλ/loc (arg ...) #,doc body-stx #,(loc-stx loc))))]
+
+    [(s-instantiate _ e _) (compile-expr e)]
     [(s-lam l params args ann doc body _)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l
@@ -218,7 +220,7 @@
              (r:set! name-stx temp)
              temp)))]
 
-    [(s-app l params (s-bracket l2 obj field) args)
+    [(s-app l (s-bracket l2 obj field) args)
      (with-syntax* ([obj (compile-expr obj env)]
                     [(arg ...) (map (curryr compile-expr env) args)]
                     [(argid ...) (map (λ (_) (format-id #'obj "~a" #`#,(gensym 'arg))) args)]
@@ -230,7 +232,7 @@
               ((p:p-base-method %field) %obj argid ...))))]
 
 
-    [(s-app l params fun args)
+    [(s-app l fun args)
      (define (compile-fun-expr fun)
       (match fun
         [(s-id l2 (? (λ (s) (set-member? (compile-env-functions-to-inline env) s)) id))
