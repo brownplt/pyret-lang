@@ -240,6 +240,7 @@
          (s-cases-branch s name (map ds-bind args) (ds body))]))
   (match ast
     [(s-hint-exp s hints e) (s-hint-exp s hints (ds e))]
+    [(s-instantiate s e ps) (s-instantiate s (ds e) (map desugar-ann ps))]
     [(s-block s stmts)
      (s-block s (flatten-blocks (map ds stmts)))]
     [(s-data s name params mixins-no-eq variants share-members check-ignored)

@@ -9,7 +9,7 @@ prelude: [provide-stmt] import-stmt*
 import-stmt: "import" (import-name | import-string) "as" NAME
 import-name: NAME
 import-string: STRING
-provide-stmt: "provide" stmt end | "provide" "*"
+provide-stmt: "provide" stmt end | "provide" BINOP-TIMES
 
 block: stmt*
 
@@ -59,12 +59,14 @@ graph-expr: "graph:" let-expr* end
 
 when-expr: "when" binop-expr ":" block end
 
-binop-expr: not-expr | binop-expr binop binop-expr | expr
+binop-expr: not-expr | binop-expr binop binop-expr-paren | expr
+
+binop-expr-paren: binop-expr | paren-nospace-expr
 
 not-expr: "not" expr
 
-binop: "+"  | "-"  | "*"  | "/"  | "<="  | ">="  | "=="
-     | "<>"  | "<"  | ">" | "and" | "or"
+binop: BINOP-PLUS  | BINOP-MINUS  | BINOP-TIMES  | BINOP-DIVIDE  | BINOP<=  | BINOP>=  | BINOP==
+     | BINOP<>  | BINOP<  | BINOP> | "and" | "or"
 
 check-op: "is" | "raises" | "satisfies"
 
@@ -76,11 +78,13 @@ expr: paren-expr | id-expr | prim-expr
     | extend-expr
     | if-expr | cases-expr
     | for-expr | try-expr
-    | user-block-expr
+    | user-block-expr | inst-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
 paren-expr: PARENSPACE binop-expr ")"
+# But there are times (around binops) when the spaces will be in other tokens.
+paren-nospace-expr: PARENNOSPACE binop-expr ")"
 
 id-expr: NAME
 
@@ -102,6 +106,9 @@ app-arg-elt: binop-expr ","
 
 left-app-expr: expr "^" left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr "." NAME
+
+inst-expr: expr "<" inst-elt* ann ">"
+inst-elt: ann ","
 
 obj-expr: "{" obj-fields "}" | "{" "}"
 obj-fields: list-obj-field* obj-field [","]

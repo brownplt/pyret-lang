@@ -6,6 +6,7 @@
   srfi/13
   (rename-in (only-in racket/string string-replace) [string-replace string-subst])
   "test-utils.rkt"
+  "../lang/tokenizer.rkt"
   "../lang/runtime.rkt"
   "../lang/ast.rkt"
   "../lang/pretty.rkt"
@@ -62,6 +63,32 @@
               (when verbose
                 (printf "Printed to: \n~a\n\n" pr))
               (parse-pyret pr))))))]))
+
+(define-syntax check-tokenize-exn
+  (syntax-rules ()
+    [(_ name str pred)
+     (let ()
+       (define tokenizer (tokenize (open-input-string str) name))
+       (check-exn pred (lambda ()
+        (define (get-tokens)
+          (define next (tokenizer))
+          (if (void? next)
+              #t
+              (get-tokens)))
+        (get-tokens)) str))]))
+
+(define tokenizer (test-suite "tokenizer"
+  (check-tokenize-exn "plus-no-space" "5+4"
+    (lambda (e)
+      (and
+        (exn:fail:read:pyret:binop? e)
+        (string=? (exn:fail:read:pyret-lexeme e) "+"))))
+  (check-tokenize-exn "plus-no-space-after" "5 +4"
+    (lambda (e)
+      (and
+        (exn:fail:read:pyret:binop? e)
+        (string=? (exn:fail:read:pyret-lexeme e) "+"))))
+))
 
 (define literals (test-suite "literals"
   (check/block "'str'" (s-str _ "str"))
@@ -460,6 +487,45 @@ line string\"" (s-str _ "multi\nline string"))
                (s-let _ (s-bind _ #f 'x (a-any))
                       (s-num _ 4)))
 
+  (check/block "foo<Number>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo) (list (a-name _ 'Number))) (list (s-id _ 'a))))
+  (check/block "foo<Number, String>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-name _ 'Number) (a-name _ 'String)))
+                      (list (s-id _ 'a))))
+  (check/block "foo<{x :: Number}>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-record _ (list (a-field _ "x" (a-name _ 'Number))))))
+                      (list (s-id _ 'a))))
+
+  (check/block "foo<Option<String>>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-app _ (a-name _ 'Option) (list (a-name _ 'String)))))
+                      (list (s-id _ 'a))))
+
+  (check/block "foo<Number(positive)>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-pred _ (a-name _ 'Number) (s-id _ 'positive))))
+                      (list (s-id _ 'a))))
+
+  (check/block "foo<list.List>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-dot _ 'list 'List)))
+                      (list (s-id _ 'a))))
+
+  (check/block "foo<(Number -> String), Foo>(a)"
+               (s-app _ (s-instantiate _ (s-id _ 'foo)
+                                       (list (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'String))
+                                             (a-name _ 'Foo)))
+                      (list (s-id _ 'a))))
+
+  (check/block "foo<Number>"
+               (s-instantiate _ (s-id _ 'foo) (list (a-name _ 'Number))))
+
+  (check/block "foo(bar)<Baz>"
+               (s-instantiate _ (s-app _ (s-id _ 'foo) (list (s-id _ 'bar)))
+                              (list (a-name _ 'Baz))))
+
 ))
 
 (define anon-func (test-suite "anon-func"
@@ -857,7 +923,7 @@ line string\"" (s-str _ "multi\nline string"))
    (s-prog _ (list (s-provide _ (s-obj _ (list (s-data-field _ (s-str _ "a") (s-num _ 1))))))
        (s-block _ (list))))
 
-  (check-match (parse-pyret "provide *")
+  (check-match (parse-pyret "provide * ")
     (s-prog _ (list (s-provide-all _)) (s-block _ (list))))
 ))
 
@@ -1001,27 +1067,27 @@ line string\"" (s-str _ "multi\nline string"))
                                  (s-if-branch _ (s-bool _ #t)
                                                 (s-block _ (list (s-num _ 7))))))))
 
-   (check/block "1+(2*3)"
+   (check/block "1 + (2 * 3)"
                 (s-op _ op+
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1*(2-3)"
+   (check/block "1 * (2 - 3)"
                 (s-op _ op*
                       (s-num _ 1)
                       (s-paren _ (s-op _ op- (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1/(2*3)"
+   (check/block "1 / (2 * 3)"
                 (s-op _ op/
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "1-(2*3)"
+   (check/block "1 - (2 * 3)"
                 (s-op _ op-
                       (s-num _ 1)
                       (s-paren _ (s-op _ op* (s-num _ 2) (s-num _ 3)))))
 
-   (check/block "foo((2+3))"
+   (check/block "foo((2 + 3))"
                 (s-app _
                        (s-id _ 'foo)
                        (list
@@ -1030,9 +1096,9 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "fun f(y):
                   y
                 end
-                f((1+2))" _ _)
+                f((1 + 2))" _ _)
 
-   (check/block "foo((2+3)*2)"
+   (check/block "foo((2 + 3) * 2)"
                 (s-app _
                        (s-id _ 'foo)
                        (list
@@ -1057,7 +1123,7 @@ line string\"" (s-str _ "multi\nline string"))
    (check/block "1 <> 2"
                 (s-op _ op<> (s-num _ 1) (s-num _ 2)))
 
-   (check/block "1 <= (1+2)"
+   (check/block "1 <= (1 + 2)"
                 (s-op _ op<= (s-num _ 1)
                       (s-paren _ (s-op _ op+ (s-num _ 1) (s-num _ 2)))))
 
@@ -1155,6 +1221,7 @@ line string\"" (s-str _ "multi\nline string"))
 ))
 
 (define all (test-suite "all"
+  tokenizer
   literals
   methods
   functions

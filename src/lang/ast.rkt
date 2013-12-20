@@ -164,13 +164,16 @@ these metadata purposes.
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
 ;;    s-colon s-colon-bracket s-lam
-;;    s-block s-method s-hint))
+;;    s-block s-method s-hint s-instantiate))
 
 ;; s-hint : srcloc (Listof Hint) Expr
 (struct s-hint-exp s-ast (syntax hints exp) #:transparent)
 
 (struct s-hint ())
 (struct h-use-loc s-hint (loc) #:transparent)
+
+;; s-instantiate : srcloc Expr (Listof Ann)
+(struct s-instantiate s-ast (syntax expr params))
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
 (struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)

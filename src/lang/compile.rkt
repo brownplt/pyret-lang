@@ -164,6 +164,8 @@
        (with-syntax ([(arg ...) (args-stx l args)]
                      [body-stx (compile-body l body new-env)])
          #`(p:pλ/loc (arg ...) #,doc body-stx #,(loc-stx loc))))]
+
+    [(s-instantiate _ e _) (compile-expr e)]
     [(s-lam l params args ann doc body _)
      (define new-env (compile-env (compile-env-functions-to-inline env) #f))
      (attach l

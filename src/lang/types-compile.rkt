@@ -26,6 +26,8 @@
      (s-block syntax (flatten-blocks (map tci stmts)))]
     [(s-hint-exp syntax hints e)
      (s-hint-exp syntax hints (tci e))]
+    [(s-instantiate syntax e ps)
+     (s-instantiate syntax (tci e) ps)]
     [(s-var syntax name value)
      (s-var syntax name (tci value))]
     [(s-let syntax name value)

@@ -141,6 +141,12 @@ data Expr:
       PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
+  | s_instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
+    tosource(self):
+      PP.group(self.expr.tosource() +
+        PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+            self.params.map(_.tosource)))
+    end
   | s_block(l :: Loc, stmts :: List<Expr>) with:
     label(self): "s_block" end,
     tosource(self):
@@ -353,7 +359,7 @@ data Expr:
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
       end
-      tys = PP.surround-separate(2*INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+      tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(fun(f): f.tosource() end))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
@@ -380,7 +386,7 @@ data Expr:
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
       end
-      tys = PP.surround-separate(2*INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+      tys = PP.surround-separate(2 * INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(fun(f): f.tosource() end))
       header = str-data + PP.str(self.name) + tys + str-colon
       variants = PP.separate(break-one + str-pipespace,
@@ -400,9 +406,9 @@ data Expr:
     tosource(self):
       header = PP.group(str-for
           + self.iterator.tosource()
-          + PP.surround-separate(2*INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
+          + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
           self.bindings.map(fun(b): b.tosource() end))
-          + PP.group(PP.nest(2*INDENT,
+          + PP.group(PP.nest(2 * INDENT,
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
@@ -551,7 +557,7 @@ data IfBranch:
     label(self): "s_if_branch" end,
     tosource(self):
       str-if
-        + PP.nest(2*INDENT, self.test.tosource()+ str-colon)
+        + PP.nest(2 * INDENT, self.test.tosource() + str-colon)
         + PP.nest(INDENT, break-one + self.body.tosource())
     end
 end

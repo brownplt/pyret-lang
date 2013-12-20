@@ -121,6 +121,8 @@
      (build s_user_block (tp-loc s) (tp body))]
     [(s-hint-exp s hints e)
      (build s_hint_exp (tp-loc s) (map tp-hint hints) (tp e))]
+    [(s-instantiate s e ps)
+     (build s_instantiate (tp-loc s) (tp e) (map tp-ann ps))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -509,6 +511,8 @@
       (map tr-expr e)]
      [(has-brand e s_hint_exp)
       (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hint) (tr-expr e))]
+     [(has-brand e s_instantiate)
+      (tr-obj e s-instantiate (tr-loc l) (tr-expr expr) (map tr-ann params))]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
      [(has-brand e s_user_block)

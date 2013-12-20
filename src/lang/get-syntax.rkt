@@ -15,11 +15,11 @@
   "grammar.rkt")
 
 (define (get-syntax name input-port)
-  (parse name (tokenize input-port)))
+  (parse name (tokenize input-port name)))
 
 (define (get-stmt-syntax name input-port)
   (define parse-stmt (make-rule-parser stmt))
-  (parse-stmt (tokenize input-port)))
+  (parse-stmt (tokenize input-port name)))
 
 (define (get-string-syntax str)
   (get-syntax str (open-input-string str)))

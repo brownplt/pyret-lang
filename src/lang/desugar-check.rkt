@@ -211,6 +211,9 @@
 
     [(s-hint-exp s h e) (s-hint-exp s h (ds e))]
 
+    [(s-instantiate s e ps) (s-instantiate s (ds e) (map ds-ann ps))]
+
+
     [else (error (format "Missed a case in desugaring checks: ~a" ast))]))
 
 (define (desugar-check ast)

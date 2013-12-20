@@ -68,7 +68,7 @@
        (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)])))
 
 (define (ensure-unique-cases cases)
-  (define (help cases seen-cases) 
+  (define (help cases seen-cases)
     (cond
       [(empty? cases) (void)]
       [(cons? cases)
@@ -150,7 +150,7 @@
            (help (rest vs) (cons name names) (cons s locs)))]
         [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
     (help vs empty empty))
-      
+
   (define (wf-variant-names vs)
     (define (help vs names locs)
      (cond
@@ -236,6 +236,8 @@
     [(s-not s e) (wf e)]
 
     [(s-hint-exp s h e) (wf e)]
+
+    [(s-instantiate s e ps) (wf e)]
 
     [(s-check-test s op e1 e2)
      (if (not in-check-block)

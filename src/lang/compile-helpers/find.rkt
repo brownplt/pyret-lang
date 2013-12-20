@@ -26,10 +26,12 @@
       (append* (map (curryr find matcher) stmts))]
 
      [(s-hint-exp s h e) (find e matcher)]
-     
+
+     [(s-instantiate s e ps) (find e matcher)]
+
      [(s-lam l params args ann doc body check)
       (append (find body matcher) (find check matcher))]
-     
+
      [(s-method l args ann doc body check)
       (append (find body matcher) (find check matcher))]
 
@@ -40,7 +42,7 @@
            (append (find test matcher) (find block matcher))]))
       (define branch-results (map find-if-branch c-bs))
       (append (append* branch-results) (find else matcher))]
-     
+
      [(s-try l try b catch)
       (append (find try matcher) (find catch matcher))]
 
@@ -52,19 +54,19 @@
 
      [(s-obj l fields)
       (append* (map find-member fields))]
-     
+
      [(s-extend l super fields)
       (append (find super matcher) (append* (map find-member fields)))]
 
      [(s-update l super fields)
       (append (find super matcher) (append* (map find-member fields)))]
-     
+
      [(s-bracket l obj field)
       (append (find obj matcher) (find field matcher))]
 
      [(s-get-bang l obj field)
       (find obj matcher)]
-     
+
      [(s-colon-bracket l obj field)
       (append (find obj matcher) (find field matcher))]
 
@@ -76,9 +78,8 @@
 
      [(s-var l bind expr)
       (find expr matcher)]
-     
+
      [_ (error (format "pyret-internal: Missed a case in find: ~a" expr))]))
    (cond
     [result (cons result other-matches)]
     [else other-matches]))
-

@@ -190,7 +190,7 @@
     [(binop-expr e) (parse-binop-expr #'e)]
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
                                       (parse-binop-expr #'left)
-                                      (parse-binop-expr #'right))]))
+                                      (parse-binop-expr-paren #'right))]))
 
 (define (parse-doc-string stx)
   (syntax-parse stx
@@ -216,6 +216,12 @@
     [(expr e) (parse-expr #'e)]
     [(not-expr "not" e) (s-not (loc stx) (parse-expr #'e))]
     [(binop-expr e) (parse-binop-expr #'e)]))
+
+(define (parse-binop-expr-paren stx)
+  (syntax-parse stx
+    #:datum-literals (binop-expr-paren binop-expr paren-nospace-expr)
+    [(binop-expr-paren (paren-nospace-expr _ e _)) (s-paren (loc stx)(parse-binop-expr #'e))]
+    [(binop-expr-paren e) (parse-binop-expr #'e)]))
 
 (define (parse-op stx)
   (syntax-parse stx
@@ -407,7 +413,9 @@
       extend-expr
       left-app-expr
       paren-expr
+      paren-nospace-expr
       not-expr
+      inst-expr inst-elt
       expr
     )
     [(prim-expr e) (parse-prim #'e)]
@@ -499,6 +507,8 @@
                  (parse-left-app-fun-expr #'fun-expr)
                  (parse-app-args #'app-args))]
     [(paren-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
+    [(paren-nospace-expr "(" e ")") (s-paren (loc stx) (parse-binop-expr #'e))]
+    [(inst-expr e "<" (inst-elt a ",") ... alast ">") (s-instantiate (loc stx) (parse-expr #'e) (map/stx parse-ann #'(a ... alast)))]
     [(expr e) (parse-expr #'e)]
     ))
 

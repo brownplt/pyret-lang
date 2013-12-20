@@ -8,7 +8,12 @@
          racket/list
          racket/string
          "grammar.rkt")
-(provide tokenize fix-escapes pyret-keyword?)
+(provide tokenize fix-escapes pyret-keyword?
+  (struct-out exn:fail:read:pyret)
+  (struct-out exn:fail:read:pyret:binop))
+
+(struct exn:fail:read:pyret exn:fail:read (lexeme start-pos end-pos) #:transparent)
+(struct exn:fail:read:pyret:binop exn:fail:read:pyret () #:transparent)
 
 (define KEYWORD 'KEYWORD)
 (define NAME 'NAME)
@@ -21,6 +26,16 @@
 (define PARENSPACE 'PARENSPACE)
 (define PARENNOSPACE 'PARENNOSPACE)
 (define OPENSTR 'OPENSTR)
+(define BINOP-PLUS 'BINOP-PLUS)
+(define BINOP-MINUS 'BINOP-MINUS)
+(define BINOP-TIMES 'BINOP-TIMES)
+(define BINOP-DIVIDE 'BINOP-DIVIDE)
+(define BINOP<= 'BINOP<=)
+(define BINOP>= 'BINOP>=)
+(define BINOP== 'BINOP==)
+(define BINOP<> 'BINOP<>)
+(define BINOP< 'BINOP<)
+(define BINOP> 'BINOP>)
 
 (define-lex-abbrev
   keywords
@@ -48,11 +63,14 @@
   identifier-chars
   (union #\_ (char-range #\a #\z) (char-range #\A #\Z)))
 
+(define (is-operator char)
+  (member char (list "+" "-" "/" "*" "<" "<=" ">" ">=")))
+
 ;; NOTE(dbp): '-' is lexed as misc, so that it can be used as a prefix for
 ;; numbers as well as for binops
 (define-lex-abbrev
-  operator-chars
-  (union "+" "-" "*" "/" "<=" ">=" "==" "<>" "<" ">" "and" "or" "not" "is" "raises"))
+  word-operator-chars
+  (union  "and" "or" "not" "is" "raises"))
 
 (define (get-middle-pos n pos)
   (position (+ n 1 (position-offset pos))
@@ -107,8 +125,28 @@
      (concatenation "\\" (char-set "nrt\"'\\"))
      (char-complement (union #\\ #\")))))
 
+(define (lex-error! name lexeme start-pos end-pos)
+  (define loc (srcloc name (position-line start-pos) (position-col start-pos) (position-offset start-pos) 1))
+  (cond
+    [(is-operator lexeme)
+     (raise (exn:fail:read:pyret:binop
+        (format
+            "Found a binary operator starting with ~a, but expected whitespace around it" lexeme)
+        (current-continuation-marks)
+        (list loc)
+        lexeme
+        start-pos
+        end-pos))]
+    [else
+     (raise (exn:fail:read:pyret
+        (format "Lexer failed while reading ~a" lexeme)
+        (current-continuation-marks)
+        (list loc)
+        lexeme
+        start-pos
+        end-pos))]))
 
-(define (tokenize ip)
+(define (tokenize ip name)
   (port-count-lines! ip)
   (define-values (p-line p-col p-pos) (port-next-location ip))
   ;; if we are at the beginning, we want to have open-parens be PARENSPACE
@@ -148,14 +186,6 @@
          (return-without-pos
           (list (position-token (token t "(") start-pos middle-pos)
                 (position-token (token PARENSPACE "(") middle-pos end-pos))))]
-      [(concatenation operator-chars "(")
-       (let* [(op (substring lexeme 0
-                             (- (string-length lexeme) 1)))
-              (op-len (string-length op))
-              (middle-pos (get-middle-pos op-len start-pos))]
-         (return-without-pos
-          (list (position-token (token op op) start-pos middle-pos)
-                (position-token (token PARENSPACE "(") middle-pos end-pos))))]
       [(concatenation whitespace "(")
        (token PARENSPACE "(")]
       ["("
@@ -170,8 +200,28 @@
              [else
               (token NAME lexeme)])]
       ;; operators
-      [operator-chars
+      [word-operator-chars
        (token lexeme lexeme)]
+      [(concatenation whitespace "+" whitespace)
+       (token BINOP-PLUS "+")]
+      [(concatenation whitespace "-" whitespace)
+       (token BINOP-MINUS "-")]
+      [(concatenation whitespace "*" whitespace)
+       (token BINOP-TIMES "*")]
+      [(concatenation whitespace "/" whitespace)
+       (token BINOP-DIVIDE "/")]
+      [(concatenation whitespace "<=" whitespace)
+       (token BINOP<= "<=")]
+      [(concatenation whitespace ">=" whitespace)
+       (token BINOP>= ">=")]
+      [(concatenation whitespace "==" whitespace)
+       (token BINOP== "==")]
+      [(concatenation whitespace "<>" whitespace)
+       (token BINOP<> "<>")]
+      [(concatenation whitespace "<" whitespace)
+       (token BINOP< "<")]
+      [(concatenation whitespace ">" whitespace)
+       (token BINOP> ">")]
       ;; names
       [(concatenation identifier-chars
                       (repetition 0 +inf.0
@@ -202,7 +252,7 @@
       [whitespace
        (token WS lexeme #:skip? #t)]
       ;; misc
-      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=")
+      [(union "." "!" "," "->" "::" ":" "|" "=>" "^" "=" ":=" "<" ">" "-")
        (token lexeme lexeme)]
       ;; comments
       [(concatenation #\# (repetition 0 +inf.0
@@ -220,16 +270,19 @@
      [(concatenation "\'" (concatenation single-quote-contents (repetition 0 1 "\\")))
       (token OPENSTR lexeme)]
      [(concatenation "\"" (concatenation double-quote-contents (repetition 0 1 "\\")))
-      (token OPENSTR lexeme)]))
+      (token OPENSTR lexeme)]
+     [any-char
+      (lex-error! name lexeme start-pos end-pos)]))
   ;; the queue of tokens to return (can be a list of a single token)
   (define token-queue empty)
   (define (next-token)
-    (cond [(cons? token-queue) (let [(tok (first token-queue))]
-                                 (set! token-queue (rest token-queue))
-                                 tok)]
-          [(empty? token-queue) (set! token-queue (my-lexer ip))
-                                (next-token)]
-          [else (let [(tok token-queue)]
-                  (set! token-queue empty)
-                  tok)]))
+    (parameterize [(file-path name)]
+      (cond [(cons? token-queue) (let [(tok (first token-queue))]
+                                   (set! token-queue (rest token-queue))
+                                   tok)]
+            [(empty? token-queue) (set! token-queue (my-lexer ip))
+                                  (next-token)]
+            [else (let [(tok token-queue)]
+                    (set! token-queue empty)
+                    tok)])))
   next-token)
