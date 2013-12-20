@@ -101,13 +101,13 @@ const dquot_str =
              "|\\\\[\\\\nrt\"\']" + 
              "|[^\"])*\"", STICKY_REGEXP);
 const squot_str = 
-  new RegExp("^\"(?:" +
+  new RegExp("^\'(?:" +
              "\\\\[01234567]{1,3}" +
              "|\\\\x[0-9a-fA-F]{1,2}" + 
              "|\\\\u[0-9a-fA-f]{1,4}" + 
              "|\\\\[\r\n]{1,2}" + 
              "|\\\\[\\\\nrt\"\']" + 
-             "|[^\'])*\"", STICKY_REGEXP);
+             "|[^\'])*\'", STICKY_REGEXP);
 
 const anychar = new RegExp("^[^]", STICKY_REGEXP);
 const Tokens = [
@@ -146,6 +146,17 @@ const Tokens = [
   {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
   {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
   
+  {name: "DOT", val: period},
+  {name: "BANG", val: bang},
+  {name: "COMMA", val: comma},
+  {name: "THINARROW", val: thinarrow},
+  {name: "THICKARROW", val: thickarrow},
+  {name: "COLONEQUALS", val: colonequals},
+  {name: "COLONCOLON", val: coloncolon},
+  {name: "COLON", val: colon},
+  {name: "CARET", val: caret},
+  {name: "BAR", val: bar},
+
   {name: "PLUS", val: opplus},
   {name: "DASH", val: opminus},
   {name: "STAR", val: optimes},
@@ -170,17 +181,7 @@ const Tokens = [
   {name: "RBRACE", val: rbrace}, 
   {name: "RPAREN", val: rparen}, 
 
-  {name: "DOT", val: period},
-  {name: "BANG", val: bang},
-  {name: "COMMA", val: comma},
-  {name: "THINARROW", val: thinarrow},
-  {name: "THICKARROW", val: thickarrow},
-  {name: "COLONEQUALS", val: colonequals},
-  {name: "COLONCOLON", val: coloncolon},
-  {name: "COLON", val: colon},
-  {name: "CARET", val: caret},
   {name: "EQUALS", val: equals},
-  {name: "BAR", val: bar},
 
   {name: "COMMENT", val: comment}, 
   {name: "WS", val: ws},
