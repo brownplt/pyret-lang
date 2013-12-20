@@ -9,13 +9,9 @@ docs/*.css
 docs/*.js
 docs/lang/*
 src/lang/pyret-lib/moorings.rkt
-<<<<<<< HEAD
 js/test-runner/tests.js
-=======
 src/lang/pyret-lib/sets.rkt
 src/lang/pyret-lib/array.rkt
-../js/test-runner/tests.js
->>>>>>> master
 *#
 pyret.plt
 pyret.org/pyret-frog/*.html
