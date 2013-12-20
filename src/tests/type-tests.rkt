@@ -25,6 +25,14 @@
  "var x :: String = 'hello' x"
  (p:mk-str "hello"))
 
+(check-pyret
+ "var b :: Boolean = true b"
+ (p:mk-bool #t))
+
+(check-pyret-exn
+ "var b :: Boolean = true b := 'foo'"
+ "expected Boolean")
+
 (check-pyret-exn
  "x :: String = {}"
  "expected String")
@@ -230,5 +238,14 @@
    end
    x"
   "Unbound identifier: x")
+
+(check-pyret
+  "data D:
+    | v(a :: D(fun(v): not is-v(v) end))
+    | v2(b)
+   end
+   v(v2(4)).a.b
+   "
+   (p:mk-num 4))
 
 (run-tests all)

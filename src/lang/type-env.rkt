@@ -57,6 +57,7 @@
      'torepr
      'Any
      'Bool
+     'Boolean
      'Function
      'Method
      'Number
@@ -65,8 +66,10 @@
      'Nothing
      'Mutable
      'Placeholder
+     'Array
      'Opaque
      'is-bool
+     'is-boolean
      'is-function
      'is-method
      'is-number
@@ -75,12 +78,15 @@
      'is-nothing
      'is-mutable
      'is-placeholder
+     'is-array
+     'is-nothing
      'brander
      'check-brand
      'mk-mutable
      'mk-simple-mutable
      'mk-placeholder
-     'is-nothing
+     'array-of
+     'build-array
      'nothing
      'gensym)))
 
@@ -88,7 +94,6 @@
   (blankify
     (list
       'list
-      'sets
       'error
       'builtins
       'checkers
@@ -107,9 +112,11 @@
       'fold
       'map
       'range
+      'range-by
       'repeat
       'filter
       'partition
+      'split-at
       'any
       'find
       'map
@@ -133,6 +140,12 @@
       'fold3
       'fold4
       'index
+      
+      'array
+      'array-set
+      'array-get
+      'array-length
+      'array-to-list
 
       'random
       'animate
@@ -150,15 +163,20 @@
       'is-none
 
       'Set
+      'sets
       'set
-      
-      'identical)))
+      'list-set
+      'tree-set
+
+      'identical
+      'string-to-list)))
 
 (define LIBRARY-ENV
-  (make-immutable-hash runtime-env-list))
+  (make-immutable-hash (append runtime-env-list (blankify '(___set-link ___set-empty)))))
 
 (define DEFAULT-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list)))
 
 (define WHALESONG-ENV
   (make-immutable-hash (append runtime-env-list builtins-env-list whalesong-env-list)))
+

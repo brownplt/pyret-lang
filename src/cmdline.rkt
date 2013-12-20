@@ -104,7 +104,8 @@
 (error-display-handler process-pyret-error)
 
 (define check-mode #t)
-(define mark-mode #f)
+(define mark-mode #t)
+(define print-hints #f)
 (command-line
   #:once-each
   ("--print-racket" path "Print a compiled Racket program on stdout"
@@ -116,12 +117,18 @@
    (set! mark-mode #t))
   ("--no-marks" "Do not mark call frames"
    (set! mark-mode #f))
+  ("--print-hints" "Print hint AST nodes"
+   (set! print-hints #t))
+  ("--no-hints" "Hide hint AST nodes"
+   (set! print-hints #f))
   ("--no-indentation" "Run without indentation checking"
    (current-indentation-mode #f))
   ("--allow-shadow" "Run without checking for shadowed vars"
    (current-allow-shadowed-vars #t))
   ("--print-desugared" "Print code after desugaring"
    (current-print-desugared #t))
+  ("--print-typed-core" "Print core code with types"
+   (current-print-typed-core #t))
   #:args file-and-maybe-other-stuff
   (when (> (length file-and-maybe-other-stuff) 0)
     (define pyret-file (simplify-path (path->complete-path (first file-and-maybe-other-stuff))))
@@ -132,10 +139,13 @@
          (parameterize ([current-check-mode #t]
                         [current-mark-mode mark-mode]
                         [current-print (print-pyret #t)]
-                        [current-whalesong-repl-print #f])
+                        [current-whalesong-repl-print #f]
+                        [current-print-hints print-hints]
+                        [command-line-arguments file-and-maybe-other-stuff])
           (dynamic-require pyret-file #f))]
         [else
-         (parameterize ([current-mark-mode mark-mode])
+         (parameterize ([current-mark-mode mark-mode]
+                        [command-line-arguments file-and-maybe-other-stuff])
            (dynamic-require pyret-file #f))]))
     (with-handlers
       ([exn:break?

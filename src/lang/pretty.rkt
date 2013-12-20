@@ -5,6 +5,7 @@
   racket/string
   racket/function
   racket/list
+  "../parameters.rkt"
   "ast.rkt")
 
 (provide
@@ -156,6 +157,41 @@
     [(s-data-field _ name value)
      (format "~a : ~a" (pretty name) (pretty value))]
 
+    [(s-datatype _ name params variants check)
+     (newlines (format "datatype ~a~a:" name (if (empty? params) ""
+                                                 (comma-sep (map symbol->string params))))
+               (apply newlines (map pretty variants))
+               "end")]
+
+    [(s-datatype-variant _ name binds (s-datatype-constructor _ self body))
+     (indented (format "| ~a(~a) with constructor(~a): ~a end"
+                       name
+                       (comma-sep (map pretty binds))
+                       (symbol->string self)
+                       (pretty body)))]
+
+    [(s-datatype-singleton-variant _ name (s-datatype-constructor _ self body))
+     (indented (format "| ~a with constructor(~a): ~a end"
+                       name
+                       (symbol->string self)
+                       (pretty body)))]
+
+    [(s-cases _ type val branches)
+     (newlines (format "cases(~a) ~a:" (pretty-ann type) (pretty val))
+               (apply newlines (map pretty branches))
+               "end")]
+
+    [(s-cases-else _ type val branches _else)
+     (newlines (format "cases(~a) ~a:" (pretty-ann type) (pretty val))
+               (apply newlines (map pretty branches))
+               (indented (format "| else => ~a" (pretty _else)))
+               "end")]
+
+    [(s-cases-branch _ name args body)
+     (indented (format "| ~a(~a) => ~a" (symbol->string name)
+                        (comma-sep (map (λ (b) (symbol->string (s-bind-id b))) args))
+                        (pretty body)))]
+
     ; TODO: method-field
 
     [(s-app _ fun args)
@@ -188,6 +224,9 @@
     [(s-bracket _ val field)
      (format "~a.[~a]" (pretty val) (pretty field))]
 
+    [(s-get-bang _ val field)
+     (format "~a!~a" (pretty val) field)]
+    
     [(s-colon _ obj field)
      (format "~a:~a" (pretty obj) field)]
 
@@ -202,7 +241,17 @@
 
     [(s-paren _ e) (format "(~a)" (pretty e))]
 
+    [(s-hint-exp _ h e)
+     (if (current-print-hints)
+         (format "HINTS(~a)~a" (string-join (map pretty-hint h) ",") (pretty e))
+         (pretty e))]
+
     [else "<unprintable-expr>"]))
+
+(define (pretty-hint hint)
+  (match hint
+    [(h-use-loc loc) (format "UseLoc(~a:~a:~a)" (srcloc-source loc) (srcloc-line loc) (srcloc-column loc))]
+    [else "<unknown hint>"]))
 
 
 (define (pretty-ann ann)

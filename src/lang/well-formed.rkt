@@ -32,7 +32,13 @@
 ;; - methods with zero arguments - since the object itself will be passed as
 ;;   the first argument, to have a zero argument method is an error.
 ;;
-;; - non-duplicated identifiers in arguments lists
+;; - duplicated identifiers in arguments lists
+;;
+;; - duplicated constructor names in data(type)
+;;
+;; - duplicated cases
+;;
+;; - a cases expression with a case named "_", rather than using else
 ;;
 ;; - all blocks end in a non-binding form
 ;;
@@ -60,6 +66,20 @@
       [(s-block s (list)) (void)]
       [(s-block s _)
        (wf-error (format "where: blocks only allowed on named function declarations and data, not on ~a" type) loc)])))
+
+(define (ensure-unique-cases cases)
+  (define (help cases seen-cases) 
+    (cond
+      [(empty? cases) (void)]
+      [(cons? cases)
+       (define f (first cases))
+       (define loc (s-cases-branch-syntax f))
+       (define name (s-cases-branch-name f))
+       (define seen (findf (lambda (c) (equal? (car c) name)) seen-cases))
+       (when seen
+        (wf-error (format "Duplicate case for ~a" name) (cdr seen) loc))
+       (help (rest cases) (cons (cons name loc) seen-cases))]))
+  (help cases empty))
 
 (define (ensure-unique-ids bindings)
   (cond
@@ -92,12 +112,15 @@
       [(s-var s bind e) (wf-error "Cannot end a block in a var-binding." s)]
       [(s-fun s _ _ _ _ _ _ _) (wf-error "Cannot end a block in a fun-binding." s)]
       [(s-data s _ _ _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
+      [(s-datatype s _ _ _ _) (wf-error "Cannot end a block with a data definition." s)]
       [(s-graph s _) (wf-error "Cannot end a block with a graph definition." s)]
       [else #t]))
   (define (wf-cases-branch branch)
     (match branch
       [(s-cases-branch s name args blk)
        (begin
+        (when (eq? name '_)
+          (wf-error "Found a cases branch using _ rather than a constructor name; use 'else' instead." s))
         (ensure-unique-ids args)
         (map wf-bind args)
         (wf blk))]))
@@ -111,15 +134,73 @@
   (define (wf-variant-member vm)
     (match vm
      [(s-variant-member s mutable? bind) (wf-bind bind)]))
-  (define (wf-variant var)
+  (define (wf-dt-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-datatype-singleton-variant s name _)
+           (s-datatype-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
+      
+  (define (wf-variant-names vs)
+    (define (help vs names locs)
+     (cond
+      [(empty? vs) (void)]
+      [(cons? vs)
+       (match (first vs)
+        [(or
+           (s-singleton-variant s name _)
+           (s-variant s name _ _))
+         (if (member name names)
+           (wf-error (format "Constructor name ~a appeared more than once." name)
+                     (first locs)
+                     s)
+           (help (rest vs) (cons name names) (cons s locs)))]
+        [else (error (format "Should not happen, email joe@cs.brown.edu.  An invalid variant type was found: ~a" (first vs)))])]))
+    (help vs empty empty))
+  (define (static-names-of-fields fields)
+    (remove*
+     (list #f)
+     (map (λ(m) (match m
+                  [(s-data-field s (s-str _ name) _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-mutable-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-once-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-method-field s (s-str _ name) _ _ _ _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [else #f]))
+          fields)))
+  (define (wf-variant var shared)
     (match var
      [(s-singleton-variant s name members)
-      (map wf-member members)]
+      (begin
+        (ensure-unique-ids (append (static-names-of-fields members) shared))
+        (map wf-member members))]
      [(s-variant s name binds members)
+      (begin
+        (ensure-unique-ids (append (static-names-of-fields members) (map s-variant-member-bind binds) shared))
+        (map wf-variant-member binds)
+        (map wf-member members))]))
+  (define (wf-dt-variant var)
+    (match var
+     [(s-datatype-singleton-variant s name constructor)
+      (wf-constructor constructor)]
+     [(s-datatype-variant s name binds constructor)
       (begin
         (ensure-unique-ids (map s-variant-member-bind binds))
         (map wf-variant-member binds)
-        (map wf-member members))]))
+        (wf-constructor constructor))]))
+  (define (wf-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (wf body)]))
   (define (wf-member mem)
     (match mem
      [(s-data-field s name val) (begin (wf name) (wf val))]
@@ -154,6 +235,8 @@
     ;; NOTE(dbp): the grammar prevents e from being a binop or a not, so s-not is always correct.
     [(s-not s e) (wf e)]
 
+    [(s-hint-exp s h e) (wf e)]
+
     [(s-check-test s op e1 e2)
      (if (not in-check-block)
          (if (eq? op 'opis)
@@ -170,9 +253,17 @@
        (map wf stmts))]
     [(s-data s name params mixins variants shares check)
      (begin
+       (wf-variant-names variants)
        (map wf mixins)
-       (map wf-variant variants)
+       (define shared (static-names-of-fields shares))
+       (map (λ(v) (wf-variant v shared)) variants)
        (map wf-member shares)
+       (well-formed/internal check #t))]
+
+    [(s-datatype s name params variants check)
+     (begin
+       (wf-dt-variant-names variants)
+       (map wf-dt-variant variants)
        (well-formed/internal check #t))]
 
     [(s-for s iter bindings ann body)
@@ -233,10 +324,12 @@
                                 (wf else))]
 
     [(s-cases s type val c-bs)
-     (begin (wf-ann type) (wf val) (map wf-cases-branch c-bs))]
+     (begin (wf-ann type) (wf val) (ensure-unique-cases c-bs) (map wf-cases-branch c-bs))]
+
     [(s-cases-else s type val c-bs else)
      (begin (wf-ann type)
             (wf val)
+            (ensure-unique-cases c-bs)
             (map wf-cases-branch c-bs)
             (wf else))]
 

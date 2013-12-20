@@ -18,6 +18,8 @@
        (cons (check-info s name check) lst)]
       [(s-data s name _ _ _ _ check)
        (cons (check-info s name check) lst)]
+      [(s-datatype s name _ _ check)
+       (cons (check-info s name check) lst)]
       [(s-check s body)
        (begin
          (set! standalone-counter (+ 1 standalone-counter))
@@ -84,7 +86,16 @@
      [(s-singleton-variant s name members)
       (s-singleton-variant s name (map ds-member members))]
      [(s-variant s name binds members)
-      (s-variant s name (map ds-variant-member binds) (map ds-member members))]))
+      (s-variant s name (map ds-variant-member binds) (map ds-member members))]
+     [(s-datatype-variant s name binds constructor)
+      (s-datatype-variant s name (map ds-variant-member binds) (ds-constructor constructor))]
+     [(s-datatype-singleton-variant s name constructor)
+      (s-datatype-singleton-variant s name (ds-constructor constructor))]
+     ))
+  (define (ds-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (s-datatype-constructor s self (ds body))]))
   (define (ds-member mem)
     (match mem
      [(s-data-field s name val) (s-data-field s (ds name) (ds val))]
@@ -117,6 +128,11 @@
              (map ds mixins)
              (map ds-variant variants)
              (map ds-member shares)
+             (s-block s (list)))]
+
+    [(s-datatype s name params variants check)
+     (s-datatype s name params
+             (map ds-variant variants)
              (s-block s (list)))]
 
     [(s-for s iter bindings ann body)
@@ -193,6 +209,8 @@
          (s-str _ _)
          (s-id _ _)) ast]
 
+    [(s-hint-exp s h e) (s-hint-exp s h (ds e))]
+
     [else (error (format "Missed a case in desugaring checks: ~a" ast))]))
 
 (define (desugar-check ast)
@@ -202,7 +220,8 @@
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s imports (s-block s (list clear get-results)))]
     [(s-prog s imports (s-block s2 stmts))
-     (define no-provides (filter (negate s-provide?) imports))
+     (define (provide? e) (or (s-provide? e) (s-provide-all? e)))
+     (define no-provides (filter (negate provide?) imports))
      ;; NOTE(joe, dbp): This is somewhere between a hack and a reasonable solution.
      ;; The toplevel may end in a statement that we cannot let-bind (which is
      ;; what desugar-check/internal will try to do), so we add a nothing at
@@ -226,4 +245,3 @@
      (define clear (s-app s (s-dot s (s-id s 'checkers) 'clear-results) empty))
      (s-prog s no-provides (s-block s (append (list clear) (s-block-stmts with-checks) (list get-results))))]
     [ast (desugar-check/internal ast)]))
-

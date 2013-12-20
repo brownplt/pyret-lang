@@ -25,6 +25,7 @@ these metadata purposes.
     [(s-var _ _ _) #f]
     [(s-fun _ _ _ _ _ _ _ _) #f]
     [(s-data _ _ _ _ _ _ _) #f]
+    [(s-datatype _ _ _ _ _) #f]
     [(s-graph _ _) #f]
     [(s-check _ _) #f]
     [else #t]))
@@ -71,7 +72,7 @@ these metadata purposes.
 ;; s-bind : srcloc Symbol Ann -> s-bind
 (struct s-bind s-ast (syntax id ann) #:transparent)
 
-;; A Stmt is a (U s-fun s-var s-if s-try s-data s-import Expr)
+;; A Stmt is a (U s-fun s-var s-if s-try s-data s-datatype s-import Expr)
 
 ;; s-fun : srcloc Symbol (Listof Symbol) (Listof s-bind) Ann String s-block s-block
 (struct s-fun s-ast (syntax name params args ann doc body check) #:transparent)
@@ -100,9 +101,9 @@ these metadata purposes.
 ;; s-try : srcloc Expr s-bind Expr -> s-try
 (struct s-try s-ast (syntax body id except) #:transparent)
 
-;; s-cases : srcloc Expr Expr (Listof s-cases-branch) -> s-cases
+;; s-cases : srcloc Ann Expr (Listof s-cases-branch) -> s-cases
 (struct s-cases s-ast (syntax type val branches) #:transparent)
-;; s-cases-else : srcloc (Listof s-cases-branch) s-block -> s-cases-else
+;; s-cases-else : srcloc Ann Expr (Listof s-cases-branch) s-block -> s-cases-else
 (struct s-cases-else s-ast (syntax type val branches else) #:transparent)
 ;; s-cases-branch : srcloc symbol (ListOf s-bind) s-block -> s-cases-branch
 (struct s-cases-branch s-ast (syntax name args body) #:transparent)
@@ -163,7 +164,13 @@ these metadata purposes.
 ;;    s-assign s-num s-bool s-str
 ;;    s-dot s-bracket
 ;;    s-colon s-colon-bracket s-lam
-;;    s-block s-method))
+;;    s-block s-method s-hint))
+
+;; s-hint : srcloc (Listof Hint) Expr
+(struct s-hint-exp s-ast (syntax hints exp) #:transparent)
+
+(struct s-hint ())
+(struct h-use-loc s-hint (loc) #:transparent)
 
 ;; s-lam : srcloc (Listof Symbol) (Listof s-bind) Ann String s-block s-block -> s-lam
 (struct s-lam s-ast (syntax typarams args ann doc body check) #:transparent)
@@ -230,10 +237,22 @@ these metadata purposes.
 
 (struct s-variant-member s-ast (syntax member-type bind) #:transparent)
 
-;; s-variant : srcloc Symbol (Listof s-variant-bind) (Listof Member)
+;; s-variant : srcloc Symbol (Listof s-bind) (Listof Member)
 (struct s-variant s-ast (syntax name binds with-members) #:transparent)
-;; s-variant : srcloc Symbol (Listof Member)
+;; s-singleton-variant : srcloc Symbol (Listof Member)
 (struct s-singleton-variant s-ast (syntax name with-members) #:transparent)
+
+;; s-datatype : srcloc Symbol (Listof Symbol) (Listof s-datatype-variant) block
+(struct s-datatype s-ast (syntax name params variants check) #:transparent)
+
+;; s-datatype-variant : srcloc Symbol (Listof s-bind) s-datatype-constructor
+(struct s-datatype-variant s-ast (syntax name binds constructor) #:transparent)
+
+;; s-datatype-singleton-variant : srcloc Symbol (s-datatype-constructor or #f)
+(struct s-datatype-singleton-variant s-ast (syntax name constructor) #:transparent)
+
+;; s-datatype-constructor : srcloc Symbol block
+(struct s-datatype-constructor s-ast (syntax self body) #:transparent)
 
 ;; s-for-bind : srcloc s-bind Expr
 (struct s-for-bind s-ast (syntax bind value) #:transparent)
@@ -262,9 +281,26 @@ these metadata purposes.
 (struct a-dot a-ann (syntax obj field) #:transparent)
 
 
+;; Subst expr2 FOR sub-id IN expr1
 (define (subst expr1 sub-id expr2)
   (define (sub e)
     (subst e sub-id expr2))
+  (define (subst-ann ann sub-id expr)
+    (define (ann-map anns)
+      (map (lambda (a) (subst-ann a sub-id expr)) anns))
+    (match ann
+     [(or (a-name s id) (a-dot s id _))
+      (cond
+       [(symbol=? id sub-id) (error (format "Substitution into annotation names not supported(~a): ~a ~a" s ann id))]
+       [else ann])]
+     [(or (a-blank) (a-any)) ann]
+     [(a-arrow s args ret) (a-arrow (ann-map args) (subst-ann ret sub-id expr))]
+     [(a-method s args ret) (a-method (ann-map args) (subst-ann ret sub-id expr))]
+     [(a-field s name a) (a-field name (subst-ann a sub-id expr))]
+     [(a-record s fields) (a-record s (ann-map fields))]
+     [(a-app s ann params) (a-app s (subst-ann ann sub-id expr) (ann-map params))]
+     [(a-pred s ann pred)
+      (a-pred s (subst-ann ann sub-id ann) (subst pred sub-id expr))]))
   (match expr1
     [(s-id s id)
      (cond
@@ -276,38 +312,47 @@ these metadata purposes.
     [(s-provide s expr) (s-provide s (sub expr))]
     [(s-provide-all s) expr1]
     [(s-block s stmts) (s-block s (map sub stmts))]
-    [(s-bind s id ann) expr1]
+    [(s-bind s id ann) (s-bind s id (subst-ann ann sub-id expr2))]
     [(s-fun s name params args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-fun s name params args ann doc body (sub check))]
-      [else (s-fun s name params args ann doc (sub body) (sub check))])]
+      [shadow? (s-fun s name params new-args new-ann doc body (sub check))]
+      [else (s-fun s name params new-args new-ann doc (sub body) (sub check))])]
     [(s-lam s typarams args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-lam s typarams args ann doc body (sub check))]
-      [else (s-lam s typarams args ann doc (sub body) (sub check))])]
+      [shadow? (s-lam s typarams new-args new-ann doc body (sub check))]
+      [else (s-lam s typarams new-args new-ann doc (sub body) (sub check))])]
     [(s-method s args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-method s args ann doc body (sub check))]
-      [else (s-method s args ann doc (sub body) (sub check))])]
+      [shadow? (s-method s new-args new-ann doc body (sub check))]
+      [else (s-method s new-args new-ann doc (sub body) (sub check))])]
     [(s-method-field s name args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
+     (define new-args (map sub args))
+     (define new-ann (subst-ann ann sub-id expr2))
      (cond
-      [shadow? (s-method-field s name args ann doc body (sub check))]
-      [else (s-method s name args ann doc (sub body) (sub check))])]
+      [shadow? (s-method-field s name new-args new-ann doc body (sub check))]
+      [else (s-method s name args new-ann doc (sub body) (sub check))])]
+    [(s-for-bind s bind value) (s-for-bind s (sub bind) (sub value))]
     [(s-for s iterator bindings ann body)
      (define shadow? (member sub-id (map s-bind-id (map s-for-bind-bind bindings))))
      (cond
-      [shadow? (s-for s (sub iterator) (map sub bindings) ann body)]
-      [else (s-for s (sub iterator) (map sub bindings) ann (sub body))])]
+      [shadow? (s-for s (sub iterator) (map sub bindings) (subst-ann ann sub-id expr2) body)]
+      [else (s-for s (sub iterator) (map sub bindings) (subst-ann ann sub-id expr2) (sub body))])]
     [(s-graph s bindings)
      (s-graph (map sub bindings))]
     [(s-user-block s body) (s-user-block s (sub body))]
     [(s-check s body) (s-check s (sub body))]
-    [(s-var s name value) (s-var s name (sub value))]
-    [(s-let s name value) (s-let s name (sub value))]
+    [(s-var s bind value) (s-var s (sub bind) (sub value))]
+    [(s-let s bind value) (s-let s (sub bind) (sub value))]
     [(s-when s test block) (s-when s (sub test) (sub block))]
     [(s-if s branches) (s-if s (map sub branches))]
     [(s-if-else s branches else) (s-if-else s (map sub branches) (sub else))]
@@ -345,9 +390,19 @@ these metadata purposes.
     [(s-data s name params mixins variants shared-members check)
      (s-data s name params (map sub mixins) (map sub variants) (map sub shared-members) (sub check))]
     [(s-variant s name binds with-members)
-     (s-variant s name binds (map sub with-members))]
+     (s-variant s name (map sub binds) (map sub with-members))]
+    [(s-variant-member s type b) (s-variant-member s type (sub b))]
     [(s-singleton-variant s name with-members) expr1]
-    [(s-for-bind s bind value) (s-for-bind s bind (sub value))]
+    [(s-datatype s name params variants check)
+     (s-datatype s name params (map sub variants) (sub check))]
+    [(s-datatype-variant s name binds constructor)
+     (s-datatype-variant s name (map sub binds) (sub constructor))]
+    [(s-datatype-constructor s self body)
+     (cond
+      [(equal? self sub-id) (s-datatype-constructor s self body)]
+      [else (s-datatype-constructor s self (sub body))])]
+    [(s-datatype-singleton-variant s name constructor)
+     (s-datatype-singleton-variant s name (sub constructor))]
     [_ (error (format "Cannot substitute into: ~a\n" expr1))]))
 
 (define (get-srcloc ast)
@@ -399,9 +454,11 @@ these metadata purposes.
     [(s-data syntax name params mixins variants shared-members check) syntax]
     [(s-variant syntax name binds with-members) syntax]
     [(s-singleton-variant syntax name with-members) syntax]
+    [(s-datatype syntax name params variants check) syntax]
+    [(s-datatype-variant syntax name args constructor) syntax]
+    [(s-datatype-singleton-variant syntax name constructor) syntax]
     [(s-for-bind syntax bind value) syntax]
     [(s-for syntax iterator bindings ann body) syntax]
-    [(a-ann) (list "pyret-internal" #f #f #f #f)]
     [(a-blank) (list "pyret-internal" #f #f #f #f)]
     [(a-any) (list "pyret-internal" #f #f #f #f)]
     [(a-name syntax id) syntax]
@@ -423,6 +480,10 @@ these metadata purposes.
       [(s-variant _ name _ _)
        (list name (make-checker-name name))]
       [(s-singleton-variant _ name _)
+       (list name (make-checker-name name))]
+      [(s-datatype-variant _ name _ _)
+       (list name (make-checker-name name))]
+      [(s-datatype-singleton-variant _ name _)
        (list name (make-checker-name name))]))
   (match expr
     [(s-var _ (s-bind _ x _) _) (list x)]
@@ -430,6 +491,10 @@ these metadata purposes.
     [(s-fun _ name _ _ _ _ _ _) (list name)]
     [(s-data s name _ _ variants _ _)
      (cons name (flatten (map variant-ids variants)))]
+    [(s-datatype s name _ variants _)
+     (cons name (flatten (map variant-ids variants)))]
+    [(s-graph s binds)
+     (map (lambda (e) (s-bind-id (s-let-name e))) binds)]
     [else (list)]))
 (define (top-level-ids block)
   (flatten (map binding-ids (s-block-stmts block))))
@@ -470,7 +535,17 @@ these metadata purposes.
         (unions (map free-ids-variant-member binds))
         (unions (map free-ids-member with-members)))]
       [(s-singleton-variant _ name with-members)
-       (unions (map free-ids-member with-members))]))
+       (unions (map free-ids-member with-members))]
+      [(s-datatype-variant _ name binds constructor)
+       (set-union
+        (unions (map free-ids-variant-member binds))
+        (free-ids-constructor constructor))]
+      [(s-datatype-singleton-variant _ name constructor)
+       (free-ids-constructor constructor)]))
+  (define (free-ids-constructor c)
+    (match c
+      [(s-datatype-constructor _ name body)
+       (set-subtract (free-ids body) (set name))]))
   (define (free-ids-ann a)
     (match a
       [(a-any) (set)]
@@ -573,6 +648,11 @@ these metadata purposes.
        (unions (map free-ids-member shared-members))
        (free-ids check))]
 
+    [(s-datatype _ name params variants check)
+     (set-union
+       (unions (map free-ids-variant variants))
+       (free-ids check))]
+
     [(s-num _ _) (set)]
     [(s-bool _ b) (set)]
     [(s-str _ s) (set)]
@@ -660,7 +740,27 @@ these metadata purposes.
        (and
         (symbol=? name1 name2)
         (length-andmap equiv-ast-member with-members1 with-members2))]
+      [(cons
+        (s-datatype-variant _ name1 binds1 constructor1)
+        (s-datatype-variant _ name2 binds2 constructor2))
+       (and
+        (symbol=? name1 name2)
+        (length-andmap equiv-ast-variant-member binds1 binds2)
+        (equiv-ast-constructor constructor1 constructor2))]
+      [(cons
+        (s-datatype-singleton-variant _ name1 constructor1)
+        (s-datatype-singleton-variant _ name2 constructor2))
+       (and
+        (symbol=? name1 name2)
+        (equiv-ast-constructor constructor1 constructor2))]
       [_ #f]))
+  (define (equiv-ast-constructor c1 c2)
+    (match (cons c1 c2)
+      [(cons (s-datatype-constructor _ self1 body1)
+             (s-datatype-constructor _ self2 body2))
+       (and
+        (symbol=? self1 self2)
+        (equiv-ast body1 body2))]))
   (define (equiv-ast-ann a1 a2)
     (match (cons a1 a2)
       [(cons (a-any) (a-any)) #t]
@@ -859,6 +959,14 @@ these metadata purposes.
         (length-andmap equiv-ast-variant variants1 variants2)
         (length-andmap equiv-ast-member shared-members1 shared-members2)
         (equiv-ast check1 check2))]
+      [(cons
+        (s-datatype _ name1 params1 variants1 check1)
+        (s-datatype _ name2 params2 variants2 check2))
+       (and
+        (symbol=? name1 name2)
+        (length-andmap symbol=? params1 params2)
+        (length-andmap equiv-ast-variant variants1 variants2)
+        (equiv-ast check1 check2))]
       [(cons (s-num _ n1) (s-num _ n2)) (= n1 n2)]
       [(cons (s-bool _ b1) (s-bool _ b2)) (boolean=? b1 b2)]
       [(cons (s-str _ s1) (s-str _ s2)) (string=? s1 s2)]
@@ -868,3 +976,33 @@ these metadata purposes.
        (error (format "Non-ast value in equiv-ast: ~a\n" a2))]
       [_ #f]))
    result)
+
+
+
+;; NOTE(dbp): these functions are a temporary hack;
+;; they are just stripping out parametric annotations, so
+;; that code will compile with them present
+(define (replace-typarams typarams)
+  (define (rt ann)
+    (match ann
+      [(a-name s name)
+       (if (member name typarams)
+           (a-any)
+           ann)]
+      [(a-arrow s args ret)
+       (a-arrow s (map rt args) (rt ret))]
+      [(a-method s args ret)
+       (a-method s (map rt args) (rt ret))]
+      [(a-app s name-or-dot params)
+       (a-app s (rt name-or-dot) (map rt params))]
+      [(a-pred s ann exp) (a-pred s (rt ann) exp)]
+      [(a-record s fields) (a-record s (map rt fields))]
+      [(a-field s name ann) (a-field s name (rt ann))]
+      [_ ann]))
+  rt)
+(define (replace-typarams-binds typarams)
+  (lambda (bind)
+    (match bind
+      [(s-bind s id ann)
+       (s-bind s id ((replace-typarams typarams) ann))]
+      [_ bind])))

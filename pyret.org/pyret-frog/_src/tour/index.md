@@ -130,8 +130,8 @@ to them, for instance:
 ### Strings
 
 Strings can be written single- or double- quoted.  They may span
-multiple lines. Character escapes like \n work, and the enclosing
-quote character can be included if escaped like \".
+multiple lines. Character escapes like \\n work, and the enclosing
+quote character can be included if escaped like \\".
 
     "hello world"
 
@@ -205,7 +205,7 @@ error:
 
     I'm confused, list1 is defined twice.
 
-Pyret takes a stronge stance on the integrity of the `=` statement.  If the
+Pyret takes a strong stance on the integrity of the `=` statement.  If the
 program says the name is equal to the value, then it had better continue to be!
 This has a very real correlation to something every high school algebra class
 teaches: the substitutability of names for expressions.  Defining names that,
@@ -381,7 +381,7 @@ definition: a program that dispatches over the different cases of data.  The
 the boundaries defined by your data definition.  For example:
 
     fun length(l):
-      cases(List) l
+      cases(List) l:
         | empty => 0
         | link(f, r) => 1 + length(r)
       end
@@ -392,7 +392,7 @@ underscore. Since we did not use `f` in the `link` case in the previous
 example, we could write it instead as:
 
     fun length(l):
-      cases(List) l
+      cases(List) l:
         | empty => 0
         | link(_, r) => 1 + length(r)
       end

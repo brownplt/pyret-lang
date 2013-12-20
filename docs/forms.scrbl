@@ -583,8 +583,9 @@ A mutable dot expression first evaluates the @tt{expr} on the left to an
 object, and then looks to see if @tt{NAME} is present in the fields of that
 object.  If it is, and if the value of the field is a @seclink["s:mutables"
 @tt{Mutable}], the expression evaluates to the value currently in that
-@tt{Mutable} (after annotation checking).  If the value is not a @tt{Mutable}
-or is not present, an exception is signalled.
+@tt{Mutable} (after annotation checking).  If the value is not a @tt{Mutable},
+the expression behaves as a @seclink["s:dot-expr" "dot expression"] with the
+same object and name.
 
 @subsection[#:tag "s:update-expr"]{Update Expressions}
 

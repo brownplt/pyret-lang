@@ -17,11 +17,11 @@ where:
   pred("Has no imports", five.imports, list.is-empty)
   eq("Has a number in the block", five.block.stmts.first.n, 5)
 
-  with_imports = just-parse("import foo as bar provide *")
+  with_imports = just-parse("provide * import foo as bar")
   eq("Length of headers is 2", with_imports.imports.length(), 2)
-  pred("Has a provide_all", with_imports.imports.rest.first, A.is-s_provide_all)
-  pred("Has an import", with_imports.imports.first, A.is-s_import)
-  pred("Has a const import", with_imports.imports.first.file, A.is-s_const_import)
+  pred("Has a provide_all", with_imports.imports.first, A.is-s_provide_all)
+  pred("Has an import", with_imports.imports.rest.first, A.is-s_import)
+  pred("Has a const import", with_imports.imports.rest.first.file, A.is-s_const_import)
 
   for_loop = A.parse("for map(a from [1,2,3]): a + 1 end", "for-loop", {['check']: false})
   pred("Is a for loop",

@@ -2,7 +2,6 @@
 
 provide {
   list: list,
-  sets: sets,
   builtins: builtins,
   error: error,
   checkers: checkers,
@@ -21,16 +20,9 @@ fun identical(obj1, obj2):
   end
 end
 
-fun mklist(obj):
-  doc: "Creates a List from something with `first` and `rest` fields, recursively"
-  if obj.is-empty: empty
-  else:            link(obj.first, mklist(obj.rest))
-  end
-end
-
 fun keys(obj):
   doc: "Returns a List of the keys of an object, as strings"
-  mklist(prim-keys(obj))
+  prim-keys(obj)
 end
 
 fun has-field(obj, name):
@@ -113,6 +105,15 @@ fun data-equals(self, other, brand, fields):
   end
 end
 
+fun string-to-list(str :: String):
+  str.explode()
+where:
+  string-to-list("") is []
+  string-to-list("a") is ["a"]
+  string-to-list("abc") is ["a","b","c"]
+  string-to-list("abcdef") is ["a","b","c","d","e","f"]
+end
+
 fun Eq():
   b = brander()
   {
@@ -127,10 +128,10 @@ builtins = {
   identical: identical,
   keys: keys,
   has-field: has-field,
-  mklist: mklist,
   equiv: equiv,
   data-to-repr: data-to-repr,
   data-equals: data-equals,
+  string-to-list: string-to-list,
   Eq: Eq
 }
 
@@ -164,36 +165,6 @@ fun reverse-help(lst, acc):
     | link(first, rest) => reverse-help(rest, first^link(acc))
   end
 end
-fun take-help(lst, n :: Number):
-  fun help(l, cur):
-    if cur == 0:        empty
-    else if is-link(l): l.first^link(help(l.rest, cur - 1))
-    else:               raise('take: n too large: ' + tostring(n))
-    end
-  end
-  if n < 0: raise("take: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
-fun drop-help(lst, n :: Number):
-  fun help(l, cur):
-    if cur == 0:        l
-    else if is-link(l): l.rest.drop(cur - 1)
-    else:               raise("drop: n to large: " + tostring(n))
-    end
-  end
-  if n < 0: raise("drop: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
-
-
-fun list-to-set(lst :: List):
-  doc: "Convert a list into a set."
-  for fold(s from __set([]), elem from lst):
-    s.add(elem)
-  end
-end
 
 data List:
   | empty with:
@@ -220,15 +191,7 @@ data List:
 
     last(self): raise('last: took last of empty list') end,
 
-    take(self, n): take-help(self, n) end,
-
-    drop(self, n): drop-help(self, n) end,
-
     reverse(self): self end,
-
-    get(self, n): get-help(self, n) end,
-
-    set(self, n, e): set-help(self, n, e) end,
 
     _equals(self, other): is-empty(other) end,
 
@@ -279,14 +242,6 @@ data List:
 
     reverse(self): reverse-help(self, empty) end,
 
-    take(self, n): take-help(self, n) end,
-
-    drop(self, n): drop-help(self, n) end,
-
-    get(self, n): get-help(self, n) end,
-
-    set(self, n, e): set-help(self, n, e) end,
-
     _equals(self, other):
       if is-link(other):
         others-equal = (self:first == other:first)
@@ -315,12 +270,23 @@ data List:
     sort-by(self, cmp, eq):
       doc: "Takes a comparator to check for elements that are strictly greater
         or less than one another, and an equality procedure for elements that are
-        equal, and sorts the list accordingly."
+        equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
       pivot = self.first
-      less = self.filter(fun(e): cmp(e,pivot) end).sort-by(cmp, eq)
-      equal = self.filter(fun(e): eq(e,pivot) end)
-      greater = self.filter(fun(e): cmp(pivot,e) end).sort-by(cmp, eq)
-      less.append(equal).append(greater)
+      # builds up three lists, split according to cmp and eq
+      # Note: We use foldl, which is tail-recursive, but which causes the three
+      # list parts to grow in reverse order.  This isn't a problem, since we're
+      # about to sort two of those parts anyway.
+      three-way-split = self.foldl(fun(e, acc):
+          if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
+          else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
+          else:                 acc.{are-gt: e^link(acc.are-gt)}
+          end
+        end,
+        {are-lt: [], are-eq: [], are-gt: []})
+      less =    three-way-split.are-lt.sort-by(cmp, eq)
+      equal =   three-way-split.are-eq
+      greater = three-way-split.are-gt.sort-by(cmp, eq)
+      less.append(equal.append(greater))
     end,
 
     sort(self):
@@ -341,7 +307,13 @@ sharing:
     link(elt, self)
   end,
   _plus(self :: List, other :: List): self.append(other) end,
-  to-set(self :: List): list-to-set(self) end
+
+  split-at(self, n): split-at(n, self) end,
+  take(self, n): split-at(n, self).prefix end,
+  drop(self, n): split-at(n, self).suffix end,
+
+  get(self, n): get-help(self, n) end,
+  set(self, n, e): set-help(self, n, e) end,
 
 where:
   eq = checkers.check-equals
@@ -361,6 +333,10 @@ where:
   [o2, o1].sort() is [o1, o2]
 end
 
+# NOTE(joe): bindings are to quash output
+_ = ___set-link(link)
+_ = ___set-empty(empty)
+
 fun range(start, stop):
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start < stop:       link(start, range(start + 1, stop))
@@ -371,6 +347,33 @@ fun range(start, stop):
                                  + stop.tostring()
                                  + ")")
   end
+end
+
+fun range-by(start, stop, step):
+  doc: "Creates a list of numbers from start (inclusive) to stop (exclusive) by step"
+  fun range-by-positive(start_):
+    if start_ < stop: link(start_, range-by-positive(start_ + step))
+    else: empty
+    end
+  end
+  fun range-by-negative(start_):
+    if start_ > stop: link(start_, range-by-negative(start_ + step))
+    else: empty
+    end
+  end
+  if step > 0: range-by-positive(start)
+  else if step < 0: range-by-negative(start)
+  else: raise("range-by: step must be nonzero")
+  end
+where:
+  range-by(0, 0, 1) is []
+  range-by(0, -1, 1) is []
+  range-by(0, 1, 1) is [0]
+  range-by(0, 5, 1) is [0, 1, 2, 3, 4]
+  range-by(0, 5, 2) is [0, 2, 4]
+  range-by(0, 5, 3) is [0, 3]
+  range-by(5, 0, -1) is [5, 4, 3, 2, 1]
+  range-by(5, 0, -2) is [5, 3, 1]
 end
 
 fun repeat(n :: Number, e :: Any) -> List:
@@ -413,6 +416,26 @@ fun partition(f, lst :: List):
     end
   end
   help(lst)
+end
+
+fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
+  doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
+  when n < 0:
+    raise("Invalid index")
+  end
+  fun help(ind, l):
+    if ind == 0:
+      { prefix: [], suffix: l }
+    else:
+      cases(List) l:
+        | empty => raise("Index too large")
+        | link(fst, rst) =>
+          split = help(ind - 1, rst)
+          { prefix: link(fst, split.prefix), suffix: split.suffix }
+      end
+    end
+  end
+  help(n, lst)
 end
 
 fun any(f :: (Any -> Bool), lst :: List) -> Bool:
@@ -663,10 +686,10 @@ fun fold_n(f, num :: Number, base, lst :: List):
     if is-empty(partial-list):
       acc
     else:
-      help(n + 1, f(n, base, partial-list.first), partial-list.rest)
+      help(n + 1, f(n, acc, partial-list.first), partial-list.rest)
     end
   end
-  help(0, base, lst)
+  help(num, base, lst)
 end
 
 
@@ -702,9 +725,11 @@ list = {
     link: link,
 
     range: range,
+    range-by: range-by,
     repeat: repeat,
     filter: filter,
     partition: partition,
+    split-at: split-at,
     any: any,
     all: all,
     find: find,
@@ -729,9 +754,12 @@ list = {
     fold3: fold3,
     fold4: fold4,
     fold_n: fold_n,
-    index: index,
-    to-set: list-to-set
+    index: index
   }
+
+# TREES
+
+# ERROR
 
 data Location:
   | location(file :: String, line, column) with:
@@ -783,7 +811,7 @@ end
 
 fun make-error(obj):
   trace = if has-field(obj, "trace"):
-    for map(l from mklist(obj.trace)):
+    for map(l from obj.trace):
       location(l.path, l.line, l.column)
     end
   else:
@@ -827,67 +855,7 @@ error = {
   is-location: is-location
 }
 
-
-data Set:
-  | __set(elems :: List) with:
-
-      member(self, elem :: Any) -> Bool:
-        doc: 'Check to see if an element is in a set.'
-        self.elems.member(elem)
-      where:
-        sets.set([1, 2, 3]).member(2) is true
-        sets.set([1, 2, 3]).member(4) is false
-      end,
-
-      add(self, elem :: Any) -> Set:
-        doc: "Add an element to the set if it is not already present."
-        if (self.elems.member(elem)):
-          self
-        else:
-          __set(link(elem, self.elems))
-        end
-      where:
-        sets.set([]).add(1) is sets.set([1])
-        sets.set([1]).add(1) is sets.set([1])
-        sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
-        sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
-      end,
-
-      remove(self, elem :: Any) -> Set:
-        doc: "Remove an element from the set if it is present."
-        __set(self.elems.filter(fun (x): x <> elem end))
-      where:
-        sets.set([1, 2]).remove(18) is sets.set([1, 2])
-        sets.set([1, 2]).remove(2) is sets.set([1])
-      end,
-
-      to-list(self) -> List:
-        doc: 'Convert a set into a sorted list of elements.'
-        self.elems.sort()
-      where:
-        sets.set([3, 1, 2]).to-list() is [1, 2, 3]
-      end,
-
-      union(self, other :: Set):
-        doc: "Take the union of two sets."
-        list-to-set(self.to-list().append(other.to-list()))
-      where:
-        sets.set([1, 2]).union(sets.set([2, 3])) is sets.set([1, 2, 3])
-      end,
-
-      _equals(self, other):
-        Set(other) and (self.elems.sort() == other.elems.sort())
-      where:
-        (sets.set([1, 2.1, 3]) <> sets.set([1, 2.2, 3])) is true
-        sets.set([1, 2, 4]) is sets.set([2, 1, 4])
-      end
-end
-
-sets = {
-  Set: Set,
-  set: list-to-set
-}
-
+# OPTION
 
 data Option:
   | none with:
@@ -1079,14 +1047,14 @@ var all-results :: List = empty
 
 fun run-checks(checks):
   when checks.length() <> 0:
-    fun lst-to-structural(lst):
-      if has-field(lst, 'first'):
-        { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
-      else:
-        { is-empty: true }
-      end
-    end
-    these-checks = mklist(lst-to-structural(checks))
+    # fun lst-to-structural(lst):
+    #   if has-field(lst, 'first'):
+    #     { first: lst.first, rest: lst-to-structural(lst.rest), is-empty: false}
+    #   else:
+    #     { is-empty: true }
+    #   end
+    # end
+    these-checks = checks
     old-results = current-results
     these-check-results =
       for map(chk from these-checks):
@@ -1198,9 +1166,8 @@ fun check-results-summary(results-list):
   if (counts.other-errors == 0) and (counts.failed == 0) and (counts.test-errors == 0):
     if counts.passed == 0:
       append-str("
-WARNING: Your program didn't define any tests.  Add some where: and check:
-blocks to test your code, or run with the --no-checks option to signal that you
-don't want tests run.
+WARNING: Your program didn't define any tests.  Try adding some where: or check:
+blocks to test your code.
 ")
     else:
       if counts.passed == 1:

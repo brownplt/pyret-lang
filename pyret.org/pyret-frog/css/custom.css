@@ -27,7 +27,7 @@ img.title-logo {
 
 .navbar-nav {
   float: right !important;
-  margin: auto;
+  margin: 7.5px -15px;
 }
 
 .navbar-nav>li>a {

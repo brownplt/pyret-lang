@@ -35,9 +35,21 @@
        [(p:p-bool _ _ _ _ b) b]
        [(p:p-object _ _ _ _)
         (if (pyret-list? val)
-            (map ffi-unwrap (p:structural-list->list val))
+            (map ffi-unwrap (pyret-list->list val))
             val)]
        [(default _) val])]))
+
+(define (pyret-list->list v)
+  (define d (p:get-dict pyret-list))
+  (define is-link (string-map-ref d "is-link"))
+  (define is-link? (λ (v) (ffi-unwrap (p:apply-fun is-link p:dummy-loc v))))
+  (define (help acc val)
+    (cond
+     [(is-link? val)
+      (define val-dict (p:get-dict val))
+      (help (cons (string-map-ref val-dict "first") acc) (string-map-ref val-dict "rest"))]
+     [else (reverse acc)]))
+  (help (list) v))
 
 (define (create-pyret-list l (wrapper ffi-wrap))
   (define d (p:get-dict pyret-list))

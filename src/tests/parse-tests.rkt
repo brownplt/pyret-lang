@@ -73,8 +73,8 @@ line string\"" (s-str _ "multi\nline string"))
     (s-op _ 'op+ (s-str _ "\\") (s-str _ "another str")))
   (check/block "5" (s-num _ 5))
   (check/block "-7" (s-num _ -7))
-  (check/block "10.2" (s-num _ 10.2))
-  (check/block "-10.2" (s-num _ -10.2))
+  (check/block "10.2" (s-num _ 102/10))
+  (check/block "-10.2" (s-num _ -102/10))
 
   (check/block "true" (s-bool _ #t))
   (check/block "false" (s-bool _ #f))
@@ -456,6 +456,10 @@ line string\"" (s-str _ "multi\nline string"))
                (s-var _ (s-bind _ 'x (a-arrow _ (list (a-name _ 'Number)) (a-name _ 'Number)))
                       (s-num _ 4)))
 
+  (check/block "x :: Any = 4"
+               (s-let _ (s-bind _ 'x (a-any))
+                      (s-num _ 4)))
+
 ))
 
 (define anon-func (test-suite "anon-func"
@@ -723,6 +727,86 @@ line string\"" (s-str _ "multi\nline string"))
       (list)
       (s-block _ (list))))
 
+   (check/block
+    "datatype Foo:
+      | foo() with constructor(self): self end
+     end"
+    (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo empty
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self))))))
+                (s-block _ (list))))
+
+   (check/block
+    "datatype Foo:
+      | foo() with constructor(self): self end
+      | bar(a) with constructor(self): self end
+     end"
+    (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo empty
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self)))))
+                                   (s-datatype-variant _ 'bar (list (s-variant-member
+                                                                     _ 'normal
+                                                                     (s-bind _ 'a (a-blank))))
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self))))))
+                (s-block _ (list))))
+
+   (check/block
+    "datatype Foo:
+      | foo(a :: Number, b :: Foo) with constructor(self): self end
+      | bar with constructor(self): self end
+     end"
+    (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo (list (s-variant-member
+                                                                     _ 'normal
+                                                                     (s-bind _ 'a (a-name _ 'Number)))
+                                                                    (s-variant-member
+                                                                     _ 'normal
+                                                                     (s-bind _ 'b (a-name _ 'Foo))))
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self)))))
+                                   (s-datatype-singleton-variant _ 'bar
+                                                                 (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self))))))
+                (s-block _ (list))))
+
+   (check/block
+    "datatype Foo<T>:
+      | foo(a :: T) with constructor(self): self end
+     end"
+    (s-datatype _ 'Foo (list 'T) (list (s-datatype-variant _ 'foo (list (s-variant-member
+                                                                         _ 'normal
+                                                                         (s-bind _ 'a (a-name _ 'T))))
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self))))))
+                (s-block _ (list))))
+
+   (check/block
+    "datatype Foo:
+      | foo(a :: Number, b :: Foo) with constructor(self): self end
+      | bar() with constructor(self): self end
+     where:
+       bar()
+     end"
+    (s-datatype _ 'Foo empty (list (s-datatype-variant _ 'foo (list (s-variant-member
+                                                                     _ 'normal
+                                                                     (s-bind _ 'a (a-name _ 'Number)))
+                                                                    (s-variant-member
+                                                                     _ 'normal
+                                                                     (s-bind _ 'b (a-name _ 'Foo))))
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self)))))
+                                   (s-datatype-variant _ 'bar empty
+                                                       (s-datatype-constructor
+                                                        _ 'self
+                                                        (s-block _ (list (s-id _ 'self))))))
+                (s-block _ (list (s-app _ (s-id _ 'bar) empty)))))
 ))
 
 (define for (test-suite "for"

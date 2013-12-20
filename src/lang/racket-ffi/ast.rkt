@@ -4,6 +4,7 @@
   "../ast.rkt"
   "../load.rkt"
   "../desugar.rkt"
+  "../types-compile.rkt"
   "../desugar-check.rkt"
   (except-in "../runtime.rkt" raise)
   "../ffi-helpers.rkt"
@@ -59,7 +60,25 @@
           (tp-loc l)
           (symbol->string name)
           (map tp-member members))]
+      [(s-datatype-variant l name members constructor)
+       (build s_datatype_variant
+              (tp-loc l)
+              (symbol->string name)
+              (map tp-variant-member members)
+              (tp-constructor constructor))]
+      [(s-datatype-singleton-variant l name constructor)
+       (build s_datatype_singleton_variant
+              (tp-loc l)
+              (symbol->string name)
+              (tp-constructor constructor))]
       [_ (error (format "Not a variant: ~a" variant))]))
+  (define (tp-constructor c)
+    (match c
+      [(s-datatype-constructor s self body)
+       (build s_datatype_constructor
+              (tp-loc s)
+              (symbol->string self)
+              (tp body))]))
   (define (tp-member m)
     (match m
       [(s-data-field s name e)
@@ -100,6 +119,8 @@
      (build s_block (tp-loc s) (map tp stmts))]
     [(s-user-block s body)
      (build s_user_block (tp-loc s) (tp body))]
+    [(s-hint-exp s hints e)
+     (build s_hint_exp (tp-loc s) (map tp-hint hints) (tp e))]
     [(s-data s name params mixins variants share-members check)
      (build s_data
         (tp-loc s)
@@ -108,6 +129,14 @@
         (map tp mixins)
         (map tp-variant variants)
         (map tp-member share-members)
+        (tp check))]
+
+    [(s-datatype s name params variants check)
+     (build s_datatype
+        (tp-loc s)
+        (symbol->string name)
+        (map symbol->string params)
+        (map tp-variant variants)
         (tp check))]
 
     [(s-for s iter bindings ann body)
@@ -290,6 +319,11 @@
         (tp check))]
     [_ (error "No transformation for ~a" ast)]))
 
+(define (tp-hint hint)
+  (match hint
+    [(h-use-loc l)
+     (build h_use_loc (tp-loc l))]))
+
 (define (tp-ann ann)
   (match ann
     [(a-name s id)
@@ -315,13 +349,13 @@
     [else
      (error (format "ast: don't know how to convert ann: ~a" ann))]))
 
-(define (get-desugared str src check-mode?)
+(define (get-desugared str src check-mode? #:types-compile [types-compile #t])
   (define ast (parse-pyret (string-append " " str) src))
   (define desugar
     (cond
       [check-mode? (lambda (e) (desugar-pyret (desugar-check e)))]
       [else desugar-pyret]))
-  (desugar ast))
+  ((if types-compile types-compile-pyret (λ(x)x)) (desugar ast)))
 
 (define (pyret/tc str src options)
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
@@ -330,13 +364,14 @@
   (define with-contracts (contract-check-pyret desugared (extend-env-with-dict LIBRARY-ENV env)))
   (to-pyret with-contracts))
 
-(define (pyret-pair-from-string str src options)
+(define (pyret-triple-from-string str src options)
   (define ast (parse-pyret (string-append " " str) src))
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
   (p:mk-object
     (make-string-map
       (list
         (cons "pre-desugar" (to-pyret ast))
+        (cons "with-types" (to-pyret (get-desugared str src check-mode? #:types-compile #f)))
         (cons "post-desugar" (to-pyret (get-desugared str src check-mode?)))))))
 
 (define-syntax-rule (has-brand obj brand)
@@ -347,7 +382,7 @@
 (define-syntax-rule (tr-obj obj constr (trans args ... field) ...)
   (begin
     ;; (printf "\nconstr is ~a\n" constr)
-    ;; (printf "actual obj keys are ~a\n" (map ffi-unwrap (p:structural-list->list (p:apply-fun prim-keys p:dummy-loc obj))))
+    ;; (printf "actual obj keys are ~a\n" (map ffi-unwrap (pyret-list->list (p:apply-fun prim-keys p:dummy-loc obj))))
     ;; (printf "expected keys are ~a\n" (list (symbol->string (quote field)) ...))
     ;; (let ((argval (p:get-field p:dummy-loc (ffi-unwrap obj) (symbol->string (quote field)))))
     ;;   (printf "trans is ~a, args are ~a, field is ~a ==> ~a\n"
@@ -364,6 +399,11 @@
     (tr-obj l mini-srcloc (noop file) (noop line) (noop column))]))
 
 (define (to-racket ast)
+  (define (tr-hint h)
+    (cond
+     [(has-brand h h_use_loc)
+      (tr-obj h h-use-loc (tr-loc l))]
+     [else (error (format "Couldn't match hint: ~a" (p:to-string (ffi-unwrap h))))]))
   (define (tr-ifBranch b)
     (cond
      [(has-brand b s_if_branch)
@@ -384,6 +424,10 @@
       (tr-obj variant s-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (map tr-member with_members))]
      [(has-brand variant s_singleton_variant)
       (tr-obj variant s-singleton-variant (tr-loc l) (string->symbol name) (map tr-member with_members))]
+     [(has-brand variant s_datatype_variant)
+      (tr-obj variant s-datatype-variant (tr-loc l) (string->symbol name) (map tr-variant-member members) (tr-constructor constructor))]
+     [(has-brand variant s_datatype_singleton_variant)
+      (tr-obj variant s-datatype-singleton-variant (tr-loc l) (string->symbol name) (tr-constructor constructor))]
      [else (error (format "Couldn't match variant: ~a" (p:to-string (ffi-unwrap variant))))]))
   (define (tr-member m)
     (cond
@@ -397,6 +441,11 @@
       (tr-obj m s-method-field
               (tr-loc l) (tr-expr name) (map tr-bind args) (tr-ann ann) (noop doc) (tr-expr body) (tr-expr check))]
      [else (error (format "Couldn't match member: ~a" (p:to-string (ffi-unwrap m))))]))
+  (define (tr-constructor c)
+    (cond
+     [(has-brand c s_datatype_constructor)
+      (tr-obj c s-datatype-constructor (tr-loc l) (string->symbol self) (tr-expr body))]
+     [else (error (format "Couldn't match constructor: ~a" (p:to-string (ffi-unwrap c))))]))
   (define (tr-bind b)
     (cond
      [(has-brand b s_bind)
@@ -458,6 +507,8 @@
     (cond
      [(list? e)
       (map tr-expr e)]
+     [(has-brand e s_hint_exp)
+      (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hint) (tr-expr e))]
      [(has-brand e s_block)
       (tr-obj e s-block (tr-loc l) (tr-expr stmts))]
      [(has-brand e s_user_block)
@@ -530,6 +581,9 @@
      [(has-brand e s_data)
       (tr-obj e s-data
               (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-expr mixins) (map tr-variant variants) (map tr-member shared_members) (tr-expr check))]
+     [(has-brand e s_datatype)
+      (tr-obj e s-datatype
+              (tr-loc l) (string->symbol name) (map string->symbol params) (map tr-variant variants) (tr-expr check))]
      [(has-brand e s_for)
       (tr-obj e s-for (tr-loc l) (tr-expr iterator) (map tr-forBind bindings) (tr-ann ann) (tr-expr body))]
      [(has-brand e s_check)
@@ -546,6 +600,7 @@
    [(has-type ast Variant) (tr-variant ast)]
    [(has-type ast IfBranch) (tr-ifBranch ast)]
    [(has-type ast CasesBranch) (tr-casesBranch ast)]
+   [(has-type ast Hint) (tr-hint ast)]
    [(has-type ast Ann) (tr-ann ast)]
    [else (error (format "Unknown AST expression: ~a" (p:to-string (ffi-unwrap ast))))]))
 
@@ -580,7 +635,7 @@
       (cons "free-ids"
             (ffi-wrap (lambda (ast) (map symbol->string (set->list (free-ids ast))))))
       (cons "parse"
-            (ffi-wrap (parse-error-wrap pyret-pair-from-string)))
+            (ffi-wrap (parse-error-wrap pyret-triple-from-string)))
       (cons "parse-tc"
             (ffi-wrap (parse-error-wrap pyret/tc)))
       (cons "to-native"
@@ -589,4 +644,3 @@
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
-

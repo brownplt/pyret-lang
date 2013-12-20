@@ -3,12 +3,92 @@
 (require
   rackunit
   racket/file
+  racket/match
   racket/set
   racket/string
   pyret/lang/ast
   pyret/lang/load)
 
+(check-equal?
+  (binding-ids (parse-stmt "graph: x = 5 end"))
+  '(x))
+
+(check-equal?
+  (binding-ids (parse-stmt "graph: x = 5 y = 6 end"))
+  '(x y))
+
+
+(define (not-equiv-ast e1 e2) (not (equiv-ast e1 e2)))
 (define-binary-check (check-equiv-ast equiv-ast actual expected))
+(define-binary-check (check-not-equiv-ast not-equiv-ast actual expected))
+
+(check-equiv-ast
+  (subst (parse-stmt "x") 'x (parse-stmt "5"))
+  (parse-stmt "5"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "datatype D: | foo(a) with constructor(self): self + x;;")
+    'x
+    (parse-stmt "5"))
+  (parse-stmt "datatype D: | foo(a) with constructor(self): self + 5;;"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "datatype D: | foo(a :: X(pred)) with constructor(self): self;;")
+    'pred
+    (parse-stmt "fun(x): false;"))
+  (parse-stmt "datatype D: | foo(a :: X(fun(x): false;)) with constructor(self): self;;"))
+
+(check-equiv-ast
+  (subst
+    (parse-stmt "data D: | foo(a :: X(pred));")
+    'pred
+    (parse-stmt "fun(x): false;"))
+  (parse-stmt "data D: | foo(a :: X(fun(x): false;));"))
+
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "x :: ANAME = 5") 'ANAME (parse-stmt "22"))))
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "var x :: ANAME = 5") 'ANAME (parse-stmt "22"))))
+(check-exn
+  #rx"Substitution into annotation names"
+  (lambda () (subst (parse-stmt "fun(x :: ANAME): 5;") 'ANAME (parse-stmt "22"))))
+
+(define simple-for (parse-stmt "for each(i :: A(x) from y): print(i);"))
+
+(check-equiv-ast
+  (subst simple-for 'x (parse-stmt "5"))
+  (parse-stmt "for each(i :: A(5) from y): print(i);"))
+
+(check-equiv-ast
+  (subst simple-for 'y (parse-stmt "5"))
+  (parse-stmt "for each(i :: A(x) from 5): print(i);"))
+
+(check-equal?
+  (free-ids (parse-pyret "
+    datatype D: | foo with constructor(self): self end end
+    is-foo(foo)"))
+  (set))
+
+(define datatype-variants
+    "datatype Foo:
+      | foo() with constructor(self): self end
+      | bar(a) with constructor(self): self end
+     end
+     Foo(bar(foo()))")
+
+(check-equal?
+  (free-ids (parse-pyret datatype-variants))
+  (set))
+
+(define datatypeT "datatype Foo<T>: | foo() with constructor(self): self + x;;")
+
+(check-equal?
+  (free-ids (parse-pyret datatypeT))
+  (set 'x))
 
 (check-equal?
   (free-ids (parse-pyret "x = y y = x"))
@@ -403,3 +483,17 @@ EOF
 
 (check-equiv-ast (parse-pyret (string-join moorings-lines "\n") "moorings")
                  (parse-pyret (string-join moorings-lines "\n") "another-filename"))
+
+(check-equiv-ast (parse-pyret datatypeT) (parse-pyret datatypeT))
+
+(define not-datatypeT "datatype Foo<T>: | foo() with constructor(bar): bar + x;;")
+(check-not-equiv-ast (parse-pyret datatypeT) (parse-pyret not-datatypeT))
+
+(define not-datatype-variants 
+    "datatype Foo:
+      | foo() with constructor(z): z end
+      | bar(a) with constructor(self): self end
+     end
+     Foo(bar(foo()))")
+(check-not-equiv-ast (parse-pyret datatype-variants) (parse-pyret not-datatype-variants))
+

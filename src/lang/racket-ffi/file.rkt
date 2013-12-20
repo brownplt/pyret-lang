@@ -1,11 +1,12 @@
 #lang pyret
 
-import filelib as F
 provide {
   input-file : input-file,
   output-file : output-file,
   file-exists: file-exists
 } end
+
+import filelib as F
 
 data File:
   | in-fd(inner-file :: Any) with:

@@ -16,6 +16,7 @@
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/css/pygments.css">
+    <link rel="stylesheet" type="text/css" href="/css/codemirror.css">
     <link rel="stylesheet" type="text/css" href="/css/scribble.css">
     <link rel="stylesheet" type="text/css" href="/css/custom.css">
     <!-- Feeds -->
@@ -56,7 +57,7 @@ s.parentNode.insertBefore(ga, s);
             <span class="icon-bar"></span>
           </button>
           <a href="/index.html" class="navbar-brand">
-            <img class="navbar-logo" src="/img/pyret-banner.png"></img> 
+            <img class="navbar-logo" src="/img/pyret-banner.png"></img>
           </a>
         </div>
         <div class="collapse navbar-collapse our-nav-collapse"
@@ -85,7 +86,7 @@ s.parentNode.insertBefore(ga, s);
   @(define (two-langs header words other-lang pyret-code other-code)
     (define other-block
       @list{
-      <div class="col-md-4"><b>@|other-lang|</b><pre>@|other-code|</pre> </div>
+      <div class="col-md-4"><b>@|other-lang|</b><pre class="non-pyret">@|other-code|</pre> </div>
       })
     (define pyret-block
       @list{
@@ -130,7 +131,7 @@ s.parentNode.insertBefore(ga, s);
             <div class="col-md-1"></div>
           </div>
         }]))
-  
+
 
 @list{
 <div class="jumbotron">
@@ -227,7 +228,7 @@ end
 @disable-prefix{
 # Note the refinements on the
 # l argument and the result.
-# The refinments are critical to the
+# The refinements are critical to the
 # correct behavior of insertion.
 
 fun insert(n :: Number,
@@ -247,22 +248,20 @@ end
     <div class="item">
       <pre>
 @disable-prefix{
+
+
 eps = 0.001
 fun d-dx(f):
   doc: "Calculate the derivative of f"
   fun(x): (f(x + eps) - f(x)) / eps;
 where:
   fun square(x): x * x;
-  fun two-x(x): 2 * x;
-  fun within(delta, target):
-    fun(actual):
-      (actual - target).abs() < delta;
-  end
+  fun within(delta, target): ...;
 
-  d-dx(square)(5) satisfies
-    within(0.1, two-x(5))
-  d-dx(square)(10) satisfies
-    within(0.1, two-x(10))
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
 end
 }
       </pre>
@@ -289,10 +288,10 @@ end
   @(pyret-example
 @disable-prefix{
 fun to-celsius(f):
-  (f * (5 / 9)) - 32
+  (f - 32) * (5 / 9)
 end
 
-for each(str from ["Hello", "world"]):
+for each(str from ["Ahoy", "world!"]):
   print(str)
 end}
 "Pyret has Python-inspired syntax for functions, lists, and operators.
@@ -332,14 +331,15 @@ variety of pedagogic styles and curricular needs.")
   @(pyret-example #:where 'right
 @disable-prefix{
 check:
-  dbl = fdC("x", plusC(idC("x"), idC("x")))
-  quad = fdC("x", appC(dbl, appC(dbl, idC("x"))))
-  c5 = fdC("_", numC(5))
-  
-  fun i(e): interp(e, mt-env) end
-
-  i(plusC(numC(5), appC(quad, numC(3)))) is numV(17)
-  i(multC(appC(c5, numC(3)), numC(4))) is numV(20)
+  fun get-status(url):
+    request({
+        url: url,
+        type: "get",
+        params: []
+      }).status-code
+  end
+  get-status("http://google.com/") is 200
+  get-status("http://healthcare.gov/") is 500
 end
 }
 "In addition to <code>where:</code> blocks, which are attached to
@@ -350,6 +350,144 @@ end
   but not relevant to the program at large.")
 
   <hr/>
+
+<div class="row">
+  <div class="col-md-2"></div>
+  <div class="col-md-8">
+    <p><b>Some thoughts on syntax</b></p>
+<p>
+We believe indentation is critical for readable code, but we don't
+want the whitespace of the program to determine its meaning. Rather,
+the meaning of the program should determine its indentation
+structure. Indentation becomes just another context-sensitive rule.
+</p>
+
+<p> Unambiguous syntax (the reason for explicit <code>end</code> delimiters)
+means you can copy-and-paste code from email or the Web, and its meaning won't
+change. Your IDE can help you reindent code without worrying that doing so will
+change the meaning of the program.  </p>
+
+<p>
+We haven't yet decided on the indentation rules because we want to see
+the language in use for a while before we codify these.
+</p>
+
+  </div>
+  <div class="col-md-2"></div>
+</div>
+
+<hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+data BinTree: | leaf | node(value, left, right);
+
+fun square(n): n * n;
+}
+"Pyret supports both <code>end</code> and <code>;</code> as block terminators.
+It requires <em>some</em> terminator in order to parse unambiguously without
+resorting to whitespace, but <code>end</code> can be verbose in short programs."
+)
+
+<hr/>
+
+  @(pyret-example #:where 'left
+@disable-prefix{
+check:
+  [1, 2, 3].filter(_ > 1) is [2, 3]
+  ["one", "two"].map(_.to-upper()) is ["ONE", "TWO"]
+  [[1], [2]].map(_.first) is [1, 2]
+end
+}
+
+"Pyret embraces and provides syntactic sugar for functional patterns.  The
+special <code>_</code> syntax turns expressions into functions:
+<code>_ > 1</code> means <code>fun(x): x > 1 end</code>.  Pyret goes further
+and works this syntax into the common dot syntax for field lookup, blending
+functional and object-oriented styles.")
+
+  <hr/>
+  @(pyret-example #:where 'right
+@disable-prefix{
+eps = 0.001
+fun d-dx(f):
+  doc: "Approximate the derivative of f"
+  fun(x): (f(x + eps) - f(x)) / eps;
+where:
+  fun square(x): x * x;
+  fun within(delta, target):
+    fun(actual): (actual - target).abs() < delta;;
+
+  dsquare = d-dx(square)
+
+  dsquare(5) satisfies within(0.1, 10)
+  dsquare(10) satisfies within(0.1, 20)
+end
+}
+"Real tests need to accomodate more than equality tests.  Pyret supports these
+generally with the <code>satisfies</code> form, which can be used to check
+satisfaction of an arbitrary predicate.")
+
+
+  <hr/>
+
+  @(pyret-example #:where 'left
+@disable-prefix{
+point-methods = {
+  dist(self, other):
+    ysquared = (other.y - self.y).expt(2)
+    xsquared = (other.x - self.x).expt(2)
+    (ysquared + xsquared).sqrt()
+  end
+}
+
+fun make-point(x, y):
+  point-methods.{ x: x, y: y }
+end
+
+check:
+  p1 = make-point(1, 2)
+  p2 = make-point(1, 5)
+
+  p1.dist(p2) is 3
+end
+}
+
+"Pyret has a straightforward object model, from which more complex
+patterns can be defined.  An object is defined by methods and fields within
+curly braces (as in <code>point-methods</code>), and can be extended
+with <code>.{}</code>.  This example shows a simple class-like
+pattern built up from simple objects.  Objects, like most other values in
+Pyret, are immutable by default, so instances of points are created by
+extending the object containing point methods.")
+
+  <hr/>
+
+  @(pyret-example #:where 'right
+@disable-prefix{
+data CyclicList:
+  | clink(cyclic first, rest)
+  | cempty
+end
+check:
+  graph:
+  BOSTON = clink(FRANKFURT, cempty)
+  BEIJING = clink(FRANKFURT, clink(BOSTON, cempty))
+  FRANKFURT = clink(BOSTON, cempty)
+  end
+
+  BOSTON.first is FRANKFURT
+  BEIJING.rest.first is BOSTON
+  BOSTON.first.first.first.first.first is FRANKFURT
+end
+}
+
+"Many real-world data structures are cyclic, like graphs of cities with direct
+flights between them.  In most languages, a serialized encoding or mutation are
+required to introduce graphs.  Pyret's <code>graph:</code> and
+<code>cyclic</code> allow for a declarative description of cyclic data.")
+
+  <hr/>
+
 
 <div class="row">
   <div class="col-md-2"></div>
@@ -368,7 +506,7 @@ href="/getting-started/">get started</a>!
   @(two-langs
 "Annotations"
 "Most “scripting” languages don't support annotations for checking parameters
-and return values, Pyret does."
+and return values; Pyret does."
 "Python"
 @disable-prefix{
 fun square(n :: Number) -> Number:
@@ -425,6 +563,42 @@ students to using just 32 bits."
 ((1 / 3) * 3) == 1
 })
   <hr/>
+@(two-langs "Simple Testing"
+@disable-prefix{
+Friction in the testing process makes it hard to work even simple unit tests
+into early programming.  Pyret removes boilerplate to put testing in its
+rightful place in the programming process.}
+"Python"
+@disable-prefix{
+check:
+  empty.first raises "not found"
+  [1,2,3,4,5].first is 1
+  [2,4,6,8].first is 2
+end
+}
+@disable-prefix{
+import unittest
+class TestLists(unittest.TestCase):
+  def test_empty_first(self):
+    def lookup_first(lst):
+      lst[0]
+    self.assertRaises(
+        IndexError,
+        lookup_first,
+        [])
+
+  def test_1to5(self):
+    self.assertEqual([1,2,3,4,5][0], 1)
+
+  def test_evens(self):
+    self.assertEqual([2,4,6,8][0], 2)
+
+if __name__ == '__main__':
+    unittest.main()
+})
+
+
+<hr/>
 @(two-langs
 "Structured Data"
 @disable-prefix{
@@ -479,7 +653,7 @@ fun animal-name(a :: Animal):
 end
 }
 @disable-prefix{
-type animal = 
+type animal =
   | Elephant of string * float
   | Tiger of string * float
   | Horse of string * int
@@ -524,10 +698,12 @@ end
 
 <hr/>
 
-@(two-langs "Knowledge of Pitfalls"
+@(two-langs "Embracing Substitutability"
 @disable-prefix{
-A design goal of Pyret is to feel both functional and scripty while avoiding
-known mistakes in languages that are related.
+A design goal of Pyret's syntax and semantics is to embrace the
+substitutability of equivalent expressions as much as possible.  This is in
+contrast to, for example, some scripting languages, in which what looks like
+binding an expression to a temporary name changes program behavior.
 }
 "JavaScript"
 @disable-prefix{
@@ -537,6 +713,7 @@ o = @"{"
 @"}"
 method-as-fun = o.my-method
 check:
+  o.my-method(5) is 15
   method-as-fun(5) is 15
 end
 }
@@ -547,17 +724,43 @@ var o = @"{"
   @"}",
   y: 10
 @"}"
+o.my_method(5) === 15 // true
 method_as_fun = o.my_method
 method_as_fun(5)
 // either error or NaN
 // (depending on strict mode)
 })
 
+@(two-langs "" "" 
+"Ruby"
+@disable-prefix{
+o = @"{"
+  my-method(self, x): self.y + x end,
+  y: 10
+@"}"
+method-as-fun = o.my-method
+check:
+  o.my_method(5) is 15
+  method-as-fun(5) is 15
+end
+}
+@disable-prefix{
+o = Object.new
+def o.my_method(x)
+  self.y + x
+end
+def o.y
+  10
+end
+o.my_method(5) == 15 # true
+method_as_fun = o.my_method
+# Wrong number of arguments, 0 for 1
+})
 </div>
 
 }
 )
-            
+
           @(when (string-ci=? uri-path "/blog/index.html")
             @list{
               <h1>Welcome</h1>
@@ -585,5 +788,22 @@ method_as_fun(5)
     <script>
       $(".info").popover({ placement: "left" });
     </script>
+    <script type="text/javascript" src="/js/codemirror.js"></script>
+    <script type="text/javascript" src="/js/runmode.js"></script>
+    <script type="text/javascript" src="/js/pyret.js"></script>
+@(when (string-ci=? uri-path "/index.html")
+@list{
+    <script type="text/javascript">
+      $(function(){
+        $("pre").each(function(_,code) {
+          if(!$(code).hasClass("non-pyret")) {
+            CodeMirror.runMode($(code).text(), "pyret", code);
+            $(code).addClass("cm-s-default");
+          }
+        });
+      });
+      </script>
+}
+)
   </body>
 </html>

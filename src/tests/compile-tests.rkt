@@ -128,8 +128,13 @@
   (check-pyret
     "b = brander()
      true-branded = b.brand(true)
+     if true-branded: 5 else: 6 end"
+    five)
+  (check-pyret
+    "b = brander()
+     true-branded = b.brand(true)
      when true-branded: 5 end"
-     five)
+    nothing)
 
   (check-pyret
     "b = brander()
@@ -147,6 +152,20 @@
     "b = brander()
      b.test(b.brand([4]).{ first: [] })"
     false)
+
+  (check-pyret
+    "check-brand(fun(o): true end, 5, 'Num')"
+    (p:mk-num 5))
+  (check-pyret-exn
+    "check-brand(5, {}, 'foo')"
+    "cannot check-brand with non-function")
+  (check-pyret-exn
+    "check-brand(fun(): end, {}, 5)"
+    "cannot check-brand with non-string")
+  (check-pyret-exn
+    "check-brand(2, {}, 5)"
+    "check-brand failed")
+
 ))
 
 
@@ -158,11 +177,11 @@
 
   (check-pyret "
   when true: 5 end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when true: 5 end end
-  " five)
+  " nothing)
 
   (check-pyret "
   when true: when false: 5 end end
@@ -329,9 +348,17 @@
    "data Foo:
      | single
     end
-    fun f(s :: is-single): when is-single(s): true end end
+    fun f(s :: is-single): if is-single(s): true else: false end end
     f(single)"
     (p:mk-bool #t))
+
+  (check-pyret
+   "data Foo:
+     | single
+    end
+    fun f(s :: is-single): when is-single(s): true end end
+    f(single)"
+    nothing)
 
   (check-pyret-exn
    "data Foo:
@@ -373,9 +400,29 @@
     end"
    "duplicate")
 
-  (check-pyret-match/check "pyret/data-equals.arr" _ 27)
-  (check-pyret-match/check "pyret/data-eq.arr" _ 24)
+  (check-pyret-match/check "pyret/data/data-equals.arr" _ 27)
+  (check-pyret-match/check "pyret/data/data-eq.arr" _ 24)
   (check-pyret-match/check "pyret/data/params.arr" _ 4)
+  (check-pyret-match/check "pyret/data/data-shared-mutable.arr" _ 4)
+
+
+  (check-pyret
+   "datatype D: | foo with constructor(self): self end end
+    is-foo(foo)"
+   (p:mk-bool #t))
+
+  (check-pyret
+   "datatype D: | foo(a) with constructor(self): self end end
+    foo(10).a"
+   (p:mk-num 10))
+
+  (check-pyret
+   "datatype D<T>: | foo(a :: T) with constructor(self): self end
+                   | bar(f :: D<Number>) with constructor(self): self end
+    end
+    bar(foo(10)).f.a"
+   (p:mk-num 10))
+
 
 
   ))
@@ -433,6 +480,8 @@
       all and builtins.has-field(P, field)
      end)"
    (p:mk-bool #t))
+
+  (check-pyret-match/check "pyret/modules/require-graph.arr" _ 1)
   ))
 
 
@@ -447,9 +496,9 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret-match "list.is-empty([]) and list.List([])"
                           (? p:pyret-true? _))
 
-  (check-pyret-match/check "pyret/list-tests.arr" _ 7)
+  (check-pyret-match/check "pyret/libs/list-tests.arr" _ 15)
 
-  (check-pyret-match/check "pyret/json.arr" _ 8)
+  (check-pyret-match/check "pyret/libs/json.arr" _ 8)
 
   (check-pyret-match
     "prim-keys({x : 5})"
@@ -616,16 +665,44 @@ Looks shipshape, all 2 tests passed, mate!
   (check-pyret "prim-num-keys({x:5, y:6, z:7})" (p:mk-num 3))
   (check-pyret "prim-num-keys({x(self): end, y:'', z: fun: end})" (p:mk-num 3))
 
+  (check-pyret "'foobar'.contains('foo')" true)
+  (check-pyret "'foobar'.contains('')" true)
+  (check-pyret "''.contains('foo')" false)
+  (check-pyret "''.contains('')" true)
+
+  (check-pyret "'blahblah'.split('a', false) == ['bl', 'hblah']" true)
+  (check-pyret "'blahblah'.split('a', true) == ['bl', 'hbl', 'h']" true)
+  (check-pyret "String('blahblah'.split('a', false).first)" true)
+  (check-pyret "'blahblah'.split('z', false) == ['blahblah']" true)
+  (check-pyret "'blahblah'.split('z', true) == ['blahblah']" true)
+  (check-pyret "String('blahblah'.split('z', false).first)" true)
+  (check-pyret "'blah'.split('a', false).map(_.length()) == [2, 1]" true)
+
+  (check-pyret "''.explode() == []" true)
+  (check-pyret "'abcde'.explode() == ['a', 'b', 'c', 'd', 'e']" true)
+  
+
   (check-pyret "gensym('foo').contains('foo')" true)
   (check-pyret "gensym('foo').length() > 3" true)
   (check-pyret "gensym('foo') <> gensym('foo')" true)
   (check-pyret "String(gensym('foo'))" true)
 
-  (check-pyret-match/check "pyret/math-libs.arr" _ 7)
+  (check-pyret-match/check "pyret/libs/math-libs.arr" _ 7)
 
-  (check-pyret-match/check "pyret/sets.arr" _ 15)
+  (check-pyret-match/check "pyret/libs/sets.arr" _ 177)
+  (check-pyret-match/check "pyret/libs/array.arr" _ 68)
 
-  (check-pyret-match/check "pyret/strings.arr" _ 22)
+  (check-pyret-match/check "pyret/libs/strings.arr" _ 35)
+
+  (check-pyret "5.is-integer()" true)
+  (check-pyret "5.5.is-integer()" false)
+  (check-pyret "((1 / 3) * 3).is-integer()" true)
+  (check-pyret "(5.5 * 2).is-integer()" true)
+  (check-pyret "0.is-integer()" true)
+  (check-pyret "(1.2 * -5).is-integer()" true)
+  (check-pyret "(78689768976987698762538756293847569384752693487652943785.5 * 2).is-integer()" true)
+  (check-pyret "(2987509274358762538756293847569384752693487652943785.5 * 2.7).is-integer()" false)
+
 ))
 
 (define tag-tests (test-suite "tag-tests"
@@ -743,7 +820,7 @@ o2.m().called" true)
 ))
 
 (define mutables (test-suite "mutable fields"
-  (check-pyret-match/check "pyret/update.arr" _ 29)
+  (check-pyret-match/check "pyret/update.arr" _ 41)
   (check-pyret-match/check "pyret/placeholder.arr" _ 15)
   (check-pyret-match/check "pyret/graph.arr" _ 11)
   ))
@@ -984,16 +1061,25 @@ o2.m().called" true)
 ))
 
 (define ffi (test-suite "ffi"
-  (check-pyret-match/check "pyret/test-ast.arr" _ 10)
-  (check-pyret-match/check "pyret/eval.arr" _ 21)
+  (check-pyret-match/check "pyret/libs/test-ast.arr" _ 10)
+  (check-pyret-match/check "pyret/libs/eval.arr" _ 21)
+  (check-pyret-match/check "pyret/parse-types.arr" _ 3)
+  (check-pyret-match/check "../lang/racket-ffi/http.rkt" _ 5)
+  (check-pyret-match/check "../lang/racket-ffi/url.rkt" _ 3)
+  (check-pyret-exn "___set-link" "Unbound identifier")
+  (check-pyret-exn "___set-empty" "Unbound identifier")
 ))
 
 (define mixins (test-suite "mixins"
-  (check-pyret-match/check "pyret/mixins.arr" _ 9)
+  (check-pyret-match/check "pyret/data/mixins.arr" _ 9)
 ))
 
 (define currying (test-suite "currying"
-  (check-pyret-match/check "pyret/currying.arr" _ 8)
+  (check-pyret-match/check "pyret/currying.arr" _ 14)
+))
+
+(define nested-errors (test-suite "nested errors"
+  (check-pyret-match/check "pyret/nested-errors.arr" _ 20)
 ))
 
 (define checks (test-suite "checks"
@@ -1042,6 +1128,11 @@ o2.m().called" true)
          (check-pyret-match/check name _ passing))))])
 
     (check-pyret-match/check "pyret/semis-examples.arr" _ 11)
+
+    (private-run (example-path "queue.arr") 9)
+    (private-run (example-path "point.arr") 5)
+    (private-run (example-path "ralist.arr") 110)
+    (private-run (example-path "heap.arr") 37)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)
@@ -1092,6 +1183,7 @@ o2.m().called" true)
   ffi
   mixins
   currying
+  nested-errors
   checks
   examples
   annotations))
