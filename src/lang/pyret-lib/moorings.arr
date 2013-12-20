@@ -165,28 +165,6 @@ fun reverse-help(lst, acc):
     | link(first, rest) => reverse-help(rest, first^link(acc))
   end
 end
-fun take-help(lst, n :: Number):
-  fun help(l, cur):
-    if cur == 0:        empty
-    else if is-link(l): l.first^link(help(l.rest, cur - 1))
-    else:               raise('take: n too large: ' + tostring(n))
-    end
-  end
-  if n < 0: raise("take: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
-fun drop-help(lst, n :: Number):
-  fun help(l, cur):
-    if cur == 0:        l
-    else if is-link(l): l.rest.drop(cur - 1)
-    else:               raise("drop: n to large: " + tostring(n))
-    end
-  end
-  if n < 0: raise("drop: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
 
 data List:
   | empty with:
@@ -203,8 +181,6 @@ data List:
 
     partition(self, f): { is-true: empty, is-false: empty } end,
 
-    split-at(self, n): split-at(n, self) end,
-
     foldr(self, f, base): base end,
 
     foldl(self, f, base): base end,
@@ -215,15 +191,7 @@ data List:
 
     last(self): raise('last: took last of empty list') end,
 
-    take(self, n): take-help(self, n) end,
-
-    drop(self, n): drop-help(self, n) end,
-
     reverse(self): self end,
-
-    get(self, n): get-help(self, n) end,
-
-    set(self, n, e): set-help(self, n, e) end,
 
     _equals(self, other): is-empty(other) end,
 
@@ -256,8 +224,6 @@ data List:
 
     partition(self, f): partition(f, self) end,
 
-    split-at(self, n): split-at(n, self) end,
-
     find(self, f): find(f, self) end,
 
     member(self, elt): (elt == self.first) or self.rest.member(elt) end,
@@ -275,14 +241,6 @@ data List:
     end,
 
     reverse(self): reverse-help(self, empty) end,
-
-    take(self, n): take-help(self, n) end,
-
-    drop(self, n): drop-help(self, n) end,
-
-    get(self, n): get-help(self, n) end,
-
-    set(self, n, e): set-help(self, n, e) end,
 
     _equals(self, other):
       if is-link(other):
@@ -349,6 +307,13 @@ sharing:
     link(elt, self)
   end,
   _plus(self :: List, other :: List): self.append(other) end,
+
+  split-at(self, n): split-at(n, self) end,
+  take(self, n): split-at(n, self).prefix end,
+  drop(self, n): split-at(n, self).suffix end,
+
+  get(self, n): get-help(self, n) end,
+  set(self, n, e): set-help(self, n, e) end,
 
 where:
   eq = checkers.check-equals
