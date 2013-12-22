@@ -741,7 +741,6 @@ Grammar.fromSerializable = function(obj) {
   GSSNode.NextNodeId = 0;
   Link.NextLinkId = 0;
   SPPFNode.NextId = 0
-  g.nontermOrdinals = obj.nontermOrdinals;
   for (var id in obj.rulesByOldId) {
     rulesByOldId[id] = Rule.fromSerializable(obj.rulesByOldId, id);
   }
@@ -753,13 +752,13 @@ Grammar.fromSerializable = function(obj) {
     var newRow = g.rnTable[i] = {};
     for (var j = 0; j < g.atoms.size(); j++) {
       var atom = g.atoms.get(j);
-      newRow[atom] = {push: [], reductions: new OrderedSet([], Action.equals)};
+      newRow[atom] = {push: undefined, reductions: new OrderedSet([], Action.equals)};
       if (atom in tableRow) {
         if (tableRow[atom].accept)
           newRow[atom].accept = new AcceptAction();
         if (tableRow[atom].push) {
-          for (var k = 0; k < tableRow[atom].push.length; k++)
-            newRow[atom].push.push(new PushAction(tableRow[atom].push[k]));
+          assert.equal(newRow[atom].push, undefined, "Already have a push action for atom " + atom);
+          newRow[atom].push = new PushAction(tableRow[atom].push);
         }
         if (tableRow[atom].reductions) {
           for (var k = 0; k < tableRow[atom].reductions.length; k++) {
@@ -837,8 +836,6 @@ Grammar.prototype = {
     this.computeFirstSets();
     console.log("Computing derivability");
     this.computeDerivability();
-    console.log("Sorting nonterminals");
-    this.topoSortNonterms();
     console.log("Computing states");
     this.computeStateKernels();
     console.log("Computing required nullable parts");
@@ -867,7 +864,6 @@ Grammar.prototype = {
     var ret = {};
     ret.start = this.start;
     ret.name = this.name;
-    ret.nontermOrdinals = this.nontermOrdinals;
     ret.acceptStates = [];
     for (var i = 0; i < this.acceptStates.length; i++)
       if (this.acceptStates[i])
@@ -896,16 +892,14 @@ Grammar.prototype = {
       var tableRow = this.rnTable[i];
       ret.rnTable[i] = {};
       for (var name in tableRow) {
-        if (tableRow[name].push.length === 0 && !tableRow[name].accept && tableRow[name].reductions.size() === 0) {
+        if (tableRow[name].push === undefined && !tableRow[name].accept && tableRow[name].reductions.size() === 0) {
           //ret.rnTable[i][name] = "empty";
         } else {
           var entry = tableRow[name];
           var dest = ret.rnTable[i][name] = {};
           if (entry.accept) dest.accept = true;
-          if (entry.push.length > 0) {
-            dest.push = [];
-            for (var j = 0; j < entry.push.length; j++)
-              dest.push.push(entry.push[j].dest);
+          if (entry.push !== undefined) {
+            dest.push = entry.push.dest;
           }
           if (entry.reductions.size() > 0) {
             dest.reductions = [];
@@ -1037,24 +1031,6 @@ Grammar.prototype = {
       }
     }
     // console.log("Done");
-  },
-  nontermOrdinals: {},
-  topoSortNonterms: function() {
-    var index = this.nonterms.size();
-    const thiz = this;
-    var seen = {};
-    function help(nonterm) {
-      if (seen[nonterm]) return;
-      seen[nonterm] = true;
-      for (var i = 0; i < thiz.nonterms.size(); i++) {
-        if (thiz.derivable[thiz.nonterms.get(i)][nonterm])
-          help(thiz.nonterms.get(i));
-      }
-      thiz.nontermOrdinals[nonterm] = index--;
-    }
-    help(this.start);
-    for (var i = 0; i < this.nonterms.size(); i++)
-      help(this.nonterms.get(i));
   },
 
   //////////////////////////////////
@@ -1210,41 +1186,6 @@ Grammar.prototype = {
   },
   
   //////////////////////////////////
-  // Computes the LR(1) Goto set for a given rule and symbol:
-  // If [A -> a.Xb, x] is in the set, and X is the symbol, then
-  // add [A -> aX.b, x] to the output set
-  // Finally, compute the closure of it.
-  completeGoto: function(rule_set, symbol) {
-    // console.log("GOTO(" + symbol + ") for rule_set " + rule_set.toString());
-    var ret = new OrderedSet([], Rule.equals);
-    for (var i = 0; i < rule_set.size(); i++) {
-      var rule = rule_set.get(i);
-      if (rule.position < rule.symbols.length && rule.symbols[rule.position].toString() == symbol) {
-        var new_rule = RuleFactory.make(rule.name, rule.symbols, rule.lookahead, rule.position + 1, rule.action);
-        // console.log("Pushing " + symbol + " over in rule " + rule + " ==> " + new_rule);
-        ret.add(new_rule);
-      }
-    }
-    // console.log("After pushing dot, new state has size " + ret.size() + " and is " + ret.toString(true));
-    this.completeClosure(ret, true);
-    // console.log("After closure, new state has size " + ret.size() + " and is " + ret.toString(true));
-
-
-
-    // var kernel = this.computeGotoKernel(rule_set, symbol);
-    // var complete = this.completeClosure(kernel);
-    // var equal_sets = OrderedSet.equals(complete, ret);
-    // console.log("Are completed kernels and this set equal? " + equal_sets);
-    // if (!equal_sets) {
-    //   console.log("Rule_set = " + rule_set + " and symbol = " + symbol);
-    //   console.log("Kernel = " + kernel);
-    //   console.log("Completed kernel = " + complete);
-    //   console.log("ret = " + ret);
-    // }
-    return ret;
-  },
-
-  //////////////////////////////////
   // Computes the kernel of the LR(1) Goto set for a given kernel and symbol
   // Dragon book, p241
   computeGotoKernel: function(i, rule_set, symbol) {
@@ -1309,9 +1250,9 @@ Grammar.prototype = {
       var u = p.leftSib;
       var k = u.label;
       var pl = thiz.rnTable[k][X].push;
-      for (var pl_index = 0; pl_index < pl.length; pl_index++) {
-        // console.log("k = " + k + ", X = " + X + ", pl = " + pl[pl_index]);
-        var l = pl[pl_index].dest;
+      if (pl !== undefined) {
+        // console.log("k = " + k + ", X = " + X + ", pl = " + pl);
+        var l = pl.dest;
         var z = undefined;
         if (m === 0)
           z = thiz.getEpsilonSPPF(f, cur_tok.pos.posAtStart());
@@ -1356,8 +1297,8 @@ Grammar.prototype = {
           thiz.addLink(/*from*/w,/*to*/u,/*labelled*/z);
           var actions = thiz.getActions(l, cur_tok);
           var ph = actions.push;
-          for (var ph_index = 0; ph_index < ph.length; ph_index++)
-            Q.push(new ShiftPair(w, ph[ph_index].dest));
+          if (ph !== undefined)
+            Q.push(new ShiftPair(w, ph.dest));
           var reductions = actions.reductions;
           // console.log("reductions(" + l + ", " + cur_tok.toString(true) + ") = " + reductions);
           for (var r = 0; r < reductions.size(); r++) {
@@ -1445,8 +1386,8 @@ Grammar.prototype = {
           var actions = this.getActions(k, next_tok);
           // console.log("next_tok = " + next_tok.toString(true) + ", k = " + k + ", actions = " + JSON.stringify(actions));
           var ph = actions.push;
-          for (var ph_index = 0; ph_index < ph.length; ph_index++) {
-            var sp = new ShiftPair(w, ph[ph_index].dest);
+          if (ph !== undefined) {
+            var sp = new ShiftPair(w, ph.dest);
             // console.log("Pushing " + sp + " onto Q'");
             Qprime.push(sp);
           }
@@ -1617,8 +1558,8 @@ Grammar.prototype = {
       var actions = this.getActions(0, cur_tok);
       // console.log("Actions[0][" + cur_tok.toString(true) + "] = " + JSON.stringify(actions));
       var pk = actions.push;
-      for (var i = 0; i < pk.length; i++)
-        Q.push(new ShiftPair(v0, pk[i].dest));
+      if (pk !== undefined)
+        Q.push(new ShiftPair(v0, pk.dest));
       // console.log("Q = ");
       // Q.debugPrint();
       var reductions = actions.reductions;
@@ -1911,7 +1852,7 @@ Grammar.prototype = {
         tableRow = thiz.rnTable[index] = {};
       for (var k = 0; k < thiz.atoms.size(); k++) {
         if (tableRow[thiz.atoms.get(k)] === undefined)
-          tableRow[thiz.atoms.get(k)] = {push: [], reductions: new OrderedSet([], Action.equals)};
+          tableRow[thiz.atoms.get(k)] = {push: undefined, reductions: new OrderedSet([], Action.equals)};
       }
     }
     
@@ -1971,8 +1912,10 @@ Grammar.prototype = {
             tableRow = this.rnTable[state_num] = {};
           var tableCell = tableRow[atom_j];
           if (tableCell === undefined)
-            tableCell = tableRow[atom_j] = {push: [], reductions: new OrderedSet([], Action.equals)};
-          tableCell.push.push(new PushAction(gotoStateNum));
+            tableCell = tableRow[atom_j] = {push: undefined, reductions: new OrderedSet([], Action.equals)};
+          if (tableCell.push !== undefined && tableCell.push.dest !== gotoStateNum)
+            throw ("Already have a push action for atom " + atom_j + " in state " + state_num + ": supposed to goto state " + tableCell.push.dest + " and now need to go to " + gotoStateNum);
+          tableCell.push = new PushAction(gotoStateNum);
         }
       }
     }
@@ -2020,8 +1963,8 @@ Grammar.prototype = {
         var rnTable_i = this.rnTable[i];
         for (var x in rnTable_i) {
           var action = rnTable_i[x].push;
-          for (var p = 0; p < action.length; p++) {
-            var gotoState = action[p].dest;
+          if (action !== undefined) {
+            var gotoState = action.dest;
             for (var j = 0; j < state_i.size(); j++) {
               var rule_j = state_i.get(j).withLookahead(undefined);
               var prop = propLookaheads[i][rule_j.id] ? propLookaheads[i][rule_j.id][gotoState] : undefined;
@@ -2067,12 +2010,12 @@ Grammar.prototype = {
     if (this.rnTable[set_num][symbol] === undefined) return;
     var goto_set_num = undefined;
     var action = this.rnTable[set_num][symbol].push;
-    for (var p = 0; p < action.length; p++) {
+    if (action !== undefined) {
       if (goto_set_num !== undefined) {
         console.log("Failure! rnTable contains multiple PushActions for set #" + set_num + " and symbol " + symbol + ": " + actions.toString(true));
         throw(false);
       } else {
-        goto_set_num = action[p].dest;
+        goto_set_num = action.dest;
       }
     }
     
@@ -2119,8 +2062,7 @@ Grammar.prototype = {
         actions = this.rnTable[i][this.atoms.get(j)]
         if (actions.accept)
           str_action += "\n    On " + this.atoms.get(j) + ", " + actions.accept;
-        assert.notEqual(actions.push, undefined, "No actions.push array for " + i + " and " + this.atoms.get(j));
-        if (actions.push.length > 0)
+        if (actions.push !== undefined)
           str_action += "\n    On " + this.atoms.get(j) + ", " + actions.push;
         if (actions.reductions && actions.reductions.size() > 0)
           str_action += "\n    On " + this.atoms.get(j) + ", " + actions.reductions;
