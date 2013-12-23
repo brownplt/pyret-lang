@@ -1,3 +1,4 @@
+const T = require('./tokenizer.js');
 const E = require('./rnglr.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
@@ -5,18 +6,9 @@ const Lit = E.Lit
 const Token = E.Token
 const OrderedSet = E.OrderedSet
 const SrcLoc = E.SrcLoc
-function Tokenizer(str, ignore_ws) {
-  this.str = str;
-  this.curLine = 1;
-  this.curCol = 0;
-  this.ignore_ws = ignore_ws;
-  this.pos = 0;
-  this.len = str.length;
-  this.afterParen = true; // initialize this at the beginning of file to true
-}
+const GenTokenizer = T.Tokenizer;
+const STICKY_REGEXP = T.STICKY_REGEXP;
 
-
-const STICKY_REGEXP = (function() { try { new RegExp("", 'y'); return 'y' } catch(e) { return ''; }})();
 const escapes = new RegExp("^(.*?)\\\\([\\\\\"\'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})");
 function fixEscapes(s) {
   var ret = "";
@@ -43,6 +35,36 @@ function fixEscapes(s) {
   ret += s;
   return ret;
 }
+
+function Tokenizer(ignore_ws, Tokens) {
+  GenTokenizer.call(this, ignore_ws, Tokens);
+  this.afterParen = true; // initialize this at the beginning of file to true
+}
+Tokenizer.prototype = Object.create(GenTokenizer.prototype);
+Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
+  if (tok_type === "STRING") s = fixEscapes(s);
+  return GenTokenizer.prototype.makeToken(tok_type, s, pos);
+}
+Tokenizer.prototype.postProcessMatch = function(tok) {
+  var tok_type = tok.name;
+  if (tok_type === "PAREN?") {
+    for (var j = 0; j < this.Tokens.length; j++) {
+      this.Tokens[j].val.lastIndex = 0;
+      var op = this.Tokens[j].val.exec(match[0]);
+      if (op !== null) {
+        tok_type = this.Tokens[j].name;
+        if (tok_type == "LPAREN?")
+          tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
+        break;
+      }
+    }
+  } else if (tok_type == "LPAREN?") {
+    tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
+  }
+  this.afterParen = !!tok.after;
+  return tok_type;
+}
+
 
 
 function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
@@ -194,125 +216,7 @@ const Tokens = [
   {name: "UNKNOWN", val: anychar},
 ];
 
-function countChar(haystack, needle) {
-  var count = -1; // Because the body of the loop will run at least once
-  // Start at -2 so that we can check the very first character
-  for (var i = -2; i !== -1; i = haystack.indexOf(needle, i + 1)) {
-    count++;
-  }
-  return count;
-}
 
-
-Tokenizer.prototype.hasNext = function() { return this.pos <= this.len; }
-Tokenizer.prototype.isEmpty = function() { return this.len === 0; }
-if (STICKY_REGEXP === 'y') {
-  Tokenizer.prototype.next = function() {
-    while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { 
-        this.pos++;
-        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
-        return E.EOF; 
-      }
-      for (var i = 0; i < Tokens.length; i++) {
-        var tok_type = Tokens[i].name;
-        var tok = Tokens[i].val;
-        if (!tok instanceof RegExp) continue;
-        tok.lastIndex = this.pos;
-        var match = tok.exec(this.str);
-        if (match !== null) {
-          if (tok_type === "PAREN?") {
-            for (var j = 0; j < Tokens.length; j++) {
-              Tokens[j].val.lastIndex = 0
-              var op = Tokens[j].val.exec(match[0]);
-              if (op !== null) {
-                tok_type = Tokens[j].name;
-                if (tok_type == "LPAREN?")
-                  tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
-                break;
-              }
-            }
-          } else if (tok_type == "LPAREN?") {
-            tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
-          }
-          this.afterParen = !!Tokens[i].after;
-          var p = this.pos;
-          var l = this.curLine;
-          var c = this.curCol;
-          var s = match[0];
-          var lines = countChar(s, "\n");
-          this.pos = tok.lastIndex;
-          this.curLine += lines;
-          if (lines === 0)
-            this.curCol += s.length;
-          else
-            this.curCol = s.length - s.lastIndexOf("\n");
-          if (this.ignore_ws && (tok_type === "WS" || tok_type === "COMMENT")) {
-            // ... in case we're ignoring whitespace
-            break;
-          }
-          if (tok_type === "STRING") s = fixEscapes(s);
-          var t = new E.Token(tok_type, s);
-          t.pos = new SrcLoc(l, c, p, this.curLine, this.curCol, this.pos);
-          return t;
-        }
-      }
-    }
-  }
-} else {
-  Tokenizer.prototype.next = function() {
-    while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { 
-        this.pos++;
-        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
-        return E.EOF;
-      }
-      for (var i = 0; i < Tokens.length; i++) {
-        var tok_type = Tokens[i].name;
-        var tok = Tokens[i].val;
-        if (!tok instanceof RegExp) continue;
-        var match = tok.exec(this.str);
-        if (match !== null) {
-          if (tok_type === "PAREN?") {
-            for (var j = 0; j < Tokens.length; j++) {
-              Tokens[j].val.lastIndex = 0
-              var op = Tokens[j].val.exec(match[0]);
-              if (op !== null) {
-                tok_type = Tokens[j].name;
-                if (tok_type == "LPAREN?")
-                  tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
-                break;
-              }
-            }
-          } else if (tok_type == "LPAREN?") {
-            tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
-          }
-          this.afterParen = !!Tokens[i].after;
-          this.str = this.str.slice(match[0].length);
-          var p = this.pos;
-          var l = this.curLine;
-          var c = this.curCol;
-          var s = match[0];
-          var lines = countChar(s, "\n");
-          this.pos += s.length;
-          this.curLine += lines;
-          if (lines === 0)
-            this.curCol += s.length;
-          else
-            this.curCol = s.length - s.lastIndexOf("\n");
-          if (this.ignore_ws && (tok_type === "WS" || tok_type === "COMMENT")) {
-            // ... in case we're ignoring whitespace
-            break;
-          }
-          if (tok_type === "STRING") s = fixEscapes(s);
-          var t = new E.Token(tok_type, s);
-          t.pos = new SrcLoc(l, c, p, this.curLine, this.curCol, this.pos);
-          return t;
-        }
-      }
-    }
-  }
-}
 
 function ListCons(hd, tl, shouldInline) {
   return function(kids) {
@@ -337,4 +241,5 @@ function Inline(kids) {
   return ret;
 }
 
-exports.Tokenizer = Tokenizer;
+
+exports.Tokenizer = new Tokenizer(true, Tokens);
