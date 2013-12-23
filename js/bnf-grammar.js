@@ -155,13 +155,10 @@ g.addRule("Alts", [new Nonterm("Items")]);
 g.addRule("Items", [new Nonterm("Item"), new Nonterm("Items")], ListCons("Item", "Items"));
 g.addRule("Items", []);
 g.addRule("Item", [new Nonterm("Name")], Inline);
-g.addRule("Item", [new Nonterm("Str")], Inline);
 g.addRule("Item", [new Nonterm("Opt")], Inline);
 g.addRule("Item", [new Nonterm("Star")], Inline);
 g.addRule("Item", [new Nonterm("Paren")], Inline);
 g.addRule("Name", [new Token("NAME")]);
-g.addRule("Str", [new Token("DQUOT_STR")]);
-g.addRule("Str", [new Token("SQUOT_STR")]);
 g.addRule("Opt", [new Token("LBRACK"), new Nonterm("Alts"), new Token("RBRACK")], KeepOnly(["Alts"]));
 g.addRule("Paren", [new Token("LPAREN"), new Nonterm("Alts"), new Token("RPAREN")], KeepOnly(["Alts"], true));
 g.addRule("Star", [new Nonterm("Item"), new Token("STAR")], KeepOnly(["Item"]));
@@ -246,8 +243,6 @@ function generateItem(ruleName, item) {
       return {rhs: "new Token(" + JSON.stringify(item.kids[0].value) + ")", rules: []};
     else
       return {rhs: "new Nonterm(" + JSON.stringify(item.kids[0].value) + ")", rules: []};
-  } else if (item.name === "Str") {
-    return {rhs: "new Lit(" + item.kids[0].value + ")", rules: []};
   } else if (item.name === "Star") {
     var ret = {rules: []};
     var newNameOne = ruleName;
