@@ -223,6 +223,8 @@ fun cps(ast):
     lam(l, [arg(l, K), arg(l, F)], A.s_app(l, A.s_id(l, K), [ast]));
   id = A.s_id
   cases(A.Expr) ast:
+    | s_user_block(l, block) => 
+        cps(block)
     | s_block(l, pre-stmts) =>
       stmts = if pre-stmts.length() == 0: [A.s_id(l, "nothing")] else: pre-stmts;
       ids = block-ids(ast)
@@ -316,32 +318,31 @@ fun cps(ast):
         lam(l, [arg(l, K), arg(l,F)],
             app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
 
-   #| s_update(l, obj, fields) =>
-   #     fun makeFields(fds :: List<Members>, acc :: List<Members>):
-   #         cases(List) fds:
-   #             | empty => 
-   #                 #print(acc.reverse())
-   #                 #lam(l, [arg(l, K), arg(l, F)] ,
-   #                 
-   #                # app(l, id(l, K), [A.s_update_cps(l, id(l, '$ov'),acc.reverse(), id(l, K), id(l,F))])
-   #                A.supdate_cps(l, id(l, $ov), acc.reverse(), lam(l, [arg(l, "$wv")], s_update, id(l,F))
-   #             | link(mem, rest) =>
-   #                #Treating mem like they have string names, not going to cps      
-   #                fname = gensym(mem.name.s) #Assuming string name
-   #                new_fields = link(A.s_data_field(l, mem.name, id(l, fname)), acc)
+   | s_update(l, obj, fields) =>
+         fun makeFields(fds :: List<Members>, acc :: List<Members>):
+             cases(List) fds:
+                 | empty => 
+                     #print(acc.reverse())
+                     #lam(l, [arg(l, K), arg(l, F)] ,
+                     
+                    # app(l, id(l, K), [A.s_update_cps(l, id(l, '$ov'),acc.reverse(), id(l, K), id(l,F))])
+                    A.s_update_k(l, A.s_obj(l, [A.s_data_field(l, A.s_str(l,K), id(l, K)), A.s_data_field(l, A.s_str(l,F), id(l, F))]), id(l, '$ov'), acc.reverse())
+                 | link(mem, rest) =>
+                    #Treating mem like they have string names, not going to cps      
+                    fname = gensym(mem.name.s) #Assuming string name
+                    new_fields = link(A.s_data_field(l, mem.name, id(l, fname)), acc)
 
-   #                #print("mem: " + torepr(cps(mem.value)))
-   #               # lam(l, [arg(l, K)], 
-   #               # lam(l, [arg(l, K), arg(l,F)],
-   #                app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
-   #        end
-   #    end
+                    #print("mem: " + torepr(cps(mem.value)))
+                   # lam(l, [arg(l, K)], 
+                   # lam(l, [arg(l, K), arg(l,F)],
+                    app(l, cps(mem.value), [lam(l, [arg(l, fname)], makeFields(rest, new_fields)), id(l, F)])
+            end
+        end
 
-   #    #Not going to handle implicit set wrapper call
 
-   #     lam(l, [arg(l, K), arg(l,F)],
-   #         app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
-   #    
+        lam(l, [arg(l, K), arg(l,F)],
+            app(l, cps(obj), [lam(l, [arg(l, '$ov')], makeFields(fields, [])), id(l, F)]))
+       
 
    #   # lam(l, [arg(l, K), arg(l,F)], 
    #   #    app(l, cps(obj), [lam(l, [arg(l, '$ov')], 
@@ -478,6 +479,9 @@ fun expr-to-js(ast):
         | s_str(_, s) => format("RUNTIME.getFieldK(~a, '~a', ~a)", [expr-to-js(obj), s, expr-to-js(conts)])
         | else => raise("Non-string lookups not supported")
       end
+    | s_update_k(_, conts, obj, fields) =>
+        format("~a.updateWithK(~a, {~a})", [expr-to-js(obj), expr-to-js(conts), fields.map(make-field-js).join-str(",\n")])
+
     | s_id(_, id) => id-access(id)
     | s_var(_, bind, value) =>
       js_id = id-access(bind.id)
@@ -510,8 +514,6 @@ fun expr-to-js(ast):
         format("RUNTIME.applyFunction(RUNTIME.getField(RUNTIME.getMutField(~a, '~a'), 'get'),[])", [expr-to-js(obj), field])
     |s_update(l, super, fields) => 
         format("~a.updateWith({~a})", [expr-to-js(super), fields.map(make-field-js).join-str(",\n")])
-    |s_update_cps(l, super, fields, k, f) => 
-        format("~a.updateWithCPS({~a}, ~a ,~a)", [expr-to-js(super), fields.map(make-field-js).join-str(",\n"), expr-to-js(k), expr-to-js(f)])
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
   end
 end

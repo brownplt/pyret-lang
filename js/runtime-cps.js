@@ -615,14 +615,84 @@ var PYRET_CPS = (function () {
       }
       else if (isObj(val)) {
         if(val.dict.hasOwnProperty('_torepr')) {
+            //TODO: NEED TO MAKE TO REPR CPS
+            return applyFunction(getField(val, '_torepr'), [k, f]);
+        }
+        var fields = [];
+        for(fd in val.dict) {
+            /*
+            var newCont = (function(fdRepr) {
+                fields.push(fd + ": " + fdRepr.s); //val.dict[f].toString());
+            });
+            toRepr(val.dict[fd], k, f).s; //val.dict[f].toString());
+            */
+            fields.push(fd + ": " + toRepr(val.dict[fd], k, f).s); //val.dict[f].toString());
+        }
+
+        return makeString('{' +fields.join(", ")+ '}');
+      }
+      else if (isNothing(val)) {
+        return makeString("nothing");
+      }
+      else if (isMutable(val)) {
+        return makeString("mutable-field");
+      }
+      else if (isPlaceholder(val)) {
+        return makeString("mutable-field");
+      }
+      
+      throw ("toStringJS on an unknown type: " + val);
+    }
+
+    /*
+    //Creates the continuation that will evaluate
+    function constructFieldsContinuation(fields, k) {
+        var fields = []; //Closes over fields
+        var cont = makeFunction(function(lastValue) {
+            applyFunction(k, [makeString('{' +fields.join(", ")+ '}')])
+        }
+
+        var prevField = 'to be replaced';
+        for(fd in fields) {
+            var newCont = function(fdRepr) {
+                fields.push(fd + ": " + fdRepr.s); //val.dict[f].toString());
+                applyFunction(cont, [
+            }
+        }
+
+    }
+
+    // toReprK will utilize the continuation and pass it the result
+    function toReprK(val, k, f) {
+      if(isNumber(val)) {
+        applyFunction(k, [makeString(String(val.n))]);
+      }
+      else if (isString(val)) {
+        applyFunction(k,[ makeString('"' + val.s + '"')]);
+      }
+      else if (isBoolean(val)) {
+       applyFunction(k, [ makeString(String(val.b))]);
+      }
+      else if (isMethod(val)) {
+        applyFunction(k, [makeString("method: end")])
+      }
+      else if (isFunction(val)) {
+        applyFunction(k,  [makeString("fun(): end")])
+      }
+      else if (isObj(val)) {
+        if(val.dict.hasOwnProperty('_torepr')) {
+            //TODO: NEED TO MAKE TO REPR CPS
             applyFunction(getField(val, '_torepr'), [k, f]);
         }
-            //TODO: NEED TO MAKE TO REPR CPS
         var fields = [];
-        for(f in val.dict) {
-            fields.push(f + ": " + toRepr(val.dict[f]).s, k, f)//val.dict[f].toString());
+        for(fd in val.dict) {
+            var newCont = function(fdRepr) {
+                fields.push(fd + ": " + fdRepr.s); //val.dict[f].toString());
+            }
+            toReprK(val.dict[fd], newCont, f).s); //val.dict[f].toString());
         }
-        return makeString('{' +fields.join(", ")+ '}');
+
+        applyFunction(k, [makeString('{' +fields.join(", ")+ '}')])
       }
       else if (isNothing(val)) {
         return makeString("nothing");
@@ -636,13 +706,15 @@ var PYRET_CPS = (function () {
       
       throw ("toStringJS on an unknown type: " + val);
     }
+    */
 
     function getField(val, str) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
             //NOT CPS'd wont have toRepr
             //Assuming that since getField is only exposed to the devloper, it wont be used in places where exceptions need to be thrown
-            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+            //raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+            throw("Invalid getField (non-cps)");
         }
 
       if (isMethod(fieldVal)) {
@@ -812,17 +884,86 @@ var PYRET_CPS = (function () {
     });
     PObj.prototype.getType = function() {return 'object';};
     
-    PObj.prototype.updateWith = function(fields) {
+    PObj.prototype.updateWith = function(fields, k, f) {
         var newObj = this; //Don't clone, this is mutation
         for(var field in fields) {
             if(isMutable(newObj.dict[field])) {
-                newObj.dict[field].set(fields[field]);
+                newObj.dict[field].set(fields[field], k, f);
             }
             else 
                 throwPyretMessage("Attempted to update a non-mutable field");
         }
         return newObj;
     }
+
+    //Builds the continuation for update
+    function buildUpdateCont(k, f, obj, fields) {
+        //The list of fields remaining to apply 
+        var conts = [];
+
+        var cont = makeFunction(function() {
+            if(conts.length === 0) {
+                applyFunction(k, [makeNothing()]);
+            }
+            else {
+                var next = conts[0];
+                conts = conts.slice(1);
+                applyFunction(next, []);
+            }
+        });
+
+        for(var fld in fields){
+            conts.push(
+                makeFunction(function() {
+                fieldVal = obj.dict[fld];
+                if(fieldVal === undefined) {
+                    raisePyretMessage(f, "Could not find field on obj during update");
+                }   
+                else if(!isMutable(fieldVal)) {
+                    raisePyretMessage(f, "Attempted to update a non-mutable field");
+                }
+                else {
+                    fieldVal.set(fieldVal, cont, f);
+                }
+            }));
+
+        }
+            /*
+        if(fields.length === 0) {
+            return makeFunction(function() {
+                applyFunction(k, [makeNothing()]);
+            });
+        }
+        else {
+            var next = buildUpdateCont(obj, fields.slice(1), k);
+            var cur_field = fields[0]; 
+            var cur_val = fields(cur_field);
+            return makeFunction(function() {
+                fieldVal = newObj.dict[field];
+                if(fieldVal === undefined) {
+                    raisePyretMessage(f, "Could not find field on obj during update");
+                }   
+                else if(!isMutable(fieldVal)) {
+                    raisePyretMessage(f, "Attempted to update a non-mutable field");
+                }
+                else {
+                    fieldVal.set(cur_val, next, f);
+                }
+            });
+        }
+        */
+
+        return cont;
+    }
+
+    PObj.prototype.updateWithK = function(conts, fields) {
+        var k = conts.dict['$k'];
+        var f = conts.dict['$f'];
+
+        var updateCont = buildUpdateCont(k, f, this, fields);
+        applyFunction(updateCont, []); //We ignore all the values in our built update cont, we just need it to remember progress
+    };
+
     PObj.prototype.toString = function() {
         var fields = "";
         for(var f in this.dict) {
@@ -985,12 +1126,12 @@ var PYRET_CPS = (function () {
             }),
         });
 
-        mut.set = (function(newVal) { 
+        mut.set = (function(newVal, dyn_k, dyn_f) { 
                 var newk = makeFunction(function(a_val) {
                     a = a_val;
-                    applyFunction(k, [a])
+                    applyFunction(dyn_k, []) //Move onto the next field to set
                 });
-                applyFunction(w ,[newk,f, newVal]);
+                applyFunction(w ,[newk, dyn_f, newVal]);
             });
 
         
