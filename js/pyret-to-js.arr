@@ -208,6 +208,10 @@ fun make-field-js(field):
     format("'~a' : ~a", [field.name.s, expr-to-js(field.value)])
 end
 
+fun make-field-list-js(field):
+    format("{name : '~a', value: ~a}", [field.name.s, expr-to-js(field.value)])
+end
+
 fun arg(l, name): A.s_bind(l, name, A.a_blank);
 fun lam(l, args, body :: A.Expr): A.s_lam(l, [], args, A.a_blank, "anon lam", body, A.s_block(l, []));
 app = A.s_app
@@ -480,7 +484,7 @@ fun expr-to-js(ast):
         | else => raise("Non-string lookups not supported")
       end
     | s_update_k(_, conts, obj, fields) =>
-        format("~a.updateWithK(~a, {~a})", [expr-to-js(obj), expr-to-js(conts), fields.map(make-field-js).join-str(",\n")])
+        format("~a.updateWithK(~a, [~a])", [expr-to-js(obj), expr-to-js(conts), fields.map(make-field-list-js).join-str(",\n")])
 
     | s_id(_, id) => id-access(id)
     | s_var(_, bind, value) =>

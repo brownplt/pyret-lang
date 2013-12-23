@@ -912,19 +912,32 @@ var PYRET_CPS = (function () {
             }
         });
 
-        for(var fld in fields){
+
+        //Check that fields exist and are mutables
+        for(var i=0; i<fields.length; i++){
+            var fldName = fields[i].name;
+            var fieldVal = obj.dict[fldName];
+
+            if(fieldVal === undefined) {
+                raisePyretMessage(f, "Could not find field on obj during update");
+                return;
+            }   
+            else if(!isMutable(fieldVal)) {
+                raisePyretMessage(f, "Attempted to update a non-mutable field");
+                return;
+            }
+        }
+
+
+        for(var i=0; i<fields.length; i++){
+            var fldName = fields[i].name;
+            var newVal =  fields[i].value;
             conts.push(
                 makeFunction(function() {
-                fieldVal = obj.dict[fld];
-                if(fieldVal === undefined) {
-                    raisePyretMessage(f, "Could not find field on obj during update");
-                }   
-                else if(!isMutable(fieldVal)) {
-                    raisePyretMessage(f, "Attempted to update a non-mutable field");
-                }
-                else {
-                    fieldVal.set(fieldVal, cont, f);
-                }
+                fieldVal = obj.dict[fldName];
+
+                //We assume that we have checked that all fields exist and are mutable, else we should not be setting
+                fieldVal.set(newVal, cont, f);
             }));
 
         }
