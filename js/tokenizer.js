@@ -39,7 +39,7 @@ Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
   t.pos = pos;
   return t;
 }
-Tokenizer.prototype.postProcessMatch = function(tok) { return tok.name; }
+Tokenizer.prototype.postProcessMatch = function(tok, match) { return tok.name; }
 Tokenizer.prototype.next = function() {
   while (this.hasNext()) { // Surround the tokenizer loop...
     if (this.pos == this.len) { 
@@ -53,7 +53,7 @@ Tokenizer.prototype.next = function() {
       this.positionTokenRegexp(tok);
       var match = tok.val.exec(this.str);
       if (match !== null) {
-        var tok_type = this.postProcessMatch(tok);
+        var tok_type = this.postProcessMatch(tok, match);
         this.updateString(match);
         var p = this.pos;
         var l = this.curLine;

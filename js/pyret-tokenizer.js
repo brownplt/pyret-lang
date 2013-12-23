@@ -45,7 +45,7 @@ Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
   if (tok_type === "STRING") s = fixEscapes(s);
   return GenTokenizer.prototype.makeToken(tok_type, s, pos);
 }
-Tokenizer.prototype.postProcessMatch = function(tok) {
+Tokenizer.prototype.postProcessMatch = function(tok, match) {
   var tok_type = tok.name;
   if (tok_type === "PAREN?") {
     for (var j = 0; j < this.Tokens.length; j++) {
