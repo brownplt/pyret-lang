@@ -307,7 +307,12 @@ Token.prototype.toString = function(showVal) {
   else
     return "'" + this.name; 
 }
-Token.prototype.toSerializable = function() { return {type: "Token", name: this.name, value: this.value}; }
+Token.prototype.toSerializable = function() { 
+  if (this.name !== this.value)
+    return {type: "Token", name: this.name, value: this.value};
+  else
+    return {type: "Token", name: this.name};
+}
 
 const EOF = Object.create(Token.prototype, 
                           {name: {enumerable: true, value: "EOF"}, 
