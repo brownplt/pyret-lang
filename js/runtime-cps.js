@@ -465,11 +465,15 @@ var PYRET_CPS = (function () {
 
     function PNumber(n) {
       this.n = n;
+      this.brands = [];
     }
     function makeNumber(n) { return new PNumber(n); }
     function isNumber(v) { return v instanceof PNumber; }
     PNumber.prototype = {
-      dict : numberDict
+      dict : numberDict, 
+      clone : function() {
+        return makeNumber(this.n);
+      } 
     };
 
     //DEF
@@ -580,6 +584,7 @@ var PYRET_CPS = (function () {
 
     function PString(s) {
       this.s = s;
+      this.brands = [];
     }
     function makeString(s) { return new PString(s); }
     function isString(v) { return v instanceof PString; }
@@ -846,10 +851,10 @@ var PYRET_CPS = (function () {
         var fCont = args[1];
 
         if(!isFunction(fn)) {
-            throwPyretMessage("Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+            raisePyretMessage(fCont, "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
         }
         if(args.length != fn.arity) {
-            throwPyretMessage("Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            raisePyretMessage(fCont, "Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
         }
 
         gas -= 1;
@@ -1175,7 +1180,7 @@ var PYRET_CPS = (function () {
             newO.brands.push(myBrand);
             applyFunction(k, [newO]);
         }),
-        test: makeFunction(function(k,f ,o, msg) {
+        test: makeFunction(function(k,f ,o) {
             applyFunction(k, [makeBoolean(o.brands.indexOf(myBrand) != -1)])
         }),
     };
@@ -1185,7 +1190,16 @@ var PYRET_CPS = (function () {
     //check-brand
     checkBrand = makeFunction(function(k, f, test, obj, msg){
         if(isFunction(test)){
-            applyFunction(test,[k, f, obj, msg]);
+            applyFunction(test,[
+                makeFunction(function(testVal){
+                    if(isBoolean(testVal) && testVal.b) {
+                        applyFunction(k, [obj]);
+                    }
+                    else {
+                        raisePyretMessage(f, "Test returned false: " + msg.s);
+                    }
+                }),
+                f, obj]);
         }
         else {
             raisePyretMessage(f, "Check brand with non-function");
@@ -1353,8 +1367,8 @@ var PYRET_CPS = (function () {
 
         //TODO: These aren't neccessarily right, they should probably raise errors
         'Function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
-        'Number': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
-        'Method': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
+        'Number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
+        'Method': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
         'Placeholder': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
         'Mutable': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMutable(x))]);}),
         'Nothing': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNothing(x))]);}),
