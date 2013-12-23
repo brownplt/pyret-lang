@@ -3,7 +3,6 @@ const T = require('./tokenizer.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
 const Token = E.Token
-const OrderedSet = E.OrderedSet
 const SrcLoc = E.SrcLoc
 const Tokenizer = T.Tokenizer;
 const STICKY_REGEXP = T.STICKY_REGEXP;
@@ -194,7 +193,7 @@ if (parsed !== undefined) {
   var out = fs.createWriteStream("grammar.js");
   out.write("const fs = require('fs');\n");
   out.write("const E = require('./rnglr.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
-  out.write("const Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
+  out.write("const Token = E.Token\nconst Rule = E.Rule\n\n");
   out.write(bnfJS.join("\n"));
   out.write("\n\n");
   out.write("g.initializeParser(true);\n")
@@ -208,7 +207,7 @@ if (parsed !== undefined) {
   out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
   out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
   out.write("out.write(\"const E = require('./rnglr.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
-  out.write("out.write(\"const Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
+  out.write("out.write(\"const Token = E.Token\\nconst Rule = E.Rule\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
   out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
   out.write("out.end();\n");
