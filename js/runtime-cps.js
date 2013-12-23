@@ -140,7 +140,7 @@ var PYRET_CPS = (function () {
 
       _tostring: makeMethod(function(k, f, me) {
         if(checkIf(f, b, isBoolean, 'toString')){ 
-       applyFunction(k, [ toRepr(me)]);
+       applyFunction(k, [ toRepr(me, k, f)]);
         }
       }),   
       _torepr: makeMethod(function(k, f, me) {
@@ -597,7 +597,7 @@ var PYRET_CPS = (function () {
       return false;
     }
 
-    function toRepr(val) {
+    function toRepr(val, k, f) {
       if(isNumber(val)) {
         return makeString(String(val.n));
       }
@@ -615,12 +615,12 @@ var PYRET_CPS = (function () {
       }
       else if (isObj(val)) {
         if(val.dict.hasOwnProperty('_torepr')) {
-            return applyFunction(getField(val, '_torepr'), []);
+            applyFunction(getField(val, '_torepr'), [k, f]);
         }
-
+            //TODO: NEED TO MAKE TO REPR CPS
         var fields = [];
         for(f in val.dict) {
-            fields.push(f + ": " + toRepr(val.dict[f]).s)//val.dict[f].toString());
+            fields.push(f + ": " + toRepr(val.dict[f]).s, k, f)//val.dict[f].toString());
         }
         return makeString('{' +fields.join(", ")+ '}');
       }
@@ -640,6 +640,8 @@ var PYRET_CPS = (function () {
     function getField(val, str) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
+            //NOT CPS'd wont have toRepr
+            //Assuming that since getField is only exposed to the devloper, it wont be used in places where exceptions need to be thrown
             raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
         }
 
@@ -663,7 +665,7 @@ var PYRET_CPS = (function () {
     function getFieldK(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val,conts.dict['$k'], conts.dict['$f']).s);
             return;
         }
 
@@ -697,7 +699,7 @@ var PYRET_CPS = (function () {
     function getColonFieldK(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val).s);
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val, conts.dict['$k'], conts.dict['$f']).s);
         }
         else{
         applyFunction(conts.dict['$k'], [fieldVal]);
@@ -730,7 +732,7 @@ var PYRET_CPS = (function () {
 
     var testPrintOutput = "";
     function testPrint(k, f, val) {
-      var str = toRepr(val).s;
+      var str = toRepr(val, k, f).s;
       console.log("testPrint: ", val, str);
       testPrintOutput += str + "\n";
       // Should be applyFunc, or whatever your implementation calls it
@@ -767,11 +769,15 @@ var PYRET_CPS = (function () {
         args: a list of arguments to apply to the function
     */
    function applyFunction(fn, args) {
+
+        var kCont = args[0];
+        var fCont = args[1];
+
         if(!isFunction(fn)) {
-            throwPyretMessage("Cannot apply non-function: " + toRepr(fn));
+            throwPyretMessage("Cannot apply non-function: " + toRepr(fn, kCont, fCont));
         }
         if(args.length != fn.arity) {
-            throwPyretMessage("Check arity failed: " + toRepr(fn) + " expected " + fn.arity + " arguments, but given " + args.length);
+            throwPyretMessage("Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
         }
 
         gas -= 1;
@@ -791,9 +797,6 @@ var PYRET_CPS = (function () {
     function PObj(d) {
       this.dict = d;
       this.brands = [];
-      //this.dict['_torepr'] = makeMethod(function(me) {
-        //return toRepr(me);
-      //});
     }
     function makeObj(b) { return new PObj(b); }
     function isObj(v) { return v instanceof PObj; }
@@ -835,9 +838,6 @@ var PYRET_CPS = (function () {
     function PPlaceholder(d) {
       this.dict = d;
       this.brands = [];
-      //this.dict['_torepr'] = makeMethod(function(me) {
-        //return toRepr(me);
-      //});
     }
 
     
@@ -928,9 +928,6 @@ var PYRET_CPS = (function () {
     function PMutable(d) {
       this.dict = d;
       this.brands = [];
-      //this.dict['_torepr'] = makeMethod(function(me) {
-        //return toRepr(me);
-      //});
     }
     PMutable.prototype = Object.create(PBase.prototype);
 
@@ -962,11 +959,11 @@ var PYRET_CPS = (function () {
         var a = val;
 
         if(!isFunction(r)) {
-            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(r).s);
+            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(r, k ,f).s);
             return;
         }
         if(!isFunction(w)) {
-            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(w).s);
+            raisePyretMessage(f,'typecheck failed; expected Function and got\n' + toRepr(w, k, f).s);
             return;
         }
 
@@ -1024,7 +1021,7 @@ var PYRET_CPS = (function () {
             newO.brands.push(myBrand);
             applyFunction(k, [newO]);
         }),
-        test: makeFunction(function(k,f ,o) {
+        test: makeFunction(function(k,f ,o, msg) {
             applyFunction(k, [makeBoolean(o.brands.indexOf(myBrand) != -1)])
         }),
     };
@@ -1052,13 +1049,13 @@ var PYRET_CPS = (function () {
             var repr = name.s + "(";
             while(true){
               try{
-                  var first = getField(fields, "first");
+                  var first = getFieldK(fields, "first");
                   var rest = getField(fields, "rest");
                   fields = rest;
 
-                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first));}
+                  if(! isString(first)) {throwPyretMessage("Key was not a string: " + toRepr(first, k, f));}
 
-                  repr = repr + toRepr(getField(val, first.s)).s + ", ";
+                  repr = repr + toRepr(getField(val, first.s, k, f)).s + ", ";
                   fieldsEmpty = false;
               }
               catch(e){
@@ -1187,6 +1184,12 @@ var PYRET_CPS = (function () {
               }),
             equiv : makeFunction(equiv)
         }),
+        'data-to-repr': makeFunction(dataToRepr),
+        'data-equals': makeFunction(dataEquals),
+        "has-field" : makeFunction(function(prim, field) {
+          applyFunction(k,[makeBoolean(prim.dict.hasOwnProperty(field))]);
+          }),
+        equiv : makeFunction(equiv),
 
         "mk-placeholder": makeFunction(makePlaceholder),
         "mk-simple-mutable" : makeFunction(makeSimpleMutable),
@@ -1195,7 +1198,7 @@ var PYRET_CPS = (function () {
         "check-brand": checkBrand,
 
         //TODO: These aren't neccessarily right, they should probably raise errors
-        'Function': makeFunction(function(obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
+        'Function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
         'Number': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
         'Method': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
         'Placeholder': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
@@ -1206,7 +1209,7 @@ var PYRET_CPS = (function () {
         'Bool': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
         'Object': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isObj(x))]);}),
 
-        'is-function': makeFunction(function(obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
+        'is-function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
         'is-number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
         'is-method': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
         'is-placeholder': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
