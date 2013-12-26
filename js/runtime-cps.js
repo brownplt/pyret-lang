@@ -1387,16 +1387,17 @@ var PYRET_CPS = (function () {
     }
 
     
-    //Produces a function that checks if a value is a given type and returns it, else produces an error message
+    //Produces a function that checks if a value is a given type and returns true, else false
+    //Test should return a JS boolean
     //Used to produced capital guards like Number, String etc 
     function checkWhat(test, what) {
         return makeFunction(function(k, f, x) {
             if(test(x)) {
-                applyFunction(k, [x]);
+                applyFunction(k, [makeBoolean(true)]);
                 return;
             }
             else {
-                raisePyretMessage(f, "typecheck failed; expected " + what + " and got " + toRepr(x).s);
+                applyFunction(k, [makeBoolean(false)]);
                 return;
             }
         });
