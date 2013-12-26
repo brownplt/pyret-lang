@@ -53,7 +53,21 @@ var PYRET_CPS = (function () {
     function PMethod(f) {
       this.method = f;
     }
-    function makeMethod(f) { return new PMethod(f); } 
+    function makeMethod(f) {
+        var meth =  new PMethod(f); 
+        meth.dict = {};
+        meth.dict["_doc"] = makeString("Method");
+        
+        var _fun = new PMethod((function(me) {
+            return  makeFunction(me.method, me.dict._doc);
+        }));
+    
+        _fun.dict = {};
+        _fun.dict["_doc"] = makeString("");
+
+        meth.dict._fun = _fun;
+        return meth;
+    } 
     function isMethod(v) { return v instanceof PMethod; }
     PMethod.prototype = {
       app: function() { throw "Cannot apply method directly."; },
@@ -602,6 +616,12 @@ var PYRET_CPS = (function () {
       return false;
     }
 
+    function toReprK(k, f, val)
+    {
+        var result = toRepr(val, k, f);
+        applyFunction(k, [result]);
+    }
+
     function toRepr(val, k, f) {
       if(isNumber(val)) {
         return makeString(String(val.n));
@@ -849,12 +869,19 @@ var PYRET_CPS = (function () {
 
         var kCont = args[0];
         var fCont = args[1];
+        if(fCont === undefined || kCont === undefined) {
+            console.log(["Missing k and/or f", fn, args])
+        }
 
         if(!isFunction(fn)) {
-            raisePyretMessage(fCont, "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+        //    raisePyretMessage(fCont, "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+            throwPyretMessage( "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+            return;
         }
         if(args.length != fn.arity) {
-            raisePyretMessage(fCont, "Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            throwPyretMessage("Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            //raisePyretMessage(fCont, "Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            return;
         }
 
         gas -= 1;
@@ -1003,8 +1030,34 @@ var PYRET_CPS = (function () {
     function getPlaceholderDict(){  
         var isSet = false;
         var value = undefined;
+        var tempSet = undefined;
         var guards = [];
-        
+
+        //Push the base guard, which sets the value and variables for us
+        guards.push(makeFunction(function(k, f, val) { 
+            isSet = true;
+            value = val;
+            applyFunction(k, [val]);
+        }));
+       
+        //Continuation for setting and using all the guards
+        var cont = makeFunction(function(k, f, val) {
+                //Never should have the zero case as we always push the base guard^
+                if(guards.length === 1) {
+                    var next = guards[0];
+                    applyFunction(next, [k,f, val])
+                }
+                else {
+                    var next = guards[0];
+                    guards = guards.slice(1); //This can be destructive as we only can set once
+                    var tempK =  makeFunction(function(tempVal) {
+                        tempSet = tempVal;
+                        applyFunction(cont, [k, f, tempSet]);
+                    });
+                    applyFunction(next, [k, f, tempSet]);
+                }
+        });
+
         return {
         get : makeMethod(function(k, f, me) { 
            if(isSet){
@@ -1026,31 +1079,21 @@ var PYRET_CPS = (function () {
            }
            applyFunction(k, [makeNothing()]);
         }),
+        
 
         set : makeMethod(function(k, f, me, val) {
             if(isSet) {
                 raisePyretMessage(f, "Tried to set value in already-initialized placeholder");
                 return;
             }
-            for(var g in guards) {
-                var newK = makeFunction(function(newVal) {
-                    val = newVal;
-                });
-                applyFunction(guards[g],[newK, f, val]);
-            }
-            value = val;
-            isSet = true;
-            applyFunction(k, [value]);
+            tempSet = val;
+            applyFunction(cont, [k, f, tempSet]);
         }),
 
        tostring : makeMethod(function(k, f, me) {
         applyFunction(k, [ makeString("cyclic-field")]);
        }),
 
-       _torepr : makeMethod(function(k, f, me) {
-            applyFunction(k, [ makeString("cyclic-field")]);
-        }),
-        
        _equals : makeMethod(function(k, f, me,other) {
             applyFunction(k, [ makeBoolean(me === other)]);
        }),
@@ -1197,12 +1240,14 @@ var PYRET_CPS = (function () {
                     }
                     else {
                         raisePyretMessage(f, "Test returned false: " + msg.s);
+                        return;
                     }
                 }),
                 f, obj]);
         }
         else {
             raisePyretMessage(f, "Check brand with non-function");
+            return;
         }
     });
 
@@ -1350,7 +1395,8 @@ var PYRET_CPS = (function () {
             "has-field" : makeFunction(function(prim, field) {
               applyFunction(k,[makeBoolean(prim.dict.hasOwnProperty(field))]);
               }),
-            equiv : makeFunction(equiv)
+            equiv : makeFunction(equiv),
+            torepr: makeFunction(toReprK)
         }),
         'data-to-repr': makeFunction(dataToRepr),
         'data-equals': makeFunction(dataEquals),
@@ -1364,6 +1410,8 @@ var PYRET_CPS = (function () {
         "mk-mutable" : makeFunction(makeMutable),
         brander : brander,
         "check-brand": checkBrand,
+        torepr: makeFunction(toReprK),
+
 
         //TODO: These aren't neccessarily right, they should probably raise errors
         'Function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
@@ -1400,7 +1448,7 @@ var PYRET_CPS = (function () {
             applyFunction(k,[ myKeys]);
          }),
           "prim-has-field" : makeFunction(function(k, f, prim, field) {
-            applyFunction(k, [ makeBoolean(prim.dict.hasOwnProperty(field))]);
+            applyFunction(k, [makeBoolean(prim.dict.hasOwnProperty(field.s))]);
           }),
 
         raise : raise,
