@@ -180,6 +180,5 @@ beforeEach(function(done) {
     })
   });
 
-  console.log("Before");
   done();
 });

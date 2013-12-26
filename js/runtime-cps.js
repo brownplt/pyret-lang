@@ -1037,8 +1037,8 @@ var PYRET_CPS = (function () {
         var tempSet = undefined;
         var guards = [];
 
-        //Push the base guard, which sets the value and variables for us
-        guards.push(makeFunction(function(k, f, val) { 
+        //Shift the base guard, which sets the value and variables for us
+        guards.unshift(makeFunction(function(k, f, val) { 
             isSet = true;
             value = val;
             applyFunction(k, [val]);
@@ -1046,14 +1046,13 @@ var PYRET_CPS = (function () {
        
         //Continuation for setting and using all the guards
         var cont = makeFunction(function(k, f, val) {
-                //Never should have the zero case as we always push the base guard^
+                //Never should have the zero case as we always add the base guard^
                 if(guards.length === 1) {
                     var next = guards[0];
                     applyFunction(next, [k,f, val])
                 }
                 else {
-                    var next = guards[0];
-                    guards = guards.slice(1); //This can be destructive as we only can set once
+                    var next = guards.shift() //This can be destructive as we only can set once
                     var tempK =  makeFunction(function(tempVal) {
                         tempSet = tempVal;
                         applyFunction(cont, [k, f, tempSet]);
@@ -1079,7 +1078,7 @@ var PYRET_CPS = (function () {
                return;
             }
            else {
-                guards.push(guard);
+                guards.unshift(guard);
            }
            applyFunction(k, [makeNothing()]);
         }),
@@ -1382,6 +1381,22 @@ var PYRET_CPS = (function () {
       currentPause = k;
     }
 
+    
+    //Produces a function that checks if a value is a given type and returns it, else produces an error message
+    //Used to produced capital guards like Number, String etc 
+    function checkWhat(test, what) {
+        return makeFunction(function(k, f, x) {
+            if(test(x)) {
+                applyFunction(k, [x]);
+                return;
+            }
+            else {
+                raisePyretMessage(f, "typecheck failed; expected " + what + " and got " + toRepr(x).s);
+                return;
+            }
+        });
+    }
+
     return {
       start: start,
       requestPause: requestPause,
@@ -1418,16 +1433,16 @@ var PYRET_CPS = (function () {
 
 
         //TODO: These aren't neccessarily right, they should probably raise errors
-        'Function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
-        'Number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
-        'Method': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isMethod(x))]);}),
-        'Placeholder': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isPlaceholder(x))]);}),
-        'Mutable': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isMutable(x))]);}),
-        'Nothing': makeFunction(function(k, f, x, m){applyFunction(k, [ makeBoolean(isNothing(x))]);}),
-        'String': makeFunction(function(k, f, x, m) {applyFunction(k, [ makeBoolean(isString(x))]);}),
-        'Any': makeFunction(function(k, f, x,m ){applyFunction(k, [ makeBoolean(isPBase(x))]);}),
-        'Bool': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isBoolean(x))]);}),
-        'Object': makeFunction(function(k, f, x,m){applyFunction(k, [ makeBoolean(isObj(x))]);}),
+        'Function' : checkWhat(isFunction, 'Function'),
+        'Number' : checkWhat(isNumber, 'Number'),
+        'Method' : checkWhat(isMethod, 'Method'),
+        'Placeholder' : checkWhat(isPlaceholder, 'Placeholder'),
+        'Mutable' : checkWhat(isMutable, 'Mutable'),
+        'Nothing' : checkWhat(isNothing, 'Nothing'),
+        'String' : checkWhat(isString, 'String'),
+        'Any' : checkWhat(isPBase, 'Any'),
+        'Boolean' : checkWhat(isBoolean, 'Boolean'),
+        'Object' : checkWhat(isObj, 'Object'),
 
         'is-function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
         'is-number': makeFunction(function(k, f, x){applyFunction(k, [ makeBoolean(isNumber(x))]);}),
