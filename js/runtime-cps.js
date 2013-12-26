@@ -770,6 +770,11 @@ var PYRET_CPS = (function () {
             return;
         }
 
+      if(isMutable(fieldVal)){
+        raisePyretMessage(conts.dict['$f'] , "Cannot look up mutable field " + str + " using dot or bracket");
+        return;
+      }
+
       if (isMethod(fieldVal)) {
         var methFun = makeFunction(function() {
           var argList = Array.prototype.slice.call(arguments);
@@ -1002,7 +1007,7 @@ var PYRET_CPS = (function () {
         }
         */
 
-        return cont;
+        return cont ;
     }
 
     PObj.prototype.updateWithK = function(conts, fields) {
