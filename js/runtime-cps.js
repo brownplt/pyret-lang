@@ -50,20 +50,24 @@ var PYRET_CPS = (function () {
     function isNothing(val) {return val instanceof PNothing;}
 
 
+    //DEF
+    /*************************
+    *       Method
+    *************************/
     function PMethod(f) {
       this.method = f;
     }
-    function makeMethod(f) {
+    function makeMethod(f, doc) {
         var meth =  new PMethod(f); 
         meth.dict = {};
-        meth.dict["_doc"] = makeString("Method");
+        meth.dict["_doc"] = makeString(doc);
         
-        var _fun = new PMethod((function(me) {
-            return  makeFunction(me.method, me.dict._doc);
+        var _fun = new PMethod((function(k,f, me) {
+            applyFunction(k, [makeFunction(me.method, me.dict._doc.s)]);
         }));
     
         _fun.dict = {};
-        _fun.dict["_doc"] = makeString("");
+        _fun.dict["_doc"] = makeString(doc);
 
         meth.dict._fun = _fun;
         return meth;
@@ -83,9 +87,9 @@ var PYRET_CPS = (function () {
     function makeFunction(f,doc) { 
         var fun = new PFunction(f, f.length); 
         fun.dict ={};
-        fun.dict._doc = doc;
-        fun.dict._method = makeMethod(function(me) {
-            return makeMethod(me.app, me.dict._doc);
+        fun.dict._doc = makeString(doc)
+        fun.dict._method = makeMethod(function(k,f, me) {
+            applyFunction(k, [makeMethod(me.app, me.dict._doc.s)]);
         });
         return fun;
     }
