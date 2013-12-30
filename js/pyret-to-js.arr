@@ -146,9 +146,6 @@ end
 
 
 fun program-to-js(ast, runtime-ids):
-  print("Number of nodes: " + torepr(C.count-nodes(ast.block)))
-  print(ast.block)
-  times-called := 0
 
   cases(A.Program) ast:
     # import/provide ignored
@@ -190,7 +187,7 @@ fun program-to-js(ast, runtime-ids):
 
 
 
-          result = format("(function(RUNTIME, NAMESPACE) {
+           format("(function(RUNTIME, NAMESPACE) {
             try {
               ~a
               var RESULT;
@@ -204,12 +201,6 @@ fun program-to-js(ast, runtime-ids):
               return RUNTIME.makeFailResult(e);
             }
           })", [bindings, program-body, export-fields])
-          
-          
-          print("ACTUAL: " + torepr(times-called))
-          print("\n")
-
-          result
       end
   end
 end
@@ -295,11 +286,9 @@ fun cps(ast):
         cps_branches(branches)
 
     | s_obj(l, fields) =>
-        #print("IN OBJECT FIELDS ARE: " + torepr(fields))
         fun makeFields(fds :: List<Members>, acc :: List<Members>):
             cases(List) fds:
                 | empty => 
-                    #print(acc.reverse())
                     #lam(l, [arg(l, K), arg(l, F)] ,
                     app(l, id(l, K), [A.s_obj(l, acc.reverse())])
                 | link(mem, rest) =>
@@ -444,9 +433,6 @@ fun cps(ast):
 end
 
 fun expr-to-js(ast):
-  #print-type(ast)
-  #print(ast)
-  times-called := times-called + 1
 cases(A.Expr) ast:
     | s_block(_, stmts) =>
       if stmts.length() == 0:
