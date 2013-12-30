@@ -868,6 +868,8 @@ var PYRET_CPS = (function () {
     }
 
     /**
+        APPLICATION
+
         Applies a function to the given list of arguments
         Performs arity checking (arrity!!) 
 
@@ -878,18 +880,15 @@ var PYRET_CPS = (function () {
 
         var kCont = args[0];
         var fCont = args[1];
-        if(fCont === undefined || kCont === undefined) {
-            console.log(["Missing k and/or f", fn, args])
-        }
 
         if(!isFunction(fn)) {
-        //    raisePyretMessage(fCont, "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
-            throwPyretMessage( "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+              raisePyretMessage(fCont, "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
+        //    throwPyretMessage( "Cannot apply non-function: " + toRepr(fn, kCont, fCont));
             return;
         }
         if(args.length != fn.arity) {
-            throwPyretMessage("Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
-            //raisePyretMessage(fCont, "Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            //throwPyretMessage("Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
+            raisePyretMessage(fCont, "Check arity failed: " + toRepr(fn, kCont, fCont) + " expected " + fn.arity + " arguments, but given " + args.length);
             return;
         }
 
