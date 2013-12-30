@@ -4,7 +4,7 @@ multiply = 1 * 2 * 3
 
 lt = 1 < 3
 gt = 1 > 12
-sin = (22/7).sin()
+sin = (22 / 7).sin()
 
 {add : add, subtract : subtract, multiply : multiply,
 lt : lt,

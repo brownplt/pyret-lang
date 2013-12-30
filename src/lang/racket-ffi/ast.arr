@@ -136,12 +136,14 @@ data Hint:
 end
 
 data Expr:
-  | s_hint_exp(l :: Loc, hints :: List<Hint>, e :: Expr) with:
+  | s_hint_exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
+    label(self): "s_hint" end,
     tosource(self):
       PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
   | s_instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
+    label(self): "s_instantiate" end,
     tosource(self):
       PP.group(self.expr.tosource() +
         PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,

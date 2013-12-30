@@ -1,5 +1,7 @@
 #lang pyret
 
+
+provide *
 import ast as A
 import json as J
 import file as F
@@ -8,8 +10,6 @@ import pyret-eval as E
 import format as format
 import namespaces as N
 import io as IO
-
-provide *
 
 JS-ENV = N.library-env.{
   equiv: true,

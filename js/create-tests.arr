@@ -5,11 +5,13 @@ import json as J
 import file as F
 import directory as D
 import pyret-eval as E
-import format as format
+import format as FMT
 import namespaces as N
 import io as IO
 import "pyret-to-js.arr" as P
 import "count-nodes.arr" as C
+
+format = FMT.format
 
 TESTS-PATH = "test-runner/tests.js"
 
@@ -300,24 +302,24 @@ fun create-list-test(name, program, out, err):
   str-test-case(name, program, test-lib(list-lib, out, err, USE-CPS))
 end
 
-all-tests("tests")
-all-tests("class")
-all-tests("moorings-tests")
-all-tests("list-lib-tests")
+#all-tests("tests")
+#all-tests("class")
+#all-tests("moorings-tests")
+#all-tests("list-lib-tests")
 
 #BASIC-TESTS = get-dir-sections("tests", create-print-test)
 CLASS-TESTS = get-dir-sections("class", create-print-test)
-#MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
-#LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
+MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
+LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
 #    [test-section("misc", MISC)] +
 #    BASIC-TESTS +
 #    CLASS-TESTS 
-#     MOORINGS-TESTS  
+     MOORINGS-TESTS +
     LIST-LIB-TESTS
      ,
-     [#moorings-lib,
+     [moorings-lib,
      list-lib]
   )
 

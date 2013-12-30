@@ -510,7 +510,7 @@
      [(list? e)
       (map tr-expr e)]
      [(has-brand e s_hint_exp)
-      (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hint) (tr-expr e))]
+      (tr-obj e s-hint-exp (tr-loc l) (map tr-hint hints) (tr-expr exp))]
      [(has-brand e s_instantiate)
       (tr-obj e s-instantiate (tr-loc l) (tr-expr expr) (map tr-ann params))]
      [(has-brand e s_block)

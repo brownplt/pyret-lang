@@ -656,6 +656,8 @@ these metadata purposes.
        (unions (map free-ids-variant variants))
        (free-ids check))]
 
+    [(s-hint-exp _ _ e) (free-ids e)]
+
     [(s-num _ _) (set)]
     [(s-bool _ b) (set)]
     [(s-str _ s) (set)]

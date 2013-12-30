@@ -1374,7 +1374,7 @@ var PYRET_CPS = (function () {
             }
           }
           else {
-            console.error("[start] Uncaught exception: ", e);
+            console.error("[start] Uncaught exception: ", e, e.message);
           }
         }
       }

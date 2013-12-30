@@ -1,10 +1,12 @@
 #lang pyret 
-import ast as A
-import json as J
-import format as format
-import "count-nodes.arr" as C
 
 provide *
+import ast as A
+import json as J
+import format as FMT
+import "count-nodes.arr" as C
+
+format = FMT.format
 
 fun make-checker-name(name): "is-" + name;
 
@@ -217,7 +219,7 @@ fun make-field-list-js(field):
     format("{name : '~a', value: ~a}", [field.name.s, expr-to-js(field.value)])
 end
 
-fun arg(l, name): A.s_bind(l, name, A.a_blank);
+fun arg(l, name): A.s_bind(l, false, name, A.a_blank);
 fun lam(l, args, body :: A.Expr): A.s_lam(l, [], args, A.a_blank, "anon lam", body, A.s_block(l, []));
 app = A.s_app
 
@@ -240,7 +242,7 @@ fun cps(ast):
     | s_block(l, pre-stmts) =>
       stmts = if pre-stmts.length() == 0: [A.s_id(l, "nothing")] else: pre-stmts;
       ids = block-ids(ast)
-      vars = ids.map(fun(v): A.s_var(l, A.s_bind(l, v, A.a_blank), A.s_id(l, "nothing"));)
+      vars = ids.map(fun(v): A.s_var(l, A.s_bind(l, false, v, A.a_blank), A.s_id(l, "nothing"));)
 
       cont = for fold(
             k from fun(e): A.s_app(l, cps(e), [A.s_id(l, K), A.s_id(l, F)]) end,
@@ -427,6 +429,7 @@ fun cps(ast):
     # on the well-formedness checking that's already happened
     | s_let(l, b, e) => cps(A.s_assign(l, b.id, e))
     | s_var(l, b, e) => cps(A.s_assign(l, b.id, e))
+    | s_hint_exp(l, hs, exp) => cps(exp)
     | else => 
         print(ast)
         punt()
@@ -523,6 +526,7 @@ cases(A.Expr) ast:
         format("RUNTIME.applyFunction(RUNTIME.getField(RUNTIME.getMutField(~a, '~a'), 'get'),[])", [expr-to-js(obj), field])
     |s_update(l, super, fields) => 
         format("~a.updateWith({~a})", [expr-to-js(super), fields.map(make-field-js).join-str(",\n")])
+    | s_hint_exp(_, hs, e) => expr-to-js(e)
     | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
   end
 end

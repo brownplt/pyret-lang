@@ -12,5 +12,5 @@ fun mp(f, l):
 end
 
 for mp(i from lnk(1,lnk(2,mt))):
-  i+1
+  i + 1
 end
