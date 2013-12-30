@@ -45,7 +45,7 @@ fun count-nodes(ast):
             total + count-nodes(stmt)
         end
        1 + stmt-count
-    | s_user_block(s, expr) => count-nodes(expr)
+    | s_user_block(s, expr) => count-nodes(expr) + 1
     | s_num(_, n) => 1
     | s_str(_, s) => 1
     | s_bool(_, b) => 1
