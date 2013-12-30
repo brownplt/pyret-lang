@@ -3,6 +3,8 @@
 // kinds of TestPredicates in create-tests.arr to correspond to different
 // shapes of calls if you want, as well.
 
+console.debug("Support");
+
 function pyretEquals(RUNTIME, pyretVal1, pyretVal2) {
   return RUNTIME.runtime.equal(pyretVal1, pyretVal2);
 }
@@ -182,3 +184,6 @@ beforeEach(function(done) {
 
   done();
 });
+
+
+console.debug("Support Finish");

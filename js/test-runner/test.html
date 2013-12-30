@@ -13,10 +13,10 @@
 
 </head>
 <body>
-</body>
 <script src="tests.js"></script>
+
 <script>
-//jasmine.getEnv().defaultTimeoutInterval = 2000;// e.g. 15000 milliseconds
+console.debug("Starting the test loop")
 
 Object.keys(TESTS).forEach(function(key) {
   describe(key, function() {
@@ -33,5 +33,6 @@ Object.keys(TESTS).forEach(function(key) {
     
 });
 </script>
+</body>
 
 </html>

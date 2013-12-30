@@ -1,3 +1,4 @@
+console.debug("Runtime")
 var PYRET_CPS = (function () {
 
   function makeRuntime() {
@@ -1331,7 +1332,7 @@ var PYRET_CPS = (function () {
 
 
     //GLOBAL GAS VAR    
-    var START_GAS = 500;
+    var START_GAS = 200;
     var gas = START_GAS;
 
     function TrampolineException(k) {
@@ -1518,3 +1519,4 @@ var PYRET_CPS = (function () {
   };
 })();
 
+console.debug("Runtime Finish");

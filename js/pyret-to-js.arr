@@ -2,6 +2,7 @@
 import ast as A
 import json as J
 import format as format
+import "count-nodes.arr" as C
 
 provide *
 
@@ -110,9 +111,7 @@ fun program-to-cps-js(ast, runtime-ids):
           # function(R, N, success, fail)
           # function(R, N, conts)
           # $K is { success : NormalResult -> Undef, failure : FailResult -> Undef }
-   
-          #print("Going to cps " + torepr(l) + " --- " + torepr(block-for-cps))
-          #print(cps(block-for-cps))
+  
 
           format("(function(RUNTIME, NAMESPACE, $K) {
             try {
@@ -140,12 +139,17 @@ fun program-to-cps-js(ast, runtime-ids):
               $K.failure(RUNTIME.makeFailResult(e));
             }
           })", [bindings, expr-to-js(cps(block-for-cps))])
+
       end
   end
 end
 
 
 fun program-to-js(ast, runtime-ids):
+  print("Number of nodes: " + torepr(C.count-nodes(ast.block)))
+  print(ast.block)
+  times-called := 0
+
   cases(A.Program) ast:
     # import/provide ignored
     | s_program(_, _, block) =>
@@ -182,7 +186,11 @@ fun program-to-js(ast, runtime-ids):
             export + format("EXPORT_NAMESPACE = EXPORT_NAMESPACE.set(\"~a\", ~a)\n",
               [id, js-id-of(id)])
           end
-          format("(function(RUNTIME, NAMESPACE) {
+
+
+
+
+          result = format("(function(RUNTIME, NAMESPACE) {
             try {
               ~a
               var RESULT;
@@ -196,6 +204,12 @@ fun program-to-js(ast, runtime-ids):
               return RUNTIME.makeFailResult(e);
             }
           })", [bindings, program-body, export-fields])
+          
+          
+          print("ACTUAL: " + torepr(times-called))
+          print("\n")
+
+          result
       end
   end
 end
@@ -221,6 +235,8 @@ F = "$f"
 fun mk-K(): gensym("$k");
 
 fun cps(ast):
+    #print("cpsing....")
+
   # punt can be used when you don't know how to CPS yet
   fun punt():
     l = ast.l
@@ -428,26 +444,28 @@ fun cps(ast):
 end
 
 fun expr-to-js(ast):
-
-  cases(A.Expr) ast:
+  #print-type(ast)
+  #print(ast)
+  times-called := times-called + 1
+cases(A.Expr) ast:
     | s_block(_, stmts) =>
       if stmts.length() == 0:
         "NAMESPACE.get('nothing')" else:
         fun sequence-return-last(ss):
           cases(list.List) ss:
-            | link(f, r) =>
+            | link(frst, r) =>
               cases(list.List) r:
-                | empty => format("return ~a;", [expr-to-js(f)])
+                | empty => #format("return ~a;", [expr-to-js(frst)])
                   fun ends-in-bind(e):
-                    format("~a;\nreturn NAMESPACE.get('nothing');", [expr-to-js(f)])
+                    format("~a;\nreturn NAMESPACE.get('nothing');", [expr-to-js(frst)])
                   end
-                  cases(A.Expr) f:
-                    | s_let(_, _, _) => ends-in-bind(f)
-                    | s_var(_, _, _) => ends-in-bind(f)
-                    | else => format("return ~a;", [expr-to-js(f)])
+                  cases(A.Expr) frst:
+                    | s_let(_, _, _) => ends-in-bind(frst)
+                    | s_var(_, _, _) => ends-in-bind(frst)
+                    | else => format("return ~a;", [expr-to-js(frst)])
                   end
                 | link(_, _) =>
-                  format("~a;\n", [expr-to-js(f)]) + sequence-return-last(r)
+                  format("~a;\n", [expr-to-js(frst)]) + sequence-return-last(r)
               end
           end
         end
@@ -470,9 +488,9 @@ fun expr-to-js(ast):
     | s_app(_, f, args) =>
       format("RUNTIME.applyFunction(~a, [~a])", [expr-to-js(f), args.map(expr-to-js).join-str(",")])
     | s_bracket(_, obj, f) =>
-        raise("NOPE: Shouldn't have these with cps (bracket)\n\n" + torepr(ast))
+      format("RUNTIME.getField(~a, ~a)", [expr-to-js(obj), f.s])
     | s_colon_bracket(_, obj, f) =>
-        raise("NOPE: Shouldn't have these with cps (colon)")
+      format("RUNTIME.getColonField(~a, ~a)", [expr-to-js(obj), f.s])
     | s_colon_bracket_k(_, conts, obj, f) =>
       cases (A.Expr) f:
         | s_str(_, s) => format("RUNTIME.getColonFieldK(~a, '~a', ~a)", [expr-to-js(obj), s, expr-to-js(conts)])
@@ -522,3 +540,33 @@ fun expr-to-js(ast):
   end
 end
 
+
+#Prints the type of the ast
+fun print-type(ast): 
+  cases(A.Expr) ast:
+    | s_block(_, stmts) => print("block")
+    | s_user_block(s, expr) => print("user-block")
+    | s_num(_, n) => print("num")
+    | s_str(_, s) => print("str")
+    | s_bool(_, b) => print("bool")
+    | s_lam(_, _, args, _, doc, body, _) => print("lam")
+    | s_method(_, args, _, doc, body, _) => print("method")
+    | s_app(_, f, args) => print("app")
+    | s_bracket(_, obj, f) => print("bracket")
+    | s_colon_bracket(_, obj, f) => print("colon")
+    | s_colon_bracket_k(_, conts, obj, f) => print("colon_K")
+    | s_bracket_k(_, conts, obj, f) => print("bracket_K")
+    | s_update_k(_, conts, obj, fields) => print("update_K")
+    | s_id(_, id) => print("id")
+    | s_var(_, bind, value) => print("var")
+    | s_assign(_, id, value) => print("assign")
+    | s_let(_, bind, value) =>  print("let")
+    | s_obj(_, fields) => print("obj")
+    | s_extend(_, obj, fields) => print("extend")
+    | s_if_else(_, branches,_else) => print("if")
+    | s_try(_, body, bind, _except) => print("try")
+    | s_get_bang(l, obj, field) => print("getBang")
+    | s_update(l, super, fields) => print("update")
+    | else => print("ELSE")
+    end
+end
