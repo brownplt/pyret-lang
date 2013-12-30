@@ -3,6 +3,8 @@
 // kinds of TestPredicates in create-tests.arr to correspond to different
 // shapes of calls if you want, as well.
 
+console.debug("Support");
+
 function pyretEquals(RUNTIME, pyretVal1, pyretVal2) {
   return RUNTIME.runtime.equal(pyretVal1, pyretVal2);
 }
@@ -65,24 +67,39 @@ function testPrintCPS(name, pyretProg, output, namespace) {
   return {
     cpsruntime: true,
     name: name,
-    test: function(RUNTIME) {
+    test: function(RUNTIME, done){
+    
+    var toRun = function() {
       var namespaceToUse = namespace || RUNTIME.namespace;
       var response = false;
       RUNTIME.start(pyretProg, RUNTIME.runtime, namespaceToUse,
           {
             success: function(result) {
-              response = true;
               console.log("Returned with result: ", result);
-              checkOutput(RUNTIME, result, output);
+              response = {runtime : RUNTIME, progResult : result, output : output};
+              checkOutput(response.runtime, response.progResult, response.output);
+              done();
             },
             failure: function(result) {
-              response = true;
               console.log("Returned with failure: ", result);
-              checkOutput(RUNTIME, result, output);
+              response = {runtime : RUNTIME, progResult : result, output : output};
+              checkOutput(response.runtime, response.progResult, response.output);
+              done();
             }
           }
         );
-      setTimeout(function() { if(!response) { console.error("Never returned"); }}, 500);
+        };
+
+        toRun();
+
+    //runs(toRun);
+    /*
+    waitsFor(function() {
+        return response; //False while not done
+    });
+    */
+    //checkOutput(response.runtime, response.progResult, response.output);
+
     }
   }
 }
@@ -116,14 +133,14 @@ function testWithLibCPS(name, libProg, pyretProg, output) {
   return {
     cpsruntime: true,
     name: name,
-    test: function(RUNTIME) {
+    test: function(RUNTIME, done) {
       var response = false;
       RUNTIME.start(libProg, RUNTIME.runtime, RUNTIME.namespace,
           {
             success: function(libResult) {
               response = true;
               var newNamespace = RUNTIME.namespace.merge(libResult.namespace);
-              testPrintCPS(name, pyretProg, output, newNamespace).test(RUNTIME);
+              testPrintCPS(name, pyretProg, output, newNamespace).test(RUNTIME, done);
             },
             failure: function(result) {
               response = true;
@@ -145,7 +162,7 @@ function testWithLib(name, libProg, pyretProg, output, cps) {
 // This just hooks things into Jasmine for pretty-printing the results.
 // Feel free to add more types of test and hook them in here; equality and
 // predicate testing should get you pretty far, however.
-beforeEach(function() {
+beforeEach(function(done) {
   function wrap(f) {
     return function() {
       return {
@@ -165,4 +182,8 @@ beforeEach(function() {
     })
   });
 
+  done();
 });
+
+
+console.debug("Support Finish");

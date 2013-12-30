@@ -37,9 +37,9 @@ var testNum = testPrint('num.arr', (function(RUNTIME, NAMESPACE, $K) {
           }), {"expected-err":"","expected-out":"1729"}, true);
 
 describe("num.arr", function() {
-  it("should work", function() {
+  it("should work", function(done) {
     var rt = PYRET_CPS.makeRuntime();
-    testNum.test(rt);
+    testNum.test(rt, done);
   });
 });
 </script>
@@ -177,9 +177,9 @@ return RUNTIME.getField(List4353842796047, 'brand').app(RUNTIME.getField(link435
           }), {"expected-out":"0","expected-err":""}, true);
 
 describe("list1.arr", function() {
-  it("should work", function() {
+  it("should work", function(done) {
     var rt = PYRET_CPS.makeRuntime();
-    testList.test(rt);
+    testList.test(rt, done);
   });
 });
 </script>

@@ -12,6 +12,7 @@ provide {
 end
 
 # BUILTINS
+#set = sets.set
 
 fun identical(obj1, obj2):
   if has-field(obj1, "eq") and has-field(obj2, "eq"):
