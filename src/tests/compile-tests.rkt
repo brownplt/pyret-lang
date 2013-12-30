@@ -688,7 +688,7 @@ Looks shipshape, all 2 tests passed, mate!
 
   (check-pyret-match/check "pyret/libs/math-libs.arr" _ 7)
 
-  (check-pyret-match/check "pyret/libs/sets.arr" _ 177)
+  (check-pyret-match/check "pyret/libs/sets.arr" _ 186)
   (check-pyret-match/check "pyret/libs/array.arr" _ 68)
 
   (check-pyret-match/check "pyret/libs/strings.arr" _ 35)
@@ -1204,6 +1204,7 @@ o2.m().called" true)
     (private-run (example-path "point.arr") 5)
     (private-run (example-path "ralist.arr") 110)
     (private-run (example-path "heap.arr") 37)
+    (private-run (example-path "loop.arr") 24)
 
     ;; NOTE(dbp): just syntax checking, no tests, for now.
     (private-run (example-path "htdp/arithmetic.arr") 0)

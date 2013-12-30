@@ -10,7 +10,8 @@ const file = process.argv[process.argv.length - 1];
 var data = fs.readFileSync(file, {encoding: "utf-8"});
 //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
 
-const toks = new T.Tokenizer(data, true);
+const toks = T.Tokenizer;
+toks.tokenizeFrom(data);
 // while (toks.hasNext())
 //   console.log(toks.next().toString(true));
 var parsed = G.PyretGrammar.parse(toks);

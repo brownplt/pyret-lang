@@ -1,20 +1,11 @@
 const E = require('./rnglr.js');
+const T = require('./tokenizer.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
 const Token = E.Token
-const OrderedSet = E.OrderedSet
 const SrcLoc = E.SrcLoc
-
-function Tokenizer(str, ignore_ws) {
-  this.str = str;
-  this.curLine = 1;
-  this.curCol = 0;
-  this.ignore_ws = ignore_ws;
-  this.pos = 0;
-  this.len = str.length;
-}
-
-const STICKY_REGEXP = (function() { try { new RegExp("", 'y'); return 'y' } catch(e) { return ''; }})();
+const Tokenizer = T.Tokenizer;
+const STICKY_REGEXP = T.STICKY_REGEXP;
 
 const ws = new RegExp("^\\s+", STICKY_REGEXP);
 const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r)", STICKY_REGEXP)
@@ -26,121 +17,20 @@ const lparen = new RegExp("^\\(", STICKY_REGEXP);
 const rparen = new RegExp("^\\)", STICKY_REGEXP);
 const star = new RegExp("^\\*", STICKY_REGEXP);
 const name = new RegExp("^[A-Za-z_0-9-]+", STICKY_REGEXP);
-const dquot_str = 
-  new RegExp("^\"(?:" +
-             "\\\\[01234567]{1,3}" +
-             "|\\\\x[0-9a-fA-F]{1,2}" + 
-             "|\\\\u[0-9a-fA-f]{1,4}" + 
-             "|\\\\[\r\n]{1,2}" + 
-             "|\\\\[\\\\nrt\"']" + 
-             "|[^\\\"])+\"", STICKY_REGEXP);
-const squot_str = 
-  new RegExp("^\"(?:" +
-             "\\\\[01234567]{1,3}" +
-             "|\\\\x[0-9a-fA-F]{1,2}" + 
-             "|\\\\u[0-9a-fA-f]{1,4}" + 
-             "|\\\\[\r\n]{1,2}" + 
-             "|\\\\[\\\\nrt\"']" + 
-             "|[^'])+\"", STICKY_REGEXP);
-const Tokens = {
-  WS: ws, 
-  COMMENT: comment, 
-  COLON: colon, 
-  BAR: bar, 
-  LBRACK: lbrack, 
-  RBRACK: rbrack, 
-  LPAREN: lparen, 
-  RPAREN: rparen, 
-  STAR: star, 
-  NAME: name, 
-  DQUOT_STR: dquot_str, 
-  SQUOT_STR: squot_str 
-};
+const Tokens = [
+  {name: "WS", val: ws},
+  {name: "COMMENT", val: comment},
+  {name: "COLON", val: colon},
+  {name: "BAR", val: bar},
+  {name: "LBRACK", val: lbrack},
+  {name: "RBRACK", val: rbrack},
+  {name: "LPAREN", val: lparen},
+  {name: "RPAREN", val: rparen},
+  {name: "STAR", val: star},
+  {name: "NAME", val: name},
+];
 
-function countChar(haystack, needle) {
-  var count = -1; // Because the body of the loop will run at least once
-  // Start at -2 so that we can check the very first character
-  for (var i = -2; i !== -1; i = haystack.indexOf(needle, i + 1)) {
-    count++;
-  }
-  return count;
-}
-
-Tokenizer.prototype.hasNext = function() { return this.pos <= this.len; }
-Tokenizer.prototype.isEmpty = function() { return this.length == 0; }
-if (STICKY_REGEXP === 'y') {
-  Tokenizer.prototype.next = function() {
-    while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { 
-        this.pos++; 
-        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
-        return E.EOF; 
-      }
-      for (var tok_type in Tokens) {
-        var tok = Tokens[tok_type];
-        if (!tok instanceof RegExp) continue;
-        tok.lastIndex = this.pos;
-        var match = tok.exec(this.str);
-        if (match !== null) {
-          var p = this.pos;
-          var l = this.curLine;
-          var c = this.curCol;
-          var s = match[0];
-          var lines = countChar(s, "\n");
-          this.pos = tok.lastIndex;
-          this.curLine += lines;
-          if (lines === 0)
-            this.curCol += s.length;
-          else
-            this.curCol = s.length - s.lastIndexOf("\n");
-          if (this.ignore_ws && (tok_type === "WS" || tok_type === "COMMENT")) {
-            // ... in case we're ignoring whitespace
-            break;
-          }
-          var t = new E.Token(tok_type, match[0]);
-          t.pos = SrcLoc.make(l, c, p, this.curLine, this.curCol, this.pos);
-          return t;
-        }
-      }
-    }
-  }
-} else {
-  Tokenizer.prototype.next = function() {
-    while (this.hasNext()) { // Surround the tokenizer loop...
-      if (this.pos == this.len) { 
-        this.pos++; 
-        E.EOF.pos = SrcLoc.make(this.curLine, this.curCol, this.pos, this.curLine, this.curCol, this.pos);
-        return E.EOF; 
-      }
-      for (var tok_type in Tokens) {
-        var tok = Tokens[tok_type];
-        if (!tok instanceof RegExp) continue;
-        var match = tok.exec(this.str);
-        if (match !== null) {
-          this.str = this.str.slice(match[0].length);
-          var p = this.pos;
-          var l = this.curLine;
-          var c = this.curCol;
-          var s = match[0];
-          var lines = countChar(s, "\n");
-          this.pos += s.length;
-          this.curLine += lines;
-          if (lines === 0)
-            this.curCol += s.length;
-          else
-            this.curCol = s.length - s.lastIndexOf("\n");
-          if (this.ignore_ws && (tok_type === "WS" || tok_type === "COMMENT")) {
-            // ... in case we're ignoring whitespace
-            break;
-          }
-          var t = new E.Token(tok_type, match[0]);
-          t.pos = SrcLoc.make(l, c, p, this.curLine, this.curCol, this.pos);
-          return t;
-        }
-      }
-    }
-  }
-}
+const toks = new Tokenizer(true, Tokens);
 
 const Inline = E.Rule.Inline;
 const ListCons = E.Rule.ListCons;
@@ -155,13 +45,10 @@ g.addRule("Alts", [new Nonterm("Items")]);
 g.addRule("Items", [new Nonterm("Item"), new Nonterm("Items")], ListCons("Item", "Items"));
 g.addRule("Items", []);
 g.addRule("Item", [new Nonterm("Name")], Inline);
-g.addRule("Item", [new Nonterm("Str")], Inline);
 g.addRule("Item", [new Nonterm("Opt")], Inline);
 g.addRule("Item", [new Nonterm("Star")], Inline);
 g.addRule("Item", [new Nonterm("Paren")], Inline);
 g.addRule("Name", [new Token("NAME")]);
-g.addRule("Str", [new Token("DQUOT_STR")]);
-g.addRule("Str", [new Token("SQUOT_STR")]);
 g.addRule("Opt", [new Token("LBRACK"), new Nonterm("Alts"), new Token("RBRACK")], KeepOnly(["Alts"]));
 g.addRule("Paren", [new Token("LPAREN"), new Nonterm("Alts"), new Token("RPAREN")], KeepOnly(["Alts"], true));
 g.addRule("Star", [new Nonterm("Item"), new Token("STAR")], KeepOnly(["Item"]));
@@ -246,8 +133,6 @@ function generateItem(ruleName, item) {
       return {rhs: "new Token(" + JSON.stringify(item.kids[0].value) + ")", rules: []};
     else
       return {rhs: "new Nonterm(" + JSON.stringify(item.kids[0].value) + ")", rules: []};
-  } else if (item.name === "Str") {
-    return {rhs: "new Lit(" + item.kids[0].value + ")", rules: []};
   } else if (item.name === "Star") {
     var ret = {rules: []};
     var newNameOne = ruleName;
@@ -295,7 +180,8 @@ const fs = require("fs");
 var data = fs.readFileSync("grammar-full.rkt", "utf8");
 //var data = fs.readFileSync("grammar-small.rkt", "utf8");
 
-var toks = new Tokenizer(data, true);
+
+toks.tokenizeFrom(data);
 var parsed = g.parse(toks);
 if (parsed !== undefined) {
   //console.log(parsed.toString(true));
@@ -307,7 +193,7 @@ if (parsed !== undefined) {
   var out = fs.createWriteStream("grammar.js");
   out.write("const fs = require('fs');\n");
   out.write("const E = require('./rnglr.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
-  out.write("const Token = E.Token\nconst OrderedSet = E.OrderedSet\nconst Rule = E.Rule\n\n");
+  out.write("const Token = E.Token\nconst Rule = E.Rule\n\n");
   out.write(bnfJS.join("\n"));
   out.write("\n\n");
   out.write("g.initializeParser(true);\n")
@@ -321,14 +207,14 @@ if (parsed !== undefined) {
   out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
   out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
   out.write("out.write(\"const E = require('./rnglr.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
-  out.write("out.write(\"const Token = E.Token\\nconst OrderedSet = E.OrderedSet\\nconst Rule = E.Rule\\n\\n\");\n");
+  out.write("out.write(\"const Token = E.Token\\nconst Rule = E.Rule\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
   out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
   out.write("out.end();\n");
   out.write("\n\n");
   out.write("const T = require('./pyret-tokenizer.js');\n");
   out.write("var data = \"#lang pyret\\n\\nimport \\\"foo\\\" as bar\\na\";\n");
-  out.write("const toks = new T.Tokenizer(data, true);\n");
+  out.write("const toks = T.Tokenizer;\ntoks.tokenizeFrom(data);\n");
   out.write("var parsed = g.parse(toks);\n");
   out.write("console.log(g.printSPPFasDot());\n");
   out.write("console.log(g.printGSSasDot());\n");

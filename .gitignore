@@ -12,6 +12,9 @@ src/lang/pyret-lib/moorings.rkt
 js/test-runner/tests.js
 src/lang/pyret-lib/sets.rkt
 src/lang/pyret-lib/array.rkt
+js/test-runner/tests.js
+js/grammar.js
+js/pyret-parser.js
 *#
 pyret.plt
 pyret.org/pyret-frog/*.html
