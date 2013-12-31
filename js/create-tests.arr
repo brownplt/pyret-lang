@@ -307,17 +307,18 @@ end
 #all-tests("moorings-tests")
 #all-tests("list-lib-tests")
 
-#BASIC-TESTS = get-dir-sections("tests", create-print-test)
+BASIC-TESTS = get-dir-sections("tests", create-print-test)
 CLASS-TESTS = get-dir-sections("class", create-print-test)
 MOORINGS-TESTS = get-dir-sections("moorings-tests", create-moorings-test)
 LIST-LIB-TESTS = get-dir-sections("list-lib-tests", create-list-test)
 
 generate-test-files(
 #    [test-section("misc", MISC)] +
-#    BASIC-TESTS +
-#    CLASS-TESTS 
-     MOORINGS-TESTS +
+    BASIC-TESTS +
+    CLASS-TESTS +
+    MOORINGS-TESTS +
     LIST-LIB-TESTS
+     #, []
      ,
      [moorings-lib,
      list-lib]

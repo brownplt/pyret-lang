@@ -74,11 +74,11 @@ var PYRET_CPS = (function () {
         return meth;
     } 
     function isMethod(v) { return v instanceof PMethod; }
-    PMethod.prototype = {
-      app: function() { throw "Cannot apply method directly."; },
-      dict: {}
-    };
-
+    PMethod.prototype = Object.create(PBase.prototype);
+    PMethod.prototype.clone = (function() {
+        var newMeth = makeMethod(this.method);
+        return newMeth;
+    });
 
     function PFunction(f,arity) {
       this.app = f;
@@ -262,16 +262,16 @@ var PYRET_CPS = (function () {
         if(obj1.dict.hasOwnProperty("_equals")) {
              applyFunction(getField(obj1, "_equals"),[k, f, obj2]);
         }
-        else { applyFunction(k, [makeBoolean(isAllSame(obj1, obj2))]);}
+        else { applyFunction(k, [makeBoolean(isAllSame(k, f, obj1, obj2))]);}
     }
-
+    //TODO: Properly create continuations to invoke equiv
     /**
       isAllSame(obj1, obj2)
 
       Checks that the objects have the same fields 
       Internal only, returns a JS Boolean
     **/
-    function isAllSame(obj1, obj2) {
+    function isAllSame(k, f, obj1, obj2) {
         if(isMethod(obj1) || isFunction(obj1)) {
             return false;
         }
@@ -279,7 +279,7 @@ var PYRET_CPS = (function () {
        
         for(key in obj1.dict){
             if(obj2.dict.hasOwnProperty(key)) {
-                if(!(equiv(obj1.dict[key], obj2.dict[key]).b)) {
+                if(!(equiv(k, f, obj1.dict[key], obj2.dict[key]).b)) {
                     return false;
                 }
             }
@@ -623,8 +623,10 @@ var PYRET_CPS = (function () {
 
     function toReprK(k, f, val)
     {
-        var result = toRepr(val, k, f);
-        applyFunction(k, [result]);
+        result = toRepr(val, k, f);
+        if(result !== null) {
+            applyFunction(k, [result]);
+        }
     }
 
     function toRepr(val, k, f) {
@@ -645,8 +647,8 @@ var PYRET_CPS = (function () {
       }
       else if (isObj(val)) {
         if(val.dict.hasOwnProperty('_torepr')) {
-            //TODO: NEED TO MAKE TO REPR CPS
-            return applyFunction(getField(val, '_torepr'), [k, f]);
+            applyFunction(getField(val, '_torepr'), [k, f]);
+            return null;
         }
         var fields = [];
         for(fd in val.dict) {
@@ -668,7 +670,7 @@ var PYRET_CPS = (function () {
         return makeString("mutable-field");
       }
       else if (isPlaceholder(val)) {
-        return makeString("mutable-field");
+        return makeString("cyclic-field");
       }
       
       throw ("toStringJS on an unknown type: " + val);
@@ -753,7 +755,6 @@ var PYRET_CPS = (function () {
           var $k = argList[0];
           var $f = argList[1];
 
-            //TODO: Make this CPS'y
             fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(2)));
         });
     
@@ -775,14 +776,16 @@ var PYRET_CPS = (function () {
         raisePyretMessage(conts.dict['$f'] , "Cannot look up mutable field " + str + " using dot or bracket");
         return;
       }
-
-      if (isMethod(fieldVal)) {
+      else if(isPlaceholder(fieldVal)){
+          applyFunction(getField(fieldVal, 'get'), [conts.dict['$k'], conts.dict['$f']]);
+          return;
+      }
+      else if (isMethod(fieldVal)) {
         var methFun = makeFunction(function() {
           var argList = Array.prototype.slice.call(arguments);
           var $k = argList[0];
           var $f = argList[1];
 
-            //TODO: Make this CPS'y
             fieldVal.method.apply(null, [$k,$f ,val].concat(argList.slice(2)));
         });
     
@@ -1322,6 +1325,31 @@ var PYRET_CPS = (function () {
     }
  //-------------------
 
+    //Running blocks
+    function runBlock(stmts, conts) {
+        var k = conts.dict["$k"];
+        var f = conts.dict["$f"];
+       
+        cont = makeFunction(function(val) {
+            runBlockRec(k, f, stmts, 1, val); //Loc = 1 as 1 is the next stmt
+        });
+        
+        applyFunction(stmts[0], [cont, f]);
+    }
+
+
+    //Runs the block at the given location
+    function runBlockRec(k, f, stmts, loc, prevVal) {
+        if(loc >= stmts.length) {
+            applyFunction(k, [prevVal]);
+        }
+        else {
+            applyFunction(stmts[loc], [makeFunction(function(val) {runBlockRec(k, f, stmts, loc+1, val)}), f]);
+        }
+    }
+
+
+ //----------------------
     // TODO(students): Make sure this returns a JavaScript dictionary with
     // the same contents as the Pyret dictionary (your field name may not
     // be dict, or there may be more work to do here, depending on your
@@ -1407,7 +1435,7 @@ var PYRET_CPS = (function () {
       start: start,
       requestPause: requestPause,
       namespace: Namespace({
-        nothing: {},
+        nothing: makeNothing(),
         "test-print": makeFunction(testPrint),
         Function: makeFunction(function() {
           throw "function NYI";
@@ -1438,7 +1466,6 @@ var PYRET_CPS = (function () {
         torepr: makeFunction(toReprK),
 
 
-        //TODO: These aren't neccessarily right, they should probably raise errors
         'Function' : checkWhat(isFunction, 'Function'),
         'Number' : checkWhat(isNumber, 'Number'),
         'Method' : checkWhat(isMethod, 'Method'),
@@ -1447,7 +1474,7 @@ var PYRET_CPS = (function () {
         'Nothing' : checkWhat(isNothing, 'Nothing'),
         'String' : checkWhat(isString, 'String'),
         'Any' : checkWhat(isPBase, 'Any'),
-        'Boolean' : checkWhat(isBoolean, 'Boolean'),
+        'Bool' : checkWhat(isBoolean, 'Boolean'),
         'Object' : checkWhat(isObj, 'Object'),
 
         'is-function': makeFunction(function(k, f, obj) {applyFunction(k, [ makeBoolean(isFunction(obj))]);}),
@@ -1475,6 +1502,10 @@ var PYRET_CPS = (function () {
           "prim-has-field" : makeFunction(function(k, f, prim, field) {
             applyFunction(k, [makeBoolean(prim.dict.hasOwnProperty(field.s))]);
           }),
+
+        //For moorings
+          print : makeNothing(),
+          tostring :  makeFunction(toReprK), //TODO make tostring
 
         raise : raise,
         error : error
@@ -1508,8 +1539,9 @@ var PYRET_CPS = (function () {
         errToJSON: errToJSON,
         pyretToJSDict: pyretToJSDict,
         applyFunction : applyFunction,
-        TrampolineException : TrampolineException
+        TrampolineException : TrampolineException,
         
+        runBlock : runBlock
       }
     };
   }

@@ -444,6 +444,10 @@ data Expr:
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
         PP.surround(PP.lbrack, self.field.tosource(), PP.rbrack))
     end
+  | s_block_k(l :: Loc, conts :: Expr, stmts :: List<Expr>, bindings :: List<Expr>) with:
+    label(self): "s_block" end,
+    tosource(self):
+      PP.flow_map(PP.hardline, _.tosource(), self.stmts) end
 end
 
 data Bind:

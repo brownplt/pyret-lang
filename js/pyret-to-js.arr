@@ -244,14 +244,7 @@ fun cps(ast):
       ids = block-ids(ast)
       vars = ids.map(fun(v): A.s_var(l, A.s_bind(l, false, v, A.a_blank), A.s_id(l, "nothing"));)
 
-      cont = for fold(
-            k from fun(e): A.s_app(l, cps(e), [A.s_id(l, K), A.s_id(l, F)]) end,
-            s from stmts.take(stmts.length() - 1).reverse()):
-        fun(e): A.s_app(l, cps(s), [lam(l, [arg(l, "ignored")], k(e)), A.s_id(l, F)]);;
-
-      body = lam(l, [arg(l, K), arg(l, F)], cont(stmts.last()))
-
-      A.s_block(l, vars + [body])
+      A.s_block_k(l, A.s_obj(l, [A.s_data_field(l, A.s_str(l,K), id(l, K)), A.s_data_field(l, A.s_str(l,F), id(l, F))]), stmts.map(cps), vars )
 
     #Primitives
     | s_num(l, _) =>
@@ -461,6 +454,24 @@ cases(A.Expr) ast:
         end
         format("(function(){\n ~a \n})()", [sequence-return-last(stmts)])
       end
+    | s_block_k(l, conts, stmts, vars) =>
+      if stmts.length() == 0:
+        "NAMESPACE.get('nothing')" else:
+         fun makeVarDecl(vs :: List<Expr>):
+            cases (List) vs:
+                | empty => ""
+                | link(f, r) => format("~a;\n", [expr-to-js(f)]) + makeVarDecl(r)
+            end
+         end
+       
+         
+         format("RUNTIME.makeFunction(function(~a, ~a) {", [id-access(K), id-access(F)]) + 
+         makeVarDecl(vars) +
+         format("RUNTIME.runBlock([~a], ~a)", [stmts.map(expr-to-js).join-str(",\n"), expr-to-js(conts)]) + 
+         "})"
+        
+    end
+
     | s_user_block(s, expr) => expr-to-js(expr)
     | s_num(_, n) =>
       format("RUNTIME.makeNumber(~a)", [n])
