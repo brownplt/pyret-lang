@@ -15,8 +15,7 @@
        (p:mk-str src)
        (p:mk-str name)
        (p:mk-bool check)
-       (create-pyret-list (append ids (map symbol->string (map car runtime-env-list))))))
-  (hash
-    'js-src (p:p-str-s (p:get-field p:dummy-loc js-and-ids "js-src"))
-    'ids (map p:p-str-s (pyret-list->list (p:get-field p:dummy-loc js-and-ids "ids")))))
-
+       (if (and (string? ids) (equal? ids "normal"))
+          (p:mk-str "normal")
+          (create-pyret-list (append ids (map symbol->string (map car runtime-env-list)))))))
+  (p:p-str-s js-and-ids))

@@ -105,6 +105,13 @@ var PYRET = (function () {
   function isNothing(v) { return v instanceof PNothing; }
 	var nothing = new PNothing();
 
+	function POpaque(v) {
+	    this.val = v;
+	}
+    POpaque.prototype = Object.create(PBase.prototype);
+    function makeOpaque(v) { return new POpaque(v); }
+    function isOpaque(v) { return v instanceof POpaque; }
+    POpaque.prototype.getVal = function() { return this.val; }
 
 	function PObject(o) {
 	    this.dict = o;
@@ -490,6 +497,9 @@ var PYRET = (function () {
       else if (isNothing(val)) {
         return makeString("nothing");
       }
+      else if (isOpaque(val)) {
+        return makeString(String(val));
+      }
 	    else return getField(val, "_torepr").app();
 	}
 
@@ -696,7 +706,7 @@ var PYRET = (function () {
 		}),
 		torepr: _makeFunction(toRepr),
 		print: _makeFunction(function(v) {
-		    console.log(v.s);
+        console.log(toRepr(v).s);
 		    return v;
 		}),
 
@@ -879,6 +889,7 @@ var PYRET = (function () {
 		makeFunction: makeFunction,
 		makeMethod: makeMethod,
 		makeObject: makeObject,
+        makeOpaque: makeOpaque,
 		makeNumber: makeNumber,
 		makeBool: makeBool,
 		makeString: makeString,
@@ -888,6 +899,7 @@ var PYRET = (function () {
 		isFunction: isFunction,
 		isMethod: isMethod,
 		isObject: isObject,
+		isOpaque: isOpaque,
 		isNumber: isNumber,
 		isBool: isBool,
 		isString: isString,
@@ -913,7 +925,9 @@ var PYRET = (function () {
 		unwrapException: unwrapException,
 		toReprJS: toRepr,
 		errToJSON: errToJSON
-	    }
+	    },
+
+    builtinModules: {}
 	}
     }
 

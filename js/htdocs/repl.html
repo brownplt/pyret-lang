@@ -63,12 +63,13 @@ $(function() {
           }
         });
     var runResult = compiled.then(function(jsCode) {
-        if (!jsCode["compiledCodes"]) {
-          alert(jsCode["message"]);
+        jsCode = JSON.parse(jsCode);
+        if (!jsCode["js-src"]) {
+          alert(jsCode);
           return;
         }
        
-        return (1,eval)(jsCode["compiledCodes"])(
+        return (1,eval)(jsCode["js-src"])(
             runtime.runtime,
             runtime.namespace.merge(mooringsResult.namespace)
           );

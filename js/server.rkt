@@ -100,13 +100,10 @@
                      (eprintf "Stack-ish: ~a\n" (continuation-mark-set->context cms))
                      (write-json (hash 'type "error" 'message message)
                                    op)]))])
-    (define ids (hash-ref options 'ids (lambda () '())))
+    (define ids (hash-ref options 'ids (lambda () "normal")))
     (define check (hash-ref options 'check (lambda () #f)))
     (define output (pyret-to-js src source-name check ids))
-    (write-json (hash 'type "repl"
-                      'defined-ids (hash-ref output 'ids)
-                      'compiledCodes (hash-ref output 'js-src))
-                       op))
+    (write output op))
   (close-output-port op)
   response)
   

@@ -18,7 +18,6 @@ mast = A.parse-tc(moorings, "moorings.arr", {check : false, env: JS-ENV})
 
 out-moorings = F.output-file("htdocs/moorings.js", false)
 free-in-moorings = A.free-ids(A.to-native(mast))
-print(free-in-moorings)
 block:
   out-moorings.display("
 if (require) {
