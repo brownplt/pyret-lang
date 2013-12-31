@@ -361,9 +361,13 @@
 
 (define (pyret/tc str src options)
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
-  (define env (p:get-dict (p:get-field p:dummy-loc options "env")))
+  (define env (p:get-field p:dummy-loc options "env"))
+  (define env-for-checking
+    (if (and (p:p-str? env) (string=? (p:p-str-s env) "normal"))
+        WHALESONG-ENV
+        (extend-env-with-dict LIBRARY-ENV (p:get-dict env))))
   (define desugared (get-desugared str src check-mode?))
-  (define with-contracts (contract-check-pyret desugared (extend-env-with-dict LIBRARY-ENV env)))
+  (define with-contracts (contract-check-pyret desugared env-for-checking))
   (to-pyret with-contracts))
 
 (define (pyret-triple-from-string str src options)
