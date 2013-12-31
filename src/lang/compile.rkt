@@ -5,6 +5,7 @@
   compile-expr)
 (require
   racket/match
+  racket/runtime-path
   racket/splicing
   racket/syntax
   "helpers.rkt"
@@ -289,15 +290,23 @@
 
     [else (error (format "Missed a case in compile: ~a" ast-node))]))
 
+(define-runtime-path FFI "racket-ffi/")
+
 (define (compile-header header)
   (match header
     [(s-import l file name)
+     ;; This is the magic that turns `import foo as bar` into
+     ;; `import "/path/to/racket-ffi/foo.rkt" as bar`
+     (define path
+      (if (symbol? file)
+          (path->string (path->complete-path
+             (build-path FFI (string-append (symbol->string file) ".rkt"))))
+          file))
      (attach l
        (with-syntax
-        ([file-stx file])
-       (with-syntax
-         ([name-stx name]
-          [req-stx (if (relative-path? file) #'file-stx #'(r:file file-stx))])
+        ([file-stx path])
+       (with-syntax ([name-stx name]
+         [req-stx (if (relative-path? path) #'file-stx #'(r:file file-stx))])
         #`(r:require (r:rename-in req-stx [%PYRET-PROVIDE name-stx])))))]
 
     [(s-provide l exp)

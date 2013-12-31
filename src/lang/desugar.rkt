@@ -5,7 +5,6 @@
   desugar-internal
   build-location)
 (require
-  racket/runtime-path
   "ast.rkt"
   "pretty.rkt"
   "load.rkt")
@@ -450,8 +449,6 @@
 
     [else (error (format "Missed a case in desugaring: ~a" ast))]))
 
-(define-runtime-path FFI "racket-ffi/")
-
 (define (add-lam-tostring loc type name args obj)
   (define prefix
     (format "~a ~a(~a): '" type name
@@ -478,14 +475,9 @@
                    (s-block loc empty))))))
 
 (define (desugar-pyret ast)
-  ;; This is the magic that turns `import foo as bar` into
-  ;; `import "/path/to/racket-ffi/foo.rkt" as bar`
   (define (desugar-imp imp body)
     (match imp
-      [(s-import l (? symbol? f) n)
-       (s-import l (path->string (path->complete-path
-                      (build-path FFI (string-append (symbol->string f) ".rkt")))) n)]
-      [(s-import l (? string? f) n) imp]
+      [(s-import _ _ _) imp]
       [(s-provide-all l)
        (define fields
         (for/list ((id (top-level-ids body)))
