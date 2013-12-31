@@ -145,6 +145,7 @@ function testWithLibCPS(name, libProg, pyretProg, output) {
             failure: function(result) {
               response = true;
               console.log("Returned with failure: ", result);
+              done();
               throw new Error("Library ended in error (see console for failure object): " + name);
             }
           }
