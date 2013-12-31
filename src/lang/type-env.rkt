@@ -8,6 +8,7 @@
   update-list-any
   lookup
   env-to-hash
+  runtime-env-list
   LIBRARY-ENV
   DEFAULT-ENV
   WHALESONG-ENV

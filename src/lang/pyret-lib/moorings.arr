@@ -762,7 +762,7 @@ list = {
 # ERROR
 
 data Location:
-  | location(file :: String, line, column) with:
+  | location(file, line, column) with:
     _equals(self, other):
       is-location(other) and
       (self.file == other.file) and

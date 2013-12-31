@@ -665,7 +665,7 @@ list = {
   }
 
 data Location:
-  | location(file :: String, line, column) with:
+  | location(file, line, column) with:
     _equals(self, other):
       is-location(other) and
       (self.file == other.file) and
@@ -673,7 +673,7 @@ data Location:
       (self.column == other.column)
     end,
     format(self):
-      self.file +
+      self.file.tostring() +
       ": line " +
       self.line.tostring() +
       ", column " +
