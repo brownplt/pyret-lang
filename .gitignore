@@ -15,6 +15,7 @@ src/lang/pyret-lib/array.rkt
 js/test-runner/tests.js
 js/grammar.js
 js/pyret-parser.js
+js/htdocs/moorings.js
 *#
 pyret.plt
 pyret.org/pyret-frog/*.html
