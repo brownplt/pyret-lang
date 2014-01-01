@@ -29,20 +29,19 @@ var PYRET = (function () {
 
 
 	function PFunction(f, doc) {
-	    this.app = f;
-	    this.arity = f.length;
-	    this.dict = {
-		_doc: doc,
-		_method: new _PMethod(function(self) {
-		    return makeMethod(f, doc);
-		}, doc)
-	    };
+    this.app = f;
+    this.arity = f.length;
+    this.dict = {
+      _doc: doc || nothing,
+      _method: new _PMethod(function(self) {
+          return makeMethod(f, doc);
+        }, doc)
+    };
 	}
-	function _PFunction(f, doc) { this.app = f; this.dict = { _doc : doc }; }
 	function _PFunction(f, doc) { 
 	    this.app = f;
 	    this.dict = {
-		_doc: doc,
+		_doc: doc || nothing,
 		_method: function () { throw makePyretException(makeString("Can't convert a function field into a method.")); }
 	    };
 	}
@@ -59,7 +58,7 @@ var PYRET = (function () {
 	function applyFunc(f, argList) {
 	    if (f.arity === undefined) f.arity = f.app.length;
 	    if (f.arity !== argList.length) {
-		throw makePyretException(makeString("Wrong number of arguments given to function."));
+        throw makePyretException(makeString("Wrong number of arguments given to function."));
 	    }
 
 	    return f.app.apply(null, argList);
@@ -509,18 +508,14 @@ var PYRET = (function () {
 
 
 	function getRawField(val, str) {
-	    if (str instanceof PString) str = str.s;
 	    var field = val.dict[str];
 	    if (field !== undefined) return field;
 	    else {
-		throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
+        throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
 	    }
 	}
 
 	function getField(val, str) {
-      if(val === undefined) {
-        console.log(val, str);
-      }
 	    var field = getRawField(val, str);
 	    if (isMutable(field)) throw makePyretException(makeString("Cannot look up mutable field \"" + str + "\" using dot or bracket."));
 	    else if (isPlaceholder(field)) return getPlaceholderValue(field);
@@ -637,15 +632,18 @@ var PYRET = (function () {
 	    this.namespace = namespace;
 	}
 	function makeNormalResult(val, ns) { return new NormalResult(val, ns); }
+	function isNormalResult(val) { return val instanceof NormalResult; }
 
 	function FailResult(exn) {
 	    this.exn = exn;
 	}
 	function makeFailResult(exn) { return new FailResult(exn); }
+	function isFailResult(val) { return val instanceof FailResult; }
 
 	function PyretException(exnVal, exnSys) {
 	    this.exnVal = exnVal;
 	    this.exnSys = exnSys;
+      this.stack = new Error().stack
 	}
 	function makePyretException(exnVal) {
 	    return new PyretException(exnVal, false);
@@ -662,7 +660,8 @@ var PYRET = (function () {
 		column: makeString(""),
 		value: exn.exnVal,
 		system: makeBool(exn.exnSys),
-		trace: makeObject({ "is-empty": makeBool(true) })
+		trace: makeObject({ "is-empty": makeBool(true) }),
+    internalStack: makeString(exn.stack)
 	    });
 	}
 
@@ -921,8 +920,11 @@ var PYRET = (function () {
 		PyretException: PyretException,
 		makeNormalResult: makeNormalResult,
 		makeFailResult: makeFailResult,
+    isNormalResult: isNormalResult,
+    isFailResult: isFailResult,
 		makePyretException: makePyretException,
 		unwrapException: unwrapException,
+    checkPrimitive: checkPrimitive,
 		toReprJS: toRepr,
 		errToJSON: errToJSON
 	    },

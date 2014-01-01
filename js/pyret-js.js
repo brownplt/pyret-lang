@@ -6,6 +6,7 @@ var http = require('http');
 var $ = require('jquery');
 
 var compile = require('./jslib/compile.js').lib;
+var filelib = require('./jslib/filelib.js').lib;
 
 var DEBUG = false;
 function debug() {
@@ -27,7 +28,7 @@ var builtinsContext = {
   mooringsNamespace: mooringsResult.namespace
 };
 
-var builtins = [compile];
+var builtins = [compile, filelib];
 
 builtins.forEach(function(b) {
   runtime.builtinModules[b.name] = b.lib(builtinsContext, runtime);
@@ -64,7 +65,18 @@ fs.readFile(process.argv[2], {encoding: "utf8"}, function(err, src) {
     });
   runResult.then(function(r) {
       debug(r);
-      runtime.runtime.applyFunc(runtime.runtime.getField(r.val, "format"), []);
+      try {
+        if (runtime.runtime.isNormalResult(r)) {
+          runtime.runtime.applyFunc(runtime.runtime.getField(r.val, "format"), []);
+        } else if (runtime.runtime.isFailResult(r)) {
+          console.log(runtime.runtime.toReprJS(runtime.runtime.unwrapException(r.exn)));
+        } else {
+          console.log("Unknown type of result: ", r)
+        }
+      } catch(e) {
+        console.log("Ended in error: ", e)
+        throw e;
+      }
     });
 });
 
