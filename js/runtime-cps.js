@@ -262,7 +262,9 @@ var PYRET_CPS = (function () {
         if(obj1.dict.hasOwnProperty("_equals")) {
              applyFunction(getField(obj1, "_equals"),[k, f, obj2]);
         }
-        else { applyFunction(k, [makeBoolean(isAllSame(k, f, obj1, obj2))]);}
+        else { 
+            isAllSame(k, f, obj1, obj2);
+        }
     }
     //TODO: Properly create continuations to invoke equiv
     /**
@@ -273,22 +275,45 @@ var PYRET_CPS = (function () {
     **/
     function isAllSame(k, f, obj1, obj2) {
         if(isMethod(obj1) || isFunction(obj1)) {
-            return false;
+            applyFunction(k, [makeBoolean(false)]);
+            //TODO: Why is this again?
         }
-        else if(Object.keys(obj1.dict).length !== Object.keys(obj2.dict).length) {return makeBoolean(false);}
+        else if(Object.keys(obj1.dict).length !== Object.keys(obj2.dict).length) 
+        {
+            applyFunction([makeBoolean(false)]);
+            return;
+        }
        
         for(key in obj1.dict){
-            if(obj2.dict.hasOwnProperty(key)) {
-                if(!(equiv(k, f, obj1.dict[key], obj2.dict[key]).b)) {
-                    return false;
-                }
-            }
-            else {
-                return false;
+            if(!obj2.dict.hasOwnProperty(key)) {
+                applyFunction([makeBoolean(false)]);
+                return;
             }
         }
 
-        return true;
+        var keys = Object.keys(obj1.dict);
+
+        function makeECont() {
+            var cont = makeFunction(function eCont(res) {
+                if(res.b !== true) {
+                    applyFunction([makeBoolean(false)]);
+                    return;
+                }
+                else {
+                    if(keys.length == 0) {
+                        applyFunction([makeBoolean(true)]);
+                    }
+                    else {
+                        var nextKey = keys.pop();
+                        equiv(makeECont(), f, obj1.dict[key], obj2.dict[key]);
+                    }
+                }
+            });
+
+            return cont;
+        }
+
+        makeECont.app(makeBoolean(true));
     }  
 
 
@@ -623,10 +648,63 @@ var PYRET_CPS = (function () {
 
     function toReprK(k, f, val)
     {
-        result = toRepr(val, k, f);
-        if(result !== null) {
-            applyFunction(k, [result]);
+      if(isNumber(val)) {
+        applyFunction(k, [makeString(String(val.n))]);
+      }
+      else if (isString(val)) {
+        applyFunction(k, [makeString('"' + val.s + '"')]);
+      }
+      else if (isBoolean(val)) {
+        applyFunction(k, [makeString(String(val.b))]);
+      }
+      else if (isMethod(val)) {
+        applyFunction(k, [makeString("method(): end")]);
+      }
+      else if (isFunction(val)) {
+        applyFunction(k, [makeString("fun(): end")]);
+      }
+      else if (isObj(val)) {
+        if(val.dict.hasOwnProperty('_torepr')) {
+            applyFunction(getField(val, '_torepr'), [k, f]);
+            return null;
         }
+        var repr = [];
+        var toProcess = Object.keys(val.dict); //We only get the fields to process once at the beginning
+          
+            //Creates the next continution for processing the fields
+            //Field is the name of the field whose value the cont will recieve
+            function makeFieldsCont(field) {
+            var newCont = (function(fdRepr) {
+                
+                 repr.push(field + ": " + fdRepr);
+
+                if(toProcess.length === 0) { //Finished, no fields left to process
+                    applyFunction(k, [makeString('{' +repr.join(", ")+ '}')]);
+                }
+                else {
+                    var nextField = toProcess.pop();
+                    applyFunction(makeFunction(toReprK), [makeFieldsCont(nextField), f, val.dict[fld]])
+                }
+            });
+
+            return makeFunction(newCont);
+        }
+    
+            var firstField = toProcess.pop();
+            applyFunction(makeFunction(toReprK), [makeFieldsCont(firstField), f, val.dict[firstField]]);
+      }
+      else if (isNothing(val)) {
+        applyFunction(k, [makeString("nothing")]);
+      }
+      else if (isMutable(val)) {
+        applyFunction(k, [makeString("mutable-field")]);
+      }
+      else if (isPlaceholder(val)) {
+        applyFunction(k, [makeString("cyclic-field")]);
+      }
+      else { 
+        throw ("toStringJS on an unknown type: " + val);
+      }
     }
 
     function toRepr(val, k, f) {
@@ -1269,6 +1347,11 @@ var PYRET_CPS = (function () {
       using the value, name of object type and field names
     **/
      function dataToRepr(k, f, val, name, fields){
+
+        applyFunction(k, [makeBoolean(false)]);
+
+     } //TODO: IMPLEMENT
+         /*
             var fieldsEmpty = true;
             var repr = name.s + "(";
             while(true){
@@ -1294,7 +1377,7 @@ var PYRET_CPS = (function () {
             }
 
             }   
-
+    */
     /**
       dataEquals(me, other, brand, fields)
 
@@ -1302,6 +1385,11 @@ var PYRET_CPS = (function () {
       Uses the list of fields to check for equality
     **/
     function dataEquals(k, f, me, other, brand, fields) {
+        applyFunction(k, [makeBoolean(false)]);
+    }
+    //TODO: Implement
+
+        /*
         var b = applyFunction(brand, [other]).b;
         
         var acc = true;
@@ -1323,6 +1411,7 @@ var PYRET_CPS = (function () {
         //var sameBrands = checkSameBrands(me.brands, other.brands);
         applyFunction(k, [makeBoolean(b && acc)]);
     }
+    */
  //-------------------
 
     //Running blocks
