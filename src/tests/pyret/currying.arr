@@ -1,4 +1,5 @@
 #lang pyret
+#14,14,0,0,0
 
 check:
   fun four-args(a, b, c, d): a + b + c + d end

@@ -927,9 +927,9 @@ fun check-equals(name, val1, val2):
     else:
       current-results :=
         current-results + [failure(name, "Values not equal: \n" +
-                                     tostring(val1) +
+                                     torepr(val1) +
                                      "\n\n" +
-                                     tostring(val2),
+                                     torepr(val2),
                                      none)]
     end
     values_equal
@@ -945,7 +945,7 @@ fun check-pred(name, val1, pred):
     else:
       current-results :=
         current-results + [failure(name, "Value didn't satisfy predicate: " +
-                                     tostring(val1) +
+                                     torepr(val1) +
                                      ", " +
                                      pred._doc,
                                    none)]

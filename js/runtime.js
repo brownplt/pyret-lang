@@ -29,20 +29,19 @@ var PYRET = (function () {
 
 
 	function PFunction(f, doc) {
-	    this.app = f;
-	    this.arity = f.length;
-	    this.dict = {
-		_doc: doc,
-		_method: new _PMethod(function(self) {
-		    return makeMethod(f, doc);
-		}, doc)
-	    };
+    this.app = f;
+    this.arity = f.length;
+    this.dict = {
+      _doc: doc || nothing,
+      _method: new _PMethod(function(self) {
+          return makeMethod(f, doc);
+        }, doc)
+    };
 	}
-	function _PFunction(f, doc) { this.app = f; this.dict = { _doc : doc }; }
 	function _PFunction(f, doc) { 
 	    this.app = f;
 	    this.dict = {
-		_doc: doc,
+		_doc: doc || nothing,
 		_method: function () { throw makePyretException(makeString("Can't convert a function field into a method.")); }
 	    };
 	}
@@ -59,7 +58,7 @@ var PYRET = (function () {
 	function applyFunc(f, argList) {
 	    if (f.arity === undefined) f.arity = f.app.length;
 	    if (f.arity !== argList.length) {
-		throw makePyretException(makeString("Wrong number of arguments given to function."));
+        throw makePyretException(makeString("Wrong number of arguments given to function."));
 	    }
 
 	    return f.app.apply(null, argList);
@@ -105,6 +104,13 @@ var PYRET = (function () {
   function isNothing(v) { return v instanceof PNothing; }
 	var nothing = new PNothing();
 
+	function POpaque(v) {
+	    this.val = v;
+	}
+    POpaque.prototype = Object.create(PBase.prototype);
+    function makeOpaque(v) { return new POpaque(v); }
+    function isOpaque(v) { return v instanceof POpaque; }
+    POpaque.prototype.getVal = function() { return this.val; }
 
 	function PObject(o) {
 	    this.dict = o;
@@ -159,8 +165,8 @@ var PYRET = (function () {
 		return makeString(s.n.toString());
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isNumber, "equals", [l, r]);
-		return makeBool(l.n === r.n);
+        if(!isNumber(r)) { return makeBool(false); }
+        return makeBool(l.n === r.n);
 	    }),
 	    _lessthan: _makeMethod(function(l, r) {
 		checkPrimitive(isNumber, "lessthan", [l, r]);
@@ -277,8 +283,8 @@ var PYRET = (function () {
 		return makeString(self.b.toString());
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isBool, "equals", [l, r]);
-		return makeBool(l.b === r.b);
+        if(!isBool(r)) { return makeBool(false); }
+        return makeBool(l.b === r.b);
 	    }),
 	    _not: _makeMethod(function(self) {
 		return makeBool(!self.b);
@@ -315,8 +321,8 @@ var PYRET = (function () {
 		return makeBool(l.s <= r.s);
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isString, "equals", [l, r]);
-		return makeBool(l.s === r.s);
+        if(!isString(r)) { return makeBool(false); }
+        return makeBool(l.s === r.s);
 	    }),
 	    append: _makeMethod(function(l, r) {
 		checkPrimitive(isString, "append", [l, r]);
@@ -333,6 +339,10 @@ var PYRET = (function () {
 	    substring: _makeMethod(function(s, l, r) {
 		checkPrimitive(isNumber, "substring", [l, r]);
 		return makeString(s.s.substring(l.n, r.n));
+	    }),
+	    "index-of": _makeMethod(function(l, r) {
+		checkPrimitive(isString, "index-of", [r]);
+		return makeNumber(l.s.indexOf(r.s));
 	    }),
 	    "char-at": _makeMethod(function(l, r) {
 		checkPrimitive(isNumber, "char-at", [r]);
@@ -483,14 +493,19 @@ var PYRET = (function () {
 	    if (isFunction(val)) return makeString("fun(): end");
 	    else if (isMethod(val)) return makeString("method(): end");
 	    else if (isObject(val) && val.dict._torepr === undefined) {
-		var fields = [];
-		for (var i in val.dict) fields.push(i + ": " + toRepr(val.dict[i]).s);
-		return makeString("{" + fields.join(", ") + "}");
+        var fields = [];
+        for (var i in val.dict) fields.push(i + ": " + toRepr(val.dict[i]).s);
+        return makeString("{" + fields.join(", ") + "}");
 	    }
       else if (isNothing(val)) {
         return makeString("nothing");
       }
-	    else return getField(val, "_torepr").app();
+      else if (isOpaque(val)) {
+        return makeString(String(val));
+      }
+	    else {
+        return getField(val, "_torepr").app();
+      }
 	}
 
 	function toString(val) {
@@ -499,18 +514,14 @@ var PYRET = (function () {
 
 
 	function getRawField(val, str) {
-	    if (str instanceof PString) str = str.s;
 	    var field = val.dict[str];
 	    if (field !== undefined) return field;
 	    else {
-		throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
+        throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
 	    }
 	}
 
 	function getField(val, str) {
-      if(val === undefined) {
-        console.log(val, str);
-      }
 	    var field = getRawField(val, str);
 	    if (isMutable(field)) throw makePyretException(makeString("Cannot look up mutable field \"" + str + "\" using dot or bracket."));
 	    else if (isPlaceholder(field)) return getPlaceholderValue(field);
@@ -530,8 +541,9 @@ var PYRET = (function () {
 	    if (isMutable(field)) {
 		// perform read checks
 		return field;
-	    }
-	    else throw makePyretException(makeString("Cannot look up immutable field \"" + str + "\" with the ! operator"));
+	    } else {
+        return getField(val, str)
+      }
 	}
 
 	var brander = _makeFunction(function() {
@@ -627,19 +639,23 @@ var PYRET = (function () {
 	    this.namespace = namespace;
 	}
 	function makeNormalResult(val, ns) { return new NormalResult(val, ns); }
+	function isNormalResult(val) { return val instanceof NormalResult; }
 
 	function FailResult(exn) {
 	    this.exn = exn;
 	}
 	function makeFailResult(exn) { return new FailResult(exn); }
+	function isFailResult(val) { return val instanceof FailResult; }
 
 	function PyretException(exnVal, exnSys) {
 	    this.exnVal = exnVal;
 	    this.exnSys = exnSys;
+      this.stack = new Error().stack
 	}
 	function makePyretException(exnVal) {
 	    return new PyretException(exnVal, false);
 	}
+  function isPyretException(v) { return v instanceof PyretException; }
 	function makePyretExceptionSys(exnVal, exnSys) {
 	    return new PyretException(exnVal, exnSys);
 	}
@@ -652,7 +668,8 @@ var PYRET = (function () {
 		column: makeString(""),
 		value: exn.exnVal,
 		system: makeBool(exn.exnSys),
-		trace: makeObject({ "is-empty": makeBool(true) })
+		trace: makeObject({ "is-empty": makeBool(true) }),
+    internalStack: makeString(exn.stack)
 	    });
 	}
 
@@ -696,7 +713,7 @@ var PYRET = (function () {
 		}),
 		torepr: _makeFunction(toRepr),
 		print: _makeFunction(function(v) {
-		    console.log(v.s);
+        console.log(toRepr(v).s);
 		    return v;
 		}),
 
@@ -879,6 +896,7 @@ var PYRET = (function () {
 		makeFunction: makeFunction,
 		makeMethod: makeMethod,
 		makeObject: makeObject,
+        makeOpaque: makeOpaque,
 		makeNumber: makeNumber,
 		makeBool: makeBool,
 		makeString: makeString,
@@ -888,6 +906,7 @@ var PYRET = (function () {
 		isFunction: isFunction,
 		isMethod: isMethod,
 		isObject: isObject,
+		isOpaque: isOpaque,
 		isNumber: isNumber,
 		isBool: isBool,
 		isString: isString,
@@ -909,11 +928,17 @@ var PYRET = (function () {
 		PyretException: PyretException,
 		makeNormalResult: makeNormalResult,
 		makeFailResult: makeFailResult,
+    isNormalResult: isNormalResult,
+    isFailResult: isFailResult,
 		makePyretException: makePyretException,
+    isPyretException: isPyretException,
 		unwrapException: unwrapException,
+    checkPrimitive: checkPrimitive,
 		toReprJS: toRepr,
 		errToJSON: errToJSON
-	    }
+	    },
+
+    builtinModules: {}
 	}
     }
 

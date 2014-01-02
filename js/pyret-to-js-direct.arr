@@ -59,25 +59,62 @@ js-id-of = block:
 end
 
 fun src-program-to-js(src :: String, name :: String, _check, ids):
-  env = for fold(acc from {}, id from ids):
-    acc.{[id]: true}
+  print(ids)
+  env = if is-string(ids) and (ids == "normal"):
+    "normal"
+  else:
+    for fold(acc from {}, id from ids):
+      acc.{[id]: true}
+    end
   end
   ast = A.parse-tc(src, name, { check : _check, env : env })
   free-ids = A.free-ids(A.to-native(ast))
-  defined = toplevel-ids(ast)
-  {
-    js-src: program-to-js(ast, free-ids),
-    ids: defined
-  }
+  jsval = program-to-js(ast, free-ids).to-json()
+  J.stringify(jsval)
 end
 
-fun program-to-js(ast, runtime-ids):
+data CompiledCode:
+  | compiled-code(
+        js-src :: String,
+        ids :: List<String>,
+        imports :: List<A.is-s_import>,
+        provides :: List<A.is-s_provide>
+      ) with:
+    to-json(self):
+      {
+        js-src: self.js-src,
+        ids: self.ids,
+        imports: for map(i from self.imports):
+          cases(A.Header) i:
+            | s_import(l, f, imported-as) =>
+              cases(A.ImportType) f:
+                | s_file_import(fn) => raise("Cannot handle file imports yet: " + fn)
+                | s_const_import(m) => {
+                    module-name: m,
+                    imported-as: imported-as
+                  }
+              end
+            | else => raise("Non-import in CompiledCode imports: " + torepr(i))
+          end
+        end,
+        provides: []
+      }
+    end
+end
+
+fun program-to-js(ast, runtime-ids) -> CompiledCode:
   cases(A.Program) ast:
-    # import/provide ignored
-    | s_program(_, _, block) =>
+    # provide ignored
+    | s_program(_, headers, block) =>
+      print(headers)
+      imports = for filter(h from headers):
+        A.is-s_import(h) and A.is-s_const_import(h.file)
+      end
+      print(imports)
+      outside-bindings = runtime-ids + imports.map(_.name)
       cases(A.Expr) block :
         | s_block(_, stmts) =>
-          bindings = for list.fold(bs from "", id from runtime-ids):
+          bindings = for list.fold(bs from "", id from outside-bindings):
             bs + format("var ~a = NAMESPACE.get('~a');\n", [js-id-of(id), id])
           end
           program-body = if stmts.length() == 0:
@@ -108,7 +145,7 @@ fun program-to-js(ast, runtime-ids):
             export + format("EXPORT_NAMESPACE = EXPORT_NAMESPACE.set(\"~a\", ~a)\n",
               [id, js-id-of(id)])
           end
-          format("(function(RUNTIME, NAMESPACE) {
+          js-src = format("(function(RUNTIME, NAMESPACE) {
             try {
               ~a
               var RESULT;
@@ -122,6 +159,13 @@ fun program-to-js(ast, runtime-ids):
               return RUNTIME.makeFailResult(e);
             }
           })", [bindings, program-body, export-fields])
+          defined = toplevel-ids(ast)
+          compiled-code(
+              js-src,
+              defined,
+              imports,
+              []
+            )
       end
   end
 end
@@ -224,8 +268,7 @@ fun expr-to-js(ast):
         | else => raise("Non-string lookups not supported")
       end
     | s_get_bang(_, obj, field) =>
-      m = format("RUNTIME.getMutableField(~a, '~a')", [expr-to-js(obj), field])
-      format("RUNTIME.getField(~a, 'get').app()", [m])
+      format("RUNTIME.getMutableField(~a, '~a')", [expr-to-js(obj), field])
     | s_update(_, super, fields) =>
       fun member-to-pair(m):
         cases (A.Member) m:
@@ -243,6 +286,7 @@ fun expr-to-js(ast):
         pair = member-to-pair(field)
         base + format(".mutate('~a', ~a)", [pair.name, pair.value])
       end
-    | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
+    | s_hint_exp(_, _, hinted) => expr-to-js(hinted)
+    | else => do-block(format("throw new Error('Expression type not yet implemented ~a')", [ast.label()]))
   end
 end

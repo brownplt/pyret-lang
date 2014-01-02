@@ -43,21 +43,25 @@
 
 
 (define (to-jsexpr val)
-  (define seen-vals (set))
+  (define seen-vals (seteq))
+  (define (check-and-add)
+    (when (set-member? seen-vals val)
+      (raise (format "Cyclic value in json.stringify: ~a" val)))
+    (set! seen-vals (set-add seen-vals val)))
   (cond
     [(or
       (p:p-num? val)
       (p:p-str? val)
       (p:p-bool? val)) (ffi-unwrap val)]
-    [(pyret-list? val) (map to-jsexpr (pyret-list->list val))]
+    [(pyret-list? val)
+     (check-and-add)
+     (map to-jsexpr (pyret-list->list val))]
     [(p:p-object? val)
+     (check-and-add)
      (define fields
        (string-map-map
          (p:get-dict val)
          (lambda (key val)
-           (when (set-member? seen-vals val)
-             (raise (format "Cyclic value in json.stringify: ~a" val)))
-           (set! seen-vals (set-add seen-vals val))
            (cons (string->symbol key) (to-jsexpr val)))))
      (make-hash fields)]
     [else

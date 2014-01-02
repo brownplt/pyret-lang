@@ -577,16 +577,14 @@ these metadata purposes.
   (match expr
     [(s-prog _ imports block)
      (define block-ids (free-ids block))
-     (set-union block-ids (set-intersect (unions (map free-ids imports)) block-ids))]
+     (define bound-ids (list->set (top-level-ids block)))
+     (set-union block-ids (set-subtract (unions (map free-ids imports)) bound-ids))]
     [(s-import _ file name) (set)]
     [(s-provide _ expr) (free-ids expr)]
     [(s-provide-all _) (set)]
     [(s-block _ stmts)
      (define bound-ids (list->set (top-level-ids expr)))
-     (define res (set-subtract (unions (map free-ids stmts)) bound-ids))
-     (printf "boudn ids: ~a\n" bound-ids)
-     (printf "result: ~a\n" res)
-     res]
+     (set-subtract (unions (map free-ids stmts)) bound-ids)]
     [(s-bind _ _ id ann) (free-ids-ann ann)]
     [(s-fun _ name params args ann doc body check)
      (free-ids-fun args ann body check (set name))]
