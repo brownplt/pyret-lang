@@ -159,7 +159,7 @@ var PYRET_CPS = (function () {
 
       _tostring: makeMethod(function(k, f, me) {
         if(checkIf(f, b, isBoolean, 'toString')){ 
-       applyFunction(k, [ toRepr(me, k, f)]);
+       applyFunction(k, [ toReprK(me, k, f)]);
         }
       }),   
       _torepr: makeMethod(function(k, f, me) {
@@ -280,13 +280,13 @@ var PYRET_CPS = (function () {
         }
         else if(Object.keys(obj1.dict).length !== Object.keys(obj2.dict).length) 
         {
-            applyFunction([makeBoolean(false)]);
+            applyFunction(k, [makeBoolean(false)]);
             return;
         }
        
         for(key in obj1.dict){
             if(!obj2.dict.hasOwnProperty(key)) {
-                applyFunction([makeBoolean(false)]);
+                applyFunction(k, [makeBoolean(false)]);
                 return;
             }
         }
@@ -296,16 +296,18 @@ var PYRET_CPS = (function () {
         function makeECont() {
             var cont = makeFunction(function eCont(res) {
                 if(res.b !== true) {
-                    applyFunction([makeBoolean(false)]);
+                    applyFunction(k, [makeBoolean(false)]);
                     return;
                 }
                 else {
                     if(keys.length == 0) {
-                        applyFunction([makeBoolean(true)]);
+                        applyFunction(k, [makeBoolean(true)]);
+                        return;
                     }
                     else {
                         var nextKey = keys.pop();
                         equiv(makeECont(), f, obj1.dict[key], obj2.dict[key]);
+                        return;
                     }
                 }
             });
@@ -313,7 +315,7 @@ var PYRET_CPS = (function () {
             return cont;
         }
 
-        makeECont.app(makeBoolean(true));
+        makeECont().app(makeBoolean(true));
     }  
 
 
@@ -846,7 +848,7 @@ var PYRET_CPS = (function () {
     function getFieldK(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val,conts.dict['$k'], conts.dict['$f']).s);
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toReprK(val,conts.dict['$k'], conts.dict['$f']).s);
             return;
         }
 
@@ -887,7 +889,7 @@ var PYRET_CPS = (function () {
     function getColonFieldK(val, str, conts) {
       var fieldVal = val.dict[str];
         if(fieldVal === undefined) {
-            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toRepr(val, conts.dict['$k'], conts.dict['$f']).s);
+            raisePyretMessage(conts.dict['$f'], str + " was not found on " + toReprK(val, conts.dict['$k'], conts.dict['$f']).s);
         }
         else{
         applyFunction(conts.dict['$k'], [fieldVal]);
@@ -907,7 +909,7 @@ var PYRET_CPS = (function () {
     function getMutField(val, str) {
       var fieldVal = val.dict[str];
       if(fieldVal === undefined) {
-            throwPyretMessage(str + " was not found on " + toRepr(val).s);
+            throwPyretMessage(str + " was not found on " + toReprK(val).s);
       }
       else if(isMutable(fieldVal)) {
         return fieldVal;
@@ -918,9 +920,30 @@ var PYRET_CPS = (function () {
     }
 
 
+
+    //Use this when you want to invoke toRepr and obtain the answer for testing prints etc
+    //Constructs the continuatinos and will return the answer when completed
+    //Returns a JS string of the repr
+    function getRepr(val) {
+          var valRepr = null;
+
+          toReprK(makeFunction(function(rep) {
+              valRepr = rep.s; //Get the JS string
+          }), makeFunction(function (err) {
+            throw("ToRepr Caused an error in getRepr", err);
+          }), val);
+
+          if(valRepr === null) {
+            console.error("Error getting value repr : getRepr");
+          }
+
+          //console.debug(valRepr);
+          return valRepr;
+    }
+
     var testPrintOutput = "";
     function testPrint(k, f, val) {
-      var str = toRepr(val, k, f).s;
+      var str = getRepr(val);
       console.log("testPrint: ", val, str);
       testPrintOutput += str + "\n";
       // Should be applyFunc, or whatever your implementation calls it
@@ -1433,7 +1456,11 @@ var PYRET_CPS = (function () {
             applyFunction(k, [prevVal]);
         }
         else {
-            applyFunction(stmts[loc], [makeFunction(function(val) {runBlockRec(k, f, stmts, loc+1, val)}), f]);
+            applyFunction(stmts[loc], [
+                makeFunction(function(val) {
+                    runBlockRec(k, f, stmts, loc+1, val)
+                }),
+                f]);
         }
     }
 
@@ -1449,7 +1476,7 @@ var PYRET_CPS = (function () {
 
 
     //GLOBAL GAS VAR    
-    var START_GAS = 200;
+    var START_GAS = 25;
     var gas = START_GAS;
 
     function TrampolineException(k) {
@@ -1476,13 +1503,13 @@ var PYRET_CPS = (function () {
         try {
           k();
         } catch(e) {
-          console.log("Caught ", e);
           if(e instanceof TrampolineException) {
             if(!pauseRequested) {
               gas = START_GAS; //Reset gas
               nextTurn(function() { run(e.k); });
             }
             else {
+              console.log("Caught ", e);
               var restart = function() { run(e.k); };
               pauseRequested = false;
               var thisPause = currentPause;
@@ -1492,6 +1519,7 @@ var PYRET_CPS = (function () {
           }
           else {
             console.error("[start] Uncaught exception: ", e, e.message);
+            throw e;
           }
         }
       }
@@ -1615,7 +1643,7 @@ var PYRET_CPS = (function () {
         getFieldK: getFieldK,
         getColonFieldK: getColonFieldK,
         getTestPrintOutput: function(val) {
-          return testPrintOutput + toRepr(val).s;
+          return testPrintOutput + getRepr(val);
         },
 
         NormalResult: NormalResult,
