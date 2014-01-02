@@ -6,6 +6,7 @@ var LIB = {
     var debug = context.debug;
     var compilerURL = context.compilerURL;
     var mooringsNamespace = context.mooringsNamespace;
+    var topLevelWrapper = context.topLevelWrapper;
     return rt.runtime.makeObject({
       compile: rt.runtime.makeFunction(function(str, ids, cb) {
         if (rt.runtime.isString(ids)) {
@@ -25,9 +26,11 @@ var LIB = {
             }
           });
         result.then(function(r) {
-          debug("Compiled result is: ", JSON.parse(r));
-          rt.runtime.applyFunc(cb, [rt.runtime.makeOpaque(JSON.parse(r))]);
-        });
+            (topLevelWrapper(function() {
+              debug("Compiled result is: ", r);
+              rt.runtime.applyFunc(cb, [rt.runtime.makeOpaque(JSON.parse(r))]);
+            }))();
+          });
         return rt.runtime.makeOpaque(result);
       }),
       eval: rt.runtime.makeFunction(function(compiled, namespace) {

@@ -165,8 +165,8 @@ var PYRET = (function () {
 		return makeString(s.n.toString());
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isNumber, "equals", [l, r]);
-		return makeBool(l.n === r.n);
+        if(!isNumber(r)) { return makeBool(false); }
+        return makeBool(l.n === r.n);
 	    }),
 	    _lessthan: _makeMethod(function(l, r) {
 		checkPrimitive(isNumber, "lessthan", [l, r]);
@@ -283,8 +283,8 @@ var PYRET = (function () {
 		return makeString(self.b.toString());
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isBool, "equals", [l, r]);
-		return makeBool(l.b === r.b);
+        if(!isBool(r)) { return makeBool(false); }
+        return makeBool(l.b === r.b);
 	    }),
 	    _not: _makeMethod(function(self) {
 		return makeBool(!self.b);
@@ -321,8 +321,8 @@ var PYRET = (function () {
 		return makeBool(l.s <= r.s);
 	    }),
 	    _equals: _makeMethod(function(l, r) {
-		checkPrimitive(isString, "equals", [l, r]);
-		return makeBool(l.s === r.s);
+        if(!isString(r)) { return makeBool(false); }
+        return makeBool(l.s === r.s);
 	    }),
 	    append: _makeMethod(function(l, r) {
 		checkPrimitive(isString, "append", [l, r]);
@@ -339,6 +339,10 @@ var PYRET = (function () {
 	    substring: _makeMethod(function(s, l, r) {
 		checkPrimitive(isNumber, "substring", [l, r]);
 		return makeString(s.s.substring(l.n, r.n));
+	    }),
+	    "index-of": _makeMethod(function(l, r) {
+		checkPrimitive(isString, "index-of", [r]);
+		return makeNumber(l.s.indexOf(r.s));
 	    }),
 	    "char-at": _makeMethod(function(l, r) {
 		checkPrimitive(isNumber, "char-at", [r]);
@@ -489,9 +493,9 @@ var PYRET = (function () {
 	    if (isFunction(val)) return makeString("fun(): end");
 	    else if (isMethod(val)) return makeString("method(): end");
 	    else if (isObject(val) && val.dict._torepr === undefined) {
-		var fields = [];
-		for (var i in val.dict) fields.push(i + ": " + toRepr(val.dict[i]).s);
-		return makeString("{" + fields.join(", ") + "}");
+        var fields = [];
+        for (var i in val.dict) fields.push(i + ": " + toRepr(val.dict[i]).s);
+        return makeString("{" + fields.join(", ") + "}");
 	    }
       else if (isNothing(val)) {
         return makeString("nothing");
@@ -499,7 +503,9 @@ var PYRET = (function () {
       else if (isOpaque(val)) {
         return makeString(String(val));
       }
-	    else return getField(val, "_torepr").app();
+	    else {
+        return getField(val, "_torepr").app();
+      }
 	}
 
 	function toString(val) {
@@ -511,6 +517,8 @@ var PYRET = (function () {
 	    var field = val.dict[str];
 	    if (field !== undefined) return field;
 	    else {
+        console.log(val);
+        console.trace();
         throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
 	    }
 	}
@@ -535,8 +543,9 @@ var PYRET = (function () {
 	    if (isMutable(field)) {
 		// perform read checks
 		return field;
-	    }
-	    else throw makePyretException(makeString("Cannot look up immutable field \"" + str + "\" with the ! operator"));
+	    } else {
+        return getField(val, str)
+      }
 	}
 
 	var brander = _makeFunction(function() {
@@ -648,6 +657,7 @@ var PYRET = (function () {
 	function makePyretException(exnVal) {
 	    return new PyretException(exnVal, false);
 	}
+  function isPyretException(v) { return v instanceof PyretException; }
 	function makePyretExceptionSys(exnVal, exnSys) {
 	    return new PyretException(exnVal, exnSys);
 	}
@@ -923,6 +933,7 @@ var PYRET = (function () {
     isNormalResult: isNormalResult,
     isFailResult: isFailResult,
 		makePyretException: makePyretException,
+    isPyretException: isPyretException,
 		unwrapException: unwrapException,
     checkPrimitive: checkPrimitive,
 		toReprJS: toRepr,

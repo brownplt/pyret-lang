@@ -268,8 +268,7 @@ fun expr-to-js(ast):
         | else => raise("Non-string lookups not supported")
       end
     | s_get_bang(_, obj, field) =>
-      m = format("RUNTIME.getMutableField(~a, '~a')", [expr-to-js(obj), field])
-      format("RUNTIME.getField(~a, 'get').app()", [m])
+      format("RUNTIME.getMutableField(~a, '~a')", [expr-to-js(obj), field])
     | s_update(_, super, fields) =>
       fun member-to-pair(m):
         cases (A.Member) m:
@@ -287,6 +286,7 @@ fun expr-to-js(ast):
         pair = member-to-pair(field)
         base + format(".mutate('~a', ~a)", [pair.name, pair.value])
       end
-    | else => do-block(format("throw new Error('Not yet implemented ~a')", [ast.label()]))
+    | s_hint_exp(_, _, hinted) => expr-to-js(hinted)
+    | else => do-block(format("throw new Error('Expression type not yet implemented ~a')", [ast.label()]))
   end
 end

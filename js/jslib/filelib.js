@@ -7,7 +7,6 @@ var LIB = {
       "read-file": rt.runtime.makeFunction(function(path) {
         rt.runtime.checkPrimitive(rt.runtime.isString, "read-file", [path]);
         var file = fs.readFileSync(path.s, {encoding: 'utf8'});
-        console.log("File: ", file);
         if (typeof file === 'string') {
           return rt.runtime.makeString(file);
         } else {

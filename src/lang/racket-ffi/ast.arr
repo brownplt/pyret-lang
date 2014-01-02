@@ -137,7 +137,7 @@ end
 
 data Expr:
   | s_hint_exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
-    label(self): "s_hint" end,
+    label(self): "s_hint_exp" end,
     tosource(self):
       PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()

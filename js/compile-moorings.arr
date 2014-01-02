@@ -25,7 +25,7 @@ if (require) {
 }
   ")
   out-moorings.display("LIB = ")
-  out-moorings.display(P.program-to-js(mast, free-in-moorings))
+  out-moorings.display(P.program-to-js(mast, free-in-moorings).js-src)
   out-moorings.display("
 if(typeof exports !== 'undefined') {
   exports.lib = LIB;

@@ -22,10 +22,28 @@ var extraIds = ["prim-read-sexpr", "equiv", "data-to-repr", "data-equals", "test
 var mooringsResult = LIB(runtime.runtime, runtime.namespace);
 var ids = mooringsResult.namespace.getNames();
 
+function topLevelWrapper(f) {
+  return function() {
+    try {
+      f();
+    }
+    catch(e) {
+      if(runtime.runtime.isPyretException(e)) {
+        console.log("[pyret] Exception caught at toplevel:");
+        console.log(runtime.runtime.toReprJS(runtime.runtime.unwrapException(e)))
+      } else {
+        console.log("[pyret] Non-Pyret exception:");
+        console.log(e);
+      }
+    }
+  };
+}
+
 var builtinsContext = {
   compilerURL: base + "/compile",
   debug: debug,
-  mooringsNamespace: mooringsResult.namespace
+  mooringsNamespace: mooringsResult.namespace,
+  topLevelWrapper: topLevelWrapper
 };
 
 var builtins = [compile, filelib];
@@ -79,4 +97,3 @@ fs.readFile(process.argv[2], {encoding: "utf8"}, function(err, src) {
       }
     });
 });
-
