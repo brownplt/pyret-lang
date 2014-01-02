@@ -3,10 +3,8 @@
 import filelib as F
 import compile as C
 
-base = "../src/tests/pyret/errors/"
+base = "../src/tests/pyret/"
 files = F.read-dir(base)
-
-print(files)
 
 fun split(s, l):
   ix = s.index-of(l)
@@ -16,35 +14,34 @@ fun split(s, l):
     link(s.substring(0, ix), split(s.substring(ix + 1, s.length()), l))
   end
 where:
-  ",".substring(0, 0) is ","
-  "a,b,c".index-of(",") is 1
+  split("a,b,c", ",") is ["a","b","c"]
 end
 
-fun map-k(f, lst-initial, k):
+fun filter-map-k(f, lst-initial, k):
   fun map-k-help(lst, answer):
-    print(lst)
     cases(List) lst:
       | empty => k(answer.reverse())
       | link(fst, rst) =>
-        print(fst)
-        f(fst, fun(v): map-k-help(rst, link(v, answer));)
+        f(fst, fun(maybe-v):
+            cases(Option) maybe-v:
+              | none => map-k-help(rst, answer)
+              | some(v) => map-k-help(rst, link(v, answer))
+            end
+          end)
     end
   end
-  print(lst-initial)
   map-k-help(lst-initial, [])
 end
 
 fun done(answers):
-  print("Done, answers are")
   checkers.clear-results()
   for each(a from answers):
-    print(a.{ summary: a.summary.{message: ""}})
     checkers.run-checks([{
         location: { file: "done-checker", line: "0", column: "0" },
         name: "done-checker",
         run: fun():
           eq = checkers.check-equals
-          eq(a.file + " total tests", {
+          eq(a.file + " tests", {
               total: a.summary.total,
               passed: a.summary.passed,
               failed: a.summary.failed,
@@ -57,35 +54,40 @@ fun done(answers):
   checkers.get-results(nothing).format()
 end
 
-for map-k(
-    f from files.map(base + _).filter(F.is-file).filter(_.contains(".arr")),
+fun is-test-file(f):
+  F.is-file(f) and f.contains(".arr")
+end
+
+for filter-map-k(
+    f from files.map(base + _).filter(is-test-file),
     k from done
     ):
-  print(f)
   contents = F.read-file(f)
 
   C.compile(contents, "normal", fun(compiled):
-    print("compiled")
+    print("\n\nTesting " + f + "\n\n")
     answer = C.eval(compiled, C.mooringsNamespace)
+    answer.format()
     summary = checkers.check-results-summary(answer.results)
-    print(contents)
-    print(contents^split("\n"))
-    expected-line = split(contents, "\n").rest.first
+    expected-line = split(contents, "\n").get(1)
     expected-list = split(expected-line.substring(1, expected-line.length()), ",")
       .map(_.tonumber())
-    print(expected-list)
-    expected = {
-        total: expected-list.get(0),
-        passed: expected-list.get(1),
-        failed: expected-list.get(2),
-        test-errors: expected-list.get(3),
-        other-errors: expected-list.get(4)
-      }
-    k({
-        file: f,
-        summary: summary,
-        expected: expected
-      })
+    if (expected-list.length() <> 4):
+      k(none)
+    else:
+      expected = {
+          total: expected-list.get(0),
+          passed: expected-list.get(1),
+          failed: expected-list.get(2),
+          test-errors: expected-list.get(3),
+          other-errors: expected-list.get(4)
+        }
+      k(some({
+          file: f,
+          summary: summary,
+          expected: expected
+        }))
+    end
   end)
 end
 

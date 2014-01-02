@@ -517,8 +517,6 @@ var PYRET = (function () {
 	    var field = val.dict[str];
 	    if (field !== undefined) return field;
 	    else {
-        console.log(val);
-        console.trace();
         throw makePyretException(makeString(str + " was not found on " + toRepr(val).s));
 	    }
 	}
