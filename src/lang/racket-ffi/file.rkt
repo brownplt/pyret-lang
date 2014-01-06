@@ -3,7 +3,8 @@
 provide {
   input-file : input-file,
   output-file : output-file,
-  file-exists: file-exists
+  file-exists: file-exists,
+  file-to-string: file-to-string
 } end
 
 import filelib as F
@@ -26,6 +27,14 @@ end
 fun file-exists(path :: String):
   F.file-exists(path)
 end
+
+fun file-to-string(path):
+  f = F.input-file(b)
+  s = F.read-file()
+  f.close-file()
+  s
+end
+  
 
 fun output-file(path :: String, append :: Bool):
   exists =

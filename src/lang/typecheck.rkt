@@ -4,6 +4,9 @@
          (only-in  "runtime.rkt" p:mk-exn p:pyret-error))
 (provide contract-check-pyret (struct-out exn:fail:pyret/tc))
 
+(define (tc-bound? env id)
+  (or (bound? env id) (current-allow-unbound-vars)))
+
 (define (build-location s)
   (define (serialize-source e)
     (cond
@@ -195,7 +198,7 @@
 
 (define (check-consistent env loc id mutable?)
   (cond
-    [(not (bound? env id)) (void)]
+    [(not (tc-bound? env id)) (void)]
     ;; NOTE(dbp): this is a little bit unpleasant. Later on (in compile),
     ;; _ in id positions is turned into a gensym. Thus, it never will conflict
     ;; with another binding with the same name. So if we block it here, this is
@@ -356,7 +359,7 @@
      (s-try s (cc try) bind (cc-env catch catch-env))]
 
     [(s-assign s name expr)
-     (if (bound? env name)
+     (if (tc-bound? env name)
          (match (lookup env name)
           [(binding s-def _ #f)
            (tc-error (bad-assign-msg name) s s-def)]
@@ -396,7 +399,7 @@
      (s-colon-bracket s (cc obj) (cc field))]
 
     [(s-id s x)
-     (if (bound? env x)
+     (if (tc-bound? env x)
          ast
          (tc-error (format "Unbound identifier: ~a" x) s))]
 

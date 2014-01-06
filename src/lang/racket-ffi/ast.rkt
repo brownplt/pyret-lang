@@ -360,15 +360,21 @@
   ((if types-compile types-compile-pyret (λ(x)x)) (desugar ast)))
 
 (define (pyret/tc str src options)
-  (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
+  (define (get-or-false dict field)
+    (if (p:has-field dict field)
+        (ffi-unwrap (p:get-field p:dummy-loc dict field))
+        #f))
+  (define check-mode? (get-or-false options "check"))
+  (define allow-unbound (get-or-false options "allow-unbound"))
   (define env (p:get-field p:dummy-loc options "env"))
   (define env-for-checking
     (if (and (p:p-str? env) (string=? (p:p-str-s env) "normal"))
         WHALESONG-ENV
         (extend-env-with-dict LIBRARY-ENV (p:get-dict env))))
   (define desugared (get-desugared str src check-mode?))
-  (define with-contracts (contract-check-pyret desugared env-for-checking))
-  (to-pyret with-contracts))
+  (parameterize [(current-allow-unbound-vars allow-unbound)]
+    (define with-contracts (contract-check-pyret desugared env-for-checking))
+    (to-pyret with-contracts)))
 
 (define (pyret-triple-from-string str src options)
   (define ast (parse-pyret (string-append " " str) src))

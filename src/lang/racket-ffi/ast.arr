@@ -652,3 +652,35 @@ data AField:
       end
     end
 end
+
+fun binding-ids(stmt):
+  fun variant-ids(variant):
+    cases(A.Variant) variant:
+      | s_variant(_, name, _, _) => [name, make-checker-name(name)]
+      | s_singleton-variant(_, name, _, _) => [name, make-checker-name(name)]
+    end
+  end
+  cases(A.Expr) stmt:
+    | s_let(_, b, _) => [b.id]
+    | s_var(_, b, _) => [b.id]
+    | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
+    | s_data(_, name, _, _, variants, _, _) =>
+      [name] + flatten(variants.map(variant-ids))
+    | else => []
+  end
+end
+
+fun block-ids(b :: A.is-s_block):
+  cases(A.Expr) b:
+    | s_block(_, stmts) => flatten(stmts.map(binding-ids))
+    | else => raise("Non-block given to block-ids")
+  end
+end
+
+fun toplevel-ids(program :: A.Program):
+  cases(A.Program) program:
+    | s_program(_, _, b) => block-ids(b)
+    | else => raise("Non-program given to toplevel-ids")
+  end
+end
+
