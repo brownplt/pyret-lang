@@ -11,6 +11,7 @@ fun make-compiled-pyret(program-ast, env):
 
   anfed = N.anf-program(program-ast)
   split = AS.ast-split(anfed.body)
+  print(split)
   c = C.ok(AC.compile(split))
   
   {

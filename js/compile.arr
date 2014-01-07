@@ -27,7 +27,14 @@ end
 
 fun compile-js(code, name, libs, options):
   libs-parsed = parse-libs(libs)
-  ast = A.parse-tc(code, name, {check : options.check-mode, env: libs-parsed.env })
+  env = if builtins.has-field(options, "extra-ids"):
+      for fold(acc from libs-parsed.env, id from options.extra-ids):
+        acc.{ [id]: true }
+      end
+    else:
+      env
+    end
+  ast = A.parse-tc(code, name, {check : options.check-mode, env: env })
   ce = C.compile-env(libs-parsed.ls, libs-parsed.env)
   P.make-compiled-pyret(ast, ce)
 end
@@ -38,7 +45,7 @@ end
 
 fun compile-standalone-js-file(js-file, libs, options):
   code = F.file-to-string(js-file)
-  compile-standalone-js(code, js-file, libs, option)
+  compile-standalone-js(code, js-file, libs, options)
 end
 
 fun compile-standalone-js(code, name, libs, options) -> C.CompileResult:

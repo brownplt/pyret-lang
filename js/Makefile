@@ -7,6 +7,7 @@ install:
 	unzip compiler-latest.zip -d closure-compiler 
 	rm compiler-latest.zip
 	npm install jasmine-node
+	mkdir compiled
 
 test:
 	mkdir -p generated-tests/anf-tests

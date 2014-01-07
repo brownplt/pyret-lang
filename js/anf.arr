@@ -9,15 +9,6 @@ fun anf-term(e :: A.Expr):
   anf(e, fun(x): N.a-lettable(x);)
 end
 
-fun is-value(e :: A.Expr):
-  cases(A.Expr) e:
-    | a-bool(_, _) => true
-    | a-str(_, _) => true
-    | a-num(_, _) => true
-    | a-id(_, _) => true
-  end
-end
-
 fun bind(l, id): N.a-bind(l, id, A.a_blank);
 
 fun mk-id(loc, base):
@@ -26,9 +17,13 @@ fun mk-id(loc, base):
 end
 
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)):
-  t = mk-id(expr.l, name-hint)
   anf(expr, fun(lettable):
-      N.a-let(expr.l, t.id-b, lettable, k(t.id-e))
+      cases(N.ALettable) lettable:
+        | a-val(v) => k(v)
+        | else =>
+          t = mk-id(expr.l, name-hint)
+          N.a-let(expr.l, t.id-b, lettable, k(t.id-e))
+      end
     end)
 end
 
@@ -89,7 +84,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
             | s_let(l, b, e) => handle-id(l, b, e, r)
             | s_var(l, b, e) => handle-id(l, b, e, r)
             | else => anf(f, fun(lettable):
-                  t = mk-id(f.l, "anf-begin-dropped")
+                  t = mk-id(f.l, "anf_begin_dropped")
                   N.a-let(f.l, t.id-b, lettable, anf-block-help(r))
                 end)
           end

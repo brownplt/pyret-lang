@@ -29,8 +29,8 @@ fun file-exists(path :: String):
 end
 
 fun file-to-string(path):
-  f = F.input-file(path)
-  s = F.read-file()
+  f = input-file(path)
+  s = f.read-file()
   f.close-file()
   s
 end

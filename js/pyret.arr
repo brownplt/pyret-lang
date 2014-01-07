@@ -34,7 +34,7 @@ fun main(args):
           else:
             true
           end
-        result = CM.compile-standalone-js(
+        result = CM.compile-standalone-js-file(
             r.compile-standalone-js,
             CS.standard-builtins,
             {

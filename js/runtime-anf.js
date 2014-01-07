@@ -380,7 +380,7 @@ function makeRuntime(theOutsideWorld) {
       } else {
         str = String(val);
       }
-      theOutsideWorld.stdout(str);
+      theOutsideWorld.stdout(str + "\n");
     });
 
     function SuccessResult(r) {
@@ -397,7 +397,7 @@ function makeRuntime(theOutsideWorld) {
     //String keys should be used to prevent renaming
     thisRuntime = {
         'namespace': Namespace({
-          'print': print
+          'test-print': print
         }),
 
         'run': function(program, namespace, onDone) {

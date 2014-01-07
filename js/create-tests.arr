@@ -51,7 +51,6 @@ fun generate-output(filename):
   cases(EvalResult) value:
     | success(v) =>
       stdout.display(the-output)
-      stdout.display(torepr(v))
     | exn(e) => 
       stdout.display(the-output)
       stderr.display(error-to-json(e))
@@ -96,6 +95,7 @@ fun get-dir-sections(path, create-test):
           file-contents = read-then-close(file-path)
           out-contents = read-then-close(file-path + ".out")
           err-contents = read-then-close(file-path + ".err")
+          print("Generating test: " + test-file)
           create-test(new-path, test-file, file-contents, out-contents, err-contents)
         end
       end
@@ -114,12 +114,12 @@ fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
   print("creating jasmine test: " + path)
   print(name)
   print(program)
-  compiled = P.compile-runnable-js(program, name, libs, { check-mode : false })
+  compiled = P.compile-runnable-js(program, name, libs, { check-mode : false, extra-ids: ["test-print"] })
   cases(CS.CompileResult) compiled:
     | err(message) => tests-with-errors := (tests-with-errors + [{name: name, compiled: compiled}])
     | ok(code) =>
       contents = format("
-R = require('../../runtime-anf.js').PYRET_ANF;
+R = require('../../../runtime-anf.js').PYRET_ANF;
 describe('~a', function() {
   it('should work', function(done) {
     var expectedOutput = ~s;
@@ -135,9 +135,12 @@ describe('~a', function() {
     rt.run(program, rt.namespace, function(result) {
       if (rt.isSuccessResult(result)) {
         expect(output).toEqual(expectedOutput);
+        done();
       } else if (rt.isFailureResult(result)) {
         expect(output).toEqual(expectedOutput);
         expect(expectedError.length).toBeGreaterThan(0);
+        console.error(result)
+        done();
       }
     });
   });

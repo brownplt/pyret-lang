@@ -13,9 +13,10 @@ data SplitResult:
   | split-result-l(helpers :: List<Helper>, body :: N.ALettable)
 end
 
-fun create-helper(name-hint :: String, e :: N.AExpr) -> Helper:
+fun create-helper(id :: String, e :: N.AExpr) -> Helper:
   fv = freevars-e(e)
-  helper(gensym(name-hint), fv.to-list(), e)
+  fv.remove(id)
+  helper(gensym(id), link(id, fv.to-list()), e)
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
@@ -27,12 +28,12 @@ end
 fun freevars-e(expr :: N.AExpr) -> Set<String>:
   cases(N.AExpr) expr:
     | a-let(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-e(e))
+      freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-var(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-e(e))
+      freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-letrec(_, bs, body) => raise("letrec nyi")
     | a-if(_, c, t, e) =>
-      freevars-e(c).union(freevars-e(t)).union(freevars-e(e))
+      freevars-v(c).union(freevars-e(t)).union(freevars-e(e))
     | a-try(_, body, b, c) =>
       freevars-e(c).remove(b.id).union(freevars-e(body))
     | a-lettable(e) => freevars-l(e)
