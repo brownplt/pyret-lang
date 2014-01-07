@@ -9,6 +9,7 @@
   (except-in "../runtime.rkt" raise)
   "../ffi-helpers.rkt"
   "../string-map.rkt"
+  "../../parameters.rkt"
   pyret/lang/well-formed
   pyret/lang/indentation
   pyret/lang/eval
@@ -361,7 +362,7 @@
 
 (define (pyret/tc str src options)
   (define (get-or-false dict field)
-    (if (p:has-field dict field)
+    (if (p:has-field? dict field)
         (ffi-unwrap (p:get-field p:dummy-loc dict field))
         #f))
   (define check-mode? (get-or-false options "check"))

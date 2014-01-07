@@ -13,11 +13,14 @@ fun EqualsExcept(fields-to-skip):
           negate1 = fun(f): fun(v): not f(v);;
           fields = builtins.keys(self).filter(negate1(fields-to-skip.member(_)))
           for fold(acc from true, f from fields):
-            thisval = self:[f]
-            otherval = other:[f]
-            equal = if Method(thisval) or Function(thisval): true
-                    else: thisval == otherval;
-            acc and equal
+            builtins.has-field(other, f) and 
+              block:
+                thisval = self:[f]
+                otherval = other:[f]
+                equal = if Method(thisval) or Function(thisval): true
+                        else: thisval == otherval;
+                acc and equal
+              end
           end
         end
       }
@@ -39,7 +42,7 @@ end
 equals-except-loc = EqualsExcept(["l", "ann"])
 
 data AProg deriving equals-except-loc:
-  | a-prog(l :: Loc, imports :: List<AImport>, body :: AExpr) 
+  | a-program(l :: Loc, imports :: List<AImport>, body :: AExpr) 
 end
 
 data AImport deriving equals-except-loc:
@@ -51,7 +54,6 @@ end
 data AExpr deriving equals-except-loc:
   | a-let(l :: Loc, b :: ABind, e :: ALettable, body :: AExpr)
   | a-var(l :: Loc, b :: ABind, e :: ALettable, body :: AExpr)
-  | a-begin(l :: Loc, e1 :: ALettable, e2 :: AExpr)
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr)
   | a-try(l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr)
   | a-lettable(e :: ALettable)
@@ -69,11 +71,12 @@ data ALettable deriving equals-except-loc:
   | a-assign(l :: Loc, id :: String, value :: AVal)
   | a-app(l :: Loc, f :: AVal, args :: List<AVal>)
   | a-help-app(l :: Loc, f :: String, args :: List<AVal>)
+  | a-split-app(l :: Loc, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>)
   | a-obj(l :: Loc, fields :: List<AField>)
   | a-update(l :: Loc, super :: AVal, fields :: List<AField>)
   | a-dot(l :: Loc, obj :: AVal, field :: String)
   | a-colon(l :: Loc, obj :: AVal, field :: String)
-  | a-get-bang(l :: Loc, obj :: AVal, field :: String
+  | a-get-bang(l :: Loc, obj :: AVal, field :: String)
   | a-lam(l :: Loc, args :: List<ABind>, body :: AExpr)
   | a-method(l :: Loc, args :: List<ABind>, body :: AExpr)
   | a-val(v :: AVal)

@@ -6,6 +6,7 @@
   current-check-mode
   current-whalesong-repl-print
   current-allow-shadowed-vars
+  current-allow-unbound-vars
   current-mark-mode
   current-compile-lift-constants
   current-print-desugared

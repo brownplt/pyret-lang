@@ -11,7 +11,9 @@ fun main(args):
       compile-standalone-js:
         C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
       libs:
-        C.next-val(C.String, C.many, "Paths to files to include as builtin libraries")
+        C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
+      no-check-mode:
+        C.flag(C.once, "Skip checks")
     }
 
   params-parsed = C.parse-args(options, args)
@@ -25,11 +27,19 @@ fun main(args):
         bs = if builtins.has-field(r, "builtins"):
             r.libs
           else:
-            CS.standard-libs
+            []
+          end
+        check-mode = if builtins.has-field(r, "no-check-mode"):
+            false
+          else:
+            true
           end
         result = CM.compile-standalone-js(
             r.compile-standalone-js,
-            CS.standard-builtins
+            CS.standard-builtins,
+            {
+              check-mode : check-mode
+            }
           )
         cases(CS.CompileResult) result:
           | ok(code) => print(code)

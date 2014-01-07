@@ -663,12 +663,12 @@ end
 
 fun binding-ids(stmt):
   fun variant-ids(variant):
-    cases(A.Variant) variant:
+    cases(Variant) variant:
       | s_variant(_, name, _, _) => [name, make-checker-name(name)]
       | s_singleton-variant(_, name, _, _) => [name, make-checker-name(name)]
     end
   end
-  cases(A.Expr) stmt:
+  cases(Expr) stmt:
     | s_let(_, b, _) => [b.id]
     | s_var(_, b, _) => [b.id]
     | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
@@ -678,15 +678,15 @@ fun binding-ids(stmt):
   end
 end
 
-fun block-ids(b :: A.is-s_block):
-  cases(A.Expr) b:
+fun block-ids(b :: is-s_block):
+  cases(Expr) b:
     | s_block(_, stmts) => flatten(stmts.map(binding-ids))
     | else => raise("Non-block given to block-ids")
   end
 end
 
-fun toplevel-ids(program :: A.Program):
-  cases(A.Program) program:
+fun toplevel-ids(program :: Program):
+  cases(Program) program:
     | s_program(_, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end

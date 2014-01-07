@@ -17,7 +17,7 @@ fun parse-libs(libs):
         l,
         { check : false, env: {}, allow-unbound: true }
       )
-    ids = A.toplevel-ids(lib.prog)
+    ids = A.toplevel-ids(l.prog)
     new-env = for fold(the-env from pair.env, id from ids):
       the-env.{[id]: true}
     end
@@ -25,14 +25,14 @@ fun parse-libs(libs):
   end
 end
 
-fun compile-standalone-js(js-file, libs) -> C.CompileResult:
+fun compile-standalone-js(js-file, libs, options) -> C.CompileResult:
   f = F.input-file(js-file)
   code = f.read-file()
   f.close-file()
 
   libs-parsed = parse-libs(libs)
-  ast = A.parse-tc(code, js-file, {check : true, env: libs-parsed.env })
+  ast = A.parse-tc(code, js-file, {check : options.check-mode, env: libs-parsed.env })
   ce = C.compile-env(libs-parsed.ls, libs-parsed.env)
-  P.pyret-to-js(pyret-to-js, ce)
+  P.pyret-to-js(ast, ce)
 end
 

@@ -29,7 +29,7 @@ fun file-exists(path :: String):
 end
 
 fun file-to-string(path):
-  f = F.input-file(b)
+  f = F.input-file(path)
   s = F.read-file()
   f.close-file()
   s
