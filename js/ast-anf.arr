@@ -51,7 +51,7 @@ end
 data AExpr deriving equals-except-loc:
   | a-let(l :: Loc, b :: ABind, e :: ALettable, body :: AExpr)
   | a-var(l :: Loc, b :: ABind, e :: ALettable, body :: AExpr)
-  | a-letrec(l :: Loc, bs :: List<ALetBind>, body :: AExpr)
+  | a-begin(l :: Loc, e1 :: ALettable, e2 :: AExpr)
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr)
   | a-try(l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr)
   | a-lettable(e :: ALettable)
@@ -70,7 +70,10 @@ data ALettable deriving equals-except-loc:
   | a-app(l :: Loc, f :: AVal, args :: List<AVal>)
   | a-help-app(l :: Loc, f :: String, args :: List<AVal>)
   | a-obj(l :: Loc, fields :: List<AField>)
+  | a-update(l :: Loc, super :: AVal, fields :: List<AField>)
   | a-dot(l :: Loc, obj :: AVal, field :: String)
+  | a-colon(l :: Loc, obj :: AVal, field :: String)
+  | a-get-bang(l :: Loc, obj :: AVal, field :: String
   | a-lam(l :: Loc, args :: List<ABind>, body :: AExpr)
   | a-method(l :: Loc, args :: List<ABind>, body :: AExpr)
   | a-val(v :: AVal)
@@ -84,7 +87,9 @@ data AVal deriving equals-except-loc:
   | a-num(l :: Loc, n :: Number)
   | a-str(l :: Loc, s :: String)
   | a-bool(l :: Loc, b :: Bool)
+  # used for letrec
+  | a-undefined(l :: Loc)
   | a-id(l :: Loc, id :: String)
 end
 
-
+dummy-loc = error.location("", 0, 0)

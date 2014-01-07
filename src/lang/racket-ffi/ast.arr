@@ -653,6 +653,14 @@ data AField:
     end
 end
 
+fun make-checker-name(name): "is-" + name;
+
+fun flatten(list-of-lists :: List):
+  for fold(biglist from [], piece from list-of-lists):
+    biglist + piece
+  end
+end
+
 fun binding-ids(stmt):
   fun variant-ids(variant):
     cases(A.Variant) variant:
