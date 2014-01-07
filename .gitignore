@@ -16,6 +16,9 @@ js/test-runner/tests.js
 js/grammar.js
 js/pyret-parser.js
 js/htdocs/moorings.js
+js/generated-tests
+js/compiled
+js/closure-compiler
 *#
 pyret.plt
 pyret.org/pyret-frog/*.html
@@ -28,3 +31,4 @@ pyret.org/pyret-frog/feeds/
 pyret.org/pyret-frog/getting-started/
 pyret.org/pyret-frog/tags/
 pyret.org/pyret-frog/tour/
+
