@@ -1,6 +1,85 @@
 /***
 This is the runtime for the ANF'd version of pyret
 */
+"use strict";
+var SafeDict = (function() {
+    var noProto = {};
+    function SafeDict(initialBindings) {
+      if (typeof initialBindings !== "object") {
+            throw new Error("Non-object " + initialBindings + " given to SafeDict constructor");
+      }
+      this.bindings = initialBindings;
+      this.proto = noProto;
+    }
+    SafeDict.prototype = {
+      merge: function(other) {
+          var combined = Object.create(this.bindings);
+          for (var k in other.bindings) {
+            combined[k] = other.bindings[k];
+          }
+          var newSafeDict = new SafeDict(combined);
+          if (other.proto !== noProto) {
+            newSafeDict.proto = other.proto;
+          }
+          else {
+            newSafeDict.proto = this.proto;
+          }
+          return newSafeDict;
+      },
+      get: function(key) {
+          if (key === "__proto__") {
+            if (this.proto === noProto) {
+                throw new Error("Looked up __proto__, not bound in safeDict");
+            }
+            return this.proto;
+          }
+          else {
+            if (!(key in this.bindings)) {
+                throw new Error("Looked up " + key + ", not bound in safeDict");
+            }
+            return this.bindings[key];
+          }
+      },
+      set: function(key, value) {
+          if (key === "__proto__") {
+            var newSafeDict = new SafeDict(this.bindings);
+            newSafeDict.proto = value;
+            return newSafeDict;
+          } 
+          else {
+            var o = Object.create(null);
+            o[key] = value;
+            return this.merge(new SafeDict(o));
+          }
+      },
+      hasBinding: function(key) {
+          if (key === "__proto__") {
+            return this.proto !== noProto;
+          }
+          else {
+            return key in this.bindings;
+          }
+      },
+      getNames: function() {
+        var keys = [];
+        if (this.proto !== noProto) { keys.push("__proto__"); }
+        for (var key in this.bindings) {
+          keys.push(key);
+        }
+        return keys;
+      }
+    };
+    var makeSafeDict = function(bindingsObj) {
+      var bindings = Object.create(null);
+      Object.keys(bindingsObj).forEach(function(k) {
+          bindings[k] = bindingsObj[k];
+      });
+      return new SafeDict(bindings);
+    }
+    
+    return makeSafeDict;
+})();
+
 var PYRET_ANF = (function() {
 
 function makeRuntime() {
@@ -389,3 +468,8 @@ function makeRuntime() {
 
 return  {'makeRuntime' : makeRuntime};
 })();
+
+if (typeof exports !== 'undefined') {
+  exports['PYRET_ANF'] = PYRET_ANF;
+}
+
