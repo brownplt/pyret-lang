@@ -8,9 +8,4 @@ describe("Basic values", function() {
     var rt = R.makeRuntime();
     expect(rt.makeNumber(5).n).toEqual(5);
   });
-
-
-
 });
-
-

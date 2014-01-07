@@ -66,14 +66,62 @@ fun id-access(id :: String):
 js-id-of(id)
 end
 
-fun program-to-cps-js(ast, runtime-ids):
+data CompiledCode:
+  | compiled-code(
+        js-src :: String,
+        ids :: List<String>,
+        imports :: List<A.is-s_import>,
+        provides :: List<A.is-s_provide>
+      ) with:
+    to-json(self):
+      {
+        js-src: self.js-src,
+        ids: self.ids,
+        imports: for map(i from self.imports):
+          cases(A.Header) i:
+            | s_import(l, f, imported-as) =>
+              cases(A.ImportType) f:
+                | s_file_import(fn) => raise("Cannot handle file imports yet: " + fn)
+                | s_const_import(m) => {
+                    module-name: m,
+                    imported-as: imported-as
+                  }
+              end
+            | else => raise("Non-import in CompiledCode imports: " + torepr(i))
+          end
+        end,
+        provides: []
+      }
+    end
+end
+
+fun src-program-to-cps-js(src :: String, name :: String, _check, ids):
+  print(ids)
+  env = if is-string(ids) and (ids == "normal"):
+    "normal"
+  else:
+    for fold(acc from {}, id from ids):
+      acc.{[id]: true}
+    end
+  end
+  ast = A.parse-tc(src, name, { check : _check, env : env })
+  free-ids = A.free-ids(A.to-native(ast))
+  jsval = program-to-cps-js(ast, free-ids).to-json()
+  J.stringify(jsval)
+end
+
+fun program-to-cps-js(ast, runtime-ids) -> CompiledCode:
   cases(A.Program) ast:
     # import/provide ignored
-    | s_program(_, _, block) =>
+    | s_program(_, headers, block) =>
+      imports = for filter(h from headers):
+        A.is-s_import(h) and A.is-s_const_import(h.file)
+      end
+      outside-bindings = imports.map(_.name) + runtime-ids
       cases(A.Expr) block :
         | s_block(l, stmts) =>
 
-          bindings = for list.fold(bs from "", id from ["nothing"] + runtime-ids):
+          bindings = for list.fold(bs from "", id from ["nothing"] + outside-bindings):
             bs + format("var ~a = NAMESPACE.get('~a');\n", [js-id-of(id), id])
           end
 
@@ -115,7 +163,7 @@ fun program-to-cps-js(ast, runtime-ids):
           # $K is { success : NormalResult -> Undef, failure : FailResult -> Undef }
   
 
-          format("(function(RUNTIME, NAMESPACE, $K) {
+          js-src = format("(function(RUNTIME, NAMESPACE, $K) {
             try {
               ~a
               var RESULT;
@@ -126,7 +174,7 @@ fun program-to-cps-js(ast, runtime-ids):
                     // TODO(joe): Relying on the representation here to get off
                     // the ground, via the pyretToJSDict endpoint.  Need to codify
                     // namespaces and their interaction with runtime precisely
-                    var EXPORT_NAMESPACE = Namespace(RUNTIME.pyretToJSDict(namespace));
+                    var EXPORT_NAMESPACE = RUNTIME.Namespace(RUNTIME.pyretToJSDict(namespace));
                     $K.success(RUNTIME.makeNormalResult(value, EXPORT_NAMESPACE));
                   });
                 var f = RUNTIME.makeFunction(function(ERR) {
@@ -141,7 +189,13 @@ fun program-to-cps-js(ast, runtime-ids):
               $K.failure(RUNTIME.makeFailResult(e));
             }
           })", [bindings, expr-to-js(cps(block-for-cps))])
-
+          defined = toplevel-ids(ast)
+          compiled-code(
+              js-src,
+              defined,
+              imports,
+              []
+            )
       end
   end
 end
@@ -193,7 +247,7 @@ fun program-to-js(ast, runtime-ids):
             try {
               ~a
               var RESULT;
-              var EXPORT_NAMESPACE = Namespace({});
+              var EXPORT_NAMESPACE = RUNTIME.Namespace({});
               (function() {
                 ~a
                 ~a

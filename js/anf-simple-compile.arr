@@ -8,7 +8,10 @@ import format as F
 format = F.format
 
 fun compile(prog :: S.SplitResult):
-  format("console.log(~a)", [compile-e(prog.body)])
+  format("(function(RUNTIME, NAMESPACE) {
+      var print = NAMESPACE.get('print');
+      ~a
+    })", [compile-e(prog.body)])
 end
 
 fun compile-e(expr :: N.AExpr):
@@ -43,8 +46,8 @@ fun compile-l(expr :: N.ALettable):
 
     | a-app(l, f, args) =>
       format(
-"~a(~a)",
-        [compile-v(f), args.map(compile-v)])
+"~a.app(~a)",
+        [compile-v(f), args.map(compile-v).join-str(",")])
     | a-val(v) => compile-v(v)
     | else => raise("NYI: " + torepr(expr))
   end
@@ -53,7 +56,7 @@ end
 fun compile-v(v :: N.AVal):
   cases(N.AVal) v:
     | a-id(l, id) => id
-    | a-num(l, n) => n.tostring()
+    | a-num(l, n) => format("RUNTIME.makeNumber(~a)", [n.tostring()])
     | a-str(l, s) => format("~s", [s])
     | a-bool(l, b) => b.tostring()
     | a-undefined(l) => "undefined"

@@ -1,7 +1,7 @@
 j = require('jasmine-node');
 
 j.executeSpecsInFolder({
-    specFolders: ["test/"],
+    specFolders: [process.argv[2]],
     onComplete:   function() { console.log("done"); },
     isVerbose:    true,
     showColors:   true,

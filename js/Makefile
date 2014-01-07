@@ -4,7 +4,10 @@ compile: runtime-anf.js
 install:
 	mkdir -p closure-compiler
 	wget "http://dl.google.com/closure-compiler/compiler-latest.zip"
-	unzip -f compiler-latest.zip -d closure-compiler 
+	unzip compiler-latest.zip -d closure-compiler 
 	rm compiler-latest.zip
-	echo "Installed"
+	npm install jasmine-node
 
+test:
+	mkdir -p generated-tests/anf-tests
+	node test.js

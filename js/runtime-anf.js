@@ -1,88 +1,14 @@
 /***
 This is the runtime for the ANF'd version of pyret
 */
+if(typeof require !== 'undefined') {
+  var Namespace = require('./namespace.js').Namespace;
+}
 "use strict";
-var SafeDict = (function() {
-    var noProto = {};
-    function SafeDict(initialBindings) {
-      if (typeof initialBindings !== "object") {
-            throw new Error("Non-object " + initialBindings + " given to SafeDict constructor");
-      }
-      this.bindings = initialBindings;
-      this.proto = noProto;
-    }
-    SafeDict.prototype = {
-      merge: function(other) {
-          var combined = Object.create(this.bindings);
-          for (var k in other.bindings) {
-            combined[k] = other.bindings[k];
-          }
-          var newSafeDict = new SafeDict(combined);
-          if (other.proto !== noProto) {
-            newSafeDict.proto = other.proto;
-          }
-          else {
-            newSafeDict.proto = this.proto;
-          }
-          return newSafeDict;
-      },
-      get: function(key) {
-          if (key === "__proto__") {
-            if (this.proto === noProto) {
-                throw new Error("Looked up __proto__, not bound in safeDict");
-            }
-            return this.proto;
-          }
-          else {
-            if (!(key in this.bindings)) {
-                throw new Error("Looked up " + key + ", not bound in safeDict");
-            }
-            return this.bindings[key];
-          }
-      },
-      set: function(key, value) {
-          if (key === "__proto__") {
-            var newSafeDict = new SafeDict(this.bindings);
-            newSafeDict.proto = value;
-            return newSafeDict;
-          } 
-          else {
-            var o = Object.create(null);
-            o[key] = value;
-            return this.merge(new SafeDict(o));
-          }
-      },
-      hasBinding: function(key) {
-          if (key === "__proto__") {
-            return this.proto !== noProto;
-          }
-          else {
-            return key in this.bindings;
-          }
-      },
-      getNames: function() {
-        var keys = [];
-        if (this.proto !== noProto) { keys.push("__proto__"); }
-        for (var key in this.bindings) {
-          keys.push(key);
-        }
-        return keys;
-      }
-    };
-    var makeSafeDict = function(bindingsObj) {
-      var bindings = Object.create(null);
-      Object.keys(bindingsObj).forEach(function(k) {
-          bindings[k] = bindingsObj[k];
-      });
-      return new SafeDict(bindings);
-    }
-    
-    return makeSafeDict;
-})();
 
 var PYRET_ANF = (function() {
 
-function makeRuntime() {
+function makeRuntime(theOutsideWorld) {
     /**
       The base of all pyret values
       @constructor
@@ -90,7 +16,7 @@ function makeRuntime() {
     */
     function PBase() {
         this.brands = [];
-        this.dict   = {};
+        this.dict   = Object.create(null);
     }
 
     PBase.prototype = {
@@ -446,9 +372,42 @@ function makeRuntime() {
     function makeMethod(meth) {
        return new PMethod(meth); 
     }
+
+    var print = makeFunction(function(val) {
+      var str = '';
+      if (isNumber(val)) {
+        str = String(val.n);
+      } else {
+        str = String(val);
+      }
+      theOutsideWorld.stdout(str);
+    });
+
+    function SuccessResult(r) {
+      this.result = r;
+    }
+    function isSuccessResult(val) { return val instanceof SuccessResult; }
+
+    function FailureResult(e) {
+      this.exn = e;
+    }
+    function isFailureResult(val) { return val instanceof FailureResult; }
+
     //Export the runtime
     //String keys should be used to prevent renaming
-    return {
+    thisRuntime = {
+        'namespace': Namespace({
+          'print': print
+        }),
+
+        'run': function(program, namespace, onDone) {
+          try {
+            onDone(new SuccessResult(program(thisRuntime, namespace)));
+          } catch(e) {
+            onDone(new FailureResult(e));
+          }
+        },
+
         'isBase'      : isBase,
         'isNothing'   : isNothing,
         'isNumber'    : isNumber,
@@ -457,6 +416,9 @@ function makeRuntime() {
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
 
+        'isSuccessResult' : isSuccessResult,
+        'isFailureResult' : isFailureResult,
+
         'makeNothing'  : makeNothing,
         'makeNumber'   : makeNumber,
         'makeBoolean'  : makeBoolean,
@@ -464,6 +426,7 @@ function makeRuntime() {
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod
     };
+    return thisRuntime;
 }
 
 return  {'makeRuntime' : makeRuntime};
