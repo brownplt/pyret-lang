@@ -12,7 +12,9 @@ fun make-compiled-pyret(program-ast, env):
   anfed = N.anf-program(program-ast)
   split = AS.ast-split(anfed.body)
   print(split)
-  c = C.ok(AC.compile(split))
+  compiled = AC.compile(split)
+  code = compiled.tosource().pretty(80).join-str("\n")
+  c = C.ok(code)
   
   {
     pyret-to-js-standalone: fun():

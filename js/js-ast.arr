@@ -1,5 +1,6 @@
 #lang pyret
 
+provide *
 import pprint as PP
 import format as F
 
@@ -20,6 +21,13 @@ data JStmt:
     tosource(self):
       PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
         PP.str(" =") + PP.break(1) + self.rhs.tosource())) + PP.str(";")
+    end
+  | j-if(cond :: JExpr, consq :: JBlock, alt :: JBlock) with:
+    tosource(self):
+      PP.group(PP.str("if") + PP.parens(self.cond.tosource())) + PP.str(" ") +
+        PP.surround(INDENT, 1, PP.lbrace, self.consq.tosource(), PP.rbrace) +
+        PP.str(" else ") +
+        PP.surround(INDENT, 1, PP.lbrace, self.alt.tosource(), PP.rbrace)
     end
   | j-return(expr :: JExpr) with:
     tosource(self):
@@ -44,7 +52,7 @@ data JExpr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end
-  | j-method-app(obj :: JExpr, meth :: String, args :: List<JExpr>) with:
+  | j-method(obj :: JExpr, meth :: String, args :: List<JExpr>) with:
     tosource(self):
       PP.group(PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.meth))
           + PP.parens(PP.nest(INDENT,
@@ -95,8 +103,8 @@ where:
     ["function(a, b) { a(b) }"]
 
   j-fun(["RUNTIME", "NAMESPACE"], j-block([
-      j-var("print", j-method-app(j-id("NAMESPACE"), "get", [j-str("print")])),
-      j-var("brand", j-method-app(j-id("NAMESPACE"), "get", [j-str("brand")]))
+      j-var("print", j-method(j-id("NAMESPACE"), "get", [j-str("print")])),
+      j-var("brand", j-method(j-id("NAMESPACE"), "get", [j-str("brand")]))
     ])).tosource().pretty(80)
     is
     [
@@ -114,6 +122,10 @@ where:
 }", [j-raw("x + y"), j-id("z")], 100000).tosource().pretty(80) is
     ["try { x + y } catch(e) { z
 }"]
+
+  j-if(j-true, j-block([j-return(j-false)]), j-block([j-return(j-num(5))]))
+    .tosource().pretty(80) is
+    ["if(true) { return false; } else { return 5; }"]
 
 end
 
