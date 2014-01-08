@@ -36,7 +36,6 @@ fun generate-output(filename):
     the-output := the-output + torepr(val) + "\n"
     val
   end
-  print("generating for: " + filename)
   env = N.whalesong-env.{test-print: capturing-print}
   program = A.parse(in.read-file(), "test", {check : false})
   data EvalResult:
@@ -95,7 +94,6 @@ fun get-dir-sections(path, create-test):
           file-contents = read-then-close(file-path)
           out-contents = read-then-close(file-path + ".out")
           err-contents = read-then-close(file-path + ".err")
-          print("Generating test: " + test-file)
           create-test(new-path, test-file, file-contents, out-contents, err-contents)
         end
       end
@@ -104,16 +102,12 @@ fun get-dir-sections(path, create-test):
 end
 
 fun create-simple-test(path, name, program, out, err):
-  print("creating jasmine test: " + path)
   create-jasmine-test(path, name, program, [], out, err)
 end
 
 var tests-with-errors = []
 
 fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
-  print("creating jasmine test: " + path)
-  print(name)
-  print(program)
   compiled = P.compile-runnable-js(program, name, libs, { check-mode : false, extra-ids: ["test-print"] })
   cases(CS.CompileResult) compiled:
     | err(message) => tests-with-errors := (tests-with-errors + [{name: name, compiled: compiled}])
