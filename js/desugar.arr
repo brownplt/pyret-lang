@@ -16,11 +16,13 @@ fun desugar(program :: A.Program):
 end
 
 fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
+  doc: "Treating stmts as a block, remove x = e, var x = e, and fun f(): e end
+        and turn them into explicit let and letrec expressions."
   cases(List) stmts:
     | empty => raise("Empty block in resolve-scope")
     | link(f, rest-stmts) =>
       fun wrap-letrecs(expr):
-        A.s_let_expr(letrec-binds.first.l, letrec-binds.reverse(), expr)
+        A.s_letrec(letrec-binds.first.l, letrec-binds.reverse(), expr)
       end
       fun wrap-lets(expr):
         A.s_let_expr(let-binds.first.l, let-binds.reverse(), expr)
@@ -38,11 +40,11 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
         | s_let(l, bind, expr) =>
           handle-let-bind(l, A.s_let_bind(l, bind, expr))
         | s_var(l, bind, expr) =>
-          handle-let-bind(A.s_var_bind(l, bind, expr))
+          handle-let-bind(l, A.s_var_bind(l, bind, expr))
         | s_fun(l, name, params, args, ann, doc, body, _check) =>
           new-letrecs = link(A.s_letrec_bind(
               l,
-              A.s_bind(name, A.a_blank),
+              A.s_bind(l, false, name, A.a_blank),
               A.s_lam(l, params, args, ann, doc, body, _check)
             ), letrec-binds)
           resolved-inner = resolve-scope(rest-stmts, [], new-letrecs)
@@ -51,16 +53,17 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           else:
             [wrap-lets(A.s_block(l, resolved-inner))]
           end
-          raise("nyi fun")
         | else =>
+          wrapper = 
+            if is-link(let-binds): wrap-lets
+            else if is-link(letrec-binds): wrap-letrecs
+            else: fun(e): e;
+            end
           cases(List) rest-stmts:
-            | empty =>
-              if is-link(let-binds): [wrap-lets(f)]
-              else if is-link(letrec-binds): [wrap-letrecs(f)]
-              else: [f]
-              end
+            | empty => [wrapper(f)]
             | link(_, _) =>
-              link(f, resolve-scope(rest-stmts))
+              [wrapper(A.s_block(f.l,
+                link(f, resolve-scope(rest-stmts, [], []))))]
           end
       end
   end
@@ -68,12 +71,48 @@ where:
   p = fun(str): A.surface-parse(str, "test").block;
   d = A.dummy-loc
   b = A.s_bind(d, false, _, A.a_blank)
+  bk = fun(e): A.s_block(d, [e]) end
+  bs = fun(str):
+    A.s_block(d, resolve-scope(p(str).stmts, [], []))
+  end
+  n = A.s_block(d, [])
 
   resolve-scope(p("x = 5 y = 10 y").stmts, [], []).first
     satisfies 
       A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5)),
                                       A.s_let_bind(d, b("y"), A.s_num(d, 10))],
                         A.s_id(d, "y")))
+
+  resolve-scope(p("x = 5 var y = 10 y").stmts, [], []).first
+    satisfies 
+      A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5)),
+                                      A.s_var_bind(d, b("y"), A.s_num(d, 10))],
+                        A.s_id(d, "y")))
+
+  bs("x = 5 print(2) var y = 10 y")
+    satisfies 
+      A.equiv-ast(_,
+                  A.s_block(d,
+                    [ A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5))],
+                        A.s_block(d, [
+                            A.s_app(d, A.s_id(d, "print"), [A.s_num(d, 2)]),
+                            A.s_let_expr(d, [A.s_var_bind(d, b("y"), A.s_num(d, 10))],
+                              A.s_id(d, "y"))
+                          ]))]))
+
+  prog = bs("fun f(): 4 end fun g(): 5 end f()")
+  prog
+    satisfies
+      A.equiv-ast(_,
+        A.s_block(d,
+          [ A.s_letrec(d, [
+              A.s_letrec_bind(d, b("f"), A.s_lam(d, [], [], A.a_blank, "", bk(A.s_num(d, 4)), n)),
+              A.s_letrec_bind(d, b("g"), A.s_lam(d, [], [], A.a_blank, "", bk(A.s_num(d, 5)), n))
+            ],
+            A.s_app(d, A.s_id(d, "f"), []))
+          ]))
+
+
 end
 
 fun desugar-expr(nv :: DesugarEnv, expr :: A.Program):
