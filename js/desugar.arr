@@ -76,6 +76,7 @@ where:
     A.s_block(d, resolve-scope(p(str).stmts, [], []))
   end
   n = A.s_block(d, [])
+  thunk = fun(e): A.s_lam(d, [], [], A.a_blank, "", bk(e), n) end
 
   resolve-scope(p("x = 5 y = 10 y").stmts, [], []).first
     satisfies 
@@ -106,11 +107,30 @@ where:
       A.equiv-ast(_,
         A.s_block(d,
           [ A.s_letrec(d, [
-              A.s_letrec_bind(d, b("f"), A.s_lam(d, [], [], A.a_blank, "", bk(A.s_num(d, 4)), n)),
-              A.s_letrec_bind(d, b("g"), A.s_lam(d, [], [], A.a_blank, "", bk(A.s_num(d, 5)), n))
+              A.s_letrec_bind(d, b("f"), thunk(A.s_num(d, 4))),
+              A.s_letrec_bind(d, b("g"), thunk(A.s_num(d, 5)))
             ],
             A.s_app(d, A.s_id(d, "f"), []))
           ]))
+
+  p-s = fun(e): A.s_app(d, A.s_id(d, "print"), [e]);
+  pretty = fun(e): e.tosource().pretty(80).join-str("\n");
+
+  prog2 = bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)")
+  prog2
+    satisfies
+      A.equiv-ast(_,
+        A.s_block(d,
+          [A.s_block(d,
+            [ p-s(A.s_num(d, 1)),
+              A.s_letrec(d, [
+                  A.s_letrec_bind(d, b("f"), thunk(A.s_num(d, 4))),
+                  A.s_letrec_bind(d, b("g"), thunk(A.s_num(d, 5))),
+                  A.s_letrec_bind(d, b("h"), thunk(A.s_num(d, 6)))
+                ],
+                A.s_block(d, [
+                    A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 3))], p-s(A.s_id(d, "x")))
+                  ]))])]))
 
 
 end
