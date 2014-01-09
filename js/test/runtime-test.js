@@ -3,9 +3,293 @@ R = require('../runtime-anf.js').PYRET_ANF;
 
 console.log(R);
 
+var output;
+var rt;
+
+/**@ param {string} str, output*/
+function stdout(str) {
+    output += str;
+}
+
+//Test functions for creating functions/method
+function x() {return makeNumber(3);}
+function y(a) {return makeNumber(3);}
+function z(a,b) {return makeNumber(3);}
+function w(a,b,c) {return makeNumber(3);}
+
+//Test varaibles of each type
+var aNum;
+var aBool;
+var aStr;
+var aFun;
+var aMeth;
+var aNoth;
+
+beforeEach(function(){
+    this.addMatchers({
+        toHaveEmptyDict : function() {
+            return (this.actual.dict !== undefined) && (Object.keys(this.actual.dict).length === 0);
+        },
+        toHaveNoBrands : function() {
+            return (this.actual.brands !== undefined) && (this.actual.brands.length === 0);
+        },
+        //Tests equality with ===, must be exact same
+        toBeIdentical : function(expect) {
+            return this.actual === expect;
+        }
+    });
+
+    output = "";
+    rt = R.makeRuntime({'stdout' : stdout});
+
+    //Make Examples for testing
+    aNum = rt.makeNumber(42);
+    aBool = rt.makeBoolean(true);
+    aStr = rt.makeString("pyret");
+    aFun = rt.makeFunction(x);
+    aMeth = rt.makeMethod(x);
+    aNoth = rt.makeNothing();
+});
+
+
 describe("Basic values", function() {
   it("should have an n field on numbers", function() {
-    var rt = R.makeRuntime();
     expect(rt.makeNumber(5).n).toEqual(5);
   });
+
+  it("should have an b field on booleans", function() {
+        expect(rt.makeBoolean(true).b).toEqual(true);
+        expect(rt.makeBoolean(false).b).toEqual(false);
+  });
+
+  it("should have an s field on strings", function() {
+        expect(rt.makeString("hello world").s).toEqual("hello world");
+        expect(rt.makeString("\n").s).toEqual("\n");
+  });
+
+  it("should have an app field on functions", function() {
+        function x() {return makeNumber(3);}
+        expect(rt.makeFunction(x).app).toEqual(x);
+
+        function y(a,b,c) {return makeNumber(3);}
+        expect(rt.makeFunction(y).app).toEqual(y);
+  });
+
+  it("should have a meth field on methods", function() {
+        function x() {return makeNumber(3);}
+        expect(rt.makeMethod(x).meth).toEqual(x);
+
+        function y(a,b,c) {return makeNumber(3);}
+        expect(rt.makeMethod(y).meth).toEqual(y);
+  });
+
+  it("should have no brands", function() {
+        expect(rt.makeNumber(1)).toHaveNoBrands();
+        expect(rt.makeString("hello")).toHaveNoBrands();
+        expect(rt.makeBoolean(true)).toHaveNoBrands();
+        expect(rt.makeFunction(y)).toHaveNoBrands();
+        expect(rt.makeMethod(y)).toHaveNoBrands();
+        expect(rt.makeNothing()).toHaveNoBrands();
+        expect(rt.makeObject({})).toHaveNoBrands();
+  });
+  });
+
+  describe("Functions and Methods", function() {
+    it("should have correct arity fields", function() {
+        expect(rt.makeFunction(x).arity).toEqual(0);
+        expect(rt.makeFunction(y).arity).toEqual(1);
+        expect(rt.makeFunction(z).arity).toEqual(2);
+        expect(rt.makeFunction(w).arity).toEqual(3);
+
+        expect(rt.makeMethod(x).arity).toEqual(0);
+        expect(rt.makeMethod(y).arity).toEqual(1);
+        expect(rt.makeMethod(z).arity).toEqual(2);
+        expect(rt.makeMethod(w).arity).toEqual(3);
+    });
+    });
+
+  describe("is* tests", function(){
+     it("isBase works", function(){
+        expect(rt.isBase(aNum)).toEqual(    true) 
+        expect(rt.isBase(aBool)).toEqual(   true) 
+        expect(rt.isBase(aStr)).toEqual(    true) 
+        expect(rt.isBase(aFun)).toEqual(    true) 
+        expect(rt.isBase(aMeth)).toEqual(   true) 
+        expect(rt.isBase(aNoth)).toEqual(   true) 
+     });
+
+     it("isNumber works", function(){
+        expect(rt.isNumber(aNum)).toEqual(    true) 
+        expect(rt.isNumber(aBool)).toEqual(   false) 
+        expect(rt.isNumber(aStr)).toEqual(    false) 
+        expect(rt.isNumber(aFun)).toEqual(    false) 
+        expect(rt.isNumber(aMeth)).toEqual(   false) 
+        expect(rt.isNumber(aNoth)).toEqual(   false) 
+     });
+
+     it("isBoolean works", function(){
+        expect(rt.isBoolean(aNum)).toEqual(    false) 
+        expect(rt.isBoolean(aBool)).toEqual(   true) 
+        expect(rt.isBoolean(aStr)).toEqual(    false) 
+        expect(rt.isBoolean(aFun)).toEqual(    false) 
+        expect(rt.isBoolean(aMeth)).toEqual(   false) 
+        expect(rt.isBoolean(aNoth)).toEqual(   false) 
+     });
+
+     it("isString works", function(){
+        expect(rt.isString(aNum)).toEqual(    false) 
+        expect(rt.isString(aBool)).toEqual(   false) 
+        expect(rt.isString(aStr)).toEqual(    true) 
+        expect(rt.isString(aFun)).toEqual(    false) 
+        expect(rt.isString(aMeth)).toEqual(   false) 
+        expect(rt.isString(aNoth)).toEqual(   false) 
+     });
+
+     it("isFunction works", function(){
+        expect(rt.isFunction(aNum)).toEqual(    false) 
+        expect(rt.isFunction(aBool)).toEqual(   false) 
+        expect(rt.isFunction(aStr)).toEqual(    false) 
+        expect(rt.isFunction(aFun)).toEqual(    true) 
+        expect(rt.isFunction(aMeth)).toEqual(   false) 
+        expect(rt.isFunction(aNoth)).toEqual(   false) 
+     });
+
+     it("isMethod works", function(){
+        expect(rt.isMethod(aNum)).toEqual(    false) 
+        expect(rt.isMethod(aBool)).toEqual(   false) 
+        expect(rt.isMethod(aStr)).toEqual(    false) 
+        expect(rt.isMethod(aFun)).toEqual(    false) 
+        expect(rt.isMethod(aMeth)).toEqual(   true) 
+        expect(rt.isMethod(aNoth)).toEqual(   false) 
+     });
+
+     it("isNothing works", function(){
+        expect(rt.isNothing(aNum)).toEqual(    false) 
+        expect(rt.isNothing(aBool)).toEqual(   false) 
+        expect(rt.isNothing(aStr)).toEqual(    false) 
+        expect(rt.isNothing(aFun)).toEqual(    false) 
+        expect(rt.isNothing(aMeth)).toEqual(   false) 
+        expect(rt.isNothing(aNoth)).toEqual(   true) 
+     });
+
+     it("should work on instances created by makeRuntime", function(){
+        //Inheritance depends on code order, ensure that the methods inside number etc are correct class
+        var plus = aNum.dict['_plus'];
+        expect(plus).not.toBeUndefined();
+        expect(rt.isMethod(plus)).toEqual(true);
+     });
+  });
+
+  describe("Cloning", function() {
+    it("should work for numbers", function() {
+       var orig = rt.makeNumber(42);
+       var clone = orig.clone();
+
+       expect(orig.n).toEqual(clone.n);
+       expect(orig.dict).not.toBeIdentical(clone.dict); 
+       expect(orig.brands).not.toBeIdentical(clone.brands); 
+    });
+
+    it("should work for booleans", function() {
+       var orig = rt.makeBoolean(true);
+       var clone = orig.clone();
+
+       expect(orig.b).toEqual(clone.b);
+       expect(orig.dict).not.toBeIdentical(clone.dict); 
+       expect(orig.brands).not.toBeIdentical(clone.brands); 
+    });
+
+    it("should work for strings", function() {
+       var orig = rt.makeString("pyret");
+       var clone = orig.clone();
+
+       expect(orig.s).toEqual(clone.s);
+       expect(orig.dict).not.toBeIdentical(clone.dict); 
+       expect(orig.brands).not.toBeIdentical(clone.brands); 
+    });
+
+    it("should work for functions", function() {
+       var orig = rt.makeFunction(x);
+       var clone = orig.clone();
+
+       expect(orig.app).toEqual(clone.app);
+       expect(orig.arity).toEqual(clone.arity);
+       expect(orig.dict).not.toBeIdentical(clone.dict); 
+       expect(orig.brands).not.toBeIdentical(clone.brands); 
+    });
+
+    it("should work for functions", function() {
+       var orig = rt.makeMethod(x);
+       var clone = orig.clone();
+
+       expect(orig.meth).toEqual(clone.meth);
+       expect(orig.arity).toEqual(clone.arity);
+       expect(orig.dict).not.toBeIdentical(clone.dict); 
+       expect(orig.brands).not.toBeIdentical(clone.brands); 
+    });
 });
+
+
+  describe("Extending Objects", function() {
+     it( "should have same fields and brands when no fields added", function() {
+       var x = aNum.extendWith({});
+       expect(aNum.n).toEqual(x.n);
+       expect(aNum.dict).toEqual(x.dict); 
+       expect(aNum.brands).toEqual(x.brands); 
+      });
+
+     it( "should add a new field", function() {
+       aNum.brands.push(1);
+       var x = aNum.extendWith({s : aStr});
+
+       expect(aNum.n).toEqual(x.n);
+       expect(x.dict.s).toBeIdentical(aStr);
+
+
+       expect(aNum.dict).not.toEqual(x.dict); 
+       expect(aNum.brands).toEqual(x.brands); 
+      });
+
+     it( "should add multiple new fields", function() {
+       aNum.brands.push(1);
+       var x = aNum.extendWith({s : aStr, b : aBool, f : aFun});
+
+       expect(aNum.n).toEqual(x.n);
+       expect(x.dict.s).toBeIdentical(aStr);
+       expect(x.dict.b).toBeIdentical(aBool);
+       expect(x.dict.f).toBeIdentical(aFun);
+
+
+       expect(aNum.dict).not.toEqual(x.dict); 
+       expect(aNum.brands).toEqual(x.brands); 
+      });
+
+     it( "should overwrite an existing field", function() {
+       aNum.brands.push(1);
+       var x = aNum.extendWith({s : aStr});
+       var y = x.extendWith({s : rt.makeString("not-equal")});
+
+       expect(y.n).toEqual(x.n);
+       expect(x.dict.s).toBeIdentical(aStr);
+       expect(y.dict.s.s).toEqual("not-equal");
+
+
+       expect(aNum.dict).not.toEqual(y.dict); 
+       expect(aNum.brands).not.toEqual(y.brands); 
+      });
+
+     it( "should overwrite an existing field and add new field", function() {
+       aNum.brands.push(1);
+       var x = aNum.extendWith({s : aStr});
+       var y = x.extendWith({s : rt.makeString("not-equal"), b : aBool});
+
+       expect(y.n).toEqual(x.n);
+       expect(x.dict.s).toBeIdentical(aStr);
+       expect(y.dict.s).not.toBeIdentical(aStr);
+       expect(y.dict.s.s).toEqual("not-equal");
+       expect(y.dict.b).toEqual(aBool);
+
+       expect(aNum.dict).not.toEqual(y.dict); 
+       expect(aNum.brands).not.toEqual(y.brands); 
+      });
+  });

@@ -6,25 +6,56 @@ if(typeof require !== 'undefined') {
 }
 "use strict";
 
+/**
+  @type {{makeRuntime : function(*)}}
+*/
 var PYRET_ANF = (function() {
 
+/**
+    Creates a Pyret runtime
+    @param {{stdout : function(string)}} theOutsideWorld contains the hooks into the environment
+
+    @return {Object} that contains all the necessary components of a runtime
+*/
 function makeRuntime(theOutsideWorld) {
     /**
       The base of all pyret values
       @constructor
-      @abstract
     */
     function PBase() {
         this.brands = [];
-        this.dict   = Object.create(null);
+        this.dict   = makeEmptyDict();
     }
 
     PBase.prototype = {
-        dict   : {},
+        dict   : makeEmptyDict(),
         brands : [],
         extendWith : extendWith,
         clone : function() {return new PBase();}
     };
+
+    /**
+      Sets up Inheritance with a function call
+      This needs to be done socompiler recognizes it
+
+      @param {Function} sub the class that will become a subclass
+      @param {Function} from the class that sub will subclass
+      */
+    function inherits(sub, from) {
+        sub.prototype = new from();
+        //sub.prototype = Object.create(from.prototype);
+    }
+
+    //Set up heirarchy
+    //We need to set it up before all the other classes
+    inherits(PNumber, PBase);
+    inherits(PNothing, PBase);
+    inherits(PObject, PBase);
+    inherits(PString, PBase);
+    inherits(PBoolean, PBase);
+    inherits(PFunction, PBase);
+    inherits(PMethod, PBase);
+    
 
     /**
         Extends an object with the new fields in fields
@@ -33,17 +64,17 @@ function makeRuntime(theOutsideWorld) {
 
         The original object is not mutated, instead it is cloned and the clone is mutated
 
-        @param {Object.<string, PBase>} fields: a PObj whose fields will be added to the Pyret base
+        @param {Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
         If any of the fields exist, they will be overwritten with the new value
 
-        @return {PBase} the extended object 
+        @return {!PBase} the extended object 
     */
     function extendWith(fields) {
         var newObj = this.clone();
         var allNewFields = true;
 
         for(var field in fields) {
-            if(allNewFields && newObj.dict.hasOwnProperty(field)) {
+            if(allNewFields && hasOwnProperty(newObj.dict, field)) {
                 allNewFields = false;
             }
 
@@ -55,22 +86,41 @@ function makeRuntime(theOutsideWorld) {
             return newObj;
     }
 
+    /**
+        Tests whether a JS Object has a property
+        Useful for objects that lack the .hasOwnProperty method
+
+        @param {!Object} obj the object to test
+        @param {string} p the property to look for
+        @return {boolean} true if obj has property p, false otherwise
+    */
+    function hasOwnProperty(obj, p) {
+        return Object.prototype.hasOwnProperty.call(obj, p);
+    }
+
 
     /**
       Makes a copy of a dictionary
       Use this when cloning an object
       Not a deep copy, field values are merely references and are shared between the copies
 
-      @param {Object.<string, PBase>} dict the dictionary to clone
-      @return {Object.<string, PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
+      @param {Object.<string, !PBase>} dict the dictionary to clone
+      @return {Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
     */
     function copyDict(dict) {
-        var newDict = {};
+        var newDict = makeEmptyDict();
         for(var field in dict) {
             newDict[field] = dict[field];
         }
 
         return newDict;
+    }
+
+    /** Creates a truly empty dictonary, with no inherit fields 
+        @return {Object} an empty object
+     **/
+    function makeEmptyDict() {
+        return Object.create(null);
     }
 
     /**Tests whether an object is a PBase
@@ -79,6 +129,45 @@ function makeRuntime(theOutsideWorld) {
     */
     function isBase(obj) { return obj instanceof PBase; }
 
+    /********************   
+        Getting Fields
+    ********************/
+    /**
+      Gets the field from an object of the given name
+        -If field is a method, it binds self correctly and returns a function
+        -If field is a placeholder, it calls get on the placeholder
+        -If field is a mutable -> error
+        -If field undefined -> error
+        -Otherwise, returns field value
+
+      @param {PBase} val
+      @param {string} field
+
+      @return {!PBase}
+    **/
+    function getField(val, field) {
+        var fieldVal = val.dict[field];
+        if(fieldVal === undefined) {
+            //TODO: Throw field not found error
+            throw "Error";
+        }
+        /*else if(isMutable(fieldVal)){
+            //TODO: Implement mutables then throw an error here
+        }*/
+        /*else if(isPlaceholder(fieldVal)){
+            //TODO: Implement placeholders then call get here
+            //Be wary of guards blowing up stack
+        }*/
+        else if(isMethod(fieldVal)){
+            //TODO: Bind self properly
+            return makeFunction((fieldVal).meth);
+        }
+        else {
+            return fieldVal;
+        }
+    }
+
+    
     /*********************
             Nothing
     **********************/
@@ -89,15 +178,15 @@ function makeRuntime(theOutsideWorld) {
       @extends {PBase}
     **/
     function PNothing() {
-        /**@type {Object.<string, PBase>}*/
-        this.dict   = {};
+        /**@type {Object.<string, !PBase>}*/
+        this.dict   = makeEmptyDict();
         /**@type {Array.<number>}*/
         this.brands = [];
     }
     PNothing.prototype = Object.create(PBase.prototype);
     
     /**Clones the number
-      @return {PNothing} With same dict
+      @return {!PNothing} With same dict
     */
     PNothing.prototype.clone = function() { 
         var newNoth = makeNothing(); 
@@ -111,7 +200,7 @@ function makeRuntime(theOutsideWorld) {
     function isNothing(obj) { return obj instanceof PNothing; }
 
     /**Makes a nothing
-       @return PNothing
+       @return {!PNothing}
     */
     function makeNothing() {return new PNothing();}
 
@@ -127,13 +216,17 @@ function makeRuntime(theOutsideWorld) {
         /**@type {number}*/
         this.n    = n;
 
-        /**@type {Object.<string, PBase>}*/
+        /**@type {Object.<string, !PBase>}*/
         this.dict = createNumberDict(); 
+
+        /**@type {Array.<number>}*/
+        this.brands = [];
     }
-    PNumber.prototype = Object.create(PBase.prototype); 
+    //PNumber.prototype = Object.create(PBase.prototype); 
+    inherits(PNumber, PBase);
 
     /**Clones the number
-      @return {PNumber} With same n and dict
+      @return {!PNumber} With same n and dict
     */
     PNumber.prototype.clone = function() { 
         var newNum = makeNumber(this.n); 
@@ -148,17 +241,222 @@ function makeRuntime(theOutsideWorld) {
     */
     function isNumber(obj) { return obj instanceof PNumber; }
 
+    var baseNumberDict = {
+        /**@type {PMethod}*/
+        '_plus' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PNumber}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeNumber(left.n + right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_minus' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PNumber}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeNumber(left.n - right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_times' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PNumber}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeNumber(left.n * right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_divide' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PNumber}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+            if(right.n === 0) {
+                throw makeMessageException("Division by zero");
+            }
+            return makeNumber(left.n / right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_equals' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.n === right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_lessthan' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.n < right.n);
+        }),
+
+        /**@type {PMethod}*/
+        '_greaterthan' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.n > right.n);
+        }),
+        /**@type {PMethod}*/
+        '_lessequal' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.n <= right.n);
+        }),
+        /**@type {PMethod}*/
+        '_greaterequal' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.n >= right.n);
+        }),
+
+        /**@type {PMethod}*/
+        'tostring' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PString}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeString(me.n.toString());
+        }),
+
+        /**@type {PMethod}*/
+        'sin' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.sin(me.n));
+        }),
+
+        /**@type {PMethod}*/
+        'cos' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.cos(me.n));
+        }),
+
+        /**@type {PMethod}*/
+        'tan' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.tan(me.n));
+        }),
+
+        /**@type {PMethod}*/
+        'asin' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.asin(me.n));
+        }),
+
+        /**@type {PMethod}*/
+        'acos' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.acos(me.n));
+        }),
+
+        /**@type {PMethod}*/
+        'atan' : makeMethod(
+        /**
+          @param {!PNumber} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isNumber);
+            return makeNumber(Math.atan(me.n));
+        })
+
+    };
+
     /**Creates a copy of the common dictionary all objects have
-      @return {Object} the dictionary for a number
+      @return {Object.<string, !PBase>} the dictionary for a number
     */
     function createNumberDict() {
-        return { };
+        return copyDict(baseNumberDict);
     }
-
     /**Makes a PNumber using the given n
 
       @param {number} n the number the PNumber will contain
-      @return {PNumber} with value n
+      @return {!PNumber} with value n
     */
     function makeNumber(n) {
        return new PNumber(n); 
@@ -176,13 +474,16 @@ function makeRuntime(theOutsideWorld) {
         /**@type {string}*/
         this.s    = s;
 
-        /**@type {Object.<string, PBase>}*/
+        /**@type {Object.<string, !PBase>}*/
         this.dict = createStringDict(); 
-    }
-    PString.prototype = Object.create(PBase.prototype); 
 
-    /**Clones the number
-      @return {PNumber} With same n and dict
+        /**@type {Array.<number>}*/
+        this.brands = [];
+    }
+    //PString.prototype = Object.create(PBase.prototype); 
+
+    /**Clones the string
+      @return {!PString} With same n and dict
     */
     PString.prototype.clone = function() { 
         var newStr = makeString(this.s); 
@@ -201,13 +502,13 @@ function makeRuntime(theOutsideWorld) {
       @return {Object} the dictionary for a number
     */
     function createStringDict() {
-        return { };
+        return makeEmptyDict();
     }
 
     /**Makes a PString using the given s
 
       @param {string} s the string the PString will contain
-      @return  PString} with value s
+      @return {!PString} with value s
     */
     function makeString(s) {
        return new PString(s); 
@@ -225,13 +526,16 @@ function makeRuntime(theOutsideWorld) {
         /**@type {boolean}*/
         this.b    = b;
 
-        /**@type {Object.<string, PBase>}*/
+        /**@type {Object.<string, !PBase>}*/
         this.dict = createBooleanDict(); 
+
+        /**@type {Array.<number>}*/
+        this.brands = [];
     }
-    PBoolean.prototype = Object.create(PBase.prototype); 
+    //PBoolean.prototype = Object.create(PBase.prototype); 
 
     /**Clones the Boolean
-      @return {PBoolean} With same b and dict
+      @return {!PBoolean} With same b and dict
     */
     PBoolean.prototype.clone = function() { 
         var newBool = makeBoolean(this.b); 
@@ -244,7 +548,7 @@ function makeRuntime(theOutsideWorld) {
       @return {Object} the dictionary for a boolean
     */
     function createBooleanDict() {
-        return { };
+        return makeEmptyDict();
     }
 
     /**Tests whether an object is a PBoolean
@@ -257,13 +561,13 @@ function makeRuntime(theOutsideWorld) {
       @return {Object} the dictionary for a number
     */
     function createBoolean() {
-        return { };
+        return makeEmptyDict();
     }
 
     /**Makes a PBoolean using the given s
 
       @param {boolean} b the Boolean the PBoolean will contain
-      @return  PBoolean} with value b
+      @return {!PBoolean} with value b
     */
     function makeBoolean(b) {
        return new PBoolean(b); 
@@ -275,22 +579,27 @@ function makeRuntime(theOutsideWorld) {
 
     /**The representation of a function
         @constructor
-        @param {function(...[PBase]) :  PBase} fun 
         @extends {PBase}
+
+        @param {Function} fun the function body
     */
     function PFunction(fun) { 
-        /**@type {function(...[PBase]) : PBase}*/
+        /**@type {Function}*/
         this.app   = fun;
+
         /**@type {number}*/
         this.arity = fun.length;
 
-        /**@type {Object.<string, PBase>}*/
+        /**@type {Object.<string, !PBase>}*/
         this.dict = createFunctionDict(); 
+
+        /**@type {Array.<number>}*/
+        this.brands = [];
     }
-    PFunction.prototype = Object.create(PBase.prototype); 
+    //PFunction.prototype = Object.create(PBase.prototype); 
 
     /**Clones the function
-      @return {PFunction} With same app and dict
+      @return {!PFunction} With same app and dict
     */
     PFunction.prototype.clone = function() { 
         var newFun = makeFunction(this.app); 
@@ -308,13 +617,13 @@ function makeRuntime(theOutsideWorld) {
       @return {Object} the dictionary for a function
     */
     function createFunctionDict() {
-        return { };
+        return makeEmptyDict();
     }
 
     /**Makes a PFunction using the given n
 
-      @param {function(...[PBase]) : PBase} fun The JS function that represents the body of the function, must contain at least one arg, which represents self
-      @return {PFunction} with app of fun
+      @param {Function} fun The JS function that represents the body of the function, must contain at least one arg, which represents self
+      @return {!PFunction} with app of fun
     */
     function makeFunction(fun) {
        return new PFunction(fun); 
@@ -327,22 +636,25 @@ function makeRuntime(theOutsideWorld) {
 
     /**The representation of a method
         @constructor
-        @param {function(PBase, ...[PBase]) :  PBase} meth 
+        @param {Function} meth 
         @extends {PBase}
     */
     function PMethod(meth) { 
-        /**@type {function(PBase, ...[PBase]) : PBase}*/
+        /**@type {Function}*/
         this.meth   = meth;
         /**@type {number}*/
         this.arity = meth.length;
 
-        /**@type {Object.<string, PBase>}*/
+        /**@type {Object.<string, !PBase>}*/
         this.dict = createMethodDict(); 
+
+        /**@type {Array.<number>}*/
+        this.brands = [];
     }
-    PMethod.prototype = Object.create(PBase.prototype); 
+    //PMethod.prototype = Object.create(PBase.prototype); 
 
     /**Clones the method
-      @return {PMethod} With same meth and dict
+      @return {!PMethod} With same meth and dict
     */
     PMethod.prototype.clone = function() { 
         var newMeth = makeMethod(this.meth); 
@@ -360,46 +672,179 @@ function makeRuntime(theOutsideWorld) {
       @return {Object} the dictionary for a method
     */
     function createMethodDict() {
-        return { };
+        return makeEmptyDict();
     }
 
     /**Makes a PMethod using the given function
       The function first argument should be self
 
-      @param {function(PBase, ...[PBase]) : PBase} meth The JS function that represents the body of the method
-      @return {PMethod} with app of fun
+      @param {Function} meth The JS function that represents the body of the method
+      @return {!PMethod} with app of fun
     */
     function makeMethod(meth) {
        return new PMethod(meth); 
     }
 
-    var print = makeFunction(function(val) {
+    /*********************
+            Object
+    **********************/
+    /**The representation of an object
+        @constructor
+        @param {Object.<string, !PBase>} dict
+        @extends {PBase}
+    */
+    function PObject(dict) { 
+        /**@type {Object.<string, !PBase>}*/
+        this.dict = copyDict(dict); //Copies the dict to ensure the proto is null
+
+        /**@type {Array.<number>}*/
+        this.brands = [];
+    }
+    //PObject.prototype = Object.create(PBase.prototype); 
+
+    /**Clones the method
+      @return {!PObject} With same dict
+    */
+    PObject.prototype.clone = function() { 
+        var newObj = makeObject({}); 
+        newObj.dict = copyDict(this.dict);
+        return newObj;
+    };
+
+    /**Tests whether an object is a PObject
+        @param {Object} obj the item to test
+        @return {!boolean} true if object is a PObject
+    */
+    function isObject(obj) { return obj instanceof PObject; }
+
+    /**Makes a PObject using the given dict
+
+      @param {Object.<string, !PBase>} dict
+      @return {!PObject} with given dict
+    */
+    function makeObject(dict) {
+       return new PObject(dict); 
+    }
+
+    
+    /************************
+          Type Checking
+    ************************/
+    /**
+      Checks if value is ___
+      @param {!PBase} val the value to test
+      @param {!function(!PBase) : boolean} test
+
+      @return {!boolean} true if val passes test
+    */
+    function checkIf(val, test) {
+        if(!test(val)) {
+            throw makeMessageException("Pyret Type Error")
+        }
+        return true;
+    }
+
+
+    /************************
+       Builtin Functions
+    ************************/
+
+    /**@type {PFunction} */
+    var print = makeFunction(
+    /**
+      Prints the value to the world by passing the repr to stdout
+      @param {!PBase} val
+
+      @return {!PBase} the value given in
+    */
+    function(val) {
       var str = '';
       if (isNumber(val)) {
-        str = String(val.n);
+        str = String(/**@type {!PNumber}*/ (val).n);
       } else {
         str = String(val);
       }
       theOutsideWorld.stdout(str + "\n");
+
+      //Returns the value it is given
+      return val;
     });
 
+    /********************
+         Exceptions
+     *******************/
+
+    /**
+      An Exception that represents a pyret exception
+
+      @constructor
+      @param {!PBase} e the value to raise
+    */
+    function PyretFailException(e) {
+      this.exn = e;
+    }
+
+    /**
+      Tests if result is a PyretException
+      @param {Object} val the value to test
+      @return {boolean} true if it is a FailueResult
+    */
+    function isPyretException(val) { return val instanceof PyretFailException; }
+
+    /**
+      Raises a PyretFailException with the given string
+      @param {!string} str
+      @return {!PyretFailException}
+    */
+    function makeMessageException(str) {
+       return new PyretFailException(makeString(str));
+    }
+
+
+    /********************
+           Results
+     *******************/
+    /**
+      Result containing the value of a successful evaluation
+
+      @constructor
+      @param {!PBase} r result value
+    */
     function SuccessResult(r) {
       this.result = r;
     }
+
+    /**
+      Tests if result is a successResult
+      @param {Object} val the value to test
+      @return {boolean} true if it is a SuccessResult
+    */
     function isSuccessResult(val) { return val instanceof SuccessResult; }
 
+    /**
+      Result containing the exception of a failed evaluation
+
+      @constructor
+      @param {!Error} e exception's value
+    */
     function FailureResult(e) {
       this.exn = e;
     }
+    /**
+      Tests if result is a FailueResult
+      @param {Object} val the value to test
+      @return {boolean} true if it is a FailueResult
+    */
     function isFailureResult(val) { return val instanceof FailureResult; }
 
     //Export the runtime
     //String keys should be used to prevent renaming
-    thisRuntime = {
+    var thisRuntime = {
         'namespace': Namespace({
           'test-print': print
         }),
 
+        /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
         'run': function(program, namespace, onDone) {
           try {
             onDone(new SuccessResult(program(thisRuntime, namespace)));
@@ -415,16 +860,19 @@ function makeRuntime(theOutsideWorld) {
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
+        'isObject'    : isObject,
 
         'isSuccessResult' : isSuccessResult,
         'isFailureResult' : isFailureResult,
+        'isPyretException' : isPyretException,
 
         'makeNothing'  : makeNothing,
         'makeNumber'   : makeNumber,
         'makeBoolean'  : makeBoolean,
         'makeString'   : makeString,
         'makeFunction' : makeFunction,
-        'makeMethod'   : makeMethod
+        'makeMethod'   : makeMethod,
+        'makeObject'   : makeObject
     };
     return thisRuntime;
 }
