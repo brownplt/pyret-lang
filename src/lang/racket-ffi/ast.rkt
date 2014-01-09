@@ -377,6 +377,10 @@
     (define with-contracts (contract-check-pyret desugared env-for-checking))
     (to-pyret with-contracts)))
 
+(define (surface-parse-pyret str src)
+  (define ast (parse-pyret (string-append " " str) src))
+  (to-pyret ast))
+
 (define (pyret-triple-from-string str src options)
   (define ast (parse-pyret (string-append " " str) src))
   (define check-mode? (ffi-unwrap (p:get-field p:dummy-loc options "check")))
@@ -649,6 +653,8 @@
     (list
       (cons "free-ids"
             (ffi-wrap (lambda (ast) (map symbol->string (set->list (free-ids ast))))))
+      (cons "surface-parse"
+            (ffi-wrap (parse-error-wrap surface-parse-pyret)))
       (cons "parse"
             (ffi-wrap (parse-error-wrap pyret-triple-from-string)))
       (cons "parse-tc"
@@ -659,3 +665,4 @@
             (ffi-wrap to-pyret)))))
 
 (provide (rename-out [export %PYRET-PROVIDE]))
+
