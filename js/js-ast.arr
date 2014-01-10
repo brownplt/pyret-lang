@@ -70,11 +70,20 @@ data JExpr:
     tosource(self):
       PP.nest(INDENT, PP.str(self.name) + PP.str(" =") + break-one + self.rhs.tosource())
     end
+  | j-dot-assign(obj :: JExpr, name :: String, rhs :: JExpr) with:
+    tosource(self):
+      PP.nest(INDENT, PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.name)) + PP.str(" =") + break-one + self.rhs.tosource())
+    end
   | j-dot(obj :: JExpr, field :: String) with:
     tosource(self): PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.field)) end
   | j-bracket(obj :: JExpr, field :: JExpr) with:
-    tosource(self): PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(),
+    tosource(self): PP.group(self.obj.tosource() +
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+    end
+  | j-obj(fields :: List<JField>) with:
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
     end
   | j-id(id :: String) with:
     tosource(self): PP.str(self.id) end
@@ -127,5 +136,13 @@ where:
     .tosource().pretty(80) is
     ["if(true) { return false; } else { return 5; }"]
 
+  j-bracket(j-true, j-false).tosource().pretty(20) is ["true[false]"]
+
 end
 
+data JField:
+  | j-field(name :: String, value :: JExpr) with:
+    tosource(self):
+      PP.nest(INDENT, PP.str(self.name) + PP.str(": ") + self.value.tosource())
+    end
+end
