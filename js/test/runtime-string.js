@@ -1,5 +1,6 @@
 _ = require('jasmine-node');
-R = require('../runtime-anf.js').PYRET_ANF;
+R = require('../anf-comp.js').PYRET_ANF;
+var jsnums = require('../js-numbers/src/js-numbers.js');
 
 var output;
 var rt;
@@ -37,6 +38,10 @@ beforeEach(function(){
         //Tests equality with ===, must be exact same
         toBeIdentical : function(expect) {
             return this.actual === expect;
+        },
+        //Tests equality of bignums
+        toBigEqual : function(expect) {
+            return jsnums['equals'](this.actual, jsnums.fromFixnum(expect));
         }
     });
 
@@ -140,10 +145,10 @@ beforeEach(function(){
         var tonumber = tonumber_method.meth;
 
         //Are Numbers
-        expect(tonumber(five).n).toEqual(5);
-        expect(tonumber(four).n).toEqual(4);
-        expect(tonumber(hun).n).toEqual(100);
-        expect(tonumber(half).n).toEqual(0.5);
+        expect(tonumber(five).n).toBigEqual(5);
+        expect(tonumber(four).n).toBigEqual(4);
+        expect(tonumber(hun).n).toBigEqual(100);
+        expect(tonumber(half).n).toBigEqual(0.5);
 
         //Not numbers
         expect(rt.isNothing(tonumber(hello))).toBe(true);

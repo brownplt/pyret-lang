@@ -1,5 +1,6 @@
 _ = require('jasmine-node');
-R = require('../runtime-anf.js').PYRET_ANF;
+R = require('../anf-comp.js').PYRET_ANF;
+var jsnums = require('../js-numbers/src/js-numbers.js');
 
 var output;
 var rt;
@@ -21,6 +22,7 @@ var seven;
 var six;
 var twtyseven;
 var half;
+var big;
 
 beforeEach(function(){
     this.addMatchers({
@@ -33,6 +35,16 @@ beforeEach(function(){
         //Tests equality with ===, must be exact same
         toBeIdentical : function(expect) {
             return this.actual === expect;
+        },
+
+        //Tests equality of bignums and expectted js num
+        toBigEqual : function(expect) {
+            return jsnums['equals'](this.actual, jsnums.fromFixnum(expect));
+        },
+
+        //Tests equality of bignums
+        toBeBig : function(expect) {
+            return jsnums['equals'](this.actual, expect);
         }
     });
 
@@ -51,6 +63,7 @@ beforeEach(function(){
     twtyseven = rt.makeNumber(27);
     seven = rt.makeNumber(7);
     half = rt.makeNumber(.5);
+    big = rt.makeNumber(9000000000000000);
 });
 
 
@@ -86,28 +99,28 @@ beforeEach(function(){
     it("should have correct _minus", function() {
         var _minus = five.dict['_minus'];
         expect(_minus).not.toBeUndefined();
-        expect(rt.isMethod(_minus)).toEqual(true);
+        expect(rt.isMethod(_minus)).toBe(true);
 
         
         var minus = _minus.meth;
 
         //Basic
-        expect(minus(zero, zero).n).toEqual(0);
-        expect(minus(one, zero).n).toEqual(1);
-        expect(minus(two, two).n).toEqual(0);
-        expect(minus(two, four).n).toEqual(-2);
-        expect(minus(four, two).n).toEqual(2);
+        expect(minus(zero, zero).n).toBigEqual(0);
+        expect(minus(one, zero).n).toBigEqual(1);
+        expect(minus(two, two).n).toBigEqual(0);
+        expect(minus(two, four).n).toBigEqual(-2);
+        expect(minus(four, two).n).toBigEqual(2);
         
         //Negative Numbers
-        expect(minus(nfive, two).n).toEqual(-7);
-        expect(minus(two, nfive).n).toEqual(7);
+        expect(minus(nfive, two).n).toBigEqual(-7);
+        expect(minus(two, nfive).n).toBigEqual(7);
        
         //Fractions
-        expect(minus(two, half).n).toEqual(1.5);
+        expect(minus(two, half).n).toBigEqual(1.5);
 
         //Chaining
-        expect(minus(minus(two, half), minus(two, half)).n).toEqual(0);
-        expect(minus(minus(two, one), minus(twty, seven)).n).toEqual(-12);
+        expect(minus(minus(two, half), minus(two, half)).n).toBigEqual(0);
+        expect(minus(minus(two, one), minus(twty, seven)).n).toBigEqual(-12);
     });
 
     it("should have correct _times", function() {
@@ -119,22 +132,25 @@ beforeEach(function(){
         var times = _times.meth;
 
         //Basic
-        expect(times(zero, zero).n).toEqual(0);
-        expect(times(one, zero).n).toEqual(0);
-        expect(times(two, two).n).toEqual(4);
-        expect(times(two, four).n).toEqual(8);
-        expect(times(four, two).n).toEqual(8);
+        expect(times(zero, zero).n).toBigEqual(0);
+        expect(times(one, zero).n).toBigEqual(0);
+        expect(times(two, two).n).toBigEqual(4);
+        expect(times(two, four).n).toBigEqual(8);
+        expect(times(four, two).n).toBigEqual(8);
         
         //Negative Numbers
-        expect(times(nfive, two).n).toEqual(-10);
-        expect(times(two, nfive).n).toEqual(-10);
+        expect(times(nfive, two).n).toBigEqual(-10);
+        expect(times(two, nfive).n).toBigEqual(-10);
        
         //Fractions
-        expect(times(two, half).n).toEqual(1);
+        expect(times(two, half).n).toBigEqual(1);
 
         //Chaining
-        expect(times(times(two, half), times(two, half)).n).toEqual(1);
-        expect(times(times(two, one), times(twty, seven)).n).toEqual(280);
+        expect(times(times(two, half), times(two, half)).n).toBigEqual(1);
+        expect(times(times(two, one), times(twty, seven)).n).toBigEqual(280);
+
+        //BIG Numbers
+        expect(times(big, big).n).toBeBig(jsnums.fromString("81000000000000000000000000000000"));
     });
 
     it("should have correct _divide", function() {
@@ -166,20 +182,20 @@ beforeEach(function(){
            }
         }
 
-        expect(divide(two, two).n).toEqual(1);
-        expect(divide(two, four).n).toEqual(.5);
-        expect(divide(four, two).n).toEqual(2);
+        expect(divide(two, two).n).toBigEqual(1);
+        expect(divide(two, four).n).toBigEqual(.5);
+        expect(divide(four, two).n).toBigEqual(2);
         
         //Negative Numbers
-        expect(divide(nfive, two).n).toEqual(-2.5);
-        expect(divide(two, nfive).n).toEqual(-2/5);
+        expect(divide(nfive, two).n).toBigEqual(-2.5);
+        expect(divide(two, nfive).n).toBigEqual(-2/5);
        
         //Fractions
-        expect(divide(two, half).n).toEqual(4);
+        expect(divide(two, half).n).toBigEqual(4);
 
         //Chaining
-        expect(divide(divide(two, half), divide(two, half)).n).toEqual(1);
-        expect(divide(divide(two, one), divide(twty, seven)).n).toEqual(2 / (20/7));
+        expect(divide(divide(two, half), divide(two, half)).n).toBigEqual(1);
+        expect(divide(divide(two, one), divide(twty, seven)).n).toBigEqual(2 / (20/7));
     });
 
     //Comparison functions

@@ -3,6 +3,7 @@ This is the runtime for the ANF'd version of pyret
 */
 if(typeof require !== 'undefined') {
   var Namespace = require('./namespace.js').Namespace;
+  var jsnums = require('./js-numbers/src/js-numbers.js');
 }
 "use strict";
 
@@ -23,16 +24,20 @@ function makeRuntime(theOutsideWorld) {
       @constructor
     */
     function PBase() {
+        /**@type {!Array.<number>}*/
         this.brands = [];
+        /**@type {!Object.<string, !PBase>}*/
         this.dict   = makeEmptyDict();
     }
 
-    PBase.prototype = {
-        dict   : makeEmptyDict(),
-        brands : [],
-        extendWith : extendWith,
-        clone : function() {return new PBase();}
-    };
+        /**@type {!Object.<string, !PBase>}*/
+        PBase.prototype.dict = makeEmptyDict();
+        /**@type {!Array.<number>}*/
+        PBase.prototype.brands = [];
+        /**@type {!function(!Object.<string, !PBase>) : !PBase}*/
+        PBase.prototype.extendWith = extendWith;
+        /**@type {!function() : !PBase}*/
+        PBase.prototype.clone = (function() {return new PBase();});
 
     /**
       Sets up Inheritance with a function call
@@ -64,13 +69,15 @@ function makeRuntime(theOutsideWorld) {
 
         The original object is not mutated, instead it is cloned and the clone is mutated
 
-        @param {Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
+        @param {!Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
         If any of the fields exist, they will be overwritten with the new value
 
         @return {!PBase} the extended object 
     */
     function extendWith(fields) {
+        /**@type {!PBase}*/
         var newObj = this.clone();
+        /**@type {!boolean}*/
         var allNewFields = true;
 
         for(var field in fields) {
@@ -91,7 +98,7 @@ function makeRuntime(theOutsideWorld) {
         Useful for objects that lack the .hasOwnProperty method
 
         @param {!Object} obj the object to test
-        @param {string} p the property to look for
+        @param {!string} p the property to look for
         @return {boolean} true if obj has property p, false otherwise
     */
     function hasOwnProperty(obj, p) {
@@ -104,8 +111,8 @@ function makeRuntime(theOutsideWorld) {
       Use this when cloning an object
       Not a deep copy, field values are merely references and are shared between the copies
 
-      @param {Object.<string, !PBase>} dict the dictionary to clone
-      @return {Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
+      @param {!Object.<string, !PBase>} dict the dictionary to clone
+      @return {!Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
     */
     function copyDict(dict) {
         var newDict = makeEmptyDict();
@@ -117,7 +124,7 @@ function makeRuntime(theOutsideWorld) {
     }
 
     /** Creates a truly empty dictonary, with no inherit fields 
-        @return {Object} an empty object
+        @return {!Object} an empty object
      **/
     function makeEmptyDict() {
         return Object.create(null);
@@ -149,7 +156,7 @@ function makeRuntime(theOutsideWorld) {
         var fieldVal = val.dict[field];
         if(fieldVal === undefined) {
             //TODO: Throw field not found error
-            throw "Error";
+            throw makeMessageException("field " + val + " not found.");
         }
         /*else if(isMutable(fieldVal)){
             //TODO: Implement mutables then throw an error here
@@ -178,7 +185,7 @@ function makeRuntime(theOutsideWorld) {
       @extends {PBase}
     **/
     function PNothing() {
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict   = makeEmptyDict();
         /**@type {Array.<number>}*/
         this.brands = [];
@@ -214,9 +221,9 @@ function makeRuntime(theOutsideWorld) {
     */
     function PNumber(n) { 
         /**@type {number}*/
-        this.n    = n;
+        this.n = n;
 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = createNumberDict(); 
 
         /**@type {Array.<number>}*/
@@ -243,18 +250,24 @@ function makeRuntime(theOutsideWorld) {
 
     var baseNumberDict = {
         /**@type {PMethod}*/
-        '_plus' : makeMethod(
-        /**
-          @param {!PNumber} left
-          @param {!PNumber} right
-          @return {!PNumber}
-        */
-        function(left, right) {
-            checkIf(left, isNumber);
-            checkIf(right, isNumber);
+     // '_plus' : mkmethod(left, right) { 
+     // 
+     // //TODO: Remove blah
+     // /**
+     //   @param {!PNumber} left
+     //   @param {!PNumber} right
+     //   @return {!PNumber}
+     // */
+     //     checkIf(left, isNumber);
+     //     checkIf(right, isNumber);
+     //     return makeNumber(left.n + right.n);
+     // } {
 
-            return makeNumber(left.n + right.n);
-        }),
+     //     checkIf(left, isNumber);
+     //     checkIf(right, isNumber);
+     //     return makeNumber(left.n + right.n);
+     // },
+        
 
         /**@type {PMethod}*/
         '_minus' : makeMethod(
@@ -267,8 +280,8 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumber(left.n - right.n);
-        }),
+            return makeNumberBig(jsnums.subtract(left.n, right.n));
+        }), 
 
         /**@type {PMethod}*/
         '_times' : makeMethod(
@@ -281,7 +294,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumber(left.n * right.n);
+            return makeNumberBig((left.n * right.n));
         }),
 
         /**@type {PMethod}*/
@@ -448,7 +461,7 @@ function makeRuntime(theOutsideWorld) {
     };
 
     /**Creates a copy of the common dictionary all objects have
-      @return {Object.<string, !PBase>} the dictionary for a number
+      @return {!Object.<string, !PBase>} the dictionary for a number
     */
     function createNumberDict() {
         return copyDict(baseNumberDict);
@@ -458,9 +471,14 @@ function makeRuntime(theOutsideWorld) {
       @param {number} n the number the PNumber will contain
       @return {!PNumber} with value n
     */
-    function makeNumber(n) {
+    function makeNumberBig(n) {
        return new PNumber(n); 
     }
+
+    function makeNumber(n) {
+       return new PNumber(jsnums.fromFixnum(n)); 
+    }
+    //TODO: for BIG numbers, we'llneed to compile them in as strings and use jsnums.fromString(_) to get the value
 
     /*********************
             String
@@ -474,7 +492,7 @@ function makeRuntime(theOutsideWorld) {
         /**@type {string}*/
         this.s    = s;
 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = createStringDict(); 
 
         /**@type {Array.<number>}*/
@@ -598,9 +616,9 @@ function makeRuntime(theOutsideWorld) {
         */
         function(me) {
             checkIf(me, isString);
-            var num = Number(me.s);
-            if(!isNaN(num) && me.s !== "") {
-                return makeNumber(num);
+            var num = jsnums.fromString(me.s);
+            if(num !== false) {
+                return makeNumberBig(num);
             }
             else {
                 return makeNothing();
@@ -674,7 +692,7 @@ function makeRuntime(theOutsideWorld) {
     }
 
     /**Creates a copy of the common dictionary all objects have
-      @return {Object} the dictionary for a number
+      @return {!Object} the dictionary for a number
     */
     function createStringDict() {
         return copyDict(baseStringDict);
@@ -701,7 +719,7 @@ function makeRuntime(theOutsideWorld) {
         /**@type {boolean}*/
         this.b    = b;
 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = createBooleanDict(); 
 
         /**@type {Array.<number>}*/
@@ -720,7 +738,7 @@ function makeRuntime(theOutsideWorld) {
 
 
     /**Creates a copy of the common dictionary all boolean have
-      @return {Object} the dictionary for a boolean
+      @return {!Object} the dictionary for a boolean
     */
     function createBooleanDict() {
         return makeEmptyDict();
@@ -765,7 +783,7 @@ function makeRuntime(theOutsideWorld) {
         /**@type {number}*/
         this.arity = fun.length;
 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = createFunctionDict(); 
 
         /**@type {Array.<number>}*/
@@ -789,7 +807,7 @@ function makeRuntime(theOutsideWorld) {
     function isFunction(obj) { return obj instanceof PFunction; }
 
     /**Creates a copy of the common dictionary all function have
-      @return {Object} the dictionary for a function
+      @return {!Object.<string, !PBase>} the dictionary for a function
     */
     function createFunctionDict() {
         return makeEmptyDict();
@@ -820,7 +838,7 @@ function makeRuntime(theOutsideWorld) {
         /**@type {number}*/
         this.arity = meth.length;
 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = createMethodDict(); 
 
         /**@type {Array.<number>}*/
@@ -844,7 +862,7 @@ function makeRuntime(theOutsideWorld) {
     function isMethod(obj) { return obj instanceof PMethod; }
 
     /**Creates a copy of the common dictionary all function have
-      @return {Object} the dictionary for a method
+      @return {!Object.<string, !PBase>} the dictionary for a method
     */
     function createMethodDict() {
         return makeEmptyDict();
@@ -865,11 +883,11 @@ function makeRuntime(theOutsideWorld) {
     **********************/
     /**The representation of an object
         @constructor
-        @param {Object.<string, !PBase>} dict
+        @param {!Object.<string, !PBase>} dict
         @extends {PBase}
     */
     function PObject(dict) { 
-        /**@type {Object.<string, !PBase>}*/
+        /**@type {!Object.<string, !PBase>}*/
         this.dict = copyDict(dict); //Copies the dict to ensure the proto is null
 
         /**@type {Array.<number>}*/
@@ -894,7 +912,7 @@ function makeRuntime(theOutsideWorld) {
 
     /**Makes a PObject using the given dict
 
-      @param {Object.<string, !PBase>} dict
+      @param {!Object.<string, !PBase>} dict
       @return {!PObject} with given dict
     */
     function makeObject(dict) {
