@@ -1,3 +1,4 @@
+#lang pyret
 var f = 0
 var g = 0
 nt = fun(b): if b: false else: true;;

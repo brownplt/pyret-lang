@@ -9,10 +9,14 @@ format = F.format
 INDENT = 2
 break-one = PP.break(1)
 
+
 data JBlock:
   | j-block(stmts :: List<JStmt>) with:
     tosource(self):
-      PP.flow_map(PP.hardline, _.tosource(), self.stmts)
+      cases(List) self.stmts:
+        | empty => PP.mt-doc
+        | else => PP.flow_map(PP.hardline, _.tosource(), self.stmts)
+      end
     end
 end
 
@@ -24,15 +28,26 @@ data JStmt:
     end
   | j-if(cond :: JExpr, consq :: JBlock, alt :: JBlock) with:
     tosource(self):
-      PP.group(PP.str("if") + PP.parens(self.cond.tosource())) + PP.str(" ") +
-        PP.surround(INDENT, 1, PP.lbrace, self.consq.tosource(), PP.rbrace) +
-        PP.str(" else ") +
-        PP.surround(INDENT, 1, PP.lbrace, self.alt.tosource(), PP.rbrace)
+      alt-doc = self.alt.tosource()
+      else-doc =
+        if alt-doc == PP.mt-doc: PP.mt-doc
+        else: PP.str(" else ") + PP.surround(INDENT, 1, PP.lbrace, alt-doc, PP.rbrace)
+        end
+      PP.group(PP.str("if") + PP.parens(self.cond.tosource())) + PP.str(" ")
+        + PP.surround(INDENT, 1, PP.lbrace, self.consq.tosource(), PP.rbrace)
+        + else-doc
     end
   | j-return(expr :: JExpr) with:
     tosource(self):
       PP.str("return ") + self.expr.tosource() + PP.str(";")
     end
+  | j-try-catch(body :: JStmt, exn :: String, catch :: JStmt) with:
+    tosource(self):
+      PP.surround(INDENT, 1, PP.str("try {"), self.body.tosource(), PP.rbrace)
+        + PP.surround(INDENT, 1, PP.str("catch(" + self.exn + ") {"), self.catch.tosource(), PP.rbrace)
+    end
+  | j-throw(exp :: JExpr) with:
+    tosource(self): PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) end
   | j-expr(expr :: JExpr) with:
     tosource(self):
       self.expr.tosource() + PP.str(";")
@@ -40,6 +55,10 @@ data JStmt:
 end
 
 data JExpr:
+  | j-incr(id :: String) with:
+    tosource(self): PP.str(self.id + "++") end
+  | j-decr(id :: String) with:
+    tosource(self): PP.str(self.id + "--") end
   | j-fun(args :: List<String>, body :: JBlock) with:
     tosource(self):
       arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))

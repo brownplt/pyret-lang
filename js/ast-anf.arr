@@ -110,6 +110,16 @@ data AExpr deriving equals-except-loc:
         + PP.nest(INDENT, self._except.tosource()) + break-one
       PP.group(_try + _except + str-end)
     end
+  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
+    tosource(self):
+      PP.group(self.f.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))) +
+        PP.str("and then... ") +
+      PP.group(PP.str(self.helper) +
+          PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))
+    end
   | a-lettable(e :: ALettable) with:
     tosource(self):
       self.e.tosource()
@@ -137,16 +147,6 @@ data ALettable deriving equals-except-loc:
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
-    end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
-    tosource(self):
-      PP.group(self.f.tosource()
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))) +
-        PP.str("and then... ") +
-      PP.group(PP.str(self.helper) +
-          PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))
     end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     tosource(self):

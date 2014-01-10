@@ -35,6 +35,8 @@ fun freevars-e(expr :: N.AExpr) -> Set<String>:
       freevars-v(c).union(freevars-e(t)).union(freevars-e(e))
     | a-try(_, body, b, c) =>
       freevars-e(c).remove(b.id).union(freevars-e(body))
+    | a-split-app(_, _, f, args, _, helper-args) =>
+      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v))))
     | a-lettable(e) => freevars-l(e)
   end
 where:
@@ -50,8 +52,6 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-assign(_, _, v) => freevars-v(v)
     | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
     | a-help-app(_, _, args) => unions(args.map(freevars-v))
-    | a-split-app(_, _, f, args, _, helper-args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v))))
     | a-lam(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-obj(_, fields) => fields.map(fun(f): freevars-v(_.value) end)
@@ -78,7 +78,7 @@ fun ast-split(expr :: N.AExpr) -> SplitResult:
         h = create-helper(b.id, rest-split.body)
         split-result-e(
             link(h, rest-split.helpers),
-            N.a-lettable(N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))))
+            N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _)))
           )
       | else =>
         e-split = ast-split-lettable(e)

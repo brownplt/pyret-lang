@@ -944,6 +944,8 @@ function makeRuntime(theOutsideWorld) {
       var str = '';
       if (isNumber(val)) {
         str = String(/**@type {!PNumber}*/ (val).n);
+      } else if (isBoolean(val)) {
+        str = String(/**@type {!PNumber}*/ (val).b);
       } else {
         str = String(val);
       }
@@ -1020,21 +1022,71 @@ function makeRuntime(theOutsideWorld) {
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
 
+    function Cont(stack, bottom) {
+      this.stack = stack;
+      this.bottom = bottom;
+    }
+    function makeCont(stack, bottom) { return new Cont(stack, bottom); }
+    function isCont(v) { return v instanceof Cont; }
+
+
+    /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
+    function run(program, namespace, onDone) {
+      var kickoff = function(ignored) {
+          return program(thisRuntime, namespace);
+        };
+      var theOneTrueStack = [kickoff];
+      var theOneTrueStart = {};
+      var val = theOneTrueStart;
+      var BOUNCES = 0;
+
+      function iter() {
+        try {
+          //console.log(next.toString());
+          while(theOneTrueStack.length > 0) {
+            var next = theOneTrueStack.pop();
+            val = next(val)
+            //console.log("Val is: ", val);
+            //console.log("Call succeeded, temaining stack is: ", theOneTrueStack);
+          }
+          console.log("Bounces: ", BOUNCES);
+          onDone(new SuccessResult(val));
+        } catch(e) {
+          if(isCont(e)) {
+            BOUNCES++;
+//            console.log("Caught: ", val, new Date());
+            thisRuntime.GAS = INITIAL_GAS;
+            console.log("Stack depth: ", e.stack.length);
+            for(var i = e.stack.length - 1; i >= 0; i--) {
+              theOneTrueStack.push(e.stack[i]);
+            }
+            theOneTrueStack.push(e.bottom);
+            val = theOneTrueStart;
+            iter();
+//            setTimeout(iter, 0);
+          } else {
+            console.log("Bounces: ", BOUNCES);
+            onDone(new FailureResult(e));
+          }
+        }
+      }
+      setTimeout(iter, 0);
+    }
+
+    INITIAL_GAS = theOutsideWorld.initialGas || 10000;
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
         'namespace': Namespace({
           'test-print': print
         }),
+        'run': run,
 
-        /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
-        'run': function(program, namespace, onDone) {
-          try {
-            onDone(new SuccessResult(program(thisRuntime, namespace)));
-          } catch(e) {
-            onDone(new FailureResult(e));
-          }
-        },
+        'GAS': 0,
+
+        'makeCont'    : makeCont,
+        'isCont'      : isCont,
 
         'getField'    : getField,
         'isPyretTrue' : isPyretTrue,
