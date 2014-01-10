@@ -498,11 +498,186 @@ function makeRuntime(theOutsideWorld) {
     */
     function isString(obj) { return obj instanceof PString; }
 
+    var baseStringDict = {
+
+        /**@type {PMethod}*/
+        '_plus' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PString}
+        */
+        function(left, right) {
+            checkIf(left, isString);
+            checkIf(right, isString);
+
+            return makeString(left.s.concat(right.s));
+        }),
+
+        /**@type {PMethod}*/
+        'append' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PString}
+        */
+        function(left, right) {
+            checkIf(left, isString);
+            checkIf(right, isString);
+
+            return makeString(left.s.concat(right.s));
+        }),
+
+        /**@type {PMethod}*/
+        'contains' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isString);
+            checkIf(right, isString);
+
+            return makeBoolean(left.s.indexOf(right.s) !== -1);
+        }),
+
+        /**@type {PMethod}*/
+        'char-at' : makeMethod(
+        /**
+          @param {!PString} str
+          @param {!PNumber} n
+          @return {!PString}
+        */
+        function(str, n) {
+            checkIf(str, isString);
+            checkIf(n, isNumber);
+
+            return makeString(String(str.s.charAt(n.n)));
+        }),
+
+
+        /**@type {PMethod}*/
+        'tostring' : makeMethod(
+        /**
+          @param {!PString} me
+          @return {!PString}
+        */
+        function(me) {
+            checkIf(me, isString);
+            return makeString(me.s);
+        }),
+
+        /**@type {PMethod}*/
+        'to-upper' : makeMethod(
+        /**
+          @param {!PString} me
+          @return {!PString}
+        */
+        function(me) {
+            checkIf(me, isString);
+            return makeString(me.s.toUpperCase());
+        }),
+
+        /**@type {PMethod}*/
+        'to-lower' : makeMethod(
+        /**
+          @param {!PString} me
+          @return {!PString}
+        */
+        function(me) {
+            checkIf(me, isString);
+            return makeString(me.s.toLowerCase());
+        }),
+
+        /**@type {PMethod}*/
+        'tonumber' : makeMethod(
+        /**
+          @param {!PString} me
+          @return {!PNumber | !PNothing}
+        */
+        function(me) {
+            checkIf(me, isString);
+            var num = Number(me.s);
+            if(!isNaN(num) && me.s !== "") {
+                return makeNumber(num);
+            }
+            else {
+                return makeNothing();
+            }
+        }),
+
+        /**@type {PMethod}*/
+        'length' : makeMethod(
+        /**
+          @param {!PString} me
+          @return {!PNumber}
+        */
+        function(me) {
+            checkIf(me, isString);
+            return makeNumber(me.s.length);
+        }), 
+
+        /**@type {PMethod}*/
+        '_lessthan' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.s < right.s);
+        }),
+
+        /**@type {PMethod}*/
+        '_greaterthan' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.s > right.s);
+        }),
+        /**@type {PMethod}*/
+        '_lessequal' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.s <= right.s);
+        }),
+        /**@type {PMethod}*/
+        '_greaterequal' : makeMethod(
+        /**
+          @param {!PString} left
+          @param {!PString} right
+          @return {!PBoolean}
+        */
+        function(left, right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
+
+            return makeBoolean(left.s >= right.s);
+        })
+    }
+
     /**Creates a copy of the common dictionary all objects have
       @return {Object} the dictionary for a number
     */
     function createStringDict() {
-        return makeEmptyDict();
+        return copyDict(baseStringDict);
     }
 
     /**Makes a PString using the given s
@@ -777,8 +952,8 @@ function makeRuntime(theOutsideWorld) {
     /**
       An Exception that represents a pyret exception
 
-      @constructor
       @param {!PBase} e the value to raise
+      @constructor
     */
     function PyretFailException(e) {
       this.exn = e;

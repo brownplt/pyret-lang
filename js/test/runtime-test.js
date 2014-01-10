@@ -24,6 +24,7 @@ var aStr;
 var aFun;
 var aMeth;
 var aNoth;
+var anObj;
 
 beforeEach(function(){
     this.addMatchers({
@@ -49,6 +50,7 @@ beforeEach(function(){
     aFun = rt.makeFunction(x);
     aMeth = rt.makeMethod(x);
     aNoth = rt.makeNothing();
+    anObj = rt.makeObject();
 });
 
 
@@ -116,6 +118,7 @@ describe("Basic values", function() {
         expect(rt.isBase(aFun)).toEqual(    true) 
         expect(rt.isBase(aMeth)).toEqual(   true) 
         expect(rt.isBase(aNoth)).toEqual(   true) 
+        expect(rt.isBase(anObj)).toEqual(   true) 
      });
 
      it("isNumber works", function(){
@@ -125,6 +128,7 @@ describe("Basic values", function() {
         expect(rt.isNumber(aFun)).toEqual(    false) 
         expect(rt.isNumber(aMeth)).toEqual(   false) 
         expect(rt.isNumber(aNoth)).toEqual(   false) 
+        expect(rt.isNumber(anObj)).toEqual(   false) 
      });
 
      it("isBoolean works", function(){
@@ -134,6 +138,7 @@ describe("Basic values", function() {
         expect(rt.isBoolean(aFun)).toEqual(    false) 
         expect(rt.isBoolean(aMeth)).toEqual(   false) 
         expect(rt.isBoolean(aNoth)).toEqual(   false) 
+        expect(rt.isBoolean(anObj)).toEqual(   false) 
      });
 
      it("isString works", function(){
@@ -143,6 +148,7 @@ describe("Basic values", function() {
         expect(rt.isString(aFun)).toEqual(    false) 
         expect(rt.isString(aMeth)).toEqual(   false) 
         expect(rt.isString(aNoth)).toEqual(   false) 
+        expect(rt.isString(anObj)).toEqual(   false) 
      });
 
      it("isFunction works", function(){
@@ -152,6 +158,7 @@ describe("Basic values", function() {
         expect(rt.isFunction(aFun)).toEqual(    true) 
         expect(rt.isFunction(aMeth)).toEqual(   false) 
         expect(rt.isFunction(aNoth)).toEqual(   false) 
+        expect(rt.isFunction(anObj)).toEqual(   false) 
      });
 
      it("isMethod works", function(){
@@ -161,6 +168,7 @@ describe("Basic values", function() {
         expect(rt.isMethod(aFun)).toEqual(    false) 
         expect(rt.isMethod(aMeth)).toEqual(   true) 
         expect(rt.isMethod(aNoth)).toEqual(   false) 
+        expect(rt.isMethod(anObj)).toEqual(   false) 
      });
 
      it("isNothing works", function(){
@@ -170,7 +178,19 @@ describe("Basic values", function() {
         expect(rt.isNothing(aFun)).toEqual(    false) 
         expect(rt.isNothing(aMeth)).toEqual(   false) 
         expect(rt.isNothing(aNoth)).toEqual(   true) 
+        expect(rt.isNothing(anObj)).toEqual(   false) 
      });
+
+     it("isObject works", function(){
+        expect(rt.isObject(aNum)).toEqual(    false) 
+        expect(rt.isObject(aBool)).toEqual(   false) 
+        expect(rt.isObject(aStr)).toEqual(    false) 
+        expect(rt.isObject(aFun)).toEqual(    false) 
+        expect(rt.isObject(aMeth)).toEqual(   false) 
+        expect(rt.isObject(aNoth)).toEqual(   false) 
+        expect(rt.isObject(anObj)).toEqual(   true) 
+     });
+
 
      it("should work on instances created by makeRuntime", function(){
         //Inheritance depends on code order, ensure that the methods inside number etc are correct class
