@@ -151,7 +151,7 @@ data LetBind:
 end
 
 data LetrecBind:
-  | s_letrec_bind(l :: Loc, b :: Bind, e :: Expr) with:
+  | s_letrec_bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -162,7 +162,7 @@ data Expr:
     label(self): "s_let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-let + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + PP.str(":"),
+        str-let + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -170,7 +170,7 @@ data Expr:
     label(self): "s_letrec" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-letrec + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + PP.str(":"),
+        str-letrec + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -989,6 +989,18 @@ fun equiv-ast-let-bind(lb1 :: LetBind, lb2 :: LetBind):
   end
 end
 
+fun equiv-ast-letrec-bind(lb1 :: LetrecBind, lb2 :: LetrecBind):
+  cases(LetrecBind) lb1:
+    | s_letrec_bind(_, bind1, value1) => 
+      cases(LetrecBind) lb2:
+        | s_letrec_bind(_, bind2, value2) =>
+          equiv-ast-bind(bind1, bind2) and
+            equiv-ast(value1, value2)
+        | else => false
+      end
+  end
+end
+
 fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
   cases (Expr) ast1:
     | s_block(_, stmts1) =>
@@ -1000,7 +1012,7 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       cases(Expr) ast2:
         | s_fun(_, n2, p2, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
-              n1, p2, ar1, an1, d1, b1, c1,
+              n1, p1, ar1, an1, d1, b1, c1,
               n2, p2, ar2, an2, d2, b2, c2
             )
         | else => false
@@ -1246,6 +1258,13 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       cases(Expr) ast2:
         | s_let_expr(_, let-binds2, body2) =>
           length-andmap(equiv-ast-let-bind, let-binds1, let-binds2) and
+            equiv-ast(body1, body2)
+        | else => false
+      end
+    | s_letrec(_, let-binds1, body1) =>
+      cases(Expr) ast2:
+        | s_letrec(_, let-binds2, body2) =>
+          length-andmap(equiv-ast-letrec-bind, let-binds1, let-binds2) and
             equiv-ast(body1, body2)
         | else => false
       end
