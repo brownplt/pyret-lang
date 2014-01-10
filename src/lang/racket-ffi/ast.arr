@@ -144,7 +144,7 @@ data LetBind:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s_var_bind(l :: Loc, b :: Bind, e :: Expr) with:
+  | s_var_bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -162,7 +162,7 @@ data Expr:
     label(self): "s_let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-let + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + str-colon,
+        str-let + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -170,7 +170,7 @@ data Expr:
     label(self): "s_letrec" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-letrec + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + str-colon,
+        str-letrec + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -357,7 +357,7 @@ data Expr:
     tosource(self): PP.str(self.id) end
   | s_id_var(l :: Loc, id :: String) with:
     label(self): "s_id_var" end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): PP.str("!" + self.id) end
   | s_num(l :: Loc, n :: Number) with:
     label(self): "s_num" end,
     tosource(self): PP.number(self.n) end
@@ -1252,6 +1252,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
     | s_id(_, id1) =>
       cases(Expr) ast2:
         | s_id(_, id2) => id1 == id2
+        | else => false
+      end
+    | s_id_var(_, id1) =>
+      cases(Expr) ast2:
+        | s_id_var(_, id2) => id1 == id2
         | else => false
       end
     | s_let_expr(_, let-binds1, body1) =>

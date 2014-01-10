@@ -160,7 +160,11 @@ function makeRuntime(theOutsideWorld) {
         }*/
         else if(isMethod(fieldVal)){
             //TODO: Bind self properly
-            return makeFunction((fieldVal).meth);
+            var curried = function() {
+		          var argList = Array.prototype.slice.call(arguments);
+		          return fieldVal.meth.apply(null, [val].concat(argList));
+            }
+            return makeFunction(curried);
         }
         else {
             return fieldVal;
@@ -745,7 +749,11 @@ function makeRuntime(theOutsideWorld) {
       @return {!PBoolean} with value b
     */
     function makeBoolean(b) {
-       return new PBoolean(b); 
+        return new PBoolean(b); 
+    }
+
+    function isPyretTrue(b) {
+        return isBoolean(b) && (b.b === true);
     }
 
     /*********************
@@ -1027,6 +1035,9 @@ function makeRuntime(theOutsideWorld) {
             onDone(new FailureResult(e));
           }
         },
+
+        'getField'    : getField,
+        'isPyretTrue' : isPyretTrue,
 
         'isBase'      : isBase,
         'isNothing'   : isNothing,

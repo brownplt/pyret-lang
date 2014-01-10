@@ -20,6 +20,10 @@ j-return = J.j-return
 j-assign = J.j-assign
 j-if = J.j-if
 j-app = J.j-app
+j-obj = J.j-obj
+j-dot = J.j-dot
+j-field = J.j-field
+j-dot-assign = J.j-dot-assign
 
 format = F.format
 
@@ -34,6 +38,10 @@ js-id-of = block:
       safe-id
     end
   end
+end
+
+data Env:
+  | bindings(vars :: Set<String>, ids :: Set<String>)
 end
 
 fun compile(prog :: S.SplitResult) -> J.JExpr:
@@ -63,17 +71,22 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
   cases(N.AExpr) expr:
     | a-let(l, b, e, body) =>
       compiled-body = maybe-return(body)
-      j-block([
+      j-block(
           link(
-              j-var(b.id, compile-l(e)),
+              j-var(js-id-of(b.id), compile-l(e)),
               compiled-body.stmts
             )
-        ])
+        )
+    | a-var(l, b, e, body) =>
+      compiled-body = maybe-return(body)
+      j-block(link(
+                j-var(js-id-of(b.id), j-obj([j-field("$var", compile-l(e))])),
+                compiled-body.stmts))
     | a-if(l, cond, consq, alt) =>
       compiled-consq = maybe-return(consq)
       compiled-alt = maybe-return(alt)
       j-block([
-          j-if(compile-v(cond), compiled-consq, compiled-alt)
+          j-if(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
         ])
     | a-lettable(l) =>
       j-block([
@@ -85,15 +98,22 @@ end
 fun compile-l(expr :: N.ALettable) -> J.JExpr:
   cases(N.ALettable) expr:
     | a-lam(l, args, body) =>
-      j-fun(args.map(_.id), compile-e(body))
+      j-method(j-id("RUNTIME"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), compile-e(body))])
+    
+    | a-method(l, args, body) =>
+      j-method(j-id("RUNTIME"), "makeMethod", [j-fun(args.map(_.id).map(js-id-of), compile-e(body))])
 
     | a-assign(l, id, val) =>
-      j-assign(id, compile-v(val), id)
+      j-dot-assign(j-id(js-id-of(id)), "$var", compile-v(val))
+
+    | a-dot(l, obj, field) =>
+      j-method(j-id("RUNTIME"), "getField", [compile-v(obj), j-str(field)])
 
     | a-app(l, f, args) =>
       j-method(compile-v(f), "app", args.map(compile-v))
 
-    | a-split-app(l, f, args, name, helper-args) =>
+    | a-split-app(l, is-var, f, args, name, helper-args) =>
+      when is-var: raise("Can't handle splitting on a var yet");
       j-app(
           j-id(helper-name(name)),
           link(
@@ -109,6 +129,7 @@ end
 fun compile-v(v :: N.AVal) -> J.JExpr:
   cases(N.AVal) v:
     | a-id(l, id) => j-id(js-id-of(id))
+    | a-id-var(l, id) => j-dot(j-id(js-id-of(id)), "$var")
     | a-num(l, n) => j-method(j-id("RUNTIME"), "makeNumber", [j-num(n)])
     | a-str(l, s) => j-method(j-id("RUNTIME"), "makeString", [j-str(s)])
     | a-bool(l, b) =>

@@ -62,9 +62,7 @@ end
 fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
   ids = A.block-ids(A.s_block(N.dummy-loc, es-init))
   shell = for fold(s from fun(e): e end, id from ids):
-      fun(e):
-        N.a-let(N.dummy-loc, bind(N.dummy-loc, id), N.a-val(N.a-undefined(N.dummy-loc)), e)
-      end
+      fun(e): e end
     end
   fun handle-id(l, b, e, rest):
     anf-name(e, "anf_id_bind", fun(v):
@@ -81,8 +79,8 @@ fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
           anf(f, k)
         else:
           cases(A.Expr) f:
-            | s_let(l, b, e) => handle-id(l, b, e, r)
-            | s_var(l, b, e) => handle-id(l, b, e, r)
+#            | s_let(l, b, e) => handle-id(l, b, e, r)
+#            | s_var(l, b, e) => handle-id(l, b, e, r)
             | else => anf(f, fun(lettable):
                   t = mk-id(f.l, "anf_begin_dropped")
                   N.a-let(f.l, t.id-b, lettable, anf-block-help(r))
@@ -100,6 +98,21 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
     | s_str(l, s) => k(N.a-val(N.a-str(l, s)))
     | s_bool(l, b) => k(N.a-val(N.a-bool(l, b)))
     | s_id(l, id) => k(N.a-val(N.a-id(l, id)))
+    | s_id_var(l, id) => k(N.a-val(N.a-id-var(l, id)))
+
+    | s_let_expr(l, binds, body) =>
+      cases(List) binds:
+        | empty => anf(body, k)
+        | link(f, r) =>
+          cases(A.LetBind) f:
+            | s_var_bind(l2, b, val) => anf(val, fun(lettable):
+              N.a-var(l2, N.a-bind(l2, b.id, b.ann), lettable,
+                anf(A.s_let_expr(l, r, body), k)) end)
+            | s_let_bind(l2, b, val) => anf(val, fun(lettable):
+              N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
+                anf(A.s_let_expr(l, r, body), k)) end)
+          end
+      end
 
     | s_if_else(l, branches, _else) =>
       if not is-empty(branches):
@@ -110,7 +123,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
         consq = s-if.branches.first.body
         altern = s-if._else
         anf-name(cond, "anf_if", fun(t):
-            N.a-if(l, t, anf-term(consq), anf-term(altern))
+            N.a-if(l, t, anf(consq, k), anf(altern, k))
           end)
       else:
         anf(_else, k)
@@ -134,12 +147,15 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
             end)
         end)
 
+    | s_dot(l, obj, field) =>
+      anf-name(obj, "anf_bracket", fun(t-obj): k(N.a-dot(l, t-obj, field)) end)
+
     | s_bracket(l, obj, field) =>
       fname = cases(A.Expr) field:
           | s_str(_, s) => s
           | else => raise("Non-string field: " + torepr(field))
         end
-      anf-name(obj, "anf_bracket", fun(t-obj): k(N.a-bracket(l, t-obj, fname)) end)
+      anf-name(obj, "anf_bracket", fun(t-obj): k(N.a-dot(l, t-obj, fname)) end)
 
     | s_colon_bracket(l, obj, field) =>
       fname = cases(A.Expr) field:
