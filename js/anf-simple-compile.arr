@@ -25,11 +25,16 @@ j-dot = J.j-dot
 j-bracket = J.j-bracket
 j-field = J.j-field
 j-dot-assign = J.j-dot-assign
+j-bracket-assign = J.j-bracket-assign
 j-raw-holes = J.j-raw-holes
 j-try-catch = J.j-try-catch
 j-throw = J.j-throw
 j-expr = J.j-expr
 j-raw = J.j-raw
+j-binop = J.j-binop
+j-unop = J.j-unop
+j-decr = J.j-decr
+j-incr = J.j-incr
 
 format = F.format
 
@@ -52,10 +57,11 @@ end
 
 fun compile(prog :: S.SplitResult) -> J.JExpr:
   j-fun(["RUNTIME", "NAMESPACE"], j-block([
-    j-var(js-id-of("test-print"),
-      j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")]))] +
-    prog.helpers.map(compile-helper) +
-    [compile-e(prog.body)]))
+        j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
+        j-var(js-id-of("test-print"),
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")]))] +
+      prog.helpers.map(compile-helper) +
+      [compile-e(prog.body)]))
 end
 
 fun helper-name(s :: String): "$HELPER_" + s;
@@ -100,13 +106,15 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
       e = js-id-of("e")
       z = js-id-of("z")
       ss = js-id-of("ss")
+      ret = js-id-of("ret")
       body =
-        j-if(j-raw-holes("--~a > 0", [j-dot(j-id("RUNTIME"), "GAS")], 80),
-          j-block([j-assign(z, app(f, args))]),
+        j-if(j-binop(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-decr), J.j-gt, j-num(0)),
+          j-block([j-expr(j-assign(z, app(f, args)))]),
           j-block([
-              j-throw(j-method(j-id("RUNTIME"), "makeCont", [J.j-raw("[]"),
-                j-obj([
-                  j-field("go", j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))])))])]))]))
+              j-expr(j-assign(js-id-of("EXN_STACKHEIGHT"), j-num(0))),
+              j-throw(j-method(j-id("RUNTIME"), "makeCont", 
+                  [j-obj([j-field("go",
+                          j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))])))])]))]))
       helper-ids = helper-args.rest.map(_.id).map(js-id-of)
       catch =
         j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
@@ -120,7 +128,9 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
                               j-id(js-id-of(helper-args.first.id)),
                               helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))]))),
                   helper-ids.map(fun(a): j-field(a, j-id(a)) end)))),
-              j-raw-holes("~a.stack.push(~a);", [j-id(e), j-id(ss)], 80),
+              j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
+                  j-unop(j-id(js-id-of("EXN_STACKHEIGHT")), J.j-postincr), j-id(ss))),
+              #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
               j-throw(j-id(e))]),
           j-block([
               j-throw(j-id(e)) 
@@ -128,12 +138,13 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
       j-block([
           j-var(z, j-undefined),
           j-try-catch(body, e, catch),
-          j-return(j-app(j-id(helper-name(name)), [j-id(z)] + helper-args.rest.map(compile-v)))])
+          j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + helper-args.rest.map(compile-v))),
+          j-expr(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-incr)),
+          j-return(j-id(ret))
+        ])
 
     | a-lettable(l) =>
-      j-block([
-          j-return(compile-l(l))
-        ])
+      j-block([j-return(compile-l(l))])
   end
 end
 

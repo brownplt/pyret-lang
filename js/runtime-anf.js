@@ -1023,7 +1023,7 @@ function makeRuntime(theOutsideWorld) {
       this.stack = stack;
       this.bottom = bottom;
     }
-    function makeCont(stack, bottom) { return new Cont(stack, bottom); }
+    function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
 
 
@@ -1038,28 +1038,36 @@ function makeRuntime(theOutsideWorld) {
       var theOneTrueStart = {};
       var val = theOneTrueStart;
       var BOUNCES = 0;
+      var theOneTrueStackHeight = 1;
 
       function iter() {
-        try {
-          while(theOneTrueStack.length > 0) {
-            var next = theOneTrueStack.pop();
-            val = next.go(val)
-          }
-          onDone(new SuccessResult(val));
-        } catch(e) {
-          if(isCont(e)) {
-            BOUNCES++;
-            thisRuntime.GAS = INITIAL_GAS;
-            for(var i = e.stack.length - 1; i >= 0; i--) {
-              theOneTrueStack.push(e.stack[i]);
+        var loop = true;
+        while (loop) {
+          loop = false;
+          try {
+            while(theOneTrueStackHeight > 0) {
+              var next = theOneTrueStack[--theOneTrueStackHeight];
+              theOneTrueStack[theOneTrueStackHeight] = undefined;
+              val = next.go(val)
             }
-            theOneTrueStack.push(e.bottom);
-            val = theOneTrueStart;
-            iter();
-//            setTimeout(iter, 0);
-          } else {
-            console.log("Bounces: ", BOUNCES);
-            onDone(new FailureResult(e));
+            onDone(new SuccessResult(val));
+          } catch(e) {
+            if(isCont(e)) {
+              BOUNCES++;
+              thisRuntime.GAS = INITIAL_GAS;
+              for(var i = e.stack.length - 1; i >= 0; i--) {
+                theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
+              }
+
+              theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
+              val = theOneTrueStart;
+              loop = true;
+              //            iter();
+              //            setTimeout(iter, 0);
+            } else {
+              console.log("Bounces: ", BOUNCES);
+              onDone(new FailureResult(e));
+            }
           }
         }
       }

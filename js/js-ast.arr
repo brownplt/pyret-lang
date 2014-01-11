@@ -44,21 +44,51 @@ data JStmt:
   | j-try-catch(body :: JStmt, exn :: String, catch :: JStmt) with:
     tosource(self):
       PP.surround(INDENT, 1, PP.str("try {"), self.body.tosource(), PP.rbrace)
-        + PP.surround(INDENT, 1, PP.str("catch(" + self.exn + ") {"), self.catch.tosource(), PP.rbrace)
+        + PP.surround(INDENT, 1, PP.str(" catch(" + self.exn + ") {"), self.catch.tosource(), PP.rbrace)
     end
   | j-throw(exp :: JExpr) with:
-    tosource(self): PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) end
+    tosource(self): PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) + PP.str(";") end
   | j-expr(expr :: JExpr) with:
     tosource(self):
       self.expr.tosource() + PP.str(";")
     end
 end
 
+data JBinop:
+  | j-plus with: tosource(self): PP.str("+") end
+  | j-minus with: tosource(self): PP.str("-") end
+  | j-times with: tosource(self): PP.str("*") end
+  | j-divide with: tosource(self): PP.str("/") end
+  | j-and with: tosource(self): PP.str("&&") end
+  | j-or with: tosource(self): PP.str("||") end
+  | j-lt with: tosource(self): PP.str("<") end
+  | j-leq with: tosource(self): PP.str("<=") end
+  | j-gt with: tosource(self): PP.str(">") end
+  | j-geq with: tosource(self): PP.str(">=") end
+  | j-eq with: tosource(self): PP.str("===") end
+  | j-equals with: tosource(self): PP.str("==") end
+  | j-neq with: tosource(self): PP.str("!==") end
+  | j-nequals with: tosource(self): PP.str("!=") end
+end
+
+data JUnop:
+  | j-incr with: tosource(self): PP.str("++") end
+  | j-decr with: tosource(self): PP.str("--") end
+  | j-postincr with: tosource(self): PP.str("++") end
+  | j-postdecr with: tosource(self): PP.str("--") end
+end
+
 data JExpr:
-  | j-incr(id :: String) with:
-    tosource(self): PP.str(self.id + "++") end
-  | j-decr(id :: String) with:
-    tosource(self): PP.str(self.id + "--") end
+  | j-unop(exp :: JExpr, op :: JUnop) with:
+    tosource(self):
+      cases(JUnop) self.op:
+        | j-postincr => self.exp.tosource() + self.op.tosource()
+        | j-postdeccr => self.exp.tosource() + self.op.tosource()
+        | else => self.op.tosource() + self.exp.tosource()
+      end
+    end
+  | j-binop(left :: JExpr, op :: JBinop, right :: JExpr) with:
+    tosource(self): PP.flow([self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
   | j-fun(args :: List<String>, body :: JBlock) with:
     tosource(self):
       arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))
@@ -88,6 +118,11 @@ data JExpr:
   | j-assign(name :: String, rhs :: JExpr) with:
     tosource(self):
       PP.nest(INDENT, PP.str(self.name) + PP.str(" =") + break-one + self.rhs.tosource())
+    end
+  | j-bracket-assign(obj :: JExpr, field :: JExpr, rhs :: JExpr) with:
+    tosource(self):
+      PP.nest(INDENT, self.obj.tosource() + PP.lbrack + self.field.tosource() + PP.rbrack + PP.str(" =")
+          + break-one + self.rhs.tosource())
     end
   | j-dot-assign(obj :: JExpr, name :: String, rhs :: JExpr) with:
     tosource(self):
