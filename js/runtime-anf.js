@@ -160,10 +160,7 @@ function makeRuntime(theOutsideWorld) {
         }*/
         else if(isMethod(fieldVal)){
             //TODO: Bind self properly
-            var curried = function() {
-		          var argList = Array.prototype.slice.call(arguments);
-		          return fieldVal.meth.apply(null, [val].concat(argList));
-            }
+            var curried = fieldVal.meth(val);
             return makeFunction(curried);
         }
         else {
@@ -253,12 +250,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeNumber(left.n + right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_minus' : makeMethod(
@@ -267,12 +264,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeNumber(left.n - right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_times' : makeMethod(
@@ -281,12 +278,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeNumber(left.n * right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_divide' : makeMethod(
@@ -295,14 +292,14 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
             if(right.n === 0) {
                 throw makeMessageException("Division by zero");
             }
             return makeNumber(left.n / right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_equals' : makeMethod(
@@ -311,12 +308,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n === right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_lessthan' : makeMethod(
@@ -325,12 +322,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n < right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_greaterthan' : makeMethod(
@@ -339,12 +336,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n > right.n);
-        }),
+        }}),
         /**@type {PMethod}*/
         '_lessequal' : makeMethod(
         /**
@@ -352,12 +349,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n <= right.n);
-        }),
+        }}),
         /**@type {PMethod}*/
         '_greaterequal' : makeMethod(
         /**
@@ -365,12 +362,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n >= right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'tostring' : makeMethod(
@@ -378,10 +375,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PString}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeString(me.n.toString());
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'sin' : makeMethod(
@@ -389,10 +386,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.sin(me.n));
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'cos' : makeMethod(
@@ -400,10 +397,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.cos(me.n));
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'tan' : makeMethod(
@@ -411,10 +408,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.tan(me.n));
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'asin' : makeMethod(
@@ -422,10 +419,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.asin(me.n));
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'acos' : makeMethod(
@@ -433,10 +430,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.acos(me.n));
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'atan' : makeMethod(
@@ -444,10 +441,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() { return function() {
             checkIf(me, isNumber);
             return makeNumber(Math.atan(me.n));
-        })
+        }}})
 
     };
 
