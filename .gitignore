@@ -19,6 +19,7 @@ js/htdocs/moorings.js
 js/generated-tests
 js/compiled
 js/closure-compiler
+node_modules/
 *#
 pyret.plt
 pyret.org/pyret-frog/*.html
