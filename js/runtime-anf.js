@@ -749,11 +749,14 @@ function makeRuntime(theOutsideWorld) {
       @return {!PBoolean} with value b
     */
     function makeBoolean(b) {
-        return new PBoolean(b); 
+        if(b) { return pyretTrue } else { return pyretFalse; }
     }
 
+    var pyretTrue = new PBoolean(true);
+    var pyretFalse = new PBoolean(false);
+
     function isPyretTrue(b) {
-        return isBoolean(b) && (b.b === true);
+        return b === pyretTrue;
     }
 
     /*********************
@@ -1115,7 +1118,10 @@ function makeRuntime(theOutsideWorld) {
         'makeString'   : makeString,
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod,
-        'makeObject'   : makeObject
+        'makeObject'   : makeObject,
+
+        'pyretTrue'    : pyretTrue,
+        'pyretFalse'   : pyretFalse
     };
     return thisRuntime;
 }

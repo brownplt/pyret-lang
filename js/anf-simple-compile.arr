@@ -4,7 +4,6 @@ provide *
 import "ast-anf.arr" as N
 import "ast-split.arr" as S
 import "js-ast.arr" as J
-import format as F
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -35,8 +34,6 @@ j-binop = J.j-binop
 j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
-
-format = F.format
 
 js-id-of = block:
   var js-ids = {}
@@ -183,8 +180,8 @@ fun compile-v(v :: N.AVal) -> J.JExpr:
     | a-num(l, n) => j-method(j-id("RUNTIME"), "makeNumber", [j-num(n)])
     | a-str(l, s) => j-method(j-id("RUNTIME"), "makeString", [j-str(s)])
     | a-bool(l, b) =>
-      j-bool = if b: j-true else: j-false end
-      j-method(j-id("RUNTIME"), "makeBoolean", [j-bool])
+      str = if b: "pyretTrue" else: "pyretFalse";
+      j-dot(j-id("RUNTIME"), str)
     | a-undefined(l) => j-undefined
   end
 end
