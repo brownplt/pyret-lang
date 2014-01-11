@@ -22,6 +22,7 @@ j-if = J.j-if
 j-app = J.j-app
 j-obj = J.j-obj
 j-dot = J.j-dot
+j-bracket = J.j-bracket
 j-field = J.j-field
 j-dot-assign = J.j-dot-assign
 j-raw-holes = J.j-raw-holes
@@ -101,16 +102,24 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
       ss = js-id-of("ss")
       body =
         j-if(j-raw-holes("--~a > 0", [j-dot(j-id("RUNTIME"), "GAS")], 80),
-          j-block([j-assign(z, j-method(compile-v(f), "app", args.map(compile-v)))]),
+          j-block([j-assign(z, app(f, args))]),
           j-block([
               j-throw(j-method(j-id("RUNTIME"), "makeCont", [J.j-raw("[]"),
-                    j-fun([js-id-of("ignored")], j-block([j-return(j-method(compile-v(f), "app", args.map(compile-v)))]))]))]))
+                j-obj([
+                  j-field("go", j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))])))])]))]))
+      helper-ids = helper-args.rest.map(_.id).map(js-id-of)
       catch =
         j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
           j-block([
               j-var(ss,
-                j-fun([js-id-of(helper-args.first.id)],
-                  j-block([j-return(j-app(j-id(helper-name(name)), helper-args.map(compile-v)))]))),
+                j-obj(link(
+                  j-field("go", j-fun([js-id-of(helper-args.first.id)],
+                    j-block([
+                      j-return(j-app(j-id(helper-name(name)),
+                          link(
+                              j-id(js-id-of(helper-args.first.id)),
+                              helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))]))),
+                  helper-ids.map(fun(a): j-field(a, j-id(a)) end)))),
               j-raw-holes("~a.stack.push(~a);", [j-id(e), j-id(ss)], 80),
               j-throw(j-id(e))]),
           j-block([
@@ -142,12 +151,16 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
     | a-dot(l, obj, field) =>
       j-method(j-id("RUNTIME"), "getField", [compile-v(obj), j-str(field)])
 
-    | a-app(l, f, args) =>
-      j-method(compile-v(f), "app", args.map(compile-v))
+    | a-app(l, f, args) => app(f, args)
 
     | a-val(v) => compile-v(v)
     | else => raise("NYI: " + torepr(expr))
   end
+end
+
+fun app(f, args):
+#  j-app(compile-v(f), args.map(compile-v))
+   j-method(compile-v(f), "app", args.map(compile-v))
 end
 
 fun compile-v(v :: N.AVal) -> J.JExpr:

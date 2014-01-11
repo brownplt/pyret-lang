@@ -1,10 +1,10 @@
 /***
 This is the runtime for the ANF'd version of pyret
 */
+"use strict";
 if(typeof require !== 'undefined') {
   var Namespace = require('./namespace.js').Namespace;
 }
-"use strict";
 
 /**
   @type {{makeRuntime : function(*)}}
@@ -1032,8 +1032,10 @@ function makeRuntime(theOutsideWorld) {
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, onDone) {
-      var kickoff = function(ignored) {
-          return program(thisRuntime, namespace);
+      var kickoff = {
+          go: function(ignored) {
+            return program(thisRuntime, namespace);
+          }
         };
       var theOneTrueStack = [kickoff];
       var theOneTrueStart = {};
@@ -1044,9 +1046,8 @@ function makeRuntime(theOutsideWorld) {
         try {
           while(theOneTrueStack.length > 0) {
             var next = theOneTrueStack.pop();
-            val = next(val)
+            val = next.go(val)
           }
-          console.log("Bounces: ", BOUNCES);
           onDone(new SuccessResult(val));
         } catch(e) {
           if(isCont(e)) {
@@ -1069,7 +1070,7 @@ function makeRuntime(theOutsideWorld) {
       setTimeout(iter, 0);
     }
 
-    INITIAL_GAS = theOutsideWorld.initialGas || 10000;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     //Export the runtime
     //String keys should be used to prevent renaming

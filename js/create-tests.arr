@@ -113,7 +113,8 @@ fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
     | err(message) => tests-with-errors := (tests-with-errors + [{name: name, compiled: compiled}])
     | ok(code) =>
       contents = format("
-R = require('../../../runtime-anf.js').PYRET_ANF;
+\"use strict\";
+var R = require('../../../runtime-anf.js').PYRET_ANF;
 describe('~a', function() {
   it('should work', function(done) {
     var expectedOutput = ~s;
