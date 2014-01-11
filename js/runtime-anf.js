@@ -452,7 +452,7 @@ function makeRuntime(theOutsideWorld) {
       @return {Object.<string, !PBase>} the dictionary for a number
     */
     function createNumberDict() {
-        return copyDict(baseNumberDict);
+        return baseNumberDict;
     }
     /**Makes a PNumber using the given n
 
