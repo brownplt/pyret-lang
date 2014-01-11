@@ -13,7 +13,8 @@ var PYRET_ANF = (function() {
 
 /**
     Creates a Pyret runtime
-    @param {{stdout : function(string)}} theOutsideWorld contains the hooks into the environment
+    @param {{stdout : function(string)}} theOutsideWorld contains the hooks
+    into the environment
 
     @return {Object} that contains all the necessary components of a runtime
 */
@@ -62,10 +63,12 @@ function makeRuntime(theOutsideWorld) {
         If all the fields are new, the brands are kept,
         otherwise, the extended object has no brands
 
-        The original object is not mutated, instead it is cloned and the clone is mutated
+        The original object is not mutated, instead it is cloned and the clone
+        is mutated
 
-        @param {Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
-        If any of the fields exist, they will be overwritten with the new value
+        @param {Object.<string, !PBase>} fields: a PObj whose fields will be
+        added to the Pyret base If any of the fields exist, they will be
+        overwritten with the new value
 
         @return {!PBase} the extended object 
     */
@@ -862,7 +865,7 @@ function makeRuntime(theOutsideWorld) {
       @return {!PMethod} with app of fun
     */
     function makeMethod(meth) {
-       return new PMethod(meth); 
+      return new PMethod(meth); 
     }
 
     /*********************

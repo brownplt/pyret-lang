@@ -154,7 +154,9 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
       j-method(j-id("RUNTIME"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), compile-e(body))])
     
     | a-method(l, args, body) =>
-      j-method(j-id("RUNTIME"), "makeMethod", [j-fun(args.map(_.id).map(js-id-of), compile-e(body))])
+      j-method(j-id("RUNTIME"), "makeMethod", [j-fun([js-id-of(args.first.id)],
+        j-block([
+          j-return(j-fun(args.rest.map(_.id).map(js-id-of)), compile-e(body))]))])
 
     | a-assign(l, id, val) =>
       j-dot-assign(j-id(js-id-of(id)), "$var", compile-v(val))
