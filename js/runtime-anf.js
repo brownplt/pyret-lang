@@ -1042,21 +1042,16 @@ function makeRuntime(theOutsideWorld) {
 
       function iter() {
         try {
-          //console.log(next.toString());
           while(theOneTrueStack.length > 0) {
             var next = theOneTrueStack.pop();
             val = next(val)
-            //console.log("Val is: ", val);
-            //console.log("Call succeeded, temaining stack is: ", theOneTrueStack);
           }
           console.log("Bounces: ", BOUNCES);
           onDone(new SuccessResult(val));
         } catch(e) {
           if(isCont(e)) {
             BOUNCES++;
-//            console.log("Caught: ", val, new Date());
             thisRuntime.GAS = INITIAL_GAS;
-            console.log("Stack depth: ", e.stack.length);
             for(var i = e.stack.length - 1; i >= 0; i--) {
               theOneTrueStack.push(e.stack[i]);
             }
@@ -1070,6 +1065,7 @@ function makeRuntime(theOutsideWorld) {
           }
         }
       }
+      thisRuntime.GAS = INITIAL_GAS;
       setTimeout(iter, 0);
     }
 
