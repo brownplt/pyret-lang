@@ -111,8 +111,7 @@ data Header:
   | s_import(l :: Loc, file :: ImportType, name :: String) with:
     label(self): "s_import" end,
     tosource(self):
-      PP.flow([str-import, PP.quote(PP.str(self.file)),
-          str-as, PP.str(self.name)])
+      PP.flow([str-import, self.file.tosource(), str-as, PP.str(self.name)])
     end
   | s_provide(l :: Loc, block :: Expr) with:
     label(self): "s_provide" end,
@@ -128,10 +127,10 @@ end
 data ImportType:
   | s_file_import(file :: String) with:
     label(self): "s_file_import" end,
-    tosource(self): str-import + break-one + PP.dquote(PP.str(self.file)) end
+    tosource(self): PP.dquote(PP.str(self.file)) end
   | s_const_import(module :: String) with:
     label(self): "s_const_import" end,
-    tosource(self): str-import + break-one + PP.str(self.module) end
+    tosource(self): PP.str(self.module) end
 end
 
 data Hint:
@@ -236,7 +235,7 @@ data Expr:
   | s_assign(l :: Loc, id :: String, value :: Expr) with:
     label(self): "s_assign" end,
     tosource(self):
-      PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource())
+      PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | s_if(l :: Loc, branches :: List<IfBranch>) with:
     label(self): "s_if" end,
@@ -638,10 +637,11 @@ data CasesBranch:
   | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     label(self): "s_cases_branch" end,
     tosource(self):
-      PP.group(PP.str("| " + self.name)
-          + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
-          self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-      self.body.tosource()
+      PP.nest(INDENT,
+        PP.group(PP.str("| " + self.name)
+            + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
+            self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
+        self.body.tosource())
     end
 end
 

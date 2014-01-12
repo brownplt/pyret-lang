@@ -91,12 +91,13 @@ sharing:
         end).reverse()
     end
     fun emit_string(s :: String, len :: Number):
-      when (in-group or is-flat) and ((curcol + len) >= width):
-        raise("String doesn't fit")
+      if (in-group or is-flat) and ((curcol + len) >= width):
+        "String doesn't fit"
+      else:
+        output := (s^list.link(output.first))^list.link(output.rest)
+        curcol := curcol + len
+        nothing
       end
-      output := (s^list.link(output.first))^list.link(output.rest)
-      curcol := curcol + len
-      nothing
     end
     fun emit_blanks(n :: Number):
       emit_string(blanks(n), n)
@@ -110,7 +111,7 @@ sharing:
       if is-mt-doc(pdoc): emit_string("", 0)
       else if is-str(pdoc): emit_string(pdoc.s, pdoc.s.length())
       else if is-hardline(pdoc):
-        if is-flat: raise("Hardline isn't flat")
+        if is-flat: "Hardline isn't flat"
         else: emit_newline()
         end
       else if is-blank(pdoc): emit_blanks(pdoc.n)
@@ -119,33 +120,51 @@ sharing:
         else: run(pdoc.vert)
         end
       else if is-concat(pdoc):
-        run(pdoc.fst)
-        run(pdoc.snd)
+        first = run(pdoc.fst)
+        if is-nothing(first):
+          run(pdoc.snd)
+        else:
+          first
+        end
       else if is-nest(pdoc):
         cur-indent = indent
         indent := indent + pdoc.indent
-        run(pdoc.d)
-        indent := cur-indent
+        d = run(pdoc.d)
+        if is-nothing(d):
+          indent := cur-indent
+          nothing
+        else:
+          d
+        end
       else if is-group(pdoc):
         if not in-group:
           cur-indent = indent
           cur-column = curcol
           cur-flat = is-flat
           cur-output = output
+          cur-group = in-group
           in-group := true
           is-flat := true
-          try:
-            run(pdoc.d)
-          except(_):
+          d-flat = run(pdoc.d)
+          if is-nothing(d-flat):
+            in-group := cur-group
+            is-flat := cur-flat
+            d-flat
+          else:
             indent := cur-indent
             curcol := cur-column
             output := cur-output
             is-flat := false
             in-group := false
-            run(pdoc.d)
+            d-vert = run(pdoc.d)
+            if is-nothing(d-vert):
+              is-flat := cur-flat
+              in-group := cur-group
+              nothing
+            else:
+              d-vert
+            end
           end
-          in-group := false
-          is-flat := cur-flat
         else: run(pdoc.d)
         end
       else if is-column(pdoc): run(pdoc.func(curcol))
