@@ -119,7 +119,7 @@ fun usage-info(options) -> List<String>:
               format("  --~a [~a]: ~a (~a, default: ~a)", [key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
               format("  --~a [~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
-                [key, parser.parse-string(), desc, repeated, default, short, default, repeated])
+                [key, parser.parse-string(), desc, repeated, default, short, desc, repeated])
           end
       end
     end
@@ -142,7 +142,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
             | some(short) =>
               if builtins.has-field(acc.options, short):
                 raise(arg-error("Options map already includes entry for short-name " + short, success({}, [])))
-              else: acc.{options: acc.options.{[short]: cur-option}, aliases: acc.aliases.{[short]: key}}
+              else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
               end
           end
         | next-val-default(_, _, short-name, _, _) =>
@@ -151,7 +151,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
             | some(short) =>
               if builtins.has-field(acc.options, short):
                 raise(arg-error("Options map already includes entry for short-name " + short, success({}, [])))
-              else: acc.{options: acc.options.{[short]: cur-option}, aliases: acc.aliases.{[short]: key}}
+              else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
               end
           end
         | else => acc
@@ -300,8 +300,16 @@ arguments do not satisfy the requirements of the Params dictionary.'
               end
             else if first.substring(0, 1) == "-":
               key = first.substring(1, first.length())
-              if builtins.has-field(full-options, key):
-                cases(Param) full-options.[key]:
+              lookup = 
+                if builtins.has-field(option-aliases, key) and builtins.has-field(full-options, option-aliases.[key]):
+                  full-options.[option-aliases.[key]]
+                else if builtins.has-field(full-options, key):
+                  full-options.[key]
+                else:
+                  nothing
+                end
+              if Param(lookup):
+                cases(Param) lookup:
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
                   | equals-val-default(_, default, _, repeated, _) =>
@@ -387,6 +395,14 @@ check:
   parse-args(once-required-equals-default, ["-bar", "--foo"]) is success({foo: 42, bar: true}, [])
   parse-args(once-required-equals-default, ["-bar", "-f"]) is success({foo: 42, bar: true}, [])
 
+
+  once-optional-next-default = {
+    width: next-val-default(read-number, 80, some("w"), once, "Width")
+  }
+  parse-args(once-optional-next-default, ["-w", "foo.txt"]) is success({width: 80}, ["foo.txt"])
+  parse-args(once-optional-next-default, ["--width", "120", "foo.txt"]) is success({width: 120}, ["foo.txt"])
+  parse-args(once-optional-next-default, ["--w", "120", "foo.txt"]) satisfies error-text("Unknown command line option --w")
+  
   once-required-next-default = {
     foo: next-val-default(read-number, 42, some("f"), required-once, "Foo"),
     bar: flag(once, "Bar")
