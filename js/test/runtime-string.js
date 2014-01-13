@@ -1,5 +1,5 @@
 _ = require('jasmine-node');
-R = require('../anf-comp.js').PYRET_ANF;
+R = require('../runtime-anf.js').PYRET_ANF;
 var jsnums = require('../js-numbers/src/js-numbers.js');
 
 var output;

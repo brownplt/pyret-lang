@@ -244,6 +244,9 @@ function makeRuntime(theOutsideWorld) {
         return newNum;
     };
 
+    //Const for checking for 0
+    var big_zero = jsnums.fromFixnum(0);
+
 
     /**Tests whether an object is a PNumber
         @param {Object} obj the item to test
@@ -263,7 +266,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumber(left.n + right.n);
+            return makeNumberBig(jsnums.add(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -304,7 +307,7 @@ function makeRuntime(theOutsideWorld) {
         function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
-            if(right.n === 0) {
+            if(jsnums.equals(big_zero, right.n)) {
                 throw makeMessageException("Division by zero");
             }
             return makeNumberBig(left.n / right.n);
@@ -731,7 +734,7 @@ function makeRuntime(theOutsideWorld) {
       @return {!PBoolean} With same b and dict
     */
     PBoolean.prototype.clone = function() { 
-        var newBool = makeBoolean(this.b); 
+        var newBool = new PBoolean(this.b); 
         newBool.dict = copyDict(this.dict);
         return newBool;
     };
