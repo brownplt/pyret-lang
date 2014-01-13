@@ -111,8 +111,7 @@ data Header:
   | s_import(l :: Loc, file :: ImportType, name :: String) with:
     label(self): "s_import" end,
     tosource(self):
-      PP.flow([str-import, PP.quote(PP.str(self.file)),
-          str-as, PP.str(self.name)])
+      PP.flow([str-import, self.file.tosource(), str-as, PP.str(self.name)])
     end
   | s_provide(l :: Loc, block :: Expr) with:
     label(self): "s_provide" end,
@@ -128,10 +127,10 @@ end
 data ImportType:
   | s_file_import(file :: String) with:
     label(self): "s_file_import" end,
-    tosource(self): str-import + break-one + PP.dquote(PP.str(self.file)) end
+    tosource(self): PP.dquote(PP.str(self.file)) end
   | s_const_import(module :: String) with:
     label(self): "s_const_import" end,
-    tosource(self): str-import + break-one + PP.str(self.module) end
+    tosource(self): PP.str(self.module) end
 end
 
 data Hint:
@@ -144,14 +143,14 @@ data LetBind:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s_var_bind(l :: Loc, b :: Bind, e :: Expr) with:
+  | s_var_bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
 end
 
 data LetrecBind:
-  | s_letrec_bind(l :: Loc, b :: Bind, e :: Expr) with:
+  | s_letrec_bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -162,7 +161,7 @@ data Expr:
     label(self): "s_let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-let + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + PP.str(":"),
+        str-let + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -170,7 +169,7 @@ data Expr:
     label(self): "s_letrec" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-letrec + break-one + PP.flow_map(PP.hardline, _.tosource(), self.binds) + PP.str(":"),
+        str-letrec + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -236,7 +235,7 @@ data Expr:
   | s_assign(l :: Loc, id :: String, value :: Expr) with:
     label(self): "s_assign" end,
     tosource(self):
-      PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource())
+      PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | s_if(l :: Loc, branches :: List<IfBranch>) with:
     label(self): "s_if" end,
@@ -323,7 +322,7 @@ data Expr:
     tosource(self):
       PP.group(self.super.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end)))
+          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
   | s_update(l :: Loc, super :: Expr, fields :: List<Member>) with:
     label(self): "s_update" end,
@@ -331,7 +330,7 @@ data Expr:
     label(self): "s_obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s_list(l :: Loc, values :: List<Expr>) with:
     label(self): "s_list" end,
@@ -344,20 +343,20 @@ data Expr:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | s_left_app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s_left_app" end,
     tosource(self):
       PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + str-period + self._fun.tosource())
-          + PP.parens(PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))
+          + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
   | s_id(l :: Loc, id :: String) with:
     label(self): "s_id" end,
     tosource(self): PP.str(self.id) end
   | s_id_var(l :: Loc, id :: String) with:
     label(self): "s_id_var" end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): PP.str("!" + self.id) end
   | s_num(l :: Loc, n :: Number) with:
     label(self): "s_num" end,
     tosource(self): PP.number(self.n) end
@@ -403,7 +402,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(fun(f): f.tosource() end))
+        self.params.map(_.tosource()))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
@@ -430,7 +429,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(fun(f): f.tosource() end))
+        self.params.map(_.tosource()))
       header = str-data + PP.str(self.name) + tys + str-colon
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
@@ -471,7 +470,7 @@ data Expr:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
 
   | s_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
@@ -638,10 +637,11 @@ data CasesBranch:
   | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     label(self): "s_cases_branch" end,
     tosource(self):
-      PP.group(PP.str("| " + self.name)
-          + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
-          self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-      self.body.tosource()
+      PP.nest(INDENT,
+        PP.group(PP.str("| " + self.name)
+            + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
+            self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
+        self.body.tosource())
     end
 end
 
@@ -661,7 +661,7 @@ data Ann:
       PP.surround(INDENT, 1, PP.lparen,
         PP.separate(str-space,
           [PP.separate(PP.commabreak,
-            self.args.map(fun(f): f.tosource() end))] + [str-arrow, self.ret.tosource()]), PP.rparen)
+            self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()]), PP.rparen)
     end
   | a_method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a_method" end,
@@ -670,14 +670,14 @@ data Ann:
     label(self): "a_record" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
-        self.fields.map(fun(f): f.tosource() end))
+        self.fields.map(_.tosource()))
     end
   | a_app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a_app" end,
     tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))) + PP.rangle))
+            PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
     end
   | a_pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     label(self): "a_pred" end,
@@ -717,7 +717,7 @@ fun binding-ids(stmt):
     | s_var(_, b, _) => [b.id]
     | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s_data(_, name, _, _, variants, _, _) =>
-      [name] + flatten(variants.map(variant-ids))
+      name ^ link(flatten(variants.map(variant-ids)))
     | else => []
   end
 end
@@ -989,6 +989,18 @@ fun equiv-ast-let-bind(lb1 :: LetBind, lb2 :: LetBind):
   end
 end
 
+fun equiv-ast-letrec-bind(lb1 :: LetrecBind, lb2 :: LetrecBind):
+  cases(LetrecBind) lb1:
+    | s_letrec_bind(_, bind1, value1) => 
+      cases(LetrecBind) lb2:
+        | s_letrec_bind(_, bind2, value2) =>
+          equiv-ast-bind(bind1, bind2) and
+            equiv-ast(value1, value2)
+        | else => false
+      end
+  end
+end
+
 fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
   cases (Expr) ast1:
     | s_block(_, stmts1) =>
@@ -1000,7 +1012,7 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       cases(Expr) ast2:
         | s_fun(_, n2, p2, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
-              n1, p2, ar1, an1, d1, b1, c1,
+              n1, p1, ar1, an1, d1, b1, c1,
               n2, p2, ar2, an2, d2, b2, c2
             )
         | else => false
@@ -1242,10 +1254,22 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s_id(_, id2) => id1 == id2
         | else => false
       end
+    | s_id_var(_, id1) =>
+      cases(Expr) ast2:
+        | s_id_var(_, id2) => id1 == id2
+        | else => false
+      end
     | s_let_expr(_, let-binds1, body1) =>
       cases(Expr) ast2:
         | s_let_expr(_, let-binds2, body2) =>
           length-andmap(equiv-ast-let-bind, let-binds1, let-binds2) and
+            equiv-ast(body1, body2)
+        | else => false
+      end
+    | s_letrec(_, let-binds1, body1) =>
+      cases(Expr) ast2:
+        | s_letrec(_, let-binds2, body2) =>
+          length-andmap(equiv-ast-letrec-bind, let-binds1, let-binds2) and
             equiv-ast(body1, body2)
         | else => false
       end

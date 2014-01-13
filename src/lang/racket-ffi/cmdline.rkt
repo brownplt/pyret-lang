@@ -20,6 +20,8 @@ provide {
   next-val-default: next-val-default,
   once: once,
   many: many,
+  left: left,
+  right: right,
   required-once: required-once,
   required-many: required-many,
   ParsedArguments: ParsedArguments,
@@ -35,28 +37,33 @@ all-cmdline-params = R("pyret/parameters")("command-line-arguments")
 file-name = all-cmdline-params.first
 other-args = all-cmdline-params.rest
 
+data Either:
+  | left(val)
+  | right(val)
+end
+
 data ParseParam:
   | read-number with:
     parse(_, arg-index :: Number, param-name :: String, s :: String) -> Number:
       n = s.tonumber()
       if is-nothing(n):
-        raise(format("~a expected a numeric argument, got ~a", [param-name, torepr(s)]))
-      else: n
+        right(format("~a expected a numeric argument, got ~a", [param-name, torepr(s)]))
+      else: left(n)
       end
     end,
     parse-string(self): "<number>" end
   | read-bool with:
     parse(_, arg-index :: Number, param-name :: String, s :: String) -> Bool:
-      if s == "true": true
-      else if s == "false": false
+      if s == "true": left(true)
+      else if s == "false": left(false)
       else:
-        raise(format("~a expected a boolean argument, got ~a", [param-name, torepr(s)]))
+        right(format("~a expected a boolean argument, got ~a", [param-name, torepr(s)]))
       end
     end,
     parse-string(self): "(true|false)" end
   | read-string with:
     parse(_, arg-index :: Number, param-name :: String, s :: String) -> String:
-      s
+      left(s)
     end,
     parse-string(self): "<string>" end
   | read-custom(name :: String, parser :: Function) with:
@@ -77,11 +84,6 @@ data ParamRepeat:
   | many with: tostring(_): "may be repeated" end
   | required-once with: tostring(_): "must be used exactly once" end
   | required-many with: tostring(_): "must be used at least once" end
-end
-
-data Either:
-  | left(val)
-  | right(val)
 end
 
 data Param:
@@ -119,7 +121,7 @@ fun usage-info(options) -> List<String>:
               format("  --~a [~a]: ~a (~a, default: ~a)", [key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
               format("  --~a [~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
-                [key, parser.parse-string(), desc, repeated, default, short, default, repeated])
+                [key, parser.parse-string(), desc, repeated, default, short, desc, repeated])
           end
       end
     end
@@ -132,34 +134,34 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
   doc: 'Takes a dictionary of Param definitions, and a list of string arguments, 
 and returns either the parsed argument results, or an error if the provided 
 arguments do not satisfy the requirements of the Params dictionary.'
-  options-and-aliases = try:
+  options-and-aliases =
     for list.fold(acc from {options: options, aliases: {}}, key from builtins.keys(options)):
-      cur-option = options.[key]
-      cases(Param) cur-option:
-        | equals-val-default(_, _, short-name, _, _) =>
-          cases(Option<String>) short-name:
-            | none => acc
-            | some(short) =>
-              if builtins.has-field(acc.options, short):
-                raise(arg-error("Options map already includes entry for short-name " + short, success({}, [])))
-              else: acc.{options: acc.options.{[short]: cur-option}, aliases: acc.aliases.{[short]: key}}
-              end
-          end
-        | next-val-default(_, _, short-name, _, _) =>
-          cases(Option<String>) short-name:
-            | none => acc
-            | some(short) =>
-              if builtins.has-field(acc.options, short):
-                raise(arg-error("Options map already includes entry for short-name " + short, success({}, [])))
-              else: acc.{options: acc.options.{[short]: cur-option}, aliases: acc.aliases.{[short]: key}}
-              end
-          end
-        | else => acc
+      if is-arg-error(acc): acc
+      else:
+        cur-option = options.[key]
+        cases(Param) cur-option:
+          | equals-val-default(_, _, short-name, _, _) =>
+            cases(Option<String>) short-name:
+              | none => acc
+              | some(short) =>
+                if builtins.has-field(acc.options, short):
+                  arg-error("Options map already includes entry for short-name " + short, success({}, []))
+                else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
+                end
+            end
+          | next-val-default(_, _, short-name, _, _) =>
+            cases(Option<String>) short-name:
+              | none => acc
+              | some(short) =>
+                if builtins.has-field(acc.options, short):
+                  arg-error("Options map already includes entry for short-name " + short, success({}, []))
+                else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
+                end
+            end
+          | else => acc
+        end
       end
     end
-  except(e):
-    e
-  end
   if is-arg-error(options-and-aliases): options-and-aliases
   else:
     full-options = options-and-aliases.options
@@ -216,7 +218,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                           format("Option ~a must be of the form --~a=~a", [key, key, parser.parse-string()]),
                           results)
                       | link(val, _) =>
-                        parsed-val = try: left(parser.parse(cur-index, key, val)) except(msg): right(msg) end
+                        parsed-val = parser.parse(cur-index, key, val)
                         cases(Either) parsed-val:
                           | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, more-args)
                           | right(e) => arg-error(e, results)
@@ -227,7 +229,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                       | empty =>
                         process(handle-repeated(results, repeated, key, default), cur-index + 1, more-args)
                       | link(val, _) =>
-                        parsed-val = try: left(parser.parse(cur-index, key, val)) except(msg): right(msg) end
+                        parsed-val = parser.parse(cur-index, key, val)
                         cases(Either) parsed-val:
                           | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, more-args)
                           | right(e) => arg-error(e, results)
@@ -243,7 +245,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                               results)
                           | link(val, rest) =>
                             if val.char-at(0) == "-":
-                              parsed-val = try: left(parser.parse(cur-index, key, val)) except(msg): right(msg) end
+                              parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
                                 | right(_) =>
@@ -252,7 +254,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                                     results)
                               end
                             else:
-                              parsed-val = try: left(parser.parse(cur-index + 1, key, val)) except(msg): right(msg) end
+                              parsed-val = parser.parse(cur-index + 1, key, val)
                               cases(Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
                                 | right(e) => arg-error(e, results)
@@ -272,15 +274,15 @@ arguments do not satisfy the requirements of the Params dictionary.'
                           | empty => handle-repeated(results, repeated, key, default)
                           | link(val, rest) =>
                             if val.char-at(0) == "-":
-                              parsed-val = try: some(parser.parse(cur-index, key, val)) except(e): none end
-                              cases(Option<Any>) parsed-val:
-                                | some(v) =>
+                              parsed-val = parser.parse(cur-index, key, val)
+                              cases(Either) parsed-val:
+                                | left(v) =>
                                   process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
-                                | none =>
+                                | right(e) =>
                                   process(handle-repeated(results, repeated, key, default), cur-index + 1, more-args)
                               end
                             else:
-                              parsed-val = try: left(parser.parse(cur-index, key, val)) except(msg): right(msg) end
+                              parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, rest)
                                 | right(e) => arg-error(e, results)
@@ -300,8 +302,16 @@ arguments do not satisfy the requirements of the Params dictionary.'
               end
             else if first.substring(0, 1) == "-":
               key = first.substring(1, first.length())
-              if builtins.has-field(full-options, key):
-                cases(Param) full-options.[key]:
+              lookup = 
+                if builtins.has-field(option-aliases, key) and builtins.has-field(full-options, option-aliases.[key]):
+                  full-options.[option-aliases.[key]]
+                else if builtins.has-field(full-options, key):
+                  full-options.[key]
+                else:
+                  nothing
+                end
+              if Param(lookup):
+                cases(Param) lookup:
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
                   | equals-val-default(_, default, _, repeated, _) =>
@@ -387,6 +397,14 @@ check:
   parse-args(once-required-equals-default, ["-bar", "--foo"]) is success({foo: 42, bar: true}, [])
   parse-args(once-required-equals-default, ["-bar", "-f"]) is success({foo: 42, bar: true}, [])
 
+
+  once-optional-next-default = {
+    width: next-val-default(read-number, 80, some("w"), once, "Width")
+  }
+  parse-args(once-optional-next-default, ["-w", "foo.txt"]) is success({width: 80}, ["foo.txt"])
+  parse-args(once-optional-next-default, ["--width", "120", "foo.txt"]) is success({width: 120}, ["foo.txt"])
+  parse-args(once-optional-next-default, ["--w", "120", "foo.txt"]) satisfies error-text("Unknown command line option --w")
+  
   once-required-next-default = {
     foo: next-val-default(read-number, 42, some("f"), required-once, "Foo"),
     bar: flag(once, "Bar")

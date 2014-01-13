@@ -63,8 +63,8 @@ sharing:
   end,
   tostring(self):
     cases(PPrintDoc) self:
-      | mtdoc => "EmptyDoc"
-      | str(s) => "Str(" + s + ")"
+      | mt-doc => "EmptyDoc"
+      | str(s) => "Str('" + s + "')"
       | hardline => "CRLF"
       | blank(n) => "Blank(" + tostring(n) + ")"
       | concat(fst, snd) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
@@ -91,12 +91,13 @@ sharing:
         end).reverse()
     end
     fun emit_string(s :: String, len :: Number):
-      when (in-group or is-flat) and ((curcol + len) >= width):
-        raise("String doesn't fit")
+      if (in-group or is-flat) and ((curcol + len) >= width):
+        "String doesn't fit"
+      else:
+        output := (s^list.link(output.first))^list.link(output.rest)
+        curcol := curcol + len
+        nothing
       end
-      output := (s^list.link(output.first))^list.link(output.rest)
-      curcol := curcol + len
-      nothing
     end
     fun emit_blanks(n :: Number):
       emit_string(blanks(n), n)
@@ -110,7 +111,7 @@ sharing:
       if is-mt-doc(pdoc): emit_string("", 0)
       else if is-str(pdoc): emit_string(pdoc.s, pdoc.s.length())
       else if is-hardline(pdoc):
-        if is-flat: raise("Hardline isn't flat")
+        if is-flat: "Hardline isn't flat"
         else: emit_newline()
         end
       else if is-blank(pdoc): emit_blanks(pdoc.n)
@@ -119,13 +120,22 @@ sharing:
         else: run(pdoc.vert)
         end
       else if is-concat(pdoc):
-        run(pdoc.fst)
-        run(pdoc.snd)
+        first = run(pdoc.fst)
+        if is-nothing(first):
+          run(pdoc.snd)
+        else:
+          first
+        end
       else if is-nest(pdoc):
         cur-indent = indent
         indent := indent + pdoc.indent
-        run(pdoc.d)
-        indent := cur-indent
+        d = run(pdoc.d)
+        if is-nothing(d):
+          indent := cur-indent
+          nothing
+        else:
+          d
+        end
       else if is-group(pdoc):
         if not in-group:
           cur-indent = indent
@@ -134,18 +144,26 @@ sharing:
           cur-output = output
           in-group := true
           is-flat := true
-          try:
-            run(pdoc.d)
-          except(_):
+          d-flat = run(pdoc.d)
+          if is-nothing(d-flat):
+            in-group := false
+            is-flat := cur-flat
+            d-flat
+          else:
             indent := cur-indent
             curcol := cur-column
             output := cur-output
             is-flat := false
             in-group := false
-            run(pdoc.d)
+            d-vert = run(pdoc.d)
+            if is-nothing(d-vert):
+              is-flat := false
+              in-group := false
+              nothing
+            else:
+              d-vert
+            end
           end
-          in-group := false
-          is-flat := cur-flat
         else: run(pdoc.d)
         end
       else if is-column(pdoc): run(pdoc.func(curcol))
@@ -223,19 +241,12 @@ fun label-align-surround(label, open, sep, contents, close):
   group(label + align(open + align(separate(sep, contents)) + group(break(0) + close)))
 end
 
-# test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
-# test = flow(test-words)
-# print(tostring(test))
-# print("")
-# print("Width 40--------------------------------:")
-# iter(print, test.pretty(40))
-# print("")
-# print("Width 30----------------------:")
-# iter(print, test.pretty(30))
-# print("")
-# print("Width 20------------:")
-# iter(print, test.pretty(20))
-# print("")
-# print("Width 10--:")
-# iter(print, test.pretty(10))
+check:
+  test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
+  test = flow(test-words)
+  test.pretty(40) is ["This is a sentence with eight words"]
+  test.pretty(30) is ["This is a sentence with eight", "words"]
+  test.pretty(20) is ["This is a sentence", "with eight words"]
+  test.pretty(10) is ["This is a", "sentence", "with", "eight", "words"]
+end
 

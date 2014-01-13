@@ -50,7 +50,7 @@ Usage: tests.arr [options] where:
   --bar=<number>: Several bars (may be repeated)
   -foo: Does foo (may be used at most once)
   --baz [(true|false)]: Bazes (must be used exactly once, default: true)
-  -b: Defaults for true (must be used exactly once)
+  -b: Defaults for Bazes (must be used exactly once)
 
 success({bar: [5, 6, 7], foo: true, baz: false}, ["other", "*"])
 }

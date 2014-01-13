@@ -1,11 +1,11 @@
 /***
 This is the runtime for the ANF'd version of pyret
 */
+"use strict";
 if(typeof require !== 'undefined') {
   var Namespace = require('./namespace.js').Namespace;
   var jsnums = require('./js-numbers/src/js-numbers.js');
 }
-"use strict";
 
 /**
   @type {{makeRuntime : function(*)}}
@@ -14,7 +14,8 @@ var PYRET_ANF = (function() {
 
 /**
     Creates a Pyret runtime
-    @param {{stdout : function(string)}} theOutsideWorld contains the hooks into the environment
+    @param {{stdout : function(string)}} theOutsideWorld contains the hooks
+    into the environment
 
     @return {Object} that contains all the necessary components of a runtime
 */
@@ -67,7 +68,8 @@ function makeRuntime(theOutsideWorld) {
         If all the fields are new, the brands are kept,
         otherwise, the extended object has no brands
 
-        The original object is not mutated, instead it is cloned and the clone is mutated
+        The original object is not mutated, instead it is cloned and the clone
+        is mutated
 
         @param {!Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
         If any of the fields exist, they will be overwritten with the new value
@@ -167,7 +169,8 @@ function makeRuntime(theOutsideWorld) {
         }*/
         else if(isMethod(fieldVal)){
             //TODO: Bind self properly
-            return makeFunction((fieldVal).meth);
+            var curried = fieldVal.meth(val);
+            return makeFunction(curried);
         }
         else {
             return fieldVal;
@@ -250,24 +253,18 @@ function makeRuntime(theOutsideWorld) {
 
     var baseNumberDict = {
         /**@type {PMethod}*/
-     // '_plus' : mkmethod(left, right) { 
-     // 
-     // //TODO: Remove blah
-     // /**
-     //   @param {!PNumber} left
-     //   @param {!PNumber} right
-     //   @return {!PNumber}
-     // */
-     //     checkIf(left, isNumber);
-     //     checkIf(right, isNumber);
-     //     return makeNumber(left.n + right.n);
-     // } {
+        '_plus' : makeMethod(
+        /**
+          @param {!PNumber} left
+          @param {!PNumber} right
+          @return {!PNumber}
+        */
+        function(left) { return function(right) {
+            checkIf(left, isNumber);
+            checkIf(right, isNumber);
 
-     //     checkIf(left, isNumber);
-     //     checkIf(right, isNumber);
-     //     return makeNumber(left.n + right.n);
-     // },
-        
+            return makeNumber(left.n + right.n);
+        }}),
 
         /**@type {PMethod}*/
         '_minus' : makeMethod(
@@ -276,12 +273,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumberBig(jsnums.subtract(left.n, right.n));
-        }), 
+            return makeNumberBig(left.n - right.n);
+        }}),
 
         /**@type {PMethod}*/
         '_times' : makeMethod(
@@ -290,12 +287,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumberBig((left.n * right.n));
-        }),
+            return makeNumberBig(left.n * right.n);
+        }}),
 
         /**@type {PMethod}*/
         '_divide' : makeMethod(
@@ -304,14 +301,14 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PNumber}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
             if(right.n === 0) {
                 throw makeMessageException("Division by zero");
             }
-            return makeNumber(left.n / right.n);
-        }),
+            return makeNumberBig(left.n / right.n);
+        }}),
 
         /**@type {PMethod}*/
         '_equals' : makeMethod(
@@ -320,12 +317,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n === right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_lessthan' : makeMethod(
@@ -334,12 +331,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n < right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         '_greaterthan' : makeMethod(
@@ -348,12 +345,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n > right.n);
-        }),
+        }}),
         /**@type {PMethod}*/
         '_lessequal' : makeMethod(
         /**
@@ -361,12 +358,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n <= right.n);
-        }),
+        }}),
         /**@type {PMethod}*/
         '_greaterequal' : makeMethod(
         /**
@@ -374,12 +371,12 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} right
           @return {!PBoolean}
         */
-        function(left, right) {
+        function(left) { return function(right) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
             return makeBoolean(left.n >= right.n);
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'tostring' : makeMethod(
@@ -387,10 +384,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PString}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
             return makeString(me.n.toString());
-        }),
+        }}),
 
         /**@type {PMethod}*/
         'sin' : makeMethod(
@@ -398,10 +395,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.sin(me.n));
-        }),
+            return makeNumber(jsnums.sin(me.n));
+        }}),
 
         /**@type {PMethod}*/
         'cos' : makeMethod(
@@ -409,10 +406,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.cos(me.n));
-        }),
+            return makeNumber(jsnums.cos(me.n));
+        }}),
 
         /**@type {PMethod}*/
         'tan' : makeMethod(
@@ -420,10 +417,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.tan(me.n));
-        }),
+            return makeNumber(jsnums.tan(me.n));
+        }}),
 
         /**@type {PMethod}*/
         'asin' : makeMethod(
@@ -431,10 +428,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.asin(me.n));
-        }),
+            return makeNumber(jsnums.asin(me.n));
+        }}),
 
         /**@type {PMethod}*/
         'acos' : makeMethod(
@@ -442,10 +439,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.acos(me.n));
-        }),
+            return makeNumber(jsnums.acos(me.n));
+        }}),
 
         /**@type {PMethod}*/
         'atan' : makeMethod(
@@ -453,10 +450,10 @@ function makeRuntime(theOutsideWorld) {
           @param {!PNumber} me
           @return {!PNumber}
         */
-        function(me) {
+        function(me) { return function() { return function() {
             checkIf(me, isNumber);
-            return makeNumber(Math.atan(me.n));
-        })
+            return makeNumber(jsnums.atan(me.n));
+        }}})
 
     };
 
@@ -464,11 +461,11 @@ function makeRuntime(theOutsideWorld) {
       @return {!Object.<string, !PBase>} the dictionary for a number
     */
     function createNumberDict() {
-        return copyDict(baseNumberDict);
+        return baseNumberDict;
     }
-    /**Makes a PNumber using the given n
+    /**Makes a PNumber using the given bignum
 
-      @param {number} n the number the PNumber will contain
+      @param {bignum} n the number the PNumber will contain
       @return {!PNumber} with value n
     */
     function makeNumberBig(n) {
@@ -478,7 +475,10 @@ function makeRuntime(theOutsideWorld) {
     function makeNumber(n) {
        return new PNumber(jsnums.fromFixnum(n)); 
     }
-    //TODO: for BIG numbers, we'llneed to compile them in as strings and use jsnums.fromString(_) to get the value
+    //TODO: for BIG numbers, we'll need to compile them in as strings and use jsnums.fromString(_) to get the value
+    function makeNumberFromString(s) {
+       return new PNumber(jsnums.fromString(s)); 
+    }
 
     /*********************
             String
@@ -763,7 +763,14 @@ function makeRuntime(theOutsideWorld) {
       @return {!PBoolean} with value b
     */
     function makeBoolean(b) {
-       return new PBoolean(b); 
+        if(b) { return pyretTrue } else { return pyretFalse; }
+    }
+
+    var pyretTrue = new PBoolean(true);
+    var pyretFalse = new PBoolean(false);
+
+    function isPyretTrue(b) {
+        return b === pyretTrue;
     }
 
     /*********************
@@ -875,7 +882,7 @@ function makeRuntime(theOutsideWorld) {
       @return {!PMethod} with app of fun
     */
     function makeMethod(meth) {
-       return new PMethod(meth); 
+      return new PMethod(meth); 
     }
 
     /*********************
@@ -954,6 +961,8 @@ function makeRuntime(theOutsideWorld) {
       var str = '';
       if (isNumber(val)) {
         str = String(/**@type {!PNumber}*/ (val).n);
+      } else if (isBoolean(val)) {
+        str = String(/**@type {!PNumber}*/ (val).b);
       } else {
         str = String(val);
       }
@@ -1030,21 +1039,79 @@ function makeRuntime(theOutsideWorld) {
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
 
+    function Cont(stack, bottom) {
+      this.stack = stack;
+      this.bottom = bottom;
+    }
+    function makeCont(bottom) { return new Cont([], bottom); }
+    function isCont(v) { return v instanceof Cont; }
+
+
+    /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
+    function run(program, namespace, onDone) {
+      var kickoff = {
+          go: function(ignored) {
+            return program(thisRuntime, namespace);
+          }
+        };
+      var theOneTrueStack = [kickoff];
+      var theOneTrueStart = {};
+      var val = theOneTrueStart;
+      var BOUNCES = 0;
+      var theOneTrueStackHeight = 1;
+
+      function iter() {
+        var loop = true;
+        while (loop) {
+          loop = false;
+          try {
+            while(theOneTrueStackHeight > 0) {
+              var next = theOneTrueStack[--theOneTrueStackHeight];
+              theOneTrueStack[theOneTrueStackHeight] = undefined;
+              val = next.go(val)
+            }
+            onDone(new SuccessResult(val));
+          } catch(e) {
+            if(isCont(e)) {
+              BOUNCES++;
+              thisRuntime.GAS = INITIAL_GAS;
+              for(var i = e.stack.length - 1; i >= 0; i--) {
+                theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
+              }
+
+              theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
+              val = theOneTrueStart;
+              loop = true;
+              //            iter();
+              //            setTimeout(iter, 0);
+            } else {
+              console.log("Bounces: ", BOUNCES);
+              onDone(new FailureResult(e));
+            }
+          }
+        }
+      }
+      thisRuntime.GAS = INITIAL_GAS;
+      setTimeout(iter, 0);
+    }
+
+    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
         'namespace': Namespace({
           'test-print': print
         }),
+        'run': run,
 
-        /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
-        'run': function(program, namespace, onDone) {
-          try {
-            onDone(new SuccessResult(program(thisRuntime, namespace)));
-          } catch(e) {
-            onDone(new FailureResult(e));
-          }
-        },
+        'GAS': 0,
+
+        'makeCont'    : makeCont,
+        'isCont'      : isCont,
+
+        'getField'    : getField,
+        'isPyretTrue' : isPyretTrue,
 
         'isBase'      : isBase,
         'isNothing'   : isNothing,
@@ -1065,7 +1132,10 @@ function makeRuntime(theOutsideWorld) {
         'makeString'   : makeString,
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod,
-        'makeObject'   : makeObject
+        'makeObject'   : makeObject,
+
+        'pyretTrue'    : pyretTrue,
+        'pyretFalse'   : pyretFalse
     };
     return thisRuntime;
 }

@@ -4,6 +4,7 @@ provide *
 import file as F
 import ast as A
 import namespaces as N
+import "desugar.arr" as D
 import "js-of-pyret.arr" as P
 import "compile-structs.arr" as C
 
@@ -34,9 +35,10 @@ fun compile-js(code, name, libs, options):
     else:
       env
     end
-  ast = A.parse-tc(code, name, {check : options.check-mode, env: env })
+  ast = A.surface-parse(code, name)
+  desugared = D.desugar(ast)
   ce = C.compile-env(libs-parsed.ls, libs-parsed.env)
-  P.make-compiled-pyret(ast, ce)
+  P.make-compiled-pyret(desugared, ce)
 end
 
 fun compile-runnable-js(code, name, libs, options):
