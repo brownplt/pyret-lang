@@ -15,6 +15,7 @@ var five;
 var nfive;
 var zero;
 var one;
+var none;
 var two;
 var four;
 var twty;
@@ -56,6 +57,7 @@ beforeEach(function(){
     nfive = rt.makeNumber(-5);
     zero = rt.makeNumber(0);
     one = rt.makeNumber(1);
+    none = rt.makeNumber(-1);
     two = rt.makeNumber(2);
     four = rt.makeNumber(4);
     six = rt.makeNumber(6);
@@ -93,6 +95,9 @@ beforeEach(function(){
         //Chaining
         expect(plus(plus(two, half), plus(two, half)).n).toEqual(5);
         expect(plus(plus(two, one), plus(twty, seven)).n).toEqual(30);
+
+        //BIG
+        expect(times(big, big).n).toBeBig(jsnums.fromString("18000000000000000"));
     });
 
 
@@ -121,6 +126,7 @@ beforeEach(function(){
         //Chaining
         expect(minus(minus(two, half), minus(two, half)).n).toBigEqual(0);
         expect(minus(minus(two, one), minus(twty, seven)).n).toBigEqual(-12);
+        expect(minus(minus(zero, big), big).n).toBeBig(jsnums.fromString("-18000000000000000"));
     });
 
     it("should have correct _times", function() {
@@ -151,6 +157,7 @@ beforeEach(function(){
 
         //BIG Numbers
         expect(times(big, big).n).toBeBig(jsnums.fromString("81000000000000000000000000000000"));
+        expect(times(none, times(big, big)).n).toBeBig(jsnums.fromString("-81000000000000000000000000000000"));
     });
 
     it("should have correct _divide", function() {
