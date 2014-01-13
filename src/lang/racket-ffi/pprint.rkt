@@ -63,8 +63,8 @@ sharing:
   end,
   tostring(self):
     cases(PPrintDoc) self:
-      | mtdoc => "EmptyDoc"
-      | str(s) => "Str(" + s + ")"
+      | mt-doc => "EmptyDoc"
+      | str(s) => "Str('" + s + "')"
       | hardline => "CRLF"
       | blank(n) => "Blank(" + tostring(n) + ")"
       | concat(fst, snd) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
@@ -142,12 +142,11 @@ sharing:
           cur-column = curcol
           cur-flat = is-flat
           cur-output = output
-          cur-group = in-group
           in-group := true
           is-flat := true
           d-flat = run(pdoc.d)
           if is-nothing(d-flat):
-            in-group := cur-group
+            in-group := false
             is-flat := cur-flat
             d-flat
           else:
@@ -158,8 +157,8 @@ sharing:
             in-group := false
             d-vert = run(pdoc.d)
             if is-nothing(d-vert):
-              is-flat := cur-flat
-              in-group := cur-group
+              is-flat := false
+              in-group := false
               nothing
             else:
               d-vert
@@ -242,19 +241,12 @@ fun label-align-surround(label, open, sep, contents, close):
   group(label + align(open + align(separate(sep, contents)) + group(break(0) + close)))
 end
 
-# test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
-# test = flow(test-words)
-# print(tostring(test))
-# print("")
-# print("Width 40--------------------------------:")
-# iter(print, test.pretty(40))
-# print("")
-# print("Width 30----------------------:")
-# iter(print, test.pretty(30))
-# print("")
-# print("Width 20------------:")
-# iter(print, test.pretty(20))
-# print("")
-# print("Width 10--:")
-# iter(print, test.pretty(10))
+check:
+  test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
+  test = flow(test-words)
+  test.pretty(40) is ["This is a sentence with eight words"]
+  test.pretty(30) is ["This is a sentence with eight", "words"]
+  test.pretty(20) is ["This is a sentence", "with eight words"]
+  test.pretty(10) is ["This is a", "sentence", "with", "eight", "words"]
+end
 

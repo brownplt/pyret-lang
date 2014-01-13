@@ -322,7 +322,7 @@ data Expr:
     tosource(self):
       PP.group(self.super.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end)))
+          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
   | s_update(l :: Loc, super :: Expr, fields :: List<Member>) with:
     label(self): "s_update" end,
@@ -330,7 +330,7 @@ data Expr:
     label(self): "s_obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s_list(l :: Loc, values :: List<Expr>) with:
     label(self): "s_list" end,
@@ -343,13 +343,13 @@ data Expr:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | s_left_app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s_left_app" end,
     tosource(self):
       PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + str-period + self._fun.tosource())
-          + PP.parens(PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))
+          + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
   | s_id(l :: Loc, id :: String) with:
     label(self): "s_id" end,
@@ -402,7 +402,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(fun(f): f.tosource() end))
+        self.params.map(_.tosource()))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
@@ -429,7 +429,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(fun(f): f.tosource() end))
+        self.params.map(_.tosource()))
       header = str-data + PP.str(self.name) + tys + str-colon
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
@@ -470,7 +470,7 @@ data Expr:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
 
   | s_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
@@ -661,7 +661,7 @@ data Ann:
       PP.surround(INDENT, 1, PP.lparen,
         PP.separate(str-space,
           [PP.separate(PP.commabreak,
-            self.args.map(fun(f): f.tosource() end))] + [str-arrow, self.ret.tosource()]), PP.rparen)
+            self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()]), PP.rparen)
     end
   | a_method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a_method" end,
@@ -670,14 +670,14 @@ data Ann:
     label(self): "a_record" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
-        self.fields.map(fun(f): f.tosource() end))
+        self.fields.map(_.tosource()))
     end
   | a_app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a_app" end,
     tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))) + PP.rangle))
+            PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
     end
   | a_pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     label(self): "a_pred" end,
@@ -717,7 +717,7 @@ fun binding-ids(stmt):
     | s_var(_, b, _) => [b.id]
     | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s_data(_, name, _, _, variants, _, _) =>
-      [name] + flatten(variants.map(variant-ids))
+      name ^ link(flatten(variants.map(variant-ids)))
     | else => []
   end
 end
