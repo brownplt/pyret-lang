@@ -4,6 +4,36 @@ This is the runtime for the ANF'd version of pyret
 "use strict";
 if(typeof require !== 'undefined') {
   var Namespace = require('./namespace.js').Namespace;
+
+  /** @typedef {!Object} */
+  var Bignum;
+
+
+  /**
+    @type {{
+        fromFixnum : function(number) : Bignum,
+        fromString : function(string) : (Bignum|boolean),
+        toFixnum : function() : number,
+
+        equals : function(Bignum, Bignum) : boolean,
+        lessThan : function(Bignum, Bignum) : boolean,
+        greaterThan : function(Bignum, Bignum) : boolean,
+        lessThanOrEqual : function(Bignum, Bignum) : boolean,
+        greaterThanOrEqual : function(Bignum, Bignum) : boolean,
+
+        add : function(Bignum, Bignum) : Bignum,
+        subtract : function(Bignum, Bignum) : Bignum,
+        multiply : function(Bignum, Bignum) : Bignum,
+        divide : function(Bignum, Bignum) : Bignum,
+
+        sin : function(Bignum) : Bignum,
+        cos : function(Bignum) : Bignum,
+        tan : function(Bignum) : Bignum,
+        asin : function(Bignum) : Bignum,
+        acos : function(Bignum) : Bignum,
+        atan : function(Bignum) : Bignum
+          }}
+   */
   var jsnums = require('./js-numbers/src/js-numbers.js');
 }
 
@@ -219,11 +249,11 @@ function makeRuntime(theOutsideWorld) {
     **********************/
     /**The representation of all numerical values
         @constructor
-        @param {number} n the number to store in this pyret number
+        @param {Bignum} n the number to store in this pyret number
         @extends {PBase}
     */
     function PNumber(n) { 
-        /**@type {number}*/
+        /**@type {Bignum}*/
         this.n = n;
 
         /**@type {!Object.<string, !PBase>}*/
@@ -280,7 +310,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumberBig(left.n - right.n);
+            return makeNumberBig(jsnums.subtract(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -294,7 +324,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeNumberBig(left.n * right.n);
+            return makeNumberBig(jsnums.multiply(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -310,7 +340,7 @@ function makeRuntime(theOutsideWorld) {
             if(jsnums.equals(big_zero, right.n)) {
                 throw makeMessageException("Division by zero");
             }
-            return makeNumberBig(left.n / right.n);
+            return makeNumberBig(jsnums.divide(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -324,7 +354,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeBoolean(left.n === right.n);
+            return makeBoolean(jsnums.equals(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -338,7 +368,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeBoolean(left.n < right.n);
+            return makeBoolean(jsnums.lessThan(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -352,7 +382,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeBoolean(left.n > right.n);
+            return makeBoolean(jsnums.greaterThan(left.n,right.n));
         }}),
         /**@type {PMethod}*/
         '_lessequal' : makeMethod(
@@ -365,7 +395,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeBoolean(left.n <= right.n);
+            return makeBoolean(jsnums.lessThanOrEqual(left.n,right.n));
         }}),
         /**@type {PMethod}*/
         '_greaterequal' : makeMethod(
@@ -378,7 +408,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(left, isNumber);
             checkIf(right, isNumber);
 
-            return makeBoolean(left.n >= right.n);
+            return makeBoolean(jsnums.greaterThanOrEqual(left.n,right.n));
         }}),
 
         /**@type {PMethod}*/
@@ -468,7 +498,7 @@ function makeRuntime(theOutsideWorld) {
     }
     /**Makes a PNumber using the given bignum
 
-      @param {bignum} n the number the PNumber will contain
+      @param {Bignum} n the number the PNumber will contain
       @return {!PNumber} with value n
     */
     function makeNumberBig(n) {
@@ -479,8 +509,17 @@ function makeRuntime(theOutsideWorld) {
        return new PNumber(jsnums.fromFixnum(n)); 
     }
     //TODO: for BIG numbers, we'll need to compile them in as strings and use jsnums.fromString(_) to get the value
+    /**Makes a PNumber using the given string
+
+      @param {string} s 
+      @return {!PNumber} with value n
+    */
     function makeNumberFromString(s) {
-       return new PNumber(jsnums.fromString(s)); 
+        var result = jsnums.fromString(s);
+        if(result === false) {
+            throw makeMessageException("Could not create number from: " + s);
+        }
+       return new PNumber(/**@type {Bignum}*/ (result)); 
     }
 
     /*********************
@@ -573,8 +612,9 @@ function makeRuntime(theOutsideWorld) {
         function(str, n) {
             checkIf(str, isString);
             checkIf(n, isNumber);
-
-            return makeString(String(str.s.charAt(n.n)));
+        
+            //TODO: Handle bignums that are beyond javascript
+            return makeString(String(str.s.charAt(n.n.toFixnum())));
         }),
 
 
@@ -621,7 +661,7 @@ function makeRuntime(theOutsideWorld) {
             checkIf(me, isString);
             var num = jsnums.fromString(me.s);
             if(num !== false) {
-                return makeNumberBig(num);
+                return makeNumberBig(/**@type {Bignum}*/ (num));
             }
             else {
                 return makeNothing();
@@ -965,7 +1005,7 @@ function makeRuntime(theOutsideWorld) {
       if (isNumber(val)) {
         str = String(/**@type {!PNumber}*/ (val).n);
       } else if (isBoolean(val)) {
-        str = String(/**@type {!PNumber}*/ (val).b);
+        str = String(/**@type {!PBoolean}*/ (val).b);
       } else {
         str = String(val);
       }
