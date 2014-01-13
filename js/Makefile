@@ -21,6 +21,7 @@ install:
 	wget "http://dl.google.com/closure-compiler/compiler-latest.zip"
 	unzip compiler-latest.zip -d closure-compiler 
 	rm compiler-latest.zip
+	mkdir node_modules -p
 	npm install jasmine-node
 	npm install sweet.js
 
