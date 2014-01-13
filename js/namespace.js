@@ -1,6 +1,5 @@
 "use strict";
 
-/**@namespace N*/
 var Namespace = (function() {
     /**@type {!Object}*/
     var noProto = {};

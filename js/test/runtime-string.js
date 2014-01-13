@@ -74,7 +74,7 @@ beforeEach(function(){
         expect(_plus_method).not.toBeUndefined();
         expect(rt.isMethod(_plus_method)).toBe(true);
 
-        var plus = _plus_method.meth;
+        var plus = _plus_method.full_meth;
 
         expect(plus(empty,empty).s).toEqual("");
         expect(plus(a,empty).s).toEqual("a");
@@ -89,7 +89,7 @@ beforeEach(function(){
         expect(append_method).not.toBeUndefined();
         expect(rt.isMethod(append_method)).toBe(true);
 
-        var append = append_method.meth;
+        var append = append_method.full_meth;
 
         expect(append(empty,empty).s).toEqual("");
         expect(append(a,empty).s).toEqual("a");
@@ -104,7 +104,7 @@ beforeEach(function(){
         expect(contains_method).not.toBeUndefined();
         expect(rt.isMethod(contains_method)).toBe(true);
 
-        var contains = contains_method.meth;
+        var contains = contains_method.full_meth;
 
         expect(contains(empty, empty).b).toBe(true);
         expect(contains(hello, empty).b).toBe(true);
@@ -127,7 +127,7 @@ beforeEach(function(){
         expect(length_method).not.toBeUndefined();
         expect(rt.isMethod(length_method)).toBe(true);
 
-        var length = length_method.meth;
+        var length = length_method.full_meth;
 
         expect(length(empty).n).toEqual(0);
         expect(length(a).n).toEqual(1);
@@ -142,7 +142,7 @@ beforeEach(function(){
         expect(tonumber_method).not.toBeUndefined();
         expect(rt.isMethod(tonumber_method)).toBe(true);
 
-        var tonumber = tonumber_method.meth;
+        var tonumber = tonumber_method.full_meth;
 
         //Are Numbers
         expect(tonumber(five).n).toBigEqual(5);

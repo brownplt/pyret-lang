@@ -1,8 +1,6 @@
 _ = require('jasmine-node');
 R = require('../runtime-anf.js').PYRET_ANF;
 
-console.log(R);
-
 var output;
 var rt;
 
@@ -16,6 +14,10 @@ function x() {return makeNumber(3);}
 function y(a) {return makeNumber(3);}
 function z(a,b) {return makeNumber(3);}
 function w(a,b,c) {return makeNumber(3);}
+
+function y_curry(a) {return function() {makeNumber(3);}}
+function z_curry(a) {return function(b) {makeNumber(3);}}
+function w_curry(a) {return function(b, c) {makeNumber(3);}}
 
 //Test varaibles of each type
 var aNum;
@@ -48,7 +50,7 @@ beforeEach(function(){
     aBool = rt.makeBoolean(true);
     aStr = rt.makeString("pyret");
     aFun = rt.makeFunction(x);
-    aMeth = rt.makeMethod(x);
+    aMeth = rt.makeMethod(y_curry, y);
     aNoth = rt.makeNothing();
     anObj = rt.makeObject();
 });
@@ -77,12 +79,12 @@ describe("Basic values", function() {
         expect(rt.makeFunction(y).app).toEqual(y);
   });
 
-  it("should have a meth field on methods", function() {
-        function x() {return makeNumber(3);}
-        expect(rt.makeMethod(x).meth).toEqual(x);
+  it("should have a meth and full_meth field on methods", function() {
+        expect(rt.makeMethod(y_curry, y).meth).toEqual(y_curry);
+        expect(rt.makeMethod(y_curry, y).full_meth).toEqual(y);
 
-        function y(a,b,c) {return makeNumber(3);}
-        expect(rt.makeMethod(y).meth).toEqual(y);
+        expect(rt.makeMethod(z_curry, z).meth).toEqual(z_curry);
+        expect(rt.makeMethod(z_curry, z).full_meth).toEqual(z);
   });
 
   it("should have no brands", function() {
@@ -90,7 +92,7 @@ describe("Basic values", function() {
         expect(rt.makeString("hello")).toHaveNoBrands();
         expect(rt.makeBoolean(true)).toHaveNoBrands();
         expect(rt.makeFunction(y)).toHaveNoBrands();
-        expect(rt.makeMethod(y)).toHaveNoBrands();
+        expect(rt.makeMethod(y_curry, y)).toHaveNoBrands();
         expect(rt.makeNothing()).toHaveNoBrands();
         expect(rt.makeObject({})).toHaveNoBrands();
   });
@@ -103,10 +105,9 @@ describe("Basic values", function() {
         expect(rt.makeFunction(z).arity).toEqual(2);
         expect(rt.makeFunction(w).arity).toEqual(3);
 
-        expect(rt.makeMethod(x).arity).toEqual(0);
-        expect(rt.makeMethod(y).arity).toEqual(1);
-        expect(rt.makeMethod(z).arity).toEqual(2);
-        expect(rt.makeMethod(w).arity).toEqual(3);
+        expect(rt.makeMethod(y_curry, y).arity).toEqual(1);
+        expect(rt.makeMethod(z_curry, z).arity).toEqual(2);
+        expect(rt.makeMethod(w_curry, w).arity).toEqual(3);
     });
     });
 
@@ -238,11 +239,12 @@ describe("Basic values", function() {
        expect(orig.brands).not.toBeIdentical(clone.brands); 
     });
 
-    it("should work for functions", function() {
-       var orig = rt.makeMethod(x);
+    it("should work for methods", function() {
+       var orig = rt.makeMethod(y, y_curry);
        var clone = orig.clone();
 
        expect(orig.meth).toEqual(clone.meth);
+       expect(orig.full_meth).toEqual(clone.full_meth);
        expect(orig.arity).toEqual(clone.arity);
        expect(orig.dict).not.toBeIdentical(clone.dict); 
        expect(orig.brands).not.toBeIdentical(clone.brands); 
