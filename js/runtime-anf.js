@@ -53,7 +53,7 @@ var PYRET_ANF = (function() {
 
 /**
 Creates a Pyret runtime
-@param {{stdout : function(string)}} theOutsideWorld contains the hooks
+@param {{stdout : function(string), initialGas : number}} theOutsideWorld contains the hooks
 into the environment
 
 @return {Object} that contains all the necessary components of a runtime
@@ -296,7 +296,7 @@ inherits(PNumber, PBase);
   @return {!PNumber} With same n and dict
 */
 PNumber.prototype.clone = function() { 
-    var newNum = makeNumber(this.n); 
+    var newNum = makeNumberBig(this.n); 
     newNum.dict = copyDict(this.dict);
     return newNum;
 };
@@ -326,6 +326,11 @@ function makeNumberBig(n) {
    return new PNumber(n); 
 }
 
+/**Makes a PNumber using the given JSNum
+
+  @param {number} n the number the PNumber will contain
+  @return {!PNumber} with value n
+*/
 function makeNumber(n) {
    return new PNumber(jsnums.fromFixnum(n)); 
 }
@@ -379,10 +384,11 @@ PString.prototype.clone = function() {
 */
 function isString(obj) { return obj instanceof PString; }
 
+/**@type !Object.<string, !PBase>*/
 var baseStringDict = {}; //Holder
 
 /**Creates a copy of the common dictionary all objects have
-  @return {!Object} the dictionary for a number
+  @return {!Object.<string, !PBase>} the dictionary for a number
 */
 function createStringDict() {
     return baseStringDict;
@@ -427,10 +433,11 @@ PBoolean.prototype.clone = function() {
 };
 
 //The inherit methods on all booleans
+/**@type !Object.<string, !PBase>*/
 var baseBooleanDict = {}; //Holder
 
 /**Creates a copy of the common dictionary all boolean have
-  @return {!Object} the dictionary for a boolean
+  @return {!Object.<string, !PBase>} the dictionary for a boolean
 */
 function createBooleanDict() {
     return baseBooleanDict;
@@ -457,6 +464,11 @@ function makeBoolean(b) {
 }
 
 
+/**Tests whether the boolean is equal to the singleton true value
+
+  @param {PBoolean} b
+  @return {boolean}
+*/
 function isPyretTrue(b) {
     return b === pyretTrue;
 }
@@ -734,6 +746,10 @@ function createMethodDict() {
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
 
+    /**
+      Represents a continuation
+      @constructor
+    */
     function Cont(stack, bottom) {
       this.stack = stack;
       this.bottom = bottom;
