@@ -866,6 +866,10 @@ function createMethodDict() {
     //Todo: Ensure no one has any copies of the old ones
     pyretTrue = new PBoolean(true);
     pyretFalse = new PBoolean(false);
+    
+    thisRuntime['pyretTrue'] = pyretTrue;
+    thisRuntime['pyretFalse'] = pyretFalse;
+
     return thisRuntime;
 }
 
