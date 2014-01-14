@@ -105,6 +105,13 @@ describe("Basic values", function() {
         expect(rt.makeObject({})).toHaveNoBrands();
   });
   });
+    
+  describe("Booleans", function() {
+    it("should be singletons", function() {
+        expect(rt.makeBoolean(true)).toBeIdentical(rt.makeBoolean(true));    
+        expect(rt.makeBoolean(false)).toBeIdentical(rt.makeBoolean(false));    
+    });
+  });
 
   describe("Functions and Methods", function() {
     it("should have correct arity fields", function() {
