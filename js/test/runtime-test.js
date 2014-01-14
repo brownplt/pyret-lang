@@ -1,5 +1,13 @@
 _ = require('jasmine-node');
-R = require('../runtime-anf.js').PYRET_ANF;
+
+function performTest(useCompiled) {
+
+    if(useCompiled) {
+        R = require('../anf-comp.js').PYRET_ANF;
+    }
+    else {
+        R = require('../runtime-anf.js').PYRET_ANF;
+    }
 
 var output;
 var rt;
@@ -315,3 +323,6 @@ describe("Basic values", function() {
        expect(aNum.brands).not.toEqual(y.brands); 
       });
   });
+}
+
+exports['performTest'] = performTest;

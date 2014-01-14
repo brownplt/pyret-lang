@@ -27,4 +27,4 @@ install:
 
 test: runtime-anf.js number-dict.js
 	mkdir -p generated-tests/anf-tests
-	node test.js test
+	node node_modules/jasmine-node/bin/jasmine-node test --verbose
