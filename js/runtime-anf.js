@@ -11,6 +11,9 @@ if(typeof require !== 'undefined') {
   /**@type {{getBaseStringDict : function(!Object) : !Object}}*/
   var StringDict = require('./string-dict.js');
 
+  /**@type {{getBaseBooleanDict : function(!Object) : !Object}}*/
+  var BooleanDict = require('./boolean-dict.js');
+
   /** @typedef {!Object} */
   var Bignum;
 
@@ -205,7 +208,7 @@ function getField(val, field) {
     }*/
     else if(isMethod(fieldVal)){
         //TODO: Bind self properly
-        var curried = fieldVal.meth(val);
+        var curried = fieldVal['meth'](val);
         return makeFunction(curried);
     }
     else {
@@ -213,6 +216,24 @@ function getField(val, field) {
     }
 }
 
+/**
+  Gets the field from an object of the given name
+  -Returns the raw field value
+
+  @param {!PBase} val
+  @param {string} field
+
+  @return {!PBase}
+**/
+function getColonField(val, field) {
+    var fieldVal = val.dict[field];
+    if(fieldVal === undefined) {
+        throw makeMessageException("field " + val + " not found.");
+    }
+    else {
+        return fieldVal;
+    }
+}
 
 /*********************
         Nothing
@@ -405,12 +426,14 @@ PBoolean.prototype.clone = function() {
     return newBool;
 };
 
+//The inherit methods on all booleans
+var baseBooleanDict = {}; //Holder
 
 /**Creates a copy of the common dictionary all boolean have
   @return {!Object} the dictionary for a boolean
 */
 function createBooleanDict() {
-    return makeEmptyDict();
+    return baseBooleanDict;
 }
 
 /**Tests whether an object is a PBoolean
@@ -419,12 +442,10 @@ function createBooleanDict() {
 */
 function isBoolean(obj) { return obj instanceof PBoolean; }
 
-/**Creates a copy of the common dictionary all objects have
-  @return {Object} the dictionary for a number
-*/
-function createBoolean() {
-    return makeEmptyDict();
-}
+
+//Boolean Singletons
+var pyretTrue =  null;//new PBoolean(true);
+var pyretFalse = null; //new PBoolean(false);
 
 /**Makes a PBoolean using the given s
 
@@ -432,11 +453,9 @@ function createBoolean() {
   @return {!PBoolean} with value b
 */
 function makeBoolean(b) {
-    if(b) { return pyretTrue } else { return pyretFalse; }
+    return (b ? pyretTrue : pyretFalse);
 }
 
-var pyretTrue = new PBoolean(true);
-var pyretFalse = new PBoolean(false);
 
 function isPyretTrue(b) {
     return b === pyretTrue;
@@ -480,7 +499,7 @@ PFunction.prototype.clone = function() {
     @param {Object} obj the item to test
     @return {boolean} true if object is a PFunction
 */
-function isFunction(obj) { return obj instanceof PFunction; }
+function isFunction(obj) {return obj instanceof PFunction; }
 
 /**Creates a copy of the common dictionary all function have
   @return {!Object.<string, !PBase>} the dictionary for a function
@@ -511,10 +530,10 @@ function makeFunction(fun) {
 */
 function PMethod(meth, full_meth) { 
     /**@type {Function}*/
-    this.meth   = meth;
+    this['meth']   = meth;
 
     /**@type {Function}*/
-    this.full_meth   = full_meth;
+    this['full_meth']   = full_meth;
 
     /**@type {number}*/
     this.arity = full_meth.length;
@@ -524,6 +543,7 @@ function PMethod(meth, full_meth) {
 
     /**@type {Array.<number>}*/
     this.brands = [];
+
 }
 //PMethod.prototype = Object.create(PBase.prototype); 
 
@@ -531,7 +551,7 @@ function PMethod(meth, full_meth) {
   @return {!PMethod} With same meth and dict
 */
 PMethod.prototype.clone = function() { 
-    var newMeth = makeMethod(this.meth, this.full_meth); 
+    var newMeth = makeMethod(this['meth'], this['full_meth']); 
     newMeth.dict = copyDict(this.dict);
     return newMeth;
 };
@@ -786,6 +806,8 @@ function createMethodDict() {
         'isCont'      : isCont,
 
         'getField'    : getField,
+        'getColonField'    : getColonField,
+
         'isPyretTrue' : isPyretTrue,
 
         'isBase'      : isBase,
@@ -822,8 +844,12 @@ function createMethodDict() {
     //Note: Order is important
     baseNumberDict = NumberDict.getBaseNumberDict(thisRuntime);
     baseStringDict = StringDict.getBaseStringDict(thisRuntime);
-//    baseBooleanDict = getBaseBooleanDict(thisRuntime);
+    baseBooleanDict = BooleanDict.getBaseBooleanDict(thisRuntime);
 
+    //Boolean Singletons, creating now that boolean dict exists
+    //Todo: Ensure no one has any copies of the old ones
+    pyretTrue = new PBoolean(true);
+    pyretFalse = new PBoolean(false);
     return thisRuntime;
 }
 

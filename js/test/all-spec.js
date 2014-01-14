@@ -9,3 +9,6 @@ numbers.performTest(USE_COMPILED);
 var strings = require("./runtime-strings.js");
 strings.performTest(USE_COMPILED);
 
+var booleans = require("./runtime-booleans.js");
+booleans.performTest(USE_COMPILED);
+

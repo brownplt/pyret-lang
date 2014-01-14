@@ -10,11 +10,13 @@ compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js
 	$(COMPILER) --js namespace.js --js_output_file namespace-comp.js --warning_level VERBOSE --externs externs.js
 	$(COMPILER) --js number-dict-sweet.js --js_output_file number-dict.js --externs externs.js
 	$(COMPILER) --js string-dict-sweet.js --js_output_file string-dict.js --externs externs.js
+	$(COMPILER) --js boolean-dict-sweet.js --js_output_file boolean-dict.js --externs externs.js
 
 #Expand all macros
 sweeten: number-dict-raw.js string-dict-raw.js
 	$(SWEETENER) -o number-dict-sweet.js number-dict-raw.js -m ./macros.js
 	$(SWEETENER) -o string-dict-sweet.js string-dict-raw.js -m ./macros.js
+	$(SWEETENER) -o boolean-dict-sweet.js boolean-dict-raw.js -m ./macros.js
 
 install:
 	mkdir -p closure-compiler
