@@ -691,6 +691,7 @@ function createMethodDict() {
     */
     function PyretFailException(e) {
       this.exn = e;
+      this.pyretStack = [];
     }
 
     /**
@@ -763,13 +764,17 @@ function createMethodDict() {
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
+          },
+          captureExn: function(e) {
+            e.pyretStack.push(theOneTrueStackTop);
           }
         };
       var theOneTrueStack = [kickoff];
       var theOneTrueStart = {};
       var val = theOneTrueStart;
-      var BOUNCES = 0;
+      var theOneTrueStackTop = {}
       var theOneTrueStackHeight = 1;
+      var BOUNCES = 0;
 
       function iter() {
         var loop = true;
@@ -795,8 +800,16 @@ function createMethodDict() {
               loop = true;
               //            iter();
               //            setTimeout(iter, 0);
+            }
+            else if(isPyretException(e)) {
+              while(theOneTrueStackHeight > 0) {
+                var next = theOneTrueStack[--theOneTrueStackHeight];
+                theOneTrueStack[theOneTrueStackHeight] = undefined;
+                console.log("catching", e.pyretStack.length);
+                next.captureExn(e);
+              }
+              onDone(new FailureResult(e));
             } else {
-              console.log("Bounces: ", BOUNCES);
               onDone(new FailureResult(e));
             }
           }
