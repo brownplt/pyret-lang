@@ -357,6 +357,12 @@ data Expr:
   | s_id_var(l :: Loc, id :: String) with:
     label(self): "s_id_var" end,
     tosource(self): PP.str("!" + self.id) end
+  | s_id_letrec(l :: Loc, id :: String) with:
+    label(self): "s_id_letrec" end,
+    tosource(self): PP.str("~" + self.id) end
+  | s_undefined(l :: Loc) with:
+    label(self): "s_undefined" end,
+    tosource(self): PP.str("undefined") end
   | s_num(l :: Loc, n :: Number) with:
     label(self): "s_num" end,
     tosource(self): PP.number(self.n) end
@@ -1249,6 +1255,8 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s_bool(_, b2) => b1 == b2
         | else => false
       end
+    | s_undefined(_) =>
+      is-s_undefined(ast2)
     | s_id(_, id1) =>
       cases(Expr) ast2:
         | s_id(_, id2) => id1 == id2
@@ -1257,6 +1265,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
     | s_id_var(_, id1) =>
       cases(Expr) ast2:
         | s_id_var(_, id2) => id1 == id2
+        | else => false
+      end
+    | s_id_letrec(_, id1) =>
+      cases(Expr) ast2:
+        | s_id_letrec(_, id2) => id1 == id2
         | else => false
       end
     | s_let_expr(_, let-binds1, body1) =>

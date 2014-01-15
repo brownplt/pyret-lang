@@ -58,12 +58,15 @@ fun compile(prog :: S.SplitResult) -> J.JExpr:
   j-fun(["RUNTIME", "NAMESPACE"], j-block([
         j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
         j-var(js-id-of("test-print"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")]))] +
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
+        j-var(js-id-of("brander"),
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")]))
+          ] +
       prog.helpers.map(compile-helper) +
       [compile-e(prog.body)]))
 end
 
-fun helper-name(s :: String): "$HELPER_" + s;
+fun helper-name(s :: String): "$HELPER_" + js-id-of(s);
 
 fun compile-helper(h :: S.Helper) -> J.JStmt:
   cases(S.Helper) h:
@@ -183,6 +186,9 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
     | a-assign(l, id, val) =>
       j-dot-assign(j-id(js-id-of(id)), "$var", compile-v(val))
 
+    | a-extend(l, obj, vals) =>
+      j-method(compile-v(obj), "extendWith", [j-obj(vals.map(compile-field))])
+
     | a-dot(l, obj, field) =>
       j-method(j-id("RUNTIME"), "getField", [compile-v(obj), j-str(field)])
 
@@ -195,6 +201,12 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
     | a-obj(l, fields) => 
         j-method(j-id("RUNTIME"), "makeObject", [j-obj(fields.map(fun(f): j-field(f.name, compile-v(f.value));))])
     | else => raise("NYI: " + torepr(expr))
+  end
+end
+
+fun compile-field(f):
+  cases(N.AField) f:
+    | a-field(l, name, val) => j-field(name, compile-v(val))
   end
 end
 
@@ -220,6 +232,7 @@ fun compile-v(v :: N.AVal) -> J.JExpr:
   cases(N.AVal) v:
     | a-id(l, id) => j-id(js-id-of(id))
     | a-id-var(l, id) => j-dot(j-id(js-id-of(id)), "$var")
+    | a-id-letrec(l, id) => j-dot(j-id(js-id-of(id)), "$var")
     | a-num(l, n) => j-method(j-id("RUNTIME"), "makeNumber", [j-num(n)])
     | a-str(l, s) => j-method(j-id("RUNTIME"), "makeString", [j-str(s)])
     | a-bool(l, b) =>

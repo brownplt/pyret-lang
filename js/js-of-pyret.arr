@@ -11,12 +11,8 @@ fun pretty(src): src.tosource().pretty(80).join-str("\n") end
 
 fun make-compiled-pyret(program-ast, env):
 
-  print(pretty(program-ast))
   anfed = N.anf-program(program-ast)
-  print("anfed:")
-  print(pretty(anfed))
   split = AS.ast-split(anfed.body)
-  print(pretty(split.body))
   compiled = AC.compile(split)
   code = compiled.tosource().pretty(80).join-str("\n")
   c = C.ok(code)

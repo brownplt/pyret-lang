@@ -4,17 +4,21 @@ provide *
 import ast as A
 
 data DesugarEnv:
-  | d-env(ids :: Set<String>, vars :: Set<String>)
+  | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
 end
 
-mt-d-env = d-env(set([]), set([]))
+mt-d-env = d-env(set([]), set([]), set([]))
 
 fun extend-id(nv :: DesugarEnv, id :: String):
-  d-env(nv.ids.add(id), nv.vars)
+  d-env(nv.ids.add(id), nv.vars, nv.letrecs)
 end
 
 fun extend-var(nv :: DesugarEnv, id :: String):
-  d-env(nv.ids, nv.vars.add(id))
+  d-env(nv.ids, nv.vars.add(id), nv.letrecs)
+end
+
+fun extend-letrec(nv :: DesugarEnv, id :: String):
+  d-env(nv.ids, nv.vars, nv.letrecs.add(id))
 end
 
 fun desugar(program :: A.Program):
@@ -45,6 +49,11 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           [wrap-letrecs(A.s_block(l, resolved-inner))]
         end
       end
+      wrapper = 
+        if is-link(let-binds): wrap-lets
+        else if is-link(letrec-binds): wrap-letrecs
+        else: fun(e): e;
+        end
       cases(A.Expr) f:
         | s_let(l, bind, expr) =>
           handle-let-bind(l, A.s_let_bind(l, bind, expr))
@@ -62,12 +71,77 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           else:
             [wrap-lets(A.s_block(l, resolved-inner))]
           end
-        | else =>
-          wrapper = 
-            if is-link(let-binds): wrap-lets
-            else if is-link(letrec-binds): wrap-letrecs
-            else: fun(e): e;
+        | s_data(l, name, params, mixins, variants, shared, _check) =>
+          fun b(loc, id): A.s_bind(loc, false, id, A.a_blank);
+          fun variant-member-to-field(vm, val-id):
+            cases(A.VariantMember) vm:
+              | s_variant_member(l2, member_type, bind) =>
+                when not (member_type == "normal"):
+                  raise("Non-normal member_type " + member_type + " at " + torepr(l))
+                end
+                A.s_data_field(l2, A.s_str(l2, bind.id), A.s_id(l2, val-id))
             end
+          end
+          fun variant-binds(v, main-brander, variant-brander):
+            fun brand(brander-id, arg): A.s_app(l, A.s_dot(l, A.s_id(l, brander-id), "brand"), [arg]);
+            fun body-of-members(members, variant-bind-names, shared-id):
+              obj = A.s_extend(l, A.s_id(l, shared-id), map2(variant-member-to-field, members, variant-bind-names))
+              brand(main-brander, brand(variant-brander, obj))
+            end
+            cases(A.Variant) v:
+              | s_variant(l2, vname, members, with-members) =>
+                shared-id = gensym(vname)
+                variant-bind-names = members.map(_.bind).map(_.id).map(gensym)
+                [
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, with-members)),
+                  A.s_letrec_bind(l2, b(l2, vname),
+                    A.s_lam(
+                        l2,
+                        [],
+                        variant-bind-names.map(b(l2, _)),
+                        A.a_blank, "Creates a " + vname,
+                        body-of-members(members, variant-bind-names, shared-id),
+                        A.s_block(l, [])
+                      ))
+                ]
+              | s_singleton_variant(l2, vname, with-members) =>
+                shared-id = gensym(vname)
+                [
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, with-members)),
+                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_id(l, shared-id))))
+                ]
+            end
+          end
+          main-brand-id = gensym(name)
+          variant-names = variants.map(_.name)
+          name-ids = variant-names.map(gensym)
+          fun mk-brander(id):
+            A.s_let_bind(l, b(l, id), A.s_app(l, A.s_id(l, "brander"), []))
+          end
+          fun tester(target, brander-id):
+            A.s_let_bind(l, b(l, target), A.s_dot(l, A.s_id(l, brander-id), "test"))
+          end
+
+          data-let-binds = link(
+              mk-brander(main-brand-id),
+              name-ids.map(mk-brander) +
+                link(
+                    tester(name, main-brand-id),
+                    for map2(v from variant-names, id from name-ids):
+                      tester(A.make-checker-name(v), id)
+                    end
+                  )
+            )
+          data-letrec-binds = for fold2(acc from [], v from variants, vn from name-ids):
+              acc + variant-binds(v, main-brand-id, vn)
+            end
+          [wrapper(
+              A.s_let_expr(l, data-let-binds,
+                A.s_letrec(l, data-letrec-binds,
+                  A.s_block(l,
+                    resolve-scope(rest-stmts, [], [])))))]
+
+        | else =>
           cases(List) rest-stmts:
             | empty => [wrapper(f)]
             | link(_, _) =>
@@ -175,6 +249,16 @@ where:
                   A.s_app(d, A.s_id(d, "f"), []))
               ]))]))
 
+  prog5 = bs("data List: empty | link(f, r) end empty")
+  prog5.stmts.length() is 1
+  the-let = prog5.stmts.first
+  the-let satisfies A.is-s_let_expr
+  the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
+  the-let.binds.take(3).map(_.value) satisfies list.all(fun(e): A.is-s_app(e) and (e._fun.id == "brander");, _)
+  the-let.binds.drop(3).map(_.value) satisfies list.all(fun(e): A.is-s_dot(e) and (e.field == "test");, _)
+  the-letrec = the-let.body
+  the-letrec satisfies A.is-s_letrec
+  the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
 
 end
 
@@ -195,6 +279,16 @@ fun desugar-if-branch(nv :: DesugarEnv, expr :: A.IfBranch):
 end
 
 fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
+  fun desugar-member(f): 
+    cases(A.Member) f:
+      | s_method_field(l, name, args, ann, doc, body, _check) =>
+        A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, A.s_method(l, args, ann, doc, body, _check)))
+      | s_data_field(l, name, value) =>
+        A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, value))
+      | else =>
+        raise("NYI(desugar-member): " + torepr(f))
+    end
+  end
   cases(A.Expr) expr:
     | s_block(l, stmts) =>
       cases(List) stmts:
@@ -227,6 +321,17 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
         end
       end
       A.s_let_expr(l, new-binds.b.reverse(), desugar-expr(new-binds.e, body))
+    | s_letrec(l, binds, body) =>
+      new-binds = for fold(b-e from { b: [], e: nv }, bind from binds):
+        cases(A.LetrecBind) bind:
+          | s_letrec_bind(l2, b, val) =>
+            new-env = b-e.e^extend-letrec(b.id)
+            new-val = desugar-expr(new-env, val)
+            { b: link(A.s_letrec_bind(l2, b, new-val), b-e.b),
+              e: new-env }
+        end
+      end
+      A.s_letrec(l, new-binds.b.reverse(), desugar-expr(new-binds.e, body))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
@@ -234,27 +339,22 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
     | s_dot(l, obj, field) => A.s_dot(l, desugar-expr(nv, obj), field)
     | s_colon(l, obj, field) => A.s_colon(l, desugar-expr(nv, obj), field)
+    | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member))
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
         | none => raise("Only arith ops so far, " + op + " did not match")
       end
     | s_id(l, x) =>
-      print("checking membership of " + x)
-      print(nv.vars)
       if nv.vars.member(x): A.s_id_var(l, x)
+      else if nv.letrecs.member(x): A.s_id_letrec(l, x)
       else: expr
       end
     | s_num(_, _) => expr
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
-    | s_obj(l, fields) => A.s_obj(l, fields.map(fun(f): 
-            cases(A.Member) f:
-               | s_method_field(_ , _, _, _, _, body, _) => f.{body : desugar-expr(nv, body)} 
-               | else => f.{value : desugar-expr(nv, f.value)}
-            end
-        end))
-    | else => raise("NYI: " + torepr(expr))
+    | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member))
+    | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
   p = fun(str): A.surface-parse(str, "test").block;

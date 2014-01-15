@@ -96,9 +96,11 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
   cases(A.Expr) e:
     | s_num(l, n) => k(N.a-val(N.a-num(l, n)))
     | s_str(l, s) => k(N.a-val(N.a-str(l, s)))
+    | s_undefined(l) => k(N.a-val(N.a-undefined(l)))
     | s_bool(l, b) => k(N.a-val(N.a-bool(l, b)))
     | s_id(l, id) => k(N.a-val(N.a-id(l, id)))
     | s_id_var(l, id) => k(N.a-val(N.a-id-var(l, id)))
+    | s_id_letrec(l, id) => k(N.a-val(N.a-id-letrec(l, id)))
 
     | s_let_expr(l, binds, body) =>
       cases(List) binds:
@@ -114,6 +116,14 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
           end
       end
 
+    | s_letrec(l, binds, body) =>
+      let-binds = for map(b from binds):
+        A.s_var_bind(b.l, b.b, A.s_undefined(l))
+      end
+      assigns = for map(b from binds):
+        A.s_assign(b.l, b.b.id, b.value)
+      end
+      anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
     | s_if_else(l, branches, _else) =>
       if not is-empty(branches):
         s-if = for fold(acc from _else, branch from branches):
@@ -191,9 +201,9 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
       anf-name(obj, "anf_extend", fun(o):
           anf-name-rec(exprs, "anf_extend", fun(ts):
               new-fields = for map2(f from fields, t from ts):
-                  N.a-field(f.l, f.name, t)
+                  N.a-field(f.l, f.name.s, t)
                 end
-              k(N.a-update(obj, new-fields))
+              k(N.a-extend(l, o, new-fields))
             end)
         end)
 

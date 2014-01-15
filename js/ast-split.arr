@@ -30,7 +30,6 @@ fun freevars-e(expr :: N.AExpr) -> Set<String>:
       freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-var(_, b, e, body) =>
       freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-letrec(_, bs, body) => raise("letrec nyi")
     | a-if(_, c, t, e) =>
       freevars-v(c).union(freevars-e(t)).union(freevars-e(e))
     | a-try(_, body, b, c) =>
@@ -55,7 +54,8 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-lam(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
-    | a-update(_, super, fields) => freevars-v(super).union(fields.map(fun(f): freevars-v(_.value) end))
+    | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
     | a-dot(_, obj, _) => freevars-v(obj)
     | a-colon(_, obj, _) => freevars-v(obj)
     | a-get-bang(_, obj, _) => freevars-v(obj)
@@ -66,6 +66,8 @@ end
 fun freevars-v(v :: N.AVal) -> Set<String>:
   cases(N.AVal) v:
     | a-id(_, id) => set([id])
+    | a-id-var(_, id) => set([id])
+    | a-id-letrec(_, id) => set([id])
     | else => set([])
   end
 end

@@ -121,6 +121,10 @@ data ALettable:
     tosource(self):
       PP.str("update")
     end
+  | a-extend(l :: Loc, super :: AVal, fields :: List<AField>) with:
+    tosource(self):
+      PP.str("extend")
+    end
   | a-dot(l :: Loc, obj :: AVal, field :: String) with:
     tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
   | a-colon(l :: Loc, obj :: AVal, field :: String) with:
@@ -162,6 +166,8 @@ data AVal:
     tosource(self): PP.str(self.id) end
   | a-id-var(l :: Loc, id :: String) with:
     tosource(self): PP.str("!" + self.id) end
+  | a-id-letrec(l :: Loc, id :: String) with:
+    tosource(self): PP.str("~" + self.id) end
 end
 
 fun strip-loc-prog(p :: AProg):
@@ -219,6 +225,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, super, fields) =>
       a-update(_, super^strip-loc-val(), fields.map(strip-loc-field))
+    | a-extend(_, super, fields) =>
+      a-extend(_, super^strip-loc-val(), fields.map(strip-loc-field))
     | a-dot(_, obj, field) =>
       a-dot(dummy-loc, obj^strip-loc-val(), field)
     | a-colon(_, obj, field) =>
@@ -248,6 +256,7 @@ fun strip-loc-val(val :: AVal):
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
+    | a-id-letrec(_, id) => a-id-letrec(dummy-loc, id)
   end
 end
 
