@@ -1,4 +1,6 @@
 _ = require('jasmine-node');
+var path = require('path');
+var addPyretMatchers = require(path.join(__dirname,'./matchers.js')).addPyretMatchers;
 
 
 
@@ -36,28 +38,7 @@ var half;
 var big;
 
 beforeEach(function(){
-    this.addMatchers({
-        toHaveEmptyDict : function() {
-            return (this.actual.dict !== undefined) && (Object.keys(this.actual.dict).length === 0);
-        },
-        toHaveNoBrands : function() {
-            return (this.actual.brands !== undefined) && (this.actual.brands.length === 0);
-        },
-        //Tests equality with ===, must be exact same
-        toBeIdentical : function(expect) {
-            return this.actual === expect;
-        },
-
-        //Tests equality of bignums and expectted js num
-        toBigEqual : function(expect) {
-            return jsnums['equals'](this.actual, jsnums.fromFixnum(expect));
-        },
-
-        //Tests equality of bignums
-        toBeBig : function(expect) {
-            return jsnums['equals'](this.actual, expect);
-        }
-    });
+    addPyretMatchers(this);
 
     output = "";
     rt = R.makeRuntime({'stdout' : stdout});
