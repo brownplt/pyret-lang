@@ -133,7 +133,10 @@ describe('~a', function() {
         done();
       } else if (rt.isFailureResult(result)) {
         expect(output).toEqual(expectedOutput);
-        expect(expectedError.length).toBeGreaterThan(0);
+        if(expectedError.length <= 0) {
+            expect(\"An error occured, when pyret had none: \" + result.exn.message).toBe(\"no error message\");
+            expect(\"Stack: \" + result.exn.stack).toBe(\"no error stack\");
+        }
         console.error(result)
         done();
       }

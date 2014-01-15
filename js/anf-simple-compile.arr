@@ -171,9 +171,14 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
       j-method(j-id("RUNTIME"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), compile-e(body))])
     
     | a-method(l, args, body) =>
+
+       compiled-body = compile-e(body)
+
       j-method(j-id("RUNTIME"), "makeMethod", [j-fun([js-id-of(args.first.id)],
         j-block([
-          j-return(j-fun(args.rest.map(_.id).map(js-id-of)), compile-e(body))]))])
+          j-return(j-fun(args.rest.map(_.id).map(js-id-of), compiled-body))])),
+         
+        j-fun(args.map(_.id).map(js-id-of), compiled-body)])
 
     | a-assign(l, id, val) =>
       j-dot-assign(j-id(js-id-of(id)), "$var", compile-v(val))
@@ -181,9 +186,14 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
     | a-dot(l, obj, field) =>
       j-method(j-id("RUNTIME"), "getField", [compile-v(obj), j-str(field)])
 
+    | a-colon(l, obj, field) =>
+      j-method(j-id("RUNTIME"), "getColonField", [compile-v(obj), j-str(field)])
+
     | a-app(l, f, args) => app(f, args)
 
     | a-val(v) => compile-v(v)
+    | a-obj(l, fields) => 
+        j-method(j-id("RUNTIME"), "makeObject", [j-obj(fields.map(fun(f): j-field(f.name, compile-v(f.value));))])
     | else => raise("NYI: " + torepr(expr))
   end
 end

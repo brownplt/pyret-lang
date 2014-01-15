@@ -259,7 +259,7 @@ function PNothing() {
 }
 PNothing.prototype = Object.create(PBase.prototype);
 
-/**Clones the number
+/**Clones the nothing
   @return {!PNothing} With same dict
 */
 PNothing.prototype.clone = function() { 
@@ -691,7 +691,70 @@ function createMethodDict() {
     }
     );
 
+    /**
+      Creates the js string representation for the value
+      @param {!PBase} val
+
+      @return {!string} the value given in
+    */
+    function toReprJS(val) {
+      var str = '';
+      if (isNumber(val)) {
+        str = String(/**@type {!PNumber}*/ (val).n);
+      } else if (isBoolean(val)) {
+        str = String(/**@type {!PBoolean}*/ (val).b);
+      } else if (isString(val)) {
+        str = String(/**@type {!PString}*/ (val).s);
+        str = '"' + str + '"';
+      } else if (isObject(val)) {
+        //todo: invoke a tostring if exists
+        str = "";
+        var toprint = [];
+        toprint.push(0);
+        for(var field in val.dict){
+            toprint.push({name : field, value : val.dict[field]});
+            toprint.push(2);
+        }
+        if(toprint.length > 1) {toprint.pop();};
+        toprint.push(1);
+
+        while(toprint.length !== 0) {
+            var next = toprint.shift();
+            if(next === 0) {
+                str += "{";
+            }
+            else if(next === 1) {
+                str += "}";
+            }
+            else if(next === 2) {
+                str += ", ";
+            }
+            else if(isObject(next.value)) {
+                str += next.name + ": "; 
+                toprint.unshift(1);
+                for(var field in next.value.dict){
+                    toprint.unshift({name : field, value : next.value.dict[field]});
+                    toprint.unshift(2);
+                }
+                if(Object.keys(next.value.dict) > 0) {
+                    toprint.shift(); //Remove extra comma token
+                }
+                toprint.unshift(0);
+            }
+            else {
+                str += next.name + ": " + toReprJS(next.value);
+            }
+        }
+      } else {
+        str = String(val);
+      }
+
+      return str;
+    };
+
     /**@type {PFunction} */
+    var torepr = makeFunction(function(val) {return makeString(toReprJS(val));});
+
     var print = makeFunction(
     /**
       Prints the value to the world by passing the repr to stdout
@@ -699,19 +762,10 @@ function createMethodDict() {
 
       @return {!PBase} the value given in
     */
-    function(val) {
-      var str = '';
-      if (isNumber(val)) {
-        str = String(/**@type {!PNumber}*/ (val).n);
-      } else if (isBoolean(val)) {
-        str = String(/**@type {!PBoolean}*/ (val).b);
-      } else {
-        str = String(val);
-      }
-      theOutsideWorld.stdout(str + "\n");
-
-      //Returns the value it is given
-      return val;
+       function(val){
+        var repr = toReprJS(val);
+        theOutsideWorld.stdout(repr + "\n");
+        return val;
     });
 
     /********************
@@ -860,6 +914,7 @@ function createMethodDict() {
     //String keys should be used to prevent renaming
     var thisRuntime = {
         'namespace': Namespace({
+          'torepr': torepr,
           'test-print': print,
           'brander': brander
         }),

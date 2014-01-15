@@ -145,7 +145,7 @@ end
 
 data AField:
   | a-field(l :: Loc, name :: String, value :: AVal) with:
-    tosource(self): PP.nest(INDENT, self.name.tosource() + str-colonspace + self.value.tosource()) end,
+    tosource(self): PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource()) end,
 end
 
 data AVal:

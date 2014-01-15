@@ -54,7 +54,7 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-help-app(_, _, args) => unions(args.map(freevars-v))
     | a-lam(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
-    | a-obj(_, fields) => fields.map(fun(f): freevars-v(_.value) end)
+    | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
     | a-update(_, super, fields) => freevars-v(super).union(fields.map(fun(f): freevars-v(_.value) end))
     | a-dot(_, obj, _) => freevars-v(obj)
     | a-colon(_, obj, _) => freevars-v(obj)

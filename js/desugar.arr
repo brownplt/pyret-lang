@@ -208,6 +208,9 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_lam(l, params, args, ann, doc, body, _check) =>
       new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
       A.s_lam(l, params, args, ann, doc, desugar-expr(new-env, body), desugar-expr(nv, _check))
+    | s_method(l, args, ann, doc, body, _check) =>
+      new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
+      A.s_method(l, args, ann, doc, desugar-expr(new-env, body), desugar-expr(nv, _check))
     | s_let_expr(l, binds, body) =>
       new-binds = for fold(b-e from { b: [], e: nv }, bind from binds):
         cases(A.LetBind) bind:
@@ -230,6 +233,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       A.s_if_else(l, branches.map(desugar-if-branch(nv, _)), desugar-expr(nv, _else))
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
     | s_dot(l, obj, field) => A.s_dot(l, desugar-expr(nv, obj), field)
+    | s_colon(l, obj, field) => A.s_colon(l, desugar-expr(nv, obj), field)
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
@@ -244,6 +248,12 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_num(_, _) => expr
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
+    | s_obj(l, fields) => A.s_obj(l, fields.map(fun(f): 
+            cases(A.Member) f:
+               | s_method_field(_ , _, _, _, _, body, _) => f.{body : desugar-expr(nv, body)} 
+               | else => f.{value : desugar-expr(nv, f.value)}
+            end
+        end))
     | else => raise("NYI: " + torepr(expr))
   end
 where:

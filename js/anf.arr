@@ -150,6 +150,9 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
     | s_dot(l, obj, field) =>
       anf-name(obj, "anf_bracket", fun(t-obj): k(N.a-dot(l, t-obj, field)) end)
 
+    | s_colon(l, obj, field) =>
+      anf-name(obj, "anf_colon", fun(t-obj): k(N.a-colon(l, t-obj, field)) end)
+
     | s_bracket(l, obj, field) =>
       fname = cases(A.Expr) field:
           | s_str(_, s) => s
@@ -171,14 +174,14 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
       anf-name(value, "anf_assign", fun(v): k(N.a-assign(l, id, v)) end)
 
     | s_obj(l, fields) =>
-      names = fields.map(_.name)
+      names = fields.map(fun(f): f.name.s;)
       exprs = fields.map(_.value)
 
       anf-name-rec(exprs, "anf_obj", fun(ts):
           new-fields = for map2(f from fields, t from ts):
-              N.a-field(f.l, f.name, t)
+              N.a-field(f.l, f.name.s, t)
             end
-          k(N.a-obj(new-fields))
+          k(N.a-obj(l, new-fields))
         end)
 
     | s_extend(l, obj, fields) =>
