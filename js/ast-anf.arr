@@ -27,43 +27,7 @@ dummy-loc = error.location("dummy-location", -1, -1)
 
 Loc = error.Location
 
-fun EqualsExcept(fields-to-skip):
-  {
-    extend: fun(obj):
-      obj.{
-        _equals(self, other):
-          negate1 = fun(f): fun(v): not f(v);;
-          fields = builtins.keys(self).filter(negate1(fields-to-skip.member(_)))
-          for fold(acc from true, f from fields):
-            builtins.has-field(other, f) and 
-              block:
-                thisval = self:[f]
-                otherval = other:[f]
-                equal = if Method(thisval) or Function(thisval): true
-                        else: thisval == otherval;
-                acc and equal
-              end
-          end
-        end
-      }
-    end,
-    brand: fun(e): e;
-  }
-end
-
-check:
-  dl1 = error.location("somewhere", -1, -1)
-  dl2 = error.location("somewhere-else", -1, -1)
-
-  n1 = a-num(dl1, 5)
-  n2 = a-num(dl2, 5)
-
-  a-num(dl1, 5) is a-num(dl2, 5)
-end
-
-equals-except-loc = EqualsExcept(["l", "ann"])
-
-data AProg deriving equals-except-loc:
+data AProg:
   | a-program(l :: Loc, imports :: List<AImport>, body :: AExpr) with:
     tosource(self):
       PP.group(
@@ -74,13 +38,13 @@ data AProg deriving equals-except-loc:
     end
 end
 
-data AImport deriving equals-except-loc:
+data AImport:
   | a-import-file(l :: Loc, file :: String, name :: String)
   | a-import-builtin(l :: Loc, lib :: String, name :: String)
   | a-provide(l :: Loc, val :: AExpr)
 end
 
-data AExpr deriving equals-except-loc:
+data AExpr:
   | a-let(l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr) with:
     tosource(self):
       PP.soft-surround(INDENT, 1,
@@ -126,12 +90,12 @@ data AExpr deriving equals-except-loc:
     end
 end
 
-data ABind deriving equals-except-loc:
+data ABind:
   | a-bind(l :: Loc, id :: String, ann :: A.Ann) with:
     tosource(self): PP.str(self.id) end
 end
 
-data ALettable deriving equals-except-loc:
+data ALettable:
   | a-assign(l :: Loc, id :: String, value :: AVal) with:
     tosource(self):
       PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource())
@@ -179,12 +143,12 @@ fun fun-method-pretty(typ, args, body):
   PP.surround(INDENT, 1, header, body.tosource(), str-end)
 end
 
-data AField deriving equals-except-loc:
+data AField:
   | a-field(l :: Loc, name :: String, value :: AVal) with:
     tosource(self): PP.nest(INDENT, self.name.tosource() + str-colonspace + self.value.tosource()) end,
 end
 
-data AVal deriving equals-except-loc:
+data AVal:
   | a-num(l :: Loc, n :: Number) with:
     tosource(self): PP.number(self.n) end
   | a-str(l :: Loc, s :: String) with:
@@ -198,5 +162,92 @@ data AVal deriving equals-except-loc:
     tosource(self): PP.str(self.id) end
   | a-id-var(l :: Loc, id :: String) with:
     tosource(self): PP.str("!" + self.id) end
+end
+
+fun strip-loc-prog(p :: AProg):
+  cases(AProg) p:
+    | a-program(_, imports, body) =>
+      a-program(dummy-loc, imports.map(strip-loc-header), body^strip-loc-expr())
+  end
+end
+
+fun strip-loc-header(h :: AImport):
+  cases(AImport) h:
+    | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
+    | a-import-file(_, file, id) => a-import-builtin(dummy-loc, file, id)
+    | a-provide(_, val) => a-provide(dummy-loc, val)
+  end
+end
+
+fun strip-loc-expr(expr :: AExpr):
+  cases(AExpr) expr:
+    | a-let(_, bind, val, body) =>
+      a-let(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
+    | a-var(_, bind, val, body) =>
+      a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
+    | a-if(_, c, t, e) =>
+      a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
+    | a-try(_, body, bind, _except) =>
+      a-try(dummy-loc, body^strip-loc-expr(), bind^strip-loc-bind(), _except^strip-loc-expr())
+    | a-split-app(_, is-var, f, args, helper, helper-args) =>
+      a-split-app(
+          dummy-loc,
+          is-var,
+          f^strip-loc-val(),
+          args.map(strip-loc-val),
+          helper,
+          helper-args.map(strip-loc-val)
+        )
+    | a-lettable(e) =>
+      a-lettable(e^strip-loc-lettable())
+  end
+end
+
+fun strip-loc-bind(bind :: ABind):
+  cases(ABind) bind:
+    | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann)
+  end
+end
+
+fun strip-loc-lettable(lettable :: ALettable):
+  cases(ALettable) lettable:
+    | a-assign(_, id, value) => a-assign(dummy-loc, id, value^strip-loc-val())
+    | a-app(_, f, args) =>
+      a-app(dummy-loc, f^strip-loc-val(), args.map(strip-loc-val))
+    | a-help-app(_, f, args) =>
+      a-help-app(dummy-loc, f, args.map(strip-loc-val))
+    | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
+    | a-update(_, super, fields) =>
+      a-update(_, super^strip-loc-val(), fields.map(strip-loc-field))
+    | a-dot(_, obj, field) =>
+      a-dot(dummy-loc, obj^strip-loc-val(), field)
+    | a-colon(_, obj, field) =>
+      a-colon(dummy-loc, obj^strip-loc-val(), field)
+    | a-get-bang(_, obj, field) =>
+      a-get-bang(dummy-loc, obj^strip-loc-val(), field)
+    | a-lam(_, args, body) =>
+      a-lam(dummy-loc, args, body^strip-loc-expr())
+    | a-method(_, args, body) =>
+      a-method(dummy-loc, args, body^strip-loc-expr())
+    | a-val(v) =>
+      a-val(v^strip-loc-val())
+  end
+end
+
+fun strip-loc-field(field :: AField):
+  cases(AField) field:
+    | a-field(_, name, value) => a-field(dummy-loc, name, value^strip-loc-val())
+  end
+end
+
+fun strip-loc-val(val :: AVal):
+  cases(AVal) val:
+    | a-num(_, n) => a-num(dummy-loc, n)
+    | a-str(_, s) => a-str(dummy-loc, s)
+    | a-bool(_, b) => a-bool(dummy-loc, b)
+    | a-undefined(_) => a-undefined(dummy-loc)
+    | a-id(_, id) => a-id(dummy-loc, id)
+    | a-id-var(_, id) => a-id-var(dummy-loc, id)
+  end
 end
 
