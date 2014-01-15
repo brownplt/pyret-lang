@@ -914,7 +914,7 @@ function createMethodDict() {
     //String keys should be used to prevent renaming
     var thisRuntime = {
         'namespace': Namespace({
-          'torepr': torepr
+          'torepr': torepr,
           'test-print': print,
           'brander': brander
         }),
