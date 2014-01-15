@@ -164,6 +164,14 @@ function copyDict(dict) {
     return newDict;
 }
 
+/**
+  @param Array.<number>  
+  @return Array.<number>
+*/
+function copyBrands(brands) {
+  return brands.slice(0);
+}
+
 /** Creates a truly empty dictonary, with no inherit fields 
     @return {!Object} an empty object
  **/
@@ -207,7 +215,6 @@ function getField(val, field) {
         //Be wary of guards blowing up stack
     }*/
     else if(isMethod(fieldVal)){
-        //TODO: Bind self properly
         var curried = fieldVal['meth'](val);
         return makeFunction(curried);
     }
@@ -258,6 +265,7 @@ PNothing.prototype = Object.create(PBase.prototype);
 PNothing.prototype.clone = function() { 
     var newNoth = makeNothing(); 
     newNoth.dict = copyDict(this.dict);
+    newNoth.brands = copyBrands(this.brands);
     return newNoth;
 };
 /**Tests whether an object is a PNothing
@@ -298,6 +306,7 @@ inherits(PNumber, PBase);
 PNumber.prototype.clone = function() { 
     var newNum = makeNumberBig(this.n); 
     newNum.dict = copyDict(this.dict);
+    newNum.brands = copyBrands(this.brands);
     return newNum;
 };
 
@@ -374,6 +383,7 @@ function PString(s) {
 PString.prototype.clone = function() { 
     var newStr = makeString(this.s); 
     newStr.dict = copyDict(this.dict);
+    newStr.brands = copyBrands(this.brands);
     return newStr;
 };
 
@@ -429,6 +439,7 @@ function PBoolean(b) {
 PBoolean.prototype.clone = function() { 
     var newBool = new PBoolean(this.b); 
     newBool.dict = copyDict(this.dict);
+    newBool.brands = copyBrands(this.brands);
     return newBool;
 };
 
@@ -504,6 +515,7 @@ function PFunction(fun) {
 PFunction.prototype.clone = function() { 
     var newFun = makeFunction(this.app); 
     newFun.dict = copyDict(this.dict);
+    newFun.brands = copyBrands(this.brands);
     return newFun;
 };
 
@@ -565,6 +577,7 @@ function PMethod(meth, full_meth) {
 PMethod.prototype.clone = function() { 
     var newMeth = makeMethod(this['meth'], this['full_meth']); 
     newMeth.dict = copyDict(this.dict);
+    newMeth.brands = copyBrands(this.brands);
     return newMeth;
 };
 
@@ -609,12 +622,13 @@ function createMethodDict() {
     }
     //PObject.prototype = Object.create(PBase.prototype); 
 
-    /**Clones the Object
+    /**Clones the object
       @return {!PObject} With same dict
     */
     PObject.prototype.clone = function() { 
         var newObj = makeObject({}); 
         newObj.dict = copyDict(this.dict);
+        newObj.brands = copyBrands(this.brands);
         return newObj;
     };
 
@@ -655,6 +669,27 @@ function createMethodDict() {
     /************************
        Builtin Functions
     ************************/
+
+    var brandCounter = 0;
+    /**@type {PFunction} */
+    var brander = makeFunction(
+    /**
+      @return {!PBase}
+    */
+    function() {
+      var thisBrand = brandCounter++;
+      return makeObject({
+          'test': makeFunction(function(obj) {
+              return makeBoolean(obj.brands.indexOf(thisBrand) !== -1);
+            }),
+          'brand': makeFunction(function(obj) {
+              var newObj = obj.clone();
+              newObj.brands.push(thisBrand);
+              return newObj;
+            })
+        });
+    }
+    );
 
     /**
       Creates the js string representation for the value
@@ -879,8 +914,9 @@ function createMethodDict() {
     //String keys should be used to prevent renaming
     var thisRuntime = {
         'namespace': Namespace({
-          'test-print': print
           'torepr': torepr
+          'test-print': print,
+          'brander': brander
         }),
         'run': run,
 
@@ -916,9 +952,6 @@ function createMethodDict() {
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod,
         'makeObject'   : makeObject,
-
-        'pyretTrue'    : pyretTrue,
-        'pyretFalse'   : pyretFalse,
 
         'checkIf'      : checkIf,
         'makeMessageException'      : makeMessageException
