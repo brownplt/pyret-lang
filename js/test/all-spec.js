@@ -1,4 +1,4 @@
-var USE_COMPILED = true;
+var USE_COMPILED = false;
 
 var base = require("./runtime-test.js");
 base.performTest(USE_COMPILED);
@@ -12,3 +12,5 @@ strings.performTest(USE_COMPILED);
 var booleans = require("./runtime-booleans.js");
 booleans.performTest(USE_COMPILED);
 
+var brands = require("./runtime-brands.js");
+brands.performTest(USE_COMPILED);

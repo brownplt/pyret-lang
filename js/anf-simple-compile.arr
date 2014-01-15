@@ -31,9 +31,11 @@ j-throw = J.j-throw
 j-expr = J.j-expr
 j-raw = J.j-raw
 j-binop = J.j-binop
+j-eq = J.j-eq
 j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
+j-ternary = J.j-ternary
 
 js-id-of = block:
   var js-ids = {}
@@ -117,20 +119,29 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
         j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
           j-block([
               j-var(ss,
-                j-obj(link(
+                j-obj([
+                  j-field("captureExn", j-fun(["exn"],
+                    j-block([
+                        j-return(add-stack-frame(l, "exn"))
+                      ]))),
                   j-field("go", j-fun([js-id-of(helper-args.first.id)],
                     j-block([
                       j-return(j-app(j-id(helper-name(name)),
                           link(
                               j-id(js-id-of(helper-args.first.id)),
-                              helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))]))),
-                  helper-ids.map(fun(a): j-field(a, j-id(a)) end)))),
+                              helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))])))] + 
+                  helper-ids.map(fun(a): j-field(a, j-id(a)) end))),
               j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                   j-unop(j-id(js-id-of("EXN_STACKHEIGHT")), J.j-postincr), j-id(ss))),
               #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
               j-throw(j-id(e))]),
           j-block([
-              j-throw(j-id(e)) 
+              j-if(j-method(j-id("RUNTIME"), "isPyretException", [j-id(e)]),
+                  j-block([
+                      j-expr(add-stack-frame(l, e)),
+                      j-throw(j-id(e))
+                    ]),
+                  j-block([j-throw(j-id(e))]))
             ]))
       j-block([
           j-var(z, j-undefined),
@@ -143,6 +154,15 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
     | a-lettable(l) =>
       j-block([j-return(compile-l(l))])
   end
+end
+
+fun add-stack-frame(l, exn-id):
+  j-method(j-dot(j-id(exn-id), "pyretStack"), "push",
+      [j-obj([
+          j-field("src", j-str(l.file)),
+          j-field("line", j-num(l.line)),
+          j-field("column", j-num(l.column))
+        ])])
 end
 
 fun compile-l(expr :: N.ALettable) -> J.JExpr:
@@ -178,9 +198,22 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
   end
 end
 
+fun thunk-app(block):
+  j-app(j-fun([], block), [])
+end
+
+fun thunk-app-stmt(stmt):
+  thunk-app(j-block([stmt]))
+end
+
 fun app(f, args):
 #  j-app(compile-v(f), args.map(compile-v))
-   j-method(compile-v(f), "app", args.map(compile-v))
+  j-ternary(j-binop(j-dot(compile-v(f), "arity"), j-eq, j-num(args.length())),
+    j-method(compile-v(f), "app", args.map(compile-v)),
+    thunk-app-stmt(
+      j-throw(j-method(j-id("RUNTIME"), "makeMessageException", [
+          j-str("Arity mismatch")
+        ]))))
 end
 
 fun compile-v(v :: N.AVal) -> J.JExpr:
