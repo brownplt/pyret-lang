@@ -60,16 +60,6 @@ fun anf-import(i :: A.Header):
 end
 
 fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
-  ids = A.block-ids(A.s_block(N.dummy-loc, es-init))
-  shell = for fold(s from fun(e): e end, id from ids):
-      fun(e): e end
-    end
-  fun handle-id(l, b, e, rest):
-    anf-name(e, "anf_id_bind", fun(v):
-      t = mk-id(l, "anf_dropped")
-      N.a-let(l, t.id-b, N.a-assign(l, b.id, v), anf-block-help(rest))
-    end)
-  end
   fun anf-block-help(es):
     cases (List<A.Expr>) es:
       | empty => empty
@@ -79,8 +69,6 @@ fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
           anf(f, k)
         else:
           cases(A.Expr) f:
-#            | s_let(l, b, e) => handle-id(l, b, e, r)
-#            | s_var(l, b, e) => handle-id(l, b, e, r)
             | else => anf(f, fun(lettable):
                   t = mk-id(f.l, "anf_begin_dropped")
                   N.a-let(f.l, t.id-b, lettable, anf-block-help(r))
@@ -89,7 +77,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
         end
     end
   end
-  shell(anf-block-help(es-init))
+  anf-block-help(es-init)
 end
 
 fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
