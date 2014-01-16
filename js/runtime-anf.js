@@ -205,7 +205,7 @@ function getField(val, field) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
-        throw makeMessageException("field " + val + " not found.");
+        throw makeMessageException("field " + field + " not found.");
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -799,6 +799,39 @@ function createMethodDict() {
        return new PyretFailException(makeString(str));
     }
 
+    /** type {!PFunction} */
+    var raise = makeFunction(
+      /**
+        Raises any Pyret value as an exception
+        @param {!PBase} val the value to raise
+      */
+      function(val) {
+        throw new PyretFailException(val);
+      }
+    );
+
+    /** type {!PFunction} */
+    var hasField = makeFunction(
+        /**
+          Checks if an object has a given field
+          @param {!PBase} obj The object to test
+          @param {!PBase} obj The field to test for, signals error if non-string
+          @return {!PBase} 
+        */
+        function(obj, str) {
+          checkIf(str, isString);
+          return makeBoolean(hasOwnProperty(obj.dict, str.s));
+        }
+      );
+
+    /** type {!PBase} */
+    var builtins = makeObject({
+        'has-field': hasField
+      });
+
+    /********************
+
+     *******************/
 
     /********************
            Results
@@ -916,7 +949,9 @@ function createMethodDict() {
         'namespace': Namespace({
           'torepr': torepr,
           'test-print': print,
-          'brander': brander
+          'brander': brander,
+          'raise': raise,
+          'builtins': builtins
         }),
         'run': run,
 

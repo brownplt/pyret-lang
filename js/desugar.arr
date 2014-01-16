@@ -28,6 +28,44 @@ fun desugar(program :: A.Program):
   end
 end
 
+fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
+
+fun mk-id(loc, base):
+  t = gensym(base)
+  { id: t, id-b: mk-bind(loc, t), id-e: A.s_id(loc, t) }
+end
+
+fun make-match(l, case-name, fields):
+  call-match-case = mk-id(l, "call-" + case-name)
+  self-id = mk-id(l, "self")
+  cases-id = mk-id(l, "cases-funs")
+  else-id = mk-id(l, "else-clause")
+  args = for map(f from fields):
+      cases(A.VariantMember) f:
+        | s_variant_member(l2, mtype, bind) =>
+          when mtype <> "normal":
+            raise("Non-normal member in variant, NYI: " + torepr(f))
+          end
+          A.s_dot(l2, self-id.id-e, bind.id)
+      end
+    end
+  A.s_method(l, [self-id, cases-id, else-id].map(_.id-b), A.a_blank, "",
+      A.s_if_else(l, [
+          A.s_if_branch(l,
+              A.s_app(
+                  l,
+                  A.s_dot(l, A.s_id(l, "builtins"), "has-field"),
+                  [cases-id.id-e, A.s_str(l, case-name)]
+                ),
+              A.s_let_expr(l, [A.s_let_bind(l, call-match-case.id-b, A.s_dot(l, cases-id.id-e, case-name))],
+                  A.s_app(l, call-match-case.id-e, args)
+                )
+            )
+        ],
+        A.s_app(l, else-id.id-e, [])),
+      A.s_block(l, []))
+end
+
 fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
   doc: "Treating stmts as a block, remove x = e, var x = e, and fun f(): e end
         and turn them into explicit let and letrec expressions."
@@ -91,9 +129,10 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
             cases(A.Variant) v:
               | s_variant(l2, vname, members, with-members) =>
                 shared-id = gensym(vname)
+                m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
                 variant-bind-names = members.map(_.bind).map(_.id).map(gensym)
                 [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, with-members)),
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, [m] + with-members)),
                   A.s_letrec_bind(l2, b(l2, vname),
                     A.s_lam(
                         l2,
@@ -106,8 +145,9 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 ]
               | s_singleton_variant(l2, vname, with-members) =>
                 shared-id = gensym(vname)
+                m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
                 [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, with-members)),
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, [m] + with-members)),
                   A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_id(l, shared-id))))
                 ]
             end
@@ -278,17 +318,58 @@ fun desugar-if-branch(nv :: DesugarEnv, expr :: A.IfBranch):
   end
 end
 
-fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
-  fun desugar-member(f): 
-    cases(A.Member) f:
-      | s_method_field(l, name, args, ann, doc, body, _check) =>
-        A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, A.s_method(l, args, ann, doc, body, _check)))
-      | s_data_field(l, name, value) =>
-        A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, value))
-      | else =>
-        raise("NYI(desugar-member): " + torepr(f))
-    end
+fun desugar-case-branch(nv, c):
+  cases(A.CasesBranch) c:
+    | s_cases_branch(l2, name, args, body) =>  
+      desugar-member(nv,
+        A.s_data_field(l2, A.s_str(l2, name), A.s_lam(l2, [], args, A.a_blank, "", body, A.s_block(l2, []))))
   end
+end
+fun desugar-cases(l, ann, val, branches, else-block):
+  val-id = mk-id(l, "cases-val")
+  cases-object = A.s_obj(l, branches)
+  else-thunk = A.s_lam(l, [], [], A.a_blank, "", else-block, A.s_block(l, []))
+  A.s_let_expr(l, [
+        A.s_let_bind(l, val-id.id-b, val)
+      ],
+      A.s_app(l, A.s_dot(l, val-id.id-e, "_match"), [cases-object, else-thunk])
+    )
+where:
+  d = A.dummy-loc
+  prog = desugar-cases(
+      d,
+      A.a_blank, 
+      A.s_num(d, 1),
+      [
+        A.s_data_field(d, A.s_str(d, "empty"), A.s_lam(d, [], [], A.a_blank, "", A.s_num(d, 5), A.s_block(d, [])))
+      ],
+      A.s_num(d, 4)
+    )
+  id = prog.binds.first.b
+    
+  prog satisfies A.equiv-ast(_, A.s_let_expr(d, [
+          A.s_let_bind(d, id, A.s_num(d, 1))
+        ],
+        A.s_app(d, A.s_dot(d, A.s_id(d, id.id), "_match"), [
+          A.s_obj(d, [
+              A.s_data_field(d, A.s_str(d, "empty"), A.s_lam(d, [], [], A.a_blank, "", A.s_num(d, 5), A.s_block(d, [])))
+            ]),
+          A.s_lam(d, [], [], A.a_blank, "", A.s_num(d, 4), A.s_block(d, []))])))
+
+end
+
+fun desugar-member(nv, f): 
+  cases(A.Member) f:
+    | s_method_field(l, name, args, ann, doc, body, _check) =>
+      A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, A.s_method(l, args, ann, doc, body, _check)))
+    | s_data_field(l, name, value) =>
+      A.s_data_field(l, desugar-expr(nv, name), desugar-expr(nv, value))
+    | else =>
+      raise("NYI(desugar-member): " + torepr(f))
+  end
+end
+
+fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
   cases(A.Expr) expr:
     | s_block(l, stmts) =>
       cases(List) stmts:
@@ -336,10 +417,14 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
       A.s_if_else(l, branches.map(desugar-if-branch(nv, _)), desugar-expr(nv, _else))
+    | s_cases(l, type, val, branches) =>
+      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")]))
+    | s_cases_else(l, type, val, branches, _else) =>
+      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), _else)
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
     | s_dot(l, obj, field) => A.s_dot(l, desugar-expr(nv, obj), field)
     | s_colon(l, obj, field) => A.s_colon(l, desugar-expr(nv, obj), field)
-    | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member))
+    | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member(nv, _)))
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
@@ -353,7 +438,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_num(_, _) => expr
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
-    | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member))
+    | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

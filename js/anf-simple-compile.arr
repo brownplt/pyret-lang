@@ -60,8 +60,12 @@ fun compile(prog :: S.SplitResult) -> J.JExpr:
         j-var(js-id-of("test-print"),
           j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
         j-var(js-id-of("brander"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")]))
-          ] +
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
+        j-var(js-id-of("raise"),
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("raise")])),
+        j-var(js-id-of("builtins"),
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("builtins")]))
+      ] +
       prog.helpers.map(compile-helper) +
       [compile-e(prog.body)]))
 end
