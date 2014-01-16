@@ -21,11 +21,72 @@ fun extend-letrec(nv :: DesugarEnv, id :: String):
   d-env(nv.ids, nv.vars, nv.letrecs.add(id))
 end
 
+fun is-binder(stmt):
+  preds = [A.is-s_let, A.is-s_var, A.is-s_data, A.is-s_graph]
+  for list.any(f from preds): f(stmt) end
+end
+
 fun desugar(program :: A.Program):
   cases(A.Program) program:
     | s_program(l, headers, body) =>
-      A.s_program(l, headers, desugar-expr(mt-d-env, body))
+      str = A.s_str(l, _)
+      provides = headers.filter(A.is-s_provide)
+      len = provides.length()
+      prov = if len == 0:
+        A.s_obj(l, [])
+      else if len == 1:
+        provides.first.block
+      else if len > 1:
+        raise("More than one provide")
+      end
+      to-desugar = cases(A.Expr) body:
+        | s_block(l2, stmts) =>
+          last = stmts.last()
+          new-stmts = if is-binder(last):
+            stmts + [A.s_obj(l2, [
+                A.s_data_field(l2, str("answer"), A.s_id(l2, "nothing")),
+                A.s_data_field(l2, str("provide"), prov)
+              ])]
+          else:
+            stmts.take(stmts.length() - 1) + [A.s_obj(l2, [
+                A.s_data_field(l2, str("answer"), last),
+                A.s_data_field(l2, str("provide"), prov)
+              ])]
+          end
+          A.s_block(l2, new-stmts)
+        | else => body
+      end
+      imports = headers.filter(fun(h): not A.is-s_provide(h) end)
+      A.s_program(l, imports, desugar-expr(mt-d-env, to-desugar))
   end
+where:
+  d = A.dummy-loc
+  str = A.s_str(d, _)
+  desugar(A.surface-parse("provide x end x = 10", "test")) satisfies
+    A.equiv-ast-prog(_, A.s_program(d, [],
+      A.s_block(d, [
+          A.s_let_expr(d, [
+              A.s_let_bind(d, mk-bind(d, "x"), A.s_num(d, 10))
+            ],
+            A.s_obj(d, [
+                A.s_data_field(d, str("answer"), A.s_id(d, "nothing")),
+                A.s_data_field(d, str("provide"), A.s_id(d, "x"))
+              ]))
+        ])))
+
+  desugar(A.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) satisfies
+    A.equiv-ast-prog(_, A.s_program(d, [
+        A.s_import(d, A.s_file_import("foo.arr"), "F") 
+      ],
+      A.s_block(d, [
+          A.s_let_expr(d, [
+              A.s_let_bind(d, mk-bind(d, "x"), A.s_num(d, 10))
+            ],
+            A.s_obj(d, [
+                A.s_data_field(d, str("answer"), A.s_app(d, A.s_id(d, "F"), [A.s_id(d, "x")])),
+                A.s_data_field(d, str("provide"), A.s_id(d, "x"))
+              ]))
+        ])))
 end
 
 fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
