@@ -45,6 +45,11 @@ fun compile-runnable-js(code, name, libs, options):
   compile-js(code, name, libs, options).pyret-to-js-runnable()
 end
 
+fun compile-runnable-js-file(js-file, libs, options):
+  code = F.file-to-string(js-file)
+  compile-runnable-js(code, js-file, libs, options)
+end
+
 fun compile-standalone-js-file(js-file, libs, options):
   code = F.file-to-string(js-file)
   compile-standalone-js(code, js-file, libs, options)

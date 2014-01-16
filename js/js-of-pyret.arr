@@ -14,7 +14,7 @@ fun make-compiled-pyret(program-ast, env):
 
   anfed = N.anf-program(program-ast)
   split = AS.ast-split(anfed.body)
-  compiled = AC.compile(split)
+  compiled = AC.compile(split, anfed.imports)
   code = compiled.tosource().pretty(80).join-str("\n")
   c = C.ok(code)
   

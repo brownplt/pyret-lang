@@ -79,6 +79,10 @@ data JUnop:
 end
 
 data JExpr:
+  | j-parens(exp :: JExpr) with:
+    tosource(self):
+      PP.surround(INDENT, 1, PP.str("("), self.exp.tosource(), PP.str(")"))
+    end
   | j-unop(exp :: JExpr, op :: JUnop) with:
     tosource(self):
       cases(JUnop) self.op:
@@ -132,7 +136,12 @@ data JExpr:
     tosource(self): PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.field)) end
   | j-bracket(obj :: JExpr, field :: JExpr) with:
     tosource(self): PP.group(self.obj.tosource() +
-        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+      PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+    end
+  | j-list(elts :: List<JExpr>) with:
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrack + PP.rbrack,
+        PP.lbrack, PP.commabreak, PP.rbrack, self.elts.map(_.tosource()))
     end
   | j-obj(fields :: List<JField>) with:
     tosource(self):

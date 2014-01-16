@@ -10,6 +10,8 @@ fun main(args):
   options = {
       compile-standalone-js:
         C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+      compile-module-js:
+        C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
       libs:
         C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
       no-check-mode:
@@ -34,13 +36,24 @@ fun main(args):
           else:
             true
           end
-        result = CM.compile-standalone-js-file(
-            r.compile-standalone-js,
-            CS.standard-builtins,
-            {
-              check-mode : check-mode
-            }
-          )
+        result = if builtins.has-field(r, "compile-standalone-js"):
+            CM.compile-standalone-js-file(
+              r.compile-standalone-js,
+              CS.standard-builtins,
+              {
+                check-mode : check-mode
+              }
+            )
+          else if builtins.has-field(r, "compile-module-js"):
+            CM.compile-runnable-js-file(
+              r.compile-module-js,
+              CS.standard-builtins,
+              {
+                check-mode : check-mode
+              }
+            )
+          end
+
         cases(CS.CompileResult) result:
           | ok(code) => print(code)
           | err(message) => raise(result)

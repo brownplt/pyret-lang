@@ -125,9 +125,13 @@ describe('~a', function() {
         output += str;
       }
     });
-    var program = ~a;
+    var theProgram = null;
+    var define = function(ignored, program) {
+      theProgram = program();
+    };
+    ~a;
 
-    rt.run(program, rt.namespace, function(result) {
+    rt.run(theProgram, rt.namespace, function(result) {
       if (rt.isSuccessResult(result)) {
         expect(output).toEqual(expectedOutput);
         done();

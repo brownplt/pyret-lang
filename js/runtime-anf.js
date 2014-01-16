@@ -952,7 +952,8 @@ function createMethodDict() {
           'print': print,
           'brander': brander,
           'raise': raise,
-          'builtins': builtins
+          'builtins': builtins,
+          'nothing': makeNothing()
         }),
         'run': run,
 

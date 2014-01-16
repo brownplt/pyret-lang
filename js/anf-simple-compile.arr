@@ -19,6 +19,7 @@ j-return = J.j-return
 j-assign = J.j-assign
 j-if = J.j-if
 j-app = J.j-app
+j-list = J.j-list
 j-obj = J.j-obj
 j-dot = J.j-dot
 j-bracket = J.j-bracket
@@ -36,6 +37,8 @@ j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
 j-ternary = J.j-ternary
+j-null = J.j-null
+j-parens = J.j-parens
 
 js-id-of = block:
   var js-ids = {}
@@ -54,22 +57,50 @@ data Env:
   | bindings(vars :: Set<String>, ids :: Set<String>)
 end
 
-fun compile(prog :: S.SplitResult) -> J.JExpr:
-  j-fun(["RUNTIME", "NAMESPACE"], j-block([
-        j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
-        j-var(js-id-of("test-print"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
-        j-var(js-id-of("print"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("print")])),
-        j-var(js-id-of("brander"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
-        j-var(js-id-of("raise"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("raise")])),
-        j-var(js-id-of("builtins"),
-          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("builtins")]))
-      ] +
-      prog.helpers.map(compile-helper) +
-      [compile-e(prog.body)]))
+fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
+  ids = headers.map(_.name).map(js-id-of)
+  filenames = headers.map(fun(h):
+      cases(N.AImport) h:
+        | a-import-builtin(l, name, _) => "builtins/" + name
+        | a-import-file(l, file, _) => file
+      end
+    end)
+  fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
+  module-id = gensym("mod")
+  thunk-app(j-block([
+      j-var(module-id, j-null),
+      j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
+          j-return(j-fun(["RUNTIME", "NAMESPACE"],
+            j-block([
+              j-if(j-id(module-id),
+                j-block([j-return(j-id(module-id))]),
+                j-block([
+                    j-assign(module-id, thunk-app(
+                        j-block([
+                            j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
+                            j-var(js-id-of("test-print"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
+                            j-var(js-id-of("print"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("print")])),
+                            j-var(js-id-of("brander"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
+                            j-var(js-id-of("raise"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("raise")])),
+                            j-var(js-id-of("builtins"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("builtins")])),
+                            j-var(js-id-of("nothing"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("nothing")]))
+                          ] +
+                          for map(id from ids):
+                            j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))
+                          end +
+                          prog.helpers.map(compile-helper) +
+                          [compile-e(prog.body)]))),
+                     j-return(j-id(module-id))
+                   ]))
+               ])))
+        ]))])
+      ]))
 end
 
 fun helper-name(s :: String): "$HELPER_" + js-id-of(s);
@@ -217,7 +248,7 @@ fun compile-field(f):
 end
 
 fun thunk-app(block):
-  j-app(j-fun([], block), [])
+  j-app(j-parens(j-fun([], block)), [])
 end
 
 fun thunk-app-stmt(stmt):

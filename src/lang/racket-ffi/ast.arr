@@ -754,9 +754,9 @@ end
 # Equivalence modulo srclocs
 fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
   cases(Program) ast1:
-    | s_prog(_, imports1, body1) =>
+    | s_program(_, imports1, body1) =>
       cases(Program) ast2:
-        | s_prog(_, imports2, body2) =>
+        | s_program(_, imports2, body2) =>
           length-andmap(equiv-ast-header, imports1, imports2) and
             equiv-ast(body1, body2)
         | else => false
@@ -1288,5 +1288,4 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       end
   end
 end
-
 

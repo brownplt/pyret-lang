@@ -19,6 +19,6 @@ fun build-list(n):
   end
 end
 
-print(sum-list(build-list(10000)))
-print(sum-list(build-list(10000)))
+test-print(sum-list(build-list(10000)))
+test-print(sum-list(build-list(20000)))
 
