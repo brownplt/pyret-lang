@@ -949,6 +949,7 @@ function createMethodDict() {
         'namespace': Namespace({
           'torepr': torepr,
           'test-print': print,
+          'print': print,
           'brander': brander,
           'raise': raise,
           'builtins': builtins

@@ -59,6 +59,8 @@ fun compile(prog :: S.SplitResult) -> J.JExpr:
         j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
         j-var(js-id-of("test-print"),
           j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
+        j-var(js-id-of("print"),
+          j-method(J.j-id("NAMESPACE"), "get", [J.j-str("print")])),
         j-var(js-id-of("brander"),
           j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
         j-var(js-id-of("raise"),

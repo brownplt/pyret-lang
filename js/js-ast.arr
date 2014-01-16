@@ -197,6 +197,6 @@ end
 data JField:
   | j-field(name :: String, value :: JExpr) with:
     tosource(self):
-      PP.nest(INDENT, PP.str(self.name) + PP.str(": ") + self.value.tosource())
+      PP.nest(INDENT, PP.dquote(PP.str(self.name)) + PP.str(": ") + self.value.tosource())
     end
 end

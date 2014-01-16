@@ -4,6 +4,13 @@ data MyList:
   | l-link(f, r)
 end
 
+fun sum-list(l):
+  cases(MyList) l:
+    | l-empty => 0
+    | l-link(f, r) => f + sum-list(r)
+  end
+end
+
 fun build-list(n):
   if n < 1:
     l-empty
@@ -12,6 +19,6 @@ fun build-list(n):
   end
 end
 
-test-print(build-list(10000).f)
-test-print(build-list(10000).r.r.f)
+print(sum-list(build-list(10000)))
+print(sum-list(build-list(10000)))
 
