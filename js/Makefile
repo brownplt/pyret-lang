@@ -26,6 +26,7 @@ install:
 	mkdir node_modules -p
 	npm install jasmine-node
 	npm install sweet.js
+	npm install requirejs
 
 test: runtime-anf.js number-dict.js
 	mkdir -p generated-tests/anf-tests
