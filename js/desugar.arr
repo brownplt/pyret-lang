@@ -22,7 +22,7 @@ fun extend-letrec(nv :: DesugarEnv, id :: String):
 end
 
 fun is-binder(stmt):
-  preds = [A.is-s_let, A.is-s_var, A.is-s_data, A.is-s_graph]
+  preds = [A.is-s_let, A.is-s_var, A.is-s_fun, A.is-s_data, A.is-s_graph]
   for list.any(f from preds): f(stmt) end
 end
 
@@ -87,6 +87,7 @@ where:
                 A.s_data_field(d, str("provide"), A.s_id(d, "x"))
               ]))
         ])))
+
 end
 
 fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
