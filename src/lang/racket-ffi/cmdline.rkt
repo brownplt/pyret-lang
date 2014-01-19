@@ -459,10 +459,10 @@ check:
 
   data RGB: red | green | blue end
   custom-parser = read-custom("red|green|blue", fun(arg-index, name, val):
-      if val == "red": red
-      else if val == "green": green
-      else if val == "blue": blue
-      else: raise(format("~a expected an RGB argument, got ~a", [name, torepr(val)]))
+      if val == "red": left(red)
+      else if val == "green": left(green)
+      else if val == "blue": left(blue)
+      else: right(format("~a expected an RGB argument, got ~a", [name, torepr(val)]))
       end
     end)
   many-next-colors = {
