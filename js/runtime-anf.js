@@ -2,17 +2,22 @@
 This is the runtime for the ANF'd version of pyret
 */
 "use strict";
-if(typeof require !== 'undefined') {
-  var Namespace = require('./namespace.js').Namespace;
+
+define(["./namespace", "./number-dict", "./string-dict", "./boolean-dict", "./js-numbers/src/js-numbers"],
+       function (Namespace, NumberDict, StringDict, BooleanDict, jsnums) {
+
+
+
+  //var Namespace = require('./namespace.js').Namespace;
 
   /**@type {{getBaseNumberDict : function(!Object) : !Object}}*/
-  var NumberDict = require('./number-dict.js');
+  //var NumberDict = require('./number-dict.js');
 
   /**@type {{getBaseStringDict : function(!Object) : !Object}}*/
-  var StringDict = require('./string-dict.js');
+  //var StringDict = require('./string-dict.js');
 
   /**@type {{getBaseBooleanDict : function(!Object) : !Object}}*/
-  var BooleanDict = require('./boolean-dict.js');
+  //var BooleanDict = require('./boolean-dict.js');
 
   /** @typedef {!Object} */
   var Bignum;
@@ -43,13 +48,9 @@ if(typeof require !== 'undefined') {
         atan : function(Bignum) : Bignum
           }}
    */
-  var jsnums = require('./js-numbers/src/js-numbers.js');
-}
+  //var jsnums = require('./js-numbers/src/js-numbers.js');
 
-/**
-  @type {{makeRuntime : function(*)}}
-*/
-var PYRET_ANF = (function() {
+
 
 /**
 Creates a Pyret runtime
@@ -1012,8 +1013,5 @@ function createMethodDict() {
 }
 
 return  {'makeRuntime' : makeRuntime};
-})();
 
-if (typeof exports !== 'undefined') {
-  exports['PYRET_ANF'] = PYRET_ANF;
-}
+       });

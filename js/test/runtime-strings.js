@@ -1,14 +1,17 @@
+var r = require("requirejs")
+
+define(["./matchers", "../js-numbers/src/js-numbers"], function (matchers, jsnums) {
+
 _ = require('jasmine-node');
 var path = require('path');
-var addPyretMatchers = require(path.join(__dirname,'./matchers.js')).addPyretMatchers;
-var jsnums = require('../js-numbers/src/js-numbers.js');
+var addPyretMatchers = matchers.addPyretMatchers;
 
 function performTest(useCompiled) {
     if(useCompiled) {
-        R = require('../anf-comp.js').PYRET_ANF;
+        R = r('../anf-comp');
     }
     else {
-        R = require('../runtime-anf.js').PYRET_ANF;
+        R = r('../runtime-anf');
     }
 
 var output;
@@ -153,4 +156,6 @@ beforeEach(function(){
 });
 }
 
-exports['performTest'] = performTest;
+    return { performTest: performTest };
+
+});
