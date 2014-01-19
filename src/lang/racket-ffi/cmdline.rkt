@@ -31,6 +31,7 @@ provide {
 
 import Racket as R
 import format as F
+import string-dict as D
 format = F.format
 
 all-cmdline-params = R("pyret/parameters")("command-line-arguments")
@@ -74,7 +75,7 @@ data ParseParam:
 end
 
 data ParsedArguments:
-  | success(parsed :: Object, unknown :: List<String>)
+  | success(parsed :: D.StringDict, unknown :: List<String>)
   | arg-error(message :: String, partial-results :: ParsedArguments)
 end
 
@@ -100,7 +101,7 @@ end
 fun usage-info(options) -> List<String>:
   option-info = 
     for list.map(key from builtins.keys(options)):
-      cases(Param) options.[key]:
+      cases(Param) options.get(key):
         | flag(repeated, desc) =>
           format("  -~a: ~a (~a)", [key, desc, repeated])
         | equals-val(parser, repeated, desc) =>
@@ -134,28 +135,29 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
   doc: 'Takes a dictionary of Param definitions, and a list of string arguments, 
 and returns either the parsed argument results, or an error if the provided 
 arguments do not satisfy the requirements of the Params dictionary.'
+  opts-dict = D.to-dict(options)
   options-and-aliases =
-    for list.fold(acc from {options: options, aliases: {}}, key from builtins.keys(options)):
+    for list.fold(acc from {options: opts-dict, aliases: D.immutable-string-dict()}, key from opts-dict.keys()):
       if is-arg-error(acc): acc
       else:
-        cur-option = options.[key]
+        cur-option = opts-dict.get(key)
         cases(Param) cur-option:
           | equals-val-default(_, _, short-name, _, _) =>
             cases(Option<String>) short-name:
               | none => acc
               | some(short) =>
-                if builtins.has-field(acc.options, short):
-                  arg-error("Options map already includes entry for short-name " + short, success({}, []))
-                else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
+                if acc.options.has-key(short):
+                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict, []))
+                else: acc.{options: acc.options, aliases: acc.aliases.set(short, key)}
                 end
             end
           | next-val-default(_, _, short-name, _, _) =>
             cases(Option<String>) short-name:
               | none => acc
               | some(short) =>
-                if builtins.has-field(acc.options, short):
-                  arg-error("Options map already includes entry for short-name " + short, success({}, []))
-                else: acc.{options: acc.options, aliases: acc.aliases.{[short]: key}}
+                if acc.options.has-key(short):
+                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict(), []))
+                else: acc.{options: acc.options, aliases: acc.aliases.set(short, key)}
                 end
             end
           | else => acc
@@ -171,33 +173,33 @@ arguments do not satisfy the requirements of the Params dictionary.'
         | success(parsed, unknown) =>
           cases(ParamRepeat) repeated:
             | once =>
-              if builtins.has-field(results.parsed, name):
+              if results.parsed.has-key(name):
                 arg-error(format("Parsing command line options for ~a failed: Option ~a ~a, and it has already been used", [file-name, name, repeated]), results)
-              else: success(parsed.{[name]: val}, unknown)
+              else: success(parsed.set(name, val), unknown)
               end
             | many =>
-              if builtins.has-field(results.parsed, name):
-                success(parsed.{[name]: results.parsed.[name] + [val]}, unknown)
+              if results.parsed.has-key(name):
+                success(parsed.set(name, results.parsed.get(name) + [val]), unknown)
               else:
-                success(parsed.{[name]: [val]}, unknown)
+                success(parsed.set(name, [val]), unknown)
               end
             | required-once =>
-              if builtins.has-field(results.parsed, name):
+              if results.parsed.has-key(name):
                 arg-error(format("Parsing command line options for ~a failed: Option ~a ~a, and it has already been used", [file-name, name, repeated]), results)
-              else: success(parsed.{[name]: val}, unknown)
+              else: success(parsed.set(name, val), unknown)
               end
             | required-many =>
-              if builtins.has-field(results.parsed, name):
-                success(parsed.{[name]: results.parsed.[name] + [val]}, unknown)
+              if results.parsed.has-key(name):
+                success(parsed.set(name, results.parsed.get(name) + [val]), unknown)
               else:
-                success(parsed.{[name]: [val]}, unknown)
+                success(parsed.set(name, [val]), unknown)
               end
           end
         | else => results
       end
     end
-    required = for list.filter(key from builtins.keys(options)):
-      repeated = options.[key].repeated
+    required = for list.filter(key from opts-dict.keys()):
+      repeated = opts-dict.get(key).repeated
       (repeated == required-once) or (repeated == required-many)
     end
     fun process(results, cur-index, remaining):
@@ -209,8 +211,8 @@ arguments do not satisfy the requirements of the Params dictionary.'
             if first.substring(0, 2) == "--":
               key-parts = first.substring(2, first.length()).split("=", false)
               key = key-parts.first
-              if builtins.has-field(full-options, key):
-                cases(Param) full-options.[key]:
+              if full-options.has-key(key):
+                cases(Param) full-options.get(key):
                   | equals-val(parser, repeated, _) =>
                     cases(List<String>) key-parts.rest:
                       | empty =>
@@ -303,10 +305,10 @@ arguments do not satisfy the requirements of the Params dictionary.'
             else if first.substring(0, 1) == "-":
               key = first.substring(1, first.length())
               lookup = 
-                if builtins.has-field(option-aliases, key) and builtins.has-field(full-options, option-aliases.[key]):
-                  full-options.[option-aliases.[key]]
-                else if builtins.has-field(full-options, key):
-                  full-options.[key]
+                if option-aliases.has-key(key) and full-options.has-key(option-aliases.get(key)):
+                  full-options.get(option-aliases.get(key))
+                else if full-options.has-key(key):
+                  full-options.get(key)
                 else:
                   nothing
                 end
@@ -315,9 +317,9 @@ arguments do not satisfy the requirements of the Params dictionary.'
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
                   | equals-val-default(_, default, _, repeated, _) =>
-                    process(handle-repeated(results, repeated, option-aliases.[key], default), cur-index + 1, more-args)
+                    process(handle-repeated(results, repeated, option-aliases.get(key), default), cur-index + 1, more-args)
                   | next-val-default(_, default, _, repeated, _) =>
-                    process(handle-repeated(results, repeated, option-aliases.[key], default), cur-index + 1, more-args)
+                    process(handle-repeated(results, repeated, option-aliases.get(key), default), cur-index + 1, more-args)
                   | else => arg-error(format("Command line option --~a must start with two dashes", [key]), results)
                 end
               else:
@@ -329,11 +331,11 @@ arguments do not satisfy the requirements of the Params dictionary.'
         end
       end
     end
-    parsed-results = process(success({}, []), 1, args)
+    parsed-results = process(success(D.immutable-string-dict(), []), 1, args)
     cases(ParsedArguments) parsed-results:
       | success(parsed, _) =>
         missing-args = for list.filter(key from required):
-          not builtins.has-field(parsed, key)
+          not parsed.has-key(key)
         end
         if is-empty(missing-args): parsed-results
         else:
@@ -352,6 +354,12 @@ fun parse-cmdline(options):
 end
 
 
+fun dict(l):
+  for fold(d from D.immutable-string-dict(), i from list.range(0, l.length() / 2)):
+    d.set(l.get(2 * i), l.get((2 * i) + 1))
+  end
+end
+
 
 check:
   fun error-text(msg): fun(val):
@@ -364,80 +372,80 @@ check:
   once-optional-flag = {
     foo: flag(once, "Foo")
   }
-  parse-args(once-optional-flag, ["-foo"]) is success({foo: true}, [])
-  parse-args(once-optional-flag, ["bar"]) is success({}, ["bar"])
+  parse-args(once-optional-flag, ["-foo"]) is success(dict(["foo", true]), [])
+  parse-args(once-optional-flag, ["bar"]) is success(D.immutable-string-dict(), ["bar"])
   parse-args(once-optional-flag, ["--foo"]) satisfies error-text("two dashes")
   parse-args(once-optional-flag, ["-foo", "-foo"]) satisfies error-text("already been used")
-  parse-args(once-optional-flag, ["-foo", "bar"]) is success({foo: true}, ["bar"])
-  parse-args(once-optional-flag, ["bar", "-foo"]) is success({foo: true}, ["bar"])
+  parse-args(once-optional-flag, ["-foo", "bar"]) is success(dict(["foo", true]), ["bar"])
+  parse-args(once-optional-flag, ["bar", "-foo"]) is success(dict(["foo", true]), ["bar"])
   parse-args(once-optional-flag, ["-bar"]) satisfies error-text("Unknown command line option -bar")
   parse-args(once-optional-flag, ["--bar"]) satisfies error-text("Unknown command line option --bar")
 
   once-required-flag = {
     foo: flag(required-once, "Foo")
   }
-  parse-args(once-required-flag, ["-foo"]) is success({foo: true}, [])
+  parse-args(once-required-flag, ["-foo"]) is success(dict(["foo", true]), [])
   parse-args(once-required-flag, ["bar"]) satisfies error-text("options are required")
   parse-args(once-required-flag, ["--foo"]) satisfies error-text("two dashes")
   parse-args(once-required-flag, ["-foo", "-foo"]) satisfies error-text("already been used")
-  parse-args(once-required-flag, ["-foo", "bar"]) is success({foo: true}, ["bar"])
-  parse-args(once-required-flag, ["bar", "-foo"]) is success({foo: true}, ["bar"])
+  parse-args(once-required-flag, ["-foo", "bar"]) is success(dict(["foo", true]), ["bar"])
+  parse-args(once-required-flag, ["bar", "-foo"]) is success(dict(["foo", true]), ["bar"])
 
   
   once-required-equals-default = {
     foo: equals-val-default(read-number, 42, some("f"), required-once, "Foo"),
     bar: flag(once, "Bar")
   }
-  parse-args(once-required-equals-default, ["--foo=3"]) is success({foo: 3}, [])
+  parse-args(once-required-equals-default, ["--foo=3"]) is success(dict(["foo", 3]), [])
   parse-args(once-required-equals-default, ["--foo=bar"]) satisfies error-text("expected a numeric argument")
   parse-args(once-required-equals-default, ["--foo=3", "--foo=4"]) satisfies error-text("already been used")
-  parse-args(once-required-equals-default, ["-f"]) is success({foo: 42}, [])
-  parse-args(once-required-equals-default, ["--foo"]) is success({foo: 42}, [])
-  parse-args(once-required-equals-default, ["--foo", "-bar"]) is success({foo: 42, bar: true}, [])
-  parse-args(once-required-equals-default, ["-bar", "--foo"]) is success({foo: 42, bar: true}, [])
-  parse-args(once-required-equals-default, ["-bar", "-f"]) is success({foo: 42, bar: true}, [])
+  parse-args(once-required-equals-default, ["-f"]) is success(dict(["foo", 42]), [])
+  parse-args(once-required-equals-default, ["--foo"]) is success(dict(["foo", 42]), [])
+  parse-args(once-required-equals-default, ["--foo", "-bar"]) is success(dict(["foo", 42, "bar", true]), [])
+  parse-args(once-required-equals-default, ["-bar", "--foo"]) is success(dict(["foo", 42, "bar", true]), [])
+  parse-args(once-required-equals-default, ["-bar", "-f"]) is success(dict(["foo", 42, "bar", true]), [])
 
 
   once-optional-next-default = {
     width: next-val-default(read-number, 80, some("w"), once, "Width")
   }
-  parse-args(once-optional-next-default, ["-w", "foo.txt"]) is success({width: 80}, ["foo.txt"])
-  parse-args(once-optional-next-default, ["--width", "120", "foo.txt"]) is success({width: 120}, ["foo.txt"])
+  parse-args(once-optional-next-default, ["-w", "foo.txt"]) is success(dict(["width", 80]), ["foo.txt"])
+  parse-args(once-optional-next-default, ["--width", "120", "foo.txt"]) is success(dict(["width", 120]), ["foo.txt"])
   parse-args(once-optional-next-default, ["--w", "120", "foo.txt"]) satisfies error-text("Unknown command line option --w")
   
   once-required-next-default = {
     foo: next-val-default(read-number, 42, some("f"), required-once, "Foo"),
     bar: flag(once, "Bar")
   }
-  parse-args(once-required-next-default, ["--foo", "3"]) is success({foo: 3}, [])
+  parse-args(once-required-next-default, ["--foo", "3"]) is success(dict(["foo", 3]), [])
   parse-args(once-required-next-default, ["--foo", "bar"]) satisfies error-text("expected a numeric argument")
   parse-args(once-required-next-default, ["--foo", "3", "--foo", "4"]) satisfies error-text("already been used")
-  parse-args(once-required-next-default, ["-f"]) is success({foo: 42}, [])
-  parse-args(once-required-next-default, ["--foo"]) is success({foo: 42}, [])
-  parse-args(once-required-next-default, ["--foo", "-bar"]) is success({foo: 42, bar: true}, [])
-  parse-args(once-required-next-default, ["-f", "-bar"]) is success({foo: 42, bar: true}, [])
-  parse-args(once-required-next-default, ["-bar", "-f"]) is success({foo: 42, bar: true}, [])
+  parse-args(once-required-next-default, ["-f"]) is success(dict(["foo", 42]), [])
+  parse-args(once-required-next-default, ["--foo"]) is success(dict(["foo", 42]), [])
+  parse-args(once-required-next-default, ["--foo", "-bar"]) is success(dict(["foo", 42, "bar", true]), [])
+  parse-args(once-required-next-default, ["-f", "-bar"]) is success(dict(["foo", 42, "bar", true]), [])
+  parse-args(once-required-next-default, ["-bar", "-f"]) is success(dict(["foo", 42, "bar", true]), [])
 
   many-optional-flag = {
     foo: flag(many, "Foo"),
     bar: next-val-default(read-number, 42, some("b"), many, "Bar"),
     ["4"]: flag(many, "Flag-4")
   }
-  parse-args(many-optional-flag, ["-foo", "-foo", "-foo"]) is success({foo: [true, true, true]}, [])
+  parse-args(many-optional-flag, ["-foo", "-foo", "-foo"]) is success(dict(["foo", [true, true, true]]), [])
   parse-args(many-optional-flag, ["-b", "-foo", "--bar", "3", "--bar", "-foo"])
-    is success({foo: [true, true], bar: [42, 3, 42]}, [])
+    is success(dict(["foo", [true, true], "bar", [42, 3, 42]]), [])
   parse-args(many-optional-flag, ["-b", "-foo", "-b", "3", "--bar", "-foo"])
-    is success({foo: [true, true], bar: [42, 42, 42]}, ["3"])
-  parse-args(many-optional-flag, ["--bar", "-4"]) is success({bar: [-4]}, [])
+    is success(dict(["foo", [true, true], "bar", [42, 42, 42]]), ["3"])
+  parse-args(many-optional-flag, ["--bar", "-4"]) is success(dict(["bar", [-4]]), [])
   parse-args(many-optional-flag, ["--bar", "-not-a-number"]) satisfies error-text("Unknown command line option -not-a-number")
-  parse-args(many-optional-flag, ["--bar", "-4"]) is success({bar: [-4]}, [])
-  parse-args(many-optional-flag, ["--bar", "-4", "-4"]) is success({bar: [-4], ["4"]: [true]}, [])
+  parse-args(many-optional-flag, ["--bar", "-4"]) is success(dict(["bar", [-4]]), [])
+  parse-args(many-optional-flag, ["--bar", "-4", "-4"]) is success(dict(["bar", [-4], "4", [true]]), [])
 
   many-required-equals = {
     foo: equals-val(read-bool, required-many, "Foo"),
     bar: flag(many, "Bar")
   }
-  parse-args(many-required-equals, ["--foo=false", "--foo=true"]) is success({foo: [false, true]}, [])
+  parse-args(many-required-equals, ["--foo=false", "--foo=true"]) is success(dict(["foo", [false, true]]), [])
   parse-args(many-required-equals, ["-bar"]) satisfies error-text("options are required")
   parse-args(many-required-equals, ["--foo"]) satisfies error-text("Option foo must be of the form --foo=(true|false)")
 
@@ -445,7 +453,7 @@ check:
     foo: next-val(read-string, required-many, "Foo"),
     bar: flag(many, "Bar")
   }
-  parse-args(many-required-next-str, ["--foo", "-bar"]) is success({foo: ["-bar"]}, [])
+  parse-args(many-required-next-str, ["--foo", "-bar"]) is success(dict(["foo", ["-bar"]]), [])
   parse-args(many-required-next-str, ["-bar", "--foo"]) satisfies error-text("Missing value for option foo; it must be of the form --foo <string>")
 
   many-required-next-num = {
@@ -454,8 +462,8 @@ check:
     ["4"]: flag(many, "Flag-4")
   }
   parse-args(many-required-next-num, ["--foo", "-bar"]) satisfies error-text("Missing value for option foo; it must be of the form --foo <number>")
-  parse-args(many-required-next-num, ["--foo", "-4"]) is success({foo: [-4]}, [])
-  parse-args(many-required-next-num, ["--foo", "-4", "-4"]) is success({foo: [-4], ["4"]: [true]}, [])
+  parse-args(many-required-next-num, ["--foo", "-4"]) is success(dict(["foo", [-4]]), [])
+  parse-args(many-required-next-num, ["--foo", "-4", "-4"]) is success(dict(["foo", [-4], "4", [true]]), [])
 
   data RGB: red | green | blue end
   custom-parser = read-custom("red|green|blue", fun(arg-index, name, val):
@@ -468,10 +476,12 @@ check:
   many-next-colors = {
     color: next-val-default(custom-parser, red, some("c"), many, "Color")
   }
-  parse-args(many-next-colors, ["--color", "red"]) is success({color: [red]}, [])
+  parse-args(many-next-colors, ["--color", "red"]) is success(dict(["color", [red]]), [])
   parse-args(many-next-colors, ["--color", "red", "-c", "--color", "blue"])
-    is success({color: [red, red, blue]}, [])
+    is success(dict(["color", [red, red, blue]]), [])
   parse-args(many-next-colors, ["--color", "bad"]) satisfies error-text("color expected an RGB argument, got \"bad\"")
   parse-args(many-next-colors, ["--color", "green", "--color", "-c", "blue"])
-    is success({color: [green, red, red]}, ["blue"])
+    is success(dict(["color", [green, red, red]]), ["blue"])
 end
+
+

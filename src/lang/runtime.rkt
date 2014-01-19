@@ -159,6 +159,7 @@
       nothing
       pyret-true?
       dummy-loc
+      throw-type-error!
       loc-list))
   (rename-out [p-pi pi]
               [print-pfun print]
@@ -242,7 +243,7 @@
 (struct p-placeholder p-base (b wrappers) #:mutable)
 ;; p-array p-base Array
 (struct p-array p-base (v) #:mutable)
-(struct p-opaque (val))
+(struct p-opaque (val) #:transparent)
 
 (define (value-predicate-for typ)
   (cond
