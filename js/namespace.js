@@ -1,6 +1,6 @@
 "use strict";
 
-var Namespace = (function() {
+define(function() {
     /**@type {!Object}*/
     var noProto = {};
 
@@ -124,8 +124,4 @@ var Namespace = (function() {
     }
     
     return makeNamespace;
-})();
-
-if(typeof exports !== "undefined") {
-  exports.Namespace = Namespace;
-}
+});

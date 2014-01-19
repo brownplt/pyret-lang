@@ -1,16 +1,5 @@
 // Scheme numbers.
 
-
-var __PLTNUMBERS_TOP__;
-if (typeof(exports) !== 'undefined') {
-    __PLTNUMBERS_TOP__ = exports;
-} else {
-    if (! this['jsnums']) {
- 	this['jsnums'] = {};
-    }
-    __PLTNUMBERS_TOP__  = this['jsnums'];
-}
-
 //var jsnums = {};
 
 
@@ -35,10 +24,10 @@ if (typeof(exports) !== 'undefined') {
 // An integer-scheme-number is either fixnum or BigInteger.
 
 
-(function() {
+define(function() {
     'use strict';
     // Abbreviation
-    var Numbers = __PLTNUMBERS_TOP__;
+    var Numbers = {};
     //var Numbers = jsnums;
 
 
@@ -69,7 +58,7 @@ if (typeof(exports) !== 'undefined') {
 	    if (y.level < x.level) y = y.liftTo(x);
 	    return onBoxednums(x, y);
 	};
-    }
+    };
     
     
     // fromFixnum: fixnum -> scheme-number
@@ -4119,4 +4108,5 @@ if (typeof(exports) !== 'undefined') {
     Numbers['MIN_FIXNUM'] = MIN_FIXNUM;
     Numbers['MAX_FIXNUM'] = MAX_FIXNUM;
 
-})();
+    return Numbers;
+});

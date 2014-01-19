@@ -6,7 +6,7 @@ j.executeSpecsInFolder({
     isVerbose:    true,
     showColors:   true,
     teamcity:     false,
-    useRequireJs: false,
+    useRequireJs: true,
     regExpSpec:   false,
     junitreport:  false,
     includeStackTrace: true,
