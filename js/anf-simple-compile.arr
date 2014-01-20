@@ -61,7 +61,7 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
   ids = headers.map(_.name).map(js-id-of)
   filenames = headers.map(fun(h):
       cases(N.AImport) h:
-        | a-import-builtin(l, name, _) => "builtins/" + name
+        | a-import-builtin(l, name, _) => "builtin-libs/" + name
         | a-import-file(l, file, _) => file
       end
     end)

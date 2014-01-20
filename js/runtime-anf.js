@@ -101,6 +101,7 @@ inherits(PString, PBase);
 inherits(PBoolean, PBase);
 inherits(PFunction, PBase);
 inherits(PMethod, PBase);
+inherits(POpaque, PBase);
 
 
 /**
@@ -255,7 +256,7 @@ function getField(val, field) {
     }*/
     else if(isMethod(fieldVal)){
         var curried = fieldVal['meth'](val);
-        return makeFunction(curried);
+        return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
         return fieldVal;
@@ -280,6 +281,23 @@ function getColonField(val, field) {
         return fieldVal;
     }
 }
+
+function POpaque(val, equals) {
+  this.val = val;
+  this.equals = equals;
+  this.brands = [];
+}
+POpaque.prototype = Object.create(PBase.prototype);
+
+POpaque.prototype.extendWith = function() {
+  throw makeMessageException("Cannot extend opaque values");
+};
+POpaque.prototype.clone = function() {
+  throw makeMessageException("Cannot clone opaque values");
+};
+
+function makeOpaque(val, equals) { return new POpaque(val, equals); }
+function isOpaque(val) { return val instanceof POpaque; }
 
 /*********************
         Nothing
@@ -533,12 +551,12 @@ function isPyretTrue(b) {
 
     @param {Function} fun the function body
 */
-function PFunction(fun) { 
+function PFunction(fun, arity) { 
     /**@type {Function}*/
     this.app   = fun;
 
     /**@type {number}*/
-    this.arity = fun.length;
+    this.arity = arity || fun.length;
 
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createFunctionDict(); 
@@ -578,6 +596,9 @@ function createFunctionDict() {
 */
 function makeFunction(fun) {
    return new PFunction(fun); 
+}
+function makeFunctionArity(fun, arity) {
+   return new PFunction(fun, arity); 
 }
 
 
@@ -644,6 +665,15 @@ function createMethodDict() {
       return new PMethod(meth, full_meth); 
     }
 
+    function makeMethodFromFun(meth) {
+      return new PMethod(function(obj) {
+          return function() {
+              var argList = Array.prototype.slice.call(arguments);
+              return meth.apply(null, [obj].concat(argList));
+            };
+        }, meth);
+    }
+
     /*********************
             Object
     **********************/
@@ -699,7 +729,7 @@ function createMethodDict() {
     */
     function checkIf(val, test) {
         if(!test(val)) {
-            throw makeMessageException("Pyret Type Error")
+            throw makeMessageException("Pyret Type Error: " + test)
         }
         return true;
     }
@@ -895,8 +925,6 @@ function createMethodDict() {
           if (!hasBrand(left, brands2[i])) { return false; }
         }
 
-        console.log("brands all good");
-
         var fields1 = getFields(left);
         var fields2 = getFields(right);
         if(fields1.length !== fields2.length) { return false; }
@@ -906,6 +934,9 @@ function createMethodDict() {
           }
         }
         return true;
+      }
+      else if (isOpaque(left) && isOpaque(right)) {
+        return left.equals(left.val, right.val);
       }
       else {
         throw makeMessageException("Cannot compare " + left + " " + right + " with ==");
@@ -919,6 +950,25 @@ function createMethodDict() {
         'equiv': sameP
       });
 
+
+    function unwrap(v) {
+      if(isNumber(v)) { return v.n; }
+      else if(isString(v)) { return v.s; }
+      else if(isBoolean(v)) { return v.b; }
+      else if(isObject(v)) { return v; }
+      else if(isOpaque(v)) { return v; }
+      else { throw makeMessageException("Cannot unwrap yet: ", v); }
+    }
+
+    function wrap(v) {
+      if(jsnums.isSchemeNumber(v)) { return makeBigNumber(v); }
+      else if(typeof v === "number") { return makeNumber(v); }
+      else if(typeof v === "string") { return makeString(v); }
+      else if(typeof v === "boolean") { return makeBoolean(v); }
+      else if(isOpaque(v)) { return v; }
+      else if(isObject(v)) { return v; }
+      else { throw makeMessageException("Cannot unwrap yet: ", v); }
+    }
 
     /********************
 
@@ -1065,6 +1115,7 @@ function createMethodDict() {
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
         'isObject'    : isObject,
+        'isOpaque'    : isOpaque,
 
         'isSuccessResult' : isSuccessResult,
         'isFailureResult' : isFailureResult,
@@ -1078,9 +1129,13 @@ function createMethodDict() {
         'makeString'   : makeString,
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod,
+        'makeMethodFromFun' : makeMethodFromFun,
         'makeObject'   : makeObject,
+        'makeOpaque'   : makeOpaque,
 
         'same' : same,
+        'wrap' : wrap,
+        'unwrap' : unwrap,
 
         'checkIf'      : checkIf,
         'makeMessageException'      : makeMessageException,
