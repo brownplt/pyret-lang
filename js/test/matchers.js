@@ -1,7 +1,7 @@
 
 define(["../js-numbers/src/js-numbers"], function (jsnums) {
 
-    function addPyretMatchers(jasmine) {
+    function addPyretMatchers(jasmine, rt) {
         jasmine.addMatchers({
             toHaveEmptyDict : function() {
                 return (this.actual.dict !== undefined) && (Object.keys(this.actual.dict).length === 0);

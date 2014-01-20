@@ -43,10 +43,10 @@ define(["./matchers"], function (matchers) {
       var anObj;
 
       beforeEach(function(){
-          addPyretMatchers(this);
 
           output = "";
           rt = R.makeRuntime({'stdout' : stdout});
+          addPyretMatchers(this, rt);
 
           //Make Examples for testing
           aNum = rt.makeNumber(42);
@@ -325,6 +325,7 @@ define(["./matchers"], function (matchers) {
         expect(aNum.brands).not.toEqual(y.brands); 
           });
       });
+
     }
 
     return { performTest: performTest };

@@ -36,9 +36,9 @@ define(["./matchers", "../js-numbers/src/js-numbers"], function (matchers, jsnum
 
 
     beforeEach(function(){
-        addPyretMatchers(this);
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
+        addPyretMatchers(this, rt);
 
        //Make Test Values
 

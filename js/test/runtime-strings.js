@@ -40,10 +40,10 @@ var hun;
 var four;
 
 beforeEach(function(){
-    addPyretMatchers(this);
-
     output = "";
     rt = R.makeRuntime({'stdout' : stdout});
+    addPyretMatchers(this, rt);
+
 
     //Make Some Strings
     empty = rt.makeString("");

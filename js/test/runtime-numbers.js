@@ -41,10 +41,10 @@ define(["./matchers", "../js-numbers/src/js-numbers"], function (matchers, jsnum
     var big;
 
     beforeEach(function(){
-        addPyretMatchers(this);
-
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
+        addPyretMatchers(this, rt);
+
 
         //Make Some numbers
         five = rt.makeNumber(5);
