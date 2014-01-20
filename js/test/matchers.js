@@ -13,6 +13,9 @@ define(["../js-numbers/src/js-numbers"], function (jsnums) {
             toBeIdentical : function(expect) {
                 return this.actual === expect;
             },
+            toBeSameAs : function(rt, expect) {
+                return rt.same(this.actual, expect);
+            },
             toBigEqual : function(expect) {
                 return jsnums['equals'](this.actual, jsnums.fromFixnum(expect));
             },

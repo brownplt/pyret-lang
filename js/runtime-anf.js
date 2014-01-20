@@ -147,6 +147,44 @@ function hasOwnProperty(obj, p) {
     return Object.prototype.hasOwnProperty.call(obj, p);
 }
 
+/**
+    Get the brands on an object
+
+    @param {!PBase} obj the object to get the brands of
+    @return {Array.<number>}
+*/
+function getBrands(obj) {
+  return obj.brands;
+}
+
+/**
+    Get the fields in an object.
+
+    @param {!PBase} obj the object to get the fields of
+    @return {Array.<string>}
+
+*/
+function getFields(obj) {
+  return Object.keys(obj.dict);
+}
+
+/**
+    Fold a function over the fields of an object (key and value)
+
+    @param {!PBase} obj the object to fold over
+    @param {Function} f the folding function takes the accumulator, then the
+                        field name, then the value
+    @param {!Object} init the initial value to fold over
+*/
+function foldFields(obj, f, init) {
+  var fields = getFields(obj);
+  var acc = init;
+  fields.forEach(function(fld) {
+      acc = f(acc, fld, obj.dict[fld]);
+    });
+  return acc;
+}
+
 
 /**
   Makes a copy of a dictionary
@@ -671,6 +709,10 @@ function createMethodDict() {
        Builtin Functions
     ************************/
 
+    function hasBrand(obj, brand) {
+      return obj.brands.indexOf(brand) !== -1;
+    }
+
     var brandCounter = 0;
     /**@type {PFunction} */
     var brander = makeFunction(
@@ -681,7 +723,7 @@ function createMethodDict() {
       var thisBrand = brandCounter++;
       return makeObject({
           'test': makeFunction(function(obj) {
-              return makeBoolean(obj.brands.indexOf(thisBrand) !== -1);
+              return makeBoolean(hasBrand(obj, thisBrand));
             }),
           'brand': makeFunction(function(obj) {
               var newObj = obj.clone();
@@ -825,10 +867,58 @@ function createMethodDict() {
         }
       );
 
+    function same(left, right) {
+      if (left === right) { return true; }
+
+      if (isNumber(left) && isNumber(right)) {
+        return jsnums.equals(left.n, right.n);
+      }
+      else if (isString(left) && isString(right)) {
+        return left.s === right.s;
+      }
+      else if (isBoolean(left) && isBoolean(right)) {
+        return left.b === right.b;
+      }
+      else if (isFunction(left) && isFunction(right)) {
+        return left === right;
+      }
+      else if (isMethod(left) && isMethod(right)) {
+        return left === right;
+      }
+      else if (isObject(left) && isObject(right)) {
+        var brands1 = getBrands(left);
+        var brands2 = getBrands(right);
+        for(var i = 0; i < brands1.length; i++) {
+          if (!hasBrand(right, brands1[i])) { return false; }
+        }
+        for(var j = 0; i < brands2.length; i++) {
+          if (!hasBrand(left, brands2[i])) { return false; }
+        }
+
+        console.log("brands all good");
+
+        var fields1 = getFields(left);
+        var fields2 = getFields(right);
+        if(fields1.length !== fields2.length) { return false; }
+        for(var k = 0; k < fields1.length; k++) {
+          if(!same(left.dict[fields1[k]], right.dict[fields1[k]])) {
+            return false;
+          }
+        }
+        return true;
+      }
+      else {
+        throw makeMessageException("Cannot compare " + left + " " + right + " with ==");
+      }
+    };
+    var sameP = makeFunction(same);
+
     /** type {!PBase} */
     var builtins = makeObject({
-        'has-field': hasField
+        'has-field': hasField,
+        'equiv': sameP
       });
+
 
     /********************
 
@@ -928,7 +1018,6 @@ function createMethodDict() {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
                 theOneTrueStack[theOneTrueStackHeight] = undefined;
-                console.log("catching", e.pyretStack.length);
                 next.captureExn(e);
               }
               onDone(new FailureResult(e));
@@ -991,8 +1080,11 @@ function createMethodDict() {
         'makeMethod'   : makeMethod,
         'makeObject'   : makeObject,
 
+        'same' : same,
+
         'checkIf'      : checkIf,
-        'makeMessageException'      : makeMessageException
+        'makeMessageException'      : makeMessageException,
+        'serial' : Math.random()
     };
 
     //Create the dictionaries 
