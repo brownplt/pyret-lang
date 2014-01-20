@@ -396,19 +396,22 @@ Rule.defaultASTToString = function() {
   toStr += ")";
   return toStr; 
 }
-Rule.defaultAction = function(kids, curPos) {
+Rule.defaultAction = function(kids, curPos, semActions) {
   var useful_kids = [];
   for (var i = 0; i < kids.length; i++) {
     if (kids[i].shouldInline === true) useful_kids = useful_kids.concat(kids[i].kids);
     else useful_kids.push(kids[i]);
   }
   var pos = (kids.length > 0 ? kids[0].pos.combine(curPos) : curPos);
-  return { name: this.name, kids: useful_kids, toString: Rule.defaultASTToString, pos: pos };
+  if (semActions !== undefined && semActions[this.name] !== undefined)
+    return semActions[this.name](useful_kids, pos);
+  else
+    return { name: this.name, kids: useful_kids, toString: Rule.defaultASTToString, pos: pos };
 }
 Rule.defaultAction.toString = function() { return "Rule.defaultAction"; }
 
 Rule.ListCons = function(hd, tl, shouldInline) {
-  var ret = function(kids, curPos) {
+  var ret = function(kids, curPos, ignoredSemActions) {
     var useful_kids = [];
     for (var i = 0; i < kids.length; i++) {
       if (kids[i].name === hd) {
@@ -431,8 +434,8 @@ Rule.ListCons = function(hd, tl, shouldInline) {
   return ret;
 }
 
-Rule.Inline = function(kids, curPos) {
-  var ret = Rule.defaultAction.call(this, kids, curPos);
+Rule.Inline = function(kids, curPos, semActions) {
+  var ret = Rule.defaultAction.call(this, kids, curPos, semActions);
   ret.shouldInline = true;
   return ret;
 }
@@ -442,7 +445,7 @@ Rule.KeepOnly = function(names, shouldInline) {
   var name_dict = {};
   for (var i = 0; i < names.length; i++)
     name_dict[names[i]] = true;
-  var ret = function(kids, curPos) {
+  var ret = function(kids, curPos, ignoredSemActions) {
     var useful_kids = [];
     for (var i = 0; i < kids.length; i++) {
       if (name_dict[kids[i].name] === true) {
@@ -1568,9 +1571,8 @@ Grammar.prototype = {
     }
   },
 
-  constructAllParses: function(sppfNode, indent) {
+  constructAllParses: function(sppfNode, semActions) {
     if (sppfNode.label instanceof Token) {
-      // console.log(indent + "<-- returning [" + sppfNode.label.toString(true) + "]");
       return [sppfNode.label];
     }
     var options = undefined;
@@ -1579,25 +1581,21 @@ Grammar.prototype = {
     else
       options = [{kids: sppfNode.kids, rule: sppfNode.rule}];
     var ret = [];
-    // console.log(indent + options.length + " options for " + sppfNode);
     for (var i = 0; i < options.length; i++) {
       var kids = options[i].kids;
       var rule = options[i].rule;
-      // console.log(indent + "-->" + i + ": sppfNode.label = " + sppfNode.label + " and rule = " + rule + ", kids.length = " + kids.length + ", sppfNode.pos = " + sppfNode.pos);
       var kidsParses = [];
       for (var j = 0; j < kids.length; j++) {
         if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
           for (k = 0; k < kids[j].kids.length; k++) {
-            // console.log(indent + "inlining " + kids[j].kids[k]);
-            kidsParses.push([kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos)]);
+            kidsParses.push([kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos, semActions)]);
           }
         } else {
-          // console.log(indent + "  --> constructing all parses for kids[" + j + "]");
-          kidsParses.push(this.constructAllParses(kids[j], indent + "    "));
+          kidsParses.push(this.constructAllParses(kids[j], semActions));
         }
       }
       ret = ret.concat(this.cartesian(kidsParses, 0, [], 
-                                      function(kids) { return rule.action(kids, sppfNode.pos); }));
+                                      function(kids) { return rule.action(kids, sppfNode.pos, semActions); }));
     }
     return ret;
   },
@@ -1631,7 +1629,7 @@ Grammar.prototype = {
       return 0;
   },
 
-  constructUniqueParse: function(sppfNode) {
+  constructUniqueParse: function(sppfNode, semActions) {
     if (sppfNode.label instanceof Token) {
       return sppfNode.label;
     } else if (sppfNode.ambig)
@@ -1641,13 +1639,13 @@ Grammar.prototype = {
     for (var j = 0; j < kids.length; j++) {
       if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
         for (k = 0; k < kids[j].kids.length; k++) {
-          kidsParses.push(kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos));
+          kidsParses.push(kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos, semActions));
         }
       } else {
-        kidsParses.push(this.constructUniqueParse(kids[j]));
+        kidsParses.push(this.constructUniqueParse(kids[j], semActions));
       }
     }
-    return sppfNode.rule.action(kidsParses, sppfNode.pos);
+    return sppfNode.rule.action(kidsParses, sppfNode.pos, semActions);
   },
 
   checkPositionContainment: function(sppfNode) {
