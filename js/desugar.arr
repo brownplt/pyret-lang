@@ -442,6 +442,8 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       end
     | s_app(l, f, args) =>
       A.s_app(l, desugar-expr(nv, f), args.map(desugar-expr(nv, _)))
+    | s_left_app(l, o, f, args) =>
+      A.s_app(l, desugar-expr(nv, f), ([o] + args).map(desugar-expr(nv, _)))
     | s_lam(l, params, args, ann, doc, body, _check) =>
       new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
       A.s_lam(l, params, args, ann, doc, desugar-expr(new-env, body), desugar-expr(nv, _check))
@@ -490,7 +492,12 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
-        | none => raise("Only arith ops so far, " + op + " did not match")
+        | none =>
+          if op == "op==":
+            A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)])
+          else:
+            raise("Only arith ops so far, " + op + " did not match")
+          end
       end
     | s_id(l, x) =>
       if nv.vars.member(x): A.s_id_var(l, x)
@@ -501,6 +508,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
+    | s_paren(l, e) => desugar-expr(nv, e)
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

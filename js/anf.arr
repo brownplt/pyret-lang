@@ -53,7 +53,7 @@ fun anf-import(i :: A.Header):
     | s_import(l, f, name) =>
       cases(A.ImportType) f:
         | s_file_import(fname) => N.a-import-file(l, fname, name)
-        | s_const_import(module) => N.a-import-file(l, module, name)
+        | s_const_import(module) => N.a-import-builtin(l, module, name)
       end
     | s_provide(l, block) => N.a-provide(l, anf-term(block))
   end

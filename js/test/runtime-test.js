@@ -326,6 +326,47 @@ define(["./matchers"], function (matchers) {
           });
       });
 
+      describe("Sameness testing", function() {
+        it("should work for simple values", function() {
+          expect(rt.makeNumber(42)).toBeSameAs(rt, rt.makeNumber(42));
+
+          expect(rt.makeNumber(2)).not.toBeSameAs(rt, rt.makeNumber(42));
+          expect(rt.makeString("asdf")).toBeSameAs(rt, rt.makeString("asdf"))
+          expect(rt.makeString("as")).not.toBeSameAs(rt, rt.makeString("asdf"))
+
+          expect(rt.makeBoolean(true)).toBeSameAs(rt, rt.makeBoolean(true))
+          expect(rt.makeBoolean(true)).not.toBeSameAs(rt, rt.makeBoolean(false))
+          expect(rt.makeBoolean(false)).not.toBeSameAs(rt, rt.makeBoolean(true))
+          expect(rt.makeBoolean(false)).toBeSameAs(rt, rt.makeBoolean(false))
+
+          expect(rt.makeFunction(function() { })).not.toBeSameAs(rt, rt.makeFunction(function() { }));
+          var f = rt.makeFunction(function() { });
+          var g = rt.makeFunction(function() { });
+          expect(f).toBeSameAs(rt, f);
+          expect(f).not.toBeSameAs(rt, g);
+        });
+
+        it("should work for objects", function() {
+          var o = rt.makeObject;
+          expect(o({x: rt.makeNumber(5)})).toBeSameAs(rt, o({x: rt.makeNumber(5)}));
+
+          var five = rt.makeNumber(5);
+          expect(o({x: five})).toBeSameAs(rt, o({x: five}));
+
+          expect(o({})).not.toBeSameAs(rt, o({x: five}));
+
+          expect(o({})).toBeSameAs(rt, o({}));
+
+          function mkobj() { return o({x:five}); }
+          var obj = mkobj();
+          expect(o({obj: obj})).toBeSameAs(rt, o({obj:obj}));
+          expect(o({obj: mkobj()})).toBeSameAs(rt, o({obj: mkobj()}));
+
+          var f = rt.makeFunction(function() { });
+          expect(o({obj: f})).toBeSameAs(rt, o({obj: f}));
+          expect(o({obj: f})).not.toBeSameAs(rt, o({obj: rt.makeFunction(function() { })}));
+        });
+      });
     }
 
     return { performTest: performTest };

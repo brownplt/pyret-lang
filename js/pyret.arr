@@ -26,27 +26,27 @@ fun main(args):
         print("Extra arguments provided")
         print(C.usage-info(options).join-str("\n"))
       else:
-        bs = if builtins.has-field(r, "builtins"):
-            r.libs
+        bs = if r.has-key("builtins"):
+            r.get("libs")
           else:
             []
           end
-        check-mode = if builtins.has-field(r, "no-check-mode"):
+        check-mode = if r.has-key("no-check-mode"):
             false
           else:
             true
           end
-        result = if builtins.has-field(r, "compile-standalone-js"):
+        result = if r.has-key("compile-standalone-js"):
             CM.compile-standalone-js-file(
-              r.compile-standalone-js,
+              r.get("compile-standalone-js"),
               CS.standard-builtins,
               {
                 check-mode : check-mode
               }
             )
-          else if builtins.has-field(r, "compile-module-js"):
+          else if r.has-key("compile-module-js"):
             CM.compile-runnable-js-file(
-              r.compile-module-js,
+              r.get("compile-module-js"),
               CS.standard-builtins,
               {
                 check-mode : check-mode
