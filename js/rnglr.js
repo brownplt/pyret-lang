@@ -1630,22 +1630,41 @@ Grammar.prototype = {
   },
 
   constructUniqueParse: function(sppfNode, semActions) {
-    if (sppfNode.label instanceof Token) {
-      return sppfNode.label;
-    } else if (sppfNode.ambig)
-      throw("Not a unique parse");
-    var kidsParses = [];
-    var kids = sppfNode.kids;
-    for (var j = 0; j < kids.length; j++) {
-      if (kids[j].rule === undefined && kids[j].ambig === undefined && kids[j].inline === true) {
-        for (k = 0; k < kids[j].kids.length; k++) {
-          kidsParses.push(kids[j].kids[k].rule.action(kids[j].kids[k].kids, kids[j].kids[k].pos, semActions));
+    // Each stack item is a pair {todo, done}, where todo is a list of children
+    // in reverse order (so that pop goes from left-to-right in actual tree order)
+    // and done is a list of children in tree order
+    // If there are nodes todo:
+    //   We examine the pop()ed node from stack[TOP].todo:
+    //     if it has kids, we push a new stack item
+    //     otherwise, we move it over
+    //   Otherwise we reduce
+    var stack = [{todo: [sppfNode], done: []}];
+    while (stack.length > 0 && stack[0].todo.length > 0) {
+      var curr = stack[stack.length - 1];
+      if (curr.todo.length > 0) { 
+        var next = curr.todo[curr.todo.length - 1];
+        if (next.label instanceof Token) {
+          curr.todo.pop();
+          curr.done.push(next.label);
+        } else if (next.ambig) {
+          throw("Not a unique parse");
+        } else if (next.kids.length == 0) {
+          // Optimization for nullary nonterminals
+          curr.todo.pop();
+          curr.done.push(next.rule.action([], next.pos, semActions))
+        } else {
+          stack.push({todo: next.kids.slice(0).reverse(), done: []});
         }
       } else {
-        kidsParses.push(this.constructUniqueParse(kids[j], semActions));
+        if (stack.length > 1) {
+          stack.pop();
+          var prev = stack[stack.length - 1];
+          var toReduce = prev.todo.pop();
+          prev.done.push(toReduce.rule.action(curr.done, toReduce.pos, semActions));
+        }
       }
     }
-    return sppfNode.rule.action(kidsParses, sppfNode.pos, semActions);
+    return stack[0].done[0];
   },
 
   checkPositionContainment: function(sppfNode) {
