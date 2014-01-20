@@ -115,7 +115,7 @@ fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
       contents = format("
 \"use strict\";
 var r = require('requirejs');
-define(['../../../runtime-anf'], function(R) {
+r(['../../../runtime-anf'], function(R) {
   describe('~a', function() {
     it('should work', function(done) {
       var expectedOutput = ~s;
