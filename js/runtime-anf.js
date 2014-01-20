@@ -961,7 +961,7 @@ function createMethodDict() {
     }
 
     function wrap(v) {
-      if(jsnums.isSchemeNumber(v)) { return makeBigNumber(v); }
+      if(jsnums.isSchemeNumber(v)) { return jsnums.makeNumberBig(v); }
       else if(typeof v === "number") { return makeNumber(v); }
       else if(typeof v === "string") { return makeString(v); }
       else if(typeof v === "boolean") { return makeBoolean(v); }
