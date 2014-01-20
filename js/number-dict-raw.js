@@ -1,21 +1,21 @@
 define(["./js-numbers/src/js-numbers"], function (jsnums) {
 
     function getBaseNumberDict(rt) {
-	//Grab the stuff we need from the runtime
-	var makeMethod = rt['makeMethod'];
-	var makeString = rt['makeString'];
-	var makeBoolean = rt['makeBoolean'];
-	var checkIf = rt['checkIf'];
-	var makeNumberBig = rt['makeNumberBig'];
-	var isNumber = rt['isNumber'];
-	var isString = rt['isString'];
-	var makeMessageException = rt['makeMessageException'];
+        //Grab the stuff we need from the runtime
+        var makeMethod = rt['makeMethod'];
+        var makeString = rt['makeString'];
+        var makeBoolean = rt['makeBoolean'];
+        var checkIf = rt['checkIf'];
+        var makeNumberBig = rt['makeNumberBig'];
+        var isNumber = rt['isNumber'];
+        var isString = rt['isString'];
+        var makeMessageException = rt['makeMessageException'];
 
-	//Const for checking for 0
-	var big_zero = jsnums.fromFixnum(0);
+        //Const for checking for 0
+        var big_zero = jsnums.fromFixnum(0);
 
-	//Make the dictionary
-	return {
+        //Make the dictionary
+        return {
             /**@type {PMethod}*/
             '_plus' : 
             /**
@@ -24,10 +24,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeNumberBig(jsnums.add(left.n,right.n));
+                return makeNumberBig(jsnums.add(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -38,10 +38,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeNumberBig(jsnums.subtract(left.n,right.n));
+                return makeNumberBig(jsnums.subtract(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -52,10 +52,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeNumberBig(jsnums.multiply(left.n,right.n));
+                return makeNumberBig(jsnums.multiply(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -66,12 +66,12 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
-		if(jsnums.equals(big_zero, right.n)) {
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
+                if(jsnums.equals(big_zero, right.n)) {
                     throw makeMessageException("Division by zero");
-		}
-		return makeNumberBig(jsnums.divide(left.n,right.n));
+                }
+                return makeNumberBig(jsnums.divide(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -82,10 +82,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PBoolean}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeBoolean(jsnums.equals(left.n,right.n));
+                return makeBoolean(jsnums.equals(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -96,10 +96,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PBoolean}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeBoolean(jsnums.lessThan(left.n,right.n));
+                return makeBoolean(jsnums.lessThan(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -110,10 +110,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PBoolean}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeBoolean(jsnums.greaterThan(left.n,right.n));
+                return makeBoolean(jsnums.greaterThan(left.n,right.n));
             },
             /**@type {PMethod}*/
             '_lessequal' : 
@@ -123,10 +123,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PBoolean}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeBoolean(jsnums.lessThanOrEqual(left.n,right.n));
+                return makeBoolean(jsnums.lessThanOrEqual(left.n,right.n));
             },
             /**@type {PMethod}*/
             '_greaterequal' : 
@@ -136,10 +136,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PBoolean}
             */
             method(left, right) {
-		checkIf(left, isNumber);
-		checkIf(right, isNumber);
+                checkIf(left, isNumber);
+                checkIf(right, isNumber);
 
-		return makeBoolean(jsnums.greaterThanOrEqual(left.n,right.n));
+                return makeBoolean(jsnums.greaterThanOrEqual(left.n,right.n));
             },
 
             /**@type {PMethod}*/
@@ -149,8 +149,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PString}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeString(me.n.toString());
+                checkIf(me, isNumber);
+                return makeString(me.n.toString());
             },
 
             /**@type {PMethod}*/
@@ -160,8 +160,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.sin(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.sin(me.n));
             },
 
             /**@type {PMethod}*/
@@ -171,8 +171,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.cos(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.cos(me.n));
             },
 
             /**@type {PMethod}*/
@@ -182,8 +182,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.tan(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.tan(me.n));
             },
 
             /**@type {PMethod}*/
@@ -193,8 +193,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.asin(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.asin(me.n));
             },
 
             /**@type {PMethod}*/
@@ -204,8 +204,8 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.acos(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.acos(me.n));
             },
 
             /**@type {PMethod}*/
@@ -215,10 +215,10 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                @return {!PNumber}
             */
             method(me) {
-		checkIf(me, isNumber);
-		return makeNumberBig(jsnums.atan(me.n));
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.atan(me.n));
             }
-	}
+        }
     }
 
     return {getBaseNumberDict: getBaseNumberDict};
