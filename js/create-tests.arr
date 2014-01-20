@@ -114,36 +114,37 @@ fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
     | ok(code) =>
       contents = format("
 \"use strict\";
-var R = require('../../../runtime-anf.js').PYRET_ANF;
-describe('~a', function() {
-  it('should work', function(done) {
-    var expectedOutput = ~s;
-    var expectedError = ~s;
-    var output = '';
-    var rt = R.makeRuntime({
-      stdout: function(str) {
-        output += str;
-      }
-    });
-    var theProgram = null;
-    var define = function(ignored, program) {
-      theProgram = program();
-    };
-    ~a;
-
-    rt.run(theProgram, rt.namespace, function(result) {
-      if (rt.isSuccessResult(result)) {
-        expect(output).toEqual(expectedOutput);
-        done();
-      } else if (rt.isFailureResult(result)) {
-        expect(output).toEqual(expectedOutput);
-        if(expectedError.length <= 0) {
-            expect(\"An error occured, when pyret had none: \" + result.exn.message).toBe(\"no error message\");
-            expect(\"Stack: \" + result.exn.stack).toBe(\"no error stack\");
+var r = require('requirejs');
+define(['../../../runtime-anf'], function(R) {
+  describe('~a', function() {
+    it('should work', function(done) {
+      var expectedOutput = ~s;
+      var expectedError = ~s;
+      var output = '';
+      var rt = R.makeRuntime({
+        stdout: function(str) {
+          output += str;
         }
-        console.error(result)
-        done();
-      }
+      });
+      var theProgram = null;
+      var define = function(ignored, program) {
+        theProgram = program();
+      };
+      ~a;
+
+      rt.run(theProgram, rt.namespace, function(result) {
+        if (rt.isSuccessResult(result)) {
+          expect(output).toEqual(expectedOutput);
+          done();
+        } else if (rt.isFailureResult(result)) {
+          expect(output).toEqual(expectedOutput);
+          if(expectedError.length <= 0) {
+              expect(\"An error occured, when pyret had none: \" + result.exn.message).toBe(\"no error message\");
+              expect(\"Stack: \" + result.exn.stack).toBe(\"no error stack\");
+          }
+          done();
+        }
+      });
     });
   });
 });
