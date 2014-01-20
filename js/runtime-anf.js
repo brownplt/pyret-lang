@@ -894,7 +894,7 @@ function createMethodDict() {
         /**
           Checks if an object has a given field
           @param {!PBase} obj The object to test
-          @param {!PBase} obj The field to test for, signals error if non-string
+          @param {!PBase} str The field to test for, signals error if non-string
           @return {!PBase} 
         */
         function(obj, str) {
