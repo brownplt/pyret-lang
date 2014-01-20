@@ -2,25 +2,25 @@
 This is the runtime for the ANF'd version of pyret
 */
 "use strict";
+/** @typedef {!Object} */
+var Bignum;
+
 
 define(["./namespace", "./number-dict", "./string-dict", "./boolean-dict", "./js-numbers/src/js-numbers"],
-       function (Namespace, NumberDict, StringDict, BooleanDict, jsnums) {
+       function (Namespace, NumberDictIn, StringDictIn, BooleanDictIn, jsnumsIn) {
 
 
 
   //var Namespace = require('./namespace.js').Namespace;
 
   /**@type {{getBaseNumberDict : function(!Object) : !Object}}*/
-  //var NumberDict = require('./number-dict.js');
+  var NumberDict = NumberDictIn;
 
   /**@type {{getBaseStringDict : function(!Object) : !Object}}*/
-  //var StringDict = require('./string-dict.js');
+  var StringDict = StringDictIn;
 
   /**@type {{getBaseBooleanDict : function(!Object) : !Object}}*/
-  //var BooleanDict = require('./boolean-dict.js');
-
-  /** @typedef {!Object} */
-  var Bignum;
+  var BooleanDict = BooleanDictIn;
 
 
   /**
@@ -28,6 +28,8 @@ define(["./namespace", "./number-dict", "./string-dict", "./boolean-dict", "./js
         fromFixnum : function(number) : Bignum,
         fromString : function(string) : (Bignum|boolean),
         toFixnum : function() : number,
+
+        isSchemeNumber : function(Object) : boolean,
 
         equals : function(Bignum, Bignum) : boolean,
         lessThan : function(Bignum, Bignum) : boolean,
@@ -48,7 +50,7 @@ define(["./namespace", "./number-dict", "./string-dict", "./boolean-dict", "./js
         atan : function(Bignum) : Bignum
           }}
    */
-  //var jsnums = require('./js-numbers/src/js-numbers.js');
+  var jsnums = jsnumsIn;
 
 
 
@@ -60,16 +62,16 @@ into the environment
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
-/**
-  The base of all pyret values
-  @constructor
-*/
-function PBase() {
-    /**@type {!Array.<number>}*/
-    this.brands = [];
-    /**@type {!Object.<string, !PBase>}*/
-    this.dict   = makeEmptyDict();
-}
+    /**
+      The base of all pyret values
+      @constructor
+    */
+    function PBase() {
+        /**@type {!Array.<number>}*/
+        this.brands = [];
+        /**@type {!Object.<string, !PBase>}*/
+        this.dict   = makeEmptyDict();
+    }
 
     /**@type {!Object.<string, !PBase>}*/
     PBase.prototype.dict = makeEmptyDict();
@@ -205,7 +207,7 @@ function copyDict(dict) {
 }
 
 /**
-  @param Array.<number>  
+  @param {Array.<number>} brands
   @return Array.<number>
 */
 function copyBrands(brands) {
@@ -282,6 +284,10 @@ function getColonField(val, field) {
     }
 }
 
+/**
+
+  @constructor
+*/
 function POpaque(val, equals) {
   this.val = val;
   this.equals = equals;
@@ -595,7 +601,7 @@ function createFunctionDict() {
   @return {!PFunction} with app of fun
 */
 function makeFunction(fun) {
-   return new PFunction(fun); 
+   return new PFunction(fun, fun.length); 
 }
 function makeFunctionArity(fun, arity) {
    return new PFunction(fun, arity); 
@@ -809,7 +815,7 @@ function createMethodDict() {
                     toprint.unshift({name : field, value : next.value.dict[field]});
                     toprint.unshift(2);
                 }
-                if(Object.keys(next.value.dict) > 0) {
+                if(Object.keys(next.value.dict).length > 0) {
                     toprint.shift(); //Remove extra comma token
                 }
                 toprint.unshift(0);
@@ -957,17 +963,17 @@ function createMethodDict() {
       else if(isBoolean(v)) { return v.b; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
-      else { throw makeMessageException("Cannot unwrap yet: ", v); }
+      else { throw makeMessageException("Cannot unwrap yet: " + v); }
     }
 
     function wrap(v) {
-      if(jsnums.isSchemeNumber(v)) { return jsnums.makeNumberBig(v); }
+      if(jsnums.isSchemeNumber(v)) { return makeNumberBig(v); }
       else if(typeof v === "number") { return makeNumber(v); }
       else if(typeof v === "string") { return makeString(v); }
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { throw makeMessageException("Cannot unwrap yet: ", v); }
+      else { throw makeMessageException("Cannot unwrap yet: " + v); }
     }
 
     /********************
