@@ -493,8 +493,14 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
         | none =>
+          fun thunk(e): A.s_lam(l, [], [], A.a_blank, "", e, A.s_block(l, [])) end
+          fun opbool(fld):
+            A.s_app(l, A.s_dot(l, desugar-expr(nv, left), fld), [thunk(desugar-expr(nv, right))])
+          end
           if op == "op==":
             A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)])
+          else if op == "opor": opbool("_or")
+          else if op == "opand": opbool("_and")
           else:
             raise("Only arith ops so far, " + op + " did not match")
           end
