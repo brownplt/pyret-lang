@@ -715,7 +715,7 @@ fun binding-ids(stmt):
   fun variant-ids(variant):
     cases(Variant) variant:
       | s_variant(_, name, _, _) => [name, make-checker-name(name)]
-      | s_singleton-variant(_, name, _, _) => [name, make-checker-name(name)]
+      | s_singleton_variant(_, name, _) => [name, make-checker-name(name)]
     end
   end
   cases(Expr) stmt:
@@ -961,7 +961,7 @@ fun equiv-ast-header(h1 :: Header, h2 :: Header):
     end
   end
   cases(Header) h1:
-    | s_provide-all(_) => is-s_provide_all(h2)
+    | s_provide_all(_) => is-s_provide_all(h2)
     | s_provide(_, expr1) =>
       cases(Header) h2:
         | s_provide(_, expr2) => equiv-ast(expr1, expr2)
@@ -1288,4 +1288,5 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       end
   end
 end
+
 

@@ -26,9 +26,20 @@ fun is-binder(stmt):
   for list.any(f from preds): f(stmt) end
 end
 
+fun desugar-header(h :: A.Header, b :: A.Expr):
+  cases(A.Header) h:
+    | s_provide_all(l) =>
+      ids = A.block-ids(b)
+      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, id)) end)
+      A.s_provide(l, obj)
+    | else => h
+  end
+end
+
 fun desugar(program :: A.Program):
   cases(A.Program) program:
-    | s_program(l, headers, body) =>
+    | s_program(l, headers-raw, body) =>
+      headers = headers-raw.map(desugar-header(_, body))
       str = A.s_str(l, _)
       provides = headers.filter(A.is-s_provide)
       len = provides.length()
@@ -349,16 +360,16 @@ where:
                   A.s_app(d, A.s_id(d, "f"), []))
               ]))]))
 
-  prog5 = bs("data List: empty | link(f, r) end empty")
-  prog5.stmts.length() is 1
-  the-let = prog5.stmts.first
-  the-let satisfies A.is-s_let_expr
-  the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
-  the-let.binds.take(3).map(_.value) satisfies list.all(fun(e): A.is-s_app(e) and (e._fun.id == "brander");, _)
-  the-let.binds.drop(3).map(_.value) satisfies list.all(fun(e): A.is-s_dot(e) and (e.field == "test");, _)
-  the-letrec = the-let.body
-  the-letrec satisfies A.is-s_letrec
-  the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
+  #prog5 = bs("data List: empty | link(f, r) end empty")
+  #prog5.stmts.length() is 1
+  #the-let = prog5.stmts.first
+  #the-let satisfies A.is-s_let_expr
+  #the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
+  #the-let.binds.take(3).map(_.value) satisfies list.all(fun(e): A.is-s_app(e) and (e._fun.id == "brander");, _)
+  #the-let.binds.drop(3).map(_.value) satisfies list.all(fun(e): A.is-s_dot(e) and (e.field == "test");, _)
+  #the-letrec = the-let.body
+  #the-letrec satisfies A.is-s_letrec
+  #the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
 
 end
 
@@ -366,7 +377,11 @@ fun get-arith-op(str):
   if str == "op+": some("_plus")
   else if str == "op-": some("_minus")
   else if str == "op*": some("_times")
+  else if str == "op/": some("_divide")
   else if str == "op<": some("_lessthan")
+  else if str == "op>": some("_greaterthan")
+  else if str == "op>=": some("_greaterequal")
+  else if str == "op<=": some("_lessequal")
   else: none
   end
 end
@@ -429,6 +444,110 @@ fun desugar-member(nv, f):
   end
 end
 
+fun is-underscore(e):
+  A.is-s_id(e) and (e.id == "_")
+end
+
+data Pair:
+  | pair(left, right)
+end
+
+fun ds-curry-args(l, args):
+  params-and-args = for fold(acc from pair([], []), arg from args):
+      if is-underscore(arg):
+        arg-id = mk-id(l, "arg-")
+        pair(link(arg-id.id-b, acc.left), link(arg-id.id-e, acc.right))
+      else:
+        pair(acc.left, link(arg, acc.right))
+      end
+    end
+  pair(params-and-args.left.reverse(), params-and-args.right.reverse())
+end
+
+fun ds-curry-nullary(rebuild-node, nv, l, obj, m):
+  if is-underscore(obj):
+    curried-obj = mk-id(l, "recv-")
+    A.s_lam(l, [], [curried-obj.id-b], A.a_blank, "", rebuild-node(l, curried-obj.id-e, m), A.s_block(l, []))
+  else:
+    rebuild-node(l, desugar-expr(nv, obj), m)
+  end
+where:
+  #d = A.dummy-loc
+  #ds-ed = ds-curry-nullary(A.s_dot, d, A.s_id(d, "_"), A.s_id(d, "x"))
+#  ds-ed satisfies
+end
+
+fun ds-curry(nv, l, f, args):
+  fun fallthrough():
+    params-and-args = ds-curry-args(l, args)
+    params = params-and-args.left
+    ds-f = desugar-expr(nv, f)
+    if is-empty(params): A.s_app(l, ds-f, args)
+    else: A.s_lam(l, [], params, A.a_blank, "", A.s_app(l, ds-f, params-and-args.right), A.s_block(l, []))
+    end
+  end
+  cases(A.Expr) f:
+    | s_dot(l2, obj, m) =>
+      if is-underscore(obj):
+        curried-obj = mk-id(l, "recv-")
+        params-and-args = ds-curry-args(l, args)
+        params = params-and-args.left
+        A.s_lam(l, [], link(curried-obj.id-b, params), A.a_blank, "",
+            A.s_app(l, A.s_dot(l, curried-obj.id-e, m), params-and-args.right), A.s_block(l, []))
+      else:
+        fallthrough()
+      end
+    | else => fallthrough()
+  end
+where:
+  d = A.dummy-loc
+  ds-ed = ds-curry(
+      mt-d-env,
+      d,
+      A.s_id(d, "f"),
+      [
+        A.s_id(d, "_"),
+        A.s_id(d, "x")
+      ]
+    )
+  ds-ed satisfies A.is-s_lam
+  ds-ed.args.length() is 1
+
+  ds-ed2 = ds-curry(
+      mt-d-env,
+      d,
+      A.s_id(d, "f"),
+      [
+        A.s_id(d, "_"),
+        A.s_id(d, "_")
+      ]
+    )
+  ds-ed2 satisfies A.is-s_lam
+  ds-ed2.args.length() is 2
+
+  ds-ed3 = ds-curry(
+      mt-d-env,
+      d,
+      A.s_id(d, "f"),
+      [
+        A.s_id(d, "x"),
+        A.s_id(d, "y")
+      ]
+    )
+  ds-ed3 satisfies A.equiv-ast(_, A.s_app(d, A.s_id(d, "f"), [A.s_id(d, "x"), A.s_id(d, "y")]))
+    
+  ds-ed4 = ds-curry(
+      mt-d-env,
+      d,
+      A.s_dot(d, A.s_id(d, "_"), "f"),
+      [
+        A.s_id(d, "x")
+      ])
+  ds-ed4 satisfies A.is-s_lam
+  ds-ed4.args.length() is 1
+        
+end
+
 fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
   cases(A.Expr) expr:
     | s_block(l, stmts) =>
@@ -439,9 +558,9 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           A.s_block(l, resolve-scope(stmts, [], []).map(desugar-expr(nv, _)))
       end
     | s_app(l, f, args) =>
-      A.s_app(l, desugar-expr(nv, f), args.map(desugar-expr(nv, _)))
+      ds-curry(nv, l, f, args.map(desugar-expr(nv, _)))
     | s_left_app(l, o, f, args) =>
-      A.s_app(l, desugar-expr(nv, f), ([o] + args).map(desugar-expr(nv, _)))
+      ds-curry(nv, l, f, ([o] + args).map(desugar-expr(nv, _)))
     | s_lam(l, params, args, ann, doc, body, _check) =>
       new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
       A.s_lam(l, params, args, ann, doc, desugar-expr(new-env, body), desugar-expr(nv, _check))
@@ -485,8 +604,8 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_cases_else(l, type, val, branches, _else) =>
       desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), _else)
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
-    | s_dot(l, obj, field) => A.s_dot(l, desugar-expr(nv, obj), field)
-    | s_colon(l, obj, field) => A.s_colon(l, desugar-expr(nv, obj), field)
+    | s_dot(l, obj, field) => ds-curry-nullary(A.s_dot, nv, l, obj, field)
+    | s_colon(l, obj, field) => ds-curry-nullary(A.s_colon, nv, l, obj, field)
     | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member(nv, _)))
     | s_for(l, iter, bindings, ann, body) => 
       values = bindings.map(_.value).map(desugar-expr(nv, _))
@@ -518,6 +637,9 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | s_paren(l, e) => desugar-expr(nv, e)
+    # TODO(joe): skipping checks for now, they should be unreachable
+    | s_check(l, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])
+    | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

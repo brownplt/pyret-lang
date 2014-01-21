@@ -56,6 +56,7 @@ fun anf-import(i :: A.Header):
         | s_const_import(module) => N.a-import-builtin(l, module, name)
       end
     | s_provide(l, block) => N.a-provide(l, anf-term(block))
+    | else => raise("Unhandled header in anf-import: " + torepr(i))
   end
 end
 
