@@ -28,6 +28,11 @@ install:
 	npm install sweet.js
 	npm install requirejs
 
+.PHONY : test
 test: runtime-anf.js number-dict.js
 	mkdir -p generated-tests/anf-tests
 	node node_modules/jasmine-node/bin/jasmine-node test --verbose
+
+.PHONY : clean
+clean:
+	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js

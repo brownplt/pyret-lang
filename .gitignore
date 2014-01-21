@@ -19,6 +19,14 @@ js/htdocs/moorings.js
 js/generated-tests
 js/compiled
 js/closure-compiler
+js/anf-comp.js
+js/namespace-comp.js
+js/number-dict-sweet.js
+js/string-dict-sweet.js
+js/boolean-dict-sweet.js
+js/number-dict.js
+js/string-dict.js
+js/boolean-dict.js
 node_modules/
 *#
 pyret.plt
