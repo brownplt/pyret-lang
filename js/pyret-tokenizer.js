@@ -142,6 +142,8 @@ const Tokens = [
   {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
   {name: "VAR", val: new RegExp(kw("var"), STICKY_REGEXP)},
   {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
+  {name: "TRUE", val: new RegExp(kw("true"), STICKY_REGEXP)},
+  {name: "FALSE", val: new RegExp(kw("false"), STICKY_REGEXP)},
   {name: "METHOD", val: new RegExp(kw("method"), STICKY_REGEXP)},
   {name: "DOC", val: new RegExp(kw("doc:"), STICKY_REGEXP)},
   {name: "WHERE", val: new RegExp(kw("where:"), STICKY_REGEXP)},

@@ -2,6 +2,14 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
   return function(RUNTIME, NAMESPACE) {
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function translate(node, fileName) {
+      // NOTE: This translation could blow the stack for very deep ASTs
+      // We might have to rewrite the whole algorithm
+      // One possibility is to reuse a stack of {todo: [...], done: [...], doing: fn} nodes
+      // where each AST kid that needs to be recursively processed pushes a new frame on the stack
+      // (it can eagerly process any primitive values, and defer the rest),
+      // and returns a function to be called when all the new todos are done (which gets put into doing)
+      // if a todo item is a Pyret value, it just gets pushed across to done
+      // if a todo item is an array, then doing = RUNTIME.makeList and it creates a stack frame
       function tr(node) {
         return translators[node.name](node);
       }
@@ -12,7 +20,12 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
       }
       function name(tok) { return RUNTIME.makeString(tok.value); }
       function string(tok) { return RUNTIME.makeString(tok.value); } // I'm pretty sure the tokenizer strips off quotes
-      function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
+      function number(tok, positive) { 
+        if (positive)
+          return RUNTIME.makeNumberFromString(tok.value); 
+        else
+          return RUNTIME.makeNumberFromString("-" + tok.value);
+      }
       const translators = {
         'program': function(node) {
           return RUNTIME.getField(ast, 's_prog')
@@ -287,14 +300,75 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           return tr(node.kids[0]);
         },
         'variant-member': function(node) {
+          if (node.kids.length === 1) {
+            // (variant-member b)
+            return RUNTIME.getField(ast, 's_variant_member')
+              .app(pos(node.pos), RUNTIME.makeString("normal"), tr(node.kids[0]));
+          } else {
+            if (node.kids[0].name === "MUTABLE") {
+              return RUNTIME.getField(ast, 's_variant_member')
+                .app(pos(node.pos), RUNTIME.makeString("mutable"), tr(node.kids[0]));
+            } else {
+              return RUNTIME.getField(ast, 's_variant_member')
+                .app(pos(node.pos), RUNTIME.makeString("cyclic"), tr(node.kids[0]));
+            }
+          }
         },
         'variant-members': function(node) {
+          if (node.kids.length === 2) {
+            // (variant-members LPAREN RPAREN)
+            return RUNTIME.makeList([]);
+          } else {
+            // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
+            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+          }          
+        },
+        'list-variant-member': function(node) {
+          // (list-variant-member mem COMMA)
+          return tr(node.kids[0]);
         },
         'key': function(node) {
+          if (node.kids.length === 3) {
+            // (key LBRACK e RBRACK)
+            return tr(node.kids[1]);
+          } else {
+            // (key name)
+            return RUNTIME.getField(ast, 's_str')
+              .app(pos(node.pos), name(node.kids[0]));
+          }
         },
         'obj-field': function(node) {
+          if (node.kids.length === 4) {
+            // (obj-field MUTABLE key COLON value)
+            return RUNTIME.getField(ast, 's_mutable_field')
+              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a_blank').app(), tr(node.kids[3]));
+          } else if (node.kids.length === 6) {
+            // (obj-field MUTABLE key COLONCOLON ann COLON value)
+            return RUNTIME.getField(ast, 's_mutable_field')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+          } else if (node.kids.length === 3) {
+            // (obj-field key COLON value)
+            return RUNTIME.getField(ast, 's_data_field')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          } else {
+            // (obj-field key args ret COLON doc body check END)
+            return RUNTIME.getField(ast, 's_method_field')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]),
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
+          }
         },
         'obj-fields': function(node) {
+          if (node.kids[node.kids.length - 1] instanceof Token) {
+            // (obj-fields (list-obj-field f1 COMMA) ... lastField COMMA)
+            return RUNTIME.makeList(node.kids.slice(0, -1).map(tr));
+          } else {
+            // (fields (list-obj-field f1 COMMA) ... lastField)
+            return RUNTIME.makeList(node.kids.map(tr));
+          }
+        },
+        'list-obj-field': function(node) {
+          // (list-obj-field f COMMA)
+          return tr(node.kids[0]);
         },
         'field': function(node) {
           if (node.kids.length === 3) {
@@ -322,96 +396,326 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           return tr(node.kids[0]);
         },
         'data-mixins': function(node) {
+          if (node.kids.length === 0) {
+            // (data-mixins)
+            return RUNTIME.makeList([]);
+          } else {
+            // (data-mixins DERIVING mixins)
+            return tr(node.kids[1]);
+          }
         },
         'mixins': function(node) {
+          // (mixins (list-mixin m COMMA) ... lastmixin)
+          return RUNTIME.makeList(node.kids.map(tr));
+        },
+        'list-mixin': function(node) {
+          // (list-mixin m COMMA)
+          return tr(node.kids[0]);
         },
         'app-args': function(node) {
+          if (node.kids.length === 2) {
+            // (app-args LPAREN RPAREN)
+            return RUNTIME.makeList([]);
+          } else {
+            // (app-args LPAREN (app-arg-elt e COMMA) ... elast RPAREN)
+            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+          }
+        },
+        'app-arg-elt': function(node) {
+          // (app-arg-elt e COMMA)
+          return tr(node.kids[0]);
         },
         'cases-branch': function(node) {
+          if (node.kids.length === 4) {
+            // (cases-branch PIPE NAME THICKARROW body)
+            return RUNTIME.getField(ast, 's_cases_branch')
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+          } else {
+            // (cases-branch PIPE NAME args THICKARROW body)
+            return RUNTIME.getField(ast, 's_cases_branch')
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+          }
         },
         'else-if': function(node) {
+          // (else-if ELSEIF test COLON body)
+          return RUNTIME.getField(ast, 's_if_branch')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else': function(node) {
+          // (else ELSE body)
+          return RUNTIME.getField(ast, 's_else')
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'ty-params': function(node) {
+          if (node.kids.length === 0) {
+            // (ty-params)
+            return RUNTIME.makeList([]);
+          } else {
+            // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
+            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+          }
+        },
+        'list-ty-param': function(node) {
+          // (list-ty-param p COMMA)
+          return tr(node.kids[0]);
         },
         'left-app-fun-expr': function(node) {
+          if (node.kids.length === 1) {
+            // (left-app-fun-expr id)
+            return tr(node.kids[0]);
+          } else {
+            // (left-app-fun-expr id PERIOD name)
+            return RUNTIME.getField(ast, 's_dot')
+              .app(pos(node.pos), tr(node.kids[0]), name(node.kids[2]));
+          }
         },
         'for-bind': function(node) {
+          // (for-bind name FROM e)
+          return RUNTIME.getField(ast, 's_for_bind')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'prim-expr': function(node) {
+          // (prim-expr e)
+          return tr(node.kids[0]);
         },
         'obj-expr': function(node) {
+          if (node.kids.length === 2) {
+            // (obj-expr LBRACE RBRACE)
+            return RUNTIME.getField(ast, 's_obj')
+              .app(pos(node.pos), RUNTIME.makeList([]));
+          } else {
+            // (obj-expr LBRACE obj-fields RBRACE)
+            return RUNTIME.getField(ast, 's_obj')
+              .app(pos(node.pos), tr(node.kids[1]));
+          }
         },
         'list-expr': function(node) {
+          if (node.kids.length === 2) {
+            // (list-expr LBRACK RBRACK)
+            return RUNTIME.getField(ast, 's_list')
+              .app(pos(node.pos), RUNTIME.makeList([]));
+          } else {
+            // (list-expr LBRACK list-fields RBRACK)
+            return RUNTIME.getField(ast, 's_list')
+              .app(pos(node.pos), tr(node.kids[1]));
+          }
         },
         'app-expr': function(node) {
+          // (app-expr f args)
+          return RUNTIME.getField(ast, 's_app')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
         },
         'id-expr': function(node) {
+          // (id-expr x)
+          return RUNTIME.getField(ast, 's_id')
+            .app(pos(node.pos), name(node.kids[0]));
         },
         'dot-expr': function(node) {
+          // (dot-expr obj PERIOD field)
+          return RUNTIME.getField(ast, 's_dot')
+            .app(pos(node.pos), tr(node.kids[0]), name(node.kids[2]));
         },
         'get-bang-expr': function(node) {
+          // (get-bang-expr obj BANG field)
+          return RUNTIME.getField(ast, 's_get_bang')
+            .app(pos(node.pos), tr(node.kids[0]), name(node.kids[2]));
         },
         'bracket-expr': function(node) {
+          // (bracket-expr obj PERIOD LBRACK field RBRACK)
+          return RUNTIME.getField(ast, 's_bracket')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'colon-expr': function(node) {
+          // (colon-expr obj COLON field)
+          return RUNTIME.getField(ast, 's_colon')
+            .app(pos(node.pos), tr(node.kids[0]), name(node.kids[2]));
         },
         'colon-bracket-expr': function(node) {
+          // (colon-bracket-expr obj COLON LBRACK field RBRACK)
+          return RUNTIME.getField(ast, 's_colon')
+            .app(pos(node.pos), tr(node.kids[0]), name(node.kids[3]));
         },
         'cases-expr': function(node) {
+          if (node.kids[node.kids.length - 4].name === "ELSE") {
+            // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
+            return RUNTIME.getField(ast, 's_cases_else')
+              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+                   RUNTIME.makeList(node.kids.slice(6, -5).map(tr)), tr(node.kids[node.kids.length - 2]));
+          } else {
+            // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
+            return RUNTIME.getField(ast, 's_cases')
+              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+                   RUNTIME.makeList(node.kids.slice(6, -1).map(tr)));
+          }
         },
         'if-expr': function(node) {
+          if (node.kids[node.kids.length - 3].name === "ELSE") {
+            // (if-expr IF test COLON body branch ... ELSE else END)
+            return RUNTIME.getField(ast, 's_if_else')
+              .app(pos(node.pos), RUNTIME.makeList(
+                [RUNTIME.getField(ast, 's_if_branch')
+                 .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
+                  .concat(node.kids.slice(4, -3).map(tr))),
+                   tr(node.kids[node.kids.length - 2]));
+          } else {
+            // (if-expr IF test COLON body branch ... END)
+            return RUNTIME.getField(ast, 's_if')
+              .app(pos(node.pos), RUNTIME.makeList(
+                [RUNTIME.getField(ast, 's_if_branch')
+                 .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
+                  .concat(node.kids.slice(4, -3).map(tr))));
+          }
         },
         'for-expr': function(node) {
+          // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
+          return RUNTIME.getField(ast, 's_for')
+            .app(pos(node.pos), tr(node.kids[1]), RUNTIME.makeList(node.kids.slice(3, -5).map(tr)),
+                 tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
+        },
+        'for-bind-elt': function(node) {
+          // (for-bind-elt b COMMA)
+          return tr(node.kids[0]);
         },
         'try-expr': function(node) {
+          // (try-expr TRY body EXCEPT LPAREN arg RPAREN COLON except END)
+          return RUNTIME.getField(ast, 's_try')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]), tr(node.kids[7]));
         },
         'user-block-expr': function(node) {
+          // (user-block-expr BLOCK body END)
+          return RUNTIME.getField(ast, 's_user_block')
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'lambda-expr': function(node) {
+          if (node.kids.length === 9) {
+            // (lambda-expr FUN ty-params args return-ann COLON doc body check END)
+            return RUNTIME.getField(ast, 's_lam')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+                   tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
+          } else {
+            // (lambda-expr FUN ty-params return-ann COLON doc body check END)
+            return RUNTIME.getField(ast, 's_lam')
+              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.makeList([]), tr(node.kids[2]),
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
+          }
         },
         'method-expr': function(node) {
+          // (method-expr METHOD args return-ann COLON doc body check END)
+          return RUNTIME.getField(ast, 's_method')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]),
+                 tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
         },
         'extend-expr': function(node) {
+          // (extend-expr e PERIOD LBRACE fields RBRACE)
+          return RUNTIME.getField(ast, 's_extend')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'update-expr': function(node) {
+          // (update-expr e BANG LBRACE fields RBRACE)
+          return RUNTIME.getField(ast, 's_update')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'left-app-expr': function(node) {
+          // (left-app-expr e CARET f args)
+          return RUNTIME.getField(ast, 's_left_app')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
         },
         'paren-expr': function(node) {
+          // (paren-expr LPAREN e RPAREN)
+          return RUNTIME.getField(ast, 's_paren')
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'paren-nospace-expr': function(node) {
+          // (paren-nospace-expr LPAREN e RPAREN)
+          return RUNTIME.getField(ast, 's_paren')
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'inst-expr': function(node) {
+          // (inst-expr e LANGLE (inst-elt a COMMA) ... alast RANGLE)
+          return RUNTIME.getField(ast, 's_instantiate')
+            .app(pos(node.pos), tr(node.kids[0]), RUNTIME.makeList(node.kids.slice(2, -1).map(tr)));
+        },
+        'inst-elt': function(node) {
+          // (inst-elt a COMMA)
+          return tr(node.kids[0]);
         },
         'bool-expr': function(node) {
+          if (node.kids[0].name === "TRUE") {
+            return RUNTIME.getField(ast, 's_bool')
+              .app(pos(node.pos), RUNTIME.pyretTrue);
+          } else {
+            return RUNTIME.getField(ast, 's_bool')
+              .app(pos(node.pos), RUNTIME.pyretFalse);
+          }
         },
         'num-expr': function(node) {
+          if (node.kids.length === 1) {
+            // (num-expr n)
+            return RUNTIME.getField(ast, 's_num')
+              .app(pos(node.pos), number(node.kids[0], true));
+          } else {
+            // (num-expr MINUS n) {
+            return RUNTIME.getField(ast, 's_num')
+              .app(pos(node.pos), number(node.kids[0], false));
+          }
         },
         'string-expr': function(node) {
+          return RUNTIME.getField(ast, 's_str')
+            .app(pos(node.pos), string(node.kids[0]));
         },
         'ann-field': function(node) {
+          // (ann-field n COLON ann) or (ann-field n COLONCOLON ann)
+          return RUNTIME.getField(ast, 'a_field')
+            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
         },
         'name-ann': function(node) {
+          if (node.kids[0].value === "Any") {
+            return RUNTIME.getField(ast, 'a_any').app();
+          } else {
+            return RUNTIME.getField(ast, 'a_name')
+              .app(pos(node.pos), name(node.kids[0]));
+          }
         },
         'record-ann': function(node) {
+          // (record-ann LBRACE fields ... RBRACE)
+          return RUNTIME.getField(ast, 'a_record')
+            .app(pos(node.pos), RUNTIME.makeList(node.kids.slice(1, -1).map(tr)));
         },
         'arrow-ann': function(node) {
+          // (arrow-ann LPAREN args ... THINARROW result RPAREN)
+          return RUNTIME.getField(ast, 'a_arrow')
+            .app(pos(node.pos), RUNTIME.makeList(node.kids.slice(1, -3).map(tr)));
         },
         'app-ann': function(node) {
+          // (app-ann ann LANGLE args ... RANGLE)
+          return RUNTIME.getField(ast, 'a_app')
+            .app(pos(node.pos), tr(node.kids[0]), RUNTIME.makeList(node.kids.slice(2, -1).map(tr)));
         },
         'pred-ann': function(node) {
+          // (pred-ann ann LPAREN exp RPAREN)
+          return RUNTIME.getField(ast, 'a_pred')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'dot-ann': function(node) {
+          // (dot-ann n1 PERIOD n2)
+          return RUNTIME.getField(ast, 'a_dot')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'ann': function(node) {
+          // (ann a)
+          return tr(node.kids[0]);
         },
         'list-ann-field': function(node) {
+          // (list-ann-field f COMMA)
+          return tr(node.kids[0]);
         },
         'arrow-ann-elt': function(node) {
+          // (arrow-ann-elt ann COMMA)
+          return tr(node.kids[0]);
         },
         'app-ann-elt': function(node) {
+          // (app-ann-elt ann COMMA)
+          return tr(node.kids[0]);
         }
       };
     }
