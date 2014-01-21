@@ -595,6 +595,10 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           end
         end
       A.s_letrec(l, new-binds, desugar-expr(new-env, body))
+    | s_not(l, test) => 
+      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_bool(l, false))], A.s_bool(l, false))
+    | s_when(l, test, body) =>
+      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), desugar-expr(nv, body))], A.s_id(l, "nothing"))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
@@ -602,7 +606,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_cases(l, type, val, branches) =>
       desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")]))
     | s_cases_else(l, type, val, branches, _else) =>
-      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), _else)
+      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), desugar-expr(nv, _else))
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
     | s_dot(l, obj, field) => ds-curry-nullary(A.s_dot, nv, l, obj, field)
     | s_colon(l, obj, field) => ds-curry-nullary(A.s_colon, nv, l, obj, field)
@@ -621,6 +625,12 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           end
           if op == "op==":
             A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)])
+          else if op == "op<>":
+            A.s_if_else(l,
+              [A.s_if_branch(l,
+                A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)]),
+                A.s_bool(l, false))],
+              A.s_bool(l, true))
           else if op == "opor": opbool("_or")
           else if op == "opand": opbool("_and")
           else:
@@ -636,6 +646,8 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
+    | s_list(l, elts) =>
+      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [list-expr]) end, A.s_id(l, "empty"))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
     | s_check(l, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])
