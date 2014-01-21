@@ -1,8 +1,7 @@
-const os = require('os');
+const R = require("requirejs")
+
+R(['os', 'fs', './rnglr'], function(os, fs, E) {
 os.EOL = '\n';
-const log4js = require('log4js');
-const fs = require('fs');
-const E = require('./rnglr.js');
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
 const Token = E.Token
@@ -81,27 +80,27 @@ function tok(t) { return new Token(t); }
 //var tokens = token_stream([id("b1"), id("b2"), new Token("a"), new Token("a")]);
 var tokens = token_stream([id("a"), tok("+"), id("b"), tok("+"), id("c"), tok("+"), id("d"), tok("+"), id("e"), tok("+"), id("f")]);
 
-fs.unlink('parser-initial.txt');
-log4js.configure({
-  appenders: [ { type: 'file', filename: 'parser-initial.txt', layout: { type: 'pattern', pattern: "%m" } } ],
-  replaceConsole: true
-});
-console.log(g.printTables());
-var parsed = g.parse(tokens);
-if (parsed !== undefined) {
-  var parses = g.constructAllParses(parsed, "");
-  console.log("Constructed " + parses.length + " parses:")
-  for (var i = 0; i < parses.length; i++)
-    console.log(parses[i].toString());
-}
+// fs.unlink('parser-initial.txt');
+// log4js.configure({
+//   appenders: [ { type: 'file', filename: 'parser-initial.txt', layout: { type: 'pattern', pattern: "%m" } } ],
+//   replaceConsole: true
+// });
+// console.log(g.printTables());
+// var parsed = g.parse(tokens);
+// if (parsed !== undefined) {
+//   var parses = g.constructAllParses(parsed, "");
+//   console.log("Constructed " + parses.length + " parses:")
+//   for (var i = 0; i < parses.length; i++)
+//     console.log(parses[i].toString());
+// }
 
-tokens.reset();
+// tokens.reset();
 
-fs.unlink('parser-rebuilt.txt');
-log4js.configure({
-  appenders: [ { type: 'file', filename: 'parser-rebuilt.txt', layout: { type: 'pattern', pattern: "%m" } } ],
-  replaceConsole: true
-});
+// fs.unlink('parser-rebuilt.txt');
+// log4js.configure({
+//   appenders: [ { type: 'file', filename: 'parser-rebuilt.txt', layout: { type: 'pattern', pattern: "%m" } } ],
+//   replaceConsole: true
+// });
 var g2 = Grammar.fromSerializable(JSON.parse(JSON.stringify(g.toSerializable())));
 console.log(g2.printTables());
 var parsed2 = g2.parse(tokens);
@@ -111,3 +110,6 @@ if (parsed2 !== undefined) {
   for (var i = 0; i < parses.length; i++)
     console.log(parses[i].toString());
 }
+  var countParses = g2.countAllParses(parsed2);
+  console.log("There are " + countParses + " potential parses");
+});
