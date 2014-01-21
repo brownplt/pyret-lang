@@ -1053,7 +1053,7 @@ function createMethodDict() {
             while(theOneTrueStackHeight > 0) {
               var next = theOneTrueStack[--theOneTrueStackHeight];
               theOneTrueStack[theOneTrueStackHeight] = undefined;
-              val = next.go(val)
+              val = next.go(val);
             }
             onDone(new SuccessResult(val));
           } catch(e) {
