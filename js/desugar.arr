@@ -200,7 +200,8 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                         l2,
                         [],
                         variant-bind-names.map(b(l2, _)),
-                        A.a_blank, "Creates a " + vname,
+                        A.a_blank,
+                        "Creates a " + vname,
                         body-of-members(members, variant-bind-names, shared-id),
                         A.s_block(l, [])
                       ))
@@ -209,8 +210,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 shared-id = gensym(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
                 [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, [m] + with-members)),
-                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_id(l, shared-id))))
+                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_obj(l2, [m] + with-members))))
                 ]
             end
           end
@@ -239,9 +239,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
             end
           [wrapper(
               A.s_let_expr(l, data-let-binds,
-                A.s_letrec(l, data-letrec-binds,
-                  A.s_block(l,
-                    resolve-scope(rest-stmts, [], [])))))]
+                A.s_block(l, resolve-scope(rest-stmts, [], data-letrec-binds))))]
 
         | else =>
           cases(List) rest-stmts:
@@ -467,16 +465,17 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       end
       A.s_let_expr(l, new-binds.b.reverse(), desugar-expr(new-binds.e, body))
     | s_letrec(l, binds, body) =>
-      new-binds = for fold(b-e from { b: [], e: nv }, bind from binds):
-        cases(A.LetrecBind) bind:
-          | s_letrec_bind(l2, b, val) =>
-            new-env = b-e.e^extend-letrec(b.id)
-            new-val = desugar-expr(new-env, val)
-            { b: link(A.s_letrec_bind(l2, b, new-val), b-e.b),
-              e: new-env }
+      letrec-ids = binds.map(_.b).map(_.id)
+      new-env = for fold(acc from nv, id from letrec-ids):
+          acc^extend-letrec(id)
         end
-      end
-      A.s_letrec(l, new-binds.b.reverse(), desugar-expr(new-binds.e, body))
+      new-binds = for map(bind from binds):
+          cases(A.LetrecBind) bind:
+            | s_letrec_bind(l2, b, val) =>
+              A.s_letrec_bind(l2, b, desugar-expr(new-env, val))
+          end
+        end
+      A.s_letrec(l, new-binds, desugar-expr(new-env, body))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
@@ -489,6 +488,10 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_dot(l, obj, field) => A.s_dot(l, desugar-expr(nv, obj), field)
     | s_colon(l, obj, field) => A.s_colon(l, desugar-expr(nv, obj), field)
     | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member(nv, _)))
+    | s_for(l, iter, bindings, ann, body) => 
+      values = bindings.map(_.value).map(desugar-expr(nv, _))
+      the-function = A.s_lam(l, [], bindings.map(_.bind), ann, "", desugar-expr(nv, body), A.s_block(l, []))
+      A.s_app(l, desugar-expr(nv, iter), link(the-function, values))
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])

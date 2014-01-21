@@ -82,6 +82,10 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
                               j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
                             j-var(js-id-of("print"),
                               j-method(J.j-id("NAMESPACE"), "get", [J.j-str("print")])),
+                            j-var(js-id-of("torepr"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("torepr")])),
+                            j-var(js-id-of("tostring"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("tostring")])),
                             j-var(js-id-of("brander"),
                               j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
                             j-var(js-id-of("raise"),
@@ -131,7 +135,7 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
     | a-var(l, b, e, body) =>
       compiled-body = maybe-return(body)
       j-block(link(
-                j-var(js-id-of(b.id), j-obj([j-field("$var", compile-l(e))])),
+                j-var(js-id-of(b.id), j-obj([j-field("$var", compile-l(e)), j-field("$name", j-str(js-id-of(b.id)))])),
                 compiled-body.stmts))
     | a-if(l, cond, consq, alt) =>
       compiled-consq = maybe-return(consq)

@@ -62,6 +62,38 @@ into the environment
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
+/**
+    Extends an object with the new fields in fields
+    If all the fields are new, the brands are kept,
+    otherwise, the extended object has no brands
+
+    The original object is not mutated, instead it is cloned and the clone
+    is mutated
+
+    @param {!Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
+    If any of the fields exist, they will be overwritten with the new value
+
+    @return {!PBase} the extended object 
+*/
+function extendWith(fields) {
+    /**@type {!PBase}*/
+    var newObj = this.clone();
+    /**@type {!boolean}*/
+    var allNewFields = true;
+
+    for(var field in fields) {
+        if(allNewFields && hasOwnProperty(newObj.dict, field)) {
+            allNewFields = false;
+        }
+
+        newObj.dict[field] = fields[field];
+    } 
+        
+        newObj.brands = (allNewFields ? this.brands.slice(0) : []);
+
+        return newObj;
+}
+
     /**
       The base of all pyret values
       @constructor
@@ -105,38 +137,6 @@ inherits(PFunction, PBase);
 inherits(PMethod, PBase);
 inherits(POpaque, PBase);
 
-
-/**
-    Extends an object with the new fields in fields
-    If all the fields are new, the brands are kept,
-    otherwise, the extended object has no brands
-
-    The original object is not mutated, instead it is cloned and the clone
-    is mutated
-
-    @param {!Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
-    If any of the fields exist, they will be overwritten with the new value
-
-    @return {!PBase} the extended object 
-*/
-function extendWith(fields) {
-    /**@type {!PBase}*/
-    var newObj = this.clone();
-    /**@type {!boolean}*/
-    var allNewFields = true;
-
-    for(var field in fields) {
-        if(allNewFields && hasOwnProperty(newObj.dict, field)) {
-            allNewFields = false;
-        }
-
-        newObj.dict[field] = fields[field];
-    } 
-        
-        newObj.brands = (allNewFields ? this.brands.slice(0) : []);
-
-        return newObj;
-}
 
 /**
     Tests whether a JS Object has a property
@@ -1094,6 +1094,7 @@ function createMethodDict() {
     var thisRuntime = {
         'namespace': Namespace({
           'torepr': torepr,
+          'tostring': torepr,
           'test-print': print,
           'print': print,
           'brander': brander,
