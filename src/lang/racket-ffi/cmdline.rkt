@@ -98,9 +98,10 @@ data Param:
 end
 
 # options : Dictionary of Params
-fun usage-info(options) -> List<String>:
+fun usage-info(options-raw) -> List<String>:
+  options = D.to-dict(options-raw)
   option-info = 
-    for list.map(key from builtins.keys(options)):
+    for list.map(key from options.keys()):
       cases(Param) options.get(key):
         | flag(repeated, desc) =>
           format("  -~a: ~a (~a)", [key, desc, repeated])

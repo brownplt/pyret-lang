@@ -4,6 +4,7 @@ import cmdline as C
 import file as F
 import "compile.arr" as CM
 import "compile-structs.arr" as CS
+import string-dict as D
 
 
 fun main(args):
@@ -12,6 +13,8 @@ fun main(args):
         C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
       compile-module-js:
         C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+      library:
+        C.flag(C.once, "Don't auto-import basics like list, option, etc."),
       libs:
         C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
       no-check-mode:
@@ -36,10 +39,11 @@ fun main(args):
           else:
             true
           end
+        libs = if r.has-key("library"): CS.no-builtins else: CS.standard-builtins end
         result = if r.has-key("compile-standalone-js"):
             CM.compile-standalone-js-file(
               r.get("compile-standalone-js"),
-              CS.standard-builtins,
+              libs,
               {
                 check-mode : check-mode
               }
@@ -47,7 +51,7 @@ fun main(args):
           else if r.has-key("compile-module-js"):
             CM.compile-runnable-js-file(
               r.get("compile-module-js"),
-              CS.standard-builtins,
+              libs,
               {
                 check-mode : check-mode
               }
@@ -60,7 +64,7 @@ fun main(args):
         end
       end
     | arg-error(message, partial) =>
-      print(C.usage-info(options))
+      print(C.usage-info(options).join-str("\n"))
   end
 end
 

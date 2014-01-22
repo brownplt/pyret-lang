@@ -102,7 +102,7 @@ fun get-dir-sections(path, create-test):
 end
 
 fun create-simple-test(path, name, program, out, err):
-  create-jasmine-test(path, name, program, [], out, err)
+  create-jasmine-test(path, name, program, CS.no-builtins, out, err)
 end
 
 var tests-with-errors = []

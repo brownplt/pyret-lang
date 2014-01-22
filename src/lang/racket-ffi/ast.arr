@@ -721,6 +721,7 @@ fun binding-ids(stmt):
   cases(Expr) stmt:
     | s_let(_, b, _) => [b.id]
     | s_var(_, b, _) => [b.id]
+    | s_fun(_, name, _, _, _, _, _, _) => [name]
     | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s_data(_, name, _, _, variants, _, _) =>
       name ^ link(flatten(variants.map(variant-ids)))

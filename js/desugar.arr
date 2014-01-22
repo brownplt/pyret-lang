@@ -2,6 +2,7 @@
 
 provide *
 import ast as A
+import "compile-structs.arr" as C
 
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
@@ -36,7 +37,20 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
   end
 end
 
-fun desugar(program :: A.Program):
+fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
+  cases(C.CompileEnvironment) env:
+    | compile-env(modules) =>
+      let-binds = for fold(lst from [], k from modules.keys()):
+          lst +
+            for map(name from modules.get(k)):
+              A.s_let(l, A.s_bind(l, false, name, A.a_blank), A.s_dot(l, A.s_id(l, k), name))
+            end
+        end
+      A.s_block(l, let-binds + [expr])
+  end
+end
+
+fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
   cases(A.Program) program:
     | s_program(l, headers-raw, body) =>
       headers = headers-raw.map(desugar-header(_, body))
@@ -50,7 +64,7 @@ fun desugar(program :: A.Program):
       else if len > 1:
         raise("More than one provide")
       end
-      to-desugar = cases(A.Expr) body:
+      with-provides = cases(A.Expr) body:
         | s_block(l2, stmts) =>
           last = stmts.last()
           new-stmts = if is-binder(last):
@@ -67,8 +81,14 @@ fun desugar(program :: A.Program):
           A.s_block(l2, new-stmts)
         | else => body
       end
+      to-desugar = wrap-env-imports(l, with-provides, compile-env)
       imports = headers.filter(fun(h): not A.is-s_provide(h) end)
-      A.s_program(l, imports, desugar-expr(mt-d-env, to-desugar))
+      full-imports = imports + for map(k from compile-env.modules.keys()):
+          A.s_import(l, A.s_const_import(k), k)
+        end
+
+      
+      A.s_program(l, full-imports, desugar-expr(mt-d-env, to-desugar))
   end
 where:
   d = A.dummy-loc
@@ -647,7 +667,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | s_list(l, elts) =>
-      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [list-expr]) end, A.s_id(l, "empty"))
+      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [elt, list-expr]) end, A.s_id(l, "empty"))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
     | s_check(l, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])

@@ -6,16 +6,19 @@ import ast as A
 import "anf.arr" as N
 import "ast-split.arr" as AS
 import "anf-simple-compile.arr" as AC
+import "desugar.arr" as D
 import file as F
 
 fun pretty(src): src.tosource().pretty(80).join-str("\n") end
 
 fun make-compiled-pyret(program-ast, env):
 
-  anfed = N.anf-program(program-ast)
-  split = AS.ast-split(anfed.body)
+  desugared = D.desugar(program-ast, env)
+  anfed = N.anf-program(desugared)
+#  split = AS.ast-split(anfed.body)
+  split = AS.split-result-e([], anfed.body, set([]))
   compiled = AC.compile(split, anfed.imports)
-  code = compiled.tosource().pretty(80).join-str("\n")
+  code = compiled.to-ugly-source()
   c = C.ok(code)
   
   {
@@ -36,6 +39,9 @@ fun make-compiled-pyret(program-ast, env):
          }
       });"
       C.ok(standalone)
+    end,
+    pyret-to-js-pretty: fun():
+      C.ok(pretty(compiled))
     end,
     pyret-to-js-runnable: fun():
       c
