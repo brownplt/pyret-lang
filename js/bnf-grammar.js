@@ -210,7 +210,9 @@ R(['./rnglr', './tokenizer', 'fs'], function(E, T, fs) {
     out.write("  var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
     out.write("  var out = fs.createWriteStream('pyret-parser.js');\n");
 
-    out.write("  out.write(\"define(['./rnglr'], function(E) {\\n\");\n");
+    out.write("  out.write(\"define(['./rnglr'],\\n\");\n");
+    out.write("  out.write(\"/** @param {{Grammar : {fromSerializable : !Function}, Nonterm : !Object, Token : !Object, Rule : !Object}} E */\\n\");\n");
+    out.write("  out.write(\"function(E) {\\n\");\n");
     out.write("  out.write(\"  const Grammar = E.Grammar;\\n\");\n");
     out.write("  out.write(\"  const Nonterm = E.Nonterm;\\n\");\n");
     out.write("  out.write(\"  const Token = E.Token;\\n\");\n");
