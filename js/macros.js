@@ -40,9 +40,7 @@
 
 //      case {_ $name($params (,) ...){ $body ...}} => {
 //         return #{ 
-//             function $name($params (,) ...) {
-//                  //Derp
-//                  $body ...
+//             function $name($params (,) ...) { //                  //Derp //                  $body ...
 //              }
 //          }
 
@@ -115,34 +113,33 @@ macro method{
           ))
         }
       }
-/*
+
     case {$m_name ($me , $params (,) ...) { $body ...} } => {
 
         var mkMeth = makeIdent('makeMethod', #{$m_name}); //get the identifier makeMethod in same scope as method
         letstx $mkMeth = [mkMeth];
 
-          //console.log(#{$params  ...});
-        var newParams = #{$params ...}.map(function(name) { 
-            //console.log(unwrapSyntax(name));
-            return makeIdent(unwrapSyntax(name), #{name}) //TODO: Fix as above
-        });
-
-        //console.log(newParams);
-        letstx $new_params = newParams;
+        var newBody = #{ 
+            {
+                $body ...
+            } 
+        };
+        letstx $new_body = newBody;
+        
+        
 
         return #{
           $mkMeth(
-          (function ($me, $new_params (,) ...) {
-            $body ...
-          }),
+          (function ($me, $params (,) ...) 
+            $new_body 
+          ),
           (function ($me) {
-            return function($new_params (,) ...) {
-            $body ...
+            return function($params (,) ...) {
+            $new_body 
              }
           }))
         }
       }
-*/
 
     } 
 export method;
