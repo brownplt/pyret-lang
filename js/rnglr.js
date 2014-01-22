@@ -1604,7 +1604,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
       return ret;
     },
 
-    countAllParses2: function(sppfNode) {
+    countAllParses: function(sppfNode) {
       var todo = [[[sppfNode]]]; // stack of alternate lists of children
       var count = [[[]], [[]]]; // stack of sums of factors
       while (todo.length > 0) {
