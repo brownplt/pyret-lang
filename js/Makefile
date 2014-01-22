@@ -5,12 +5,17 @@ SWEETENER = node node_modules/sweet.js/bin/sjs
 
 #Compiles/Minimizes the Files
 #Performs type checking using JSDoc's
-compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js
+compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js pyret-parser-comp.js
 	$(COMPILER) --js runtime-anf.js --js_output_file anf-comp.js --warning_level VERBOSE --externs externs.js
 	$(COMPILER) --js namespace.js --js_output_file namespace-comp.js --warning_level VERBOSE --externs externs.js
 	$(COMPILER) --js number-dict-sweet.js --js_output_file number-dict.js --externs externs.js
 	$(COMPILER) --js string-dict-sweet.js --js_output_file string-dict.js --externs externs.js
 	$(COMPILER) --js boolean-dict-sweet.js --js_output_file boolean-dict.js --externs externs.js
+
+pyret-parser-comp.js: bnf-grammar.js grammar-full.rkt
+	node bnf-grammar.js
+	node grammar.js
+	$(COMPILER) --js pyret-parser.js --js_output_file pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
 
 #Expand all macros
 sweeten: number-dict-raw.js string-dict-raw.js
@@ -35,4 +40,4 @@ test: runtime-anf.js number-dict.js
 
 .PHONY : clean
 clean:
-	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js
+	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js pyret-parser.js grammar.js pyret-parser-comp.js
