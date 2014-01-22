@@ -333,11 +333,23 @@ arguments do not satisfy the requirements of the Params dictionary.'
     end
     parsed-results = process(success(D.immutable-string-dict(), []), 1, args)
     cases(ParsedArguments) parsed-results:
-      | success(parsed, _) =>
-        missing-args = for list.filter(key from required):
-          not parsed.has-key(key)
+      | success(parsed, other) =>
+        filled-missing-defaults = for list.fold(acc from parsed, key from opts-dict.keys()):
+          cases(Param) opts-dict.get(key):
+            | next-val-default(_, default, _, repeated, _) =>
+              if (not acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
+              else: acc
+              end
+            | equals-val-default(_, default, _, repeated, _) =>
+              if (not acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
+              else: acc
+              end
+          end              
         end
-        if is-empty(missing-args): parsed-results
+        missing-args = for list.filter(key from required):
+          not filled-missing-defaults.has-key(key)
+        end
+        if is-empty(missing-args): success(filled-missing-defaults, other)
         else:
           arg-error(
             format("Command line option validation for ~a failed: The following options are required but not found: ~a",
@@ -411,6 +423,7 @@ check:
   }
   parse-args(once-optional-next-default, ["-w", "foo.txt"]) is success(dict(["width", 80]), ["foo.txt"])
   parse-args(once-optional-next-default, ["--width", "120", "foo.txt"]) is success(dict(["width", 120]), ["foo.txt"])
+  parse-args(once-optional-next-default, ["foo.txt"]) is success(dict(["width", 80]), ["foo.txt"])
   parse-args(once-optional-next-default, ["--w", "120", "foo.txt"]) satisfies error-text("Unknown command line option --w")
   
   once-required-next-default = {
