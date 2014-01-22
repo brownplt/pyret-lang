@@ -1,5 +1,7 @@
-const E = require('./rnglr.js');
-const T = require('./tokenizer.js');
+const R = require('requirejs');
+
+R(['./rnglr', './tokenizer', 'fs'], function(E, T, fs) {
+
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
 const Token = E.Token
@@ -176,7 +178,6 @@ function generateItem(ruleName, item) {
 }
 
 
-const fs = require("fs");
 var data = fs.readFileSync("grammar-full.rkt", "utf8");
 //var data = fs.readFileSync("grammar-small.rkt", "utf8");
 
@@ -191,38 +192,39 @@ if (parsed !== undefined) {
   // console.log(parses[0].toString());
   var bnfJS = generateGrammar(parses[0], grammar_name);
   var out = fs.createWriteStream("grammar.js");
-  out.write("const fs = require('fs');\n");
-  out.write("const E = require('./rnglr.js');\nconst Grammar = E.Grammar\nconst Nonterm = E.Nonterm\n");
-  out.write("const Token = E.Token\nconst Rule = E.Rule\n\n");
-  out.write(bnfJS.join("\n"));
+  out.write("const R = require('requirejs');\n\n");
+  out.write("R(['fs', './rnglr', './pyret-tokenizer'], function(fs, E, T) {\n");
+  out.write("  const Grammar = E.Grammar\n");
+  out.write("  const Nonterm = E.Nonterm\n");
+  out.write("  const Token = E.Token\n");
+  out.write("  const Rule = E.Rule\n\n");
+  out.write("  " + bnfJS.join("\n  "));
   out.write("\n\n");
-  out.write("g.initializeParser(true);\n")
-  out.write("var cycles = g.checkForCycles();\n");
-  out.write("if (cycles) {\n");
-  out.write("  console.log(\"Non-cyclic grammar!\");\n");
-  out.write("} else {\n");
-  out.write("  for (var i = 0; i < cycles.length; i++)\n");
-  out.write("    console.log(cycles[i]);\n");
-  out.write("}\n");
-  out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
-  out.write("var out = fs.createWriteStream('pyret-parser.js');\n");
-  out.write("out.write(\"const E = require('./rnglr.js');\\nconst Grammar = E.Grammar\\nconst Nonterm = E.Nonterm\\n\");\n");
-  out.write("out.write(\"const Token = E.Token\\nconst Rule = E.Rule\\n\\n\");\n");
-  out.write("out.write(\"var g_json = \" + g_json + \";\\n\");\n");
-  out.write("out.write(\"exports.PyretGrammar = Grammar.fromSerializable(g_json);\\n\");\n");
-  out.write("out.end();\n");
-  out.write("\n\n");
-  out.write("const T = require('./pyret-tokenizer.js');\n");
-  out.write("var data = \"#lang pyret\\n\\nimport \\\"foo\\\" as bar\\na\";\n");
-  out.write("const toks = T.Tokenizer;\ntoks.tokenizeFrom(data);\n");
-  out.write("var parsed = g.parse(toks);\n");
-  out.write("console.log(g.printSPPFasDot());\n");
-  out.write("console.log(g.printGSSasDot());\n");
-  out.write("console.log(\"Result:\");\n");
-  out.write("console.log(g.constructAllParses(parsed)[0].toString(true));\n");
+  out.write("  g.initializeParser(true);\n")
+  out.write("  var cycles = g.checkForCycles();\n");
+  out.write("  if (cycles) {\n");
+  out.write("    console.log(\"Non-cyclic grammar!\");\n");
+  out.write("  } else {\n");
+  out.write("    for (var i = 0; i < cycles.length; i++)\n");
+  out.write("      console.log(cycles[i]);\n");
+  out.write("  }\n");
+  out.write("  var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
+  out.write("  var out = fs.createWriteStream('pyret-parser.js');\n");
+
+  out.write("  out.write(\"define(['./rnglr'], function(E) {\\n\");\n");
+  out.write("  out.write(\"  const Grammar = E.Grammar;\\n\");\n");
+  out.write("  out.write(\"  const Nonterm = E.Nonterm;\\n\");\n");
+  out.write("  out.write(\"  const Token = E.Token;\\n\");\n");
+  out.write("  out.write(\"  const Rule = E.Rule;\\n\\n\");\n");
+  out.write("  out.write(\"  var g_json = \" + g_json.replace(/\\n/g, \"\\n  \") + \";\\n\");\n");
+  out.write("  out.write(\"  return { PyretGrammar: Grammar.fromSerializable(g_json) };\\n\");\n");
+  out.write("  out.write(\"});\\n\");\n");
+  out.write("  out.end();\n");
+  out.write("});\n");
   out.end();
 }
 
 
 
 
+});
