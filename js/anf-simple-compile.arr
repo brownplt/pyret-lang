@@ -93,7 +93,9 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
                             j-var(js-id-of("builtins"),
                               j-method(J.j-id("NAMESPACE"), "get", [J.j-str("builtins")])),
                             j-var(js-id-of("nothing"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("nothing")]))
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("nothing")])),
+                            j-var(js-id-of("is-nothing"),
+                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("is-nothing")]))
                           ] +
                           for map(id from ids):
                             j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))

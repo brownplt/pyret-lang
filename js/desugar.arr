@@ -213,7 +213,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 A.s_data_field(l2, A.s_str(l2, bind.id), A.s_id(l2, val-id))
             end
           end
-          fun variant-binds(v, main-brander, variant-brander):
+          fun variant-binds(v, main-brander, variant-brander, sharing-id :: String):
             fun brand(brander-id, arg): A.s_app(l, A.s_dot(l, A.s_id(l, brander-id), "brand"), [arg]);
             fun body-of-members(members, variant-bind-names, shared-id):
               obj = A.s_extend(l, A.s_id(l, shared-id), map2(variant-member-to-field, members, variant-bind-names))
@@ -225,7 +225,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
                 variant-bind-names = members.map(_.bind).map(_.id).map(gensym)
                 [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_obj(l2, [m] + with-members)),
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_extend(l2, A.s_id(l2, sharing-id), [m] + with-members)),
                   A.s_letrec_bind(l2, b(l2, vname),
                     A.s_lam(
                         l2,
@@ -241,11 +241,12 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 shared-id = gensym(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
                 [
-                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_obj(l2, [m] + with-members))))
+                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, shared-fields-id), [m] + with-members))))
                 ]
             end
           end
           main-brand-id = gensym(name)
+          shared-fields-id = gensym(name + "-shared")
           variant-names = variants.map(_.name)
           name-ids = variant-names.map(gensym)
           fun mk-brander(id):
@@ -266,11 +267,14 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                   )
             )
           data-letrec-binds = for fold2(acc from [], v from variants, vn from name-ids):
-              acc + variant-binds(v, main-brand-id, vn)
+              acc + variant-binds(v, main-brand-id, vn, shared-fields-id)
             end
+          data-with-sharing =  data-letrec-binds + [
+              A.s_letrec_bind(l, A.s_bind(l, false, shared-fields-id, A.a_blank), A.s_obj(l, shared))
+            ]
           [wrapper(
               A.s_let_expr(l, data-let-binds,
-                A.s_block(l, resolve-scope(rest-stmts, [], data-letrec-binds))))]
+                A.s_block(l, resolve-scope(rest-stmts, [], data-with-sharing))))]
 
         | else =>
           cases(List) rest-stmts:
@@ -667,11 +671,11 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | s_list(l, elts) =>
-      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [elt, list-expr]) end, A.s_id(l, "empty"))
+      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [desugar-expr(nv, elt), list-expr]) end, A.s_id(l, "empty"))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
-    | s_check(l, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])
-    | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working")])
+    | s_check(l, _) => A.s_str(l, "check mode not yet working (check block)")
+    | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working (test stmt)")])
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

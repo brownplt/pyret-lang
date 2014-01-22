@@ -244,9 +244,11 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
+    if(!val.dict) { console.log(val.dict); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
+        console.error(val.dict);
         throw makeMessageException("field " + field + " not found.");
     }
     /*else if(isMutable(fieldVal)){
@@ -626,7 +628,7 @@ function PMethod(meth, full_meth) {
     this['full_meth']   = full_meth;
 
     /**@type {number}*/
-    this.arity = full_meth.length;
+    this.arity = full_meth ? full_meth.length : -1;
 
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createMethodDict(); 
@@ -860,6 +862,7 @@ function createMethodDict() {
     function PyretFailException(e) {
       this.exn = e;
       this.pyretStack = [];
+      this.stack = (new Error).stack;
     }
 
     /**
@@ -948,7 +951,7 @@ function createMethodDict() {
         throw makeMessageException("Cannot compare " + left + " " + right + " with ==");
       }
     };
-    var sameP = makeFunction(same);
+    var sameP = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
 
     /** type {!PBase} */
     var builtins = makeObject({
@@ -1100,7 +1103,8 @@ function createMethodDict() {
           'brander': brander,
           'raise': raise,
           'builtins': builtins,
-          'nothing': makeNothing()
+          'nothing': makeNothing(),
+          'is-nothing': makeFunction(function(v) { return makeBoolean(isNothing(v)); })
         }),
         'run': run,
 

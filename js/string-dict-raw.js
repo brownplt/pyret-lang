@@ -71,8 +71,28 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
               checkIf(n, isNumber);
           
               //TODO: Handle bignums that are beyond javascript
+              // TODO(joe): This should be jsnums.toFixnum, no?
               return makeString(String(str.s.charAt(n.n.toFixnum())));
           },
+
+          /**@type {PMethod}*/
+          'repeat' : 
+          /**
+            @param {!PString} str
+            @param {!PNumber} n
+            @return {!PString}
+          */
+          method(str, n) {
+              checkIf(str, isString);
+              checkIf(n, isNumber);
+              var resultStr = "";
+              // TODO(joe): loop up to a fixnum?
+              for(var i = 0; i < jsnums.toFixnum(n.n); i++) {
+                  resultStr += str.s;
+              }
+              return makeString(resultStr);
+          },
+
 
 
           /**@type {PMethod}*/
@@ -96,6 +116,28 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
               checkIf(me, isString);
               return makeString(me.s.toUpperCase());
           },
+
+          /**@type {PMethod}*/
+          'substring' : 
+          /**
+            @param {!PString} me
+            @param {!PNumber} min
+            @param {!PNumber} max
+            @return {!PString}
+          */
+          makeMethod(function(me) { return function(min, max) {
+                checkIf(me, isString);
+                checkIf(min, isNumber);
+                checkIf(min, isNumber);
+                return makeString(me.s.substring(jsnums.toFixnum(min.n), jsnums.toFixnum(max.n)));
+              };
+            },
+            function(me, min, max) {
+                checkIf(me, isString);
+                checkIf(min, isNumber);
+                checkIf(min, isNumber);
+                return makeString(me.s.substring(jsnums.toFixnum(min.n), jsnums.toFixnum(max.n)));
+            }),
 
           /**@type {PMethod}*/
           'to-lower' : 

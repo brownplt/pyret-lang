@@ -4,7 +4,10 @@ provide *
 import option as O
 
 none = O.none
+is-none = O.is-none
 some = O.some
+is-some = O.is-some
+Option = O.Option
 
 data List:
   | empty with:
@@ -140,6 +143,14 @@ data List:
          tostring(self.first)
       end
     end
+
+sharing:
+  push(self, elt):
+    doc: "Adds an element to the front of the list, returning a new list"
+    link(elt, self)
+  end,
+  _plus(self :: List, other :: List): self.append(other) end,
+  to-set(self :: List): list-to-set(self) end
 
 end
 fun get-help(lst, n :: Number):

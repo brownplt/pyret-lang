@@ -189,7 +189,7 @@ data Expr:
   | s_block(l :: Loc, stmts :: List<Expr>) with:
     label(self): "s_block" end,
     tosource(self):
-      PP.flow_map(PP.hardline, _.tosource(), self.stmts) end
+      PP.flow_map(PP.hardline, fun(s): s.tosource() end, self.stmts) end
   | s_user_block(l :: Loc, body :: Expr) with:
     label(self): "s_user_block" end,
     tosource(self):

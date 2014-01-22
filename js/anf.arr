@@ -115,7 +115,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
       anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
     | s_if_else(l, branches, _else) =>
       if not is-empty(branches):
-        s-if = for fold(acc from _else, branch from branches):
+        s-if = for fold(acc from _else, branch from branches.reverse()):
           A.s_if_else(l, [branch], acc)
         end
         cond = s-if.branches.first.test

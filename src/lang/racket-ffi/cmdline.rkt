@@ -345,6 +345,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
               if (not acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
               else: acc
               end
+            | else => acc
           end              
         end
         missing-args = for list.filter(key from required):

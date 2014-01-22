@@ -1,5 +1,8 @@
-define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, ast, fs) {
+define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "fs"], function(L, ast, srcloc, T, G, fs) {
   return function(RUNTIME, NAMESPACE) {
+    L = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
+    srcloc = RUNTIME.getField(srcloc(RUNTIME, NAMESPACE), "provide");
+    ast = RUNTIME.getField(ast(RUNTIME, NAMESPACE), "provide");
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
@@ -14,9 +17,23 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         return translators[node.name](node);
       }
       function pos(p) {
-        return RUNTIME.makeSrcLoc(fileName, 
-                                  p.startRow, p.startCol, p.startChar,
-                                  p.endRow, p.endCol, p.endChar);
+        var n = RUNTIME.makeNumber;
+        return RUNTIME.getField(srcloc, "old-srcloc").app(
+            RUNTIME.makeString(fileName),
+            n(p.startRow),
+            n(p.startCol),
+            n(p.startChar),
+            n(p.endRow),
+            n(p.endCol),
+            n(p.endChar)
+          );
+      }
+      function makeList(arr) {
+        var lst = RUNTIME.getField(L, "empty");
+        for(var i = 0; i < arr.length; i++) {
+          lst = RUNTIME.getField(L, "link").app(arr[i], lst); 
+        }
+        return lst;
       }
       function name(tok) { return RUNTIME.makeString(tok.value); }
       function string(tok) { return RUNTIME.makeString(tok.value); } // I'm pretty sure the tokenizer strips off quotes
@@ -28,9 +45,9 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
       }
       const translators = {
         'program': function(node) {
-          return RUNTIME.getField(ast, 's_prog')
+          return RUNTIME.getField(ast, 's_program')
             .app(pos(node.pos), 
-                 RUNTIME.makeList(node.kids[0].map(tr)), // TODO: fix when we split import from provide
+                 makeList(node.kids[0].kids.map(tr)), // TODO: fix when we split import from provide
                  tr(node.kids[1]));
         },
         'provide-stmt': function(node) {
@@ -62,7 +79,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'block': function(node) {
           // (block stmts ...)
           return RUNTIME.getField(ast, 's_block')
-            .app(pos(node.pos), RUNTIME.makeList(node.kids.map(tr)));
+            .app(pos(node.pos), makeList(node.kids.map(tr)));
         },
         'stmt': function(node) {
           // (stmt s)
@@ -71,14 +88,14 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'data-with': function(node) {
           if (node.kids.length === 0) {
             // (data-with)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (data-with WITH fields)
-            return RUNTIME.makeList(node.kids.map(tr));
+            return makeList(node.kids[1].kids.map(tr));
           }
         },
         'data-variant': function(node) {
-          if (kids.length === 4) {
+          if (node.kids.length === 4) {
             // (data-variant PIPE NAME args with)
             return RUNTIME.getField(ast, 's_variant')
               .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
@@ -124,10 +141,10 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'data-sharing': function(node) {
           if (node.kids.length === 2) {
             // (data-sharing SHARING fields)
-            return RUNTIME.makeList(node.kids.slice(1).map(tr));
+            return tr(node.kids[1]);
           } else {
             // (data-sharing)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           }
         },
         'constructor-clause': function(node) {
@@ -141,21 +158,21 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'let-expr': function(node) {
-          // (let-expr VAR bind EQUALS e)
+          // (let-expr bind EQUALS e)
           return RUNTIME.getField(ast, 's_let')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'graph-expr': function(node) {
           // (graph-expr GRAPH bind ... END)
           return RUNTIME.getField(ast, 's_graph')
-            .app(pos(node.pos), RUNTIME.makeList(node.kids.slice(1, -1).map(tr)));
+            .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'fun-expr': function(node) {
           // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
           return RUNTIME.getField(ast, 's_fun')
             .app(pos(node.pos), name(node.kids[1].kids[1]),
-                 RUNTIME.makeList(node.kids[1].kids[0].map(tr)),
-                 RUNTIME.makeList(node.kids[1].kids[2].map(tr)),
+                 tr(node.kids[1].kids[0]),
+                 tr(node.kids[1].kids[2]),
                  tr(node.kids[1].kids[3]),
                  tr(node.kids[3]),
                  tr(node.kids[4]),
@@ -165,7 +182,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
           return RUNTIME.getField(ast, 's_data')
             .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                 RUNTIME.makeList(node.kids.slice(5, -3).map(tr)), 
+                 makeList(node.kids.slice(5, -3).map(tr)), 
                  tr(node.kids[node.kids.length - 3]),
                  tr(node.kids[node.kids.length - 2]));
         },
@@ -173,7 +190,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           // (datatype-expr DATATYPE NAME params COLON variant ... check END)
           return RUNTIME.getField(ast, 's_datatype')
             .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]),
-                 RUNTIME.makeList(node.kids.slice(4, -2).map(tr)),
+                 makeList(node.kids.slice(4, -2).map(tr)),
                  tr(node.kids[node.kids.length - 2]));
         },
         'assign-expr': function(node) {
@@ -201,6 +218,9 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2])); // Op comes first
           }
         },
+        'binop-clause': function(node) {
+          return tr(node.kids[0]);
+        },
         'binop-expr': function(node) {
           if (node.kids.length === 1) {
             // (binop-expr e)
@@ -223,7 +243,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           if (node.kids.length === 0) {
             // (where-clause)
             return RUNTIME.getField(ast, 's_block')
-              .app(pos(node.pos), RUNTIME.makeList([]));
+              .app(pos(node.pos), makeList([]));
           } else {
             // (where-clause WHERE block)
             return tr(node.kids[1]);
@@ -231,7 +251,13 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         },
         'check-op': function(node) {
           // (check-op str)
-          return opLookup[string(node.kids[0])];
+          var opname = String(node.kids[0].value);
+          if(opLookup[opname]) {
+            return opLookup[opname];
+          }
+          else {
+            throw "Unknown operator: " + opname;
+          }
         },
         'expr': function(node) {
           // (expr e)
@@ -254,12 +280,18 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         },
         'binop': function(node) {
           // (binop str)
-          return opLookup[string(node.kids[0])];
+          var opname = String(node.kids[0].value);
+          if(opLookup[opname]) {
+            return opLookup[opname];
+          }
+          else {
+            throw "Unknown operator: " + opname;
+          }
         },
         'return-ann': function(node) {
           if (node.kids.length === 0) {
             // (return-ann)
-            return RUNTIME.getField(ast, 'a_blank').app();
+            return RUNTIME.getField(ast, 'a_blank');
           } else {
             // (return-ann THINARROW ann)
             return tr(node.kids[1]);
@@ -270,7 +302,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
             // (binding name)
             return RUNTIME.getField(ast, 's_bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
-                   RUNTIME.getField(ast, 'a_blank').app());
+                   RUNTIME.getField(ast, 'a_blank'));
           } else if (node.kids.length === 3) {
             // (binding name COLONCOLON ann)
             return RUNTIME.getField(ast, 's_bind')
@@ -279,7 +311,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
             // (binding SHADOW name)
             return RUNTIME.getField(ast, 's_bind')
               .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
-                   RUNTIME.getField(ast, 'a_blank').app());
+                   RUNTIME.getField(ast, 'a_blank'));
           } else {
             // (binding SHADOW name COLONCOLON ann)
             return RUNTIME.getField(ast, 's_bind')
@@ -289,10 +321,10 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'args': function(node) {
           if (node.kids.length === 2) {
             // (args LPAREN RPAREN)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
-            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+            return makeList(node.kids.slice(1, -1).map(tr));
           }
         },
         'list-arg-elt': function(node) {
@@ -307,20 +339,20 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           } else {
             if (node.kids[0].name === "MUTABLE") {
               return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.makeString("mutable"), tr(node.kids[0]));
+                .app(pos(node.pos), RUNTIME.makeString("mutable"), tr(node.kids[1]));
             } else {
               return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.makeString("cyclic"), tr(node.kids[0]));
+                .app(pos(node.pos), RUNTIME.makeString("cyclic"), tr(node.kids[1]));
             }
           }
         },
         'variant-members': function(node) {
           if (node.kids.length === 2) {
             // (variant-members LPAREN RPAREN)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
-            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+            return makeList(node.kids.slice(1, -1).map(tr));
           }          
         },
         'list-variant-member': function(node) {
@@ -341,7 +373,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           if (node.kids.length === 4) {
             // (obj-field MUTABLE key COLON value)
             return RUNTIME.getField(ast, 's_mutable_field')
-              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a_blank').app(), tr(node.kids[3]));
+              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a_blank'), tr(node.kids[3]));
           } else if (node.kids.length === 6) {
             // (obj-field MUTABLE key COLONCOLON ann COLON value)
             return RUNTIME.getField(ast, 's_mutable_field')
@@ -358,12 +390,12 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           }
         },
         'obj-fields': function(node) {
-          if (node.kids[node.kids.length - 1] instanceof Token) {
+          if (node.kids[node.kids.length - 1].name !== "obj-field") {
             // (obj-fields (list-obj-field f1 COMMA) ... lastField COMMA)
-            return RUNTIME.makeList(node.kids.slice(0, -1).map(tr));
+            return makeList(node.kids.slice(0, -1).map(tr));
           } else {
             // (fields (list-obj-field f1 COMMA) ... lastField)
-            return RUNTIME.makeList(node.kids.map(tr));
+            return makeList(node.kids.map(tr));
           }
         },
         'list-obj-field': function(node) {
@@ -383,12 +415,12 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           }
         },
         'fields': function(node) {
-          if (node.kids[node.kids.length - 1] instanceof Token) {
+          if (node.kids[node.kids.length - 1].name !== "field") {
             // (fields (list-field f1 COMMA) ... lastField COMMA)
-            return RUNTIME.makeList(node.kids.slice(0, -1).map(tr));
+            return makeList(node.kids.slice(0, -1).map(tr));
           } else {
             // (fields (list-field f1 COMMA) ... lastField)
-            return RUNTIME.makeList(node.kids.map(tr));
+            return makeList(node.kids.map(tr));
           }
         },
         'list-field': function(node) {
@@ -398,7 +430,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'data-mixins': function(node) {
           if (node.kids.length === 0) {
             // (data-mixins)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (data-mixins DERIVING mixins)
             return tr(node.kids[1]);
@@ -406,7 +438,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         },
         'mixins': function(node) {
           // (mixins (list-mixin m COMMA) ... lastmixin)
-          return RUNTIME.makeList(node.kids.map(tr));
+          return makeList(node.kids.map(tr));
         },
         'list-mixin': function(node) {
           // (list-mixin m COMMA)
@@ -415,10 +447,10 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'app-args': function(node) {
           if (node.kids.length === 2) {
             // (app-args LPAREN RPAREN)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (app-args LPAREN (app-arg-elt e COMMA) ... elast RPAREN)
-            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+            return makeList(node.kids.slice(1, -1).map(tr));
           }
         },
         'app-arg-elt': function(node) {
@@ -429,11 +461,11 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           if (node.kids.length === 4) {
             // (cases-branch PIPE NAME THICKARROW body)
             return RUNTIME.getField(ast, 's_cases_branch')
-              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+              .app(pos(node.pos), name(node.kids[1]), makeList([]), tr(node.kids[3]));
           } else {
             // (cases-branch PIPE NAME args THICKARROW body)
             return RUNTIME.getField(ast, 's_cases_branch')
-              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
           }
         },
         'else-if': function(node) {
@@ -449,10 +481,10 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'ty-params': function(node) {
           if (node.kids.length === 0) {
             // (ty-params)
-            return RUNTIME.makeList([]);
+            return makeList([]);
           } else {
             // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-            return RUNTIME.makeList(node.kids.slice(1, -1).map(tr));
+            return makeList(node.kids.slice(1, -1).map(tr));
           }
         },
         'list-ty-param': function(node) {
@@ -482,22 +514,25 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           if (node.kids.length === 2) {
             // (obj-expr LBRACE RBRACE)
             return RUNTIME.getField(ast, 's_obj')
-              .app(pos(node.pos), RUNTIME.makeList([]));
+              .app(pos(node.pos), makeList([]));
           } else {
             // (obj-expr LBRACE obj-fields RBRACE)
             return RUNTIME.getField(ast, 's_obj')
               .app(pos(node.pos), tr(node.kids[1]));
           }
         },
+        'list-elt': function(node) {
+          return tr(node.kids[0]);
+        },
         'list-expr': function(node) {
           if (node.kids.length === 2) {
             // (list-expr LBRACK RBRACK)
             return RUNTIME.getField(ast, 's_list')
-              .app(pos(node.pos), RUNTIME.makeList([]));
+              .app(pos(node.pos), makeList([]));
           } else {
             // (list-expr LBRACK list-fields RBRACK)
             return RUNTIME.getField(ast, 's_list')
-              .app(pos(node.pos), tr(node.kids[1]));
+              .app(pos(node.pos), makeList(node.kids.slice(1, node.kids.length - 1).map(tr)));
           }
         },
         'app-expr': function(node) {
@@ -540,19 +575,19 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
             return RUNTIME.getField(ast, 's_cases_else')
               .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                   RUNTIME.makeList(node.kids.slice(6, -5).map(tr)), tr(node.kids[node.kids.length - 2]));
+                   makeList(node.kids.slice(6, -5).map(tr)), tr(node.kids[node.kids.length - 2]));
           } else {
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
             return RUNTIME.getField(ast, 's_cases')
               .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                   RUNTIME.makeList(node.kids.slice(6, -1).map(tr)));
+                   makeList(node.kids.slice(6, -1).map(tr)));
           }
         },
         'if-expr': function(node) {
           if (node.kids[node.kids.length - 3].name === "ELSE") {
             // (if-expr IF test COLON body branch ... ELSE else END)
             return RUNTIME.getField(ast, 's_if_else')
-              .app(pos(node.pos), RUNTIME.makeList(
+              .app(pos(node.pos), makeList(
                 [RUNTIME.getField(ast, 's_if_branch')
                  .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
                   .concat(node.kids.slice(4, -3).map(tr))),
@@ -560,7 +595,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           } else {
             // (if-expr IF test COLON body branch ... END)
             return RUNTIME.getField(ast, 's_if')
-              .app(pos(node.pos), RUNTIME.makeList(
+              .app(pos(node.pos), makeList(
                 [RUNTIME.getField(ast, 's_if_branch')
                  .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
                   .concat(node.kids.slice(4, -3).map(tr))));
@@ -569,7 +604,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'for-expr': function(node) {
           // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
           return RUNTIME.getField(ast, 's_for')
-            .app(pos(node.pos), tr(node.kids[1]), RUNTIME.makeList(node.kids.slice(3, -5).map(tr)),
+            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -5).map(tr)),
                  tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
         },
         'for-bind-elt': function(node) {
@@ -595,7 +630,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           } else {
             // (lambda-expr FUN ty-params return-ann COLON doc body check END)
             return RUNTIME.getField(ast, 's_lam')
-              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.makeList([]), tr(node.kids[2]),
+              .app(pos(node.pos), tr(node.kids[1]), makeList([]), tr(node.kids[2]),
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
           }
         },
@@ -633,7 +668,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'inst-expr': function(node) {
           // (inst-expr e LANGLE (inst-elt a COMMA) ... alast RANGLE)
           return RUNTIME.getField(ast, 's_instantiate')
-            .app(pos(node.pos), tr(node.kids[0]), RUNTIME.makeList(node.kids.slice(2, -1).map(tr)));
+            .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
         },
         'inst-elt': function(node) {
           // (inst-elt a COMMA)
@@ -656,7 +691,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           } else {
             // (num-expr MINUS n) {
             return RUNTIME.getField(ast, 's_num')
-              .app(pos(node.pos), number(node.kids[0], false));
+              .app(pos(node.pos), number(node.kids[1], false));
           }
         },
         'string-expr': function(node) {
@@ -670,7 +705,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         },
         'name-ann': function(node) {
           if (node.kids[0].value === "Any") {
-            return RUNTIME.getField(ast, 'a_any').app();
+            return RUNTIME.getField(ast, 'a_any');
           } else {
             return RUNTIME.getField(ast, 'a_name')
               .app(pos(node.pos), name(node.kids[0]));
@@ -679,17 +714,17 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
         'record-ann': function(node) {
           // (record-ann LBRACE fields ... RBRACE)
           return RUNTIME.getField(ast, 'a_record')
-            .app(pos(node.pos), RUNTIME.makeList(node.kids.slice(1, -1).map(tr)));
+            .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'arrow-ann': function(node) {
           // (arrow-ann LPAREN args ... THINARROW result RPAREN)
           return RUNTIME.getField(ast, 'a_arrow')
-            .app(pos(node.pos), RUNTIME.makeList(node.kids.slice(1, -3).map(tr)));
+            .app(pos(node.pos), makeList(node.kids.slice(1, -3).map(tr)), tr(node.kids[node.kids.length - 2]));
         },
         'app-ann': function(node) {
           // (app-ann ann LANGLE args ... RANGLE)
           return RUNTIME.getField(ast, 'a_app')
-            .app(pos(node.pos), tr(node.kids[0]), RUNTIME.makeList(node.kids.slice(2, -1).map(tr)));
+            .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
         },
         'pred-ann': function(node) {
           // (pred-ann ann LPAREN exp RPAREN)
@@ -747,20 +782,20 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
       var parsed = G.PyretGrammar.parse(toks);
       console.log("Result:");
       var countParses = G.PyretGrammar.countAllParses(parsed);
-      console.log("There are " + countParses + " potential parses");
+      console.log("There were " + countParses + " potential parses");
       var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
       if (posViolations) {
         console.log("Not all nodes conain their children!");
       } else {
-        if (countParses === 1) {
+        if (countParses[0] === 1) {
           var ast = G.PyretGrammar.constructUniqueParse(parsed);
-          console.log(ast.toString());
+//          console.log(ast.toString());
           return translate(ast, fileName);
         } else {
           var asts = G.PyretGrammar.constructAllParses(parsed);
           for (var i = 0; i < asts.length; i++) {
             console.log("Parse " + i + ": " + asts[i].toString());
-            console.log(("" + asts[i]) === ("" + asts2[i]));
+//            console.log(("" + asts[i]) === ("" + asts2[i]));
           }
           return translate(ast, fileName);
         }
@@ -781,8 +816,8 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'parseFile': RUNTIME.makeFunction(parseFile),
-        'parseData': RUNTIME.makeFunction(parseData)
+        'surface-parse-file': RUNTIME.makeFunction(parseFile),
+        'surface-parse': RUNTIME.makeFunction(parseData)
       }),
       answer: NAMESPACE.get("nothing")
     });

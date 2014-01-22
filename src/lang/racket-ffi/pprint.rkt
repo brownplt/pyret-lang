@@ -168,6 +168,7 @@ sharing:
         end
       else if is-column(pdoc): run(pdoc.func(curcol))
       else if is-nesting(pdoc): run(pdoc.func(indent))
+      else: raise("Unknown case in pprint")
       end
     end
     run(self)
