@@ -718,6 +718,7 @@ define(["./pyret-tokenizer", "./pyret-parser", "./ast", "fs"], function(T, G, as
           return tr(node.kids[0]);
         }
       };
+      return tr(node);
     }
 
     const opLookup = {
