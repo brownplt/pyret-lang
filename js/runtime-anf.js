@@ -244,11 +244,9 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
-    if(!val.dict) { console.log(val.dict); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
-        console.error(val.dict);
         throw makeMessageException("field " + field + " not found.");
     }
     /*else if(isMutable(fieldVal)){
@@ -628,7 +626,7 @@ function PMethod(meth, full_meth) {
     this['full_meth']   = full_meth;
 
     /**@type {number}*/
-    this.arity = full_meth ? full_meth.length : -1;
+    this.arity = full_meth.length;
 
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createMethodDict(); 
