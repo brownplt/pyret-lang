@@ -67,6 +67,25 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
     end)
   fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
   module-id = gensym("mod")
+  namespace-ids = [
+      "test-print",
+      "print",
+      "tostring",
+      "torepr",
+      "brander",
+      "raise",
+      "nothing",
+      "builtins",
+      "is-nothing",
+      "is-number",
+      "is-string",
+      "is-boolean",
+      "is-object",
+      "is-function"
+    ]
+  namespace-binds = for map(n from namespace-ids):
+      j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
+    end
   thunk-app(j-block([
       j-var(module-id, j-null),
       j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
@@ -76,27 +95,9 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
                 j-block([j-return(j-id(module-id))]),
                 j-block([
                     j-assign(module-id, thunk-app(
-                        j-block([
-                            j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)),
-                            j-var(js-id-of("test-print"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("test-print")])),
-                            j-var(js-id-of("print"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("print")])),
-                            j-var(js-id-of("torepr"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("torepr")])),
-                            j-var(js-id-of("tostring"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("tostring")])),
-                            j-var(js-id-of("brander"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("brander")])),
-                            j-var(js-id-of("raise"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("raise")])),
-                            j-var(js-id-of("builtins"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("builtins")])),
-                            j-var(js-id-of("nothing"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("nothing")])),
-                            j-var(js-id-of("is-nothing"),
-                              j-method(J.j-id("NAMESPACE"), "get", [J.j-str("is-nothing")]))
-                          ] +
+                        j-block(
+                          [ j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)) ] +
+                          namespace-binds +
                           for map(id from ids):
                             j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))
                           end +
