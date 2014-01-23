@@ -687,7 +687,6 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
   end
 where:
   p = fun(str): A.surface-parse(str, "test").block;
-  prog = p("var x = 10 x := 5 test-print(x)")
   d = A.dummy-loc
   ds = desugar-expr(mt-d-env, _)
   one = A.s_num(d, 1)
@@ -695,6 +694,7 @@ where:
   b = A.s_bind(d, false, _, A.a_blank)
   equiv = fun(e): A.equiv-ast(_, e) end
 
+  prog = p("var x = 10 x := 5 test-print(x)")
   ds(prog) satisfies
     equiv(A.s_block(d, [
         A.s_let_expr(d, [

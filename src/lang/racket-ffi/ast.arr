@@ -105,6 +105,10 @@ data Program:
           + self.block.tosource()
         )
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Header:
@@ -122,6 +126,10 @@ data Header:
   | s_provide_all(l :: Loc) with:
     label(self): "s_provide_all" end,
     tosource(self): str-provide-star end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data ImportType:
@@ -131,6 +139,10 @@ data ImportType:
   | s_const_import(module :: String) with:
     label(self): "s_const_import" end,
     tosource(self): PP.str(self.module) end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Hint:
@@ -147,6 +159,10 @@ data LetBind:
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data LetrecBind:
@@ -154,6 +170,10 @@ data LetrecBind:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Expr:
@@ -468,32 +488,10 @@ data Expr:
     tosource(self):
       PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
     end
-  | s_update_k(l :: Loc, conts :: Expr, super :: Expr, fields :: List<Member>) with: #Special ast for cpsing, allows you to get the continuations to pass to set
-    label(self): "s_update" end,
-
-  | s_app_k(l :: Loc, conts :: Expr, _fun :: Expr, args :: List<Expr>) with:
-    label(self): "s_app" end,
-    tosource(self):
-      PP.group(self._fun.tosource()
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
-    end
-
-  | s_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
-    label(self): "s_bracket" end,
-    tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(),
-        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
-    end
-
-  | s_colon_bracket_k(l :: Loc, conts :: Expr, obj :: Expr, field :: Expr) with:
-    label(self): "s_colon_bracket" end,
-    tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
-        PP.surround(PP.lbrack, self.field.tosource(), PP.rbrack))
-    end
-  | s_block_k(l :: Loc, conts :: Expr, stmts :: List<Expr>, bindings :: List<Expr>) with:
-    label(self): "s_block" end,
-    tosource(self):
-      PP.flow_map(PP.hardline, _.tosource(), self.stmts) end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Bind:
@@ -509,6 +507,10 @@ data Bind:
         end
       end
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Member:
@@ -538,6 +540,10 @@ data Member:
       funlam_tosource(name-part,
         nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data ForBind:
@@ -546,6 +552,10 @@ data ForBind:
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data VariantMember:
@@ -558,6 +568,10 @@ data VariantMember:
         self.bind.tosource()
       end
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Variant:
@@ -593,6 +607,10 @@ data Variant:
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data DatatypeVariant:
@@ -615,6 +633,10 @@ data DatatypeVariant:
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Constructor:
@@ -627,6 +649,10 @@ data Constructor:
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data IfBranch:
@@ -637,6 +663,10 @@ data IfBranch:
         + PP.nest(2 * INDENT, self.test.tosource() + str-colon)
         + PP.nest(INDENT, break-one + self.body.tosource())
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data CasesBranch:
@@ -649,6 +679,10 @@ data CasesBranch:
             self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
         self.body.tosource())
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data Ann:
@@ -1289,5 +1323,333 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       end
   end
 end
+
+default-map-visitor = {
+  s_program(self, l, imports, body):
+    s_program(l, imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_import(self, l, import_type, name):
+    s_import(l, import_type, name)
+  end,
+  s_provide(self, l, expr):
+    s_provide(l, expr.visit(self))
+  end,
+  s_provide_all(self, l):
+    s_provide_all(l)
+  end,
+
+  s_bind(self, l, shadows, name, ann):
+    s_bind(l, shadows, name, ann)
+  end,
+
+  s_var_bind(self, l, bind, expr):
+    s_var_bind(self, l, bind.visit(self), expr.visit(self))
+  end,
+  s_let_bind(self, l, bind, expr):
+    s_let_bind(self, l, bind.visit(self), expr.visit(self))
+  end,
+
+  s_let_expr(self, l, binds, body):
+    s_let_expr(self, l, binds.map(_.match(self)), body.visit(self))
+  end,
+
+  s_letrec_bind(self, l, bind, expr):
+    s_letrec_bind(self, l, bind.visit(self), expr.visit(self))
+  end,
+
+  s_letrec(self, l, binds, body):
+    s_letrec(self, l, binds.map(_.match(self)), body.visit(self))
+  end,
+
+  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    s_hint_exp(l, hints, exp.visit(self))
+  end,
+
+  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+    s_instantiate(l, expr.visit(self), params)
+  end,
+
+  s_block(self, l, stmts):
+    s_block(l, stmts.map(_.visit(self)))
+  end,
+
+  s_user_block(self, l :: Loc, body :: Expr):
+    s_user_block(l, body.visit(self))
+  end,
+
+  s_fun(self, l, name, params, args, ann, doc, body, _check):
+    s_fun(l, name, params, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+  end,
+
+  s_var(self, l :: Loc, name :: Bind, value :: Expr):
+    s_var(l, name.visit(self), value.visit(self))
+  end,
+
+  s_let(self, l :: Loc, name :: Bind, value :: Expr):
+    s_let(l, name.visit(self), value.visit(self)) 
+  end,
+
+  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
+    s_graph(l, bindings.map(_.match(self)))
+  end,
+
+  s_when(self, l :: Loc, test :: Expr, block :: Expr):
+    s_when(l, test.visit(self), block.visit(self))
+  end,
+
+  s_assign(self, l :: Loc, id :: String, value :: Expr):
+    s_assign(l, id, value.visit(self))
+  end,
+
+  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s_if_branch(l, test.visit(self), body.visit(self))
+  end,
+
+  s_if(self, l :: Loc, branches :: List<IfBranch>):
+    s_if(l, branches.map(_.visit(self)))
+  end,
+  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    s_if_else(l, branches.map(_.visit(self)), _else.visit(self))
+  end,
+
+  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    s_cases_branch(l, name, args.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s_cases(l, type, val.visit(self), branches.map(_.visit(self)))
+  end,
+  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s_cases_else(l, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  end,
+
+  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    s_try(l, body.visit(self), id.visit(self), _except.visit(self))
+  end,
+
+  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s_op(l, op, left.visit(self), right.visit(self))
+  end,
+
+  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s_check_test(l, op, left.visit(self), right.visit(self))
+  end,
+
+  s_not(self, l :: Loc, expr :: Expr):
+    s_not(l, expr.visit(self))
+  end,
+
+  s_paren(self, l :: Loc, expr :: Expr):
+    s_paren(l, expr.visit(self))
+  end,
+
+  s_lam(
+      self,
+      l :: Loc,
+      params :: List<String>,
+      args :: List<Bind>,
+      ann :: Ann,
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+    ):
+    s_lam(l, params, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+  end,
+  s_method(
+      self,
+      l :: Loc,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+    ):
+    s_method(l, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+  end,
+  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s_extend(l, super.visit(self), fields.map(_.visit(self)))
+  end,
+  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s_update(l, super.visit(self), fields.map(_.visit(self)))
+  end,
+  s_obj(self, l :: Loc, fields :: List<Member>):
+    s_obj(l, fields.map(_.visit(self)))
+  end,
+  s_list(self, l :: Loc, values :: List<Expr>):
+    s_list(l, values.map(_.visit(self)))
+  end,
+  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    s_app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+    s_left_app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s_id(self, l :: Loc, id :: String):
+    s_id(l, id)
+  end,
+  s_id_var(self, l :: Loc, id :: String):
+    s_id_var(l, id)
+  end,
+  s_id_letrec(self, l :: Loc, id :: String):
+    s_id_letrec(l, id)
+  end,
+  s_undefined(self, l :: Loc):
+    s_undefined(self)
+  end,
+  s_num(self, l :: Loc, n :: Number):
+    s_num(l, n)
+  end,
+  s_bool(self, l :: Loc, b :: Bool):
+    s_bool(l, b)
+  end,
+  s_str(self, l :: Loc, s :: String):
+    s_str(l, s)
+  end,
+  s_dot(self, l :: Loc, obj :: Expr, field :: String):
+    s_dot(l, obj.visit(self), field)
+  end,
+  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
+    s_get_bang(l, obj.visit(self), field)
+  end,
+  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s_bracket(l, obj.visit(self), field.visit(self))
+  end,
+  s_colon(self, l :: Loc, obj :: Expr, field :: String):
+    s_colon(l, obj.visit(self), field)
+  end,
+  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s_colon_bracket(l, obj.visit(self), field.visit(self))
+  end,
+  s_data(
+      self,
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      mixins :: List<Expr>,
+      variants :: List<Variant>,
+      shared_members :: List<Member>,
+      _check :: Expr
+    ):
+    s_data(
+        l,
+        name,
+        params,
+        mixins.map(_.visit(self)),
+        variants.map(_.visit(self)),
+        shared_members.map(_.visit(self)),
+        _check.visit(self)
+      )
+  end,
+  s_datatype(
+      self,
+      l :: Loc,
+      name :: String ,
+      params :: List<String>, # type params
+      variants :: List<Variant>,
+      _check :: Expr
+    ):
+      s_datatype(
+       self,
+       l,
+       name,
+       params,
+       variants.map(_.match(self)),
+       _check.visit(self)
+      ) 
+  end,
+  s_for(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+    ):
+    s_for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+  end,
+  s_check(self, l :: Loc, body :: Expr):
+    s_check(l, body.visit(self))  
+  end,
+
+  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
+    s_data_field(l, name, value.visit(self))
+  end,
+  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s_mutable_field(l, name, ann, value.visit(self))
+  end,
+  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s_once_field(l, name, ann, value.visit(self))
+  end,
+  s_method_field(
+      self,
+      l :: Loc,
+      name :: Expr,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+    ):
+    s_method_field(
+        l,
+        name,
+        args.map(_.visit(self)),
+        ann,
+        doc,
+        body.visit(self),
+        _check.visit(self)
+      )
+  end,
+
+  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s_for_bind(l, bind.visit(self), value.visit(self))   
+  end,
+  s_variant_member(self, l :: Loc, member_type :: String, bind :: Bind):
+    s_variant_member(l, member_type, bind.visit(self))
+  end,
+  s_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      with_members :: List<Member>
+    ):
+    s_variant(l, name, members.map(_.visit(self)), with_members.map(_.visit(self)))
+  end,
+  s_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      with_members :: List<Member>
+    ):
+    s_singleton_variant(l, name, with_members.map(_.visit(self)))
+  end,
+  s_datatype_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      constructor :: Constructor
+    ):
+    s_datatype_variant(l, name, members.map(_.visit(self)), constructor.visit(self))
+  end,
+  s_datatype_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      constructor :: Constructor
+    ):
+    s_datatype_singleton_variant(l, name, constructor.visit(self))
+  end,
+  s_datatype_constructor(
+      self,
+      l :: Loc,
+      self-arg :: String,
+      body :: Expr
+      ):
+    s_datatype_constructor(l, self-arg, body.visit(self))
+  end
+}
 
 
