@@ -93,9 +93,11 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
 where:
   d = A.dummy-loc
   str = A.s_str(d, _)
-  desugar(A.surface-parse("provide x end x = 10", "test")) satisfies
+  ds = desugar(_, C.no-builtins)
+  ds(A.surface-parse("provide x end x = 10", "test")) satisfies
     A.equiv-ast-prog(_, A.s_program(d, [],
       A.s_block(d, [
+        A.s_block(d, [
           A.s_let_expr(d, [
               A.s_let_bind(d, mk-bind(d, "x"), A.s_num(d, 10))
             ],
@@ -103,13 +105,15 @@ where:
                 A.s_data_field(d, str("answer"), A.s_id(d, "nothing")),
                 A.s_data_field(d, str("provide"), A.s_id(d, "x"))
               ]))
-        ])))
+        ])
+      ])))
 
-  desugar(A.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) satisfies
+  ds(A.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) satisfies
     A.equiv-ast-prog(_, A.s_program(d, [
         A.s_import(d, A.s_file_import("foo.arr"), "F") 
       ],
       A.s_block(d, [
+        A.s_block(d, [
           A.s_let_expr(d, [
               A.s_let_bind(d, mk-bind(d, "x"), A.s_num(d, 10))
             ],
@@ -117,7 +121,8 @@ where:
                 A.s_data_field(d, str("answer"), A.s_app(d, A.s_id(d, "F"), [A.s_id(d, "x")])),
                 A.s_data_field(d, str("provide"), A.s_id(d, "x"))
               ]))
-        ])))
+        ])
+      ])))
 
 end
 
@@ -581,6 +586,8 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           new-stmts = resolve-scope(stmts, [], [])
           A.s_block(l, resolve-scope(stmts, [], []).map(desugar-expr(nv, _)))
       end
+    | s_user_block(l, body) =>
+      desugar-expr(nv, body)
     | s_app(l, f, args) =>
       ds-curry(nv, l, f, args.map(desugar-expr(nv, _)))
     | s_left_app(l, o, f, args) =>
@@ -622,13 +629,13 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_not(l, test) => 
       A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_bool(l, false))], A.s_bool(l, false))
     | s_when(l, test, body) =>
-      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), desugar-expr(nv, body))], A.s_id(l, "nothing"))
+      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [desugar-expr(nv, body), A.s_id(l, "nothing")]))], A.s_block(l, [A.s_id(l, "nothing")]))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
       A.s_if_else(l, branches.map(desugar-if-branch(nv, _)), desugar-expr(nv, _else))
     | s_cases(l, type, val, branches) =>
-      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")]))
+      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_block(l, [A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")])]))
     | s_cases_else(l, type, val, branches, _else) =>
       desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), desugar-expr(nv, _else))
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
@@ -643,7 +650,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       cases(Option) get-arith-op(op):
         | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
         | none =>
-          fun thunk(e): A.s_lam(l, [], [], A.a_blank, "", e, A.s_block(l, [])) end
+          fun thunk(e): A.s_lam(l, [], [], A.a_blank, "", A.s_block(l, [e]), A.s_block(l, [])) end
           fun opbool(fld):
             A.s_app(l, A.s_dot(l, desugar-expr(nv, left), fld), [thunk(desugar-expr(nv, right))])
           end
@@ -682,10 +689,14 @@ where:
   p = fun(str): A.surface-parse(str, "test").block;
   prog = p("var x = 10 x := 5 test-print(x)")
   d = A.dummy-loc
+  ds = desugar-expr(mt-d-env, _)
+  one = A.s_num(d, 1)
+  two = A.s_num(d, 2)
   b = A.s_bind(d, false, _, A.a_blank)
+  equiv = fun(e): A.equiv-ast(_, e) end
 
-  desugar-expr(mt-d-env, prog) satisfies
-    A.equiv-ast(_, A.s_block(d, [
+  ds(prog) satisfies
+    equiv(A.s_block(d, [
         A.s_let_expr(d, [
             A.s_var_bind(d, b("x"), A.s_num(d, 10))
           ],
@@ -694,5 +705,33 @@ where:
               A.s_app(d, A.s_id(d, "test-print"), [A.s_id_var(d, "x")])
             ]))
         ]))
+
+  prog2 = p("[1,2,1 + 2]")
+  ds(prog2) satisfies
+    equiv(p("link(1, link(2, link(1._plus(2), empty)))"))
+
+  prog3 = p("for map(elt from l): elt + 1 end")
+  ds(prog3) satisfies
+    equiv(p("map(fun(elt): elt._plus(1) end, l)"))
+
+  prog4 = p("((5 + 1) == 6) or o^f()")
+  ds(prog4) satisfies
+    equiv(p("builtins.equiv(5._plus(1), 6)._or(fun(): f(o) end)"))
+
+  ds(p("(5)")) satisfies equiv(ds(p("5")))
+
+  prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
+  dsed5 = ds(prog5)
+  cases-name = dsed5.stmts.first.binds.first.b.id
+  compare = (cases-name + " = l " +
+             cases-name + "._match({empty: fun(): 5._plus(4) end, link: fun(f, r): 10 end},
+                                   fun(): raise('no cases matched') end)")
+  dsed5 satisfies equiv(ds(p(compare)))
+
+  prog6 = p("when false: dostuff() end")
+  compare6 = ds(p("if false: block: dostuff() end nothing else: nothing end"))
+  ds(prog6) satisfies equiv(compare6)
+          
+
 end
 
