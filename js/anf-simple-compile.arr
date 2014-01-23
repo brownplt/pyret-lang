@@ -141,8 +141,8 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
                 j-var(js-id-of(b.id), j-obj([j-field("$var", compile-l(e)), j-field("$name", j-str(js-id-of(b.id)))])),
                 compiled-body.stmts))
     | a-if(l, cond, consq, alt) =>
-      compiled-consq = maybe-return(consq)
-      compiled-alt = maybe-return(alt)
+      compiled-consq = j-block([j-return(thunk-app(maybe-return(consq)))])
+      compiled-alt = j-block([j-return(thunk-app(maybe-return(alt)))])
       j-block([
           j-if(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
         ])

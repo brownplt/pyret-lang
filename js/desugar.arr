@@ -627,7 +627,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
         end
       A.s_letrec(l, new-binds, desugar-expr(new-env, body))
     | s_not(l, test) => 
-      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_bool(l, false))], A.s_bool(l, false))
+      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [A.s_bool(l, false)]))], A.s_block(l, [A.s_bool(l, true)]))
     | s_when(l, test, body) =>
       A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [desugar-expr(nv, body), A.s_id(l, "nothing")]))], A.s_block(l, [A.s_id(l, "nothing")]))
     | s_if(l, branches) =>
@@ -731,7 +731,10 @@ where:
   prog6 = p("when false: dostuff() end")
   compare6 = ds(p("if false: block: dostuff() end nothing else: nothing end"))
   ds(prog6) satisfies equiv(compare6)
-          
+
+  prog7 = p("not true")
+  compare7 = ds(p("if true: false else: true end"))
+  ds(prog7) satisfies equiv(compare7)
 
 end
 

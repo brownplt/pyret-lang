@@ -226,8 +226,16 @@ define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "f
             // (binop-expr e)
             return tr(node.kids[0]);
           } else {
-            return RUNTIME.getField(ast, 's_op')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2])); // Op comes first
+            console.log(node);
+            var mkOp = RUNTIME.getField(ast, 's_op').app;
+            var op = tr(node.kids[1]);
+            var expr = mkOp(pos(node.pos), op, tr(node.kids[0]), tr(node.kids[2]))
+            for(var i = 4; i < node.kids.length; i += 2) {
+            console.log("Expr so far:", expr);
+              console.log("Kid we're making the RHS: ", node.kids[i]);
+              expr = mkOp(pos(node.pos), op, expr, tr(node.kids[i]))
+            }
+            return expr;
           }
         },
         'doc-string': function(node) {
@@ -567,8 +575,8 @@ define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "f
         },
         'colon-bracket-expr': function(node) {
           // (colon-bracket-expr obj COLON LBRACK field RBRACK)
-          return RUNTIME.getField(ast, 's_colon')
-            .app(pos(node.pos), tr(node.kids[0]), name(node.kids[3]));
+          return RUNTIME.getField(ast, 's_colon_bracket')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'cases-expr': function(node) {
           if (node.kids[node.kids.length - 4].name === "ELSE") {

@@ -473,7 +473,8 @@ function createStringDict() {
   @return {!PString} with value s
 */
 function makeString(s) {
-   return new PString(s); 
+  if(typeof s !== "string") { throw Error("Non-string given to makeString"); }
+  return new PString(s); 
 }
 
 /*********************
@@ -786,6 +787,9 @@ function createMethodDict() {
         str = String(/**@type {!PString}*/ (val).s);
         str = '"' + str + '"';
       } else if (isObject(val)) {
+        if (val.dict._torepr) {
+          return getField(val, "_torepr").app().s;
+        }
         //todo: invoke a tostring if exists
         str = "";
         var toprint = [];
@@ -977,6 +981,10 @@ function createMethodDict() {
       else { throw makeMessageException("Cannot unwrap yet: " + v); }
     }
 
+    function mkPred(jsPred) {
+      return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
+    }
+
     /********************
 
      *******************/
@@ -1102,7 +1110,12 @@ function createMethodDict() {
           'raise': raise,
           'builtins': builtins,
           'nothing': makeNothing(),
-          'is-nothing': makeFunction(function(v) { return makeBoolean(isNothing(v)); })
+          'is-nothing': mkPred(isNothing),
+          'is-number': mkPred(isNumber),
+          'is-boolean': mkPred(isNumber),
+          'is-string': mkPred(isString),
+          'is-function': mkPred(isFunction),
+          'is-object': mkPred(isObject),
         }),
         'run': run,
 
