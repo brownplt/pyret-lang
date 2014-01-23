@@ -5,7 +5,7 @@ provide *
 import ast as A
 import "ast-anf.arr" as N
 
-fun anf-term(e :: A.Expr):
+fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, fun(x): N.a-lettable(x);)
 end
 
@@ -16,7 +16,7 @@ fun mk-id(loc, base):
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 
-fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)):
+fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
   anf(expr, fun(lettable):
       cases(N.ALettable) lettable:
         | a-val(v) => k(v)
@@ -31,7 +31,7 @@ fun anf-name-rec(
     exprs :: List<A.Expr>,
     name-hint :: String,
     k :: (List<N.AVal> -> N.AExpr)
-  ):
+  ) -> N.AExpr:
   cases(List) exprs:
     | empty => k([])
     | link(f, r) =>
@@ -63,7 +63,7 @@ end
 fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
   fun anf-block-help(es):
     cases (List<A.Expr>) es:
-      | empty => empty
+      | empty => raise("Empty block")
       | link(f, r) =>
         # Note: assuming blocks don't end in let/var here
         if r.length() == 0:
@@ -81,7 +81,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: (N.ALettable -> N.AExpr)):
   anf-block-help(es-init)
 end
 
-fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)):
+fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
   cases(A.Expr) e:
     | s_num(l, n) => k(N.a-val(N.a-num(l, n)))
     | s_str(l, s) => k(N.a-val(N.a-str(l, s)))
