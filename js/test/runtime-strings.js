@@ -153,6 +153,26 @@ beforeEach(function(){
         expect(rt.isNothing(tonumber(empty))).toBe(true); //Special case as Number("") = 0
     });
 
+    it("should have a correct repeat method", function() {
+      var s = rt.makeString("a");
+      var n = rt.makeNumber(4);
+      var zero = rt.makeNumber(0);
+
+      var ssss = rt.getField(s, "repeat").app(n);
+      expect(ssss.s).toEqual("aaaa");
+
+      var mpty = rt.getField(s, "repeat").app(zero);
+      expect(mpty.s).toEqual("");
+    });
+
+    it("should have a correct substring method", function() {
+      var s = rt.makeString("file.arr");
+      var n1 = rt.makeNumber(5);
+      var n2 = rt.makeNumber(8);
+      var sub = rt.getField(s, "substring").app(n1, n2);
+      expect(sub.s).toEqual("arr");
+    });
+
 });
 }
 
