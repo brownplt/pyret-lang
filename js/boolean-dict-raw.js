@@ -50,7 +50,7 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
                     return makeBoolean(result.b);
                 }
                 else {
-                    throw makeMessageException("RHS of 'and' was not a boolean");
+                    throw makeMessageException("RHS of 'or' was not a boolean");
                 }
             },
 
