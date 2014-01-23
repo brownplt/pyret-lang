@@ -696,4 +696,3 @@ where:
         ]))
 end
 
-nothing
