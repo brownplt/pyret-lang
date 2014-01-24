@@ -133,6 +133,28 @@ fun mk-id(loc, base):
   { id: t, id-b: mk-bind(loc, t), id-e: A.s_id(loc, t) }
 end
 
+fun make-torepr(l, vname, fields):
+  self = mk-id(l, "self")
+  fun str(s): A.s_str(l, s) end
+  fun call-torepr(val):
+    A.s_app(l, A.s_id(l, "torepr"), [A.s_dot(l, self.id-e, val.bind.id)])
+  end
+  fun concat(v1, v2):
+    A.s_op(l, "op+", v1, v2)
+  end
+  argstrs = cases(List) fields:
+    | empty => str("")
+    | link(f, r) =>
+      r.foldl(
+          fun(val, acc): concat(acc, concat(str(","), call-torepr(val))) end,
+          call-torepr(f)
+        )
+  end
+  A.s_method(l, [self.id-b], A.a_blank, "",
+    concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
+    A.s_block(l, []))
+end
+
 fun make-match(l, case-name, fields):
   call-match-case = mk-id(l, "call-" + case-name)
   self-id = mk-id(l, "self")
@@ -228,9 +250,10 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
               | s_variant(l2, vname, members, with-members) =>
                 shared-id = gensym(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
+                tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, members))
                 variant-bind-names = members.map(_.bind).map(_.id).map(gensym)
                 [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_extend(l2, A.s_id(l2, sharing-id), [m] + with-members)),
+                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_extend(l2, A.s_id(l2, sharing-id), [m, tr] + with-members)),
                   A.s_letrec_bind(l2, b(l2, vname),
                     A.s_lam(
                         l2,
@@ -245,8 +268,9 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
               | s_singleton_variant(l2, vname, with-members) =>
                 shared-id = gensym(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
+                tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
                 [
-                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, shared-fields-id), [m] + with-members))))
+                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, shared-fields-id), [m,tr] + with-members))))
                 ]
             end
           end

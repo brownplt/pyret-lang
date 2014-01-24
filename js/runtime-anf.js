@@ -790,6 +790,9 @@ function createMethodDict() {
         if (val.dict._torepr) {
           return getField(val, "_torepr").app().s;
         }
+        if (val.dict.tostring) {
+          return getField(val, "tostring").app().s;
+        }
         //todo: invoke a tostring if exists
         str = "";
         var toprint = [];
@@ -837,6 +840,14 @@ function createMethodDict() {
 
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {return makeString(toReprJS(val));});
+    var tostring = makeFunction(function(val) {
+        if(isString(val)) {
+          return makeString(val.s);
+        }
+        else {
+          return makeString(toReprJS(val));
+        }
+      });
 
     var print = makeFunction(
     /**
@@ -1114,7 +1125,7 @@ function createMethodDict() {
     var thisRuntime = {
         'namespace': Namespace({
           'torepr': torepr,
-          'tostring': torepr,
+          'tostring': tostring,
           'test-print': print,
           'print': print,
           'brander': brander,

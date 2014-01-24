@@ -1538,16 +1538,16 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
             cur_tok = next_tok;
           i++;
         }
-        console.log("DONE WITH LOOP, i = " + i 
-                    + ", last token = " + cur_tok.toString(true) + "@" + cur_tok.pos.toString(true));
+//        console.log("DONE WITH LOOP, i = " + i 
+//                    + ", last token = " + cur_tok.toString(true) + "@" + cur_tok.pos.toString(true));
         if (!hasNext) i--;
-        console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
+//        console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
         for (var acc = 0; acc < this.acceptStates.length; acc++) {
           if (this.acceptStates[acc]) {
-            console.log("Searching for " + acc);
+            //console.log("Searching for " + acc);
             var t = this.U[i].itemForKey(acc);
             if (t !== undefined) {
-              console.log("Parse success!");
+              //console.log("Parse success!");
               var link = undefined;
               for (var j = 0; j < t.links.length; j++) {
                 if (t.links[j].prev === v0) {
@@ -1560,7 +1560,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
               } else
                 console.log("Couldn't find correct link in " + JSON.stringify(JSON.decycle(t), null, "  "));
             } else {
-              console.log("Parse failure");
+              //console.log("Parse failure");
             }
           }
         }

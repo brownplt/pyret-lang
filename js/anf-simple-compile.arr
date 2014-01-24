@@ -121,13 +121,14 @@ fun compile-helper(h :: S.Helper) -> J.JStmt:
   end
 end
 
-fun compile-e(expr :: N.AExpr) -> J.JBlock:
-  fun maybe-return(e):
-    cases(N.AExpr) expr:
-      | a-lettable(lettable) => j-block([j-return(compile-l(lettable))])
-      | else => compile-e(e)
-    end
+fun maybe-return(e):
+  cases(N.AExpr) e:
+    | a-lettable(lettable) => j-block([j-return(compile-l(lettable))])
+    | else => compile-e(e)
   end
+end
+
+fun compile-e(expr :: N.AExpr) -> J.JBlock:
   cases(N.AExpr) expr:
     | a-let(l, b, e, body) =>
       compiled-body = maybe-return(body)
@@ -142,13 +143,6 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
       j-block(link(
                 j-var(js-id-of(b.id), j-obj([j-field("$var", compile-l(e)), j-field("$name", j-str(js-id-of(b.id)))])),
                 compiled-body.stmts))
-    | a-if(l, cond, consq, alt) =>
-      compiled-consq = j-block([j-return(thunk-app(maybe-return(consq)))])
-      compiled-alt = j-block([j-return(thunk-app(maybe-return(alt)))])
-      j-block([
-          j-if(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
-        ])
-
     | a-split-app(l, is-var, f, args, name, helper-args) =>
       when is-var: raise("Can't handle splitting on a var yet");
       e = js-id-of("e")
@@ -242,6 +236,11 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
       j-method(j-id("RUNTIME"), "getColonField", [compile-v(obj), j-str(field)])
 
     | a-app(l, f, args) => app(f, args)
+
+    | a-if(l, cond, consq, alt) =>
+      compiled-consq = thunk-app(maybe-return(consq))
+      compiled-alt = thunk-app(maybe-return(alt))
+      j-ternary(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
 
     | a-val(v) => compile-v(v)
     | a-obj(l, fields) => 

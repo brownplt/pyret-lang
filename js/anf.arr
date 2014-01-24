@@ -122,7 +122,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         consq = s-if.branches.first.body
         altern = s-if._else
         anf-name(cond, "anf_if", fun(t):
-            N.a-if(l, t, anf(consq, k), anf(altern, k))
+            k(N.a-if(l, t, anf-term(consq), anf-term(altern)))
           end)
       else:
         anf(_else, k)

@@ -36,7 +36,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         return lst;
       }
       function name(tok) { return RUNTIME.makeString(tok.value); }
-      function string(tok) { return RUNTIME.makeString(tok.value); } // I'm pretty sure the tokenizer strips off quotes
+      function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); } // I'm pretty sure the tokenizer strips off quotes
       function number(tok, positive) { 
         if (positive)
           return RUNTIME.makeNumberFromString(tok.value); 
@@ -603,7 +603,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
               .app(pos(node.pos), makeList(
                 [RUNTIME.getField(ast, 's_if_branch')
                  .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
-                  .concat(node.kids.slice(4, -3).map(tr))));
+                  .concat(node.kids.slice(4, -1).map(tr))));
           }
         },
         'for-expr': function(node) {
@@ -785,12 +785,12 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
       // while (toks.hasNext())
       //   console.log(toks.next().toString(true));
       var parsed = G.PyretGrammar.parse(toks);
-      console.log("Result:");
+      //console.log("Result:");
       var countParses = G.PyretGrammar.countAllParses(parsed);
-      console.log("There were " + countParses + " potential parses");
+      //console.log("There were " + countParses + " potential parses");
       var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
       if (posViolations) {
-        console.log("Not all nodes conain their children!");
+        console.error("Not all nodes conain their children!");
       } else {
         if (countParses[0] === 1) {
           var ast = G.PyretGrammar.constructUniqueParse(parsed);
@@ -799,7 +799,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         } else {
           var asts = G.PyretGrammar.constructAllParses(parsed);
           for (var i = 0; i < asts.length; i++) {
-            console.log("Parse " + i + ": " + asts[i].toString());
+            //console.log("Parse " + i + ": " + asts[i].toString());
 //            console.log(("" + asts[i]) === ("" + asts2[i]));
           }
           return translate(ast, fileName);
