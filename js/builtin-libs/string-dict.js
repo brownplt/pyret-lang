@@ -1,6 +1,13 @@
 
-define(["../namespace"], function(Namespace) {
+define(["../namespace", "builtin-libs/list"], function(Namespace, L) {
   return function(RUNTIME, NAMESPACE) {
+    function makeList(arr) {
+      var lst = RUNTIME.getField(L, "empty");
+      for(var i = arr.length - 1; i >= 0; i--) {
+        lst = RUNTIME.getField(L, "link").app(arr[i], lst); 
+      }
+      return lst;
+    }
     var unwrap = RUNTIME.unwrap;
     function ImmutableStringDict(d) {
       this.d = d;
@@ -54,7 +61,7 @@ define(["../namespace"], function(Namespace) {
               var s = unwrap(str);
               return stringDictObj(RUNTIME.getField(self, "the-dict").val.set(s, val));
             }),
-          'keys': RUNTIME.makeMethodFromFun(function(self, str, val) {
+          'keys': RUNTIME.makeMethodFromFun(function(self) {
               throw RUNTIME.makeMessageException("Cannot get keys of dict yet");
             })
         });
@@ -63,9 +70,15 @@ define(["../namespace"], function(Namespace) {
     return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
           'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
-          'to-dict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot to-dict yet"); }),
+          'to-dict': RUNTIME.makeFunction(function(dict) {
+              RUNTIME.checkIf(dict, RUNTIME.isObject);
+              var fields = RUNTIME.getFields(dict);
+              var ns = Namespace({});
+              fields.forEach(function(f) { ns = ns.set(f, RUNTIME.getField(dict, f)); });
+              return stringDictObj(new ImmutableStringDict(ns));
+            }),
           'immutable-string-dict': RUNTIME.makeFunction(function() {
-              return stringDictObj(Namespace({}));
+              return stringDictObj(new ImmutableStringDict(Namespace({})));
             }),
           'string-dict': RUNTIME.makeFunction(function() {
               throw RUNTIME.makeMessageException("Cannot string-dict yet");
