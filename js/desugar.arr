@@ -8,6 +8,10 @@ data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
 end
 
+data Pair:
+  | pair(left, right)
+end
+
 mt-d-env = d-env(set([]), set([]), set([]))
 
 fun extend-id(nv :: DesugarEnv, id :: String):
@@ -501,10 +505,6 @@ fun is-underscore(e):
   A.is-s_id(e) and (e.id == "_")
 end
 
-data Pair:
-  | pair(left, right)
-end
-
 fun ds-curry-args(l, args):
   params-and-args = for fold(acc from pair([], []), arg from args):
       if is-underscore(arg):
@@ -702,7 +702,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | s_list(l, elts) =>
-      elts.foldr(fun(elt, list-expr): A.s_app(l, A.s_id(l, "link"), [desugar-expr(nv, elt), list-expr]) end, A.s_id(l, "empty"))
+      elts.foldr(fun(elt, list-expr): A.s_app(l, desugar-expr(nv, A.s_id(l, "link")), [desugar-expr(nv, elt), list-expr]) end, desugar-expr(nv, A.s_id(l, "empty")))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
     | s_check(l, _) => A.s_str(l, "check mode not yet working (check block)")

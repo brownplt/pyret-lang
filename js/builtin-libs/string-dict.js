@@ -1,10 +1,11 @@
 
 define(["../namespace", "builtin-libs/list"], function(Namespace, L) {
   return function(RUNTIME, NAMESPACE) {
+    var list = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
     function makeList(arr) {
-      var lst = RUNTIME.getField(L, "empty");
+      var lst = RUNTIME.getField(list, "empty");
       for(var i = arr.length - 1; i >= 0; i--) {
-        lst = RUNTIME.getField(L, "link").app(arr[i], lst); 
+        lst = RUNTIME.getField(list, "link").app(arr[i], lst); 
       }
       return lst;
     }
@@ -49,20 +50,21 @@ define(["../namespace", "builtin-libs/list"], function(Namespace, L) {
           'has-key': RUNTIME.makeMethodFromFun(function(self, str) {
               RUNTIME.checkIf(str, RUNTIME.isString);
               var s = unwrap(str); 
-              return RUNTIME.makeBoolean(RUNTIME.getField(self, "the-dict").val.hasBinding(s));
+              return RUNTIME.makeBoolean(RUNTIME.getField(self, "the-dict").val.d.hasBinding(s));
             }),
           'get': RUNTIME.makeMethodFromFun(function(self, str) {
               RUNTIME.checkIf(str, RUNTIME.isString);
               var s = unwrap(str); 
-              return RUNTIME.getField(self, "the-dict").val.get(s);
+              return RUNTIME.getField(self, "the-dict").val.d.get(s);
             }),
           'set': RUNTIME.makeMethodFromFun(function(self, str, val) {
               RUNTIME.checkIf(str, RUNTIME.isString);
               var s = unwrap(str);
-              return stringDictObj(RUNTIME.getField(self, "the-dict").val.set(s, val));
+              return stringDictObj(new ImmutableStringDict(RUNTIME.getField(self, "the-dict").val.d.set(s, val)));
             }),
           'keys': RUNTIME.makeMethodFromFun(function(self) {
-              throw RUNTIME.makeMessageException("Cannot get keys of dict yet");
+              var dict = RUNTIME.getField(self, "the-dict");
+              return makeList(dict.val.d.getNames().map(RUNTIME.makeString));
             })
         });
     }

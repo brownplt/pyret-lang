@@ -247,6 +247,7 @@ function getField(val, field) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
+        console.log(val, fieldVal);
         throw makeMessageException("field " + field + " not found.");
     }
     /*else if(isMutable(fieldVal)){
@@ -736,6 +737,7 @@ function createMethodDict() {
     */
     function checkIf(val, test) {
         if(!test(val)) {
+            console.log(val);
             throw makeMessageException("Pyret Type Error: " + test)
         }
         return true;

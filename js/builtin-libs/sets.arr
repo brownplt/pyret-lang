@@ -184,7 +184,6 @@ data Set:
 
       member(self, elem :: Any) -> Bool:
         doc: 'Check to see if an element is in a set.'
-        less-than-check(elem)
         self.elems.contains(elem)
       #where:
       #  sets.tree-set([1, 2, 3]).member(2) is true
@@ -193,7 +192,6 @@ data Set:
 
       add(self, elem :: Any) -> Set:
         doc: "Add an element to the set if it is not already present."
-        less-than-check(elem)
         tree-set(self.elems.insert(elem))
       #where:
       #  sets.tree-set([]).add(1) is sets.tree-set([1])
@@ -204,7 +202,6 @@ data Set:
 
       remove(self, elem :: Any) -> Set:
         doc: "Remove an element from the set if it is present."
-        less-than-check(elem)
         tree-set(self.elems.remove(elem))
       #where:
       #  sets.tree-set([1, 2]).remove(18) is sets.tree-set([1, 2])

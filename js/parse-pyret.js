@@ -36,7 +36,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         return lst;
       }
       function name(tok) { return RUNTIME.makeString(tok.value); }
-      function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); } // I'm pretty sure the tokenizer strips off quotes
+      function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
       function number(tok, positive) { 
         if (positive)
           return RUNTIME.makeNumberFromString(tok.value); 
@@ -68,13 +68,13 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         },
         'import-name': function(node) {
           // (import-name NAME)
-          return RUNTIME.getField(ast, 'import_name')
-            .app(pos(node.pos), name(node.kids[0]))
+          return RUNTIME.getField(ast, 's_const_import')
+            .app(name(node.kids[0]))
         },
         'import-string': function(node) {
           // (import-string STRING)
-          return RUNTIME.getField(ast, 'import_string')
-            .app(pos(node.pos), string(node.kids[0]))
+          return RUNTIME.getField(ast, 's_file_import')
+            .app(string(node.kids[0]))
         },
         'block': function(node) {
           // (block stmts ...)

@@ -2,10 +2,12 @@
 define(["builtin-libs/list"], function(L) {
 
   return function(RUNTIME, NAMESPACE) {
-    // Stolen from https://github.com/dyoo/whalesong/blob/master/whalesong/js-assembler/runtime-src/baselib-format.js
+    // Stolen from https://github.com/dyoo/whalesong/blob/master\
+    // /whalesong/js-assembler/runtime-src/baselib-format.js
     var formatRegexp1 = new RegExp('~[sSaA]', 'g');
     var formatRegexp2 = new RegExp("~[sSaAnevE%~]", "g");
-    L = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
+    var Lval = L(RUNTIME, NAMESPACE);
+    var list = RUNTIME.getField(Lval, "provide");
     
     // format: string [X ...] string -> string
     // String formatting.  If an exception occurs, throws
@@ -15,7 +17,8 @@ define(["builtin-libs/list"], function(L) {
             functionName = functionName || 'format';
             var matches = formatStr.match(formatRegexp1);
             var expectedNumberOfArgs = (matches === null ? 0 : matches.length);
-            var errorStrBuffer = [functionName + ': format string requires ' + expectedNumberOfArgs
+            var errorStrBuffer = [functionName + ': format string requires '
+                                  + expectedNumberOfArgs
                                   + ' arguments, given ' + args.length + '; arguments were:',
                                   toWrittenString(formatStr)];
             var i;
@@ -72,10 +75,10 @@ define(["builtin-libs/list"], function(L) {
 
     function listToArr(lst) {
       var arr = [];
-      if(!(RUNTIME.unwrap(RUNTIME.getField(L, "List").app(lst)))) {
+      if(!(RUNTIME.unwrap(RUNTIME.getField(list, "List").app(lst)))) {
         throw new Error("Expected list in listToArr, but got something else");
       }
-      while(!(RUNTIME.unwrap(RUNTIME.getField(L, "is-empty").app(lst)))) {
+      while(!(RUNTIME.unwrap(RUNTIME.getField(list, "is-empty").app(lst)))) {
         arr.push(RUNTIME.getField(lst, "first"));
         lst = RUNTIME.getField(lst, "rest");
       }

@@ -13,7 +13,7 @@ define(["builtin-libs/list"], function(L) {
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
         "command-line-arguments": RUNTIME.makeFunction(function() {
-          return makeList(process.argv);
+          return makeList(process.argv.slice(2).map(RUNTIME.makeString));
         }),
       }),
       answer: NAMESPACE.get("nothing")

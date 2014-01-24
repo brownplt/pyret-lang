@@ -130,14 +130,14 @@ macro method{
 
         return #{
           $mkMeth(
-          (function ($me, $params (,) ...) 
-            $new_body 
-          ),
           (function ($me) {
             return function($params (,) ...) {
             $new_body 
              }
-          }))
+          }),
+          (function ($me, $params (,) ...) 
+            $new_body 
+          ))
         }
       }
 

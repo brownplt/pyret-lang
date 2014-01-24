@@ -4,5 +4,5 @@ to_compile=("compile.arr" "pyret.arr" "js-of-pyret.arr" "anf.arr" "ast-anf.arr" 
 
 for i in ${to_compile[@]}; do
   echo "Compiling $i"
-  raco pyret --no-checks pyret.arr --compile-module-js $i > $i.js
+  raco pyret --allow-shadow --no-checks pyret.arr --compile-module-js $i > $i.js
 done

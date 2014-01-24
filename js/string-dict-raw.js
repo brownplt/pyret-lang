@@ -1,5 +1,5 @@
 var jsnums = require('./js-numbers/src/js-numbers.js');
-define(["./js-numbers/src/js-numbers"], function(jsnums) {
+define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
 
   function getBaseStringDict(rt) {
       //Grab the stuff we need from the runtime
@@ -46,6 +46,46 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
           },
 
           /**@type {PMethod}*/
+          'replace' : 
+          /**
+            @param {!PString} str
+            @param {!PString} replacee
+            @param {!PBoolean} replacand 
+            @return {!PBase}
+          */
+          method(str, replacee, replacand) {
+              checkIf(str, isString);
+              checkIf(replacee, isString);
+              checkIf(replacand, isString);
+              return makeString(str.s.replace(replacee.s, replacand.s));
+          },
+
+          /**@type {PMethod}*/
+          'split' : 
+          /**
+            @param {!PString} str
+            @param {!PString} splitstr
+            @param {!PBoolean} repeated 
+            @return {!PBase}
+          */
+          method(str, splitstr, repeated) {
+              checkIf(str, isString);
+              checkIf(splitstr, isString);
+
+              var list = rt.getField(require("builtin-libs/list")(rt, rt.namespace), "provide");
+              function makeList(arr) {
+                var lst = rt.getField(list, "empty");
+                for(var i = arr.length - 1; i >= 0; i--) {
+                  lst = rt.getField(list, "link").app(arr[i], lst); 
+                }
+                return lst;
+              }
+
+              return makeList(str.s.split(splitstr.s).map(rt.makeString));
+          },
+
+
+          /**@type {PMethod}*/
           'contains' : 
           /**
             @param {!PString} left
@@ -72,7 +112,7 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
           
               //TODO: Handle bignums that are beyond javascript
               // TODO(joe): This should be jsnums.toFixnum, no?
-              return makeString(String(str.s.charAt(n.n.toFixnum())));
+              return makeString(String(str.s.charAt(jsnums.toFixnum(n.n))));
           },
 
           /**@type {PMethod}*/
@@ -186,8 +226,8 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
             @return {!PBoolean}
           */
           method(left, right) {
-              checkIf(left, isNumber);
-              checkIf(right, isNumber);
+              checkIf(left, isString);
+              checkIf(right, isString);
 
               return makeBoolean(left.s < right.s);
           },
@@ -200,8 +240,8 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
             @return {!PBoolean}
           */
           method(left, right) {
-              checkIf(left, isNumber);
-              checkIf(right, isNumber);
+              checkIf(left, isString);
+              checkIf(right, isString);
 
               return makeBoolean(left.s > right.s);
           },
@@ -213,8 +253,8 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
             @return {!PBoolean}
           */
           method(left, right) {
-              checkIf(left, isNumber);
-              checkIf(right, isNumber);
+              checkIf(left, isString);
+              checkIf(right, isString);
 
               return makeBoolean(left.s <= right.s);
           },
@@ -226,8 +266,8 @@ define(["./js-numbers/src/js-numbers"], function(jsnums) {
             @return {!PBoolean}
           */
           method(left, right) {
-              checkIf(left, isNumber);
-              checkIf(right, isNumber);
+              checkIf(left, isString);
+              checkIf(right, isString);
 
               return makeBoolean(left.s >= right.s);
           }

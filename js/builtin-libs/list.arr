@@ -142,7 +142,14 @@ data List:
       else:
          tostring(self.first)
       end
-    end
+    end,
+    split-at(self, n): split-at(n, self) end,
+    take(self, n): split-at(n, self).prefix end,
+    drop(self, n): split-at(n, self).suffix end,
+
+    get(self, n): get-help(self, n) end,
+    set(self, n, e): set-help(self, n, e) end,
+
 
 sharing:
   push(self, elt):

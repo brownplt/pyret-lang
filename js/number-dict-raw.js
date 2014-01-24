@@ -217,6 +217,53 @@ define(["./js-numbers/src/js-numbers"], function (jsnums) {
             method(me) {
                 checkIf(me, isNumber);
                 return makeNumberBig(jsnums.atan(me.n));
+            },
+
+            /**@type {PMethod}*/
+            'max' : 
+            /**
+               @param {!PNumber} me
+               @param {!PNumber} other
+               @return {!PNumber}
+            */
+            method(me, other) {
+                checkIf(me, isNumber);
+                checkIf(other, isNumber);
+                var n1 = me.n;
+                var n2 = other.n;
+                if (jsnums.greaterThanOrEqual(n1, n2)) {
+                  return me;
+                } else {
+                  return other;
+                }
+            },
+            /**@type {PMethod}*/
+            'min' : 
+            /**
+               @param {!PNumber} me
+               @param {!PNumber} other
+               @return {!PNumber}
+            */
+            method(me, other) {
+                checkIf(me, isNumber);
+                checkIf(other, isNumber);
+                var n1 = me.n;
+                var n2 = other.n;
+                if (jsnums.lessThanOrEqual(n1, n2)) {
+                  return me;
+                } else {
+                  return other;
+                }
+            },
+            /**@type {PMethod}*/
+            'abs' : 
+            /**
+               @param {!PNumber} me
+               @return {!PNumber}
+            */
+            method(me) {
+                checkIf(me, isNumber);
+                return makeNumberBig(jsnums.abs(me.n));
             }
         }
     }

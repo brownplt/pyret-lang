@@ -56,7 +56,12 @@ standard-builtins = compile-env(
             "is-some",
             "none",
             "some"
-         ],
-        error: []
+          ],
+        error: [],
+        sets: [
+            "set",
+            "tree-set",
+            "list-set"
+          ]
       })
   )
