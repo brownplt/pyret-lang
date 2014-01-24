@@ -963,7 +963,7 @@ function createMethodDict() {
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
         checkIf(base, isString);
-        return RUNTIME.makeString(unwrap(base) + String(gensymCounter++))
+        return makeString(unwrap(base) + String(gensymCounter++))
       });
 
     /** type {!PBase} */
