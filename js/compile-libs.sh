@@ -2,7 +2,7 @@
 
 for i in builtin-libs/*.arr; do
   js=${i%.arr}
-  if [[ $js =~ list|option|error ]]; then
+  if [[ $js =~ list|option|error|set ]]; then
     LIB="-library"
   else
     LIB=""

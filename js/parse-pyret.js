@@ -1,4 +1,4 @@
-define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "fs"], function(L, ast, srcloc, T, G, fs) {
+define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser", "fs"], function(L, ast, srcloc, T, G, fs) {
   return function(RUNTIME, NAMESPACE) {
     L = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
     srcloc = RUNTIME.getField(srcloc(RUNTIME, NAMESPACE), "provide");
@@ -30,7 +30,7 @@ define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "f
       }
       function makeList(arr) {
         var lst = RUNTIME.getField(L, "empty");
-        for(var i = 0; i < arr.length; i++) {
+        for(var i = arr.length - 1; i >= 0; i--) {
           lst = RUNTIME.getField(L, "link").app(arr[i], lst); 
         }
         return lst;
@@ -226,13 +226,10 @@ define(["./list", "./ast", "./srcloc", "./pyret-tokenizer", "./pyret-parser", "f
             // (binop-expr e)
             return tr(node.kids[0]);
           } else {
-            console.log(node);
             var mkOp = RUNTIME.getField(ast, 's_op').app;
             var op = tr(node.kids[1]);
-            var expr = mkOp(pos(node.pos), op, tr(node.kids[0]), tr(node.kids[2]))
+            var expr = mkOp(pos(node.pos), op, tr(node.kids[0]), tr(node.kids[2]));
             for(var i = 4; i < node.kids.length; i += 2) {
-            console.log("Expr so far:", expr);
-              console.log("Kid we're making the RHS: ", node.kids[i]);
               expr = mkOp(pos(node.pos), op, expr, tr(node.kids[i]))
             }
             return expr;

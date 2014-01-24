@@ -56,6 +56,9 @@ fun main(args):
                 check-mode : check-mode
               }
             )
+          else:
+            print(C.usage-info(options).join-str("\n"))
+            raise("Unknown command line options")
           end
 
         cases(CS.CompileResult) result:

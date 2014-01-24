@@ -3,11 +3,12 @@
 provide *
 import file as F
 import ast as A
+import parse-pyret as PP
 import "js-of-pyret.arr" as P
 import "compile-structs.arr" as C
 
 fun compile-js(code, name, libs, options):
-  ast = A.surface-parse(code, name)
+  ast = PP.surface-parse(code, name)
   P.make-compiled-pyret(ast, libs)
 end
 

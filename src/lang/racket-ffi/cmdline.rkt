@@ -29,12 +29,12 @@ provide {
   is-arg-error: is-arg-error
 } end
 
-import Racket as R
+import cmdline-lib as CL
 import format as F
 import string-dict as D
 format = F.format
 
-all-cmdline-params = R("pyret/parameters")("command-line-arguments")
+all-cmdline-params = CL.command-line-arguments()
 file-name = all-cmdline-params.first
 other-args = all-cmdline-params.rest
 

@@ -4,6 +4,7 @@ provide *
 import "ast-anf.arr" as N
 import "ast-split.arr" as S
 import "js-ast.arr" as J
+import string-dict as D
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -41,13 +42,13 @@ j-null = J.j-null
 j-parens = J.j-parens
 
 js-id-of = block:
-  var js-ids = {}
+  var js-ids = D.immutable-string-dict()
   fun(id :: String):
-    if builtins.has-field(js-ids, id):
-      js-ids.[id]
+    if js-ids.has-key(id):
+      js-ids.get(id)
     else: no-hyphens = id.replace("-", "_DASH_")
       safe-id = gensym(no-hyphens)
-      js-ids := js-ids.{ [id]: safe-id }
+      js-ids := js-ids.set(id, safe-id)
       safe-id
     end
   end
@@ -81,7 +82,8 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
       "is-string",
       "is-boolean",
       "is-object",
-      "is-function"
+      "is-function",
+      "gensym"
     ]
   namespace-binds = for map(n from namespace-ids):
       j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))

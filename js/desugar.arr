@@ -61,7 +61,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
         A.s_obj(l, [])
       else if len == 1:
         provides.first.block
-      else if len > 1:
+      else:
         raise("More than one provide")
       end
       with-provides = cases(A.Expr) body:

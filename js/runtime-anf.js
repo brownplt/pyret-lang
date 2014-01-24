@@ -846,7 +846,12 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
-        var repr = toReprJS(val);
+        if (isString(val)) {
+          var repr = val.s;
+        }
+        else {
+          var repr = toReprJS(val);
+        }
         theOutsideWorld.stdout(repr + "\n");
         return val;
     });
@@ -954,6 +959,12 @@ function createMethodDict() {
       }
     };
     var sameP = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
+
+    var gensymCounter = Math.floor(Math.random() * 1000);
+    var gensym = makeFunction(function(base) {
+        checkIf(base, isString);
+        return RUNTIME.makeString(unwrap(base) + String(gensymCounter++))
+      });
 
     /** type {!PBase} */
     var builtins = makeObject({
@@ -1116,6 +1127,7 @@ function createMethodDict() {
           'is-string': mkPred(isString),
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
+          'gensym': gensym
         }),
         'run': run,
 
@@ -1125,6 +1137,7 @@ function createMethodDict() {
         'isCont'      : isCont,
 
         'getField'    : getField,
+        'getFields'    : getFields,
         'getColonField'    : getColonField,
 
         'isPyretTrue' : isPyretTrue,
@@ -1154,6 +1167,8 @@ function createMethodDict() {
         'makeMethodFromFun' : makeMethodFromFun,
         'makeObject'   : makeObject,
         'makeOpaque'   : makeOpaque,
+
+        'toReprJS' : toReprJS,
 
         'same' : same,
         'wrap' : wrap,
