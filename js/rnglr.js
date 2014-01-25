@@ -1568,6 +1568,7 @@ define(["./cyclicJSON"], function(cycle) {
     },
 
     constructAllParses: function(sppfNode, semActions) {
+      if (sppfNode === undefined) return undefined;
       if (sppfNode.label instanceof Token) {
         return [sppfNode.label];
       }
@@ -1605,6 +1606,7 @@ define(["./cyclicJSON"], function(cycle) {
     },
 
     countAllParses: function(sppfNode) {
+      if (sppfNode === undefined) return 0;
       var todo = [[[sppfNode]]]; // stack of alternate lists of children
       var count = [[[]], [[]]]; // stack of sums of factors
       while (todo.length > 0) {
@@ -1644,6 +1646,7 @@ define(["./cyclicJSON"], function(cycle) {
     },
 
     constructUniqueParse: function(sppfNode, semActions) {
+      if (sppfNode === undefined) return undefined;
       // Each stack item is a pair {todo, done}, where todo is a list of children
       // in reverse order (so that pop goes from left-to-right in actual tree order)
       // and done is a list of children in tree order
