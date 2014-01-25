@@ -1,0 +1,94 @@
+<html>
+<head>
+<script data-main="web-compile.arr" src="require.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+</head>
+
+<body>
+
+<textarea id="thepyret" width="80em" height="100%">
+
+</textarea>
+
+<button id="runthepyret">
+Run
+</button>
+
+<div id="theoutput">
+
+</div>
+</body>
+
+<script>
+$(function() {
+  require([
+      "builtin-libs/sets",
+      "builtin-libs/error",
+      "builtin-libs/option",
+      "builtin-libs/list",
+      "runtime-anf",
+      "compile-structs.arr",
+      "web-compile.arr"
+    ], function(sets, error, option, list, rt, cs, wc, shim) {
+
+    var oldDefine = define;
+    
+    function OMGBADIDEA(name, src) {
+      var define = function(libs, fun) {
+        oldDefine(name, libs, fun);
+      }
+      eval(src);
+    }
+    var myRT = rt.makeRuntime({
+      stdout: function(s) {
+        console.log(s);
+        $("#theoutput").append($("<pre>").text(s));
+      } 
+    });
+    function getExports(lib) {
+      return myRT.getField(lib(myRT, myRT.namespace), "provide");
+    }
+    function s(str) { return myRT.makeString(str); }
+    function gf(obj, fld) { return myRT.getField(obj, fld); }
+    var myCS = getExports(cs);
+    var myWC = getExports(wc);
+
+    function run(src, onDone) {
+      var name = "anon" + Math.floor(Math.random() * 10000000);
+      var myCR = gf(gf(myWC, "compile-js").app(
+          s(src),
+          s(name),
+          gf(myCS, "standard-builtins"),
+          { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
+        ), "pyret-to-js-runnable").app();
+
+
+      if(myRT.unwrap(gf(myCS, "is-ok").app(myCR))) {
+        var jscode = myRT.unwrap(gf(myCR, "code"))
+        console.log(jscode);
+      }
+      else {
+        console.log(myCR);
+        throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
+      }
+
+      OMGBADIDEA(name, jscode); 
+      require([name], function(a) {
+        console.log("Fun is:", a);
+        myRT.run(a, myRT.namespace, onDone);
+      });
+    }
+
+    $("#runthepyret").click(function() {
+      run($("#thepyret").val(), function(result) {
+          console.log(result);           
+        });
+    });
+  });
+});
+</script>
+
+<script>
+</script>
+
+</html>

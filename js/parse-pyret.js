@@ -1,4 +1,4 @@
-define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser", "fs"], function(L, ast, srcloc, T, G, fs) {
+define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser"], function(L, ast, srcloc, T, G) {
   return function(RUNTIME, NAMESPACE) {
     L = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
     srcloc = RUNTIME.getField(srcloc(RUNTIME, NAMESPACE), "provide");
@@ -807,11 +807,6 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
       }
     }
     
-    function parseFile(file) {
-      RUNTIME.checkIf(file, RUNTIME.isString);
-      var fileName = RUNTIME.unwrap(file);
-      return parseDataRaw(fs.readFileSync(fileName, {encoding: "utf-8"}), fileName);
-    }
     function parseData(data, fileName) {
       RUNTIME.checkIf(data, RUNTIME.isString);
       RUNTIME.checkIf(fileName, RUNTIME.isString);
@@ -821,7 +816,6 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'surface-parse-file': RUNTIME.makeFunction(parseFile),
         'surface-parse': RUNTIME.makeFunction(parseData)
       }),
       answer: NAMESPACE.get("nothing")

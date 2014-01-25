@@ -1,4 +1,4 @@
-define(["assert", "./cyclicJSON"], function(assert, cycle) {
+define(["./cyclicJSON"], function(cycle) {
   function SrcLoc(startRow, startCol, startChar, endRow, endCol, endChar) {
     this.startRow = startRow;
     this.startCol = startCol;
@@ -24,7 +24,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
     return ret;
   }
   SrcLoc.prototype.combine = function(that, inPlace) {
-    assert.notEqual(that, undefined, "Can't combine " + this + " with undefined");
+    //assert.notEqual(that, undefined, "Can't combine " + this + " with undefined");
     if (inPlace) {
       if (this.startChar > that.startChar) {
         this.startChar = that.startChar;
@@ -339,7 +339,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
     this.type = "Reduce";
     this.rule = rule;
     this.f = f;
-    assert.notEqual(f, undefined, "Bad f value for rule " + rule);
+    //assert.notEqual(f, undefined, "Bad f value for rule " + rule);
     this.key = rule.id + "#" + f
   }
   ReduceAction.prototype = Object.create(Action.prototype);
@@ -622,7 +622,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
     if (len === 0) {
       callback({labels: [], leftSib: this}); 
     } else {
-      assert(this.links.length > 0, "Can't find any paths of length " + len + " from " + this)
+      //assert(this.links.length > 0, "Can't find any paths of length " + len + " from " + this)
       for (var i = 0; i < this.links.length; i++)
         pathLengthHelp(this.links[i], len, [], [this.toString()], callback);
     }
@@ -636,7 +636,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
       callback({labels: labels, leftSib: link.prev}); 
     } else {
       var prev_links = link.prev.links;
-      assert(prev_links.length > 0, "Can't find any paths of length " + len + " from " + this)
+      //assert(prev_links.length > 0, "Can't find any paths of length " + len + " from " + this)
       for (var i = 0; i < prev_links.length; i++)
         pathLengthHelp(prev_links[i], len - 1, labels, stack, callback);
     }
@@ -647,8 +647,8 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
 
   var allowNull = false;
   function SPPFNode(label, pos) {
-    if (!allowNull)
-      assert(pos !== undefined && pos !== null);
+    //if (!allowNull)
+      //assert(pos !== undefined && pos !== null);
     this.sppfId = SPPFNode.NextId++;
     this.label = label;
     this.pos = pos;
@@ -725,7 +725,7 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
           if (tableRow[atom].accept)
             newRow[atom].accept = true;
           if (tableRow[atom].push) {
-            assert.equal(newRow[atom].push, undefined, "Already have a push action for atom " + atom);
+            //assert.equal(newRow[atom].push, undefined, "Already have a push action for atom " + atom);
             newRow[atom].push = tableRow[atom].push;
           }
           if (tableRow[atom].reductions) {
@@ -1041,8 +1041,8 @@ define(["assert", "./cyclicJSON"], function(assert, cycle) {
             for (var j = 0; j < name_rule.symbols.length; j++) {
               if (name_rule.symbols[j] instanceof Nonterm) {
                 changed = merge(name, name_rule.symbols[j]) || changed;
-                if (this.nontermFirst[name_rule.symbols[j]] === undefined)
-                  assert(false, "Couldn't find a nontermFirst for " + name_rule.symbols[j]);
+                //if (this.nontermFirst[name_rule.symbols[j]] === undefined)
+                  //assert(false, "Couldn't find a nontermFirst for " + name_rule.symbols[j]);
                 this.nontermFirst[name].merge(this.nontermFirst[name_rule.symbols[j]]);
                 if (this.first[name_rule.symbols[j]][EPSILON] !== EPSILON) {
                   allNullable = false;

@@ -1,4 +1,3 @@
-var jsnums = require('./js-numbers/src/js-numbers.js');
 define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
 
   function getBaseStringDict(rt) {
@@ -57,7 +56,7 @@ define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
               checkIf(str, isString);
               checkIf(replacee, isString);
               checkIf(replacand, isString);
-              return makeString(str.s.replace(replacee.s, replacand.s));
+              return makeString(str.s.replace(new RegExp(replacee.s,'g'), replacand.s));
           },
 
           /**@type {PMethod}*/
@@ -111,7 +110,6 @@ define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
               checkIf(n, isNumber);
           
               //TODO: Handle bignums that are beyond javascript
-              // TODO(joe): This should be jsnums.toFixnum, no?
               return makeString(String(str.s.charAt(jsnums.toFixnum(n.n))));
           },
 
@@ -270,7 +268,7 @@ define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
               checkIf(right, isString);
 
               return makeBoolean(left.s >= right.s);
-          }
+          } 
       };
   }
   return {getBaseStringDict: getBaseStringDict};
