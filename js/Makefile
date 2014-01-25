@@ -1,21 +1,29 @@
-build: sweeten compile
+build: sweeten compile compiler
+
+compiler:
+	raco make pyret.arr
+	bash copy-libs.sh
+	bash compile-libs.sh
+	bash compile-compiler.sh
 
 COMPILER = java -jar closure-compiler/compiler.jar
 SWEETENER = node node_modules/sweet.js/bin/sjs
+BI = builtin-libs
+PYRET_PARSER = $(BI)/pyret-parser-comp.js
 
 #Compiles/Minimizes the Files
 #Performs type checking using JSDoc's
-compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js pyret-parser-comp.js
+compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js $(PYRET_PARSER)
 	$(COMPILER) --js runtime-anf.js --js_output_file anf-comp.js --warning_level VERBOSE --externs externs.js
 	$(COMPILER) --js namespace.js --js_output_file namespace-comp.js --warning_level VERBOSE --externs externs.js
 	$(COMPILER) --js number-dict-sweet.js --js_output_file number-dict.js --externs externs.js
 	$(COMPILER) --js string-dict-sweet.js --js_output_file string-dict.js --externs externs.js
 	$(COMPILER) --js boolean-dict-sweet.js --js_output_file boolean-dict.js --externs externs.js
 
-pyret-parser-comp.js: bnf-grammar.js grammar-full.rkt
-	node bnf-grammar.js
-	node grammar.js
-	$(COMPILER) --js pyret-parser.js --js_output_file pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
+$(PYRET_PARSER): bnf-grammar.js grammar-full.rkt
+	node bnf-grammar.js $(BI)/grammar.js
+	node $(BI)/grammar.js $(BI)/pyret-parser.js
+	$(COMPILER) --js $(BI)/pyret-parser.js --js_output_file $(BI)/pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
 
 #Expand all macros
 sweeten: number-dict-raw.js string-dict-raw.js
