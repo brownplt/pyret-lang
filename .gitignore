@@ -29,13 +29,17 @@ js/number-dict.js
 js/string-dict.js
 js/boolean-dict.js
 js/*.arr.js
+js/builtin-libs/ast.arr
 js/builtin-libs/ast.js
+js/builtin-libs/cmdline.arr
 js/builtin-libs/cmdline.js
 js/builtin-libs/error.js
+js/builtin-libs/file.arr
 js/builtin-libs/file.js
 js/builtin-libs/grammar.js
 js/builtin-libs/list.js
 js/builtin-libs/option.js
+js/builtin-libs/pprint.arr
 js/builtin-libs/pprint.js
 js/builtin-libs/pyret-parser-comp.js
 js/builtin-libs/sets.js
