@@ -300,8 +300,31 @@ data Expr:
       PP.group(_try + _except + str-end)
     end
   | s_op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+    # This should be left-associated, always.
     label(self): "s_op" end,
-    tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
+    tosource(self):
+      fun collect-same-operands(exp):
+        if is-s_op(exp) and (exp.op == self.op):
+          collect-same-operands(exp.left) + collect-same-operands(exp.right)
+        else:
+          [exp]
+        end
+      end
+      operands = collect-same-operands(self.left) + collect-same-operands(self.right)
+      cases(List) operands:
+        | empty => PP.mt-doc
+        | link(first, rest) =>
+          cases(List) rest:
+            | empty => first.tosource()
+            | link(second, rest2) =>
+              op = break-one + PP.str(self.op.substring(2, self.op.length())) + break-one
+              nested = for list.fold(acc from second.tosource(), operand from rest2):
+                acc + PP.group(op + operand.tosource())
+              end
+              PP.group(first.tosource() + PP.nest(INDENT, nested))
+          end
+      end
+    end
   | s_check_test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
   | s_not(l :: Loc, expr :: Expr) with:
