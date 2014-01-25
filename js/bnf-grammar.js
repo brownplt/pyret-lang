@@ -1,6 +1,6 @@
 const R = require('requirejs');
 
-R(['./rnglr', './tokenizer', 'fs'], function(E, T, fs) {
+R(['./builtin-libs/rnglr', './builtin-libs/tokenizer', 'fs'], function(E, T, fs) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
@@ -190,7 +190,8 @@ R(['./rnglr', './tokenizer', 'fs'], function(E, T, fs) {
     console.log("Found " + parses.length + " parses");
     // console.log(parses[0].toString());
     var bnfJS = generateGrammar(parses[0], grammar_name);
-    var out = fs.createWriteStream("grammar.js");
+    var filename = process.argv[2];
+    var out = fs.createWriteStream(filename);
     out.write("const R = require('requirejs');\n\n");
     out.write("R(['fs', './rnglr', './pyret-tokenizer'], function(fs, E, T) {\n");
     out.write("  const Grammar = E.Grammar\n");
@@ -208,7 +209,8 @@ R(['./rnglr', './tokenizer', 'fs'], function(E, T, fs) {
     out.write("      console.log(cycles[i]);\n");
     out.write("  }\n");
     out.write("  var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
-    out.write("  var out = fs.createWriteStream('pyret-parser.js');\n");
+    out.write("  var filename = process.argv[2];\n");
+    out.write("  var out = fs.createWriteStream(filename);\n");
 
     out.write("  out.write(\"define(['./rnglr'],\\n\");\n");
     out.write("  out.write(\"/** @param {{Grammar : {fromSerializable : !Function}, Nonterm : !Object, Token : !Object, Rule : !Object}} E */\\n\");\n");
