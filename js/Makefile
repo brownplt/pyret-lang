@@ -26,7 +26,7 @@ $(PYRET_PARSER): bnf-grammar.js grammar-full.rkt
 	$(COMPILER) --js $(BI)/pyret-parser.js --js_output_file $(BI)/pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
 
 #Expand all macros
-sweeten: number-dict-raw.js string-dict-raw.js
+sweeten: number-dict-raw.js string-dict-raw.js boolean-dict-raw.js
 	$(SWEETENER) -o number-dict-sweet.js number-dict-raw.js -m ./macros.js
 	$(SWEETENER) -o string-dict-sweet.js string-dict-raw.js -m ./macros.js
 	$(SWEETENER) -o boolean-dict-sweet.js boolean-dict-raw.js -m ./macros.js
