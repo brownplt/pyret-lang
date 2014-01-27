@@ -67,7 +67,6 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
       end
     end)
   fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
-  module-id = gensym("mod")
   namespace-ids = [
       "test-print",
       "print",
@@ -88,28 +87,28 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
   namespace-binds = for map(n from namespace-ids):
       j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
     end
-  thunk-app(j-block([
-      j-var(module-id, j-null),
-      j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
-          j-return(j-fun(["RUNTIME", "NAMESPACE"],
+  module-id = gensym("mod")
+  rt-field = fun(name): j-dot(j-id("RUNTIME"), name);
+  module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
+  j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
+      j-return(j-fun(["RUNTIME", "NAMESPACE"],
+        j-block([
+          j-if(module-ref(module-id),
+            j-block([j-return(module-ref(module-id))]),
             j-block([
-              j-if(j-id(module-id),
-                j-block([j-return(j-id(module-id))]),
-                j-block([
-                    j-assign(module-id, thunk-app(
-                        j-block(
-                          [ j-var(js-id-of("EXN_STACKHEIGHT"), j-num(0)) ] +
-                          namespace-binds +
-                          for map(id from ids):
-                            j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))
-                          end +
-                          prog.helpers.map(compile-helper) +
-                          [compile-e(prog.body)]))),
-                     j-return(j-id(module-id))
-                   ]))
-               ])))
-        ]))])
-      ]))
+                j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
+                   j-block(
+                     [ j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0)) ] +
+                     namespace-binds +
+                     for map(id from ids):
+                       j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))
+                     end +
+                     prog.helpers.map(compile-helper) +
+                     [compile-e(prog.body)]))),
+                j-return(module-ref(module-id))
+              ]))
+           ])))
+    ]))])
 end
 
 fun helper-name(s :: String): "$HELPER_" + js-id-of(s);
