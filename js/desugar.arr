@@ -275,7 +275,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
                 tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
                 [
-                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, shared-fields-id), [m,tr] + with-members))))
+                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, sharing-id), [m,tr] + with-members))))
                 ]
             end
           end
@@ -534,6 +534,17 @@ where:
 #  ds-ed satisfies
 end
 
+fun ds-curry-binop(s, e1, e2, rebuild):
+  params-and-args = ds-curry-args(s, [e1, e2])
+  params = params-and-args.left
+  cases(List) params:
+    | empty => rebuild(e1, e2)
+    | link(f, r) =>
+      curry-args = params-and-args.right
+      A.s_lam(s, [], params, A.a_blank, "", rebuild(curry-args.first, curry-args.rest.first), A.s_block(s, []))
+  end
+end
+
 fun ds-curry(nv, l, f, args):
   fun fallthrough():
     params-and-args = ds-curry-args(l, args)
@@ -683,11 +694,17 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
             A.s_app(l, A.s_dot(l, desugar-expr(nv, left), fld), [thunk(desugar-expr(nv, right))])
           end
           if op == "op==":
-            A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)])
+            ds-curry-binop(l, desugar-expr(nv, left), desugar-expr(nv, right),
+                fun(e1, e2):
+                  A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [e1, e2])
+                end)
           else if op == "op<>":
             A.s_if_else(l,
               [A.s_if_branch(l,
-                A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [desugar-expr(nv, left), desugar-expr(nv, right)]),
+                ds-curry-binop(l, desugar-expr(nv, left), desugar-expr(nv, right),
+                    fun(e1, e2):
+                      A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [e1, e2])
+                    end),
                 A.s_bool(l, false))],
               A.s_bool(l, true))
           else if op == "opor": opbool("_or")

@@ -53,6 +53,7 @@
      'prim-keys
      'prim-num-keys
      'print
+     'display
      'raise
      'tostring
      'torepr

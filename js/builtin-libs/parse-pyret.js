@@ -1,8 +1,8 @@
-define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser"], function(L, ast, srcloc, T, G) {
+define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser"], function(listLib, astLib, srclocLib, T, G) {
   return function(RUNTIME, NAMESPACE) {
-    L = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
-    srcloc = RUNTIME.getField(srcloc(RUNTIME, NAMESPACE), "provide");
-    ast = RUNTIME.getField(ast(RUNTIME, NAMESPACE), "provide");
+    var L = RUNTIME.getField(listLib(RUNTIME, NAMESPACE), "provide");
+    var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
+    var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs

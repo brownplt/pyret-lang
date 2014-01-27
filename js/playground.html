@@ -20,6 +20,9 @@ Run
 </body>
 
 <script>
+require.config({
+  waitSeconds: 1000
+});
 $(function() {
   require([
       "builtin-libs/sets",
@@ -34,12 +37,14 @@ $(function() {
     var oldDefine = define;
     
     function OMGBADIDEA(name, src) {
+      "use strict";
       var define = function(libs, fun) {
         oldDefine(name, libs, fun);
       }
       eval(src);
     }
     var myRT = rt.makeRuntime({
+      initialGas: 1000,
       stdout: function(s) {
         console.log(s);
         $("#theoutput").append($("<pre>").text(s));
@@ -74,7 +79,6 @@ $(function() {
 
       OMGBADIDEA(name, jscode); 
       require([name], function(a) {
-        console.log("Fun is:", a);
         myRT.run(a, myRT.namespace, onDone);
       });
     }

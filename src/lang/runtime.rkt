@@ -163,6 +163,7 @@
       loc-list))
   (rename-out [p-pi pi]
               [print-pfun print]
+              [display-pfun display]
               [tostring-pfun tostring]
               [torepr-pfun torepr]
               [brander-pfun brander]
@@ -1075,6 +1076,17 @@ And the object was:
     o))
 
 (define print-pfun (pλ/internal (loc) (o) (pyret-print o)))
+
+(define (pyret-display o)
+  (define str
+    (cond
+      [(p-str? o) (p-str-s o)]
+      [else (to-repr o)]))
+  (begin
+    (printf "~a" str)
+    o))
+
+(define display-pfun (pλ/internal (loc) (o) (pyret-display o)))
 
 (define (truncate-str str n) (substring str 0 (min n (string-length str))))
 

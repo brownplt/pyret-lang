@@ -1,7 +1,7 @@
 #lang whalesong
 
 (require
-  (except-in whalesong/lang/whalesong raise pi else gensym)
+  (except-in whalesong/lang/whalesong raise pi else gensym display)
   "runtime.rkt"
   )
 

@@ -244,8 +244,10 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
+//    console.trace();
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
+        console.log(fieldVal);
         //TODO: Throw field not found error
         throw makeMessageException("field " + field + " not found.");
     }
@@ -736,6 +738,7 @@ function createMethodDict() {
     */
     function checkIf(val, test) {
         if(!test(val)) {
+            console.log(val);
             throw makeMessageException("Pyret Type Error: " + test)
         }
         return true;
@@ -788,10 +791,24 @@ function createMethodDict() {
         str = '"' + str + '"';
       } else if (isObject(val)) {
         if (val.dict._torepr) {
-          return getField(val, "_torepr").app().s;
+          return thisRuntime.safeCall(
+            function() {
+              return getField(val, "_torepr").app()
+            },
+            function(val) { return val.s; },
+            {
+              "src": "internal"
+            });
         }
         if (val.dict.tostring) {
-          return getField(val, "tostring").app().s;
+          return thisRuntime.safeCall(
+            function() {
+              return getField(val, "tostring").app()
+            },
+            function(val) { return val.s; },
+            {
+              "src": "internal"
+            });
         }
         //todo: invoke a tostring if exists
         str = "";
@@ -857,16 +874,28 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
+        display.app(val);
+        theOutsideWorld.stdout("\n");
+        return val;
+    });
+
+    var display = makeFunction(
+    /**
+      Prints the value to the world by passing the repr to stdout
+      @param {!PBase} val
+
+      @return {!PBase} the value given in
+    */
+       function(val){
         if (isString(val)) {
           var repr = val.s;
         }
         else {
           var repr = toReprJS(val);
         }
-        theOutsideWorld.stdout(repr + "\n");
+        theOutsideWorld.stdout(repr);
         return val;
     });
-
     /********************
          Exceptions
      *******************/
@@ -1058,6 +1087,43 @@ function createMethodDict() {
     function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
 
+    function safeCall(fun, after, stackFrame) {
+      var result;
+      try {
+        if (thisRuntime.GAS-- > 0) {
+          result = fun();
+        }
+        else {
+          thisRuntime.EXN_STACKHEIGHT = 0;
+          throw thisRuntime.makeCont({
+              go: function(ignored) {
+                return fun();
+              }
+            });
+        }
+      }
+      catch(e) {
+        if (isCont(e)) {
+          e.stack[thisRuntime.EXN_STACKHEIGHT++] = {
+              go: function(retval) {
+                return after(retval);
+              },
+              captureExn: function(e) {
+                e.pyretStack.push(stackFrame);
+              }
+            };
+          throw e;
+        }
+        else if (isPyretException(e)) {
+          e.pyretStack.push(stackFrame);
+          throw e;
+        }
+        else {
+          throw e;
+        }
+      }
+      return after(result);
+    }
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, onDone) {
@@ -1115,7 +1181,7 @@ function createMethodDict() {
         }
       }
       thisRuntime.GAS = INITIAL_GAS;
-      setTimeout(iter, 0);
+      iter();
     }
 
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
@@ -1128,6 +1194,7 @@ function createMethodDict() {
           'tostring': tostring,
           'test-print': print,
           'print': print,
+          'display': display,
           'brander': brander,
           'raise': raise,
           'builtins': builtins,
@@ -1141,8 +1208,9 @@ function createMethodDict() {
           'gensym': gensym
         }),
         'run': run,
+        'safeCall': safeCall,
 
-        'GAS': 0,
+        'GAS': INITIAL_GAS,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,
@@ -1189,7 +1257,9 @@ function createMethodDict() {
 
         'checkIf'      : checkIf,
         'makeMessageException'      : makeMessageException,
-        'serial' : Math.random()
+        'serial' : Math.random(),
+
+        'modules' : Object.create(null)
     };
 
     //Create the dictionaries 

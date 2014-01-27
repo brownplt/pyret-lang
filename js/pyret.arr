@@ -49,7 +49,8 @@ fun main(args):
               }
             )
           else if r.has-key("compile-module-js"):
-            CM.compile-runnable-js-file(
+            CM.compile-js(
+              F.file-to-string(r.get("compile-module-js")),
               r.get("compile-module-js"),
               libs,
               {
@@ -61,10 +62,11 @@ fun main(args):
             raise("Unknown command line options")
           end
 
-        cases(CS.CompileResult) result:
-          | ok(code) => print(code)
-          | err(message) => raise(result)
-        end
+        result.print-js-runnable(display)
+        #cases(CS.CompileResult) result:
+        #  | ok(code) => print(code)
+        #  | err(message) => raise(result)
+        #end
       end
     | arg-error(message, partial) =>
       print(C.usage-info(options).join-str("\n"))

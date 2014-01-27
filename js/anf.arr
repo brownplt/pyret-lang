@@ -4,6 +4,7 @@ provide *
 
 import ast as A
 import "ast-anf.arr" as N
+import "gensym.arr" as G
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, fun(x): N.a-lettable(x);)
@@ -12,7 +13,7 @@ end
 fun bind(l, id): N.a-bind(l, id, A.a_blank);
 
 fun mk-id(loc, base):
-  t = gensym(base)
+  t = G.make-name(base)
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 

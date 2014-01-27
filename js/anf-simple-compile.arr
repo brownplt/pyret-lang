@@ -4,6 +4,7 @@ provide *
 import "ast-anf.arr" as N
 import "ast-split.arr" as S
 import "js-ast.arr" as J
+import "gensym.arr" as G
 import string-dict as D
 
 j-fun = J.j-fun
@@ -27,11 +28,9 @@ j-bracket = J.j-bracket
 j-field = J.j-field
 j-dot-assign = J.j-dot-assign
 j-bracket-assign = J.j-bracket-assign
-j-raw-holes = J.j-raw-holes
 j-try-catch = J.j-try-catch
 j-throw = J.j-throw
 j-expr = J.j-expr
-j-raw = J.j-raw
 j-binop = J.j-binop
 j-eq = J.j-eq
 j-unop = J.j-unop
@@ -47,7 +46,7 @@ js-id-of = block:
     if js-ids.has-key(id):
       js-ids.get(id)
     else: no-hyphens = id.replace("-", "_DASH_")
-      safe-id = gensym(no-hyphens)
+      safe-id = G.make-name(no-hyphens)
       js-ids := js-ids.set(id, safe-id)
       safe-id
     end
@@ -70,6 +69,7 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
   namespace-ids = [
       "test-print",
       "print",
+      "display",
       "tostring",
       "torepr",
       "brander",
@@ -87,7 +87,7 @@ fun compile(prog :: S.SplitResult, headers :: List<N.AHeader>) -> J.JExpr:
   namespace-binds = for map(n from namespace-ids):
       j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
     end
-  module-id = gensym("mod")
+  module-id = G.make-name("mod")
   rt-field = fun(name): j-dot(j-id("RUNTIME"), name);
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
@@ -144,15 +144,15 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
                 compiled-body.stmts))
     | a-split-app(l, is-var, f, args, name, helper-args) =>
       when is-var: raise("Can't handle splitting on a var yet");
-      e = js-id-of("e")
-      z = js-id-of("z")
-      ss = js-id-of("ss")
-      ret = js-id-of("ret")
+      e = js-id-of(G.make-name("e"))
+      z = js-id-of(G.make-name("z"))
+      ss = js-id-of(G.make-name("ss"))
+      ret = js-id-of(G.make-name("ret"))
       body =
         j-if(j-binop(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-decr), J.j-gt, j-num(0)),
           j-block([j-expr(j-assign(z, app(f, args)))]),
           j-block([
-              j-expr(j-assign(js-id-of("EXN_STACKHEIGHT"), j-num(0))),
+              j-expr(j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0))),
               j-throw(j-method(j-id("RUNTIME"), "makeCont", 
                   [j-obj([j-field("go",
                           j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))])))])]))]))
@@ -174,7 +174,7 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
                               helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))])))] + 
                   helper-ids.map(fun(a): j-field(a, j-id(a)) end))),
               j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                  j-unop(j-id(js-id-of("EXN_STACKHEIGHT")), J.j-postincr), j-id(ss))),
+                  j-unop(j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
               #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
               j-throw(j-id(e))]),
           j-block([
@@ -239,7 +239,7 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
     | a-if(l, cond, consq, alt) =>
       compiled-consq = thunk-app(maybe-return(consq))
       compiled-alt = thunk-app(maybe-return(alt))
-      j-ternary(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
+      j-parens(j-ternary(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt))
 
     | a-val(v) => compile-v(v)
     | a-obj(l, fields) => 
