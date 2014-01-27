@@ -156,8 +156,7 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
-  to-set(self :: List): list-to-set(self) end
+  _plus(self :: List, other :: List): self.append(other) end
 
 end
 fun get-help(lst, n :: Number):

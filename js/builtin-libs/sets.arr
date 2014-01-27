@@ -12,6 +12,8 @@ import error as error
 import option as option
 
 List = list.List
+empty = list.empty
+link = list.link
 
 # SETS
 
