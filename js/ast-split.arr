@@ -13,11 +13,6 @@ data SplitResult:
   | split-result-l(helpers :: List<Helper>, body :: N.ALettable, freevars :: Set<String>)
 end
 
-fun create-helper(id :: String, e :: N.AExpr) -> Helper:
-  fv = freevars-e(e).remove(id)
-  helper(gensym(id), link(id, fv.to-list()), e)
-end
-
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
   for fold(unioned from set([]), s from ss):
     unioned.union(s)
@@ -30,12 +25,10 @@ fun freevars-e(expr :: N.AExpr) -> Set<String>:
       freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-var(_, b, e, body) =>
       freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-if(_, c, t, e) =>
-      freevars-v(c).union(freevars-e(t)).union(freevars-e(e))
     | a-try(_, body, b, c) =>
       freevars-e(c).remove(b.id).union(freevars-e(body))
-    | a-split-app(_, _, f, args, _, helper-args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v))))
+    | a-split-app(_, _, f, args, name, helper-args) =>
+      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
     | a-lettable(e) => freevars-l(e)
   end
 where:
@@ -43,7 +36,6 @@ where:
   freevars-e(
       N.a-let(d, N.a-bind(d, "x", A.a_blank), N.a-val(N.a-num(d, 4)),
         N.a-lettable(N.a-val(N.a-id(d, "y"))))).to-list() is ["y"]
-
 end
 
 fun freevars-l(e :: N.ALettable) -> Set<String>:
@@ -54,6 +46,8 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-lam(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(set(args.map(_.id)))
     | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
+    | a-if(_, c, t, e) =>
+      freevars-v(c).union(freevars-e(t)).union(freevars-e(e))
     | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
     | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
     | a-dot(_, obj, _) => freevars-v(obj)
@@ -77,12 +71,12 @@ fun ast-split(expr :: N.AExpr) -> SplitResult:
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         rest-split = ast-split(body)
-        fvs = rest-split.freevars
+        fvs = rest-split.freevars.remove(b.id)
         h = helper(gensym(b.id), link(b.id, fvs.to-list()), rest-split.body)
         split-result-e(
             link(h, rest-split.helpers),
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),
-            fvs.union(unions(args.map(freevars-v))).union(freevars-v(f))
+            fvs.remove(b.id).union(unions(args.map(freevars-v))).union(freevars-v(f))
           )
       | else =>
         e-split = ast-split-lettable(e)
@@ -94,7 +88,7 @@ fun ast-split(expr :: N.AExpr) -> SplitResult:
             else:
               N.a-let(l, b, e-split.body, rest-split.body)
             end,
-            e-split.freevars.union(rest-split.freevars)
+            e-split.freevars.union(rest-split.freevars.remove(b.id))
           )
     end
   end
@@ -103,14 +97,6 @@ fun ast-split(expr :: N.AExpr) -> SplitResult:
       handle-bind(l, false, b, e, body)
     | a-var(l, b, e, body) =>
       handle-bind(l, true, b, e, body)
-    | a-if(l, cond, consq, alt) =>
-      consq-result = ast-split(consq)
-      alt-result = ast-split(alt)
-      split-result-e(
-          consq-result.helpers + alt-result.helpers,
-          N.a-if(l, cond, consq-result.body, alt-result.body),
-          consq-result.freevars.union(alt-result.freevars).union(freevars-v(cond))
-        )
     | a-lettable(e) =>
       let-result = ast-split-lettable(e)
       split-result-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
@@ -133,6 +119,14 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-l:
           body-split.helpers,
           N.a-method(l, args, body-split.body),
           body-split.freevars.difference(set(args.map(_.id)))
+        )
+    | a-if(l, cond, consq, alt) =>
+      consq-split = ast-split(consq)
+      alt-split = ast-split(alt)
+      split-result-l(
+          consq-split.helpers + alt-split.helpers,
+          N.a-if(l, cond, consq-split.body, alt-split.body),
+          freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
     | else =>
       split-result-l([], e, freevars-l(e))
