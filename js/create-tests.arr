@@ -33,7 +33,8 @@ fun generate-output(filename):
   stderr = F.output-file(err-file-of(filename), false)
   var the-output = ""
   fun capturing-print(val):
-    the-output := the-output + torepr(val) + "\n"
+    str = if is-string(val): val else: torepr(val);
+    the-output := the-output + str + "\n"
     val
   end
   env = N.whalesong-env.{test-print: capturing-print}
@@ -108,6 +109,7 @@ end
 var tests-with-errors = []
 
 fun create-jasmine-test(path, name, program, libs, expected-out, expected-err):
+  print("Compiling: " + name)
   compiled = P.compile-runnable-js(program, name, libs, { check-mode : false, extra-ids: ["test-print"] })
   cases(CS.CompileResult) compiled:
     | err(message) => tests-with-errors := (tests-with-errors + [{name: name, compiled: compiled}])
@@ -150,7 +152,6 @@ r(['../../../runtime-anf'], function(R) {
 });
     ", [name, expected-out, expected-err, code])
 
-      print("Contents: " + contents)
       gen-path = "generated-tests/" + path + "/"
       gdir = D.dir(gen-path)
       when not gdir.exists(): gdir.create();

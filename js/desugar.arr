@@ -3,6 +3,7 @@
 provide *
 import ast as A
 import "compile-structs.arr" as C
+import "gensym.arr" as G
 
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
@@ -133,7 +134,7 @@ end
 fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
 
 fun mk-id(loc, base):
-  t = gensym(base)
+  t = G.make-name(base)
   { id: t, id-b: mk-bind(loc, t), id-e: A.s_id(loc, t) }
 end
 
@@ -252,10 +253,10 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
             end
             cases(A.Variant) v:
               | s_variant(l2, vname, members, with-members) =>
-                shared-id = gensym(vname)
+                shared-id = G.make-name(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
                 tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, members))
-                variant-bind-names = members.map(_.bind).map(_.id).map(gensym)
+                variant-bind-names = members.map(_.bind).map(_.id).map(G.make-name)
                 [
                   A.s_letrec_bind(l2, b(l2, shared-id), A.s_extend(l2, A.s_id(l2, sharing-id), [m, tr] + with-members)),
                   A.s_letrec_bind(l2, b(l2, vname),
@@ -270,7 +271,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                       ))
                 ]
               | s_singleton_variant(l2, vname, with-members) =>
-                shared-id = gensym(vname)
+                shared-id = G.make-name(vname)
                 m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
                 tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
                 [
@@ -278,18 +279,18 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
                 ]
             end
           end
-          main-brand-id = gensym(name)
-          shared-fields-id = gensym(name + "-shared")
+          main-brand-id = G.make-name(name)
+          shared-fields-id = G.make-name(name + "-shared")
           variant-names = variants.map(_.name)
-          name-ids = variant-names.map(gensym)
+          name-ids = variant-names.map(G.make-name)
           fun mk-brander(id):
-            A.s_let_bind(l, b(l, id), A.s_app(l, A.s_id(l, "brander"), []))
+            A.s_letrec_bind(l, b(l, id), A.s_app(l, A.s_id(l, "brander"), []))
           end
           fun tester(target, brander-id):
-            A.s_let_bind(l, b(l, target), A.s_dot(l, A.s_id(l, brander-id), "test"))
+            A.s_letrec_bind(l, b(l, target), A.s_dot(l, A.s_id(l, brander-id), "test"))
           end
 
-          data-let-binds = link(
+          data-initial-binds = link(
               mk-brander(main-brand-id),
               name-ids.map(mk-brander) +
                 link(
@@ -305,9 +306,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           data-with-sharing =  data-letrec-binds + [
               A.s_letrec_bind(l, A.s_bind(l, false, shared-fields-id, A.a_blank), A.s_obj(l, shared))
             ]
-          [wrapper(
-              A.s_let_expr(l, data-let-binds,
-                A.s_block(l, resolve-scope(rest-stmts, [], data-with-sharing))))]
+          [wrapper(A.s_block(l, resolve-scope(rest-stmts, [], data-with-sharing + data-initial-binds.reverse())))]
 
         | else =>
           cases(List) rest-stmts:
