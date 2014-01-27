@@ -306,7 +306,12 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           data-with-sharing =  data-letrec-binds + [
               A.s_letrec_bind(l, A.s_bind(l, false, shared-fields-id, A.a_blank), A.s_obj(l, shared))
             ]
-          [wrapper(A.s_block(l, resolve-scope(rest-stmts, [], data-with-sharing + data-initial-binds.reverse())))]
+          all-new-binds = data-with-sharing + data-initial-binds.reverse()
+          if is-empty(letrec-binds):
+            [wrapper(A.s_block(l, resolve-scope(rest-stmts, [], all-new-binds)))]
+          else:
+            resolve-scope(rest-stmts, [], all-new-binds + letrec-binds)
+          end
 
         | else =>
           cases(List) rest-stmts:
