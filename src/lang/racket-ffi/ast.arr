@@ -1367,22 +1367,22 @@ default-map-visitor = {
   end,
 
   s_var_bind(self, l, bind, expr):
-    s_var_bind(self, l, bind.visit(self), expr.visit(self))
+    s_var_bind(l, bind.visit(self), expr.visit(self))
   end,
   s_let_bind(self, l, bind, expr):
-    s_let_bind(self, l, bind.visit(self), expr.visit(self))
+    s_let_bind(l, bind.visit(self), expr.visit(self))
   end,
 
   s_let_expr(self, l, binds, body):
-    s_let_expr(self, l, binds.map(_.match(self)), body.visit(self))
+    s_let_expr(l, binds.map(_.visit(self)), body.visit(self))
   end,
 
   s_letrec_bind(self, l, bind, expr):
-    s_letrec_bind(self, l, bind.visit(self), expr.visit(self))
+    s_letrec_bind(l, bind.visit(self), expr.visit(self))
   end,
 
   s_letrec(self, l, binds, body):
-    s_letrec(self, l, binds.map(_.match(self)), body.visit(self))
+    s_letrec(l, binds.map(_.visit(self)), body.visit(self))
   end,
 
   s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
@@ -1402,7 +1402,7 @@ default-map-visitor = {
   end,
 
   s_fun(self, l, name, params, args, ann, doc, body, _check):
-    s_fun(l, name, params, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+    s_fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
   end,
 
   s_var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -1414,7 +1414,7 @@ default-map-visitor = {
   end,
 
   s_graph(self, l :: Loc, bindings :: List<is-s_let>):
-    s_graph(l, bindings.map(_.match(self)))
+    s_graph(l, bindings.map(_.visit(self)))
   end,
 
   s_when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -1477,7 +1477,7 @@ default-map-visitor = {
       body :: Expr,
       _check :: Expr
     ):
-    s_lam(l, params, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+    s_lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
   end,
   s_method(
       self,
@@ -1488,7 +1488,7 @@ default-map-visitor = {
       body :: Expr,
       _check :: Expr
     ):
-    s_method(l, args.visit(self), ann, doc, body.visit(self), _check.visit(self))
+    s_method(l, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
   end,
   s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     s_extend(l, super.visit(self), fields.map(_.visit(self)))
@@ -1577,7 +1577,7 @@ default-map-visitor = {
        l,
        name,
        params,
-       variants.map(_.match(self)),
+       variants.map(_._match(self)),
        _check.visit(self)
       ) 
   end,
