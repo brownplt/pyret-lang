@@ -91,7 +91,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
             return makeList([]);
           } else {
             // (data-with WITH fields)
-            return makeList(node.kids[1].kids.map(tr));
+            return tr(node.kids[1]);
           }
         },
         'data-variant': function(node) {
@@ -739,7 +739,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
           return RUNTIME.getField(ast, 'a_dot')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            .app(pos(node.pos), name(node.kids[0]), name(node.kids[2]));
         },
         'ann': function(node) {
           // (ann a)
