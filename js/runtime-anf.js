@@ -217,7 +217,6 @@ function foldFields(obj, f, init) {
   @return {!Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
 */
 function copyDict(dict) {
-    if(typeof dict === "undefined") { console.trace(); }
     return Object.create(dict);
 }
 
