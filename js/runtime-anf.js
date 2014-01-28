@@ -82,7 +82,7 @@ function extendWith(fields) {
     var allNewFields = true;
 
     for(var field in fields) {
-        if(allNewFields && hasOwnProperty(newObj.dict, field)) {
+        if(allNewFields && hasProperty(newObj.dict, field)) {
             allNewFields = false;
         }
 
@@ -137,6 +137,17 @@ inherits(PFunction, PBase);
 inherits(PMethod, PBase);
 inherits(POpaque, PBase);
 
+/**
+    Tests whether a JS Object has a property
+    Useful for objects that lack the .hasOwnProperty method
+
+    @param {!Object} obj the object to test
+    @param {!string} p the property to look for
+    @return {boolean} true if obj has property p, false otherwise
+*/
+function hasProperty(obj, p) {
+    return p in obj;
+}
 
 /**
     Tests whether a JS Object has a property
@@ -160,6 +171,8 @@ function getBrands(obj) {
   return obj.brands;
 }
 
+var getProto = Object.getPrototypeOf;
+
 /**
     Get the fields in an object.
 
@@ -168,7 +181,13 @@ function getBrands(obj) {
 
 */
 function getFields(obj) {
-  return Object.keys(obj.dict);
+  var fields = [];
+  var currentProto = obj.dict;
+  while(currentProto !== null) {
+    fields = fields.concat(Object.keys(currentProto));
+    currentProto = getProto(currentProto);
+  }
+  return fields;
 }
 
 /**
@@ -198,12 +217,8 @@ function foldFields(obj, f, init) {
   @return {!Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
 */
 function copyDict(dict) {
-    var newDict = makeEmptyDict();
-    for(var field in dict) {
-        newDict[field] = dict[field];
-    }
-
-    return newDict;
+    if(typeof dict === "undefined") { console.trace(); }
+    return Object.create(dict);
 }
 
 /**
@@ -948,54 +963,88 @@ function createMethodDict() {
         */
         function(obj, str) {
           checkIf(str, isString);
-          return makeBoolean(hasOwnProperty(obj.dict, str.s));
+          return makeBoolean(hasProperty(obj.dict, str.s));
         }
       );
 
+    // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
       if (left === right) { return true; }
 
-      if (isNumber(left) && isNumber(right)) {
-        return jsnums.equals(left.n, right.n);
-      }
-      else if (isString(left) && isString(right)) {
-        return left.s === right.s;
-      }
-      else if (isBoolean(left) && isBoolean(right)) {
-        return left.b === right.b;
-      }
-      else if (isFunction(left) && isFunction(right)) {
-        return left === right;
-      }
-      else if (isMethod(left) && isMethod(right)) {
-        return left === right;
-      }
-      else if (isObject(left) && isObject(right)) {
-        var brands1 = getBrands(left);
-        var brands2 = getBrands(right);
-        for(var i = 0; i < brands1.length; i++) {
-          if (!hasBrand(right, brands1[i])) { return false; }
+      var toCompare = [{left: left, right: right}];
+      var current, curLeft, curRight;
+      // Hunts for differences in the worklist, returning false when it finds them.
+      // "continue" is equivalent to a recursive call returning "true", false
+      // is returned directly when it is encountered
+      while(toCompare.length > 0) {
+        current = toCompare.pop();
+        left = current.left;
+        right = current.right;
+        if (isNumber(left) && isNumber(right) && jsnums.equals(left.n, right.n)) {
+          continue;
         }
-        for(var j = 0; i < brands2.length; i++) {
-          if (!hasBrand(left, brands2[i])) { return false; }
+        else if (isString(left) && isString(right) && left.s === right.s) {
+          continue;
         }
-
-        var fields1 = getFields(left);
-        var fields2 = getFields(right);
-        if(fields1.length !== fields2.length) { return false; }
-        for(var k = 0; k < fields1.length; k++) {
-          if(!same(left.dict[fields1[k]], right.dict[fields1[k]])) {
-            return false;
+        else if (isBoolean(left) && isBoolean(right) && left.b === right.b) {
+          continue;
+        }
+        else if (isFunction(left) && isFunction(right) && left === right) {
+          continue;
+        }
+        else if (isMethod(left) && isMethod(right) && left === right) {
+          continue;
+        }
+        else if (isOpaque(left) && isOpaque(right) && left.equals(left.val, right.val)) {
+          continue;
+        }
+        else if (isObject(left) && isObject(right)) {
+          var dictLeft = left.dict;
+          var dictRight = right.dict;
+          var fieldsLeft;
+          var fieldsRight;
+          // Fast case, for objects that get extended with similar patterns
+          // (e.g. variants of data have same proto), just check own props
+          if(getProto(dictLeft) === getProto(dictRight)) {
+            fieldsLeft = Object.keys(dictLeft);
+            fieldsRight = Object.keys(dictRight);
+            if(fieldsLeft.length !== fieldsRight.length) { return false; }
+            for(var k = 0; k < fieldsLeft.length; k++) {
+              toCompare.push({
+                  left: left.dict[fieldsLeft[k]],
+                  right: right.dict[fieldsLeft[k]]
+                });
+            }
           }
+          // Slower case, just iterate all fields, all the way down to the bottom
+          else {
+            fieldsLeft = getFields(left);
+            fieldsRight = getFields(right);
+            if(fieldsLeft.length !== fieldsRight.length) { return false; }
+            for(var k = 0; k < fieldsLeft.length; k++) {
+              toCompare.push({
+                  left: left.dict[fieldsLeft[k]],
+                  right: right.dict[fieldsLeft[k]]
+                });
+            }
+          }
+          var brands1 = getBrands(left);
+          var brands2 = getBrands(right);
+          if (brands1.length !== brands2.length) { return false; }
+          for(var i = 0; i < brands1.length; i++) {
+            if (!hasBrand(right, brands1[i])) { return false; }
+          }
+          // continue would be inappropriate (but not incorrect)
+          // here, because we have enqueued things
         }
-        return true;
+        else {
+          // In all other cases, things are not equal
+          return false;
+        }
       }
-      else if (isOpaque(left) && isOpaque(right)) {
-        return left.equals(left.val, right.val);
-      }
-      else {
-        throw makeMessageException("Cannot compare " + left + " " + right + " with ==");
-      }
+
+      return true;
+
     };
     var sameP = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
 

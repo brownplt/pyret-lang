@@ -55,7 +55,7 @@ define(["./matchers"], function (matchers) {
           aFun = rt.makeFunction(x);
           aMeth = rt.makeMethod(y_curry, y);
           aNoth = rt.makeNothing();
-          anObj = rt.makeObject();
+          anObj = rt.makeObject({});
       });
 
 
