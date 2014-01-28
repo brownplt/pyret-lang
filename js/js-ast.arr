@@ -126,81 +126,41 @@ data JStmt:
 end
 
 data JBinop:
-  | j-plus with:
-    print-ugly-source(self, printer): printer("+") end,
-    to-ugly-source(self): "+" end,
-    tosource(self): PP.str("+") end
-  | j-minus with:
-    print-ugly-source(self, printer): printer("-") end,
-    to-ugly-source(self): "-" end,
-    tosource(self): PP.str("-") end
-  | j-times with:
-    print-ugly-source(self, printer): printer("*") end,
-    to-ugly-source(self): "*" end,
-    tosource(self): PP.str("*") end
-  | j-divide with:
-    print-ugly-source(self, printer): printer("/") end,
-    to-ugly-source(self): "/" end,
-    tosource(self): PP.str("/") end
-  | j-and with:
-    print-ugly-source(self, printer): printer("&&") end,
-    to-ugly-source(self): "&&" end,
-    tosource(self): PP.str("&&") end
-  | j-or with:
-    print-ugly-source(self, printer): printer("||") end,
-    to-ugly-source(self): "||" end,
-    tosource(self): PP.str("||") end
-  | j-lt with:
-    print-ugly-source(self, printer): printer("<") end,
-    to-ugly-source(self): "<" end,
-    tosource(self): PP.str("<") end
-  | j-leq with:
-    print-ugly-source(self, printer): printer("<=") end,
-    to-ugly-source(self): "<=" end,
-    tosource(self): PP.str("<=") end
-  | j-gt with:
-    print-ugly-source(self, printer): printer(">") end,
-    to-ugly-source(self): ">" end,
-    tosource(self): PP.str(">") end
-  | j-geq with:
-    print-ugly-source(self, printer): printer(">=") end,
-    to-ugly-source(self): ">=" end,
-    tosource(self): PP.str(">=") end
-  | j-eq with:
-    print-ugly-source(self, printer): printer("===") end,
-    to-ugly-source(self): "===" end,
-    tosource(self): PP.str("===") end
-  | j-equals with:
-    print-ugly-source(self, printer): printer("==") end,
-    to-ugly-source(self): "==" end,
-    tosource(self): PP.str("==") end
-  | j-neq with:
-    print-ugly-source(self, printer): printer("!==") end,
-    to-ugly-source(self): "!==" end,
-    tosource(self): PP.str("!==") end
-  | j-nequals with:
-    print-ugly-source(self, printer): printer("!=") end,
-    to-ugly-source(self): "!=" end,
-    tosource(self): PP.str("!=") end
+  | j-plus with: to-ugly-source(self): "+" end
+  | j-minus with: to-ugly-source(self): "-" end
+  | j-times with: to-ugly-source(self): "*" end
+  | j-divide with: to-ugly-source(self): "/" end
+  | j-and with: to-ugly-source(self): "&&" end
+  | j-or with: to-ugly-source(self): "||" end
+  | j-lt with: to-ugly-source(self): "<" end
+  | j-leq with: to-ugly-source(self): "<=" end
+  | j-gt with: to-ugly-source(self): ">" end
+  | j-geq with: to-ugly-source(self): ">=" end
+  | j-eq with: to-ugly-source(self): "===" end
+  | j-equals with: to-ugly-source(self): "==" end
+  | j-neq with: to-ugly-source(self): "!==" end
+  | j-nequals with: to-ugly-source(self): "!=" end
+sharing:
+  print-ugly-source(self, printer):
+    printer(self.to-ugly-source())
+  end,
+  tosource(self):
+    PP.str(self.to-ugly-source())
+  end
 end
 
 data JUnop:
-  | j-incr with:
-    print-ugly-source(self, printer): printer("++") end,
-    to-ugly-source(self): "++" end,
-    tosource(self): PP.str("++") end
-  | j-decr with:
-    print-ugly-source(self, printer): printer("--") end,
-    to-ugly-source(self): "--" end,
-    tosource(self): PP.str("--") end
-  | j-postincr with:
-    print-ugly-source(self, printer): printer("++") end,
-    to-ugly-source(self): "++" end,
-    tosource(self): PP.str("++") end
-  | j-postdecr with:
-    print-ugly-source(self, printer): printer("--") end,
-    to-ugly-source(self): "--" end,
-    tosource(self): PP.str("--") end
+  | j-incr with: to-ugly-source(self): "++" end
+  | j-decr with: to-ugly-source(self): "--" end
+  | j-postincr with: to-ugly-source(self): "++" end
+  | j-postdecr with: to-ugly-source(self): "--" end
+sharing:
+  print-ugly-source(self, printer):
+    printer(self.to-ugly-source())
+  end,
+  tosource(self):
+    PP.str(self.to-ugly-source())
+  end
 end
 
 data JExpr:
