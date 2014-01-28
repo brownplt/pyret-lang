@@ -1087,7 +1087,7 @@ function createMethodDict() {
     function isCont(v) { return v instanceof Cont; }
 
     function safeCall(fun, after, stackFrame) {
-      //console.log("SafeCalling", fun, after, stackFrame);
+      log("SafeCalling", fun, after, stackFrame);
       var result;
       try {
         if (thisRuntime.GAS-- > 0) {
@@ -1103,14 +1103,14 @@ function createMethodDict() {
         }
       }
       catch(e) {
-//        console.log("Catching: ", e);
+        log("Catching: ", e);
         if (isCont(e)) {
           e.stack[thisRuntime.EXN_STACKHEIGHT++] = {
               go: function(retval) {
                 return after(retval);
               },
               captureExn: function(e) {
-                e.pyretStack.push(stackFrame);
+                return e.pyretStack.push(stackFrame);
               }
             };
           throw e;
@@ -1192,7 +1192,7 @@ function createMethodDict() {
       iter();
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 100;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     var DEBUGLOG = false;
     var log = function() {

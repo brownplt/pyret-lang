@@ -37,7 +37,6 @@ $(function() {
     var oldDefine = define;
     
     function OMGBADIDEA(name, src) {
-      "use strict";
       var define = function(libs, fun) {
         oldDefine(name, libs, fun);
       }
@@ -59,29 +58,41 @@ $(function() {
     var myWC = getExports(wc);
 
     function run(src, onDone) {
-      var name = "anon" + Math.floor(Math.random() * 10000000);
-      var myCR = gf(gf(myWC, "compile-js").app(
-          s(src),
-          s(name),
-          gf(myCS, "standard-builtins"),
-          { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
-        ), "pyret-to-js-runnable").app();
+      myRT.run(function(runtime, namespace) {
+          var name = "anon" + Math.floor(Math.random() * 10000000);
+          myRT.safeCall(function() {
+                return gf(myWC, "compile-js").app(
+                  s(src),
+                  s(name),
+                  gf(myCS, "standard-builtins"),
+                  { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
+                )
+              },
+              function(compiled) {
+                return myRT.safeCall(function() {
+                    return gf(compiled, "pyret-to-js-runnable").app()
+                  },
+                  function(myCR) {
+                    if(myRT.unwrap(gf(myCS, "is-ok").app(myCR))) {
+                      var jscode = myRT.unwrap(gf(myCR, "code"))
+                      console.log(jscode);
+                    }
+                    else {
+                      console.log(myCR);
+                      throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
+                    }
 
-
-      if(myRT.unwrap(gf(myCS, "is-ok").app(myCR))) {
-        var jscode = myRT.unwrap(gf(myCR, "code"))
-        console.log(jscode);
-      }
-      else {
-        console.log(myCR);
-        throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
-      }
-
-      OMGBADIDEA(name, jscode); 
-      require([name], function(a) {
-        myRT.run(a, myRT.namespace, onDone);
-      });
-    }
+                    OMGBADIDEA(name, jscode); 
+                    require([name], function(a) {
+                      a(runtime, namespace);
+                    });
+                  }
+                )
+              });
+        },
+        myRT.namespace,
+        onDone);
+   }
 
     $("#runthepyret").click(function() {
       run($("#thepyret").val(), function(result) {
