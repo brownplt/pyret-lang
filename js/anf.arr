@@ -144,9 +144,9 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
     | s_block(l, stmts) => anf-block(stmts, k)
     | s_user_block(l, body) => anf(body, k)
 
-    | s_lam(l, params, args, ret, doc, body, check) =>
+    | s_lam(l, params, args, ret, doc, body, _) =>
       k(N.a-lam(l, args.map(fun(b): bind(b.l, b.id) end), anf-term(body)))
-    | s_method(l, args, ret, doc, body, check) =>
+    | s_method(l, args, ret, doc, body, _) =>
       k(N.a-method(l, args.map(fun(b): bind(b.l, b.id) end), anf-term(body)))
 
     | s_app(l, f, args) =>
