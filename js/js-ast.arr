@@ -84,7 +84,7 @@ data JStmt:
     tosource(self):
       PP.str("return ") + self.expr.tosource() + PP.str(";")
     end
-  | j-try-catch(body :: JStmt, exn :: String, catch :: JStmt) with:
+  | j-try-catch(body :: JStmt, exn :: String, catch :: JBlock) with:
     print-ugly-source(self, printer):
       printer("try {\n")
       self.body.print-ugly-source(printer)

@@ -77,6 +77,13 @@ data AExpr:
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))
     end
+  | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
+    tosource(self):
+      str-if + break-one + self.c.tosource() + str-colon +
+          PP.nest(INDENT, break-one + self.t.tosource()) +
+        str-elsecolon
+          PP.nest(INDENT, break-one + self.e.tosource())
+    end
   | a-lettable(e :: ALettable) with:
     tosource(self):
       self.e.tosource()
@@ -128,13 +135,6 @@ data ALettable:
     tosource(self): fun-method-pretty(PP.str("lam"), self.args, self.body) end
   | a-method(l :: Loc, args :: List<ABind>, body :: AExpr) with:
     tosource(self): fun-method-pretty(PP.str("method"), self.args, self.body) end
-  | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
-    tosource(self):
-      str-if + break-one + self.c.tosource() + str-colon +
-          PP.nest(INDENT, break-one + self.t.tosource()) +
-        str-elsecolon
-          PP.nest(INDENT, break-one + self.e.tosource())
-    end
   | a-val(v :: AVal) with:
     tosource(self): self.v.tosource() end
 end
@@ -193,6 +193,8 @@ fun strip-loc-expr(expr :: AExpr):
       a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
     | a-try(_, body, bind, _except) =>
       a-try(dummy-loc, body^strip-loc-expr(), bind^strip-loc-bind(), _except^strip-loc-expr())
+    | a-if(_, c, t, e) =>
+      a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
     | a-split-app(_, is-var, f, args, helper, helper-args) =>
       a-split-app(
           dummy-loc,
@@ -235,8 +237,6 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-lam(dummy-loc, args, body^strip-loc-expr())
     | a-method(_, args, body) =>
       a-method(dummy-loc, args, body^strip-loc-expr())
-    | a-if(_, c, t, e) =>
-      a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
     | a-val(v) =>
       a-val(v^strip-loc-val())
   end

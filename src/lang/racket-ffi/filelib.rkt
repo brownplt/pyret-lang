@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require
- "../runtime.rkt"
+ (except-in "../runtime.rkt" display)
  "../string-map.rkt"
  "../ffi-helpers.rkt"
  racket/port)

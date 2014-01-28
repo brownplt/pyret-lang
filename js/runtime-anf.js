@@ -244,10 +244,8 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
-//    console.trace();
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
-        console.log(fieldVal);
         //TODO: Throw field not found error
         throw makeMessageException("field " + field + " not found.");
     }
@@ -738,7 +736,6 @@ function createMethodDict() {
     */
     function checkIf(val, test) {
         if(!test(val)) {
-            console.log(val);
             throw makeMessageException("Pyret Type Error: " + test)
         }
         return true;
@@ -797,7 +794,8 @@ function createMethodDict() {
             },
             function(val) { return val.s; },
             {
-              "src": "internal"
+              "src": "internal",
+              "fun": "_torepr"
             });
         }
         if (val.dict.tostring) {
@@ -807,7 +805,8 @@ function createMethodDict() {
             },
             function(val) { return val.s; },
             {
-              "src": "internal"
+              "src": "internal",
+              "fun": "tostring"
             });
         }
         //todo: invoke a tostring if exists
@@ -1088,6 +1087,7 @@ function createMethodDict() {
     function isCont(v) { return v instanceof Cont; }
 
     function safeCall(fun, after, stackFrame) {
+      //console.log("SafeCalling", fun, after, stackFrame);
       var result;
       try {
         if (thisRuntime.GAS-- > 0) {
@@ -1103,6 +1103,7 @@ function createMethodDict() {
         }
       }
       catch(e) {
+//        console.log("Catching: ", e);
         if (isCont(e)) {
           e.stack[thisRuntime.EXN_STACKHEIGHT++] = {
               go: function(retval) {
@@ -1148,13 +1149,20 @@ function createMethodDict() {
           loop = false;
           try {
             while(theOneTrueStackHeight > 0) {
+              log("Popped stack, at ", theOneTrueStackHeight);
               var next = theOneTrueStack[--theOneTrueStackHeight];
               theOneTrueStack[theOneTrueStackHeight] = undefined;
+              var tester = {pyretStack: []};
+              if(next.captureExn) { next.captureExn(tester); }
+              log("From: ", tester);
               val = next.go(val);
             }
             onDone(new SuccessResult(val));
           } catch(e) {
+//            console.log("Caught something: ", e);
             if(isCont(e)) {
+              log("Stackheight in catch: ", thisRuntime.EXN_STACKHEIGHT);
+//              console.log(e.stack.map(function(elt) { console.log(elt.go); }));
               BOUNCES++;
               thisRuntime.GAS = INITIAL_GAS;
               for(var i = e.stack.length - 1; i >= 0; i--) {
@@ -1184,7 +1192,12 @@ function createMethodDict() {
       iter();
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 100;
+
+    var DEBUGLOG = false;
+    var log = function() {
+      if(DEBUGLOG) { console.log.apply(console, arguments); }
+    }
 
     //Export the runtime
     //String keys should be used to prevent renaming
@@ -1258,6 +1271,7 @@ function createMethodDict() {
         'checkIf'      : checkIf,
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),
+        'log': log,
 
         'modules' : Object.create(null)
     };

@@ -140,6 +140,14 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
             N.a-let(l, N.a-bind(l, n, A.a_blank), e,
               N.a-var(l, b, N.a-val(N.a-id(l, n)), body)))
       end
+    | a-if(l, cond, consq, alt) =>
+      consq-split = ast-split-expr(consq)
+      alt-split = ast-split-expr(alt)
+      split-result-int-e(
+          consq-split.helpers + alt-split.helpers,
+          N.a-if(l, cond, consq-split.body, alt-split.body),
+          freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
+        )
     | a-lettable(e) =>
       let-result = ast-split-lettable(e)
       split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
@@ -162,14 +170,6 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
           body-split.helpers,
           N.a-method(l, args, body-split.body),
           body-split.freevars.difference(list-set(args.map(_.id)))
-        )
-    | a-if(l, cond, consq, alt) =>
-      consq-split = ast-split-expr(consq)
-      alt-split = ast-split-expr(alt)
-      split-result-int-l(
-          consq-split.helpers + alt-split.helpers,
-          N.a-if(l, cond, consq-split.body, alt-split.body),
-          freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
     | else =>
       split-result-int-l(concat-empty, e, freevars-l(e))

@@ -69,6 +69,7 @@ fun all-tests(path):
     else:
       l = new-path.length()
       when new-path.substring(l - 4, l) == ".arr":
+        print("generating for " + new-path)
         generate-output(new-path)
       end
     end
@@ -128,6 +129,7 @@ r(['../../../runtime-anf'], function(R) {
           output += str;
         }
       });
+      console.log('Running ~a');
       var theProgram = null;
       var define = function(ignored, program) {
         theProgram = program();
@@ -150,7 +152,7 @@ r(['../../../runtime-anf'], function(R) {
     });
   });
 });
-    ", [name, expected-out, expected-err, code])
+    ", [name, expected-out, expected-err, name, code])
 
       gen-path = "generated-tests/" + path + "/"
       gdir = D.dir(gen-path)
@@ -184,7 +186,9 @@ end
 #all-tests("moorings-tests")
 #all-tests("list-lib-tests")
 
+print("generating all tests")
 all-tests("anf-tests")
+print("compiling tests")
 get-dir-sections("anf-tests", create-simple-test)
 
 when tests-with-errors.length() > 0:

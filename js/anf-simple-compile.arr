@@ -152,45 +152,59 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
         j-if(j-binop(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-decr), J.j-gt, j-num(0)),
           j-block([j-expr(j-assign(z, app(f, args)))]),
           j-block([
+              j-method(j-id("RUNTIME"), "log", [j-str("Starting, "), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
               j-expr(j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0))),
               j-throw(j-method(j-id("RUNTIME"), "makeCont", 
                   [j-obj([j-field("go",
-                          j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))])))])]))]))
+                          j-fun([js-id-of("ignored")], j-block([j-return(app(f, args))]))),
+                          j-field("from", obj-of-loc(l)),
+                          j-field("near", j-str(e))])]))]))
       helper-ids = helper-args.rest.map(_.id).map(js-id-of)
       catch =
-        j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
-          j-block([
-              j-var(ss,
-                j-obj([
-                  j-field("captureExn", j-fun(["exn"],
+        j-block([
+          j-method(j-id("RUNTIME"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT")]),
+          j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
+            j-block([
+                j-var(ss,
+                  j-obj([
+                    j-field("from", obj-of-loc(l)),
+                    j-field("near", j-str(e)),
+                    j-field("captureExn", j-fun(["exn"],
+                      j-block([
+                          j-return(add-stack-frame(l, "exn"))
+                        ]))),
+                    j-field("go", j-fun([js-id-of(helper-args.first.id)],
+                      j-block([
+                        j-return(j-app(j-id(helper-name(name)),
+                            link(
+                                j-id(js-id-of(helper-args.first.id)),
+                                helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))])))] + 
+                    helper-ids.map(fun(a): j-field(a, j-id(a)) end))),
+                j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
+                    j-unop(j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
+                #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
+                j-throw(j-id(e))]),
+            j-block([
+                j-if(j-method(j-id("RUNTIME"), "isPyretException", [j-id(e)]),
                     j-block([
-                        j-return(add-stack-frame(l, "exn"))
-                      ]))),
-                  j-field("go", j-fun([js-id-of(helper-args.first.id)],
-                    j-block([
-                      j-return(j-app(j-id(helper-name(name)),
-                          link(
-                              j-id(js-id-of(helper-args.first.id)),
-                              helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))])))] + 
-                  helper-ids.map(fun(a): j-field(a, j-id(a)) end))),
-              j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                  j-unop(j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
-              #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
-              j-throw(j-id(e))]),
-          j-block([
-              j-if(j-method(j-id("RUNTIME"), "isPyretException", [j-id(e)]),
-                  j-block([
-                      j-expr(add-stack-frame(l, e)),
-                      j-throw(j-id(e))
-                    ]),
-                  j-block([j-throw(j-id(e))]))
-            ]))
+                        j-expr(add-stack-frame(l, e)),
+                        j-throw(j-id(e))
+                      ]),
+                    j-block([j-throw(j-id(e))]))
+              ]))])
       j-block([
           j-var(z, j-undefined),
           j-try-catch(body, e, catch),
-          j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + helper-args.rest.map(compile-v))),
           j-expr(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-incr)),
+          j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + helper-args.rest.map(compile-v))),
           j-return(j-id(ret))
+        ])
+
+    | a-if(l, cond, consq, alt) =>
+      compiled-consq = maybe-return(consq)
+      compiled-alt = maybe-return(alt)
+      j-block([
+          j-if(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt)
         ])
 
     | a-lettable(l) =>
@@ -198,13 +212,15 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
   end
 end
 
+fun obj-of-loc(l):
+  j-obj([
+      j-field("src", j-str(l.file)),
+      j-field("line", j-num(l.line)),
+      j-field("column", j-num(l.column))
+    ])
+end
 fun add-stack-frame(l, exn-id):
-  j-method(j-dot(j-id(exn-id), "pyretStack"), "push",
-      [j-obj([
-          j-field("src", j-str(l.file)),
-          j-field("line", j-num(l.line)),
-          j-field("column", j-num(l.column))
-        ])])
+  j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [obj-of-loc(l)])
 end
 
 fun compile-l(expr :: N.ALettable) -> J.JExpr:
@@ -235,11 +251,6 @@ fun compile-l(expr :: N.ALettable) -> J.JExpr:
       j-method(j-id("RUNTIME"), "getColonField", [compile-v(obj), j-str(field)])
 
     | a-app(l, f, args) => app(f, args)
-
-    | a-if(l, cond, consq, alt) =>
-      compiled-consq = thunk-app(maybe-return(consq))
-      compiled-alt = thunk-app(maybe-return(alt))
-      j-parens(j-ternary(j-method(j-id("RUNTIME"), "isPyretTrue", [compile-v(cond)]), compiled-consq, compiled-alt))
 
     | a-val(v) => compile-v(v)
     | a-obj(l, fields) => 

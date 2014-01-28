@@ -7,7 +7,16 @@ import "ast-anf.arr" as N
 import "gensym.arr" as G
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, fun(x): N.a-lettable(x);)
+  anf(e, fun(x):
+        cases(N.ALettable) x:
+            # tail call
+          | a-app(l, f, args) =>
+            name = mk-id(l, "anf_tail_app")
+            N.a-let(l, name.id-b, x, N.a-lettable(N.a-val(name.id-e)))
+          | else => N.a-lettable(x)
+        end
+      end
+    )
 end
 
 fun bind(l, id): N.a-bind(l, id, A.a_blank);
@@ -123,7 +132,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         consq = s-if.branches.first.body
         altern = s-if._else
         anf-name(cond, "anf_if", fun(t):
-            k(N.a-if(l, t, anf-term(consq), anf-term(altern)))
+            N.a-if(l, t, anf(consq, k), anf(altern, k))
           end)
       else:
         anf(_else, k)
