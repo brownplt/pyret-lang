@@ -979,6 +979,7 @@ function createMethodDict() {
         current = toCompare.pop();
         left = current.left;
         right = current.right;
+        if (left === right) { continue; }
         if (isNumber(left) && isNumber(right) && jsnums.equals(left.n, right.n)) {
           continue;
         }
