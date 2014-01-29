@@ -1,10 +1,9 @@
 #lang pyret
 
 provide *
-import string-dict as D
 
 data CompileEnvironment:
-  | compile-env(modules :: D.StringDict)
+  | compile-env(modules :: List)
 end
 
 data CompileResult:
@@ -12,11 +11,11 @@ data CompileResult:
   | err(message :: String)
 end
 
-no-builtins = compile-env(D.immutable-string-dict())
+no-builtins = compile-env([])
 
 standard-builtins = compile-env(
-    D.to-dict({
-        list: [
+    [{ name: "list",
+       bindings: [
             "is-empty",
             "is-link",
             "empty",
@@ -49,19 +48,25 @@ standard-builtins = compile-env(
             "fold3",
             "fold4",
             "index"
-          ],
-        option: [
+          ]
+        },
+      { name: "option",
+        bindings: [
             "Option",
             "is-none",
             "is-some",
             "none",
             "some"
-          ],
-        error: [],
-        sets: [
+          ]
+        },
+      { name: "error",
+        bindings: []
+        },
+      { name: "sets",
+        bindings: [
             "set",
             "tree-set",
             "list-set"
           ]
-      })
-  )
+      }
+    ])
