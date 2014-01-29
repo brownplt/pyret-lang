@@ -1171,6 +1171,11 @@ line string\"" (s-str _ "multi\nline string"))
                               (s-bool _ #t)
                               (s-bool _ #f)))))
 
+   (check-parse/fail "true and not false" "parsing error")
+
+   (check-parse/fail "true and false and not true and false" "parsing error")
+
+
    (check/block "not a.b" (s-not _ (s-dot s _ _)))
 
    (check/block "not a(b)" (s-not _ _))

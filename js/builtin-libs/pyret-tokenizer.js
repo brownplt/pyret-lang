@@ -35,7 +35,7 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
 
   function Tokenizer(ignore_ws, Tokens) {
     GenTokenizer.call(this, ignore_ws, Tokens);
-    this.afterParen = true; // initialize this at the beginning of file to true
+    this.parenIsForApp = true; // initialize this at the beginning of file to true
   }
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
@@ -51,14 +51,14 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
-            tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
+            tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
           break;
         }
       }
     } else if (tok_type == "LPAREN?") {
-      tok_type = this.afterParen ? "PARENSPACE" : "PARENNOSPACE";
+      tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
     }
-    this.afterParen = !!tok.after;
+    this.parenIsForExp = !!tok.parenIsForExp;
     return tok_type;
   }
 
@@ -94,16 +94,16 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
-  const opplus = new RegExp("^\\+", STICKY_REGEXP);
-  const opminus = new RegExp("^-", STICKY_REGEXP);
-  const optimes = new RegExp("^\\*", STICKY_REGEXP);
-  const opdiv = new RegExp("^/", STICKY_REGEXP);
-  const opleq = new RegExp("^<=", STICKY_REGEXP);
-  const opgeq = new RegExp("^>=", STICKY_REGEXP);
-  const opeq = new RegExp("^==", STICKY_REGEXP);
-  const opneq = new RegExp("^<>", STICKY_REGEXP);
-  const oplt = new RegExp("^<", STICKY_REGEXP);
-  const opgt = new RegExp("^>", STICKY_REGEXP);
+  const opplus = new RegExp("^\\s\\+\\s", STICKY_REGEXP);
+  const opminus = new RegExp("^\\s-\\s", STICKY_REGEXP);
+  const optimes = new RegExp("^\\s\\*\\s", STICKY_REGEXP);
+  const opdiv = new RegExp("^\\s/\\s", STICKY_REGEXP);
+  const opleq = new RegExp("^\\s<=\\s", STICKY_REGEXP);
+  const opgeq = new RegExp("^\\s>=\\s", STICKY_REGEXP);
+  const opeq = new RegExp("^\\s==\\s", STICKY_REGEXP);
+  const opneq = new RegExp("^\\s<>\\s", STICKY_REGEXP);
+  const oplt = new RegExp("^\\s<\\s", STICKY_REGEXP);
+  const opgt = new RegExp("^\\s>\\s", STICKY_REGEXP);
   const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opnot = new RegExp("^not(?![-_a-zA-Z0-9])", STICKY_REGEXP);
@@ -130,10 +130,10 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
 
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
   const Tokens = [
-    {name: "PAREN?", val: parenparen, after: true},
-    {name: "PAREN?", val: opparen, after: true},
-    {name: "PARENSPACE", val: spaceparen, after: true},
-    {name: "LPAREN?", val: lparen, after: true},
+    {name: "PAREN?", val: parenparen, parenIsForExp: true},
+    {name: "PAREN?", val: opparen, parenIsForExp: true},
+    {name: "PARENSPACE", val: spaceparen, parenIsForExp: true},
+    {name: "LPAREN?", val: lparen, parenIsForExp: true},
 
 
     {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
@@ -180,16 +180,16 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "CARET", val: caret},
     {name: "BAR", val: bar},
 
-    {name: "PLUS", val: opplus},
-    {name: "DASH", val: opminus},
-    {name: "STAR", val: optimes},
-    {name: "SLASH", val: opdiv},
-    {name: "LEQ", val: opleq},
-    {name: "GEQ", val: opgeq},
-    {name: "EQUALEQUAL", val: opeq},
-    {name: "NEQ", val: opneq},
-    {name: "LT", val: oplt},
-    {name: "GT", val: opgt},
+    {name: "PLUS", val: opplus, parenIsForExp: true},
+    {name: "DASH", val: opminus, parenIsForExp: true},
+    {name: "STAR", val: optimes, parenIsForExp: true},
+    {name: "SLASH", val: opdiv, parenIsForExp: true},
+    {name: "LEQ", val: opleq, parenIsForExp: true},
+    {name: "GEQ", val: opgeq, parenIsForExp: true},
+    {name: "EQUALEQUAL", val: opeq, parenIsForExp: true},
+    {name: "NEQ", val: opneq, parenIsForExp: true},
+    {name: "LT", val: oplt, parenIsForExp: true},
+    {name: "GT", val: opgt, parenIsForExp: true},
     {name: "AND", val: opand},
     {name: "OR", val: opor},
     {name: "NOT", val: opnot},
@@ -207,7 +207,7 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "EQUALS", val: equals},
 
     {name: "COMMENT", val: comment}, 
-    {name: "WS", val: ws},
+    {name: "WS", val: ws, parenIsForExp: true},
 
     {name: "SEMI", val: semi},
     {name: "BACKSLASH", val: backslash},
