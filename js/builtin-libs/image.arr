@@ -120,6 +120,10 @@ data Mode:
   | opacity(o :: Number(between(0, _, 255)))
 end
 
+data CombineMode:
+  | crop
+  | union
+end
 # Todo: outline mode/pen combos
 
 data Point:
@@ -168,25 +172,32 @@ data Image:
           mixed("style", [simple("fill", tostring(self.color)), simple("fill-opacity", tostring(self.color.alpha / 255)), simple("font-size", tostring(self.size))])],
         [xtext(self.str)])
     end,
-    bounds(self): rg(pt(0, 0), pt(self.str.length() * self.size, self.size)) end
-  | iplace-image(image :: Image, x :: Number, y :: Number, scene :: Image) with:
+    bounds(self): rg(pt(0, 0), pt(self.str.length() * self.size, self.size)) end #TODO
+  | iplace-image(image :: Image, x :: Number, y :: Number, combine :: CombineMode, scene :: Image) with:
     as-svg(self):
       node("g", [],
         [self.scene.as-svg(),
           node("g", [simple("transform", "translate(" + tostring(self.x) + "," + tostring(self.y) + ")")],
             [self.image.as-svg()])])
     end,
-    bounds(self): self.image.bounds().translate(self.x, self.y).union(self.scene.bounds()) end
+    bounds(self):
+      cases(CombineMode) self.combine:
+        | crop => self.scene.bounds()
+        | union => self.image.bounds().translate(self.x, self.y).union(self.scene.bounds())
+      end
+    end
   | icircle(radius :: Number(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self): # Todo: Mode
       node("circle", [simple("r", tostring(self.radius)),
-          mixed("style", [simple("fill", tostring(self.color)), simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
+          mixed("style", [simple("fill", tostring(self.color)),
+              simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
     end,
     bounds(self): rg(pt(0 - self.radius, 0 - self.radius), pt(self.radius, self.radius)) end
   | iellipse(width :: Number(nonneg), height :: Number(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self): # Todo: Mode
       node("ellipse", [simple("rx", tostring(self.width / 2)), simple("ry", tostring(self.height / 2)),
-          mixed("style", [simple("fill", tostring(self.color)), simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
+          mixed("style", [simple("fill", tostring(self.color)),
+              simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
     end,
     bounds(self): rg(pt((0 - self.width) / 2, (0 - self.height) / 2), pt(self.width / 2, self.height / 2)) end
   | irectangle(width :: Number(nonneg), height :: Number(nonneg), mode :: Mode, color :: Color) with:
@@ -206,11 +217,11 @@ data Image:
         [])
     end,
     bounds(self):
-      min = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
-        acc.min(pt)
+      min = for list.fold(acc from self.points.first, next-pt from self.points.rest):
+        acc.min(next-pt)
       end
-      max = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
-        acc.max(pt)
+      max = for list.fold(acc from self.points.first, next-pt from self.points.rest):
+        acc.max(next-pt)
       end
       rg(min, max)
     end
@@ -219,7 +230,7 @@ data Image:
       radius = self.side-length / ((2 * (1 - cosdeg(72))).sqrt())
       points = for list.map(i from range(0, 5)):
         theta = 144 * i
-        pt(radius * cosdeg(theta), radius * sindeg(theta))
+        pt(radius * cosdeg(theta + 90), radius * sindeg(theta + 90))
       end
       ipolygon(points, self.mode, self.color).as-svg()
     end,
@@ -273,22 +284,29 @@ data Image:
   | irotate(angle :: Number(between(0, _, 360)), image :: Image) with:
     as-svg(self):
       node("g",
-        [simple("transform", "rotate(" + tostring(self.angle) + ",0,0)")],
+        [simple("transform", "rotate(" + self.angle.tostring-fixed(5) + ",0,0)")],
         [self.image.as-svg()])
     end,
     bounds(self): self.image.bounds().rotate(self.angle) end
-  | scale(factor :: Number(nonneg), image :: Image) with:
+  | iscale(factor :: Number(nonneg), image :: Image) with:
     as-svg(self):
       node("g",
-        [simple("transform", "scale(" + tostring(self.factor) + ")")],
+        [simple("transform", "scale(" + self.factor.tostring-fixed(5) + ")")],
         [self.image.as-svg()])
     end,
     bounds(self): self.image.bounds().scale(self.factor) end
+  | itranslate(dx :: Number, dy :: Number, image :: Image) with:
+    as-svg(self):
+      node("g",
+        [simple("transform", "translate(" + self.dx.tostring-fixed(5) + "," + self.dy.tostring-fixed(5) + ")")],
+        [self.image.as-svg()])
+    end,
+    bounds(self): self.image.bounds().translate(self.dx, self.dy) end,
   | ibitmap-url(url :: String) with:
     as-svg(self):
       node("image", [simple("xlink:href", self.url), simple("x", "0"), simple("y", "0")], [])
     end,
-    bounds(self): rg(pt(0,0), pt(0,0)) end
+    bounds(self): rg(pt(0,0), pt(0,0)) end # TODO
   | ibitmap-file(file :: String) with:
     as-svg(self):
       node("image", [simple("xlink:href", self.url), simple("x", "0"), simple("y", "0")], [])
@@ -316,14 +334,26 @@ sharing:
   image-height(self) -> Number:
     b = self.bounds()
     b.br.y - b.tl.y
+  end,
+  center-origin(self):
+    cases(Image) self:
+      | itranslate(_, _, i) => i.center-origin()
+      | else =>
+        b = self.bounds()
+        dx = 0 - ((b.br.x + b.tl.x) / 2)
+        dy = 0 - ((b.br.y + b.tl.y) / 2)
+        # print("Bounds: " + torepr(b))
+        # print("dx = " + tostring(dx) + ", dy = " + tostring(dy))
+        itranslate(dx, dy, self)
+    end
   end
 end
 
 fun rgb(
-    shadow red :: Number(between(0, _, 255)),
-    shadow green :: Number(between(0, _, 255)),
-    shadow blue :: Number(between(0, _, 255))):
-  color(red, green, blue, 255)
+    r :: Number(between(0, _, 255)),
+    g :: Number(between(0, _, 255)),
+    b :: Number(between(0, _, 255))):
+  color(r, g, b, 255)
 end
 
 colors = {
@@ -337,23 +367,25 @@ fun image-to-color-list(image :: Image) -> List<Color>:
 end
 
 
-fun overlay(images):
+fun overlay(images): # overlay centers all its images
   if (images.length() < 2): raise("Not enough images to overlay")
   else:
     rev-images = images.reverse()
-    for list.fold(scene from rev-images.first, image from rev-images.rest):
-      iplace-image(image, 0, 0, scene)
+    for list.fold(scene from rev-images.first.center-origin(), image from rev-images.rest):
+      iplace-image(image.center-origin(), 0, 0, union, scene)
     end
   end
 end
 
-example = iplace-image(irectangle(30, 60, filled, rgb(255, 128, 0)), 0, 0,
-  iellipse(60, 30, filled, rgb(255, 0, 255)))
+example = overlay([
+    irectangle(30, 60, filled, rgb(255, 128, 0)), 
+    iellipse(60, 30, filled, rgb(255, 0, 255))])
 _ = print(example.to-svg().tostring())
 red = rgb(255, 0, 0)
 black = rgb(0,0,0)
 white = rgb(255,255,255)
 example2 = overlay([
+    istar(45, filled, rgb(128,0,0)),
     iellipse(10, 10, filled, red),
     iellipse(20, 20, filled, black),
     iellipse(30, 30, filled, red),
@@ -364,5 +396,5 @@ example2 = overlay([
   ])
 _ = print(example2.to-svg().tostring())
 example3 = iplace-image(
-  itriangle(32, filled, red), 24, 24, irectangle(48, 48, filled, rgb(128,128,128)))
+  itriangle(32, filled, red), 24, 24, crop, irectangle(48, 48, filled, rgb(128,128,128)))
 _ = print(example3.to-svg().tostring())
