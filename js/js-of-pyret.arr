@@ -6,6 +6,7 @@ import ast as A
 import "anf.arr" as N
 import "ast-split.arr" as AS
 import "anf-simple-compile.arr" as AC
+import "anf-visitor-compiler.arr" as AV
 import "desugar.arr" as D
 import "ast-util.arr" as AU
 
@@ -18,8 +19,9 @@ fun make-compiled-pyret(program-ast, env):
                      .visit(AU.flatten-single-blocks)
   anfed = N.anf-program(cleaned)
   split = AS.ast-split(anfed.body)
-#  split = AS.split-result-e([], anfed.body, set([]))
-  compiled = AC.compile(split, anfed.imports)
+  #split = AS.split-result-e([], anfed.body, set([]))
+  compiled = anfed.visit(AV.splitting-compiler)
+  #AC.compile(split, anfed.imports)
   
   {
     pyret-to-js-standalone: fun():
