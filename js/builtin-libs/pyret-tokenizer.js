@@ -157,6 +157,7 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "DATA", val: new RegExp(kw("data"), STICKY_REGEXP)},
     {name: "WITH", val: new RegExp(kw("with:"), STICKY_REGEXP)},
     {name: "SHARING", val: new RegExp(kw("sharing:"), STICKY_REGEXP)},
+    {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
     {name: "MUTABLE", val: new RegExp(kw("mutable"), STICKY_REGEXP)},
     {name: "CYCLIC", val: new RegExp(kw("cyclic"), STICKY_REGEXP)},
     {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},

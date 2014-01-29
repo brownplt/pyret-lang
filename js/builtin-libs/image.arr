@@ -217,11 +217,11 @@ data Image:
         [])
     end,
     bounds(self):
-      min = for list.fold(acc from self.points.first, next-pt from self.points.rest):
-        acc.min(next-pt)
+      min = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
+        acc.min(pt)
       end
-      max = for list.fold(acc from self.points.first, next-pt from self.points.rest):
-        acc.max(next-pt)
+      max = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
+        acc.max(pt)
       end
       rg(min, max)
     end
@@ -350,10 +350,10 @@ sharing:
 end
 
 fun rgb(
-    r :: Number(between(0, _, 255)),
-    g :: Number(between(0, _, 255)),
-    b :: Number(between(0, _, 255))):
-  color(r, g, b, 255)
+    shadow red :: Number(between(0, _, 255)),
+    shadow green :: Number(between(0, _, 255)),
+    shadow blue :: Number(between(0, _, 255))):
+  color(red, green, blue, 255)
 end
 
 colors = {

@@ -18,7 +18,7 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | graph-expr
 
 let-expr: binding EQUALS binop-expr
-binding: NAME [COLONCOLON ann]
+binding: [SHADOW] NAME [COLONCOLON ann]
 
 fun-expr: FUN fun-header COLON doc-string block where-clause end
 fun-header: ty-params NAME args return-ann
@@ -77,7 +77,7 @@ expr: paren-expr | id-expr | prim-expr
     | extend-expr
     | if-expr | cases-expr
     | for-expr | try-expr
-    | user-block-expr
+    | user-block-expr | inst-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
@@ -103,6 +103,9 @@ app-arg-elt: binop-expr COMMA
 
 left-app-expr: expr CARET left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr DOT NAME
+
+inst-expr: expr LT inst-elt* ann GT
+inst-elt: ann COMMA
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: list-obj-field* obj-field [COMMA]
