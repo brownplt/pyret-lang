@@ -1642,7 +1642,10 @@ define(["./cyclicJSON"], function(cycle) {
           }
         }
       }
-      return count[0][0];
+      if (count.length > 0 && count[0].length > 0 && count[0][0].length > 0)
+        return count[0][0][0];
+      else
+        throw count;
     },
 
     constructUniqueParse: function(sppfNode, semActions) {
