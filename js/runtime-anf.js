@@ -139,7 +139,6 @@ inherits(POpaque, PBase);
 
 /**
     Tests whether a JS Object has a property
-    Useful for objects that lack the .hasOwnProperty method
 
     @param {!Object} obj the object to test
     @param {!string} p the property to look for
@@ -150,7 +149,8 @@ function hasProperty(obj, p) {
 }
 
 /**
-    Tests whether a JS Object has a property
+    Tests whether a JS Object has a property, but not on 
+    any of its prototypes.
     Useful for objects that lack the .hasOwnProperty method
 
     @param {!Object} obj the object to test
@@ -785,6 +785,42 @@ function createMethodDict() {
     }
     );
 
+    // Stolen from https://github.com/dyoo/whalesong/blob/master\
+    // /whalesong/js-assembler/runtime-src/baselib-strings.js
+    var replaceUnprintableStringChars = function (s) {
+      var ret = [], i;
+      for (i = 0; i < s.length; i++) {
+        var val = s.charCodeAt(i);
+        switch(val) {
+          case 7: ret.push('\\a'); break;
+          case 8: ret.push('\\b'); break;
+          case 9: ret.push('\\t'); break;
+          case 10: ret.push('\\n'); break;
+          case 11: ret.push('\\v'); break;
+          case 12: ret.push('\\f'); break;
+          case 13: ret.push('\\r'); break;
+          case 34: ret.push('\\"'); break;
+          case 92: ret.push('\\\\'); break;
+          default: 
+            if (val >= 32 && val <= 126) {
+              ret.push( s.charAt(i) );
+            }
+            else {
+              var numStr = val.toString(16).toUpperCase();
+              while (numStr.length < 4) {
+                numStr = '0' + numStr;
+              }
+              ret.push('\\u' + numStr);
+            }
+            break;
+        }
+      }
+      return ret.join('');
+    };
+
+    var escapeString = function (s) {
+        return '"' + replaceUnprintableStringChars(s) + '"';
+    };
     /**
       Creates the js string representation for the value
       @param {!PBase} val
@@ -798,7 +834,7 @@ function createMethodDict() {
       } else if (isBoolean(val)) {
         str = String(/**@type {!PBoolean}*/ (val).b);
       } else if (isString(val)) {
-        str = String(/**@type {!PString}*/ (val).s);
+        str = replaceUnprintableStringChars(String(/**@type {!PString}*/ (val).s));
         str = '"' + str + '"';
       } else if (isObject(val)) {
         if (val.dict._torepr) {
