@@ -134,7 +134,7 @@ colon-bracket-expr: expr COLON LBRACK binop-expr RBRACK
 extend-expr: expr DOT LBRACE fields RBRACE
 update-expr: expr BANG LBRACE fields RBRACE
 
-if-expr: IF binop-expr COLON block else-if* [ELSE block] end
+if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
 else-if: ELSEIF binop-expr COLON block
 
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN expr COLON cases-branch* [BAR ELSE THICKARROW block] end

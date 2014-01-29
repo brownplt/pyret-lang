@@ -21,10 +21,10 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         return RUNTIME.getField(srcloc, "old-srcloc").app(
             RUNTIME.makeString(fileName),
             n(p.startRow),
-            n(p.startCol),
+            n(p.startCol - 1),
             n(p.startChar),
             n(p.endRow),
-            n(p.endCol),
+            n(p.endCol - 1),
             n(p.endChar)
           );
       }
@@ -106,7 +106,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
           }
         },
         'first-data-variant': function(node) {
-          if (kids.length === 3) {
+          if (node.kids.length === 3) {
             // (first-data-variant NAME args with)
             return RUNTIME.getField(ast, 's_variant')
               .app(pos(node.pos), name(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
@@ -117,7 +117,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
           }
         },
         'datatype-variant': function(node) {
-          if (kids.length === 4) {
+          if (node.kids.length === 4) {
             // (datatype-variant PIPE NAME args constructor)
             return RUNTIME.getField(ast, 's_datatype_variant')
               .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
@@ -479,7 +479,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else': function(node) {
-          // (else ELSE body)
+          // (else ELSECOLON body)
           return RUNTIME.getField(ast, 's_else')
             .app(pos(node.pos), tr(node.kids[1]));
         },
@@ -489,7 +489,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
             return makeList([]);
           } else {
             // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-            return makeList(node.kids.slice(1, -1).map(tr));
+            return makeList(node.kids.slice(1, -2).map(tr).concat([name(node.kids[node.kids.length - 2])]));
           }
         },
         'list-ty-param': function(node) {
@@ -589,7 +589,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
           }
         },
         'if-expr': function(node) {
-          if (node.kids[node.kids.length - 3].name === "ELSE") {
+          if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-expr IF test COLON body branch ... ELSE else END)
             return RUNTIME.getField(ast, 's_if_else')
               .app(pos(node.pos), makeList(
