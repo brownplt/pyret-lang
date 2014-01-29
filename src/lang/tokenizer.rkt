@@ -156,7 +156,7 @@
       (equal? (peek-char ip) #\()))
   ;; used so that after any number of parenthesis, the next
   ;; parenthesis is tokenized as a PARENSPACE, not a PARENNOSPACE
-  (define after-paren at-beginning)
+  (define paren-is-for-exp at-beginning)
   ;; sometimes we want to run an action before a set of cases in the lexer
   (define-syntax (lexer-src-pos-with-actions stx)
     (define (add-action after)
@@ -179,29 +179,18 @@
      ;; doing this at the tokenizer level, we don't need to deal
      ;; with whitespace in the grammar.
      (after-cases
-      (set! after-paren #t)
+      (set! paren-is-for-exp #t)
       ["(("
        (let [(middle-pos (get-middle-pos 1 start-pos))
-             (t (if after-paren PARENSPACE PARENNOSPACE))]
+             (t (if paren-is-for-exp PARENSPACE PARENNOSPACE))]
          (return-without-pos
           (list (position-token (token t "(") start-pos middle-pos)
                 (position-token (token PARENSPACE "(") middle-pos end-pos))))]
       [(concatenation whitespace "(")
        (token PARENSPACE "(")]
       ["("
-       (let [(t (if after-paren PARENSPACE PARENNOSPACE))]
-         (token t "("))])
-     ;; these cases all have after-paren set to false
-     (after-cases
-      (set! after-paren #f)
-      [keywords
-       (cond [(set-member? all-token-types (string->symbol lexeme))
-              (token (string->symbol lexeme) lexeme)]
-             [else
-              (token NAME lexeme)])]
-      ;; operators
-      [word-operator-chars
-       (token lexeme lexeme)]
+       (let [(t (if paren-is-for-exp PARENSPACE PARENNOSPACE))]
+         (token t "("))]
       [(concatenation whitespace "+" whitespace)
        (token BINOP-PLUS "+")]
       [(concatenation whitespace "-" whitespace)
@@ -222,6 +211,18 @@
        (token BINOP< "<")]
       [(concatenation whitespace ">" whitespace)
        (token BINOP> ">")]
+      )
+     ;; these cases all have paren-is-for-exp set to false
+     (after-cases
+      (set! paren-is-for-exp #f)
+      [keywords
+       (cond [(set-member? all-token-types (string->symbol lexeme))
+              (token (string->symbol lexeme) lexeme)]
+             [else
+              (token NAME lexeme)])]
+      ;; operators
+      [word-operator-chars
+       (token lexeme lexeme)]
       ;; names
       [(concatenation identifier-chars
                       (repetition 0 +inf.0

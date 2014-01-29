@@ -12,20 +12,12 @@
 
 (define all (test-suite "all"
 
-(check-pyret-exn
- "true and not false"
- "well-formedness:")
-
 (check-pyret
  "true and false and true"
  p:p-false)
 
 (check-pyret-exn
  "true and false or true"
- "well-formedness:")
-
-(check-pyret-exn
- "true and false and not true and false"
  "well-formedness:")
 
 (check-pyret
