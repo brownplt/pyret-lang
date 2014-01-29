@@ -190,7 +190,7 @@
     [(binop-expr e) (parse-binop-expr #'e)]
     [(binop-expr left op right) (s-op (loc stx) (parse-op #'op)
                                       (parse-binop-expr #'left)
-                                      (parse-binop-expr-paren #'right))]))
+                                      (parse-expr #'right))]))
 
 (define (parse-doc-string stx)
   (syntax-parse stx
@@ -219,7 +219,7 @@
 
 (define (parse-binop-expr-paren stx)
   (syntax-parse stx
-    #:datum-literals (binop-expr-paren binop-expr paren-nospace-expr)
+    #:datum-literals (binop-expr-paren binop-expr)
     [(binop-expr-paren (paren-nospace-expr _ e _)) (s-paren (loc stx)(parse-binop-expr #'e))]
     [(binop-expr-paren e) (parse-binop-expr #'e)]))
 

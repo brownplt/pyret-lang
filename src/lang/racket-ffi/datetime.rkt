@@ -161,7 +161,7 @@ sharing:
       tz = if neg: 0 - self.time-zone-offset else: self.time-zone-offset end
       tz-sec = tz.modulo(60)
       tz-min = ((tz - tz-sec) / 60).modulo(60)
-      tz-hour = ((tz - (60 * tz-min) - tz-sec) / 3600).modulo(60)
+      tz-hour = ((tz -  (60 * tz-min) - tz-sec) / 3600).modulo(60)
       sign =
         if neg: "-"
         else: "+"
