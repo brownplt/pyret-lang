@@ -37,12 +37,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
       }
       function name(tok) { return RUNTIME.makeString(tok.value); }
       function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
-      function number(tok, positive) { 
-        if (positive)
-          return RUNTIME.makeNumberFromString(tok.value); 
-        else
-          return RUNTIME.makeNumberFromString("-" + tok.value);
-      }
+      function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
           return RUNTIME.getField(ast, 's_program')
@@ -689,15 +684,9 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
           }
         },
         'num-expr': function(node) {
-          if (node.kids.length === 1) {
-            // (num-expr n)
-            return RUNTIME.getField(ast, 's_num')
-              .app(pos(node.pos), number(node.kids[0], true));
-          } else {
-            // (num-expr MINUS n) {
-            return RUNTIME.getField(ast, 's_num')
-              .app(pos(node.pos), number(node.kids[1], false));
-          }
+          // (num-expr n)
+          return RUNTIME.getField(ast, 's_num')
+            .app(pos(node.pos), number(node.kids[0]));
         },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's_str')

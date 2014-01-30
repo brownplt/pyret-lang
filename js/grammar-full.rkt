@@ -87,7 +87,7 @@ id-expr: NAME
 
 prim-expr: num-expr | bool-expr | string-expr
 
-num-expr: NUMBER | DASH NUMBER
+num-expr: NUMBER
 bool-expr: TRUE | FALSE
 string-expr: STRING
 

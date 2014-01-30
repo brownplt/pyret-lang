@@ -69,7 +69,7 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
   const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", 
                                     "<", ">", "and", "or", "not", "is", "raises"]);
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
-  const number = new RegExp("^[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
+  const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const opparen = new RegExp("^" + operator_regex_str + "(?=\\()", STICKY_REGEXP); // NOTE: likewise
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -94,16 +94,16 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
-  const opplus = new RegExp("^\\s\\+\\s", STICKY_REGEXP);
-  const opminus = new RegExp("^\\s-\\s", STICKY_REGEXP);
-  const optimes = new RegExp("^\\s\\*\\s", STICKY_REGEXP);
-  const opdiv = new RegExp("^\\s/\\s", STICKY_REGEXP);
-  const opleq = new RegExp("^\\s<=\\s", STICKY_REGEXP);
-  const opgeq = new RegExp("^\\s>=\\s", STICKY_REGEXP);
-  const opeq = new RegExp("^\\s==\\s", STICKY_REGEXP);
-  const opneq = new RegExp("^\\s<>\\s", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s<\\s", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s>\\s", STICKY_REGEXP);
+  const opplus = new RegExp("^\\s+\\+\\s+", STICKY_REGEXP);
+  const opminus = new RegExp("^\\s+-\\s+", STICKY_REGEXP);
+  const optimes = new RegExp("^\\s+\\*\\s+", STICKY_REGEXP);
+  const opdiv = new RegExp("^\\s+/\\s+", STICKY_REGEXP);
+  const opleq = new RegExp("^\\s+<=\\s+", STICKY_REGEXP);
+  const opgeq = new RegExp("^\\s+>=\\s+", STICKY_REGEXP);
+  const opeq = new RegExp("^\\s+==\\s+", STICKY_REGEXP);
+  const opneq = new RegExp("^\\s+<>\\s+", STICKY_REGEXP);
+  const oplt = new RegExp("^\\s+<\\s+", STICKY_REGEXP);
+  const opgt = new RegExp("^\\s+>\\s+", STICKY_REGEXP);
   const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opnot = new RegExp("^not(?![-_a-zA-Z0-9])", STICKY_REGEXP);
@@ -180,6 +180,10 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "CARET", val: caret},
     {name: "BAR", val: bar},
 
+    {name: "NUMBER", val: number},
+    {name: "STRING", val: dquot_str}, 
+    {name: "STRING", val: squot_str},
+
     {name: "PLUS", val: opplus, parenIsForExp: true},
     {name: "DASH", val: opminus, parenIsForExp: true},
     {name: "STAR", val: optimes, parenIsForExp: true},
@@ -195,9 +199,6 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "NOT", val: opnot},
     {name: "IS", val: opis},
     {name: "RAISES", val: opraises},
-    {name: "NUMBER", val: number},
-    {name: "STRING", val: dquot_str}, 
-    {name: "STRING", val: squot_str},
     {name: "LBRACK", val: lbrack}, 
     {name: "RBRACK", val: rbrack}, 
     {name: "LBRACE", val: lbrace}, 
