@@ -792,12 +792,13 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
       if (posViolations) {
         console.error("Not all nodes conain their children!");
       } else {
-        if (countParses[0] === 1) {
+        if (countParses === 1) {
           var ast = G.PyretGrammar.constructUniqueParse(parsed);
 //          console.log(ast.toString());
           return translate(ast, fileName);
         } else {
           var asts = G.PyretGrammar.constructAllParses(parsed);
+          throw "Non-unique parse";
           for (var i = 0; i < asts.length; i++) {
             //console.log("Parse " + i + ": " + asts[i].toString());
 //            console.log(("" + asts[i]) === ("" + asts2[i]));
