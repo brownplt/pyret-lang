@@ -23,7 +23,7 @@ binding: [SHADOW] NAME [COLONCOLON ann]
 fun-expr: FUN fun-header COLON doc-string block where-clause end
 fun-header: ty-params NAME args return-ann
 ty-params:
-  [LT list-ty-param* NAME GT]
+  [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
 list-ty-param: NAME COMMA
 args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
 list-arg-elt: binding COMMA
@@ -104,7 +104,7 @@ app-arg-elt: binop-expr COMMA
 left-app-expr: expr CARET left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr DOT NAME
 
-inst-expr: expr LT inst-elt* ann GT
+inst-expr: expr (LANGLE|LT) inst-elt* ann (RANGLE|GT)
 inst-elt: ann COMMA
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
@@ -159,7 +159,7 @@ ann-field: NAME COLON ann | NAME COLONCOLON ann
 arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] THINARROW ann RPAREN
 arrow-ann-elt: ann COMMA
 
-app-ann: (name-ann|dot-ann) LT app-ann-elt* ann GT
+app-ann: (name-ann|dot-ann) (LANGLE|LT) app-ann-elt* ann (RANGLE|GT)
 app-ann-elt: ann COMMA
 
 pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr RPAREN

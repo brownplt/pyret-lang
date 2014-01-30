@@ -177,7 +177,7 @@ R(['./builtin-libs/rnglr', './builtin-libs/tokenizer', 'fs'], function(E, T, fs)
   }
 
 
-  var data = fs.readFileSync("grammar-full.rkt", "utf8");
+  var data = fs.readFileSync(process.argv[2], "utf8");
   //var data = fs.readFileSync("grammar-small.rkt", "utf8");
 
 
@@ -190,7 +190,7 @@ R(['./builtin-libs/rnglr', './builtin-libs/tokenizer', 'fs'], function(E, T, fs)
     console.log("Found " + parses.length + " parses");
     // console.log(parses[0].toString());
     var bnfJS = generateGrammar(parses[0], grammar_name);
-    var filename = process.argv[2];
+    var filename = process.argv[3];
     var out = fs.createWriteStream(filename);
     out.write("const R = require('requirejs');\n\n");
     out.write("R(['fs', './rnglr', './pyret-tokenizer'], function(fs, E, T) {\n");
@@ -225,5 +225,9 @@ R(['./builtin-libs/rnglr', './builtin-libs/tokenizer', 'fs'], function(E, T, fs)
     out.write("  out.end();\n");
     out.write("});\n");
     out.end();
+  } else {
+    var next_tok = toks.next();
+    var msg = "Error reading grammar at token " + next_tok.toString(true) + " at position " + next_tok.pos.toString(true);
+    throw msg;
   }
 });

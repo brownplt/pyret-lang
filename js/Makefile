@@ -21,7 +21,7 @@ compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js $
 	$(COMPILER) --js boolean-dict-sweet.js --js_output_file boolean-dict.js --externs externs.js
 
 $(PYRET_PARSER): bnf-grammar.js grammar-full.rkt
-	node bnf-grammar.js $(BI)/grammar.js
+	node bnf-grammar.js grammar-full.rkt $(BI)/grammar.js
 	node $(BI)/grammar.js $(BI)/pyret-parser.js
 	$(COMPILER) --js $(BI)/pyret-parser.js --js_output_file $(BI)/pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
 
@@ -48,4 +48,4 @@ test: runtime-anf.js number-dict.js
 
 .PHONY : clean
 clean:
-	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js pyret-parser.js grammar.js pyret-parser-comp.js
+	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js $(BI)/pyret-parser.js $(BI)/grammar.js $(BI)/pyret-parser-comp.js
