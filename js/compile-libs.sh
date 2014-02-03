@@ -8,5 +8,6 @@ for i in builtin-libs/*.arr; do
     LIB=""
   fi
   echo "Compiling $js"
-  raco pyret --no-checks pyret.arr --compile-module-js $i $LIB > $js.js
+  target=build/`basename $js`.js
+  node standalone-compiler/main-wrapper.js --compile-module-js $i $LIB > $target
 done

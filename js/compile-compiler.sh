@@ -19,5 +19,5 @@ to_compile=(\
 
 for i in ${to_compile[@]}; do
   echo "Compiling $i"
-  raco pyret --no-checks pyret.arr --compile-module-js $i > $i.js
+  node standalone-compiler/main-wrapper.js --compile-module-js $i > $i.js
 done
