@@ -1120,6 +1120,20 @@ function createMethodDict() {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
     }
 
+    var parameters = Object.create(null);
+
+    function getParam(param) {
+      if(hasOwnProperty(parameters, param)) {
+        return parameters[param];
+      }
+      else {
+        throw new Error("Parameter " + param + " not defined");
+      }
+    }
+    function setParam(param, val) {
+      parameters[param] = val;
+    }
+
     /********************
 
      *******************/
@@ -1358,7 +1372,9 @@ function createMethodDict() {
         'serial' : Math.random(),
         'log': log,
 
-        'modules' : Object.create(null)
+        'modules' : Object.create(null),
+        'getParam' : getParam,
+        'setParam' : setParam
     };
 
     //Create the dictionaries 

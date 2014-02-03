@@ -9,6 +9,7 @@ to_compile=(\
   "anf.arr"\
   "ast-anf.arr"\
   "ast-util.arr"\
+  "anf-visitor-compiler.arr"\
   "anf-simple-compile.arr"\
   "compile-structs.arr"\
   "ast-split.arr"\

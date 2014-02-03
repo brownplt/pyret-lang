@@ -251,7 +251,7 @@ splitting-compiler = compiler-visitor.{
     split = S.ast-split(body)
     ids = headers.map(_.name).map(js-id-of)
     filenames = headers.map(fun(h):
-        cases(N.AImport) h:
+        cases(N.AHeader) h:
           | a-import-builtin(_, name, _) => "builtin-libs/" + name
           | a-import-file(_, file, _) => file
         end

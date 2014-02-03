@@ -1,7 +1,12 @@
 var R = require("requirejs");
 
+
 R([process.argv[2], "runtime-anf"], function(mainModule, RT) {
-  var rt = RT.makeRuntime({ stdout: function(str) { console.log(str); } });
+  var rt = RT.makeRuntime({
+      initialGas: Number(process.argv[3]) || 500,
+      stdout: function(str) { process.stdout.write(str); }
+    });
+  rt.setParam("command-line-arguments", process.argv.slice(2));
   rt.run(mainModule, rt.namespace, function(result) {
      if(rt.isSuccessResult(result)) {
 //        console.log(result);

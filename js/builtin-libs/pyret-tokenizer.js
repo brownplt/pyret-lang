@@ -102,8 +102,8 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
   const opgeq = new RegExp("^\\s+>=\\s+", STICKY_REGEXP);
   const opeq = new RegExp("^\\s+==\\s+", STICKY_REGEXP);
   const opneq = new RegExp("^\\s+<>\\s+", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s+<\\s+", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s+>\\s+", STICKY_REGEXP);
+  const oplt = new RegExp("^\\s*<\\s*", STICKY_REGEXP);
+  const opgt = new RegExp("^\\s*>\\s*", STICKY_REGEXP);
   const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opnot = new RegExp("^not(?![-_a-zA-Z0-9])", STICKY_REGEXP);

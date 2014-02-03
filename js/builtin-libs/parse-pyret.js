@@ -1,6 +1,6 @@
-define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser"], function(listLib, astLib, srclocLib, T, G) {
+define(["./ffi-helpers", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tokenizer", "./pyret-parser"], function(ffi, astLib, srclocLib, T, G) {
   return function(RUNTIME, NAMESPACE) {
-    var L = RUNTIME.getField(listLib(RUNTIME, NAMESPACE), "provide");
+    var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
@@ -28,13 +28,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
             n(p.endChar)
           );
       }
-      function makeList(arr) {
-        var lst = RUNTIME.getField(L, "empty");
-        for(var i = arr.length - 1; i >= 0; i--) {
-          lst = RUNTIME.getField(L, "link").app(arr[i], lst); 
-        }
-        return lst;
-      }
+      var makeList = F.makeList;
       function name(tok) { return RUNTIME.makeString(tok.value); }
       function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
       function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
@@ -251,7 +245,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         },
         'check-op': function(node) {
           // (check-op str)
-          var opname = String(node.kids[0].value);
+          var opname = String(node.kids[0].value).trim();
           if(opLookup[opname]) {
             return opLookup[opname];
           }
@@ -280,7 +274,7 @@ define(["builtin-libs/list", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret
         },
         'binop': function(node) {
           // (binop str)
-          var opname = String(node.kids[0].value);
+          var opname = String(node.kids[0].value).trim();
           if(opLookup[opname]) {
             return opLookup[opname];
           }

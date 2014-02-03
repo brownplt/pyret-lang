@@ -71,16 +71,9 @@ define(["require", "./js-numbers/src/js-numbers"], function(require, jsnums) {
               checkIf(str, isString);
               checkIf(splitstr, isString);
 
-              var list = rt.getField(require("builtin-libs/list")(rt, rt.namespace), "provide");
-              function makeList(arr) {
-                var lst = rt.getField(list, "empty");
-                for(var i = arr.length - 1; i >= 0; i--) {
-                  lst = rt.getField(list, "link").app(arr[i], lst); 
-                }
-                return lst;
-              }
+              var list = require("builtin-libs/ffi-helpers")(rt, rt.namespace);
 
-              return makeList(str.s.split(splitstr.s).map(rt.makeString));
+              return list.makeList(str.s.split(splitstr.s).map(rt.makeString));
           },
 
 

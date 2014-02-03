@@ -1,14 +1,7 @@
 
-define(["../namespace", "builtin-libs/list"], function(Namespace, L) {
+define(["../namespace", "./ffi-helpers"], function(Namespace, ffi) {
   return function(RUNTIME, NAMESPACE) {
-    var list = RUNTIME.getField(L(RUNTIME, NAMESPACE), "provide");
-    function makeList(arr) {
-      var lst = RUNTIME.getField(list, "empty");
-      for(var i = arr.length - 1; i >= 0; i--) {
-        lst = RUNTIME.getField(list, "link").app(arr[i], lst); 
-      }
-      return lst;
-    }
+    var F = ffi(RUNTIME, NAMESPACE);
     var unwrap = RUNTIME.unwrap;
     function ImmutableStringDict(d) {
       this.d = d;
@@ -64,7 +57,7 @@ define(["../namespace", "builtin-libs/list"], function(Namespace, L) {
             }),
           'keys': RUNTIME.makeMethodFromFun(function(self) {
               var dict = RUNTIME.getField(self, "the-dict");
-              return makeList(dict.val.d.getNames().map(RUNTIME.makeString));
+              return F.makeList(dict.val.d.getNames().map(RUNTIME.makeString));
             })
         });
     }
