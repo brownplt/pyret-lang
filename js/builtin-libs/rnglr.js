@@ -1337,6 +1337,10 @@ define(["./cyclicJSON"], function(cycle) {
 
             var actions = this.getActions(k, next_tok);
             // console.log("next_tok = " + next_tok.toString(true) + ", k = " + k + ", actions = " + JSON.stringify(actions));
+            if (actions === undefined) {
+              throw("No actions found in state " + k + " for token " + next_tok.toString(true) + " at " +
+                   next_tok.pos.toString(true));
+            }
             var ph = actions.push;
             if (ph !== undefined) {
               var sp = new ShiftPair(w, ph);
@@ -1524,45 +1528,50 @@ define(["./cyclicJSON"], function(cycle) {
         // console.log("R = ");
         // R.debugPrint();
         var i = 0;
-        while (hasNext && this.U[i].size() > 0) {
-          var N = new Queue([]);
-          // console.log("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
-          while (R.length > 0) {
-            this.reducer(this.U, R, Q, N, i, cur_tok);
+        try {
+          while (hasNext && this.U[i].size() > 0) {
+            var N = new Queue([]);
+            // console.log("Phase 1: reducing due to token #" + i + ": " + cur_tok.toString(true));
+            while (R.length > 0) {
+              this.reducer(this.U, R, Q, N, i, cur_tok);
+            }
+            hasNext = token_source.hasNext();
+            var next_tok = token_source.next();
+            // console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
+            this.shifter(this.U, R, Q, N, i, cur_tok, next_tok);
+            if (next_tok)
+              cur_tok = next_tok;
+            i++;
           }
-          hasNext = token_source.hasNext();
-          var next_tok = token_source.next();
-          // console.log("Phase 2: shifting token #" + i + ": " + cur_tok.toString(true));
-          this.shifter(this.U, R, Q, N, i, cur_tok, next_tok);
-          if (next_tok)
-            cur_tok = next_tok;
-          i++;
-        }
-//        console.log("DONE WITH LOOP, i = " + i 
-//                    + ", last token = " + cur_tok.toString(true) + "@" + cur_tok.pos.toString(true));
-        if (!hasNext) i--;
-//        console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
-        for (var acc = 0; acc < this.acceptStates.length; acc++) {
-          if (this.acceptStates[acc]) {
-            //console.log("Searching for " + acc);
-            var t = this.U[i].itemForKey(acc);
-            if (t !== undefined) {
-              //console.log("Parse success!");
-              var link = undefined;
-              for (var j = 0; j < t.links.length; j++) {
-                if (t.links[j].prev === v0) {
-                  link = t.links[j];
-                  break;
+          //        console.log("DONE WITH LOOP, i = " + i 
+          //                    + ", last token = " + cur_tok.toString(true) + "@" + cur_tok.pos.toString(true));
+          if (!hasNext) i--;
+          //        console.log("Finalizing: i = " + i + " and U[i] = " + this.U[i]);
+          for (var acc = 0; acc < this.acceptStates.length; acc++) {
+            if (this.acceptStates[acc]) {
+              //console.log("Searching for " + acc);
+              var t = this.U[i].itemForKey(acc);
+              if (t !== undefined) {
+                //console.log("Parse success!");
+                var link = undefined;
+                for (var j = 0; j < t.links.length; j++) {
+                  if (t.links[j].prev === v0) {
+                    link = t.links[j];
+                    break;
+                  }
                 }
+                if (link !== undefined) {
+                  return link.val;
+                } else
+                  console.log("Couldn't find correct link in " + JSON.stringify(JSON.decycle(t), null, "  "));
+              } else {
+                //console.log("Parse failure");
               }
-              if (link !== undefined) {
-                return link.val;
-              } else
-                console.log("Couldn't find correct link in " + JSON.stringify(JSON.decycle(t), null, "  "));
-            } else {
-              //console.log("Parse failure");
             }
           }
+        } catch(e) {
+          console.log(e);
+          return undefined;
         }
       }
     },

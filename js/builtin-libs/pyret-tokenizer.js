@@ -76,6 +76,8 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
   const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r)", STICKY_REGEXP)
   const bar = new RegExp("^\\|", STICKY_REGEXP);
+  const langle = new RegExp("^<", STICKY_REGEXP);
+  const rangle = new RegExp("^>", STICKY_REGEXP);
   const lbrack = new RegExp("^\\[", STICKY_REGEXP);
   const rbrack = new RegExp("^\\]", STICKY_REGEXP);
   const lbrace = new RegExp("^\\{", STICKY_REGEXP);
@@ -204,6 +206,8 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
     {name: "LBRACE", val: lbrace}, 
     {name: "RBRACE", val: rbrace}, 
     {name: "RPAREN", val: rparen}, 
+    {name: "LANGLE", val: langle, parenIsForExp: true},
+    {name: "RANGLE", val: rangle, parenIsForExp: true},
 
     {name: "EQUALS", val: equals},
 
