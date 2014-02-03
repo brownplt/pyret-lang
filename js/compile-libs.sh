@@ -8,6 +8,6 @@ for i in builtin-libs/*.arr; do
     LIB=""
   fi
   echo "Compiling $js"
-  target=build/`basename $js`.js
+  target=$js.js
   node standalone-compiler/main-wrapper.js --compile-module-js $i $LIB > $target
 done
