@@ -5,6 +5,7 @@ compiler:
 	bash copy-libs.sh
 	bash compile-libs.sh
 	bash compile-compiler.sh
+	./node_modules/r.js -o require-build.js
 
 COMPILER = java -jar closure-compiler/compiler.jar
 SWEETENER = node node_modules/sweet.js/bin/sjs
