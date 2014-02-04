@@ -1,6 +1,8 @@
 var r = require("requirejs")
 
-define(["../namespace"], function (Namespace) {
+define(["../namespace"], function (NamespaceLib) {
+
+  var Namespace = NamespaceLib.namespace;
 
   function performTest() {
     describe("Namespaces", function() {
