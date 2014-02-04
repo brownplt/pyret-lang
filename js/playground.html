@@ -35,6 +35,7 @@ $(function() {
     ], function(sets, error, option, list, rt, cs, wc, shim) {
 
     var oldDefine = define;
+    var profileCounter = 0;
     
     function OMGBADIDEA(name, src) {
       var define = function(libs, fun) {
@@ -61,6 +62,7 @@ $(function() {
       myRT.run(function(runtime, namespace) {
           var name = "anon" + Math.floor(Math.random() * 10000000);
           myRT.safeCall(function() {
+                console.profile("profile" + profileCounter++);
                 return gf(myWC, "compile-js").app(
                   s(src),
                   s(name),
@@ -81,6 +83,7 @@ $(function() {
                       console.log(myCR);
                       throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
                     }
+                    console.profileEnd();
 
                     OMGBADIDEA(name, jscode); 
                     require([name], function(a) {

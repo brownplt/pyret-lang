@@ -120,8 +120,11 @@ define(function() {
       Object.keys(bindingsObj).forEach(function(k) {
           bindings[k] = bindingsObj[k];
       });
-      return new Namespace(bindings);
+      return new Namespace(bindings, 0);
     }
     
-    return makeNamespace;
+    return {
+        namespace: makeNamespace,
+        Namespace: Namespace
+      };
 });

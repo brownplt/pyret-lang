@@ -43,13 +43,13 @@ j-parens = J.j-parens
 Loc = error.Location
 
 js-id-of = block:
-  var js-ids = D.immutable-string-dict()
+  var js-ids = D.string-dict()
   fun(id :: String):
     if js-ids.has-key(id):
       js-ids.get(id)
     else: no-hyphens = id.replace("-", "_DASH_")
       safe-id = G.make-name(no-hyphens)
-      js-ids := js-ids.set(id, safe-id)
+      js-ids.set(id, safe-id)
       safe-id
     end
   end

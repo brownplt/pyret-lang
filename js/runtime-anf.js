@@ -1301,7 +1301,7 @@ function createMethodDict() {
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
-        'namespace': Namespace({
+        'namespace': Namespace.namespace({
           'torepr': torepr,
           'tostring': tostring,
           'test-print': print,
