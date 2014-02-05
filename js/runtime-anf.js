@@ -76,14 +76,13 @@ function makeRuntime(theOutsideWorld) {
     @return {!PBase} the extended object 
 */
 function extendWith(fields) {
-    /**@type {!PBase}*/
+    /**@type {!Object}*/
     var newDict = Object.create(this.dict);
     /**@type {!boolean}*/
     var allNewFields = true;
 
     for(var field in fields) {
         if(allNewFields && hasProperty(this.dict, field)) {
-            console.log("Found a different field: ", field);
             allNewFields = false;
         }
 
@@ -179,7 +178,7 @@ function hasOwnProperty(obj, p) {
     Get the brands on an object
 
     @param {!PBase} obj the object to get the brands of
-    @return {Array.<number>}
+    @return {Object.<string,!Boolean>}
 */
 function getBrands(obj) {
   return obj.brands;
@@ -417,7 +416,7 @@ PNumber.prototype.updateDict = function(dict, keepBrands) {
 */
 PNumber.prototype.brand = function(b) { 
     var newNum = makeNumberBig(this.n); 
-    return brandClone(newStr, this, b);
+    return brandClone(newNum, this, b);
 };
 
 
@@ -1362,6 +1361,9 @@ function createMethodDict() {
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     var DEBUGLOG = false;
+    /**
+      @type {function(...[?]): undefined}
+    */
     var log = function() {
       if(DEBUGLOG) { console.log.apply(console, arguments); }
     }
