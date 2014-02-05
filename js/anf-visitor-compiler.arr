@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+import ast as A
 import "ast-anf.arr" as N
 import "ast-split.arr" as S
 import "js-ast.arr" as J
@@ -66,6 +67,9 @@ end
 fun add-stack-frame(l, exn-id):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [obj-of-loc(l)])
 end
+
+fun rt-field(name): j-dot(j-id("RUNTIME"), name);
+fun rt-method(name, args): j-method(j-id("RUNTIME"), name, args);
 
 fun app(f, args):
 #  j-app(compile-v(f), args.map(compile-v))
@@ -133,8 +137,11 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
                     j-return(j-app(j-id(helper-name(name)),
                         link(
                             j-id(js-id-of(helper-args.first.id)),
-                            helper-ids.map(fun(a): j-dot(j-id("this"), a) end))))])))] + 
-                helper-ids.map(fun(a): j-field(a, j-id(a)) end))),
+                            helper-ids.map(fun(a): j-id(a);)
+                            #helper-ids.map(fun(a): j-dot(j-id("this"), a) end)
+                            )))])))]
+                #+ helper-ids.map(fun(a): j-field(a, j-id(a)) end)
+                )),
             j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                 j-unop(j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
             #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
@@ -243,6 +250,100 @@ compiler-visitor = {
   end,
   a-id-letrec(self, l :: Loc, id :: String):
     j-dot(j-id(js-id-of(id)), "$var")
+  end,
+
+  a-data-expr(self, l, name, variants, shared):
+    fun brand-name(base):
+      G.make-name("$brand-" + base)
+    end
+
+    shared-fields = shared.map(_.visit(self))
+    base-brand = brand-name(name)
+
+    fun make-brand-predicate(b :: String, pred-name :: String):
+      j-field(
+          pred-name,
+          rt-method("makeFunction", [
+              j-fun(
+                  ["val"],
+                  j-block([
+                    j-return(rt-method("makeBoolean", [rt-method("hasBrand", [j-id("val"), j-str(b)])]))
+                  ])
+                )
+            ])
+        )
+    end
+
+    fun make-variant-constructor(base-id, brands-id, vname, members):
+      member-names = members.map(fun(m): m.bind.id;)
+      j-field(
+          vname,
+          rt-method("makeFunction", [
+            j-fun(
+              member-names.map(js-id-of),
+              j-block([
+                  j-var("dict", j-method(j-id("Object"), "create", [j-id(base-id)]))
+                ] +
+                for map2(n from member-names, m from members):
+                    cases(N.AMemberType) m.member-type:
+                      | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
+                      | a-cyclic => raise("Cannot handle cyclic fields yet")
+                      | a-mutable => raise("Cannot handle mutable fields yet")
+                    end
+                  end +
+                [
+                  j-return(rt-method("makeBrandedObject", [j-id("dict"), j-id(brands-id)]))
+                ])
+              )
+          ])
+        )
+    end
+
+    fun compile-variant(v :: N.AVariant):
+      vname = v.name
+      variant-base-id = js-id-of(G.make-name(vname + "-base"))
+      variant-brand = brand-name(vname)
+      variant-brand-obj-id = js-id-of(G.make-name(vname + "-brands"))
+      variant-brands = j-obj([
+          j-field(base-brand, j-true),
+          j-field(variant-brand, j-true)
+        ])
+      stmts = [
+          j-var(variant-base-id, j-obj(shared-fields + v.with-members.map(_.visit(self)))),
+          j-var(variant-brand-obj-id, variant-brands)
+        ]
+      predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
+
+      cases(N.AVariant) v:
+        | a-variant(_, _, members, with-members) =>
+          {
+            stmts: stmts,
+            constructor: make-variant-constructor(variant-base-id, variant-brand-obj-id, vname, members),
+            predicate: predicate
+          }
+        | a-singleton-variant(_, _, with-members) =>
+          {
+            stmts: stmts,
+            constructor: j-field(vname, rt-method("makeBrandedObject", [j-id(variant-base-id), j-id(variant-brand-obj-id)])),
+            predicate: predicate
+          }
+      end
+    end
+
+    variant-pieces = variants.map(compile-variant)
+
+    header-stmts = for fold(acc from [], piece from variant-pieces):
+      piece.stmts.reverse() + acc
+    end.reverse()
+    obj-fields = for fold(acc from [], piece from variant-pieces):
+      [piece.constructor] + [piece.predicate] + acc
+    end.reverse()
+
+    data-predicate = make-brand-predicate(base-brand, name)
+
+    data-object = rt-method("makeObject", [j-obj([data-predicate] + obj-fields)])
+
+    thunk-app(j-block(header-stmts + [j-return(data-object)]))
   end
 }
 
@@ -279,7 +380,6 @@ splitting-compiler = compiler-visitor.{
         j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
       end
     module-id = G.make-name("mod")
-    rt-field = fun(name): j-dot(j-id("RUNTIME"), name);
     module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
     j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
         j-return(j-fun(["RUNTIME", "NAMESPACE"],

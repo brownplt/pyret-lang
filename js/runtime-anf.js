@@ -767,18 +767,17 @@ function createMethodDict() {
         @param {!Object.<string, !PBase>} dict
         @extends {PBase}
     */
-    function PObject(dict) { 
+    function PObject(dict, brands) { 
         /**@type {!Object.<string, !PBase>}*/
         this.dict = dict;
 
         /**@type {!Object.<string, Boolean>}*/
-        this.brands = noBrands;
+        this.brands = brands;
     }
     //PObject.prototype = Object.create(PBase.prototype); 
 
     PObject.prototype.updateDict = function(dict, keepBrands) {
-      var newObj = makeObject(dict); 
-      newObj.brands = keepBrands ? this.brands : noBrands;
+      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
       return newObj;
     }
 
@@ -802,7 +801,11 @@ function createMethodDict() {
       @return {!PObject} with given dict
     */
     function makeObject(dict) {
-       return new PObject(dict); 
+       return new PObject(dict, noBrands); 
+    }
+
+    function makeBrandedObject(dict, brands) {
+        return new PObject(dict, brands);
     }
 
     
@@ -833,14 +836,17 @@ function createMethodDict() {
     }
 
     var brandCounter = 0;
+    function mkBrandName() {
+      var thisBrandStr = "$brand" + String(++brandCounter);
+      return thisBrandStr;
+    }
     /**@type {PFunction} */
     var brander = makeFunction(
     /**
       @return {!PBase}
     */
     function() {
-      var thisBrand = brandCounter++;
-      var thisBrandStr = "$brand" + String(brandCounter);
+      var thisBrandStr = mkBrandName();
       return makeObject({
           'test': makeFunction(function(obj) {
               return makeBoolean(hasBrand(obj, thisBrandStr));
@@ -1405,6 +1411,8 @@ function createMethodDict() {
         'getFields'    : getFields,
         'getColonField'    : getColonField,
 
+        'hasBrand' : hasBrand,
+
         'isPyretTrue' : isPyretTrue,
 
         'isBase'      : isBase,
@@ -1431,6 +1439,7 @@ function createMethodDict() {
         'makeMethod'   : makeMethod,
         'makeMethodFromFun' : makeMethodFromFun,
         'makeObject'   : makeObject,
+        'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
         'hasField' : hasField,

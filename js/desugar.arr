@@ -236,81 +236,27 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           end
         | s_data(l, name, params, mixins, variants, shared, _check) =>
           fun b(loc, id): A.s_bind(loc, false, id, A.a_blank);
-          fun variant-member-to-field(vm, val-id):
-            cases(A.VariantMember) vm:
-              | s_variant_member(l2, member_type, bind) =>
-                when not (member_type == "normal"):
-                  raise("Non-normal member_type " + member_type + " at " + torepr(l))
-                end
-                A.s_data_field(l2, A.s_str(l2, bind.id), A.s_id(l2, val-id))
-            end
+          fun variant-binds(data-blob-id, v):
+            vname = v.name
+            checker-name = A.make-checker-name(vname)
+            get-part = A.s_dot(l, data-blob-id, _)
+            [
+              A.s_letrec_bind(l, b(l, vname), get-part(vname)),
+              A.s_letrec_bind(l, b(l, checker-name), get-part(checker-name))
+            ]
           end
-          fun variant-binds(v, main-brander, variant-brander, sharing-id :: String):
-            fun brand(brander-id, arg): A.s_app(l, A.s_dot(l, A.s_id(l, brander-id), "brand"), [arg]);
-            fun body-of-members(members, variant-bind-names, shared-id):
-              obj = A.s_extend(l, A.s_id(l, shared-id), map2(variant-member-to-field, members, variant-bind-names))
-              brand(main-brander, brand(variant-brander, obj))
-            end
-            cases(A.Variant) v:
-              | s_variant(l2, vname, members, with-members) =>
-                shared-id = G.make-name(vname)
-                m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
-                tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, members))
-                variant-bind-names = members.map(_.bind).map(_.id).map(G.make-name)
-                [
-                  A.s_letrec_bind(l2, b(l2, shared-id), A.s_extend(l2, A.s_id(l2, sharing-id), [m, tr] + with-members)),
-                  A.s_letrec_bind(l2, b(l2, vname),
-                    A.s_lam(
-                        l2,
-                        [],
-                        variant-bind-names.map(b(l2, _)),
-                        A.a_blank,
-                        "Creates a " + vname,
-                        body-of-members(members, variant-bind-names, shared-id),
-                        A.s_block(l, [])
-                      ))
-                ]
-              | s_singleton_variant(l2, vname, with-members) =>
-                shared-id = G.make-name(vname)
-                m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
-                tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
-                [
-                  A.s_letrec_bind(l2, b(l2, vname), brand(main-brander, brand(variant-brander, A.s_extend(l2, A.s_id(l2, sharing-id), [m,tr] + with-members))))
-                ]
-            end
-          end
-          main-brand-id = G.make-name(name)
-          shared-fields-id = G.make-name(name + "-shared")
-          variant-names = variants.map(_.name)
-          name-ids = variant-names.map(G.make-name)
-          fun mk-brander(id):
-            A.s_letrec_bind(l, b(l, id), A.s_app(l, A.s_id(l, "brander"), []))
-          end
-          fun tester(target, brander-id):
-            A.s_letrec_bind(l, b(l, target), A.s_dot(l, A.s_id(l, brander-id), "test"))
+          blob-id = G.make-name(name)
+          data-expr = A.s_data_expr(l, name, params, mixins, variants, shared, _check)
+          bind-data = A.s_letrec_bind(l, b(l, blob-id), data-expr)
+          bind-data-pred = A.s_letrec_bind(l, b(l, name), A.s_dot(l, A.s_id(l, blob-id), name))
+          all-binds = for fold(acc from [bind-data-pred, bind-data], v from variants):
+            variant-binds(A.s_id(l, blob-id), v) + acc
           end
 
-          data-initial-binds = link(
-              mk-brander(main-brand-id),
-              name-ids.map(mk-brander) +
-                link(
-                    tester(name, main-brand-id),
-                    for map2(v from variant-names, id from name-ids):
-                      tester(A.make-checker-name(v), id)
-                    end
-                  )
-            )
-          data-letrec-binds = for fold2(acc from [], v from variants, vn from name-ids):
-              acc + variant-binds(v, main-brand-id, vn, shared-fields-id)
-            end
-          data-with-sharing =  data-letrec-binds + [
-              A.s_letrec_bind(l, A.s_bind(l, false, shared-fields-id, A.a_blank), A.s_obj(l, shared))
-            ]
-          all-new-binds = data-with-sharing + data-initial-binds.reverse()
           if is-empty(letrec-binds):
-            [wrapper(A.s_block(l, resolve-scope(rest-stmts, [], all-new-binds)))]
+            [wrapper(A.s_block(l, resolve-scope(rest-stmts, [], all-binds)))]
           else:
-            resolve-scope(rest-stmts, [], all-new-binds + letrec-binds)
+            resolve-scope(rest-stmts, [], all-binds + letrec-binds)
           end
 
         | else =>
@@ -665,6 +611,20 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           end
         end
       A.s_letrec(l, new-binds, desugar-expr(new-env, body))
+    | s_data_expr(l, name, params, mixins, variants, shared, _check) =>
+      fun extend-variant(v):
+        cases(A.Variant) v:
+          | s_variant(l2, vname, members, with-members) =>
+            m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
+            tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, members))
+            A.s_variant(l2, vname, members, ([m, tr] + with-members).map(desugar-member(nv, _)))
+          | s_singleton_variant(l2, vname, with-members) =>
+            m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
+            tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
+            A.s_singleton_variant(l2, vname, ([m, tr] + with-members).map(desugar-member(nv, _)))
+        end
+      end
+      A.s_data_expr(l, name, params, mixins.map(desugar-expr(nv, _)), variants.map(extend-variant), shared.map(desugar-member(nv, _)), _check)
     | s_not(l, test) => 
       A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [A.s_bool(l, false)]))], A.s_block(l, [A.s_bool(l, true)]))
     | s_when(l, test, body) =>

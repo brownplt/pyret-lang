@@ -21,6 +21,12 @@ end
 
 fun bind(l, id): N.a-bind(l, id, A.a_blank);
 
+fun anf-bind(b):
+  cases(A.Bind) b:
+    | s_bind(l, shadows, id, ann) => N.a-bind(l, id, ann)
+  end
+end
+
 fun mk-id(loc, base):
   t = G.make-name(base)
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
@@ -123,6 +129,59 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         A.s_assign(b.l, b.b.id, b.value)
       end
       anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
+
+    | s_data_expr(l, name, params, mixins, variants, shared, _check) =>
+      fun type-of-str(str):
+        if str == "normal": N.a-normal
+        else if str == "cyclic": N.a-cyclic
+        else if str == "mutable" : N.a-mutable
+        else: raise("Not a known member type: " + str)
+        end
+      end
+      fun anf-member(member :: A.VariantMember):
+        cases(A.VariantMember) member:
+          | s_variant_member(l2, type, b) =>
+            N.a-variant-member(l2, type-of-str(type), anf-bind(b))
+        end
+      end
+      fun anf-variant(v :: A.Variant, kv :: (N.AVariant -> N.AExpr)):
+        cases(A.Variant) v:
+          | s_variant(l2, vname, members, with-members) =>
+            with-exprs = with-members.map(_.value)
+            anf-name-rec(with-exprs, "anf_variant_member", fun(ts):
+                new-fields = for map2(f from with-members, t from ts):
+                    N.a-field(f.l, f.name.s, t)
+                  end
+                kv(N.a-variant(l, vname, members.map(anf-member), new-fields))
+              end)
+          | s_singleton_variant(l2, vname, with-members) =>
+            with-exprs = with-members.map(_.value)
+            anf-name-rec(with-exprs, "anf_singleton_variant_member", fun(ts):
+                new-fields = for map2(f from with-members, t from ts):
+                    N.a-field(f.l, f.name.s, t)
+                  end
+                kv(N.a-singleton-variant(l, vname, new-fields))
+              end)
+        end
+      end
+      fun anf-variants(vs :: List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
+        cases(List) vs:
+          | empty => ks([])
+          | link(f, r) =>
+            anf-variant(f, fun(v): anf-variants(r, fun(rest-vs): ks([v] + rest-vs););)
+        end
+      end
+      exprs = shared.map(_.value)
+
+      anf-name-rec(exprs, "anf_shared", fun(ts):
+          new-shared = for map2(f from shared, t from ts):
+              N.a-field(f.l, f.name.s, t)
+            end
+          anf-variants(variants, fun(new-variants):
+              k(N.a-data-expr(l, name, new-variants, new-shared))
+            end)
+        end)
+
     | s_if_else(l, branches, _else) =>
       if not is-empty(branches):
         s-if = for fold(acc from _else, branch from branches.reverse()):
@@ -183,7 +242,6 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
       anf-name(value, "anf_assign", fun(v): k(N.a-assign(l, id, v)) end)
 
     | s_obj(l, fields) =>
-      names = fields.map(fun(f): f.name.s;)
       exprs = fields.map(_.value)
 
       anf-name-rec(exprs, "anf_obj", fun(ts):
@@ -194,7 +252,6 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         end)
 
     | s_extend(l, obj, fields) =>
-      names = fields.map(_.name)
       exprs = fields.map(_.value)
 
       anf-name(obj, "anf_extend", fun(o):

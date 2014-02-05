@@ -28,6 +28,7 @@ str-colonspace = PP.str(": ")
 str-comment = PP.str("# ")
 str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
+str-data-expr = PP.str("data-expr ")
 str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
@@ -463,28 +464,34 @@ data Expr:
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
-  | s_datatype(
+  | s_data_expr(
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
+      mixins :: List<Expr>,
       variants :: List<Variant>,
+      shared_members :: List<Member>,
       check :: Expr
     ) with:
-      label(self): "s_datatype" end,
+      label(self): "s_data" end,
     tosource(self):
       fun optional_section(lbl, section):
-        if PP.is-empty(section): PP.empty
+        if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
       end
-      tys = PP.surround-separate(2 * INDENT, 0, PP.empty, PP.langle, PP.commabreak, PP.rangle,
+      tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(_.tosource()))
-      header = str-data + PP.str(self.name) + tys + str-colon
+      header = str-data-expr + PP.str(self.name) + tys + str-colon
+      _deriving =
+        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+      shared = optional_section(str-sharing,
+        PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
       _check = optional_section(str-where, self.check.tosource())
       footer = break-one + str-end
-      header + PP.group(PP.nest(INDENT, variants) + _check + footer)
+      header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
   | s_for(
       l :: Loc,
@@ -1289,12 +1296,14 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-ast(c1, c2)
         | else => false
       end
-    | s_datatype(_, n1, p1, v1, c1) =>
+    | s_data_expr(_, n1, p1, m1, v1, sm1, c1) =>
       cases(Expr) ast2:
-        | s_datatype(_, n2, p2, v2, c2) =>
+        | s_data_expr(_, n2, p2, m2, v2, sm2, c2) =>
           (n1 == n2) and
             length-andmap(_ == _, p1, p2) and
-            length-andmap(equiv-ast-datatype-variant, v1, v2) and
+            length-andmap(equiv-ast, m1, m2) and
+            length-andmap(equiv-ast-variant, v1, v2) and
+            length-andmap(equiv-ast-member, sm1, sm2) and
             equiv-ast(c1, c2)
         | else => false
       end
@@ -1564,22 +1573,25 @@ default-map-visitor = {
         _check.visit(self)
       )
   end,
-  s_datatype(
+  s_data_expr(
       self,
       l :: Loc,
-      name :: String ,
+      name :: String,
       params :: List<String>, # type params
+      mixins :: List<Expr>,
       variants :: List<Variant>,
+      shared_members :: List<Member>,
       _check :: Expr
     ):
-      s_datatype(
-       self,
-       l,
-       name,
-       params,
-       variants.map(_._match(self)),
-       _check.visit(self)
-      ) 
+    s_data_expr(
+        l,
+        name,
+        params,
+        mixins.map(_.visit(self)),
+        variants.map(_.visit(self)),
+        shared_members.map(_.visit(self)),
+        _check.visit(self)
+      )
   end,
   s_for(
       self,

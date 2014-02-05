@@ -69,6 +69,10 @@ where:
         N.a-lettable(N.a-val(N.a-id(d, "y"))))).to-list() is ["y"]
 end
 
+fun freevars-variant(v :: N.AVariant) -> Set<String>:
+  unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
+end
+
 fun freevars-l(e :: N.ALettable) -> Set<String>:
   cases(N.ALettable) e:
     | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
@@ -80,6 +84,8 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-if(_, c, t, a) =>
       freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
     | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-data-expr(_, _, variants, shared) =>
+      unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
     | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
     | a-dot(_, obj, _) => freevars-v(obj)
     | a-colon(_, obj, _) => freevars-v(obj)

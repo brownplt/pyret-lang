@@ -122,7 +122,59 @@ sharing:
   end
 end
 
+data AVariant:
+  | a-variant(
+      l :: Loc,
+      name :: String,
+      members :: List<AVariantMember>,
+      with-members :: List<AField>
+    ) with:
+    label(self): "a-variant" end,
+    tosource(self): PP.str("a-variant") end
+  | a-singleton-variant(
+      l :: Loc,
+      name :: String,
+      with-members :: List<AField>
+    ) with:
+    label(self): "a-variant" end,
+    tosource(self): PP.str("a-variant") end
+end
+
+data AMemberType:
+  | a-normal with:
+    label(self): "a-normal" end,
+    tosource(self): PP.str("") end
+  | a-cyclic with:
+    label(self): "a-cyclic" end,
+    tosource(self): PP.str("cyclic ") end
+  | a-mutable with:
+    label(self): "a-mutable" end,
+    tosource(self): PP.str("mutable ") end
+end
+
+data AVariantMember:
+  | a-variant-member(
+      l :: Loc,
+      member-type :: AMemberType,
+      bind :: ABind
+    ) with:
+    label(self): "a-variant-member" end,
+    tosource(self):
+      self.member_type.tosource() + self.bind.tosource()
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
 data ALettable:
+  | a-data-expr(l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>) with:
+    label(self): "a-data-expr" end,
+    tosource(self):
+      PP.str("data-expr")
+    end
   | a-assign(l :: Loc, id :: String, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):

@@ -152,7 +152,7 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
         j-if(j-binop(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-decr), J.j-gt, j-num(0)),
           j-block([j-expr(j-assign(z, app(f, args)))]),
           j-block([
-              j-method(j-id("RUNTIME"), "log", [j-str("Starting, "), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
+#              j-method(j-id("RUNTIME"), "log", [j-str("Starting, "), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
               j-expr(j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0))),
               j-throw(j-method(j-id("RUNTIME"), "makeCont", 
                   [j-obj([j-field("go",
@@ -162,7 +162,7 @@ fun compile-e(expr :: N.AExpr) -> J.JBlock:
       helper-ids = helper-args.rest.map(_.id).map(js-id-of)
       catch =
         j-block([
-          j-method(j-id("RUNTIME"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT")]),
+#          j-method(j-id("RUNTIME"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT")]),
           j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
             j-block([
                 j-var(ss,
