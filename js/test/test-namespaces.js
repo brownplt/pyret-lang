@@ -81,9 +81,7 @@ define(["../namespace"], function (NamespaceLib) {
 
         it("should update both regular fields and proto", function() {
           var n = Namespace({x: 5});
-          console.log(n);
           var n2 = n.set("__proto__", 22);
-          console.log(n2);
           expect(n.get("x")).toEqual(5);
           expect(n2.get("__proto__")).toEqual(22);
           expect(function() { return n.get("__proto__"); }).toThrow();
