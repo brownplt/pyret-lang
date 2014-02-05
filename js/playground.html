@@ -62,7 +62,7 @@ $(function() {
       myRT.run(function(runtime, namespace) {
           var name = "anon" + Math.floor(Math.random() * 10000000);
           myRT.safeCall(function() {
-                console.profile("profile" + profileCounter++);
+                console.profile("compileProfile");
                 return gf(myWC, "compile-js").app(
                   s(src),
                   s(name),
@@ -87,14 +87,15 @@ $(function() {
 
                     OMGBADIDEA(name, jscode); 
                     require([name], function(a) {
-                      a(runtime, namespace);
+                      console.profile("execute");
+                      myRT.run(a, myRT.namespace, function(r) { console.profileEnd(); onDone(r) });
                     });
                   }
                 )
               });
         },
         myRT.namespace,
-        onDone);
+        function() { });
    }
 
     $("#runthepyret").click(function() {
