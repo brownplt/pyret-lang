@@ -181,18 +181,18 @@ data Expr:
   | s_let_expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
     label(self): "s_let" end,
     tosource(self):
-      PP.soft-surround(INDENT, 1,
-        str-let + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
-        self.body.tosource(),
-        str-end)
+      header = PP.surround-separate(2 * INDENT, 1, str-let, str-let + PP.str(" "), PP.commabreak, PP.mt-doc,
+          self.binds.map(_.tosource()))
+          + str-colon
+      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s_letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
     label(self): "s_letrec" end,
     tosource(self):
-      PP.soft-surround(INDENT, 1,
-        str-letrec + break-one + PP.flow_map(PP.comma + PP.hardline, _.tosource(), self.binds) + str-colon,
-        self.body.tosource(),
-        str-end)
+      header = PP.surround-separate(2 * INDENT, 1, str-letrec, str-letrec + PP.str(" "), PP.commabreak, PP.mt-doc,
+          self.binds.map(_.tosource()))
+          + str-colon
+      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s_hint_exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
     label(self): "s_hint_exp" end,
