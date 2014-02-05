@@ -61,7 +61,8 @@ $(BI)/sets.js: $(BI)/sets.arr
 	node standalone-compiler/main-wrapper.js --compile-module-js $< -library > $@
 
 ## HACK UNTIL WE HANDLE TRY/CATCH
-create-tests.arr.js ::
+create-tests.arr.js : create-tests.arr
+	touch create-tests.arr.js
 
 install:
 	mkdir -p closure-compiler
