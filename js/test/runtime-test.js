@@ -6,10 +6,12 @@ define(["./matchers"], function (matchers) {
     var path = require('path');
     var addPyretMatchers = matchers.addPyretMatchers;
     function simulateBrand(obj, name) {
-      obj["$brand" + name] = true;
+      obj.brands = Object.create(obj.brands);
+      obj.brands["$brand" + name] = true;
+      obj.brands.brandCount++;
     }
     function simulateHasBrand(obj, name) {
-      return obj["$brand" + name] === true;
+      return obj.brands["$brand" + name] === true;
     }
 
     function performTest(useCompiled) {
@@ -307,6 +309,7 @@ define(["./matchers"], function (matchers) {
           it( "should overwrite an existing field", function() {
         simulateBrand(aNum, "1");
         var x = aNum.extendWith({s : aStr});
+        console.log("about to extend");
         var y = x.extendWith({s : rt.makeString("not-equal")});
 
         expect(y.n).toEqual(x.n);
@@ -315,8 +318,8 @@ define(["./matchers"], function (matchers) {
 
 
         expect(aNum.dict).not.toEqual(y.dict); 
-        expect(simulateHasBrand(aNum, "1"));
-        expect(simulateHasBrand(y, "1"));
+        expect(simulateHasBrand(aNum, "1")).toBe(true);
+        expect(simulateHasBrand(y, "1")).toBe(false);
           });
 
           it( "should overwrite an existing field and add new field", function() {

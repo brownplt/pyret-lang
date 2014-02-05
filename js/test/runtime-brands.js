@@ -83,6 +83,9 @@ define(["./matchers", "../js-numbers/src/js-numbers"], function (matchers, jsnum
           expect(gf(b2, "test").app(o)).toBe(pFalse);
           expect(gf(b2, "test").app(o2)).toBe(pFalse);
           expect(gf(b2, "test").app(o3)).toBe(pTrue);
+
+          var o4 = rt.getField(b, "brand").app(o2);
+          expect(o4.brands.brandCount).toBe(1);
       });
 
     });

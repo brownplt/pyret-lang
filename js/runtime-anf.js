@@ -77,28 +77,34 @@ function makeRuntime(theOutsideWorld) {
 */
 function extendWith(fields) {
     /**@type {!PBase}*/
-    var newObj = this.clone();
+    var newDict = Object.create(this.dict);
     /**@type {!boolean}*/
     var allNewFields = true;
 
     for(var field in fields) {
-        if(allNewFields && hasProperty(newObj.dict, field)) {
+        if(allNewFields && hasProperty(this.dict, field)) {
+            console.log("Found a different field: ", field);
             allNewFields = false;
         }
 
-        newObj.dict[field] = fields[field];
+        newDict[field] = fields[field];
     } 
-        
-        newObj.brands = (allNewFields ? this.brands : noBrands);
 
-        return newObj;
+    var newObj = this.updateDict(newDict, allNewFields);
+
+    return newObj;
 }
 
     function brandClone(newObj, obj, b) {
       newObj.dict = obj.dict;
-      newObj.brands = Object.create(obj.brands);
-      newObj.brands[b] = true;
-      newObj.brands.brandCount++;
+      if (b in obj.brands) {
+        newObj.brands = obj.brands;
+      }
+      else {
+        newObj.brands = Object.create(obj.brands);
+        newObj.brands[b] = true;
+        newObj.brands.brandCount++;
+      }
       return newObj;
     }
 
@@ -321,7 +327,7 @@ POpaque.prototype = Object.create(PBase.prototype);
 POpaque.prototype.extendWith = function() {
   throw makeMessageException("Cannot extend opaque values");
 };
-POpaque.prototype.clone = function() {
+POpaque.prototype.updateDict = function(dict, keepBrands) {
   throw makeMessageException("Cannot clone opaque values");
 };
 
@@ -348,10 +354,10 @@ PNothing.prototype = Object.create(PBase.prototype);
 /**Clones the nothing
   @return {!PNothing} With same dict
 */
-PNothing.prototype.clone = function() { 
+PNothing.prototype.updateDict = function(dict, keepBrands) { 
     var newNoth = makeNothing(); 
-    newNoth.dict = copyDict(this.dict);
-    newNoth.brands = copyBrands(this.brands);
+    newNoth.dict = dict;
+    newNoth.brands = keepBrands ? this.brands : noBrands;
     return newNoth;
 };
 
@@ -359,7 +365,7 @@ PNothing.prototype.clone = function() {
   @param {!String} b The brand
   @return {!PNothing} With same dict
 */
-PNothing.prototype.cloneWithNewBrand = function(b) { 
+PNothing.prototype.brand = function(b) { 
     var newNoth = makeNothing(); 
     return brandClone(newNoth, this, b);
 };
@@ -398,10 +404,10 @@ inherits(PNumber, PBase);
 /**Clones the number
   @return {!PNumber} With same n and dict
 */
-PNumber.prototype.clone = function() { 
+PNumber.prototype.updateDict = function(dict, keepBrands) { 
     var newNum = makeNumberBig(this.n); 
-    newNum.dict = copyDict(this.dict);
-    newNum.brands = copyBrands(this.brands);
+    newNum.dict = dict;
+    newNum.brands = keepBrands ? this.brands : noBrands;
     return newNum;
 };
 
@@ -409,7 +415,7 @@ PNumber.prototype.clone = function() {
   @param {!String} b The brand to add
   @return {!PNumber} With same n and dict
 */
-PNumber.prototype.cloneWithNewBrand = function(b) { 
+PNumber.prototype.brand = function(b) { 
     var newNum = makeNumberBig(this.n); 
     return brandClone(newStr, this, b);
 };
@@ -484,17 +490,17 @@ function PString(s) {
 /**Clones the string
   @return {!PString} With same n and dict
 */
-PString.prototype.clone = function() { 
+PString.prototype.updateDict = function(dict, keepBrands) { 
     var newStr = makeString(this.s); 
-    newStr.dict = copyDict(this.dict);
-    newStr.brands = copyBrands(this.brands);
+    newStr.dict = dict;
+    newStr.brands = keepBrands ? this.brands : noBrands;
     return newStr;
 };
 
 /**Clones the string
   @return {!PString} With same n and dict
 */
-PString.prototype.cloneWithNewBrand = function(b) { 
+PString.prototype.brand = function(b) { 
     var newStr = makeString(this.s); 
     return brandClone(newStr, this, b);
 };
@@ -549,17 +555,17 @@ function PBoolean(b) {
 /**Clones the Boolean
   @return {!PBoolean} With same b and dict
 */
-PBoolean.prototype.clone = function() { 
+PBoolean.prototype.updateDict = function(dict, keepBrands) { 
     var newBool = new PBoolean(this.b); 
-    newBool.dict = copyDict(this.dict);
-    newBool.brands = copyBrands(this.brands);
+    newBool.dict = dict;
+    newBool.brands = keepBrands ? this.brands : noBrands;
     return newBool;
 };
 
 /**Clones the Boolean and adds a brand
   @return {!PBoolean} With same b and dict
 */
-PBoolean.prototype.cloneWithNewBrand = function(b) { 
+PBoolean.prototype.brand = function(b) { 
     var newBool = new PBoolean(this.b); 
     return brandClone(newBool, this, b);
 };
@@ -633,10 +639,10 @@ function PFunction(fun, arity) {
 /**Clones the function
   @return {!PFunction} With same app and dict
 */
-PFunction.prototype.clone = function() { 
+PFunction.prototype.updateDict = function(dict, keepBrands) { 
     var newFun = makeFunction(this.app); 
-    newFun.dict = copyDict(this.dict);
-    newFun.brands = copyBrands(this.brands);
+    newFun.dict = dict;
+    newFun.brands = keepBrands ? this.brands : noBrands;
     return newFun;
 };
 
@@ -644,7 +650,7 @@ PFunction.prototype.clone = function() {
   @param {!string} b The brand to add
   @return {!PFunction} With same app and dict
 */
-PFunction.prototype.cloneWithNewBrand = function(b) { 
+PFunction.prototype.brand = function(b) { 
     var newFun = makeFunction(this.app); 
     return brandClone(newFun, this, b);
 };
@@ -707,10 +713,10 @@ function PMethod(meth, full_meth) {
 /**Clones the method
   @return {!PMethod} With same meth and dict
 */
-PMethod.prototype.clone = function() { 
+PMethod.prototype.updateDict = function(dict, keepBrands) { 
     var newMeth = makeMethod(this['meth'], this['full_meth']); 
-    newMeth.dict = copyDict(this.dict);
-    newMeth.brands = copyBrands(this.brands);
+    newMeth.dict = dict;
+    newMeth.brands = keepBrands ? this.brands : noBrands;
     return newMeth;
 };
 
@@ -718,7 +724,7 @@ PMethod.prototype.clone = function() {
   @param {!string} b The brand to add
   @return {!PMethod} With same meth and dict
 */
-PMethod.prototype.cloneWithNewBrand = function(b) { 
+PMethod.prototype.brand = function(b) { 
     var newMeth = makeMethod(this['meth'], this['full_meth']); 
     return brandClone(newMeth, this, b);
 };
@@ -776,7 +782,7 @@ function createMethodDict() {
     /**Clones the object
       @return {!PObject} With same dict
     */
-    PObject.prototype.cloneWithNewBrand = function(b) { 
+    PObject.prototype.brand = function(b) { 
         var newObj = makeObject(this.dict); 
         return brandClone(newObj, this, b);
     };
@@ -837,7 +843,7 @@ function createMethodDict() {
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
           'brand': makeFunction(function(obj) {
-              return obj.cloneWithNewBrand(thisBrandStr);
+              return obj.brand(thisBrandStr);
             })
         });
     }
