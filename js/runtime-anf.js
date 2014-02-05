@@ -89,26 +89,34 @@ function extendWith(fields) {
         newObj.dict[field] = fields[field];
     } 
         
-        newObj.brands = (allNewFields ? this.brands.slice(0) : []);
+        newObj.brands = (allNewFields ? this.brands : noBrands);
 
         return newObj;
 }
+
+    function brandClone(newObj, obj, b) {
+      newObj.dict = obj.dict;
+      newObj.brands = Object.create(obj.brands);
+      newObj.brands[b] = true;
+      newObj.brands.brandCount++;
+      return newObj;
+    }
+
+    var noBrands = { brandCount: 0 };
 
     /**
       The base of all pyret values
       @constructor
     */
     function PBase() {
-        /**@type {!Array.<number>}*/
-        this.brands = [];
+        /**@type {!Object.<string, Boolean>}*/
+        this.brands = noBrands;
         /**@type {!Object.<string, !PBase>}*/
         this.dict   = makeEmptyDict();
     }
 
     /**@type {!Object.<string, !PBase>}*/
     PBase.prototype.dict = makeEmptyDict();
-    /**@type {!Array.<number>}*/
-    PBase.prototype.brands = [];
     /**@type {!function(!Object.<string, !PBase>) : !PBase}*/
     PBase.prototype.extendWith = extendWith;
     /**@type {!function() : !PBase}*/
@@ -225,7 +233,7 @@ function copyDict(dict) {
   @return Array.<number>
 */
 function copyBrands(brands) {
-  return brands.slice(0);
+  return brands;
 }
 
 /** Creates a truly empty dictonary, with no inherit fields 
@@ -305,7 +313,8 @@ function getColonField(val, field) {
 function POpaque(val, equals) {
   this.val = val;
   this.equals = equals;
-  this.brands = [];
+  /**@type {!Object.<string, Boolean>}*/
+  this.brands = noBrands;
 }
 POpaque.prototype = Object.create(PBase.prototype);
 
@@ -331,8 +340,8 @@ function isOpaque(val) { return val instanceof POpaque; }
 function PNothing() {
     /**@type {!Object.<string, !PBase>}*/
     this.dict   = makeEmptyDict();
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 }
 PNothing.prototype = Object.create(PBase.prototype);
 
@@ -344,6 +353,15 @@ PNothing.prototype.clone = function() {
     newNoth.dict = copyDict(this.dict);
     newNoth.brands = copyBrands(this.brands);
     return newNoth;
+};
+
+/**Clones the nothing
+  @param {!String} b The brand
+  @return {!PNothing} With same dict
+*/
+PNothing.prototype.cloneWithNewBrand = function(b) { 
+    var newNoth = makeNothing(); 
+    return brandClone(newNoth, this, b);
 };
 /**Tests whether an object is a PNothing
     @param {Object} obj the item to test
@@ -371,8 +389,8 @@ function PNumber(n) {
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createNumberDict(); 
 
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 }
 //PNumber.prototype = Object.create(PBase.prototype); 
 inherits(PNumber, PBase);
@@ -385,6 +403,15 @@ PNumber.prototype.clone = function() {
     newNum.dict = copyDict(this.dict);
     newNum.brands = copyBrands(this.brands);
     return newNum;
+};
+
+/**Clones the number
+  @param {!String} b The brand to add
+  @return {!PNumber} With same n and dict
+*/
+PNumber.prototype.cloneWithNewBrand = function(b) { 
+    var newNum = makeNumberBig(this.n); 
+    return brandClone(newStr, this, b);
 };
 
 
@@ -449,8 +476,8 @@ function PString(s) {
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createStringDict(); 
 
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 }
 //PString.prototype = Object.create(PBase.prototype); 
 
@@ -462,6 +489,14 @@ PString.prototype.clone = function() {
     newStr.dict = copyDict(this.dict);
     newStr.brands = copyBrands(this.brands);
     return newStr;
+};
+
+/**Clones the string
+  @return {!PString} With same n and dict
+*/
+PString.prototype.cloneWithNewBrand = function(b) { 
+    var newStr = makeString(this.s); 
+    return brandClone(newStr, this, b);
 };
 
 
@@ -506,8 +541,8 @@ function PBoolean(b) {
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createBooleanDict(); 
 
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 }
 //PBoolean.prototype = Object.create(PBase.prototype); 
 
@@ -519,6 +554,14 @@ PBoolean.prototype.clone = function() {
     newBool.dict = copyDict(this.dict);
     newBool.brands = copyBrands(this.brands);
     return newBool;
+};
+
+/**Clones the Boolean and adds a brand
+  @return {!PBoolean} With same b and dict
+*/
+PBoolean.prototype.cloneWithNewBrand = function(b) { 
+    var newBool = new PBoolean(this.b); 
+    return brandClone(newBool, this, b);
 };
 
 //The inherit methods on all booleans
@@ -582,8 +625,8 @@ function PFunction(fun, arity) {
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createFunctionDict(); 
 
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 }
 //PFunction.prototype = Object.create(PBase.prototype); 
 
@@ -595,6 +638,15 @@ PFunction.prototype.clone = function() {
     newFun.dict = copyDict(this.dict);
     newFun.brands = copyBrands(this.brands);
     return newFun;
+};
+
+/**Clones the function
+  @param {!string} b The brand to add
+  @return {!PFunction} With same app and dict
+*/
+PFunction.prototype.cloneWithNewBrand = function(b) { 
+    var newFun = makeFunction(this.app); 
+    return brandClone(newFun, this, b);
 };
 
 /**Tests whether an object is a PFunction
@@ -646,8 +698,8 @@ function PMethod(meth, full_meth) {
     /**@type {!Object.<string, !PBase>}*/
     this.dict = createMethodDict(); 
 
-    /**@type {Array.<number>}*/
-    this.brands = [];
+    /**@type {!Object.<string, Boolean>}*/
+    this.brands = noBrands;
 
 }
 //PMethod.prototype = Object.create(PBase.prototype); 
@@ -660,6 +712,15 @@ PMethod.prototype.clone = function() {
     newMeth.dict = copyDict(this.dict);
     newMeth.brands = copyBrands(this.brands);
     return newMeth;
+};
+
+/**Clones the method
+  @param {!string} b The brand to add
+  @return {!PMethod} With same meth and dict
+*/
+PMethod.prototype.cloneWithNewBrand = function(b) { 
+    var newMeth = makeMethod(this['meth'], this['full_meth']); 
+    return brandClone(newMeth, this, b);
 };
 
 /**Tests whether an object is a PMethod
@@ -705,21 +766,19 @@ function createMethodDict() {
     */
     function PObject(dict) { 
         /**@type {!Object.<string, !PBase>}*/
-        this.dict = copyDict(dict); //Copies the dict to ensure the proto is null
+        this.dict = dict;
 
-        /**@type {Array.<number>}*/
-        this.brands = [];
+        /**@type {!Object.<string, Boolean>}*/
+        this.brands = noBrands;
     }
     //PObject.prototype = Object.create(PBase.prototype); 
 
     /**Clones the object
       @return {!PObject} With same dict
     */
-    PObject.prototype.clone = function() { 
-        var newObj = makeObject({}); 
-        newObj.dict = copyDict(this.dict);
-        newObj.brands = copyBrands(this.brands);
-        return newObj;
+    PObject.prototype.cloneWithNewBrand = function(b) { 
+        var newObj = makeObject(this.dict); 
+        return brandClone(newObj, this, b);
     };
 
     /**Tests whether an object is a PObject
@@ -761,7 +820,7 @@ function createMethodDict() {
     ************************/
 
     function hasBrand(obj, brand) {
-      return obj.brands.indexOf(brand) !== -1;
+      return obj.brands[brand] === true;
     }
 
     var brandCounter = 0;
@@ -772,14 +831,13 @@ function createMethodDict() {
     */
     function() {
       var thisBrand = brandCounter++;
+      var thisBrandStr = "$brand" + String(brandCounter);
       return makeObject({
           'test': makeFunction(function(obj) {
-              return makeBoolean(hasBrand(obj, thisBrand));
+              return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
           'brand': makeFunction(function(obj) {
-              var newObj = obj.clone();
-              newObj.brands.push(thisBrand);
-              return newObj;
+              return obj.cloneWithNewBrand(thisBrandStr);
             })
         });
     }
@@ -1002,6 +1060,13 @@ function createMethodDict() {
         }
       );
 
+    function sameBrands(brands1, brands2) {
+      if (brands1.brandCount !== brands2.brandCount) { return false; }
+      for(var i in brands1) {
+        if(brands1[i] !== brands2[i]) { return false; }
+      }
+      return true;
+    }
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
       if (left === right) { return true; }
@@ -1064,11 +1129,8 @@ function createMethodDict() {
                 });
             }
           }
-          var brands1 = getBrands(left);
-          var brands2 = getBrands(right);
-          if (brands1.length !== brands2.length) { return false; }
-          for(var i = 0; i < brands1.length; i++) {
-            if (!hasBrand(right, brands1[i])) { return false; }
+          if(!sameBrands(getBrands(left), getBrands(right))) {
+            return false;
           }
           // continue would be inappropriate (but not incorrect)
           // here, because we have enqueued things

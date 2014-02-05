@@ -7,7 +7,10 @@ define(["../js-numbers/src/js-numbers"], function (jsnums) {
                 return (this.actual.dict !== undefined) && (Object.keys(this.actual.dict).length === 0);
             },
             toHaveNoBrands : function() {
-                return (this.actual.brands !== undefined) && (this.actual.brands.length === 0);
+                for(var i in this.actual) {
+                  if(i.indexOf("$brand") === 0) { return false; }
+                  return true;
+                }
             },
             //Tests equality with ===, must be exact same
             toBeIdentical : function(expect) {
