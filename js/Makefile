@@ -1,36 +1,67 @@
-build: sweeten compile compiler
-
-compiler:
-	raco make pyret.arr
-	bash copy-libs.sh
-	bash compile-libs.sh
-	bash compile-compiler.sh
-	./node_modules/.bin/r.js -o require-build.js
-
+PYRET_COMP = standalone-compiler/pyret.js
 COMPILER = java -jar closure-compiler/compiler.jar
 SWEETENER = node node_modules/sweet.js/bin/sjs
 BI = builtin-libs
+RACKET_FFI = ../src/lang/racket-ffi
 PYRET_PARSER = $(BI)/pyret-parser-comp.js
 
-#Compiles/Minimizes the Files
-#Performs type checking using JSDoc's
-compile: runtime-anf.js number-dict-sweet.js namespace.js string-dict-sweet.js $(PYRET_PARSER)
-	$(COMPILER) --js runtime-anf.js --js_output_file anf-comp.js --warning_level VERBOSE --externs externs.js
-	$(COMPILER) --js namespace.js --js_output_file namespace-comp.js --warning_level VERBOSE --externs externs.js
-	$(COMPILER) --js number-dict-sweet.js --js_output_file number-dict.js --externs externs.js
-	$(COMPILER) --js string-dict-sweet.js --js_output_file string-dict.js --externs externs.js
-	$(COMPILER) --js boolean-dict-sweet.js --js_output_file boolean-dict.js --externs externs.js
+# CUSTOMIZE THESE IF NECESSARY
+SRC_JS := $(patsubst %.arr,%.arr.js,$(wildcard *.arr)) $(patsubst %-raw.js,%.js,$(wildcard *-raw.js))
+ROOT_LIBS_JS = $(BI)/list.js $(BI)/option.js $(BI)/error.js $(BI)/sets.js
+LIBS_JS := $(patsubst %.arr,%.js,$(wildcard $(BI)/*.arr)) $(wildcard $(BI)/*.js)
+
+COPY_LIBS = $(RACKET_FFI)/pprint.rkt $(RACKET_FFI)/cmdline.rkt $(RACKET_FFI)/ast.arr $(RACKET_FFI)/file.rkt
+COPY_LIBS_JS = $(patsubst %.arr,%.js,$(patsubst %.rkt,%.js,$(patsubst $(RACKET_FFI)/%,$(BI)/%, $(COPY_LIBS))))
+
+COMP_JS = runtime-anf-comp.js namespace-comp.js
+
+# MAIN TARGET
+build: $(PYRET_COMP) $(PYRET_PARSER) standalone-compiler/pyret-built.js
+
+
+
+standalone-compiler/pyret-built.js: $(PYRET_COMP) \
+		$(SRC_JS) $(ROOT_LIBS_JS) $(LIBS_JS) $(COPY_LIBS_JS) $(COMP_JS) pyret.js
+	node node_modules/requirejs/bin/r.js -o require-build.js
 
 $(PYRET_PARSER): bnf-grammar.js grammar-full.rkt
 	node bnf-grammar.js grammar-full.rkt $(BI)/grammar.js
 	node $(BI)/grammar.js $(BI)/pyret-parser.js
 	$(COMPILER) --js $(BI)/pyret-parser.js --js_output_file $(BI)/pyret-parser-comp.js --warning_level VERBOSE --externs externs.js --accept_const_keyword
 
-#Expand all macros
-sweeten: number-dict-raw.js string-dict-raw.js boolean-dict-raw.js
-	$(SWEETENER) -o number-dict-sweet.js number-dict-raw.js -m ./macros.js
-	$(SWEETENER) -o string-dict-sweet.js string-dict-raw.js -m ./macros.js
-	$(SWEETENER) -o boolean-dict-sweet.js boolean-dict-raw.js -m ./macros.js
+%.js: %-raw.js $(PYRET_COMP)
+	$(SWEETENER) -o $*.sweet.js $< -m ./macros.js
+	$(COMPILER) --js $*.sweet.js --js_output_file $@ --externs externs.js
+	rm $*.sweet.js
+%.arr.js : %.arr $(PYRET_COMP)
+	node standalone-compiler/main-wrapper.js --compile-module-js $< > $@
+
+$(BI)/%.js : $(BI)/%.arr $(PYRET_COMP)
+	node standalone-compiler/main-wrapper.js --compile-module-js $< > $@
+$(BI)/pprint.arr: $(RACKET_FFI)/pprint.rkt
+	cp $< $@
+$(BI)/cmdline.arr: $(RACKET_FFI)/cmdline.rkt
+	cp $< $@
+$(BI)/ast.arr: $(RACKET_FFI)/ast.arr
+	cp $< $@
+$(BI)/file.arr: $(RACKET_FFI)/file.rkt
+	cp $< $@
+
+%-comp.js: %.js $(PYRET_COMP)
+	$(COMPILER) --js $< --js_output_file $@ --warning_level VERBOSE --externs externs.js
+
+
+$(BI)/list.js: $(BI)/list.arr
+	node standalone-compiler/main-wrapper.js --compile-module-js $< -library > $@
+$(BI)/option.js: $(BI)/option.arr
+	node standalone-compiler/main-wrapper.js --compile-module-js $< -library > $@
+$(BI)/error.js: $(BI)/error.arr
+	node standalone-compiler/main-wrapper.js --compile-module-js $< -library > $@
+$(BI)/sets.js: $(BI)/sets.arr
+	node standalone-compiler/main-wrapper.js --compile-module-js $< -library > $@
+
+## HACK UNTIL WE HANDLE TRY/CATCH
+create-tests.arr.js ::
 
 install:
 	mkdir -p closure-compiler
@@ -49,4 +80,4 @@ test: runtime-anf.js number-dict.js
 
 .PHONY : clean
 clean:
-	rm number-dict.js number-dict-sweet.js string-dict.js string-dict-sweet.js boolean-dict.js boolean-dict-sweet.js anf-comp.js namespace-comp.js $(BI)/pyret-parser.js $(BI)/grammar.js $(BI)/pyret-parser-comp.js
+	rm $(PYRET_PARSER) standalone-compiler/pyret-built.js $(SRC_JS) $(ROOT_LIBS_JS) $(LIBS_JS) $(COPY_LIBS_JS) $(COMP_JS) 

@@ -9,9 +9,9 @@ docs/*.css
 docs/*.js
 docs/lang/*
 src/lang/pyret-lib/moorings.rkt
-js/test-runner/tests.js
 src/lang/pyret-lib/sets.rkt
 src/lang/pyret-lib/array.rkt
+js/test-runner/tests.js
 js/test-runner/tests.js
 js/grammar.js
 js/pyret-parser.js
@@ -19,8 +19,10 @@ js/pyret-parser-comp.js
 js/htdocs/moorings.js
 js/generated-tests
 js/compiled
+js/standalone-compiler/*.bak
+js/standalone-compiler/pyret-built.js
 js/closure-compiler
-js/anf-comp.js
+js/runtime-anf-comp.js
 js/namespace-comp.js
 js/number-dict-sweet.js
 js/string-dict-sweet.js
@@ -37,10 +39,12 @@ js/builtin-libs/error.js
 js/builtin-libs/file.arr
 js/builtin-libs/file.js
 js/builtin-libs/grammar.js
+js/builtin-libs/image.js
 js/builtin-libs/list.js
 js/builtin-libs/option.js
 js/builtin-libs/pprint.arr
 js/builtin-libs/pprint.js
+js/builtin-libs/pyret-parser.js
 js/builtin-libs/pyret-parser-comp.js
 js/builtin-libs/sets.js
 js/builtin-libs/srcloc.js
