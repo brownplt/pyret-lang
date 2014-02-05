@@ -124,8 +124,6 @@ function extendWith(fields) {
     PBase.prototype.dict = makeEmptyDict();
     /**@type {!function(!Object.<string, !PBase>) : !PBase}*/
     PBase.prototype.extendWith = extendWith;
-    /**@type {!function() : !PBase}*/
-    PBase.prototype.clone = (function() {return new PBase();});
 
 /**
   Sets up Inheritance with a function call
@@ -777,6 +775,12 @@ function createMethodDict() {
         this.brands = noBrands;
     }
     //PObject.prototype = Object.create(PBase.prototype); 
+
+    PObject.prototype.updateDict = function(dict, keepBrands) {
+      var newObj = makeObject(dict); 
+      newObj.brands = keepBrands ? this.brands : noBrands;
+      return newObj;
+    }
 
     /**Clones the object
       @return {!PObject} With same dict
