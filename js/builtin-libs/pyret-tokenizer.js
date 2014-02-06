@@ -35,7 +35,7 @@ define(["./tokenizer", "./rnglr"], function(T, E) {
 
   function Tokenizer(ignore_ws, Tokens) {
     GenTokenizer.call(this, ignore_ws, Tokens);
-    this.parenIsForApp = true; // initialize this at the beginning of file to true
+    this.parenIsForExp = true; // initialize this at the beginning of file to true
   }
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
