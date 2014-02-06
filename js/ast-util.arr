@@ -165,7 +165,6 @@ fun link-list-visitor(initial-env):
   default-env-visitor(initial-env).{
     s_app(self, l, f, args):
       if A.is-s_dot(f) and (f.field == "_plus"):
-        print("Found an expr that is a plus: " + tostring(f.obj))
         target = f.obj
         cases(A.Expr) target:
           | s_app(l2, _link, _args) =>
