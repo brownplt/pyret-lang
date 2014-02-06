@@ -190,6 +190,13 @@ fun link-list-visitor(initial-env):
             else:
               A.s_app(l, f.visit(self), args.map(_.visit(self)))
             end
+          | s_dot(_, _, _) =>
+            b = bind-exp(target, self.env)
+            if is-b-prim(b) and (b.name == "list:empty"):
+              args.first.visit(self)
+            else:
+              A.s_app(l, f.visit(self), args.map(_.visit(self)))
+            end
           | else =>
             A.s_app(l, f.visit(self), args.map(_.visit(self)))
         end
