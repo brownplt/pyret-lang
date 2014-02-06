@@ -17,6 +17,7 @@ fun make-compiled-pyret(program-ast, env):
   desugared = D.desugar(program-ast, env)
   cleaned = desugared.visit(AU.merge-nested-blocks)
                      .visit(AU.flatten-single-blocks)
+                     .visit(AU.link-list-visitor(env))
   anfed = N.anf-program(cleaned)
   split = AS.ast-split(anfed.body)
   #split = AS.split-result-e([], anfed.body, set([]))

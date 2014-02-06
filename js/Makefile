@@ -16,7 +16,9 @@ COPY_LIBS_JS = $(patsubst %.arr,%.js,$(patsubst %.rkt,%.js,$(patsubst $(RACKET_F
 COMP_JS = runtime-anf-comp.js namespace-comp.js
 
 # MAIN TARGET
-build: $(PYRET_COMP) $(PYRET_PARSER) standalone-compiler/pyret-built.js
+build: $(PYRET_COMP) $(SRC_JS) $(ROOT_LIBS_JS) $(LIBS_JS) $(COPY_LIBS_JS) $(COMP_JS) pyret.js
+
+standalone: build standalone-compiler/pyret-built.js
 
 
 
