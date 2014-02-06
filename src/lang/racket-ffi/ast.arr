@@ -322,7 +322,7 @@ data Expr:
               nested = for list.fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
-              PP.group(first.tosource() + PP.nest(INDENT, nested))
+              PP.group(first.tosource() + op + PP.nest(INDENT, nested))
           end
       end
     end
