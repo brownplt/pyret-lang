@@ -283,8 +283,8 @@ data Expr:
     tosource(self): PP.str(self.b.tostring()) end
   | s_str(l :: Loc, s :: String) with:
     tosource(self):
-      PP.squote(
-        PP.str(self.s)) end
+      PP.str(torepr(self.s))
+    end
   | s_dot(l :: Loc, obj :: Expr, field :: String) with:
     tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
   | s_get_bang(l :: Loc, obj :: Expr, field :: String)
