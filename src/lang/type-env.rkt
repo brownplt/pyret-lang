@@ -88,7 +88,14 @@
      'array-of
      'build-array
      'nothing
-     'gensym)))
+     'gensym
+     'string-length
+     'string-append
+
+     'expt
+     'sq
+     'sqrt
+     )))
 
 (define builtins-env-list
   (blankify
