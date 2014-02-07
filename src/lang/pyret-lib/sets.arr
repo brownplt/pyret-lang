@@ -177,10 +177,10 @@ data Set:
       end,
 
       to-list(self) -> List:
-        doc: 'Convert a set into a list of elements.'
+        doc: 'Convert a set into a list of elements in arbitrary order.'
         self.elems
       #where:
-      #  sets.set([3, 1, 2]).to-list() is [1, 2, 3]
+      #  sets.set([3, 1, 2]).to-list().sort() is [1, 2, 3]
       end
 
   | tree-set(elems :: AVLTree) with:

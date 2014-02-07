@@ -96,11 +96,12 @@
    '("doc" "try" "with" "sharing" "check" "where" "case" "graph" "block")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
-                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
+                "." "!" "\\" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
 (defconst pyret-font-lock-keywords-1
   (list
+   "\\(;\\)"
    `(,(concat 
        "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
        pyret-keywords-colon-regex
