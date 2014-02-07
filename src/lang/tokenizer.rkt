@@ -31,7 +31,7 @@
          "check:"
          "try:" "except"
          "cases"
-         "when" "if" "else if" "else:"
+         "when" "if:" "then:" "if" "else if" "else:"
          "data" "with:" "sharing:" "mutable" "cyclic"
          "datatype" "with constructor"
          "graph:" "block:"

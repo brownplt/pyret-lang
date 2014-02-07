@@ -93,7 +93,7 @@
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
-   '("doc" "try" "with" "sharing" "check" "where" "case" "graph" "block")))
+   '("doc" "try" "with" "if" "then" "sharing" "check" "where" "case" "graph" "block")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
@@ -237,6 +237,8 @@
 (defsubst pyret-VAR () (pyret-keyword "var"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
+(defsubst pyret-IFCOLON () (pyret-keyword "if:"))
+(defsubst pyret-THEN () () (pyret-keyword "then:"))
 (defsubst pyret-IF () (pyret-keyword "if"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))
@@ -508,6 +510,10 @@
             (push 'wantcolon opens)
             (push 'needsomething opens)
             (forward-char 4))
+           ((pyret-IFCOLON)
+            (incf (pyret-indent-cases defered-opened))
+            (push 'ifcond opens)
+            (forward-char 3))
            ((pyret-IF)
             (incf (pyret-indent-fun defered-opened))
             (push 'if opens)
@@ -766,7 +772,7 @@
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
                    (t (incf (pyret-indent-fun which-to-close))))
                   (setq still-unclosed nil))
-                 ((equal h 'cases)
+                 ((or (equal h 'cases) (equal h 'ifcond))
                   (cond
                    ((> (pyret-indent-cases cur-opened) 0) (decf (pyret-indent-cases cur-opened)))
                    ((> (pyret-indent-cases defered-opened) 0) (decf (pyret-indent-cases defered-opened)))
