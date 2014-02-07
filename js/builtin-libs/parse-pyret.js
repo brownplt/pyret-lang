@@ -462,6 +462,11 @@ define(["./ffi-helpers", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tok
               .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
           }
         },
+        'if-pipe-branch': function(node) {
+          // (if-pipe-branch BAR binop-expr THENCOLON block)
+          return RUNTIME.getField(ast, 's_if_pipe_branch')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+        },
         'else-if': function(node) {
           // (else-if ELSEIF test COLON body)
           return RUNTIME.getField(ast, 's_if_branch')
@@ -577,9 +582,21 @@ define(["./ffi-helpers", "builtin-libs/ast", "builtin-libs/srcloc", "./pyret-tok
                    makeList(node.kids.slice(6, -1).map(tr)));
           }
         },
+        'if-pipe-expr': function(node) {
+          if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
+            // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
+            return RUNTIME.getField(ast, 's_if_pipe_else')
+              .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
+                   tr(node.kids[node.kids.length - 2]));
+          } else {
+            // (if-expr IFCOLON branch ... END)
+            return RUNTIME.getField(ast, 's_if_pipe')
+              .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+          }
+        },
         'if-expr': function(node) {
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
-            // (if-expr IF test COLON body branch ... ELSE else END)
+            // (if-expr IF test COLON body branch ... ELSECOLON else END)
             return RUNTIME.getField(ast, 's_if_else')
               .app(pos(node.pos), makeList(
                 [RUNTIME.getField(ast, 's_if_branch')

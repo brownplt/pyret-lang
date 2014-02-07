@@ -41,6 +41,7 @@ str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-if = PP.str("if ")
+str-ifcolon = PP.str("if:")
 str-import = PP.str("import")
 str-method = PP.str("method")
 str-mutable = PP.str("mutable")
@@ -54,6 +55,7 @@ str-sharing = PP.str("sharing:")
 str-space = PP.str(" ")
 str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
+str-thencolon = PP.str("then:")
 str-thickarrow = PP.str("=>")
 str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
@@ -257,6 +259,20 @@ data Expr:
     label(self): "s_assign" end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
+    end
+  | s_if_pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
+    label(self): "s_if_pipe" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, str-ifcolon + str-space + str-end,
+        PP.group(str-ifcolon), break-one, str-end,
+        self.branches.map(fun(b): PP.group(b.tosource()) end))
+    end
+  | s_if_pipe_else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
+    label(self): "s_if_pipe_else" end,
+    tosource(self):
+      body = PP.separate(break-one, self.branches.map(fun(b): PP.group(b.tosource()) end))
+        + break-one + PP.group(str-pipespace + str-elsecolon + break-one + self._else.tosource())
+      PP.surround(INDENT, 1, PP.group(str-ifcolon), body, str-end)
     end
   | s_if(l :: Loc, branches :: List<IfBranch>) with:
     label(self): "s_if" end,
@@ -699,6 +715,20 @@ sharing:
   end
 end
 
+data IfPipeBranch:
+  | s_if_pipe_branch(l :: Loc, test :: Expr, body :: Expr) with:
+    label(self): "s_if_pipe_branch" end,
+    tosource(self):
+      str-pipespace
+        + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-thencolon)
+        + PP.nest(INDENT, break-one + self.body.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data CasesBranch:
   | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
     label(self): "s_cases_branch" end,
@@ -879,6 +909,17 @@ fun equiv-ast-if-branch(b1 :: IfBranch, b2 :: IfBranch):
     | s_if_branch(_, expr1, body1) =>
       cases(IfBranch) b2:
         | s_if_branch(_, expr2, body2) =>
+          equiv-ast(expr1, expr2) and equiv-ast(body1, body2)
+        | else => false
+      end
+  end
+end
+
+fun equiv-ast-if-pipe-branch(b1 :: IfPipeBranch, b2 :: IfPipeBranch):
+  cases(IfPipeBranch) b1:
+    | s_if_pipe_branch(_, expr1, body1) =>
+      cases(IfPipeBranch) b2:
+        | s_if_pipe_branch(_, expr2, body2) =>
           equiv-ast(expr1, expr2) and equiv-ast(body1, body2)
         | else => false
       end
@@ -1166,10 +1207,23 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
           length-andmap(equiv-ast-if-branch, branches1, branches2)
         | else => false
       end
+    | s_if_pipe(_, branches1) =>
+      cases(Expr) ast2:
+        | s_if_pipe(_, branches2) =>
+          length-andmap(equiv-ast-if-pipe-branch, branches1, branches2)
+        | else => false
+      end
     | s_if_else(_, branches1, _else1) => 
       cases(Expr) ast2:
         | s_if_else(_, branches2, _else2) =>
           length-andmap(equiv-ast-if-branch, branches1, branches2) and
+            equiv-ast(_else1, _else2)
+        | else => false
+      end
+    | s_if_pipe_else(_, branches1, _else1) => 
+      cases(Expr) ast2:
+        | s_if_pipe_else(_, branches2, _else2) =>
+          length-andmap(equiv-ast-if-pipe-branch, branches1, branches2) and
             equiv-ast(_else1, _else2)
         | else => false
       end
@@ -1438,11 +1492,22 @@ default-map-visitor = {
     s_if_branch(l, test.visit(self), body.visit(self))
   end,
 
+  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s_if_pipe_branch(l, test.visit(self), body.visit(self))
+  end,
+
   s_if(self, l :: Loc, branches :: List<IfBranch>):
     s_if(l, branches.map(_.visit(self)))
   end,
   s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
     s_if_else(l, branches.map(_.visit(self)), _else.visit(self))
+  end,
+  
+  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+    s_if_pipe(l, branches.map(_.visit(self)))
+  end,
+  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    s_if_pipe_else(l, branches.map(_.visit(self)), _else.visit(self))
   end,
 
   s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):

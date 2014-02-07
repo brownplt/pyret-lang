@@ -400,6 +400,13 @@ fun desugar-if-branch(nv :: DesugarEnv, expr :: A.IfBranch):
   end
 end
 
+fun desugar-if-pipe-branch(nv :: DesugarEnv, expr :: A.IfPipeBranch):
+  cases(A.IfPipeBranch) expr:
+    | s_if_pipe_branch(l, test, body) =>
+      A.s_if_branch(l, desugar-expr(nv, test), desugar-expr(nv, body))
+  end
+end
+
 fun desugar-case-branch(nv, c):
   cases(A.CasesBranch) c:
     | s_cases_branch(l2, name, args, body) =>  
@@ -633,6 +640,10 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
       A.s_if_else(l, branches.map(desugar-if-branch(nv, _)), desugar-expr(nv, _else))
+    | s_if_pipe(l, branches) =>
+      raise("If-pipe must have else for now")
+    | s_if_pipe_else(l, branches, _else) =>
+      A.s_if_else(l, branches.map(desugar-if-pipe-branch(nv, _)), desugar-expr(nv, _else))
     | s_cases(l, type, val, branches) =>
       desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_block(l, [A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")])]))
     | s_cases_else(l, type, val, branches, _else) =>
