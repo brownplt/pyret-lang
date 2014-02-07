@@ -92,6 +92,13 @@
   (rename-out
     [pyret-random random])
 
+  (rename-out
+    [p:string-append string-append]
+    [p:string-length string-length]
+    [p:sqrt sqrt]
+    [p:expt expt]
+    [p:sq sq])
+
   (all-from-out "racket-ffi/animate.rkt")
 
   [prefix-out r: (all-from-out whalesong/lang/whalesong)]

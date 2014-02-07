@@ -14,10 +14,10 @@ check:
 
   sqrt(9) is 3
   sqrt(16) is 4
-  sqrt(-1) raises "negative"
+  sqrt(-1) raises "Non-negative Number"
 
   expt(2, 4) is 16
   expt(3, 3) is 27
-  expt(4, .5) is 2
+  expt(4, 0.5) is 2
 end
 

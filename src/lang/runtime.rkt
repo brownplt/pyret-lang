@@ -177,15 +177,15 @@
               [gensym-pfun gensym]
 
               ;; string functions
-              [p-string-append string-append]
-              [p-string-length string-length]
+              [p-string-append p:string-append]
+              [p-string-length p:string-length]
 
               ;; number functions
-              [p-sq sq]
-              [p-sqrt sqrt]
-              [p-expt expr]
+              [p-sq p:sq]
+              [p-sqrt p:sqrt]
+              [p-expt p:expt]
 
-              [p-else else])
+              [p-else p:else])
   Any
   Number
   String
@@ -1339,22 +1339,25 @@ And the object was:
 (define p-string-append (pλ/internal (loc) (s1 s2)
   (type-test! p-str? "String" s1)
   (type-test! p-str? "String" s2)
-  (p-str (string-append (p-str-s s1) (p-str-s s2)))))
+  (mk-str (string-append (p-str-s s1) (p-str-s s2)))))
 
 (define p-string-length (pλ/internal (loc) (s)
   (type-test! p-str? "String" s)
-  (p-num (string-length (p-str-s s)))))
+  (mk-num (string-length (p-str-s s)))))
 
 (define p-sqrt (pλ/internal (loc) (n)
   (type-test! p-num? "Number" n)
-  (p-num (sqrt (p-num-n n)))))
+  (define num (p-num-n n))
+  (when (< num 0)
+    (throw-type-error! "Non-negative Number" n))
+  (mk-num (sqrt (p-num-n n)))))
 
 (define p-sq (pλ/internal (loc) (n)
   (type-test! p-num? "Number" n)
-  (p-num (expt (p-num-n n) 2))))
+  (mk-num (expt (p-num-n n) 2))))
 
 (define p-expt (pλ/internal (loc) (n e)
   (type-test! p-num? "Number" n)
   (type-test! p-num? "Number" e)
-  (p-num (expt (p-num-n n) (p-num-n e)))))
+  (mk-num (expt (p-num-n n) (p-num-n e)))))
 

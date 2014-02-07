@@ -154,12 +154,20 @@
       'array-length
       'array-to-list
 
-      'random
-      'animate
-      'circle
       'rectangle
+      'circle
+      'triangle
+      'ellipse
       'text
+      'star
+      'text
+      'scale
+      'rotate
       'place-image
+      'put-image
+      'animate
+
+      'random
       'read-sexpr
       'read-sexpr-list
 
