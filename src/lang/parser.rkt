@@ -359,6 +359,11 @@
     [(cases-branch "|" name args "=>" body)
      (s-cases-branch (loc stx) (parse-name #'name) (parse-args #'args) (parse-block #'body))]))
 
+(define (parse-if-pipe-branch stx)
+  (syntax-parse stx
+    #:datum-literals (if-pipe-branch)
+    [(if-pipe-branch "|" test "then:" body)
+     (s-if-branch (loc stx) (parse-binop-expr #'test) (parse-block #'body))]))
 
 (define (parse-else-if stx)
   (syntax-parse stx
@@ -403,6 +408,7 @@
       id-expr
       dot-expr
       bracket-expr
+      if-pipe-expr
       colon-expr
       colon-bracket-expr
       for-expr
@@ -444,6 +450,13 @@
     [(cases-expr "cases" "(" type ")" val ":" branch ... (end (~or "end" ";")))
      (s-cases (loc stx) (parse-ann #'type) (parse-expr #'val)
       (map/stx parse-cases-branch #'(branch ...)))]
+    [(if-pipe-expr "if:" branch ... "|" "else:" else-block (end (~or "end" ";")))
+     (s-if-else (loc stx)
+        (map/stx parse-if-pipe-branch #'(branch ...))
+        (parse-block #'else-block))]
+    [(if-pipe-expr "if:" branch ... (end (~or "end" ";")))
+     (s-if (loc stx)
+       (map/stx parse-if-pipe-branch #'(branch ...)))]
     [(if-expr "if" test ":" body branch ... "else:" else-block (end (~or "end" ";")))
      (s-if-else (loc stx)
        (cons

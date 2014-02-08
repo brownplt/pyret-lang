@@ -75,7 +75,7 @@ expr: paren-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | get-bang-expr | update-expr
     | extend-expr
-    | if-expr | cases-expr
+    | if-expr | if-pipe-expr | cases-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
 
@@ -136,6 +136,8 @@ update-expr: expr BANG LBRACE fields RBRACE
 
 if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
 else-if: ELSEIF binop-expr COLON block
+if-pipe-expr: IFCOLON if-pipe-branch* [BAR ELSECOLON block] end
+if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [args] THICKARROW block

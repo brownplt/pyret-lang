@@ -76,7 +76,7 @@ expr: paren-expr | id-expr | prim-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | get-bang-expr | update-expr
     | extend-expr
-    | if-expr | cases-expr
+    | if-expr | if-pipe-expr | cases-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
 
@@ -139,6 +139,8 @@ update-expr: expr "!" "{" fields "}"
 
 if-expr: "if" binop-expr ":" block else-if* ["else:" block] end
 else-if: "else if" binop-expr ":" block
+if-pipe-expr: "if:" if-pipe-branch* ["|" "else:" block] end
+if-pipe-branch: "|" binop-expr "then:" block
 
 cases-expr: "cases" (PARENSPACE|PARENNOSPACE) ann ")" expr ":" cases-branch* ["|" "else" "=>" block] end
 cases-branch: "|" NAME [args] "=>" block
