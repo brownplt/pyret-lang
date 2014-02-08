@@ -19,5 +19,21 @@ check:
   expt(2, 4) is 16
   expt(3, 3) is 27
   expt(4, 0.5) is 2
+
+  plus(1, 2) is 3
+  plus("fooi", 4) raises "Number"
+  plus(5, "bar") raises "Number"
+
+  minus(5, 4) is 1
+  minus("foo", 1) raises "Number"
+  minus(1, "foo") raises "Number"
+
+  times(6, 3) is 18
+  times("foo", 1) raises "Number"
+  times(1, "foo") raises "Number"
+
+  times(6, 3) is 2
+  times("foo", 1) raises "Number"
+  times(1, "foo") raises "Number"
 end
 

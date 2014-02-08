@@ -95,6 +95,10 @@
      'expt
      'sq
      'sqrt
+     'plus
+     'minus
+     'times
+     'divide
      )))
 
 (define builtins-env-list

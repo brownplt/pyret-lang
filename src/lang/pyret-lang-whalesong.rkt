@@ -95,6 +95,12 @@
   (rename-out
     [p:string-append string-append]
     [p:string-length string-length]
+    
+    [p:plus plus]
+    [p:minus minus]
+    [p:times times]
+    [p:divide divide]
+
     [p:sqrt sqrt]
     [p:expt expt]
     [p:sq sq])

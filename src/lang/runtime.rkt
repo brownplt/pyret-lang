@@ -185,6 +185,11 @@
               [p-sqrt p:sqrt]
               [p-expt p:expt]
 
+              [p-plus p:plus]
+              [p-minus p:minus]
+              [p-times p:times]
+              [p-divide p:divide]
+
               [p-else p:else])
   Any
   Number
@@ -1344,6 +1349,37 @@ And the object was:
 (define p-string-length (pλ/internal (loc) (s)
   (type-test! p-str? "String" s)
   (mk-num (string-length (p-str-s s)))))
+
+(define p-string-contains (pλ/internal (loc) (s1 s2)
+  (type-test! p-str? "String" s1)
+  (type-test! p-str? "String" s2)
+  (mk-bool (string-contains (mk-str s1) (mk-str s2)))))
+
+(define p-substring (pλ/internal (loc) (s min max)
+  (type-test! p-str? "String" s)
+  (type-test! p-num? "Number" min)
+  (type-test! p-num? "Number" max)
+  (mk-str (safe-substring (mk-str s) (mk-str min) (mk-str max)))))
+
+(define p-plus (pλ/internal (loc) (n1 n2)
+  (type-test! p-num? "Number" n1)
+  (type-test! p-num? "Number" n2)
+  (mk-num (+ (p-num-n n1) (p-num-n n2)))))
+
+(define p-minus (pλ/internal (loc) (n1 n2)
+  (type-test! p-num? "Number" n1)
+  (type-test! p-num? "Number" n2)
+  (mk-num (- (p-num-n n1) (p-num-n n2)))))
+
+(define p-times (pλ/internal (loc) (n1 n2)
+  (type-test! p-num? "Number" n1)
+  (type-test! p-num? "Number" n2)
+  (mk-num (* (p-num-n n1) (p-num-n n2)))))
+  
+(define p-divide (pλ/internal (loc) (n1 n2)
+  (type-test! p-num? "Number" n1)
+  (type-test! p-num? "Number" n2)
+  (mk-num (/ (p-num-n n1) (p-num-n n2)))))
 
 (define p-sqrt (pλ/internal (loc) (n)
   (type-test! p-num? "Number" n)
