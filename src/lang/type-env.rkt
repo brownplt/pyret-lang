@@ -108,8 +108,7 @@
       'error
       'builtins
       'checkers
-      'option
-      'cs173)))
+      'option)))
 
 (define whalesong-env-list
   (blankify
