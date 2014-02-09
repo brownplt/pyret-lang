@@ -1,7 +1,7 @@
 var R = require("requirejs");
 
 
-R([process.argv[2], "runtime-anf"], function(mainModule, RT) {
+R([process.argv[2], "js/runtime-anf"], function(mainModule, RT) {
   var rt = RT.makeRuntime({
     initialGas: Number(process.argv[3]) || 500,
     stdout: function(str) { process.stdout.write(str); }

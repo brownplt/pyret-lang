@@ -4,13 +4,13 @@ R.config({
   baseUrl: "./"
 });
 
-R(['lib/jglr/tokenizer', 'lib/jglr/jglr', 'fs'], function(T, E, fs) {
+R(['lib/jglr/jglr', 'fs'], function(E, fs) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
   const SrcLoc = E.SrcLoc
-  const Tokenizer = T.Tokenizer;
-  const STICKY_REGEXP = T.STICKY_REGEXP;
+  const Tokenizer = E.Tokenizer;
+  const STICKY_REGEXP = E.STICKY_REGEXP;
 
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
   const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r)", STICKY_REGEXP)

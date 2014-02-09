@@ -1,10 +1,10 @@
-define(["../../../lib/jglr/tokenizer", "../../../lib/jglr/jglr"], function(T, E) {
+define(["../../../lib/jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
   const SrcLoc = E.SrcLoc
-  const GenTokenizer = T.Tokenizer;
-  const STICKY_REGEXP = T.STICKY_REGEXP;
+  const GenTokenizer = E.Tokenizer;
+  const STICKY_REGEXP = E.STICKY_REGEXP;
 
   const escapes = new RegExp("^(.*?)\\\\([\\\\\"\'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})");
   function fixEscapes(s) {
