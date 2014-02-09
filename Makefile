@@ -27,28 +27,33 @@ ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(SRC_JS) $(MACRO_JS) $(ROOT_LIBS) $(LI
 
 
 # MAIN TARGET
-phase1: phase1-dirs $(PYRET_COMP) $(ALL_DEPS) $(PYRET_PARSER) src/scripts/pyret-start.js
+phase1: $(PYRET_COMP) $(ALL_DEPS) $(PYRET_PARSER) src/scripts/pyret-start.js 
+
+$(ALL_DEPS): | $(PHASE1)
 
 standalone: phase1 $(PHASE1)/pyret.js
 
 phase2: phase2-dirs
 
-phase1-dirs:
+$(PHASE1):
 	mkdir -p build/phase1
 	mkdir -p build/phase1/trove
 	cd build/phase1 && \
-    find ../../src/ -type d | cut -d'/' -f4- | xargs mkdir -p
+		find ../../src/ -type d | cut -d'/' -f4- | xargs mkdir -p
 
 phase2-dirs:
 	mkdir build/phase2
 	mkdir -p build/phase2/trove
 	cd build/phase2 && \
-    find ../../src/ -type d | cut -d'/' -f4- | xargs mkdir -p
+		find ../../src/ -type d | cut -d'/' -f4- | xargs mkdir -p
 
-$(PHASE1)/pyret.js: phase1
-	cp src/scripts/pyret-start.js $(PHASE1)/
+$(PHASE1)/pyret.js: $(ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
-    node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove/
+		node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove
+
+$(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
+	cp src/scripts/pyret-start.js $(PHASE1)/
+
 
 $(PYRET_PARSER): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
 	node src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js
