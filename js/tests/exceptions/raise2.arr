@@ -1,1 +1,0 @@
-fun f(): raise({x:5}) end try: f() except(e): e.x end

@@ -1,1 +1,0 @@
-var x = 2 fun: x := 10 end() x

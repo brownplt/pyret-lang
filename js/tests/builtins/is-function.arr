@@ -1,1 +1,0 @@
-is-function(fun(): end)

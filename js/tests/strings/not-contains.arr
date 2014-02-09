@@ -1,1 +1,0 @@
-"asdf".contains("not-there")

@@ -1,1 +1,0 @@
-test-print(5)

@@ -1,1 +1,0 @@
-is-function(method(self): self end)

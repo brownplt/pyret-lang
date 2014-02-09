@@ -1,1 +1,0 @@
-check-brand(fun(): true end, 42, "will not be used")

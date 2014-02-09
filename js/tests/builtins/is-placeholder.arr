@@ -1,1 +1,0 @@
-is-placeholder(mk-placeholder())

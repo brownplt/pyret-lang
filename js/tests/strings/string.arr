@@ -1,1 +1,0 @@
-test-print("a-str")

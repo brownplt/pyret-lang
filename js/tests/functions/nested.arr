@@ -1,1 +1,0 @@
-fun f(x): fun g(y): y end g(x) end f(5)

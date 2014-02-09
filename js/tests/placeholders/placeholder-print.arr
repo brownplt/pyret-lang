@@ -1,5 +1,0 @@
-p1 = mk-placeholder()
-test-print(p1.tostring())
-test-print(p1._torepr())
-test-print(torepr(p1))
-test-print(tostring(p1))
