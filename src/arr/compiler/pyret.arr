@@ -2,9 +2,10 @@
 
 import cmdline as C
 import file as F
+import exec as X
+import string-dict as D
 import "./compile.arr" as CM
 import "./compile-structs.arr" as CS
-import string-dict as D
 
 
 fun main(args):
@@ -25,21 +26,25 @@ fun main(args):
 
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
+      check-mode = r.has-key("no-check-mode")
+      libs = if r.has-key("library"): CS.no-builtins else: CS.standard-builtins end
       if not is-empty(rest):
-        print("Extra arguments provided")
-        print(C.usage-info(options).join-str("\n"))
+        program-name = rest.first
+        result = CM.compile-js(
+          F.file-to-string(program-name),
+          program-name,
+          libs,
+          {
+            check-mode : check-mode
+          }
+        )
+        X.exec(result.pyret-to-js-runnable().code)
       else:
         bs = if r.has-key("builtins"):
             r.get("libs")
           else:
             []
           end
-        check-mode = if r.has-key("no-check-mode"):
-            false
-          else:
-            true
-          end
-        libs = if r.has-key("library"): CS.no-builtins else: CS.standard-builtins end
         result = if r.has-key("compile-standalone-js"):
             CM.compile-standalone-js-file(
               r.get("compile-standalone-js"),
