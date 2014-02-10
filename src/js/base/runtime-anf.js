@@ -1234,6 +1234,7 @@ function createMethodDict() {
       @return {boolean} true if it is a SuccessResult
     */
     function isSuccessResult(val) { return val instanceof SuccessResult; }
+    function makeSuccessResult(r) { return new SuccessResult(r); }
 
     /**
       Result containing the exception of a failed evaluation
@@ -1250,6 +1251,7 @@ function createMethodDict() {
       @return {boolean} true if it is a FailueResult
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
+    function makeFailureResult(e) { return new FailureResult(e); }
 
     /**
       Represents a continuation
@@ -1261,6 +1263,14 @@ function createMethodDict() {
     }
     function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
+
+    function Pause(stack, resumer) {
+      this.stack = stack;
+      this.resumer = resumer;
+    }
+    function makePause(resumer) { return new Pause([], resumer); }
+    function isPause(v) { return v instanceof Pause; }
+    Pause.prototype = Object.create(Cont.prototype);
 
     function safeCall(fun, after, stackFrame) {
       log("SafeCalling", fun, after, stackFrame);
@@ -1319,18 +1329,17 @@ function createMethodDict() {
       var theOneTrueStackHeight = 1;
       var BOUNCES = 0;
 
+      // iter :: () -> Undefined
+      // This function should not return anything meaningful, as state
+      // and fallthrough are carefully managed.
       function iter() {
         var loop = true;
         while (loop) {
           loop = false;
           try {
             while(theOneTrueStackHeight > 0) {
-              log("Popped stack, at ", theOneTrueStackHeight);
               var next = theOneTrueStack[--theOneTrueStackHeight];
               theOneTrueStack[theOneTrueStackHeight] = undefined;
-              var tester = {pyretStack: []};
-              if(next.captureExn) { next.captureExn(tester); }
-              log("From: ", tester);
               val = next.go(val);
             }
             onDone(new SuccessResult(val));
@@ -1345,12 +1354,28 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
               }
 
-              theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
-              val = theOneTrueStart;
-              loop = true;
-              //            iter();
-              //            setTimeout(iter, 0);
+              if(isPause(e)) {
+                (function(hasBeenResumed) {
+                  e.resumer(function(restartVal) {
+                    if(hasBeenResumed) {
+                      throw Error("Stack restarted twice: ", theOneTrueStack);
+                    }
+                    hasBeenResumed = true;
+                    val = restartVal;
+                    setTimeout(0, iter);
+                  });
+                })(false);
+                return;
+              }
+              else if(isCont(e)) {
+                theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
+                val = theOneTrueStart;
+                loop = true;
+                //            iter();
+                //            setTimeout(iter, 0);
+              }
             }
+
             else if(isPyretException(e)) {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
@@ -1366,6 +1391,10 @@ function createMethodDict() {
       }
       thisRuntime.GAS = INITIAL_GAS;
       iter();
+    }
+
+    function pauseStack(resumer) {
+      throw makePause(resumer);
     }
 
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
@@ -1406,6 +1435,10 @@ function createMethodDict() {
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,
+        'makePause'   : makePause,
+        'isPause'     : isPause,
+
+        'pauseStack'  : pauseStack,
 
         'getField'    : getField,
         'getFields'    : getFields,
@@ -1426,7 +1459,9 @@ function createMethodDict() {
         'isOpaque'    : isOpaque,
 
         'isSuccessResult' : isSuccessResult,
+        'makeSuccessResult' : makeSuccessResult,
         'isFailureResult' : isFailureResult,
+        'makeFailureResult' : makeFailureResult,
         'isPyretException' : isPyretException,
 
         'makeNothing'  : makeNothing,

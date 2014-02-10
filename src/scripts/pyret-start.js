@@ -1,6 +1,6 @@
 define(["js/runtime-anf", "arr/compiler/pyret.arr"], function(RT, pyret) {
   var rt = RT.makeRuntime({
-      initialGas: Number(process.argv[3]) || 500,
+      initialGas: 500,
       stdout: function(str) { process.stdout.write(str); }
     });
   rt.setParam("command-line-arguments", process.argv.slice(1));

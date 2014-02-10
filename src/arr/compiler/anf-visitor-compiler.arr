@@ -381,7 +381,8 @@ splitting-compiler = compiler-visitor.{
       end
     module-id = G.make-name("mod")
     module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
-    j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(ids, j-block([
+    input-ids = ids.map(fun(f): G.make-name(f) end)
+    j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
         j-return(j-fun(["RUNTIME", "NAMESPACE"],
           j-block([
             j-if(module-ref(module-id),
@@ -391,8 +392,8 @@ splitting-compiler = compiler-visitor.{
                      j-block(
                        [ j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0)) ] +
                        namespace-binds +
-                       for map(id from ids):
-                         j-assign(id, j-method(j-id("RUNTIME"), "getField", [inst(id), j-str("provide")]))
+                       for map2(id from ids, in-id from input-ids):
+                         j-var(id, j-method(j-id("RUNTIME"), "getField", [inst(in-id), j-str("provide")]))
                        end +
                        split.helpers.map(compile-helper(self, _)) +
                        [split.body.visit(self)]))),
