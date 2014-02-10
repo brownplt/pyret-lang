@@ -1,6 +1,6 @@
-define(["fs"], function(fs) {
+define(["../js/runtime-util", "fs"], function(util, fs) {
 
-  return function(RUNTIME, NAMESPACE) {
+  return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
     
     function InputFile(name) {
       this.name = name;
@@ -53,6 +53,6 @@ define(["fs"], function(fs) {
           }),
         answer: NAMESPACE.get("nothing")
       });
-  }    
+  });    
 });
 

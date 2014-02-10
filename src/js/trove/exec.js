@@ -9,7 +9,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
       var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
 
-      var newRuntime = runtimeLib.makeRuntime({ stdout: function(str) { console.log(str); } });
+      var newRuntime = runtimeLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
 
       function OMGBADIDEA(name, src) {
         var define = function(libs, fun) {
@@ -21,16 +21,15 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
       RUNTIME.pauseStack(function(restarter) {
           require([name], function(a) {
               newRuntime.run(a, newRuntime.namespace, function(r) {
-                  console.log("The result was: ", r);
                   var result;
                   if(newRuntime.isSuccessResult(r)) {
                     result = RUNTIME.makeSuccessResult(
                         RUNTIME.makeString(newRuntime.toReprJS(r)));
                   } else {
-                    if (result && result.exn && result.exn.exn && result.exn.exn.s && result.exn.stack && result.exn.pyretStack) {
-                      console.error(result.exn.exn.s)
-                      console.error(result.exn.stack);
-                      console.error(result.exn.pyretStack);
+                    if (r && r.exn && r.exn.exn && r.exn.exn.s && r.exn.stack && r.exn.pyretStack) {
+                      console.error(r.exn.exn.s)
+                      console.error(r.exn.stack);
+                      console.error(JSON.stringify(r.exn.pyretStack, null, "  "));
                     }
                     result = RUNTIME.makeFailureResult(RUNTIME.makeMessageException("Pyret terminated with an error"));
                   }

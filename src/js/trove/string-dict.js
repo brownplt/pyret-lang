@@ -1,10 +1,6 @@
 
-define(["../js/namespace", "../js/ffi-helpers"], function(Namespace, ffi) {
-  var memo = false;
-  return function(RUNTIME, NAMESPACE) {
-    if(memo) { return memo; }
-    else {
-
+define(["../js/runtime-util", "../js/namespace", "../js/ffi-helpers"], function(util, Namespace, ffi) {
+  return util.memoModule("string-dict", function(RUNTIME, NAMESPACE) {
       var F = ffi(RUNTIME, NAMESPACE);
       var unwrap = RUNTIME.unwrap;
       var ImmutableStringDict = Namespace.Namespace;
@@ -77,7 +73,7 @@ define(["../js/namespace", "../js/ffi-helpers"], function(Namespace, ffi) {
           });
       }
 
-      memo = RUNTIME.makeObject({
+      return RUNTIME.makeObject({
           provide: RUNTIME.makeObject({
             'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
             'to-dict': RUNTIME.makeFunction(function(dict) {
@@ -96,8 +92,6 @@ define(["../js/namespace", "../js/ffi-helpers"], function(Namespace, ffi) {
           }),
           answer: NAMESPACE.get("nothing")
         });
-    }
-    return memo;
-  };
+    })
 });
 

@@ -1,6 +1,6 @@
-define(["../js/ffi-helpers"], function(ffi) {
+define(["../js/runtime-util", "../js/ffi-helpers"], function(util, ffi) {
 
-  return function(RUNTIME, NAMESPACE) {
+  return util.memoModule("cmdline-lib", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
 
     return RUNTIME.makeObject({
@@ -11,6 +11,6 @@ define(["../js/ffi-helpers"], function(ffi) {
       }),
       answer: NAMESPACE.get("nothing")
     });
-  };
+  });
 });
 

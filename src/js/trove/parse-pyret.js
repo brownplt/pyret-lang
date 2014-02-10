@@ -1,5 +1,5 @@
-define(["../js/ffi-helpers", "./ast", "./srcloc", "../js/pyret-tokenizer", "../js/pyret-parser"], function(ffi, astLib, srclocLib, T, G) {
-  return function(RUNTIME, NAMESPACE) {
+define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/pyret-tokenizer", "../js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
+  return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
@@ -821,7 +821,7 @@ define(["../js/ffi-helpers", "./ast", "./srcloc", "../js/pyret-tokenizer", "../j
       }),
       answer: NAMESPACE.get("nothing")
     });
-  }
+  });
 });
 
 

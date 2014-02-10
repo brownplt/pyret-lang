@@ -1,5 +1,5 @@
-define(["../trove/list"], function(listLib) {
-  return function(RUNTIME, NAMESPACE) {
+define(["./runtime-util", "../trove/list"], function(util, listLib) {
+  return util.memoModule("ffi-helpers", function(RUNTIME, NAMESPACE) {
       var L = RUNTIME.getField(listLib(RUNTIME, NAMESPACE), "provide");
       return {
           makeList: function(arr) {
@@ -11,5 +11,5 @@ define(["../trove/list"], function(listLib) {
           }
         }
 
-    };
+    });
 });

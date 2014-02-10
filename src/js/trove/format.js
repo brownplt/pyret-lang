@@ -1,7 +1,7 @@
 
-define(["./list"], function(L) {
+define(["../js/runtime-util", "./list"], function(util, L) {
 
-  return function(RUNTIME, NAMESPACE) {
+  return util.memoModule("format", function(RUNTIME, NAMESPACE) {
     // Stolen from https://github.com/dyoo/whalesong/blob/master\
     // /whalesong/js-assembler/runtime-src/baselib-format.js
     var formatRegexp1 = new RegExp('~[sSaA]', 'g');
@@ -94,6 +94,6 @@ define(["./list"], function(L) {
       }),
       answer: NAMESPACE.get("nothing")
     });
-  };
+  });
 });
 
