@@ -1,7 +1,8 @@
 ({
     optimize: "none",
     paths: {
-        'fs': 'empty:'
+        'fs': 'empty:',
+        'requirejs': 'empty:'
       }
 })
 
