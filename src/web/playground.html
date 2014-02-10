@@ -1,0 +1,187 @@
+<html>
+<head>
+<script src="require.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="codemirror.js"></script>
+<script src="pyret.js"></script>
+<link rel="stylesheet" href="codemirror.css"></link>
+
+<style>
+  #editorcontainer {
+    font-size : 12pt;
+    width : 30em;
+    height : 10em;
+    margin-left : auto;
+    margin-right : auto;
+  }
+  .CodeMirror {
+    border : 1px solid #eee;
+    height : auto;
+    line-height : 1.5;
+  }
+  .CodeMirror-scroll {
+    overflow-y : hidden;
+    overflow-x : auto;
+  }
+</style>
+
+
+</head>
+
+
+<body>
+
+<div id="editorcontainer">
+  <textarea id="thepyret">
+  </textarea>
+</div>
+
+<div id="status">
+<p>Ready</p>
+</div>
+
+<button id="runthepyret">
+Run
+</button>
+
+<button id="stopthepyret">
+Stop
+</button>
+
+<button id="pausethepyret">
+Pause
+</button>
+
+<div id="theoutput">
+
+</div>
+</body>
+
+<script>
+require.config({
+  waitSeconds: 15000,
+  paths: {
+    "arr/compiler/web-compile.arr": "web-compile"
+  }
+});
+$(function() {
+  require(["arr/compiler/web-compile.arr"], function(wc) {
+    require([
+      "js/runtime-anf",
+      "arr/compiler/compile-structs.arr"
+    ], function(rt, cs) {
+
+      function setStatus(str) {
+        $("#status p").text(str);
+      }
+      var editor = CodeMirror.fromTextArea($("#thepyret")[0],
+        {
+          viewportMargin: Infinity,
+          lineNumbers: true,
+          matchBrackets: true,
+          tabSize: 2,
+          indentUnit: 2
+        });
+
+      var oldDefine = define;
+      var profileCounter = 0;
+      
+      function OMGBADIDEA(name, src) {
+        var define = function(libs, fun) {
+          oldDefine(name, libs, fun);
+        }
+        eval(src);
+      }
+      var myRT = rt.makeRuntime({
+        initialGas: 1000,
+        stdout: function(s) {
+          console.log(s);
+          $("#theoutput").append($("<pre>").text(s));
+        } 
+      });
+      function getExports(lib) {
+        return myRT.getField(lib(myRT, myRT.namespace), "provide");
+      }
+      function s(str) { return myRT.makeString(str); }
+      function gf(obj, fld) { return myRT.getField(obj, fld); }
+      var myCS = getExports(cs);
+      var myWC = getExports(wc);
+
+      function run(src, onDone) {
+        myRT.run(function(runtime, namespace) {
+            var name = "anon" + Math.floor(Math.random() * 10000000);
+            myRT.safeCall(function() {
+                setStatus("Compiling...");
+                console.profile("compileProfile");
+                return gf(myWC, "compile-js").app(
+                  s(src),
+                  s(name),
+                  gf(myCS, "standard-builtins"),
+                  { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
+                )
+              },
+              function(compiled) {
+                return myRT.safeCall(function() {
+                    return gf(compiled, "pyret-to-js-runnable").app()
+                  },
+                  function(myCR) {
+                    if(myRT.unwrap(gf(myCS, "is-ok").app(myCR))) {
+                      var jscode = myRT.unwrap(gf(myCR, "code"))
+                      console.log(jscode);
+                    }
+                    else {
+                      console.log(myCR);
+                      throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
+                    }
+                    console.profileEnd();
+
+                    OMGBADIDEA(name, jscode); 
+                    require([name], function(a) {
+                      setStatus("Running...");
+                      console.profile("execute");
+                      myRT.run(a, myRT.namespace, function(r) { console.profileEnd(); onDone(r) });
+                    });
+                  }
+                )
+              });
+          },
+          myRT.namespace,
+          function() { });
+     }
+
+      $("#runthepyret").click(function() {
+        run(editor.getValue(), function(result) {
+            setStatus("Ready");
+            console.log(result);           
+          });
+      });
+
+      function pause() {
+        myRT.schedulePause(function(restarter) {
+            $("#pausethepyret").text("Resume");
+            $("#pausethepyret").off("click");
+            setStatus("Paused...");
+            $("#pausethepyret").click(function() {
+              $("#pausethepyret").text("Pause");
+              $("#pausethepyret").off("click");
+              $("#pausethepyret").click(pause);
+              setStatus("Running...");
+              restarter();
+            });
+          });
+      }
+      $("#pausethepyret").click(pause);
+
+      $("#stopthepyret").click(function() {
+        myRT.schedulePause(function(restarter) { });
+        setStatus("Ready");
+      });
+    });
+  });
+});
+</script>
+
+<script>
+</script>
+
+</html>

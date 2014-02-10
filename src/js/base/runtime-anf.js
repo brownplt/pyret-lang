@@ -1333,18 +1333,32 @@ function createMethodDict() {
       // This function should not return anything meaningful, as state
       // and fallthrough are carefully managed.
       function iter() {
+        console.log("Entering iter: ", theOneTrueStackHeight, theOneTrueStack);
         var loop = true;
         while (loop) {
           loop = false;
           try {
+            if (manualPause !== null) {
+              var thePause = manualPause;
+              manualPause = null;
+              pauseStack(function(restarter) {
+                  return thePause(function() { restarter(val); });
+                });
+            }
+            var frameCount = 0;
             while(theOneTrueStackHeight > 0) {
+              if(frameCount++ > 100) {
+                //loop = true;
+                setTimeout(iter, 0);
+                return;
+              }
               var next = theOneTrueStack[--theOneTrueStackHeight];
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               val = next.go(val);
             }
             onDone(new SuccessResult(val));
           } catch(e) {
-//            console.log("Caught something: ", e);
+            console.log("Caught something: ", e);
             if(isCont(e)) {
               log("Stackheight in catch: ", thisRuntime.EXN_STACKHEIGHT);
 //              console.log(e.stack.map(function(elt) { console.log(elt.go); }));
@@ -1362,7 +1376,7 @@ function createMethodDict() {
                     }
                     hasBeenResumed = true;
                     val = restartVal;
-                    setTimeout(0, iter);
+                    setTimeout(iter, 0);
                   });
                 })(false);
                 return;
@@ -1370,9 +1384,10 @@ function createMethodDict() {
               else if(isCont(e)) {
                 theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
                 val = theOneTrueStart;
-                loop = true;
+                //loop = true;
                 //            iter();
-                //            setTimeout(iter, 0);
+                console.log("Setting up iter ", e.bottom);
+                setTimeout(iter, 0);
               }
             }
 
@@ -1395,6 +1410,11 @@ function createMethodDict() {
 
     function pauseStack(resumer) {
       throw makePause(resumer);
+    }
+
+    var manualPause = null;
+    function schedulePause(resumer) {
+      manualPause = resumer;
     }
 
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
@@ -1439,6 +1459,7 @@ function createMethodDict() {
         'isPause'     : isPause,
 
         'pauseStack'  : pauseStack,
+        'schedulePause'  : schedulePause,
 
         'getField'    : getField,
         'getFields'    : getFields,
