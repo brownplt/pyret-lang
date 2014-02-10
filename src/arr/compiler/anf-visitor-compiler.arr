@@ -379,7 +379,7 @@ splitting-compiler = compiler-visitor.{
     namespace-binds = for map(n from namespace-ids):
         j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
       end
-    module-id = G.make-name("mod")
+    module-id = G.make-name(l.file)
     module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
     input-ids = ids.map(fun(f): G.make-name(f) end)
     j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
