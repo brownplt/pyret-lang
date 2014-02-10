@@ -40,7 +40,7 @@ $(PHASE2_ALL_DEPS): | $(PHASE2)
 
 standalone1: phase1 $(PHASE1)/pyret.js
 
-standalone2: phase2 $(PHASE2)/pyret.js
+standalone2: standalone1 phase2 $(PHASE2)/pyret.js
 
 $(PHASE1):
 	mkdir -p build/phase1
