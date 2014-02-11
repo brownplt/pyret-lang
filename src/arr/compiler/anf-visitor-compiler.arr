@@ -158,6 +158,7 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
       j-var(z, j-undefined),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
+      j-expr(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-incr)),
       j-return(j-id(ret))
     ])
 end
