@@ -8,10 +8,8 @@ define(["js/runtime-anf", "arr/compiler/pyret.arr"], function(RT, pyret) {
      if(rt.isSuccessResult(result)) {
         process.exit(0);
      } else if (rt.isFailureResult(result)) {
-        console.error('Pyret terminated with an error');
-        console.error(result);
-        console.error(result.exn.stack);
-        console.error(result.exn.pyretStack);
+        console.error('Pyret terminated with an error' + String(result) + "\nStack:\n" 
+                      + String(result.exn.stack) + "\nPyret stack:\n" + String(result.exn.pyretStack));
         process.exit(1);
      }
   });
