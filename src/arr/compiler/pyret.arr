@@ -40,11 +40,6 @@ fun main(args):
         )
         X.exec(result.pyret-to-js-runnable().code)
       else:
-        bs = if r.has-key("builtins"):
-            r.get("libs")
-          else:
-            []
-          end
         result = if r.has-key("compile-standalone-js"):
             CM.compile-standalone-js-file(
               r.get("compile-standalone-js"),
