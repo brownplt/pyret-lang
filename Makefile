@@ -42,14 +42,14 @@ WEB_DEPS = \
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 # MAIN TARGET
-phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js src/scripts/main-wrapper.js
+phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js $(PHASE1)/main-wrapper.js
 
-phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) src/scripts/pyret-start.js src/scripts/main-wrapper.js
+phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) src/scripts/pyret-start.js $(PHASE2)/main-wrapper.js
 
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
-$(PHASE2_ALL_DEPS): | $(PHASE2)
+$(PHASE2_ALL_DEPS): | $(PHASE2) $(PHASE1)/main-wrapper.js
 
 standalone1: phase1 $(PHASE1)/pyret.js
 
@@ -103,16 +103,16 @@ $(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
 		node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove
 
 $(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
-	cp src/scripts/pyret-start.js $(PHASE1)
+	cp $< $@
 
 $(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
-	cp src/scripts/pyret-start.js $(PHASE2)
+	cp $< $@
 
 $(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
-	cp src/scripts/main-wrapper.js $(PHASE1)
+	cp $< $@
 
 $(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
-	cp src/scripts/main-wrapper.js $(PHASE2)
+	cp $< $@
 
 $(PYRET_PARSER1): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
 	node src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js
