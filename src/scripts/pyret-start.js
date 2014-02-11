@@ -4,7 +4,7 @@ define(["js/runtime-anf", "arr/compiler/pyret.arr"], function(RT, pyret) {
       stdout: function(str) { process.stdout.write(str); }
     });
   rt.setParam("command-line-arguments", process.argv.slice(1));
-  rt.run(pyret, rt.namespace, function(result) {
+  rt.run(pyret, rt.namespace, {sync: true}, function(result) {
      if(rt.isSuccessResult(result)) {
         process.exit(0);
      } else if (rt.isFailureResult(result)) {
