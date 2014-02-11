@@ -487,8 +487,8 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           }
         },
         'list-ty-param': function(node) {
-          // (list-ty-param p COMMA)
-          return tr(node.kids[0]);
+          // (list-ty-param NAME COMMA)
+          return name(node.kids[0]);
         },
         'left-app-fun-expr': function(node) {
           if (node.kids.length === 1) {
@@ -787,6 +787,13 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
       var parsed = G.PyretGrammar.parse(toks);
       //console.log("Result:");
       var countParses = G.PyretGrammar.countAllParses(parsed);
+      if (countParses == 0) {
+        var nextTok = toks.next();
+        console.error("There were " + countParses + " potential parses.\n" +
+                      "Parse failed, next token is " + nextTok.toString(true) +
+                      " at " + nextTok.pos.toString(true));
+        throw "No parses found";
+      }
       //console.log("There were " + countParses + " potential parses");
       var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
       if (posViolations) {
