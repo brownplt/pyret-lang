@@ -1020,6 +1020,38 @@ function createMethodDict() {
         theOutsideWorld.stdout(repr);
         return val;
     });
+
+    var print_error = makeFunction(
+    /**
+      Prints the value to the world by passing the repr to stderr
+      @param {!PBase} val
+
+      @return {!PBase} the value given in
+    */
+       function(val){
+        display-err.app(val);
+        theOutsideWorld.stderr("\n");
+        return val;
+    });
+
+    var display_error = makeFunction(
+    /**
+      Prints the value to the world by passing the repr to stderr
+      @param {!PBase} val
+
+      @return {!PBase} the value given in
+    */
+       function(val){
+        if (isString(val)) {
+          var repr = val.s;
+        }
+        else {
+          var repr = toReprJS(val);
+        }
+        theOutsideWorld.stderr(repr);
+        return val;
+    });
+
     /********************
          Exceptions
      *******************/
@@ -1453,6 +1485,8 @@ function createMethodDict() {
           'test-print': print,
           'print': print,
           'display': display,
+          'print-error': print_error,
+          'display-error': display_error,
           'brander': brander,
           'raise': raise,
           'builtins': builtins,
