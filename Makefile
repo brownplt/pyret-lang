@@ -36,7 +36,7 @@ WEB_DEPS = \
  lib/CodeMirror/lib/codemirror.css \
  lib/CodeMirror/lib/codemirror.js \
  lib/CodeMirror/mode/pyret.js \
- img/pyret-sticker.png
+ img/pyret-banner.png
 
 
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
@@ -79,7 +79,7 @@ build/web/playground.html: src/web/playground.html
 build/web/require.js: node_modules/requirejs/require.js
 	cp $< $@
 
-build/web/pyret-sticker.png: img/pyret-sticker.png
+build/web/pyret-banner.png: img/pyret-banner.png
 	cp $< $@
 
 $(PHASE1):
