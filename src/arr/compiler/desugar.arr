@@ -38,6 +38,14 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
       ids = A.block-ids(b)
       obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, id)) end)
       A.s_provide(l, obj)
+    | s_import(l, imp, name) =>
+      cases(A.ImportType) imp:
+        | s_file_import(file) =>
+          if file.contains("/"): h
+          else: s_import(l, s_file_import("./" + file), name)
+          end
+        | else => h
+      end
     | else => h
   end
 end
