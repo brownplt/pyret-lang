@@ -7,7 +7,7 @@ R([process.argv[2], "js/runtime-anf"], function(mainModule, RT) {
     stdout: function(str) { process.stdout.write(str); }
   });
   rt.setParam("command-line-arguments", process.argv.slice(2));
-  rt.run(mainModule, rt.namespace, function(result) {
+  rt.run(mainModule, rt.namespace, {sync: true}, function(result) {
     if(rt.isSuccessResult(result)) {
       //        console.log(result);
       //        console.log(rt.getField(result.result, "answer"));
