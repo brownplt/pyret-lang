@@ -487,8 +487,8 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           }
         },
         'list-ty-param': function(node) {
-          // (list-ty-param p COMMA)
-          return tr(node.kids[0]);
+          // (list-ty-param NAME COMMA)
+          return name(node.kids[0]);
         },
         'left-app-fun-expr': function(node) {
           if (node.kids.length === 1) {
