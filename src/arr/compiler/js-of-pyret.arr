@@ -9,9 +9,23 @@ import "./anf-visitor-compiler.arr" as AV
 import "./desugar.arr" as D
 import "./ast-util.arr" as AU
 
-fun pretty(src): src.tosource().pretty(80).join-str("\n") end
+data CompiledCodePrinter:
+  | ccp(compiled :: J.JExpr) with:
+    pyret-to-js-standalone(self) -> String:
+      raise("Cannot generate standalone JS")
+    end,
+    pyret-to-js-pretty(self) -> String:
+      self.compiled.tosource().pretty(80).join-str("\n")
+    end,
+    pyret-to-js-runnable(self) -> String:
+      self.compiled.to-ugly-source()
+    end,
+    print-js-runnable(self):
+      self.compiled.print-ugly-source(printer)
+    end
+end
 
-fun make-compiled-pyret(program-ast, env):
+fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
 
   desugared = D.desugar(program-ast, env)
   cleaned = desugared.visit(AU.merge-nested-blocks)
@@ -22,20 +36,6 @@ fun make-compiled-pyret(program-ast, env):
   #split = AS.split-result-e([], anfed.body, set([]))
   compiled = anfed.visit(AV.splitting-compiler)
   
-  {
-    pyret-to-js-standalone: fun():
-      raise("Cannot generate standalone JS")
-    end,
-    pyret-to-js-pretty: fun():
-      C.ok(pretty(compiled))
-    end,
-    pyret-to-js-runnable: fun():
-      code = compiled.to-ugly-source()
-      C.ok(code)
-    end,
-    print-js-runnable: fun(printer):
-      compiled.print-ugly-source(printer)
-    end
-  }
+  ccp(compiled)
 end
 

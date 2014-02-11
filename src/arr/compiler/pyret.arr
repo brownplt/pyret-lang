@@ -38,7 +38,10 @@ fun main(args):
             check-mode : check-mode
           }
         )
-        X.exec(result.pyret-to-js-runnable().code)
+        cases(CS.CompileResult) result:
+          | ok(comp-object) => X.exec(comp-object.pyret-to-js-runnable())
+          | err(_) => result
+        end
       else:
         bs = if r.has-key("builtins"):
             r.get("libs")
@@ -66,12 +69,10 @@ fun main(args):
             print(C.usage-info(options).join-str("\n"))
             raise("Unknown command line options")
           end
-
-        result.print-js-runnable(display)
-        #cases(CS.CompileResult) result:
-        #  | ok(code) => print(code)
-        #  | err(message) => raise(result)
-        #end
+        cases(CS.CompileResult) result:
+          | ok(comp-object) => comp-object.print-js-runnable(display)
+          | err(e) => raise(e)
+        end
       end
     | arg-error(message, partial) =>
       print(C.usage-info(options).join-str("\n"))

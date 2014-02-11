@@ -6,9 +6,9 @@ data CompileEnvironment:
   | compile-env(modules :: List)
 end
 
-data CompileResult:
-  | ok(code :: String)
-  | err(message :: String)
+data CompileResult<C, P>:
+  | ok(code :: C)
+  | err(problems :: P)
 end
 
 no-builtins = compile-env([])
