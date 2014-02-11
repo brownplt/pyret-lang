@@ -65,7 +65,7 @@ str-where = PP.str("where:")
 str-with = PP.str("with:")
 
 
-fun funlam_tosource(funtype, name, params, args :: List<is-s_bind>,
+fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Expr) -> PP.PPrintDoc:
   typarams =
     if is-nothing(params): PP.mt-doc
@@ -785,6 +785,10 @@ data Ann:
   | a_dot(l :: Loc, obj :: String, field :: String) with:
     label(self): "a_dot" end,
     tosource(self): PP.str(self.obj + "." + self.field) end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data AField:
@@ -795,6 +799,10 @@ data AField:
       else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())
       end
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 fun make-checker-name(name): "is-" + name;
@@ -1753,3 +1761,356 @@ default-map-visitor = {
 }
 
 
+default-iter-visitor = {
+  s_program(self, l, imports, body):
+    list.all(_.visit(self), imports) and body.visit(self)
+  end,
+  
+  s_import(self, l, import_type, name):
+    true
+  end,
+  s_provide(self, l, expr):
+    expr.visit(self)
+  end,
+  s_provide_all(self, l):
+    true
+  end,
+  
+  s_bind(self, l, shadows, name, ann):
+    ann.visit(self)
+  end,
+  
+  s_var_bind(self, l, bind, expr):
+    bind.visit(self) and expr.visit(self)
+  end,
+  s_let_bind(self, l, bind, expr):
+    bind.visit(self) and expr.visit(self)
+  end,
+  
+  s_let_expr(self, l, binds, body):
+    list.all(_.visit(self), binds) and body.visit(self)
+  end,
+  
+  s_letrec_bind(self, l, bind, expr):
+    bind.visit(self) and expr.visit(self)
+  end,
+  
+  s_letrec(self, l, binds, body):
+    list.all(_.visit(self), binds) and body.visit(self)
+  end,
+  
+  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    exp.visit(self)
+  end,
+  
+  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+    expr.visit(self)
+  end,
+  
+  s_block(self, l, stmts):
+    list.all(_.visit(self), stmts)
+  end,
+  
+  s_user_block(self, l :: Loc, body :: Expr):
+    body.visit(self)
+  end,
+  
+  s_fun(self, l, name, params, args, ann, doc, body, _check):
+    list.all(_.visit(self), args) and body.visit(self) and _check.visit(self)
+  end,
+  
+  s_var(self, l :: Loc, name :: Bind, value :: Expr):
+    name.visit(self) and value.visit(self)
+  end,
+  
+  s_let(self, l :: Loc, name :: Bind, value :: Expr):
+    name.visit(self) and value.visit(self)
+  end,
+  
+  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
+    list.all(_.visit(self), bindings)
+  end,
+  
+  s_when(self, l :: Loc, test :: Expr, block :: Expr):
+    test.visit(self) and block.visit(self)
+  end,
+  
+  s_assign(self, l :: Loc, id :: String, value :: Expr):
+    value.visit(self)
+  end,
+  
+  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    test.visit(self) and body.visit(self)
+  end,
+  
+  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    test.visit(self) and body.visit(self)
+  end,
+  
+  s_if(self, l :: Loc, branches :: List<IfBranch>):
+    list.all(_.visit(self), branches)
+  end,
+  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    list.all(_.visit(self), branches) and _else.visit(self)
+  end,
+  
+  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+    list.all(_.visit(self), branches)
+  end,
+  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    list.all(_.visit(self), branches) and  _else.visit(self)
+  end,
+  
+  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    list.all(_.visit(self), args) and body.visit(self)
+  end,
+  
+  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+  end,
+  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+  end,
+  
+  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    body.visit(self) and id.visit(self) and _except.visit(self)
+  end,
+  
+  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    left.visit(self) and right.visit(self)
+  end,
+  
+  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    left.visit(self) and right.visit(self)
+  end,
+  
+  s_not(self, l :: Loc, expr :: Expr):
+    expr.visit(self)
+  end,
+  
+  s_paren(self, l :: Loc, expr :: Expr):
+    expr.visit(self)
+  end,
+  
+  s_lam(
+      self,
+      l :: Loc,
+      params :: List<String>,
+      args :: List<Bind>,
+      ann :: Ann,
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+      ):
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+  end,
+  s_method(
+      self,
+      l :: Loc,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+      ):
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+  end,
+  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    super.visit(self) and list.all(_.visit(self), fields)
+  end,
+  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    super.visit(self) and list.all(_.visit(self), fields)
+  end,
+  s_obj(self, l :: Loc, fields :: List<Member>):
+    list.all(_.visit(self), fields)
+  end,
+  s_list(self, l :: Loc, values :: List<Expr>):
+    list.all(_.visit(self), values)
+  end,
+  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    _fun.visit(self) and list.all(_.visit(self), args)
+  end,
+  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+    obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)
+  end,
+  s_id(self, l :: Loc, id :: String):
+    true
+  end,
+  s_id_var(self, l :: Loc, id :: String):
+    true
+  end,
+  s_id_letrec(self, l :: Loc, id :: String):
+    true
+  end,
+  s_undefined(self, l :: Loc):
+    true
+  end,
+  s_num(self, l :: Loc, n :: Number):
+    true
+  end,
+  s_bool(self, l :: Loc, b :: Bool):
+    true
+  end,
+  s_str(self, l :: Loc, s :: String):
+    true
+  end,
+  s_dot(self, l :: Loc, obj :: Expr, field :: String):
+    obj.visit(self)
+  end,
+  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
+    obj.visit(self)
+  end,
+  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    obj.visit(self) and field.visit(self)
+  end,
+  s_colon(self, l :: Loc, obj :: Expr, field :: String):
+    obj.visit(self)
+  end,
+  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    obj.visit(self) and field.visit(self)
+  end,
+  s_data(
+      self,
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      mixins :: List<Expr>,
+      variants :: List<Variant>,
+      shared_members :: List<Member>,
+      _check :: Expr
+      ):
+    list.all(_.visit(self), mixins) 
+    and list.all(_.visit(self), variants)
+    and list.all(_.visit(self), shared_members)
+    and _check.visit(self)
+  end,
+  s_data_expr(
+      self,
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      mixins :: List<Expr>,
+      variants :: List<Variant>,
+      shared_members :: List<Member>,
+      _check :: Expr
+      ):
+    list.all(_.visit(self), mixins)
+    and list.all(_.visit(self), variants)
+    and list.all(_.visit(self), shared_members)
+    and _check.visit(self)
+  end,
+  s_for(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+      ):
+    iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+  end,
+  s_check(self, l :: Loc, body :: Expr):
+    body.visit(self)
+  end,
+  
+  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
+    value.visit(self)
+  end,
+  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    ann.visit(self) and value.visit(self)
+  end,
+  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    ann.visit(self) and value.visit(self)
+  end,
+  s_method_field(
+      self,
+      l :: Loc,
+      name :: Expr,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Expr
+      ):
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+  end,
+  
+  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    bind.visit(self) and value.visit(self)
+  end,
+  s_variant_member(self, l :: Loc, member_type :: String, bind :: Bind):
+    bind.visit(self)
+  end,
+  s_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      with_members :: List<Member>
+      ):
+    list.all(_.visit(self), members) and list.all(_.visit(self), with_members)
+  end,
+  s_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      with_members :: List<Member>
+      ):
+    list.all(_.visit(self), with_members)
+  end,
+  s_datatype_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      constructor :: Constructor
+      ):
+    list.all(_.visit(self), members) and constructor.visit(self)
+  end,
+  s_datatype_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      constructor :: Constructor
+      ):
+    constructor.visit(self)
+  end,
+  s_datatype_constructor(
+      self,
+      l :: Loc,
+      self-arg :: String,
+      body :: Expr
+      ):
+    body.visit(self)
+  end,
+  a_blank(self):
+    true
+  end,
+  a_any(self):
+    true
+  end,
+  a_name(self, l, id):
+    true
+  end,
+  a_arrow(self, l, args, ret):
+    list.all(_.visit(self), args) and ret.visit(self)
+  end,
+  a_method(self, l, args, ret):
+    list.all(_.visit(self), args) and ret.visit(self)
+  end,
+  a_record(self, l, fields):
+    list.all(_.visit(self), fields)
+  end,
+  a_app(self, l, ann, args):
+    ann.visit(self) and list.all(_.visit(self), args)
+  end,
+  a_pred(self, l, ann, exp):
+    ann.visit(self) and exp.visit(self)
+  end,
+  a_dot(self, l, obj, field):
+    true
+  end,
+  a_field(self, l, name, ann):
+    ann.visit(self)
+  end
+}
