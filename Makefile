@@ -33,10 +33,10 @@ PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(MACRO_JS) $(ROOT_LIB
 WEB_DEPS = \
  node_modules/requirejs/require.js \
  src/web/playground.html \
- src/js/base/runtime-anf.js \
  lib/CodeMirror/lib/codemirror.css \
  lib/CodeMirror/lib/codemirror.js \
- lib/CodeMirror/mode/pyret.js
+ lib/CodeMirror/mode/pyret.js \
+ img/pyret-sticker.png
 
 
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
@@ -76,10 +76,10 @@ build/web/codemirror.js: lib/CodeMirror/lib/codemirror.js
 build/web/playground.html: src/web/playground.html
 	cp $< $@
 
-build/web/runtime-anf.js: src/js/base/runtime-anf.js
+build/web/require.js: node_modules/requirejs/require.js
 	cp $< $@
 
-build/web/require.js: node_modules/requirejs/require.js
+build/web/pyret-sticker.png: img/pyret-sticker.png
 	cp $< $@
 
 $(PHASE1):

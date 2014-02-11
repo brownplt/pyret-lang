@@ -7,13 +7,38 @@
 <link rel="stylesheet" href="codemirror.css"></link>
 
 <style>
+  body {
+    overflow-x : scroll;
+  }
+  #wrapper {
+    height: 100%;
+  	background: url(pyret-sticker.png) no-repeat right bottom / 25%;
+  }
+  #toolbar {
+    width: 100%;
+    height: 4em;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #tools {
+    display: inline-block;
+    float: right;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #status {
+    display: inline-block;
+    float: left;
+  }
   #editorcontainer {
-    width : 40%;
+    width : 45%;
     height : 100%;
     float : left;
   }
-  #toolscontainer {
-    width: 40%;
+  #outputcontainer {
+    width: 45%;
     height : 100%;
     float : left;
     padding-left: 5%;
@@ -27,9 +52,14 @@
     overflow-y : hidden;
     overflow-x : auto;
   }
+  .output {
+    background-color: white;
+  }
   .info {
     text-align: right;
     font-size: smaller;
+    font-family: serif;
+    background-color: white;
     color: #666;
   }
 </style>
@@ -40,47 +70,57 @@
 
 <body>
 
-<div id="editorcontainer">
-  <textarea id="thepyret">
-  </textarea>
-</div>
+<div id="wrapper">
 
-<div id="toolscontainer">
-  <div id="status">
-  <p>Ready</p>
+  <div id="toolbar">
+    <span id="status">
+    Ready
+    </span>
+    <div id="tools">
+
+
+      <label>
+      Async:
+      </label>
+      <input type="checkbox" id="syncorno">
+      </input>
+
+      <label>
+      Gas:
+      </label>
+      <input type="text" id="gas" value=8000>
+      </input>
+
+      <button id="runthepyret">
+      Run
+      </button>
+
+      <button id="stopthepyret">
+      Stop
+      </button>
+
+      <button id="pausethepyret">
+      Pause
+      </button>
+
+      <button id="cleartheoutput">
+      Clear
+      </button>
+
+    </div>
   </div>
 
+<div id="editor">
+  <div id="editorcontainer">
+    <textarea id="thepyret">
+    </textarea>
+  </div>
 
-  <label>
-  Async:
-  </label>
-  <input type="checkbox" id="syncorno">
-  </input>
+  <div id="outputcontainer">
 
-  <label>
-  Gas:
-  </label>
-  <input type="text" id="gas" value=8000>
-  </input>
+    <div id="theoutput">
 
-  <button id="runthepyret">
-  Run
-  </button>
-
-  <button id="stopthepyret">
-  Stop
-  </button>
-
-  <button id="pausethepyret">
-  Pause
-  </button>
-
-  <button id="cleartheoutput">
-  Clear
-  </button>
-
-  <div id="theoutput">
-
+    </div>
   </div>
 </div>
 </body>
@@ -100,7 +140,7 @@ $(function() {
     ], function(rt, cs) {
 
       function setStatus(str) {
-        $("#status p").text(str);
+        $("#status").text(str);
       }
       var editor = CodeMirror.fromTextArea($("#thepyret")[0],
         {
@@ -130,7 +170,7 @@ $(function() {
         initialGas: gas,
         stdout: function(s) {
           console.log(s);
-          $("#theoutput").append($("<pre>").text(s));
+          $("#theoutput").append($("<pre>").addClass("output").text(s));
         } 
       });
       function getExports(lib) {
@@ -204,19 +244,19 @@ $(function() {
      }
 
      function displayError(failure) {
-        $("#theoutput").append($("<pre>").css({"color": "red"}).text(failure));
+        $("#theoutput").append($("<pre>").addClass("output").css({"color": "red"}).text(failure));
      }
 
       $("#runthepyret").click(function() {
         run(editor.getValue(), function(result) {
             setStatus("Ready");
             console.log(result);
-            $("#theoutput").append($("<p>").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Stack bounces: " + result.bounces).addClass("info"));
+            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Stack bounces: " + result.bounces).addClass("info"));
             if (myRT.isSuccessResult(result)) {
               var answer = gf(result.result, "answer");
               myRT.run(function() { return myRT.toReprJS(answer); }, myRT.namespace, {}, function(r) {
                 console.log("Got a result: ", r.result);
-                return $("#theoutput").append($("<pre>").text(r.result));
+                return $("#theoutput").append($("<pre>").addClass("output").text(r.result));
               })
             }
             else {
@@ -243,6 +283,7 @@ $(function() {
 
       $("#stopthepyret").click(function() {
         myRT.schedulePause(function(restarter) { });
+        displayError("Stopped by user.");
         setStatus("Ready");
       });
 
