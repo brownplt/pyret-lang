@@ -20,7 +20,7 @@ data CompiledCodePrinter:
     pyret-to-js-runnable(self) -> String:
       self.compiled.to-ugly-source()
     end,
-    print-js-runnable(self):
+    print-js-runnable(self, printer):
       self.compiled.print-ugly-source(printer)
     end
 end
