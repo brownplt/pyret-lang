@@ -42,7 +42,7 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
       cases(A.ImportType) imp:
         | s_file_import(file) =>
           if file.contains("/"): h
-          else: s_import(l, s_file_import("./" + file), name)
+          else: A.s_import(l, A.s_file_import("./" + file), name)
           end
         | else => h
       end
