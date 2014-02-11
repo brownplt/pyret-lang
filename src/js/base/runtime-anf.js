@@ -1397,7 +1397,10 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
                 val = theOneTrueStart;
                 if(sync) { loop = true; }
-                else { setTimeout(iter, 0); }
+                else {
+                  setTimeout(iter, 0);
+                  return;
+                }
               }
             }
 
@@ -1408,12 +1411,15 @@ function createMethodDict() {
                 next.captureExn(e);
               }
               onDone(new FailureResult(e, BOUNCES));
+              return;
             } else {
               onDone(new FailureResult(e, BOUNCES));
+              return;
             }
           }
         }
         onDone(new SuccessResult(val, BOUNCES));
+        return;
       }
       thisRuntime.GAS = initialGas;
       iter();
