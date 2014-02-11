@@ -159,14 +159,14 @@ define(["require", "../../../lib/js-numbers/src/js-numbers"], function(require, 
           makeMethod(function(me) { return function(min, max) {
                 checkIf(me, isString);
                 checkIf(min, isNumber);
-                checkIf(min, isNumber);
+                checkIf(max, isNumber);
                 return makeString(me.s.substring(jsnums.toFixnum(min.n), jsnums.toFixnum(max.n)));
               };
             },
             function(me, min, max) {
                 checkIf(me, isString);
                 checkIf(min, isNumber);
-                checkIf(min, isNumber);
+                checkIf(max, isNumber);
                 return makeString(me.s.substring(jsnums.toFixnum(min.n), jsnums.toFixnum(max.n)));
             }),
 
