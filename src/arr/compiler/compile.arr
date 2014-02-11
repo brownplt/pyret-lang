@@ -34,7 +34,7 @@ end
 fun compile-standalone-js(code, name, libs, options) -> C.CompileResult<String, Any>:
   result = compile-js(code, name, libs, options)
   cases (C.CompileResult) result:
-    | ok(comp) => comp.pyret-to-js-standalone()
+    | ok(comp) => C.ok(comp.pyret-to-js-standalone())
     | err(_) => result
   end
 end
