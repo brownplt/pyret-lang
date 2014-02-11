@@ -20,7 +20,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
       OMGBADIDEA(name, str);
       RUNTIME.pauseStack(function(restarter) {
           require([name], function(a) {
-              newRuntime.run(a, newRuntime.namespace, function(r) {
+              newRuntime.run(a, newRuntime.namespace, {sync: true}, function(r) {
                   var result;
                   if(newRuntime.isSuccessResult(r)) {
                     result = RUNTIME.makeSuccessResult(

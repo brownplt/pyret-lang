@@ -43,11 +43,6 @@ fun main(args):
           | err(_) => result
         end
       else:
-        bs = if r.has-key("builtins"):
-            r.get("libs")
-          else:
-            []
-          end
         result = if r.has-key("compile-standalone-js"):
             CM.compile-standalone-js-file(
               r.get("compile-standalone-js"),

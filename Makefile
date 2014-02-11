@@ -42,9 +42,10 @@ WEB_DEPS = \
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 # MAIN TARGET
-phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js 
+phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js src/scripts/main-wrapper.js
 
-phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) src/scripts/pyret-start.js 
+phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) src/scripts/pyret-start.js src/scripts/main-wrapper.js
+
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
@@ -106,6 +107,12 @@ $(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
 
 $(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
 	cp src/scripts/pyret-start.js $(PHASE2)
+
+$(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
+	cp src/scripts/main-wrapper.js $(PHASE1)
+
+$(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
+	cp src/scripts/main-wrapper.js $(PHASE2)
 
 $(PYRET_PARSER1): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
 	node src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js

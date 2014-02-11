@@ -117,11 +117,11 @@ function extendWith(fields) {
         /**@type {!Object.<string, Boolean>}*/
         this.brands = noBrands;
         /**@type {!Object.<string, !PBase>}*/
-        this.dict   = makeEmptyDict();
+        this.dict   = emptyDict;
     }
 
     /**@type {!Object.<string, !PBase>}*/
-    PBase.prototype.dict = makeEmptyDict();
+    PBase.prototype.dict = emptyDict;
     /**@type {!function(!Object.<string, !PBase>) : !PBase}*/
     PBase.prototype.extendWith = extendWith;
 
@@ -239,6 +239,8 @@ function copyBrands(brands) {
   return brands;
 }
 
+var emptyDict = Object.create(null);
+
 /** Creates a truly empty dictonary, with no inherit fields 
     @return {!Object} an empty object
  **/
@@ -342,7 +344,7 @@ function isOpaque(val) { return val instanceof POpaque; }
 **/
 function PNothing() {
     /**@type {!Object.<string, !PBase>}*/
-    this.dict   = makeEmptyDict();
+    this.dict   = emptyDict;
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 }
@@ -662,7 +664,7 @@ function isFunction(obj) {return obj instanceof PFunction; }
   @return {!Object.<string, !PBase>} the dictionary for a function
 */
 function createFunctionDict() {
-    return makeEmptyDict();
+    return emptyDict;
 }
 
 /**Makes a PFunction using the given n
@@ -736,7 +738,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
   @return {!Object.<string, !PBase>} the dictionary for a method
 */
 function createMethodDict() {
-    return makeEmptyDict();
+    return emptyDict;
 }
 
 /**Makes a PMethod using the given function
@@ -1040,6 +1042,12 @@ function createMethodDict() {
       @return {boolean} true if it is a FailueResult
     */
     function isPyretException(val) { return val instanceof PyretFailException; }
+    PyretFailException.prototype.toString = function() {
+      return toReprJS(this.exn) + "\n" +
+        this.pyretStack.map(function(s) {
+            return s.src + " at " + s.line + ":" + (s.column + 1);
+          }).join("\n");
+    };
 
     /**
       Raises a PyretFailException with the given string
@@ -1224,8 +1232,9 @@ function createMethodDict() {
       @constructor
       @param {!PBase} r result value
     */
-    function SuccessResult(r) {
+    function SuccessResult(r, bounces) {
       this.result = r;
+      this.bounces = bounces;
     }
 
     /**
@@ -1242,8 +1251,9 @@ function createMethodDict() {
       @constructor
       @param {!Error} e exception's value
     */
-    function FailureResult(e) {
+    function FailureResult(e, bounces) {
       this.exn = e;
+      this.bounces = bounces;
     }
     /**
       Tests if result is a FailueResult
@@ -1313,7 +1323,7 @@ function createMethodDict() {
     }
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
-    function run(program, namespace, onDone) {
+    function run(program, namespace, options, onDone) {
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
@@ -1329,11 +1339,14 @@ function createMethodDict() {
       var theOneTrueStackHeight = 1;
       var BOUNCES = 0;
 
+      var sync = options.sync || false;
+      var initialGas = options.initialGas || INITIAL_GAS;
+
       // iter :: () -> Undefined
       // This function should not return anything meaningful, as state
       // and fallthrough are carefully managed.
       function iter() {
-        console.log("Entering iter: ", theOneTrueStackHeight, theOneTrueStack);
+//        console.log("Entering iter: ", theOneTrueStackHeight, theOneTrueStack);
         var loop = true;
         while (loop) {
           loop = false;
@@ -1347,7 +1360,7 @@ function createMethodDict() {
             }
             var frameCount = 0;
             while(theOneTrueStackHeight > 0) {
-              if(frameCount++ > 100) {
+              if(!sync && frameCount++ > 100) {
                 //loop = true;
                 setTimeout(iter, 0);
                 return;
@@ -1356,14 +1369,13 @@ function createMethodDict() {
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               val = next.go(val);
             }
-            onDone(new SuccessResult(val));
           } catch(e) {
-            console.log("Caught something: ", e);
+//            console.log("Caught something: ", e);
             if(isCont(e)) {
               log("Stackheight in catch: ", thisRuntime.EXN_STACKHEIGHT);
 //              console.log(e.stack.map(function(elt) { console.log(elt.go); }));
               BOUNCES++;
-              thisRuntime.GAS = INITIAL_GAS;
+              thisRuntime.GAS = initialGas;
               for(var i = e.stack.length - 1; i >= 0; i--) {
                 theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
               }
@@ -1384,10 +1396,8 @@ function createMethodDict() {
               else if(isCont(e)) {
                 theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
                 val = theOneTrueStart;
-                //loop = true;
-                //            iter();
-                console.log("Setting up iter ", e.bottom);
-                setTimeout(iter, 0);
+                if(sync) { loop = true; }
+                else { setTimeout(iter, 0); }
               }
             }
 
@@ -1397,14 +1407,15 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight] = undefined;
                 next.captureExn(e);
               }
-              onDone(new FailureResult(e));
+              onDone(new FailureResult(e, BOUNCES));
             } else {
-              onDone(new FailureResult(e));
+              onDone(new FailureResult(e, BOUNCES));
             }
           }
         }
+        onDone(new SuccessResult(val, BOUNCES));
       }
-      thisRuntime.GAS = INITIAL_GAS;
+      thisRuntime.GAS = initialGas;
       iter();
     }
 
