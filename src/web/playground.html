@@ -108,8 +108,13 @@ $(function() {
           lineNumbers: true,
           matchBrackets: true,
           tabSize: 2,
-          indentUnit: 2
+          indentUnit: 2,
+          extraKeys: { "Tab": "indentAuto" }
         });
+      editor.setValue(
+"fun fact(n):\n  if n < 1: 1\n  else: n * fact(n - 1)\n  end\nend\n" +
+"fact(10000)"
+      );
 
       var oldDefine = define;
       var profileCounter = 0;
