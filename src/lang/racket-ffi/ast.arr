@@ -104,7 +104,7 @@ end
 data Header:
   | s_import(l :: Loc, file :: ImportType, name :: String) with:
     tosource(self):
-      PP.flow([str-import, PP.quote(PP.str(self.file)),
+      PP.flow([str-import, PP.dquote(self.file.tosource()),
           str-as, PP.str(self.name)])
     end
   | s_provide(l :: Loc, block :: Expr) with:
