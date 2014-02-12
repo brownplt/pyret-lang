@@ -1232,9 +1232,9 @@ function createMethodDict() {
       @constructor
       @param {!PBase} r result value
     */
-    function SuccessResult(r, bounces) {
+    function SuccessResult(r, stats) {
       this.result = r;
-      this.bounces = bounces;
+      this.stats = stats;
     }
 
     /**
@@ -1251,9 +1251,9 @@ function createMethodDict() {
       @constructor
       @param {!Error} e exception's value
     */
-    function FailureResult(e, bounces) {
+    function FailureResult(e, stats) {
       this.exn = e;
-      this.bounces = bounces;
+      this.stats = stats;
     }
     /**
       Tests if result is a FailueResult
@@ -1338,6 +1338,7 @@ function createMethodDict() {
       var theOneTrueStackTop = {}
       var theOneTrueStackHeight = 1;
       var BOUNCES = 0;
+      var TOS = 0;
 
       var sync = options.sync || false;
       var initialGas = options.initialGas || INITIAL_GAS;
@@ -1361,7 +1362,7 @@ function createMethodDict() {
             var frameCount = 0;
             while(theOneTrueStackHeight > 0) {
               if(!sync && frameCount++ > 100) {
-                //loop = true;
+                TOS++;
                 setTimeout(iter, 0);
                 return;
               }
@@ -1388,6 +1389,7 @@ function createMethodDict() {
                     }
                     hasBeenResumed = true;
                     val = restartVal;
+                    TOS++;
                     setTimeout(iter, 0);
                   });
                 })(false);
@@ -1398,6 +1400,7 @@ function createMethodDict() {
                 val = theOneTrueStart;
                 if(sync) { loop = true; }
                 else {
+                  TOS++;
                   setTimeout(iter, 0);
                   return;
                 }
@@ -1410,15 +1413,15 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight] = undefined;
                 next.captureExn(e);
               }
-              onDone(new FailureResult(e, BOUNCES));
+              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
               return;
             } else {
-              onDone(new FailureResult(e, BOUNCES));
+              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
               return;
             }
           }
         }
-        onDone(new SuccessResult(val, BOUNCES));
+        onDone(new SuccessResult(val, { bounces: BOUNCES, tos: TOS }));
         return;
       }
       thisRuntime.GAS = initialGas;

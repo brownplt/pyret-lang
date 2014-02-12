@@ -204,13 +204,7 @@ $(function() {
                     return gf(compiled, "pyret-to-js-runnable").app()
                   },
                   function(myCR) {
-                    if(myRT.unwrap(gf(myCS, "is-ok").app(myCR))) {
-                      var jscode = myRT.unwrap(gf(myCR, "code"))
-                    }
-                    else {
-                      console.log(myCR);
-                      throw ("It wasn't OK! " + myRT.unwrap(gf(myCR, "message")));
-                    }
+                    var jscode = myRT.unwrap(myCR);
                     console.profileEnd();
                     compileTime = window.performance.now() - compileStart;
 
@@ -251,7 +245,7 @@ $(function() {
         run(editor.getValue(), function(result) {
             setStatus("Ready");
             console.log(result);
-            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Stack bounces: " + result.bounces).addClass("info"));
+            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Bounces: " + result.stats.bounces + " Yields: " + result.stats.tos).addClass("info"));
             if (myRT.isSuccessResult(result)) {
               var answer = gf(result.result, "answer");
               myRT.run(function() { return myRT.toReprJS(answer); }, myRT.namespace, {}, function(r) {
