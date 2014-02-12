@@ -245,7 +245,7 @@ $(function() {
         run(editor.getValue(), function(result) {
             setStatus("Ready");
             console.log(result);
-            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Bounces: " + result.stats.bounces + " Yields: " + result.stats.tos).addClass("info"));
+            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Bounces: " + result.stats.bounces + "; Yields: " + result.stats.tos).addClass("info"));
             if (myRT.isSuccessResult(result)) {
               var answer = gf(result.result, "answer");
               myRT.run(function() { return myRT.toReprJS(answer); }, myRT.namespace, {}, function(r) {
