@@ -41,6 +41,10 @@ WEB_DEPS = \
 
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
+# Make sure that if a compilation step fails, we don't leave an empty but timestamp-up-to-date file
+# laying (and lying) around to confuse future make
+.DELETE_ON_ERROR:
+
 # MAIN TARGET
 phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js $(PHASE1)/main-wrapper.js
 
