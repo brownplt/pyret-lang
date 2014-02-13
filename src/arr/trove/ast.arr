@@ -459,8 +459,8 @@ data Expr:
       variants :: List<Variant>,
       shared_members :: List<Member>,
       check :: Expr
-    ) with:
-      label(self): "s_data" end,
+      ) with:
+    label(self): "s_data" end,
     tosource(self):
       fun optional_section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
@@ -468,7 +468,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(_.tosource()))
+        self.params.map(PP.str))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
@@ -497,7 +497,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(_.tosource()))
+        self.params.map(PP.str))
       header = str-data-expr + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))

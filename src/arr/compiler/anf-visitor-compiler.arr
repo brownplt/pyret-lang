@@ -362,6 +362,8 @@ splitting-compiler = compiler-visitor.{
         "test-print",
         "print",
         "display",
+        "print-error",
+        "display-error",
         "tostring",
         "torepr",
         "brander",

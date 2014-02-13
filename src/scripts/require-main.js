@@ -4,7 +4,8 @@ var R = require("requirejs");
 R([process.argv[2], "js/runtime-anf"], function(mainModule, RT) {
   var rt = RT.makeRuntime({
     initialGas: Number(process.argv[3]) || 500,
-    stdout: function(str) { process.stdout.write(str); }
+    stdout: function(str) { process.stdout.write(str); },
+    stderr: function(str) { process.stderr.write(str); }
   });
   rt.setParam("command-line-arguments", process.argv.slice(2));
   rt.run(mainModule, rt.namespace, {sync: true}, function(result) {
