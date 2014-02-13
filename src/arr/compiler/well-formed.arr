@@ -108,7 +108,7 @@ end
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
-    A.s_bind(mem.l, false, mem.name.s, A.a-blank)
+    A.s_bind(mem.l, false, mem.name.s, A.a_blank)
   end
 end
 
@@ -137,6 +137,13 @@ fun reachable-ops(self, l, op, ast):
 end
 
 well-formed-visitor = A.default-iter-visitor.{
+  s_program(self, l, imports, body):
+    list.all(_.visit(self), imports) and
+    cases(A.Expr) body:
+      | s_block(_, stmts) => list.all(_.visit(self), stmts)
+      | else => body.visit(self)
+    end
+  end,
   s_op(self, l, op, left, right):
     reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
   end,
@@ -166,7 +173,7 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-variant-ids(variants)
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
-    ret = mixins.visit(self) and list.all(_.visit(self), variants) and list.all(_.visit(self), shares)
+    ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shares)
     cur-shared := the-cur-shared
     ret and wrap-visit-check(self, _check)
   end,
@@ -241,8 +248,7 @@ well-formed-visitor = A.default-iter-visitor.{
 fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
   errors := []
   in-check-block := false
-  C.ok(ast)
-  # if ast.visit(well-formed-visitor) and (errors.length() == 0): C.ok(ast)
-  # else: C.err(errors)
-  # end
+  if ast.visit(well-formed-visitor) and (errors.length() == 0): C.ok(ast)
+  else: C.err(errors)
+  end
 end
