@@ -1029,7 +1029,7 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
-        display-err.app(val);
+        display_error.app(val);
         theOutsideWorld.stderr("\n");
         return val;
     });
