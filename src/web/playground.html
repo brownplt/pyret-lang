@@ -55,6 +55,10 @@
   .output {
     background-color: white;
   }
+  .error {
+    background-color: white;
+    color: red;
+  }
   .info {
     text-align: right;
     font-size: smaller;
@@ -172,6 +176,10 @@ $(function() {
           console.log(s);
           $("#theoutput").append($("<pre>").addClass("output").text(s));
         } 
+        stderr: function(s) {
+          console.error(s);
+          $("#theoutput").append($("<pre>").addClass("error").text(s));
+        } 
       });
       function getExports(lib) {
         return myRT.getField(lib(myRT, myRT.namespace), "provide");
@@ -238,7 +246,7 @@ $(function() {
      }
 
      function displayError(failure) {
-        $("#theoutput").append($("<pre>").addClass("output").css({"color": "red"}).text(failure));
+        $("#theoutput").append($("<pre>").addClass("error").text(failure));
      }
 
       $("#runthepyret").click(function() {
