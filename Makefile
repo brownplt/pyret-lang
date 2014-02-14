@@ -128,11 +128,11 @@ $(PYRET_PARSER2): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.
 	node $(PHASE2)/$(JS)/grammar.js $(PHASE2)/$(JS)/pyret-parser.js
 	$(CLOSURE) --js $(PHASE2)/$(JS)/pyret-parser.js --js_output_file $(PHASE2)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE1)/$(JS)/%.js: src/$(JSSWEET)/%.js $(PYRET_COMP)
+$(PHASE1)/$(JS)/%.js: src/$(JSSWEET)/%.js
 	$(SWEETENER) -o $@ $< -m ./src/scripts/macros.js
 	$(CLOSURE) --js $@ --externs src/scripts/externs.env > /dev/null
 
-$(PHASE2)/$(JS)/%.js: src/$(JSSWEET)/%.js $(PYRET_COMP) $(PHASE1)/pyret.js
+$(PHASE2)/$(JS)/%.js: src/$(JSSWEET)/%.js
 	$(SWEETENER) -o $@ $< -m ./src/scripts/macros.js
 	$(CLOSURE) --js $@ --externs src/scripts/externs.env > /dev/null
 
@@ -175,6 +175,16 @@ install:
 	npm install jasmine-node
 	npm install sweet.js
 	npm install requirejs
+
+
+test: runtime-test
+
+RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(MACRO_JS) $(COPY_JS))
+
+.PHONY : runtime-test
+runtime-test : $(RUNTIME_JS)
+	cd tests/runtime/ && node test.js require-test-runner/
+
 
 .PHONY : clean
 clean:
