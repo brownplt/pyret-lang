@@ -1,5 +1,9 @@
 #lang ragg
 
+/*
+  name: PyretGrammar
+*/
+
 program: prelude block
 
 end: END | SEMI
