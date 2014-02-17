@@ -1,7 +1,8 @@
 
 define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
+    console.log("loading matchers");
 
-    function addPyretMatchers(jasmine, rt) {
+    function addPyretMatchers(jasmine) {
         jasmine.addMatchers({
             toHaveEmptyDict : function() {
                 return (this.actual.dict !== undefined) && (Object.keys(this.actual.dict).length === 0);
@@ -25,6 +26,9 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
             //Tests equality of bignums
             toBeBig : function(expect) {
                 return jsnums['equals'](this.actual, expect);
+            },
+            toBeSuccess : function(rt) {
+                return rt.isSuccessResult(this.actual);
             }
         });
     }
