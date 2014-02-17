@@ -118,13 +118,13 @@ $(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
 $(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
 	cp $< $@
 
-$(PYRET_PARSER1): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
-	node src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js
+$(PYRET_PARSER1): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
+	node lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js
 	node $(PHASE1)/$(JS)/grammar.js $(PHASE1)/$(JS)/pyret-parser.js
 	$(CLOSURE) --js $(PHASE1)/$(JS)/pyret-parser.js --js_output_file $(PHASE1)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PYRET_PARSER2): src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
-	node src/$(JSBASE)/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE2)/$(JS)/grammar.js
+$(PYRET_PARSER2): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
+	node lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE2)/$(JS)/grammar.js
 	node $(PHASE2)/$(JS)/grammar.js $(PHASE2)/$(JS)/pyret-parser.js
 	$(CLOSURE) --js $(PHASE2)/$(JS)/pyret-parser.js --js_output_file $(PHASE2)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
