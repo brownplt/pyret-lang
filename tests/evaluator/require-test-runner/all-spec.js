@@ -14,7 +14,14 @@ console.log("Starting all-spec");
 //r(["trove/string-dict"], function(sd) {});
 //r(["build/phase2/js/runtime-anf"], function(sd) {});
 
-r(["./tests/evaluator/conditionals"], function (conditionals) {
+r([
+    "./tests/evaluator/constants",
+    "./tests/evaluator/conditionals"
+    ], function (
+      constants,
+      conditionals
+    ) {
+  constants.performTest();
   conditionals.performTest();
 }, function(err) {
   console.log("Require failed! ", err);

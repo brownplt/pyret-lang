@@ -11,6 +11,7 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
       console.log(pending);
       e.evalPyret(runtime, str, {}, function(result) {
         var actual = gf(result.result, "answer");
+        console.log("Comparing ", runtime.toReprJS(actual), runtime.toReprJS(answer));
         expect(result).toBeSuccess(runtime);
         expect(actual).toBeSameAs(runtime, answer);
         pending[i - 1] = true;
@@ -19,7 +20,6 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
     function wait(done) {
       setTimeout(function() {
           if(pending.filter(function(p) { return p === false; }).length === 0) {
-            console.log("Done",  pending);
             done();
           }
           else {
