@@ -59,32 +59,22 @@ standalone1: phase1 $(PHASE1)/pyret.js
 
 standalone2: standalone1 phase2 $(PHASE2)/pyret.js
 
-web: webdir $(WEB_TARGETS) build/web/web-compile.js
+web: $(WEB_TARGETS) $(WEB)/web-compile.js
 
-webdir:
-	mkdir -p build/web
+$(WEB_TARGETS): | $(WEB)
 
-build/web/web-compile.js: phase2
+$(WEB):
+	mkdir -p $(WEB)
+$(WEB)/%: lib/CodeMirror/%
+	cp $< $@
+$(WEB)/%: src/web/%
+	cp $< $@
+$(WEB)/%: img/%
+	cp $< $@
+
+$(WEB)/web-compile.js: $(PHASE2_ALL_DEPS)
 	cd $(PHASE2) && \
-    node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove include=js/runtime-anf
-
-build/web/pyret.js: lib/CodeMirror/mode/pyret/pyret.js
-	cp $< $@
-
-build/web/codemirror.css: lib/CodeMirror/lib/codemirror.css
-	cp $< $@
-
-build/web/codemirror.js: lib/CodeMirror/lib/codemirror.js
-	cp $< $@
-
-build/web/playground.html: src/web/playground.html
-	cp $< $@
-
-build/web/require.js: node_modules/requirejs/require.js
-	cp $< $@
-
-build/web/pyret-banner.png: img/pyret-banner.png
-	cp $< $@
+	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove include=js/runtime-anf
 
 $(PHASE1):
 	mkdir -p build/phase1
