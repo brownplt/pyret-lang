@@ -175,7 +175,7 @@ $(function() {
         stdout: function(s) {
           console.log(s);
           $("#theoutput").append($("<pre>").addClass("output").text(s));
-        } 
+        }, 
         stderr: function(s) {
           console.error(s);
           $("#theoutput").append($("<pre>").addClass("error").text(s));
