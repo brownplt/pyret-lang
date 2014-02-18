@@ -8,12 +8,22 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
 
     function checkEvalsTo(str, answer) {
       var i = pending.push(false);
-      console.log(pending);
       e.evalPyret(runtime, str, {}, function(result) {
+        expect(result).toBeSuccess(runtime);
         var actual = gf(result.result, "answer");
         console.log("Comparing ", runtime.toReprJS(actual), runtime.toReprJS(answer));
-        expect(result).toBeSuccess(runtime);
         expect(actual).toBeSameAs(runtime, answer);
+        pending[i - 1] = true;
+      });
+    }
+    function checkError(str, exnPred) {
+      var i = pending.push(false);
+      e.evalPyret(runtime, str, {}, function(result) {
+        expect(result).toBeFailure(runtime);
+        if (runtime.isFailureResult(result)) {
+          var exn = result.exn;
+          expect(exn).toPassPredicate(exnPred);
+        }
         pending[i - 1] = true;
       });
     }
@@ -30,6 +40,7 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
     }
     return {
       checkEvalsTo: checkEvalsTo,
+      checkError: checkError,
       wait: wait
     };
   }

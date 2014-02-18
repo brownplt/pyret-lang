@@ -29,6 +29,12 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
             },
             toBeSuccess : function(rt) {
                 return rt.isSuccessResult(this.actual);
+            },
+            toBeFailure : function(rt) {
+                return rt.isFailureResult(this.actual);
+            },
+            toPassPredicate : function(pred) {
+                return pred(this.actual);
             }
         });
     }
