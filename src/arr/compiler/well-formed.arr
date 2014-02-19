@@ -239,7 +239,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s_id(self, l, id):
     when (id == "check") or (id == "where"):
-      wf-error("cannot use `" + id + "` as an identifier", l)
+      wf-error("Cannot use `" + id + "` as an identifier", l)
     end
     true
   end
