@@ -263,6 +263,7 @@ fun find(f :: (Any -> Bool), lst :: List) -> Option:
     end
   end
 where:
+  nothing
 #  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
 #  find(fun(elt): true end, ["find-me"]) is some("find-me")
 #  find(fun(elt): elt > 4 end, [1,2,3]) is none
@@ -295,6 +296,7 @@ fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 where:
+  nothing
 #  any(fun(n): n > 1 end, [1,2,3]) is true
 #  any(fun(n): n > 3 end, [1,2,3]) is false
 #  any(fun(x): true end, []) is false
@@ -305,6 +307,7 @@ fun all(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for all elems of lst"
   is-none(find(fun(v): not f(v) end, lst))
 where:
+  nothing
 #  all(fun(n): n > 1 end, [1,2,3]) is false
 #  all(fun(n): n <= 3 end, [1,2,3]) is true
 #  all(fun(x): true end, []) is true
@@ -325,6 +328,7 @@ fun find(f :: (Any -> Bool), lst :: List) -> Option:
     end
   end
 where:
+  nothing
 #  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
 #  find(fun(elt): true end, ["find-me"]) is some("find-me")
 #  find(fun(elt): elt > 4 end, [1,2,3]) is none
@@ -560,6 +564,7 @@ fun index(l :: List, n :: Number):
     | link(f, r) => if (n == 0): f else: index(r, n - 1) end
   end
 where:
+  nothing
 #  l0 = []
 #  l1 = [1]
 #  l2 = [{some: "object"}, {some-other: "object"}]
