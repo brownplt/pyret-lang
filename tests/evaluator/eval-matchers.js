@@ -41,15 +41,10 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
     function checkCompileErrorMsg(str, exnMsg) {
       function findInArray(arr) {
         for (var i = 0; i < arr.length; i++) {
-          if (runtime.isString(arr[i])) {
-            if (runtime.unwrap(arr[i]).indexOf(exnMsg) !== -1)
+          var actMsg = runtime.getField(arr[i], "msg");
+          if (runtime.isString(actMsg)) {
+            if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
               return true;
-          } else { // need to check is-err
-            var actMsg = runtime.getField(arr[i], "msg");
-            if (runtime.isString(actMsg)) {
-              if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
-                return true;
-            }
           }
         }
         return false;

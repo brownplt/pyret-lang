@@ -5,14 +5,12 @@ r.config({
   baseUrl: "../..",
   paths: {
     trove: "build/phase2/trove",
-    js: "build/phase2/js"
+    js: "build/phase2/js",
+    compiler: "build/phase2/arr/compiler"
   }
 });
 
 console.log("Starting all-spec");
-
-//r(["trove/string-dict"], function(sd) {});
-//r(["build/phase2/js/runtime-anf"], function(sd) {});
 
 r([
     "./tests/evaluator/constants",

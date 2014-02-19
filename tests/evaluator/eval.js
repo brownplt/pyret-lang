@@ -1,8 +1,8 @@
 define([
     "js/runtime-anf",
     "js/ffi-helpers",
-    "../../build/phase2/arr/compiler/compile-structs.arr",
-    "../../build/phase2/arr/compiler/compile.arr"],
+    "compiler/compile-structs.arr",
+    "compiler/compile.arr"],
 function(rtLib, ffiHelpersLib, csLib, compLib) {
   console.log("in eval.js");
   var r = require("requirejs");
