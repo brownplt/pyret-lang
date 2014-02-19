@@ -1,8 +1,9 @@
 define([
     "js/runtime-anf",
+    "js/ffi-helpers",
     "../../build/phase2/arr/compiler/compile-structs.arr",
     "../../build/phase2/arr/compiler/compile.arr"],
-function(rtLib, csLib, compLib) {
+function(rtLib, ffiHelpersLib, csLib, compLib) {
   console.log("in eval.js");
   var r = require("requirejs");
 
@@ -22,6 +23,7 @@ function(rtLib, csLib, compLib) {
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
+    var ffi = ffiHelpersLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
     var name = options.name || randomName();
@@ -36,7 +38,16 @@ function(rtLib, csLib, compLib) {
           },
           function(compiled) {
             return runtime.safeCall(function() {
-                return gf(gf(compiled, "code"), "pyret-to-js-runnable").app();
+                if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                  return gf(gf(compiled, "code"), "pyret-to-js-runnable").app();
+                }
+                else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                  throw ffi.toArray(gf(compiled, "problems"));
+                }
+                else {
+                  console.error(compiled);
+                  throw new Error("Unknown result type while compiling: ", compiled);
+                }
               },
               function(compileResult) {
                 return runtime.unwrap(compileResult);

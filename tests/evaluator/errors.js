@@ -25,6 +25,16 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
     });
 
+    describe("compiler", function() {
+      it("should signal an error when the compile fails", function(done) {
+        err("fun(): x = 5 y = 10 end", function(e) {
+            expect(e.length).toEqual(1);
+            return true;
+          });
+        P.wait(done);
+      });
+    });
+
   }
   return { performTest: performTest };
 });

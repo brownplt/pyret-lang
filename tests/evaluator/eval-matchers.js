@@ -1,4 +1,4 @@
-define(["./eval", "../runtime/matchers"], function(e, matchers) {
+define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers) {
   console.log("eval-matchers body");
 
   function makeEvalCheckers(jasmine, runtime) {
@@ -13,6 +13,17 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
         var actual = gf(result.result, "answer");
         console.log("Comparing ", runtime.toReprJS(actual), runtime.toReprJS(answer));
         expect(actual).toBeSameAs(runtime, answer);
+        pending[i - 1] = true;
+      });
+    }
+    function checkEvalPred(str, pred) {
+      var i = pending.push(false);
+      e.evalPyret(runtime, str, {}, function(result) {
+        expect(result).toBeSuccess(runtime);
+        if (runtime.isSuccessResult(result)) {
+          var actual = gf(result.result, "answer");
+          expect(actual).toPassPredicate(pred);
+        }
         pending[i - 1] = true;
       });
     }
@@ -40,6 +51,7 @@ define(["./eval", "../runtime/matchers"], function(e, matchers) {
     }
     return {
       checkEvalsTo: checkEvalsTo,
+      checkEvalPred: checkEvalPred,
       checkError: checkError,
       wait: wait
     };
