@@ -38,6 +38,19 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
         pending[i - 1] = true;
       });
     }
+    function checkCompileError(str, exnPred) {
+      var i = pending.push(false);
+      e.compilePyret(runtime, str, {}, function(result) {
+        var problems = result.exn;
+        // Compiling returns a string or an array of 
+        // Pyret objects detailing problems
+        expect(problems).toBeInstanceOf(Array);
+        if (problems instanceof Array) {
+          expect(problems).toPassPredicate(exnPred);
+        }
+        pending[i - 1] = true;
+      });
+    }
     function wait(done) {
       setTimeout(function() {
           if(pending.filter(function(p) { return p === false; }).length === 0) {
@@ -50,6 +63,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
         100);
     }
     return {
+      checkCompileError: checkCompileError,
       checkEvalsTo: checkEvalsTo,
       checkEvalPred: checkEvalPred,
       checkError: checkError,
