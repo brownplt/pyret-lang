@@ -23,9 +23,9 @@ end
 
 data WfError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    tostring(self): self.msg + " at " + tostring(self.loc) end
+    tostring(self): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    tostring(self): self.msg + " at " + self.loc.map(tostring).join-str(", ") end
+    tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
 end
 
 
@@ -35,7 +35,7 @@ fun wf-error(msg, loc):
   nothing
 end
 fun wf-error2(msg, loc1, loc2):
-  e = wf-err(msg, [loc1, loc2])
+  e = wf-err-split(msg, [loc1, loc2])
   errors := e ^ link(errors)
   nothing
 end

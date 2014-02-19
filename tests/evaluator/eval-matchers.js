@@ -38,6 +38,16 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
         pending[i - 1] = true;
       });
     }
+    function checkErrorMsg(str, exnMsg) {
+      var i = pending.push(false);
+      e.evalPyret(runtime, str, {}, function(result) {
+        expect(result).toBeFailure(runtime);
+        if (runtime.isFailureResult(result)) {
+          expect(result.exn).toMatchError(runtime, exnMsg);
+        }
+        pending[i - 1] = true;
+      });
+    }
     function wait(done) {
       setTimeout(function() {
           if(pending.filter(function(p) { return p === false; }).length === 0) {
@@ -53,6 +63,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
       checkEvalsTo: checkEvalsTo,
       checkEvalPred: checkEvalPred,
       checkError: checkError,
+      checkErrorMsg: checkErrorMsg,
       wait: wait
     };
   }

@@ -203,7 +203,7 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
   doc: "Treating stmts as a block, remove x = e, var x = e, and fun f(): e end
         and turn them into explicit let and letrec expressions."
   cases(List) stmts:
-    | empty => raise("Empty block in resolve-scope")
+    | empty => empty
     | link(f, rest-stmts) =>
       fun wrap-letrecs(expr):
         A.s_letrec(letrec-binds.first.l, letrec-binds.reverse(), expr)

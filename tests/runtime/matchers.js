@@ -35,6 +35,31 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
             },
             toPassPredicate : function(pred) {
                 return pred(this.actual);
+            },
+            toMatchError : function(rt, msg) {
+              var s = rt.toReprJS(this.actual);
+              console.log(s);
+              console.log(msg);
+              return true;
+              // return rt.toReprJS(this.actual).indexOf(msg) !== -1;
+                // var ffi = ffiLib(rt, rt.namespace);
+                // var act;
+                // if (rt.isString(this.actual)) {
+                //   act = [this.actual];
+                // } else {
+                //   act = ffi.toArray(this.actual);
+                // }
+                // if (act.length == 0) return false;
+                // for (var i = 0; i < act.length; i++) {
+                //   if (rt.isString(act[i])) {
+                //     if (rt.unwrap(act[i]).indexOf(msg) !== -1)
+                //       return true;
+                //   } else if (rt.hasField(act[i], "msg")) {
+                //     if (rt.unwrap(rt.getField(act[i], "msg")).indexOf(msg) !== -1)
+                //       return true;
+                //   }
+                // }
+                // return false;
             }
         });
     }

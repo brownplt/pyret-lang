@@ -174,6 +174,7 @@ RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(MACRO_JS) $(COPY_JS))
 .PHONY : runtime-test
 runtime-test : $(RUNTIME_JS)
 	cd tests/runtime/ && node test.js require-test-runner/
+	cd tests/evaluator/ && node test.js require-test-runner/
 
 
 .PHONY : clean

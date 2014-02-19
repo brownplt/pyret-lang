@@ -17,15 +17,18 @@ console.log("Starting all-spec");
 r([
     "./tests/evaluator/constants",
     "./tests/evaluator/conditionals",
-    "./tests/evaluator/errors"
+    "./tests/evaluator/errors",
+    "./tests/evaluator/well-formed",
     ], function (
       constants,
       conditionals,
-      errors
+      errors,
+      well_formed
     ) {
-  constants.performTest();
-  conditionals.performTest();
-  errors.performTest();
+  // constants.performTest();
+  // conditionals.performTest();
+  // errors.performTest();
+  well_formed.performTest();
 }, function(err) {
   console.log("Require failed! ", err);
 
