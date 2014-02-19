@@ -17,16 +17,19 @@ console.log("Starting all-spec");
 r([
     "./tests/evaluator/constants",
     "./tests/evaluator/conditionals",
+    "./tests/evaluator/data",
     "./tests/evaluator/errors",
     "./tests/evaluator/well-formed",
     ], function (
       constants,
       conditionals,
+      data,
       errors,
       well_formed
     ) {
   // constants.performTest();
   // conditionals.performTest();
+  // data.performTest();
   // errors.performTest();
   well_formed.performTest();
 }, function(err) {
