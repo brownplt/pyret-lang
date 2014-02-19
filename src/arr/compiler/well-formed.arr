@@ -41,7 +41,7 @@ fun wf-error2(msg, loc1, loc2):
 end
 
 fun ensure-empty-block(loc, type, block :: A.is-s_block):
-  if PARAM-current-where-everywhere:
+  if not PARAM-current-where-everywhere:
     if block.stmts.length() == 0: nothing
     else:
       wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(type), loc)

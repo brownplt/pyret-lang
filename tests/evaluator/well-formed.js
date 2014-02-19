@@ -116,12 +116,17 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end",
                                "Cannot have an `if` with a single branch");
 
-        // P.checkCompileErrorMsg("fun(): where: 5 end", "Empty block");
-        // P.checkCompileErrorMsg("fun(): true where: 5 end", wf_check("anonymous functions"));
-        // P.checkCompileErrorMsg("method(self): where: 5 end", wf_check("methods"));
-        // P.checkCompileErrorMsg("{m(self): where: 5 end}", wf_check("methods"));
+        P.checkCompileErrorMsg("fun(): true where: 5 end", wf_check("anonymous functions"));
+        P.checkCompileErrorMsg("method(self): where: 5 end", wf_check("methods"));
+        P.checkCompileErrorMsg("{m(self): where: 5 end}", wf_check("methods"));
 
         P.wait(done)
+      });
+      xit("empty blocks", function(done) {
+        P.checkCompileError("fun(): where: 5 end", function(e){ 
+          expect(rt.unwrap(e)).toEqual("Empty block"); return true; 
+        });
+        P.wait(done);
       });
       xit("malformed datatypes", function(done){
         P.checkCompileErrorMsg("datatype Foo:\n" +

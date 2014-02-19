@@ -59,6 +59,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
     function checkCompileError(str, exnPred) {
       var i = pending.push(false);
       e.compilePyret(runtime, str, {}, function(result) {
+        expect(result).toBeFailure(runtime);
         var problems = result.exn;
         // Compiling returns a string or an array of 
         // Pyret objects detailing problems
