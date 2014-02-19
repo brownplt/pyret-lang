@@ -27,10 +27,10 @@ r([
       errors,
       well_formed
     ) {
-  // constants.performTest();
-  // conditionals.performTest();
-  // data.performTest();
-  // errors.performTest();
+  constants.performTest();
+  conditionals.performTest();
+  data.performTest();
+  errors.performTest();
   well_formed.performTest();
 }, function(err) {
   console.log("Require failed! ", err);

@@ -1,17 +1,17 @@
-define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers) {
+define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
   console.log("eval-matchers body");
-
+  var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
     function gf(o, s) { return runtime.getField(o, s); }
     var pending = [];
+    var ffi = ffiLib(runtime, runtime.namespace);
 
     function checkEvalsTo(str, answer) {
       var i = pending.push(false);
       e.evalPyret(runtime, str, {}, function(result) {
         expect(result).toBeSuccess(runtime);
         var actual = gf(result.result, "answer");
-        console.log("Comparing ", runtime.toReprJS(actual), runtime.toReprJS(answer));
         expect(actual).toBeSameAs(runtime, answer);
         pending[i - 1] = true;
       });
@@ -38,15 +38,23 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
         pending[i - 1] = true;
       });
     }
-    function checkErrorMsg(str, exnMsg) {
-      var i = pending.push(false);
-      e.evalPyret(runtime, str, {}, function(result) {
-        expect(result).toBeFailure(runtime);
-        if (runtime.isFailureResult(result)) {
-          expect(result.exn).toMatchError(runtime, exnMsg);
+    function checkCompileErrorMsg(str, exnMsg) {
+      function findInArray(arr) {
+        for (var i = 0; i < arr.length; i++) {
+          if (runtime.isString(arr[i])) {
+            if (runtime.unwrap(arr[i]).indexOf(exnMsg) !== -1)
+              return true;
+          } else { // need to check is-err
+            var actMsg = runtime.getField(arr[i], "msg");
+            if (runtime.isString(actMsg)) {
+              if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
+                return true;
+            }
+          }
         }
-        pending[i - 1] = true;
-      });
+        return false;
+      }
+      return checkCompileError(str, findInArray);
     }
     function checkCompileError(str, exnPred) {
       var i = pending.push(false);
@@ -74,10 +82,10 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
     }
     return {
       checkCompileError: checkCompileError,
+      checkCompileErrorMsg: checkCompileErrorMsg,
       checkEvalsTo: checkEvalsTo,
       checkEvalPred: checkEvalPred,
       checkError: checkError,
-      checkErrorMsg: checkErrorMsg,
       wait: wait
     };
   }
