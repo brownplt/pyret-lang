@@ -17,14 +17,17 @@ console.log("Starting all-spec");
 r([
     "./tests/evaluator/constants",
     "./tests/evaluator/conditionals",
+    "./tests/evaluator/data",
     "./tests/evaluator/errors"
     ], function (
       constants,
       conditionals,
+      data,
       errors
     ) {
   constants.performTest();
   conditionals.performTest();
+  data.performTest();
   errors.performTest();
 }, function(err) {
   console.log("Require failed! ", err);

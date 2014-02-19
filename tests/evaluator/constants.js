@@ -34,12 +34,15 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         same("{x:5, y:{z: {}}}", rt.makeObject({
             x: rt.makeNumber(5),
             y: rt.makeObject({
-                z: rt.makeObject({}),
+                z: rt.makeObject({})
               })
           }));
 
+        same("{__proto__:5}", rt.makeObject({ "__proto__": rt.makeNumber(5) }));
+
         P.wait(done);
       });
+
     });
   }
   return { performTest: performTest };
