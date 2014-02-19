@@ -33,12 +33,26 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           });
 
         var singletonWithMeth = "data MyList:\n" +
+                               "  | mt with:" +
+                               "    length(self): 0 end\n" +
+                               " end\n";
+        same(singletonWithMeth + "mt.length()", rt.makeNumber(0));
+        pred(singletonWithMeth + "mt", function(val) {
+            var fields = rt.getFields(val).sort();
+            expect(fields[0]).toEqual("_match");
+            expect(fields[1]).toEqual("_torepr");
+            expect(fields[2]).toEqual("length");
+            expect(fields.length).toEqual(3);
+            return true;
+          });
+
+        var singletonWithSharing = "data MyList:\n" +
                                "  | mt\n" +
                                " sharing:\n" +
                                "   length(self): 0 end\n" +
                                " end\n";
-        same(singletonWithMeth + "mt.length()", rt.makeNumber(0));
-        pred(singletonWithMeth + "mt", function(val) {
+        same(singletonWithSharing + "mt.length()", rt.makeNumber(0));
+        pred(singletonWithSharing + "mt", function(val) {
             var fields = rt.getFields(val).sort();
             expect(fields[0]).toEqual("_match");
             expect(fields[1]).toEqual("_torepr");
