@@ -6,19 +6,13 @@ define([
 function(rtLib, ffiHelpersLib, csLib, compLib) {
   console.log("in eval.js");
   var r = require("requirejs");
+  function randomName() { 
+    return "anon" + Math.floor(Math.random() * 10000000);
+  }
 
-  function evalPyret(runtime, src, options, ondone) {
-
-    function OMGBADIDEA(name, src) {
-      var evalstr = "(function(define) { " + src + " })";
-      eval(evalstr)(function(deps, body) { r.define(name, deps, body); });
-    }
-
+  function compilePyret(runtime, src, options, ondone) {
     function getExports(lib) {
       return runtime.getField(lib(runtime, runtime.namespace), "provide");
-    }
-    function randomName() { 
-      return "anon" + Math.floor(Math.random() * 10000000);
     }
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
@@ -27,6 +21,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib) {
     var cs = getExports(csLib);
     var comp = getExports(compLib);
     var name = options.name || randomName();
+
     runtime.run(function(_, namespace) {
         return runtime.safeCall(function() {
             return gf(comp, "compile-js").app(
@@ -39,7 +34,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib) {
           function(compiled) {
             return runtime.safeCall(function() {
                 if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                  return gf(gf(compiled, "code"), "pyret-to-js-runnable").app();
+                  return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
                 }
                 else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
                   throw ffi.toArray(gf(compiled, "problems"));
@@ -50,30 +45,49 @@ function(rtLib, ffiHelpersLib, csLib, compLib) {
                 }
               },
               function(compileResult) {
-                return runtime.unwrap(compileResult);
+                return compileResult;
               });
           });
-      },
-      runtime.namespace,
-      { sync: true, initialGas: 5000 },
-      function(result) {
-        if(runtime.isFailureResult(result)) {
-          ondone(result);
+        },
+        runtime.namespace,
+        { sync: true, initialGas: 5000 },
+        ondone
+      );
+  }
+
+  function evalPyret(runtime, src, options, ondone) {
+    function OMGBADIDEA(name, src) {
+      var evalstr = "(function(define) { " + src + " })";
+      eval(evalstr)(function(deps, body) { r.define(name, deps, body); });
+    }
+    if (!options.name) { options.name = randomName(); }
+    compilePyret(
+        runtime,
+        src,
+        options,
+        function(result) {
+          if(runtime.isFailureResult(result)) {
+            ondone(result);
+          }
+          else {
+            if (typeof result.result !== 'string') {
+              throw new Error("Non-string result from compilation: " + result.result);
+            }
+            OMGBADIDEA(options.name, result.result); 
+            setTimeout(function() {
+              r([options.name], function(a) {
+                  var sync = options.sync || true;
+                  var gas = options.gas || 5000;
+                  runtime.run(a, runtime.namespace, {sync: sync, initialGas: gas}, ondone);
+              });
+            }, 0);
+          }
         }
-        else {
-          OMGBADIDEA(name, result.result); 
-          setTimeout(function() {
-            r([name], function(a) {
-                var sync = options.sync || true;
-                var gas = options.gas || 5000;
-                runtime.run(a, runtime.namespace, {sync: sync, initialGas: gas}, ondone);
-            });
-          }, 0);
-        }
-      });
+      );
   }
 
   return {
+    compilePyret: compilePyret,
     evalPyret: evalPyret
   };
   

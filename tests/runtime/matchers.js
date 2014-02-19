@@ -60,6 +60,12 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
                 //   }
                 // }
                 // return false;
+            },
+            toBeCompileError : function(cs, rt) {
+                return rt.unwrap(gf(cs, "is-err").app(this.actual)) === true;
+            },
+            toBeInstanceOf : function(cls) {
+                return this.actual instanceof cls;
             }
         });
     }
