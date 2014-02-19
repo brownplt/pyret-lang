@@ -42,8 +42,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("nullary methods", function(done) {
-        P.checkCompileErrorMsg("method(): end", "Cannot have a method with zero arguments");
-        P.checkCompileErrorMsg("{foo(): end}", "Cannot have a method with zero arguments");
+        P.checkCompileErrorMsg("method(): nothing end", "Cannot have a method with zero arguments");
+        P.checkCompileErrorMsg("{foo(): nothing end}", "Cannot have a method with zero arguments");
 
         P.wait(done);
       });
@@ -59,15 +59,15 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "10", 
                                "Cannot end a block in a var-binding");
         P.checkCompileErrorMsg("fun foo():\n" + 
-                               " fun f(): end\n" + 
+                               " fun f(): nothing end\n" + 
                                "end\n" + 
                                "10",
                                "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("fun: x = 5 end", "Cannot end a block in a let-binding");
         P.checkCompileErrorMsg("fun: var x = 5 end", "Cannot end a block in a var-binding");
-        P.checkCompileErrorMsg("fun: fun f(): end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun: x = 5 fun f(): end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun: var x = 5 y = 4 fun f(): end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun: fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun: x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun: var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
         // NOTE(dbp 2013-08-09): The more "obvious" occurence of these two get
@@ -86,7 +86,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun:\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
-                               "  fun f(): end\n" + 
+                               "  fun f(): nothing end\n" + 
                                "  data D:\n" + 
                                "    | var1()\n" + 
                                "  end\n" + 
@@ -95,7 +95,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun:\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
-                               "  fun f(): end\n" + 
+                               "  fun f(): nothing end\n" + 
                                "  graph:\n" + 
                                "  z = 5\n" + 
                                "  end\n" + 
@@ -117,8 +117,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "Cannot have an `if` with a single branch");
 
         P.checkCompileErrorMsg("fun(): true where: 5 end", wf_check("anonymous functions"));
-        P.checkCompileErrorMsg("method(self): where: 5 end", wf_check("methods"));
-        P.checkCompileErrorMsg("{m(self): where: 5 end}", wf_check("methods"));
+        P.checkCompileErrorMsg("method(self): nothing where: 5 end", wf_check("methods"));
+        P.checkCompileErrorMsg("{m(self): nothing where: 5 end}", wf_check("methods"));
 
         P.wait(done)
       });
