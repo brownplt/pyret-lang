@@ -146,7 +146,7 @@ fun default-env-visitor(initial-env):
         acc.set(a.id, b-unknown)
       end
       new-body = body.visit(self.{env: new-env})
-      new-check = _check.visit(self.{env: name-env})
+      new-check = self.{env: name-env}.option(_check)
       A.s_fun(l, name, params, new-args, ann, doc, new-body, new-check)
     end,
     s_method(self, l, args, ann, doc, body, _check):
@@ -155,7 +155,7 @@ fun default-env-visitor(initial-env):
         acc.set(a.id, b-unknown)
       end
       new-body = body.visit(self.{env: new-env})
-      new-check = _check.visit(self)
+      new-check = self.option(_check)
       A.s_method(l, new-args, ann, doc, new-body, new-check)
     end
   }

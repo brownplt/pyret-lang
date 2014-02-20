@@ -235,11 +235,10 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
         'where-clause': function(node) {
           if (node.kids.length === 0) {
             // (where-clause)
-            return RUNTIME.getField(ast, 's_block')
-              .app(pos(node.pos), makeList([]));
+            return F.makeNone();
           } else {
             // (where-clause WHERE block)
-            return tr(node.kids[1]);
+            return F.makeSome(tr(node.kids[1]));
           }
         },
         'check-op': function(node) {

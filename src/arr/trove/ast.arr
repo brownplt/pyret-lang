@@ -66,7 +66,7 @@ str-with = PP.str("with:")
 
 
 fun funlam_tosource(funtype, name, params, args :: List<Bind>,
-    ann :: Ann, doc :: String, body :: Expr, _check :: Expr) -> PP.PPrintDoc:
+    ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
   typarams =
     if is-nothing(params): PP.mt-doc
     else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
@@ -86,10 +86,13 @@ fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     else: break-one + str-arrowspace + ann.tosource()
     end
   header = PP.group(fname + arg-list + fann + str-colon)
-  checker = _check.tosource()
+  checker = cases(Option) _check:
+    | none => PP.mt_doc
+    | some(chk) => chk.tosource()
+  end
   footer =
     if PP.is-mt-doc(checker): str-end
-    else: PP.surround(INDENT, 1, str-where, _check.tosource(), str-end)
+    else: PP.surround(INDENT, 1, str-where, checker, str-end)
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.mt-doc
@@ -226,7 +229,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Option<Expr>
     ) with:
       label(self): "s_fun" end,
     tosource(self):
@@ -357,7 +360,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Option<Expr>
     ) with:
     label(self): "s_lam" end,
     tosource(self):
@@ -370,7 +373,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Option<Expr>
     ) with:
     label(self): "s_method" end,
     tosource(self):
@@ -458,7 +461,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      check :: Expr
+      check :: Option<Expr>
       ) with:
     label(self): "s_data" end,
     tosource(self):
@@ -476,7 +479,10 @@ data Expr:
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
-      _check = optional_section(str-where, self.check.tosource())
+      _check = cases(Option) (self.check):
+        | none => PP.mt_doc
+        | some(chk) => optional_section(str-where, chk.tosource())
+      end
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
@@ -487,7 +493,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      check :: Expr
+      check :: Option<Expr>
     ) with:
       label(self): "s_data" end,
     tosource(self):
@@ -505,7 +511,10 @@ data Expr:
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
-      _check = optional_section(str-where, self.check.tosource())
+      _check = cases(Option) (self.check):
+        | none => PP.mt_doc
+        | some(chk) => optional_section(str-where, chk.tosource())
+      end
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
@@ -575,7 +584,7 @@ data Member:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Expr
+      check :: Option<Expr>
     ) with:
       label(self): "s_method_field" end,
     tosource(self):
@@ -882,7 +891,7 @@ fun equiv-ast-member(m1 :: Member, m2 :: Member):
             equiv-ast-ann(ann1, ann2) and
             (doc1 == doc2) and
             equiv-ast(body1, body2) and
-            equiv-ast(check1, check2)
+            equiv-opt(check1, check2)
         | else => false
       end
     | else => false
@@ -1055,7 +1064,7 @@ fun equiv-ast-fun(
      equiv-ast-ann(ann1, ann2) and
      (doc1 == doc2) and
      equiv-ast(body1, body2) and
-     equiv-ast(check1, check2) and
+     equiv-opt(check1, check2) and
      (name1 == name2)
 end
 
@@ -1117,6 +1126,17 @@ fun equiv-ast-letrec-bind(lb1 :: LetrecBind, lb2 :: LetrecBind):
           equiv-ast-bind(bind1, bind2) and
             equiv-ast(value1, value2)
         | else => false
+      end
+  end
+end
+
+fun equiv-opt(opt1 :: Option<Expr>, opt2 :: Option<Expr>):
+  cases(Option) opt1:
+    | none => is-none(opt2)
+    | some(v1) =>
+      cases(Option) opt2:
+        | none => false
+        | some(v2) => equiv-ast(v1, v2)
       end
   end
 end
@@ -1355,7 +1375,7 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             length-andmap(equiv-ast, m1, m2) and
             length-andmap(equiv-ast-variant, v1, v2) and
             length-andmap(equiv-ast-member, sm1, sm2) and
-            equiv-ast(c1, c2)
+            equiv-opt(c1, c2)
         | else => false
       end
     | s_data_expr(_, n1, p1, m1, v1, sm1, c1) =>
@@ -1366,7 +1386,7 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             length-andmap(equiv-ast, m1, m2) and
             length-andmap(equiv-ast-variant, v1, v2) and
             length-andmap(equiv-ast-member, sm1, sm2) and
-            equiv-ast(c1, c2)
+            equiv-opt(c1, c2)
         | else => false
       end
     | s_num(_, n1) =>
@@ -1419,6 +1439,13 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
 end
 
 default-map-visitor = {
+  option(self, opt):
+    cases(Option) opt:
+      | none => none
+      | some(v) => some(v.visit(self))
+    end
+  end,
+
   s_program(self, l, imports, body):
     s_program(l, imports.map(_.visit(self)), body.visit(self))
   end,
@@ -1473,7 +1500,7 @@ default-map-visitor = {
   end,
 
   s_fun(self, l, name, params, args, ann, doc, body, _check):
-    s_fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
+    s_fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
 
   s_var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -1557,9 +1584,9 @@ default-map-visitor = {
       ann :: Ann,
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
     ):
-    s_lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
+    s_lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
   s_method(
       self,
@@ -1568,9 +1595,9 @@ default-map-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
     ):
-    s_method(l, args.map(_.visit(self)), ann, doc, body.visit(self), _check.visit(self))
+    s_method(l, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
   s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     s_extend(l, super.visit(self), fields.map(_.visit(self)))
@@ -1634,7 +1661,7 @@ default-map-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      _check :: Expr
+      _check :: Option<Expr>
     ):
     s_data(
         l,
@@ -1643,7 +1670,7 @@ default-map-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared_members.map(_.visit(self)),
-        _check.visit(self)
+        self.option(_check)
       )
   end,
   s_data_expr(
@@ -1654,7 +1681,7 @@ default-map-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      _check :: Expr
+      _check :: Option<Expr>
     ):
     s_data_expr(
         l,
@@ -1663,7 +1690,7 @@ default-map-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared_members.map(_.visit(self)),
-        _check.visit(self)
+        self.option(_check)
       )
   end,
   s_for(
@@ -1697,7 +1724,7 @@ default-map-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
     ):
     s_method_field(
         l,
@@ -1706,7 +1733,7 @@ default-map-visitor = {
         ann,
         doc,
         body.visit(self),
-        _check.visit(self)
+        self.option(_check)
       )
   end,
 
@@ -1762,6 +1789,13 @@ default-map-visitor = {
 
 
 default-iter-visitor = {
+  option(self, opt):
+    cases(Option) opt:
+      | none => true
+      | some(v) => v.visit(self)
+    end
+  end,
+  
   s_program(self, l, imports, body):
     list.all(_.visit(self), imports) and body.visit(self)
   end,
@@ -1816,7 +1850,7 @@ default-iter-visitor = {
   end,
   
   s_fun(self, l, name, params, args, ann, doc, body, _check):
-    list.all(_.visit(self), args) and body.visit(self) and _check.visit(self)
+    list.all(_.visit(self), args) and body.visit(self) and self.option(_check)
   end,
   
   s_var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -1900,9 +1934,9 @@ default-iter-visitor = {
       ann :: Ann,
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s_method(
       self,
@@ -1911,9 +1945,9 @@ default-iter-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     super.visit(self) and list.all(_.visit(self), fields)
@@ -1977,12 +2011,12 @@ default-iter-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      _check :: Expr
+      _check :: Option<Expr>
       ):
     list.all(_.visit(self), mixins) 
     and list.all(_.visit(self), variants)
     and list.all(_.visit(self), shared_members)
-    and _check.visit(self)
+    and self.option(_check)
   end,
   s_data_expr(
       self,
@@ -1992,12 +2026,12 @@ default-iter-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      _check :: Expr
+      _check :: Option<Expr>
       ):
     list.all(_.visit(self), mixins)
     and list.all(_.visit(self), variants)
     and list.all(_.visit(self), shared_members)
-    and _check.visit(self)
+    and self.option(_check)
   end,
   s_for(
       self,
@@ -2030,9 +2064,9 @@ default-iter-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Expr
+      _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and _check.visit(self)
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   
   s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):

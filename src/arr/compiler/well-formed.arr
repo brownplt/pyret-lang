@@ -16,7 +16,7 @@ var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by
 fun wrap-visit-check(self, target):
   cur-in-check = in-check-block
   in-check-block := true
-  ret = target.visit(self)
+  ret = self.option(target)
   in-check-block := cur-in-check
   ret
 end
@@ -181,9 +181,13 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-ids(fields-to-binds(binds))
     list.all(_.visit(self), binds) and constructor.visit(self)
   end,
-  s_datatype(self, l, name, params, variants, _check):
+  s_data_expr(self, l, name, params, mixins, variants, shared, _check):
     ensure-unique-variant-ids(variants)
-    list.all(_.visit(self), variants) and wrap-visit-check(self, _check)
+    the-cur-shared = cur-shared
+    cur-shared := fields-to-binds(shared)
+    ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shared)
+    cur-shared := the-cur-shared
+    ret and wrap-visit-check(self, _check)
   end,
   s_check_test(self, l, op, left, right):
     when (not in-check-block):
@@ -200,7 +204,10 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-error("Cannot have a method with zero arguments", l)
     end
     ensure-unique-ids(args)
-    ensure-empty-block(l, "methods", _check)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "methods", chk)
+    end
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s_method(self, l, args, ann, doc, body, _check):
@@ -208,12 +215,18 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-error("Cannot have a method with zero arguments", l)
     end
     ensure-unique-ids(args)
-    ensure-empty-block(l, "methods", _check)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "methods", chk)
+    end
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s_lam(self, l, params, args, ann, doc, body, _check):
     ensure-unique-ids(args)
-    ensure-empty-block(l, "anonymous functions", _check)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
+    end
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s_fun(self, s, name, params, args, ann, doc, body, _check):
@@ -221,7 +234,7 @@ well-formed-visitor = A.default-iter-visitor.{
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s_check(self, l, body):
-    wrap-visit-check(self, body)
+    wrap-visit-check(self, some(body))
   end,
   s_if(self, l, branches):
     when branches.length() == 1:
