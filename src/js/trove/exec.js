@@ -9,7 +9,10 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
       var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
 
-      var newRuntime = runtimeLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
+      var newRuntime = runtimeLib.makeRuntime({ 
+        stdout: function(str) { process.stdout.write(str); },
+        stderr: function(str) { process.stderr.write(str); }
+      });
 
       function OMGBADIDEA(name, src) {
         var define = function(libs, fun) {
