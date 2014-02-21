@@ -172,6 +172,20 @@ function hasOwnProperty(obj, p) {
     return Object.prototype.hasOwnProperty.call(obj, p);
 }
 
+var parameters = Object.create(null);
+
+function getParam(param) {
+  if(hasOwnProperty(parameters, param)) {
+    return parameters[param];
+  }
+  else {
+    throw new Error("Parameter " + param + " not defined");
+  }
+}
+function setParam(param, val) {
+  parameters[param] = val;
+}
+
 /**
     Get the brands on an object
 
@@ -378,6 +392,7 @@ function isNothing(obj) { return obj instanceof PNothing; }
    @return {!PNothing}
 */
 function makeNothing() {return new PNothing();}
+var nothing = makeNothing();
 
 /*********************
         Number
@@ -1207,6 +1222,30 @@ function createMethodDict() {
         return makeString(unwrap(base) + String(gensymCounter++))
       });
 
+    // These are all intentional no-ops.  Some checker needs to be
+    // defined by default in order to bootstrap libraries (since
+    // all Pyret modules might use these functions to try and run
+    // tests).  This one simply discards all the tests, and is
+    // an appropriate choice for, say, loading a checker library.
+    // See src/arr/trove/checker.arr for the default check
+    // implementation in Pyret that is used by the standard evaluator
+    var nullChecker = makeObject({
+      "run-checks": makeFunction(function(moduleName, checks) {
+        return nothing;
+      }),
+      "check-is": makeFunction(function(code, left, right, loc) {
+        return nothing;
+      }),
+      "check-satisfies": makeFunction(function(code, left, pred, loc) {
+        return nothing;
+      }),
+      "results": makeFunction(function() {
+        return nothing;
+      })
+    });
+
+    setParam("current-checker", nullChecker);
+
     /** type {!PBase} */
     var builtins = makeObject({
         'has-field': hasField,
@@ -1238,20 +1277,6 @@ function createMethodDict() {
 
     function mkPred(jsPred) {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
-    }
-
-    var parameters = Object.create(null);
-
-    function getParam(param) {
-      if(hasOwnProperty(parameters, param)) {
-        return parameters[param];
-      }
-      else {
-        throw new Error("Parameter " + param + " not defined");
-      }
-    }
-    function setParam(param, val) {
-      parameters[param] = val;
     }
 
     /********************
@@ -1496,7 +1521,7 @@ function createMethodDict() {
           'brander': brander,
           'raise': raise,
           'builtins': builtins,
-          'nothing': makeNothing(),
+          'nothing': nothing,
           'is-nothing': mkPred(isNothing),
           'is-number': mkPred(isNumber),
           'is-boolean': mkPred(isNumber),

@@ -141,19 +141,19 @@ $(PHASE2)/trove/%.js : src/$(JSTROVE)/%.js
 $(PHASE1)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
 
-$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE1)/pyret.js
+$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr phase1
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
 $(PHASE1)/trove/%.js: src/$(BASE)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< -library > $@
 
-$(PHASE2)/trove/%.js: src/$(BASE)/%.arr $(PHASE1)/pyret.js
+$(PHASE2)/trove/%.js: src/$(BASE)/%.arr phase1
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< -library > $@
 
 $(PHASE1)/trove/%.js: src/$(TROVE)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
 
-$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr $(PHASE1)/pyret.js
+$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr phase1
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
 install:
