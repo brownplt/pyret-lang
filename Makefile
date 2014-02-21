@@ -46,19 +46,24 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 .DELETE_ON_ERROR:
 
 # MAIN TARGET
-phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) src/scripts/pyret-start.js $(PHASE1)/main-wrapper.js
+.PHONY : phase1
+phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
 
-phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) src/scripts/pyret-start.js $(PHASE2)/main-wrapper.js
+.PHONY : phase2
+phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
 
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
-$(PHASE2_ALL_DEPS): | $(PHASE2) $(PHASE1)/main-wrapper.js
+$(PHASE2_ALL_DEPS): | $(PHASE2) phase1
 
+.PHONY : standalone1
 standalone1: phase1 $(PHASE1)/pyret.js
 
-standalone2: standalone1 phase2 $(PHASE2)/pyret.js
+.PHONY : standalone2
+standalone2: phase2 $(PHASE1)/pyret.js $(PHASE2)/pyret.js
 
+.PHONY : web
 web: $(WEB_TARGETS) $(WEB)/web-compile.js
 
 $(WEB_TARGETS): | $(WEB)
@@ -141,21 +146,22 @@ $(PHASE2)/trove/%.js : src/$(JSTROVE)/%.js
 $(PHASE1)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
 
-$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr phase1
+$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE1_ALL_DEPS)
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
 $(PHASE1)/trove/%.js: src/$(BASE)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< -library > $@
 
-$(PHASE2)/trove/%.js: src/$(BASE)/%.arr phase1
+$(PHASE2)/trove/%.js: src/$(BASE)/%.arr $(PHASE1_ALL_DEPS)
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< -library > $@
 
 $(PHASE1)/trove/%.js: src/$(TROVE)/%.arr $(PYRET_COMP)
 	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
 
-$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr phase1
+$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr $(PHASE1_ALL_DEPS)
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
+.PHONY : install
 install:
 	mkdir -p deps/closure-compiler
 	wget "http://dl.google.com/closure-compiler/compiler-latest.zip"
