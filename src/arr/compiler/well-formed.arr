@@ -137,13 +137,6 @@ fun reachable-ops(self, l, op, ast):
 end
 
 well-formed-visitor = A.default-iter-visitor.{
-  s_program(self, l, imports, body):
-    list.all(_.visit(self), imports) and
-    cases(A.Expr) body:
-      | s_block(_, stmts) => list.all(_.visit(self), stmts)
-      | else => body.visit(self)
-    end
-  end,
   s_op(self, l, op, left, right):
     reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
   end,

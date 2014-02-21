@@ -1210,7 +1210,10 @@ function createMethodDict() {
     /** type {!PBase} */
     var builtins = makeObject({
         'has-field': hasField,
-        'equiv': sameP
+        'equiv': sameP,
+        'current-checker': makeFunction(function() {
+          return getParam("current-checker");
+        })
       });
 
 

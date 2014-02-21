@@ -7,10 +7,12 @@ import parse-pyret as PP
 import "./js-of-pyret.arr" as P
 import "./compile-structs.arr" as C
 import "./well-formed.arr" as W
+import "./ast-util.arr" as U
 
 fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   ast = PP.surface-parse(code, name)
-  wf = W.check-well-formed(ast)
+  ast-ended = U.append-nothing-if-necessary(ast)
+  wf = W.check-well-formed(ast-ended)
   cases(C.CompileResult) wf:
     | ok(checked-ast) => C.ok(P.make-compiled-pyret(checked-ast, libs))
     | err(_) => wf

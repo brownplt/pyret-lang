@@ -6,6 +6,7 @@ import ast as A
 import "./anf.arr" as N
 import "./ast-split.arr" as AS
 import "./anf-visitor-compiler.arr" as AV
+import "./desugar-check.arr" as CH
 import "./desugar.arr" as D
 import "./ast-util.arr" as AU
 
@@ -27,7 +28,8 @@ end
 
 fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
 
-  desugared = D.desugar(program-ast, env)
+  checked = program-ast.visit(CH.check-visitor)
+  desugared = D.desugar(checked, env)
   cleaned = desugared.visit(AU.merge-nested-blocks)
                      .visit(AU.flatten-single-blocks)
                      .visit(AU.link-list-visitor(env))

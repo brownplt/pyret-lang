@@ -4,6 +4,7 @@ provide *
 import ast as A
 import "./compile-structs.arr" as C
 import "./gensym.arr" as G
+import "./ast-util.arr" as U
 
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
@@ -25,11 +26,6 @@ end
 
 fun extend-letrec(nv :: DesugarEnv, id :: String):
   d-env(nv.ids, nv.vars, nv.letrecs.add(id))
-end
-
-fun is-binder(stmt):
-  preds = [A.is-s_let, A.is-s_var, A.is-s_fun, A.is-s_data, A.is-s_graph]
-  for list.any(f from preds): f(stmt) end
 end
 
 fun desugar-header(h :: A.Header, b :: A.Expr):
@@ -80,17 +76,15 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
       with-provides = cases(A.Expr) body:
         | s_block(l2, stmts) =>
           last = stmts.last()
-          new-stmts = if is-binder(last):
-            stmts + [A.s_obj(l2, [
-                A.s_data_field(l2, str("answer"), A.s_id(l2, "nothing")),
-                A.s_data_field(l2, str("provide"), prov)
-              ])]
-          else:
-            stmts.take(stmts.length() - 1) + [A.s_obj(l2, [
-                A.s_data_field(l2, str("answer"), last),
-                A.s_data_field(l2, str("provide"), prov)
-              ])]
-          end
+          new-stmts = stmts.take(stmts.length() - 1) + [A.s_obj(l2, [
+              A.s_data_field(l2, str("answer"), last),
+              A.s_data_field(l2, str("provide"), prov),
+              A.s_data_field(
+                  l2,
+                  str("checks"),
+                  A.s_app(l2, A.s_dot(l2, U.checkers(l2), "results"), [])
+                )
+            ])]
           A.s_block(l2, new-stmts)
         | else => body
       end

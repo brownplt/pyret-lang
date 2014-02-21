@@ -15,9 +15,15 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
             },
             //Tests equality with ===, must be exact same
             toBeIdentical : function(expect) {
+                this.message = function() {
+                  return ["Custom expectation: values were not identical"];
+                };
                 return this.actual === expect;
             },
             toBeSameAs : function(rt, expect) {
+                this.message = function() {
+                  return ["Custom expectation: " + rt.toReprJS(this.actual) + " to equal " + rt.toReprJS(expect)];
+                };
                 return rt.same(this.actual, expect);
             },
             toBigEqual : function(expect) {
@@ -28,15 +34,27 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
                 return jsnums['equals'](this.actual, expect);
             },
             toBeSuccess : function(rt) {
+                this.message = function() {
+                  return ["Custom expectation: " + rt.toReprJS(this.actual.result) + " to be success."];
+                };
                 return rt.isSuccessResult(this.actual);
             },
             toBeFailure : function(rt) {
+                this.message = function() {
+                  return ["Custom expectation: " + this.actual + " to be failure."];
+                };
                 return rt.isFailureResult(this.actual);
             },
             toPassPredicate : function(pred) {
+                this.message = function() {
+                  return ["Custom expectation: failed predicate"];
+                };
                 return pred(this.actual);
             },
             toBeCompileError : function(cs, rt) {
+                this.message = function() {
+                  return ["Custom expectation: " + rt.toReprJS(this.actual) + " to be compile error"];
+                };
                 return rt.unwrap(gf(cs, "is-err").app(this.actual)) === true;
             },
             toBeInstanceOf : function(cls) {

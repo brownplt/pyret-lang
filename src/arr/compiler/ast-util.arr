@@ -2,15 +2,42 @@
 
 provide *
 import ast as A
-import "./desugar.arr" as D
 import parse-pyret as PP
 import "./compile-structs.arr" as CS
 import string-dict as SD
 
+fun ok-last(stmt):
+  not (
+    A.is-s_let(stmt) or
+    A.is-s_var(stmt) or
+    A.is-s_fun(stmt) or
+    A.is-s_data(stmt) or
+    A.is-s_graph(stmt) or
+    A.is-s_check(stmt)
+  )
+end
+
+fun checkers(l): A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "current-checker"), []) end
+
+fun append-nothing-if-necessary(prog :: A.Program):
+  cases(A.Program) prog:
+    | s_program(l, headers, body) =>
+      new-body = cases(A.Expr) body:
+        | s_block(l, stmts) =>
+          last-stmt = stmts.last()
+          if ok-last(last-stmt): A.s_block(l, stmts)
+          else: A.s_block(l, stmts + [A.s_id(l, "nothing")])
+          end
+        | else => body
+      end
+      A.s_program(l, headers, new-body)
+  end
+end
+
 flatten-single-blocks = A.default-map-visitor.{
-    s_block(self, s, stmts):
+    s_block(self, l, stmts):
       if stmts.length() == 1: stmts.first
-      else: A.s_block(s, stmts.map(_.visit(self)))
+      else: A.s_block(l, stmts.map(_.visit(self)))
       end
     end
   }
@@ -33,17 +60,6 @@ merge-nested-blocks = A.default-map-visitor.{
     end
   }
 
-check:
-  d = A.dummy-loc
-  D.desugar-expr(D.mt-d-env, PP.surface-parse("x block: y z end w", "test").block)
-    .visit(merge-nested-blocks) satisfies
-      A.equiv-ast(_, A.s_block(d, [
-          A.s_id(d, "x"),
-          A.s_id(d, "y"),
-          A.s_id(d, "z"),
-          A.s_id(d, "w")
-        ]))
-end
 
 fun count-apps(expr):
   var count = 0
@@ -208,11 +224,3 @@ fun link-list-visitor(initial-env):
   }
 end
 
-
-#check:
-#  pf = fun(f): PP.surface-parse(F.file-to-string(f), f);
-#  ds = D.desugar(_, CS.standard-builtins)
-#  ds(pf("builtin-libs/ast.arr"))^count-apps() is 2
-#  ds(pf("builtin-libs/list.arr"))^count-apps() is 2
-#  ds(pf("js-ast.arr"))^count-apps() is 2
-#end

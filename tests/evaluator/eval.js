@@ -2,9 +2,9 @@ define([
     "js/runtime-anf",
     "js/ffi-helpers",
     "compiler/compile-structs.arr",
-    "compiler/compile.arr"],
-function(rtLib, ffiHelpersLib, csLib, compLib) {
-  console.log("in eval.js");
+    "compiler/compile.arr",
+    "trove/checker"],
+function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
   var r = require("requirejs");
   function randomName() { 
     return "anon" + Math.floor(Math.random() * 10000000);
@@ -20,7 +20,11 @@ function(rtLib, ffiHelpersLib, csLib, compLib) {
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
+    var checker = getExports(checkerLib);
     var name = options.name || randomName();
+
+    var currentChecker = gf(checker, "make-check-context").app(runtime.makeString(name));
+    runtime.setParam("current-checker", currentChecker);
 
     runtime.run(function(_, namespace) {
         return runtime.safeCall(function() {
@@ -74,13 +78,11 @@ function(rtLib, ffiHelpersLib, csLib, compLib) {
               throw new Error("Non-string result from compilation: " + result.result);
             }
             OMGBADIDEA(options.name, result.result); 
-            setTimeout(function() {
-              r([options.name], function(a) {
-                  var sync = options.sync || true;
-                  var gas = options.gas || 5000;
-                  runtime.run(a, runtime.namespace, {sync: sync, initialGas: gas}, ondone);
+            r([options.name], function(a) {
+                var sync = options.sync || true;
+                var gas = options.gas || 5000;
+                runtime.run(a, runtime.namespace, {sync: sync, initialGas: gas}, ondone);
               });
-            }, 0);
           }
         }
       );

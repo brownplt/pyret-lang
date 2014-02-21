@@ -4,38 +4,48 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
     function gf(o, s) { return runtime.getField(o, s); }
-    var pending = [];
+    var finished = [];
     var ffi = ffiLib(runtime, runtime.namespace);
 
     function checkEvalsTo(str, answer) {
-      var i = pending.push(false);
+      var i = finished.push(false);
       e.evalPyret(runtime, str, {}, function(result) {
         expect(result).toBeSuccess(runtime);
         var actual = gf(result.result, "answer");
         expect(actual).toBeSameAs(runtime, answer);
-        pending[i - 1] = true;
+        finished[i - 1] = true;
+      });
+    }
+    function checkEvalTests(str, pred) {
+      var i = finished.push(false);
+      e.evalPyret(runtime, str, {}, function(result) {
+        expect(result).toBeSuccess(runtime);
+        console.log("Result in checks: ", result);
+        var checks = gf(result.result, "checks");
+        expect(checks).toPassPredicate(pred);
+        finished[i - 1] = true;
       });
     }
     function checkEvalPred(str, pred) {
-      var i = pending.push(false);
+      var i = finished.push(false);
       e.evalPyret(runtime, str, {}, function(result) {
         expect(result).toBeSuccess(runtime);
         if (runtime.isSuccessResult(result)) {
           var actual = gf(result.result, "answer");
           expect(actual).toPassPredicate(pred);
         }
-        pending[i - 1] = true;
+        finished[i - 1] = true;
       });
     }
     function checkError(str, exnPred) {
-      var i = pending.push(false);
+      var i = finished.push(false);
       e.evalPyret(runtime, str, {}, function(result) {
         expect(result).toBeFailure(runtime);
         if (runtime.isFailureResult(result)) {
           var exn = result.exn;
           expect(exn).toPassPredicate(exnPred);
         }
-        pending[i - 1] = true;
+        finished[i - 1] = true;
       });
     }
     function checkCompileErrorMsg(str, exnMsg) {
@@ -52,7 +62,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
       return checkCompileError(str, findInArray);
     }
     function checkCompileError(str, exnPred) {
-      var i = pending.push(false);
+      var i = finished.push(false);
       e.compilePyret(runtime, str, {}, function(result) {
         expect(result).toBeFailure(runtime);
         var problems = result.exn;
@@ -62,12 +72,12 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
         if (problems instanceof Array) {
           expect(problems).toPassPredicate(exnPred);
         }
-        pending[i - 1] = true;
+        finished[i - 1] = true;
       });
     }
     function wait(done) {
       setTimeout(function() {
-          if(pending.filter(function(p) { return p === false; }).length === 0) {
+          if(finished.filter(function(p) { return p === false; }).length === 0) {
             done();
           }
           else {
@@ -80,6 +90,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
       checkCompileError: checkCompileError,
       checkCompileErrorMsg: checkCompileErrorMsg,
       checkEvalsTo: checkEvalsTo,
+      checkEvalTests: checkEvalTests,
       checkEvalPred: checkEvalPred,
       checkError: checkError,
       wait: wait

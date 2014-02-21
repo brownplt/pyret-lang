@@ -87,7 +87,7 @@ fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     end
   header = PP.group(fname + arg-list + fann + str-colon)
   checker = cases(Option) _check:
-    | none => PP.mt_doc
+    | none => PP.mt-doc
     | some(chk) => chk.tosource()
   end
   footer =
@@ -480,7 +480,7 @@ data Expr:
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
-        | none => PP.mt_doc
+        | none => PP.mt-doc
         | some(chk) => optional_section(str-where, chk.tosource())
       end
       footer = break-one + str-end
@@ -512,7 +512,7 @@ data Expr:
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
-        | none => PP.mt_doc
+        | none => PP.mt-doc
         | some(chk) => optional_section(str-where, chk.tosource())
       end
       footer = break-one + str-end

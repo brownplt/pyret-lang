@@ -110,6 +110,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opnot = new RegExp("^not(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);
+  const opsatisfies = new RegExp("^satisfies(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
@@ -203,6 +204,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "OR", val: opor},
     {name: "NOT", val: opnot},
     {name: "IS", val: opis},
+    {name: "SATISFIES", val: opsatisfies},
     {name: "RAISES", val: opraises},
     {name: "LBRACK", val: lbrack}, 
     {name: "RBRACK", val: rbrack}, 
