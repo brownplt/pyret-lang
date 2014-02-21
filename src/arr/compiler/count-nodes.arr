@@ -29,11 +29,11 @@ end
 moorings-ast = A.parse-tc(
     read-then-close("libs/moorings.arr"),
     "moorings.arr",
-     { check : false, env : JS-ENV }
+     { env : JS-ENV }
   )
 
 fun count-in(str):
-   prog = A.parse(str, "count", {check : false, env : JS-ENV}).post-desugar
+   prog = A.parse(str, "count", {env : JS-ENV}).post-desugar
    count-nodes(prog.block)
 end
 

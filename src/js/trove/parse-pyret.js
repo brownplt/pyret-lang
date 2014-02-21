@@ -193,9 +193,15 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'check-expr': function(node) {
-          // (check-expr CHECK body END)
-          return RUNTIME.getField(ast, 's_check')
-            .app(pos(node.pos), tr(node.kids[1]));
+          if (node.kids.length === 3) {
+            // (check-expr CHECKCOLON body END)
+            return RUNTIME.getField(ast, 's_check')
+              .app(pos(node.pos), F.makeNone(), tr(node.kids[1]));
+          } else {
+            // (check-expr CHECK STRING COLON body END)
+            return RUNTIME.getField(ast, 's_check')
+              .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]));
+          }
         },
         'check-test': function(node) {
           if (node.kids.length === 1) {

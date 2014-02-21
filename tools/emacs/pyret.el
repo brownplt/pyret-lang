@@ -76,7 +76,7 @@
                               (save-excursion (forward-char -4) (pyret-TRY))
                               (save-excursion (forward-char -5) (pyret-WITH))
                               (save-excursion (forward-char -8) (pyret-SHARING))
-                              (save-excursion (forward-char -6) (pyret-CHECK))
+                              (save-excursion (forward-char -5) (pyret-CHECK))
                               (save-excursion (forward-char -6) (pyret-WHERE))
                               (save-excursion (forward-char -6) (pyret-BLOCK))
                               (save-excursion (forward-char -6) (pyret-GRAPH)))
@@ -87,13 +87,13 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords-regex 
   (regexp-opt
-   '("fun" "method" "var" "when" "import" "provide"
+   '("fun" "method" "var" "when" "import" "provide" "check"
      "data" "end" "except" "for" "from" "cases" "shadow"
      "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
-   '("doc" "try" "with" "if" "then" "sharing" "check" "where" "case" "graph" "block")))
+   '("doc" "try" "with" "if" "then" "sharing" "where" "case" "graph" "block")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
@@ -251,7 +251,7 @@
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing:"))
-(defsubst pyret-CHECK () (pyret-keyword "check:"))
+(defsubst pyret-CHECK () (pyret-keyword "check"))
 (defsubst pyret-WHERE () (pyret-keyword "where:"))
 (defsubst pyret-GRAPH () (pyret-keyword "graph:"))
 (defsubst pyret-WITH () (pyret-keyword "with:"))

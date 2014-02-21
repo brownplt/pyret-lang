@@ -714,7 +714,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       elts.foldr(fun(elt, list-expr): A.s_app(l, desugar-expr(nv, A.s_id(l, "link")), [desugar-expr(nv, elt), list-expr]) end, desugar-expr(nv, A.s_id(l, "empty")))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
-    | s_check(l, _) => A.s_str(l, "check mode not yet working (check block)")
+    | s_check(l, _, _) => A.s_str(l, "check mode not yet working (check block)")
     | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working (test stmt)")])
     | else => raise("NYI (desugar): " + torepr(expr))
   end

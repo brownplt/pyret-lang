@@ -35,7 +35,8 @@ return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
-check-expr: CHECK block end
+check-expr: CHECK STRING COLON block end
+check-expr: CHECKCOLON block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end

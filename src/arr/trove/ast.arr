@@ -229,12 +229,12 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Option<Expr>
+      _check :: Option<Expr>
     ) with:
       label(self): "s_fun" end,
     tosource(self):
       funlam_tosource(str-fun,
-        self.name, self.params, self.args, self.ann, self.doc, self.body, self.check)
+        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s_var(l :: Loc, name :: Bind, value :: Expr) with:
     label(self): "s_var" end,
@@ -360,12 +360,12 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Option<Expr>
+      _check :: Option<Expr>
     ) with:
     label(self): "s_lam" end,
     tosource(self):
       funlam_tosource(str-fun,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self.check)
+        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s_method(
       l :: Loc,
@@ -373,12 +373,12 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Option<Expr>
+      _check :: Option<Expr>
     ) with:
     label(self): "s_method" end,
     tosource(self):
       funlam_tosource(str-method,
-        nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
+        nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s_extend(l :: Loc, super :: Expr, fields :: List<Member>) with:
     label(self): "s_extend" end,
@@ -461,7 +461,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      check :: Option<Expr>
+      _check :: Option<Expr>
       ) with:
     label(self): "s_data" end,
     tosource(self):
@@ -479,7 +479,7 @@ data Expr:
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
-      _check = cases(Option) (self.check):
+      _check = cases(Option) self._check:
         | none => PP.mt_doc
         | some(chk) => optional_section(str-where, chk.tosource())
       end
@@ -493,7 +493,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared_members :: List<Member>,
-      check :: Option<Expr>
+      _check :: Option<Expr>
     ) with:
       label(self): "s_data" end,
     tosource(self):
@@ -511,7 +511,7 @@ data Expr:
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional_section(str-sharing,
         PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
-      _check = cases(Option) (self.check):
+      _check = cases(Option) self._check:
         | none => PP.mt_doc
         | some(chk) => optional_section(str-where, chk.tosource())
       end
@@ -537,11 +537,15 @@ data Expr:
     end
   | s_check(
       l :: Loc,
+      name :: Option<String>,
       body :: Expr
     ) with:
       label(self): "s_check" end,
     tosource(self):
-      PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
+      cases(Option) self.name:
+        | none => PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
+        | some(name) => PP.surround(INDENT, 1, PP.str("check ") + PP.dquote(name) + str-colon, self.body.tosource(), str-end)
+      end
     end
 sharing:
   visit(self, visitor):
@@ -584,7 +588,7 @@ data Member:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      check :: Option<Expr>
+      _check :: Option<Expr>
     ) with:
       label(self): "s_method_field" end,
     tosource(self):
@@ -593,7 +597,7 @@ data Member:
         | else => self.name.tosource()
       end
       funlam_tosource(name-part,
-        nothing, nothing, self.args, self.ann, self.doc, self.body, self.check)
+        nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
 sharing:
   visit(self, visitor):
@@ -1175,9 +1179,9 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             )
         | else => false
       end
-    | s_check(_, body1) =>
+    | s_check(_, name1, body1) =>
       cases(Expr) ast2:
-        | s_check(_, body2) => equiv-ast(body1, body2)
+        | s_check(_, name2, body2) => (name1 == name2) and equiv-ast(body1, body2)
         | else => false
       end
     | s_var(_, bind1, value1) =>
@@ -1703,8 +1707,8 @@ default-map-visitor = {
     ):
     s_for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
   end,
-  s_check(self, l :: Loc, body :: Expr):
-    s_check(l, body.visit(self))  
+  s_check(self, l :: Loc, name :: Option<String>, body :: Expr):
+    s_check(l, name, body.visit(self))  
   end,
 
   s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
@@ -2043,7 +2047,7 @@ default-iter-visitor = {
       ):
     iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s_check(self, l :: Loc, body :: Expr):
+  s_check(self, l :: Loc, name :: String, body :: Expr):
     body.visit(self)
   end,
   

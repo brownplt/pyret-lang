@@ -233,7 +233,7 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-ids(args)
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  s_check(self, l, body):
+  s_check(self, l, name, body):
     wrap-visit-check(self, some(body))
   end,
   s_if(self, l, branches):

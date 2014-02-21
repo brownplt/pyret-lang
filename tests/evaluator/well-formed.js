@@ -72,7 +72,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         // NOTE(dbp 2013-08-09): The more "obvious" occurence of these two get
         // caught by typechecking / parsing.
-        P.checkCompileErrorMsg("check = 1 check", "Cannot use `check` as an identifier");
         P.checkCompileErrorMsg("where = 1 fun(): where end", "Cannot use `where` as an identifier");
         P.checkCompileErrorMsg("fun: 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("fun: 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
