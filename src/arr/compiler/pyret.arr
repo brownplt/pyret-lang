@@ -72,6 +72,7 @@ fun main(args):
         end
       end
     | arg-error(message, partial) =>
+      print(message)
       print(C.usage-info(options).join-str("\n"))
   end
 end
