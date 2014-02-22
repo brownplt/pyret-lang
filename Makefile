@@ -179,7 +179,7 @@ test: runtime-test evaluator-test
 RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(MACRO_JS) $(COPY_JS))
 
 .PHONY : runtime-test
-runtime-test : $(RUNTIME_JS)
+runtime-test : phase2
 	cd tests/runtime/ && node test.js require-test-runner/
 
 .PHONY : evaluator-test
