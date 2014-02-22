@@ -1343,7 +1343,6 @@ function createMethodDict() {
     Pause.prototype = Object.create(Cont.prototype);
 
     function safeCall(fun, after, stackFrame) {
-      log("SafeCalling", fun, after, stackFrame);
       var result;
       try {
         if (thisRuntime.GAS-- > 0) {
@@ -1359,7 +1358,6 @@ function createMethodDict() {
         }
       }
       catch(e) {
-        log("Catching: ", e);
         if (isCont(e)) {
           e.stack[thisRuntime.EXN_STACKHEIGHT++] = {
               go: function(retval) {
@@ -1384,6 +1382,7 @@ function createMethodDict() {
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
+      var that = this;
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
@@ -1395,7 +1394,7 @@ function createMethodDict() {
       var theOneTrueStack = [kickoff];
       var theOneTrueStart = {};
       var val = theOneTrueStart;
-      var theOneTrueStackTop = {}
+      var theOneTrueStackTop = {};
       var theOneTrueStackHeight = 1;
       var BOUNCES = 0;
       var TOS = 0;
@@ -1407,7 +1406,6 @@ function createMethodDict() {
       // This function should not return anything meaningful, as state
       // and fallthrough are carefully managed.
       function iter() {
-//        console.log("Entering iter: ", theOneTrueStackHeight, theOneTrueStack);
         var loop = true;
         while (loop) {
           loop = false;
@@ -1431,10 +1429,7 @@ function createMethodDict() {
               val = next.go(val);
             }
           } catch(e) {
-//            console.log("Caught something: ", e);
             if(isCont(e)) {
-              log("Stackheight in catch: ", thisRuntime.EXN_STACKHEIGHT);
-//              console.log(e.stack.map(function(elt) { console.log(elt.go); }));
               BOUNCES++;
               thisRuntime.GAS = initialGas;
               for(var i = e.stack.length - 1; i >= 0; i--) {
@@ -1458,7 +1453,11 @@ function createMethodDict() {
               else if(isCont(e)) {
                 theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
                 val = theOneTrueStart;
-                if(sync) { loop = true; }
+                if(sync) {
+                  loop = true;
+                  // DON'T return; we synchronously loop back to the outer while loop
+                  continue;
+                }
                 else {
                   TOS++;
                   setTimeout(iter, 0);
@@ -1470,7 +1469,7 @@ function createMethodDict() {
             else if(isPyretException(e)) {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
-                theOneTrueStack[theOneTrueStackHeight] = undefined;
+                theOneTrueStack[theOneTrueStackHeight] = "sentinel";
                 next.captureExn(e);
               }
               onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
@@ -1489,6 +1488,7 @@ function createMethodDict() {
     }
 
     function pauseStack(resumer) {
+      thisRuntime.EXN_STACKHEIGHT = 0;
       throw makePause(resumer);
     }
 
@@ -1499,7 +1499,7 @@ function createMethodDict() {
 
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
-    var DEBUGLOG = false;
+    var DEBUGLOG = true;
     /**
       @type {function(...[?]): undefined}
     */
