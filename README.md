@@ -6,18 +6,19 @@
 A scripting language.
 
 The use of vocabulary from
-http://reservationsbvi.com/thisoldpirate/glossary.html is recommended
-when commenting and reporting issues.
+http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
+commenting and reporting issues.
 
-Setting Sail
-------------
+All Aboard
+----------
 
-First, make sure ye've installed [Racket >= 5.3.4](http://racket-lang.org). Then run:
+First, make sure ye've installed [Node >= 0.10](http://nodejs.org) and [Java
+7](http://www.oracle.com/technetwork/java/javase/downloads/index.htm).  Then
+run:
 
-    $ make dep && make && make test
+    $ make install && make && make test
 
-It'll build the Pyret compiler, run the tests, and hoist the
-anchor.
+It'll build the Pyret compiler, run the tests, and hoist the anchor.
 
 When yer ready to brave the sea, visit [the tour](http://pyret.org/tour/).
 
