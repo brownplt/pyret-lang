@@ -74,37 +74,40 @@ fun count-apps(expr):
 end
 
 data CurBinding:
-  | b-prim(name :: String)
-  | b-dict(dict :: SD.StringDict)
-  | b-exp(exp :: A.Expr)
-  | b-dot(bind :: CurBinding, name :: String)
-  | b-unknown
+  | b-prim(name :: String) # Some "primitive" value supplied by the initial environment
+  | b-dict(dict :: SD.StringDict) # Some module supplied by the initial environment
+  | b-exp(exp :: A.Expr) # This name is bound to some expression that we can't interpret yet
+  | b-dot(bind :: CurBinding, name :: String) # A field lookup off some binding that isn't a b-dict
+  | b-unknown # Any unknown value
 end
 
-fun bind-exp(e, env):
+fun bind-exp(e, env) -> Option<CurBinding>:
   cases(A.Expr) e:
     | s_dot(_, o, name) =>
-      b = bind-exp(o, env)
-      cases(CurBinding) b:
-        | b-dict(dict) =>
-          if dict.has-key(name): dict.get(name)
-          else: b-dot(b, name)
+      cases(Option<CurBinding>) bind-exp(o, env):
+        | some(b) =>
+          cases(CurBinding) b:
+            | b-dict(dict) =>
+              if dict.has-key(name): some(dict.get(name))
+              else: some(b-dot(b, name))
+              end
+            | else => some(b-dot(b, name))
           end
-        | else => b-dot(b, name)
+        | none => none
       end
     | s_id(_, name) =>
-      if env.has-key(name): env.get(name)
-      else: b-unknown
+      if env.has-key(name): some(env.get(name))
+      else: none
       end
     | s_id_var(_, name) =>
-      if env.has-key(name): env.get(name)
-      else: b-unknown
+      if env.has-key(name): some(env.get(name))
+      else: none
       end
     | s_id_letrec(_, name) =>
-      if env.has-key(name): env.get(name)
-      else: b-unknown
+      if env.has-key(name): some(env.get(name))
+      else: none
       end
-    | else => b-exp(e)
+    | else => some(b-exp(e))
   end
 end
 
@@ -144,28 +147,29 @@ fun default-env-visitor(initial-env):
     s_let_expr(self, l, binds, body):
       visit-binds = for list.fold(acc from {env: self.env, rev-binds: []}, b from binds):
         new-letbind = b.visit(self.{env: acc.env})
-        new-env = cases(A.Expr) new-letbind.value:
-          | s_dot(_, _, _) => acc.env.set(new-letbind.b.id, bind-exp(new-letbind.value, acc.env))
-          | s_id(_, _) => acc.env.set(new-letbind.b.id, bind-exp(new-letbind.value, acc.env))
-          | else => acc.env
+        cases(A.LetBind) new-letbind:
+          | s_let_bind(l2, bind, val) =>
+            new-env = acc.env.set(bind.id, bind-exp(val, acc.env).orelse(b-unknown))
+            {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
+          | s_var_bind(l2, bind, val) =>
+            new-env = acc.env.set(bind.id, b-unknown)
+            {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
         end
-        {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
       end
       visit-body = body.visit(self.{env: visit-binds.env})
       A.s_let_expr(l, visit-binds.rev-binds.reverse(), visit-body)
     end,
-    s_letrec_expr(self, l, binds, body):
-      visit-binds = for list.fold(acc from {env: self.env, rev-binds: []}, b from binds):
+    s_letrec(self, l, binds, body):
+      bind-env = for fold(acc from self.env, b from binds):
+        acc.set(b.b.id, b-unknown)
+      end
+      visit-binds = for list.fold(acc from {env: bind-env, rev-binds: []}, b from binds):
         new-letbind = b.visit(self.{env: acc.env})
-        new-env = cases(A.Expr) new-letbind.value:
-          | s_dot(_, _, _) => acc.env.set(new-letbind.b.id, bind-exp(new-letbind.value, acc.env))
-          | s_id(_, _) => acc.env.set(new-letbind.b.id, bind-exp(new-letbind.value, acc.env))
-          | else => acc.env
-        end
+        new-env = acc.env.set(new-letbind.b.id, bind-exp(new-letbind.value, acc.env).orelse(b-unknown))
         {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
       end
       visit-body = body.visit(self.{env: visit-binds.env})
-      A.s_letrec_expr(l, visit-binds.rev-binds.reverse(), visit-body)
+      A.s_letrec(l, visit-binds.rev-binds.reverse(), visit-body)
     end,
     s_fun(self, l, name, params, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
@@ -176,6 +180,15 @@ fun default-env-visitor(initial-env):
       new-body = body.visit(self.{env: new-env})
       new-check = self.{env: name-env}.option(_check)
       A.s_fun(l, name, params, new-args, ann, doc, new-body, new-check)
+    end,
+    s_lam(self, l, params, args, ann, doc, body, _check):
+      new-args = args.map(_.visit(self))
+      new-env = for list.fold(acc from self.env, a from new-args):
+        acc.set(a.id, b-unknown)
+      end
+      new-body = body.visit(self.{env: new-env})
+      new-check = self.{env: new-env}.option(_check)
+      A.s_lam(l, params, new-args, ann, doc, new-body, new-check)
     end,
     s_method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
@@ -196,33 +209,45 @@ fun link-list-visitor(initial-env):
         target = f.obj
         cases(A.Expr) target:
           | s_app(l2, _link, _args) =>
-            b = bind-exp(_link, self.env)
-            cases(CurBinding) b:
-              | b-prim(n) =>
-                if n == "list:link":
-                  A.s_app(l2, _link, [_args.first,
-                      (A.s_app(l, A.s_dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
-                else if n == "list:empty":
+            cases(Option<CurBinding>) bind-exp(_link, self.env):
+              | some(b) =>
+                cases(CurBinding) b:
+                  | b-prim(n) =>
+                    if n == "list:link":
+                      A.s_app(l2, _link, [_args.first,
+                          (A.s_app(l, A.s_dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
+                    else if n == "list:empty":
+                      args.first.visit(self)
+                    else:
+                      A.s_app(l, f.visit(self), args.map(_.visit(self)))
+                    end
+                  | else =>
+                    A.s_app(l, f.visit(self), args.map(_.visit(self)))
+                end
+              | none =>
+                A.s_app(l, f.visit(self), args.map(_.visit(self)))
+            end
+          | s_id(_, _) =>
+            cases(Option<CurBinding>) bind-exp(target, self.env):
+              | some(b) => 
+                if is-b-prim(b) and (b.name == "list:empty"):
                   args.first.visit(self)
                 else:
                   A.s_app(l, f.visit(self), args.map(_.visit(self)))
                 end
-              | else =>
+              | none =>
                 A.s_app(l, f.visit(self), args.map(_.visit(self)))
             end
-          | s_id(_, _) =>
-            b = bind-exp(target, self.env)
-            if is-b-prim(b) and (b.name == "list:empty"):
-              args.first.visit(self)
-            else:
-              A.s_app(l, f.visit(self), args.map(_.visit(self)))
-            end
           | s_dot(_, _, _) =>
-            b = bind-exp(target, self.env)
-            if is-b-prim(b) and (b.name == "list:empty"):
-              args.first.visit(self)
-            else:
-              A.s_app(l, f.visit(self), args.map(_.visit(self)))
+            cases(Option<CurBinding>) bind-exp(target, self.env):
+              | some(b) =>
+                if is-b-prim(b) and (b.name == "list:empty"):
+                  args.first.visit(self)
+                else:
+                  A.s_app(l, f.visit(self), args.map(_.visit(self)))
+                end
+              | none =>
+                A.s_app(l, f.visit(self), args.map(_.visit(self)))
             end
           | else =>
             A.s_app(l, f.visit(self), args.map(_.visit(self)))
@@ -230,96 +255,33 @@ fun link-list-visitor(initial-env):
       else:
         A.s_app(l, f.visit(self), args.map(_.visit(self)))
       end
-      # cases(A.Expr) f:
-      #   | s_dot(_, o, name) =>
     end
   }
 end
 
 fun check-unbound(initial-env, ast):
-  initial-dict = for list.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
-    cases(C.CompileBinding) binding:
-      | module-bindings(name, ids) => acc.set(name, true)
-      | builtin-id(name) => acc.set(name, true)
-    end
-  end
-  var unbound-ids = []
+  var unbound-ids = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun handle-id(this-id, env):
-    when not (env.has-key(this-id.id)):
+    when is-none(bind-exp(this-id, env)):
       unbound-ids := [this-id] + unbound-ids
     end
-    this-id
   end
-  ast.visit(A.default-map-visitor.{
-      env: initial-dict,
-      s_program(self, loc, headers, body):
-        header-env = for fold(acc from self.env, h from headers):
-          cases(A.Header) h:
-            | s_import(l, _, name) => acc.set(name, true)
-            | else => acc
-          end
-        end
-        A.s_program(loc, headers, body.visit(self.{ env: header-env }))
-      end,
-      s_let_expr(self, loc, binds, body):
-        bind-pair = for fold(acc from { env: self.env, new-binds: [] }, b from binds):
-          cases(A.LetrecBind) b:
-            | s_let_bind(l, b, val) =>
-              {
-                env: acc.env.set(b.id, true),
-                new-binds: link(
-                    A.s_let_bind(l, b, val.visit(self.{ env: acc.env })),
-                    acc.new-binds
-                  )
-              }
-            | s_var_bind(l, b, val) =>
-              {
-                env: acc.env.set(b.id, true),
-                new-binds: link(
-                    A.s_var_bind(l, b, val.visit(self.{ env: acc.env })),
-                    acc.new-binds
-                  )
-              }
-          end
-        end
-        A.s_let_expr(
-            loc,
-            bind-pair.new-binds.reverse(),
-            body.visit(self.{ env: bind-pair.env })
-          )
-      end,
-      s_letrec(self, loc, binds, body):
-        new-env = for fold(acc from self.env, b from binds):
-          acc.set(b.b.id, true)
-        end
-        binds.map(_.visit(self.{env: new-env}))
-        A.s_letrec(loc, binds, body.visit(self.{env: new-env}))
-      end,
-
-
-
-
-
-      s_lam(self, loc, ps, args, ann, doc, body, chk):
-        new-env = for fold(acc from self.env, a from args): acc.set(a.id, true);
-        new-body = body.visit(self.{env: new-env})
-        A.s_lam(loc, ps, args, ann, doc, new-body, chk)
-      end,
-      s_method(self, loc, args, ann, doc, body, chk):
-        new-env = for fold(acc from self.env, a from args): acc.set(a.id, true);
-        new-body = body.visit(self.{env: new-env})
-        A.s_method(loc, args, ann, doc, new-body, chk)
-      end,
+  ast.visit(default-env-visitor(initial-env).{
       s_id(self, loc, id):
-        handle-id(A.s_id(loc, id), self.env)
+        ret = A.s_id(loc, id)
+        handle-id(ret, self.env)
+        ret
       end,
       s_id_var(self, loc, id):
-        handle-id(A.s_id_var(loc, id), self.env)
+        ret = A.s_id_var(loc, id)
+        handle-id(ret, self.env)
+        ret
       end,
       s_id_letrec(self, loc, id):
-        handle-id(A.s_id_letrec(loc, id), self.env)
+        ret = A.s_id_letrec(loc, id)
+        handle-id(ret, self.env)
+        ret
       end
     })
   unbound-ids
 end
-
