@@ -8,7 +8,7 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers"], function (matchers
 
   function performTest(useCompiled){
 
-    var R = r('./build/phase2/js/runtime-anf');
+    var R = r('./build/phase1/js/runtime-anf');
 
     var output;
     var rt;

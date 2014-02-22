@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["../../build/phase2/js/namespace"], function (NamespaceLib) {
+define(["../../build/phase1/js/namespace"], function (NamespaceLib) {
 
   var Namespace = NamespaceLib.namespace;
 

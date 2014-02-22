@@ -3,8 +3,8 @@ var r = require("requirejs");
 r.config({
   baseUrl: "../..",
   paths: {
-    trove: "build/phase2/trove",
-    js: "build/phase2/js"
+    trove: "build/phase1/trove",
+    js: "build/phase1/js"
   }
 });
 

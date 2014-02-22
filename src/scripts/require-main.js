@@ -1,12 +1,15 @@
 var R = require("requirejs");
 
 
-R([process.argv[2], "js/runtime-anf"], function(mainModule, RT) {
+R([process.argv[2], "js/runtime-anf", "trove/checkers"], function(mainModule, RT, checkerLib) {
   var rt = RT.makeRuntime({
     initialGas: Number(process.argv[3]) || 500,
     stdout: function(str) { process.stdout.write(str); },
     stderr: function(str) { process.stderr.write(str); }
   });
+  
+  var checker = rt.getField(checkerLib(rt, rt.namespace), "provide");
+  rt.setParam("current-checker", rt.getField(checker, "make-check-context").app(rt.makeString(process.argv[2])));
   rt.setParam("command-line-arguments", process.argv.slice(2));
   rt.run(mainModule, rt.namespace, {sync: true}, function(result) {
     if(rt.isSuccessResult(result)) {
