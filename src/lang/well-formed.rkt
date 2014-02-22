@@ -130,7 +130,7 @@
       [_ ast]))
   (define (wf-bind b)
     (match b
-     [(s-bind s name ann) (wf-ann ann)]))
+     [(s-bind s shadow name ann) (wf-ann ann)]))
   (define (wf-variant-member vm)
     (match vm
      [(s-variant-member s mutable? bind) (wf-bind bind)]))
@@ -171,10 +171,10 @@
     (remove*
      (list #f)
      (map (λ(m) (match m
-                  [(s-data-field s (s-str _ name) _) (s-bind s (string->symbol name) (a-blank))]
-                  [(s-mutable-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
-                  [(s-once-field s (s-str _ name) _ _) (s-bind s (string->symbol name) (a-blank))]
-                  [(s-method-field s (s-str _ name) _ _ _ _ _) (s-bind s (string->symbol name) (a-blank))]
+                  [(s-data-field s (s-str _ name) _) (s-bind s #f (string->symbol name) (a-blank))]
+                  [(s-mutable-field s (s-str _ name) _ _) (s-bind s #f (string->symbol name) (a-blank))]
+                  [(s-once-field s (s-str _ name) _ _) (s-bind s #f (string->symbol name) (a-blank))]
+                  [(s-method-field s (s-str _ name) _ _ _ _ _) (s-bind s #f (string->symbol name) (a-blank))]
                   [else #f]))
           fields)))
   (define (wf-variant var shared)

@@ -31,16 +31,16 @@
 (define (block-fun-ids stmts)
   (define (stmt-id stmt)
     (match stmt
-      [(s-let _ (s-bind _ id _) (s-lam _ _ _ _ _ _ _)) id]
-      [(s-let _ (s-bind _ id _) (s-extend s (s-lam _ _ _ _ _ _ _) fields)) id]
+      [(s-let _ (s-bind _ _ id _) (s-lam _ _ _ _ _ _ _)) id]
+      [(s-let _ (s-bind _ _ id _) (s-extend s (s-lam _ _ _ _ _ _ _) fields)) id]
       [_ #f]))
   (list->set (filter-map stmt-id stmts)))
 
 (define (block-ids stmts)
   (define (stmt-id stmt)
     (match stmt
-      [(s-let _ (s-bind _ id _) _) id]
-      [(s-var _ (s-bind _ id _) _) id]
+      [(s-let _ (s-bind _ _ id _) _) id]
+      [(s-var _ (s-bind _ _ id _) _) id]
       [_ #f]))
   (filter-map stmt-id stmts))
 
@@ -50,10 +50,10 @@
 (define (compile-block l stmts env)
   (define (compile-stmt ast-node env)
     (match ast-node
-      [(s-var s (s-bind _ id _) val)
+      [(s-var s (s-bind _ _ id _) val)
         (list
           #`(r:define #,(discard-_ id) #,(compile-expr/internal val env)))]
-      [(s-let s (s-bind _ id _) val)
+      [(s-let s (s-bind _ _ id _) val)
        (define (match-id-use e)
         (match e
           [(s-app s (s-id s2 (? (lambda (x) (equal? id x)) x)) args)
@@ -196,7 +196,7 @@
        (with-syntax ([(branch ...) (d->stx (map compile-if-branch c-bs) l)])
          #`(r:cond branch ... [#t #,(compile-expr else-block env)])))]
 
-    [(s-try l try (s-bind l2 id ann) catch)
+    [(s-try l try (s-bind l2 shadow id ann) catch)
      (attach l
        #`(r:with-handlers
             ([p:exn:fail:pyret?

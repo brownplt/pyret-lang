@@ -192,12 +192,11 @@
   "
   nothing)
 
-  ;; TODO(joe): when we switch to no shadowing, this should be an appropriate exn
-  #;(check-pyret "
+  (check-pyret-exn "
   nothing = 42
   when false: 5 end
   "
-  nothing)
+  "nothing")
 
   (check-pyret "if false: 5 else if true: 6 end" (p:mk-num 6))
   (check-pyret "if true: 5 else if true: 6 end" five)
@@ -909,6 +908,15 @@ o2.m().called" true)
   "
   CONFLICT-MESSAGE)
 
+  (check-pyret "
+  var x = 5
+  fun f(shadow x):
+    nothing
+  end
+  x
+  "
+  five)
+
   (check-pyret-exn "
   x = 5
   fun f(x):
@@ -917,6 +925,16 @@ o2.m().called" true)
   f(x)
   "
   "nested scope")
+
+  
+  (check-pyret "
+  x = 5
+  fun f(shadow x):
+    x
+  end
+  f(x)
+  "
+  five)
 
   (check-pyret-exn "
   x = 5
@@ -928,6 +946,25 @@ o2.m().called" true)
   "nested scope")
 
   (check-pyret-exn "
+  x = 5
+  fun f(shadow x):
+    var x = x
+    x
+  end
+  "
+  CONFLICT-MESSAGE)
+
+  (check-pyret "
+  x = 5
+  fun f(shadow x):
+    var shadow x = x
+    x
+  end
+  x
+  "
+  five)
+
+  (check-pyret-exn "
   var x = 5
   try:
     nothing
@@ -936,6 +973,17 @@ o2.m().called" true)
   end
   "
   CONFLICT-MESSAGE)
+
+  (check-pyret "
+  var x = 5
+  try:
+    nothing
+  except(shadow x):
+    nothing
+  end
+  x
+  "
+  five)
 
   (check-pyret-exn "
   var should_notice_method_bodies = 5
@@ -952,6 +1000,29 @@ o2.m().called" true)
   f()
   "
   "nested scope")
+
+  (check-pyret "
+  var x = 5
+  fun f():
+    var shadow x = 10
+    x
+  end
+  f()
+  "
+  ten)
+
+  (check-pyret-exn "
+  data Foo: | foo end
+  var foo = 5
+  "
+  "foo is defined twice")
+
+  (check-pyret "
+  data Foo: | foo end
+  var shadow foo = 5
+  foo
+  "
+  five)
 
   (check-pyret "
   x :: Number = 5

@@ -79,10 +79,10 @@
     [(s-var _ bnd val)
      (format "var ~a = ~a" (pretty bnd) (pretty val))]
 
-    [(s-bind _ id ann)
+    [(s-bind _ shadow id ann)
      (if (a-blank? ann)
          (pretty id)
-         (format "~a :: ~a" (pretty id) (pretty-ann ann)))]
+         (format "~a~a :: ~a" (if shadow "shadow " "") (pretty id) (pretty-ann ann)))]
 
     [(s-fun _ name params args ann doc body check)
      (newlines (pretty-fun-header name params args ann)

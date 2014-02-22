@@ -98,7 +98,7 @@
        [_ (error (format "Not a member: ~a" m))]))
   (define (tp-bind b)
     (match b
-      [(s-bind s id a) (build s_bind (tp-loc s) (symbol->string id) (tp-ann a))]
+      [(s-bind s shadow id a) (build s_bind (tp-loc s) shadow (symbol->string id) (tp-ann a))]
       [_ (error (format "Not a bind: ~a" b))]))
   (define (tp-header header)
     (match header
@@ -447,7 +447,7 @@
   (define (tr-bind b)
     (cond
      [(has-brand b s_bind)
-      (tr-obj b s-bind (tr-loc l) (string->symbol id) (tr-ann ann))]
+      (tr-obj b s-bind (tr-loc l) (noop shadows) (string->symbol id) (tr-ann ann))]
      [else (error (format "Couldn't match bind: ~a" (p:to-string (ffi-unwrap b))))]))
   (define (tr-forBind b)
     (cond

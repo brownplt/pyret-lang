@@ -109,7 +109,7 @@
     (define val-temp-name (gensym "cases-value"))
       (s-block s
         (list
-          (s-let s (s-bind s val-temp-name type) (tci val))
+          (s-let s (s-bind s #f val-temp-name type) (tci val))
           (s-app s (s-bracket s (s-id s val-temp-name) (s-str s "_match"))
                  (list cases-object else-fun)))))
 
@@ -119,21 +119,21 @@
      (define brander-name (gensym name))
      (s-block s
               (flatten
-               (list (s-let s (s-bind s brander-name (a-blank)) (s-app s (s-id s 'brander) (list)))
+               (list (s-let s (s-bind s #f brander-name (a-blank)) (s-app s (s-id s 'brander) (list)))
                      (map (data-variants params brander-name) variants)
                      (make-checker s name brander-name)
                     ))
               )]))
 
 (define (make-checker s name brander-name)
-  (s-let s (s-bind s name (a-blank)) (s-bracket s (s-id s brander-name) (s-str s "test"))))
+  (s-let s (s-bind s #f name (a-blank)) (s-bracket s (s-id s brander-name) (s-str s "test"))))
 (define (apply-brand s brander-name arg)
   (s-app s (s-bracket s (s-id s brander-name) (s-str s "brand")) (list arg)))
 (define (meth s args body)
-  (s-method s (map (lambda (sym) (s-bind s sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
+  (s-method s (map (lambda (sym) (s-bind s #f sym (a-blank))) args) (a-blank) "" body (s-block s empty)))
 (define (bind->string m)
   (match m
-    [(s-bind s2 m-name _) (s-str s2 (symbol->string m-name))]))
+    [(s-bind s2 _ m-name _) (s-str s2 (symbol->string m-name))]))
 
 
 (define ((data-variants params super-brand) variant)
@@ -156,7 +156,7 @@
                    (list (s-id s 'cases-funs) (s-str s case-name)))
             (s-block s
               (list
-                (s-let s (s-bind s call-match-case (a-blank))
+                (s-let s (s-bind s #f call-match-case (a-blank))
                        (s-bracket s (s-id s 'cases-funs) (s-str s case-name)))
                 (s-app s (s-id s call-match-case)
                        (map (lambda (field)
@@ -170,7 +170,7 @@
   (define strip-param-bind (replace-typarams-binds params))
   (define (apply-constructor s constructor params name obj)
     (s-app s (s-lam s params
-                    (list (s-bind s (s-datatype-constructor-self constructor)
+                    (list (s-bind s #f (s-datatype-constructor-self constructor)
                                   (a-blank)))
                     (a-blank)
                     (format "Constructor for ~a" (symbol->string name))
@@ -182,16 +182,16 @@
      (define id-members (map s-variant-member-bind members))
      (define (member->constructor-arg m new-id)
         (match m
-          [(s-variant-member s member-type (s-bind s2 name ann))
+          [(s-variant-member s member-type (s-bind s2 shadow name ann))
            (define name-str (s-str s2 (symbol->string name)))
            (match member-type
-             ['mutable (strip-param-bind (s-bind s2 new-id ann))]
-             ['normal (strip-param-bind (s-bind s2 new-id ann))]
-             ['cyclic (strip-param-bind (s-bind s2 new-id (a-blank)))]
+             ['mutable (strip-param-bind (s-bind s2 #f new-id ann))]
+             ['normal (strip-param-bind (s-bind s2 #f new-id ann))]
+             ['cyclic (strip-param-bind (s-bind s2 #f new-id (a-blank)))]
              [_ (error (format "Bad variant type: ~a" member-type))])]))
      (define (member->field m val)
         (match m
-          [(s-variant-member s member-type (s-bind s2 name ann))
+          [(s-variant-member s member-type (s-bind s2 shadow name ann))
            (define name-str (s-str s2 (symbol->string name)))
            (match member-type
              ['mutable (s-mutable-field s2 name-str ann val)]
@@ -221,11 +221,11 @@
                       members
                       (map (lambda (id) (s-id s id)) args))))
      (list
-           (s-let s (s-bind s base-name (a-blank)) base-obj)
-           (s-let s (s-bind s brander-name (a-blank))
+           (s-let s (s-bind s #f base-name (a-blank)) base-obj)
+           (s-let s (s-bind s #f brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s (make-checker-name name) brander-name)
-           (s-let s (s-bind s name (a-blank))
+           (s-let s (s-bind s #f name (a-blank))
              (s-lam s
                     params
                     constructor-args
@@ -255,11 +255,11 @@
                  (s-data-field s (s-str s "_equals") equals)
                  (s-data-field s (s-str s "_match") matcher))))
      (list
-           (s-let s (s-bind s base-name (a-blank)) base-obj)
-           (s-let s (s-bind s brander-name (a-blank))
+           (s-let s (s-bind s #f base-name (a-blank)) base-obj)
+           (s-let s (s-bind s #f brander-name (a-blank))
                     (s-app s (s-id s 'brander) (list)))
            (make-checker s (make-checker-name name)  brander-name)
-           (s-let s (s-bind s name (a-blank))
+           (s-let s (s-bind s #f name (a-blank))
                     (apply-brand s super-brand
                       (apply-brand s brander-name
                         (apply-constructor s constructor params name (s-id s base-name))))))]))

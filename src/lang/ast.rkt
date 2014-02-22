@@ -69,8 +69,8 @@ these metadata purposes.
     [else (list maybe-blocks)]))
 
 
-;; s-bind : srcloc Symbol Ann -> s-bind
-(struct s-bind s-ast (syntax id ann) #:transparent)
+;; s-bind : srcloc Symbol Ann Bool -> s-bind
+(struct s-bind s-ast (syntax shadow id ann) #:transparent)
 
 ;; A Stmt is a (U s-fun s-var s-if s-try s-data s-datatype s-import Expr)
 
@@ -312,7 +312,7 @@ these metadata purposes.
     [(s-provide s expr) (s-provide s (sub expr))]
     [(s-provide-all s) expr1]
     [(s-block s stmts) (s-block s (map sub stmts))]
-    [(s-bind s id ann) (s-bind s id (subst-ann ann sub-id expr2))]
+    [(s-bind s shadow id ann) (s-bind s shadow id (subst-ann ann sub-id expr2))]
     [(s-fun s name params args ann doc body check)
      (define shadow? (member sub-id (map s-bind-id args)))
      (define new-args (map sub args))
@@ -412,7 +412,7 @@ these metadata purposes.
     [(s-provide syntax expr) syntax]
     [(s-provide-all syntax) syntax]
     [(s-block syntax stmts) syntax]
-    [(s-bind syntax id ann) syntax]
+    [(s-bind syntax shadow id ann) syntax]
     [(s-fun syntax name params args ann doc body check) syntax]
     [(s-check syntax body) syntax]
     [(s-var syntax name value) syntax]
@@ -486,8 +486,8 @@ these metadata purposes.
       [(s-datatype-singleton-variant _ name _)
        (list name (make-checker-name name))]))
   (match expr
-    [(s-var _ (s-bind _ x _) _) (list x)]
-    [(s-let _ (s-bind _ x _) _) (list x)]
+    [(s-var _ (s-bind _ _ x _) _) (list x)]
+    [(s-let _ (s-bind _ _ x _) _) (list x)]
     [(s-fun _ name _ _ _ _ _ _) (list name)]
     [(s-data s name _ _ variants _ _)
      (cons name (flatten (map variant-ids variants)))]
@@ -514,7 +514,7 @@ these metadata purposes.
       [(s-variant-member _ type bind) (free-ids-bind bind)]))
   (define (free-ids-bind b)
     (match b
-      [(s-bind _ id ann) (free-ids-ann ann)]))
+      [(s-bind _ _ id ann) (free-ids-ann ann)]))
   (define (free-ids-for-binding b)
     (match b
       [(s-for-bind _ bind value)
@@ -580,7 +580,7 @@ these metadata purposes.
     [(s-block _ stmts)
      (define bound-ids (list->set (top-level-ids expr)))
      (set-subtract (unions (map free-ids stmts)) bound-ids)]
-    [(s-bind _ id ann) (free-ids-ann ann)]
+    [(s-bind _ _ id ann) (free-ids-ann ann)]
     [(s-fun _ name params args ann doc body check)
      (free-ids-fun args ann body check (set name))]
     [(s-lam _ typarams args ann doc body check)
@@ -602,7 +602,7 @@ these metadata purposes.
     [(s-if _ branches) (unions (map free-ids-if-branch branches))]
     [(s-if-else _ branches else)
      (set-union (unions (map free-ids-if-branch branches)) (free-ids else))]
-    [(s-try _ body (s-bind _ id _) except)
+    [(s-try _ body (s-bind _ _ id _) except)
      (set-union (free-ids body) (set-subtract (free-ids except) (set id)))]
     [(s-cases _ type val branches)
      (set-union
@@ -687,11 +687,12 @@ these metadata purposes.
   (define (equiv-ast-bind b1 b2)
     (match (cons b1 b2)
       [(cons
-        (s-bind _ id1 ann1)
-        (s-bind _ id2 ann2))
+        (s-bind _ shadow1 id1 ann1)
+        (s-bind _ shadow2 id2 ann2))
        (and
         (equal? id1 id2)
-        (equiv-ast-ann ann1 ann2))]))
+        (equiv-ast-ann ann1 ann2)
+        (equal? shadow1 shadow2))]))
   (define (equiv-ast-for-binding b1 b2)
     (match (cons b1 b2)
       [(cons
@@ -820,8 +821,8 @@ these metadata purposes.
       [(cons (s-provide-all _) (s-provide-all _)) #t]
       [(cons (s-block _ stmts1) (s-block _ stmts2))
        (length-andmap equiv-ast stmts1 stmts2)]
-      [(cons (s-bind _ id1 ann1) (s-bind _ id2 ann2))
-       (and (symbol=? id1 id2) (equiv-ast-ann ann1 ann2))]
+      [(cons (s-bind _ shadow1 id1 ann1) (s-bind _ shadow2 id2 ann2))
+       (and (symbol=? id1 id2) (equiv-ast-ann ann1 ann2) (equal? shadow1 shadow2))]
       [(cons
         (s-fun _ name1 params1 args1 ann1 doc1 body1 check1)
         (s-fun _ name2 params2 args2 ann2 doc2 body2 check2))
@@ -1003,6 +1004,6 @@ these metadata purposes.
 (define (replace-typarams-binds typarams)
   (lambda (bind)
     (match bind
-      [(s-bind s id ann)
-       (s-bind s id ((replace-typarams typarams) ann))]
+      [(s-bind s shadow id ann)
+       (s-bind s shadow id ((replace-typarams typarams) ann))]
       [_ bind])))
