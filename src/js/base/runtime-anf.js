@@ -949,8 +949,8 @@ function createMethodDict() {
                 var keys = [];
                 var vals = [];
                 for (var field in next.dict) {
-                  keys.unshift(field); // NOTE: this is reversed order from the values,
-                  vals.push(next.dict[field]); // because processing will reverse them back
+                  keys.push(field); // NOTE: this is reversed order from the values,
+                  vals.unshift(next.dict[field]); // because processing will reverse them back
                 }
                 stack.push({todo: vals, done: [], keys: keys});
               }
