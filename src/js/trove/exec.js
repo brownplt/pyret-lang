@@ -3,7 +3,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
 
-    function exec(jsStr) {
+    function exec(jsStr, params) {
       RUNTIME.checkIf(jsStr, RUNTIME.isString);
       var str = RUNTIME.unwrap(jsStr);
       var oldDefine = rjs.define;
@@ -13,6 +13,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf"], function(rjs, ff
         stdout: function(str) { process.stdout.write(str); },
         stderr: function(str) { process.stderr.write(str); }
       });
+      newRuntime.setParam("command-line-arguments", F.toArray(params).map(RUNTIME.unwrap));
 
       function OMGBADIDEA(name, src) {
         var define = function(libs, fun) {
