@@ -1,7 +1,7 @@
 var R = require("requirejs");
 
 
-R([process.argv[2], "js/runtime-anf", "trove/checkers"], function(mainModule, RT, checkerLib) {
+R([process.argv[2], "js/runtime-anf", "trove/checker"], function(mainModule, RT, checkerLib) {
   var rt = RT.makeRuntime({
     initialGas: Number(process.argv[3]) || 500,
     stdout: function(str) { process.stdout.write(str); },
