@@ -35,6 +35,16 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
     });
 
+    describe("unbound ids", function() {
+      it("should notice unbound ids", function(done) {
+        P.checkCompileError("z", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.wait(done);
+      });
+    });
+
   }
   return { performTest: performTest };
 });

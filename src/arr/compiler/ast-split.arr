@@ -194,7 +194,7 @@ check:
   end
   fun split-strip(e):
     res = ast-split-expr(e)
-    split-result-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body))
+    split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body))
   end
   b = A.a_blank
   d = N.dummy-loc
@@ -202,7 +202,7 @@ check:
   split-strip(e1) is split-result-int-e([], e1, list-set([]))
 
   e2 = N.a-let(d, N.a-bind(d, "x", A.a_blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, "x"))))
-  split-strip(e2) is split-result-e([], e2, list-set([]))
+  split-strip(e2) is split-result-int-e([], e2, list-set([]))
 
   e3 = N.a-let(d, N.a-bind(d, "v", A.a_blank), N.a-app(d, N.a-id(d, "f"), [N.a-num(d, 5)]),
     N.a-lettable(N.a-val(N.a-id(d, "v"))))

@@ -28,12 +28,7 @@ end
 
 fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
 
-  checked = program-ast.visit(CH.check-visitor)
-  desugared = D.desugar(checked, env)
-  cleaned = desugared.visit(AU.merge-nested-blocks)
-                     .visit(AU.flatten-single-blocks)
-                     .visit(AU.link-list-visitor(env))
-  anfed = N.anf-program(cleaned)
+  anfed = N.anf-program(program-ast)
   split = AS.ast-split(anfed.body)
   #split = AS.split-result-e([], anfed.body, set([]))
   compiled = anfed.visit(AV.splitting-compiler)

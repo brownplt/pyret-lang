@@ -67,8 +67,7 @@ fun main(args):
         cases(CS.CompileResult) result:
           | ok(comp-object) => comp-object.print-js-runnable(display)
           | err(e) =>
-            print-error(torepr(e))
-            raise(e)
+            print-error(e.tostring())
         end
       end
     | arg-error(message, partial) =>

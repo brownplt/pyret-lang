@@ -96,16 +96,28 @@ fun bind-exp(e, env):
       if env.has-key(name): env.get(name)
       else: b-unknown
       end
+    | s_id_var(_, name) =>
+      if env.has-key(name): env.get(name)
+      else: b-unknown
+      end
+    | s_id_letrec(_, name) =>
+      if env.has-key(name): env.get(name)
+      else: b-unknown
+      end
     | else => b-exp(e)
   end
 end
 
 fun default-env-visitor(initial-env):
-  initial-dict = for list.fold(acc from SD.immutable-string-dict(), module from initial-env.modules):
-    mod = for list.fold(m from SD.immutable-string-dict(), b from module.bindings):
-      m.set(b, b-prim(module.name + ":" + b))
+  initial-dict = for list.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
+    cases(C.CompileBinding) binding:
+      | module-bindings(name, ids) =>
+        mod = for list.fold(m from SD.immutable-string-dict(), b from ids):
+          m.set(b, b-prim(name + ":" + b))
+        end
+        acc.set(name, b-dict(mod))
+      | builtin-id(name) => acc.set(name, b-prim(name))
     end
-    acc.set(module.name, b-dict(mod))
   end
   A.default-map-visitor.{
     env: initial-dict,
@@ -222,5 +234,92 @@ fun link-list-visitor(initial-env):
       #   | s_dot(_, o, name) =>
     end
   }
+end
+
+fun check-unbound(initial-env, ast):
+  initial-dict = for list.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
+    cases(C.CompileBinding) binding:
+      | module-bindings(name, ids) => acc.set(name, true)
+      | builtin-id(name) => acc.set(name, true)
+    end
+  end
+  var unbound-ids = []
+  fun handle-id(this-id, env):
+    when not (env.has-key(this-id.id)):
+      unbound-ids := [this-id] + unbound-ids
+    end
+    this-id
+  end
+  ast.visit(A.default-map-visitor.{
+      env: initial-dict,
+      s_program(self, loc, headers, body):
+        header-env = for fold(acc from self.env, h from headers):
+          cases(A.Header) h:
+            | s_import(l, _, name) => acc.set(name, true)
+            | else => acc
+          end
+        end
+        A.s_program(loc, headers, body.visit(self.{ env: header-env }))
+      end,
+      s_let_expr(self, loc, binds, body):
+        bind-pair = for fold(acc from { env: self.env, new-binds: [] }, b from binds):
+          cases(A.LetrecBind) b:
+            | s_let_bind(l, b, val) =>
+              {
+                env: acc.env.set(b.id, true),
+                new-binds: link(
+                    A.s_let_bind(l, b, val.visit(self.{ env: acc.env })),
+                    acc.new-binds
+                  )
+              }
+            | s_var_bind(l, b, val) =>
+              {
+                env: acc.env.set(b.id, true),
+                new-binds: link(
+                    A.s_var_bind(l, b, val.visit(self.{ env: acc.env })),
+                    acc.new-binds
+                  )
+              }
+          end
+        end
+        A.s_let_expr(
+            loc,
+            bind-pair.new-binds.reverse(),
+            body.visit(self.{ env: bind-pair.env })
+          )
+      end,
+      s_letrec(self, loc, binds, body):
+        new-env = for fold(acc from self.env, b from binds):
+          acc.set(b.b.id, true)
+        end
+        binds.map(_.visit(self.{env: new-env}))
+        A.s_letrec(loc, binds, body.visit(self.{env: new-env}))
+      end,
+
+
+
+
+
+      s_lam(self, loc, ps, args, ann, doc, body, chk):
+        new-env = for fold(acc from self.env, a from args): acc.set(a.id, true);
+        new-body = body.visit(self.{env: new-env})
+        A.s_lam(loc, ps, args, ann, doc, new-body, chk)
+      end,
+      s_method(self, loc, args, ann, doc, body, chk):
+        new-env = for fold(acc from self.env, a from args): acc.set(a.id, true);
+        new-body = body.visit(self.{env: new-env})
+        A.s_method(loc, args, ann, doc, new-body, chk)
+      end,
+      s_id(self, loc, id):
+        handle-id(A.s_id(loc, id), self.env)
+      end,
+      s_id_var(self, loc, id):
+        handle-id(A.s_id_var(loc, id), self.env)
+      end,
+      s_id_letrec(self, loc, id):
+        handle-id(A.s_id_letrec(loc, id), self.env)
+      end
+    })
+  unbound-ids
 end
 

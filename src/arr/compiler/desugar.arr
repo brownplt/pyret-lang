@@ -48,12 +48,16 @@ end
 
 fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
   cases(C.CompileEnvironment) env:
-    | compile-env(modules) =>
-      let-binds = for fold(lst from [], m from modules):
-          lst +
-            for map(name from m.bindings):
-              A.s_let(l, A.s_bind(l, false, name, A.a_blank), A.s_dot(l, A.s_id(l, m.name), name))
-            end
+    | compile-env(compile-bindings) =>
+      let-binds = for fold(lst from [], b from compile-bindings):
+          cases(C.CompileBinding) b:
+            | module-bindings(mname, bindings) =>
+              lst + 
+                for map(name from bindings):
+                  A.s_let(l, A.s_bind(l, false, name, A.a_blank), A.s_dot(l, A.s_id(l, mname), name))
+                end
+            | else => lst
+          end
         end
       A.s_block(l, let-binds + [expr])
   end
@@ -90,7 +94,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
       end
       to-desugar = wrap-env-imports(l, with-provides, compile-env)
       imports = headers.filter(fun(h): not A.is-s_provide(h) end)
-      full-imports = imports + for map(k from compile-env.modules.map(_.name)):
+      full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
           A.s_import(l, A.s_const_import(k), k)
         end
 

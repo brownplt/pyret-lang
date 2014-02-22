@@ -22,8 +22,10 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
       pushTest(function(after) {
         e.evalPyret(runtime, str, {}, function(result) {
           expect(result).toBeSuccess(runtime);
-          var actual = gf(result.result, "answer");
-          expect(actual).toBeSameAs(runtime, answer);
+          if(runtime.isSuccessResult(result)) {
+            var actual = gf(result.result, "answer");
+            expect(actual).toBeSameAs(runtime, answer);
+          }
           after();
         });
       });
@@ -32,9 +34,10 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
       pushTest(function(after) {
         e.evalPyret(runtime, str, {}, function(result) {
           expect(result).toBeSuccess(runtime);
-          console.log("Result in checks: ", result);
-          var checks = gf(result.result, "checks");
-          expect(checks).toPassPredicate(pred);
+          if(runtime.isSuccessResult(result)) {
+            var checks = gf(result.result, "checks");
+            expect(checks).toPassPredicate(pred);
+          }
           after();
         });
       });
