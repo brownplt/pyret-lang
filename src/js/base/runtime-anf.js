@@ -918,81 +918,91 @@ function createMethodDict() {
       @return {!string} the value given in
     */
     function toReprJS(val) {
-      var str = '';
-      if (isNumber(val)) {
-        str = String(/**@type {!PNumber}*/ (val).n);
-      } else if (isBoolean(val)) {
-        str = String(/**@type {!PBoolean}*/ (val).b);
-      } else if (isString(val)) {
-        str = replaceUnprintableStringChars(String(/**@type {!PString}*/ (val).s));
-        str = '"' + str + '"';
-      } else if (isObject(val)) {
-        if (val.dict._torepr) {
-          return thisRuntime.safeCall(
-            function() {
-              return getField(val, "_torepr").app()
-            },
-            function(val) { return val.s; },
-            {
-              "src": "internal",
-              "fun": "_torepr"
-            });
-        }
-        if (val.dict.tostring) {
-          return thisRuntime.safeCall(
-            function() {
-              return getField(val, "tostring").app()
-            },
-            function(val) { return val.s; },
-            {
-              "src": "internal",
-              "fun": "tostring"
-            });
-        }
-        //todo: invoke a tostring if exists
-        str = "";
-        var toprint = [];
-        toprint.push(0);
-        for(var field in val.dict){
-            toprint.push({name : field, value : val.dict[field]});
-            toprint.push(2);
-        }
-        if(toprint.length > 1) {toprint.pop();};
-        toprint.push(1);
-
-        while(toprint.length !== 0) {
-            var next = toprint.shift();
-            if(next === 0) {
-                str += "{";
-            }
-            else if(next === 1) {
-                str += "}";
-            }
-            else if(next === 2) {
-                str += ", ";
-            }
-            else if(isObject(next.value)) {
-                str += next.name + ": "; 
-                toprint.unshift(1);
-                for(var field in next.value.dict){
-                    toprint.unshift({name : field, value : next.value.dict[field]});
-                    toprint.unshift(2);
+      var stack = [{todo: [val], done: []}];
+      function toReprHelp() {
+        while (stack.length > 0 && stack[0].todo.length > 0) {
+          var top = stack[stack.length - 1];
+          if (top.todo.length > 0) {
+            var next = top.todo[top.todo.length - 1];
+            if (isNumber(next)) {
+              top.todo.pop();
+              top.done.push(String(/**@type {!PNumber}*/ (next).n));
+            } else if (isBoolean(next)) {
+              top.todo.pop();
+              top.done.push(String(/**@type {!PBoolean}*/ (next).b));
+            } else if (isString(next)) {
+              top.todo.pop();
+              top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next).s)) + '"');
+            } else if (isObject(next)) {
+              if (next.dict._torepr) {
+                // If this call fails
+                var s = getField(next, "_torepr").app();
+                // the continuation stacklet will get the result value, and do the next two steps manually
+                top.todo.pop();
+                top.done.push(thisRuntime.unwrap(s));
+              } else if (next.dict.tostring) {
+                // Same as above for _torepr
+                var s = getField(next, "tostring").app();
+                top.todo.pop();
+                top.done.push(thisRuntime.unwrap(s));
+              } else { // Push the fields of this nested object onto the work stack
+                var keys = [];
+                var vals = [];
+                for (var field in next.dict) {
+                  keys.unshift(field); // NOTE: this is reversed order from the values,
+                  vals.push(next.dict[field]); // because processing will reverse them back
                 }
-                if(Object.keys(next.value.dict).length > 0) {
-                    toprint.shift(); //Remove extra comma token
-                }
-                toprint.unshift(0);
+                stack.push({todo: vals, done: [], keys: keys});
+              }
+            } else {
+              top.todo.pop();
+              top.done.push(String(next));
             }
-            else {
-                str += next.name + ": " + toReprJS(next.value);
+          } else { // All fields of a nested object have been stringified; collapse
+            stack.pop();
+            var prev = stack[stack.length - 1];
+            prev.todo.pop();
+            var s = "{";
+            for (var i = 0; i < top.keys.length; i++) {
+              if (i > 0) { s += ", "; }
+              s += top.keys[i] + ": " + top.done[i];
             }
+            s += "}";
+            prev.done.push(s);
+          }
         }
-      } else {
-        str = String(val);
+        return stack[0].done[0];
       }
-
-      return str;
-    };
+      try {
+        return toReprHelp();
+      } catch(e) {
+        if (thisRuntime.isCont(e)) {
+          var stacklet = {
+            from: {src: "internal", line: 990, column: 57}, near: "toRepr",
+            captureExn: function(exn) { 
+              return exn.pyretStack.push({src: "<toRepr>", line: 992, column: 78}); 
+            },
+            go: function(ret) {
+              if (stack.length === 0) {
+                throw makeMessageException("Somehow we've drained the toRepr worklist, but have results coming back");
+              }
+              var top = stack[stack.length - 1];
+              top.todo.pop();
+              top.done.push(thisRuntime.unwrap(ret));
+              return makeString(toReprHelp());
+            }
+          };
+          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+          throw e;
+        } else {
+          console.error(e);
+          if (thisRuntime.isPyretException(e)) {
+            e.pyretStack.push({src: "<toRepr>", line: 1004, column: 70}); 
+          }
+          throw e;
+        }
+      }
+    }
 
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {return makeString(toReprJS(val));});
