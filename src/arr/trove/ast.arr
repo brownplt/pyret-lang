@@ -434,16 +434,16 @@ data Expr:
     tosource(self): PP.str(self.b.tostring()) end
   | s_str(l :: Loc, s :: String) with:
     label(self): "s_str" end,
-    tosource(self): PP.squote(PP.str(self.s)) end
+    tosource(self): PP.str(torepr(self.s)) end
   | s_dot(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s_dot" end,
-    tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
+    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
   | s_get_bang(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s_get_bang" end,
-    tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
+    tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
   | s_bracket(l :: Loc, obj :: Expr, field :: Expr) with:
     label(self): "s_bracket" end,
-    tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(),
+    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s_colon(l :: Loc, obj :: Expr, field :: String) with:
@@ -617,15 +617,17 @@ sharing:
   end
 end
 
+data VariantMemberType:
+  | s_normal with: tosource(self): PP.str("") end
+  | s_cyclic with: tosource(self): PP.str("cyclic ") end
+  | s_mutable with: tosource(self): PP.str("mutable ") end
+end
+
 data VariantMember:
-  | s_variant_member(l :: Loc, member_type :: String, bind :: Bind) with:
+  | s_variant_member(l :: Loc, member_type :: VariantMemberType, bind :: Bind) with:
     label(self): "s_variant_member" end,
     tosource(self):
-      if self.member_type <> "normal":
-        PP.str(self.member_type) + str-space + self.bind.tosource()
-      else:
-        self.bind.tosource()
-      end
+      self.member_type.tosource() + self.bind.tosource()
     end
 sharing:
   visit(self, visitor):
@@ -965,7 +967,7 @@ fun equiv-ast-variant-member(m1 :: VariantMember, m2 :: VariantMember):
     | s_variant_member(_, t1, b1) =>
       cases(VariantMember) m2:
         | s_variant_member(_, t2, b2) =>
-          equiv-ast-ann(t1, t2) and equiv-ast(b1, b2)
+          (t1 == t2) and equiv-ast-bind(b1, b2)
         | else => false
       end
   end
@@ -1492,7 +1494,7 @@ default-map-visitor = {
   end,
 
   s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    s_instantiate(l, expr.visit(self), params)
+    s_instantiate(l, expr.visit(self), params.map(_.visit(self)))
   end,
 
   s_block(self, l, stmts):
@@ -1744,7 +1746,7 @@ default-map-visitor = {
   s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s_for_bind(l, bind.visit(self), value.visit(self))   
   end,
-  s_variant_member(self, l :: Loc, member_type :: String, bind :: Bind):
+  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
     s_variant_member(l, member_type, bind.visit(self))
   end,
   s_variant(
@@ -1842,7 +1844,7 @@ default-iter-visitor = {
   end,
   
   s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    expr.visit(self)
+    expr.visit(self) and list.all(_.visit(self))
   end,
   
   s_block(self, l, stmts):
@@ -2076,7 +2078,7 @@ default-iter-visitor = {
   s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
-  s_variant_member(self, l :: Loc, member_type :: String, bind :: Bind):
+  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
   s_variant(

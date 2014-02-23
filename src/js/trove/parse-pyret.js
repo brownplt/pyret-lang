@@ -333,14 +333,14 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           if (node.kids.length === 1) {
             // (variant-member b)
             return RUNTIME.getField(ast, 's_variant_member')
-              .app(pos(node.pos), RUNTIME.makeString("normal"), tr(node.kids[0]));
+              .app(pos(node.pos), RUNTIME.getField(ast, "s_normal"), tr(node.kids[0]));
           } else {
             if (node.kids[0].name === "MUTABLE") {
               return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.makeString("mutable"), tr(node.kids[1]));
+                .app(pos(node.pos), RUNTIME.getField(ast, "s_mutable"), tr(node.kids[1]));
             } else {
               return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.makeString("cyclic"), tr(node.kids[1]));
+                .app(pos(node.pos), RUNTIME.getField(ast, "s_cyclic"), tr(node.kids[1]));
             }
           }
         },

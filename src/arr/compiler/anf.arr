@@ -131,17 +131,15 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
       anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
 
     | s_data_expr(l, name, params, mixins, variants, shared, _check) =>
-      fun type-of-str(str):
-        if str == "normal": N.a-normal
-        else if str == "cyclic": N.a-cyclic
-        else if str == "mutable" : N.a-mutable
-        else: raise("Not a known member type: " + str)
-        end
-      end
       fun anf-member(member :: A.VariantMember):
         cases(A.VariantMember) member:
           | s_variant_member(l2, type, b) =>
-            N.a-variant-member(l2, type-of-str(type), anf-bind(b))
+            a-type = cases(A.VariantMemberType) type:
+              | s_normal => N.a-normal
+              | s_cyclic => N.a-cyclic
+              | s_mutable => N.a-mutable
+            end
+            N.a-variant-member(l2, a-type, anf-bind(b))
         end
       end
       fun anf-variant(v :: A.Variant, kv :: (N.AVariant -> N.AExpr)):
