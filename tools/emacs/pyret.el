@@ -129,6 +129,20 @@
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 (defconst pyret-font-lock-keywords-2
   (append
+   (list
+    ;; "| IDENT(whatever) =>" is a function name
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)(.*?)[ \t]*=>")
+      (1 font-lock-builtin-face) (2 font-lock-function-name-face))
+    ;; "| KEYWORD =>" is a variable name
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-keywords-regex "\\)[ \t]*=>")
+      (1 font-lock-builtin-face) (2 font-lock-keyword-face))
+    ;; "| IDENT =>" is a variable name
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
+      (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
+    ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
+    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\|end\\|;\\)")
+      (1 font-lock-builtin-face) (2 font-lock-type-face))
+    )
    pyret-font-lock-keywords-1
    (list
     ;; "data IDENT: IDENT" without the leading |
@@ -140,15 +154,6 @@
     ;; "data IDENT"
     `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
       (1 font-lock-keyword-face) (2 font-lock-type-face))
-    ;; "| IDENT(whatever) =>" is a function name
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)(.*?)[ \t]*=>")
-      (1 font-lock-builtin-face) (2 font-lock-function-name-face))
-    ;; "| IDENT =>" is a variable name
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
-      (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
-    ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\|end\\|;\\)")
-      (1 font-lock-builtin-face) (2 font-lock-type-face))
     `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
       (1 font-lock-variable-name-face) (2 font-lock-type-face))
     `(,(concat "\\(->\\)[ \t]*\\(" pyret-ident-regex "\\)")
