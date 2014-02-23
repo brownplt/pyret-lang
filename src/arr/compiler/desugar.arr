@@ -174,7 +174,7 @@ fun make-match(l, case-name, fields):
   args = for map(f from fields):
       cases(A.VariantMember) f:
         | s_variant_member(l2, mtype, bind) =>
-          when mtype <> "normal":
+          when mtype <> A.s_normal:
             raise("Non-normal member in variant, NYI: " + torepr(f))
           end
           A.s_dot(l2, self-id.id-e, bind.id)
