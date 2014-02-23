@@ -2,6 +2,7 @@
 
 ;(require racket/set ;; set add union member intersect map)
 (require (for-syntax racket/base))
+(require (only-in racket/string string-replace))
 (require "string-map.rkt")
 
 (define (hash-fold f h init)
@@ -821,7 +822,7 @@ And the object was:
     [(p-method _ _ f m) (p-method new-brands new-map f m)]
     [(p-bool _ _ f m t) (p-bool new-brands new-map f m t)]
     [(p-nothing _ _ _ _) (error "update: Cannot update nothing")]
-    [(default _) (error (format "update: Cannot update ~a" base))]))
+    [(default _) (error (format "update: Cannot update ~a" (to-repr base)))]))
 
 ;; keys : Value -> Value
 (define keys-pfun (pλ/internal (loc) (object)
@@ -988,6 +989,7 @@ And the object was:
           ("_equals" . ,(mk-prim-fun-default string=? 'equals mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?) (mk-bool #f)))
           ("append" . ,(mk-prim-fun string-append 'append mk-str (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("contains" . ,(mk-prim-fun string-contains 'contains mk-bool (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
+          ("replace" . ,(mk-prim-fun string-replace 'replace mk-str (p-str-s p-str-s p-str-s) (s1 s2 s3) (p-str? p-str? p-str?)))
           ("index-of" . ,(mk-prim-fun string-index 'index-of mk-num-or-nothing (p-str-s p-str-s) (s1 s2) (p-str? p-str?)))
           ("substring" . ,(mk-prim-fun safe-substring 'substring mk-str (p-str-s p-num-n p-num-n) (s n1 n2) (p-str? p-num? p-num?)))
           ("split" . ,(mk-prim-fun string-split 'string-split mk-list (p-str-s p-str-s p-bool-b) (s sep b) (p-str? p-str? p-bool?)))
