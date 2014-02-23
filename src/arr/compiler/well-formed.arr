@@ -10,16 +10,7 @@ import format as F
 # TODO: Make this a mutable field when we have them...
 var errors = []
 var in-check-block = false
-var cur-shared = []
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
-
-fun wrap-visit-check(self, target):
-  cur-in-check = in-check-block
-  in-check-block := true
-  ret = self.option(target)
-  in-check-block := cur-in-check
-  ret
-end
 
 
 fun wf-error(msg, loc):
@@ -32,6 +23,20 @@ fun wf-error2(msg, loc1, loc2):
   errors := e ^ link(errors)
   nothing
 end
+fun duplicate-id(id, loc1, loc2):
+  e = C.duplicate-id(id, loc1, loc2)
+  errors := e ^ link(errors)
+  nothing
+end
+
+fun wrap-visit-check(self, target):
+  cur-in-check = in-check-block
+  in-check-block := true
+  ret = self.option(target)
+  in-check-block := cur-in-check
+  ret
+end
+
 
 fun ensure-empty-block(loc, type, block :: A.is-s_block):
   if not PARAM-current-where-everywhere:
@@ -74,6 +79,28 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
       end
   end
 end
+
+# NOTE: This is almost exactly the same function as above, but gives a
+# different error This is replicating the old behavior; does it still
+# make any sense?
+fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
+  cases(List) rev-bindings:
+    | empty => nothing
+    | link(f, rest) =>
+      cases(A.Bind) f:
+        | s_bind(l, shadows, id, ann) =>
+          if id == "_": nothing # TODO: Fix when we have real underscores
+          else if shadows: nothing
+          else:
+            cases(Option) list.find(fun(b): b.id == id end, rest):
+              | some(found) => duplicate-id(id, l, found.l)
+              | none => ensure-unique-bindings(rest)
+            end
+          end
+      end
+  end
+end
+
 
 fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Variant
   cases(List) variants:
@@ -129,123 +156,125 @@ fun reachable-ops(self, l, op, ast):
   end
 end
 
-well-formed-visitor = A.default-iter-visitor.{
-  s_op(self, l, op, left, right):
-    reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
-  end,
-  s_cases_branch(self, l, name, args, body):
-    when (name == "_"):
-      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
-    end
-    ensure-unique-ids(args)
-    list.all(_.visit(self), args) and body.visit(self)
-  end,
-  s_block(self, l, stmts):
-    cases(List) stmts.reverse():
-      | empty => nothing
-      | link(last, _) => wf-last-stmt(last)
-    end
-    list.all(_.visit(self), stmts)
-  end,
-  s_singleton_variant(self, l, name, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
-    list.all(_.visit(self), with-members)
-  end,
-  s_variant(self, l, name, binds, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
-    list.all(_.visit(self), binds) and list.all(_.visit(self), with-members)
-  end,
-  s_data(self, l, name, params, mixins, variants, shares, _check):
-    ensure-unique-variant-ids(variants)
-    the-cur-shared = cur-shared
-    cur-shared := fields-to-binds(shares)
-    ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shares)
-    cur-shared := the-cur-shared
-    ret and wrap-visit-check(self, _check)
-  end,
-  s_datatype_variant(self, l, name, binds, constructor):
-    ensure-unique-ids(fields-to-binds(binds))
-    list.all(_.visit(self), binds) and constructor.visit(self)
-  end,
-  s_data_expr(self, l, name, params, mixins, variants, shared, _check):
-    ensure-unique-variant-ids(variants)
-    the-cur-shared = cur-shared
-    cur-shared := fields-to-binds(shared)
-    ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shared)
-    cur-shared := the-cur-shared
-    ret and wrap-visit-check(self, _check)
-  end,
-  s_check_test(self, l, op, left, right):
-    when (not in-check-block):
-      if  (op == "opis"):
-        wf-error("Cannot use `is` outside of a `check` or `where` block", l)
-      else:
-        wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
-      end
-    end
-    left.visit(self) and right.visit(self)
-  end,
-  s_method_field(self, l, name, args, ann, doc, body, _check):
-    when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
-    end
-    ensure-unique-ids(args)
-    cases(Option) _check:
-      | none => nothing
-      | some(chk) => ensure-empty-block(l, "methods", chk)
-    end
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-  end,
-  s_method(self, l, args, ann, doc, body, _check):
-    when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
-    end
-    ensure-unique-ids(args)
-    cases(Option) _check:
-      | none => nothing
-      | some(chk) => ensure-empty-block(l, "methods", chk)
-    end
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-  end,
-  s_lam(self, l, params, args, ann, doc, body, _check):
-    ensure-unique-ids(args)
-    cases(Option) _check:
-      | none => nothing
-      | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
-    end
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-  end,
-  s_fun(self, s, name, params, args, ann, doc, body, _check):
-    ensure-unique-ids(args)
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-  end,
-  s_check(self, l, name, body):
-    wrap-visit-check(self, some(body))
-  end,
-  s_if(self, l, branches):
-    when branches.length() == 1:
-      wf-error("Cannot have an `if` with a single branch", l)
-    end
-    list.all(_.visit(self), branches)
-  end,
-  s_cases(self, l, type, val, branches):
-    ensure-unique-cases(branches)
-    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
-  end,
-  s_cases_else(self, l, type, val, branches, _else):
-    ensure-unique-cases(branches)
-    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
-  end,
-  s_id(self, l, id):
-    when (id == "check") or (id == "where"):
-      wf-error("Cannot use `" + id + "` as an identifier", l)
-    end
-    true
-  end
-}
-
 fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
-  errors := []
+  var cur-shared = []
+  well-formed-visitor = A.default-iter-visitor.{
+    s_op(self, l, op, left, right):
+      reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
+    end,
+    s_cases_branch(self, l, name, args, body):
+      when (name == "_"):
+        wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
+      end
+      ensure-unique-ids(args)
+      list.all(_.visit(self), args) and body.visit(self)
+    end,
+    s_block(self, l, stmts):
+      if is-empty(stmts): nothing
+      else:
+        wf-last-stmt(stmts.last())
+        bind-stmts = stmts.filter(fun(s): A.is-s_var(s) or A.is-s_let(s) end).map(_.name)
+        ensure-unique-bindings(bind-stmts.reverse())
+        list.all(_.visit(self), stmts)
+      end
+    end,
+    s_singleton_variant(self, l, name, with-members):
+      ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
+      list.all(_.visit(self), with-members)
+    end,
+    s_variant(self, l, name, binds, with-members):
+      ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
+      list.all(_.visit(self), binds) and list.all(_.visit(self), with-members)
+    end,
+    s_data(self, l, name, params, mixins, variants, shares, _check):
+      ensure-unique-variant-ids(variants)
+      the-cur-shared = cur-shared
+      cur-shared := fields-to-binds(shares)
+      ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shares)
+      cur-shared := the-cur-shared
+      ret and wrap-visit-check(self, _check)
+    end,
+    s_datatype_variant(self, l, name, binds, constructor):
+      ensure-unique-ids(fields-to-binds(binds))
+      list.all(_.visit(self), binds) and constructor.visit(self)
+    end,
+    s_data_expr(self, l, name, params, mixins, variants, shared, _check):
+      ensure-unique-variant-ids(variants)
+      the-cur-shared = cur-shared
+      cur-shared := fields-to-binds(shared)
+      ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shared)
+      cur-shared := the-cur-shared
+      ret and wrap-visit-check(self, _check)
+    end,
+    s_check_test(self, l, op, left, right):
+      when (not in-check-block):
+        if  (op == "opis"):
+          wf-error("Cannot use `is` outside of a `check` or `where` block", l)
+        else:
+          wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
+        end
+      end
+      left.visit(self) and right.visit(self)
+    end,
+    s_method_field(self, l, name, args, ann, doc, body, _check):
+      when args.length() == 0:
+        wf-error("Cannot have a method with zero arguments", l)
+      end
+      ensure-unique-ids(args)
+      cases(Option) _check:
+        | none => nothing
+        | some(chk) => ensure-empty-block(l, "methods", chk)
+      end
+      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    end,
+    s_method(self, l, args, ann, doc, body, _check):
+      when args.length() == 0:
+        wf-error("Cannot have a method with zero arguments", l)
+      end
+      ensure-unique-ids(args)
+      cases(Option) _check:
+        | none => nothing
+        | some(chk) => ensure-empty-block(l, "methods", chk)
+      end
+      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    end,
+    s_lam(self, l, params, args, ann, doc, body, _check):
+      ensure-unique-ids(args)
+      cases(Option) _check:
+        | none => nothing
+        | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
+      end
+      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    end,
+    s_fun(self, s, name, params, args, ann, doc, body, _check):
+      ensure-unique-ids(args)
+      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    end,
+    s_check(self, l, name, body):
+      wrap-visit-check(self, some(body))
+    end,
+    s_if(self, l, branches):
+      when branches.length() == 1:
+        wf-error("Cannot have an `if` with a single branch", l)
+      end
+      list.all(_.visit(self), branches)
+    end,
+    s_cases(self, l, type, val, branches):
+      ensure-unique-cases(branches)
+      type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+    end,
+    s_cases_else(self, l, type, val, branches, _else):
+      ensure-unique-cases(branches)
+      type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+    end,
+    s_id(self, l, id):
+      when (id == "check") or (id == "where"):
+        wf-error("Cannot use `" + id + "` as an identifier", l)
+      end
+      true
+    end
+  }
+
   in-check-block := false
   if ast.visit(well-formed-visitor) and (errors.length() == 0): C.ok(ast)
   else: C.err(errors)

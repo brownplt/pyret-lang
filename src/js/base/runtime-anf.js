@@ -288,7 +288,7 @@ function getField(val, field) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
-        throw makeMessageException("field " + field + " not found.");
+        throw makeMessageException("field " + field + " not found on " + JSON.stringify(val));
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -542,7 +542,7 @@ function createStringDict() {
   @return {!PString} with value s
 */
 function makeString(s) {
-  if(typeof s !== "string") { throw Error("Non-string given to makeString"); }
+  if(typeof s !== "string") { throw Error("Non-string given to makeString " + JSON.stringify(s)); }
   return new PString(s); 
 }
 
@@ -838,7 +838,7 @@ function createMethodDict() {
     */
     function checkIf(val, test) {
         if(!test(val)) {
-            throw makeMessageException("Pyret Type Error: " + test)
+            throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
         }
         return true;
     }

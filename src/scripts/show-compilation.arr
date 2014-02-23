@@ -11,9 +11,9 @@ options = {
   width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width")
 }
 
-parsed = C.parse-cmdline(options)
+parsed-options = C.parse-cmdline(options)
 
-cases (C.ParsedArguments) parsed:
+cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
     print("Success")
     cases (List) rest:

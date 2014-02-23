@@ -350,9 +350,9 @@ sharing:
 end
 
 fun rgb(
-    shadow red :: Number(between(0, _, 255)),
-    shadow green :: Number(between(0, _, 255)),
-    shadow blue :: Number(between(0, _, 255))):
+    red :: Number(between(0, _, 255)),
+    green :: Number(between(0, _, 255)),
+    blue :: Number(between(0, _, 255))):
   color(red, green, blue, 255)
 end
 
@@ -398,3 +398,4 @@ _ = print(example2.to-svg().tostring())
 example3 = iplace-image(
   itriangle(32, filled, red), 24, 24, crop, irectangle(48, 48, filled, rgb(128,128,128)))
 _ = print(example3.to-svg().tostring())
+nothing

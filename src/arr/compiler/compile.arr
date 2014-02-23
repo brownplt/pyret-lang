@@ -22,10 +22,9 @@ fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrint
       cleaned = desugared.visit(U.merge-nested-blocks)
                          .visit(U.flatten-single-blocks)
                          .visit(U.link-list-visitor(libs))
-      unbound-ids = U.check-unbound(libs, cleaned)
-      cases(List) unbound-ids:
-        | empty => C.ok(P.make-compiled-pyret(cleaned, libs))
-        | link(_, _) => C.err([C.unbound-ids(unbound-ids)])
+      any-errors = U.check-unbound(libs, cleaned)
+      if is-empty(any-errors): C.ok(P.make-compiled-pyret(cleaned, libs))
+      else: C.err(any-errors)
       end
     | err(_) => wf
   end

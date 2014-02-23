@@ -17,11 +17,38 @@ data CompileError:
     tostring(self): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
-  | unbound-ids(ids :: List<A.Expr>) with:
-    tostring(self): "The following names were not bound: \n" +
-      for map(id from self.ids):
-        id.l.tostring() + ": " + id.id
-      end.join-str("\n")
+  | unbound-id(id :: A.Expr) with:
+    tostring(self):
+      "Identifier " + self.id.id + " is used at " + self.id.l.tostring() + ", but is not defined"
+    end
+  | unbound-var(id :: String, loc :: Loc) with:
+    tostring(self):
+      "Assigning to unbound variable " + self.id + " at " + self.loc.tostring()
+    end
+  | pointless-var(loc :: Loc) with:
+    tostring(self):
+      "The anonymous mutable variable at " + self.loc.tostring() + " can never be re-used"
+    end
+  | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
+    tostring(self):
+      "Identifier " + self.id + " is assigned at " + self.loc.tostring()
+        + ", but its definition at " + self.prev-loc.tostring() + " is not assignable."
+        + "  (Only names declared with var are assignable.)"
+    end
+  | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
+    tostring(self):
+      self.id + " is declared as both a variable (at " + self.var-loc.tostring() + ")"
+        + " and an identifier (at " + self.id-loc.tostring() + ")"
+    end
+  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+    tostring(self):
+      "Identifier " + self.id + " is declared at " + self.new-loc.tostring()
+        + ", but is already declared at " + self.old-loc.tostring()
+    end
+  | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+    tostring(self):
+      "Identifier " + self.id + " is declared twice, at " + self.new-loc.tostring()
+        + " and at " + self.old-loc.tostring()
     end
 end
 
@@ -56,7 +83,6 @@ no-builtins = compile-env(runtime-builtins)
 standard-builtins = compile-env(
     runtime-builtins + [
       module-bindings("list", [
-          "is-empty",
           "is-empty",
           "is-link",
           "empty",
