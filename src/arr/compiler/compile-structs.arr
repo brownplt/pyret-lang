@@ -29,6 +29,10 @@ data CompileError:
     tostring(self):
       "The anonymous mutable variable at " + self.loc.tostring() + " can never be re-used"
     end
+  | pointless-shadow(loc :: Loc) with:
+    tostring(self):
+      "The anonymous identifier at " + self.loc.tostring() + " can't actually shadow anything"
+    end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is assigned at " + self.loc.tostring()
