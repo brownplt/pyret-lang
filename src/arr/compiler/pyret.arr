@@ -41,8 +41,15 @@ fun main(args):
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, rest)
-            print(exec-result.render-check-results())
-          | err(_) => result
+            if (exec-result.success): print(exec-result.render-check-results())
+            else: print(exec-result.failure)
+            end
+          | err(errors) =>
+            print-error("Compilation errors:")
+            for list.each(e from errors):
+              print-error(e.tostring())
+            end
+            result
         end
       else:
         result = if r.has-key("compile-standalone-js"):
@@ -68,8 +75,12 @@ fun main(args):
           end
         cases(CS.CompileResult) result:
           | ok(comp-object) => comp-object.print-js-runnable(display)
-          | err(e) =>
-            print-error(e.tostring())
+          | err(errors) =>
+            print-error("Compilation errors:")
+            for list.each(e from errors):
+              print-error(e.tostring())
+            end
+            result
         end
       end
     | arg-error(message, partial) =>
