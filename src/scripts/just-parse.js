@@ -32,6 +32,6 @@ R(["../../build/phase1/js/pyret-tokenizer", "../../build/phase1/js/pyret-parser-
     }
   } else {
     console.log("Invalid parse: you screwed up.");
-    console.log("Next token is " + JSON.stringify(toks.next()));
+    console.log("Next token is " + toks.curTok.toString(true) + " at " + toks.curTok.pos.toString(true));
   }
 });

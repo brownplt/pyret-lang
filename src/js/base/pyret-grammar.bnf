@@ -23,6 +23,11 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
 
 let-expr: binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
+multi-let-expr: LET let-binding-elt* let-binding COLON block end
+let-binding-elt: let-binding COMMA
+let-binding: let-expr | var-expr
+letrec-expr: LETREC letrec-binding* let-expr COLON block END
+letrec-binding: let-expr COMMA
 
 fun-expr: FUN fun-header COLON doc-string block where-clause end
 fun-header: ty-params NAME args return-ann
@@ -83,6 +88,7 @@ expr: paren-expr | id-expr | prim-expr
     | if-expr | if-pipe-expr | cases-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
+    | multi-let-expr | letrec-expr
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application

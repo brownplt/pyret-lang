@@ -30,7 +30,7 @@ fun main(args):
     | success(r, rest) => 
       check-mode = r.has-key("no-check-mode")
       allow-shadowed = r.has-key("allow-shadow")
-      libs = if r.has-key("library"): CS.no-builtins else: CS.standard-builtins end
+      libs = if r.has-key("library"): CS.minimal-builtins else: CS.standard-builtins end
       if not is-empty(rest):
         program-name = rest.first
         result = CM.compile-js(

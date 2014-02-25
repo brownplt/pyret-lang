@@ -151,6 +151,51 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           return RUNTIME.getField(ast, 's_let')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
+        'multi-let-expr': function(node) {
+          // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
+          // Note that we override the normal name dispatch here, because we don't want
+          // to create the default let-expr or var-expr constructions
+          return RUNTIME.getField(ast, 's_let_expr')
+            .app(pos(node.pos), 
+                 makeList(node.kids.slice(1, -3).map(translators["let-binding"])),
+                 tr(node.kids[node.kids.length - 2]));
+        },
+        'letrec-expr': function(node) {
+          // (letrec-expr LETREC letrec-binding* let-expr COLON block END)
+          // Note that we override the normal name dispatch here, because we don't want
+          // to create the default let-expr constructions
+          return RUNTIME.getField(ast, 's_letrec')
+            .app(pos(node.pos), 
+                 makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])), 
+                 tr(node.kids[node.kids.length - 2]));
+        },
+        'let-binding': function(node) {
+          if (node.name === "let-binding-elt") {
+            // (let-binding-elt let-binding COMMA)
+            node = node.kids[0];
+          }
+          if (node.name === "let-binding") {
+            // (let-binding let-expr) or (let-binding var-expr)
+            node = node.kids[0]
+          }
+          if (node.name === "let-expr") {
+            // (let-expr binding EQUALS binop-expr)
+            return RUNTIME.getField(ast, 's_let_bind')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          } else if (node.name === "var-expr") {
+            // (var-expr VAR binding EQUALS binop-expr)
+            return RUNTIME.getField(ast, 's_var_bind')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          }
+        },
+        'letrec-binding': function(node) {
+          if (node.name === "letrec-binding") {
+            node = node.kids[0];
+          }
+          // (let-expr binding EQUALS binop-expr)
+          return RUNTIME.getField(ast, 's_letrec_bind')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        },
         'graph-expr': function(node) {
           // (graph-expr GRAPH bind ... END)
           return RUNTIME.getField(ast, 's_graph')

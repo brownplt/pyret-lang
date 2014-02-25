@@ -82,7 +82,9 @@ runtime-builtins = [
     builtin-id("gensym")
   ]
 
-no-builtins = compile-env(runtime-builtins)
+no-builtins = compile-env([])
+
+minimal-builtins = compile-env(runtime-builtins)
 
 standard-builtins = compile-env(
     runtime-builtins + [

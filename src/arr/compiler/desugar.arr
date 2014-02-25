@@ -104,7 +104,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
 where:
   d = A.dummy-loc
   str = A.s_str(d, _)
-  ds = desugar(_, C.no-builtins)
+  ds = desugar(_, C.minimal-builtins)
   ds(A.surface-parse("provide x end x = 10", "test")) satisfies
     A.equiv-ast-prog(_, A.s_program(d, [],
       A.s_block(d, [

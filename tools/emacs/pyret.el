@@ -88,7 +88,7 @@
 (defconst pyret-keywords-regex 
   (regexp-opt
    '("fun" "method" "var" "when" "import" "provide" "check"
-     "data" "end" "except" "for" "from" "cases" "shadow"
+     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
      "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
@@ -239,6 +239,8 @@
 (defsubst pyret-FUN () (pyret-keyword "fun"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
+(defsubst pyret-LET () (pyret-keyword "let"))
+(defsubst pyret-LETREC () (pyret-keyword "letrec"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
 (defsubst pyret-IFCOLON () (pyret-keyword "if:"))
@@ -481,6 +483,16 @@
             (push 'wantcolon opens)
             ;; (push 'wantcloseparen opens)
             ;; (push 'wantopenparen opens)
+            (forward-char 3))
+           ((pyret-LETREC)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'let opens)
+            (push 'wantcolon opens)
+            (forward-char 6))
+           ((pyret-LET)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'let opens)
+            (push 'wantcolon opens)
             (forward-char 3))
            ((pyret-METHOD)
             (incf (pyret-indent-fun defered-opened))
@@ -770,7 +782,7 @@
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars which-to-close)))))
                  ;; Things that are counted and closeable by end
-                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block))
+                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
