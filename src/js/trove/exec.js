@@ -25,6 +25,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
         if(execRt.isSuccessResult(r)) {
           var pyretResult = r.result;
           return callingRt.makeObject({
+              "success": callingRt.makeBoolean(true),
               "render-check-results": callingRt.makeFunction(function() {
                 var toCall = execRt.getField(checker, "render-check-results");
                 var checks = execRt.getField(pyretResult, "checks");
@@ -51,6 +52,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
         else if(execRt.isFailureResult(r)) {
           console.error("Failed: ", r, r.exn);
           return callingRt.makeObject({
+              "success": callingRt.makeBoolean(false),
               "failure": r.exn
             });
         }
