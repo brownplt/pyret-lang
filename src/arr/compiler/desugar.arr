@@ -245,10 +245,10 @@ fun resolve-scope(stmts, let-binds, letrec-binds) -> List<Expr>:
           fun variant-binds(data-blob-id, v):
             vname = v.name
             checker-name = A.make-checker-name(vname)
-            get-part = A.s_dot(l, data-blob-id, _)
+            get-part = A.s_dot(v.l, data-blob-id, _)
             [
-              A.s_letrec_bind(l, b(l, vname), get-part(vname)),
-              A.s_letrec_bind(l, b(l, checker-name), get-part(checker-name))
+              A.s_letrec_bind(v.l, b(v.l, vname), get-part(vname)),
+              A.s_letrec_bind(v.l, b(v.l, checker-name), get-part(checker-name))
             ]
           end
           blob-id = G.make-name(name)
