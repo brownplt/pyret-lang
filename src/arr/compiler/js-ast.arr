@@ -410,12 +410,12 @@ data JExpr:
     tosource(self): PP.str(self.id) end
   | j-str(s :: String) with:
     print-ugly-source(self, printer):
-      printer(format("~s", [self.s]))
+      printer(torepr(self.s))
     end,
     to-ugly-source(self):
-      format("~s", [self.s])
+      torepr(self.s)
     end,
-    tosource(self): PP.str(format("~s", [self.s])) end
+    tosource(self): PP.str(torepr(self.s)) end
   | j-num(n :: Number) with:
     print-ugly-source(self, printer):
       printer(self.n.tostring())
