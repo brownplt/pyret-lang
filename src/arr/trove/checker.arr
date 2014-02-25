@@ -20,9 +20,7 @@ fun make-check-context(main-module-name):
   end
   var current-results = [] 
   fun add-result(t :: TestResult):
-    print(t)
     current-results := [t] + current-results
-    print(current-results)
   end
   fun reset-results(): current-results := [];
   {
@@ -51,7 +49,59 @@ fun make-check-context(main-module-name):
     end,
     results(self):
       block-results
+    end,
+    render(self):
+      self.block-results^render-check-results()
     end
   }
+end
+
+fun results-summary(block-results :: List<CheckBlockResult>):
+  init = {
+      message: "",
+      passed: 0,
+      failed: 0,
+      total: 0
+    }
+  complete-summary = for fold(summary from init, br from block-results.reverse()):
+    fun format-loc(l):
+      l.file + ":" + l.line.tostring() + ":" + l.column.tostring()
+    end
+    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + "\n"
+    for fold(s from summary.{message: message}, tr from br.test-results.reverse()):
+      cases(TestResult) tr:
+        | success(loc, code) => s.{
+            message: s.message + "\n  " + loc^format-loc() + ": ok",
+            passed: s.passed + 1,
+            total: s.total + 1
+          }
+        | failure(loc, code, reason) =>
+          m = s.message + "\n  " + loc^format-loc() + ": failed because: \n    " + reason
+          s.{
+            message: m,
+            failed: s.failed + 1,
+            total: s.total + 1
+          }
+      end
+    end
+  end
+  if complete-summary.total == 0: complete-summary.{message: "The program didn't define any tests."}
+  else if complete-summary.failed == 0:
+    happy-msg = if complete-summary.passed == 1:
+        "Looks shipshape, your test passed, mate!"
+      else:
+        "Looks shipshape, all " + complete-summary.passed.tostring() + " tests passed, mate!"
+      end
+    complete-summary.{message: happy-msg}
+  else:
+    c = complete-summary
+    c.{
+      message: c.message + "\n\nPassed: " + c.passed.tostring() + "; Failed: " + c.failed.tostring() + "; Total: " + c.total.tostring() + "\n"
+    }
+  end
+end
+
+fun render-check-results(block-results :: List<CheckBlockResult>):
+  results-summary(block-results).message
 end
 

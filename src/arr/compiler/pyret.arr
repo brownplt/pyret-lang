@@ -39,7 +39,9 @@ fun main(args):
           }
         )
         cases(CS.CompileResult) result:
-          | ok(comp-object) => X.exec(comp-object.pyret-to-js-runnable(), rest)
+          | ok(comp-object) =>
+            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, rest)
+            print(exec-result.render-check-results())
           | err(_) => result
         end
       else:
