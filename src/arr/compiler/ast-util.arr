@@ -375,7 +375,7 @@ fun link-list-visitor(initial-env):
   }
 end
 
-fun check-unbound(initial-env, ast):
+fun check-unbound(initial-env, ast, options):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end
   fun handle-id(this-id, env):
@@ -411,7 +411,7 @@ fun check-unbound(initial-env, ast):
           | none => nothing
           | some(b) =>
             if bind.shadows:
-              when bind.id == "_":
+              when (bind.id == "_") and (not options.allow-shadowed):
                 add-error(CS.pointless-shadow(bind.l))
               end
             else:
@@ -419,7 +419,9 @@ fun check-unbound(initial-env, ast):
               else if bind.id == "self": nothing
               else if bind.id == "_": nothing # FIX when we have real underscores
               else:
-                add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                when not options.allow-shadowed:
+                  add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                end
               end
             end
         end
@@ -430,7 +432,7 @@ fun check-unbound(initial-env, ast):
           | none => nothing
           | some(b) =>
             if bind.shadows: 
-              when bind.id == "_":
+              when (bind.id == "_") and (not options.allow-shadowed):
                 add-error(CS.pointless-shadow(bind.l))
               end
             else:
@@ -439,7 +441,9 @@ fun check-unbound(initial-env, ast):
               else if bind.id == "_":
                 add-error(CS.pointless-var(bind.l))
               else:
-                add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                when not options.allow-shadowed:
+                  add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                end
               end
             end
         end
@@ -461,7 +465,9 @@ fun check-unbound(initial-env, ast):
                 else if bind.id == "_": nothing # FIX when we have real underscores
                 else if bind.shadows: nothing
                 else:
-                  add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                  when not options.allow-shadowed:
+                    add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                  end
                 end
               end
           end
