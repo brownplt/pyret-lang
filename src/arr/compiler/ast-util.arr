@@ -410,7 +410,10 @@ fun check-unbound(initial-env, ast):
         cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
           | none => nothing
           | some(b) =>
-            if bind.shadows: nothing
+            if bind.shadows:
+              when bind.id == "_":
+                add-error(CS.pointless-shadow(bind.l))
+              end
             else:
               if b.mut: add-error(CS.mixed-id-var(bind.id, b.loc, bind.l))
               else if bind.id == "self": nothing
@@ -426,7 +429,10 @@ fun check-unbound(initial-env, ast):
         cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
           | none => nothing
           | some(b) =>
-            if bind.shadows: nothing
+            if bind.shadows: 
+              when bind.id == "_":
+                add-error(CS.pointless-shadow(bind.l))
+              end
             else:
               if not b.mut: add-error(CS.mixed-id-var(bind.id, bind.l, b.loc))
               else if bind.id == "self": nothing
