@@ -23,7 +23,7 @@ define(["../js/runtime-util", "./list"], function(util, L) {
                                   toWrittenString(formatStr)];
             var i;
             for (i = 0; i < args.length; i++) {
-                errorStrBuffer.push( RUNTIME.toReprJS(args[i]) );
+                errorStrBuffer.push( RUNTIME.toReprJS(args[i], "tostring") );
             }
 
             throw new Error(errorStrBuffer.join(' '));
@@ -40,14 +40,14 @@ define(["../js/runtime-util", "./list"], function(util, L) {
                 if (buffer.length === 0) {
                     throwFormatError();
                 }
-                return RUNTIME.toReprJS(buffer.shift());
+                return RUNTIME.toReprJS(buffer.shift(), "tostring");
             } else if (s === '~e' || s === "~E") {
                 // FIXME: we don't yet have support for the error-print
                 // handler, and currently treat ~e just like ~s.
                 if (buffer.length === 0) {
                     throwFormatError();
                 }
-                return RUNTIME.toReprJS(buffer.shift()); 
+                return RUNTIME.toReprJS(buffer.shift(), "tostring"); 
             }
             else if (s === '~v') {
                 if (buffer.length === 0) {
@@ -60,7 +60,7 @@ define(["../js/runtime-util", "./list"], function(util, L) {
                 if (buffer.length === 0) {
                     throwFormatError();
                 }
-                return RUNTIME.toReprJS(buffer.shift());
+                return RUNTIME.toReprJS(buffer.shift(), "tostring");
             } else {
                 throw new Error(functionName + 
                                 ': string.replace matched invalid regexp');

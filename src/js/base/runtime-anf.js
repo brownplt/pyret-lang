@@ -288,6 +288,8 @@ function getField(val, field) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
+        //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
+        //reentrant errors (see commit 24ff13d9e9)
         throw makeMessageException("field " + field + " not found on " + JSON.stringify(val));
     }
     /*else if(isMutable(fieldVal)){
@@ -917,7 +919,7 @@ function createMethodDict() {
 
       @return {!string} the value given in
     */
-    function toReprJS(val) {
+    function toReprJS(val, method) {
       var stack = [{todo: [val], done: []}];
       function toReprHelp() {
         while (stack.length > 0 && stack[0].todo.length > 0) {
@@ -932,17 +934,16 @@ function createMethodDict() {
               top.done.push(String(/**@type {!PBoolean}*/ (next).b));
             } else if (isString(next)) {
               top.todo.pop();
-              top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next).s)) + '"');
+              if (method === "_torepr") {
+                top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next).s)) + '"');
+              } else {
+                top.done.push(String(/**@type {!PString}*/ (next).s));
+              }
             } else if (isObject(next)) {
-              if (next.dict._torepr) {
+              if (next.dict[method]) {
                 // If this call fails
-                var s = getField(next, "_torepr").app();
+                var s = getField(next, method).app();
                 // the continuation stacklet will get the result value, and do the next two steps manually
-                top.todo.pop();
-                top.done.push(thisRuntime.unwrap(s));
-              } else if (next.dict.tostring) {
-                // Same as above for _torepr
-                var s = getField(next, "tostring").app();
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
               } else { // Push the fields of this nested object onto the work stack
@@ -1005,13 +1006,13 @@ function createMethodDict() {
     }
 
     /**@type {PFunction} */
-    var torepr = makeFunction(function(val) {return makeString(toReprJS(val));});
+    var torepr = makeFunction(function(val) {return makeString(toReprJS(val, "_torepr"));});
     var tostring = makeFunction(function(val) {
         if(isString(val)) {
           return makeString(val.s);
         }
         else {
-          return makeString(toReprJS(val));
+          return makeString(toReprJS(val, "tostring"));
         }
       });
 
@@ -1040,7 +1041,7 @@ function createMethodDict() {
           var repr = val.s;
         }
         else {
-          var repr = toReprJS(val);
+          var repr = toReprJS(val, "tostring");
         }
         theOutsideWorld.stdout(repr);
         return val;
@@ -1071,7 +1072,7 @@ function createMethodDict() {
           var repr = val.s;
         }
         else {
-          var repr = toReprJS(val);
+          var repr = toReprJS(val, "tostring");
         }
         theOutsideWorld.stderr(repr);
         return val;
@@ -1100,7 +1101,7 @@ function createMethodDict() {
     */
     function isPyretException(val) { return val instanceof PyretFailException; }
     PyretFailException.prototype.toString = function() {
-      return toReprJS(this.exn) + "\n" +
+      return toReprJS(this.exn, "tostring") + "\n" +
         this.pyretStack.map(function(s) {
             return s.src + " at " + s.line + ":" + (s.column + 1);
           }).join("\n");
