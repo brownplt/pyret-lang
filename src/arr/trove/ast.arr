@@ -64,6 +64,51 @@ str-when = PP.str("when")
 str-where = PP.str("where:")
 str-with = PP.str("with:")
 
+data Name:
+  | s_underscore with:
+    to-compiled-source(self): raise("Cannot compile underscores") end,
+    to-compiled(self): raise("Cannot compile underscores") end,
+    tosource(self): PP.str("_") end,
+    tostring(self): "_" end
+
+  | s_name(s :: String) with:
+    to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
+    to-compiled(self): raise("Cannot compile local name " + self.s) end,
+    tosource(self): PP.str(self.s) end,
+    tostring(self): self.s end
+
+  | s_global(s :: String) with:
+    to-compiled-source(self): PP.str(self.to-compiled()) end,
+    to-compiled(self): self.s end,
+    tosource(self): PP.str(self.s) end,
+    tostring(self): self.s end 
+
+  | s_atom(base :: String, serial :: Number) with:
+    to-compiled-source(self): PP.str(self.to-compiled()) end,
+    to-compiled(self): PP.str(self.base + self.serial.tostring()) end,
+    tosource(self): PP.str(self.to-compiled()) end,
+    tostring(self): self.to-compiled() end
+end
+
+fun MakeName(start):
+  var count = start
+  fun atom(base):
+    count := 1 + count
+    atom(base, count)
+  end
+  {
+    s_underscore: s_underscore,
+    s_name: s_name,
+    s_global: s_global,
+    mk-atom: atom,
+    is-s_underscore: is-s_underscore,
+    is-s_name: is-s_name,
+    is-s_global: is-s_global,
+    is-s_atom: is-s_atom,
+    Name: Name
+  }
+
+end
 
 fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
