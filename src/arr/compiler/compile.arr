@@ -8,6 +8,7 @@ import "./js-of-pyret.arr" as P
 import "./compile-structs.arr" as C
 import "./well-formed.arr" as W
 import "./ast-util.arr" as U
+import "./resolve-scope.arr" as R
 import "./desugar.arr" as D
 import "./desugar-check.arr" as CH
 
@@ -18,7 +19,8 @@ fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrint
   cases(C.CompileResult) wf:
     | ok(wf-ast) =>
       checked = wf-ast.visit(CH.check-visitor)
-      desugared = D.desugar(checked, libs)
+      scoped = R.resolve-scope(checked, libs)
+      desugared = D.desugar(scoped, libs)
       cleaned = desugared.visit(U.merge-nested-blocks)
                          .visit(U.flatten-single-blocks)
                          .visit(U.link-list-visitor(libs))
