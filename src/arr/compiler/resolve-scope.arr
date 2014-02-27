@@ -2,6 +2,7 @@
 
 provide *
 import ast as A
+import parse-pyret as PP
 import "./compile-structs.arr" as C
 import "./ast-util.arr" as U
 import "./gensym.arr" as G
@@ -113,7 +114,7 @@ fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       end
   end
 where:
-  p = fun(str): A.surface-parse(str, "test").block;
+  p = fun(str): PP.surface-parse(str, "test").block;
   d = A.dummy-loc
   b = A.s_bind(d, false, _, A.a_blank)
   bk = fun(e): A.s_block(d, [e]) end
@@ -123,23 +124,24 @@ where:
   n = none
   thunk = fun(e): A.s_lam(d, [], [], A.a_blank, "", bk(e), n) end
 
-  resolve-scope-block(p("x = 5 y = 10 y").stmts, [], []).first
+
+  resolve-scope-block(p("x = 15 y = 10 y").stmts, [], []).first
     satisfies 
-      A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5)),
+      A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 15)),
                                       A.s_let_bind(d, b("y"), A.s_num(d, 10))],
                         A.s_id(d, "y")))
 
-  resolve-scope-block(p("x = 5 var y = 10 y").stmts, [], []).first
+  resolve-scope-block(p("x = 55 var y = 10 y").stmts, [], []).first
     satisfies 
-      A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5)),
+      A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 55)),
                                       A.s_var_bind(d, b("y"), A.s_num(d, 10))],
                         A.s_id(d, "y")))
 
-  bs("x = 5 print(2) var y = 10 y")
+  bs("x = 7 print(2) var y = 10 y")
     satisfies 
       A.equiv-ast(_,
                   A.s_block(d,
-                    [ A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 5))],
+                    [ A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 7))],
                         A.s_block(d, [
                             A.s_app(d, A.s_id(d, "print"), [A.s_num(d, 2)]),
                             A.s_let_expr(d, [A.s_var_bind(d, b("y"), A.s_num(d, 10))],
@@ -287,10 +289,14 @@ fun resolve-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   
 where:
   d = A.dummy-loc
+  checks = A.s_data_field(
+                  d,
+                  A.s_str(d, "checks"),
+                  A.s_app(d, A.s_dot(d, U.checkers(d), "results"), [])
+                )
   str = A.s_str(d, _)
   ds = resolve-scope(_, C.minimal-builtins)
-  ds(A.surface-parse("provide x end x = 10", "test")) satisfies
-    A.equiv-ast-prog(_, A.s_program(d, [],
+  compare1 = A.s_program(d, [],
       A.s_block(d, [
         A.s_block(d, [
           A.s_let_expr(d, [
@@ -298,14 +304,18 @@ where:
             ],
             A.s_obj(d, [
                 A.s_data_field(d, str("answer"), A.s_id(d, "nothing")),
-                A.s_data_field(d, str("provide"), A.s_id(d, "x"))
+                A.s_data_field(d, str("provide"), A.s_id(d, "x")),
+                checks
               ]))
         ])
-      ])))
+      ]))
+  # NOTE(joe): Explicit nothing here because we expect to have
+  # had append-nothing-if-necessary called
+  ds(PP.surface-parse("provide x end x = 10 nothing", "test")) satisfies
+    A.equiv-ast-prog(_, compare1)
 
-  ds(A.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) satisfies
-    A.equiv-ast-prog(_, A.s_program(d, [
-        A.s_import(d, A.s_file_import("foo.arr"), "F") 
+  compare2 = A.s_program(d, [
+        A.s_import(d, A.s_file_import("./foo.arr"), "F") 
       ],
       A.s_block(d, [
         A.s_block(d, [
@@ -314,8 +324,12 @@ where:
             ],
             A.s_obj(d, [
                 A.s_data_field(d, str("answer"), A.s_app(d, A.s_id(d, "F"), [A.s_id(d, "x")])),
-                A.s_data_field(d, str("provide"), A.s_id(d, "x"))
+                A.s_data_field(d, str("provide"), A.s_id(d, "x")),
+                checks
               ]))
         ])
-      ])))
+      ]))
+  ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) satisfies
+    A.equiv-ast-prog(_, compare2)
+    
 end

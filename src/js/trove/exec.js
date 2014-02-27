@@ -3,22 +3,32 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
 
-    function exec(jsStr, modnameP, params) {
+    function execWithDir(jsStr, modnameP, loaddirP, checkAllP, params) {
       RUNTIME.checkIf(jsStr, RUNTIME.isString);
       RUNTIME.checkIf(modnameP, RUNTIME.isString);
+      RUNTIME.checkIf(loaddirP, RUNTIME.isString);
+      RUNTIME.checkIf(checkAllP, RUNTIME.isBoolean);
       var str = RUNTIME.unwrap(jsStr);
       var modname = RUNTIME.unwrap(modnameP);
+      var loaddir = RUNTIME.unwrap(loaddirP);
+      var checkAll = RUNTIME.unwrap(checkAllP);
+      var argsArray = F.toArray(params).map(RUNTIME.unwrap);
+      return exec(str, modname, loaddir, argsArray);
+    }
+
+    function exec(str, modname, loaddir, checkAll, args) {
       var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
+      rjs.config({ baseUrl: loaddir });
 
       var newRuntime = runtimeLib.makeRuntime({ 
         stdout: function(str) { process.stdout.write(str); },
         stderr: function(str) { process.stderr.write(str); }
       });
-      newRuntime.setParam("command-line-arguments", F.toArray(params).map(RUNTIME.unwrap));
+      newRuntime.setParam("command-line-arguments", args);
 
       var checker = newRuntime.getField(checkerLib(newRuntime, newRuntime.namespace), "provide");
-      var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname));
+      var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname), newRuntime.makeBoolean(checkAll));
       newRuntime.setParam("current-checker", currentChecker);
 
       function makeResult(execRt, callingRt, r) {
@@ -77,7 +87,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        exec: RUNTIME.makeFunction(exec)
+        exec: RUNTIME.makeFunction(execWithDir)
       }),
       answer: NAMESPACE.get("nothing")
     });

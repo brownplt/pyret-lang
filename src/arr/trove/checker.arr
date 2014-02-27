@@ -13,7 +13,7 @@ data TestResult:
   | failure(loc :: Loc, code :: String, reason :: String)
 end
 
-fun make-check-context(main-module-name):
+fun make-check-context(main-module-name :: String, check-all :: Boolean):
   var block-results = []
   fun add-block-result(cbr :: CheckBlockResult):
     block-results := [cbr] + block-results
@@ -25,7 +25,7 @@ fun make-check-context(main-module-name):
   fun reset-results(): current-results := [];
   {
     run-checks(self, module-name, checks):
-      when module-name == main-module-name:
+      when check-all or (module-name == main-module-name):
         for each(c from checks):
           reset-results()
           c.run()
@@ -67,8 +67,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     fun format-loc(l):
       l.file + ":" + l.line.tostring() + ":" + l.column.tostring()
     end
-    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + "\n"
-    for fold(s from summary.{message: message}, tr from br.test-results.reverse()):
+    block-summary = for fold(s from init, tr from br.test-results.reverse()):
       cases(TestResult) tr:
         | success(loc, code) => s.{
             message: s.message + "\n  " + loc^format-loc() + ": ok",
@@ -84,6 +83,17 @@ fun results-summary(block-results :: List<CheckBlockResult>):
           }
       end
     end
+    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + " (" + block-summary.passed.tostring() + "/" + block-summary.total.tostring() + ") \n"
+    rest-of-message =
+      if block-summary.failed == 0: ""
+      else: block-summary.message
+      end
+    {
+      message: message + rest-of-message,
+      passed: summary.passed + block-summary.passed,
+      failed: summary.failed + block-summary.failed,
+      total: summary.total + block-summary.total
+    }
   end
   if complete-summary.total == 0: complete-summary.{message: "The program didn't define any tests."}
   else if complete-summary.failed == 0:

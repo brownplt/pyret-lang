@@ -9,17 +9,21 @@ import ast as A
 # behavior in the algorithm below when appending helpers
 data ConcatList<a>:
   | concat-empty with:
-    to-list(self, rest): rest end
+    to-list-acc(self, rest): rest end,
+    map(self, f): self end
   | concat-singleton(element) with:
-    to-list(self, rest): link(self.element, rest) end
+    to-list-acc(self, rest): link(self.element, rest) end,
+    map(self, f): concat-singleton(f(self.element)) end
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
-    to-list(self, rest :: List):
-      self.left.to-list(self.right.to-list(rest))
-    end
+    to-list-acc(self, rest :: List):
+      self.left.to-list-acc(self.right.to-list-acc(rest))
+    end,
+    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end
 sharing:
   _plus(self, other :: ConcatList):
     concat-append(self, other)
-  end
+  end,
+  to-list(self): self.to-list-acc([]) end
 end
 
 
@@ -105,7 +109,7 @@ end
 
 fun ast-split(expr :: N.AExpr) -> SplitResult:
   r = ast-split-expr(expr)
-  split-result(r.helpers.to-list([]), r.body)
+  split-result(r.helpers.to-list(), r.body)
 end
 
 fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
@@ -194,23 +198,26 @@ check:
   end
   fun split-strip(e):
     res = ast-split-expr(e)
-    split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body))
+    split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body), freevars-e(e))
   end
   b = A.a_blank
   d = N.dummy-loc
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
-  split-strip(e1) is split-result-int-e([], e1, list-set([]))
+  split-strip(e1) is split-result-int-e(concat-empty, e1, list-set([]))
 
   e2 = N.a-let(d, N.a-bind(d, "x", A.a_blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, "x"))))
-  split-strip(e2) is split-result-int-e([], e2, list-set([]))
+  e2-split = split-strip(e2)
+  e2-split.helpers.to-list() is []
+  e2-split.body is e2
+  e2-split.freevars is list-set([])
 
   e3 = N.a-let(d, N.a-bind(d, "v", A.a_blank), N.a-app(d, N.a-id(d, "f"), [N.a-num(d, 5)]),
     N.a-lettable(N.a-val(N.a-id(d, "v"))))
   e3-split = split-strip(e3)
-  e3-split.helpers.length() is 1
-  e3-split.helpers.first.body is
+  e3-split.helpers.to-list().length() is 1
+  e3-split.helpers.to-list().first.body is
     N.a-lettable(N.a-val(N.a-id(d, "v")))
   e3-split.body is
-    N.a-split-app(d, false, N.a-id(d, "f"), [N.a-num(d, 5)], e3-split.helpers.first.name, [N.a-id(d, "v")])
+    N.a-split-app(d, false, N.a-id(d, "f"), [N.a-num(d, 5)], e3-split.helpers.to-list().first.name, [N.a-id(d, "v")])
 end
 

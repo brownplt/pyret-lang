@@ -23,7 +23,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
     var checker = getExports(checkerLib);
     var name = options.name || randomName();
 
-    var currentChecker = gf(checker, "make-check-context").app(runtime.makeString(name));
+    var currentChecker = gf(checker, "make-check-context").app(runtime.makeString(name), runtime.makeBoolean(false));
     runtime.setParam("current-checker", currentChecker);
 
     runtime.run(function(_, namespace) {
