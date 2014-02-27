@@ -17,7 +17,6 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
     function exec(str, modname, loaddir, args) {
       var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
-      console.log("Loading from: ", loaddir);
       rjs.config({ baseUrl: loaddir });
 
       var newRuntime = runtimeLib.makeRuntime({ 
