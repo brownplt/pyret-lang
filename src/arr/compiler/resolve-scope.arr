@@ -333,3 +333,7 @@ where:
     A.equiv-ast-prog(_, compare2)
     
 end
+
+
+names = A.MakeName(0)
+
