@@ -3,18 +3,20 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
 
-    function execWithDir(jsStr, modnameP, loaddirP, params) {
+    function execWithDir(jsStr, modnameP, loaddirP, checkAllP, params) {
       RUNTIME.checkIf(jsStr, RUNTIME.isString);
       RUNTIME.checkIf(modnameP, RUNTIME.isString);
       RUNTIME.checkIf(loaddirP, RUNTIME.isString);
+      RUNTIME.checkIf(checkAllP, RUNTIME.isBoolean);
       var str = RUNTIME.unwrap(jsStr);
       var modname = RUNTIME.unwrap(modnameP);
       var loaddir = RUNTIME.unwrap(loaddirP);
+      var checkAll = RUNTIME.unwrap(checkAllP);
       var argsArray = F.toArray(params).map(RUNTIME.unwrap);
       return exec(str, modname, loaddir, argsArray);
     }
 
-    function exec(str, modname, loaddir, args) {
+    function exec(str, modname, loaddir, checkAll, args) {
       var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
       rjs.config({ baseUrl: loaddir });
@@ -26,7 +28,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
       newRuntime.setParam("command-line-arguments", args);
 
       var checker = newRuntime.getField(checkerLib(newRuntime, newRuntime.namespace), "provide");
-      var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname));
+      var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname), newRuntime.makeBoolean(checkAll));
       newRuntime.setParam("current-checker", currentChecker);
 
       function makeResult(execRt, callingRt, r) {

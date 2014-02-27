@@ -20,6 +20,8 @@ fun main(args):
       C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
     module-load-dir:
       C.next-val(C.String, C.once, "Base directory to search for modules"),
+    check-all:
+      C.flag(C.once, "Run checks all modules (not just the main module)"),
     no-check-mode:
       C.flag(C.once, "Skip checks"),
     allow-shadow:
@@ -34,6 +36,7 @@ fun main(args):
       allow-shadowed = r.has-key("allow-shadow")
       libs = if r.has-key("library"): CS.minimal-builtins else: CS.standard-builtins end
       module-dir = if r.has-key("module-load-dir"): r.get("module-load-dir") else: "." end
+      check-all = r.has-key("check-all")
       if not is-empty(rest):
         program-name = rest.first
         result = CM.compile-js(
@@ -47,7 +50,7 @@ fun main(args):
           )
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
-            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, rest)
+            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
             if (exec-result.success): print(exec-result.render-check-results())
             else: print(exec-result.failure)
             end
