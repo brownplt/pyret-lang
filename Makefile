@@ -174,7 +174,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test
+test: runtime-test evaluator-test compiler-test
 
 RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(MACRO_JS) $(COPY_JS))
 
@@ -186,6 +186,11 @@ runtime-test : phase1
 evaluator-test: phase1
 	cd tests/evaluator/ && node test.js require-test-runner/
 
+.PHONY : compiler-test
+compiler-test: phase1
+	node build/phase1/main-wrapper.js \
+    --module-load-dir build/phase1/arr/compiler/ \
+    -check-all src/arr/compiler/compile.arr
 
 .PHONY : clean
 clean:
