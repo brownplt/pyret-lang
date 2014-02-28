@@ -13,7 +13,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
       var loaddir = RUNTIME.unwrap(loaddirP);
       var checkAll = RUNTIME.unwrap(checkAllP);
       var argsArray = F.toArray(params).map(RUNTIME.unwrap);
-      return exec(str, modname, loaddir, argsArray);
+      return exec(str, modname, loaddir, checkAll, argsArray);
     }
 
     function exec(str, modname, loaddir, checkAll, args) {
@@ -25,6 +25,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
         stdout: function(str) { process.stdout.write(str); },
         stderr: function(str) { process.stderr.write(str); }
       });
+      var fnew = ffi(newRuntime, newRuntime.namespace);
       newRuntime.setParam("command-line-arguments", args);
 
       var checker = newRuntime.getField(checkerLib(newRuntime, newRuntime.namespace), "provide");

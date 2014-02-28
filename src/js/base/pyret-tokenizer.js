@@ -230,31 +230,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
   ];
 
 
-
-  function ListCons(hd, tl, shouldInline) {
-    return function(kids) {
-      var useful_kids = [];
-      for (var i = 0; i < kids.length; i++) {
-        if (kids[i].name === hd) {
-          if (kids[i].shouldInline === true)
-            useful_kids = useful_kids.concat(kids[i].kids);
-          else
-            useful_kids.push(kids[i]);
-        } else if (kids[i].name === tl) useful_kids = useful_kids.concat(kids[i].kids); 
-      }
-      var start = (kids.length > 0 ? kids[kids.length - 1].startColumn : undefined);
-      return { name: tl, kids: useful_kids, toString: E.Rule.defaultASTToString, startColumn: start,
-               shouldInline: shouldInline };
-    }
-  }
-
-  function Inline(kids) {
-    var ret = E.Rule.defaultAction.call(this, kids);
-    ret.shouldInline = true;
-    return ret;
-  }
-
-
   return {
     'Tokenizer': new Tokenizer(true, Tokens)
   };
