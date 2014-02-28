@@ -140,191 +140,170 @@ fun binding-env-from-env(initial-env):
   end
 end
 
-
-fun default-env-map-visitor(initial-env):
+fun <a> default-env-map-visitor(
+    initial-env :: a,
+    bind-handlers :: {
+        s_letrec_bind :: (is-s_letrec_bind, a -> a),
+        s_let_bind :: (is-s_letrec_bind, a -> a),
+        s_bind :: (is-s_bind, a -> a),
+        s_import :: (is-s_import, a -> a)
+      }
+    ):
   A.default-map-visitor.{
-    env: binding-env-from-env(initial-env),
+    env: initial-env,
 
     s_program(self, l, headers, body):
-      visit-headers = for list.fold(acc from {env: self.env, rev-headers: []}, h from headers):
-        new-header = h.visit(self.{env: acc.env})
-        new-env = cases(A.Header) new-header:
-          | s_import(l2, import-type, name) =>
-            cases(A.ImportType) import-type:
-              | s_const_import(modname) =>
-                if acc.env.has-key(modname): acc.env.set(name, acc.env.get(modname))
-                else: acc.env.set(name, e-bind(l2, false, b-unknown))
-                end
-              | else => acc.env.set(name, e-bind(l2, false, b-unknown))
-            end
-          | else => acc.env
-        end
-        {env: new-env, rev-headers: new-header ^ link(acc.rev-headers)}
+      imports = headers.filter(A.is-s_import)
+      imported-env = for fold(acc from self.env, i from imports):
+        bind-handlers.s_import(i, acc)
       end
-      visit-body = body.visit(self.{env: visit-headers.env})
-      A.s_program(l, visit-headers.rev-headers.reverse(), visit-body)
+      visit-headers = for map(h from headers):
+        h.visit(self.{ env: imported-env })
+      end
+      visit-body = body.visit(self.{env: imported-env})
+      A.s_program(l, visit-headers, visit-body)
     end,
     s_let_expr(self, l, binds, body):
-      visit-binds = for list.fold(acc from {env: self.env, rev-binds: []}, b from binds):
-        new-letbind = b.visit(self.{env: acc.env})
-        cases(A.LetBind) new-letbind:
-          | s_let_bind(l2, bind, val) =>
-            new-env = acc.env.set(bind.id, e-bind(l2, false, bind-or-unknown(val, acc.env)))
-            {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
-          | s_var_bind(l2, bind, val) =>
-            new-env = acc.env.set(bind.id, e-bind(l2, true, b-unknown))
-            {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
-        end
+      bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
+        this-env = bind-handlers.s_let_bind(b, acc.e)
+        new-bind = b.visit(self.{env : acc.e})
+        {
+          e: this-env,
+          bs: link(new-bind, acc.bs)
+        }
       end
-      visit-body = body.visit(self.{env: visit-binds.env})
-      A.s_let_expr(l, visit-binds.rev-binds.reverse(), visit-body)
+      visit-binds = bound-env.bs.reverse()
+      visit-body = body.visit(self.{env: bound-env.e})
+      A.s_let_expr(l, visit-binds, visit-body)
     end,
     s_letrec(self, l, binds, body):
       bind-env = for fold(acc from self.env, b from binds):
-        acc.set(b.b.id, e-bind(b.l, false, b-unknown))
+        bind-handlers.s_letrec_bind(b, acc)
       end
-      visit-binds = for list.fold(acc from {env: bind-env, rev-binds: []}, b from binds):
-        new-letbind = b.visit(self.{env: acc.env})
-        new-env =
-          acc.env.set(new-letbind.b.id,
-            e-bind(b.l, false, bind-or-unknown(new-letbind.value, acc.env)))
-        {env: new-env, rev-binds: new-letbind ^ link(acc.rev-binds)}
-      end
-      visit-body = body.visit(self.{env: visit-binds.env})
-      A.s_letrec(l, visit-binds.rev-binds.reverse(), visit-body)
-    end,
-    s_fun(self, l, name, params, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      name-env = self.env.set(name, e-bind(l, false, b-unknown))
-      new-env = for list.fold(acc from name-env, a from new-args):
-        acc.set(a.id, e-bind(a.l, false, b-unknown))
-      end
-      new-body = body.visit(self.{env: new-env})
-      new-check = self.{env: name-env}.option(_check)
-      A.s_fun(l, name, params, new-args, ann, doc, new-body, new-check)
+      new-visitor = self.{env: bind-env}
+      visit-binds = binds.map(_.visit(new-visitor))
+      visit-body = body.visit(new-visitor)
+      A.s_letrec(l, visit-binds, visit-body)
     end,
     s_lam(self, l, params, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      new-env = for list.fold(acc from self.env, a from new-args):
-        acc.set(a.id, e-bind(a.l, false, b-unknown))
+      args-env = for list.fold(acc from self.env, a from args):
+        bind-handlers.s_bind(a, acc)
       end
-      new-body = body.visit(self.{env: new-env})
-      new-check = self.{env: new-env}.option(_check)
+      new-args = args.map(_.visit(self))
+      new-body = body.visit(self.{env: args-env})
+      new-check = self.{env: args-env}.option(_check)
       A.s_lam(l, params, new-args, ann, doc, new-body, new-check)
     end,
     s_method(self, l, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      new-env = for list.fold(acc from self.env, a from new-args):
-        acc.set(a.id, e-bind(a.l, false, b-unknown))
+      args-env = for list.fold(acc from self.env, a from args):
+        bind-handlers.s_bind(a, acc)
       end
-      new-body = body.visit(self.{env: new-env})
-      new-check = self.option(_check)
+      new-args = args.map(_.visit(self))
+      new-body = body.visit(self.{env: args-env})
+      new-check = self.{env: args-env}.option(_check)
       A.s_method(l, new-args, ann, doc, new-body, new-check)
     end
   }
 end
 
 
-fun default-env-iter-visitor(initial-env):
+fun <a> default-env-iter-visitor(
+    initial-env :: a,
+    bind-handlers :: {
+        s_letrec_bind :: (is-s_letrec_bind, a -> a),
+        s_let_bind :: (is-s_letrec_bind, a -> a),
+        s_bind :: (is-s_bind, a -> a),
+        s_import :: (is-s_import, a -> a)
+      }
+    ):
   A.default-iter-visitor.{
-    env: binding-env-from-env(initial-env),
+    env: initial-env,
 
     s_program(self, l, headers, body):
-      visit-headers = for list.fold(acc from {env: self.env, ans: true}, h from headers):
-        if not acc.ans: acc
-        else:
-          if h.visit(self.{env: acc.env}):
-            cases(A.Header) h:
-              | s_import(l2, import-type, name) =>
-                cases(A.ImportType) import-type:
-                  | s_const_import(modname) =>
-                    if acc.env.has-key(modname): {env: acc.env.set(name, acc.env.get(modname)), ans: true}
-                    else: {env: acc.env.set(name, e-bind(l2, false, b-unknown)), ans: true}
-                    end
-                  | else => {env: acc.env.set(name, e-bind(l2, false, b-unknown)), ans: true}
-                end
-              | else => acc
-            end
-          else:
-            acc.{ans: false}
-          end
-        end
+      imports = headers.filter(A.is-s_import)
+      imported-env = for fold(acc from self.env, i from imports):
+        bind-handlers.s_import(i, acc)
       end
-      visit-headers.ans and body.visit(self.{env: visit-headers.env})
+      new-visitor = self.{ env: imported-env }
+      list.all(_.visit(new-visitor), headers) and body.visit(new-visitor)
     end,
     s_let_expr(self, l, binds, body):
-      visit-binds = for list.fold(acc from {env: self.env, ans: true}, b from binds):
-        if not acc.ans: acc
-        else:
-          if b.visit(self.{env: acc.env}):
-            cases(A.LetBind) b:
-              | s_let_bind(l2, bind, val) =>
-                {env: acc.env.set(bind.id, e-bind(l2, false, bind-or-unknown(val, acc.env))),
-                  ans: true}
-              | s_var_bind(l2, bind, val) =>
-                {env: acc.env.set(bind.id, e-bind(l2, true, b-unknown)), ans: true}
-            end
-          else:
-            acc.{ans: false}
-          end
-        end
+      bound-env = for fold(acc from { e: self.env, bs : true }, b from binds):
+        this-env = bind-handlers.s_let_bind(b, acc.e)
+        new-bind = b.visit(self.{env : acc.e})
+        {
+          e: this-env,
+          bs: new-bind and acc.bs
+        }
       end
-      visit-binds.ans and body.visit(self.{env: visit-binds.env})
-    end,
-    ## TODO: GET THE RIGHT SHADOWING HERE
-    s_letrec_bind(self, l, bind, expr):
-      bind.visit(self) and expr.visit(self.{env: self.env.set(bind.id, e-bind(bind.l, false, b-unknown))})
+      visit-body = body.visit(self.{env: bound-env.e})
+      bound-env.bs and visit-body
     end,
     s_letrec(self, l, binds, body):
       bind-env = for fold(acc from self.env, b from binds):
-        acc.set(b.b.id, e-bind(b.l, false, b-unknown))
+        bind-handlers.s_letrec_bind(b, acc)
       end
-      visit-binds = for list.fold(acc from {env: bind-env, ok: true}, b from binds):
-        if not acc.ok: acc
-        else:
-          if b.visit(self.{env: acc.env}):
-            new-env = acc.env.set(b.b.id, e-bind(b.l, false, bind-or-unknown(b.value, acc.env)))
-            acc.{env: new-env}
-          else: acc.{ok: false}
-          end
-        end
-      end
-      visit-binds.ok and body.visit(self.{env: visit-binds.env})
-    end,
-    s_fun(self, l, name, params, args, ann, doc, body, _check):
-      if list.all(_.visit(self), args):
-        name-env = self.env.set(name, e-bind(l, false, b-unknown))
-        new-env = for list.fold(acc from name-env, a from args):
-          acc.set(a.id, e-bind(a.l, false, b-unknown))
-        end
-        body.visit(self.{env: new-env}) and self.{env: name-env}.option(_check)
-      else: false
-      end
+      new-visitor = self.{env: bind-env}
+      visit-binds = list.all(_.visit(new-visitor), binds)
+      visit-body = body.visit(new-visitor)
+      visit-binds and visit-body
     end,
     s_lam(self, l, params, args, ann, doc, body, _check):
-      if list.all(_.visit(self), args):
-        new-env = for list.fold(acc from self.env, a from args):
-          acc.set(a.id, e-bind(a.l, false, b-unknown))
-        end
-        body.visit(self.{env: new-env}) and self.{env: new-env}.option(_check)
-      else: false
+      args-env = for list.fold(acc from self.env, a from args):
+        bind-handlers.s_bind(a, acc)
       end
+      visit-args = list.all(_.visit(self), args)
+      visit-body = body.visit(self.{env: args-env})
+      visit-check = self.{env: args-env}.option(_check)
+      visit-args and visit-body and visit-check
     end,
     s_method(self, l, args, ann, doc, body, _check):
-      if list.all(_.visit(self), args):
-        new-env = for list.fold(acc from self.env, a from args):
-          acc.set(a.id, e-bind(a.l, false, b-unknown))
-        end
-        body.visit(self.{env: new-env}) and self.option(_check)
-      else: false
+      args-env = for list.fold(acc from self.env, a from args):
+        bind-handlers.s_bind(a, acc)
       end
+      visit-args = list.all(_.visit(self), args)
+      visit-body = body.visit(self.{env: args-env})
+      visit-check = self.{env: args-env}.option(_check)
+      visit-args and visit-body and visit-check
     end
   }
 end
 
+binding-handlers = {
+  s_import(_, imp, env):
+    cases(A.ImportType) imp.file:
+      | s_const_import(modname) =>
+        if env.has-key(modname): env.set(imp.name, env.get(modname))
+        else: env.set(imp.name, e-bind(imp.l, false, b-unknown))
+        end
+      | else => env.set(imp.name, e-bind(imp.l, false, b-unknown))
+    end
+  end,
+  s_let_bind(_, lb, env):
+    cases(A.LetBind) lb:
+      | s_let_bind(l2, bind, val) =>
+        env.set(bind.id, e-bind(l2, false, bind-or-unknown(val, env)))
+      | s_var_bind(l2, bind, val) =>
+        env.set(bind.id, e-bind(l2, true, b-unknown))
+    end
+  end,
+  s_letrec_bind(_, lrb, env):
+    env.set(lrb.b.id,
+      e-bind(lrb.l, false, bind-or-unknown(lrb.value, env)))
+  end,
+  s_bind(_, b, env):
+    env.set(b.id, e-bind(b.l, false, b-unknown))
+  end
+}
+fun binding-env-map-visitor(initial-env):
+  default-env-map-visitor(binding-env-from-env(initial-env), binding-handlers)
+end
+fun binding-env-iter-visitor(initial-env):
+  default-env-iter-visitor(binding-env-from-env(initial-env), binding-handlers)
+end
 
 fun link-list-visitor(initial-env):
-  default-env-map-visitor(initial-env).{
+  binding-env-map-visitor(initial-env).{
     s_app(self, l, f, args):
       if A.is-s_dot(f) and (f.field == "_plus"):
         target = f.obj
@@ -383,7 +362,7 @@ fun check-unbound(initial-env, ast, options):
       add-error(CS.unbound-id(this-id))
     end
   end
-  ast.visit(default-env-iter-visitor(initial-env).{
+  ast.visit(binding-env-iter-visitor(initial-env).{
       s_id(self, loc, id):
         handle-id(A.s_id(loc, id), self.env)
         true
