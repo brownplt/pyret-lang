@@ -18,7 +18,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "current-checker"), []) end
+fun checkers(l): A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "current-checker"), []) end
 
 fun append-nothing-if-necessary(prog :: A.Program):
   cases(A.Program) prog:
@@ -27,7 +27,7 @@ fun append-nothing-if-necessary(prog :: A.Program):
         | s_block(l, stmts) =>
           last-stmt = stmts.last()
           if ok-last(last-stmt): A.s_block(l, stmts)
-          else: A.s_block(l, stmts + [A.s_id(l, "nothing")])
+          else: A.s_block(l, stmts + [A.s_id(l, A.s_name("nothing"))])
           end
         | else => body
       end
@@ -37,7 +37,7 @@ end
 
 flatten-single-blocks = A.default-map-visitor.{
     s_block(self, l, stmts):
-      if stmts.length() == 1: stmts.first
+      if stmts.length() == 1: stmts.first.visit(self)
       else: A.s_block(l, stmts.map(_.visit(self)))
       end
     end
@@ -46,7 +46,7 @@ flatten-single-blocks = A.default-map-visitor.{
 check:
   d = A.dummy-loc
   PP.surface-parse("x", "test").block.visit(flatten-single-blocks) satisfies
-    A.equiv-ast(_, A.s_id(d, "x"))
+    A.equiv-ast(_, A.s_id(d, A.s_name("x")))
 end
 
 merge-nested-blocks = A.default-map-visitor.{
@@ -93,7 +93,7 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
         | some(b) =>
           cases(BindingInfo) b:
             | b-dict(dict) =>
-              if dict.has-key(name): some(e-bind(A.dummy-loc, false, dict.get(name)))
+              if dict.has-key(name.key()): some(e-bind(A.dummy-loc, false, dict.get(name.key())))
               else: some(e-bind(A.dummy-loc, false, b-dot(b, name)))
               end
             | else => some(e-bind(A.dummy-loc, false, b-dot(b, name)))
@@ -101,15 +101,15 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
         | none => none
       end
     | s_id(_, name) =>
-      if env.has-key(name): some(env.get(name))
+      if env.has-key(name.key()): some(env.get(name.key()))
       else: none
       end
     | s_id_var(_, name) =>
-      if env.has-key(name): some(env.get(name))
+      if env.has-key(name.key()): some(env.get(name.key()))
       else: none
       end
     | s_id_letrec(_, name) =>
-      if env.has-key(name): some(env.get(name))
+      if env.has-key(name.key()): some(env.get(name.key()))
       else: none
       end
     | else => some(e-bind(A.dummy-loc, false, b-exp(e)))
@@ -133,10 +133,10 @@ fun binding-env-from-env(initial-env):
     cases(C.CompileBinding) binding:
       | module-bindings(name, ids) =>
         mod = for list.fold(m from SD.immutable-string-dict(), b from ids):
-          m.set(b, e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
+          m.set(A.s_name(b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
-        acc.set(name, e-bind(A.dummy-loc, false, b-dict(mod)))
-      | builtin-id(name) => acc.set(name, e-bind(A.dummy-loc, false, b-prim(name)))
+        acc.set(A.s_name(name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
+      | builtin-id(name) => acc.set(A.s_name(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
     end
   end
 end
@@ -155,19 +155,19 @@ fun <a> default-env-map-visitor(
 
     s_program(self, l, headers, body):
       imports = headers.filter(A.is-s_import)
-      imported-env = for fold(acc from self.env, i from imports):
-        bind-handlers.s_header(i, acc)
-      end
       visit-headers = for map(h from headers):
-        h.visit(self.{ env: imported-env })
+        h.visit(self)
+      end
+      imported-env = for fold(acc from self.env, i from visit-headers):
+        bind-handlers.s_header(i, acc)
       end
       visit-body = body.visit(self.{env: imported-env})
       A.s_program(l, visit-headers, visit-body)
     end,
     s_let_expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
-        this-env = bind-handlers.s_let_bind(b, acc.e)
         new-bind = b.visit(self.{env : acc.e})
+        this-env = bind-handlers.s_let_bind(new-bind, acc.e)
         {
           e: this-env,
           bs: link(new-bind, acc.bs)
@@ -187,19 +187,19 @@ fun <a> default-env-map-visitor(
       A.s_letrec(l, visit-binds, visit-body)
     end,
     s_lam(self, l, params, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, a from args):
-        bind-handlers.s_bind(a, acc)
-      end
       new-args = args.map(_.visit(self))
+      args-env = for list.fold(acc from self.env, new-arg from args):
+        bind-handlers.s_bind(new-arg, acc)
+      end
       new-body = body.visit(self.{env: args-env})
       new-check = self.{env: args-env}.option(_check)
       A.s_lam(l, params, new-args, ann, doc, new-body, new-check)
     end,
     s_method(self, l, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, a from args):
+      new-args = args.map(_.visit(self))
+      args-env = for list.fold(acc from self.env, a from new-args):
         bind-handlers.s_bind(a, acc)
       end
-      new-args = args.map(_.visit(self))
       new-body = body.visit(self.{env: args-env})
       new-check = self.{env: args-env}.option(_check)
       A.s_method(l, new-args, ann, doc, new-body, new-check)
@@ -271,28 +271,29 @@ end
 
 binding-handlers = {
   s_header(_, imp, env):
+    print("Visiting header: " + torepr(imp))
     cases(A.ImportType) imp.file:
       | s_const_import(modname) =>
-        if env.has-key(modname): env.set(imp.name, env.get(modname))
-        else: env.set(imp.name, e-bind(imp.l, false, b-unknown))
+        if env.has-key(A.s_name(modname).key()): env.set(imp.name, env.get(modname.key()))
+        else: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
         end
-      | else => env.set(imp.name, e-bind(imp.l, false, b-unknown))
+      | else => env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
     end
   end,
   s_let_bind(_, lb, env):
     cases(A.LetBind) lb:
       | s_let_bind(l2, bind, val) =>
-        env.set(bind.id, e-bind(l2, false, bind-or-unknown(val, env)))
+        env.set(bind.id.key(), e-bind(l2, false, bind-or-unknown(val, env)))
       | s_var_bind(l2, bind, val) =>
-        env.set(bind.id, e-bind(l2, true, b-unknown))
+        env.set(bind.id.key(), e-bind(l2, true, b-unknown))
     end
   end,
   s_letrec_bind(_, lrb, env):
-    env.set(lrb.b.id,
+    env.set(lrb.b.id.key(),
       e-bind(lrb.l, false, bind-or-unknown(lrb.value, env)))
   end,
   s_bind(_, b, env):
-    env.set(b.id, e-bind(b.l, false, b-unknown))
+    env.set(b.id.key(), e-bind(b.l, false, b-unknown))
   end
 }
 fun binding-env-map-visitor(initial-env):
@@ -358,7 +359,7 @@ fun check-unbound(initial-env, ast, options):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end
   fun handle-id(this-id, env):
-    when (this-id.id <> "_") and is-none(bind-exp(this-id, env)): # FIX when we have real underscores
+    when (A.is-s_name(this-id.id)) and is-none(bind-exp(this-id, env)): # FIX when we have real underscores
       add-error(CS.unbound-id(this-id))
     end
   end
@@ -380,7 +381,7 @@ fun check-unbound(initial-env, ast, options):
           | none => add-error(CS.unbound-var(A.s_assign(loc, id, value)))
           | some(b) =>
             when not b.mut:
-              add-error(CS.bad-assignment(id, loc, b.loc))
+              add-error(CS.bad-assignment(id.tostring(), loc, b.loc))
             end
         end
         value.visit(self)
@@ -390,16 +391,20 @@ fun check-unbound(initial-env, ast, options):
           | none => nothing
           | some(b) =>
             if bind.shadows:
-              when (bind.id == "_") and (not options.allow-shadowed):
+              when (A.is-s_underscore(bind.id)) and (not options.allow-shadowed):
                 add-error(CS.pointless-shadow(bind.l))
               end
             else:
               if b.mut: add-error(CS.mixed-id-var(bind.id, b.loc, bind.l))
-              else if bind.id == "self": nothing
-              else if bind.id == "_": nothing # FIX when we have real underscores
               else:
-                when not options.allow-shadowed:
-                  add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                cases(A.Name) bind:
+                  | s_name(s) =>
+                    if s == "self": nothing
+                    else:
+                      when not options.allow-shadowed:
+                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                      end
+                    end
                 end
               end
             end
@@ -411,17 +416,21 @@ fun check-unbound(initial-env, ast, options):
           | none => nothing
           | some(b) =>
             if bind.shadows: 
-              when (bind.id == "_") and (not options.allow-shadowed):
+              when (A.is-s_underscore(bind.id)) and (not options.allow-shadowed):
                 add-error(CS.pointless-shadow(bind.l))
               end
             else:
               if not b.mut: add-error(CS.mixed-id-var(bind.id, bind.l, b.loc))
-              else if bind.id == "self": nothing
-              else if bind.id == "_":
-                add-error(CS.pointless-var(bind.l))
               else:
-                when not options.allow-shadowed:
-                  add-error(CS.shadow-id(bind.id, bind.l, b.loc))
+                cases(A.Name) bind:
+                  | s_name(s) =>
+                    if s == "self": nothing
+                    else:
+                      when not options.allow-shadowed:
+                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                      end
+                    end
+                  | else => nothing
                 end
               end
             end
@@ -429,7 +438,7 @@ fun check-unbound(initial-env, ast, options):
         bind.visit(self) and expr.visit(self)
       end,
       s_letrec_bind(self, l, bind, expr):
-        bind.visit(self) and expr.visit(self.{env: self.env.set(bind.id, e-bind(bind.l, false, b-unknown))})
+        bind.visit(self) and expr.visit(self.{env: self.env.set(bind.id.key(), e-bind(bind.l, false, b-unknown))})
       end,
       ## AND HERE
       s_letrec(self, l, binds, body):
@@ -438,21 +447,23 @@ fun check-unbound(initial-env, ast, options):
           cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
             | none => nothing
             | some(b) =>
-              if b.mut: add-error(CS.mixed-id-var(bind.id, b.loc, bind.l))
+              if b.mut: add-error(CS.mixed-id-var(bind.id.tostring(), b.loc, bind.l))
               else:
-                if bind.id == "self": nothing
-                else if bind.id == "_": nothing # FIX when we have real underscores
-                else if bind.shadows: nothing
-                else:
-                  when not options.allow-shadowed:
-                    add-error(CS.shadow-id(bind.id, bind.l, b.loc))
-                  end
+                cases(A.Name) bind:
+                  | s_name(s) =>
+                    if s == "self": nothing
+                    else:
+                      when not options.allow-shadowed:
+                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                      end
+                    end
+                  | else => nothing
                 end
               end
           end
         end
         bind-env = for fold(acc from self.env, b from binds):
-          acc.set(b.b.id, e-bind(b.l, false, b-unknown))
+          acc.set(b.b.id.key(), e-bind(b.l, false, b-unknown))
         end
         good-binds = for fold(acc from true, letrec-bind from binds):
           acc and letrec-bind.b.visit(self) and letrec-bind.value.visit(self.{env: bind-env})
@@ -461,4 +472,9 @@ fun check-unbound(initial-env, ast, options):
       end
     })
   errors
+where:
+  p = PP.surface-parse(_, "test")
+  unbound1 = check-unbound(CS.no-builtins, p("x"), {allow-shadowed: false})
+  unbound1.length() is 1
+  #unbound1.first.id is A.s_name("x")
 end

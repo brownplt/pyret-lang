@@ -69,38 +69,42 @@ data Name:
     to-compiled-source(self): raise("Cannot compile underscores") end,
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
-    tostring(self): "_" end
+    tostring(self): "_" end,
+    key(self): "underscore#" end
 
   | s_name(s :: String) with:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
-    tostring(self): self.s end
+    tostring(self): self.s end,
+    key(self): "name#" + self.s end
 
   | s_global(s :: String) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
-    tostring(self): self.s end 
+    tostring(self): self.s end,
+    key(self): "global#" + self.s end
 
   | s_atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
-    to-compiled(self): PP.str(self.base + self.serial.tostring()) end,
+    to-compiled(self): self.base + self.serial.tostring() end,
     tosource(self): PP.str(self.to-compiled()) end,
-    tostring(self): self.to-compiled() end
+    tostring(self): self.to-compiled() end,
+    key(self): "atom#" + self.base + self.serial.tostring() end
 end
 
 fun MakeName(start):
   var count = start
   fun atom(base):
     count := 1 + count
-    atom(base, count)
+    s_atom(base, count)
   end
   {
     s_underscore: s_underscore,
     s_name: s_name,
     s_global: s_global,
-    mk-atom: atom,
+    make-atom: atom,
     is-s_underscore: is-s_underscore,
     is-s_name: is-s_name,
     is-s_global: is-s_global,
@@ -163,10 +167,10 @@ sharing:
 end
 
 data Header:
-  | s_import(l :: Loc, file :: ImportType, name :: String) with:
+  | s_import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s_import" end,
     tosource(self):
-      PP.flow([str-import, self.file.tosource(), str-as, PP.str(self.name)])
+      PP.flow([str-import, self.file.tosource(), str-as, PP.str(self.name.tostring())])
     end
   | s_provide(l :: Loc, block :: Expr) with:
     label(self): "s_provide" end,
@@ -303,10 +307,10 @@ data Expr:
         self.block.tosource(),
         str-end)
     end
-  | s_assign(l :: Loc, id :: String, value :: Expr) with:
+  | s_assign(l :: Loc, id :: Name, value :: Expr) with:
     label(self): "s_assign" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
+      PP.group(PP.nest(INDENT, PP.str(self.id.tostring()) + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | s_if_pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
     label(self): "s_if_pipe" end,
@@ -459,15 +463,15 @@ data Expr:
       PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + str-period + self._fun.tosource())
           + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
-  | s_id(l :: Loc, id :: String) with:
+  | s_id(l :: Loc, id :: Name) with:
     label(self): "s_id" end,
-    tosource(self): PP.str(self.id) end
-  | s_id_var(l :: Loc, id :: String) with:
+    tosource(self): PP.str(self.id.tostring()) end
+  | s_id_var(l :: Loc, id :: Name) with:
     label(self): "s_id_var" end,
-    tosource(self): PP.str("!" + self.id) end
-  | s_id_letrec(l :: Loc, id :: String) with:
+    tosource(self): PP.str("!" + self.id.tostring()) end
+  | s_id_letrec(l :: Loc, id :: Name) with:
     label(self): "s_id_letrec" end,
-    tosource(self): PP.str("~" + self.id) end
+    tosource(self): PP.str("~" + self.id.tostring()) end
   | s_undefined(l :: Loc) with:
     label(self): "s_undefined" end,
     tosource(self): PP.str("undefined") end
@@ -599,7 +603,7 @@ sharing:
 end
 
 data Bind:
-  | s_bind(l :: Loc, shadows :: Bool, id :: String, ann :: Ann) with:
+  | s_bind(l :: Loc, shadows :: Bool, id :: Name, ann :: Ann) with:
     tosource(self):
       if is-a_blank(self.ann):
         if self.shadows: PP.str("shadow " + self.id)

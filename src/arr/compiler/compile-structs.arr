@@ -19,7 +19,7 @@ data CompileError:
     tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
   | unbound-id(id :: A.Expr) with:
     tostring(self):
-      "Identifier " + self.id.id + " is used at " + self.id.l.tostring() + ", but is not defined"
+      "Identifier " + self.id.id.tostring() + " is used at " + self.id.l.tostring() + ", but is not defined"
     end
   | unbound-var(id :: String, loc :: Loc) with:
     tostring(self):

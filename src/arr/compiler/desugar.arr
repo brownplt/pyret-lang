@@ -7,6 +7,8 @@ import "./compile-structs.arr" as C
 import "./gensym.arr" as G
 import "./ast-util.arr" as U
 
+names = A.MakeName(0)
+
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
 end
@@ -17,16 +19,25 @@ end
 
 mt-d-env = d-env(set([]), set([]), set([]))
 
-fun extend-id(nv :: DesugarEnv, id :: String):
-  d-env(nv.ids.add(id), nv.vars, nv.letrecs)
+fun extend-id(nv :: DesugarEnv, id :: A.Name):
+  cases(A.Name) id:
+    | s_name(s) => d-env(nv.ids.add(s), nv.vars, nv.letrecs)
+    | else => nv
+  end
 end
 
-fun extend-var(nv :: DesugarEnv, id :: String):
-  d-env(nv.ids, nv.vars.add(id), nv.letrecs)
+fun extend-var(nv :: DesugarEnv, id :: A.Name):
+  cases(A.Name) id:
+    | s_name(s) => d-env(nv.ids, nv.vars.add(s), nv.letrecs)
+    | else => nv
+  end
 end
 
-fun extend-letrec(nv :: DesugarEnv, id :: String):
-  d-env(nv.ids, nv.vars, nv.letrecs.add(id))
+fun extend-letrec(nv :: DesugarEnv, id :: A.Name):
+  cases(A.Name) id:
+    | s_name(s) => d-env(nv.ids, nv.vars, nv.letrecs.add(s))
+    | else => nv
+  end
 end
 
 fun desugar-header(h :: A.Header, b :: A.Expr):
@@ -58,15 +69,15 @@ end
 fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
 
 fun mk-id(loc, base):
-  t = G.make-name(base)
-  { id: t, id-b: mk-bind(loc, t), id-e: A.s_id(loc, t) }
+  a = names.make-atom(base)
+  { id: a, id-b: mk-bind(loc, a), id-e: A.s_id(loc, a) }
 end
 
 fun make-torepr(l, vname, fields):
   self = mk-id(l, "self")
   fun str(s): A.s_str(l, s) end
   fun call-torepr(val):
-    A.s_app(l, A.s_id(l, "torepr"), [A.s_dot(l, self.id-e, val.bind.id)])
+    A.s_app(l, A.s_id(l, A.s_name("torepr")), [A.s_dot(l, self.id-e, val.bind.id)])
   end
   fun concat(v1, v2):
     A.s_op(l, "op+", v1, v2)
@@ -103,7 +114,7 @@ fun make-match(l, case-name, fields):
           A.s_if_branch(l,
               A.s_app(
                   l,
-                  A.s_dot(l, A.s_id(l, "builtins"), "has-field"),
+                  A.s_dot(l, A.s_id(l, A.s_name("builtins")), "has-field"),
                   [cases-id.id-e, A.s_str(l, case-name)]
                 ),
               A.s_let_expr(l, [A.s_let_bind(l, call-match-case.id-b, A.s_dot(l, cases-id.id-e, case-name))],
@@ -195,7 +206,7 @@ fun desugar-member(nv, f):
 end
 
 fun is-underscore(e):
-  A.is-s_id(e) and (e.id == "_")
+  A.is-s_id(e) and (e.id == A.s_underscore)
 end
 
 fun ds-curry-args(l, args):
@@ -259,14 +270,14 @@ fun ds-curry(nv, l, f, args):
   end
 where:
   d = A.dummy-loc
+  n = A.s_name
+  id = fun(s): A.s_id(d, A.s_name(s));
+  under = A.s_id(d, A.s_underscore)
   ds-ed = ds-curry(
       mt-d-env,
       d,
-      A.s_id(d, "f"),
-      [
-        A.s_id(d, "_"),
-        A.s_id(d, "x")
-      ]
+      id("f"),
+      [ under, id("x") ]
     )
   ds-ed satisfies A.is-s_lam
   ds-ed.args.length() is 1
@@ -274,11 +285,8 @@ where:
   ds-ed2 = ds-curry(
       mt-d-env,
       d,
-      A.s_id(d, "f"),
-      [
-        A.s_id(d, "_"),
-        A.s_id(d, "_")
-      ]
+      id("f"),
+      [ under, under ]
     )
   ds-ed2 satisfies A.is-s_lam
   ds-ed2.args.length() is 2
@@ -286,20 +294,20 @@ where:
   ds-ed3 = ds-curry(
       mt-d-env,
       d,
-      A.s_id(d, "f"),
+      id("f"),
       [
-        A.s_id(d, "x"),
-        A.s_id(d, "y")
+        id("x"),
+        id("y")
       ]
     )
-  ds-ed3 satisfies A.equiv-ast(_, A.s_app(d, A.s_id(d, "f"), [A.s_id(d, "x"), A.s_id(d, "y")]))
+  ds-ed3 satisfies A.equiv-ast(_, A.s_app(d, id("f"), [id("x"), id("y")]))
     
   ds-ed4 = ds-curry(
       mt-d-env,
       d,
-      A.s_dot(d, A.s_id(d, "_"), "f"),
+      A.s_dot(d, under, "f"),
       [
-        A.s_id(d, "x")
+        id("x")
       ])
   ds-ed4 satisfies A.is-s_lam
   ds-ed4.args.length() is 1
@@ -375,7 +383,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_not(l, test) => 
       A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [A.s_bool(l, false)]))], A.s_block(l, [A.s_bool(l, true)]))
     | s_when(l, test, body) =>
-      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [desugar-expr(nv, body), A.s_id(l, "nothing")]))], A.s_block(l, [A.s_id(l, "nothing")]))
+      A.s_if_else(l, [A.s_if_branch(l, desugar-expr(nv, test), A.s_block(l, [desugar-expr(nv, body), A.s_id(l, A.s_name("nothing"))]))], A.s_block(l, [A.s_id(l, A.s_name("nothing"))]))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
@@ -385,7 +393,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_if_pipe_else(l, branches, _else) =>
       A.s_if_else(l, branches.map(desugar-if-pipe-branch(nv, _)), desugar-expr(nv, _else))
     | s_cases(l, type, val, branches) =>
-      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_block(l, [A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "no cases matched")])]))
+      desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), A.s_block(l, [A.s_app(l, A.s_id(l, A.s_name("raise")), [A.s_str(l, "no cases matched")])]))
     | s_cases_else(l, type, val, branches, _else) =>
       desugar-cases(l, type, desugar-expr(nv, val), branches.map(desugar-case-branch(nv, _)), desugar-expr(nv, _else))
     | s_assign(l, id, val) => A.s_assign(l, id, desugar-expr(nv, val))
@@ -407,14 +415,14 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           if op == "op==":
             ds-curry-binop(l, desugar-expr(nv, left), desugar-expr(nv, right),
                 fun(e1, e2):
-                  A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [e1, e2])
+                  A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "equiv"), [e1, e2])
                 end)
           else if op == "op<>":
             A.s_if_else(l,
               [A.s_if_branch(l,
                 ds-curry-binop(l, desugar-expr(nv, left), desugar-expr(nv, right),
                     fun(e1, e2):
-                      A.s_app(l, A.s_dot(l, A.s_id(l, "builtins"), "equiv"), [e1, e2])
+                      A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "equiv"), [e1, e2])
                     end),
                 A.s_bool(l, false))],
               A.s_bool(l, true))
@@ -425,20 +433,31 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           end
       end
     | s_id(l, x) =>
-      if nv.vars.member(x): A.s_id_var(l, x)
-      else if nv.letrecs.member(x): A.s_id_letrec(l, x)
-      else: expr
+      cases(A.Name) x:
+        | s_name(s) =>
+          if nv.vars.member(s): A.s_id_var(l, x)
+          else if nv.letrecs.member(s): A.s_id_letrec(l, x)
+          else: expr
+          end
+        | else => A.s_id(l, x)
       end
     | s_num(_, _) => expr
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member(nv, _)))
     | s_list(l, elts) =>
-      elts.foldr(fun(elt, list-expr): A.s_app(l, desugar-expr(nv, A.s_id(l, "link")), [desugar-expr(nv, elt), list-expr]) end, desugar-expr(nv, A.s_id(l, "empty")))
+      elts.foldr(fun(elt, list-expr):
+          A.s_app(
+              l,
+              desugar-expr(nv, A.s_id(l, A.s_name("link"))),
+              [desugar-expr(nv, elt), list-expr]
+            )
+        end,
+        desugar-expr(nv, A.s_id(l, A.s_name("empty"))))
     | s_paren(l, e) => desugar-expr(nv, e)
     # TODO(joe): skipping checks for now, they should be unreachable
     | s_check(l, _, _) => A.s_str(l, "check mode not yet working (check block)")
-    | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, "raise"), [A.s_str(l, "check mode not yet working (test stmt)")])
+    | s_check_test(l, _, _, _) => A.s_app(l, A.s_id(l, A.s_name("raise")), [A.s_str(l, "check mode not yet working (test stmt)")])
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
@@ -447,7 +466,6 @@ where:
   ds = desugar-expr(mt-d-env, _)
   one = A.s_num(d, 1)
   two = A.s_num(d, 2)
-  b = A.s_bind(d, false, _, A.a_blank)
   equiv = fun(e): A.equiv-ast(_, e) end
 
   prog2 = p("[1,2,1 + 2]")

@@ -99,7 +99,7 @@ check-visitor = A.default-map-visitor.{
     if is-empty(checks-to-perform): A.s_block(l, ds-stmts)
     else if is-empty(ds-stmts): raise("Empty block")
     else:
-      id-result = G.make-name("result-after-checks")
+      id-result = A.s_name(G.make-name("result-after-checks"))
       last-expr = ds-stmts.last()
       A.s_block(
           l,
@@ -113,6 +113,6 @@ check-visitor = A.default-map-visitor.{
     end
   end,
   s_check(self, l, name, body):
-    A.s_id(l, "nothing")
+    A.s_id(l, A.s_name("nothing"))
   end
 }

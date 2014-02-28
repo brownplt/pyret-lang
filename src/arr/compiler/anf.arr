@@ -6,6 +6,11 @@ import ast as A
 import "./ast-anf.arr" as N
 import "./gensym.arr" as G
 
+fun mk-id(loc, base):
+  t = G.make-name(base)
+  { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
+end
+
 fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, fun(x):
         cases(N.ALettable) x:
@@ -23,13 +28,8 @@ fun bind(l, id): N.a-bind(l, id, A.a_blank);
 
 fun anf-bind(b):
   cases(A.Bind) b:
-    | s_bind(l, shadows, id, ann) => N.a-bind(l, id, ann)
+    | s_bind(l, shadows, id, ann) => N.a-bind(l, id.tostring(), ann)
   end
-end
-
-fun mk-id(loc, base):
-  t = G.make-name(base)
-  { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
@@ -68,8 +68,8 @@ fun anf-import(i :: A.Header):
   cases(A.Header) i:
     | s_import(l, f, name) =>
       cases(A.ImportType) f:
-        | s_file_import(fname) => N.a-import-file(l, fname, name)
-        | s_const_import(module) => N.a-import-builtin(l, module, name)
+        | s_file_import(fname) => N.a-import-file(l, fname, name.tostring())
+        | s_const_import(module) => N.a-import-builtin(l, module, name.tostring())
       end
     | s_provide(l, block) => N.a-provide(l, anf-term(block))
     | else => raise("Unhandled header in anf-import: " + torepr(i))
@@ -103,9 +103,9 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
     | s_str(l, s) => k(N.a-val(N.a-str(l, s)))
     | s_undefined(l) => k(N.a-val(N.a-undefined(l)))
     | s_bool(l, b) => k(N.a-val(N.a-bool(l, b)))
-    | s_id(l, id) => k(N.a-val(N.a-id(l, id)))
-    | s_id_var(l, id) => k(N.a-val(N.a-id-var(l, id)))
-    | s_id_letrec(l, id) => k(N.a-val(N.a-id-letrec(l, id)))
+    | s_id(l, id) => k(N.a-val(N.a-id(l, id.tostring())))
+    | s_id_var(l, id) => k(N.a-val(N.a-id-var(l, id.tostring())))
+    | s_id_letrec(l, id) => k(N.a-val(N.a-id-letrec(l, id.tostring())))
 
     | s_let_expr(l, binds, body) =>
       cases(List) binds:
@@ -113,10 +113,10 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         | link(f, r) =>
           cases(A.LetBind) f:
             | s_var_bind(l2, b, val) => anf(val, fun(lettable):
-              N.a-var(l2, N.a-bind(l2, b.id, b.ann), lettable,
+              N.a-var(l2, N.a-bind(l2, b.id.tostring(), b.ann), lettable,
                 anf(A.s_let_expr(l, r, body), k)) end)
             | s_let_bind(l2, b, val) => anf(val, fun(lettable):
-              N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
+              N.a-let(l2, N.a-bind(l2, b.id.tostring(), b.ann), lettable,
                 anf(A.s_let_expr(l, r, body), k)) end)
           end
       end
@@ -126,7 +126,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         A.s_var_bind(b.l, b.b, A.s_undefined(l))
       end
       assigns = for map(b from binds):
-        A.s_assign(b.l, b.b.id, b.value)
+        A.s_assign(b.l, b.b.id.tostring(), b.value)
       end
       anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
 
@@ -202,9 +202,9 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
     | s_user_block(l, body) => anf(body, k)
 
     | s_lam(l, params, args, ret, doc, body, _) =>
-      k(N.a-lam(l, args.map(fun(b): bind(b.l, b.id) end), anf-term(body)))
+      k(N.a-lam(l, args.map(fun(b): bind(b.l, b.id.tostring()) end), anf-term(body)))
     | s_method(l, args, ret, doc, body, _) =>
-      k(N.a-method(l, args.map(fun(b): bind(b.l, b.id) end), anf-term(body)))
+      k(N.a-method(l, args.map(fun(b): bind(b.l, b.id.tostring()) end), anf-term(body)))
 
     | s_app(l, f, args) =>
       anf-name(f, "anf_fun", fun(v):
@@ -237,7 +237,7 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
       anf-name(obj, "anf_get_bang", fun(t): k(N.a-get-bang(l, t, field)) end)
 
     | s_assign(l, id, value) =>
-      anf-name(value, "anf_assign", fun(v): k(N.a-assign(l, id, v)) end)
+      anf-name(value, "anf_assign", fun(v): k(N.a-assign(l, id.tostring(), v)) end)
 
     | s_obj(l, fields) =>
       exprs = fields.map(_.value)

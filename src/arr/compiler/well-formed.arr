@@ -89,7 +89,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
     | link(f, rest) =>
       cases(A.Bind) f:
         | s_bind(l, shadows, id, ann) =>
-          if id == "_": nothing # TODO: Fix when we have real underscores
+          if id == A.s_underscore: nothing
           else if shadows: nothing
           else:
             cases(Option) list.find(fun(b): b.id == id end, rest):
@@ -128,7 +128,7 @@ end
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
-    A.s_bind(mem.l, false, mem.name.s, A.a_blank)
+    A.s_bind(mem.l, false, A.s_name(mem.name.s), A.a_blank)
   end
 end
 
