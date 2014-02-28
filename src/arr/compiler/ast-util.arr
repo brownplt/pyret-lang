@@ -271,10 +271,9 @@ end
 
 binding-handlers = {
   s_header(_, imp, env):
-    print("Visiting header: " + torepr(imp))
     cases(A.ImportType) imp.file:
       | s_const_import(modname) =>
-        if env.has-key(A.s_name(modname).key()): env.set(imp.name, env.get(modname.key()))
+        if env.has-key(modname): env.set(imp.name, env.get(modname.key()))
         else: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
         end
       | else => env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
