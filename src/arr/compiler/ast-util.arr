@@ -5,6 +5,7 @@ import ast as A
 import parse-pyret as PP
 import "./compile-structs.arr" as CS
 import string-dict as SD
+import either as E
 
 fun ok-last(stmt):
   not (
@@ -143,10 +144,10 @@ end
 fun <a> default-env-map-visitor(
     initial-env :: a,
     bind-handlers :: {
-        s_letrec_bind :: (is-s_letrec_bind, a -> a),
-        s_let_bind :: (is-s_letrec_bind, a -> a),
-        s_bind :: (is-s_bind, a -> a),
-        s_import :: (is-s_import, a -> a)
+        s_letrec_bind :: (A.LetrecBind, a -> a),
+        s_let_bind :: (A.LetBind, a -> a),
+        s_bind :: (A.Bind, a -> a),
+        s_header :: (A.Header, a -> a)
       }
     ):
   A.default-map-visitor.{
@@ -155,7 +156,7 @@ fun <a> default-env-map-visitor(
     s_program(self, l, headers, body):
       imports = headers.filter(A.is-s_import)
       imported-env = for fold(acc from self.env, i from imports):
-        bind-handlers.s_import(i, acc)
+        bind-handlers.s_header(i, acc)
       end
       visit-headers = for map(h from headers):
         h.visit(self.{ env: imported-env })
@@ -210,10 +211,10 @@ end
 fun <a> default-env-iter-visitor(
     initial-env :: a,
     bind-handlers :: {
-        s_letrec_bind :: (is-s_letrec_bind, a -> a),
-        s_let_bind :: (is-s_letrec_bind, a -> a),
-        s_bind :: (is-s_bind, a -> a),
-        s_import :: (is-s_import, a -> a)
+        s_letrec_bind :: (A.LetrecBind, a -> a),
+        s_let_bind :: (A.LetBind, a -> a),
+        s_bind :: (A.Bind, a -> a),
+        s_header :: (A.Header, a -> a)
       }
     ):
   A.default-iter-visitor.{
@@ -222,55 +223,54 @@ fun <a> default-env-iter-visitor(
     s_program(self, l, headers, body):
       imports = headers.filter(A.is-s_import)
       imported-env = for fold(acc from self.env, i from imports):
-        bind-handlers.s_import(i, acc)
+        bind-handlers.s_header(i, acc)
       end
       new-visitor = self.{ env: imported-env }
       list.all(_.visit(new-visitor), headers) and body.visit(new-visitor)
     end,
     s_let_expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, bs : true }, b from binds):
+      bound-env = for list.fold-while(acc from { e: self.env, bs: true }, b from binds):
         this-env = bind-handlers.s_let_bind(b, acc.e)
         new-bind = b.visit(self.{env : acc.e})
-        {
-          e: this-env,
-          bs: new-bind and acc.bs
-        }
+        if new-bind:
+          E.left({ e: this-env, bs: true })
+        else:
+          E.right({ e: this-env, bs: false })
+        end
       end
-      visit-body = body.visit(self.{env: bound-env.e})
-      bound-env.bs and visit-body
+      bound-env.bs and body.visit(self.{env: bound-env.e})
     end,
     s_letrec(self, l, binds, body):
-      bind-env = for fold(acc from self.env, b from binds):
+      bind-env = for list.fold(acc from self.env, b from binds):
         bind-handlers.s_letrec_bind(b, acc)
       end
       new-visitor = self.{env: bind-env}
-      visit-binds = list.all(_.visit(new-visitor), binds)
-      visit-body = body.visit(new-visitor)
-      visit-binds and visit-body
+      continue-binds = for list.fold-while(acc from true, b from binds):
+        if b.visit(new-visitor): E.left(true) else: E.right(false) end
+      end
+      continue-binds and body.visit(new-visitor)
     end,
     s_lam(self, l, params, args, ann, doc, body, _check):
       args-env = for list.fold(acc from self.env, a from args):
         bind-handlers.s_bind(a, acc)
       end
-      visit-args = list.all(_.visit(self), args)
-      visit-body = body.visit(self.{env: args-env})
-      visit-check = self.{env: args-env}.option(_check)
-      visit-args and visit-body and visit-check
+      list.all(_.visit(self), args) and
+        body.visit(self.{env: args-env}) and
+        self.{env: args-env}.option(_check)
     end,
     s_method(self, l, args, ann, doc, body, _check):
       args-env = for list.fold(acc from self.env, a from args):
         bind-handlers.s_bind(a, acc)
       end
-      visit-args = list.all(_.visit(self), args)
-      visit-body = body.visit(self.{env: args-env})
-      visit-check = self.{env: args-env}.option(_check)
-      visit-args and visit-body and visit-check
+      list.all(_.visit(self), args) and
+        body.visit(self.{env: args-env}) and
+        self.{env: args-env}.option(_check)
     end
   }
 end
 
 binding-handlers = {
-  s_import(_, imp, env):
+  s_header(_, imp, env):
     cases(A.ImportType) imp.file:
       | s_const_import(modname) =>
         if env.has-key(modname): env.set(imp.name, env.get(modname))

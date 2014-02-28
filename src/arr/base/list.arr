@@ -2,12 +2,17 @@
 
 provide *
 import option as O
+import either as E
 
 none = O.none
 is-none = O.is-none
 some = O.some
 is-some = O.is-some
 Option = O.Option
+
+left = E.left
+right = E.right
+Either = E.Either
 
 data List:
   | empty with:
@@ -504,6 +509,17 @@ fun each4_n(f, num :: Number, lst1 :: List, lst2 :: List, lst3 :: List, lst4 :: 
     end
   end
   help(num, lst1, lst2, lst3, lst4)
+end
+
+fun fold-while(f, base, lst):
+  cases(List) lst:
+    | empty => base
+    | link(elt, r) =>
+      cases(Either) f(base, elt):
+        | left(v) => fold-while(f, v, r)
+        | right(v) => v
+      end
+  end
 end
 
 fun fold(f, base, lst :: List):
