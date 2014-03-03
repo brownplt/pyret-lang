@@ -453,6 +453,7 @@ fun check-unbound(initial-env, ast, options):
                 cases(A.Name) bind.id:
                   | s_name(s) =>
                     if s == "self": nothing
+                    else if bind.shadows: nothing
                     else:
                       when not options.allow-shadowed:
                         add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
