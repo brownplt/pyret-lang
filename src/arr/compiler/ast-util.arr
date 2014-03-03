@@ -358,7 +358,7 @@ fun check-unbound(initial-env, ast, options):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end
   fun handle-id(this-id, env):
-    when (A.is-s_name(this-id.id)) and is-none(bind-exp(this-id, env)): # FIX when we have real underscores
+    when (A.is-s_name(this-id.id)) and is-none(bind-exp(this-id, env)):
       add-error(CS.unbound-id(this-id))
     end
   end
@@ -396,7 +396,7 @@ fun check-unbound(initial-env, ast, options):
             else:
               if b.mut: add-error(CS.mixed-id-var(bind.id, b.loc, bind.l))
               else:
-                cases(A.Name) bind:
+                cases(A.Name) bind.id:
                   | s_name(s) =>
                     if s == "self": nothing
                     else:
@@ -404,6 +404,8 @@ fun check-unbound(initial-env, ast, options):
                         add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
                       end
                     end
+                  | s_underscore => nothing
+                    # s_atom and s_global shouldn't happen...
                 end
               end
             end
@@ -421,7 +423,7 @@ fun check-unbound(initial-env, ast, options):
             else:
               if not b.mut: add-error(CS.mixed-id-var(bind.id, bind.l, b.loc))
               else:
-                cases(A.Name) bind:
+                cases(A.Name) bind.id:
                   | s_name(s) =>
                     if s == "self": nothing
                     else:
@@ -448,7 +450,7 @@ fun check-unbound(initial-env, ast, options):
             | some(b) =>
               if b.mut: add-error(CS.mixed-id-var(bind.id.tostring(), b.loc, bind.l))
               else:
-                cases(A.Name) bind:
+                cases(A.Name) bind.id:
                   | s_name(s) =>
                     if s == "self": nothing
                     else:

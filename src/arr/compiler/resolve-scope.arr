@@ -19,7 +19,7 @@ fun resolve-header(h :: A.Header, b :: A.Expr):
   cases(A.Header) h:
     | s_provide_all(l) =>
       ids = A.block-ids(b)
-      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, A.s_name(id))) end)
+      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id.tostring()), A.s_id(l, id)) end)
       A.s_provide(l, obj)
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:

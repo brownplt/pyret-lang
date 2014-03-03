@@ -170,7 +170,7 @@ data Header:
   | s_import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s_import" end,
     tosource(self):
-      PP.flow([str-import, self.file.tosource(), str-as, PP.str(self.name.tostring())])
+      PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
   | s_provide(l :: Loc, block :: Expr) with:
     label(self): "s_provide" end,
@@ -310,7 +310,7 @@ data Expr:
   | s_assign(l :: Loc, id :: Name, value :: Expr) with:
     label(self): "s_assign" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, PP.str(self.id.tostring()) + str-spacecolonequal + break-one + self.value.tosource()))
+      PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | s_if_pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
     label(self): "s_if_pipe" end,
@@ -465,13 +465,13 @@ data Expr:
     end
   | s_id(l :: Loc, id :: Name) with:
     label(self): "s_id" end,
-    tosource(self): PP.str(self.id.tostring()) end
+    tosource(self): self.id.tosource() end
   | s_id_var(l :: Loc, id :: Name) with:
     label(self): "s_id_var" end,
-    tosource(self): PP.str("!" + self.id.tostring()) end
+    tosource(self): PP.str("!") + self.id.tosource() end
   | s_id_letrec(l :: Loc, id :: Name) with:
     label(self): "s_id_letrec" end,
-    tosource(self): PP.str("~" + self.id.tostring()) end
+    tosource(self): PP.str("~") + self.id.tosource() end
   | s_undefined(l :: Loc) with:
     label(self): "s_undefined" end,
     tosource(self): PP.str("undefined") end
@@ -606,12 +606,13 @@ data Bind:
   | s_bind(l :: Loc, shadows :: Bool, id :: Name, ann :: Ann) with:
     tosource(self):
       if is-a_blank(self.ann):
-        if self.shadows: PP.str("shadow " + self.id)
-        else: PP.str(self.id)
+        if self.shadows: PP.str("shadow ") + self.id.tosource()
+        else: self.id.tosource()
         end
       else:
-        if self.shadows: PP.infix(INDENT, 1, str-coloncolon, PP.str("shadow " + self.id), self.ann.tosource())
-        else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.id), self.ann.tosource())
+        if self.shadows:
+          PP.infix(INDENT, 1, str-coloncolon, PP.str("shadow ") + self.id.tosource(), self.ann.tosource())
+        else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
         end
       end
     end
@@ -877,32 +878,32 @@ fun flatten(list-of-lists :: List):
   end
 end
 
-fun binding-ids(stmt):
+fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s_variant(_, name, _, _) => [name, make-checker-name(name)]
-      | s_singleton_variant(_, name, _) => [name, make-checker-name(name)]
+      | s_variant(_, name, _, _) => [s_name(name), s_name(make-checker-name(name))]
+      | s_singleton_variant(_, name, _) => [s_name(name), s_name(make-checker-name(name))]
     end
   end
   cases(Expr) stmt:
     | s_let(_, b, _) => [b.id]
     | s_var(_, b, _) => [b.id]
-    | s_fun(_, name, _, _, _, _, _, _) => [name]
+    | s_fun(_, name, _, _, _, _, _, _) => [s_name(name)]
     | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s_data(_, name, _, _, variants, _, _) =>
-      name ^ link(flatten(variants.map(variant-ids)))
+      s_name(name) ^ link(flatten(variants.map(variant-ids)))
     | else => []
   end
 end
 
-fun block-ids(b :: is-s_block):
+fun block-ids(b :: is-s_block) -> List<Name>:
   cases(Expr) b:
     | s_block(_, stmts) => flatten(stmts.map(binding-ids))
     | else => raise("Non-block given to block-ids")
   end
 end
 
-fun toplevel-ids(program :: Program):
+fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
     | s_program(_, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")

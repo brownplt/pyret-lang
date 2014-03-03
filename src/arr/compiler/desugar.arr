@@ -44,7 +44,7 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
   cases(A.Header) h:
     | s_provide_all(l) =>
       ids = A.block-ids(b)
-      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, id)) end)
+      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id.tostring()), A.s_id(l, id)) end)
       A.s_provide(l, obj)
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:
@@ -77,7 +77,7 @@ fun make-torepr(l, vname, fields):
   self = mk-id(l, "self")
   fun str(s): A.s_str(l, s) end
   fun call-torepr(val):
-    A.s_app(l, A.s_id(l, A.s_name("torepr")), [A.s_dot(l, self.id-e, val.bind.id)])
+    A.s_app(l, A.s_id(l, A.s_name("torepr")), [A.s_dot(l, self.id-e, val.bind.id.tostring())])
   end
   fun concat(v1, v2):
     A.s_op(l, "op+", v1, v2)
@@ -106,7 +106,7 @@ fun make-match(l, case-name, fields):
           when mtype <> A.s_normal:
             raise("Non-normal member in variant, NYI: " + torepr(f))
           end
-          A.s_dot(l2, self-id.id-e, bind.id)
+          A.s_dot(l2, self-id.id-e, bind.id.tostring())
       end
     end
   A.s_method(l, [self-id, cases-id, else-id].map(_.id-b), A.a_blank, "",

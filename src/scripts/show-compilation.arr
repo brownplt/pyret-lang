@@ -5,6 +5,8 @@ import parse-pyret as P
 import "./arr/compiler/desugar.arr" as D
 import "./arr/compiler/compile.arr" as CM
 import "./arr/compiler/compile-structs.arr" as CS
+import "./arr/compiler/resolve-scope.arr" as R
+import "./arr/compiler/ast-util.arr" as U
 import file as F
 
 options = {
@@ -28,8 +30,13 @@ cases (C.ParsedArguments) parsed-options:
         print("")
         print("Parsed:")
         each(print, parsed.tosource().pretty(80))
+
+        resolved = R.resolve-scope(U.append-nothing-if-necessary(parsed), CS.no-builtins)
+        print("")
+        print("Resolved:")
+        each(print, resolved.tosource().pretty(80))
         
-        desugared = D.desugar(parsed, CS.standard-builtins)
+        desugared = D.desugar(resolved, CS.no-builtins)
         print("")
         print("Desugared:")
         each(print, desugared.tosource().pretty(80))

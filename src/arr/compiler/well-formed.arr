@@ -69,10 +69,10 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
     | link(f, rest) =>
       cases(A.Bind) f:
         | s_bind(l, shadows, id, ann) =>
-          if id == "_": nothing # TODO: Fix when we have real underscores
+          if A.is-s_underscore(id): nothing
           else:
             cases(Option) list.find(fun(b): b.id == id end, rest):
-              | some(found) => wf-error2("Found duplicate id " + id + " in list of bindings", l, found.l)
+              | some(found) => wf-error2("Found duplicate id " + id.tostring() + " in list of bindings", l, found.l)
               | none => ensure-unique-ids(rest)
             end
           end
@@ -89,11 +89,11 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
     | link(f, rest) =>
       cases(A.Bind) f:
         | s_bind(l, shadows, id, ann) =>
-          if id == A.s_underscore: nothing
+          if A.is-s_underscore(id): nothing
           else if shadows: nothing
           else:
             cases(Option) list.find(fun(b): b.id == id end, rest):
-              | some(found) => duplicate-id(id, l, found.l)
+              | some(found) => duplicate-id(id.tostring(), l, found.l)
               | none => ensure-unique-bindings(rest)
             end
           end
@@ -170,7 +170,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       list.all(_.visit(self), args) and body.visit(self)
     end,
     s_block(self, l, stmts):
-      if is-empty(stmts): nothing
+      if is-empty(stmts): true
       else:
         wf-last-stmt(stmts.last())
         bind-stmts = stmts.filter(fun(s): A.is-s_var(s) or A.is-s_let(s) end).map(_.name)
@@ -268,8 +268,8 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
     end,
     s_id(self, l, id):
-      when (id == "check") or (id == "where"):
-        wf-error("Cannot use `" + id + "` as an identifier", l)
+      when (id.tostring() == "check") or (id.tostring() == "where"):
+        wf-error("Cannot use `" + id.tostring() + "` as an identifier", l)
       end
       true
     end
