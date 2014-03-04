@@ -18,12 +18,13 @@ fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrint
   wf = W.check-well-formed(ast-ended)
   cases(C.CompileResult) wf:
     | ok(wf-ast) =>
-      checked = wf-ast.visit(CH.check-visitor)
-      scoped = R.resolve-scope(checked, libs)
+      checked = CH.desugar-check(wf-ast)
+      scoped = R.desugar-scope(checked, libs)
       desugared = D.desugar(scoped, libs)
-      cleaned = desugared.visit(U.merge-nested-blocks)
-                         .visit(U.flatten-single-blocks)
-                         .visit(U.link-list-visitor(libs))
+      named = R.resolve-names(desugared, libs)
+      cleaned = named.visit(U.merge-nested-blocks)
+                     .visit(U.flatten-single-blocks)
+                     .visit(U.link-list-visitor(libs))
       any-errors = U.check-unbound(libs, cleaned, options)
       if is-empty(any-errors): C.ok(P.make-compiled-pyret(cleaned, libs))
       else: C.err(any-errors)

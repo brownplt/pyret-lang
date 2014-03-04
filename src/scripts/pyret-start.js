@@ -11,7 +11,7 @@ define(["js/runtime-anf", "arr/compiler/pyret.arr"], function(RT, pyret) {
      } else if (rt.isFailureResult(result)) {
         var exnStack = result.exn.stack; result.exn.stack = undefined;
         var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
-        console.error('Pyret terminated with an error:\n' + JSON.stringify(result, null, "  ") + "\nStack:\n" 
+        console.error('Pyret terminated with an error:\n' + String(result).substring(0, 500) + "\nStack:\n" 
                       + String(exnStack) + "\nPyret stack:\n" + JSON.stringify(pyretStack, null, "  "));
         process.exit(1);
      }

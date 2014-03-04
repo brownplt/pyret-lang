@@ -38,8 +38,12 @@ define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
                   if (rt.isFailureResult(this.actual)) {
                     console.log("Exn: ", this.actual.exn);
                     var err = this.actual.exn[0];
-                    var errstr = rt.unwrap(rt.getField(err, "tostring").app());
-                    return [errstr];
+                    if(err) {
+                      var errstr = rt.unwrap(rt.getField(err, "tostring").app());
+                      return [errstr];
+                    } else {
+                      return [String(this.actual.exn)];
+                    }
                   }
                   return ["Custom expectation: " + JSON.stringify(this.actual).substring(0, 200) + " to be success."];
                 };

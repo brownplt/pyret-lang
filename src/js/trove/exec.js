@@ -61,7 +61,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
             });
         }
         else if(execRt.isFailureResult(r)) {
-          console.error("Failed: ", r, r.exn);
+          console.error("Failed: ", r, r.exn, r.exn.stack);
           return callingRt.makeObject({
               "success": callingRt.makeBoolean(false),
               "failure": r.exn

@@ -136,7 +136,7 @@ fun binding-env-from-env(initial-env):
           m.set(A.s_name(b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
         acc.set(A.s_name(name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | builtin-id(name) => acc.set(A.s_name(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
+      | builtin-id(name) => acc.set(A.s_global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
     end
   end
 end
@@ -358,7 +358,7 @@ fun check-unbound(initial-env, ast, options):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end
   fun handle-id(this-id, env):
-    when (A.is-s_name(this-id.id)) and is-none(bind-exp(this-id, env)):
+    when is-none(bind-exp(this-id, env)):
       add-error(CS.unbound-id(this-id))
     end
   end
@@ -377,7 +377,7 @@ fun check-unbound(initial-env, ast, options):
       end,
       s_assign(self, loc, id, value):
         cases(Option<Binding>) bind-exp(A.s_id(loc, id), self.env):
-          | none => add-error(CS.unbound-var(A.s_assign(loc, id, value)))
+          | none => add-error(CS.unbound-var(A.s_assign(loc, id, value)), loc)
           | some(b) =>
             when not b.mut:
               add-error(CS.bad-assignment(id.tostring(), loc, b.loc))

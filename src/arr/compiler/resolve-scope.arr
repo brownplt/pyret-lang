@@ -34,7 +34,7 @@ fun resolve-header(h :: A.Header, b :: A.Expr):
 end
 
 
-fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
+fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
   doc: "Treating stmts as a block, resolve scope."
   cases(List) stmts:
     | empty => empty
@@ -47,7 +47,7 @@ fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       end
       fun handle-let-bind(l, new-bind):
         new-binds = link(new-bind, let-binds)
-        resolved-inner = resolve-scope-block(rest-stmts, new-binds, [])
+        resolved-inner = desugar-scope-block(rest-stmts, new-binds, [])
         if is-empty(letrec-binds):
           resolved-inner
         else:
@@ -70,7 +70,7 @@ fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
               A.s_bind(l, false, A.s_name(name), A.a_blank),
               A.s_lam(l, params, args, ann, doc, body, _check)
             ), letrec-binds)
-          resolved-inner = resolve-scope-block(rest-stmts, [], new-letrecs)
+          resolved-inner = desugar-scope-block(rest-stmts, [], new-letrecs)
           if is-empty(let-binds):
             resolved-inner
           else:
@@ -96,9 +96,9 @@ fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           end
 
           if is-empty(letrec-binds):
-            [wrapper(A.s_block(l, resolve-scope-block(rest-stmts, [], all-binds)))]
+            [wrapper(A.s_block(l, desugar-scope-block(rest-stmts, [], all-binds)))]
           else:
-            resolve-scope-block(rest-stmts, [], all-binds + letrec-binds)
+            desugar-scope-block(rest-stmts, [], all-binds + letrec-binds)
           end
 
         | else =>
@@ -106,10 +106,10 @@ fun resolve-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
             | empty => [wrapper(f)]
             | link(_, _) =>
               if not (is-link(let-binds) or is-link(letrec-binds)):
-                link(f, resolve-scope-block(rest-stmts, [], []))
+                link(f, desugar-scope-block(rest-stmts, [], []))
               else:
                 [wrapper(A.s_block(f.l,
-                  link(f, resolve-scope-block(rest-stmts, [], []))))]
+                  link(f, desugar-scope-block(rest-stmts, [], []))))]
               end
           end
       end
@@ -121,7 +121,7 @@ where:
   id = fun(s): A.s_id(d, A.s_name(s));
   bk = fun(e): A.s_block(d, [e]) end
   bs = fun(str):
-    A.s_block(d, resolve-scope-block(p(str).stmts, [], []))
+    A.s_block(d, desugar-scope-block(p(str).stmts, [], []))
   end
   n = none
   thunk = fun(e): A.s_lam(d, [], [], A.a_blank, "", bk(e), n) end
@@ -130,11 +130,11 @@ where:
   compare1 = A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 15)),
                                       A.s_let_bind(d, b("y"), A.s_num(d, 10))],
                         id("y"))
-  resolve-scope-block(p("x = 15 y = 10 y").stmts, [], []).first
+  desugar-scope-block(p("x = 15 y = 10 y").stmts, [], []).first
     satisfies 
       A.equiv-ast(_, compare1)
 
-  resolve-scope-block(p("x = 55 var y = 10 y").stmts, [], []).first
+  desugar-scope-block(p("x = 55 var y = 10 y").stmts, [], []).first
     satisfies 
       A.equiv-ast(_, A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 55)),
                                       A.s_var_bind(d, b("y"), A.s_num(d, 10))],
@@ -181,8 +181,8 @@ where:
                     A.s_let_expr(d, [A.s_let_bind(d, b("x"), A.s_num(d, 3))], p-s(id("x")))
                   ]))]))
 
-  resolve-scope-block([prog2], [], []).first satisfies A.equiv-ast(_, prog2)
-  for each2(p1 from resolve-scope-block(prog2.stmts, [], []), p2 from prog2.stmts):
+  desugar-scope-block([prog2], [], []).first satisfies A.equiv-ast(_, prog2)
+  for each2(p1 from desugar-scope-block(prog2.stmts, [], []), p2 from prog2.stmts):
     p1 satisfies A.equiv-ast(_, p2)
   end
 
@@ -225,9 +225,9 @@ where:
 
 end
 
-resolve-scope-visitor = A.default-map-visitor.{
+desugar-scope-visitor = A.default-map-visitor.{
   s_block(self, l, stmts):
-    A.s_block(l, resolve-scope-block(stmts.map(_.visit(self)), [], []))
+    A.s_block(l, desugar-scope-block(stmts.map(_.visit(self)), [], []))
   end
 }
 
@@ -249,10 +249,15 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
 end
 
 
-fun resolve-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
+fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   doc: "Remove x = e, var x = e, and fun f(): e end
         and turn them into explicit let and letrec expressions.
-        Do this recursively through the whole program."
+        Do this recursively through the whole program.
+        Preconditions on prog:
+          - well-formed
+        Postconditions on prog:
+          - contains no s_provide in headers
+          - contains no s_let, s_var, s_data"
   cases(A.Program) prog:
     | s_program(l, headers-raw, body) =>
       headers = headers-raw.map(resolve-header(_, body))
@@ -287,7 +292,7 @@ fun resolve-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           A.s_import(l, A.s_const_import(k), A.s_name(k))
         end
 
-      A.s_program(l, full-imports, wrapped.visit(resolve-scope-visitor))
+      A.s_program(l, full-imports, wrapped.visit(desugar-scope-visitor))
   end
   
 where:
@@ -300,7 +305,7 @@ where:
                   A.s_app(d, A.s_dot(d, U.checkers(d), "results"), [])
                 )
   str = A.s_str(d, _)
-  ds = resolve-scope(_, C.minimal-builtins)
+  ds = desugar-scope(_, C.minimal-builtins)
   compare1 = A.s_program(d, [],
       A.s_block(d, [
         A.s_block(d, [
@@ -349,7 +354,7 @@ data ScopeBinding:
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
-  for fold(acc from SD.immutable-string-dict(), b from initial):
+  for fold(acc from SD.immutable-string-dict(), b from initial.bindings):
     cases(C.CompileBinding) b:
       | module-bindings(name, ids) =>
         for fold(
@@ -358,8 +363,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
             ):
           acc2.set(id, let-bind(names.make-atom(id)))
         end
-      | builtin-id(name) => 
-        acc.set(name, let-bind(names.make-atom(name)))
+      | else => acc
     end
   end
 end
@@ -376,14 +380,34 @@ fun get-atom(name, env, type):
   end
 end
 
-fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
-  A.default-map-visitor.{
-    env: scope-env-from-env(env),
+fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
+  doc: "Turn all s_names into s_atom or s_global
+        Preconditions on p:
+          - Has been desugared
+        Postconditions on p:
+          - Contains no s_name, s_underscore in names"
+  fun handle-id(env, l, id):
+    cases(A.Name) id:
+      | s_name(s) =>
+        if env.has-key(s):
+          cases (ScopeBinding) env.get(s):
+            | let-bind(atom) => A.s_id(l, atom)
+            | letrec-bind(atom) => A.s_id_letrec(l, atom)
+            | var-bind(atom) => A.s_id_var(l, atom)
+          end
+        else:
+          A.s_id(l, names.s_global(s))
+        end
+      | else => raise("Wasn't expecting a non-s_name in resolve-names id: " + torepr(id))
+    end
+  end
+  names-visitor = A.default-map-visitor.{
+    env: scope-env-from-env(initial-env),
     s_program(self, l, headers, body):
       headers-and-env = for fold(acc from { e: self.env, hs: [] }, h from headers):
         cases(A.Header) h:
           | s_import(l, file, name) =>
-            atom-env = get-atom(name, env, let-bind)
+            atom-env = get-atom(name, acc.e, let-bind)
             new-header = A.s_import(l, file, atom-env.atom)
             { e: atom-env.env, hs: link(new-header, acc.hs) }
           | else => acc
@@ -395,10 +419,10 @@ fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
     s_let_expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
         cases(A.LetBind) b:
-          | s_letrec_bind(l2, bind, expr) =>
+          | s_let_bind(l2, bind, expr) =>
             atom-env = get-atom(bind.id, acc.e, let-bind)
             visit-expr = expr.visit(self.{env: acc.e})
-            new-bind = A.s_letrec_bind(l2, A.s_bind(l2, atom-env.atom, bind.ann))
+            new-bind = A.s_let_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann), visit-expr)
             {
               e: atom-env.env,
               bs: link(new-bind, acc.bs)
@@ -406,7 +430,7 @@ fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
           | s_var_bind(l2, bind, expr) =>
             atom-env = get-atom(bind.id, acc.e, var-bind)
             visit-expr = expr.visit(self.{env: acc.e})
-            new-bind = A.s_var_bind(l2, A.s_bind(l2, atom-env.atom, bind.ann))
+            new-bind = A.s_var_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann), visit-expr)
             {
               e: atom-env.env,
               bs: link(new-bind, acc.bs)
@@ -419,14 +443,14 @@ fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
     end,
     s_letrec(self, l, binds, body):
       bind-env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, b from binds):
-        atom-env = get-atom(b.bind.id, acc.env, letrec-bind)
+        atom-env = get-atom(b.b.id, acc.env, letrec-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       new-visitor = self.{env: bind-env-and-atoms.env}
       visit-binds = for map2(b from binds, a from bind-env-and-atoms.atoms.reverse()):
         cases(A.LetrecBind) b:
           | s_letrec_bind(l2, bind, expr) =>
-            new-bind = A.s_bind(l2, a, bind.ann)
+            new-bind = A.s_bind(l2, false, a, bind.ann)
             A.s_letrec_bind(l2, new-bind, expr.visit(new-visitor))
         end
       end
@@ -440,7 +464,7 @@ fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, id, ann) => A.s_bind(l2, at, ann.visit(self))
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, false, at, ann)
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
@@ -454,30 +478,38 @@ fun resolve-names(p :: A.Program, env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, id, ann) => A.s_bind(l2, at, ann.visit(self))
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann)
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
       new-check = self.{env: env-and-atoms.env}.option(_check)
       A.s_method(l, new-args, ann, doc, new-body, new-check)
     end,
-    s_id(self, l, id):
+    s_assign(self, l, id, expr):
       cases(A.Name) id:
         | s_name(s) =>
-          if env.has-key(s):
-            cases (ScopeBinding) env.get(s):
-              | let-bind(atom) => A.s_id(l, atom)
-              | letrec-bind(atom) => A.s_id_letrec(l, atom)
-              | var-bind(atom) => A.s_id_var(l, atom)
+          if self.env.has-key(s):
+            cases (ScopeBinding) self.env.get(s):
+              | var-bind(atom) => A.s_assign(l, atom, expr.visit(self))
+              | else => raise("Assignment to non-var-binding " + torepr(l))
             end
-          else: A.s_id(l, names.s_global(s))
+          else:
+            raise("Assignment to global " + torepr(l))
           end
-        | s_underscore =>
-          A.s_id(l, names.make-atom("underscore"))
-        | else => raise("Wasn't expecting a non-s_name in resolve-names id: " + torepr(id))
+        | else => raise("Wasn't expecting a non-s_name in resolve-names for assignment: " + torepr(id))
       end
     end,
-    s_bind(self, l, id, ann): raise("Should not reach bindings in resolve-names") end
+    s_id(self, l, id): handle-id(self.env, l, id) end,
+    s_id_letrec(self, l, id): handle-id(self.env, l, id) end,
+    s_id_var(self, l, id): handle-id(self.env, l, id) end,
+    s_variant_member(self, l, typ, bind):
+      # TODO(joe): visit more carefully once types arrive
+      # Skip for now so we can have the bind check below
+      # be meaningful
+      A.s_variant_member(l, typ, bind)
+    end,
+    s_bind(self, l, shadows, id, ann): raise("Should not reach bindings in resolve-names" + torepr(l) + torepr(id)) end
   }
+  p.visit(names-visitor)
 end
 

@@ -44,7 +44,7 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
   cases(A.Header) h:
     | s_provide_all(l) =>
       ids = A.block-ids(b)
-      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id.tostring()), A.s_id(l, id)) end)
+      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, id)) end)
       A.s_provide(l, obj)
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:
@@ -59,6 +59,19 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
 end
 
 fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
+  doc: "Desugar non-scope and non-check based constructs.
+        Preconditions on program:
+          - well-formed
+          - contains no s_provide in headers
+          - contains no s_let, s_var, s_data, s_check, or s_check_test
+          - all where blocks are none
+        Postconditions on program:
+          - in addition to preconditions,
+            contains no s_for, s_if, s_op, s_method_field,
+                        s_cases, s_left_app, s_not, s_when, s_if_pipe, s_list
+                        s_paren
+          - contains no s_underscore in expression position (but it may
+            appear in binding positions as in s_let_bind, s_letrec_bind)"
   cases(A.Program) program:
     | s_program(l, headers, body) =>
       A.s_program(l, headers, desugar-expr(mt-d-env, body))
@@ -69,7 +82,7 @@ end
 fun mk-bind(l, id): A.s_bind(l, false, id, A.a_blank);
 
 fun mk-id(loc, base):
-  a = names.make-atom(base)
+  a = names.s_name(base)
   { id: a, id-b: mk-bind(loc, a), id-e: A.s_id(loc, a) }
 end
 
@@ -106,7 +119,7 @@ fun make-match(l, case-name, fields):
           when mtype <> A.s_normal:
             raise("Non-normal member in variant, NYI: " + torepr(f))
           end
-          A.s_dot(l2, self-id.id-e, bind.id.tostring())
+          A.s_dot(l2, self-id.id-e, bind.id)
       end
     end
   A.s_method(l, [self-id, cases-id, else-id].map(_.id-b), A.a_blank, "",

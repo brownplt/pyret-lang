@@ -521,6 +521,10 @@ PString.prototype.brand = function(b) {
     return brandClone(newStr, this, b);
 };
 
+PString.prototype.toString = function() {
+  return "PString(" + this.s + ")";
+};
+
 
 /**Tests whether an object is a PString
     @param {Object} obj the item to test
@@ -1101,10 +1105,12 @@ function createMethodDict() {
     */
     function isPyretException(val) { return val instanceof PyretFailException; }
     PyretFailException.prototype.toString = function() {
-      return toReprJS(this.exn, "tostring") + "\n" +
+      var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.pyretStack.map(function(s) {
-            return s.src + " at " + s.line + ":" + (s.column + 1);
-          }).join("\n");
+            return s ? s.src + " at " + s.line + ":" + (s.column + 1) : "<unknown frame>";
+          }).join("\n") :
+        "<no stack trace>";
+      return toReprJS(this.exn, "tostring") + "\n" + stackStr;
     };
 
     /**
@@ -1326,6 +1332,9 @@ function createMethodDict() {
       this.exn = e;
       this.stats = stats;
     }
+    FailureResult.prototype.toString = function() {
+      return "FailureResult(" + this.exn + ")";
+    };
     /**
       Tests if result is a FailueResult
       @param {Object} val the value to test
