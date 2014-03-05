@@ -102,10 +102,12 @@ data AExpr:
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,
     tosource(self):
-      str-if + break-one + self.c.tosource() + str-colon +
-          PP.nest(INDENT, break-one + self.t.tosource()) +
-        str-elsecolon
-          PP.nest(INDENT, break-one + self.e.tosource())
+      PP.group(
+        str-if + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
+          + PP.nest(INDENT, break-one + self.t.tosource())
+          + break-one + str-elsecolon
+          + PP.nest(INDENT, break-one + self.e.tosource())
+          + break-one + str-end)
     end
   | a-lettable(e :: ALettable) with:
     label(self): "a-lettable" end,

@@ -51,7 +51,7 @@ cases (C.ParsedArguments) parsed-options:
         anfed = N.anf-program(cleaned)
         print("")
         print("ANFed:")
-        each(print, anfed.body.tosource().pretty(80))
+        each(print, anfed.tosource().pretty(80))
 
         split = AS.ast-split(anfed.body)
         print("")
