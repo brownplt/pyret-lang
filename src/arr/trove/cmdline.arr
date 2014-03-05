@@ -209,10 +209,8 @@ arguments do not satisfy the requirements of the Params dictionary.'
         cases(List<String>) remaining:
           | empty => results
           | link(first, more-args) =>
-            if builtins.string-substring(first, 0, 2) == "--":
-              key-parts =
-                builtins.string-split(
-                  builtins.string-substring(first, 2, builtins.string-length(first)), "=", false)
+            if string-substring(first, 0, 2) == "--":
+              key-parts = string-split(string-substring(first, 2, string-length(first)), "=", false)
               key = key-parts.first
               if full-options.has-key(key):
                 cases(Param) full-options.get(key):
@@ -249,7 +247,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                                 [key, key, parser.parse-string()]),
                               results)
                           | link(val, rest) =>
-                            if builtins.string-char-at(val, 0) == "-":
+                            if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
@@ -278,7 +276,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                         cases(List<String>) more-args:
                           | empty => handle-repeated(results, repeated, key, default)
                           | link(val, rest) =>
-                            if builtins.string-char-at(val, 0) == "-":
+                            if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) =>
@@ -305,8 +303,8 @@ arguments do not satisfy the requirements of the Params dictionary.'
               else:
                 arg-error("Unknown command line option --" + key, results)
               end
-            else if builtins.string-substring(first, 0, 1) == "-":
-              key = builtins.string-substring(first, 1, builtins.string-length(first))
+            else if string-substring(first, 0, 1) == "-":
+              key = string-substring(first, 1, string-length(first))
               lookup = 
                 if option-aliases.has-key(key) and full-options.has-key(option-aliases.get(key)):
                   full-options.get(option-aliases.get(key))

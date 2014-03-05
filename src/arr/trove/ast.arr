@@ -386,7 +386,7 @@ data Expr:
           cases(List) rest:
             | empty => first.tosource()
             | link(second, rest2) =>
-              op = break-one + PP.str(builtins.string-substring(self.op, 2, builtins.string-length(self.op))) + break-one
+              op = break-one + PP.str(string-substring(self.op, 2, string-length(self.op))) + break-one
               nested = for list.fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
@@ -395,7 +395,7 @@ data Expr:
       end
     end
   | s_check_test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
-    tosource(self): PP.infix(INDENT, 1, PP.str(builtins.string-substring(self.op, 2, builtins.string-length(self.op))), self.left.tosource(), self.right.tosource()) end
+    tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
   | s_not(l :: Loc, expr :: Expr) with:
     label(self): "s_not" end,
     tosource(self): PP.nest(INDENT, PP.flow([str-not, self.expr.tosource()])) end

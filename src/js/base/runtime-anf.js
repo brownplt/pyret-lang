@@ -1108,115 +1108,10 @@ function createMethodDict() {
 
     setParam("current-checker", nullChecker);
 
-    var string_substring = function(s, min, max) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(min, thisRuntime.isNumber);
-      thisRuntime.checkIf(max, thisRuntime.isNumber);
-      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
-    }
-    var string_replace = function(s, find, replace) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(find, thisRuntime.isString);
-      thisRuntime.checkIf(replace, thisRuntime.isString);
-      return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
-    }
-
-
-    var string_append = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
-      return thisRuntime.makeString(l.concat(r));
-    }
-    var string_contains = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
-      return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
-    }
-    var string_length = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      return thisRuntime.makeNumber(s.length);
-    }
-    var string_tonumber = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      var num = jsnums.fromString(s);
-      if(num !== false) {
-        return makeNumberBig(/**@type {Bignum}*/ (num));
-      }
-      else {
-        return makeNothing();
-      }
-    }
-    var string_repeat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      var resultStr = "";
-      // TODO(joe): loop up to a fixnum?
-      for(var i = 0; i < jsnums.toFixnum(n); i++) {
-        resultStr += s;
-      }
-      return makeString(resultStr);
-    }
-    var string_split = function(s, splitstr, repeated) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(splitstr, thisRuntime.isString);
-      
-      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
-      // TODO: Repeated?
-      return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
-    }
-    var string_charat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      
-      //TODO: Handle bignums that are beyond javascript
-      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
-    }
-    var string_toupper = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      return thisRuntime.makeString(s.toUpperCase());
-    }
-    var string_tolower = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      return thisRuntime.makeString(s.toLowerCase());
-    }
-
-
-    var num_max = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isNumber);
-      thisRuntime.checkIf(r, thisRuntime.isNumber);
-      if (jsnums.greaterThanOrEqual(l, r)) { return l; } else { return r; }
-    }
-
-    var num_min = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isNumber);
-      thisRuntime.checkIf(r, thisRuntime.isNumber);
-      if (jsnums.lessThanOrEqual(l, r)) { return l; } else { return r; }
-    }
-
-    var num_abs = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      return thisRuntime.makeNumberBig(jsnums.abs(n));
-    }
-      
-
     /** type {!PBase} */
     var builtins = makeObject({
         'has-field': hasField,
         'equiv': sameP,
-        'string-contains': makeFunction(string_contains),
-        'string-append': makeFunction(string_append),
-        'string-length': makeFunction(string_length),
-        'string-tonumber': makeFunction(string_tonumber),
-        'string-repeat': makeFunction(string_repeat),
-        'string-substring': makeFunction(string_substring),
-        'string-replace': makeFunction(string_replace),
-        'string-split': makeFunction(string_split),
-        'string-char-at': makeFunction(string_charat),
-        'string-toupper': makeFunction(string_toupper),
-        'string-tolower': makeFunction(string_tolower),
-        'num-max': makeFunction(num_max),
-        'num-min': makeFunction(num_min),
-        'num-abs': makeFunction(num_abs),
         'current-checker': makeFunction(function() {
           return getParam("current-checker");
         })
@@ -1744,6 +1639,122 @@ function createMethodDict() {
     };
 
 
+
+    var string_substring = function(s, min, max) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(min, thisRuntime.isNumber);
+      thisRuntime.checkIf(max, thisRuntime.isNumber);
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
+    }
+    var string_replace = function(s, find, replace) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(find, thisRuntime.isString);
+      thisRuntime.checkIf(replace, thisRuntime.isString);
+      return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
+    }
+
+
+    var string_append = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeString(l.concat(r));
+    }
+    var string_contains = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
+    }
+    var string_length = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeNumber(s.length);
+    }
+    var string_tonumber = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      var num = jsnums.fromString(s);
+      if(num !== false) {
+        return makeNumberBig(/**@type {Bignum}*/ (num));
+      }
+      else {
+        return makeNothing();
+      }
+    }
+    var string_repeat = function(s, n) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      var resultStr = "";
+      // TODO(joe): loop up to a fixnum?
+      for(var i = 0; i < jsnums.toFixnum(n); i++) {
+        resultStr += s;
+      }
+      return makeString(resultStr);
+    }
+    var string_split = function(s, splitstr, repeated) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(splitstr, thisRuntime.isString);
+      
+      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      // TODO: Repeated?
+      return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
+    }
+    var string_charat = function(s, n) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      
+      //TODO: Handle bignums that are beyond javascript
+      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
+    }
+    var string_toupper = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeString(s.toUpperCase());
+    }
+    var string_tolower = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeString(s.toLowerCase());
+    }
+
+
+    var num_max = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      if (jsnums.greaterThanOrEqual(l, r)) { return l; } else { return r; }
+    }
+
+    var num_min = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      if (jsnums.lessThanOrEqual(l, r)) { return l; } else { return r; }
+    }
+
+    var num_abs = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.abs(n));
+    }
+      
+    var num_sin = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.sin(n));
+    }
+    var num_cos = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.cos(n));
+    }
+    var num_tan = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.tan(n));
+    }
+    var num_asin = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.asin(n));
+    }
+    var num_acos = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.acos(n));
+    }
+    var num_atan = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.atan(n));
+    }
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
@@ -1779,6 +1790,12 @@ function createMethodDict() {
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
           'num-abs': makeFunction(num_abs),
+          'num-sin': makeFunction(num_sin),
+          'num-cos': makeFunction(num_cos),
+          'num-tan': makeFunction(num_tan),
+          'num-asin': makeFunction(num_asin),
+          'num-acos': makeFunction(num_acos),
+          'num-atan': makeFunction(num_atan),
 
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),

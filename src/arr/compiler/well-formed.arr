@@ -132,7 +132,7 @@ fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   end
 end
 
-fun opname(op): builtins.string-substring(op, 2, builtins.string-length(op)) end
+fun opname(op): string-substring(op, 2, string-length(op)) end
 fun reachable-ops(self, l, op, ast):
   cases(A.Expr) ast:
     | s_not(l2, _) =>

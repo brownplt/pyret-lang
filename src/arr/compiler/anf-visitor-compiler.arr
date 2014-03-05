@@ -49,7 +49,7 @@ js-id-of = block:
   fun(id :: String):
     if js-ids.has-key(id):
       js-ids.get(id)
-    else: no-hyphens = builtins.string-replace(id, "-", "_DASH_")
+    else: no-hyphens = string-replace(id, "-", "_DASH_")
       safe-id = G.make-name(no-hyphens)
       js-ids.set(id, safe-id)
       safe-id

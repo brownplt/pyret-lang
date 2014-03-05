@@ -24,7 +24,7 @@ fun resolve-header(h :: A.Header, b :: A.Expr):
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:
         | s_file_import(file) =>
-          if builtins.string-contains(file, "/"): h
+          if string-contains(file, "/"): h
           else: A.s_import(l, A.s_file_import("./" + file), name)
           end
         | else => h
