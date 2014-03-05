@@ -348,6 +348,29 @@ compiler-visitor = {
   end
 }
 
+remove-useless-if-visitor = N.default-map-visitor.{
+  a-if(self, l, c, t, e):
+    cases(N.AVal) c:
+      | a-bool(l, test) =>
+        if test: t.visit(self) else: e.visit(self) end
+      | else => N.a-if(l, c.visit(self), t.visit(self), e.visit(self))
+    end
+  end
+}
+
+check:
+  d = N.dummy-loc
+  true1 = N.a-if(d, N.a-bool(d, true), N.a-num(d, 1), N.a-num(d, 2))
+  true1.visit(remove-useless-if-visitor) is N.a-num(d, 1)
+
+  false4 = N.a-if(d, N.a-bool(d, false), N.a-num(d, 3), N.a-num(d, 4))
+  false4.visit(remove-useless-if-visitor) is N.a-num(d, 4)
+
+  N.a-if(d, N.a-id(d, "x"), true1, false4).visit(remove-useless-if-visitor) is
+    N.a-if(d, N.a-id(d, "x"), N.a-num(d, 1), N.a-num(d, 4))
+
+end
+
 fun splitting-compiler(env):
   fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
   namespace-ids = env.bindings.filter(CS.is-builtin-id)
@@ -356,7 +379,8 @@ fun splitting-compiler(env):
   end
   compiler-visitor.{
     a-program(self, l, headers, body):
-      split = S.ast-split(body)
+      simplified = body.visit(remove-useless-if-visitor)
+      split = S.ast-split(simplified)
       ids = headers.map(_.name).map(js-id-of)
       filenames = headers.map(fun(h):
           cases(N.AHeader) h:

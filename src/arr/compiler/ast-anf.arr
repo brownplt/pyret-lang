@@ -138,6 +138,10 @@ data AVariant:
     ) with:
     label(self): "a-variant" end,
     tosource(self): PP.str("a-variant") end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data AMemberType:
@@ -391,10 +395,22 @@ default-map-visitor = {
     a-var(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
   a-try(self, l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr):
-    a-try(self, l, body.visit(self), b.visit(self), _except.visit(self))
+    a-try(l, body.visit(self), b.visit(self), _except.visit(self))
+  end,
+  a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
+    a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
+  end,
+  a-variant(self, l :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
+    a-variant(l, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
+  end,
+  a-singleton-variant(self, l :: Loc, name :: String, with-members :: List<AField>):
+    a-singleton-variant(l, name, with-members.map(_.visit(self)))
+  end,
+  a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
+    a-variant-member(l, member-type, bind.visit(self))
   end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
-    a-split-app(self, l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
+    a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
   a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
@@ -409,10 +425,10 @@ default-map-visitor = {
     a-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
   a-help-app(self, l :: Loc, f :: String, args :: List<AVal>):
-    a-help-app(self, l, f, args.map(_.visit(self)))
+    a-help-app(l, f, args.map(_.visit(self)))
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
-    a-obj(self, l, fields.map(_.visit(self)))
+    a-obj(l, fields.map(_.visit(self)))
   end,
   a-update(self, l :: Loc, super :: AVal, fields :: List<AField>):
     a-update(l, super.visit(self), fields.map(_.visit(self)))
@@ -457,13 +473,13 @@ default-map-visitor = {
     a-undefined(l)
   end,
   a-id(self, l :: Loc, id :: String):
-    a-id(id)
+    a-id(l, id)
   end,
   a-id-var(self, l :: Loc, id :: String):
-    a-id-var(id)
+    a-id-var(l, id)
   end,
   a-id-letrec(self, l :: Loc, id :: String):
-    a-id-letrec(id)
+    a-id-letrec(l, id)
   end
 }
 
