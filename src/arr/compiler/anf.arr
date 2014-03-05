@@ -139,7 +139,13 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
               | s_cyclic => N.a-cyclic
               | s_mutable => N.a-mutable
             end
-            N.a-variant-member(l2, a-type, anf-bind(b))
+            new-bind = cases(A.Bind) b:
+              | s_bind(l, shadows, name, ann) =>
+                cases(A.Name) name:
+                  | s_atom(base, serial) => N.a-bind(l, base, ann)
+                end
+            end
+            N.a-variant-member(l2, a-type, new-bind)
         end
       end
       fun anf-variant(v :: A.Variant, kv :: (N.AVariant -> N.AExpr)):

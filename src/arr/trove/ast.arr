@@ -1517,7 +1517,7 @@ default-map-visitor = {
   end,
 
   s_bind(self, l, shadows, name, ann):
-    s_bind(l, shadows, name, ann)
+    s_bind(l, shadows, name, ann.visit(self))
   end,
 
   s_var_bind(self, l, bind, expr):
@@ -1840,6 +1840,31 @@ default-map-visitor = {
       body :: Expr
       ):
     s_datatype_constructor(l, self-arg, body.visit(self))
+  end,
+
+  a_blank(self): a_blank end,
+  a_any(self): a_any end,
+  a_name(self, l, id): a_name(l, id) end,
+  a_arrow(self, l, args, ret):
+    a_arrow(l, args.map(_.visit(self)), ret.visit(self))
+  end,
+  a_method(self, l, args, ret):
+    a_method(l, args.map(_.visit(self)), ret.visit(self))
+  end,
+  a_record(self, l, fields):
+    a_record(l, fields.map(_.visit(self)))
+  end,
+  a_app(self, l, ann, args):
+    a_app(l, ann.visit(self), args.map(_.visit(self)))
+  end,
+  a_pred(self, l, ann, exp):
+    a_pred(l, ann.visit(self), exp.visit(self))
+  end,
+  a_dot(self, l, obj, field):
+    a_dot(l, obj, field)
+  end,
+  a_field(self, l, name, ann):
+    a_field(l, name, ann.visit(self))
   end
 }
 

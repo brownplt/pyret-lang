@@ -422,7 +422,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s_let_bind(l2, bind, expr) =>
             atom-env = get-atom(bind.id, acc.e, let-bind)
             visit-expr = expr.visit(self.{env: acc.e})
-            new-bind = A.s_let_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann), visit-expr)
+            new-bind = A.s_let_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.e})), visit-expr)
             {
               e: atom-env.env,
               bs: link(new-bind, acc.bs)
@@ -430,7 +430,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s_var_bind(l2, bind, expr) =>
             atom-env = get-atom(bind.id, acc.e, var-bind)
             visit-expr = expr.visit(self.{env: acc.e})
-            new-bind = A.s_var_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann), visit-expr)
+            new-bind = A.s_var_bind(l2, A.s_bind(l2, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.e})), visit-expr)
             {
               e: atom-env.env,
               bs: link(new-bind, acc.bs)
@@ -450,7 +450,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-binds = for map2(b from binds, a from bind-env-and-atoms.atoms.reverse()):
         cases(A.LetrecBind) b:
           | s_letrec_bind(l2, bind, expr) =>
-            new-bind = A.s_bind(l2, false, a, bind.ann)
+            new-bind = A.s_bind(l2, false, a, bind.ann.visit(self.{env: bind-env-and-atoms.env}))
             A.s_letrec_bind(l2, new-bind, expr.visit(new-visitor))
         end
       end
@@ -464,7 +464,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, false, at, ann)
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, false, at, ann.visit(self.{env: env-and-atoms.env}))
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
@@ -478,7 +478,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann)
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann.visit(self.{env: env-and-atoms.env}))
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
@@ -503,10 +503,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     s_id_letrec(self, l, id): handle-id(self.env, l, id) end,
     s_id_var(self, l, id): handle-id(self.env, l, id) end,
     s_variant_member(self, l, typ, bind):
-      # TODO(joe): visit more carefully once types arrive
-      # Skip for now so we can have the bind check below
-      # be meaningful
-      A.s_variant_member(l, typ, bind)
+      new-bind = cases(A.Bind) bind:
+        | s_bind(l2, shadows, name, ann) =>
+          atom-env = get-atom(name, self.env, let-bind)
+          A.s_bind(l2, shadows, atom-env.atom, ann.visit(self))
+      end
+      A.s_variant_member(l, typ, new-bind)
     end,
     s_bind(self, l, shadows, id, ann): raise("Should not reach bindings in resolve-names" + torepr(l) + torepr(id)) end
   }

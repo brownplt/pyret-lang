@@ -57,6 +57,27 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
   end
 end
 
+fun desugar-ann(nv :: DesugarEnv, a :: A.Ann) -> A.Ann:
+  cases(A.Ann) a:
+    | a_blank => a
+    | a_any => a
+    | a_name(_, _) => a
+    | a_dot(_, _, _) => a
+    | a_arrow(l, args, ret) =>
+      A.a_arrow(l, args.map(desugar-ann(nv, _)), desugar-ann(nv, ret))
+    | a_method(l, args, ret) =>
+      A.a_arrow(l, args.map(desugar-ann(nv, _)), desugar-ann(nv, ret))
+    | a_app(l, base, args) =>
+      A.a_app(l, desugar-ann(nv, base), args.map(desugar-ann(nv, _)))
+    | a_record(l, fields) =>
+      A.a_record(l, for map(f from fields):
+        A.a_field(l, f.name, desugar-ann(nv, f.ann))
+      end)
+    | a_pred(l, ann, exp) =>
+      A.a_pred(l, desugar-ann(nv, ann), desugar-expr(nv, exp))
+  end
+end
+
 fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
   doc: "Desugar non-scope and non-check based constructs.
         Preconditions on program:
@@ -170,9 +191,13 @@ fun desugar-case-branch(nv, c):
   cases(A.CasesBranch) c:
     | s_cases_branch(l2, name, args, body) =>  
       desugar-member(nv,
-        A.s_data_field(l2, A.s_str(l2, name), A.s_lam(l2, [], args, A.a_blank, "", body, none)))
+        A.s_data_field(
+          l2,
+          A.s_str(l2, name),
+          A.s_lam(l2, [], args.map(desugar-bind(nv, _)), A.a_blank, "", body, none)))
   end
 end
+
 fun desugar-cases(l, ann, val, branches, else-block):
   val-id = mk-id(l, "cases-val")
   cases-object = A.s_obj(l, branches)
@@ -204,6 +229,13 @@ where:
             ]),
           A.s_lam(d, [], [], A.a_blank, "", A.s_num(d, 4), none)])))
 
+end
+
+fun desugar-variant-member(nv, m):
+  cases(A.VariantMember) m:
+    | s_variant_member(l, typ, bind) =>
+      A.s_variant_member(l, typ, desugar-bind(nv, bind))
+  end
 end
 
 fun desugar-member(nv, f): 
@@ -333,6 +365,14 @@ fun<T> desugar-opt(f :: (DesugarEnv, T -> T), nv :: DesugarEnv, opt :: Option<T>
   end
 end
 
+fun desugar-bind(nv, b :: A.Bind):
+  cases(A.Bind) b:
+    | s_bind(l, shadows, name, ann) =>
+      A.s_bind(l, shadows, name, desugar-ann(nv, ann))
+    | else => raise("Non-bind given to desugar-bind: " + torepr(b))
+  end
+end
+
 fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
   cases(A.Expr) expr:
     | s_block(l, stmts) =>
@@ -345,22 +385,22 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       ds-curry(nv, l, f, ([o] + args).map(desugar-expr(nv, _)))
     | s_lam(l, params, args, ann, doc, body, _check) =>
       new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
-      A.s_lam(l, params, args, ann, doc, desugar-expr(new-env, body), desugar-opt(desugar-expr, nv, _check))
+      A.s_lam(l, params, args.map(desugar-bind(nv, _)), desugar-ann(nv, ann), doc, desugar-expr(new-env, body), desugar-opt(desugar-expr, nv, _check))
     | s_method(l, args, ann, doc, body, _check) =>
       new-env = for fold(nv2 from nv, arg from args): extend-id(nv2, arg.id) end
-      A.s_method(l, args, ann, doc, desugar-expr(new-env, body), desugar-opt(desugar-expr, nv, _check))
+      A.s_method(l, args.map(desugar-bind(nv, _)), desugar-ann(nv, ann), doc, desugar-expr(new-env, body), desugar-opt(desugar-expr, nv, _check))
     | s_let_expr(l, binds, body) =>
       new-binds = for fold(b-e from { b: [], e: nv }, bind from binds):
         cases(A.LetBind) bind:
           | s_let_bind(l2, b, val) =>
             new-env = b-e.e^extend-id(b.id)
             new-val = desugar-expr(b-e.e, val)
-            { b: link(A.s_let_bind(l2, b, new-val), b-e.b),
+            { b: link(A.s_let_bind(l2, desugar-bind(b-e.e, b), new-val), b-e.b),
               e: new-env }
           | s_var_bind(l2, b, val) =>
             new-env = b-e.e^extend-var(b.id)
             new-val = desugar-expr(b-e.e, val)
-            { b: link(A.s_var_bind(l2, b, new-val), b-e.b),
+            { b: link(A.s_var_bind(l2, desugar-bind(b-e.e, b), new-val), b-e.b),
               e: new-env }
         end
       end
@@ -373,7 +413,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       new-binds = for map(bind from binds):
           cases(A.LetrecBind) bind:
             | s_letrec_bind(l2, b, val) =>
-              A.s_letrec_bind(l2, b, desugar-expr(new-env, val))
+              A.s_letrec_bind(l2, desugar-bind(new-env, b), desugar-expr(new-env, val))
           end
         end
       A.s_letrec(l, new-binds, desugar-expr(new-env, body))
@@ -383,11 +423,18 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           | s_variant(l2, vname, members, with-members) =>
             m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, members))
             tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, members))
-            A.s_variant(l2, vname, members, ([m, tr] + with-members).map(desugar-member(nv, _)))
+            A.s_variant(
+              l2,
+              vname,
+              members.map(desugar-variant-member(nv, _)),
+              ([m, tr] + with-members).map(desugar-member(nv, _)))
           | s_singleton_variant(l2, vname, with-members) =>
             m = A.s_data_field(l2, A.s_str(l2, "_match"), make-match(l2, vname, []))
             tr = A.s_data_field(l2, A.s_str(l2, "_torepr"), make-torepr(l2, vname, []))
-            A.s_singleton_variant(l2, vname, ([m, tr] + with-members).map(desugar-member(nv, _)))
+            A.s_singleton_variant(
+              l2,
+              vname,
+              ([m, tr] + with-members).map(desugar-member(nv, _)))
         end
       end
       A.s_data_expr(l, name, params, mixins.map(desugar-expr(nv, _)), variants.map(extend-variant),
@@ -414,7 +461,7 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
     | s_extend(l, obj, fields) => A.s_extend(l, desugar-expr(nv, obj), fields.map(desugar-member(nv, _)))
     | s_for(l, iter, bindings, ann, body) => 
       values = bindings.map(_.value).map(desugar-expr(nv, _))
-      the-function = A.s_lam(l, [], bindings.map(_.bind), ann, "", desugar-expr(nv, body), none)
+      the-function = A.s_lam(l, [], bindings.map(_.bind).map(desugar-bind(nv, _)), desugar-ann(nv, ann), "", desugar-expr(nv, body), none)
       A.s_app(l, desugar-expr(nv, iter), link(the-function, values))
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
