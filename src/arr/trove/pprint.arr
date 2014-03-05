@@ -83,7 +83,7 @@ sharing:
     var curcol = 0
     var is-flat = true
     var in-group = false
-    fun blanks(n :: Number): " ".repeat(n) end
+    fun blanks(n :: Number): string-repeat(" ", n) end
     fun gen-output():
       (for list.map(lines from output):
           for list.fold(acc from "", piece from lines):
@@ -110,7 +110,7 @@ sharing:
     end
     fun run(pdoc):
       if is-mt-doc(pdoc): emit_string("", 0)
-      else if is-str(pdoc): emit_string(pdoc.s, pdoc.s.length())
+      else if is-str(pdoc): emit_string(pdoc.s, string-length(pdoc.s))
       else if is-hardline(pdoc):
         if is-flat: "Hardline isn't flat"
         else: emit_newline()

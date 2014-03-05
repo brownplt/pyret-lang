@@ -148,7 +148,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
               | none => acc
               | some(short) =>
                 if acc.options.has-key(short):
-                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict, []))
+                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict(), []))
                 else: acc.{options: acc.options, aliases: acc.aliases.set(short, key)}
                 end
             end
@@ -209,8 +209,8 @@ arguments do not satisfy the requirements of the Params dictionary.'
         cases(List<String>) remaining:
           | empty => results
           | link(first, more-args) =>
-            if first.substring(0, 2) == "--":
-              key-parts = first.substring(2, first.length()).split("=", false)
+            if string-substring(first, 0, 2) == "--":
+              key-parts = string-split(string-substring(first, 2, string-length(first)), "=", false)
               key = key-parts.first
               if full-options.has-key(key):
                 cases(Param) full-options.get(key):
@@ -247,7 +247,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                                 [key, key, parser.parse-string()]),
                               results)
                           | link(val, rest) =>
-                            if val.char-at(0) == "-":
+                            if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
@@ -276,7 +276,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                         cases(List<String>) more-args:
                           | empty => handle-repeated(results, repeated, key, default)
                           | link(val, rest) =>
-                            if val.char-at(0) == "-":
+                            if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
                               cases(Either) parsed-val:
                                 | left(v) =>
@@ -303,8 +303,8 @@ arguments do not satisfy the requirements of the Params dictionary.'
               else:
                 arg-error("Unknown command line option --" + key, results)
               end
-            else if first.substring(0, 1) == "-":
-              key = first.substring(1, first.length())
+            else if string-substring(first, 0, 1) == "-":
+              key = string-substring(first, 1, string-length(first))
               lookup = 
                 if option-aliases.has-key(key) and full-options.has-key(option-aliases.get(key)):
                   full-options.get(option-aliases.get(key))

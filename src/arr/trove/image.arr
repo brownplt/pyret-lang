@@ -380,7 +380,7 @@ end
 example = overlay([
     irectangle(30, 60, filled, rgb(255, 128, 0)), 
     iellipse(60, 30, filled, rgb(255, 0, 255))])
-_ = print(example.to-svg().tostring())
+_ = print(tostring(example.to-svg()))
 red = rgb(255, 0, 0)
 black = rgb(0,0,0)
 white = rgb(255,255,255)
@@ -394,8 +394,8 @@ example2 = overlay([
     iellipse(60, 60, filled, black),
     empty-image(120, 120, white)
   ])
-_ = print(example2.to-svg().tostring())
+_ = print(tostring(example2.to-svg()))
 example3 = iplace-image(
   itriangle(32, filled, red), 24, 24, crop, irectangle(48, 48, filled, rgb(128,128,128)))
-_ = print(example3.to-svg().tostring())
+_ = print(tostring(example3.to-svg()))
 nothing

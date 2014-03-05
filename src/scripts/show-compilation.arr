@@ -31,16 +31,16 @@ cases (C.ParsedArguments) parsed-options:
         print("Parsed:")
         each(print, parsed.tosource().pretty(80))
 
-        resolved = R.resolve-scope(U.append-nothing-if-necessary(parsed), CS.no-builtins)
+        resolved = R.desugar-scope(U.append-nothing-if-necessary(parsed), CS.minimal-builtins)
         print("")
         print("Resolved:")
         each(print, resolved.tosource().pretty(80))
         
-        desugared = D.desugar(resolved, CS.no-builtins)
+        desugared = R.resolve-names(D.desugar(resolved, CS.minimal-builtins), CS.minimal-builtins)
         print("")
         print("Desugared:")
         each(print, desugared.tosource().pretty(80))
-
+        
         comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
         cases(CM.CompileResult) comp:
           | ok(c) =>
@@ -50,7 +50,7 @@ cases (C.ParsedArguments) parsed-options:
           | err(problems) =>
             print("")
             print("Compilation failed:")
-            each(print, problems.map(_.tostring()))
+            each(print, problems.map(tostring))
         end
     end
   | arg-error(m, _) =>

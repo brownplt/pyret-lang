@@ -6,22 +6,12 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["./namespace", "./number-dict", "./string-dict", "./boolean-dict", "../../../lib/js-numbers/src/js-numbers"],
-       function (Namespace, NumberDictIn, StringDictIn, BooleanDictIn, jsnumsIn) {
+define(["require", "./namespace", "../../../lib/js-numbers/src/js-numbers"],
+       function (require, Namespace, jsnumsIn) {
 
 
 
   //var Namespace = require('./namespace.js').Namespace;
-
-  /**@type {{getBaseNumberDict : function(!Object) : !Object}}*/
-  var NumberDict = NumberDictIn;
-
-  /**@type {{getBaseStringDict : function(!Object) : !Object}}*/
-  var StringDict = StringDictIn;
-
-  /**@type {{getBaseBooleanDict : function(!Object) : !Object}}*/
-  var BooleanDict = BooleanDictIn;
-
 
   /**
     @type {{
@@ -139,11 +129,8 @@ function inherits(sub, from) {
 
 //Set up heirarchy
 //We need to set it up before all the other classes
-inherits(PNumber, PBase);
 inherits(PNothing, PBase);
 inherits(PObject, PBase);
-inherits(PString, PBase);
-inherits(PBoolean, PBase);
 inherits(PFunction, PBase);
 inherits(PMethod, PBase);
 inherits(POpaque, PBase);
@@ -399,66 +386,21 @@ var nothing = makeNothing();
 /*********************
         Number
 **********************/
-/**The representation of all numerical values
-    @constructor
-    @param {Bignum} n the number to store in this pyret number
-    @extends {PBase}
-*/
-function PNumber(n) { 
-    /**@type {Bignum}*/
-    this.n = n;
-
-    /**@type {!Object.<string, !PBase>}*/
-    this.dict = createNumberDict(); 
-
-    /**@type {!Object.<string, Boolean>}*/
-    this.brands = noBrands;
-}
-//PNumber.prototype = Object.create(PBase.prototype); 
-inherits(PNumber, PBase);
-
-/**Clones the number
-  @return {!PNumber} With same n and dict
-*/
-PNumber.prototype.updateDict = function(dict, keepBrands) { 
-    var newNum = makeNumberBig(this.n); 
-    newNum.dict = dict;
-    newNum.brands = keepBrands ? this.brands : noBrands;
-    return newNum;
-};
-
-/**Clones the number
-  @param {!String} b The brand to add
-  @return {!PNumber} With same n and dict
-*/
-PNumber.prototype.brand = function(b) { 
-    var newNum = makeNumberBig(this.n); 
-    return brandClone(newNum, this, b);
-};
-
-
-
 /**Tests whether an object is a PNumber
     @param {Object} obj the item to test
     @return {boolean} true if object is a PNumber
 */
-function isNumber(obj) { return obj instanceof PNumber; }
-
-var baseNumberDict = {}; //Holder
-
-/**Creates a copy of the common dictionary all objects have
-  @return {!Object.<string, !PBase>} the dictionary for a number
-*/
-function createNumberDict() {
-    return baseNumberDict;
+function isNumber(obj) { 
+  return jsnums.isSchemeNumber(obj);
 }
+
 /**Makes a PNumber using the given bignum
 
   @param {Bignum} n the number the PNumber will contain
   @return {!PNumber} with value n
 */
 function makeNumberBig(n) {
-   return new PNumber(n); 
+  return n;
 }
 
 /**Makes a PNumber using the given JSNum
@@ -467,7 +409,7 @@ function makeNumberBig(n) {
   @return {!PNumber} with value n
 */
 function makeNumber(n) {
-   return new PNumber(jsnums.fromFixnum(n)); 
+  return jsnums.fromFixnum(n);
 }
 //TODO: for BIG numbers, we'll need to compile them in as strings and use jsnums.fromString(_) to get the value
 /**Makes a PNumber using the given string
@@ -480,66 +422,18 @@ function makeNumberFromString(s) {
     if(result === false) {
         throw makeMessageException("Could not create number from: " + s);
     }
-   return new PNumber(/**@type {Bignum}*/ (result)); 
+  return result;
 }
 
 /*********************
         String
 **********************/
-/**The representation of all string pyret values
-    @constructor
-    @param {string} s the string to store in this pyret number
-    @extends {PBase}
-*/
-function PString(s) { 
-    /**@type {string}*/
-    this.s    = s;
-
-    /**@type {!Object.<string, !PBase>}*/
-    this.dict = createStringDict(); 
-
-    /**@type {!Object.<string, Boolean>}*/
-    this.brands = noBrands;
-}
-//PString.prototype = Object.create(PBase.prototype); 
-
-/**Clones the string
-  @return {!PString} With same n and dict
-*/
-PString.prototype.updateDict = function(dict, keepBrands) { 
-    var newStr = makeString(this.s); 
-    newStr.dict = dict;
-    newStr.brands = keepBrands ? this.brands : noBrands;
-    return newStr;
-};
-
-/**Clones the string
-  @return {!PString} With same n and dict
-*/
-PString.prototype.brand = function(b) { 
-    var newStr = makeString(this.s); 
-    return brandClone(newStr, this, b);
-};
-
-PString.prototype.toString = function() {
-  return "PString(" + this.s + ")";
-};
-
-
 /**Tests whether an object is a PString
     @param {Object} obj the item to test
     @return {boolean} true if object is a PString
 */
-function isString(obj) { return obj instanceof PString; }
-
-/**@type !Object.<string, !PBase>*/
-var baseStringDict = {}; //Holder
-
-/**Creates a copy of the common dictionary all objects have
-  @return {!Object.<string, !PBase>} the dictionary for a number
-*/
-function createStringDict() {
-    return baseStringDict;
+function isString(obj) { 
+  return typeof obj === 'string';
 }
 
 /**Makes a PString using the given s
@@ -549,68 +443,15 @@ function createStringDict() {
 */
 function makeString(s) {
   if(typeof s !== "string") { throw Error("Non-string given to makeString " + JSON.stringify(s)); }
-  return new PString(s); 
+  return s;
 }
 
 /*********************
        Boolean 
 **********************/
-/**The representation of all boolean pyret values
-    @constructor
-    @param {boolean} b the boolean to store in this pyret number
-    @extends {PBase}
-*/
-function PBoolean(b) { 
-    /**@type {boolean}*/
-    this.b    = b;
-
-    /**@type {!Object.<string, !PBase>}*/
-    this.dict = createBooleanDict(); 
-
-    /**@type {!Object.<string, Boolean>}*/
-    this.brands = noBrands;
-}
-//PBoolean.prototype = Object.create(PBase.prototype); 
-
-/**Clones the Boolean
-  @return {!PBoolean} With same b and dict
-*/
-PBoolean.prototype.updateDict = function(dict, keepBrands) { 
-    var newBool = new PBoolean(this.b); 
-    newBool.dict = dict;
-    newBool.brands = keepBrands ? this.brands : noBrands;
-    return newBool;
-};
-
-/**Clones the Boolean and adds a brand
-  @return {!PBoolean} With same b and dict
-*/
-PBoolean.prototype.brand = function(b) { 
-    var newBool = new PBoolean(this.b); 
-    return brandClone(newBool, this, b);
-};
-
-//The inherit methods on all booleans
-/**@type !Object.<string, !PBase>*/
-var baseBooleanDict = {}; //Holder
-
-/**Creates a copy of the common dictionary all boolean have
-  @return {!Object.<string, !PBase>} the dictionary for a boolean
-*/
-function createBooleanDict() {
-    return baseBooleanDict;
-}
-
-/**Tests whether an object is a PBoolean
-    @param {Object} obj the item to test
-    @return {boolean} true if object is a PBoolean
-*/
-function isBoolean(obj) { return obj instanceof PBoolean; }
-
-
 //Boolean Singletons
-var pyretTrue =  null;//new PBoolean(true);
-var pyretFalse = null; //new PBoolean(false);
+var pyretTrue =  true;
+var pyretFalse = false;
 
 /**Makes a PBoolean using the given s
 
@@ -618,9 +459,12 @@ var pyretFalse = null; //new PBoolean(false);
   @return {!PBoolean} with value b
 */
 function makeBoolean(b) {
-    return (b ? pyretTrue : pyretFalse);
+  return b;
 }
 
+function isBoolean(b) {
+  return b === !!b;
+}
 
 /**Tests whether the boolean is equal to the singleton true value
 
@@ -932,16 +776,16 @@ function createMethodDict() {
             var next = top.todo[top.todo.length - 1];
             if (isNumber(next)) {
               top.todo.pop();
-              top.done.push(String(/**@type {!PNumber}*/ (next).n));
+              top.done.push(String(/**@type {!PNumber}*/ (next)));
             } else if (isBoolean(next)) {
               top.todo.pop();
-              top.done.push(String(/**@type {!PBoolean}*/ (next).b));
+              top.done.push(String(/**@type {!PBoolean}*/ (next)));
             } else if (isString(next)) {
               top.todo.pop();
               if (method === "_torepr") {
-                top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next).s)) + '"');
+                top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
               } else {
-                top.done.push(String(/**@type {!PString}*/ (next).s));
+                top.done.push(String(/**@type {!PString}*/ (next)));
               }
             } else if (isObject(next)) {
               if (next.dict[method]) {
@@ -1013,7 +857,7 @@ function createMethodDict() {
     var torepr = makeFunction(function(val) {return makeString(toReprJS(val, "_torepr"));});
     var tostring = makeFunction(function(val) {
         if(isString(val)) {
-          return makeString(val.s);
+          return makeString(val);
         }
         else {
           return makeString(toReprJS(val, "tostring"));
@@ -1042,7 +886,7 @@ function createMethodDict() {
     */
        function(val){
         if (isString(val)) {
-          var repr = val.s;
+          var repr = val;
         }
         else {
           var repr = toReprJS(val, "tostring");
@@ -1073,7 +917,7 @@ function createMethodDict() {
     */
        function(val){
         if (isString(val)) {
-          var repr = val.s;
+          var repr = val;
         }
         else {
           var repr = toReprJS(val, "tostring");
@@ -1143,7 +987,7 @@ function createMethodDict() {
         */
         function(obj, str) {
           checkIf(str, isString);
-          return makeBoolean(hasProperty(obj.dict, str.s));
+          return makeBoolean(hasProperty(obj.dict, str));
         }
       );
 
@@ -1168,15 +1012,16 @@ function createMethodDict() {
         left = current.left;
         right = current.right;
         if (left === right) { continue; }
-        if (isNumber(left) && isNumber(right) && jsnums.equals(left.n, right.n)) {
+        if (isNumber(left) && isNumber(right) && jsnums.equals(left, right)) {
           continue;
         }
-        else if (isString(left) && isString(right) && left.s === right.s) {
-          continue;
-        }
-        else if (isBoolean(left) && isBoolean(right) && left.b === right.b) {
-          continue;
-        }
+        // redundant becase it's just === now
+        // else if (isString(left) && isString(right) && left.s === right.s) {
+        //   continue;
+        // }
+        // else if (isBoolean(left) && isBoolean(right) && left.b === right.b) {
+        //   continue;
+        // }
         else if (isFunction(left) && isFunction(right) && left === right) {
           continue;
         }
@@ -1274,9 +1119,9 @@ function createMethodDict() {
 
 
     function unwrap(v) {
-      if(isNumber(v)) { return v.n; }
-      else if(isString(v)) { return v.s; }
-      else if(isBoolean(v)) { return v.b; }
+      if(isNumber(v)) { return v; }
+      else if(isString(v)) { return v; }
+      else if(isBoolean(v)) { return v; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
       else { throw makeMessageException("Cannot unwrap yet: " + v); }
@@ -1527,6 +1372,489 @@ function createMethodDict() {
       if(DEBUGLOG) { console.log.apply(console, arguments); }
     }
 
+    var plus = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeNumberBig(jsnums.add(l, r));
+      } else if (thisRuntime.isString(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isString);
+        return thisRuntime.makeString(l.concat(r));
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
+        try {
+          return thisRuntime.getField(l, "_plus").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_plus>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_plus>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _plus was not a number, string, or did not have a _plus method: " + JSON.stringify(l));
+      }
+    };
+
+    var minus = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
+        try {
+          return thisRuntime.getField(l, "_minus").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_minus>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_minus>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _minus was not a number, or did not have a _minus method: " + JSON.stringify(l));
+      }
+    };
+
+    var times = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
+        try {
+          return thisRuntime.getField(l, "_times").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_times>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_times>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _times was not a number, or did not have a _times method: " + JSON.stringify(l));
+      }
+    };
+
+    var divide = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        if (jsnums.equals(0, r)) {
+          throw makeMessageException("Division by zero");
+        }
+        return thisRuntime.makeNumberBig(jsnums.divide(l, r));
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
+        try {
+          return thisRuntime.getField(l, "_divide").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_divide>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_divide>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _divide was not a number, or did not have a _divide method: " + JSON.stringify(l));
+      }
+    };
+
+    var lessthan = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeBoolean(jsnums.lessThan(l, r));
+      } else if (thisRuntime.isString(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isString);
+        return thisRuntime.makeBoolean(l < r);
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
+        try {
+          return thisRuntime.getField(l, "_lessthan").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_lessthan>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_lessthan>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _lessthan was not a number, or did not have a _lessthan method: " + JSON.stringify(l));
+      }
+    };
+
+    var greaterthan = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeBoolean(jsnums.greaterThan(l, r));
+      } else if (thisRuntime.isString(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isString);
+        return thisRuntime.makeBoolean(l > r);
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
+        try {
+          return thisRuntime.getField(l, "_greaterthan").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_greaterthan>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_greaterthan>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _greaterthan was not a number, or did not have a _greaterthan method: " + JSON.stringify(l));
+      }
+    };
+
+    var lessequal = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r));
+      } else if (thisRuntime.isString(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isString);
+        return thisRuntime.makeBoolean(l <= r);
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
+        try {
+          return thisRuntime.getField(l, "_lessequal").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_lessequal>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_lessequal>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _lessequal was not a number, or did not have a _lessequal method: " + JSON.stringify(l));
+      }
+    };
+
+    var greaterequal = function(l, r) {
+      if (thisRuntime.isNumber(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r));
+      } else if (thisRuntime.isString(l)) {
+        thisRuntime.checkIf(r, thisRuntime.isString);
+        return thisRuntime.makeBoolean(l >= r);
+      } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
+        try {
+          return thisRuntime.getField(l, "_greaterequal").app(r);
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              captureExn: function(exn) { 
+                return exn.pyretStack.push({src: "<_greaterequal>", line: 1544, column: 80});
+              },
+              go: function(ret) {
+                return ret;
+              }
+            }
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push({src: "<_greaterequal>", line: 1554, column: 70});
+            }
+            throw e;
+          }
+        }
+      } else {
+        throw makeMessageException("First argument to _greaterequal was not a number, or did not have a _greaterequal method: " + JSON.stringify(l));
+      }
+    };
+
+
+
+    var string_substring = function(s, min, max) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(min, thisRuntime.isNumber);
+      thisRuntime.checkIf(max, thisRuntime.isNumber);
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
+    }
+    var string_replace = function(s, find, replace) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(find, thisRuntime.isString);
+      thisRuntime.checkIf(replace, thisRuntime.isString);
+      return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
+    }
+
+
+    var string_append = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeString(l.concat(r));
+    }
+    var string_contains = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
+    }
+    var string_length = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeNumber(s.length);
+    }
+    var string_tonumber = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      var num = jsnums.fromString(s);
+      if(num !== false) {
+        return makeNumberBig(/**@type {Bignum}*/ (num));
+      }
+      else {
+        return makeNothing();
+      }
+    }
+    var string_repeat = function(s, n) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      var resultStr = "";
+      // TODO(joe): loop up to a fixnum?
+      for(var i = 0; i < jsnums.toFixnum(n); i++) {
+        resultStr += s;
+      }
+      return makeString(resultStr);
+    }
+    var string_split = function(s, splitstr, repeated) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(splitstr, thisRuntime.isString);
+      
+      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      // TODO: Repeated?
+      return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
+    }
+    var string_charat = function(s, n) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      
+      //TODO: Handle bignums that are beyond javascript
+      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
+    }
+    var string_toupper = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeString(s.toUpperCase());
+    }
+    var string_tolower = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      return thisRuntime.makeString(s.toLowerCase());
+    }
+    var string_explode = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      return list.makeList(s.split("").map(thisRuntime.makeString));
+    }
+    var string_indexOf = function(s, find) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(find, thisRuntime.isString);
+      return thisRuntime.makeNumberBig(s.indexOf(find));
+    }
+
+
+    var num_max = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      if (jsnums.greaterThanOrEqual(l, r)) { return l; } else { return r; }
+    }
+
+    var num_min = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      if (jsnums.lessThanOrEqual(l, r)) { return l; } else { return r; }
+    }
+
+    var num_abs = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.abs(n));
+    }
+      
+    var num_sin = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.sin(n));
+    }
+    var num_cos = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.cos(n));
+    }
+    var num_tan = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.tan(n));
+    }
+    var num_asin = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.asin(n));
+    }
+    var num_acos = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.acos(n));
+    }
+    var num_atan = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.atan(n));
+    }
+
+    var num_modulo = function(n, mod) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(mod, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.modulo(n, mod));
+    }
+    var num_truncate = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      if (isNaN(n)) {
+        return n;
+      } else if (jsnums.greaterThanOrEqual(n, 0)) {
+        return thisRuntime.makeNumberBig(jsnums.floor(n));
+      } else {
+        return thisRuntime.makeNumberBig(jsnums.floor(n));
+      }
+    }
+    var num_sqrt = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.sqrt(n));
+    }
+    var num_ceiling = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.ceiling(n));
+    }
+    var num_floor = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.floor(n));
+    }
+    var num_log = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.log(n));
+    }
+    var num_exp = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.exp(n));
+    }
+    var num_exact = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.toExact(n));
+    }
+    var num_is_integer = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(jsnums.isInteger(n))
+    }
+    var num_expt = function(n, pow) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(pow, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.exp(n, pow));
+    }
+    var num_tostring = function(n, digits) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(digits, thisRuntime.isNumber);
+      var d = jsnums.toFixnum(digits);
+      var tenDigits = jsnums.expt(10, digits);
+      if (n != n) { return thisRuntime.makeString("NaN"); }
+      else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
+      else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
+      else if (jsnums.equals(n, jsnums.negative_zero)) { 
+        var s = "-0.";
+        for (var i = 0; i < d; i++)
+          s += "0";
+        return thisRuntime.makeString(s);
+      } else if (jsnums.isReal(n)) {
+        n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
+        var s = jsnums.toFixnum(n).toString().split(".");
+        s[1] = (s[1] || "").substring(0, d);
+        for (var i = s[1].length; i < d; i++)
+          s[1] += "0";
+        return thisRuntime.makeString(s[0] + "." + s[1]);
+      } else {
+        var nreal = jsnums.realPart(n);
+        nreal = jsnums.divide(jsnums.round(jsnums.multiply(nreal, tenDigits)), tenDigits)
+        var sreal = jsnums.toFixnum(nreal).toString().split(".");
+        sreal[1] = (sreal[1] || "").substring(0, d);
+        for (var i = sreal[1].length; i < d; i++)
+          sreal[1] += "0";
+        var nimag = jsnums.imaginaryPart(n);
+        nimag = jsnums.divide(jsnums.round(jsnums.multiply(nimag, tenDigits)), tenDigits)
+        var simag = jsnums.toFixnum(nimag).toString().split(".");
+        simag[1] = (simag[1] || "").substring(0, d);
+        for (var i = simag[1].length; i < d; i++)
+          simag[1] += "0";
+        if (simag[0][0] === "-" || simag[0][0] === "+") {
+          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + simag[0] + "." + simag[1] + "i");
+        } else {
+          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + "+" + simag[0] + "." + simag[1] + "i");
+        }
+      }
+    }
+  
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
@@ -1544,11 +1872,56 @@ function createMethodDict() {
           'nothing': nothing,
           'is-nothing': mkPred(isNothing),
           'is-number': mkPred(isNumber),
-          'is-boolean': mkPred(isNumber),
+          'is-boolean': mkPred(isBoolean),
           'is-string': mkPred(isString),
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
-          'gensym': gensym
+          'gensym': gensym,
+
+          '_plus': makeFunction(plus),
+          '_minus': makeFunction(minus),
+          '_times': makeFunction(times),
+          '_divide': makeFunction(divide),
+          '_lessthan': makeFunction(lessthan),
+          '_greaterthan': makeFunction(greaterthan),
+          '_greaterequal': makeFunction(greaterequal),
+          '_lessequal': makeFunction(lessequal),
+
+          'num-max': makeFunction(num_max),
+          'num-min': makeFunction(num_min),
+          'num-abs': makeFunction(num_abs),
+          'num-sin': makeFunction(num_sin),
+          'num-cos': makeFunction(num_cos),
+          'num-tan': makeFunction(num_tan),
+          'num-asin': makeFunction(num_asin),
+          'num-acos': makeFunction(num_acos),
+          'num-atan': makeFunction(num_atan),
+          'num-modulo': makeFunction(num_modulo),
+          'num-truncate': makeFunction(num_truncate),
+          'num-sqrt': makeFunction(num_sqrt),
+          'num-ceiling': makeFunction(num_ceiling),
+          'num-floor': makeFunction(num_floor),
+          'num-log': makeFunction(num_log),
+          'num-exp': makeFunction(num_exp),
+          'num-exact': makeFunction(num_exact),
+          'num-is-integer': makeFunction(num_is_integer),
+          'num-expt': makeFunction(num_expt),
+          'num-tostring': makeFunction(num_tostring),
+
+          'string-contains': makeFunction(string_contains),
+          'string-append': makeFunction(string_append),
+          'string-length': makeFunction(string_length),
+          'string-tonumber': makeFunction(string_tonumber),
+          'string-repeat': makeFunction(string_repeat),
+          'string-substring': makeFunction(string_substring),
+          'string-replace': makeFunction(string_replace),
+          'string-split': makeFunction(string_split),
+          'string-char-at': makeFunction(string_charat),
+          'string-toupper': makeFunction(string_toupper),
+          'string-tolower': makeFunction(string_tolower),
+          'string-explode': makeFunction(string_explode),
+          'string-index-of': makeFunction(string_indexOf)
+
         }),
         'run': run,
         'safeCall': safeCall,
@@ -1600,6 +1973,32 @@ function createMethodDict() {
         'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
+      
+        'plus': plus,
+        'minus': minus,
+        'times': times,
+        'divide': divide,
+        'lessthan': lessthan,
+        'greaterthan': greaterthan,
+        'greaterequal': greaterequal,
+        'lessequal': lessequal,
+
+        'num_max': num_max,
+        'num_min': num_min,
+        'num_abs': num_abs,
+
+        'string_append': string_append,
+        'string_contains': string_contains,
+        'string_length': string_length,
+        'string_tonumber': string_tonumber,
+        'string_repeat': string_repeat,
+        'string_substring': string_substring,
+        'string_replace': string_replace,
+        'string_split': string_split,
+        'string_charat': string_charat,
+        'string_toupper': string_toupper,
+        'string_tolower': string_tolower,
+
         'hasField' : hasField,
 
         'toReprJS' : toReprJS,
@@ -1618,16 +2017,6 @@ function createMethodDict() {
         'setParam' : setParam
     };
 
-    //Create the dictionaries 
-    //Note: Order is important
-    baseNumberDict = NumberDict.getBaseNumberDict(thisRuntime);
-    baseStringDict = StringDict.getBaseStringDict(thisRuntime);
-    baseBooleanDict = BooleanDict.getBaseBooleanDict(thisRuntime);
-
-    //Boolean Singletons, creating now that boolean dict exists
-    //Todo: Ensure no one has any copies of the old ones
-    pyretTrue = new PBoolean(true);
-    pyretFalse = new PBoolean(false);
     
     thisRuntime['pyretTrue'] = pyretTrue;
     thisRuntime['pyretFalse'] = pyretFalse;

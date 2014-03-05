@@ -57,7 +57,7 @@ fun main(args):
           | err(errors) =>
             print-error("Compilation errors:")
             for list.each(e from errors):
-              print-error(e.tostring())
+              print-error(tostring(e))
             end
             result
         end
@@ -90,7 +90,7 @@ fun main(args):
           | err(errors) =>
             print-error("Compilation errors:")
             for list.each(e from errors):
-              print-error(e.tostring())
+              print-error(tostring(e))
             end
             result
         end

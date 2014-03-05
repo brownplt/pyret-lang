@@ -9,6 +9,7 @@ docs/*.js
 docs/lang/*
 build/phase1
 build/phase2
+build/phase3
 deps/closure-compiler
 node_modules/
 *#

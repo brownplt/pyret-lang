@@ -11,9 +11,9 @@ data Location:
     format(self):
       self.file +
       ": line " +
-      self.line.tostring() +
+      tostring(self.line) +
       ", column " +
-      self.column.tostring()
+      tostring(self.column)
     end,
     tostring(self): self.format() end
 end

@@ -88,10 +88,10 @@ data Name:
 
   | s_atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
-    to-compiled(self): self.base + self.serial.tostring() end,
+    to-compiled(self): self.base + tostring(self.serial) end,
     tosource(self): PP.str(self.to-compiled()) end,
     tostring(self): self.to-compiled() end,
-    key(self): "atom#" + self.base + self.serial.tostring() end
+    key(self): "atom#" + self.base + tostring(self.serial) end
 end
 
 fun MakeName(start):
@@ -202,7 +202,7 @@ end
 
 data Hint:
   | h_use_loc(l :: Loc) with:
-    tosource(self): str-use-loc + PP.parens(PP.str(self.l.tostring())) end
+    tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 end
 
 data LetBind:
@@ -386,7 +386,7 @@ data Expr:
           cases(List) rest:
             | empty => first.tosource()
             | link(second, rest2) =>
-              op = break-one + PP.str(self.op.substring(2, self.op.length())) + break-one
+              op = break-one + PP.str(string-substring(self.op, 2, string-length(self.op))) + break-one
               nested = for list.fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
@@ -395,7 +395,7 @@ data Expr:
       end
     end
   | s_check_test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
-    tosource(self): PP.infix(INDENT, 1, PP.str(self.op.substring(2, self.op.length())), self.left.tosource(), self.right.tosource()) end
+    tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
   | s_not(l :: Loc, expr :: Expr) with:
     label(self): "s_not" end,
     tosource(self): PP.nest(INDENT, PP.flow([str-not, self.expr.tosource()])) end
@@ -480,7 +480,7 @@ data Expr:
     tosource(self): PP.number(self.n) end
   | s_bool(l :: Loc, b :: Bool) with:
     label(self): "s_bool" end,
-    tosource(self): PP.str(self.b.tostring()) end
+    tosource(self): PP.str(tostring(self.b)) end
   | s_str(l :: Loc, s :: String) with:
     label(self): "s_str" end,
     tosource(self): PP.str(torepr(self.s)) end

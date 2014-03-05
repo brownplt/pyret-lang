@@ -31,7 +31,7 @@ fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
   anfed = N.anf-program(program-ast)
   split = AS.ast-split(anfed.body)
   #split = AS.split-result-e([], anfed.body, set([]))
-  compiled = anfed.visit(AV.splitting-compiler)
+  compiled = anfed.visit(AV.splitting-compiler(env))
   
   ccp(compiled)
 end

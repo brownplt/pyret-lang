@@ -6,6 +6,7 @@ import "./ast-anf.arr" as N
 import "./ast-split.arr" as S
 import "./js-ast.arr" as J
 import "./gensym.arr" as G
+import "./compile-structs.arr" as CS
 import string-dict as D
 
 j-fun = J.j-fun
@@ -48,7 +49,7 @@ js-id-of = block:
   fun(id :: String):
     if js-ids.has-key(id):
       js-ids.get(id)
-    else: no-hyphens = id.replace("-", "_DASH_")
+    else: no-hyphens = string-replace(id, "-", "_DASH_")
       safe-id = G.make-name(no-hyphens)
       js-ids.set(id, safe-id)
       safe-id
@@ -347,62 +348,45 @@ compiler-visitor = {
   end
 }
 
-splitting-compiler = compiler-visitor.{
-  a-program(self, l, headers, body):
-    split = S.ast-split(body)
-    ids = headers.map(_.name).map(js-id-of)
-    filenames = headers.map(fun(h):
-        cases(N.AHeader) h:
-          | a-import-builtin(_, name, _) => "trove/" + name
-          | a-import-file(_, file, _) => file
-        end
-      end)
-    fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
-    namespace-ids = [
-        "test-print",
-        "print",
-        "display",
-        "print-error",
-        "display-error",
-        "tostring",
-        "torepr",
-        "brander",
-        "raise",
-        "nothing",
-        "builtins",
-        "is-nothing",
-        "is-number",
-        "is-string",
-        "is-boolean",
-        "is-object",
-        "is-function",
-        "gensym"
-      ]
-    namespace-binds = for map(n from namespace-ids):
-        j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
-      end
-    module-id = G.make-name(l.file)
-    module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
-    input-ids = ids.map(fun(f): G.make-name(f) end)
-    j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
-        j-return(j-fun(["RUNTIME", "NAMESPACE"],
-          j-block([
-            j-if(module-ref(module-id),
-              j-block([j-return(module-ref(module-id))]),
-              j-block([
-                  j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
-                     j-block(
-                       [ j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0)) ] +
-                       namespace-binds +
-                       for map2(id from ids, in-id from input-ids):
-                         j-var(id, j-method(j-id("RUNTIME"), "getField", [inst(in-id), j-str("provide")]))
-                       end +
-                       split.helpers.map(compile-helper(self, _)) +
-                       [split.body.visit(self)]))),
-                  j-return(module-ref(module-id))
-                ]))
-             ])))
-      ]))])
+fun splitting-compiler(env):
+  fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
+  namespace-ids = env.bindings.filter(CS.is-builtin-id)
+  namespace-binds = for map(n from namespace-ids):
+    j-var(js-id-of(n.id), j-method(j-id("NAMESPACE"), "get", [j-str(n.id)]))
+  end
+  compiler-visitor.{
+    a-program(self, l, headers, body):
+      split = S.ast-split(body)
+      ids = headers.map(_.name).map(js-id-of)
+      filenames = headers.map(fun(h):
+          cases(N.AHeader) h:
+            | a-import-builtin(_, name, _) => "trove/" + name
+            | a-import-file(_, file, _) => file
+          end
+        end)
+      module-id = G.make-name(l.file)
+      module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
+      input-ids = ids.map(fun(f): G.make-name(f) end)
+      j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
+                j-return(j-fun(["RUNTIME", "NAMESPACE"],
+                    j-block([
+                        j-if(module-ref(module-id),
+                          j-block([j-return(module-ref(module-id))]),
+                          j-block([
+                              j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
+                                  j-block(
+                                    [ j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0)) ] +
+                                    namespace-binds +
+                                    for map2(id from ids, in-id from input-ids):
+                                      j-var(id, j-method(j-id("RUNTIME"), "getField", [inst(in-id), j-str("provide")]))
+                                    end +
+                                    split.helpers.map(compile-helper(self, _)) +
+                                    [split.body.visit(self)]))),
+                              j-return(module-ref(module-id))
+                            ]))
+                      ])))
+            ]))])
     end
   }
+end
 

@@ -19,40 +19,40 @@ data CompileError:
     tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
   | unbound-id(id :: A.Expr) with:
     tostring(self):
-      "Identifier " + self.id.id.tostring() + " is used at " + self.id.l.tostring() + ", but is not defined"
+      "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
     end
   | unbound-var(id :: String, loc :: Loc) with:
     tostring(self):
-      "Assigning to unbound variable " + self.id + " at " + self.loc.tostring()
+      "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
     end
   | pointless-var(loc :: Loc) with:
     tostring(self):
-      "The anonymous mutable variable at " + self.loc.tostring() + " can never be re-used"
+      "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
   | pointless-shadow(loc :: Loc) with:
     tostring(self):
-      "The anonymous identifier at " + self.loc.tostring() + " can't actually shadow anything"
+      "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
     tostring(self):
-      "Identifier " + self.id + " is assigned at " + self.loc.tostring()
-        + ", but its definition at " + self.prev-loc.tostring() + " is not assignable."
+      "Identifier " + self.id + " is assigned at " + tostring(self.loc)
+        + ", but its definition at " + tostring(self.prev-loc) + " is not assignable."
         + "  (Only names declared with var are assignable.)"
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     tostring(self):
-      self.id + " is declared as both a variable (at " + self.var-loc.tostring() + ")"
-        + " and an identifier (at " + self.id-loc.tostring() + ")"
+      self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
+        + " and an identifier (at " + tostring(self.id-loc) + ")"
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
-      "Identifier " + self.id + " is declared at " + self.new-loc.tostring()
-        + ", but is already declared at " + self.old-loc.tostring()
+      "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
+        + ", but is already declared at " + tostring(self.old-loc)
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
-      "Identifier " + self.id + " is declared twice, at " + self.new-loc.tostring()
-        + " and at " + self.old-loc.tostring()
+      "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
+        + " and at " + tostring(self.old-loc)
     end
 end
 
@@ -62,25 +62,66 @@ data CompileBinding:
 end
 
 runtime-builtins = [
-    builtin-id("test-print"),
-    builtin-id("print"),
-    builtin-id("display"),
-    builtin-id("print-error"),
-    builtin-id("display-error"),
-    builtin-id("tostring"),
-    builtin-id("torepr"),
-    builtin-id("brander"),
-    builtin-id("raise"),
-    builtin-id("nothing"),
-    builtin-id("builtins"),
-    builtin-id("is-nothing"),
-    builtin-id("is-number"),
-    builtin-id("is-string"),
-    builtin-id("is-boolean"),
-    builtin-id("is-object"),
-    builtin-id("is-function"),
-    builtin-id("gensym")
-  ]
+  builtin-id("test-print"),
+  builtin-id("print"),
+  builtin-id("display"),
+  builtin-id("print-error"),
+  builtin-id("display-error"),
+  builtin-id("tostring"),
+  builtin-id("torepr"),
+  builtin-id("brander"),
+  builtin-id("raise"),
+  builtin-id("nothing"),
+  builtin-id("builtins"),
+  builtin-id("is-nothing"),
+  builtin-id("is-number"),
+  builtin-id("is-string"),
+  builtin-id("is-boolean"),
+  builtin-id("is-object"),
+  builtin-id("is-function"),
+  builtin-id("gensym"),
+  builtin-id("_plus"),
+  builtin-id("_minus"),
+  builtin-id("_times"),
+  builtin-id("_divide"),
+  builtin-id("_lessthan"),
+  builtin-id("_lessequal"),
+  builtin-id("_greaterthan"),
+  builtin-id("_greaterequal"),
+  builtin-id("string-contains"),
+  builtin-id("string-append"),
+  builtin-id("string-length"),
+  builtin-id("string-tonumber"),
+  builtin-id("string-repeat"),
+  builtin-id("string-substring"),
+  builtin-id("string-replace"),
+  builtin-id("string-split"),
+  builtin-id("string-char-at"),
+  builtin-id("string-toupper"),
+  builtin-id("string-tolower"),
+  builtin-id("string-explode"),
+  builtin-id("string-index-of"),
+  builtin-id("num-max"),
+  builtin-id("num-min"),
+  builtin-id("num-abs"),
+  builtin-id("num-sin"),
+  builtin-id("num-cos"),
+  builtin-id("num-tan"),
+  builtin-id("num-asin"),
+  builtin-id("num-acos"),
+  builtin-id("num-atan"),
+  builtin-id("num-modulo"),
+  builtin-id("num-truncate"),
+  builtin-id("num-sqrt"),
+  builtin-id("num-ceiling"),
+  builtin-id("num-floor"),
+  builtin-id("num-log"),
+  builtin-id("num-exp"),
+  builtin-id("num-exact"),
+  builtin-id("num-is-integer"),
+  builtin-id("num-expt"),
+  builtin-id("num-tostring")
+]
 
 no-builtins = compile-env([])
 

@@ -65,7 +65,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     }
   complete-summary = for fold(summary from init, br from block-results.reverse()):
     fun format-loc(l):
-      l.file + ":" + l.line.tostring() + ":" + l.column.tostring()
+      l.file + ":" + tostring(l.line) + ":" + tostring(l.column)
     end
     block-summary = for fold(s from init, tr from br.test-results.reverse()):
       cases(TestResult) tr:
@@ -83,7 +83,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
           }
       end
     end
-    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + " (" + block-summary.passed.tostring() + "/" + block-summary.total.tostring() + ") \n"
+    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     rest-of-message =
       if block-summary.failed == 0: ""
       else: block-summary.message
@@ -100,13 +100,13 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     happy-msg = if complete-summary.passed == 1:
         "Looks shipshape, your test passed, mate!"
       else:
-        "Looks shipshape, all " + complete-summary.passed.tostring() + " tests passed, mate!"
+        "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
       end
     complete-summary.{message: happy-msg}
   else:
     c = complete-summary
     c.{
-      message: c.message + "\n\nPassed: " + c.passed.tostring() + "; Failed: " + c.failed.tostring() + "; Total: " + c.total.tostring() + "\n"
+      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Total: " + tostring(c.total) + "\n"
     }
   end
 end

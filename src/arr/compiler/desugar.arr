@@ -44,12 +44,12 @@ fun desugar-header(h :: A.Header, b :: A.Expr):
   cases(A.Header) h:
     | s_provide_all(l) =>
       ids = A.block-ids(b)
-      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, id), A.s_id(l, id)) end)
+      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, tostring(id)), A.s_id(l, id)) end)
       A.s_provide(l, obj)
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:
         | s_file_import(file) =>
-          if file.contains("/"): h
+          if string-contains(file, "/"): h
           else: A.s_import(l, A.s_file_import("./" + file), name)
           end
         | else => h
@@ -90,7 +90,7 @@ fun make-torepr(l, vname, fields):
   self = mk-id(l, "self")
   fun str(s): A.s_str(l, s) end
   fun call-torepr(val):
-    A.s_app(l, A.s_id(l, A.s_name("torepr")), [A.s_dot(l, self.id-e, val.bind.id.tostring())])
+    A.s_app(l, A.s_id(l, A.s_name("torepr")), [A.s_dot(l, self.id-e, tostring(val.bind.id))])
   end
   fun concat(v1, v2):
     A.s_op(l, "op+", v1, v2)
@@ -119,7 +119,7 @@ fun make-match(l, case-name, fields):
           when mtype <> A.s_normal:
             raise("Non-normal member in variant, NYI: " + torepr(f))
           end
-          A.s_dot(l2, self-id.id-e, bind.id)
+          A.s_dot(l2, self-id.id-e, tostring(bind.id))
       end
     end
   A.s_method(l, [self-id, cases-id, else-id].map(_.id-b), A.a_blank, "",
@@ -419,7 +419,9 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
       A.s_app(l, desugar-expr(nv, iter), link(the-function, values))
     | s_op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
-        | some(field) => A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
+        | some(field) =>
+          A.s_app(l, A.s_id(l, A.s_name(field)), [desugar-expr(nv, left), desugar-expr(nv, right)])
+          # A.s_app(l, A.s_dot(l, desugar-expr(nv, left), field), [desugar-expr(nv, right)])
         | none =>
           fun thunk(e): A.s_lam(l, [], [], A.a_blank, "", A.s_block(l, [e]), none) end
           fun opbool(fld):
@@ -437,10 +439,16 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
                     fun(e1, e2):
                       A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "equiv"), [e1, e2])
                     end),
-                A.s_bool(l, false))],
+                  A.s_bool(l, false))],
               A.s_bool(l, true))
-          else if op == "opor": opbool("_or")
-          else if op == "opand": opbool("_and")
+          else if op == "opor":
+            A.s_if_else(l,
+              [A.s_if_branch(l, desugar-expr(nv, left), A.s_bool(l, true))],
+              desugar-expr(nv, right))
+          else if op == "opand":
+            A.s_if_else(l,
+              [A.s_if_branch(l, desugar-expr(nv, left), desugar-expr(nv, right))],
+              A.s_bool(l, false))
           else:
             raise("Only arith ops so far, " + op + " did not match")
           end
@@ -483,11 +491,11 @@ where:
 
   prog2 = p("[1,2,1 + 2]")
   ds(prog2) satisfies
-    equiv(p("link(1, link(2, link(1._plus(2), empty)))"))
+    equiv(p("link(1, link(2, link(_plus(1, 2), empty)))"))
 
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3) satisfies
-    equiv(p("map(fun(elt): elt._plus(1) end, l)"))
+    equiv(p("map(fun(elt): _plus(elt, 1) end, l)"))
 
 # Some kind of bizarre parse error here
 #  prog4 = p("(((5 + 1)) == 6) or o^f()")

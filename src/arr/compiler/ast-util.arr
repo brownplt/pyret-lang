@@ -380,7 +380,7 @@ fun check-unbound(initial-env, ast, options):
           | none => add-error(CS.unbound-var(A.s_assign(loc, id, value)), loc)
           | some(b) =>
             when not b.mut:
-              add-error(CS.bad-assignment(id.tostring(), loc, b.loc))
+              add-error(CS.bad-assignment(tostring(id), loc, b.loc))
             end
         end
         value.visit(self)
@@ -401,7 +401,7 @@ fun check-unbound(initial-env, ast, options):
                     if s == "self": nothing
                     else:
                       when not options.allow-shadowed:
-                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
                       end
                     end
                   | s_underscore => nothing
@@ -428,7 +428,7 @@ fun check-unbound(initial-env, ast, options):
                     if s == "self": nothing
                     else:
                       when not options.allow-shadowed:
-                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
                       end
                     end
                   | else => nothing
@@ -448,7 +448,7 @@ fun check-unbound(initial-env, ast, options):
           cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
             | none => nothing
             | some(b) =>
-              if b.mut: add-error(CS.mixed-id-var(bind.id.tostring(), b.loc, bind.l))
+              if b.mut: add-error(CS.mixed-id-var(tostring(bind.id), b.loc, bind.l))
               else:
                 cases(A.Name) bind.id:
                   | s_name(s) =>
@@ -456,7 +456,7 @@ fun check-unbound(initial-env, ast, options):
                     else if bind.shadows: nothing
                     else:
                       when not options.allow-shadowed:
-                        add-error(CS.shadow-id(bind.id.tostring(), bind.l, b.loc))
+                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
                       end
                     end
                   | else => nothing

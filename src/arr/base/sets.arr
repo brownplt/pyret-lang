@@ -62,7 +62,7 @@ sharing:
 end
 
 fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
-  branch(val, left.height().max(right.height()) + 1, left, right)
+  branch(val, num-max(left.height(), right.height()) + 1, left, right)
 end
 
 fun rebalance(tree :: AVLTree):
@@ -84,7 +84,7 @@ fun rebalance(tree :: AVLTree):
   end
   lh = tree.left.height()
   rh = tree.right.height()
-  if (lh - rh).abs() <= 1:
+  if num-abs(lh - rh) <= 1:
     tree
   else if (lh - rh) == 2:
     if tree.left.left.height() >= tree.left.right.height():
