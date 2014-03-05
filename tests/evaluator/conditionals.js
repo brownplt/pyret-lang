@@ -5,6 +5,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
   var rt;
   var P;
   var same;
+  var err;
 
   function performTest() {
 
@@ -12,6 +13,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
       P =  e.makeEvalCheckers(this, rt);
       same = P.checkEvalsTo;
+      err = P.checkError;
     });
     describe("if", function() {
       it("should dispatch on true and false", function(done) {
@@ -50,6 +52,19 @@ xfg("false", "true") +
         P.wait(done);
       });
 
+    });
+
+    describe("or", function() {
+      it("should error if given a non-boolean, but still short-circuit", function(done) {
+        var pte = function(e) {
+          return rt.unwrap(e.exn).indexOf("Pyret Type Error") !== -1;
+        };
+        err("false or 5", pte);
+        err("false or 'foo'", pte);
+        same("true or 'foo'", rt.pyretTrue);
+        same("true or block: raise('do not get here') end", rt.pyretTrue)
+        P.wait(done);
+      });
     });
 
     describe("when", function() {
