@@ -99,9 +99,28 @@ runtime-builtins = [
   builtin-id("string-char-at"),
   builtin-id("string-toupper"),
   builtin-id("string-tolower"),
-  builtin-id("num-min"),
+  builtin-id("string-explode"),
+  builtin-id("string-index-of"),
   builtin-id("num-max"),
-  builtin-id("num-abs")
+  builtin-id("num-min"),
+  builtin-id("num-abs"),
+  builtin-id("num-sin"),
+  builtin-id("num-cos"),
+  builtin-id("num-tan"),
+  builtin-id("num-asin"),
+  builtin-id("num-acos"),
+  builtin-id("num-atan"),
+  builtin-id("num-modulo"),
+  builtin-id("num-truncate"),
+  builtin-id("num-sqrt"),
+  builtin-id("num-ceiling"),
+  builtin-id("num-floor"),
+  builtin-id("num-log"),
+  builtin-id("num-exp"),
+  builtin-id("num-exact"),
+  builtin-id("num-is-integer"),
+  builtin-id("num-expt"),
+  builtin-id("num-tostring")
 ]
 
 no-builtins = compile-env([])

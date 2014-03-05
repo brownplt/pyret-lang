@@ -1711,6 +1711,16 @@ function createMethodDict() {
       thisRuntime.checkIf(s, thisRuntime.isString);
       return thisRuntime.makeString(s.toLowerCase());
     }
+    var string_explode = function(s) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      return list.makeList(s.split("").map(thisRuntime.makeString));
+    }
+    var string_indexOf = function(s, find) {
+      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkIf(find, thisRuntime.isString);
+      return thisRuntime.makeNumberBig(s.indexOf(find));
+    }
 
 
     var num_max = function(l, r) {
@@ -1755,6 +1765,96 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(jsnums.atan(n));
     }
 
+    var num_modulo = function(n, mod) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(mod, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.modulo(n, mod));
+    }
+    var num_truncate = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      if (isNaN(n)) {
+        return n;
+      } else if (jsnums.greaterThanOrEqual(n, 0)) {
+        return thisRuntime.makeNumberBig(jsnums.floor(n));
+      } else {
+        return thisRuntime.makeNumberBig(jsnums.floor(n));
+      }
+    }
+    var num_sqrt = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.sqrt(n));
+    }
+    var num_ceiling = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.ceiling(n));
+    }
+    var num_floor = function(n) { 
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.floor(n));
+    }
+    var num_log = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.log(n));
+    }
+    var num_exp = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.exp(n));
+    }
+    var num_exact = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.toExact(n));
+    }
+    var num_is_integer = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(jsnums.isInteger(n))
+    }
+    var num_expt = function(n, pow) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(pow, thisRuntime.isNumber);
+      return thisRuntime.makeNumberBig(jsnums.exp(n, pow));
+    }
+    var num_tostring = function(n, digits) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkIf(digits, thisRuntime.isNumber);
+      var d = jsnums.toFixnum(digits);
+      var tenDigits = jsnums.expt(10, digits);
+      if (n != n) { return thisRuntime.makeString("NaN"); }
+      else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
+      else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
+      else if (jsnums.equals(n, jsnums.negative_zero)) { 
+        var s = "-0.";
+        for (var i = 0; i < d; i++)
+          s += "0";
+        return thisRuntime.makeString(s);
+      } else if (jsnums.isReal(n)) {
+        n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
+        var s = jsnums.toFixnum(n).toString().split(".");
+        s[1] = (s[1] || "").substring(0, d);
+        for (var i = s[1].length; i < d; i++)
+          s[1] += "0";
+        return thisRuntime.makeString(s[0] + "." + s[1]);
+      } else {
+        var nreal = jsnums.realPart(n);
+        nreal = jsnums.divide(jsnums.round(jsnums.multiply(nreal, tenDigits)), tenDigits)
+        var sreal = jsnums.toFixnum(nreal).toString().split(".");
+        sreal[1] = (sreal[1] || "").substring(0, d);
+        for (var i = sreal[1].length; i < d; i++)
+          sreal[1] += "0";
+        var nimag = jsnums.imaginaryPart(n);
+        nimag = jsnums.divide(jsnums.round(jsnums.multiply(nimag, tenDigits)), tenDigits)
+        var simag = jsnums.toFixnum(nimag).toString().split(".");
+        simag[1] = (simag[1] || "").substring(0, d);
+        for (var i = simag[1].length; i < d; i++)
+          simag[1] += "0";
+        if (simag[0][0] === "-" || simag[0][0] === "+") {
+          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + simag[0] + "." + simag[1] + "i");
+        } else {
+          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + "+" + simag[0] + "." + simag[1] + "i");
+        }
+      }
+    }
+  
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
@@ -1796,6 +1896,17 @@ function createMethodDict() {
           'num-asin': makeFunction(num_asin),
           'num-acos': makeFunction(num_acos),
           'num-atan': makeFunction(num_atan),
+          'num-modulo': makeFunction(num_modulo),
+          'num-truncate': makeFunction(num_truncate),
+          'num-sqrt': makeFunction(num_sqrt),
+          'num-ceiling': makeFunction(num_ceiling),
+          'num-floor': makeFunction(num_floor),
+          'num-log': makeFunction(num_log),
+          'num-exp': makeFunction(num_exp),
+          'num-exact': makeFunction(num_exact),
+          'num-is-integer': makeFunction(num_is_integer),
+          'num-expt': makeFunction(num_expt),
+          'num-tostring': makeFunction(num_tostring),
 
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
@@ -1808,6 +1919,8 @@ function createMethodDict() {
           'string-char-at': makeFunction(string_charat),
           'string-toupper': makeFunction(string_toupper),
           'string-tolower': makeFunction(string_tolower),
+          'string-explode': makeFunction(string_explode),
+          'string-index-of': makeFunction(string_indexOf)
 
         }),
         'run': run,
