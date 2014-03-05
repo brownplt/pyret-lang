@@ -3,6 +3,7 @@
 import cmdline as C
 import parse-pyret as P
 import "./arr/compiler/desugar.arr" as D
+import "./arr/compiler/anf.arr" as A
 import "./arr/compiler/compile.arr" as CM
 import "./arr/compiler/compile-structs.arr" as CS
 import "./arr/compiler/resolve-scope.arr" as R
@@ -43,7 +44,6 @@ cases (C.ParsedArguments) parsed-options:
         print("Desugared:")
         each(print, desugared.tosource().pretty(80))
 
-        
         cleaned = desugared.visit(U.merge-nested-blocks)
         .visit(U.flatten-single-blocks)
         .visit(U.link-list-visitor(CS.minimal-builtins))
