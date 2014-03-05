@@ -261,7 +261,7 @@ data AVal:
     tosource(self): PP.squote(PP.str(self.s)) end
   | a-bool(l :: Loc, b :: Bool) with:
     label(self): "a-bool" end,
-    tosource(self): PP.str(self.b.tostring()) end
+    tosource(self): PP.str(tostring(self.b)) end
   # used for letrec
   | a-undefined(l :: Loc) with:
     label(self): "a-undefined" end,

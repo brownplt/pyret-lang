@@ -55,7 +55,7 @@ fun get-checks(stmts):
         check-name = cases(Option) name:
           | none =>
             standalone-counter := standalone-counter + 1
-            "check-block-" + standalone-counter.tostring()
+            "check-block-" + tostring(standalone-counter)
           | some(v) => v
         end
         link(check-info(l, check-name, body.visit(check-stmts-visitor)), lst)

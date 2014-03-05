@@ -206,9 +206,9 @@ fun range(start, stop):
   if start < stop:       link(start, range(start + 1, stop))
   else if start == stop: empty
   else:  raise("range: start greater than stop: ("
-                                 + start.tostring()
+                                 + tostring(start)
                                  + ", "
-                                 + stop.tostring()
+                                 + tostring(stop)
                                  + ")")
   end
 end

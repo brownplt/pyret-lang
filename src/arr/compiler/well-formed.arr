@@ -72,7 +72,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
           if A.is-s_underscore(id): nothing
           else:
             cases(Option) list.find(fun(b): b.id == id end, rest):
-              | some(found) => wf-error2("Found duplicate id " + id.tostring() + " in list of bindings", l, found.l)
+              | some(found) => wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
               | none => ensure-unique-ids(rest)
             end
           end
@@ -93,7 +93,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           else if shadows: nothing
           else:
             cases(Option) list.find(fun(b): b.id == id end, rest):
-              | some(found) => duplicate-id(id.tostring(), l, found.l)
+              | some(found) => duplicate-id(tostring(id), l, found.l)
               | none => ensure-unique-bindings(rest)
             end
           end
@@ -132,7 +132,7 @@ fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   end
 end
 
-fun opname(op): op.substring(2, op.length()) end
+fun opname(op): builtins.string-substring(op, 2, builtins.string-length(op)) end
 fun reachable-ops(self, l, op, ast):
   cases(A.Expr) ast:
     | s_not(l2, _) =>
@@ -268,8 +268,8 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
     end,
     s_id(self, l, id):
-      when (id.tostring() == "check") or (id.tostring() == "where"):
-        wf-error("Cannot use `" + id.tostring() + "` as an identifier", l)
+      when (tostring(id) == "check") or (tostring(id) == "where"):
+        wf-error("Cannot use `" + tostring(id) + "` as an identifier", l)
       end
       true
     end

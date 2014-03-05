@@ -63,16 +63,16 @@ define(["./matchers"], function (matchers) {
 
 
       describe("Basic values", function() {
-          it("should have an n field on numbers", function() {
+          xit("should have an n field on numbers", function() {
             expect(rt.makeNumber(5).n).toEqual(5);
           });
 
-          it("should have an b field on booleans", function() {
+          xit("should have an b field on booleans", function() {
             expect(rt.makeBoolean(true).b).toEqual(true);
             expect(rt.makeBoolean(false).b).toEqual(false);
           });
 
-          it("should have an s field on strings", function() {
+          xit("should have an s field on strings", function() {
             expect(rt.makeString("hello world").s).toEqual("hello world");
             expect(rt.makeString("\n").s).toEqual("\n");
           });
@@ -126,9 +126,9 @@ define(["./matchers"], function (matchers) {
 
       describe("is* tests", function(){
           it("isBase works", function(){
-        expect(rt.isBase(aNum)).toEqual(    true) 
-        expect(rt.isBase(aBool)).toEqual(   true) 
-        expect(rt.isBase(aStr)).toEqual(    true) 
+        expect(rt.isBase(aNum)).toEqual(   false) 
+        expect(rt.isBase(aBool)).toEqual(  false) 
+        expect(rt.isBase(aStr)).toEqual(   false) 
         expect(rt.isBase(aFun)).toEqual(    true) 
         expect(rt.isBase(aMeth)).toEqual(   true) 
         expect(rt.isBase(aNoth)).toEqual(   true) 
@@ -206,66 +206,9 @@ define(["./matchers"], function (matchers) {
           });
 
 
-          it("should work on instances created by makeRuntime", function(){
-        //Inheritance depends on code order, ensure that the methods inside number etc are correct class
-        var plus = aNum.dict['_plus'];
-        expect(plus).not.toBeUndefined();
-        expect(rt.isMethod(plus)).toEqual(true);
-          });
       });
 
-      describe("Cloning", function() {
-          xit("should work for numbers", function() {
-        var orig = rt.makeNumber(42);
-        var clone = orig.clone();
-
-        expect(orig.n).toEqual(clone.n);
-        expect(orig.dict).not.toBeIdentical(clone.dict); 
-        expect(orig.brands).not.toBeIdentical(clone.brands); 
-          });
-
-          xit("should work for booleans", function() {
-        var orig = rt.makeBoolean(true);
-        var clone = orig.clone();
-
-        expect(orig.b).toEqual(clone.b);
-        expect(orig.dict).not.toBeIdentical(clone.dict); 
-        expect(orig.brands).not.toBeIdentical(clone.brands); 
-          });
-
-          xit("should work for strings", function() {
-        var orig = rt.makeString("pyret");
-        var clone = orig.clone();
-
-        expect(orig.s).toEqual(clone.s);
-        expect(orig.dict).not.toBeIdentical(clone.dict); 
-        expect(orig.brands).not.toBeIdentical(clone.brands); 
-          });
-
-          xit("should work for functions", function() {
-        var orig = rt.makeFunction(x);
-        var clone = orig.clone();
-
-        expect(orig.app).toEqual(clone.app);
-        expect(orig.arity).toEqual(clone.arity);
-        expect(orig.dict).not.toBeIdentical(clone.dict); 
-        expect(orig.brands).not.toBeIdentical(clone.brands); 
-          });
-
-          xit("should work for methods", function() {
-        var orig = rt.makeMethod(y, y_curry);
-        var clone = orig.clone();
-
-        expect(orig.meth).toEqual(clone.meth);
-        expect(orig.full_meth).toEqual(clone.full_meth);
-        expect(orig.arity).toEqual(clone.arity);
-        expect(orig.dict).not.toBeIdentical(clone.dict); 
-        expect(orig.brands).not.toBeIdentical(clone.brands); 
-          });
-      });
-
-
-      describe("Extending Objects", function() {
+      xdescribe("Extending Objects", function() {
           it( "should have same fields and brands when no fields added", function() {
         var x = aNum.extendWith({});
         expect(aNum.n).toEqual(x.n);

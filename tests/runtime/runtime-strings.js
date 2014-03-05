@@ -61,86 +61,63 @@ beforeEach(function(){
 
   describe("String Dictionary", function() {
     it("should have correct _plus method", function() {
-        var _plus_method = empty.dict['_plus'];
+        expect(empty.dict).toBeUndefined();
+      
+        var plus = rt.plus;
 
-        expect(_plus_method).not.toBeUndefined();
-        expect(rt.isMethod(_plus_method)).toBe(true);
-
-        var plus = _plus_method.full_meth;
-
-        expect(plus(empty,empty).s).toEqual("");
-        expect(plus(a,empty).s).toEqual("a");
-        expect(plus(empty,b).s).toEqual("b");
-        expect(plus(a,b).s).toEqual("ab");
-        expect(plus(a,hello).s).toEqual("ahello");
+        expect(plus(empty,empty)).toEqual("");
+        expect(plus(a,empty)).toEqual("a");
+        expect(plus(empty,b)).toEqual("b");
+        expect(plus(a,b)).toEqual("ab");
+        expect(plus(a,hello)).toEqual("ahello");
     });
 
     it("should have correct append method", function() {
-        var append_method = empty.dict['append'];
+        var append = rt.string_append;
 
-        expect(append_method).not.toBeUndefined();
-        expect(rt.isMethod(append_method)).toBe(true);
-
-        var append = append_method.full_meth;
-
-        expect(append(empty,empty).s).toEqual("");
-        expect(append(a,empty).s).toEqual("a");
-        expect(append(empty,b).s).toEqual("b");
-        expect(append(a,b).s).toEqual("ab");
-        expect(append(a,hello).s).toEqual("ahello");
+        expect(append(empty,empty)).toEqual("");
+        expect(append(a,empty)).toEqual("a");
+        expect(append(empty,b)).toEqual("b");
+        expect(append(a,b)).toEqual("ab");
+        expect(append(a,hello)).toEqual("ahello");
     });
 
     it("should have correct contains method", function() {
-        var contains_method = empty.dict['contains'];
+        var contains = rt.string_contains;
 
-        expect(contains_method).not.toBeUndefined();
-        expect(rt.isMethod(contains_method)).toBe(true);
+        expect(contains(empty, empty)).toBe(true);
+        expect(contains(hello, empty)).toBe(true);
+        expect(contains(world, empty)).toBe(true);
+        expect(contains(hello_world, hello)).toBe(true);
+        expect(contains(hello_world, world)).toBe(true);
+        expect(contains(hello_world, o)).toBe(true);
+        expect(contains(o, o)).toBe(true);
 
-        var contains = contains_method.full_meth;
-
-        expect(contains(empty, empty).b).toBe(true);
-        expect(contains(hello, empty).b).toBe(true);
-        expect(contains(world, empty).b).toBe(true);
-        expect(contains(hello_world, hello).b).toBe(true);
-        expect(contains(hello_world, world).b).toBe(true);
-        expect(contains(hello_world, o).b).toBe(true);
-        expect(contains(o, o).b).toBe(true);
-
-        expect(contains(empty, a).b).toEqual(false);
-        expect(contains(hi, a).b).toEqual(false);
-        expect(contains(hello, a).b).toEqual(false);
-        expect(contains(world, a).b).toEqual(false);
-        expect(contains(world, hello).b).toEqual(false);
+        expect(contains(empty, a)).toEqual(false);
+        expect(contains(hi, a)).toEqual(false);
+        expect(contains(hello, a)).toEqual(false);
+        expect(contains(world, a)).toEqual(false);
+        expect(contains(world, hello)).toEqual(false);
     });
 
     it("should have correct length method", function() {
-        var length_method = empty.dict['length'];
+        var length = rt.string_length;
 
-        expect(length_method).not.toBeUndefined();
-        expect(rt.isMethod(length_method)).toBe(true);
-
-        var length = length_method.full_meth;
-
-        expect(length(empty).n).toEqual(0);
-        expect(length(a).n).toEqual(1);
-        expect(length(b).n).toEqual(1);
-        expect(length(hello).n).toEqual(5);
-        expect(length(hello_world).n).toEqual(11);
+        expect(length(empty)).toEqual(0);
+        expect(length(a)).toEqual(1);
+        expect(length(b)).toEqual(1);
+        expect(length(hello)).toEqual(5);
+        expect(length(hello_world)).toEqual(11);
   });
 
     it("should have correct tonumber method", function() {
-        var tonumber_method = empty.dict['tonumber'];
-
-        expect(tonumber_method).not.toBeUndefined();
-        expect(rt.isMethod(tonumber_method)).toBe(true);
-
-        var tonumber = tonumber_method.full_meth;
+        var tonumber = rt.string_tonumber;
 
         //Are Numbers
-        expect(tonumber(five).n).toBigEqual(5);
-        expect(tonumber(four).n).toBigEqual(4);
-        expect(tonumber(hun).n).toBigEqual(100);
-        expect(tonumber(half).n).toBigEqual(0.5);
+        expect(tonumber(five)).toBigEqual(5);
+        expect(tonumber(four)).toBigEqual(4);
+        expect(tonumber(hun)).toBigEqual(100);
+        expect(tonumber(half)).toBigEqual(0.5);
 
         //Not numbers
         expect(rt.isNothing(tonumber(hello))).toBe(true);
@@ -153,19 +130,19 @@ beforeEach(function(){
       var n = rt.makeNumber(4);
       var zero = rt.makeNumber(0);
 
-      var ssss = rt.getField(s, "repeat").app(n);
-      expect(ssss.s).toEqual("aaaa");
+      var ssss = rt.string_repeat(s, n);
+      expect(ssss).toEqual("aaaa");
 
-      var mpty = rt.getField(s, "repeat").app(zero);
-      expect(mpty.s).toEqual("");
+      var mpty = rt.string_repeat(s, zero);
+      expect(mpty).toEqual("");
     });
 
     it("should have a correct substring method", function() {
       var s = rt.makeString("file.arr");
       var n1 = rt.makeNumber(5);
       var n2 = rt.makeNumber(8);
-      var sub = rt.getField(s, "substring").app(n1, n2);
-      expect(sub.s).toEqual("arr");
+      var sub = rt.string_substring(s, n1, n2);
+      expect(sub).toEqual("arr");
     });
 
 });

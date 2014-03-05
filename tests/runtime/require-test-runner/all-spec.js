@@ -15,8 +15,8 @@ r(["./tests/runtime/runtime-test", "./tests/runtime/runtime-numbers", "./tests/r
      base.performTest(USE_COMPILED);
 	   numbers.performTest(USE_COMPILED);
      strings.performTest(USE_COMPILED);
-	   booleans.performTest(USE_COMPILED);
+     //       booleans.performTest(USE_COMPILED);
      brands.performTest(USE_COMPILED);
-	   namespaces.performTest(USE_COMPILED);
+           namespaces.performTest(USE_COMPILED);
      ffi.performTest();
        });

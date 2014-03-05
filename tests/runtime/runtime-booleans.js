@@ -60,8 +60,9 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers"], function (matchers
       throw new Error("Expression did not result in error");
     }
 
-    describe("Boolean Dictionary", function() {
+    xdescribe("Boolean Dictionary", function() {
       it("should have correct _and", function() {
+        expect(pTrue.dict).toBeUndefined();
 
           var _and = rt.getColonField(pTrue,'_and');
           expect(_and).not.toBeUndefined();
