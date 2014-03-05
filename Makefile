@@ -1,9 +1,7 @@
 PYRET_COMP = build/phase0/pyret.js
 CLOSURE = java -jar deps/closure-compiler/compiler.jar
-SWEETENER = node node_modules/sweet.js/bin/sjs
 JS = js
 JSBASE = $(JS)/base
-JSSWEET = $(JS)/sweet
 JSTROVE = $(JS)/trove
 BASE = arr/base
 TROVE = arr/trove
@@ -26,13 +24,12 @@ LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)
 
 COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js))
 TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
-MACRO_JS := $(patsubst src/js/sweet/%.js,src/js/%.js,$(wildcard src/$(JSSWEET)/*.js))
 
-PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(SRC_JS) $(MACRO_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
 
-PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(MACRO_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
 
-PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(SRC_JS) $(MACRO_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
 
 WEB_DEPS = \
  node_modules/requirejs/require.js \
@@ -156,18 +153,6 @@ $(PYRET_PARSER3): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
 	node $(PHASE3)/$(JS)/grammar.js $(PHASE3)/$(JS)/pyret-parser.js
 	$(CLOSURE) --js $(PHASE3)/$(JS)/pyret-parser.js --js_output_file $(PHASE3)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE1)/$(JS)/%.js: src/$(JSSWEET)/%.js
-	$(SWEETENER) -o $@ $< -m ./src/scripts/macros.js
-	$(CLOSURE) --js $@ --externs src/scripts/externs.env > /dev/null
-
-$(PHASE2)/$(JS)/%.js: src/$(JSSWEET)/%.js
-	$(SWEETENER) -o $@ $< -m ./src/scripts/macros.js
-	$(CLOSURE) --js $@ --externs src/scripts/externs.env > /dev/null
-
-$(PHASE3)/$(JS)/%.js: src/$(JSSWEET)/%.js
-	$(SWEETENER) -o $@ $< -m ./src/scripts/macros.js
-	$(CLOSURE) --js $@ --externs src/scripts/externs.env > /dev/null
-
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
@@ -221,14 +206,13 @@ install:
 	rm compiler-latest.zip
 	mkdir node_modules -p
 	npm install jasmine-node
-	npm install sweet.js
 	npm install requirejs
 
 
 .PHONY : test
 test: runtime-test evaluator-test compiler-test
 
-RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(MACRO_JS) $(COPY_JS))
+RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(COPY_JS))
 
 .PHONY : runtime-test
 runtime-test : phase1
