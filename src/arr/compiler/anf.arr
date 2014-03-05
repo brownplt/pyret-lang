@@ -187,29 +187,26 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         end)
 
     | s_if_else(l, branches, _else) =>
-      if not is-empty(branches):
-        s-if = for fold(acc from _else, branch from branches.reverse()):
-          A.s_if_else(l, [branch], acc)
-        end
-        cond = s-if.branches.first.test
-        consq = s-if.branches.first.body
-        altern = s-if._else
-        anf-name(cond, "anf_if", fun(t):
-            helper = mk-id(l, "if_helper")
-            helper-ret = mk-id(l, "if_helper_ret")
-            arg = mk-id(l, "if_helper_arg")
+      helper = mk-id(l, "if_helper")
+      helper-ret = mk-id(l, "if_helper_ret")
+      arg = mk-id(l, "if_helper_arg")
+      call-help-k = fun(lettable):
+        cases(N.ALettable) lettable:
+          | a-val(v) =>
+            N.a-let(l, helper-ret.id-b, N.a-app(l, helper.id-e, [v]),
+              N.a-lettable(N.a-val(helper-ret.id-e)))
+          | else =>
             val = mk-id(l, "if_helper_val")
-            call-help-k = fun(lettable):
-                N.a-let(l, val.id-b, lettable,
-                  N.a-let(l, helper-ret.id-b, N.a-app(l, helper.id-e, [val.id-e]),
-                    N.a-lettable(N.a-val(helper-ret.id-e))))
-              end
-            N.a-let(l, helper.id-b, N.a-lam(l, [arg.id-b], k(N.a-val(arg.id-e))),
-              N.a-if(l, t, anf(consq, call-help-k), anf(altern, call-help-k)))
-          end)
-      else:
-        anf(_else, k)
+            N.a-let(l, val.id-b, lettable,
+              N.a-let(l, helper-ret.id-b, N.a-app(l, helper.id-e, [val.id-e]),
+                N.a-lettable(N.a-val(helper-ret.id-e))))
+        end
       end
+      N.a-let(l, helper.id-b, N.a-lam(l, [arg.id-b], k(N.a-val(arg.id-e))),
+        for fold(acc from anf(_else, call-help-k), branch from branches.reverse()):
+          anf-name(branch.test, "anf_if",
+            fun(test): N.a-if(l, test, anf(branch.body, call-help-k), acc) end)
+        end)
 
     | s_try(l, body, id, _except) =>
       N.a-try(l, anf-term(body), id, anf-term(_except))

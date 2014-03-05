@@ -71,7 +71,9 @@ data AExpr:
     label(self): "a-var" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-var + break-one + self.bind.tosource() + str-spaceequal + self.e.tosource() + str-colon,
+        str-var +
+        PP.group(PP.nest(INDENT,
+            self.bind.tosource() + str-spaceequal + break-one + self.e.tosource())) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -190,7 +192,7 @@ data ALettable:
   | a-assign(l :: Loc, id :: String, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
-      PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource())
+      PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
     label(self): "a-app" end,
