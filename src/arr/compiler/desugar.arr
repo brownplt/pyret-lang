@@ -4,7 +4,6 @@ provide *
 import ast as A
 import parse-pyret as PP
 import "./compile-structs.arr" as C
-import "./gensym.arr" as G
 import "./ast-util.arr" as U
 
 names = A.MakeName(0)
@@ -442,13 +441,42 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
                   A.s_bool(l, false))],
               A.s_bool(l, true))
           else if op == "opor":
-            A.s_if_else(l,
-              [A.s_if_branch(l, desugar-expr(nv, left), A.s_bool(l, true))],
-              desugar-expr(nv, right))
+            or-left = mk-id(l, "or-left-")
+            or-right = mk-id(l, "or-right-")
+            fun check-bool(id, e, then, error):
+              A.s_let_expr(l, [A.s_let_bind(l, id.id-b, e)],
+                A.s_if_else(l,
+                  [A.s_if_branch(l, A.s_app(l, A.s_id(l, A.s_name("is-boolean")), [id.id-e]), then)],
+                  error))
+            end
+            fun makeMessageException(msg):
+              A.s_app(l, A.s_id(l, A.s_name("raise")), [A.s_str(l, msg)])
+            end
+            check-bool(or-left, desugar-expr(nv, left),
+              A.s_if_else(l,
+                [A.s_if_branch(l, or-left.id-e, A.s_bool(l, true))],
+                check-bool(or-right, desugar-expr(nv, right), or-right.id-e,
+                  makeMessageException("Pyret Type Error: Second argument to 'or' was not a boolean"))),
+              makeMessageException("Pyret Type Error: First argument 'or' was not a boolean"))
           else if op == "opand":
-            A.s_if_else(l,
-              [A.s_if_branch(l, desugar-expr(nv, left), desugar-expr(nv, right))],
-              A.s_bool(l, false))
+            and-left = mk-id(l, "and-left-")
+            and-right = mk-id(l, "and-right-")
+            fun check-bool(id, e, then, error):
+              A.s_let_expr(l, [A.s_let_bind(l, id.id-b, e)],
+                A.s_if_else(l,
+                  [A.s_if_branch(l, A.s_app(l, A.s_id(l, A.s_name("is-boolean")), [id.id-e]), then)],
+                  error))
+            end
+            fun makeMessageException(msg):
+              A.s_app(l, A.s_id(l, A.s_name("raise")), [A.s_str(l, msg)])
+            end
+            check-bool(and-left, desugar-expr(nv, left),
+              A.s_if_else(l,
+                [A.s_if_branch(l, and-left.id-e, 
+                    check-bool(and-right, desugar-expr(nv, right), and-right.id-e,
+                      makeMessageException("Pyret Type Error: Second argument to 'and' was not a boolean")))],
+                A.s_bool(l, false)),
+              makeMessageException("Pyret Type Error: First argument 'and' was not a boolean"))
           else:
             raise("Only arith ops so far, " + op + " did not match")
           end

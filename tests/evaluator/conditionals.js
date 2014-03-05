@@ -54,15 +54,37 @@ xfg("false", "true") +
 
     });
 
-    describe("or", function() {
+    describe("Booleans", function() {
+      it("Correct and", function(done) {
+        same("true and true", rt.pyretTrue);
+        same("true and false", rt.pyretFalse);
+        same("false and true", rt.pyretFalse);
+        same("false and false", rt.pyretFalse);
+        P.wait(done);
+      });
+      it("Correct or", function(done) {
+        same("true or true", rt.pyretTrue);
+        same("true or false", rt.pyretTrue);
+        same("false or true", rt.pyretTrue);
+        same("false or false", rt.pyretFalse);
+        P.wait(done);
+      });
       it("should error if given a non-boolean, but still short-circuit", function(done) {
         var pte = function(e) {
           return rt.unwrap(e.exn).indexOf("Pyret Type Error") !== -1;
         };
         err("false or 5", pte);
+        err("5 or true", pte);
         err("false or 'foo'", pte);
         same("true or 'foo'", rt.pyretTrue);
         same("true or block: raise('do not get here') end", rt.pyretTrue)
+
+        err("true and 5", pte);
+        err("5 and true", pte);
+        err("true and 'foo'", pte);
+        same("false and 'foo'", rt.pyretFalse);
+        same("false and block: raise('do not get here') end", rt.pyretFalse)
+
         P.wait(done);
       });
     });
