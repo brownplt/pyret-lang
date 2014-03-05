@@ -195,7 +195,17 @@ fun anf(e :: A.Expr, k :: (N.ALettable -> N.AExpr)) -> N.AExpr:
         consq = s-if.branches.first.body
         altern = s-if._else
         anf-name(cond, "anf_if", fun(t):
-            N.a-if(l, t, anf(consq, k), anf(altern, k))
+            helper = mk-id(l, "if_helper")
+            helper-ret = mk-id(l, "if_helper_ret")
+            arg = mk-id(l, "if_helper_arg")
+            val = mk-id(l, "if_helper_val")
+            call-help-k = fun(lettable):
+                N.a-let(l, val.id-b, lettable,
+                  N.a-let(l, helper-ret.id-b, N.a-app(l, helper.id-e, [val.id-e]),
+                    N.a-lettable(N.a-val(helper-ret.id-e))))
+              end
+            N.a-let(l, helper.id-b, N.a-lam(l, [arg.id-b], k(N.a-val(arg.id-e))),
+              N.a-if(l, t, anf(consq, call-help-k), anf(altern, call-help-k)))
           end)
       else:
         anf(_else, k)
