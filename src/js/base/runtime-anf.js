@@ -827,10 +827,7 @@ function createMethodDict() {
       } catch(e) {
         if (thisRuntime.isCont(e)) {
           var stacklet = {
-            from: {src: "internal", line: 990, column: 57}, near: "toRepr",
-            captureExn: function(exn) { 
-              return exn.pyretStack.push({src: "<toRepr>", line: 992, column: 78}); 
-            },
+            from: topSrc(new Error()), near: "toRepr",
             go: function(ret) {
               if (stack.length === 0) {
                 throw makeMessageException("Somehow we've drained the toRepr worklist, but have results coming back");
@@ -844,9 +841,8 @@ function createMethodDict() {
           e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
           throw e;
         } else {
-          console.error(e);
           if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push({src: "<toRepr>", line: 1004, column: 70}); 
+            e.pyretStack.push(topSrc(new Error())); 
           }
           throw e;
         }
@@ -1228,9 +1224,7 @@ function createMethodDict() {
               go: function(retval) {
                 return after(retval);
               },
-              captureExn: function(e) {
-                return e.pyretStack.push(stackFrame);
-              }
+              from: stackFrame
             };
           throw e;
         }
@@ -1245,21 +1239,29 @@ function createMethodDict() {
       return after(result);
     }
 
+    // Call like: topSrc(new Error())
+    function topSrc(error) {
+      var stackFrame = error.stack.split("\n")[1].trim().split(":");
+      return {
+        src: stackFrame[0].split(" ")[1],
+        line: stackFrame[1],
+        column: stackFrame[2]
+      };
+    }
+
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
       var that = this;
+      var theOneTrueStackTop = topSrc(new Error());
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
           },
-          captureExn: function(e) {
-            e.pyretStack.push(theOneTrueStackTop);
-          }
+          from: theOneTrueStackTop
         };
       var theOneTrueStack = [kickoff];
       var theOneTrueStart = {};
       var val = theOneTrueStart;
-      var theOneTrueStackTop = {};
       var theOneTrueStackHeight = 1;
       var BOUNCES = 0;
       var TOS = 0;
@@ -1335,7 +1337,7 @@ function createMethodDict() {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
-                next.captureExn(e);
+                e.pyretStack.push(next.from);
               }
               onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
               return;
@@ -1385,9 +1387,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_plus>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1396,7 +1396,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_plus>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1416,9 +1416,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_minus>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1427,7 +1425,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_minus>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1447,9 +1445,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_times>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1458,7 +1454,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_times>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1481,9 +1477,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_divide>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1492,7 +1486,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_divide>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1515,9 +1509,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_lessthan>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1526,7 +1518,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_lessthan>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1549,9 +1541,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_greaterthan>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1560,7 +1550,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_greaterthan>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1583,9 +1573,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_lessequal>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1594,7 +1582,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_lessequal>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }
@@ -1617,9 +1605,7 @@ function createMethodDict() {
         } catch(e) {
           if (thisRuntime.isCont(e)) {
             var stacklet = {
-              captureExn: function(exn) { 
-                return exn.pyretStack.push({src: "<_greaterequal>", line: 1544, column: 80});
-              },
+              from: topSrc(new Error()),
               go: function(ret) {
                 return ret;
               }
@@ -1628,7 +1614,7 @@ function createMethodDict() {
             throw e;
           } else {
             if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push({src: "<_greaterequal>", line: 1554, column: 70});
+              e.pyretStack.push(topSrc(new Error()));
             }
             throw e;
           }

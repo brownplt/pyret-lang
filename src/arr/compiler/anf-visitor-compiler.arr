@@ -129,10 +129,10 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
               j-obj([
                 j-field("from", obj-of-loc(l)),
                 j-field("near", j-str(e)),
-                j-field("captureExn", j-fun(["exn"],
-                  j-block([
-                      j-return(add-stack-frame(l, "exn"))
-                    ]))),
+#                j-field("captureExn", j-fun(["exn"],
+#                  j-block([
+#                      j-return(add-stack-frame(l, "exn"))
+#                    ]))),
                 j-field("go", j-fun([js-id-of(helper-args.first.id)],
                   j-block([
                     j-return(j-app(j-id(helper-name(name)),
