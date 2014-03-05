@@ -7,6 +7,8 @@ import "./arr/compiler/compile.arr" as CM
 import "./arr/compiler/compile-structs.arr" as CS
 import "./arr/compiler/resolve-scope.arr" as R
 import "./arr/compiler/ast-util.arr" as U
+import "./arr/compiler/anf.arr" as N
+import "./arr/compiler/ast-split.arr" as AS
 import file as F
 
 options = {
@@ -40,18 +42,33 @@ cases (C.ParsedArguments) parsed-options:
         print("")
         print("Desugared:")
         each(print, desugared.tosource().pretty(80))
+
         
-        comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
-        cases(CM.CompileResult) comp:
-          | ok(c) =>
-            print("")
-            print("Generated JS:")
-            print(c.pyret-to-js-pretty())
-          | err(problems) =>
-            print("")
-            print("Compilation failed:")
-            each(print, problems.map(tostring))
-        end
+        cleaned = desugared.visit(U.merge-nested-blocks)
+        .visit(U.flatten-single-blocks)
+        .visit(U.link-list-visitor(CS.minimal-builtins))
+
+        anfed = N.anf-program(cleaned)
+        print("")
+        print("ANFed:")
+        each(print, anfed.body.tosource().pretty(80))
+
+        split = AS.ast-split(anfed.body)
+        print("")
+        print("Split:")
+        each(print, split.tosource().pretty(80))
+        
+        # comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
+        # cases(CM.CompileResult) comp:
+        #   | ok(c) =>
+        #     print("")
+        #     print("Generated JS:")
+        #     print(c.pyret-to-js-pretty())
+        #   | err(problems) =>
+        #     print("")
+        #     print("Compilation failed:")
+        #     each(print, problems.map(tostring))
+        # end
     end
   | arg-error(m, _) =>
     each(print,  ("Error: " + m) ^ link(C.usage-info(options)))

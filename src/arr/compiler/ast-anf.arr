@@ -61,7 +61,9 @@ data AExpr:
     label(self): "a-let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-let + break-one + self.bind.tosource() + str-spaceequal + self.e.tosource() + str-colon,
+        str-let +
+        PP.group(PP.nest(INDENT,
+            self.bind.tosource() + str-spaceequal + break-one + self.e.tosource())) + str-colon,
         self.body.tosource(),
         str-end)
     end
@@ -85,13 +87,17 @@ data AExpr:
   | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
-      PP.group(self.f.tosource()
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))) +
-        PP.str("and then... ") +
-      PP.group(PP.str(self.helper) +
-          PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))
+      PP.group(
+        PP.group(PP.nest(INDENT,
+            PP.str("split ")
+              + PP.group(self.helper-args.first.tosource() + PP.str(" <== ") + self.f.tosource()
+                + PP.parens(PP.nest(INDENT,
+                PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))))) +
+        break-one +
+        PP.group(PP.nest(INDENT, PP.str("and then") + break-one
+              + PP.str(self.helper)
+              + PP.parens(PP.nest(INDENT,
+                PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))))
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,

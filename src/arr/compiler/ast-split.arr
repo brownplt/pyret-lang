@@ -4,7 +4,9 @@ provide *
 import "./ast-anf.arr" as N
 import "./gensym.arr" as G
 import ast as A
+import pprint as PP
 
+INDENT = 2
 # Use this instead of built-in lists because append has quadratic
 # behavior in the algorithm below when appending helpers
 data ConcatList<a>:
@@ -28,11 +30,20 @@ end
 
 
 data Helper:
-  | helper(name :: String, args :: List<String>, body :: N.AExpr)
+  | helper(name :: String, args :: List<String>, body :: N.AExpr) with:
+    tosource(self):
+      arg-list = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen,
+          PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))
+      header = PP.group(PP.str("helper " + self.name) + arg-list + PP.str(" {"))
+      PP.surround(INDENT, 1, header, self.body.tosource(), PP.str("}"))
+    end
 end
 
 data SplitResult:
-  | split-result(helpers :: List<Helper>, body :: N.AExpr)
+  | split-result(helpers :: List<Helper>, body :: N.AExpr) with:
+    tosource(self):
+      PP.vert(self.helpers.map(_.tosource()) + [self.body.tosource()])
+    end
 end
 
 data SplitResultInt:
