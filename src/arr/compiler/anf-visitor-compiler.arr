@@ -22,6 +22,7 @@ j-str = J.j-str
 j-return = J.j-return
 j-assign = J.j-assign
 j-if = J.j-if
+j-if1 = J.j-if1
 j-app = J.j-app
 j-list = J.j-list
 j-obj = J.j-obj
@@ -35,6 +36,7 @@ j-throw = J.j-throw
 j-expr = J.j-expr
 j-binop = J.j-binop
 j-eq = J.j-eq
+j-neq = J.j-neq
 j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
@@ -65,22 +67,14 @@ fun obj-of-loc(l):
     ])
 end
 
-fun add-stack-frame(l, exn-id):
-  j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [obj-of-loc(l)])
+fun add-stack-frame(exn-id, loc):
+  j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [loc])
 end
 
-fun rt-field(name): j-dot(j-id("RUNTIME"), name);
-fun rt-method(name, args): j-method(j-id("RUNTIME"), name, args);
+fun rt-field(name): j-dot(j-id("R"), name);
+fun rt-method(name, args): j-method(j-id("R"), name, args);
 
-fun app(f, args):
-#  j-app(compile-v(f), args.map(compile-v))
-  j-ternary(j-binop(j-dot(f, "arity"), j-eq, j-num(args.length())),
-    j-method(f, "app", args),
-    thunk-app-stmt(
-      j-throw(j-method(j-id("RUNTIME"), "makeMessageException", [
-          j-str("Arity mismatch")
-        ]))))
-end
+fun app(f, args): j-method(f, "app", args) end
 
 fun thunk-app(block):
   j-app(j-parens(j-fun([], block)), [])
@@ -90,7 +84,7 @@ fun thunk-app-stmt(stmt):
   thunk-app(j-block([stmt]))
 end
 
-fun helper-name(s :: String): "$HELPER_" + js-id-of(s);
+fun helper-name(s :: String): "$H" + js-id-of(s);
 
 fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
   cases(S.Helper) h:
@@ -109,30 +103,25 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
   body =
-    j-if(j-binop(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-decr), J.j-gt, j-num(0)),
+    j-if(j-binop(j-unop(j-dot(j-id("R"), "GAS"), j-decr), J.j-gt, j-num(0)),
       j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
       j-block([
-#              j-method(j-id("RUNTIME"), "log", [j-str("Starting, "), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
-          j-expr(j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0))),
-          j-throw(j-method(j-id("RUNTIME"), "makeCont", 
+#              j-method(j-id("R"), "log", [j-str("Starting, "), j-dot(j-id("R"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
+          j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+          j-throw(j-method(j-id("R"), "makeCont", 
               [j-obj([j-field("go",
                       j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
-                      j-field("from", obj-of-loc(l)),
-                      j-field("near", j-str(e))])]))]))
+                      j-field("from", obj-of-loc(l))])]))]))
   helper-ids = helper-args.rest.map(_.id).map(js-id-of)
   catch =
     j-block([
-#          j-method(j-id("RUNTIME"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT")]),
-      j-if(j-method(j-id("RUNTIME"), "isCont", [j-id(e)]),
+#          j-method(j-id("R"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("R"), "EXN_STACKHEIGHT")]),
+      j-var("from", obj-of-loc(l)),
+      j-if(j-method(j-id("R"), "isCont", [j-id(e)]),
         j-block([
             j-var(ss,
               j-obj([
-                j-field("from", obj-of-loc(l)),
-                j-field("near", j-str(e)),
-#                j-field("captureExn", j-fun(["exn"],
-#                  j-block([
-#                      j-return(add-stack-frame(l, "exn"))
-#                    ]))),
+                j-field("from", j-id("from")),
                 j-field("go", j-fun([js-id-of(helper-args.first.id)],
                   j-block([
                     j-return(j-app(j-id(helper-name(name)),
@@ -144,13 +133,13 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
                 #+ helper-ids.map(fun(a): j-field(a, j-id(a)) end)
                 )),
             j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                j-unop(j-dot(j-id("RUNTIME"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
+                j-unop(j-dot(j-id("R"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
             #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
             j-throw(j-id(e))]),
         j-block([
-            j-if(j-method(j-id("RUNTIME"), "isPyretException", [j-id(e)]),
+            j-if(j-method(j-id("R"), "isPyretException", [j-id(e)]),
                 j-block([
-                    j-expr(add-stack-frame(l, e)),
+                    j-expr(add-stack-frame(e, j-id("from"))),
                     j-throw(j-id(e))
                   ]),
                 j-block([j-throw(j-id(e))]))
@@ -159,11 +148,19 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
       j-var(z, j-undefined),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
-      j-expr(j-unop(j-dot(j-id("RUNTIME"), "GAS"), j-incr)),
+      j-expr(j-unop(j-dot(j-id("R"), "GAS"), j-incr)),
       j-return(j-id(ret))
     ])
 end
 
+
+fun arity-check(body-stmts, arity):
+  j-block(
+    link(
+      j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
+        j-throw(j-method(j-id("R"), "makeMessageException", [j-str("Arity mismatch")]))),
+      body-stmts))
+end
 
 compiler-visitor = {
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
@@ -188,7 +185,7 @@ compiler-visitor = {
     compiled-consq = consq.visit(self)
     compiled-alt = alt.visit(self)
     j-block([
-        j-if(j-method(j-id("RUNTIME"), "isPyretTrue", [cond.visit(self)]), compiled-consq, compiled-alt)
+        j-if(j-method(j-id("R"), "isPyretTrue", [cond.visit(self)]), compiled-consq, compiled-alt)
       ])
   end,
   a-lettable(self, e :: N.ALettable):
@@ -202,27 +199,27 @@ compiler-visitor = {
   end,
 
   a-obj(self, l :: Loc, fields :: List<N.AField>):
-    j-method(j-id("RUNTIME"), "makeObject", [j-obj(fields.map(fun(f): j-field(f.name, f.value.visit(self));))])
+    j-method(j-id("R"), "makeObject", [j-obj(fields.map(fun(f): j-field(f.name, f.value.visit(self));))])
   end,
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     j-method(obj.visit(self), "extendWith", [j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    j-method(j-id("RUNTIME"), "getField", [obj.visit(self), j-str(field)])
+    j-method(j-id("R"), "getField", [obj.visit(self), j-str(field)])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
-    j-method(j-id("RUNTIME"), "getColonField", [obj.visit(self), j-str(field)])
+    j-method(j-id("R"), "getColonField", [obj.visit(self), j-str(field)])
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    j-method(j-id("RUNTIME"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), body.visit(self))])
+    j-method(j-id("R"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), arity-check(body.visit(self).stmts, args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    compiled-body = body.visit(self)
-    j-method(j-id("RUNTIME"), "makeMethod", [j-fun([js-id-of(args.first.id)],
+    compiled-body-stmts = body.visit(self).stmts
+    j-method(j-id("R"), "makeMethod", [j-fun([js-id-of(args.first.id)],
       j-block([
-        j-return(j-fun(args.rest.map(_.id).map(js-id-of), compiled-body))])),
+        j-return(j-fun(args.rest.map(_.id).map(js-id-of), arity-check(compiled-body-stmts, args.length() - 1)))])),
        
-      j-fun(args.map(_.id).map(js-id-of), compiled-body)])
+      j-fun(args.map(_.id).map(js-id-of), arity-check(compiled-body-stmts, args.length()))])
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
@@ -231,14 +228,14 @@ compiler-visitor = {
     j-field(name, value.visit(self))
   end,
   a-num(self, l :: Loc, n :: Number):
-    j-method(j-id("RUNTIME"), "makeNumber", [j-num(n)])
+    j-method(j-id("R"), "makeNumber", [j-num(n)])
   end,
   a-str(self, l :: Loc, s :: String):
-    j-method(j-id("RUNTIME"), "makeString", [j-str(s)])
+    j-method(j-id("R"), "makeString", [j-str(s)])
   end,
   a-bool(self, l :: Loc, b :: Bool):
     str = if b: "pyretTrue" else: "pyretFalse";
-    j-dot(j-id("RUNTIME"), str)
+    j-dot(j-id("R"), str)
   end,
   a-undefined(self, l :: Loc):
     j-undefined
@@ -372,7 +369,7 @@ check:
 end
 
 fun splitting-compiler(env):
-  fun inst(id): j-app(j-id(id), [j-id("RUNTIME"), j-id("NAMESPACE")]);
+  fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
   namespace-ids = env.bindings.filter(CS.is-builtin-id)
   namespace-binds = for map(n from namespace-ids):
     j-var(js-id-of(n.id), j-method(j-id("NAMESPACE"), "get", [j-str(n.id)]))
@@ -392,17 +389,17 @@ fun splitting-compiler(env):
       module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
       input-ids = ids.map(fun(f): G.make-name(f) end)
       j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
-                j-return(j-fun(["RUNTIME", "NAMESPACE"],
+                j-return(j-fun(["R", "NAMESPACE"],
                     j-block([
                         j-if(module-ref(module-id),
                           j-block([j-return(module-ref(module-id))]),
                           j-block([
                               j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
                                   j-block(
-                                    [ j-dot-assign(j-id("RUNTIME"), "EXN_STACKHEIGHT", j-num(0)) ] +
+                                    [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
                                     namespace-binds +
                                     for map2(id from ids, in-id from input-ids):
-                                      j-var(id, j-method(j-id("RUNTIME"), "getField", [inst(in-id), j-str("provide")]))
+                                      j-var(id, j-method(j-id("R"), "getField", [inst(in-id), j-str("provide")]))
                                     end +
                                     split.helpers.map(compile-helper(self, _)) +
                                     [split.body.visit(self)]))),

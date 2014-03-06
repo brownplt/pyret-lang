@@ -46,6 +46,23 @@ data JStmt:
       PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
         PP.str(" =") + PP.break(1) + self.rhs.tosource())) + PP.str(";")
     end
+  | j-if1(cond :: JExpr, consq :: JBlock) with:
+    print-ugly-source(self, printer):
+      printer("if(")
+      self.cond.print-ugly-source(printer)
+      printer(") {\n")
+      self.consq.print-ugly-source(printer)
+      printer("\n}")
+    end,
+    to-ugly-source(self):
+      "if(" + self.cond.to-ugly-source() + ") {\n" +
+        self.consq.to-ugly-source() +
+      "\n}"
+    end,
+    tosource(self):
+      PP.group(PP.str("if") + PP.parens(self.cond.tosource())) + PP.str(" ")
+        + PP.surround(INDENT, 1, PP.lbrace, self.consq.tosource(), PP.rbrace)
+    end
   | j-if(cond :: JExpr, consq :: JBlock, alt :: JBlock) with:
     print-ugly-source(self, printer):
       printer("if(")
