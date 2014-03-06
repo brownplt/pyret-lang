@@ -76,6 +76,8 @@ fun freevars-e(expr :: N.AExpr) -> Set<String>:
     | a-split-app(_, _, f, args, name, helper-args) =>
       freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
     | a-lettable(e) => freevars-l(e)
+    | a-if(_, c, t, a) =>
+      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
   end
 where:
   d = N.dummy-loc
@@ -96,8 +98,6 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
     | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
-    | a-if(_, c, t, a) =>
-      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
     | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
     | a-data-expr(_, _, variants, shared) =>
       unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
