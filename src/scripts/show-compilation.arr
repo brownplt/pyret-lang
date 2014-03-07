@@ -58,17 +58,17 @@ cases (C.ParsedArguments) parsed-options:
         print("Split:")
         each(print, split.tosource().pretty(80))
         
-        # comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
-        # cases(CM.CompileResult) comp:
-        #   | ok(c) =>
-        #     print("")
-        #     print("Generated JS:")
-        #     print(c.pyret-to-js-pretty())
-        #   | err(problems) =>
-        #     print("")
-        #     print("Compilation failed:")
-        #     each(print, problems.map(tostring))
-        # end
+        comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
+        cases(CM.CompileResult) comp:
+          | ok(c) =>
+            print("")
+            print("Generated JS:")
+            print(c.pyret-to-js-pretty())
+          | err(problems) =>
+            print("")
+            print("Compilation failed:")
+            each(print, problems.map(tostring))
+        end
     end
   | arg-error(m, _) =>
     each(print,  ("Error: " + m) ^ link(C.usage-info(options)))
