@@ -43,8 +43,9 @@ data JStmt:
       "var " + self.name + " = " + self.rhs.to-ugly-source() + ";"
     end,
     tosource(self):
-      PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
-        PP.str(" =") + PP.break(1) + self.rhs.tosource())) + PP.str(";")
+      PP.group(
+        PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
+            PP.str(" =") + PP.break(1) + self.rhs.tosource())) + PP.str(";"))
     end
   | j-if1(cond :: JExpr, consq :: JBlock) with:
     print-ugly-source(self, printer):
@@ -326,7 +327,7 @@ data JExpr:
       self.name + " = " + self.rhs.to-ugly-source() 
     end,
     tosource(self):
-      PP.nest(INDENT, PP.str(self.name) + PP.str(" =") + break-one + self.rhs.tosource())
+      PP.group(PP.nest(INDENT, PP.str(self.name) + PP.str(" =") + break-one + self.rhs.tosource()))
     end
   | j-bracket-assign(obj :: JExpr, field :: JExpr, rhs :: JExpr) with:
     print-ugly-source(self, printer):
@@ -341,8 +342,8 @@ data JExpr:
       self.obj.to-ugly-source() + "[" + self.field.to-ugly-source() + "] = " + self.rhs.to-ugly-source()
     end,
     tosource(self):
-      PP.nest(INDENT, self.obj.tosource() + PP.lbrack + self.field.tosource() + PP.rbrack + PP.str(" =")
-          + break-one + self.rhs.tosource())
+      PP.group(PP.nest(INDENT, self.obj.tosource() + PP.lbrack + self.field.tosource() + PP.rbrack + PP.str(" =")
+            + break-one + self.rhs.tosource()))
     end
   | j-dot-assign(obj :: JExpr, name :: String, rhs :: JExpr) with:
     print-ugly-source(self, printer):
@@ -356,7 +357,7 @@ data JExpr:
       self.obj.to-ugly-source() + "." + self.name + " = " + self.rhs.to-ugly-source() 
     end,
     tosource(self):
-      PP.nest(INDENT, PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.name)) + PP.str(" =") + break-one + self.rhs.tosource())
+      PP.group(PP.nest(INDENT, PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.name)) + PP.str(" =") + break-one + self.rhs.tosource()))
     end
   | j-dot(obj :: JExpr, field :: String) with:
     print-ugly-source(self, printer):
