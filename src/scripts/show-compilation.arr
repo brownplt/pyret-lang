@@ -3,6 +3,7 @@
 import cmdline as C
 import parse-pyret as P
 import "./arr/compiler/desugar.arr" as D
+import "./arr/compiler/desugar-check.arr" as DC
 import "./arr/compiler/anf.arr" as A
 import "./arr/compiler/compile.arr" as CM
 import "./arr/compiler/compile-structs.arr" as CS
@@ -34,7 +35,7 @@ cases (C.ParsedArguments) parsed-options:
         print("Parsed:")
         each(print, parsed.tosource().pretty(80))
 
-        resolved = R.desugar-scope(U.append-nothing-if-necessary(parsed), CS.minimal-builtins)
+        resolved = R.desugar-scope(DC.desugar-check(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
         print("")
         print("Resolved:")
         each(print, resolved.tosource().pretty(80))

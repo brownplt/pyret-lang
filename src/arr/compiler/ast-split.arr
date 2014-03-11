@@ -94,7 +94,7 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
   cases(N.ALettable) e:
     | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
     | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
-    | a-help-app(_, _, args) => unions(args.map(freevars-v))
+    | a-prim-app(_, _, args) => unions(args.map(freevars-v))
     | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
     | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
     | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))

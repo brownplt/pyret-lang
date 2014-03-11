@@ -201,8 +201,8 @@ data ALettable:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end
-  | a-help-app(l :: Loc, f :: String, args :: List<AVal>) with:
-    label(self): "a-help-app" end,
+  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
+    label(self): "a-prim-app" end,
     tosource(self):
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
@@ -345,8 +345,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-assign(_, id, value) => a-assign(dummy-loc, id, value^strip-loc-val())
     | a-app(_, f, args) =>
       a-app(dummy-loc, f^strip-loc-val(), args.map(strip-loc-val))
-    | a-help-app(_, f, args) =>
-      a-help-app(dummy-loc, f, args.map(strip-loc-val))
+    | a-prim-app(_, f, args) =>
+      a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, super, fields) =>
       a-update(_, super^strip-loc-val(), fields.map(strip-loc-field))
@@ -434,8 +434,8 @@ default-map-visitor = {
   a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
     a-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  a-help-app(self, l :: Loc, f :: String, args :: List<AVal>):
-    a-help-app(l, f, args.map(_.visit(self)))
+  a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
+    a-prim-app(l, f, args.map(_.visit(self)))
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))

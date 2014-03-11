@@ -103,21 +103,21 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
   body =
-    j-if(j-binop(j-unop(j-dot(j-id("R"), "GAS"), j-decr), J.j-gt, j-num(0)),
+    j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
       j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
       j-block([
-#              j-method(j-id("R"), "log", [j-str("Starting, "), j-dot(j-id("R"), "EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
+#              rt-method("log", [j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
-          j-throw(j-method(j-id("R"), "makeCont", 
+          j-throw(rt-method("makeCont", 
               [j-obj([j-field("go",
                       j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
                       j-field("from", obj-of-loc(l))])]))]))
   helper-ids = helper-args.rest.map(_.id).map(js-id-of)
   catch =
     j-block([
-#          j-method(j-id("R"), "log", [j-str("Catching, "), obj-of-loc(l), j-str(e), j-dot(j-id("R"), "EXN_STACKHEIGHT")]),
+#          rt-method("log", [j-str("Catching, "), obj-of-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
       j-var("from", obj-of-loc(l)),
-      j-if(j-method(j-id("R"), "isCont", [j-id(e)]),
+      j-if(rt-method("isCont", [j-id(e)]),
         j-block([
             j-var(ss,
               j-obj([
@@ -133,11 +133,11 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
                 #+ helper-ids.map(fun(a): j-field(a, j-id(a)) end)
                 )),
             j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                j-unop(j-dot(j-id("R"), "EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
+                j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
             #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
             j-throw(j-id(e))]),
         j-block([
-            j-if(j-method(j-id("R"), "isPyretException", [j-id(e)]),
+            j-if(rt-method("isPyretException", [j-id(e)]),
                 j-block([
                     j-expr(add-stack-frame(e, j-id("from"))),
                     j-throw(j-id(e))
@@ -148,7 +148,7 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
       j-var(z, j-undefined),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
-      j-expr(j-unop(j-dot(j-id("R"), "GAS"), j-incr)),
+      j-expr(j-unop(rt-field("GAS"), j-incr)),
       j-return(j-id(ret))
     ])
 end
@@ -158,7 +158,7 @@ fun arity-check(body-stmts, arity):
   j-block(
     link(
       j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-throw(j-method(j-id("R"), "makeMessageException", [j-str("Arity mismatch")]))),
+        j-throw(rt-method("makeMessageException", [j-str("Arity mismatch")]))),
       body-stmts))
 end
 
@@ -185,7 +185,7 @@ compiler-visitor = {
     compiled-consq = consq.visit(self)
     compiled-alt = alt.visit(self)
     j-block([
-        j-if(j-method(j-id("R"), "isPyretTrue", [cond.visit(self)]), compiled-consq, compiled-alt)
+        j-if(rt-method("isPyretTrue", [cond.visit(self)]), compiled-consq, compiled-alt)
       ])
   end,
   a-lettable(self, e :: N.ALettable):
@@ -197,25 +197,28 @@ compiler-visitor = {
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     app(f.visit(self), args.map(_.visit(self)))
   end,
-
+  a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
+    rt-method(f, args.map(_.visit(self)))
+  end,
+  
   a-obj(self, l :: Loc, fields :: List<N.AField>):
-    j-method(j-id("R"), "makeObject", [j-obj(fields.map(fun(f): j-field(f.name, f.value.visit(self));))])
+    rt-method("makeObject", [j-obj(fields.map(fun(f): j-field(f.name, f.value.visit(self));))])
   end,
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     j-method(obj.visit(self), "extendWith", [j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    j-method(j-id("R"), "getField", [obj.visit(self), j-str(field)])
+    rt-method("getField", [obj.visit(self), j-str(field)])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
-    j-method(j-id("R"), "getColonField", [obj.visit(self), j-str(field)])
+    rt-method("getColonField", [obj.visit(self), j-str(field)])
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    j-method(j-id("R"), "makeFunction", [j-fun(args.map(_.id).map(js-id-of), arity-check(body.visit(self).stmts, args.length()))])
+    rt-method("makeFunction", [j-fun(args.map(_.id).map(js-id-of), arity-check(body.visit(self).stmts, args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
     compiled-body-stmts = body.visit(self).stmts
-    j-method(j-id("R"), "makeMethod", [j-fun([js-id-of(args.first.id)],
+    rt-method("makeMethod", [j-fun([js-id-of(args.first.id)],
       j-block([
         j-return(j-fun(args.rest.map(_.id).map(js-id-of), arity-check(compiled-body-stmts, args.length() - 1)))])),
        
@@ -228,14 +231,14 @@ compiler-visitor = {
     j-field(name, value.visit(self))
   end,
   a-num(self, l :: Loc, n :: Number):
-    j-method(j-id("R"), "makeNumber", [j-num(n)])
+    rt-method("makeNumber", [j-num(n)])
   end,
   a-str(self, l :: Loc, s :: String):
-    j-method(j-id("R"), "makeString", [j-str(s)])
+    rt-method("makeString", [j-str(s)])
   end,
   a-bool(self, l :: Loc, b :: Bool):
     str = if b: "pyretTrue" else: "pyretFalse";
-    j-dot(j-id("R"), str)
+    rt-field(str)
   end,
   a-undefined(self, l :: Loc):
     j-undefined
@@ -399,7 +402,7 @@ fun splitting-compiler(env):
                                     [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
                                     namespace-binds +
                                     for map2(id from ids, in-id from input-ids):
-                                      j-var(id, j-method(j-id("R"), "getField", [inst(in-id), j-str("provide")]))
+                                      j-var(id, rt-method("getField", [inst(in-id), j-str("provide")]))
                                     end +
                                     split.helpers.map(compile-helper(self, _)) +
                                     [split.body.visit(self)]))),

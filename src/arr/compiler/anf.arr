@@ -242,6 +242,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
         end)
 
+    | s_prim_app(l, f, args) =>
+      anf-name-rec(args, "anf_arg", fun(vs):
+          k.apply(l, N.a-prim-app(l, f, vs))
+        end)
+
     | s_dot(l, obj, field) =>
       anf-name(obj, "anf_bracket", fun(t-obj): k.apply(l, N.a-dot(l, t-obj, field)) end)
 

@@ -64,10 +64,10 @@ merge-nested-blocks = A.default-map-visitor.{
 
 fun count-apps(expr):
   var count = 0
-  visitor = A.default-map-visitor.{
+  visitor = A.default-iter-visitor.{
       s_app(self, l, f, args):
         count := count + 1
-        A.s_app(l, f.visit(self), args.map(_.visit(self)))
+        f.visit(self) and args.map(_.visit(self))
       end
     }
   expr.visit(visitor)

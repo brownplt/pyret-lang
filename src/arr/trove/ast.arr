@@ -457,6 +457,13 @@ data Expr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
+  | s_prim_app(l :: Loc, _fun :: String, args :: List<Expr>) with:
+    label(self): "s_prim_app" end,
+    tosource(self):
+      PP.group(PP.str(self._fun)
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+    end
   | s_left_app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s_left_app" end,
     tosource(self):
@@ -1369,6 +1376,12 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
           equiv-ast(fun1, fun2) and length-andmap(equiv-ast, args1, args2)
         | else => false
       end
+    | s_prim_app(_, fun1, args1) =>
+      cases(Expr) ast2:
+        | s_prim_app(_, fun2, args2) =>
+          (fun1 == fun2) and length-andmap(equiv-ast, args1, args2)
+        | else => false
+      end
     | s_left_app(_, obj1, fun1, args1) =>
       cases(Expr) ast2:
         | s_left_app(_, obj2, fun2, args2) =>
@@ -1669,6 +1682,9 @@ default-map-visitor = {
   end,
   s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s_app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s_prim_app(self, l :: Loc, _fun :: string, args :: List<Expr>):
+    s_prim_app(l, _fun, args.map(_.visit(self)))
   end,
   s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     s_left_app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
@@ -2044,6 +2060,9 @@ default-iter-visitor = {
   end,
   s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and list.all(_.visit(self), args)
+  end,
+  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+    list.all(_.visit(self), args)
   end,
   s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)

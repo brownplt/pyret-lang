@@ -962,16 +962,16 @@ function createMethodDict() {
        return new PyretFailException(makeString(str));
     }
 
-    /** type {!PFunction} */
-    var raise = makeFunction(
+    var raiseJSJS = 
       /**
         Raises any Pyret value as an exception
         @param {!PBase} val the value to raise
       */
-      function(val) {
-        throw new PyretFailException(val);
-      }
-    );
+      function(val) { 
+        throw new PyretFailException(val); 
+      };
+    /** type {!PFunction} */
+    var raisePyPy = makeFunction(raiseJSJS);
 
     /** type {!PFunction} */
     var hasField = makeFunction(
@@ -994,6 +994,7 @@ function createMethodDict() {
       }
       return true;
     }
+    // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
       if (left === right) { return true; }
@@ -1072,7 +1073,10 @@ function createMethodDict() {
       return true;
 
     };
-    var sameP = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
+    // Pyret function from Pyret values to Pyret booleans
+    var samePyPy = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
+    // JS function from Pyret values to Pyret booleans
+    var sameJSPy = function(v1, v2) { return makeBoolean(same(v1, v2)); };
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
@@ -1107,7 +1111,7 @@ function createMethodDict() {
     /** type {!PBase} */
     var builtins = makeObject({
         'has-field': hasField,
-        'equiv': sameP,
+        'equiv': samePyPy,
         'current-checker': makeFunction(function() {
           return getParam("current-checker");
         })
@@ -1853,7 +1857,7 @@ function createMethodDict() {
           'print-error': print_error,
           'display-error': display_error,
           'brander': brander,
-          'raise': raise,
+          'raise': raisePyPy,
           'builtins': builtins,
           'nothing': nothing,
           'is-nothing': mkPred(isNothing),
@@ -1972,9 +1976,26 @@ function createMethodDict() {
         'num_max': num_max,
         'num_min': num_min,
         'num_abs': num_abs,
+        'num_sin': num_sin,
+        'num_cos': num_cos,
+        'num_tan': num_tan,
+        'num_asin': num_asin,
+        'num_acos': num_acos,
+        'num_atan': num_atan,
+        'num_modulo': num_modulo,
+        'num_truncate': num_truncate,
+        'num_sqrt': num_sqrt,
+        'num_ceiling': num_ceiling,
+        'num_floor': num_floor,
+        'num_log': num_log,
+        'num_exp': num_exp,
+        'num_exact': num_exact,
+        'num_is_integer': num_is_integer,
+        'num_expt': num_expt,
+        'num_tostring': num_tostring,
 
-        'string_append': string_append,
         'string_contains': string_contains,
+        'string_append': string_append,
         'string_length': string_length,
         'string_tonumber': string_tonumber,
         'string_repeat': string_repeat,
@@ -1984,6 +2005,11 @@ function createMethodDict() {
         'string_charat': string_charat,
         'string_toupper': string_toupper,
         'string_tolower': string_tolower,
+        'string_explode': string_explode,
+        'string_indexOf': string_indexOf,
+
+        'equiv': sameJSPy,
+        'raise': raiseJSJS,
 
         'hasField' : hasField,
 
