@@ -18,14 +18,16 @@ r([
     "./tests/evaluator/data",
     "./tests/evaluator/errors",
     "./tests/evaluator/well-formed",
-    "./tests/evaluator/check"
+    "./tests/evaluator/check",
+    "./tests/evaluator/stack"
     ], function (
       constants,
       conditionals,
       data,
       errors,
       well_formed,
-      check
+      check,
+      stack
     ) {
   constants.performTest();
   conditionals.performTest();
@@ -33,6 +35,7 @@ r([
   errors.performTest();
   well_formed.performTest();
   check.performTest();
+//  stack.performTest();
 }, function(err) {
   console.log("Require failed! ", err);
 
