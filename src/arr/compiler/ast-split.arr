@@ -106,6 +106,7 @@ fun freevars-l(e :: N.ALettable) -> Set<String>:
     | a-colon(_, obj, _) => freevars-v(obj)
     | a-get-bang(_, obj, _) => freevars-v(obj)
     | a-val(v) => freevars-v(v)
+    | else => raise("Non-lettable in freevars-l " + torepr(e))
   end
 end
 
@@ -170,8 +171,14 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
           freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
     | a-lettable(e) =>
-      let-result = ast-split-lettable(e)
-      split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
+      cases(N.ALettable) e:
+        | a-app(l, f, args) =>
+          name = G.make-name("solo-app")
+          ast-split-expr(N.a-let(l, N.a-bind(l, name, A.a_blank), e, N.a-lettable(N.a-val(N.a-id(l, name)))))
+        | else =>
+          let-result = ast-split-lettable(e)
+          split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
+      end
     | else => raise("NYI: " + torepr(expr))
   end
 end
