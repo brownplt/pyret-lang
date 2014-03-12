@@ -45,7 +45,7 @@ fun check-bool(l, id, e, then, error):
       [A.s_if_branch(l, A.s_prim_app(l, "isBoolean", [id.id-e]), then)],
       error))
 end
-fun makeMessageException(l, msg):
+fun make-message-exception(l, msg):
   A.s_prim_app(l, "raise", [A.s_str(l, msg)])
 end
 
@@ -190,7 +190,7 @@ fun desugar-if(l, nv :: DesugarEnv, branches, _else :: A.Expr):
       A.s_if_else(l,
         [A.s_if_branch(branch.l, test-id.id-e, desugar-expr(nv, branch.body))],
         acc),
-      makeMessageException(l, "Pyret Type Error: Condition for 'if' was not a boolean"))
+      make-message-exception(l, "Pyret Type Error: Condition for 'if' was not a boolean"))
   end
 end
 
@@ -452,14 +452,14 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
         A.s_if_else(l,
           [A.s_if_branch(l, not-oper.id-e, A.s_block(l, [A.s_bool(l, false)]))],
           A.s_block(l, [A.s_bool(l, true)])),
-        makeMessageException(l, "Pyret Type Error: Argument to 'not' was not a boolean"))
+        make-message-exception(l, "Pyret Type Error: Argument to 'not' was not a boolean"))
     | s_when(l, test, body) =>
       test-id = mk-id(l, "when-")
       check-bool(l, test-id, desugar-expr(nv, test),
         A.s_if_else(l,
           [A.s_if_branch(l, test-id.id-e, A.s_block(l, [desugar-expr(nv, body), A.s_id(l, A.s_name("nothing"))]))],
           A.s_block(l, [A.s_id(l, A.s_name("nothing"))])),
-        makeMessageException(l, "Pyret Type Error: Condition for 'when' was not a boolean"))
+        make-message-exception(l, "Pyret Type Error: Condition for 'when' was not a boolean"))
     | s_if(l, branches) =>
       raise("If must have else for now")
     | s_if_else(l, branches, _else) =>
@@ -518,13 +518,13 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, or-oper, desugar-expr(nv, operands.first), or-oper.id-e,
-                    makeMessageException(l, "Pyret Type Error: Second argument to 'or' was not a boolean"))
+                    make-message-exception(l, "Pyret Type Error: Second argument to 'or' was not a boolean"))
                 | link(_, _) =>
                   check-bool(l, or-oper, desugar-expr(nv, operands.first),
                     A.s_if_else(l,
                       [A.s_if_branch(l, or-oper.id-e, A.s_bool(l, true))],
                       helper(operands.rest)),
-                    makeMessageException(l, "Pyret Type Error: First argument 'or' was not a boolean"))
+                    make-message-exception(l, "Pyret Type Error: First argument 'or' was not a boolean"))
               end
             end
             operands = collect-ors(expr)
@@ -543,13 +543,13 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, and-oper, desugar-expr(nv, operands.first), and-oper.id-e,
-                    makeMessageException(l, "Pyret Type Error: Second argument to 'and' was not a boolean"))
+                    make-message-exception(l, "Pyret Type Error: Second argument to 'and' was not a boolean"))
                 | link(_, _) =>
                   check-bool(l, and-oper, desugar-expr(nv, operands.first),
                     A.s_if_else(l,
                       [A.s_if_branch(l, and-oper.id-e, helper(operands.rest))],
                       A.s_bool(l, false)),
-                    makeMessageException(l, "Pyret Type Error: First argument 'and' was not a boolean"))
+                    make-message-exception(l, "Pyret Type Error: First argument 'and' was not a boolean"))
               end
             end
             operands = collect-ands(expr)
