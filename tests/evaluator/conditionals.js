@@ -52,6 +52,18 @@ xfg("false", "true") +
         P.wait(done);
       });
 
+      it("should introduce new scopes", function(done) {
+        var check = "x = 5\n" +
+                    "f = fun: x end\n" +
+                    "when true:\n" +
+                      "shadow x = 10\n" +
+                      "x\n" +
+                    "end\n" +
+                    "f()\n";
+        same(check, rt.makeNumber(5));
+        P.wait(done);
+      });
+
     });
 
     describe("and", function() {
@@ -161,6 +173,7 @@ xfg("false", "true") +
         P.wait(done);
 
       });
+
     });
   }
   return { performTest: performTest };
