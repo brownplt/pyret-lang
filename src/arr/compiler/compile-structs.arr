@@ -80,6 +80,7 @@ runtime-builtins = [
   builtin-id("is-object"),
   builtin-id("is-function"),
   builtin-id("gensym"),
+  builtin-id("run-task"),
   builtin-id("_plus"),
   builtin-id("_minus"),
   builtin-id("_times"),

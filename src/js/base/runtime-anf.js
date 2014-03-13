@@ -1368,6 +1368,27 @@ function createMethodDict() {
       manualPause = resumer;
     }
 
+    function execThunk(thunk) {
+      function wrapResult(res) {
+        var ffi = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+        if(isSuccessResult(res)) {
+          return ffi.makeLeft(res.result);
+        } else if (isFailureResult(res)) {
+          return ffi.makeRight(res.exn.exn);
+        } else {
+          console.error("Bad execThunk result: ", res);
+          return;
+        }
+      }
+      thisRuntime.pauseStack(function(restarter) {
+        thisRuntime.run(function(_, __) {
+            return thunk.app();
+          }, thisRuntime.namespace, {
+            sync: true
+          }, function(result) { restarter(wrapResult(result)) });
+      });
+    }
+
     var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     var DEBUGLOG = true;
@@ -1866,6 +1887,9 @@ function createMethodDict() {
           'is-string': mkPred(isString),
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
+
+          'run-task': makeFunction(execThunk),
+
           'gensym': gensym,
 
           '_plus': makeFunction(plus),

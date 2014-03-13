@@ -1,7 +1,8 @@
-define(["./runtime-util", "../trove/list", "../trove/option"], function(util, listLib, optLib) {
+define(["./runtime-util", "../trove/list", "../trove/option", "../trove/either"], function(util, listLib, optLib, eitherLib) {
   return util.memoModule("ffi-helpers", function(RUNTIME, NAMESPACE) {
       var L = RUNTIME.getField(listLib(RUNTIME, NAMESPACE), "provide");
       var O = RUNTIME.getField(optLib(RUNTIME, NAMESPACE), "provide");
+      var E = RUNTIME.getField(eitherLib(RUNTIME, NAMESPACE), "provide");
       return {
           makeList: function(arr) {
             var lst = RUNTIME.getField(L, "empty");
@@ -12,6 +13,9 @@ define(["./runtime-util", "../trove/list", "../trove/option"], function(util, li
           },
           makeNone: function() { return RUNTIME.getField(O, "none"); },
           makeSome: function(v) { return RUNTIME.getField(O, "some").app(v); },          
+          makeLeft: function(l) { return RUNTIME.getField(E, "left").app(l); },
+          makeRight: function(r) { return RUNTIME.getField(E, "right").app(r); },
+
           toArray: function(list) {
             var isList = RUNTIME.getField(L, "List");
             var isEmpty = RUNTIME.getField(L, "is-empty");
