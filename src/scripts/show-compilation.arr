@@ -11,6 +11,7 @@ import "./arr/compiler/resolve-scope.arr" as R
 import "./arr/compiler/ast-util.arr" as U
 import "./arr/compiler/anf.arr" as N
 import "./arr/compiler/ast-split.arr" as AS
+import "./arr/compiler/js-of-pyret.arr" as JS
 import file as F
 
 options = {
@@ -54,11 +55,16 @@ cases (C.ParsedArguments) parsed-options:
         print("ANFed:")
         each(print, anfed.tosource().pretty(80))
 
+        unsafecomp = JS.make-unsafe-compiled-pyret(cleaned, CS.standard-builtins)
+        print("")
+        print("Non-stacksafe generated JS:")
+        print(unsafecomp.pyret-to-js-pretty())
+        
         split = AS.ast-split(anfed.body)
         print("")
         print("Split:")
         each(print, split.tosource().pretty(80))
-        
+
         comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
         cases(CM.CompileResult) comp:
           | ok(c) =>
