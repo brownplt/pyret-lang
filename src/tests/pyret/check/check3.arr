@@ -2,7 +2,7 @@
 
 eq = checkers.check-equals
 
-fun expt(x, n):
+fun exponent(x, n):
   fun mult(n1, n2):
     n1 * n2
   where:
@@ -16,9 +16,9 @@ fun expt(x, n):
     mult(acc, x)
   end
 where:
-  expt(5, 0) is 1
-  expt(0, 5) is 0
-  expt(2, 4) is 16
+  exponent(5, 0) is 1
+  exponent(0, 5) is 0
+  exponent(2, 4) is 16
 end
 
 # should run

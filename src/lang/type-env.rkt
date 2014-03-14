@@ -89,16 +89,6 @@
      'build-array
      'nothing
      'gensym
-     'string-length
-     'string-append
-
-     'expt
-     'sq
-     'sqrt
-     'plus
-     'minus
-     'times
-     'divide
      )))
 
 (define builtins-env-list
@@ -185,6 +175,17 @@
       'set
       'list-set
       'tree-set
+
+      'string-length
+      'string-append
+
+      'expt
+      'sq
+      'sqrt
+      'plus
+      'minus
+      'times
+      'divide
 
       'identical
       'string-to-list)))
