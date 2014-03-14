@@ -371,45 +371,59 @@ check:
 
 end
 
-fun splitting-compiler(env):
+fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
   namespace-ids = env.bindings.filter(CS.is-builtin-id)
   namespace-binds = for map(n from namespace-ids):
     j-var(js-id-of(n.id), j-method(j-id("NAMESPACE"), "get", [j-str(n.id)]))
   end
+  ids = headers.map(_.name).map(js-id-of)
+  filenames = headers.map(fun(h):
+      cases(N.AHeader) h:
+        | a-import-builtin(_, name, _) => "trove/" + name
+        | a-import-file(_, file, _) => file
+      end
+    end)
+  module-id = G.make-name(l.file)
+  module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
+  input-ids = ids.map(fun(f): G.make-name(f) end)
+  j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
+            j-return(j-fun(["R", "NAMESPACE"],
+                j-block([
+                    j-if(module-ref(module-id),
+                      j-block([j-return(module-ref(module-id))]),
+                      j-block([
+                          j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
+                              j-block(
+                                [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
+                                namespace-binds +
+                                for map2(id from ids, in-id from input-ids):
+                                  j-var(id, rt-method("getField", [inst(in-id), j-str("provide")]))
+                                end +
+                                split.helpers.map(compile-helper(self, _)) +
+                                [split.body.visit(self)]))),
+                          j-return(module-ref(module-id))
+                        ]))
+                  ])))
+        ]))])
+end
+
+fun splitting-compiler(env):
   compiler-visitor.{
     a-program(self, l, headers, body):
       simplified = body.visit(remove-useless-if-visitor)
       split = S.ast-split(simplified)
-      ids = headers.map(_.name).map(js-id-of)
-      filenames = headers.map(fun(h):
-          cases(N.AHeader) h:
-            | a-import-builtin(_, name, _) => "trove/" + name
-            | a-import-file(_, file, _) => file
-          end
-        end)
-      module-id = G.make-name(l.file)
-      module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
-      input-ids = ids.map(fun(f): G.make-name(f) end)
-      j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
-                j-return(j-fun(["R", "NAMESPACE"],
-                    j-block([
-                        j-if(module-ref(module-id),
-                          j-block([j-return(module-ref(module-id))]),
-                          j-block([
-                              j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
-                                  j-block(
-                                    [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
-                                    namespace-binds +
-                                    for map2(id from ids, in-id from input-ids):
-                                      j-var(id, rt-method("getField", [inst(in-id), j-str("provide")]))
-                                    end +
-                                    split.helpers.map(compile-helper(self, _)) +
-                                    [split.body.visit(self)]))),
-                              j-return(module-ref(module-id))
-                            ]))
-                      ])))
-            ]))])
+      compile-program(self, l, headers, split, env)
+    end
+  }
+end
+
+fun non-splitting-compiler(env):
+  compiler-visitor.{
+    a-program(self, l, headers, body):
+      simplified = body.visit(remove-useless-if-visitor)
+      split = S.split-result([], simplified)
+      compile-program(self, l, headers, split, env)
     end
   }
 end

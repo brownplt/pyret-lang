@@ -27,12 +27,14 @@ data CompiledCodePrinter:
 end
 
 fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
-
   anfed = N.anf-program(program-ast)
-  split = AS.ast-split(anfed.body)
-  #split = AS.split-result-e([], anfed.body, set([]))
   compiled = anfed.visit(AV.splitting-compiler(env))
-  
+  ccp(compiled)
+end
+
+fun make-unsafe-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
+  anfed = N.anf-program(program-ast)
+  compiled = anfed.visit(AV.non-splitting-compiler(env))
   ccp(compiled)
 end
 

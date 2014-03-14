@@ -82,6 +82,11 @@
     </span>
     <div id="tools">
 
+      <label>
+      Safe stack:
+      </label>
+      <input type="checkbox" id="safeStack" checked>
+      </input>
 
       <label>
       Async:
@@ -206,7 +211,7 @@ $(function() {
                   s(src),
                   s(name),
                   gf(myCS, "standard-builtins"),
-                  { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
+                  myRT.makeBoolean($("#safeStack").prop("checked"))
                 )
               },
               function(myCR) {
