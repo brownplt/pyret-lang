@@ -22,6 +22,9 @@ str-try = PP.str("try:")
 str-except = PP.str("except")
 str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
+str-import = PP.str("import")
+str-provide = PP.str("provide")
+str-as = PP.str("as")
 
 dummy-loc = error.location("dummy-location", -1, -1)
 
@@ -45,11 +48,20 @@ end
 
 data AHeader:
   | a-import-file(l :: Loc, file :: String, name :: String) with:
-    label(self): "a-import-file" end
+    label(self): "a-import-file" end,
+    tosource(self):
+      PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, PP.str(self.name)])
+    end
   | a-import-builtin(l :: Loc, lib :: String, name :: String) with:
-    label(self): "a-import-builtin" end
+    label(self): "a-import-builtin" end,
+    tosource(self):
+      PP.flow([str-import, PP.str(self.file), str-as, PP.str(self.name)])
+    end
   | a-provide(l :: Loc, val :: AExpr) with:
-    label(self): "a-import-provide" end
+    label(self): "a-import-provide" end,
+    tosource(self):
+      PP.soft-surround(INDENT, 1, str-provide, self.val.tosource(), str-end)
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
