@@ -55,7 +55,7 @@ data AHeader:
   | a-import-builtin(l :: Loc, lib :: String, name :: String) with:
     label(self): "a-import-builtin" end,
     tosource(self):
-      PP.flow([str-import, PP.str(self.file), str-as, PP.str(self.name)])
+      PP.flow([str-import, PP.str(self.lib), str-as, PP.str(self.name)])
     end
   | a-provide(l :: Loc, val :: AExpr) with:
     label(self): "a-import-provide" end,
