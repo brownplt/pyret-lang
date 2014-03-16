@@ -32,7 +32,7 @@ fun main(args):
 
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
-      check-mode = r.has-key("no-check-mode") and (not r.has-key("library"))
+      check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs = if r.has-key("library"): CS.minimal-builtins else: CS.standard-builtins end
       module-dir = if r.has-key("module-load-dir"): r.get("module-load-dir") else: "." end

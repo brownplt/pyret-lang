@@ -32,7 +32,10 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
                 s(src),
                 s(name),
                 gf(cs, "standard-builtins"),
-                { "blowup": "true", get dict() { throw "Not a Pyret value!";} }
+                runtime.makeObject({
+                  "check-mode": runtime.pyretTrue,
+                  "allow-shadowed": runtime.pyretFalse
+                })
               );
           },
           function(compiled) {
