@@ -130,6 +130,8 @@ minimal-builtins = compile-env(runtime-builtins)
 
 standard-builtins = compile-env(
     runtime-builtins + [
+      builtin-id("_link"),
+      builtin-id("_empty"),
       module-bindings("list", [
           "is-empty",
           "is-link",

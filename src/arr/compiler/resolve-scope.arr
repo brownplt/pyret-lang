@@ -398,6 +398,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         else:
           A.s_id(l, names.s_global(s))
         end
+      | s_underscore => A.s_id(l, A.s_underscore)
       | else => raise("Wasn't expecting a non-s_name in resolve-names id: " + torepr(id))
     end
   end
@@ -457,6 +458,31 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(new-visitor)
       A.s_letrec(l, visit-binds, visit-body)
     end,
+    s_for(self, l, iter, binds, ann, body):
+      env-and-binds = for fold(acc from { env: self.env, fbs: [] }, fb from binds):
+        cases(ForBind) fb:
+          | s_for_bind(l, bind, val) => 
+            atom-env = get-atom(bind.id, acc.env, let-bind)
+            new-bind = A.s_bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
+            new-fb = A.s_for_bind(l, new-bind, val.visit(self.{env: acc.env}))
+            { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
+        end
+      end
+      A.s_for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
+    end,
+    s_cases_branch(self, l, name, args, body):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+        atom-env = get-atom(a.id, acc.env, let-bind)
+        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      end
+      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+        cases(A.Bind) a:
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, false, at, ann.visit(self.{env: env-and-atoms.env}))
+        end
+      end
+      new-body = body.visit(self.{env: env-and-atoms.env})
+      A.s_cases_branch(l, name, new-args, new-body)
+    end,
     s_lam(self, l, params, args, ann, doc, body, _check):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
         atom-env = get-atom(a.id, acc.env, let-bind)
@@ -485,6 +511,20 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-check = self.{env: env-and-atoms.env}.option(_check)
       A.s_method(l, new-args, ann, doc, new-body, new-check)
     end,
+    s_method_field(self, l, name, args, ann, doc, body, _check):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+        atom-env = get-atom(a.id, acc.env, let-bind)
+        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      end
+      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+        cases(A.Bind) a:
+          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann.visit(self.{env: env-and-atoms.env}))
+        end
+      end
+      new-body = body.visit(self.{env: env-and-atoms.env})
+      new-check = self.{env: env-and-atoms.env}.option(_check)
+      A.s_method_field(l, name, new-args, ann, doc, new-body, new-check)
+    end,
     s_assign(self, l, id, expr):
       cases(A.Name) id:
         | s_name(s) =>
@@ -496,6 +536,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           else:
             raise("Assignment to global " + torepr(l))
           end
+        | s_underscore =>
+          A.s_assign(l, id, expr)
         | else => raise("Wasn't expecting a non-s_name in resolve-names for assignment: " + torepr(id))
       end
     end,
@@ -510,7 +552,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s_variant_member(l, typ, new-bind)
     end,
-    s_bind(self, l, shadows, id, ann): raise("Should not reach bindings in resolve-names" + torepr(l) + torepr(id)) end
+    s_bind(self, l, shadows, id, ann):
+      cases(A.Name) id:
+        | s_underscore => A.s_bind(l, shadows, id, ann)
+        | else => 
+          raise("Should not reach non-underscore bindings in resolve-names" + torepr(l) + torepr(id))
+      end
+    end
   }
   p.visit(names-visitor)
 end

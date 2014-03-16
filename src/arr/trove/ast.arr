@@ -70,6 +70,7 @@ data Name:
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
     tostring(self): "_" end,
+    toname(self): raise("Cannot get name for underscore") end,
     key(self): "underscore#" end
 
   | s_name(s :: String) with:
@@ -77,6 +78,7 @@ data Name:
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
     tostring(self): self.s end,
+    toname(self): self.s end,
     key(self): "name#" + self.s end
 
   | s_global(s :: String) with:
@@ -84,6 +86,7 @@ data Name:
     to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
     tostring(self): self.s end,
+    toname(self): self.s end,
     key(self): "global#" + self.s end
 
   | s_atom(base :: String, serial :: Number) with:
@@ -91,6 +94,7 @@ data Name:
     to-compiled(self): self.base + tostring(self.serial) end,
     tosource(self): PP.str(self.to-compiled()) end,
     tostring(self): self.to-compiled() end,
+    toname(self): self.base end,
     key(self): "atom#" + self.base + tostring(self.serial) end
 end
 
@@ -464,6 +468,9 @@ data Expr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
+  | s_prim_val(l :: Loc, name :: String) with:
+    label(self): "s_prim_val" end,
+    tosource(self): PP.str(self.name) end
   | s_left_app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s_left_app" end,
     tosource(self):
@@ -926,6 +933,7 @@ fun length-andmap(pred, l1, l2):
     for list.all(p from map2(pair, l1, l2)): pred(p.l, p.r);
 end
 
+
 # Equivalence modulo srclocs
 fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
   cases(Program) ast1:
@@ -1382,6 +1390,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
           (fun1 == fun2) and length-andmap(equiv-ast, args1, args2)
         | else => false
       end
+    | s_prim_val(_, name1) =>
+      cases(Expr) ast2:
+        | s_prim_val(_, name2) => name1 == name2
+        | else => false
+      end
     | s_left_app(_, obj1, fun1, args1) =>
       cases(Expr) ast2:
         | s_left_app(_, obj2, fun2, args2) =>
@@ -1683,8 +1696,11 @@ default-map-visitor = {
   s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s_app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  s_prim_app(self, l :: Loc, _fun :: string, args :: List<Expr>):
+  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s_prim_app(l, _fun, args.map(_.visit(self)))
+  end,
+  s_prim_val(self, l :: Loc, name :: String):
+    s_prim_val(l, name)
   end,
   s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     s_left_app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
@@ -2064,6 +2080,9 @@ default-iter-visitor = {
   s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     list.all(_.visit(self), args)
   end,
+  s_prim_val(self, l :: Loc, name :: String):
+    true
+  end,
   s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)
   end,
@@ -2248,3 +2267,384 @@ default-iter-visitor = {
     ann.visit(self)
   end
 }
+
+dummy-loc-visitor = {
+  option(self, opt):
+    cases(Option) opt:
+      | none => none
+      | some(v) => some(v.visit(self))
+    end
+  end,
+
+  s_program(self, l, imports, body):
+    s_program(dummy-loc, imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_import(self, l, import_type, name):
+    s_import(dummy-loc, import_type, name)
+  end,
+  s_provide(self, l, expr):
+    s_provide(dummy-loc, expr.visit(self))
+  end,
+  s_provide_all(self, l):
+    s_provide_all(l)
+  end,
+
+  s_bind(self, l, shadows, name, ann):
+    s_bind(dummy-loc, shadows, name, ann.visit(self))
+  end,
+
+  s_var_bind(self, l, bind, expr):
+    s_var_bind(dummy-loc, bind.visit(self), expr.visit(self))
+  end,
+  s_let_bind(self, l, bind, expr):
+    s_let_bind(dummy-loc, bind.visit(self), expr.visit(self))
+  end,
+
+  s_let_expr(self, l, binds, body):
+    s_let_expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_letrec_bind(self, l, bind, expr):
+    s_letrec_bind(dummy-loc, bind.visit(self), expr.visit(self))
+  end,
+
+  s_letrec(self, l, binds, body):
+    s_letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    s_hint_exp(dummy-loc, hints, exp.visit(self))
+  end,
+
+  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+    s_instantiate(dummy-loc, expr.visit(self), params.map(_.visit(self)))
+  end,
+
+  s_block(self, l, stmts):
+    s_block(dummy-loc, stmts.map(_.visit(self)))
+  end,
+
+  s_user_block(self, l :: Loc, body :: Expr):
+    s_user_block(dummy-loc, body.visit(self))
+  end,
+
+  s_fun(self, l, name, params, args, ann, doc, body, _check):
+    s_fun(dummy-loc, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+  end,
+
+  s_var(self, l :: Loc, name :: Bind, value :: Expr):
+    s_var(dummy-loc, name.visit(self), value.visit(self))
+  end,
+
+  s_let(self, l :: Loc, name :: Bind, value :: Expr):
+    s_let(dummy-loc, name.visit(self), value.visit(self)) 
+  end,
+
+  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
+    s_graph(dummy-loc, bindings.map(_.visit(self)))
+  end,
+
+  s_when(self, l :: Loc, test :: Expr, block :: Expr):
+    s_when(dummy-loc, test.visit(self), block.visit(self))
+  end,
+
+  s_assign(self, l :: Loc, id :: String, value :: Expr):
+    s_assign(dummy-loc, id, value.visit(self))
+  end,
+
+  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s_if_branch(dummy-loc, test.visit(self), body.visit(self))
+  end,
+
+  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s_if_pipe_branch(dummy-loc, test.visit(self), body.visit(self))
+  end,
+
+  s_if(self, l :: Loc, branches :: List<IfBranch>):
+    s_if(dummy-loc, branches.map(_.visit(self)))
+  end,
+  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    s_if_else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
+  end,
+  
+  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+    s_if_pipe(dummy-loc, branches.map(_.visit(self)))
+  end,
+  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    s_if_pipe_else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
+  end,
+
+  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    s_cases_branch(dummy-loc, name, args.map(_.visit(self)), body.visit(self))
+  end,
+
+  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s_cases(dummy-loc, type, val.visit(self), branches.map(_.visit(self)))
+  end,
+  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s_cases_else(dummy-loc, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  end,
+
+  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    s_try(dummy-loc, body.visit(self), id.visit(self), _except.visit(self))
+  end,
+
+  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s_op(dummy-loc, op, left.visit(self), right.visit(self))
+  end,
+
+  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s_check_test(dummy-loc, op, left.visit(self), right.visit(self))
+  end,
+
+  s_not(self, l :: Loc, expr :: Expr):
+    s_not(dummy-loc, expr.visit(self))
+  end,
+
+  s_paren(self, l :: Loc, expr :: Expr):
+    s_paren(dummy-loc, expr.visit(self))
+  end,
+
+  s_lam(
+      self,
+      l :: Loc,
+      params :: List<String>,
+      args :: List<Bind>,
+      ann :: Ann,
+      doc :: String,
+      body :: Expr,
+      _check :: Option<Expr>
+    ):
+    s_lam(dummy-loc, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+  end,
+  s_method(
+      self,
+      l :: Loc,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Option<Expr>
+    ):
+    s_method(dummy-loc, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+  end,
+  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s_extend(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  end,
+  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s_update(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  end,
+  s_obj(self, l :: Loc, fields :: List<Member>):
+    s_obj(dummy-loc, fields.map(_.visit(self)))
+  end,
+  s_list(self, l :: Loc, values :: List<Expr>):
+    s_list(dummy-loc, values.map(_.visit(self)))
+  end,
+  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    s_app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+    s_prim_app(dummy-loc, _fun, args.map(_.visit(self)))
+  end,
+  s_prim_val(self, l :: Loc, name :: String):
+    s_prim_val(dummy-loc, name)
+  end,
+  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+    s_left_app(dummy-loc, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s_id(self, l :: Loc, id :: String):
+    s_id(dummy-loc, id)
+  end,
+  s_id_var(self, l :: Loc, id :: String):
+    s_id_var(dummy-loc, id)
+  end,
+  s_id_letrec(self, l :: Loc, id :: String):
+    s_id_letrec(dummy-loc, id)
+  end,
+  s_undefined(self, l :: Loc):
+    s_undefined(self)
+  end,
+  s_num(self, l :: Loc, n :: Number):
+    s_num(dummy-loc, n)
+  end,
+  s_bool(self, l :: Loc, b :: Bool):
+    s_bool(dummy-loc, b)
+  end,
+  s_str(self, l :: Loc, s :: String):
+    s_str(dummy-loc, s)
+  end,
+  s_dot(self, l :: Loc, obj :: Expr, field :: String):
+    s_dot(dummy-loc, obj.visit(self), field)
+  end,
+  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
+    s_get_bang(dummy-loc, obj.visit(self), field)
+  end,
+  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s_bracket(dummy-loc, obj.visit(self), field.visit(self))
+  end,
+  s_colon(self, l :: Loc, obj :: Expr, field :: String):
+    s_colon(dummy-loc, obj.visit(self), field)
+  end,
+  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s_colon_bracket(dummy-loc, obj.visit(self), field.visit(self))
+  end,
+  s_data(
+      self,
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      mixins :: List<Expr>,
+      variants :: List<Variant>,
+      shared_members :: List<Member>,
+      _check :: Option<Expr>
+    ):
+    s_data(
+        dummy-loc,
+        name,
+        params,
+        mixins.map(_.visit(self)),
+        variants.map(_.visit(self)),
+        shared_members.map(_.visit(self)),
+        self.option(_check)
+      )
+  end,
+  s_data_expr(
+      self,
+      l :: Loc,
+      name :: String,
+      params :: List<String>, # type params
+      mixins :: List<Expr>,
+      variants :: List<Variant>,
+      shared_members :: List<Member>,
+      _check :: Option<Expr>
+    ):
+    s_data_expr(
+        dummy-loc,
+        name,
+        params,
+        mixins.map(_.visit(self)),
+        variants.map(_.visit(self)),
+        shared_members.map(_.visit(self)),
+        self.option(_check)
+      )
+  end,
+  s_for(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+    ):
+    s_for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+  end,
+  s_check(self, l :: Loc, name :: Option<String>, body :: Expr):
+    s_check(dummy-loc, name, body.visit(self))  
+  end,
+
+  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
+    s_data_field(dummy-loc, name, value.visit(self))
+  end,
+  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s_mutable_field(dummy-loc, name, ann, value.visit(self))
+  end,
+  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s_once_field(dummy-loc, name, ann, value.visit(self))
+  end,
+  s_method_field(
+      self,
+      l :: Loc,
+      name :: Expr,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check :: Option<Expr>
+    ):
+    s_method_field(
+        dummy-loc,
+        name,
+        args.map(_.visit(self)),
+        ann,
+        doc,
+        body.visit(self),
+        self.option(_check)
+      )
+  end,
+
+  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s_for_bind(dummy-loc, bind.visit(self), value.visit(self))   
+  end,
+  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
+    s_variant_member(dummy-loc, member_type, bind.visit(self))
+  end,
+  s_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      with_members :: List<Member>
+    ):
+    s_variant(dummy-loc, name, members.map(_.visit(self)), with_members.map(_.visit(self)))
+  end,
+  s_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      with_members :: List<Member>
+    ):
+    s_singleton_variant(dummy-loc, name, with_members.map(_.visit(self)))
+  end,
+  s_datatype_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      members :: List<VariantMember>,
+      constructor :: Constructor
+    ):
+    s_datatype_variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
+  end,
+  s_datatype_singleton_variant(
+      self,
+      l :: Loc,
+      name :: String,
+      constructor :: Constructor
+    ):
+    s_datatype_singleton_variant(dummy-loc, name, constructor.visit(self))
+  end,
+  s_datatype_constructor(
+      self,
+      l :: Loc,
+      self-arg :: String,
+      body :: Expr
+      ):
+    s_datatype_constructor(dummy-loc, self-arg, body.visit(self))
+  end,
+
+  a_blank(self): a_blank end,
+  a_any(self): a_any end,
+  a_name(self, dummy-loc, id): a_name(dummy-loc, id) end,
+  a_arrow(self, dummy-loc, args, ret):
+    a_arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self))
+  end,
+  a_method(self, l, args, ret):
+    a_method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
+  end,
+  a_record(self, l, fields):
+    a_record(dummy-loc, fields.map(_.visit(self)))
+  end,
+  a_app(self, l, ann, args):
+    a_app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
+  end,
+  a_pred(self, l, ann, exp):
+    a_pred(dummy-loc, ann.visit(self), exp.visit(self))
+  end,
+  a_dot(self, l, obj, field):
+    a_dot(dummy-loc, obj, field)
+  end,
+  a_field(self, l, name, ann):
+    a_field(dummy-loc, name, ann.visit(self))
+  end
+}
+

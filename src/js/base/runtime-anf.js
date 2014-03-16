@@ -2035,7 +2035,7 @@ function createMethodDict() {
         'equiv': sameJSPy,
         'raise': raiseJSJS,
 
-        'hasField' : hasField,
+        'hasField' : hasField.app,
 
         'toReprJS' : toReprJS,
 
@@ -2056,6 +2056,12 @@ function createMethodDict() {
     
     thisRuntime['pyretTrue'] = pyretTrue;
     thisRuntime['pyretFalse'] = pyretFalse;
+
+    var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
+    var ns = thisRuntime.namespace;
+    var nsWithList = ns.set("_link", getField(list, "link"))
+                       .set("_empty", getField(list, "empty"));
+    thisRuntime.namespace = nsWithList;
 
     return thisRuntime;
 }
