@@ -90,6 +90,11 @@ fun lam(l, args, body):
   A.s_lam(l, [], args.map(fun(sym): A.s-bind(l, false, sym, A.a_blank) end), A.a_blank, "", body, none)
 end
 
+no-checks-visitor = A.default-map-visitor.{
+  s_check(self, l, name, body):
+    A.s_id(l, A.s_name("nothing"))
+  end
+}
 
 check-visitor = A.default-map-visitor.{
   s_block(self, l, stmts):
@@ -125,4 +130,8 @@ fun desugar-check(prog):
           - contains no s_check or s_check_test statements
           - all where blocks on s_lam, s_fun, s_data, s_method are none"
   prog.visit(check-visitor)
+end
+
+fun desugar-no-checks(prog):
+  prog.visit(no-checks-visitor)
 end
