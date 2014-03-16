@@ -490,6 +490,16 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
           fun opbool(fld):
             A.s_app(l, A.s_dot(l, desugar-expr(nv, left), fld), [thunk(desugar-expr(nv, right))])
           end
+          fun collect-op(opname, exp):
+            if A.is-s_op(exp):
+              if exp.op == opname: collect-op(opname, exp.left) + collect-op(opname, exp.right)
+              else: [exp]
+              end
+            else: [exp]
+            end
+          end
+          collect-ors = collect-op("opor", _)
+          collect-ands = collect-op("opand", _)
           if op == "op==":
             ds-curry-binop(l, desugar-expr(nv, left), desugar-expr(nv, right),
                 fun(e1, e2):
@@ -505,14 +515,6 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
                   A.s_bool(l, false))],
               A.s_bool(l, true))
           else if op == "opor":
-            fun collect-ors(exp):
-              if A.is-s_op(exp):
-                if exp.op == "opor": collect-ors(exp.left) + collect-ors(exp.right)
-                else: [exp]
-                end
-              else: [exp]
-              end
-            end
             fun helper(operands):
               or-oper = mk-id(l, "or-oper-")
               cases(List) operands.rest:
@@ -530,14 +532,6 @@ fun desugar-expr(nv :: DesugarEnv, expr :: A.Expr):
             operands = collect-ors(expr)
             helper(operands)
           else if op == "opand":
-            fun collect-ands(exp):
-              if A.is-s_op(exp):
-                if exp.op == "opand": collect-ands(exp.left) + collect-ands(exp.right)
-                else: [exp]
-                end
-              else: [exp]
-              end
-            end
             fun helper(operands):
               and-oper = mk-id(l, "and-oper-")
               cases(List) operands.rest:
