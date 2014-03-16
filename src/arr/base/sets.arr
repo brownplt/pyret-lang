@@ -23,9 +23,9 @@ data AVLTree:
       contains(self, val :: Any) -> Bool: false end,
       insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
       remove(self, val :: Any) -> AVLTree: leaf end,
-      preorder(self) -> List: [] end,
-      inorder(self) -> List: [] end,
-      postorder(self) -> List: [] end
+      preorder(self) -> List: empty end,
+      inorder(self) -> List: empty end,
+      postorder(self) -> List: empty end
       
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
       height(self) -> Number: self.h end,
@@ -53,7 +53,7 @@ data AVLTree:
       end,
       preorder(self) -> List: list.link(self.value, self.left.preorder() + self.right.preorder()) end,
       inorder(self) -> List: self.left.inorder() + list.link(self.value, self.right.inorder()) end,
-      postorder(self) -> List: self.left.postorder() + self.right.postorder() + [self.value] end
+      postorder(self) -> List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end
 sharing:
   to-list(self) -> List: self.inorder() end,
   _equals(self, other):
@@ -267,7 +267,7 @@ end
 
 fun list-to-list-set(lst :: List) -> Set:
   doc: "Convert a list into a list-based set."
-  list-to-set(lst, list-set([]))
+  list-to-set(lst, list-set(empty))
 end
 
 fun list-to-tree-set(lst :: List) -> Set:

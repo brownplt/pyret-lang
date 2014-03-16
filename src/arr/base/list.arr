@@ -164,6 +164,7 @@ sharing:
   _plus(self :: List, other :: List): self.append(other) end
 
 end
+
 fun get-help(lst, n :: Number):
   fun help(l, cur):
     if is-empty(l): raise("get: n too large " + tostring(n))
@@ -220,9 +221,9 @@ fun repeat(n :: Number, e :: Any) -> List:
   else:           raise("repeat: can't have a negative argument'")
   end
 where:
-  repeat(0, 10) is []
-  repeat(3, -1) is [-1, -1, -1]
-  repeat(1, "foo") is ["foo"]
+  repeat(0, 10) is empty
+  repeat(3, -1) is link(-1, link(-1, link(-1, empty)))
+  repeat(1, "foo") is link("foo", empty)
 end
 
 fun filter(f, lst :: List):
@@ -284,7 +285,7 @@ fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
   end
   fun help(ind, l):
     if ind == 0:
-      { prefix: [], suffix: l }
+      { prefix: empty, suffix: l }
     else:
       cases(List) l:
         | empty => raise("Index too large")
