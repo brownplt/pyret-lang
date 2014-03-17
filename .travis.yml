@@ -1,5 +1,9 @@
 git:
   submodules: false
+language: node_js
+node_js:
+  - "0.11"
+  - "0.10"
 install: make install
 before_script: make
 script: make test
