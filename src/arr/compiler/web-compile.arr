@@ -19,9 +19,9 @@ fun compile-js(code, name, libs, safe-stack):
     | ok(wf-ast) =>
       checked = CH.desugar-check(wf-ast)
       scoped = R.desugar-scope(checked, libs)
-      desugared = D.desugar(scoped, libs)
-      named = R.resolve-names(desugared, libs)
-      cleaned = named.visit(U.merge-nested-blocks)
+      named = R.resolve-names(scoped, libs)
+      desugared = D.desugar(named, libs)
+      cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
       any-errors = U.check-unbound(libs, cleaned, {})

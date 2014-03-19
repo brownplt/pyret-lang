@@ -71,9 +71,10 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
   doc: "Desugar non-scope and non-check based constructs.
         Preconditions on program:
           - well-formed
-          - contains no s_provide in headers
           - contains no s_let, s_var, s_data, s_check, or s_check_test
+          - contains no s_provide in headers
           - all where blocks are none
+          - contains no s_name (e.g. call resolve-names first)
         Postconditions on program:
           - in addition to preconditions,
             contains no s_for, s_if, s_op, s_method_field,
@@ -99,7 +100,7 @@ fun make-torepr(l, vname, fields):
   self = mk-id(l, "self")
   fun str(s): A.s_str(l, s) end
   fun call-torepr(val):
-    A.s_app(l, A.s_id(l, A.s_global("torepr")), [A.s_dot(l, self.id-e, tostring(val.bind.id))])
+    A.s_app(l, A.s_id(l, A.s_global("torepr")), [A.s_dot(l, self.id-e, val.bind.id.toname())])
   end
   fun concat(v1, v2):
     A.s_op(l, "op+", v1, v2)

@@ -383,9 +383,9 @@ end
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   doc: "Turn all s_names into s_atom or s_global
         Preconditions on p:
-          - Has been desugared
+          - Contains no s_let, s_var, s_data (e.g. call desugar-scope first)
         Postconditions on p:
-          - Contains no s_name, s_underscore in names"
+          - Contains no s_name in names"
   fun handle-id(env, l, id):
     cases(A.Name) id:
       | s_name(s) =>
