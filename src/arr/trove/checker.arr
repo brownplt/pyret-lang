@@ -10,7 +10,22 @@ end
 
 data TestResult:
   | success(loc :: Loc, code :: String)
-  | failure(loc :: Loc, code :: String, reason :: String)
+  | failure-not-equal(loc :: Loc, code :: String, left, right) with:
+    reason(self):
+      "Values not equal:\n" + torepr(self.left) + "\n" + torepr(self.right)
+    end
+  | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
+    reason(self):
+      "Predicate failed for value: " + torepr(self.val)
+    end
+  | failure-wrong-exn(loc :: Loc, code :: String, exn :: String, actual-exn) with:
+    reason(self):
+      "Expected exception " + self.exn + ", but got " + torepr(self.actual-exn)
+    end
+  | failure-no-exn(loc :: Loc, code :: String, exn :: String) with:
+    reason(self):
+      "No exception raised, expected " + self.exn
+    end
 end
 
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
@@ -37,26 +52,26 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       if left == right:
         add-result(success(loc, code))
       else:
-        add-result(failure(loc, code, "Values not equal: " + torepr(left) + " " + torepr(right)))
+        add-result(failure-not-equal(loc, code, left, right))
       end
     end,
     check-satisfies(self, code, left, pred, loc):
       if pred(left):
         add-result(success(loc, code))
       else:
-        add-result(failure(loc, code, "Predicate failed for value " + torepr(left)))
+        add-result(failure-not-satisfied(loc, code, left, pred))
       end
     end,
     check-raises(self, code, thunk, str, loc):
       result = run-task(thunk)
       cases(Either) result:
-        | left(v) => add-result(failure(loc, code, "No exception raised, answer was " + torepr(v)))
+        | left(v) => add-result(failure-no-exn(loc, code, str))
         | right(v) =>
           err-str = torepr(v)
           if string-contains(err-str, str):
             add-result(success(loc, code))
           else:
-            add-result(failure(loc, code, "Wrong exception raised (expected to find " + torepr(str) + "): \n" + err-str))
+            add-result(failure-wrong-exn(loc, code, str, v))
           end
       end
     end,
@@ -87,8 +102,8 @@ fun results-summary(block-results :: List<CheckBlockResult>):
             passed: s.passed + 1,
             total: s.total + 1
           }
-        | failure(loc, code, reason) =>
-          m = s.message + "\n  " + loc^format-loc() + ": failed because: \n    " + reason
+        | else =>
+          m = s.message + "\n  " + tr.loc^format-loc() + ": failed because: \n    " + tr.reason()
           s.{
             message: m,
             failed: s.failed + 1,
