@@ -18,13 +18,13 @@ data TestResult:
     reason(self):
       "Predicate failed for value: " + torepr(self.val)
     end
-  | failure-wrong-exn(loc :: Loc, code :: String, exn :: String, actual-exn) with:
+  | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
     reason(self):
-      "Expected exception " + self.exn + ", but got " + torepr(self.actual-exn)
+      "Got unexpected exception " + torepr(self.actual-exn) + ", when expecting " + torepr(self.exn-expected)
     end
-  | failure-no-exn(loc :: Loc, code :: String, exn :: String) with:
+  | failure-no-exn(loc :: Loc, code :: String, exn-expected) with:
     reason(self):
-      "No exception raised, expected " + self.exn
+      "No exception raised, expected " + torepr(self.exn-expected)
     end
 end
 
@@ -62,18 +62,20 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         add-result(failure-not-satisfied(loc, code, left, pred))
       end
     end,
-    check-raises(self, code, thunk, str, loc):
+    check-raises(self, code, thunk, expected, comparator, loc):
       result = run-task(thunk)
       cases(Either) result:
-        | left(v) => add-result(failure-no-exn(loc, code, str))
+        | left(v) => add-result(failure-no-exn(loc, code, expected))
         | right(v) =>
-          err-str = torepr(v)
-          if string-contains(err-str, str):
+          if comparator(v, expected):
             add-result(success(loc, code))
           else:
-            add-result(failure-wrong-exn(loc, code, str, v))
+            add-result(failure-wrong-exn(loc, code, expected, v))
           end
       end
+    end,
+    check-raises-str(self, code, thunk, str, loc):
+      self.check-raises(code, thunk, str, fun(exn, s): string-contains(torepr(exn), s) end, loc)
     end,
     results(self):
       block-results

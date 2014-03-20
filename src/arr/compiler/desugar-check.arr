@@ -32,7 +32,7 @@ check-stmts-visitor = A.default-map-visitor.{
     if op == "opis": check-op("check-is")
     else if op == "opsatisfies": check-op("check-satisfies")
     else if op == "opraises":
-      A.s_app(l, A.s_dot(l, U.checkers(l), "check-raises"),
+      A.s_app(l, A.s_dot(l, U.checkers(l), "check-raises-str"),
         [
           A.s_str(l, A.s_check_test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           A.s_lam(l, [], [], A.a_blank, "", left, none),
