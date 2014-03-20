@@ -47,6 +47,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         add-result(failure(loc, code, "Predicate failed for value " + torepr(left)))
       end
     end,
+    check-raises(self, code, thunk, str, loc):
+      result = run-task(thunk)
+      cases(Either) result:
+        | left(v) => add-result(failure(loc, code, "No exception raised, answer was " + torepr(v)))
+        | right(v) =>
+          err-str = torepr(v)
+          if string-contains(err-str, str):
+            add-result(success(loc, code))
+          else:
+            add-result(failure(loc, code, "Wrong exception raised (expected to find " + torepr(str) + "): \n" + err-str))
+          end
+      end
+    end,
     results(self):
       block-results
     end,
