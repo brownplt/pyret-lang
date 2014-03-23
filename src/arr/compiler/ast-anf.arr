@@ -505,3 +505,63 @@ default-map-visitor = {
   end
 }
 
+fun freevars-e(expr :: AExpr) -> Set<String>:
+  cases(AExpr) expr:
+    | a-let(_, b, e, body) =>
+      freevars-e(body).remove(b.id).union(freevars-l(e))
+    | a-var(_, b, e, body) =>
+      freevars-e(body).remove(b.id).union(freevars-l(e))
+    | a-try(_, body, b, c) =>
+      freevars-e(c).remove(b.id).union(freevars-e(body))
+    | a-split-app(_, _, f, args, name, helper-args) =>
+      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
+    | a-lettable(e) => freevars-l(e)
+    | a-if(_, c, t, a) =>
+      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
+  end
+where:
+  d = dummy-loc
+  freevars-e(
+      a-let(d, a-bind(d, "x", A.a_blank), a-val(a-num(d, 4)),
+        a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
+end
+
+fun freevars-variant(v :: AVariant) -> Set<String>:
+  unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
+end
+
+fun freevars-l(e :: ALettable) -> Set<String>:
+  cases(ALettable) e:
+    | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
+    | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
+    | a-prim-app(_, _, args) => unions(args.map(freevars-v))
+    | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
+    | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
+    | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
+    | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-data-expr(_, _, variants, shared) =>
+      unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
+    | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-dot(_, obj, _) => freevars-v(obj)
+    | a-colon(_, obj, _) => freevars-v(obj)
+    | a-get-bang(_, obj, _) => freevars-v(obj)
+    | a-val(v) => freevars-v(v)
+    | else => raise("Non-lettable in freevars-l " + torepr(e))
+  end
+end
+
+fun freevars-v(v :: AVal) -> Set<String>:
+  cases(AVal) v:
+    | a-id(_, id) => list-set([id])
+    | a-id-var(_, id) => list-set([id])
+    | a-id-letrec(_, id) => list-set([id])
+    | else => list-set([])
+  end
+end
+
+fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
+  for fold(unioned from list-set([]), s from ss):
+    unioned.union(s)
+  end
+end
+

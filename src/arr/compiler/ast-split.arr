@@ -39,11 +39,25 @@ data Helper:
     end
 end
 
+fun freevars-helper(h :: Helper):
+  cases(Helper) h:
+    | helper(name, args, body) =>
+      N.freevars-e(body).difference(set(args))
+  end
+end
+
 data SplitResult:
   | split-result(helpers :: List<Helper>, body :: N.AExpr) with:
     tosource(self):
       PP.vert(self.helpers.map(_.tosource()) + [self.body.tosource()])
     end
+end
+
+fun freevars-split-result(sr :: SplitResult):
+  cases(SplitResult) sr:
+    | split-result(helpers, body) =>
+      unions(helpers.map(freevars-helper)).union(N.freevars-e(body))
+  end
 end
 
 data SplitResultInt:
@@ -65,59 +79,6 @@ fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
   end
 end
 
-fun freevars-e(expr :: N.AExpr) -> Set<String>:
-  cases(N.AExpr) expr:
-    | a-let(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-var(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-try(_, body, b, c) =>
-      freevars-e(c).remove(b.id).union(freevars-e(body))
-    | a-split-app(_, _, f, args, name, helper-args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
-    | a-lettable(e) => freevars-l(e)
-    | a-if(_, c, t, a) =>
-      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
-  end
-where:
-  d = N.dummy-loc
-  freevars-e(
-      N.a-let(d, N.a-bind(d, "x", A.a_blank), N.a-val(N.a-num(d, 4)),
-        N.a-lettable(N.a-val(N.a-id(d, "y"))))).to-list() is ["y"]
-end
-
-fun freevars-variant(v :: N.AVariant) -> Set<String>:
-  unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
-end
-
-fun freevars-l(e :: N.ALettable) -> Set<String>:
-  cases(N.ALettable) e:
-    | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
-    | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
-    | a-prim-app(_, _, args) => unions(args.map(freevars-v))
-    | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
-    | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
-    | a-data-expr(_, _, variants, shared) =>
-      unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
-    | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
-    | a-dot(_, obj, _) => freevars-v(obj)
-    | a-colon(_, obj, _) => freevars-v(obj)
-    | a-get-bang(_, obj, _) => freevars-v(obj)
-    | a-val(v) => freevars-v(v)
-    | else => raise("Non-lettable in freevars-l " + torepr(e))
-  end
-end
-
-fun freevars-v(v :: N.AVal) -> Set<String>:
-  cases(N.AVal) v:
-    | a-id(_, id) => list-set([id])
-    | a-id-var(_, id) => list-set([id])
-    | a-id-letrec(_, id) => list-set([id])
-    | else => list-set([])
-  end
-end
 
 fun ast-split(expr :: N.AExpr) -> SplitResult:
   r = ast-split-expr(expr)
@@ -134,7 +95,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
         split-result-int-e(
             concat-singleton(h) + rest-split.helpers,
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),
-            fvs.remove(b.id).union(unions(args.map(freevars-v))).union(freevars-v(f))
+            fvs.remove(b.id).union(unions(args.map(N.freevars-v))).union(N.freevars-v(f))
           )
       | else =>
         e-split = ast-split-lettable(e)
@@ -168,7 +129,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
       split-result-int-e(
           consq-split.helpers + alt-split.helpers,
           N.a-if(l, cond, consq-split.body, alt-split.body),
-          freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
+          N.freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
     | a-lettable(e) =>
       cases(N.ALettable) e:
@@ -200,7 +161,7 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
           body-split.freevars.difference(list-set(args.map(_.id)))
         )
     | else =>
-      split-result-int-l(concat-empty, e, freevars-l(e))
+      split-result-int-l(concat-empty, e, N.freevars-l(e))
   end
 end
 
@@ -216,7 +177,7 @@ check:
   end
   fun split-strip(e):
     res = ast-split-expr(e)
-    split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body), freevars-e(e))
+    split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body), N.freevars-e(e))
   end
   b = A.a_blank
   d = N.dummy-loc

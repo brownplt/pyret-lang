@@ -373,9 +373,9 @@ end
 
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
-  namespace-ids = env.bindings.filter(CS.is-builtin-id)
-  namespace-binds = for map(n from namespace-ids):
-    j-var(js-id-of(n.id), j-method(j-id("NAMESPACE"), "get", [j-str(n.id)]))
+  free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
+  namespace-binds = for map(n from free-ids.to-list()):
+    j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
   end
   ids = headers.map(_.name).map(js-id-of)
   filenames = headers.map(fun(h):
