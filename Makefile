@@ -207,6 +207,7 @@ install:
 	mkdir node_modules -p
 	npm install jasmine-node
 	npm install requirejs
+	npm install q
 
 
 .PHONY : test
@@ -221,6 +222,10 @@ runtime-test : phase1
 .PHONY : evaluator-test
 evaluator-test: phase1
 	cd tests/evaluator/ && node test.js require-test-runner/
+
+.PHONY : repl-test
+repl-test: phase1
+	cd tests/repl/ && node test.js require-test-runner/
 
 .PHONY : compiler-test
 compiler-test: phase1

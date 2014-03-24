@@ -3,9 +3,17 @@ define([
     "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
+    "trove/parse-pyret",
     "trove/checker"],
-function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
-  var r = require("requirejs");
+function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
+  if(requirejs.isBrowser) {
+    var r = requirejs;
+    var define = window.define;
+  }
+  else {
+    var r = require("requirejs");
+    var define = r.define;
+  }
   function randomName() { 
     return "anon" + Math.floor(Math.random() * 10000000);
   }
@@ -20,18 +28,15 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
-    var checker = getExports(checkerLib);
     var name = options.name || randomName();
-
-    var currentChecker = gf(checker, "make-check-context").app(runtime.makeString(name), runtime.makeBoolean(false));
-    runtime.setParam("current-checker", currentChecker);
+    var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
 
     runtime.run(function(_, namespace) {
         return runtime.safeCall(function() {
-            return gf(comp, "compile-js").app(
-                s(src),
+            return gf(comp, "compile-js-ast").app(
+                src,
                 s(name),
-                gf(cs, "standard-builtins"),
+                compileEnv,
                 runtime.makeObject({
                   "check-mode": runtime.pyretTrue,
                   "allow-shadowed": runtime.pyretFalse
@@ -62,15 +67,42 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
       );
   }
 
+  function compileSrcPyret(runtime, src, options, ondone) {
+    parsePyret(runtime, src, options, function(parsed) {
+      compilePyret(runtime, parsed, options, ondone);
+    });
+  }
+
+  function parsePyret(runtime, src, options, ondone) {
+    var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
+    if (!options.name) { options.name = randomName(); }
+    return ondone(runtime.getField(pp, "surface-parse").app(runtime.makeString(src), runtime.makeString(options.name)));
+  }
+
   function evalPyret(runtime, src, options, ondone) {
+    parsePyret(runtime, src, options, function(parsed) {
+      evalParsedPyret(runtime, parsed, options, ondone);
+    });
+  }
+
+  function evalParsedPyret(runtime, ast, options, ondone) {
     function OMGBADIDEA(name, src) {
       var evalstr = "(function(define) { " + src + " })";
-      eval(evalstr)(function(deps, body) { r.define(name, deps, body); });
+      eval(evalstr)(function(deps, body) { define(name, deps, body); });
     }
     if (!options.name) { options.name = randomName(); }
+    var modname = randomName();
+    var namespace = options.namespace || runtime.namespace;
+    function getExports(lib) {
+      return runtime.getField(lib(runtime, runtime.namespace), "provide");
+    }
+    var checker = getExports(checkerLib);
+    var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
+    runtime.setParam("current-checker", currentChecker);
+
     compilePyret(
         runtime,
-        src,
+        ast,
         options,
         function(result) {
           if(runtime.isFailureResult(result)) {
@@ -80,11 +112,11 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
             if (typeof result.result !== 'string') {
               throw new Error("Non-string result from compilation: " + result.result);
             }
-            OMGBADIDEA(options.name, result.result); 
-            r([options.name], function(a) {
+            OMGBADIDEA(modname, result.result); 
+            r([modname], function(a) {
                 var sync = options.sync || true;
                 var gas = options.gas || 5000;
-                runtime.run(a, runtime.namespace, {sync: sync, initialGas: gas}, ondone);
+                runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
               });
           }
         }
@@ -93,7 +125,10 @@ function(rtLib, ffiHelpersLib, csLib, compLib, checkerLib) {
 
   return {
     compilePyret: compilePyret,
-    evalPyret: evalPyret
+    evalPyret: evalPyret,
+    parsePyret: parsePyret,
+    compileSrcPyret: compileSrcPyret,
+    evalParsedPyret: evalParsedPyret
   };
   
 });

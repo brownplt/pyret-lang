@@ -272,6 +272,12 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
+    if(val === undefined) {
+      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was undefined");
+    }
+    if(val.dict === undefined) {
+      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was: " + val);
+    }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error

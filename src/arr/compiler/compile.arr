@@ -12,8 +12,7 @@ import "./resolve-scope.arr" as R
 import "./desugar.arr" as D
 import "./desugar-check.arr" as CH
 
-fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  ast = PP.surface-parse(code, name)
+fun compile-js-ast(ast, name, libs, options):
   ast-ended = U.append-nothing-if-necessary(ast)
   wf = W.check-well-formed(ast-ended)
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
@@ -32,6 +31,11 @@ fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrint
       end
     | err(_) => wf
   end
+end
+
+fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  ast = PP.surface-parse(code, name)
+  compile-js-ast(code, name, libs, options)
 end
 
 fun compile-runnable-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
