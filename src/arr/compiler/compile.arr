@@ -35,7 +35,7 @@ end
 
 fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   ast = PP.surface-parse(code, name)
-  compile-js-ast(code, name, libs, options)
+  compile-js-ast(ast, name, libs, options)
 end
 
 fun compile-runnable-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
