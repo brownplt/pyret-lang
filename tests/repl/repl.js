@@ -96,6 +96,26 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/web/re
             fail();
           });
       });
+
+      it("should allow for shadowing only with the 'shadow' keyword", function(done) {
+        aRepl.restartInteractions("x = 5")
+          .then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x = 10")
+          }).then(function(replResult) {
+            expect(replResult).toPassPredicate(rt.isFailureResult);
+            return aRepl.run("shadow x = 10")
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x")
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.makeNumber(10));
+            done();
+          }).catch(function(err) {
+            console.error("Failed in testing shadowing: ", err);
+            fail();
+          });
+      });
     });
 
   }

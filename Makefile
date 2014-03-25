@@ -211,7 +211,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test
+test: runtime-test evaluator-test compiler-test repl-test
 
 RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(COPY_JS))
 
