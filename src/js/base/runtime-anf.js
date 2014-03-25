@@ -1664,7 +1664,11 @@ function createMethodDict() {
       return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
     }
 
-
+    var string_equals = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var string_append = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isString);
       thisRuntime.checkIf(r, thisRuntime.isString);
@@ -1733,7 +1737,27 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
+    var bool_and = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isBoolean);
+      thisRuntime.checkIf(r, thisRuntime.isBoolean);
+      return thisRuntime.makeBoolean(l && r);
+    }
+    var bool_or = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isBoolean);
+      thisRuntime.checkIf(r, thisRuntime.isBoolean);
+      return thisRuntime.makeBoolean(l || r);
+    }
+    var bool_not = function(l) {
+      thisRuntime.checkIf(l, thisRuntime.isBoolean);
+      return thisRuntime.makeBoolean(!l);
+    }
 
+
+    var num_equals = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var num_max = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isNumber);
       thisRuntime.checkIf(r, thisRuntime.isNumber);
@@ -1892,17 +1916,22 @@ function createMethodDict() {
 
           'gensym': gensym,
 
-          '_plus': makeFunction(plus),
-          '_minus': makeFunction(minus),
-          '_times': makeFunction(times),
-          '_divide': makeFunction(divide),
-          '_lessthan': makeFunction(lessthan),
-          '_greaterthan': makeFunction(greaterthan),
-          '_greaterequal': makeFunction(greaterequal),
-          '_lessequal': makeFunction(lessequal),
+          'add': makeFunction(plus),
+          'sub': makeFunction(minus),
+          'mul': makeFunction(times),
+          'div': makeFunction(divide),
+          'less': makeFunction(lessthan),
+          'greater': makeFunction(greaterthan),
+          'greaterequal': makeFunction(greaterequal),
+          'lessequal': makeFunction(lessequal),
 
-          'num-max': makeFunction(num_max),
-          'num-min': makeFunction(num_min),
+          'and': makeFunction(bool_and),
+          'or': makeFunction(bool_or),
+          'not': makeFunction(bool_not),
+
+          'max': makeFunction(num_max),
+          'min': makeFunction(num_min),
+          'num-equals': makeFunction(num_equals),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
@@ -1922,6 +1951,7 @@ function createMethodDict() {
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
 
+          'string-equals': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),

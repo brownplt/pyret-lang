@@ -116,7 +116,7 @@ end
 
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s_let(l, _, _) => wf-error("Cannot end a block in a let-binding", l)
+    | s_let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
     | s_var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
     | s_fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s_data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)

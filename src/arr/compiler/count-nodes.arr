@@ -64,7 +64,7 @@ fun count-nodes(ast):
     | s_id(_, id) => 1
     | s_var(_, bind, value) => 1 + count-nodes(value)
     | s_assign(_, id, value) => 1 + count-nodes(value)
-    | s_let(_, bind, value) =>  1 + count-nodes(value)
+    | s_let(_, bind, value, _) =>  1 + count-nodes(value)
     | s_obj(_, fields) => 
         field-count = for fold(total from 0, field from fields):
             total + count-nodes(field.value)

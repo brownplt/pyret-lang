@@ -535,7 +535,7 @@ fun desugar-expr(expr :: A.Expr):
         desugar-expr(A.s_id(l, A.s_global("_empty"))))
     | s_paren(l, e) => desugar-expr(e)
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s_check(l, _, _) => A.s_str(l, "Checks should have been desugared")
+    | s_check(l, _, _, _) => A.s_str(l, "Checks should have been desugared")
     | s_check_test(l, _, _, _) => make-message-exception(l, "Checks should have been desugared")
     | else => raise("NYI (desugar): " + torepr(expr))
   end

@@ -155,9 +155,15 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'let-expr': function(node) {
-          // (let-expr bind EQUALS e)
-          return RUNTIME.getField(ast, 's_let')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          if (node.kids.length === 3) {
+            // (let-expr bind EQUALS e)
+            return RUNTIME.getField(ast, 's_let')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          } else {
+            // (let-expr VAL bind EQUALS e)
+            return RUNTIME.getField(ast, 's_let')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          }
         },
         'multi-let-expr': function(node) {
           // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
@@ -249,11 +255,13 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
             return RUNTIME.getField(ast, 's_check')
-              .app(pos(node.pos), F.makeNone(), tr(node.kids[1]));
+              .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
+                   RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
           } else {
             // (check-expr CHECK STRING COLON body END)
             return RUNTIME.getField(ast, 's_check')
-              .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]));
+              .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+                   RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
           }
         },
         'check-test': function(node) {
@@ -318,16 +326,6 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           // (not-expr NOT e)
           return RUNTIME.getField(ast, 's_not')
             .app(pos(node.pos), tr(node.kids[1]));
-        },
-        'binop-expr-paren': function(node) {
-          if (node.kids[0].name === "paren-nospace-expr") {
-            // (binop-expr-paren (paren-nospace-expr _ e _))
-            return RUNTIME.getField(ast, 's_paren')
-              .app(pos(node.pos), tr(node.kids[0].kids[1]));
-          } else {
-            // (binop-expr-paren e)
-            return tr(node.kids[0]);
-          }
         },
         'binop': function(node) {
           // (binop str)
