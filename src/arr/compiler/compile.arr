@@ -20,12 +20,14 @@ fun compile-js-ast(ast, name, libs, options):
     | ok(wf-ast) =>
       checked = checker(wf-ast)
       scoped = R.desugar-scope(checked, libs)
-      named = R.resolve-names(scoped, libs)
-      desugared = D.desugar(named, libs)
+      named-result = R.resolve-names(scoped, libs)
+      named-ast = named-result.ast
+      named-shadow-errors = named-result.shadowed
+      desugared = D.desugar(named-ast, libs)
       cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
-      any-errors = U.check-unbound(libs, cleaned, options)
+      any-errors = named-shadow-errors + U.check-unbound(libs, cleaned) + U.bad-assignments(libs, cleaned)
       if is-empty(any-errors): C.ok(P.make-compiled-pyret(cleaned, libs))
       else: C.err(any-errors)
       end

@@ -80,6 +80,21 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
     });
 
+    describe("shadowing", function() {
+      it("should notice shadowed builtins", function(done) {
+        P.checkCompileError("fun(x): x = 5 x end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkCompileError("string-contains = 5", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkEvalsTo("shadow string-contains = 5\nstring-contains", rt.makeNumber(5));
+        P.wait(done);
+      });
+    });
+
   }
   return { performTest: performTest };
 });

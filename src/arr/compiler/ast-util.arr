@@ -354,7 +354,25 @@ fun link-list-visitor(initial-env):
   }
 end
 
-fun check-unbound(initial-env, ast, options):
+fun bad-assignments(initial-env, ast):
+  var errors = [] # THE MUTABLE LIST OF ERRORS
+  fun add-error(err): errors := err ^ link(errors) end
+  ast.visit(binding-env-iter-visitor(initial-env).{
+    s_assign(self, loc, id, value):
+      cases(Option<Binding>) bind-exp(A.s_id(loc, id), self.env):
+        | none => nothing
+        | some(b) =>
+          when not b.mut:
+            add-error(CS.bad-assignment(tostring(id), loc, b.loc))
+          end
+      end
+      value.visit(self)
+    end,
+  })
+  errors
+end
+
+fun check-unbound(initial-env, ast):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end
   fun handle-id(this-id, env):
@@ -376,108 +394,17 @@ fun check-unbound(initial-env, ast, options):
         true
       end,
       s_assign(self, loc, id, value):
-        cases(Option<Binding>) bind-exp(A.s_id(loc, id), self.env):
-          | none => add-error(CS.unbound-var(A.s_assign(loc, id, value)), loc)
-          | some(b) =>
-            when not b.mut:
-              add-error(CS.bad-assignment(tostring(id), loc, b.loc))
-            end
+        when is-none(bind-exp(A.s_id(loc, id), self.env)):
+          add-error(CS.unbound-var(A.s_assign(loc, id, value)), loc)
         end
         value.visit(self)
-      end,
-      s_let_bind(self, l, bind, expr):
-        cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
-          | none => nothing
-          | some(b) =>
-            if bind.shadows:
-              when (A.is-s_underscore(bind.id)) and (not options.allow-shadowed):
-                add-error(CS.pointless-shadow(bind.l))
-              end
-            else:
-              if b.mut: add-error(CS.mixed-id-var(bind.id, b.loc, bind.l))
-              else:
-                cases(A.Name) bind.id:
-                  | s_name(s) =>
-                    if s == "self": nothing
-                    else:
-                      when not options.allow-shadowed:
-                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
-                      end
-                    end
-                  | s_underscore => nothing
-                    # s_atom and s_global shouldn't happen...
-                end
-              end
-            end
-        end
-        bind.visit(self) and expr.visit(self)
-      end,
-      s_var_bind(self, l, bind, expr):
-        cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
-          | none => nothing
-          | some(b) =>
-            if bind.shadows: 
-              when (A.is-s_underscore(bind.id)) and (not options.allow-shadowed):
-                add-error(CS.pointless-shadow(bind.l))
-              end
-            else:
-              if not b.mut: add-error(CS.mixed-id-var(bind.id, bind.l, b.loc))
-              else:
-                cases(A.Name) bind.id:
-                  | s_name(s) =>
-                    if s == "self": nothing
-                    else:
-                      when not options.allow-shadowed:
-                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
-                      end
-                    end
-                  | else => nothing
-                end
-              end
-            end
-        end
-        bind.visit(self) and expr.visit(self)
-      end,
-      s_letrec_bind(self, l, bind, expr):
-        bind.visit(self) and expr.visit(self.{env: self.env.set(bind.id.key(), e-bind(bind.l, false, b-unknown))})
-      end,
-      ## AND HERE
-      s_letrec(self, l, binds, body):
-        for list.each(letrec-bind from binds):
-          bind = letrec-bind.b
-          cases(Option<Binding>) bind-exp(A.s_id(bind.l, bind.id), self.env):
-            | none => nothing
-            | some(b) =>
-              if b.mut: add-error(CS.mixed-id-var(tostring(bind.id), b.loc, bind.l))
-              else:
-                cases(A.Name) bind.id:
-                  | s_name(s) =>
-                    if s == "self": nothing
-                    else if bind.shadows: nothing
-                    else:
-                      when not options.allow-shadowed:
-                        add-error(CS.shadow-id(tostring(bind.id), bind.l, b.loc))
-                      end
-                    end
-                  | else => nothing
-                end
-              end
-          end
-        end
-        bind-env = for fold(acc from self.env, b from binds):
-          acc.set(b.b.id.key(), e-bind(b.l, false, b-unknown))
-        end
-        good-binds = for fold(acc from true, letrec-bind from binds):
-          acc and letrec-bind.b.visit(self) and letrec-bind.value.visit(self.{env: bind-env})
-        end
-        good-binds and body.visit(self.{env: bind-env})
       end
     })
   errors
 where:
   p = PP.surface-parse(_, "test")
-  unbound1 = check-unbound(CS.no-builtins, p("x"), {allow-shadowed: false})
+  unbound1 = check-unbound(CS.no-builtins, p("x"))
   unbound1.length() is 1
-  #unbound1.first.id is A.s_name("x")
+
 end
 
