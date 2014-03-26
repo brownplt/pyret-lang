@@ -158,11 +158,11 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           if (node.kids.length === 3) {
             // (let-expr bind EQUALS e)
             return RUNTIME.getField(ast, 's_let')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
           } else {
             // (let-expr VAL bind EQUALS e)
             return RUNTIME.getField(ast, 's_let')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), RUNTIME.makeBoolean(true));
           }
         },
         'multi-let-expr': function(node) {
