@@ -39,7 +39,7 @@ You can also run
 
 and the file `build/web/playground.html` will be created.  You can visit this
 page in a browser and get an interactive experience running Pyret programs, and
-getting some statistics on how the runtime ran a particular program.
+get some statistics on how the runtime performs.
 
 Phases
 ------
