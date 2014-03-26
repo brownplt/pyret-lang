@@ -25,9 +25,13 @@ fun append-nothing-if-necessary(prog :: A.Program):
     | s_program(l, headers, body) =>
       new-body = cases(A.Expr) body:
         | s_block(l, stmts) =>
-          last-stmt = stmts.last()
-          if ok-last(last-stmt): A.s_block(l, stmts)
-          else: A.s_block(l, stmts + [A.s_id(l, A.s_name("nothing"))])
+          cases(List) stmts:
+            | empty => A.s_block(l, [A.s_id(l, A.s_name("nothing"))])
+            | link(_, _) =>
+              last-stmt = stmts.last()
+              if ok-last(last-stmt): A.s_block(l, stmts)
+              else: A.s_block(l, stmts + [A.s_id(l, A.s_name("nothing"))])
+              end
           end
         | else => body
       end

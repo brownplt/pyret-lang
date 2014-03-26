@@ -116,6 +116,58 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/web/re
             fail();
           });
       });
+
+      it("should not allow forward references", function(done) {
+        aRepl.restartInteractions("")
+          .then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("fun f(): forward-reference end")
+          }).then(function(replResult) {
+            expect(replResult).toPassPredicate(rt.isFailureResult);
+            done();
+          }).catch(function(err) {
+            console.error("Failed in testing shadowing: ", err);
+            fail();
+          });
+      });
+
+      it("should allow recursive references in the same block", function(done) {
+        aRepl.restartInteractions("")
+          .then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("fun f(): g(4) end\nfun g(x): x end\nf()");
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.makeNumber(4));
+            done();
+          }).catch(function(err) {
+            console.error("Failed in testing shadowing: ", err);
+            fail();
+          });
+      });
+
+      it("should allow restarting of interactions to clear state", function(done) {
+        aRepl.restartInteractions("x = 5")
+          .then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x = 10")
+          }).then(function(replResult) {
+            expect(replResult).toPassPredicate(rt.isFailureResult);
+            return aRepl.restartInteractions("not-x = 5");
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x = 22");
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x");
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.makeNumber(22));
+            done();
+          }).catch(function(err) {
+            console.error("Failed in testing shadowing: ", err);
+            fail();
+          });
+
+      });
     });
 
   }

@@ -7,10 +7,12 @@ define(["q", "../../tests/evaluator/eval", "compiler/compile-structs.arr", "comp
     function get(obj, fld) { return runtime.getField(obj, fld); }
     var compileStructs = get(cs(runtime, namespace), "provide");
 //    var standardCompileEnv = get(compileStructs, "standard-builtins");
-    var replCompileEnv = get(compileStructs, "standard-builtins");
+    var initialCompileEnv = get(compileStructs, "standard-builtins");
+    var replCompileEnv = initialCompileEnv;
     var replSupport = get(rs(runtime, namespace), "provide");
     
     function evaluate(toEval) {
+      if (toEval.beforeRun) { toEval.beforeRun(); }
       eval.evalParsedPyret(runtime, toEval.ast, { name: toEval.name, namespace: namespace, compileEnv: replCompileEnv }, 
         function(result) {
           if(runtime.isSuccessResult(result)) {
@@ -46,6 +48,7 @@ define(["q", "../../tests/evaluator/eval", "compiler/compile-structs.arr", "comp
       eval.parsePyret(runtime, code, { name: name }, function(ast) {
         toRun.unshift({
             ast: get(replSupport, "make-provide-all").app(ast),
+            beforeRun: function() { replCompileEnv = initialCompileEnv; },
             name: name,
             onRun: makeResumer(deferred)
           });
