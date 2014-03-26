@@ -1,4 +1,4 @@
-define(["q", "../../tests/evaluator/eval", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
+define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace) {

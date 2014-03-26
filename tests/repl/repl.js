@@ -1,5 +1,5 @@
 var r = require("requirejs")
-define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/web/repl", "js/ffi-helpers"], function(Q, rtLib, e, repl, ffiLib) {
+define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/trove/repl-lib", "js/ffi-helpers"], function(Q, rtLib, e, repl, ffiLib) {
 
   var _ = require('jasmine-node');
   var rt;
