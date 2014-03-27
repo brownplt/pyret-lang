@@ -1261,6 +1261,22 @@ function createMethodDict() {
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
+      var start;
+      function startTimer() {
+        if (typeof window !== "undefined" && window.performance) {
+          start = window.performance.now();
+        } else if (typeof process !== "undefined" && process.hrtime) {
+          start = process.hrtime();
+        }
+      }
+      function endTimer() {
+        if (typeof window !== "undefined" && window.performance) {
+          return window.performance.now() - start; 
+        } else if (typeof process !== "undefined" && process.hrtime) {
+          return process.hrtime(start);
+        }
+      }
+      startTimer();
       var that = this;
       var theOneTrueStackTop = topSrc(new Error());
       var kickoff = {
@@ -1349,15 +1365,15 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
                 e.pyretStack.push(next.from);
               }
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
+              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
               return;
             } else {
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS }));
+              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
               return;
             }
           }
         }
-        onDone(new SuccessResult(val, { bounces: BOUNCES, tos: TOS }));
+        onDone(new SuccessResult(val, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
         return;
       }
       thisRuntime.GAS = initialGas;

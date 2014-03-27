@@ -1,0 +1,62 @@
+<html>
+<head>
+  <script src="../../node_modules/lodash/lodash.js"></script>
+  <script src="../../node_modules/requirejs/require.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="../../lib/CodeMirror/lib/codemirror.js"></script>
+  <script src="../../lib/CodeMirror/addon/fold/foldcode.js"></script>
+  <script src="../../lib/CodeMirror/addon/fold/foldgutter.js"></script>
+  <script src="../../lib/CodeMirror/addon/fold/indent-fold.js"></script>
+  <script src="../../lib/CodeMirror/mode/pyret/pyret.js"></script>
+  <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
+  <script src="editor.js"></script>
+  <script src="draw.js"></script>
+  <link rel="stylesheet" href="editor.css"></link>
+</head>
+<body>
+<div id="REPL" class="replContainer"></div>
+</body>
+
+<script>
+LOG = true;
+function ct_log(/* varargs */) {
+  if (window.console && LOG) {
+    console.log.apply(console, arguments);
+  }
+}
+function ct_error(/* varargs */) {
+  if (window.console && LOG) {
+    console.error.apply(console, arguments);
+  }
+}
+$(function() {
+  requirejs.config({
+    paths: {
+      "js": "../../build/phase1/js",
+      "compiler": "../../build/phase1/arr/compiler",
+      "trove": "../../build/phase1/trove",
+      "q": "../../node_modules/q/q",
+      "fs": "fsstub"
+    },
+    waitSeconds: 0
+  });
+  require(["js/repl-lib", "./repl-ui", "js/runtime-anf"], function(replLib, replUI, rtLib) {
+    var replContainer = $("<div>").addClass("repl");
+    $("#REPL").append(replContainer);
+    var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
+    var repl = replLib.create(runtime, runtime.namespace);
+    var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
+    window.RUN_CODE = function(src, uiOpts, replOpts) {
+      codeRunner(src, uiOpts, replOpts);
+    };
+    var codeContainer = $("<div>").addClass("replMain");
+    $(document.body).append(codeContainer);
+    var cm = makeEditor(codeContainer, {
+        simpleEditor: false,
+        initial: "print('Ahoy, world!')",
+        run: RUN_CODE
+      });
+  });
+});
+</script>
+</html>

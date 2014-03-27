@@ -62,7 +62,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
           });
         },
         runtime.namespace,
-        { sync: true, initialGas: 5000 },
+        { sync: ('sync' in options) ? options.sync : true, initialGas: 5000 },
         ondone
       );
   }
@@ -114,7 +114,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
             }
             OMGBADIDEA(modname, result.result); 
             r([modname], function(a) {
-                var sync = options.sync || true;
+                var sync = false;
                 var gas = options.gas || 5000;
                 runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
               });

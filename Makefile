@@ -208,6 +208,7 @@ install:
 	npm install jasmine-node
 	npm install requirejs
 	npm install q
+	npm install lodash
 
 
 .PHONY : test

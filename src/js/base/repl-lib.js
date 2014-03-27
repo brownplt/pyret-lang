@@ -13,7 +13,7 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
     
     function evaluate(toEval) {
       if (toEval.beforeRun) { toEval.beforeRun(); }
-      eval.evalParsedPyret(runtime, toEval.ast, { name: toEval.name, namespace: namespace, compileEnv: replCompileEnv }, 
+      eval.evalParsedPyret(runtime, toEval.ast, { sync: false, name: toEval.name, namespace: namespace, compileEnv: replCompileEnv }, 
         function(result) {
           if(runtime.isSuccessResult(result)) {
             var provided = get(result.result, "provide");
@@ -69,9 +69,15 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       });
       return deferred.promise;
     }
+    function pause(afterPause) {
+      runtime.schedulePause(function(resumer) {
+        afterPause(resumer);
+      });
+    }
     return {
       restartInteractions: restartInteractions,
-      run: run
+      run: run,
+      pause: pause
     }
   }
 
