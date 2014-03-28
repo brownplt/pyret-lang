@@ -250,7 +250,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ensure-unique-ids(args)
       list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
-    s_check(self, l, name, body):
+    s_check(self, l, name, body, keyword-check):
       wrap-visit-check(self, some(body))
     end,
     s_if(self, l, branches):

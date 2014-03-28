@@ -1938,6 +1938,16 @@ function createMethodDict() {
 
           'gensym': gensym,
 
+          '_plus': makeFunction(plus),
+          '_minus': makeFunction(minus),
+          '_times': makeFunction(times),
+          '_divide': makeFunction(divide),
+          '_lessthan': makeFunction(lessthan),
+          '_greaterthan': makeFunction(greaterthan),
+          '_greaterequal': makeFunction(greaterequal),
+          '_lessequal': makeFunction(lessequal),
+
+
           'add': makeFunction(plus),
           'sub': makeFunction(minus),
           'mul': makeFunction(times),
@@ -1953,6 +1963,8 @@ function createMethodDict() {
 
           'max': makeFunction(num_max),
           'min': makeFunction(num_min),
+          'num-max': makeFunction(num_max),
+          'num-min': makeFunction(num_min),
           'num-equals': makeFunction(num_equals),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
@@ -2039,7 +2051,6 @@ function createMethodDict() {
         'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
-      
         'plus': plus,
         'minus': minus,
         'times': times,

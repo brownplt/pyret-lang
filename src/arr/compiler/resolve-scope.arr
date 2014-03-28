@@ -63,7 +63,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       cases(A.Expr) f:
         | s_let(l, bind, expr, _) =>
           handle-let-bind(l, A.s_let_bind(l, bind, expr))
-        | s_var(l, bind, expr, _) =>
+        | s_var(l, bind, expr) =>
           handle-let-bind(l, A.s_var_bind(l, bind, expr))
         | s_fun(l, name, params, args, ann, doc, body, _check) =>
           new-letrecs = link(A.s_letrec_bind(
