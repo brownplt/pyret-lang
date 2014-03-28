@@ -411,9 +411,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     s_program(self, l, headers, body):
       headers-and-env = for fold(acc from { e: self.env, hs: [] }, h from headers):
         cases(A.Header) h:
-          | s_import(l, file, name) =>
-            atom-env = make-atom-for(A.s_bind(l, false, name, A.a_blank), acc.e, let-bind)
-            new-header = A.s_import(l, file, atom-env.atom)
+          | s_import(l2, file, name) =>
+            atom-env = make-atom-for(A.s_bind(l2, false, name, A.a_blank), acc.e, let-bind)
+            new-header = A.s_import(l2, file, atom-env.atom)
             { e: atom-env.env, hs: link(new-header, acc.hs) }
           | else => acc
         end
@@ -465,10 +465,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     s_for(self, l, iter, binds, ann, body):
       env-and-binds = for fold(acc from { env: self.env, fbs: [] }, fb from binds):
         cases(ForBind) fb:
-          | s_for_bind(l, bind, val) => 
+          | s_for_bind(l2, bind, val) => 
             atom-env = make-atom-for(bind, acc.env, let-bind)
             new-bind = A.s_bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
-            new-fb = A.s_for_bind(l, new-bind, val.visit(self.{env: acc.env}))
+            new-fb = A.s_for_bind(l2, new-bind, val.visit(self.{env: acc.env}))
             { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
         end
       end
@@ -494,7 +494,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, false, at, ann.visit(self.{env: env-and-atoms.env}))
+          | s_bind(l2, shadows, id, ann2) => A.s_bind(l2, false, at, ann2.visit(self.{env: env-and-atoms.env}))
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
@@ -508,7 +508,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann.visit(self.{env: env-and-atoms.env}))
+          | s_bind(l2, shadows, id, ann2) => A.s_bind(l2, shadows, at, ann2.visit(self.{env: env-and-atoms.env}))
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
@@ -522,7 +522,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s_bind(l2, shadows, id, ann) => A.s_bind(l2, shadows, at, ann.visit(self.{env: env-and-atoms.env}))
+          | s_bind(l2, shadows, id, ann2) => A.s_bind(l2, shadows, at, ann2.visit(self.{env: env-and-atoms.env}))
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
