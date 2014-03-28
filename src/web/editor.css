@@ -1,0 +1,243 @@
+.CodeMirror, .inlineExample { line-height: 1.5; border: 1px solid black; background: #f8f8f8; color: #eee; }
+.CodeMirror div.CodeMirror-cursor { border-left: 1px solid #bbb; }
+.cm-s-default.CodeMirror { color: #111; }
+.cm-s-default .cm-comment { color: #39f; }
+.cm-s-default .cm-builtin { color: #555; }
+.cm-s-default .cm-function-name { color: #111; }
+.cm-s-default .cm-variable { color: #111; }
+.cm-s-default .cm-keyword { color: #636; }
+.cm-s-default .cm-string { color: #c30; }
+.cm-s-default .cm-type { color: #339; }
+.cptteach-fixed { line-height: 1.5; background: #ddd; }
+
+div.CodeMirror span.CodeMirror-matchingbracket {
+    font-weight: bold;
+    color: #606;
+}
+
+.CodeMirror-foldgutter {
+  width: 1em;
+}
+.CodeMirror-foldgutter-open:after {
+  content: "\25BE";
+}
+.CodeMirror-foldgutter-folded:after {
+  content: "\25B8";
+}
+
+#output {
+  font-family : monospace;
+}
+
+.inlineExample {
+    font-family: monospace;
+    padding: 0 2px;
+}
+
+/* from http://codemirror.net/demo/resize.html */
+.CodeMirror {
+  height: auto;
+}
+
+.CodeMirror-scroll {
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+.repl .CodeMirror-scroll {
+  height: auto;
+}
+
+.check {
+  font-family: monospace;
+  border: 1px solid black;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 10px;
+}
+
+.check-success {
+  background-color: #cfc;
+}
+
+.check-failure {
+  background-color: #fcc;
+}
+
+.check-block {
+  background-color: #ddd;
+  border: 1px solid black;
+  border-radius: 3px;
+  margin: 5px;
+  padding: 5px;
+}
+
+.check-block-failed {
+  background-color: #fcc;
+}
+
+.check-block-success {
+  background-color: #cfc;
+}
+
+.repl-output {
+  padding: 0;
+  margin: 0;
+}
+
+.steppedGutter {
+    width: 25px;
+}
+
+.gutterButton {
+    color: #eee;
+    width: 25px;
+    border-radius: 5px 0 0 5px;
+    height: 1.5em;
+    display: inline-block;
+    text-align: center;
+    background-color: #9cf;
+}
+
+.gutterButton.active {
+  background-color: #06f;
+}
+
+.gutterButton.active.submittable {
+  border: 1px solid #06f;
+  width: 55px;
+  margin-left: -25px;
+}
+
+.gutterButton.active.submittable:hover {
+  background-color: #eee;
+  color: #06f;
+  }
+
+.gutterButton:hover {
+    cursor: pointer;
+}
+
+.gutterButton.inactive {
+    background-color: #f60;
+}
+
+.gutterButton.inactive:hover {
+    cursor: default;
+}
+
+.progressContainer {
+    width: 90%;
+    height: 2em;
+    padding: 5px;
+    text-align: center;
+}
+
+.progressStep {
+    display: inline-block;
+    vertical-align: top;
+    height: 10px;
+    border: 1px solid black;
+}
+
+.progressStep.done {
+    background-color: green;
+}
+
+.progressDone {
+    color: green;
+    font-style: italic;
+    text-align: center;
+    width: 50%;
+    margin: auto;
+}
+
+.steppedGutterPart {
+    width: 25px;
+    padding-right: 3px;
+}
+
+.instructionsWidget {
+    background-color: #fcf;
+    border: 1px dotted #c0c;
+    color: #111;
+    padding: 3px;
+    margin: 5px;
+    cursor: pointer;
+    margin: 5px 5px 5px auto;
+}
+
+.instructionsWidget.hidden {
+    width: 90px;
+}
+
+.instructionsWidget .instructionsContent {
+    font-family: serif;
+}
+
+.instructionsWidget .toggleInstructions {
+    color: #666;
+    float: right;
+    font-size: 0.8em;
+    padding: 3px;
+}
+
+.repl-prompt {
+  width: 90%;
+  display: inline-block;
+}
+
+.repl-echo {
+  width: 90%;
+  display: inline-block;
+}
+
+.replMain {
+  float: left;
+  width: 40%;
+}
+
+.replContainer {
+  position: fixed;
+  right: 2em;
+  bottom: 2em;
+  width: 40%;
+  height: 90%;
+}
+
+.replContainer.maximized {
+    width: 90%;
+    z-index: 9000;
+}
+
+.replContainer.minimized {
+    margin-right: -35%;
+}
+
+.blueButton {
+    background-color: #06f;
+    border: 1px solid #06f;
+    border-radius: 3px;
+    color: #eee;
+    text-align: center;
+    margin: 3px 3px 3px auto;
+    padding: 5px;
+}
+
+.blueButton:hover {
+    background-color: #eee;
+    color: #06f;
+    cursor: pointer;
+}
+
+.blueButton:disabled {
+    background-color: #9cc;
+    border: 1px solid #9cc;
+    color: #ddd;
+    cursor: default;
+}
+
+
+.runButton {
+    width: 50px;
+}

@@ -1,4 +1,4 @@
-define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
+define(["../../src/js/base/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
   var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
@@ -81,7 +81,7 @@ define(["./eval", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers
     }
     function checkCompileError(str, exnPred) {
       pushTest(function(after) {
-        e.compilePyret(runtime, str, {}, function(result) {
+        e.compileSrcPyret(runtime, str, {}, function(result) {
           expect(result).toBeFailure(runtime);
           var problems = result.exn;
           // Compiling returns a string or an array of 

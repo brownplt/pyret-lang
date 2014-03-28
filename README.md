@@ -40,6 +40,19 @@ You can also run
 and the file `build/web/playground.html` will be created.  You can visit this
 page in a browser and get an interactive experience running Pyret programs, and
 get some statistics on how the runtime performs.
+=======
+$ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
+
+Where X is a number from 0-3.
+
+You can also run
+
+$ make web
+
+and the file `build/web/playground.html` will be created.  You can visit this
+page in a browser and get an interactive experience running Pyret programs, and
+getting some statistics on how the runtime ran a particular program.
+>>>>>>> repl
 
 Phases
 ------
@@ -76,5 +89,3 @@ phase 0, build both standalone2 and standalone3, and check:
 
     And it should be empty, which indicates that the bootstrapped compiler is at
     least correct enough to recompile itself without error.
-
-
