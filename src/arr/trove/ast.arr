@@ -496,6 +496,9 @@ data Expr:
   | s_num(l :: Loc, n :: Number) with:
     label(self): "s_num" end,
     tosource(self): PP.number(self.n) end
+  | s_frac(l :: Loc, num :: Number, den :: Number) with:
+    label(self): "s_frac" end,
+    tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s_bool(l :: Loc, b :: Bool) with:
     label(self): "s_bool" end,
     tosource(self): PP.str(tostring(self.b)) end
@@ -1486,6 +1489,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s_num(_, n2) => n1 == n2
         | else => false
       end
+    | s_frac(_, n1, d1) =>
+      cases(Expr) ast2:
+        | s_frac(_, n2, d2) => (n1 == n2) and (d1 == d2)
+        | else => false
+      end
     | s_str(_, s1) =>
       cases(Expr) ast2:
         | s_str(_, s2) => s1 == s2
@@ -1729,6 +1737,9 @@ default-map-visitor = {
   end,
   s_num(self, l :: Loc, n :: Number):
     s_num(l, n)
+  end,
+  s_frac(self, l :: Loc, num :: Number, den :: Number):
+    s_frac(l, num, den)
   end,
   s_bool(self, l :: Loc, b :: Bool):
     s_bool(l, b)
@@ -2111,6 +2122,9 @@ default-iter-visitor = {
   s_num(self, l :: Loc, n :: Number):
     true
   end,
+  s_frac(self, l :: Loc, num :: Number, den :: Number):
+    true
+  end,
   s_bool(self, l :: Loc, b :: Bool):
     true
   end,
@@ -2477,6 +2491,9 @@ dummy-loc-visitor = {
   end,
   s_num(self, l :: Loc, n :: Number):
     s_num(dummy-loc, n)
+  end,
+  s_frac(self, l :: Loc, num :: Number, den :: Number):
+    s_frac(dummy-loc, num, den)
   end,
   s_bool(self, l :: Loc, b :: Bool):
     s_bool(dummy-loc, b)

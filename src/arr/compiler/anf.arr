@@ -120,6 +120,7 @@ end
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
     | s_num(l, n) => k.apply(l, N.a-val(N.a-num(l, n)))
+    | s_frac(l, num, den) => k.apply(l, N.a-val(N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
     | s_str(l, s) => k.apply(l, N.a-val(N.a-str(l, s)))
     | s_undefined(l) => k.apply(l, N.a-val(N.a-undefined(l)))
     | s_bool(l, b) => k.apply(l, N.a-val(N.a-bool(l, b)))

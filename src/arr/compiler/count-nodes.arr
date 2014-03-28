@@ -47,6 +47,7 @@ fun count-nodes(ast):
        1 + stmt-count
     | s_user_block(s, expr) => count-nodes(expr) + 1
     | s_num(_, n) => 1
+    | s_frac(_, num, den) => 1
     | s_str(_, s) => 1
     | s_bool(_, b) => 1
     | s_lam(_, _, args, _, doc, body, _) => 1 + count-nodes(body)

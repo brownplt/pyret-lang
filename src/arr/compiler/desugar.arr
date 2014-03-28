@@ -521,6 +521,7 @@ fun desugar-expr(expr :: A.Expr):
     | s_id_var(l, x) => expr
     | s_id_letrec(l, x) => expr
     | s_num(_, _) => expr
+    | s_frac(l, num, den) => s_num(l, num / den) # NOTE: Possibly must preserve further?
     | s_str(_, _) => expr
     | s_bool(_, _) => expr
     | s_obj(l, fields) => A.s_obj(l, fields.map(desugar-member))

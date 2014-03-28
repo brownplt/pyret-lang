@@ -754,6 +754,12 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
           return RUNTIME.getField(ast, 's_num')
             .app(pos(node.pos), number(node.kids[0]));
         },
+        'frac-expr': function(node) {
+          // (frac-expr n)
+          var numden = node.kids[0].value.split("/");
+          return RUNTIME.getField(ast, 's_frac')
+            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+        },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's_str')
             .app(pos(node.pos), string(node.kids[0]));
