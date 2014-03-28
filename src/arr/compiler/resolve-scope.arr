@@ -378,7 +378,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s_name(s) =>
         when env.has-key(s) and (not bind.shadows):
           old-loc = env.get(s).loc
-          shadowing-instances := link(C.shadow-id(s, old-loc, bind.l), shadowing-instances)
+          shadowing-instances := link(C.shadow-id(s, bind.l, old-loc), shadowing-instances)
         end
         atom = names.make-atom(s)
         { atom: atom, env: env.set(s, type(bind.l, atom)) }
