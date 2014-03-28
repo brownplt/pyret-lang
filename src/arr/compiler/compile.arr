@@ -12,8 +12,7 @@ import "./resolve-scope.arr" as R
 import "./desugar.arr" as D
 import "./desugar-check.arr" as CH
 
-fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  ast = PP.surface-parse(code, name)
+fun compile-js-ast(ast, name, libs, options):
   ast-ended = U.append-nothing-if-necessary(ast)
   wf = W.check-well-formed(ast-ended)
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
@@ -21,17 +20,24 @@ fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrint
     | ok(wf-ast) =>
       checked = checker(wf-ast)
       scoped = R.desugar-scope(checked, libs)
-      named = R.resolve-names(scoped, libs)
-      desugared = D.desugar(named, libs)
+      named-result = R.resolve-names(scoped, libs)
+      named-ast = named-result.ast
+      named-shadow-errors = named-result.shadowed
+      desugared = D.desugar(named-ast, libs)
       cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
-      any-errors = U.check-unbound(libs, cleaned, options)
+      any-errors = named-shadow-errors + U.check-unbound(libs, cleaned) + U.bad-assignments(libs, cleaned)
       if is-empty(any-errors): C.ok(P.make-compiled-pyret(cleaned, libs))
       else: C.err(any-errors)
       end
     | err(_) => wf
   end
+end
+
+fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  ast = PP.surface-parse(code, name)
+  compile-js-ast(ast, name, libs, options)
 end
 
 fun compile-runnable-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:

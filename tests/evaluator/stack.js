@@ -1,5 +1,5 @@
 var r = require("requirejs")
-define(["js/runtime-anf", "./eval-matchers", "./eval"], function(rtLib, e, pyeval) {
+define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/eval-lib"], function(rtLib, e, pyeval) {
 
   var _ = require('jasmine-node');
   var rt;

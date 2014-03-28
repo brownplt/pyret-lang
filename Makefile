@@ -207,10 +207,12 @@ install:
 	mkdir node_modules -p
 	npm install jasmine-node
 	npm install requirejs
+	npm install q
+	npm install lodash
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test
+test: runtime-test evaluator-test compiler-test repl-test
 
 RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(COPY_JS))
 
@@ -221,6 +223,10 @@ runtime-test : phase1
 .PHONY : evaluator-test
 evaluator-test: phase1
 	cd tests/evaluator/ && node test.js require-test-runner/
+
+.PHONY : repl-test
+repl-test: phase1
+	cd tests/repl/ && node test.js require-test-runner/
 
 .PHONY : compiler-test
 compiler-test: phase1

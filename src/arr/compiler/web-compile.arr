@@ -19,12 +19,12 @@ fun compile-js(code, name, libs, safe-stack):
     | ok(wf-ast) =>
       checked = CH.desugar-check(wf-ast)
       scoped = R.desugar-scope(checked, libs)
-      named = R.resolve-names(scoped, libs)
+      named = R.resolve-names(scoped, libs).ast
       desugared = D.desugar(named, libs)
       cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
-      any-errors = U.check-unbound(libs, cleaned, {})
+      any-errors = U.check-unbound(libs, cleaned)
       if is-empty(any-errors):
         compiled = if safe-stack:
           P.make-compiled-pyret(cleaned, libs)
