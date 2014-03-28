@@ -15,8 +15,8 @@ end
 
 fun make-provide-all(p :: A.Program):
   doc: "Make the program simply provide all (for the repl)"
-  fun not-provide(p):
-    cases(A.Header) p:
+  fun not-provide(h):
+    cases(A.Header) h:
       | s_provide_all(_) => false
       | s_provide(_, _) => false
       | s_import(_, _, _) => true

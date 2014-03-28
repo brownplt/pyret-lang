@@ -22,20 +22,20 @@ fun checkers(l): A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "current
 
 fun append-nothing-if-necessary(prog :: A.Program):
   cases(A.Program) prog:
-    | s_program(l, headers, body) =>
+    | s_program(l1, headers, body) =>
       new-body = cases(A.Expr) body:
-        | s_block(l, stmts) =>
+        | s_block(l2, stmts) =>
           cases(List) stmts:
-            | empty => A.s_block(l, [A.s_id(l, A.s_name("nothing"))])
+            | empty => A.s_block(l2, [A.s_id(l2, A.s_name("nothing"))])
             | link(_, _) =>
               last-stmt = stmts.last()
-              if ok-last(last-stmt): A.s_block(l, stmts)
-              else: A.s_block(l, stmts + [A.s_id(l, A.s_name("nothing"))])
+              if ok-last(last-stmt): A.s_block(l2, stmts)
+              else: A.s_block(l2, stmts + [A.s_id(l2, A.s_name("nothing"))])
               end
           end
         | else => body
       end
-      A.s_program(l, headers, new-body)
+      A.s_program(l1, headers, new-body)
   end
 end
 
@@ -312,11 +312,11 @@ fun link-list-visitor(initial-env):
       if A.is-s_dot(f) and (f.field == "_plus"):
         target = f.obj
         cases(A.Expr) target:
-          | s_app(l2, _link, _args) =>
-            cases(BindingInfo) bind-or-unknown(_link, self.env):
+          | s_app(l2, lnk, _args) =>
+            cases(BindingInfo) bind-or-unknown(lnk, self.env):
               | b-prim(n) =>
                 if n == "list:link":
-                  A.s_app(l2, _link, [_args.first,
+                  A.s_app(l2, lnk, [_args.first,
                       (A.s_app(l, A.s_dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
                 else if n == "list:empty":
                   args.first.visit(self)

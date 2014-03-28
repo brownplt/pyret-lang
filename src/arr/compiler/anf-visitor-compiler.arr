@@ -351,7 +351,7 @@ compiler-visitor = {
 remove-useless-if-visitor = N.default-map-visitor.{
   a-if(self, l, c, t, e):
     cases(N.AVal) c:
-      | a-bool(l, test) =>
+      | a-bool(_, test) =>
         if test: t.visit(self) else: e.visit(self) end
       | else => N.a-if(l, c.visit(self), t.visit(self), e.visit(self))
     end

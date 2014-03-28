@@ -18,11 +18,11 @@ end
 
 mt-d-env = d-env(set([]), set([]), set([]))
 
-fun check-bool(l, id, e, then, error):
+fun check-bool(l, id, e, then, err):
   A.s_let_expr(l, [A.s_let_bind(l, id.id-b, e)],
     A.s_if_else(l,
       [A.s_if_branch(l, A.s_prim_app(l, "isBoolean", [id.id-e]), then)],
-      error))
+      err))
 end
 fun make-message-exception(l, msg):
   A.s_prim_app(l, "raise", [A.s_str(l, msg)])

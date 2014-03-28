@@ -12,9 +12,9 @@ fun mk-id(loc, base):
 end
 
 data ANFCont:
-  | cont(k :: (N.ALettable -> N.AExpr)) with:
+  | k-cont(k :: (N.ALettable -> N.AExpr)) with:
     apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
-  | id(name :: String) with:
+  | k-id(name :: String) with:
     apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(v) =>
@@ -32,7 +32,7 @@ data ANFCont:
 end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, cont(fun(x):
+  anf(e, k-cont(fun(x):
         cases(N.ALettable) x:
             # tail call
           | a-app(l, f, args) =>
@@ -53,7 +53,7 @@ fun anf-bind(b):
 end
 
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
-  anf(expr, cont(fun(lettable):
+  anf(expr, k-cont(fun(lettable):
         cases(N.ALettable) lettable:
           | a-val(v) => k(v)
           | else =>
@@ -106,7 +106,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
           anf(f, k)
         else:
           cases(A.Expr) f:
-            | else => anf(f, cont(fun(lettable):
+            | else => anf(f, k-cont(fun(lettable):
                     t = mk-id(f.l, "anf_begin_dropped")
                     N.a-let(f.l, t.id-b, lettable, anf-block-help(r))
                   end))
@@ -132,11 +132,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | empty => anf(body, k)
         | link(f, r) =>
           cases(A.LetBind) f:
-            | s_var_bind(l2, b, val) => anf(val, cont(fun(lettable):
+            | s_var_bind(l2, b, val) => anf(val, k-cont(fun(lettable):
                     N.a-var(l2, N.a-bind(l2, tostring(b.id), b.ann), lettable,
                       anf(A.s_let_expr(l, r, body), k))
                   end))
-            | s_let_bind(l2, b, val) => anf(val, cont(fun(lettable):
+            | s_let_bind(l2, b, val) => anf(val, k-cont(fun(lettable):
                     N.a-let(l2, N.a-bind(l2, tostring(b.id), b.ann), lettable,
                       anf(A.s_let_expr(l, r, body), k))
                   end))
@@ -152,7 +152,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       anf(A.s_let_expr(l, let-binds, A.s_block(l, assigns + [body])), k)
 
-    | s_data_expr(l, name, params, mixins, variants, shared, _check) =>
+    | s_data_expr(l, data-name, params, mixins, variants, shared, _check) =>
       fun anf-member(member :: A.VariantMember):
         cases(A.VariantMember) member:
           | s_variant_member(l2, type, b) =>
@@ -162,9 +162,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               | s_mutable => N.a-mutable
             end
             new-bind = cases(A.Bind) b:
-              | s_bind(l, shadows, name, ann) =>
+              | s_bind(l3, shadows, name, ann) =>
                 cases(A.Name) name:
-                  | s_atom(base, serial) => N.a-bind(l, base, ann)
+                  | s_atom(base, serial) => N.a-bind(l3, base, ann)
                 end
             end
             N.a-variant-member(l2, a-type, new-bind)
@@ -204,24 +204,24 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               N.a-field(f.l, f.name.s, t)
             end
           anf-variants(variants, fun(new-variants):
-              k.apply(l, N.a-data-expr(l, name, new-variants, new-shared))
+              k.apply(l, N.a-data-expr(l, data-name, new-variants, new-shared))
             end)
         end)
 
     | s_if_else(l, branches, _else) =>
       cases(ANFCont) k:
-        | id(_) =>
+        | k-id(_) =>
           for fold(acc from anf(_else, k), branch from branches.reverse()):
             anf-name(branch.test, "anf_if",
               fun(test): N.a-if(l, test, anf(branch.body, k), acc) end)
           end
-        | cont(_) =>
+        | k-cont(_) =>
           helper = mk-id(l, "if_helper")
           arg = mk-id(l, "if_helper_arg")
           N.a-let(l, helper.id-b, N.a-lam(l, [arg.id-b], k.apply(l, N.a-val(arg.id-e))),
-            for fold(acc from anf(_else, id(helper.id)), branch from branches.reverse()):
+            for fold(acc from anf(_else, k-id(helper.id)), branch from branches.reverse()):
               anf-name(branch.test, "anf_if",
-                fun(test): N.a-if(l, test, anf(branch.body, id(helper.id)), acc) end)
+                fun(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
             end)
       end
     | s_try(l, body, id, _except) =>

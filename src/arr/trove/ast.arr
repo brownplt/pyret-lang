@@ -2624,8 +2624,8 @@ dummy-loc-visitor = {
 
   a_blank(self): a_blank end,
   a_any(self): a_any end,
-  a_name(self, dummy-loc, id): a_name(dummy-loc, id) end,
-  a_arrow(self, dummy-loc, args, ret):
+  a_name(self, l, id): a_name(dummy-loc, id) end,
+  a_arrow(self, l, args, ret):
     a_arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self))
   end,
   a_method(self, l, args, ret):

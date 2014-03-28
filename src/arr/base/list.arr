@@ -321,28 +321,6 @@ where:
 end
 
 
-fun find(f :: (Any -> Bool), lst :: List) -> Option:
-  doc: "Returns some(elem) where elem is the first elem in lst for which
-        f(elem) returns true, or none otherwise"
-  if is-empty(lst):
-    none
-  else:
-    if f(lst.first):
-      some(lst.first)
-    else:
-      find(f, lst.rest)
-    end
-  end
-where:
-  nothing
-#  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
-#  find(fun(elt): true end, ["find-me"]) is some("find-me")
-#  find(fun(elt): elt > 4 end, [1,2,3]) is none
-#  find(fun(elt): true end, []) is none
-#  find(fun(elt): false end, []) is none
-#  find(fun(elt): false end, [1]) is none
-end
-
 fun map(f, lst :: List):
   doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
@@ -566,14 +544,6 @@ fun fold_n(f, num :: Number, base, lst :: List):
   help(num, base, lst)
 end
 
-
-fun raw-fold(f, base, lst :: List):
-  if is-empty(lst):
-    base
-  else:
-    raw-fold(f, f(base, lst:first), lst.rest)
-  end
-end
 
 fun index(l :: List, n :: Number):
   cases(List) l:

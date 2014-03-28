@@ -208,7 +208,7 @@ fun break(n): if-flat(blank(n), hardline) end
 commabreak = comma + break(1)
 
 fun flow_map(sep, f, items):
-  for list.fold(acc from mt-doc, item from items):
+  for list.fold(acc from mt-doc, shadow item from items):
     if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
