@@ -204,28 +204,31 @@ data List:
       + "]"
     end,
 
-   sort-by(self, cmp, eq):
-     doc: "Takes a comparator to check for elements that are strictly greater
-       or less than one another, and an equality procedure for elements that are
-       equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
-     pivot = self.first
-     # builds up three lists, split according to cmp and eq
-     # Note: We use foldl, which is tail-recursive, but which causes the three
-     # list parts to grow in reverse order.  This isn't a problem, since we're
-     # about to sort two of those parts anyway.
-     three-way-split = self.foldl(fun(e, acc):
-         if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
-         else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
-         else:                 acc.{are-gt: e^link(acc.are-gt)}
-         end
-       end,
-       {are-lt: empty, are-eq: empty, are-gt: empty})
-     less =    three-way-split.are-lt.sort-by(cmp, eq)
-     equal =   three-way-split.are-eq
-     greater = three-way-split.are-gt.sort-by(cmp, eq)
-     less.append(equal.append(greater))
-   end,
-
+    sort-by(self, cmp, eq):
+      doc: "Takes a comparator to check for elements that are strictly greater
+            or less than one another, and an equality procedure for elements that are
+            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
+      pivot = self.first
+      
+      # builds up three lists, split according to cmp and eq
+      # Note: We use each, which is tail-recursive, but which causes the three
+      # list parts to grow in reverse order.  This isn't a problem, since we're
+      # about to sort two of those parts anyway.
+      var are-lt = empty
+      var are-eq = empty
+      var are-gt = empty
+      self.each(fun(e):
+          if cmp(e, pivot):     are-lt := e^link(are-lt)
+          else if eq(e, pivot): are-eq := e^link(are-eq)
+          else:                 are-gt := e^link(are-gt)
+          end
+        end)
+      less =    are-lt.sort-by(cmp, eq)
+      equal =   are-eq
+      greater = are-gt.sort-by(cmp, eq)
+      less.append(equal.append(greater))
+    end,
+    
     sort(self):
       doc: "Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality"
@@ -353,19 +356,21 @@ end
 
 fun partition(f, lst :: List):
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  var is-true = empty
+  var is-false = empty
   fun help(inner-lst):
-    if is-empty(inner-lst):
-      { is-true: empty, is-false: empty }
+    if is-empty(inner-lst): nothing
     else:
-      split-tail = help(inner-lst.rest)
+      help(inner-lst.rest)
       if f(inner-lst.first):
-        { is-true: inner-lst.first^link(split-tail.is-true), is-false: split-tail.is-false }
+        is-true := inner-lst.first^link(is-true)
       else:
-        { is-true: split-tail.is-true, is-false: inner-lst.first^link(split-tail.is-false) }
+        is-false := inner-lst.first^link(is-false)
       end
     end
   end
   help(lst)
+  { is-true: is-true, is-false: is-false }
 end
 
 fun find(f :: (Any -> Bool), lst :: List) -> Option:
@@ -381,13 +386,12 @@ fun find(f :: (Any -> Bool), lst :: List) -> Option:
     end
   end
 where:
-  nothing
-#  find(fun(elt): elt > 1 end, [1,2,3]) is some(2)
-#  find(fun(elt): true end, ["find-me"]) is some("find-me")
-#  find(fun(elt): elt > 4 end, [1,2,3]) is none
-#  find(fun(elt): true end, []) is none
-#  find(fun(elt): false end, []) is none
-#  find(fun(elt): false end, [1]) is none
+ find(fun(elt): elt > 1 end, link(1,link(2,link(3,empty)))) is some(2)
+ find(fun(elt): true end, link("find-me",empty)) is some("find-me")
+ find(fun(elt): elt > 4 end, link(1,link(2,link(3)))) is none
+ find(fun(elt): true end, empty) is none
+ find(fun(elt): false end, empty) is none
+ find(fun(elt): false end, link(1,empty)) is none
 end
 
 fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
@@ -395,41 +399,48 @@ fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
   when n < 0:
     raise("Invalid index")
   end
+  var prefix = empty
+  var suffix = empty
   fun help(ind, l):
-    if ind == 0:
-      { prefix: empty, suffix: l }
+    if ind == 0: suffix := l
     else:
       cases(List) l:
         | empty => raise("Index too large")
         | link(fst, rst) =>
-          split = help(ind - 1, rst)
-          { prefix: link(fst, split.prefix), suffix: split.suffix }
+          help(ind - 1, rst)
+          prefix := fst^link(prefix)
       end
     end
   end
   help(n, lst)
+  { prefix: prefix, suffix: suffix }
+where:
+  one-four = link(1, link(2, link(3, link(4, empty))))
+  split-at(0, one-four) is { prefix: empty, suffix: one-four }
+  split-at(4, one-four) is { prefix: one-four, suffix: empty }
+  split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
+  split-at(-1, one-four) raises "Invalid index"
+  split-at(5, one-four) raises "Index too large"
 end
 
 fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 where:
-  nothing
-#  any(fun(n): n > 1 end, [1,2,3]) is true
-#  any(fun(n): n > 3 end, [1,2,3]) is false
-#  any(fun(x): true end, []) is false
-#  any(fun(x): false end, []) is false
+ any(fun(n): n > 1 end, link(1,link(2,link(3,empty)))) is true
+ any(fun(n): n > 3 end, link(1,link(2,link(3,empty)))) is false
+ any(fun(x): true end, empty) is false
+ any(fun(x): false end, empty) is false
 end
 
 fun all(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for all elems of lst"
   is-none(find(fun(v): not f(v) end, lst))
 where:
-  nothing
-#  all(fun(n): n > 1 end, [1,2,3]) is false
-#  all(fun(n): n <= 3 end, [1,2,3]) is true
-#  all(fun(x): true end, []) is true
-#  all(fun(x): false end, []) is true
+ all(fun(n): n > 1 end, link(1,link(2,link(3,empty)))) is false
+ all(fun(n): n <= 3 end, link(1,link(2,link(3,empty)))) is true
+ all(fun(x): true end, empty) is true
+ all(fun(x): false end, empty) is true
 end
 
 
