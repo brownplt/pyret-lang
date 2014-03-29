@@ -36,12 +36,12 @@ cases (C.ParsedArguments) parsed-options:
         print("Parsed:")
         each(print, parsed.tosource().pretty(80))
 
-        resolved = R.desugar-scope(DC.desugar-check(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
+        scoped = R.desugar-scope(DC.desugar-check(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
         print("")
-        print("Resolved:")
-        each(print, resolved.tosource().pretty(80))
+        print("Scoped:")
+        each(print, scoped.tosource().pretty(80))
         
-        desugared = R.resolve-names(D.desugar(resolved, CS.minimal-builtins), CS.minimal-builtins)
+        desugared = D.desugar(R.resolve-names(scoped, CS.minimal-builtins).ast, CS.minimal-builtins)
         print("")
         print("Desugared:")
         each(print, desugared.tosource().pretty(80))

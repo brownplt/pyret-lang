@@ -42,10 +42,19 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
       function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
-          return RUNTIME.getField(ast, 's_program')
-            .app(pos(node.pos), 
-                 makeList(node.kids[0].kids.map(tr)), // TODO: fix when we split import from provide
-                 tr(node.kids[1]));
+          if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
+            return RUNTIME.getField(ast, 's_program')
+              .app(pos(node.pos), 
+                   tr(node.kids[0].kids[0]),
+                   makeList(node.kids[0].kids.slice(1).map(tr)),
+                   tr(node.kids[1]));
+          } else {
+            return RUNTIME.getField(ast, 's_program')
+              .app(pos(node.pos), 
+                   RUNTIME.getField(ast, 's_provide_none').app(pos(node.pos)),
+                   makeList(node.kids[0].kids.map(tr)),
+                   tr(node.kids[1]));
+          }
         },
         'provide-stmt': function(node) {
           if (node.kids.length === 2) {

@@ -46,7 +46,7 @@ sharing:
   end
 end
 
-data AHeader:
+data AImport:
   | a-import-file(l :: Loc, file :: String, name :: String) with:
     label(self): "a-import-file" end,
     tosource(self):
@@ -56,11 +56,6 @@ data AHeader:
     label(self): "a-import-builtin" end,
     tosource(self):
       PP.flow([str-import, PP.str(self.lib), str-as, PP.str(self.name)])
-    end
-  | a-provide(l :: Loc, val :: AExpr) with:
-    label(self): "a-import-provide" end,
-    tosource(self):
-      PP.soft-surround(INDENT, 1, str-provide, self.val.tosource(), str-end)
     end
 sharing:
   visit(self, visitor):
@@ -318,7 +313,6 @@ fun strip-loc-header(h :: AHeader):
   cases(AHeader) h:
     | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
     | a-import-file(_, file, id) => a-import-builtin(dummy-loc, file, id)
-    | a-provide(_, val) => a-provide(dummy-loc, val)
   end
 end
 
@@ -406,9 +400,6 @@ default-map-visitor = {
   end,
   a-import-builtin(self, l :: Loc, lib :: String, name :: String):
     a-import-builtin(l, lib, name)
-  end,
-  a-provide(self, l :: Loc, val :: AExpr):
-    a-provide(l, val.visit(self))
   end,
   a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-let(l, bind.visit(self), e.visit(self), body.visit(self))

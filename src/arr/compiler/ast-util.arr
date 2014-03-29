@@ -22,7 +22,7 @@ fun checkers(l): A.s_app(l, A.s_dot(l, A.s_id(l, A.s_name("builtins")), "current
 
 fun append-nothing-if-necessary(prog :: A.Program):
   cases(A.Program) prog:
-    | s_program(l1, headers, body) =>
+    | s_program(l1, _provide, headers, body) =>
       new-body = cases(A.Expr) body:
         | s_block(l2, stmts) =>
           cases(List) stmts:
@@ -35,7 +35,7 @@ fun append-nothing-if-necessary(prog :: A.Program):
           end
         | else => body
       end
-      A.s_program(l1, headers, new-body)
+      A.s_program(l1, _provide, headers, new-body)
   end
 end
 
@@ -157,16 +157,16 @@ fun <a> default-env-map-visitor(
   A.default-map-visitor.{
     env: initial-env,
 
-    s_program(self, l, headers, body):
-      imports = headers.filter(A.is-s_import)
-      visit-headers = for map(h from headers):
-        h.visit(self)
+    s_program(self, l, _provide, imports, body):
+      visit-provide = _provide.visit(self)
+      visit-imports = for map(i from imports):
+        i.visit(self)
       end
-      imported-env = for fold(acc from self.env, i from visit-headers):
+      imported-env = for fold(acc from self.env, i from visit-imports):
         bind-handlers.s_header(i, acc)
       end
       visit-body = body.visit(self.{env: imported-env})
-      A.s_program(l, visit-headers, visit-body)
+      A.s_program(l, visit-provide, visit-imports, visit-body)
     end,
     s_let_expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
@@ -224,13 +224,16 @@ fun <a> default-env-iter-visitor(
   A.default-iter-visitor.{
     env: initial-env,
 
-    s_program(self, l, headers, body):
-      imports = headers.filter(A.is-s_import)
-      imported-env = for fold(acc from self.env, i from imports):
-        bind-handlers.s_header(i, acc)
+    s_program(self, l, _provide, imports, body):
+      if _provide.visit(self):
+        imported-env = for fold(acc from self.env, i from imports):
+          bind-handlers.s_header(i, acc)
+        end
+        new-visitor = self.{ env: imported-env }
+        list.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
+      else:
+        false
       end
-      new-visitor = self.{ env: imported-env }
-      list.all(_.visit(new-visitor), headers) and body.visit(new-visitor)
     end,
     s_let_expr(self, l, binds, body):
       bound-env = for list.fold-while(acc from { e: self.env, bs: true }, b from binds):

@@ -157,7 +157,7 @@ fun funlam_tosource(funtype, name, params, args :: List<Bind>,
 end
 
 data Program:
-  | s_program(l :: Loc, imports :: List<Header>, block :: Expr) with:
+  | s_program(l :: Loc, _provide :: Provide, imports :: List<Import>, block :: Expr) with:
     label(self): "s_program" end,
     tosource(self):
       PP.group(
@@ -172,12 +172,19 @@ sharing:
   end
 end
 
-data Header:
+data Import:
   | s_import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s_import" end,
     tosource(self):
       PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data Provide:
   | s_provide(l :: Loc, block :: Expr) with:
     label(self): "s_provide" end,
     tosource(self):
@@ -187,6 +194,9 @@ data Header:
   | s_provide_all(l :: Loc) with:
     label(self): "s_provide_all" end,
     tosource(self): str-provide-star end
+  | s_provide_none(l :: Loc) with:
+    label(self): "s_provide_none" end,
+    tosource(self): PP.mt-doc end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -932,7 +942,7 @@ end
 
 fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
-    | s_program(_, _, b) => block-ids(b)
+    | s_program(_, _, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end
 end
@@ -950,9 +960,9 @@ end
 # Equivalence modulo srclocs
 fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
   cases(Program) ast1:
-    | s_program(_, imports1, body1) =>
+    | s_program(_, provide1, imports1, body1) =>
       cases(Program) ast2:
-        | s_program(_, imports2, body2) =>
+        | s_program(_, provide2, imports2, body2) =>
           length-andmap(equiv-ast-header, imports1, imports2) and
             equiv-ast(body1, body2)
         | else => false
@@ -1546,8 +1556,8 @@ default-map-visitor = {
     end
   end,
 
-  s_program(self, l, imports, body):
-    s_program(l, imports.map(_.visit(self)), body.visit(self))
+  s_program(self, l, _provide, imports, body):
+    s_program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s_import(self, l, import_type, name):
@@ -1558,6 +1568,9 @@ default-map-visitor = {
   end,
   s_provide_all(self, l):
     s_provide_all(l)
+  end,
+  s_provide_none(self, l):
+    s_provide_none(l)
   end,
 
   s_bind(self, l, shadows, name, ann):
@@ -1930,8 +1943,8 @@ default-iter-visitor = {
     end
   end,
   
-  s_program(self, l, imports, body):
-    list.all(_.visit(self), imports) and body.visit(self)
+  s_program(self, l, _provide, imports, body):
+    _provide.visit(self) and list.all(_.visit(self), imports) and body.visit(self)
   end,
   
   s_import(self, l, import_type, name):
@@ -1941,6 +1954,9 @@ default-iter-visitor = {
     expr.visit(self)
   end,
   s_provide_all(self, l):
+    true
+  end,
+  s_provide_none(self, l):
     true
   end,
   
@@ -2300,8 +2316,8 @@ dummy-loc-visitor = {
     end
   end,
 
-  s_program(self, l, imports, body):
-    s_program(dummy-loc, imports.map(_.visit(self)), body.visit(self))
+  s_program(self, l, _provide, imports, body):
+    s_program(dummy-loc, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s_import(self, l, import_type, name):
@@ -2312,6 +2328,9 @@ dummy-loc-visitor = {
   end,
   s_provide_all(self, l):
     s_provide_all(l)
+  end,
+  s_provide_none(self, l):
+    s_provide_none(l)
   end,
 
   s_bind(self, l, shadows, name, ann):
