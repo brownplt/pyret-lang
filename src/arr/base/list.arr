@@ -115,27 +115,27 @@ data List:
       + "]"
     end,
 
-#    sort-by(self, cmp, eq):
-#      doc: "Takes a comparator to check for elements that are strictly greater
-#        or less than one another, and an equality procedure for elements that are
-#        equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
-#      pivot = self.first
-#      # builds up three lists, split according to cmp and eq
-#      # Note: We use foldl, which is tail-recursive, but which causes the three
-#      # list parts to grow in reverse order.  This isn't a problem, since we're
-#      # about to sort two of those parts anyway.
-#      three-way-split = self.foldl(fun(e, acc):
-#          if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
-#          else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
-#          else:                 acc.{are-gt: e^link(acc.are-gt)}
-#          end
-#        end,
-#        {are-lt: [], are-eq: [], are-gt: []})
-#      less =    three-way-split.are-lt.sort-by(cmp, eq)
-#      equal =   three-way-split.are-eq
-#      greater = three-way-split.are-gt.sort-by(cmp, eq)
-#      less.append(equal.append(greater))
-#    end,
+   sort-by(self, cmp, eq):
+     doc: "Takes a comparator to check for elements that are strictly greater
+       or less than one another, and an equality procedure for elements that are
+       equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
+     pivot = self.first
+     # builds up three lists, split according to cmp and eq
+     # Note: We use foldl, which is tail-recursive, but which causes the three
+     # list parts to grow in reverse order.  This isn't a problem, since we're
+     # about to sort two of those parts anyway.
+     three-way-split = self.foldl(fun(e, acc):
+         if cmp(e, pivot):     acc.{are-lt: e^link(acc.are-lt)}
+         else if eq(e, pivot): acc.{are-eq: e^link(acc.are-eq)}
+         else:                 acc.{are-gt: e^link(acc.are-gt)}
+         end
+       end,
+       {are-lt: empty, are-eq: empty, are-gt: empty})
+     less =    three-way-split.are-lt.sort-by(cmp, eq)
+     equal =   three-way-split.are-eq
+     greater = three-way-split.are-gt.sort-by(cmp, eq)
+     less.append(equal.append(greater))
+   end,
 
     sort(self):
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
