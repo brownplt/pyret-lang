@@ -79,17 +79,12 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s_program(l, _provide, imports, block) =>
-      N.a-program(l, anf-provide(_provide), imports.map(anf-import), anf-term(block))
+    | s_program(l, _, imports, block) =>
+      # Note: provides have been desugared away; if this changes, revise this line
+      N.a-program(l, imports.map(anf-import), anf-term(block))
   end
 end
 
-fun anf-provide(p :: A.Provide):
-  cases(A.Provide) p:
-    | s_provide(l, block) => N.a-provide(l, anf-term(block))
-    | else => raise("Unhandled header in anf-import: " + torepr(p))
-  end
-end
 fun anf-import(i :: A.Import):
   cases(A.Import) i:
     | s_import(l, f, name) =>

@@ -42,7 +42,7 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
       function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
-          if (node.kids[0].kids[0].name === "provide-stmt") {
+          if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
             return RUNTIME.getField(ast, 's_program')
               .app(pos(node.pos), 
                    tr(node.kids[0].kids[0]),
