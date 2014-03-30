@@ -1,8 +1,9 @@
 #lang pyret
 
 provide *
+import srcloc as SL
 
-Loc = error.Location
+Loc = SL.Srcloc
 
 data CheckBlockResult:
   | check-block-result(name :: Option<String>, loc :: Loc, test-results :: List<TestResult>)
@@ -95,7 +96,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     }
   complete-summary = for fold(summary from init, br from block-results.reverse()):
     fun format-loc(l):
-      l.file + ":" + tostring(l.line) + ":" + tostring(l.column)
+      l.source + ":" + tostring(l.start-line) + ":" + tostring(l.start-column)
     end
     block-summary = for fold(s from init, tr from br.test-results.reverse()):
       cases(TestResult) tr:

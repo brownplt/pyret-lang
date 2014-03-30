@@ -28,23 +28,6 @@ fun make-message-exception(l, msg):
   A.s_prim_app(l, "raise", [A.s_str(l, msg)])
 end
 
-fun desugar-header(h :: A.Header, b :: A.Expr):
-  cases(A.Header) h:
-    | s_provide_all(l) =>
-      ids = A.block-ids(b)
-      obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, tostring(id)), A.s_id(l, id)) end)
-      A.s_provide(l, obj)
-    | s_import(l, imp, name) =>
-      cases(A.ImportType) imp:
-        | s_file_import(file) =>
-          if string-contains(file, "/"): h
-          else: A.s_import(l, A.s_file_import("./" + file), name)
-          end
-        | else => h
-      end
-    | else => h
-  end
-end
 
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
@@ -83,8 +66,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
           - contains no s_underscore in expression position (but it may
             appear in binding positions as in s_let_bind, s_letrec_bind)"
   cases(A.Program) program:
-    | s_program(l, headers, body) =>
-      A.s_program(l, headers, desugar-expr(body))
+    | s_program(l, _provide, imports, body) =>
+      A.s_program(l, _provide, imports, desugar-expr(body))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end

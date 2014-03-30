@@ -16,21 +16,27 @@ fun mk-id(loc, base):
   { id: t, id-b: mk-bind(loc, t), id-e: A.s_id(loc, t) }
 end
 
-fun resolve-header(h :: A.Header, b :: A.Expr):
-  cases(A.Header) h:
+fun resolve-provide(p :: A.Provide, b :: A.Expr):
+  cases(A.Provide) p:
     | s_provide_all(l) =>
       ids = A.block-ids(b)
       obj = A.s_obj(l, for map(id from ids): A.s_data_field(l, A.s_str(l, tostring(id)), A.s_id(l, id)) end)
       A.s_provide(l, obj)
+    | else => p
+  end
+end
+
+fun resolve-import(i :: A.Import):
+  cases(A.Import) i:
     | s_import(l, imp, name) =>
       cases(A.ImportType) imp:
         | s_file_import(file) =>
-          if string-contains(file, "/"): h
+          if string-contains(file, "/"): i
           else: A.s_import(l, A.s_file_import("./" + file), name)
           end
-        | else => h
+        | else => i
       end
-    | else => h
+    | else => i
   end
 end
 
@@ -260,17 +266,13 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           - contains no s_provide in headers
           - contains no s_let, s_var, s_data"
   cases(A.Program) prog:
-    | s_program(l, headers-raw, body) =>
-      headers = headers-raw.map(resolve-header(_, body))
+    | s_program(l, _provide-raw, imports-raw, body) =>
+      imports = imports-raw.map(resolve-import)
       str = A.s_str(l, _)
-      provides = headers.filter(A.is-s_provide)
-      len = provides.length()
-      prov = if len == 0:
-        A.s_obj(l, [])
-      else if len == 1:
-        provides.first.block
-      else:
-        raise("More than one provide")
+      prov = cases(A.Provide) resolve-provide(_provide-raw, body):
+        | s_provide_none(_) => A.s_obj(l, [])
+        | s_provide(_, block) => block
+        | else => raise("Should have been resolved away")
       end
       with-provides = cases(A.Expr) body:
         | s_block(l2, stmts) =>
@@ -288,12 +290,11 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | else => body
       end
       wrapped = wrap-env-imports(l, with-provides, compile-env)
-      imports = headers.filter(fun(h): not A.is-s_provide(h) end)
       full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
           A.s_import(l, A.s_const_import(k), A.s_name(k))
         end
 
-      A.s_program(l, full-imports, wrapped.visit(desugar-scope-visitor))
+      A.s_program(l, A.s_provide_none(l), full-imports, wrapped.visit(desugar-scope-visitor))
   end
   
 where:
@@ -307,7 +308,7 @@ where:
                 )
   str = A.s_str(d, _)
   ds = desugar-scope(_, C.minimal-builtins)
-  compare1 = A.s_program(d, [],
+  compare1 = A.s_program(d, A.s_provide_none(d), [],
       A.s_block(d, [
         A.s_block(d, [
           A.s_let_expr(d, [
@@ -325,7 +326,7 @@ where:
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) satisfies
     A.equiv-ast-prog(_, compare1)
 
-  compare2 = A.s_program(d, [
+  compare2 = A.s_program(d, A.s_provide_none(d), [
         A.s_import(d, A.s_file_import("./foo.arr"), A.s_name("F"))
       ],
       A.s_block(d, [
@@ -408,18 +409,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   end
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
-    s_program(self, l, headers, body):
-      headers-and-env = for fold(acc from { e: self.env, hs: [] }, h from headers):
-        cases(A.Header) h:
+    s_program(self, l, _provide, imports, body):
+      imports-and-env = for fold(acc from { e: self.env, imps: [] }, i from imports):
+        cases(A.Import) i:
           | s_import(l2, file, name) =>
             atom-env = make-atom-for(A.s_bind(l2, false, name, A.a_blank), acc.e, let-bind)
             new-header = A.s_import(l2, file, atom-env.atom)
-            { e: atom-env.env, hs: link(new-header, acc.hs) }
+            { e: atom-env.env, imps: link(new-header, acc.imps) }
           | else => acc
         end
       end
-      visit-body = body.visit(self.{env: headers-and-env.e})
-      A.s_program(l, headers-and-env.hs.reverse(), visit-body)
+      visit-body = body.visit(self.{env: imports-and-env.e})
+      A.s_program(l, _provide, imports-and-env.hs.reverse(), visit-body)
     end,
     s_let_expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
