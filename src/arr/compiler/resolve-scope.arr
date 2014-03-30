@@ -420,7 +420,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       visit-body = body.visit(self.{env: imports-and-env.e})
-      A.s_program(l, _provide, imports-and-env.hs.reverse(), visit-body)
+      A.s_program(l, _provide, imports-and-env.imps.reverse(), visit-body)
     end,
     s_let_expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
