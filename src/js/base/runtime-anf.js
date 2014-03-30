@@ -953,7 +953,7 @@ function createMethodDict() {
     PyretFailException.prototype.toString = function() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.pyretStack.map(function(s) {
-            return s ? s.src + " at " + s.line + ":" + (s.column + 1) : "<unknown frame>";
+            return s ? s.src + " at " + s["start-line"] + ":" + (s["start-column"] + 1) : "<unknown frame>";
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, "tostring") + "\n" + stackStr;
@@ -1254,8 +1254,10 @@ function createMethodDict() {
       var stackFrame = error.stack.split("\n")[1].trim().split(":");
       return {
         src: stackFrame[0].split(" ")[1],
-        line: stackFrame[1],
-        column: stackFrame[2]
+        "start-line": stackFrame[1],
+        "start-column": stackFrame[2],
+        "end-line": stackFrame[1],
+        "end-column": stackFrame[2]
       };
     }
 

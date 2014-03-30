@@ -2,9 +2,10 @@
 
 provide *
 import pprint as PP
+import srcloc as S
 
-Loc = error.Location
-loc = error.location
+Loc = S.Srcloc
+loc = S.srcloc
 
 dummy-loc = loc("dummy location", -1, -1)
 
@@ -2667,3 +2668,17 @@ dummy-loc-visitor = {
   end
 }
 
+fun build-loc(l):
+  cases(S.Srcloc) l:
+    | srcloc(source, start-line, start-column, start-char, end-line, end-column, end-char) =>
+      s_obj(l, [
+          s_data_field(l, s_str(l, "source"), s_str(l, source)),
+          s_data_field(l, s_str(l, "start-line"), s_num(l, start-line)),
+          s_data_field(l, s_str(l, "start-column"), s_num(l, start-column)),
+          s_data_field(l, s_str(l, "start-char"), s_num(l, start-char)),
+          s_data_field(l, s_str(l, "end-line"), s_num(l, end-line)),
+          s_data_field(l, s_str(l, "end-column"), s_num(l, end-column)),
+          s_data_field(l, s_str(l, "end-char"), s_num(l, end-char))
+        ])
+  end
+end

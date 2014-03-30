@@ -18,7 +18,7 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
       }
       function pos(p) {
         var n = RUNTIME.makeNumber;
-        return RUNTIME.getField(srcloc, "old-srcloc").app(
+        return RUNTIME.getField(srcloc, "srcloc").app(
             RUNTIME.makeString(fileName),
             n(p.startRow),
             n(p.startCol - 1),

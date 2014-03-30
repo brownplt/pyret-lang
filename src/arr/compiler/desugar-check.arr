@@ -2,19 +2,12 @@
 
 provide *
 import ast as A
+import srcloc as SL
 import "./gensym.arr" as G
 import "./ast-util.arr" as U
 
 data CheckInfo:
-  | check-info(l :: Location, name :: String, body :: A.Expr)
-end
-
-fun build-loc(l):
-  A.s_obj(l, [
-      A.s_data_field(l, A.s_str(l, "file"), A.s_str(l, l.file)),
-      A.s_data_field(l, A.s_str(l, "line"), A.s_num(l, l.line)),
-      A.s_data_field(l, A.s_str(l, "column"), A.s_num(l, l.column))
-    ])
+  | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr)
 end
 
 
@@ -26,7 +19,7 @@ check-stmts-visitor = A.default-map-visitor.{
           A.s_str(l, A.s_check_test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           left,
           right,
-          build-loc(l)
+          A.build-loc(l)
         ])
     end
     if op == "opis": check-op("check-is")
@@ -37,7 +30,7 @@ check-stmts-visitor = A.default-map-visitor.{
           A.s_str(l, A.s_check_test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           A.s_lam(l, [], [], A.a_blank, "", left, none),
           right,
-          build-loc(l)
+          A.build-loc(l)
         ])
     else:
       raise("Check test operator " + op + " not yet implemented at " + torepr(l))
@@ -81,14 +74,14 @@ fun create-check-block(l, checks):
         A.s_obj(l2, [
             A.s_data_field(l2, A.s_str(l2, "name"), A.s_str(l2, name)),
             A.s_data_field(l2, A.s_str(l2, "run"), check-fun),
-            A.s_data_field(l2, A.s_str(l2, "location"), build-loc(l2))
+            A.s_data_field(l2, A.s_str(l2, "location"), A.build-loc(l2))
           ])
     end
   end
   checkers = checks.map(create-checker)
   A.s_block(l, [
       A.s_app(l, A.s_dot(l, U.checkers(l), "run-checks"), [
-          A.s_str(l, l.file),
+          A.s_str(l, l.source),
           A.s_list(l, checkers)
         ])
     ])

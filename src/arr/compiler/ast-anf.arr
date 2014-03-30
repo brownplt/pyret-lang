@@ -3,6 +3,7 @@
 provide *
 import ast as A
 import pprint as PP
+import srcloc as SL
 
 INDENT = 2
 
@@ -28,7 +29,7 @@ str-as = PP.str("as")
 
 dummy-loc = error.location("dummy-location", -1, -1)
 
-Loc = error.Location
+Loc = SL.Srcloc
 
 data AProg:
   | a-program(l :: Loc, imports :: List<AHeader>, body :: AExpr) with:
