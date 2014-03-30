@@ -110,7 +110,7 @@ fun main(args):
             for list.each(e from errors.sort-by(err-less, _ == _)):
               print-error(tostring(e))
             end
-            result
+            raise("There were compilation errors.")
         end
       end
     | arg-error(message, partial) =>
