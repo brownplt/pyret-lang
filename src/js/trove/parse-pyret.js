@@ -21,10 +21,10 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
         return RUNTIME.getField(srcloc, "srcloc").app(
             RUNTIME.makeString(fileName),
             n(p.startRow),
-            n(p.startCol - 1),
+            n(p.startCol),
             n(p.startChar),
             n(p.endRow),
-            n(p.endCol - 1),
+            n(p.endCol),
             n(p.endChar)
           );
       }
