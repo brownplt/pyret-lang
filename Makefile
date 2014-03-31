@@ -204,7 +204,7 @@ install:
 	curl "http://dl.google.com/closure-compiler/compiler-latest.zip" > compiler-latest.zip
 	unzip compiler-latest.zip -d deps/closure-compiler 
 	rm compiler-latest.zip
-	mkdir node_modules -p
+	mkdir -p node_modules 
 	npm install jasmine-node
 	npm install requirejs
 	npm install q
