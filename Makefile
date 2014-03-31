@@ -209,7 +209,9 @@ install:
 	npm install requirejs
 	npm install q
 	npm install lodash
-
+	git submodule init
+	git submodule update
+  
 
 .PHONY : test
 test: runtime-test evaluator-test compiler-test repl-test
