@@ -94,7 +94,7 @@ $(PHASE1):
 	mkdir -p build/phase1
 	mkdir -p build/phase1/trove
 	cd build/phase1 && \
-		find ../../src/ -type d | cut -d'/' -f4- | xargs mkdir -p
+		find ../../src -type d | cut -d'/' -f5- | xargs mkdir -p
 
 $(PHASE2):
 	mkdir -p build/phase2
