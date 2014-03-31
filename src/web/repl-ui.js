@@ -32,9 +32,13 @@ define([], function() {
 
     var promptContainer = jQuery("<div id='prompt-container'>");
     var prompt = jQuery("<div>").addClass("repl-prompt");
-    promptContainer.append($("<span>&gt;&nbsp;</span>")).append(prompt);
+    promptContainer.append(prompt);
 
     var output = jQuery("<div id='output' class='cm-s-default'>");
+    runtime.stdout = function(str) {
+      ct_log(str);
+      output.append($("<div>").text(str));
+    };
 
     var clearDiv = jQuery("<div class='clear'>");
 
@@ -97,7 +101,6 @@ define([], function() {
     var runner = makeLoggingRunCode(function(code, opts, replOpts){
           items.unshift(code);
           pointer = -1;
-          write(jQuery('<span>&gt;&nbsp;</span>'));
           var echoContainer = $("<div>");
           var echo = $("<textarea class='repl-echo CodeMirror'>");
           echoContainer.append(echo);
@@ -252,6 +255,7 @@ define([], function() {
 
 
     var onBreak = function() {
+      breakButton.attr("disabled", true);
       evaluator.requestBreak(clear);
     };
 

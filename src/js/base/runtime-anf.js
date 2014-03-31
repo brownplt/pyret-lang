@@ -953,7 +953,7 @@ function createMethodDict() {
     PyretFailException.prototype.toString = function() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.pyretStack.map(function(s) {
-            return s ? s.src + " at " + s.line + ":" + (s.column + 1) : "<unknown frame>";
+            return s ? s.src + " at " + s["start-line"] + ":" + (s["start-column"] + 1) : "<unknown frame>";
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, "tostring") + "\n" + stackStr;
@@ -1254,8 +1254,10 @@ function createMethodDict() {
       var stackFrame = error.stack.split("\n")[1].trim().split(":");
       return {
         src: stackFrame[0].split(" ")[1],
-        line: stackFrame[1],
-        column: stackFrame[2]
+        "start-line": stackFrame[1],
+        "start-column": stackFrame[2],
+        "end-line": stackFrame[1],
+        "end-column": stackFrame[2]
       };
     }
 
@@ -1759,22 +1761,6 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
-    var bool_and = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isBoolean);
-      thisRuntime.checkIf(r, thisRuntime.isBoolean);
-      return thisRuntime.makeBoolean(l && r);
-    }
-    var bool_or = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isBoolean);
-      thisRuntime.checkIf(r, thisRuntime.isBoolean);
-      return thisRuntime.makeBoolean(l || r);
-    }
-    var bool_not = function(l) {
-      thisRuntime.checkIf(l, thisRuntime.isBoolean);
-      return thisRuntime.makeBoolean(!l);
-    }
-
-
     var num_equals = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isNumber);
       thisRuntime.checkIf(r, thisRuntime.isNumber);
@@ -1947,22 +1933,6 @@ function createMethodDict() {
           '_greaterequal': makeFunction(greaterequal),
           '_lessequal': makeFunction(lessequal),
 
-
-          'add': makeFunction(plus),
-          'sub': makeFunction(minus),
-          'mul': makeFunction(times),
-          'div': makeFunction(divide),
-          'less': makeFunction(lessthan),
-          'greater': makeFunction(greaterthan),
-          'greaterequal': makeFunction(greaterequal),
-          'lessequal': makeFunction(lessequal),
-
-          'and': makeFunction(bool_and),
-          'or': makeFunction(bool_or),
-          'not': makeFunction(bool_not),
-
-          'max': makeFunction(num_max),
-          'min': makeFunction(num_min),
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
           'num-equals': makeFunction(num_equals),

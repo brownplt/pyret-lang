@@ -8,6 +8,7 @@ import "./js-ast.arr" as J
 import "./gensym.arr" as G
 import "./compile-structs.arr" as CS
 import string-dict as D
+import srcloc as SL
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -44,7 +45,7 @@ j-ternary = J.j-ternary
 j-null = J.j-null
 j-parens = J.j-parens
 
-Loc = error.Location
+Loc = SL.Srcloc
 
 js-id-of = block:
   var js-ids = D.string-dict()
@@ -61,9 +62,13 @@ end
 
 fun obj-of-loc(l):
   j-obj([
-      j-field("src", j-str(l.file)),
-      j-field("line", j-num(l.line)),
-      j-field("column", j-num(l.column))
+      j-field("src", j-str(l.source)),
+      j-field("start-line", j-num(l.start-line)),
+      j-field("start-column", j-num(l.start-column)),
+      j-field("start-char", j-num(l.start-char)),
+      j-field("end-line", j-num(l.end-line)),
+      j-field("end-column", j-num(l.end-column)),
+      j-field("end-char", j-num(l.end-char))
     ])
 end
 
@@ -384,7 +389,7 @@ fun compile-program(self, l, headers, split, env):
         | a-import-file(_, file, _) => file
       end
     end)
-  module-id = G.make-name(l.file)
+  module-id = G.make-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
   j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
