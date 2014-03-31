@@ -201,7 +201,7 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 .PHONY : install
 install:
 	mkdir -p deps/closure-compiler
-	wget "http://dl.google.com/closure-compiler/compiler-latest.zip"
+	curl "http://dl.google.com/closure-compiler/compiler-latest.zip" > compiler-latest.zip
 	unzip compiler-latest.zip -d deps/closure-compiler 
 	rm compiler-latest.zip
 	mkdir node_modules -p
