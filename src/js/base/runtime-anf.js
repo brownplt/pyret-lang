@@ -1309,7 +1309,10 @@ function createMethodDict() {
               var thePause = manualPause;
               manualPause = null;
               pauseStack(function(restarter) {
-                  return thePause(function() { restarter(val); });
+                  return thePause({
+                      resume: function() { restarter.resume(val); },
+                      break: restarter.break
+                    });
                 });
             }
             var frameCount = 0;
@@ -1333,14 +1336,23 @@ function createMethodDict() {
 
               if(isPause(e)) {
                 (function(hasBeenResumed) {
-                  e.resumer(function(restartVal) {
-                    if(hasBeenResumed) {
-                      throw Error("Stack restarted twice: ", theOneTrueStack);
+                  e.resumer({
+                    resume: function(restartVal) {
+                      if(hasBeenResumed) {
+                        throw Error("This stack has already been resumed or broken ", theOneTrueStack);
+                      }
+                      hasBeenResumed = true;
+                      val = restartVal;
+                      TOS++;
+                      setTimeout(iter, 0);
+                    },
+                    break: function() {
+                      if(hasBeenResumed) {
+                        throw Error("This stack has already been resumed or broken ", theOneTrueStack);
+                      }
+                      hasBeenResumed = true;
+                      onDone(new FailureResult(makeMessageException("User break"), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
                     }
-                    hasBeenResumed = true;
-                    val = restartVal;
-                    TOS++;
-                    setTimeout(iter, 0);
                   });
                 })(false);
                 return;
@@ -1409,7 +1421,7 @@ function createMethodDict() {
             return thunk.app();
           }, thisRuntime.namespace, {
             sync: true
-          }, function(result) { restarter(wrapResult(result)) });
+          }, function(result) { restarter.resume(wrapResult(result)) });
       });
     }
 

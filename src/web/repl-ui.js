@@ -83,7 +83,7 @@ define([], function() {
       var thisWrite = uiOptions.write || write;
       lastNameRun = uiOptions.name || "interactions";
       lastEditorRun = uiOptions.cm || null;
-      evaluator.runRepl(uiOptions.name || "run", src, clear, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
+      evaluator.runMain(uiOptions.name || "run", src, clear, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
     };
 
     var enablePrompt = function (handler) { return function (result) {
@@ -256,7 +256,9 @@ define([], function() {
 
     var onBreak = function() {
       breakButton.attr("disabled", true);
-      evaluator.requestBreak(clear);
+      evaluator.requestBreak(function(restarter) {
+          restarter.break();
+        });
     };
 
 
