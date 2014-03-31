@@ -361,9 +361,13 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     cases(C.CompileBinding) b:
       | module-bindings(name, ids) => acc
       | builtin-id(name) =>
-        acc.set(name, let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0), names.s_global(name)))
+        acc.set(name, let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0, 0, 0), names.s_global(name)))
     end
   end
+where:
+  scope-env-from-env(C.compile-env([
+      C.builtin-id("x")
+    ])).get("x") is let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0, 0, 0), names.s_global("x"))
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):

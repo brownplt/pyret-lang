@@ -59,7 +59,7 @@ fun main(args):
             for list.each(e from errors):
               print-error(tostring(e))
             end
-            result
+            raise("There were compilation errors")
         end
       else:
         result = if r.has-key("compile-standalone-js"):
@@ -92,7 +92,7 @@ fun main(args):
             for list.each(e from errors):
               print-error(tostring(e))
             end
-            result
+            raise("There were compilation errors")
         end
       end
     | arg-error(message, partial) =>
