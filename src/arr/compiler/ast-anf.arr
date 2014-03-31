@@ -27,7 +27,7 @@ str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
 
-dummy-loc = error.location("dummy-location", -1, -1)
+dummy-loc = SL.srcloc("dummy-location", -1, -1, -1, -1, -1, -1)
 
 Loc = SL.Srcloc
 

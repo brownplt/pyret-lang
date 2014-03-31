@@ -82,8 +82,8 @@ fun main(args):
             }
             )
         else:
+          print("Unknown command line options")
           print(C.usage-info(options).join-str("\n"))
-          raise("Unknown command line options")
         end
         cases(CS.CompileResult) result:
           | ok(comp-object) => comp-object.print-js-runnable(display)
