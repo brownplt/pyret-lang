@@ -192,16 +192,26 @@ div.CodeMirror span.CodeMirror-matchingbracket {
   display: inline-block;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
 .replMain {
-  float: left;
-  width: 40%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  margin:0;
 }
 
 .replContainer {
-  position: fixed;
-  right: 2em;
-  bottom: 2em;
-  width: 40%;
+  position: absolute;
+  margin:0;
+  padding:0;
+  right:0;
+  top:;
+  width: 50%;
   height: 90%;
 }
 

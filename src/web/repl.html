@@ -50,7 +50,7 @@ $(function() {
       codeRunner(src, uiOpts, replOpts);
     };
     var codeContainer = $("<div>").addClass("replMain");
-    $(document.body).append(codeContainer);
+    $(document.body).prepend(codeContainer);
     var cm = replUI.makeEditor(codeContainer, {
         simpleEditor: false,
         initial: "print('Ahoy, world!')",
