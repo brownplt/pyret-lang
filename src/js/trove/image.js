@@ -1,15 +1,14 @@
 define([
     "./image-lib",
     "../../../lib/js-numbers/src/js-numbers",
-    "./colordb",
-    "./ffi-helpers"
-  ], function(imageLib, jsnums, colorDbLib, ffiLib) {
+    "js/ffi-helpers"
+  ], function(imageLib, jsnums, ffiLib) {
 
   return function(runtime, namespace) {
 
     var image = imageLib(runtime, namespace);
+    var colorDb = image.colorDb;
     var ffi = ffiLib(runtime, namespace);
-    var colorDb = colorDbLib(runtime, namespace).colorDb;
 
     //var PAUSE = plt.runtime.PAUSE;
 
@@ -151,14 +150,18 @@ define([
     //////////////////////////////////////////////////////////////////////
     var f = runtime.makeFunction;
 
-    return {
-      circle: f(function(radius, mode, color) {
-        var r = checkNonNegativeReal(radius);
-        var m = checkMode(mode);
-        var c = checkColor(color);
-        return runtime.makeOpaque(makeCircleImage(jsnums.toFixnum(r), String(m), c));
-      })
-    };
+    return runtime.makeObject({
+      provide: runtime.makeObject({
+        circle: f(function(radius, mode, color) {
+          var r = checkNonNegativeReal(radius);
+          var m = checkMode(mode);
+          var c = checkColor(color);
+          return runtime.makeOpaque(image.makeCircleImage(jsnums.toFixnum(r), String(m), c));
+        })
+      }),
+      answer: runtime.namespace.get("nothing")
+    });
+
 /*
     EXPORTS['circle'] = 
         makePrimitiveProcedure(

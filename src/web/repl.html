@@ -51,7 +51,7 @@ $(function() {
     };
     var codeContainer = $("<div>").addClass("replMain");
     $(document.body).append(codeContainer);
-    var cm = makeEditor(codeContainer, {
+    var cm = replUI.makeEditor(codeContainer, {
         simpleEditor: false,
         initial: "print('Ahoy, world!')",
         run: RUN_CODE

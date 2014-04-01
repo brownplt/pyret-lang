@@ -863,7 +863,7 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
       //console.log("There were " + countParses + " potential parses");
       var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
       if (posViolations) {
-        console.error("Not all nodes conain their children!");
+        console.error("Not all nodes contain their children!");
       } else {
         if (countParses === 1) {
           var ast = G.PyretGrammar.constructUniqueParse(parsed);

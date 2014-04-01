@@ -715,7 +715,7 @@ function createMethodDict() {
     ************************/
 
     function hasBrand(obj, brand) {
-      return obj.brands[brand] === true;
+      return Boolean(obj.brands && obj.brands[brand] === true);
     }
 
     var brandCounter = 0;
@@ -2091,6 +2091,7 @@ function createMethodDict() {
         'unwrap' : unwrap,
 
         'checkIf'      : checkIf,
+        'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),
         'log': log,

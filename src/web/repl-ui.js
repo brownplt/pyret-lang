@@ -1,5 +1,4 @@
 define(["trove/image-lib"], function(imageLib) {
-
   function merge(obj, extension) {
     return _.merge(_.clone(obj), extension);
   }
@@ -206,7 +205,9 @@ define(["trove/image-lib"], function(imageLib) {
         }
         var answer = runtime.getField(obj.result, "answer");
         if(image.isImage(answer.val)) {
-          output.append(answer.val.toDomNode());
+          var imageDom = output.append(answer.val.toDomNode());
+          $(imageDom).trigger({type: 'afterAttach'});
+          $('*', imageDom).trigger({type : 'afterAttach'});
         } else {
           output.append($("<div>").text(runtime.toReprJS(runtime.getField(obj.result, "answer"), "_torepr")));
         }
@@ -348,6 +349,7 @@ define(["trove/image-lib"], function(imageLib) {
       codeRunner(src, theseUIOptions, options);
     }
   }
+
   //: -> (code -> printing it on the repl)
   function makeRepl(container, repl, runtime) {
     var items = [];
@@ -705,7 +707,8 @@ define(["trove/image-lib"], function(imageLib) {
   }
   
   return {
-    makeRepl: makeRepl
+    makeRepl: makeRepl,
+    makeEditor: makeEditor
   };
 
 
