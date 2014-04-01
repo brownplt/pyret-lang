@@ -1321,7 +1321,8 @@ function createMethodDict() {
               pauseStack(function(restarter) {
                   return thePause({
                       resume: function() { restarter.resume(val); },
-                      break: restarter.break
+                      break: restarter.break,
+                      error: restarter.error
                     });
                 });
             }
@@ -1346,22 +1347,26 @@ function createMethodDict() {
 
               if(isPause(e)) {
                 (function(hasBeenResumed) {
+                  function checkResume() {
+                    if(hasBeenResumed) {
+                      throw Error("This stack has already been resumed or broken ", theOneTrueStack);
+                    }
+                    hasBeenResumed = true;
+                  }
                   e.resumer({
                     resume: function(restartVal) {
-                      if(hasBeenResumed) {
-                        throw Error("This stack has already been resumed or broken ", theOneTrueStack);
-                      }
-                      hasBeenResumed = true;
+                      checkResume();
                       val = restartVal;
                       TOS++;
                       setTimeout(iter, 0);
                     },
                     break: function() {
-                      if(hasBeenResumed) {
-                        throw Error("This stack has already been resumed or broken ", theOneTrueStack);
-                      }
-                      hasBeenResumed = true;
+                      checkResume();
                       onDone(new FailureResult(makeMessageException("User break"), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                    },
+                    error: function(err) {
+                      checkResume();
+                      onDone(new FailureResult(err, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
                     }
                   });
                 })(false);

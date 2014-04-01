@@ -149,20 +149,8 @@ define([
 
     //////////////////////////////////////////////////////////////////////
     var f = runtime.makeFunction;
-
-    return runtime.makeObject({
-      provide: runtime.makeObject({
-        circle: f(function(radius, mode, color) {
-          var r = checkNonNegativeReal(radius);
-          var m = checkMode(mode);
-          var c = checkColor(color);
-          return runtime.makeOpaque(image.makeCircleImage(jsnums.toFixnum(r), String(m), c));
-        })
-      }),
-      answer: runtime.namespace.get("nothing")
-    });
-
 /*
+
     EXPORTS['circle'] = 
         makePrimitiveProcedure(
             'circle',
@@ -173,9 +161,6 @@ define([
           var aColor = checkColor(MACHINE, "circle", 2);
           return makeCircleImage(jsnums.toFixnum(aRadius), aMode.toString(), aColor);
             });
-      
-
-    };
     EXPORTS['image-color?'] =
         makePrimitiveProcedure(
             'image-color?',
@@ -184,9 +169,7 @@ define([
                 var elt = MACHINE.e[MACHINE.e.length - 1];
                 return (isColorOrColorString(elt));
             });
-
-
-
+      
     EXPORTS['mode?'] = 
         makePrimitiveProcedure(
             'mode?',
@@ -194,49 +177,6 @@ define([
             function(MACHINE) {
                 return isMode(MACHINE.e[MACHINE.e.length - 1]);
             });
-
-    EXPORTS['x-place?'] = 
-        makePrimitiveProcedure(
-            'x-place?',
-            1,
-            function(MACHINE) {
-                return isPlaceX(MACHINE.e[MACHINE.e.length - 1]);
-            });
-
-    EXPORTS['y-place?'] = 
-        makePrimitiveProcedure(
-            'y-place?',
-            1,
-            function(MACHINE) {
-                return isPlaceY(MACHINE.e[MACHINE.e.length - 1]);
-            });
-
-    EXPORTS['angle?'] = 
-        makePrimitiveProcedure(
-            'angle?',
-            1,
-            function(MACHINE) {
-                return isAngle(MACHINE.e[MACHINE.e.length - 1]);
-            });
-
-    EXPORTS['side-count?'] = 
-        makePrimitiveProcedure(
-            'side-count?',
-            1,
-            function(MACHINE) {
-                return isSideCount(MACHINE.e[MACHINE.e.length - 1]);
-            });
-
-
-    EXPORTS['step-count?'] = 
-        makePrimitiveProcedure(
-            'step-count?',
-                1,
-            function(MACHINE) {
-                return isStepCount(MACHINE.e[MACHINE.e.length - 1]);
-            });
-
-
     EXPORTS['image?'] = 
         makePrimitiveProcedure(
             'image?',
@@ -244,6 +184,59 @@ define([
             function(MACHINE) {
                 return isImage(MACHINE.e[MACHINE.e.length - 1]);
             });
+
+
+*/
+    return runtime.makeObject({
+      provide: runtime.makeObject({
+        circle: f(function(radius, mode, color) {
+          var r = checkNonNegativeReal(radius);
+          var m = checkMode(mode);
+          var c = checkColor(color);
+          return runtime.makeOpaque(image.makeCircleImage(jsnums.toFixnum(r), String(m), c));
+        }),
+        "is-image-color": f(function(maybeImage) {
+          return runtime.wrap(image.isColorOrColorString(maybeImage));
+        }),
+        "is-mode": f(function(maybeMode) {
+          return runtime.wrap(isMode(maybeMode));
+        }),
+        "is-x-place": f(function(maybeXPlace) {
+          return runtime.wrap(isPlaceX(maybeXPlace));
+        }),
+        "is-y-place": f(function(maybeYPlace) {
+          return runtime.wrap(isPlaceY(maybeYPlace));
+        }),
+        "is-angle": f(function(maybeAngle) {
+          return runtime.wrap(image.isAngle(maybeAngle));
+        }),
+        "is-side-count": f(function(maybeSideCount) {
+          return runtime.wrap(image.isSideCount(maybeSideCount));
+        }),
+        "is-step-count": f(function(maybeStepCount) {
+          return runtime.wrap(image.isStepCount(maybeStepCount));
+        }),        
+        "is-image": f(function(maybeImage) {
+          return runtime.wrap(image.isImage(maybeImage));
+        }),
+        "bitmap-url": f(function(url) {
+          var urlString = checkString(url);
+          runtime.pauseStack(function(restarter) {
+            var rawImage = new Image();
+            rawImage.onload = function() {
+              restarter.resume(runtime.makeOpaque(image.makeFileImage(url.toString(), rawImage)));
+            };
+            rawImage.onerror = function(e) {
+              restarter.error(runtime.makeMessageException("unable to load " + url + ": " + e.message));
+            };
+            rawImage.src = url.toString();
+          });
+        })
+      })
+    });
+/*
+
+
 
     EXPORTS['image=?'] =
         makePrimitiveProcedure(
@@ -1254,6 +1247,11 @@ define([
                 var result = colorDb.get('' + name) || false;
                 return result;
             });
+
+        
+      }),
+      answer: runtime.namespace.get("nothing")
+    });
 
 */
   }; // end rt/ns fun
