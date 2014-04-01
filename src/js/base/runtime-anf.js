@@ -2102,6 +2102,9 @@ function createMethodDict() {
         'log': log,
 
         'modules' : Object.create(null),
+        'setStdout': function(newStdout) {
+          theOutsideWorld.stdout = newStdout;
+        },
         'getParam' : getParam,
         'setParam' : setParam
     };

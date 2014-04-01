@@ -82,7 +82,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       block-results
     end,
     render(self):
-      self.block-results^render-check-results()
+      block-results^render-check-results()
     end
   }
 end
