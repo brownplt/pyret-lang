@@ -13,14 +13,11 @@ PHASE2 = build/phase2
 PHASE3 = build/phase3
 WEB = build/web
 
-PYRET_PARSER1 = $(PHASE1)/$(JS)/pyret-parser-comp.js
-PYRET_PARSER2 = $(PHASE2)/$(JS)/pyret-parser-comp.js
-PYRET_PARSER3 = $(PHASE3)/$(JS)/pyret-parser-comp.js
-
 # CUSTOMIZE THESE IF NECESSARY
 SRC_JS := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
 ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
+PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser-comp.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
 COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js))
 TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
@@ -48,13 +45,13 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 # MAIN TARGET
 .PHONY : phase1
-phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(PYRET_PARSER1) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
 
 .PHONY : phase2
-phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(PYRET_PARSER2) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
+phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
 
 .PHONY : phase3
-phase3: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(PYRET_PARSER3) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
+phase3: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
 
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
@@ -138,20 +135,20 @@ $(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
 $(PHASE3)/main-wrapper.js: src/scripts/main-wrapper.js
 	cp $< $@
 
-$(PYRET_PARSER1): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
-	node lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE1)/$(JS)/grammar.js
-	node $(PHASE1)/$(JS)/grammar.js $(PHASE1)/$(JS)/pyret-parser.js
-	$(CLOSURE) --js $(PHASE1)/$(JS)/pyret-parser.js --js_output_file $(PHASE1)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
+$(PHASE1)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE1)/$(JS)/$*-grammar.js
+	node $(PHASE1)/$(JS)/$*-grammar.js $(PHASE1)/$(JS)/$*-parser.js
+	$(CLOSURE) --js $(PHASE1)/$(JS)/$*-parser.js --js_output_file $(PHASE1)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PYRET_PARSER2): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
-	node lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE2)/$(JS)/grammar.js
-	node $(PHASE2)/$(JS)/grammar.js $(PHASE2)/$(JS)/pyret-parser.js
-	$(CLOSURE) --js $(PHASE2)/$(JS)/pyret-parser.js --js_output_file $(PHASE2)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
+$(PHASE2)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE2)/$(JS)/$*-grammar.js
+	node $(PHASE2)/$(JS)/$*-grammar.js $(PHASE2)/$(JS)/$*-parser.js
+	$(CLOSURE) --js $(PHASE2)/$(JS)/$*-parser.js --js_output_file $(PHASE2)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PYRET_PARSER3): lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf
-	node lib/jglr/parser-generator.js src/$(JSBASE)/pyret-grammar.bnf $(PHASE3)/$(JS)/grammar.js
-	node $(PHASE3)/$(JS)/grammar.js $(PHASE3)/$(JS)/pyret-parser.js
-	$(CLOSURE) --js $(PHASE3)/$(JS)/pyret-parser.js --js_output_file $(PHASE3)/$(JS)/pyret-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
+$(PHASE3)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE3)/$(JS)/$*-grammar.js
+	node $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
+	$(CLOSURE) --js $(PHASE3)/$(JS)/$*-parser.js --js_output_file $(PHASE3)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
@@ -211,7 +208,7 @@ install:
 	npm install lodash
 	git submodule init
 	git submodule update lib/CodeMirror
-  
+
 
 .PHONY : test
 test: runtime-test evaluator-test compiler-test repl-test
