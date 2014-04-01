@@ -62,6 +62,11 @@ define([
     var colorBlue = function(c) { return unwrap(gf(c, "blue")); };
     var colorAlpha = function(c) { return unwrap(gf(c, "alpha")); };
     var equals = runtime.same;
+
+    var imageEquals = function(left, right) {
+      if (!isImage(left) || !isImage(right)) { return false; }
+      return left.equals(right);
+    }
     //////////////////////////////////////////////////////////////////////
 
     var heir = Object.create;
@@ -1616,6 +1621,7 @@ define([
       StarImage: StarImage,
 
 
+      imageEquals: imageEquals,
 
       colorDb: colorDb,
 

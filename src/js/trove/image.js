@@ -11,7 +11,6 @@ define([
     var ffi = ffiLib(runtime, namespace);
 
     var isString = runtime.isString;
-    var isEqual = runtime.same;
 
     var isFontFamily = function(x){
         return (isString(x) &&
@@ -212,7 +211,8 @@ define([
         }),        
         "is-image": f(function(maybeImage) {
           checkArity(1, arguments.length);
-          return runtime.wrap(image.isImage(maybeImage));
+          runtime.confirm(maybeImage, runtime.isOpaque);
+          return runtime.wrap(image.isImage(maybeImage.val));
         }),
         "bitmap-url": bitmapURL,
         "open-image-url": bitmapURL,
@@ -223,7 +223,7 @@ define([
           // for some reason.  Our runtime.same method doesn't.  Could be a problem...
           var img1 = checkImage(maybeImage1);
           var img2 = checkImage(maybeImage2);
-          return runtime.wrap(isEqual(maybeImage1, maybeImage2)); // runtime.same takes Pyret values
+          return runtime.wrap(image.imageEquals(img1, img2));
         }),
         "text": f(function(maybeString, maybeSize, maybeColor) {
           checkArity(3, arguments.length);
