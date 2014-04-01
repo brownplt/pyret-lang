@@ -158,7 +158,7 @@ define([
     var f = runtime.makeFunction;
     var bitmapURL = f(function(maybeUrl) {
       checkArity(1, arguments.length);
-      var url = checkString(url);
+      var url = checkString(maybeUrl);
       runtime.pauseStack(function(restarter) {
         var rawImage = new Image();
         rawImage.onload = function() {

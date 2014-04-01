@@ -42,7 +42,18 @@ check:
   3 satisfies I.is-side-count
   2.3 satisfies negate(I.is-side-count)
 
-  I.bitmap-url("https://raw.githubusercontent.com/brownplt/pyret-lang/master/img/pyret-logo.png") satisfies I.is-image
+
+  fun make-pyret():
+    I.bitmap-url("https://raw.githubusercontent.com/brownplt/pyret-lang/master/img/pyret-logo.png")
+  end
+  pyret = make-pyret()
+
+  pyret satisfies I.is-image
+
+  I.image-equals(I.circle(100, "solid", "red"), I.circle(100, "solid", "red")) is true
+  I.image-equals(pyret, make-pyret()) is true
+
+  I.text("my string", 12, "blue") satisfies I.is-image
 
 end
 
