@@ -480,6 +480,9 @@ function isBoolean(b) {
 function isPyretTrue(b) {
     return b === pyretTrue;
 }
+function isPyretFalse(b) {
+    return b === pyretFalse;
+}
 
 /*********************
         Function
@@ -697,6 +700,13 @@ function createMethodDict() {
             throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
         }
         return true;
+    }
+
+    function confirm(val, test) {
+      if(!test(val)) {
+          throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
+      }
+      return thisRuntime.unwrap(val);
     }
 
 
@@ -1991,6 +2001,7 @@ function createMethodDict() {
         'hasBrand' : hasBrand,
 
         'isPyretTrue' : isPyretTrue,
+        'isPyretFalse' : isPyretFalse,
 
         'isBase'      : isBase,
         'isNothing'   : isNothing,
