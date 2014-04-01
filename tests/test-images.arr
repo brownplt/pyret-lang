@@ -2,7 +2,7 @@ import image as I
 import image-structs as IS
 
 check:
-  fun negate(f): f(_) end
+  fun negate(f): fun(x): not(f(x)) end end
 
   "red" satisfies I.is-image-color
   "blue" satisfies I.is-image-color
@@ -29,18 +29,18 @@ check:
   "not-a-place" satisfies negate(I.is-y-place)
 
   0 satisfies I.is-angle
-  360 satisfies I.is-angle
+  359.9999 satisfies I.is-angle
+  360 satisfies negate(I.is-angle)
   45.5 satisfies I.is-angle
   3 / 7 satisfies I.is-angle
   -1 satisfies negate(I.is-angle)
   360.1 satisfies negate(I.is-angle)
 
   -0.5 satisfies negate(I.is-side-count)
-  0 satisfies I.is-side-count
-  1 satisfies I.is-side-count
-  2 satisfies I.is-side-count
   3 satisfies I.is-side-count
-  2.3 satisfies negate(I.is-side-count)
+  5 satisfies I.is-side-count
+  6 satisfies I.is-side-count
+  6.5 satisfies negate(I.is-side-count)
 
 
   fun make-pyret():
@@ -50,10 +50,6 @@ check:
 
   pyret satisfies I.is-image
 
-  I.image-equals(I.circle(100, "solid", "red"), I.circle(100, "solid", "red")) is true
-  I.image-equals(pyret, make-pyret()) is true
-
-  I.text("my string", 12, "blue") satisfies I.is-image
+  I.circle(60, "solid", "blue") satisfies I.is-image
 
 end
-
