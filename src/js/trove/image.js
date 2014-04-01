@@ -1,6 +1,6 @@
 define([
     "./image-lib",
-    "../../../lib/js-numbers/src/js-numbers",
+    "js/js-numbers",
     "js/ffi-helpers"
   ], function(imageLib, jsnums, ffiLib) {
 
@@ -9,9 +9,6 @@ define([
     var image = imageLib(runtime, namespace);
     var colorDb = image.colorDb;
     var ffi = ffiLib(runtime, namespace);
-
-    //var PAUSE = plt.runtime.PAUSE;
-
 
     var isString = runtime.isString;
     var isEqual = runtime.same;
@@ -114,10 +111,16 @@ define([
         return aColor;
     };
 
-    var checkImage = p(image.isImage);
-    var checkImageOrScene = p(function(x) {
-        return image.isImage(x) || image.isScene(x);
-      });
+    var checkImage = function(maybeImage) { 
+      runtime.confirm(maybeImage, runtime.isOpaque);
+      runtime.confirm(maybeImage, function(x) { return image.isImage(x.val); });
+      return maybeImage.val;
+    };
+    var checkImageOrScene = function(maybeImage) {
+      runtime.confirm(maybeImage, runtime.isOpaque);
+      runtime.confirm(maybeImage, function(x) { return image.isImage(x.val) || image.isScene(x.val); });
+      return maybeImage.val;
+    };
 
     var checkFontFamily = p(isFontFamily);
 
@@ -220,7 +223,7 @@ define([
           // for some reason.  Our runtime.same method doesn't.  Could be a problem...
           var img1 = checkImage(maybeImage1);
           var img2 = checkImage(maybeImage2);
-          return runtime.wrap(isEqual(img1, img2));
+          return runtime.wrap(isEqual(maybeImage1, maybeImage2)); // runtime.same takes Pyret values
         }),
         "text": f(function(maybeString, maybeSize, maybeColor) {
           checkArity(3, arguments.length);
@@ -232,7 +235,7 @@ define([
                                 "normal", "Optimer", "", "", false));
         }),
         "text-font": f(function(maybeString, maybeSize, maybeColor, maybeFace, 
-                                maybeFamily, maybeStyle, maybeHeight, maybeUnderline) {
+                                maybeFamily, maybeStyle, maybeWeight, maybeUnderline) {
           checkArity(8, arguments.length);
           var string = checkString(maybeString);
           var size = checkByte(maybeSize);
@@ -247,29 +250,14 @@ define([
                                 String(face), String(family), String(style),
                                 String(weight), underline));
         }),
-/*
-  // TODO: This is variadic
 
-    EXPORTS['overlay'] = 
-        makePrimitiveProcedure(
-            'overlay',
-            plt.baselib.arity.makeArityAtLeast(2),
-            function(MACHINE) {
-          var img1 = checkImage(MACHINE, "overlay", 0);
-          var img2 = checkImage(MACHINE, "overlay", 1);
-          var restImages = [];
-          for (var i = 2; i < MACHINE.a; i++) {
-              restImages.push(checkImage(MACHINE, "overlay", i));
-          }
-                
-          var img = makeOverlayImage(img1, img2, "middle", "middle");
-          for (var i = 0; i < restImages.length; i++) {
-              img = makeOverlayImage(img, restImages[i], "middle", "middle");
-          }
-          return img;
-      });
+        "overlay": f(function(maybeImg1, maybeImg2) {
+          checkArity(2, arguments.length);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "middle", "middle"));
+        }),
 
-*/
         "overlay-xy": f(function(maybeImg1, maybeDx, maybeDy, maybeImg2) {
           checkArity(4, arguments.length);
           var img1 = checkImage(maybeImg1);
@@ -279,57 +267,26 @@ define([
           return runtime.makeOpaque(
             image.makeOverlayImage(img1, img2, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
         }),
-/*
 
-  // TODO: This is variadic
-     EXPORTS['overlay/align'] = 
-         makePrimitiveProcedure(
-             'overlay/align',
-             plt.baselib.arity.makeArityAtLeast(4),
-             function(MACHINE) {
-           var placeX = checkPlaceX(MACHINE, "overlay/align", 0);
-           var placeY = checkPlaceY(MACHINE, "overlay/align", 1);
-           var img1 = checkImage(MACHINE, "overlay/align", 2);
-           var img2 = checkImage(MACHINE, "overlay/align", 3);
-           var restImages = [];
-           for (var i = 4; i < MACHINE.a; i++) {
-                restImages.push(checkImage(MACHINE, "overlay/align", i));
-           }
-           var img = makeOverlayImage(img1,
-                                      img2,
-                                      placeX.toString(),
-                                      placeY.toString());
-           for (var i = 0; i < restImages.length; i++)
-             img = makeOverlayImage(img,
-                                    restImages[i],
-                                    placeX.toString(), 
-                                    placeY.toString());
-           return img;
-       });
+        "overlay-align": f(function(maybePlaceX, maybePlaceY, maybeImg1, maybeImg2) {
+          checkArity(4, arguments.length);
+          var placeX = checkPlaceX(maybePlaceX);
+          var placeY = checkPlaceY(maybePlaceY);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, String(placeX), String(placeY)));
+        }),
 
-    EXPORTS['underlay'] = 
-        makePrimitiveProcedure(
-            'underlay',
-            plt.baselib.arity.makeArityAtLeast(2),
-            function(MACHINE) {
-          var img1 = checkImage(MACHINE, "underlay", 0);
-          var img2 = checkImage(MACHINE, "underlay", 1);
-          var restImages = [];
-          for (var i = 2; i < MACHINE.a; i++) {
-              restImages.push(checkImage(MACHINE, "underlay", i));
-          }
+        "underlay": f(function(maybeImg1, maybeImg2) {
+          checkArity(2, arguments.length);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img2, img1, "middle", "middle"));
+        }),
 
-          var img = makeOverlayImage(img2, img1, "middle", "middle");
-          for (var i = 0; i < restImages.length; i++) {
-              img = makeOverlayImage(restImages[i], img, "middle", "middle");
-          }
-          return img;
-      });
-
-*/
         "underlay-xy": f(function(maybeImg1, maybeDx, maybeDy, maybeImg2) {
           checkArity(4, arguments.length);
-          var img1 = checkImage(maybeImg);
+          var img1 = checkImage(maybeImg1);
           var dx = checkReal(maybeDx);
           var dy = checkReal(maybeDy);
           var img2 = checkImage(maybeImg2);
@@ -337,145 +294,45 @@ define([
             image.makeOverlayImage(img2, img1, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
         }),
 
-/*
-  // TODO: This is variadic
+        "underlay-align": f(function(maybePlaceX, maybePlaceY, maybeImg1, maybeImg2) {
+          checkArity(4, arguments.length);
+          var placeX = checkPlaceX(maybePlaceX);
+          var placeY = checkPlaceY(maybePlaceY);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img2, img1, String(placeX), String(placeY)));
+        }),
 
-    EXPORTS['underlay/align'] = 
-        makePrimitiveProcedure(
-            'underlay/align',
-            plt.baselib.arity.makeArityAtLeast(4),
-            function(MACHINE) {
-          var placeX = checkPlaceX(MACHINE, "underlay/align", 0);
-          var placeY = checkPlaceY(MACHINE, "underlay/align", 1);
-          var img1 = checkImage(MACHINE, "underlay/align", 2);
-          var img2 = checkImage(MACHINE, "underlay/align", 3);
-          var restImages = [];
-          for (var i = 4; i < MACHINE.a; i++) {
-              restImages.push(checkImage(MACHINE, "underlay/align", i));
-          }
-          
-          var img = makeOverlayImage(img2,
-                                     img1,
-                                     placeX.toString(),
-                                     placeY.toString());
-          
-          for (var i = 0; i < restImages.length; i++) {
-            img = makeOverlayImage(restImages[i],
-                                   img,
-                                   placeX.toString(), 
-                                   placeY.toString());
-          }
-          return img;
-      });
+        "beside": f(function(maybeImg1, maybeImg2) {
+          checkArity(2, arguments.length);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "beside", "middle"));
+        }),
 
+        "beside-align": f(function(maybePlaceY, maybeImg1, maybeImg2) {
+          checkArity(3, arguments.length);
+          var placeY = checkPlaceY(maybePlaceY);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "beside", String(placeY)));
+        }),
 
+        "above": f(function(maybeImg1, maybeImg2) {
+          checkArity(2, arguments.length);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "middle", "above"));
+        }),
 
-    EXPORTS['beside'] = 
-        makePrimitiveProcedure(
-            'beside',
-            plt.baselib.arity.makeArityAtLeast(2),
-            function(MACHINE) {
-          var img1 = checkImage(MACHINE, "beside", 0);
-          var img2 = checkImage(MACHINE, "beside", 1);
-                var restImages = [];
-          for (var i = 2; i < MACHINE.a; i++) {
-                    restImages.push(checkImage(MACHINE, "beside", i));
-                }
-          
-          var img = makeOverlayImage(img1,
-                                     img2,
-                                     "beside",
-                                     "middle");
-          
-          for (var i = 0; i < restImages.length; i++) {
-              img = makeOverlayImage(img, restImages[i], "beside", "middle");
-          }
-          return img;
-      });
+        "above-align": f(function(maybePlaceX, maybeImg1, maybeImg2) {
+          checkArity(3, arguments.length);
+          var placeX = checkPlaceX(maybePlaceX);
+          var img1 = checkImage(maybeImg1);
+          var img2 = checkImage(maybeImg2);
+          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, String(placeX), "above"));
+        }),
 
-
-    EXPORTS['beside/align'] = 
-        makePrimitiveProcedure(
-            'beside/align',
-            plt.baselib.arity.makeArityAtLeast(3),
-            function(MACHINE) {
-          var placeY = checkPlaceY(MACHINE, "beside/align", 0);
-          var img1 = checkImage(MACHINE, "beside/align", 1);
-          var img2 = checkImage(MACHINE, "beside/align", 2);
-                var restImages = [];
-                for (var i = 3; i < MACHINE.a; i++) {
-                    restImages.push(checkImage(MACHINE, "beside/align", i));
-                }
-
-          var img = makeOverlayImage(img1,
-                   img2,
-                   "beside",
-                   placeY.toString());
-          
-          for (var i = 0; i < restImages.length; i++) {
-                img = makeOverlayImage(img,
-                                       restImages[i],
-                                       "beside",
-                                       placeY.toString());
-          }
-          
-          return img;
-        });
-
-    EXPORTS['above'] = 
-        makePrimitiveProcedure(
-            'above',
-            plt.baselib.arity.makeArityAtLeast(2),
-            function(MACHINE) {
-          var img1 = checkImage(MACHINE, "above", 0);
-          var img2 = checkImage(MACHINE, "above", 1);
-          var restImages = [];
-                for (var i = 2; i < MACHINE.a; i++) {
-                    restImages.push(checkImage(MACHINE, "above", i));
-                }
-          
-          var img = makeOverlayImage(img1,
-                                     img2,
-                                     "middle",
-                                     "above");
-          
-          for (var i = 0; i < restImages.length; i++)
-              img = makeOverlayImage(img,
-                                     restImages[i],
-                                     "middle",
-                                     "above");
-          return img;
-        });
-
-    EXPORTS['above/align'] = 
-        makePrimitiveProcedure(
-            'above/align',
-            plt.baselib.arity.makeArityAtLeast(3),
-            function(MACHINE) {
-          var placeX = checkPlaceX(MACHINE, "above/align", 0);
-          var img1 = checkImage(MACHINE, "above/align", 1);
-          var img2 = checkImage(MACHINE, "above/align", 2);
-          var restImages = [];
-          for (var i = 3; i < MACHINE.a; i++) {
-              restImages.push(checkImage(MACHINE, "above/align", i));
-          }
-
-          
-          var img = makeOverlayImage(img1,
-                                     img2,
-                                     placeX.toString(),
-                                     "above");
-          
-          for (var i = 0; i < restImages.length; i++)
-              img = makeOverlayImage(img,
-                                     restImages[i],
-                                     placeX.toString(),
-                                     "above");
-          
-          return img;
-        });
-
-*/
         "empty-scene": f(function(maybeWidth, maybeHeight) {
           checkArity(2, arguments.length);
           var width = checkNonNegativeReal(maybeWidth);
@@ -505,7 +362,7 @@ define([
           var y = checkReal(maybeY);
           var background = checkImageOrScene(maybeBackground);
           if (image.isScene(background)) {
-            return runtime.makeOpaque(background.add(aPicture, jsnums.toFixnum(aX), jsnums.toFixnum(aY)));
+            return runtime.makeOpaque(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
             var newScene = image.makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
@@ -594,7 +451,7 @@ define([
           checkArity(3, arguments.length);
           var x = checkReal(maybeX);
           var y = checkReal(maybeY);
-          var c = checkColor(maybec);
+          var c = checkColor(maybeC);
           return runtime.makeOpaque(
             image.makeLineImage(jsnums.toFixnum(x), jsnums.toFixnum(y), c, true));
         }),
@@ -605,7 +462,7 @@ define([
           var y1 = checkReal(maybeY1);
           var x2 = checkReal(maybeX2);
           var y2 = checkReal(maybeY2);
-          var c = checkColor(maybec);
+          var c = checkColor(maybeC);
           var img = checkImage(maybeImg);
           var line = image.makeLineImage(jsnums.toFixnum(x2 - x1), jsnums.toFixnum(y2 - y1), c, true);
           var leftmost = Math.min(x1, x2);
@@ -619,20 +476,20 @@ define([
           var y1 = checkReal(maybeY1);
           var x2 = checkReal(maybeX2);
           var y2 = checkReal(maybeY2);
-          var c = checkColor(maybec);
+          var c = checkColor(maybeC);
           var img = checkImage(maybeImg);
           var line = image.makeLineImage(jsnums.toFixnum(x2 - x1), jsnums.toFixnum(y2 - y1), c, true);
 
-          var newScene = makeSceneImage(jsnums.toFixnum(img.getWidth()), 
-                                        jsnums.toFixnum(img.getHeight()),
-                                        [],
-                                        true);
+          var newScene = image.makeSceneImage(jsnums.toFixnum(img.getWidth()), 
+                                              jsnums.toFixnum(img.getHeight()),
+                                              [],
+                                              true);
           newScene = newScene.add(img, img.getWidth()/2, img.getHeight()/2);
           // make an image containing the line
-          var line = makeLineImage(jsnums.toFixnum(x2-x1),
-                                   jsnums.toFixnum(y2-y1),
-                                   c,
-                                   false),
+          var line = image.makeLineImage(jsnums.toFixnum(x2-x1),
+                                         jsnums.toFixnum(y2-y1),
+                                         c,
+                                         false),
           leftMost = Math.min(x1,x2),
           topMost = Math.min(y1,y2);
           return runtime.makeOpaque(newScene.add(line, line.getWidth()/2+leftMost, line.getHeight()/2+topMost));
@@ -729,13 +586,13 @@ define([
 
         "triangle-ssa": f(function(maybeBase, maybeSideB, maybeAngleA, maybeMode, maybeColor) {
           checkArity(5, arguments.length);
-          var angleA = checkAngle(maybeAngleA);
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
+          var angleA = checkAngle(maybeAngleA);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
-          var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/sideA)*180/Math.PI;
+          var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
           var angleC = (180 - angleA - angleB);
           return runtime.makeOpaque(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
@@ -797,7 +654,7 @@ define([
           return runtime.makeOpaque(
             // add 180 to make the triangle point up
             image.makeTriangleImage(jsnums.toFixnum(side1), jsnums.toFixnum(90+180), jsnums.toFixnum(side2),
-                                   s.toString(), c));
+                                   String(mode), color));
         }),
 
         "isosceles-triangle": f(function(maybeSide, maybeAngleC, maybeMode, maybeColor) {

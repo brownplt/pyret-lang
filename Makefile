@@ -19,7 +19,8 @@ ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser-comp.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
-COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js))
+COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
+	src/js/js-numbers.js
 TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
 
 PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
@@ -126,6 +127,15 @@ $(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
 $(PHASE3)/pyret-start.js: src/scripts/pyret-start.js
 	cp $< $@
 
+$(PHASE1)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
+$(PHASE2)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
+$(PHASE3)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
 $(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
 	cp $< $@
 
@@ -212,8 +222,6 @@ install:
 
 .PHONY : test
 test: runtime-test evaluator-test compiler-test repl-test
-
-RUNTIME_JS = $(patsubst src/%,$(PHASE2)/%,$(COPY_JS))
 
 .PHONY : runtime-test
 runtime-test : phase1

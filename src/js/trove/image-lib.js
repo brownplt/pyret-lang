@@ -1,7 +1,7 @@
 define([
     "./image-structs",
     "js/ffi-helpers",
-    "../../../lib/js-numbers/src/js-numbers"
+    "js/js-numbers"
   ], function(
       imageLib,
       ffiLib,

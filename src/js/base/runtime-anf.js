@@ -6,7 +6,7 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "../../../lib/js-numbers/src/js-numbers"],
+define(["require", "./namespace", "./js-numbers"],
        function (require, Namespace, jsnumsIn) {
 
 
@@ -1150,7 +1150,7 @@ function createMethodDict() {
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { throw makeMessageException("Cannot unwrap yet: " + v); }
+      else { throw makeMessageException("Cannot wrap yet: " + v); }
     }
 
     function mkPred(jsPred) {
