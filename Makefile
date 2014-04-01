@@ -210,7 +210,7 @@ install:
 	npm install q
 	npm install lodash
 	git submodule init
-	git submodule update
+	git submodule update CodeMirror
   
 
 .PHONY : test
