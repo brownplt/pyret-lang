@@ -147,17 +147,17 @@ $(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
 $(PHASE3)/main-wrapper.js: src/scripts/main-wrapper.js
 	cp $< $@
 
-$(PHASE1)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+$(PHASE1)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE1)/$(JS)/$*-grammar.js
 	node $(PHASE1)/$(JS)/$*-grammar.js $(PHASE1)/$(JS)/$*-parser.js
 	$(CLOSURE) --js $(PHASE1)/$(JS)/$*-parser.js --js_output_file $(PHASE1)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE2)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+$(PHASE2)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE2)/$(JS)/$*-grammar.js
 	node $(PHASE2)/$(JS)/$*-grammar.js $(PHASE2)/$(JS)/$*-parser.js
 	$(CLOSURE) --js $(PHASE2)/$(JS)/$*-parser.js --js_output_file $(PHASE2)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE3)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf
+$(PHASE3)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE3)/$(JS)/$*-grammar.js
 	node $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
 	$(CLOSURE) --js $(PHASE3)/$(JS)/$*-parser.js --js_output_file $(PHASE3)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
