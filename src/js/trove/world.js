@@ -11,7 +11,11 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
     var bigBang = function(initW, handlers) {
         var outerToplevelNode = jQuery('<span/>').css('padding', '0px').get(0);
         // TODO(joe): This obviously can't stay
-        document.body.appendChild(outerToplevelNode);
+        if(!runtime.hasParam("current-animation-port")) {
+          document.body.appendChild(outerToplevelNode);
+        } else {
+          runtime.getParam("current-animation-port")(outerToplevelNode);
+        }
 
         var toplevelNode = jQuery('<span/>').css('padding', '0px').appendTo(outerToplevelNode).get(0);
 
@@ -103,7 +107,7 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
             runtime.run(function(_, _) {
                 return worldFunction.app.apply(null, pyretArgs);
               }, runtime.namespace,
-              { sync: false },
+              { sync: true },
               function(result) {
                 if(runtime.isSuccessResult(result)) {
                   success(result.result);
@@ -347,32 +351,10 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
         return rawJsworld.stop_when(worldFunction);
     };
 
-//    var checkNonNegativeReal = plt.baselib.check.checkNonNegativeReal;
-
-
-/*
-    // More specific function checkers, based on arity.
-    var checkProcedure1 = plt.baselib.check.makeCheckArgumentType(
-        function(x) { return (plt.baselib.functions.isProcedure(x) &&
-                              plt.baselib.arity.isArityMatching(x.racketArity, 1)); },
-        'procedure that consumes a world argument');
-
-
-    var checkProcedureWithKey = plt.baselib.check.makeCheckArgumentType(
-        function(x) { return (plt.baselib.functions.isProcedure(x) &&
-                              plt.baselib.arity.isArityMatching(x.racketArity, 2)); },
-        'procedure that consumes a world argument and a key');
-
-    var checkProcedureWithMouse = plt.baselib.check.makeCheckArgumentType(
-        function(x) { return (plt.baselib.functions.isProcedure(x) &&
-                              plt.baselib.arity.isArityMatching(x.racketArity, 4)); },
-        'procedure that consumes a world argument, an x and y coordinate, and a mouse event');
-
-*/
-
     var p = function(f) { return function(v) { return runtime.checkIf(v, f); }; };
     var checkHandler = p(isWorldConfigOption);
     var checkNum = p(runtime.isNumber);
+    var checkString = p(runtime.isString);
 
 
 
@@ -402,51 +384,25 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
         "to-draw": makeFunction(function(drawer) {
           runtime.checkIf(drawer, runtime.isFunction);
           return new ToDraw(drawer);
-
+        }),
+        "stop-when": makeFunction(function(stopper) {
+          runtime.checkIf(stopper, runtime.isFunction);
+          return new StopWhen(stopper);
+        }),
+        "on-key": makeFunction(function(onKey) {
+          runtime.checkIf(onKey, runtime.isFunction);
+          return new OnKey(onKey);
+        }),
+        "on-mouse": makeFunction(function(onMouse) {
+          runtime.checkIf(onMouse, runtime.isFunction);
+          return new OnMouse(onMouse);
+        }),
+        "is-key-equal": makeFunction(function(key1, key2) {
+          checkString(key1);
+          checkString(key2);
+          return key1.toString().toLowerCase() === key1.toString().toLowerCase();
         })
       })
     });
-/*
-
-    EXPORTS['stop-when'] =
-        makePrimitiveProcedure(
-            'stop-when',
-            1,
-            function(MACHINE) {
-                var f = checkProcedure1(MACHINE, "on-tick", 0);
-                return new StopWhen(f);
-            });
-
-
-    EXPORTS['on-key'] =
-        makePrimitiveProcedure(
-            'on-key',
-            1,
-            function(MACHINE) {
-                var f = checkProcedureWithKey(MACHINE, "on-key", 0);
-                return new OnKey(f);
-            });
-
-    EXPORTS['on-mouse'] =
-        makePrimitiveProcedure(
-            'on-mouse',
-            1,
-            function(MACHINE) {
-                var f = checkProcedureWithMouse(MACHINE, "on-key", 0);
-                return new OnMouse(f);
-            });
-
-
-
-    EXPORTS['key=?'] =
-        makePrimitiveProcedure(
-            'on-key',
-            2,
-            function(MACHINE) {
-                var k1 = checkString(MACHINE, "key=?", 0);
-                var k2 = checkString(MACHINE, "key=?", 1);
-                return k1.toString().toLowerCase() === k2.toString().toLowerCase();
-            });
-*/
   };
 });

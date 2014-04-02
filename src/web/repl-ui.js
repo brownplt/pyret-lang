@@ -401,6 +401,9 @@ define(["trove/image-lib"], function(imageLib) {
         ct_log(str);
         output.append($("<div>").text(str));
       });
+    runtime.setParam("current-animation-port", function(dom) {
+        output.append(dom);
+      });
 
     var clearDiv = jQuery("<div class='clear'>");
 
@@ -414,8 +417,7 @@ define(["trove/image-lib"], function(imageLib) {
 
     var clearButton = $("<button>").addClass("blueButton").text("Clear")
       .click(clearRepl);
-    var breakButton = $("<button>").addClass("blueButton").text("Stop")
-      .click(clearRepl);
+    var breakButton = $("<button>").addClass("blueButton").text("Stop");
     container.append(clearButton).append(breakButton).append(output).append(promptContainer).
       append(clearDiv);
 
