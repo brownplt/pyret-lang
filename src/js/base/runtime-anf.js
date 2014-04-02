@@ -6,7 +6,7 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "./js-numbers"],
+define(["require", "./namespace", "js/js-numbers"],
        function (require, Namespace, jsnumsIn) {
 
 

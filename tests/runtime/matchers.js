@@ -1,5 +1,5 @@
 
-define(["../../lib/js-numbers/src/js-numbers"], function (jsnums) {
+define(["js/js-numbers"], function (jsnums) {
     console.log("loading matchers");
 
     function addPyretMatchers(jasmine) {
