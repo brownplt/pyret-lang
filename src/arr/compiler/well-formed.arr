@@ -158,6 +158,7 @@ end
 
 fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
   var cur-shared = []
+  errors := []
   well-formed-visitor = A.default-iter-visitor.{
     s_op(self, l, op, left, right):
       reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
