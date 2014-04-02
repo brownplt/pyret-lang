@@ -557,7 +557,7 @@ define([
                                     String(mode), color));
         }),
 
-        "triangle-sss": f(function(maybeBase, maybeSideC, maybeSideB, maybeMode, maybeColor) {
+        "triangle-sss": f(function(maybeBase, maybeSideB, maybeSideC, maybeMode, maybeColor) {
           checkArity(5, arguments.length);
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
