@@ -155,6 +155,10 @@ define([
       }
     }
 
+    function makeImage(i) {
+      return runtime.makeOpaque(i, image.imageEquals);
+    }
+
 
     //////////////////////////////////////////////////////////////////////
     var f = runtime.makeFunction;
@@ -164,7 +168,7 @@ define([
       runtime.pauseStack(function(restarter) {
         var rawImage = new Image();
         rawImage.onload = function() {
-          restarter.resume(runtime.makeOpaque(image.makeFileImage(String(url), rawImage)));
+          restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
         };
         rawImage.onerror = function(e) {
           restarter.error(runtime.makeMessageException("unable to load " + url + ": " + e.message));
@@ -179,7 +183,7 @@ define([
           var radius = checkNonNegativeReal(maybeRadius);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(image.makeCircleImage(jsnums.toFixnum(radius), String(mode), color));
+          return makeImage(image.makeCircleImage(jsnums.toFixnum(radius), String(mode), color));
         }),
         "is-image-color": f(function(maybeImage) {
           checkArity(1, arguments.length);
@@ -230,7 +234,7 @@ define([
           var string = checkString(maybeString);
           var size = checkPositiveInteger(maybeSize);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTextImage(String(string), jsnums.toFixnum(size), color,
                                 "normal", "Optimer", "", "", false));
         }),
@@ -245,7 +249,7 @@ define([
           var style = checkFontStyle(maybeStyle);
           var weight = checkFontWeight(maybeWeight);
           var underline = checkBoolean(maybeUnderline);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTextImage(String(string), jsnums.toFixnum(size), color,
                                 String(face), String(family), String(style),
                                 String(weight), underline));
@@ -255,7 +259,7 @@ define([
           checkArity(2, arguments.length);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "middle", "middle"));
+          return makeImage(image.makeOverlayImage(img1, img2, "middle", "middle"));
         }),
 
         "overlay-xy": f(function(maybeImg1, maybeDx, maybeDy, maybeImg2) {
@@ -264,7 +268,7 @@ define([
           var dx = checkReal(maybeDx);
           var dy = checkReal(maybeDy);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeOverlayImage(img1, img2, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
         }),
 
@@ -274,14 +278,14 @@ define([
           var placeY = checkPlaceY(maybePlaceY);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, String(placeX), String(placeY)));
+          return makeImage(image.makeOverlayImage(img1, img2, String(placeX), String(placeY)));
         }),
 
         "underlay": f(function(maybeImg1, maybeImg2) {
           checkArity(2, arguments.length);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img2, img1, "middle", "middle"));
+          return makeImage(image.makeOverlayImage(img2, img1, "middle", "middle"));
         }),
 
         "underlay-xy": f(function(maybeImg1, maybeDx, maybeDy, maybeImg2) {
@@ -290,7 +294,7 @@ define([
           var dx = checkReal(maybeDx);
           var dy = checkReal(maybeDy);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeOverlayImage(img2, img1, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
         }),
 
@@ -300,14 +304,14 @@ define([
           var placeY = checkPlaceY(maybePlaceY);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img2, img1, String(placeX), String(placeY)));
+          return makeImage(image.makeOverlayImage(img2, img1, String(placeX), String(placeY)));
         }),
 
         "beside": f(function(maybeImg1, maybeImg2) {
           checkArity(2, arguments.length);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "beside", "middle"));
+          return makeImage(image.makeOverlayImage(img1, img2, "beside", "middle"));
         }),
 
         "beside-align": f(function(maybePlaceY, maybeImg1, maybeImg2) {
@@ -315,14 +319,14 @@ define([
           var placeY = checkPlaceY(maybePlaceY);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "beside", String(placeY)));
+          return makeImage(image.makeOverlayImage(img1, img2, "beside", String(placeY)));
         }),
 
         "above": f(function(maybeImg1, maybeImg2) {
           checkArity(2, arguments.length);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, "middle", "above"));
+          return makeImage(image.makeOverlayImage(img1, img2, "middle", "above"));
         }),
 
         "above-align": f(function(maybePlaceX, maybeImg1, maybeImg2) {
@@ -330,14 +334,14 @@ define([
           var placeX = checkPlaceX(maybePlaceX);
           var img1 = checkImage(maybeImg1);
           var img2 = checkImage(maybeImg2);
-          return runtime.makeOpaque(image.makeOverlayImage(img1, img2, String(placeX), "above"));
+          return makeImage(image.makeOverlayImage(img1, img2, String(placeX), "above"));
         }),
 
         "empty-scene": f(function(maybeWidth, maybeHeight) {
           checkArity(2, arguments.length);
           var width = checkNonNegativeReal(maybeWidth);
           var height = checkNonNegativeReal(maybeHeight);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeSceneImage(jsnums.toFixnum(width), jsnums.toFixnum(height), [], true));
         }),
         "put-image": f(function(maybePicture, maybeX, maybeY, maybeBackground) {
@@ -347,12 +351,12 @@ define([
           var y = checkReal(maybeY);
           var background = checkImageOrScene(maybeBackground);
           if (image.isScene(background)) {
-            return runtime.makeOpaque(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
+            return makeImage(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
             var newScene = makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
             newScene = newScene.add(picture, jsnums.toFixnum(x), background.getHeight() - jsnums.toFixnum(y));
-            return runtime.makeOpaque(newScene);
+            return makeImage(newScene);
           }
         }),
         "place-image": f(function(maybePicture, maybeX, maybeY, maybeBackground) {
@@ -362,12 +366,12 @@ define([
           var y = checkReal(maybeY);
           var background = checkImageOrScene(maybeBackground);
           if (image.isScene(background)) {
-            return runtime.makeOpaque(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
+            return makeImage(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
             var newScene = image.makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
             newScene = newScene.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y));
-            return runtime.makeOpaque(newScene);
+            return makeImage(newScene);
           }
         }),
         "place-image-align": f(function(maybeImg, maybeX, maybeY, maybePlaceX, maybePlaceY, maybeBackground) {
@@ -384,7 +388,7 @@ define([
           else if (placeY == "bottom") { y = y - img.getHeight()/2; }
 
           if (image.isScene(background)) {
-            return runtime.makeOpaque(background.add(img, jsnums.toFixnum(x), jsnums.toFixnum(y)));
+            return makeImage(background.add(img, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
             var newScene = makeSceneImage(background.getWidth(),
                                           background.getHeight(),
@@ -392,7 +396,7 @@ define([
                                           false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
             newScene = newScene.add(img, jsnums.toFixnum(x), jsnums.toFixnum(y));
-            return runtime.makeOpaque(newScene);
+            return makeImage(newScene);
           }
         }),
 
@@ -400,14 +404,14 @@ define([
           checkArity(2, arguments.length);
           var angle = checkAngle(maybeAngle);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeRotateImage(jsnums.toFixnum(-angle), img));
+          return makeImage(image.makeRotateImage(jsnums.toFixnum(-angle), img));
         }),
 
         "scale": f(function(maybeFactor, maybeImg) {
           checkArity(2, arguments.length);
           var factor = checkReal(maybeFactor);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeScaleImage(jsnums.toFixnum(factor), jsnums.toFixnum(factor), img));
+          return makeImage(image.makeScaleImage(jsnums.toFixnum(factor), jsnums.toFixnum(factor), img));
         }),
           
         "scale-xy": f(function(maybeXFactor, maybeYFactor, maybeImg) {
@@ -415,25 +419,25 @@ define([
           var xFactor = checkReal(maybeXFactor);
           var yFactor = checkReal(maybeYFactor);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeScaleImage(jsnums.toFixnum(xFactor), jsnums.toFixnum(yFactor), img));
+          return makeImage(image.makeScaleImage(jsnums.toFixnum(xFactor), jsnums.toFixnum(yFactor), img));
         }),
 
         "flip-horizontal": f(function(maybeImg) {
           checkArity(1, arguments.length);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeFlipImage(img, "horizontal"));
+          return makeImage(image.makeFlipImage(img, "horizontal"));
         }),
 
         "flip-vertical": f(function(maybeImg) {
           checkArity(1, arguments.length);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeFlipImage(img, "vertical"));
+          return makeImage(image.makeFlipImage(img, "vertical"));
         }),
 
         "frame": f(function(maybeImg) {
           checkArity(1, arguments.length);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeFrameImage(img));
+          return makeImage(image.makeFrameImage(img));
         }),
         
         "crop": f(function(maybeX, maybeY, maybeWidth, maybeHeight, maybeImg) {
@@ -443,7 +447,7 @@ define([
           var width = checkNonNegativeReal(maybeWidth);
           var height = checkNonNegativeReal(maybeHeight);
           var img = checkImage(maybeImg);
-          return runtime.makeOpaque(image.makeCropImage(jsnums.toFixnum(x), jsnums.toFixnum(y),
+          return makeImage(image.makeCropImage(jsnums.toFixnum(x), jsnums.toFixnum(y),
                                                         jsnums.toFixnum(width), jsnums.toFixnum(height), img));
         }),
 
@@ -452,7 +456,7 @@ define([
           var x = checkReal(maybeX);
           var y = checkReal(maybeY);
           var c = checkColor(maybeC);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeLineImage(jsnums.toFixnum(x), jsnums.toFixnum(y), c, true));
         }),
 
@@ -467,7 +471,7 @@ define([
           var line = image.makeLineImage(jsnums.toFixnum(x2 - x1), jsnums.toFixnum(y2 - y1), c, true);
           var leftmost = Math.min(x1, x2);
           var topmost = Math.min(y1, y2);
-          return runtime.makeOpaque(image.makeOverlayImage(line, img, -leftmost, -topmost));
+          return makeImage(image.makeOverlayImage(line, img, -leftmost, -topmost));
         }),
 
         "scene-line": f(function(maybeImg, maybeX1, maybeY1, maybeX2, maybeY2, maybeC) {
@@ -492,7 +496,7 @@ define([
                                          false),
           leftMost = Math.min(x1,x2),
           topMost = Math.min(y1,y2);
-          return runtime.makeOpaque(newScene.add(line, line.getWidth()/2+leftMost, line.getHeight()/2+topMost));
+          return makeImage(newScene.add(line, line.getWidth()/2+leftMost, line.getHeight()/2+topMost));
         }),
 
         "square": f(function(maybeSide, maybeMode, maybeColor) {
@@ -500,7 +504,7 @@ define([
           var side = checkNonNegativeReal(maybeSide);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(image.makeSquareImage(jsnums.toFixnum(side), String(mode), color));
+          return makeImage(image.makeSquareImage(jsnums.toFixnum(side), String(mode), color));
         }),
 
         "rectangle": f(function(maybeWidth, maybeHeight, maybeMode, maybeColor) {
@@ -509,7 +513,7 @@ define([
           var height = checkNonNegativeReal(maybeHeight);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeRectangleImage(jsnums.toFixnum(width), jsnums.toFixnum(height), String(mode), color));
         }),
 
@@ -519,7 +523,7 @@ define([
           var count = checkNonNegativeReal(maybeCount);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), String(mode), color));
         }),
 
@@ -529,7 +533,7 @@ define([
           var height = checkNonNegativeReal(maybeHeight);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeEllipseImage(jsnums.toFixnum(width), jsnums.toFixnum(height), String(mode), color));
         }),
 
@@ -538,7 +542,7 @@ define([
           var side = checkNonNegativeReal(maybeSide);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             // Angle makes triangle point up
             image.makeTriangleImage(jsnums.toFixnum(side), jsnums.toFixnum(60+180), jsnums.toFixnum(side),
                                     String(mode), color));
@@ -552,7 +556,7 @@ define([
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -566,7 +570,7 @@ define([
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleC = (Math.acos((base*base + sideB*sideB - sideC*sideC) / (2*base*sideB)))*180/Math.PI;
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -579,7 +583,7 @@ define([
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angle), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -594,7 +598,7 @@ define([
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
           var angleC = (180 - angleA - angleB);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -609,7 +613,7 @@ define([
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleC = (180 - angleA - angleB);
           var sideB = (base * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -625,7 +629,7 @@ define([
           var angleC = (180 - angleA - angleB);
           var base = (sideC * Math.sin(angleA*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
           var sideB = (sideC * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -640,7 +644,7 @@ define([
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleB = (180 - angleA - angleC);
           var sideB = (base * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleA*Math.PI/180));
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
@@ -651,7 +655,7 @@ define([
           var side2 = checkNonNegativeReal(maybeSide2);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             // add 180 to make the triangle point up
             image.makeTriangleImage(jsnums.toFixnum(side1), jsnums.toFixnum(90+180), jsnums.toFixnum(side2),
                                    String(mode), color));
@@ -665,7 +669,7 @@ define([
           var color = checkColor(maybeColor);
           var angleAB = (180-angleC)/2;
           var base = 2*side*Math.sin((angleC*Math.PI/180)/2);
-          return runtime.makeOpaque(
+          return makeImage(
             // add 180 to make the triangle point up
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleAB+180), jsnums.toFixnum(side), 
                                     String(mode), color));
@@ -676,7 +680,7 @@ define([
           var side = checkNonNegativeReal(maybeSide);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makePolygonImage(jsnums.toFixnum(side), jsnums.toFixnum(5), jsnums.toFixnum(2),
                                 String(mode), color));
         }),
@@ -688,7 +692,7 @@ define([
           var inner = checkNonNegativeReal(maybeInner);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeStarImage(jsnums.toFixnum(sideCount), jsnums.toFixnum(inner), jsnums.toFixnum(outer),
                                 String(mode), color));
         }),
@@ -700,7 +704,7 @@ define([
           var inner = checkNonNegativeReal(maybeInner);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeStarImage(jsnums.toFixnum(points), jsnums.toFixnum(inner), jsnums.toFixnum(outer),
                                 String(mode), color));
         }),
@@ -712,7 +716,7 @@ define([
           var step = checkStepCount(maybeStep);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), jsnums.toFixnum(step),
                                 String(mode), color));
         }),
@@ -723,14 +727,14 @@ define([
           var angle = checkAngle(maybeAngle); // TODO: This was originally checkNonNegativeReal, seemed like a bug
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          return runtime.makeOpaque(
+          return makeImage(
             image.makeRhombusImage(jsnums.toFixnum(length), jsnums.toFixnum(angle), String(mode), color));
         }),
 
         "image-to-color-list": f(function(maybeImage) {
           checkArity(1, arguments.length);
           var img = checkImage(maybeImage);
-          return runtime.makeOpaque(image.imageToColorList(img));
+          return makeImage(image.imageToColorList(img));
         }),
 
         "color-list-to-image": f(function(maybeList, maybeWidth, maybeHeight, maybePinholeX, maybePinholeY) {
@@ -741,7 +745,7 @@ define([
           var pinholeX = checkNatural(maybePinholeX);
           var pinholeY = checkNatural(maybePinholeY);
           // TODO: why no jsnums.toFixnum here?
-          return runtime.makeOpaque(image.colorListToImage(loc, width, height, pinholeX, pinholeY));
+          return makeImage(image.colorListToImage(loc, width, height, pinholeX, pinholeY));
         }),
 
         "color-list-to-bitmap": f(function(maybeList, maybeWidth, maybeHeight) {
@@ -749,7 +753,7 @@ define([
           var loc = checkListofColor(maybeList);
           var width = checkNatural(maybeWidth);
           var height = checkNatural(maybeHeight);
-          return runtime.makeOpaque(image.colorListToImage(loc, width, height, 0, 0));
+          return makeImage(image.colorListToImage(loc, width, height, 0, 0));
         }),
         
         "image-width": f(function(maybeImg) {
