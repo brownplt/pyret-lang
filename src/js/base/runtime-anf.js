@@ -172,6 +172,9 @@ function getParam(param) {
 function setParam(param, val) {
   parameters[param] = val;
 }
+function hasParam(param) {
+  return param in parameters;
+}
 
 /**
     Get the brands on an object
@@ -1873,7 +1876,7 @@ function createMethodDict() {
     var num_expt = function(n, pow) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       thisRuntime.checkIf(pow, thisRuntime.isNumber);
-      return thisRuntime.makeNumberBig(jsnums.exp(n, pow));
+      return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n, digits) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
@@ -1915,7 +1918,9 @@ function createMethodDict() {
         }
       }
     }
-  
+    function random(max) {
+      return makeNumber(Math.floor(Math.random() * max));
+    }
 
     //Export the runtime
     //String keys should be used to prevent renaming
@@ -1942,6 +1947,7 @@ function createMethodDict() {
           'run-task': makeFunction(execThunk),
 
           'gensym': gensym,
+          'random': makeFunction(random),
 
           '_plus': makeFunction(plus),
           '_minus': makeFunction(minus),
@@ -2106,7 +2112,8 @@ function createMethodDict() {
           theOutsideWorld.stdout = newStdout;
         },
         'getParam' : getParam,
-        'setParam' : setParam
+        'setParam' : setParam,
+        'hasParam' : hasParam
     };
 
     
