@@ -1842,7 +1842,7 @@ function createMethodDict() {
       } else if (jsnums.greaterThanOrEqual(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n));
       } else {
-        return thisRuntime.makeNumberBig(jsnums.floor(n));
+        return thisRuntime.makeNumberBig(jsnums.ceiling(n));
       }
     }
     var num_sqrt = function(n) { 
@@ -1859,7 +1859,12 @@ function createMethodDict() {
     }
     var num_log = function(n) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
-      return thisRuntime.makeNumberBig(jsnums.log(n));
+      if (jsnums.greaterThan(n, 0)) {
+        return thisRuntime.makeNumberBig(jsnums.log(n));
+      }
+      else {
+        throw makeMessageException("log: expected a number greater than 0 but got " + String(n));
+      }
     }
     var num_exp = function(n) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);

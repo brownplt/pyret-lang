@@ -19,6 +19,8 @@ ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser-comp.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
+
+
 COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
 TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
@@ -221,7 +223,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test
 
 .PHONY : runtime-test
 runtime-test : phase1
@@ -234,6 +236,17 @@ evaluator-test: phase1
 .PHONY : repl-test
 repl-test: phase1
 	cd tests/repl/ && node test.js require-test-runner/
+
+TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
+
+tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr
+	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+
+.PHONY : pyret-test
+pyret-test: phase1 $(TEST_JS)
+	node build/phase1/main-wrapper.js \
+    --module-load-dir tests/pyret \
+    -check-all tests/pyret/main.arr
 
 .PHONY : compiler-test
 compiler-test: phase1

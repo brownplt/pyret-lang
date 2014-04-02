@@ -24,4 +24,4 @@ pyret.org/pyret-frog/feeds/
 pyret.org/pyret-frog/getting-started/
 pyret.org/pyret-frog/tags/
 pyret.org/pyret-frog/tour/
-
+tests/pyret/tests/*.arr.js
