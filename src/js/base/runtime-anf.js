@@ -1709,6 +1709,15 @@ function createMethodDict() {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(min, thisRuntime.isNumber);
       thisRuntime.checkIf(max, thisRuntime.isNumber);
+      if(jsnums.greaterThan(min, max)) {
+        throw makeMessageException("substring: min index " + String(min) + " is greater than max index " + String(max));
+      }
+      if(jsnums.lessThan(min, 0)) {
+        throw makeMessageException("substring: min index " + String(min) + " is less than 0");
+      }
+      if(jsnums.greaterThan(max, string_length(s))) {
+        throw makeMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
+      }
       return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
@@ -1753,7 +1762,7 @@ function createMethodDict() {
       }
       return makeString(resultStr);
     }
-    var string_split = function(s, splitstr, repeated) {
+    var string_split = function(s, splitstr) {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(splitstr, thisRuntime.isString);
       
