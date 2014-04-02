@@ -30,24 +30,6 @@ fun main(args):
   
   params-parsed = C.parse-args(options, args)
 
-  fun err-main-loc(e :: CS.CompileError):
-    cases(CS.CompileError) e:
-      | wf-err(_, l) => l
-      | wf-err-split(_, ls) => ls.first
-      | unbound-var(_, l) => l
-      | pointless-var(l) => l
-      | pointless-shadow(l) => l
-      | bad-assignment(_, l, _) => l
-      | mixed-id-var(_, l1, l2) => if l1.before(l2): l1 else: l2 end
-      | shadow-id(_, l, _) => l
-      | duplicate-id(_, l, _) => l
-    end
-  end
-  fun err-less(e1 :: CS.CompileError, e2 :: CS.CompileError):
-    err-main-loc(e1).before(err-main-loc(e2)) or
-    ((err-main-loc(e1) == err-main-loc(e2)) and (tostring(e1) < tostring(e2)))
-  end
-  
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
       check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
@@ -77,7 +59,7 @@ fun main(args):
             for list.each(e from errors.sort-by(err-less, _ == _)):
               print-error(tostring(e))
             end
-            result
+            raise("There were compilation errors")
         end
       else:
         result = if r.has-key("compile-standalone-js"):
@@ -110,7 +92,7 @@ fun main(args):
             for list.each(e from errors.sort-by(err-less, _ == _)):
               print-error(tostring(e))
             end
-            raise("There were compilation errors.")
+            raise("There were compilation errors")
         end
       end
     | arg-error(message, partial) =>

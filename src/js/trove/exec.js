@@ -47,13 +47,13 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
                       function(printedCheckResult) {
                         if(execRt.isSuccessResult(printedCheckResult)) {
                           if(execRt.isString(printedCheckResult.result)) {
-                            restarter(callingRt.makeString(execRt.unwrap(printedCheckResult.result)));
+                            restarter.resume(callingRt.makeString(execRt.unwrap(printedCheckResult.result)));
                           }
                         }
                         else if(execRt.isFailureResult(printedCheckResult)) {
                           console.error(printedCheckResult);
                           console.error(printedCheckResult.exn);
-                          restarter(callingRt.makeString("There was an exception while formatting the check results"));
+                          restarter.resume(callingRt.makeString("There was an exception while formatting the check results"));
                         }
                       });
                   });
@@ -108,7 +108,7 @@ define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"],
                   /* This restarts the calling stack with the new value, which
                      used constructors from the calling runtime.  From the point of view of the
                      caller, wrappedResult is the return value of the call to exec() */
-                  restarter(wrappedResult);
+                  restarter.resume(wrappedResult);
                 });
             });
         });

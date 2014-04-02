@@ -205,11 +205,27 @@ define(["trove/image-lib"], function(imageLib) {
             .append("<br/>");
         }
         var answer = runtime.getField(obj.result, "answer");
-        if(image.isImage(answer.val)) {
-          output.append(answer.val.toDomNode());
+        if(runtime.isOpaque(answer) && image.isImage(answer.val)) {
+          var imageDom = output.append(answer.val.toDomNode());
+          $(imageDom).trigger({type: 'afterAttach'});
+          $('*', imageDom).trigger({type : 'afterAttach'});
         } else {
           output.append($("<div>").text(runtime.toReprJS(runtime.getField(obj.result, "answer"), "_torepr")));
         }
+        var toCall = runtime.getField(runtime.getParam("current-checker"), "render");
+        runtime.run(function(_, _) {
+            return toCall.app();
+          },
+          runtime.namespace,
+          {sync: false},
+          function(result) {
+            if(runtime.isSuccessResult(result) && runtime.isString(result.result)) {
+              output.append($("<pre>").text(runtime.unwrap(result.result)));
+            }
+            else {
+              output.append($("<div>").text(String(result.exn)));
+            }
+          });
         console.log(JSON.stringify(obj.stats));
 
         return true;
@@ -341,10 +357,8 @@ define(["trove/image-lib"], function(imageLib) {
       var theseUIOptions = merge(uiOptions, {
           wrappingOnError: highlightingOnError
       });
-      if (options.check) {
-        theseUIOptions.wrappingReturnHandler = highlightingCheckReturn;
-      }
-      clear();
+      theseUIOptions.wrappingReturnHandler = highlightingCheckReturn;
+      //clear();
       codeRunner(src, theseUIOptions, options);
     }
   }
@@ -383,10 +397,13 @@ define(["trove/image-lib"], function(imageLib) {
     promptContainer.append(prompt);
 
     var output = jQuery("<div id='output' class='cm-s-default'>");
-    runtime.stdout = function(str) {
-      ct_log(str);
-      output.append($("<div>").text(str));
-    };
+    runtime.setStdout(function(str) {
+        ct_log(str);
+        output.append($("<div>").text(str));
+      });
+    runtime.setParam("current-animation-port", function(dom) {
+        output.append(dom);
+      });
 
     var clearDiv = jQuery("<div class='clear'>");
 
@@ -400,13 +417,12 @@ define(["trove/image-lib"], function(imageLib) {
 
     var clearButton = $("<button>").addClass("blueButton").text("Clear")
       .click(clearRepl);
-    var breakButton = $("<button>").addClass("blueButton").text("Stop")
-      .click(clearRepl);
+    var breakButton = $("<button>").addClass("blueButton").text("Stop");
     container.append(clearButton).append(breakButton).append(output).append(promptContainer).
       append(clearDiv);
 
 
-    var runCode = function (src, uiOptions, options) {
+    var runCode = makeHighlightingRunCode(runtime, function (src, uiOptions, options) {
       breakButton.attr("disabled", false);
       CM.setOption("readOnly", "nocursor");
       CM.getDoc().eachLine(function (line) {
@@ -431,8 +447,8 @@ define(["trove/image-lib"], function(imageLib) {
       var thisWrite = uiOptions.write || write;
       lastNameRun = uiOptions.name || "interactions";
       lastEditorRun = uiOptions.cm || null;
-      evaluator.runRepl(uiOptions.name || "run", src, clear, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
-    };
+      evaluator.runMain(uiOptions.name || "run", src, clear, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
+    });
 
     var enablePrompt = function (handler) { return function (result) {
         breakButton.attr("disabled", true);
@@ -604,7 +620,9 @@ define(["trove/image-lib"], function(imageLib) {
 
     var onBreak = function() {
       breakButton.attr("disabled", true);
-      evaluator.requestBreak(clear);
+      evaluator.requestBreak(function(restarter) {
+          restarter.break();
+        });
     };
 
 
@@ -703,7 +721,8 @@ define(["trove/image-lib"], function(imageLib) {
   }
   
   return {
-    makeRepl: makeRepl
+    makeRepl: makeRepl,
+    makeEditor: makeEditor
   };
 
 

@@ -2,7 +2,7 @@
 
 provide *
 import ast as A
-import error as E
+import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
 import "./compile-structs.arr" as C
@@ -361,9 +361,13 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     cases(C.CompileBinding) b:
       | module-bindings(name, ids) => acc
       | builtin-id(name) =>
-        acc.set(name, let-bind(E.location("pyret-builtin", 1, 1), names.s_global(name)))
+        acc.set(name, let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0, 0, 0), names.s_global(name)))
     end
   end
+where:
+  scope-env-from-env(C.compile-env([
+      C.builtin-id("x")
+    ])).get("x") is let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0, 0, 0), names.s_global("x"))
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):

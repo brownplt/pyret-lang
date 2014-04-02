@@ -7,7 +7,7 @@ import srcloc as S
 Loc = S.Srcloc
 loc = S.srcloc
 
-dummy-loc = loc("dummy location", -1, -1)
+dummy-loc = loc("dummy location", -1, -1, -1, -1, -1, -1)
 
 INDENT = 2
 

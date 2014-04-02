@@ -6,7 +6,7 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "../../../lib/js-numbers/src/js-numbers"],
+define(["require", "./namespace", "./js-numbers"],
        function (require, Namespace, jsnumsIn) {
 
 
@@ -171,6 +171,9 @@ function getParam(param) {
 }
 function setParam(param, val) {
   parameters[param] = val;
+}
+function hasParam(param) {
+  return param in parameters;
 }
 
 /**
@@ -715,7 +718,7 @@ function createMethodDict() {
     ************************/
 
     function hasBrand(obj, brand) {
-      return obj.brands[brand] === true;
+      return Boolean(obj.brands && obj.brands[brand] === true);
     }
 
     var brandCounter = 0;
@@ -1150,7 +1153,7 @@ function createMethodDict() {
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { throw makeMessageException("Cannot unwrap yet: " + v); }
+      else { throw makeMessageException("Cannot wrap yet: " + v); }
     }
 
     function mkPred(jsPred) {
@@ -1319,7 +1322,11 @@ function createMethodDict() {
               var thePause = manualPause;
               manualPause = null;
               pauseStack(function(restarter) {
-                  return thePause(function() { restarter(val); });
+                  return thePause({
+                      resume: function() { restarter.resume(val); },
+                      break: restarter.break,
+                      error: restarter.error
+                    });
                 });
             }
             var frameCount = 0;
@@ -1343,14 +1350,27 @@ function createMethodDict() {
 
               if(isPause(e)) {
                 (function(hasBeenResumed) {
-                  e.resumer(function(restartVal) {
+                  function checkResume() {
                     if(hasBeenResumed) {
-                      throw Error("Stack restarted twice: ", theOneTrueStack);
+                      throw Error("This stack has already been resumed or broken ", theOneTrueStack);
                     }
                     hasBeenResumed = true;
-                    val = restartVal;
-                    TOS++;
-                    setTimeout(iter, 0);
+                  }
+                  e.resumer({
+                    resume: function(restartVal) {
+                      checkResume();
+                      val = restartVal;
+                      TOS++;
+                      setTimeout(iter, 0);
+                    },
+                    break: function() {
+                      checkResume();
+                      onDone(new FailureResult(makeMessageException("User break"), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                    },
+                    error: function(err) {
+                      checkResume();
+                      onDone(new FailureResult(err, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                    }
                   });
                 })(false);
                 return;
@@ -1419,7 +1439,7 @@ function createMethodDict() {
             return thunk.app();
           }, thisRuntime.namespace, {
             sync: true
-          }, function(result) { restarter(wrapResult(result)) });
+          }, function(result) { restarter.resume(wrapResult(result)) });
       });
     }
 
@@ -1864,7 +1884,7 @@ function createMethodDict() {
     var num_expt = function(n, pow) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       thisRuntime.checkIf(pow, thisRuntime.isNumber);
-      return thisRuntime.makeNumberBig(jsnums.exp(n, pow));
+      return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n, digits) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
@@ -1906,7 +1926,9 @@ function createMethodDict() {
         }
       }
     }
-  
+    function random(max) {
+      return makeNumber(Math.floor(Math.random() * max));
+    }
 
     //Export the runtime
     //String keys should be used to prevent renaming
@@ -1933,6 +1955,7 @@ function createMethodDict() {
           'run-task': makeFunction(execThunk),
 
           'gensym': gensym,
+          'random': makeFunction(random),
 
           '_plus': makeFunction(plus),
           '_minus': makeFunction(minus),
@@ -2088,13 +2111,18 @@ function createMethodDict() {
         'unwrap' : unwrap,
 
         'checkIf'      : checkIf,
+        'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),
         'log': log,
 
         'modules' : Object.create(null),
+        'setStdout': function(newStdout) {
+          theOutsideWorld.stdout = newStdout;
+        },
         'getParam' : getParam,
-        'setParam' : setParam
+        'setParam' : setParam,
+        'hasParam' : hasParam
     };
 
     
