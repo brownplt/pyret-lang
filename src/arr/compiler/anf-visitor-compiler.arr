@@ -98,6 +98,26 @@ fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
   end
 end
 
+fun compile-tail-app(compiler, l, f, args):
+  z = js-id-of(G.make-name("z"))
+  compiled-f = f.visit(compiler)
+  compiled-args = args.map(_.visit(compiler))
+  body =
+    j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
+      j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
+      j-block([
+          j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+          j-throw(rt-method("makeCont", 
+              [j-obj([j-field("go",
+                      j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
+                      j-field("from", obj-of-loc(l))])]))]))
+  j-block([
+      body,
+      j-expr(j-unop(rt-field("GAS"), j-incr)),
+      j-return(j-id(z))
+    ])
+end
+
 fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
   when is-var: raise("Can't handle splitting on a var yet");
   e = js-id-of(G.make-name("e"))
@@ -182,6 +202,9 @@ compiler-visitor = {
     j-block(link(
               j-var(js-id-of(b.id), j-obj([j-field("$var", e.visit(self)), j-field("$name", j-str(js-id-of(b.id)))])),
               compiled-body.stmts))
+  end,
+  a-tail-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
+    compile-tail-app(self, l, f, args)
   end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: String, helper-args :: List<N.AVal>):
     compile-split-app(self, l, is-var, f, args, name, helper-args)

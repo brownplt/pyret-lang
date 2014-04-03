@@ -94,6 +94,13 @@ data AExpr:
         + PP.nest(INDENT, self._except.tosource()) + break-one
       PP.group(_try + _except + str-end)
     end
+  | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
+    label(self): "a-tail-app" end,
+    tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+    end
   | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
@@ -423,6 +430,9 @@ default-map-visitor = {
   a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
     a-variant-member(l, member-type, bind.visit(self))
   end,
+  a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
+    a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
     a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
@@ -505,6 +515,8 @@ fun freevars-e(expr :: AExpr) -> Set<String>:
       freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-try(_, body, b, c) =>
       freevars-e(c).remove(b.id).union(freevars-e(body))
+    | a-tail-app(_, f, args) =>
+      freevars-v(f).union(unions(args.map(freevars-v)))
     | a-split-app(_, _, f, args, name, helper-args) =>
       freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
     | a-lettable(e) => freevars-l(e)
