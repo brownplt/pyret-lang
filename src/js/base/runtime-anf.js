@@ -1425,6 +1425,10 @@ function createMethodDict() {
       iter();
     }
 
+    function runThunk(f, then) {
+      return run(f, thisRuntime.namespace, {}, then);
+    }
+
     function pauseStack(resumer) {
       thisRuntime.EXN_STACKHEIGHT = 0;
       throw makePause(resumer);
@@ -1892,6 +1896,7 @@ function createMethodDict() {
 
         }),
         'run': run,
+        'runThunk': runThunk,
         'safeCall': safeCall,
         'safeTail': safeTail,
 
@@ -1994,6 +1999,7 @@ function createMethodDict() {
         'hasField' : hasField.app,
 
         'toReprJS' : toReprJS,
+        'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
 
         'same' : same,
         'wrap' : wrap,
