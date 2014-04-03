@@ -6,7 +6,7 @@ import srcloc as SL
 Loc = SL.Srcloc
 
 data CheckBlockResult:
-  | check-block-result(name :: Option<String>, loc :: Loc, test-results :: List<TestResult>)
+  | check-block-result(name :: String, loc :: Loc, test-results :: List<TestResult>)
 end
 
 data TestResult:

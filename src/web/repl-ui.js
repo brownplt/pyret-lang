@@ -1,4 +1,4 @@
-define(["trove/image-lib"], function(imageLib) {
+define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
   function merge(obj, extension) {
     return _.merge(_.clone(obj), extension);
   }
@@ -225,6 +225,9 @@ define(["trove/image-lib"], function(imageLib) {
               output.append($("<div>").text(String(result.exn)));
             }
           });
+
+        checkUI.drawCheckResults(output, uiOptions.cm, runtime, runtime.getField(obj.result, "checks"));
+
         console.log(JSON.stringify(obj.stats));
 
         return true;
