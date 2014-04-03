@@ -1227,8 +1227,9 @@ function createMethodDict() {
     Pause.prototype = Object.create(Cont.prototype);
 
     function safeTail(fun) {
+      var result;
       if (thisRuntime.GAS-- > 0) {
-        return fun();
+        result = fun();
       }
       else {
         thisRuntime.EXN_STACKHEIGHT = 0;
@@ -1238,6 +1239,8 @@ function createMethodDict() {
             }
           });
       }
+      thisRuntime.GAS++;
+      return result;
     }
 
     function safeCall(fun, after, stackFrame) {
@@ -1894,6 +1897,7 @@ function createMethodDict() {
         }),
         'run': run,
         'safeCall': safeCall,
+        'safeTail': safeTail,
 
         'GAS': INITIAL_GAS,
 
