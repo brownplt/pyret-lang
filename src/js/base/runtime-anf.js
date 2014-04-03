@@ -1226,6 +1226,20 @@ function createMethodDict() {
     function isPause(v) { return v instanceof Pause; }
     Pause.prototype = Object.create(Cont.prototype);
 
+    function safeTail(fun) {
+      if (thisRuntime.GAS-- > 0) {
+        return fun();
+      }
+      else {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        throw thisRuntime.makeCont({
+            go: function(ignored) {
+              return fun();
+            }
+          });
+      }
+    }
+
     function safeCall(fun, after, stackFrame) {
       var result;
       try {
@@ -1461,25 +1475,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeString(l.concat(r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
-        try {
-          return thisRuntime.getField(l, "_plus").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_plus").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _plus was not a number, string, or did not have a _plus method: " + JSON.stringify(l));
       }
@@ -1490,25 +1488,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isNumber);
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
-        try {
-          return thisRuntime.getField(l, "_minus").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_minus").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _minus was not a number, or did not have a _minus method: " + JSON.stringify(l));
       }
@@ -1519,25 +1501,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isNumber);
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
-        try {
-          return thisRuntime.getField(l, "_times").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_times").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _times was not a number, or did not have a _times method: " + JSON.stringify(l));
       }
@@ -1551,25 +1517,9 @@ function createMethodDict() {
         }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
-        try {
-          return thisRuntime.getField(l, "_divide").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_divide").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _divide was not a number, or did not have a _divide method: " + JSON.stringify(l));
       }
@@ -1583,25 +1533,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
-        try {
-          return thisRuntime.getField(l, "_lessthan").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_lessthan").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _lessthan was not a number, or did not have a _lessthan method: " + JSON.stringify(l));
       }
@@ -1615,25 +1549,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
-        try {
-          return thisRuntime.getField(l, "_greaterthan").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_greaterthan").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _greaterthan was not a number, or did not have a _greaterthan method: " + JSON.stringify(l));
       }
@@ -1647,25 +1565,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
-        try {
-          return thisRuntime.getField(l, "_lessequal").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_lessequal").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _lessequal was not a number, or did not have a _lessequal method: " + JSON.stringify(l));
       }
@@ -1679,31 +1581,13 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
-        try {
-          return thisRuntime.getField(l, "_greaterequal").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_greaterequal").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _greaterequal was not a number, or did not have a _greaterequal method: " + JSON.stringify(l));
       }
     };
-
-
 
     var string_substring = function(s, min, max) {
       thisRuntime.checkIf(s, thisRuntime.isString);
