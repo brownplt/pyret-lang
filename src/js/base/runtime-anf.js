@@ -275,18 +275,14 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
-    if(val === undefined) {
-      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was undefined");
-    }
-    if(val.dict === undefined) {
-      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was: " + val);
-    }
+    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
+    if(!isObject(val)) { ffi.throwLookupNonObject(val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
         //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
         //reentrant errors (see commit 24ff13d9e9)
-        throw makeMessageException("field " + field + " not found on " + JSON.stringify(val));
+        throw ffi.throwFieldNotFound(val, field);
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -2023,6 +2019,7 @@ function createMethodDict() {
     thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
+    var ffi = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));
