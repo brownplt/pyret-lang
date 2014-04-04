@@ -1,5 +1,5 @@
 
-define(["../js/runtime-util", "./list"], function(util, L) {
+define(["js/runtime-util", "./list"], function(util, L) {
 
   return util.memoModule("format", function(RUNTIME, NAMESPACE) {
     // Stolen from https://github.com/dyoo/whalesong/blob/master\

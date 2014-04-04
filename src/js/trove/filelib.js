@@ -1,4 +1,4 @@
-define(["../js/runtime-util", "fs"], function(util, fs) {
+define(["js/runtime-util", "fs"], function(util, fs) {
 
   return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
     

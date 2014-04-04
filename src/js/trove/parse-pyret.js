@@ -1,4 +1,4 @@
-define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/pyret-tokenizer", "../js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");

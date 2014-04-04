@@ -1441,7 +1441,7 @@ function createMethodDict() {
 
     function execThunk(thunk) {
       function wrapResult(res) {
-        var ffi = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+        var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
@@ -1653,7 +1653,7 @@ function createMethodDict() {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(splitstr, thisRuntime.isString);
       
-      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
       // TODO: Repeated?
       return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
@@ -1674,7 +1674,7 @@ function createMethodDict() {
     }
     var string_explode = function(s) {
       thisRuntime.checkIf(s, thisRuntime.isString);
-      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
       return list.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
@@ -2025,7 +2025,7 @@ function createMethodDict() {
     thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
-    var ffi = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+    var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));

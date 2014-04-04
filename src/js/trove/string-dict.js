@@ -1,5 +1,5 @@
 
-define(["../js/runtime-util", "../js/namespace", "../js/ffi-helpers"], function(util, Namespace, ffi) {
+define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Namespace, ffi) {
   return util.memoModule("string-dict", function(RUNTIME, NAMESPACE) {
       var F = ffi(RUNTIME, NAMESPACE);
       var unwrap = RUNTIME.unwrap;

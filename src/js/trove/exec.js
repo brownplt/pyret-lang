@@ -1,4 +1,4 @@
-define(["requirejs", "../js/ffi-helpers", "../js/runtime-anf", "trove/checker"], function(rjs, ffi, runtimeLib, checkerLib) {
+define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(rjs, ffi, runtimeLib, checkerLib) {
 
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);

@@ -1,4 +1,4 @@
-define(["./runtime-util", "../trove/list", "../trove/option", "../trove/either", "trove/error"], function(util, listLib, optLib, eitherLib, errorLib) {
+define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/error"], function(util, listLib, optLib, eitherLib, errorLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
     var L = runtime.getField(listLib(runtime, namespace), "provide");
