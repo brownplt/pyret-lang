@@ -1,12 +1,11 @@
-define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/error"], function(util, listLib, optLib, eitherLib, errorLib) {
+define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/error", "trove/srcloc"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
     var L = runtime.getField(listLib(runtime, namespace), "provide");
     var O = runtime.getField(optLib(runtime, namespace), "provide");
     var E = runtime.getField(eitherLib(runtime, namespace), "provide");
     var ERR = runtime.getField(errorLib(runtime, namespace), "provide");
-
-    var gf = runtime.getField;
+    var S = runtime.getField(srclocLib(runtime, namespace), "provide");
 
     function makeList(arr) {
       var lst = runtime.getField(L, "empty");
@@ -15,6 +14,11 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
       }
       return lst;
     }
+    var gf = runtime.getField;
+
+    var checkSrcloc = runtime.makeCheckType(function(val) {
+      return runtime.unwrap(gf(S, "Srcloc").app(val));
+    });
 
     function err(str) { return gf(ERR, str).app; }
     var raise = runtime.raise;
@@ -25,15 +29,17 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
-    function throwFieldNotFound(object, field) {
+    function throwFieldNotFound(loc, object, field) {
+      checkSrcloc(loc);
       runtime.checkPyretVal(object);
       runtime.checkString(field);
-      raise(err("field-not-found")(object, runtime.makeString(field)));
+      raise(err("field-not-found")(loc, object, runtime.makeString(field)));
     }
-    function throwLookupNonObject(nonObject, field) {
+    function throwLookupNonObject(loc, nonObject, field) {
+      checkSrcloc(loc);
       runtime.checkPyretVal(nonObject);
       runtime.checkString(field);
-      raise(err("lookup-non-object")(nonObject, runtime.makeString(field)));
+      raise(err("lookup-non-object")(loc, nonObject, runtime.makeString(field)));
     }
 
     function throwMessageException(message) {

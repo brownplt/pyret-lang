@@ -81,8 +81,8 @@ fun obj-of-loc(l):
 #    ])
 end
 
-fun get-field(args):
-  j-app(j-id("G"), args)
+fun get-field(obj, field, loc):
+  j-app(j-id("G"), [obj, field, loc])
 end
 
 
@@ -227,7 +227,7 @@ compiler-visitor = {
     j-method(obj.visit(self), "extendWith", [j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    get-field([obj.visit(self), j-str(field)])
+    get-field(obj.visit(self), j-str(field), obj-of-loc(l))
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [obj.visit(self), j-str(field)])
@@ -414,14 +414,14 @@ fun compile-program(self, l, headers, split, env):
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
                       j-block([
-                          j-var("G", rt-field("getField")),
+                          j-var("G", rt-field("getFieldLoc")),
                           j-var("M", j-str(l.source)),
                           j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
                               j-block(
                                 [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
                                 namespace-binds +
                                 for map2(id from ids, in-id from input-ids):
-                                  j-var(id, get-field([inst(in-id), j-str("provide")]))
+                                  j-var(id, get-field(inst(in-id), j-str("provide"), obj-of-loc(l)))
                                 end +
                                 split.helpers.map(compile-helper(self, _)) +
                                 [split.body.visit(self)]))),

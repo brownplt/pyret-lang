@@ -274,15 +274,15 @@ function isBase(obj) { return obj instanceof PBase; }
 
   @return {!PBase}
 **/
-function getField(val, field) {
+function getFieldLoc(val, field, loc) {
     if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
-    if(!isObject(val)) { ffi.throwLookupNonObject(val, field); }
+    if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
         //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
         //reentrant errors (see commit 24ff13d9e9)
-        throw ffi.throwFieldNotFound(val, field);
+        throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -300,6 +300,11 @@ function getField(val, field) {
     }
 }
 
+function getField(obj, field) {
+  return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
+}
+
+
 /**
   Gets the field from an object of the given name
   -Returns the raw field value
@@ -311,10 +316,10 @@ function getField(val, field) {
 **/
 function getColonField(val, field) {
   if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
-  if(!isObject(val)) { ffi.throwLookupNonObject(val, field); }
+  if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(["runtime"]), val, field); }
   var fieldVal = val.dict[field];
   if(fieldVal === undefined) {
-    ffi.throwFieldNotFound(val, field);
+    ffi.throwFieldNotFound(makeSrcloc(["runtime"]), val, field);
   }
   else {
     return fieldVal;
@@ -1006,9 +1011,15 @@ function createMethodDict() {
     };
 
     function makeSrcloc(arr) {
-      return thisRuntime.getField(srcloc, "srcloc").app(
-          arr[0], arr[1], arr[2], arr[3], arr[4], arr[5]
-        )
+      if (arr instanceof Array && arr.length === 1) {
+        checkString(arr[0]);
+        return getField(srcloc, "builtin").app(arr[0])
+      }
+      else if (arr instanceof Array && arr.length === 7) {
+        return getField(srcloc, "srcloc").app(
+            arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
+          )
+      }
     }
 
     /**
@@ -1954,6 +1965,7 @@ function createMethodDict() {
         'schedulePause'  : schedulePause,
 
         'getField'    : getField,
+        'getFieldLoc'    : getFieldLoc,
         'getFields'    : getFields,
         'getColonField'    : getColonField,
 
@@ -2057,6 +2069,7 @@ function createMethodDict() {
         'checkMethod' : checkMethod,
         'checkOpaque' : checkOpaque,
         'checkPyretVal' : checkPyretVal,
+        'makeCheckType' : makeCheckType,
         'checkIf'      : checkIf,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,

@@ -9,13 +9,13 @@ data RuntimeError:
     tostring(self):
       "internal: " + self.message + "; relevant arguments: " + torepr(self.info-args)
     end
-  | field-not-found(obj, field :: String) with:
+  | field-not-found(loc, obj, field :: String) with:
     tostring(self):
-      "error: field " + self.field + " not found on " + torepr(self.obj)
+      "error at " + self.loc.format(true) + ": field " + self.field + " not found on " + torepr(self.obj)
     end
-  | lookup-non-object(obj, field :: String) with:
+  | lookup-non-object(loc, non-obj, field :: String) with:
     tostring(self):
-      "error: tried to look up field " + self.field + " on " + torepr(self.obj) + ", but it does not have fields"
+      "error at " + self.loc.format(true) + ": tried to look up field " + self.field + " on " + torepr(self.non-obj) + ", but it does not have fields"
     end
   | generic-type-mismatch(val, type :: String) with:
     tostring(self):
@@ -33,7 +33,10 @@ data RuntimeError:
     tostring(self):
       "Error: Invalid use of " + self.opname + ".  Either both arguments must be numbers, or the left operand must have a " + self.methodname + " method.  Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
     end
-  | arity-mismatch(loc, fun-loc, fun-val, args)
+  | arity-mismatch(fun-loc, fun-val, expected-arity, args) with:
+    tostring(self):
+      "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())
+    end
   | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val)
   | user-break
 end

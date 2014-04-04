@@ -138,7 +138,12 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
             output.append($("<div>").text(String(exn.map(function(e) { return runtime.toReprJS(e, "tostring"); }))));
           }
           else if('exn' in exn) {
-            output.append($("<div>").text(String(exn)));
+            runtime.runThunk(function() {
+                return runtime.toReprJS(exn.exn, "tostring");
+              },
+              function(result) {
+                output.append($("<div>").text(String(result.result)));
+              });
           } else {
             output.append($("<div>").text("An unexpected error occurred"));
           }

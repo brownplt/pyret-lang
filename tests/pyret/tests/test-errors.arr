@@ -1,6 +1,7 @@
 provide *
 
 import error as E
+import srcloc as S
 
 fun run-tests():
   check:
@@ -19,23 +20,26 @@ fun run-tests():
     e1 = get-err(fun(): 5.x;)
     e1 satisfies E.is-lookup-non-object
     e1.field is "x"
-    e1.obj is 5
+    e1.non-obj is 5
+    e1.loc satisfies S.is-srcloc
 
 
     e2 = get-err(fun(): "x".x;)
     e2 satisfies E.is-lookup-non-object
     e2.field is "x"
-    e2.obj is "x"
+    e2.non-obj is "x"
+    e2.loc satisfies S.is-srcloc
 
     e3= get-err(fun(): true.x;)
     e3 satisfies E.is-lookup-non-object
     e3.field is "x"
-    e3.obj is true 
+    e3.non-obj is true 
+    e3.loc satisfies S.is-srcloc
 
     e4 = get-err(fun(): true:x;)
     e4 satisfies E.is-lookup-non-object
     e4.field is "x"
-    e4.obj is true 
+    e4.non-obj is true 
 
     e5 = get-err(fun(): {}:x;)
     e5 satisfies E.is-field-not-found
