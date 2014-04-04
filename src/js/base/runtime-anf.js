@@ -1001,7 +1001,13 @@ function createMethodDict() {
     PyretFailException.prototype.toString = function() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
-            return s ? s.src + " at " + s["start-line"] + ":" + (s["start-column"] + 1) : "<unknown frame>";
+            var g = getField;
+            return s ? g(s, "src") +
+                   " at " +
+                   g(s, "start-line") +
+                   ":" +
+                   g(s, "start-column")
+              : "<builtin>";
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, "tostring") + "\n" + stackStr;
