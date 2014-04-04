@@ -261,3 +261,9 @@ clean:
 	rm -rf $(PHASE3)
 
 
+# Written this way because cmd.exe complains about && in command lines
+new-bootstrap: no-diff-standalone
+	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
+no-diff-standalone: standalone2 standalone3
+	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
+

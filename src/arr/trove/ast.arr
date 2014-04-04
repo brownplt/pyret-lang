@@ -569,7 +569,7 @@ data Expr:
       shared_members :: List<Member>,
       _check :: Option<Expr>
     ) with:
-      label(self): "s_data" end,
+      label(self): "s_data_expr" end,
     tosource(self):
       fun optional_section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc

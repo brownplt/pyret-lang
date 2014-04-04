@@ -287,19 +287,21 @@ compiler-visitor = {
           rt-method("makeFunction", [
             j-fun(
               member-names.map(js-id-of),
-              j-block([
+              arity-check(
+                [
                   j-var("dict", j-method(j-id("Object"), "create", [j-id(base-id)]))
                 ] +
                 for map2(n from member-names, m from members):
-                    cases(N.AMemberType) m.member-type:
-                      | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
-                      | a-cyclic => raise("Cannot handle cyclic fields yet")
-                      | a-mutable => raise("Cannot handle mutable fields yet")
-                    end
-                  end +
+                  cases(N.AMemberType) m.member-type:
+                    | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
+                    | a-cyclic => raise("Cannot handle cyclic fields yet")
+                    | a-mutable => raise("Cannot handle mutable fields yet")
+                  end
+                end +
                 [
                   j-return(rt-method("makeBrandedObject", [j-id("dict"), j-id(brands-id)]))
-                ])
+                ],
+                member-names.length())
               )
           ])
         )
