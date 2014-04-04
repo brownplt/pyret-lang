@@ -6,7 +6,7 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "./js-numbers"],
+define(["require", "./namespace", "js/js-numbers"],
        function (require, Namespace, jsnumsIn) {
 
 
@@ -275,18 +275,14 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getField(val, field) {
-    if(val === undefined) {
-      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was undefined");
-    }
-    if(val.dict === undefined) {
-      throw makeMessageException("FATAL: Tried to look up " + field + ", but object was: " + val);
-    }
+    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
+    if(!isObject(val)) { ffi.throwLookupNonObject(val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
         //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
         //reentrant errors (see commit 24ff13d9e9)
-        throw makeMessageException("field " + field + " not found on " + JSON.stringify(val));
+        throw ffi.throwFieldNotFound(val, field);
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -1226,6 +1222,23 @@ function createMethodDict() {
     function isPause(v) { return v instanceof Pause; }
     Pause.prototype = Object.create(Cont.prototype);
 
+    function safeTail(fun) {
+      var result;
+      if (thisRuntime.GAS-- > 0) {
+        result = fun();
+      }
+      else {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        throw thisRuntime.makeCont({
+            go: function(ignored) {
+              return fun();
+            }
+          });
+      }
+      thisRuntime.GAS++;
+      return result;
+    }
+
     function safeCall(fun, after, stackFrame) {
       var result;
       try {
@@ -1412,6 +1425,10 @@ function createMethodDict() {
       iter();
     }
 
+    function runThunk(f, then) {
+      return run(f, thisRuntime.namespace, {}, then);
+    }
+
     function pauseStack(resumer) {
       thisRuntime.EXN_STACKHEIGHT = 0;
       throw makePause(resumer);
@@ -1424,7 +1441,7 @@ function createMethodDict() {
 
     function execThunk(thunk) {
       function wrapResult(res) {
-        var ffi = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+        var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
@@ -1461,25 +1478,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeString(l.concat(r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
-        try {
-          return thisRuntime.getField(l, "_plus").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_plus").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _plus was not a number, string, or did not have a _plus method: " + JSON.stringify(l));
       }
@@ -1490,25 +1491,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isNumber);
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
-        try {
-          return thisRuntime.getField(l, "_minus").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_minus").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _minus was not a number, or did not have a _minus method: " + JSON.stringify(l));
       }
@@ -1519,25 +1504,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isNumber);
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
-        try {
-          return thisRuntime.getField(l, "_times").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_times").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _times was not a number, or did not have a _times method: " + JSON.stringify(l));
       }
@@ -1551,25 +1520,9 @@ function createMethodDict() {
         }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
-        try {
-          return thisRuntime.getField(l, "_divide").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_divide").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _divide was not a number, or did not have a _divide method: " + JSON.stringify(l));
       }
@@ -1583,25 +1536,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
-        try {
-          return thisRuntime.getField(l, "_lessthan").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_lessthan").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _lessthan was not a number, or did not have a _lessthan method: " + JSON.stringify(l));
       }
@@ -1615,25 +1552,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
-        try {
-          return thisRuntime.getField(l, "_greaterthan").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_greaterthan").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _greaterthan was not a number, or did not have a _greaterthan method: " + JSON.stringify(l));
       }
@@ -1647,25 +1568,9 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
-        try {
-          return thisRuntime.getField(l, "_lessequal").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_lessequal").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _lessequal was not a number, or did not have a _lessequal method: " + JSON.stringify(l));
       }
@@ -1679,36 +1584,27 @@ function createMethodDict() {
         thisRuntime.checkIf(r, thisRuntime.isString);
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
-        try {
-          return thisRuntime.getField(l, "_greaterequal").app(r);
-        } catch(e) {
-          if (thisRuntime.isCont(e)) {
-            var stacklet = {
-              from: topSrc(new Error()),
-              go: function(ret) {
-                return ret;
-              }
-            }
-            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-            throw e;
-          } else {
-            if (thisRuntime.isPyretException(e)) {
-              e.pyretStack.push(topSrc(new Error()));
-            }
-            throw e;
-          }
-        }
+        return safeTail(function() {
+            return thisRuntime.getField(l, "_greaterequal").app(r);
+          });
       } else {
         throw makeMessageException("First argument to _greaterequal was not a number, or did not have a _greaterequal method: " + JSON.stringify(l));
       }
     };
 
-
-
     var string_substring = function(s, min, max) {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(min, thisRuntime.isNumber);
       thisRuntime.checkIf(max, thisRuntime.isNumber);
+      if(jsnums.greaterThan(min, max)) {
+        throw makeMessageException("substring: min index " + String(min) + " is greater than max index " + String(max));
+      }
+      if(jsnums.lessThan(min, 0)) {
+        throw makeMessageException("substring: min index " + String(min) + " is less than 0");
+      }
+      if(jsnums.greaterThan(max, string_length(s))) {
+        throw makeMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
+      }
       return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
@@ -1757,11 +1653,11 @@ function createMethodDict() {
       }
       return makeString(resultStr);
     }
-    var string_split = function(s, splitstr, repeated) {
+    var string_split = function(s, splitstr) {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(splitstr, thisRuntime.isString);
       
-      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
       // TODO: Repeated?
       return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
@@ -1782,7 +1678,7 @@ function createMethodDict() {
     }
     var string_explode = function(s) {
       thisRuntime.checkIf(s, thisRuntime.isString);
-      var list = require("./ffi-helpers")(thisRuntime, thisRuntime.namespace);
+      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
       return list.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
@@ -1850,7 +1746,7 @@ function createMethodDict() {
       } else if (jsnums.greaterThanOrEqual(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n));
       } else {
-        return thisRuntime.makeNumberBig(jsnums.floor(n));
+        return thisRuntime.makeNumberBig(jsnums.ceiling(n));
       }
     }
     var num_sqrt = function(n) { 
@@ -1867,7 +1763,12 @@ function createMethodDict() {
     }
     var num_log = function(n) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
-      return thisRuntime.makeNumberBig(jsnums.log(n));
+      if (jsnums.greaterThan(n, 0)) {
+        return thisRuntime.makeNumberBig(jsnums.log(n));
+      }
+      else {
+        throw makeMessageException("log: expected a number greater than 0 but got " + String(n));
+      }
     }
     var num_exp = function(n) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
@@ -2005,7 +1906,9 @@ function createMethodDict() {
 
         }),
         'run': run,
+        'runThunk': runThunk,
         'safeCall': safeCall,
+        'safeTail': safeTail,
 
         'GAS': INITIAL_GAS,
 
@@ -2105,6 +2008,7 @@ function createMethodDict() {
         'hasField' : hasField.app,
 
         'toReprJS' : toReprJS,
+        'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
 
         'same' : same,
         'wrap' : wrap,
@@ -2130,6 +2034,7 @@ function createMethodDict() {
     thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
+    var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));

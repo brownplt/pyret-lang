@@ -327,7 +327,7 @@ arguments do not satisfy the requirements of the Params dictionary.'
                 arg-error("Unknown command line option -" + key, results)
               end
             else:
-              process(success(results.parsed, results.unknown + [first]), cur-index + 1, more-args)
+              success(results.parsed, results.unknown + remaining) # STOP PROCESSING after first non-option value
             end
         end
       end

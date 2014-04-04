@@ -15,17 +15,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       err = P.checkError;
       same = P.checkEvalsTo;
     });
-    describe("field-not-found", function() {
-      it("should signal an error for missed field lookups", function(done) {
-
-        err("{}.x", function(e) {
-          return rt.unwrap(e.exn).indexOf("field x not found") !== -1;
-        });
-
-        P.wait(done);
-
-      });
-    });
 
     describe("run-task", function() {
       it("should work for normal computation", function(done) {

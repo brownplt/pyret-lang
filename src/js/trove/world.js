@@ -107,7 +107,7 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
             runtime.run(function(_, _) {
                 return worldFunction.app.apply(null, pyretArgs);
               }, runtime.namespace,
-              { sync: true },
+              { sync: false },
               function(result) {
                 if(runtime.isSuccessResult(result)) {
                   success(result.result);

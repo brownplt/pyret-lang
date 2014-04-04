@@ -44,7 +44,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
               );
           },
           function(compiled) {
-            return runtime.safeCall(function() {
+            return runtime.safeTail(function() {
                 if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
                   return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
                 }
@@ -55,9 +55,6 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
                   console.error(compiled);
                   throw new Error("Unknown result type while compiling: ", compiled);
                 }
-              },
-              function(compileResult) {
-                return compileResult;
               });
           });
         },

@@ -60,7 +60,6 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers"], function (matchers
           var b = rt.namespace.get("brander").app();
           var o2 = rt.getField(b, "brand").app(o);
           expect(rt.getField(b, "test").app(o2)).toBe(pTrue);
-          console.log(rt.getField(b, "test").app(o));
           expect(rt.getField(b, "test").app(o)).toBe(pFalse);
 
       });

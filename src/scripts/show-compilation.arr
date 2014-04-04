@@ -22,6 +22,7 @@ parsed-options = C.parse-cmdline(options)
 
 cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
+    print-width = opts.get("width")
     print("Success")
     cases (List) rest:
       | empty => print("Require a file name")
@@ -34,17 +35,17 @@ cases (C.ParsedArguments) parsed-options:
         parsed = P.surface-parse(file-contents, file)
         print("")
         print("Parsed:")
-        each(print, parsed.tosource().pretty(80))
+        each(print, parsed.tosource().pretty(print-width))
 
         scoped = R.desugar-scope(DC.desugar-check(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
         print("")
         print("Scoped:")
-        each(print, scoped.tosource().pretty(80))
+        each(print, scoped.tosource().pretty(print-width))
         
         desugared = D.desugar(R.resolve-names(scoped, CS.minimal-builtins).ast, CS.minimal-builtins)
         print("")
         print("Desugared:")
-        each(print, desugared.tosource().pretty(80))
+        each(print, desugared.tosource().pretty(print-width))
 
         cleaned = desugared.visit(U.merge-nested-blocks)
         .visit(U.flatten-single-blocks)
@@ -53,7 +54,7 @@ cases (C.ParsedArguments) parsed-options:
         anfed = N.anf-program(cleaned)
         print("")
         print("ANFed:")
-        each(print, anfed.tosource().pretty(80))
+        each(print, anfed.tosource().pretty(print-width))
 
         unsafecomp = JS.make-unsafe-compiled-pyret(cleaned, CS.standard-builtins)
         print("")
@@ -63,7 +64,7 @@ cases (C.ParsedArguments) parsed-options:
         split = AS.ast-split(anfed.body)
         print("")
         print("Split:")
-        each(print, split.tosource().pretty(80))
+        each(print, split.tosource().pretty(print-width))
 
         comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
         cases(CM.CompileResult) comp:

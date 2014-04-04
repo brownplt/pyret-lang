@@ -1,4 +1,4 @@
-define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/pyret-tokenizer", "../js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
@@ -865,18 +865,23 @@ define(["../js/runtime-util", "../js/ffi-helpers", "./ast", "./srcloc", "../js/p
         throw RUNTIME.makeMessageException("No parses found");
       }
       //console.log("There were " + countParses + " potential parses");
-      if (countParses === 1) {
-        var ast = G.PyretGrammar.constructUniqueParse(parsed);
-//        console.log(ast.toString());
-        return translate(ast, fileName);
+      var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
+      if (posViolations) {
+        console.error("Not all nodes contain their children!");
       } else {
-        var asts = G.PyretGrammar.constructAllParses(parsed);
-        throw "Non-unique parse";
-        for (var i = 0; i < asts.length; i++) {
-          //console.log("Parse " + i + ": " + asts[i].toString());
-//          console.log(("" + asts[i]) === ("" + asts2[i]));
+        if (countParses === 1) {
+          var ast = G.PyretGrammar.constructUniqueParse(parsed);
+//          console.log(ast.toString());
+          return translate(ast, fileName);
+        } else {
+          var asts = G.PyretGrammar.constructAllParses(parsed);
+          throw "Non-unique parse";
+          for (var i = 0; i < asts.length; i++) {
+            //console.log("Parse " + i + ": " + asts[i].toString());
+//            console.log(("" + asts[i]) === ("" + asts2[i]));
+          }
+          return translate(ast, fileName);
         }
-        return translate(ast, fileName);
       }
     }
     

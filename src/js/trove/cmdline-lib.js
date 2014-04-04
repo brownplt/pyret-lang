@@ -1,4 +1,4 @@
-define(["../js/runtime-util", "../js/ffi-helpers"], function(util, ffi) {
+define(["js/runtime-util", "js/ffi-helpers"], function(util, ffi) {
 
   return util.memoModule("cmdline-lib", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
