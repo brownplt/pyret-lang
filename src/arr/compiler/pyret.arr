@@ -19,7 +19,7 @@ fun main(args):
     libs:
       C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
     module-load-dir:
-      C.next-val(C.String, C.once, "Base directory to search for modules"),
+      C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
     check-all:
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     no-check-mode:
@@ -35,7 +35,7 @@ fun main(args):
       check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs = if r.has-key("library"): CS.minimal-builtins else: CS.standard-builtins end
-      module-dir = if r.has-key("module-load-dir"): r.get("module-load-dir") else: "." end
+      module-dir = r.get("module-load-dir")
       check-all = r.has-key("check-all")
       if not is-empty(rest):
         program-name = rest.first
