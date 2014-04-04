@@ -310,13 +310,15 @@ function getField(val, field) {
   @return {!PBase}
 **/
 function getColonField(val, field) {
-    var fieldVal = val.dict[field];
-    if(fieldVal === undefined) {
-        throw makeMessageException("field " + val + " not found.");
-    }
-    else {
-        return fieldVal;
-    }
+  if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
+  if(!isObject(val)) { ffi.throwLookupNonObject(val, field); }
+  var fieldVal = val.dict[field];
+  if(fieldVal === undefined) {
+    ffi.throwFieldNotFound(val, field);
+  }
+  else {
+    return fieldVal;
+  }
 }
 
 /**
@@ -332,10 +334,10 @@ function POpaque(val, equals) {
 POpaque.prototype = Object.create(PBase.prototype);
 
 POpaque.prototype.extendWith = function() {
-  throw makeMessageException("Cannot extend opaque values");
+  ffi.throwInternalError("Cannot extend opaque values", ffi.makeList([this]));
 };
 POpaque.prototype.updateDict = function(dict, keepBrands) {
-  throw makeMessageException("Cannot clone opaque values");
+  ffi.throwInternalError("Cannot clone opaque values", ffi.makeList([this]));
 };
 
 function makeOpaque(val, equals) { return new POpaque(val, equals); }
@@ -423,10 +425,10 @@ function makeNumber(n) {
   @return {!PNumber} with value n
 */
 function makeNumberFromString(s) {
-    var result = jsnums.fromString(s);
-    if(result === false) {
-        throw makeMessageException("Could not create number from: " + s);
-    }
+  var result = jsnums.fromString(s);
+  if(result === false) {
+    ffi.throwMessageException("Could not create number from: " + s);
+  }
   return result;
 }
 
@@ -701,6 +703,38 @@ function createMethodDict() {
         return true;
     }
 
+    function checkType(val, test, typeName) {
+      if(!test(val)) { ffi.throwTypeMismatch(val, typeName) }
+      return true;
+    }
+
+    function isPyretVal(val) {
+      if (typeof val === "string" || typeof val === "boolean") {
+        return true;
+      }
+      else if (jsnums.isSchemeNumber(val)) {
+        return true;
+      }
+      else if (isObject(val) ||
+               isFunction(val) ||
+               isMethod(val) ||
+               isOpaque(val)) {
+        return true
+      }
+    }
+
+    var makeCheckType = function(test, typeName) {
+      return function(val) { return checkType(val, test, typeName); };
+    }
+    var checkString = makeCheckType(isString, "String");
+    var checkNumber = makeCheckType(isNumber, "Number");
+    var checkBoolean = makeCheckType(isBoolean, "Boolean");
+    var checkObject = makeCheckType(isObject, "Object");
+    var checkFunction = makeCheckType(isFunction, "Function");
+    var checkMethod = makeCheckType(isFunction, "Method");
+    var checkOpaque = makeCheckType(isFunction, "Opaque");
+    var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
+
     function confirm(val, test) {
       if(!test(val)) {
           throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
@@ -845,7 +879,7 @@ function createMethodDict() {
             from: topSrc(new Error()), near: "toRepr",
             go: function(ret) {
               if (stack.length === 0) {
-                throw makeMessageException("Somehow we've drained the toRepr worklist, but have results coming back");
+                ffi.throwInternalException("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
               top.todo.pop();
@@ -961,12 +995,21 @@ function createMethodDict() {
     function isPyretException(val) { return val instanceof PyretFailException; }
     PyretFailException.prototype.toString = function() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
-        this.pyretStack.map(function(s) {
+        this.getStack().map(function(s) {
             return s ? s.src + " at " + s["start-line"] + ":" + (s["start-column"] + 1) : "<unknown frame>";
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, "tostring") + "\n" + stackStr;
     };
+    PyretFailException.prototype.getStack = function() {
+      return this.pyretStack.map(makeSrcloc);
+    };
+
+    function makeSrcloc(arr) {
+      return thisRuntime.getField(srcloc, "srcloc").app(
+          arr[0], arr[1], arr[2], arr[3], arr[4], arr[5]
+        )
+    }
 
     /**
       Raises a PyretFailException with the given string
@@ -974,7 +1017,7 @@ function createMethodDict() {
       @return {!PyretFailException}
     */
     function makeMessageException(str) {
-       return new PyretFailException(makeString(str));
+      ffi.throwMessageException(str);
     }
 
     var raiseJSJS = 
@@ -997,7 +1040,7 @@ function createMethodDict() {
           @return {!PBase} 
         */
         function(obj, str) {
-          checkIf(str, isString);
+          checkString(str);
           return makeBoolean(hasProperty(obj.dict, str));
         }
       );
@@ -1095,7 +1138,7 @@ function createMethodDict() {
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
-        checkIf(base, isString);
+        checkString(base);
         return makeString(unwrap(base) + String(gensymCounter++))
       });
 
@@ -1139,7 +1182,7 @@ function createMethodDict() {
       else if(isBoolean(v)) { return v; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
-      else { throw makeMessageException("Cannot unwrap yet: " + v); }
+      else { ffi.throwInternalException("Cannot unwrap", v); }
     }
 
     function wrap(v) {
@@ -1149,7 +1192,7 @@ function createMethodDict() {
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { throw makeMessageException("Cannot wrap yet: " + v); }
+      else { ffi.throwInternalException("Cannot wrap", v); }
     }
 
     function mkPred(jsPred) {
@@ -1472,17 +1515,17 @@ function createMethodDict() {
 
     var plus = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeNumberBig(jsnums.add(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeString(l.concat(r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_plus").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _plus was not a number, string, or did not have a _plus method: " + JSON.stringify(l));
+        ffi.throwPlusError(l, r);        
       }
     };
 
@@ -1928,6 +1971,7 @@ function createMethodDict() {
         'isMethod'    : isMethod,
         'isObject'    : isObject,
         'isOpaque'    : isOpaque,
+        'isPyretVal'  : isPyretVal,
 
         'isSuccessResult' : isSuccessResult,
         'makeSuccessResult' : makeSuccessResult,
@@ -2005,6 +2049,14 @@ function createMethodDict() {
         'wrap' : wrap,
         'unwrap' : unwrap,
 
+        'checkString' : checkString,
+        'checkNumber' : checkNumber,
+        'checkBoolean' : checkBoolean,
+        'checkObject' : checkObject,
+        'checkFunction' : checkFunction,
+        'checkMethod' : checkMethod,
+        'checkOpaque' : checkOpaque,
+        'checkPyretVal' : checkPyretVal,
         'checkIf'      : checkIf,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
@@ -2025,11 +2077,15 @@ function createMethodDict() {
     thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
+    var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));
     thisRuntime.namespace = nsWithList;
+
+    var checkList = makeCheckType(ffi.isList, "List");
+    thisRuntime["checkList"] = checkList;
 
     return thisRuntime;
 }

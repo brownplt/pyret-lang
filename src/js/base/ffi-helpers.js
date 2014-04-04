@@ -20,23 +20,53 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
     var raise = runtime.raise;
 
     function throwInternalError(message, otherArgs) {
+      runtime.checkString(message);
+      runtime.checkList(otherArgs);
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
     function throwFieldNotFound(object, field) {
+      runtime.checkPyretVal(object);
+      runtime.checkString(field);
       raise(err("field-not-found")(object, runtime.makeString(field)));
     }
     function throwLookupNonObject(nonObject, field) {
+      runtime.checkPyretVal(nonObject);
+      runtime.checkString(field);
       raise(err("lookup-non-object")(nonObject, runtime.makeString(field)));
     }
 
+    function throwMessageException(message) {
+      runtime.checkString(message);
+      raise(err("message-exception")(message));
+    }
+
+    function throwTypeMismatch(val, typeName) {
+      // NOTE(joe): can't use checkPyretVal here, because it will re-enter
+      // this function and blow up... so bottom out at "nothing"
+      if(!runtime.isPyretVal(val)) {
+        val = runtime.namespace.get("nothing");
+      }
+      runtime.checkString(typeName);
+      raise(err("generic-type-mismatch")(val, typeName));
+    }
+
+    function throwPlusError(left, right) {
+      runtime.checkPyretVal(left);
+      runtime.checkPyretVal(right);
+      raise(err("plus-error")(left, right));
+    }
+
     return {
+      throwPlusError: throwPlusError,
       throwInternalError: throwInternalError,
       throwFieldNotFound: throwFieldNotFound,
       throwLookupNonObject: throwLookupNonObject,
+      throwTypeMismatch: throwTypeMismatch,
+      throwMessageException: throwMessageException,
       makeList: makeList,
       makeNone: function() { return runtime.getField(O, "none"); },
-      makeSome: function(v) { return runtime.getField(O, "some").app(v); },          
+      makeSome: function(v) { return runtime.getField(O, "some").app(v); },
       makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 

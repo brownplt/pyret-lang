@@ -61,16 +61,30 @@ js-id-of = block:
 end
 
 fun obj-of-loc(l):
-  j-obj([
-      j-field("src", j-str(l.source)),
-      j-field("start-line", j-num(l.start-line)),
-      j-field("start-column", j-num(l.start-column)),
-      j-field("start-char", j-num(l.start-char)),
-      j-field("end-line", j-num(l.end-line)),
-      j-field("end-column", j-num(l.end-column)),
-      j-field("end-char", j-num(l.end-char))
-    ])
+  j-list(false, [
+    j-id("M"),
+    j-num(l.start-line),
+    j-num(l.start-column),
+    j-num(l.start-char),
+    j-num(l.end-line),
+    j-num(l.end-column),
+    j-num(l.end-char)
+  ])
+#  j-obj([
+#      j-field("src", j-str(l.source)),
+#      j-field("start-line", j-num(l.start-line)),
+#      j-field("start-column", j-num(l.start-column)),
+#      j-field("start-char", j-num(l.start-char)),
+#      j-field("end-line", j-num(l.end-line)),
+#      j-field("end-column", j-num(l.end-column)),
+#      j-field("end-char", j-num(l.end-char))
+#    ])
 end
+
+fun get-field(args):
+  j-app(j-id("G"), args)
+end
+
 
 fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [loc])
@@ -213,7 +227,7 @@ compiler-visitor = {
     j-method(obj.visit(self), "extendWith", [j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    rt-method("getField", [obj.visit(self), j-str(field)])
+    get-field([obj.visit(self), j-str(field)])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [obj.visit(self), j-str(field)])
@@ -392,18 +406,20 @@ fun compile-program(self, l, headers, split, env):
   module-id = G.make-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
-  j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
+  j-app(j-id("define"), [j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([
             j-return(j-fun(["R", "NAMESPACE"],
                 j-block([
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
                       j-block([
+                          j-var("G", rt-field("getField")),
+                          j-var("M", j-str(l.source)),
                           j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
                               j-block(
                                 [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
                                 namespace-binds +
                                 for map2(id from ids, in-id from input-ids):
-                                  j-var(id, rt-method("getField", [inst(in-id), j-str("provide")]))
+                                  j-var(id, get-field([inst(in-id), j-str("provide")]))
                                 end +
                                 split.helpers.map(compile-helper(self, _)) +
                                 [split.body.visit(self)]))),
