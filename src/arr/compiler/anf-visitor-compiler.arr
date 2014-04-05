@@ -401,7 +401,9 @@ end
 fun mk-abbrevs(l):
   [
     j-var("G", rt-field("getFieldLoc")),
-    j-var("U", j-dot(rt-field("ffi"), "throwUninitializedIdMkLoc")),
+    j-var("U", j-fun(["loc", "name"],
+        j-block([j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
+                          [j-id("loc"), j-id("name")])]))),
     j-var("M", j-str(l.source))
   ]
 end
