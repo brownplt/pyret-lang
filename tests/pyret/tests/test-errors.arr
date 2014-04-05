@@ -66,5 +66,15 @@ fun run-tests():
 #    e5.val is "b"
 #    e5.type is "Number"
 
+    e8 = get-err(fun(): letrec x-unbound = x-unbound(): 5 end end)
+    e8 satisfies E.is-uninitialized-id
+    e8.name satisfies string-contains(_, "x-unbound")
+    e8.loc satisfies S.is-srcloc
+
+    e9 = get-err(fun(): letrec x = y-unbound, y-unbound = 10: x end end)
+    e9 satisfies E.is-uninitialized-id
+    e9.name satisfies string-contains(_, "y-unbound")
+    e9.loc satisfies S.is-srcloc
+
   end
 end

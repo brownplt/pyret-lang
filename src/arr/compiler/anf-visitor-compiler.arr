@@ -85,6 +85,9 @@ fun get-field(obj, field, loc):
   j-app(j-id("G"), [obj, field, loc])
 end
 
+fun raise-id-exn(loc, name):
+  j-app(j-id("U"), [loc, j-str(name)])
+end
 
 fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [loc])
@@ -269,7 +272,10 @@ compiler-visitor = {
     j-dot(j-id(js-id-of(id)), "$var")
   end,
   a-id-letrec(self, l :: Loc, id :: String):
-    j-dot(j-id(js-id-of(id)), "$var")
+    j-ternary(
+      j-binop(j-dot(j-id(js-id-of(id)), "$var"), j-eq, j-undefined),
+      raise-id-exn(obj-of-loc(l), id),
+      j-dot(j-id(js-id-of(id)), "$var"))
   end,
 
   a-data-expr(self, l, name, variants, shared):
@@ -392,6 +398,14 @@ check:
 
 end
 
+fun mk-abbrevs(l):
+  [
+    j-var("G", rt-field("getFieldLoc")),
+    j-var("U", j-dot(rt-field("ffi"), "throwUninitializedIdMkLoc")),
+    j-var("M", j-str(l.source))
+  ]
+end
+
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
@@ -413,9 +427,7 @@ fun compile-program(self, l, headers, split, env):
                 j-block([
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
-                      j-block([
-                          j-var("G", rt-field("getFieldLoc")),
-                          j-var("M", j-str(l.source)),
+                      j-block(mk-abbrevs(l) + [
                           j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
                               j-block(
                                 [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +

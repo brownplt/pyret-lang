@@ -134,6 +134,7 @@ standard-builtins = compile-env(
       builtin-id("_link"),
       builtin-id("_empty"),
       module-bindings("list", [
+          "List",
           "is-empty",
           "is-link",
           "empty",

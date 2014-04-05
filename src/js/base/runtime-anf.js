@@ -1002,7 +1002,7 @@ function createMethodDict() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
             var g = getField;
-            return s ? g(s, "src") +
+            return s ? g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
@@ -2082,6 +2082,8 @@ function createMethodDict() {
         'serial' : Math.random(),
         'log': log,
 
+        'makeSrcloc': makeSrcloc,
+
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;
@@ -2098,6 +2100,7 @@ function createMethodDict() {
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
     var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
+    thisRuntime["ffi"] = ffi;
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));
