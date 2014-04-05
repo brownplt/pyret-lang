@@ -383,6 +383,20 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
               .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
           }
         },
+        'toplevel-binding': function(node) {
+          if (node.kids.length === 1) {
+            // is actually a binding
+            return tr(node.kids[0]);
+          } else if (node.kids.length === 4) {
+            // (toplevel-binding SHADOW NAME COLONCOLON noparen-arrow-ann)
+            return RUNTIME.getField(ast, 's-bind')
+              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
+          } else {
+            // (toplevel-binding NAME COLONCOLON noparen-arrow-ann)
+            return RUNTIME.getField(ast, 's-bind')
+              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
+          }
+        },
         'args': function(node) {
           if (node.kids.length === 2) {
             // (args LPAREN RPAREN)
@@ -795,12 +809,14 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'noparen-arrow-ann': function(node) {
           // (noparen-arrow-ann args ... THINARROW result)
           return RUNTIME.getField(ast, 'a-arrow')
-            .app(pos(node.pos), makeList(node.kids.slice(0, -2).map(tr)), tr(node.kids[node.kids.length - 1]));
+            .app(pos(node.pos), makeList(node.kids.slice(0, -2).map(tr)), tr(node.kids[node.kids.length - 1]),
+                RUNTIME.pyretFalse);
         },
         'arrow-ann': function(node) {
           // (arrow-ann LPAREN args ... THINARROW result RPAREN)
           return RUNTIME.getField(ast, 'a-arrow')
-            .app(pos(node.pos), makeList(node.kids.slice(1, -3).map(tr)), tr(node.kids[node.kids.length - 2]));
+            .app(pos(node.pos), makeList(node.kids.slice(1, -3).map(tr)), tr(node.kids[node.kids.length - 2]),
+                RUNTIME.pyretTrue);
         },
         'app-ann': function(node) {
           // (app-ann ann LANGLE args ... RANGLE)

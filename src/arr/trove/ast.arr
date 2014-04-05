@@ -862,13 +862,14 @@ data Ann:
   | a-name(l :: Loc, id :: String) with:
     label(self): "a-name" end,
     tosource(self): PP.str(self.id) end
-  | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann) with:
+  | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Bool) with:
     label(self): "a-arrow" end,
     tosource(self):
-      PP.surround(INDENT, 1, PP.lparen,
-        PP.separate(str-space,
-          [PP.separate(PP.commabreak,
-            self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()]), PP.rparen)
+      ann = PP.separate(str-space,
+        [PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()])
+      if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else: ann
+      end
     end
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a-method" end,
@@ -1127,7 +1128,7 @@ fun equiv-ast-ann(a1, a2):
   #   (and
   #    (equiv-ast-ann a1 a2)
   #    (equiv-ast pred1 pred2))]
-  #  [(cons (a-arrow _ args1 ret1) (a-arrow _ args2 ret2))
+  #  [(cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
@@ -1908,8 +1909,8 @@ default-map-visitor = {
   a-blank(self): a-blank end,
   a-any(self): a-any end,
   a-name(self, l, id): a-name(l, id) end,
-  a-arrow(self, l, args, ret):
-    a-arrow(l, args.map(_.visit(self)), ret.visit(self))
+  a-arrow(self, l, args, ret, use-parens):
+    a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
   a-method(self, l, args, ret):
     a-method(l, args.map(_.visit(self)), ret.visit(self))
@@ -2279,7 +2280,7 @@ default-iter-visitor = {
   a-name(self, l, id):
     true
   end,
-  a-arrow(self, l, args, ret):
+  a-arrow(self, l, args, ret, _):
     list.all(_.visit(self), args) and ret.visit(self)
   end,
   a-method(self, l, args, ret):
@@ -2662,8 +2663,8 @@ dummy-loc-visitor = {
   a-blank(self): a-blank end,
   a-any(self): a-any end,
   a-name(self, l, id): a-name(dummy-loc, id) end,
-  a-arrow(self, l, args, ret):
-    a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self))
+  a-arrow(self, l, args, ret, use-parens):
+    a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
   a-method(self, l, args, ret):
     a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))

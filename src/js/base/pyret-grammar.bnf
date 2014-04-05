@@ -21,8 +21,9 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
     | graph-expr | contract-stmt
 
-let-expr: binding EQUALS binop-expr
+let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
+toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
@@ -64,7 +65,7 @@ first-datatype-variant: NAME variant-members constructor-clause | NAME construct
 datatype-variant: BAR NAME variant-members constructor-clause | BAR NAME constructor-clause
 constructor-clause: WITHCONSTRUCTOR (PARENSPACE|PARENNOSPACE) NAME RPAREN COLON block end
 
-var-expr: VAR binding EQUALS binop-expr
+var-expr: VAR toplevel-binding EQUALS binop-expr
 assign-expr: NAME COLONEQUALS binop-expr
 
 graph-expr: GRAPH let-expr* end

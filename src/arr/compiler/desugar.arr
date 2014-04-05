@@ -35,10 +35,10 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-any => a
     | a-name(_, _) => a
     | a-dot(_, _, _) => a
-    | a-arrow(l, args, ret) =>
-      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret))
+    | a-arrow(l, args, ret, use-parens) =>
+      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
-      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret))
+      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
