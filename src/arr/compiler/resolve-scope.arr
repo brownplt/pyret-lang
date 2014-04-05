@@ -107,7 +107,8 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           else:
             desugar-scope-block(rest-stmts, [], all-binds + letrec-binds)
           end
-
+        | s-contract(l, name, ann) =>
+          desugar-scope-block(rest-stmts, let-binds, letrec-binds)
         | else =>
           cases(List) rest-stmts:
             | empty => [wrapper(f)]

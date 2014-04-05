@@ -41,6 +41,7 @@ str-except = PP.str("except")
 str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
+str-graph = PP.str("graph:")
 str-if = PP.str("if ")
 str-ifcolon = PP.str("if:")
 str-import = PP.str("import")
@@ -160,7 +161,7 @@ data Program:
     label(self): "s-program" end,
     tosource(self):
       PP.group(
-        PP.flow-map(PP.hardline, fun(i): i.tosource() end, self.imports)
+        PP.flow-map(PP.hardline, _.tosource(), self.imports)
           + PP.hardline
           + self.block.tosource()
         )
@@ -283,7 +284,8 @@ data Expr:
   | s-block(l :: Loc, stmts :: List<Expr>) with:
     label(self): "s-block" end,
     tosource(self):
-      PP.flow-map(PP.hardline, fun(s): s.tosource() end, self.stmts) end
+      PP.flow-map(PP.hardline, _.tosource(), self.stmts)
+    end
   | s-user-block(l :: Loc, body :: Expr) with:
     label(self): "s-user-block" end,
     tosource(self):
@@ -318,6 +320,17 @@ data Expr:
     end
   | s-graph(l :: Loc, bindings :: List<is-s-let>) with:
     label(self): "s-graph" end,
+    tosource(self):
+      PP.soft-surround(0, 1, # NOTE: Not indented
+        str-graph,
+        PP.flow-map(PP.hardline, _.tosource(), self.bindings),
+        str-end)
+    end
+  | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
+    label(self): "s-contract" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+    end
   | s-when(l :: Loc, test :: Expr, block :: Expr) with:
     label(self): "s-when" end,
     tosource(self):

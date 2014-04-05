@@ -213,6 +213,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           return RUNTIME.getField(ast, 's-letrec-bind')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
+        'contract-stmt': function(node) {
+          // (contract-stmt NAME COLONCOLON ann)
+          return RUNTIME.getField(ast, 's_contract_stmt')
+            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+        },
         'graph-expr': function(node) {
           // (graph-expr GRAPH bind ... END)
           return RUNTIME.getField(ast, 's-graph')
@@ -787,6 +792,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           return RUNTIME.getField(ast, 'a-record')
             .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
+        'noparen-arrow-ann': function(node) {
+          // (noparen-arrow-ann args ... THINARROW result)
+          return RUNTIME.getField(ast, 'a-arrow')
+            .app(pos(node.pos), makeList(node.kids.slice(0, -2).map(tr)), tr(node.kids[node.kids.length - 1]));
+        },
         'arrow-ann': function(node) {
           // (arrow-ann LPAREN args ... THINARROW result RPAREN)
           return RUNTIME.getField(ast, 'a-arrow')
@@ -798,9 +808,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
         },
         'pred-ann': function(node) {
-          // (pred-ann ann LPAREN exp RPAREN)
+          // (pred-ann ann PERCENT LPAREN exp RPAREN)
           return RUNTIME.getField(ast, 'a-pred')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
