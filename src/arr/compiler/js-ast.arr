@@ -33,7 +33,7 @@ data JBlock:
     tosource(self):
       cases(List) self.stmts:
         | empty => PP.mt-doc
-        | else => PP.flow_map(PP.hardline, _.tosource(), self.stmts)
+        | else => PP.flow-map(PP.hardline, _.tosource(), self.stmts)
       end
     end
 sharing:
@@ -326,13 +326,14 @@ data JExpr:
     tosource(self): PP.group(self.obj.tosource() +
       PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
-  | j-list(elts :: List<JExpr>) with:
+  | j-list(multi-line :: Boolean, elts :: List<JExpr>) with:
     print-ugly-source(self, printer):
       printer("[")
       when is-link(self.elts):
         self.elts.first.print-ugly-source(printer)
         for each(f from self.elts.rest):
-          printer(",\n")
+          printer(",")
+          when self.multi-line: printer("\n");
           f.print-ugly-source(printer)
         end
       end

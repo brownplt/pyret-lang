@@ -30,6 +30,13 @@ fun main(args):
   
   params-parsed = C.parse-args(options, args)
 
+  fun err-less(e1, e2):
+    if (e1.loc.before(e2.loc)): true
+    else if (e1.loc.after(e2.loc)): false
+    else: tostring(e1) < tostring(e2)
+    end
+  end
+  
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
       check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))

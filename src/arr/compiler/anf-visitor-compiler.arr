@@ -61,15 +61,32 @@ js-id-of = block:
 end
 
 fun obj-of-loc(l):
-  j-obj([
-      j-field("src", j-str(l.source)),
-      j-field("start-line", j-num(l.start-line)),
-      j-field("start-column", j-num(l.start-column)),
-      j-field("start-char", j-num(l.start-char)),
-      j-field("end-line", j-num(l.end-line)),
-      j-field("end-column", j-num(l.end-column)),
-      j-field("end-char", j-num(l.end-char))
-    ])
+  j-list(false, [
+    j-id("M"),
+    j-num(l.start-line),
+    j-num(l.start-column),
+    j-num(l.start-char),
+    j-num(l.end-line),
+    j-num(l.end-column),
+    j-num(l.end-char)
+  ])
+#  j-obj([
+#      j-field("src", j-str(l.source)),
+#      j-field("start-line", j-num(l.start-line)),
+#      j-field("start-column", j-num(l.start-column)),
+#      j-field("start-char", j-num(l.start-char)),
+#      j-field("end-line", j-num(l.end-line)),
+#      j-field("end-column", j-num(l.end-column)),
+#      j-field("end-char", j-num(l.end-char))
+#    ])
+end
+
+fun get-field(obj, field, loc):
+  j-app(j-id("G"), [obj, field, loc])
+end
+
+fun raise-id-exn(loc, name):
+  j-app(j-id("U"), [loc, j-str(name)])
 end
 
 fun add-stack-frame(exn-id, loc):
@@ -213,7 +230,7 @@ compiler-visitor = {
     j-method(obj.visit(self), "extendWith", [j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    rt-method("getField", [obj.visit(self), j-str(field)])
+    get-field(obj.visit(self), j-str(field), obj-of-loc(l))
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [obj.visit(self), j-str(field)])
@@ -255,7 +272,10 @@ compiler-visitor = {
     j-dot(j-id(js-id-of(id)), "$var")
   end,
   a-id-letrec(self, l :: Loc, id :: String):
-    j-dot(j-id(js-id-of(id)), "$var")
+    j-ternary(
+      j-binop(j-dot(j-id(js-id-of(id)), "$var"), j-eq, j-undefined),
+      raise-id-exn(obj-of-loc(l), id),
+      j-dot(j-id(js-id-of(id)), "$var"))
   end,
 
   a-data-expr(self, l, name, variants, shared):
@@ -287,19 +307,21 @@ compiler-visitor = {
           rt-method("makeFunction", [
             j-fun(
               member-names.map(js-id-of),
-              j-block([
+              arity-check(
+                [
                   j-var("dict", j-method(j-id("Object"), "create", [j-id(base-id)]))
                 ] +
                 for map2(n from member-names, m from members):
-                    cases(N.AMemberType) m.member-type:
-                      | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
-                      | a-cyclic => raise("Cannot handle cyclic fields yet")
-                      | a-mutable => raise("Cannot handle mutable fields yet")
-                    end
-                  end +
+                  cases(N.AMemberType) m.member-type:
+                    | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
+                    | a-cyclic => raise("Cannot handle cyclic fields yet")
+                    | a-mutable => raise("Cannot handle mutable fields yet")
+                  end
+                end +
                 [
                   j-return(rt-method("makeBrandedObject", [j-id("dict"), j-id(brands-id)]))
-                ])
+                ],
+                member-names.length())
               )
           ])
         )
@@ -376,6 +398,16 @@ check:
 
 end
 
+fun mk-abbrevs(l):
+  [
+    j-var("G", rt-field("getFieldLoc")),
+    j-var("U", j-fun(["loc", "name"],
+        j-block([j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
+                          [j-id("loc"), j-id("name")])]))),
+    j-var("M", j-str(l.source))
+  ]
+end
+
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
@@ -392,18 +424,18 @@ fun compile-program(self, l, headers, split, env):
   module-id = G.make-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
-  j-app(j-id("define"), [j-list(filenames.map(j-str)), j-fun(input-ids, j-block([
+  j-app(j-id("define"), [j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([
             j-return(j-fun(["R", "NAMESPACE"],
                 j-block([
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
-                      j-block([
+                      j-block(mk-abbrevs(l) + [
                           j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
                               j-block(
                                 [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
                                 namespace-binds +
                                 for map2(id from ids, in-id from input-ids):
-                                  j-var(id, rt-method("getField", [inst(in-id), j-str("provide")]))
+                                  j-var(id, get-field(inst(in-id), j-str("provide"), obj-of-loc(l)))
                                 end +
                                 split.helpers.map(compile-helper(self, _)) +
                                 [split.body.visit(self)]))),
