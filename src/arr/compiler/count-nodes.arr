@@ -40,49 +40,49 @@ end
 #Counts the number of nodes in an ast
 fun count-nodes(ast): 
   cases(A.Expr) ast:
-    | s_block(_, stmts) => 
+    | s-block(_, stmts) => 
        stmt-count = for fold(total from 0, stmt from stmts):
             total + count-nodes(stmt)
         end
        1 + stmt-count
-    | s_user_block(s, expr) => count-nodes(expr) + 1
-    | s_num(_, n) => 1
-    | s_str(_, s) => 1
-    | s_bool(_, b) => 1
-    | s_lam(_, _, args, _, doc, body, _) => 1 + count-nodes(body)
-    | s_method(_, args, _, doc, body, _) => 1 + count-nodes(body) 
-    | s_app(_, f, args) => 
+    | s-user-block(s, expr) => count-nodes(expr) + 1
+    | s-num(_, n) => 1
+    | s-str(_, s) => 1
+    | s-bool(_, b) => 1
+    | s-lam(_, _, args, _, doc, body, _) => 1 + count-nodes(body)
+    | s-method(_, args, _, doc, body, _) => 1 + count-nodes(body) 
+    | s-app(_, f, args) => 
         arg-count = for fold(total from 0, arg from args):
             total + count-nodes(arg)
         end
         1 + arg-count + count-nodes(f)
-    | s_bracket(_, obj, f) => 1 + count-nodes(obj)
-    | s_colon_bracket(_, obj, f) => 1 + count-nodes(obj)
-    | s_colon_bracket_k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
-    | s_bracket_k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
-    | s_update_k(_, conts, obj, fields) => 1 + count-nodes(obj) + count-nodes(conts)
-    | s_id(_, id) => 1
-    | s_var(_, bind, value) => 1 + count-nodes(value)
-    | s_assign(_, id, value) => 1 + count-nodes(value)
-    | s_let(_, bind, value) =>  1 + count-nodes(value)
-    | s_obj(_, fields) => 
+    | s-bracket(_, obj, f) => 1 + count-nodes(obj)
+    | s-colon-bracket(_, obj, f) => 1 + count-nodes(obj)
+    | s-colon-bracket-k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
+    | s-bracket-k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
+    | s-update-k(_, conts, obj, fields) => 1 + count-nodes(obj) + count-nodes(conts)
+    | s-id(_, id) => 1
+    | s-var(_, bind, value) => 1 + count-nodes(value)
+    | s-assign(_, id, value) => 1 + count-nodes(value)
+    | s-let(_, bind, value) =>  1 + count-nodes(value)
+    | s-obj(_, fields) => 
         field-count = for fold(total from 0, field from fields):
             total + count-nodes(field.value)
         end
         1 + field-count
-    | s_extend(_, obj, fields) => 
+    | s-extend(_, obj, fields) => 
         field-count = for fold(total from 0, field from fields):
             total + count-nodes(field.value)
         end
         1 + field-count + count-nodes(obj)
-    | s_if_else(_, branches,_else) =>
+    | s-if-else(_, branches,_else) =>
         branch-count = for fold(total from 0, branch from branches):
             total + count-nodes(branch.body) + count-nodes(branch.test)
         end
         1 + branch-count + count-nodes(_else)
-    | s_try(_, body, bind, _except) => 1 + count-nodes(body) + count-nodes(_except) 
-    | s_get_bang(l, obj, field) => 1 + count-nodes(obj)
-    | s_update(l, super, fields) => 
+    | s-try(_, body, bind, _except) => 1 + count-nodes(body) + count-nodes(_except) 
+    | s-get-bang(l, obj, field) => 1 + count-nodes(obj)
+    | s-update(l, super, fields) => 
         field-count = for fold(total from 0, field from fields):
             total + count-nodes(field.value)
         end
@@ -118,7 +118,7 @@ where:
     count-in("{}!{a : 1 + 1, b : fun(x): x;}") is 1 + 1 + 1 + 4 + 3
 end
 
-#moorings ast should be an s_program, so we'll grab the block from it
+#moorings ast should be an s-program, so we'll grab the block from it
 #print("NOT CPS")
 #count-nodes(moorings-ast.block)
 

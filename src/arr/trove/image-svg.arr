@@ -47,7 +47,7 @@ data Attr:
       if is-empty(self.vals): PP.mt-doc
       else:
         PP.str(self.name) + PP.str('="') 
-          + PP.flow_map(PP.str(";") + PP.break(1),
+          + PP.flow-map(PP.str(";") + PP.break(1),
           fun(v): PP.group(PP.str(v.name) + PP.str(":") + PP.break(1) + PP.str(v.val)) end,
           self.vals)
           + PP.str(';"')

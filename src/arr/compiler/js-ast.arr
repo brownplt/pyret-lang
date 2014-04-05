@@ -33,7 +33,7 @@ data JBlock:
     tosource(self):
       cases(List) self.stmts:
         | empty => PP.mt-doc
-        | else => PP.flow_map(PP.hardline, _.tosource(), self.stmts)
+        | else => PP.flow-map(PP.hardline, _.tosource(), self.stmts)
       end
     end
 sharing:

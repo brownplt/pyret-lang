@@ -14,7 +14,7 @@ provide {
   if-flat: if-flat,
   group: group,
   flow: flow,
-  flow_map: flow_map,
+  flow-map: flow-map,
   vert: vert,
   parens: parens,
   dquote: dquote,
@@ -207,15 +207,15 @@ comma = str(",")
 fun break(n): if-flat(blank(n), hardline) end
 commabreak = comma + break(1)
 
-fun flow_map(sep, f, items):
+fun flow-map(sep, f, items):
   for list.fold(acc from mt-doc, shadow item from items):
     if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
   end
 end
-fun flow(items): flow_map(break(1), fun(x): x end, items) end
-fun vert(items): flow_map(hardline, fun(x): x end, items) end
+fun flow(items): flow-map(break(1), fun(x): x end, items) end
+fun vert(items): flow-map(hardline, fun(x): x end, items) end
 fun parens(d): group(lparen + d + rparen) end
 str-squote = str("'")
 str-dquote = str('"')

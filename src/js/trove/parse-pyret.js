@@ -31,9 +31,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
-          return RUNTIME.getField(ast, 's_underscore');
+          return RUNTIME.getField(ast, 's-underscore');
         else
-          return RUNTIME.getField(ast, 's_name').app(RUNTIME.makeString(tok.value));
+          return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
@@ -43,15 +43,15 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       const translators = {
         'program': function(node) {
           if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
-            return RUNTIME.getField(ast, 's_program')
+            return RUNTIME.getField(ast, 's-program')
               .app(pos(node.pos), 
                    tr(node.kids[0].kids[0]),
                    makeList(node.kids[0].kids.slice(1).map(tr)),
                    tr(node.kids[1]));
           } else {
-            return RUNTIME.getField(ast, 's_program')
+            return RUNTIME.getField(ast, 's-program')
               .app(pos(node.pos), 
-                   RUNTIME.getField(ast, 's_provide_none').app(pos(node.pos)),
+                   RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos)),
                    makeList(node.kids[0].kids.map(tr)),
                    tr(node.kids[1]));
           }
@@ -59,32 +59,32 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'provide-stmt': function(node) {
           if (node.kids.length === 2) {
             // (provide-stmt PROVIDE STAR)
-            return RUNTIME.getField(ast, 's_provide_all')
+            return RUNTIME.getField(ast, 's-provide-all')
               .app(pos(node.pos));
           } else {
             // (provide-stmt PROVIDE stmt END
-            return RUNTIME.getField(ast, 's_provide')
+            return RUNTIME.getField(ast, 's-provide')
               .app(pos(node.pos), tr(node.kids[1]))
           }
         },
         'import-stmt': function(node) {
           // (import-stmt IMPORT mod AS NAME)
-          return RUNTIME.getField(ast, 's_import')
+          return RUNTIME.getField(ast, 's-import')
             .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
         },
         'import-name': function(node) {
           // (import-name NAME)
-          return RUNTIME.getField(ast, 's_const_import')
+          return RUNTIME.getField(ast, 's-const-import')
             .app(symbol(node.kids[0]))
         },
         'import-string': function(node) {
           // (import-string STRING)
-          return RUNTIME.getField(ast, 's_file_import')
+          return RUNTIME.getField(ast, 's-file-import')
             .app(string(node.kids[0]))
         },
         'block': function(node) {
           // (block stmts ...)
-          return RUNTIME.getField(ast, 's_block')
+          return RUNTIME.getField(ast, 's-block')
             .app(pos(node.pos), makeList(node.kids.map(tr)));
         },
         'stmt': function(node) {
@@ -103,44 +103,44 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'data-variant': function(node) {
           if (node.kids.length === 4) {
             // (data-variant PIPE NAME args with)
-            return RUNTIME.getField(ast, 's_variant')
+            return RUNTIME.getField(ast, 's-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
           } else {
             // (data-variant PIPE NAME with)
-            return RUNTIME.getField(ast, 's_singleton_variant')
+            return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
           }
         },
         'first-data-variant': function(node) {
           if (node.kids.length === 3) {
             // (first-data-variant NAME args with)
-            return RUNTIME.getField(ast, 's_variant')
+            return RUNTIME.getField(ast, 's-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
           } else {
             // (first-data-variant NAME with)
-            return RUNTIME.getField(ast, 's_singleton_variant')
+            return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
           }
         },
         'datatype-variant': function(node) {
           if (node.kids.length === 4) {
             // (datatype-variant PIPE NAME args constructor)
-            return RUNTIME.getField(ast, 's_datatype_variant')
+            return RUNTIME.getField(ast, 's-datatype-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
           } else {
             // (datatype-variant PIPE NAME constructor)
-            return RUNTIME.getField(ast, 's_datatype_singleton_variant')
+            return RUNTIME.getField(ast, 's-datatype-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
           }
         },
         'first-datatype-variant': function(node) {
           if (kids.length === 4) {
             // (first-datatype-variant NAME args constructor)
-            return RUNTIME.getField(ast, 's_datatype_variant')
+            return RUNTIME.getField(ast, 's-datatype-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
           } else {
             // (first-datatype-variant NAME constructor)
-            return RUNTIME.getField(ast, 's_datatype_singleton_variant')
+            return RUNTIME.getField(ast, 's-datatype-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[0]));
           }
         },
@@ -155,24 +155,24 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'constructor-clause': function(node) {
           // (constructor-clause WITHCONSTRUCTOR LPAREN NAME RPAREN COLON block END)
-          return RUNTIME.getField(ast, 's_datatype_constructor')
+          return RUNTIME.getField(ast, 's-datatype-constructor')
             .app(pos(node.pos), symbol(node.kids[2]), tr(node.kids[5]));
         },
         'var-expr': function(node) {
           // (var-expr VAR bind EQUALS e)
-          return RUNTIME.getField(ast, 's_var')
+          return RUNTIME.getField(ast, 's-var')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'let-expr': function(node) {
           // (let-expr bind EQUALS e)
-          return RUNTIME.getField(ast, 's_let')
+          return RUNTIME.getField(ast, 's-let')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'multi-let-expr': function(node) {
           // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr or var-expr constructions
-          return RUNTIME.getField(ast, 's_let_expr')
+          return RUNTIME.getField(ast, 's-let-expr')
             .app(pos(node.pos), 
                  makeList(node.kids.slice(1, -3).map(translators["let-binding"])),
                  tr(node.kids[node.kids.length - 2]));
@@ -181,7 +181,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           // (letrec-expr LETREC letrec-binding* let-expr COLON block END)
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr constructions
-          return RUNTIME.getField(ast, 's_letrec')
+          return RUNTIME.getField(ast, 's-letrec')
             .app(pos(node.pos), 
                  makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])), 
                  tr(node.kids[node.kids.length - 2]));
@@ -197,11 +197,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           }
           if (node.name === "let-expr") {
             // (let-expr binding EQUALS binop-expr)
-            return RUNTIME.getField(ast, 's_let_bind')
+            return RUNTIME.getField(ast, 's-let-bind')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else if (node.name === "var-expr") {
             // (var-expr VAR binding EQUALS binop-expr)
-            return RUNTIME.getField(ast, 's_var_bind')
+            return RUNTIME.getField(ast, 's-var-bind')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
           }
         },
@@ -210,17 +210,17 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             node = node.kids[0];
           }
           // (let-expr binding EQUALS binop-expr)
-          return RUNTIME.getField(ast, 's_letrec_bind')
+          return RUNTIME.getField(ast, 's-letrec-bind')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'graph-expr': function(node) {
           // (graph-expr GRAPH bind ... END)
-          return RUNTIME.getField(ast, 's_graph')
+          return RUNTIME.getField(ast, 's-graph')
             .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'fun-expr': function(node) {
           // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
-          return RUNTIME.getField(ast, 's_fun')
+          return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1].kids[1]),
                  tr(node.kids[1].kids[0]),
                  tr(node.kids[1].kids[2]),
@@ -231,7 +231,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'data-expr': function(node) {
           // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
-          return RUNTIME.getField(ast, 's_data')
+          return RUNTIME.getField(ast, 's-data')
             .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
                  makeList(node.kids.slice(5, -3).map(tr)), 
                  tr(node.kids[node.kids.length - 3]),
@@ -239,29 +239,29 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'datatype-expr': function(node) {
           // (datatype-expr DATATYPE NAME params COLON variant ... check END)
-          return RUNTIME.getField(ast, 's_datatype')
+          return RUNTIME.getField(ast, 's-datatype')
             .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]),
                  makeList(node.kids.slice(4, -2).map(tr)),
                  tr(node.kids[node.kids.length - 2]));
         },
         'assign-expr': function(node) {
           // (assign-expr id COLONEQUAL e)
-          return RUNTIME.getField(ast, 's_assign')
+          return RUNTIME.getField(ast, 's-assign')
             .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
         },
         'when-expr': function(node) {
           // (when-expr WHEN test COLON body END)
-          return RUNTIME.getField(ast, 's_when')
+          return RUNTIME.getField(ast, 's-when')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'check-expr': function(node) {
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
-            return RUNTIME.getField(ast, 's_check')
+            return RUNTIME.getField(ast, 's-check')
               .app(pos(node.pos), F.makeNone(), tr(node.kids[1]));
           } else {
             // (check-expr CHECK STRING COLON body END)
-            return RUNTIME.getField(ast, 's_check')
+            return RUNTIME.getField(ast, 's-check')
               .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]));
           }
         },
@@ -271,7 +271,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             return tr(node.kids[0]);
           } else {
             // (check-test left op right)
-            return RUNTIME.getField(ast, 's_check_test')
+            return RUNTIME.getField(ast, 's-check-test')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2])); // Op comes first
           }
         },
@@ -283,7 +283,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             // (binop-expr e)
             return tr(node.kids[0]);
           } else {
-            var mkOp = RUNTIME.getField(ast, 's_op').app;
+            var mkOp = RUNTIME.getField(ast, 's-op').app;
             var expr = mkOp(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2]));
             for(var i = 4; i < node.kids.length; i += 2) {
               expr = mkOp(pos(node.pos), tr(node.kids[i - 1]), expr, tr(node.kids[i]));
@@ -325,13 +325,13 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'not-expr': function(node) {
           // (not-expr NOT e)
-          return RUNTIME.getField(ast, 's_not')
+          return RUNTIME.getField(ast, 's-not')
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'binop-expr-paren': function(node) {
           if (node.kids[0].name === "paren-nospace-expr") {
             // (binop-expr-paren (paren-nospace-expr _ e _))
-            return RUNTIME.getField(ast, 's_paren')
+            return RUNTIME.getField(ast, 's-paren')
               .app(pos(node.pos), tr(node.kids[0].kids[1]));
           } else {
             // (binop-expr-paren e)
@@ -351,7 +351,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'return-ann': function(node) {
           if (node.kids.length === 0) {
             // (return-ann)
-            return RUNTIME.getField(ast, 'a_blank');
+            return RUNTIME.getField(ast, 'a-blank');
           } else {
             // (return-ann THINARROW ann)
             return tr(node.kids[1]);
@@ -360,21 +360,21 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'binding': function(node) {
           if (node.kids.length === 1) {
             // (binding name)
-            return RUNTIME.getField(ast, 's_bind')
+            return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
-                   RUNTIME.getField(ast, 'a_blank'));
+                   RUNTIME.getField(ast, 'a-blank'));
           } else if (node.kids.length === 3) {
             // (binding name COLONCOLON ann)
-            return RUNTIME.getField(ast, 's_bind')
+            return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
           } else if (node.kids.length === 2) {
             // (binding SHADOW name)
-            return RUNTIME.getField(ast, 's_bind')
+            return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
-                   RUNTIME.getField(ast, 'a_blank'));
+                   RUNTIME.getField(ast, 'a-blank'));
           } else {
             // (binding SHADOW name COLONCOLON ann)
-            return RUNTIME.getField(ast, 's_bind')
+            return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
           }
         },
@@ -394,15 +394,15 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'variant-member': function(node) {
           if (node.kids.length === 1) {
             // (variant-member b)
-            return RUNTIME.getField(ast, 's_variant_member')
-              .app(pos(node.pos), RUNTIME.getField(ast, "s_normal"), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-variant-member')
+              .app(pos(node.pos), RUNTIME.getField(ast, "s-normal"), tr(node.kids[0]));
           } else {
             if (node.kids[0].name === "MUTABLE") {
-              return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.getField(ast, "s_mutable"), tr(node.kids[1]));
+              return RUNTIME.getField(ast, 's-variant-member')
+                .app(pos(node.pos), RUNTIME.getField(ast, "s-mutable"), tr(node.kids[1]));
             } else {
-              return RUNTIME.getField(ast, 's_variant_member')
-                .app(pos(node.pos), RUNTIME.getField(ast, "s_cyclic"), tr(node.kids[1]));
+              return RUNTIME.getField(ast, 's-variant-member')
+                .app(pos(node.pos), RUNTIME.getField(ast, "s-cyclic"), tr(node.kids[1]));
             }
           }
         },
@@ -425,26 +425,26 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             return tr(node.kids[1]);
           } else {
             // (key name)
-            return RUNTIME.getField(ast, 's_str')
+            return RUNTIME.getField(ast, 's-str')
               .app(pos(node.pos), symbol(node.kids[0]));
           }
         },
         'obj-field': function(node) {
           if (node.kids.length === 4) {
             // (obj-field MUTABLE key COLON value)
-            return RUNTIME.getField(ast, 's_mutable_field')
-              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a_blank'), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-mutable-field')
+              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a-blank'), tr(node.kids[3]));
           } else if (node.kids.length === 6) {
             // (obj-field MUTABLE key COLONCOLON ann COLON value)
-            return RUNTIME.getField(ast, 's_mutable_field')
+            return RUNTIME.getField(ast, 's-mutable-field')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
           } else if (node.kids.length === 3) {
             // (obj-field key COLON value)
-            return RUNTIME.getField(ast, 's_data_field')
+            return RUNTIME.getField(ast, 's-data-field')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
             // (obj-field key args ret COLON doc body check END)
-            return RUNTIME.getField(ast, 's_method_field')
+            return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]),
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
           }
@@ -465,11 +465,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'field': function(node) {
           if (node.kids.length === 3) {
             // (field key COLON value)
-            return RUNTIME.getField(ast, "s_data_field")
+            return RUNTIME.getField(ast, "s-data-field")
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
             // (field key args ret COLON doc body check END)
-            return RUNTIME.getField(ast, "s_method_field")
+            return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]),
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
           }
@@ -520,27 +520,27 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'cases-branch': function(node) {
           if (node.kids.length === 4) {
             // (cases-branch PIPE NAME THICKARROW body)
-            return RUNTIME.getField(ast, 's_cases_branch')
+            return RUNTIME.getField(ast, 's-cases-branch')
               .app(pos(node.pos), symbol(node.kids[1]), makeList([]), tr(node.kids[3]));
           } else {
             // (cases-branch PIPE NAME args THICKARROW body)
-            return RUNTIME.getField(ast, 's_cases_branch')
+            return RUNTIME.getField(ast, 's-cases-branch')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
           }
         },
         'if-pipe-branch': function(node) {
           // (if-pipe-branch BAR binop-expr THENCOLON block)
-          return RUNTIME.getField(ast, 's_if_pipe_branch')
+          return RUNTIME.getField(ast, 's-if-pipe-branch')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else-if': function(node) {
           // (else-if ELSEIF test COLON body)
-          return RUNTIME.getField(ast, 's_if_branch')
+          return RUNTIME.getField(ast, 's-if-branch')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else': function(node) {
           // (else ELSECOLON body)
-          return RUNTIME.getField(ast, 's_else')
+          return RUNTIME.getField(ast, 's-else')
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'ty-params': function(node) {
@@ -562,13 +562,13 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             return tr(node.kids[0]);
           } else {
             // (left-app-fun-expr id PERIOD name)
-            return RUNTIME.getField(ast, 's_dot')
+            return RUNTIME.getField(ast, 's-dot')
               .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
           }
         },
         'for-bind': function(node) {
           // (for-bind name FROM e)
-          return RUNTIME.getField(ast, 's_for_bind')
+          return RUNTIME.getField(ast, 's-for-bind')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'prim-expr': function(node) {
@@ -578,11 +578,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'obj-expr': function(node) {
           if (node.kids.length === 2) {
             // (obj-expr LBRACE RBRACE)
-            return RUNTIME.getField(ast, 's_obj')
+            return RUNTIME.getField(ast, 's-obj')
               .app(pos(node.pos), makeList([]));
           } else {
             // (obj-expr LBRACE obj-fields RBRACE)
-            return RUNTIME.getField(ast, 's_obj')
+            return RUNTIME.getField(ast, 's-obj')
               .app(pos(node.pos), tr(node.kids[1]));
           }
         },
@@ -592,58 +592,58 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'list-expr': function(node) {
           if (node.kids.length === 2) {
             // (list-expr LBRACK RBRACK)
-            return RUNTIME.getField(ast, 's_list')
+            return RUNTIME.getField(ast, 's-list')
               .app(pos(node.pos), makeList([]));
           } else {
             // (list-expr LBRACK list-fields RBRACK)
-            return RUNTIME.getField(ast, 's_list')
+            return RUNTIME.getField(ast, 's-list')
               .app(pos(node.pos), makeList(node.kids.slice(1, node.kids.length - 1).map(tr)));
           }
         },
         'app-expr': function(node) {
           // (app-expr f args)
-          return RUNTIME.getField(ast, 's_app')
+          return RUNTIME.getField(ast, 's-app')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
         },
         'id-expr': function(node) {
           // (id-expr x)
-          return RUNTIME.getField(ast, 's_id')
+          return RUNTIME.getField(ast, 's-id')
             .app(pos(node.pos), name(node.kids[0]));
         },
         'dot-expr': function(node) {
           // (dot-expr obj PERIOD field)
-          return RUNTIME.getField(ast, 's_dot')
+          return RUNTIME.getField(ast, 's-dot')
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'get-bang-expr': function(node) {
           // (get-bang-expr obj BANG field)
-          return RUNTIME.getField(ast, 's_get_bang')
+          return RUNTIME.getField(ast, 's-get-bang')
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'bracket-expr': function(node) {
           // (bracket-expr obj PERIOD LBRACK field RBRACK)
-          return RUNTIME.getField(ast, 's_bracket')
+          return RUNTIME.getField(ast, 's-bracket')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'colon-expr': function(node) {
           // (colon-expr obj COLON field)
-          return RUNTIME.getField(ast, 's_colon')
+          return RUNTIME.getField(ast, 's-colon')
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'colon-bracket-expr': function(node) {
           // (colon-bracket-expr obj COLON LBRACK field RBRACK)
-          return RUNTIME.getField(ast, 's_colon_bracket')
+          return RUNTIME.getField(ast, 's-colon-bracket')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'cases-expr': function(node) {
           if (node.kids[node.kids.length - 4].name === "ELSE") {
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
-            return RUNTIME.getField(ast, 's_cases_else')
+            return RUNTIME.getField(ast, 's-cases-else')
               .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
                    makeList(node.kids.slice(6, -5).map(tr)), tr(node.kids[node.kids.length - 2]));
           } else {
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
-            return RUNTIME.getField(ast, 's_cases')
+            return RUNTIME.getField(ast, 's-cases')
               .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
                    makeList(node.kids.slice(6, -1).map(tr)));
           }
@@ -651,36 +651,36 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'if-pipe-expr': function(node) {
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
-            return RUNTIME.getField(ast, 's_if_pipe_else')
+            return RUNTIME.getField(ast, 's-if-pipe-else')
               .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
                    tr(node.kids[node.kids.length - 2]));
           } else {
             // (if-expr IFCOLON branch ... END)
-            return RUNTIME.getField(ast, 's_if_pipe')
+            return RUNTIME.getField(ast, 's-if-pipe')
               .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
           }
         },
         'if-expr': function(node) {
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-expr IF test COLON body branch ... ELSECOLON else END)
-            return RUNTIME.getField(ast, 's_if_else')
+            return RUNTIME.getField(ast, 's-if-else')
               .app(pos(node.pos), makeList(
-                [RUNTIME.getField(ast, 's_if_branch')
+                [RUNTIME.getField(ast, 's-if-branch')
                  .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
                   .concat(node.kids.slice(4, -3).map(tr))),
                    tr(node.kids[node.kids.length - 2]));
           } else {
             // (if-expr IF test COLON body branch ... END)
-            return RUNTIME.getField(ast, 's_if')
+            return RUNTIME.getField(ast, 's-if')
               .app(pos(node.pos), makeList(
-                [RUNTIME.getField(ast, 's_if_branch')
+                [RUNTIME.getField(ast, 's-if-branch')
                  .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
                   .concat(node.kids.slice(4, -1).map(tr))));
           }
         },
         'for-expr': function(node) {
           // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
-          return RUNTIME.getField(ast, 's_for')
+          return RUNTIME.getField(ast, 's-for')
             .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -5).map(tr)),
                  tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
         },
@@ -690,61 +690,61 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'try-expr': function(node) {
           // (try-expr TRY body EXCEPT LPAREN arg RPAREN COLON except END)
-          return RUNTIME.getField(ast, 's_try')
+          return RUNTIME.getField(ast, 's-try')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]), tr(node.kids[7]));
         },
         'user-block-expr': function(node) {
           // (user-block-expr BLOCK body END)
-          return RUNTIME.getField(ast, 's_user_block')
+          return RUNTIME.getField(ast, 's-user-block')
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'lambda-expr': function(node) {
           if (node.kids.length === 9) {
             // (lambda-expr FUN ty-params args return-ann COLON doc body check END)
-            return RUNTIME.getField(ast, 's_lam')
+            return RUNTIME.getField(ast, 's-lam')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
                    tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
           } else {
             // (lambda-expr FUN ty-params return-ann COLON doc body check END)
-            return RUNTIME.getField(ast, 's_lam')
+            return RUNTIME.getField(ast, 's-lam')
               .app(pos(node.pos), tr(node.kids[1]), makeList([]), tr(node.kids[2]),
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
           }
         },
         'method-expr': function(node) {
           // (method-expr METHOD args return-ann COLON doc body check END)
-          return RUNTIME.getField(ast, 's_method')
+          return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]),
                  tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
         },
         'extend-expr': function(node) {
           // (extend-expr e PERIOD LBRACE fields RBRACE)
-          return RUNTIME.getField(ast, 's_extend')
+          return RUNTIME.getField(ast, 's-extend')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'update-expr': function(node) {
           // (update-expr e BANG LBRACE fields RBRACE)
-          return RUNTIME.getField(ast, 's_update')
+          return RUNTIME.getField(ast, 's-update')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'left-app-expr': function(node) {
           // (left-app-expr e CARET f args)
-          return RUNTIME.getField(ast, 's_left_app')
+          return RUNTIME.getField(ast, 's-left-app')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
         },
         'paren-expr': function(node) {
           // (paren-expr LPAREN e RPAREN)
-          return RUNTIME.getField(ast, 's_paren')
+          return RUNTIME.getField(ast, 's-paren')
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'paren-nospace-expr': function(node) {
           // (paren-nospace-expr LPAREN e RPAREN)
-          return RUNTIME.getField(ast, 's_paren')
+          return RUNTIME.getField(ast, 's-paren')
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'inst-expr': function(node) {
           // (inst-expr e LANGLE (inst-elt a COMMA) ... alast RANGLE)
-          return RUNTIME.getField(ast, 's_instantiate')
+          return RUNTIME.getField(ast, 's-instantiate')
             .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
         },
         'inst-elt': function(node) {
@@ -753,58 +753,58 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         },
         'bool-expr': function(node) {
           if (node.kids[0].name === "TRUE") {
-            return RUNTIME.getField(ast, 's_bool')
+            return RUNTIME.getField(ast, 's-bool')
               .app(pos(node.pos), RUNTIME.pyretTrue);
           } else {
-            return RUNTIME.getField(ast, 's_bool')
+            return RUNTIME.getField(ast, 's-bool')
               .app(pos(node.pos), RUNTIME.pyretFalse);
           }
         },
         'num-expr': function(node) {
           // (num-expr n)
-          return RUNTIME.getField(ast, 's_num')
+          return RUNTIME.getField(ast, 's-num')
             .app(pos(node.pos), number(node.kids[0]));
         },
         'string-expr': function(node) {
-          return RUNTIME.getField(ast, 's_str')
+          return RUNTIME.getField(ast, 's-str')
             .app(pos(node.pos), string(node.kids[0]));
         },
         'ann-field': function(node) {
           // (ann-field n COLON ann) or (ann-field n COLONCOLON ann)
-          return RUNTIME.getField(ast, 'a_field')
+          return RUNTIME.getField(ast, 'a-field')
             .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
         },
         'name-ann': function(node) {
           if (node.kids[0].value === "Any") {
-            return RUNTIME.getField(ast, 'a_any');
+            return RUNTIME.getField(ast, 'a-any');
           } else {
-            return RUNTIME.getField(ast, 'a_name')
+            return RUNTIME.getField(ast, 'a-name')
               .app(pos(node.pos), symbol(node.kids[0]));
           }
         },
         'record-ann': function(node) {
           // (record-ann LBRACE fields ... RBRACE)
-          return RUNTIME.getField(ast, 'a_record')
+          return RUNTIME.getField(ast, 'a-record')
             .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'arrow-ann': function(node) {
           // (arrow-ann LPAREN args ... THINARROW result RPAREN)
-          return RUNTIME.getField(ast, 'a_arrow')
+          return RUNTIME.getField(ast, 'a-arrow')
             .app(pos(node.pos), makeList(node.kids.slice(1, -3).map(tr)), tr(node.kids[node.kids.length - 2]));
         },
         'app-ann': function(node) {
           // (app-ann ann LANGLE args ... RANGLE)
-          return RUNTIME.getField(ast, 'a_app')
+          return RUNTIME.getField(ast, 'a-app')
             .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
         },
         'pred-ann': function(node) {
           // (pred-ann ann LPAREN exp RPAREN)
-          return RUNTIME.getField(ast, 'a_pred')
+          return RUNTIME.getField(ast, 'a-pred')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
-          return RUNTIME.getField(ast, 'a_dot')
+          return RUNTIME.getField(ast, 'a-dot')
             .app(pos(node.pos), symbol(node.kids[0]), symbol(node.kids[2]));
         },
         'ann': function(node) {
