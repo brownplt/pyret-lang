@@ -11,10 +11,8 @@ provide {
   break: break,
   concat: concat,
   nest: nest,
-  ifFlat: ifFlat,
+  if-flat: if-flat,
   group: group,
-  nesting: nesting,
-  column: column,
   flow: flow,
   flow-map: flow-map,
   vert: vert,
@@ -43,139 +41,158 @@ provide {
   commabreak: commabreak
 } end
 
-
 data PPrintDoc:
-  | mt-doc
-  | str(s :: String)
-  | hardline
-  | blank(n :: Number)
-  | concat(fst :: PPrintDoc, snd :: PPrintDoc)
-  | nest(indent :: Number, d :: PPrintDoc)
-  | ifFlat(flat :: PPrintDoc, vert :: PPrintDoc)
-  | column(func :: (Number -> PPrintDoc))
-  | nesting(func :: (Number -> PPrintDoc))
-  | group(d :: PPrintDoc)
+  | mt-doc(flat-width :: Number, has-hardline :: Bool)
+  | str(s :: String, flat-width :: Number, has-hardline :: Bool)
+  | hardline(flat-width :: Number, has-hardline :: Bool)
+  | blank(n :: Number, flat-width :: Number, has-hardline :: Bool)
+  | concat(fst :: PPrintDoc, snd :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
+  | nest(indent :: Number, d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
+  | if-flat(flat :: PPrintDoc, vert :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
+  | align(d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
+  | align-spaces(n :: Number, flat-width :: Number, has-hardline :: Bool)
+  | group(d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
 sharing:
   _plus(self, other):
     if is-mt-doc(self): other
     else if is-mt-doc(other): self
-    else: concat(self, other)
+    else if is-concat(self):
+      self.fst + (self.snd + other)
+    else:
+      if self.has-hardline or other.has-hardline: concat(self, other, 0, true)
+      else: concat(self, other, self.flat-width + other.flat-width, false)
+      end
     end
   end,
   tostring(self):
     cases(PPrintDoc) self:
-      | mt-doc => "EmptyDoc"
-      | str(s) => "Str('" + s + "')"
-      | hardline => "CRLF"
-      | blank(n) => "Blank(" + tostring(n) + ")"
-      | concat(fst, snd) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
-      | nest(indent, d) => "Nest(" + tostring(indent) + ", " + tostring(d) + ")"
-      | ifFlat(flat, _vert) => "IfFlat(" + tostring(flat) + ", " + tostring(_vert) + ")"
-      | group(d) => "Group(" + tostring(d) + ")"
-      | column(_) => "Column(<func>)"
-      | nesting(_) => "Nesting(<func>)"
+      | mt-doc(_, _) => "EmptyDoc"
+      | str(s, _, _) => "Str('" + s + "')"
+      | hardline(_, _) => "CRLF"
+      | blank(n, _, _) => "Blank(" + tostring(n) + ")"
+      | concat(fst, snd, _, _) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
+      | nest(indent, d, _, _) => "Nest(" + tostring(indent) + ", " + tostring(d) + ")"
+      | if-flat(flat, vert, _, _) => "IfFlat(" + tostring(flat) + ", " + tostring(vert) + ")"
+      | group(d, _, _) => "Group(" + tostring(d) + ", " + ")"
+      | align(d, _, _) => "Align(" + tostring(d) + ")"
+      | align-spaces(n, _, _) => "AlignSpaces(" + tostring(n) + ")"
     end
   end,
-  #  tostring(self): self.pretty(100) end,
-  pretty(self, width :: Number) -> List:
-    var output = [[]]
-    var indent = 0
-    var curcol = 0
-    var is-flat = true
-    var in-group = false
-    fun blanks(n :: Number): string-repeat(" ", n) end
-    fun gen-output():
-      (for list.map(lines from output):
-          for list.fold(acc from "", piece from lines):
-            piece + acc
-          end
-        end).reverse()
-    end
-    fun emit_string(s :: String, len :: Number):
-      if (in-group or is-flat) and ((curcol + len) >= width):
-        "String doesn't fit"
-      else:
-        output := (s^list.link(output.first))^list.link(output.rest)
-        curcol := curcol + len
-        nothing
-      end
-    end
-    fun emit_blanks(n :: Number):
-      emit_string(blanks(n), n)
-    end
-    fun emit_newline():
-      output := []^list.link(output)
-      curcol := 0
-      emit_blanks(indent)
-    end
-    fun run(pdoc):
-      if is-mt-doc(pdoc): emit_string("", 0)
-      else if is-str(pdoc): emit_string(pdoc.s, string-length(pdoc.s))
-      else if is-hardline(pdoc):
-        if is-flat: "Hardline isn't flat"
-        else: emit_newline()
-        end
-      else if is-blank(pdoc): emit_blanks(pdoc.n)
-      else if is-ifFlat(pdoc):
-        if is-flat: run(pdoc.flat)
-        else: run(pdoc.vert)
-        end
-      else if is-concat(pdoc):
-        first = run(pdoc.fst)
-        if is-nothing(first):
-          run(pdoc.snd)
-        else:
-          first
-        end
-      else if is-nest(pdoc):
-        cur-indent = indent
-        indent := indent + pdoc.indent
-        d = run(pdoc.d)
-        if is-nothing(d):
-          indent := cur-indent
-          nothing
-        else:
-          d
-        end
-      else if is-group(pdoc):
-        if not in-group:
-          cur-indent = indent
-          cur-column = curcol
-          cur-flat = is-flat
-          cur-output = output
-          in-group := true
-          is-flat := true
-          d-flat = run(pdoc.d)
-          if is-nothing(d-flat):
-            in-group := false
-            is-flat := cur-flat
-            d-flat
-          else:
-            indent := cur-indent
-            curcol := cur-column
-            output := cur-output
-            is-flat := false
-            in-group := false
-            d-vert = run(pdoc.d)
-            if is-nothing(d-vert):
-              is-flat := false
-              in-group := false
-              nothing
-            else:
-              d-vert
-            end
-          end
-        else: run(pdoc.d)
-        end
-      else if is-column(pdoc): run(pdoc.func(curcol))
-      else if is-nesting(pdoc): run(pdoc.func(indent))
-      else: raise("Unknown case in pprint")
-      end
-    end
-    run(self)
-    gen-output()
+  pretty(self, width):
+    format(width, self)
   end
 end
+data Item:
+  | item(indent :: Number, is-flat :: Boolean, d :: PPrintDoc)
+end
+# Not needed at the moment...
+# fun fits(width :: Number, items :: List<Item>) -> Bool:
+#   if width < 0: false
+#   else if is-empty(items): true
+#   else: 
+#     first = items.first
+#     i = first.indent
+#     m = first.is-flat
+#     cases(PPrintDoc) first.d:
+#       | mt-doc(_, _) => fits(width, items.rest)
+#       | str(s, flat-width, _) => fits(width - flat-width, items.rest)
+#       | hardline(_, _) => true
+#       | blank(n, _, _) => fits(width - n, items.rest)
+#       | concat(fst, snd, _, _) => fits(width, [item(i, m, fst), item(i, m, snd)] + items.rest)
+#       | nest(_, d, _, _) => fits(width, [item(i, m, d)] + items.rest)
+#       | align(d, _, _) => fits(width, [item(i, m, d)] + items.rest)
+#       | if-flat(flat, vert, _, _) =>
+#         if m: fits(width, [item(i, m, flat)] + items.rest)
+#         else: fits(width, [item(i, m, vert)] + items.rest)
+#         end
+#       | align-spaces(n, _, _) =>
+#         if m: fits(width, items.rest)
+#         else: fits(width - n, items.rest)
+#         end
+#       | group(d, flat-width, has-hardline) =>
+#         if has-hardline: fits(width, [item(i, false, d)] + items.rest)
+#         else: fits(width - flat-width, items.rest)
+#         end
+#     end
+#   end
+# end
+fun format(width, doc :: PPrintDoc):
+  var output = [[]]
+  fun emit-text(s):
+    output := [[s] + output.first] + output.rest
+  end
+  fun emit-spaces(n):
+    emit-text(string-repeat(" ", n))
+  end
+  fun emit-newline(i):
+    output := [[string-repeat(" ", i)]] + output
+  end
+  fun gen-output():
+    for list.fold(lines from [], line from output):
+      l = for list.fold(acc from "", piece from line):
+        piece + acc
+      end
+      [l] + lines
+    end
+  end
+  fun process(column :: Number, items :: List<Item>) -> Nothing:
+    if is-empty(items): nothing
+    else:
+      first = items.first
+      i = first.indent
+      m = first.is-flat
+      cases(PPrintDoc) first.d:
+        | mt-doc(_, _) => process(column, items.rest)
+        | concat(fst, snd, _, _) => process(column, [item(i, m, fst), item(i, m, snd)] + items.rest)
+        | str(s, flat-width, _) =>
+          emit-text(s)
+          process(column + flat-width, items.rest)
+        | blank(n, _, _) =>
+          emit-spaces(n)
+          process(column + n, items.rest)
+        | align(d, _, _) => process(column, [item(column, m, d)] + items.rest)
+        | nest(n, d, _, _) => process(column, [item(i + n, m, d)] + items.rest)
+        | hardline(_, _) =>
+          if m: raise("Impossible for HardLine to be flat")
+          else:
+            emit-newline(i)
+            process(i, items.rest)
+          end
+        | if-flat(flat, vert, _, _) =>
+          process(column, [item(i, m, if m: flat else: vert end)] + items.rest)
+        | align-spaces(n, _, _) =>
+          if m: process(column, items.rest)
+          else:
+            emit-spaces(n)
+            process(column + n, items.rest)
+          end
+        | group(d, flat-width, has-hardline) =>
+          if m: process(column, [item(i, true, d)] + items.rest)
+          else if has-hardline: process(column, [item(i, false, d)] + items.rest)
+          else if (width - column) >= flat-width:
+            # This used to check whether items.rest fits into the remaining space,
+            # but that precludes implementing "flowing" text, which is more important.
+            # If we need both behaviors, I guess I can add a flow-group...
+            process(column, [item(i, true, d)] + items.rest)
+          else:
+            process(column, [item(i, false, d)] + items.rest)
+          end
+      end
+    end
+  end
+  process(0, [item(0, false, group(doc, doc.flat-width, doc.has-hardline))])
+  gen-output()
+end
+
+shadow mt-doc = mt-doc(0, false)
+shadow hardline = hardline(0, true)
+shadow align = fun(d): align(d, d.flat-width, d.has-hardline) end
+shadow group = fun(d): group(d, d.flat-width, d.has-hardline) end
+shadow if-flat = fun(flat, vert): if-flat(flat, vert, flat.flat-width, flat.has-hardline) end
+shadow nest = fun(n, d): nest(n, d, d.flat-width, d.has-hardline) end
+shadow concat = fun(fst, snd): fst + snd end
+shadow blank = fun(n): blank(n, n, false) end
+shadow str = fun(s): str(s, string-length(s), false) end
 
 fun number(n :: Number): str(tostring(n)) end
 lparen = str("(")
@@ -187,11 +204,11 @@ rbrack = str("]")
 langle = str("<")
 rangle = str(">")
 comma = str(",")
-fun break(n): ifFlat(blank(n), hardline) end
+fun break(n): if-flat(blank(n), hardline) end
 commabreak = comma + break(1)
 
 fun flow-map(sep, f, items):
-  for list.fold(acc from mt-doc, item from items):
+  for list.fold(acc from mt-doc, shadow item from items):
     if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
@@ -204,10 +221,6 @@ str-squote = str("'")
 str-dquote = str('"')
 fun dquote(s): group(str-dquote + s + str-dquote) end
 fun squote(s): group(str-squote + s + str-squote) end
-
-fun align(d):
-  column(fun(col): nesting(fun(indent): nest(col - indent, d) end) end)
-end
 
 fun hang(i, d): align(nest(i, d)) end
 fun prefix(n, b, x, y): group(x + nest(n, break(b) + y)) end
@@ -249,9 +262,56 @@ end
 check:
   test-words = ["This", "is", "a", "sentence", "with", "eight", "words"].map(str)
   test = flow(test-words)
+
   test.pretty(40) is ["This is a sentence with eight words"]
   test.pretty(30) is ["This is a sentence with eight", "words"]
   test.pretty(20) is ["This is a sentence", "with eight words"]
-  test.pretty(10) is ["This is a", "sentence", "with", "eight", "words"]
-end
+  test.pretty(10) is ["This is a", "sentence", "with eight", "words"]
 
+  fun opt-break(x, y):
+    if is-empty(x): y
+    else if is-empty(y): x
+    else: x + (break(1) + y)
+    end
+  end
+  fun binop(left, op, right):
+    group(nest(2,
+        opt-break(group(opt-break(str(left), str(op))), str(right))))
+  end
+  fun ifthen(c, t, f):
+    group(
+      group(nest(2, opt-break(str("if"), c))) ^ opt-break(
+        group(nest(2, opt-break(str("then"), t))) ^ opt-break(
+          group(nest(2, opt-break(str("else"), f))))))
+  end
+  ifthenelse = ifthen(binop("a", "==", "b"), binop("a", "<<", "2"), binop("a", "+", "b"))
+  ifthenelse.pretty(32) is ["if a == b then a << 2 else a + b"]
+  ifthenelse.pretty(15) is ["if a == b", "then a << 2", "else a + b"]
+  ifthenelse.pretty(10) is ["if a == b", "then", "  a << 2", "else a + b"]
+  ifthenelse.pretty(8) is
+  [ "if",
+    "  a == b",
+    "then",
+    "  a << 2",
+    "else",
+    "  a + b" ]
+  ifthenelse.pretty(7) is
+  [ "if",
+    "  a ==",
+    "    b",
+    "then",
+    "  a <<",
+    "    2",
+    "else",
+    "  a + b" ]
+  ifthenelse.pretty(6) is
+  [ "if",
+    "  a ==",
+    "    b",
+    "then",
+    "  a <<",
+    "    2",
+    "else",
+    "  a +",
+    "    b" ]
+end
