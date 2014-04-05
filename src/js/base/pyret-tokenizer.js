@@ -38,6 +38,10 @@ define(["../../../lib/jglr/jglr"], function(E) {
     this.parenIsForExp = true; // initialize this at the beginning of file to true
   }
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
+  Tokenizer.prototype.tokenizeFrom = function(str) {
+    GenTokenizer.prototype.tokenizeFrom.call(this, str);
+    this.parenIsForExp = true;
+  }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
     if (tok_type === "STRING") s = fixEscapes(s);
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
