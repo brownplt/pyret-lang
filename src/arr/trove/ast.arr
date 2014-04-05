@@ -97,11 +97,19 @@ data Name:
     tostring(self): self.to-compiled() end,
     toname(self): self.base end,
     key(self): "atom#" + self.base + tostring(self.serial) end
+sharing:
+  _lessthan(self, other): self.key() < other.key() end,
+  _lessequal(self, other): self.key() <= other.key() end,
+  _greaterthan(self, other): self.key() > other.key() end,
+  _greaterequal(self, other): self.key() >= other.key() end
 end
 
 fun MakeName(start):
   var count = start
   fun atom(base):
+    when not is-string(base):
+      raise("Got a non-string in make-atom: " + torepr(base))
+    end
     count := 1 + count
     s_atom(base, count)
   end
@@ -118,6 +126,8 @@ fun MakeName(start):
   }
 
 end
+
+global-names = MakeName(0)
 
 fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
@@ -640,7 +650,8 @@ data Bind:
         else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
         end
       end
-    end
+    end,
+    label(self): "s_bind" end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
