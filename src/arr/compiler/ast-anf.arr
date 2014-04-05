@@ -36,7 +36,7 @@ data AProg:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
-        PP.flow_map(PP.hardline, fun(i): i.tosource() end, self.imports)
+        PP.flow-map(PP.hardline, fun(i): i.tosource() end, self.imports)
           + PP.hardline
           + self.body.tosource()
         )
@@ -514,7 +514,7 @@ fun freevars-e(expr :: AExpr) -> Set<Name>:
 where:
   d = dummy-loc
   freevars-e(
-      a-let(d, a-bind(d, "x", A.a_blank), a-val(a-num(d, 4)),
+      a-let(d, a-bind(d, "x", A.a-blank), a-val(a-num(d, 4)),
         a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
 end
 

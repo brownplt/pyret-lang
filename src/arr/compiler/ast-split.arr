@@ -121,7 +121,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
         | else =>
           n = names.make-atom("var-bind")
           ast-split-expr(
-            N.a-let(l, N.a-bind(l, n, A.a_blank), e,
+            N.a-let(l, N.a-bind(l, n, A.a-blank), e,
               N.a-var(l, b, N.a-val(N.a-id(l, n)), body)))
       end
     | a-if(l, cond, consq, alt) =>
@@ -136,7 +136,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
       cases(N.ALettable) e:
         | a-app(l, f, args) =>
           name = names.make-atom("solo-app")
-          ast-split-expr(N.a-let(l, N.a-bind(l, name, A.a_blank), e, N.a-lettable(N.a-val(N.a-id(l, name)))))
+          ast-split-expr(N.a-let(l, N.a-bind(l, name, A.a-blank), e, N.a-lettable(N.a-val(N.a-id(l, name)))))
         | else =>
           let-result = ast-split-lettable(e)
           split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
@@ -167,7 +167,7 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
 end
 
 fun param(l, name):
-  N.a-bind(l, name, A.a_blank)
+  N.a-bind(l, name, A.a-blank)
 end
 
 check:
@@ -180,14 +180,14 @@ check:
     res = ast-split-expr(e)
     split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body), N.freevars-e(e))
   end
-  b = A.a_blank
+  b = A.a-blank
   d = N.dummy-loc
   n = A.global-names.make-atom
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
   split-strip(e1) is split-result-int-e(concat-empty, e1, list-set([]))
 
   x = n("x")
-  e2 = N.a-let(d, N.a-bind(d, x, A.a_blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
+  e2 = N.a-let(d, N.a-bind(d, x, A.a-blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
   e2-split = split-strip(e2)
   e2-split.helpers.to-list() is []
   e2-split.body is e2
@@ -195,7 +195,7 @@ check:
 
   v = n("v")
   f = n("f")
-  e3 = N.a-let(d, N.a-bind(d, v, A.a_blank), N.a-app(d, N.a-id(d, f), [N.a-num(d, 5)]),
+  e3 = N.a-let(d, N.a-bind(d, v, A.a-blank), N.a-app(d, N.a-id(d, f), [N.a-num(d, 5)]),
     N.a-lettable(N.a-val(N.a-id(d, v))))
   e3-split = split-strip(e3)
   e3-split.helpers.to-list().length() is 1

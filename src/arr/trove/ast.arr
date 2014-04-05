@@ -41,6 +41,7 @@ str-except = PP.str("except")
 str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
+str-graph = PP.str("graph:")
 str-if = PP.str("if ")
 str-ifcolon = PP.str("if:")
 str-import = PP.str("import")
@@ -66,7 +67,7 @@ str-where = PP.str("where:")
 str-with = PP.str("with:")
 
 data Name:
-  | s_underscore with:
+  | s-underscore with:
     to-compiled-source(self): raise("Cannot compile underscores") end,
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
@@ -74,7 +75,7 @@ data Name:
     toname(self): raise("Cannot get name for underscore") end,
     key(self): "underscore#" end
 
-  | s_name(s :: String) with:
+  | s-name(s :: String) with:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
@@ -82,7 +83,7 @@ data Name:
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
-  | s_global(s :: String) with:
+  | s-global(s :: String) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
@@ -90,7 +91,7 @@ data Name:
     toname(self): self.s end,
     key(self): "global#" + self.s end
 
-  | s_atom(base :: String, serial :: Number) with:
+  | s-atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
     tosource(self): PP.str(self.to-compiled()) end,
@@ -111,17 +112,17 @@ fun MakeName(start):
       raise("Got a non-string in make-atom: " + torepr(base))
     end
     count := 1 + count
-    s_atom(base, count)
+    s-atom(base, count)
   end
   {
-    s_underscore: s_underscore,
-    s_name: s_name,
-    s_global: s_global,
+    s-underscore: s-underscore,
+    s-name: s-name,
+    s-global: s-global,
     make-atom: atom,
-    is-s_underscore: is-s_underscore,
-    is-s_name: is-s_name,
-    is-s_global: is-s_global,
-    is-s_atom: is-s_atom,
+    is-s-underscore: is-s-underscore,
+    is-s-name: is-s-name,
+    is-s-global: is-s-global,
+    is-s-atom: is-s-atom,
     Name: Name
   }
 
@@ -129,7 +130,7 @@ end
 
 global-names = MakeName(0)
 
-fun funlam_tosource(funtype, name, params, args :: List<Bind>,
+fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
   typarams =
     if is-nothing(params): PP.mt-doc
@@ -146,7 +147,7 @@ fun funlam_tosource(funtype, name, params, args :: List<Bind>,
     else: ftype + PP.str(" " + name)
     end
   fann =
-    if is-a_blank(ann) or is-nothing(ann): PP.mt-doc
+    if is-a-blank(ann) or is-nothing(ann): PP.mt-doc
     else: break-one + str-arrowspace + ann.tosource()
     end
   header = PP.group(fname + arg-list + fann + str-colon)
@@ -166,11 +167,11 @@ fun funlam_tosource(funtype, name, params, args :: List<Bind>,
 end
 
 data Program:
-  | s_program(l :: Loc, _provide :: Provide, imports :: List<Import>, block :: Expr) with:
-    label(self): "s_program" end,
+  | s-program(l :: Loc, _provide :: Provide, imports :: List<Import>, block :: Expr) with:
+    label(self): "s-program" end,
     tosource(self):
       PP.group(
-        PP.flow_map(PP.hardline, fun(i): i.tosource() end, self.imports)
+        PP.flow-map(PP.hardline, _.tosource(), self.imports)
           + PP.hardline
           + self.block.tosource()
         )
@@ -182,8 +183,8 @@ sharing:
 end
 
 data Import:
-  | s_import(l :: Loc, file :: ImportType, name :: Name) with:
-    label(self): "s_import" end,
+  | s-import(l :: Loc, file :: ImportType, name :: Name) with:
+    label(self): "s-import" end,
     tosource(self):
       PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
@@ -194,17 +195,17 @@ sharing:
 end
 
 data Provide:
-  | s_provide(l :: Loc, block :: Expr) with:
-    label(self): "s_provide" end,
+  | s-provide(l :: Loc, block :: Expr) with:
+    label(self): "s-provide" end,
     tosource(self):
       PP.soft-surround(INDENT, 1, str-provide,
         self.block.tosource(), str-end)
     end
-  | s_provide_all(l :: Loc) with:
-    label(self): "s_provide_all" end,
+  | s-provide-all(l :: Loc) with:
+    label(self): "s-provide-all" end,
     tosource(self): str-provide-star end
-  | s_provide_none(l :: Loc) with:
-    label(self): "s_provide_none" end,
+  | s-provide-none(l :: Loc) with:
+    label(self): "s-provide-none" end,
     tosource(self): PP.mt-doc end
 sharing:
   visit(self, visitor):
@@ -213,11 +214,11 @@ sharing:
 end
 
 data ImportType:
-  | s_file_import(file :: String) with:
-    label(self): "s_file_import" end,
+  | s-file-import(file :: String) with:
+    label(self): "s-file-import" end,
     tosource(self): PP.dquote(PP.str(self.file)) end
-  | s_const_import(module :: String) with:
-    label(self): "s_const_import" end,
+  | s-const-import(module :: String) with:
+    label(self): "s-const-import" end,
     tosource(self): PP.str(self.module) end
 sharing:
   visit(self, visitor):
@@ -226,16 +227,20 @@ sharing:
 end
 
 data Hint:
-  | h_use_loc(l :: Loc) with:
+  | h-use-loc(l :: Loc) with:
     tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data LetBind:
-  | s_let_bind(l :: Loc, b :: Bind, value :: Expr) with:
+  | s-let-bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s_var_bind(l :: Loc, b :: Bind, value :: Expr) with:
+  | s-var-bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -246,7 +251,7 @@ sharing:
 end
 
 data LetrecBind:
-  | s_letrec_bind(l :: Loc, b :: Bind, value :: Expr) with:
+  | s-letrec-bind(l :: Loc, b :: Bind, value :: Expr) with:
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -257,45 +262,46 @@ sharing:
 end
 
 data Expr:
-  | s_let_expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
-    label(self): "s_let" end,
+  | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
+    label(self): "s-let" end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-let, str-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
           + str-colon
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
-  | s_letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s_letrec" end,
+  | s-letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
+    label(self): "s-letrec" end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-letrec, str-letrec + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
           + str-colon
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
-  | s_hint_exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
-    label(self): "s_hint_exp" end,
+  | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
+    label(self): "s-hint-exp" end,
     tosource(self):
-      PP.flow_map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
+      PP.flow-map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
-  | s_instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
-    label(self): "s_instantiate" end,
+  | s-instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
+    label(self): "s-instantiate" end,
     tosource(self):
       PP.group(self.expr.tosource() +
         PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
             self.params.map(_.tosource)))
     end
-  | s_block(l :: Loc, stmts :: List<Expr>) with:
-    label(self): "s_block" end,
+  | s-block(l :: Loc, stmts :: List<Expr>) with:
+    label(self): "s-block" end,
     tosource(self):
-      PP.flow_map(PP.hardline, fun(s): s.tosource() end, self.stmts) end
-  | s_user_block(l :: Loc, body :: Expr) with:
-    label(self): "s_user_block" end,
+      PP.flow-map(PP.hardline, _.tosource(), self.stmts)
+    end
+  | s-user-block(l :: Loc, body :: Expr) with:
+    label(self): "s-user-block" end,
     tosource(self):
       PP.surround(INDENT, 1, str-block, self.body.tosource(), str-end)
     end
-  | s_fun(
+  | s-fun(
       l :: Loc,
       name :: String,
       params :: List<String>, # Type parameters
@@ -305,69 +311,80 @@ data Expr:
       body :: Expr,
       _check :: Option<Expr>
     ) with:
-      label(self): "s_fun" end,
+      label(self): "s-fun" end,
     tosource(self):
-      funlam_tosource(str-fun,
+      funlam-tosource(str-fun,
         self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
-  | s_var(l :: Loc, name :: Bind, value :: Expr) with:
-    label(self): "s_var" end,
+  | s-var(l :: Loc, name :: Bind, value :: Expr) with:
+    label(self): "s-var" end,
     tosource(self):
       str-var
         + PP.group(PP.nest(INDENT, self.name.tosource()
             + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s_let(l :: Loc, name :: Bind, value :: Expr) with:
-    label(self): "s_let" end,
+  | s-let(l :: Loc, name :: Bind, value :: Expr) with:
+    label(self): "s-let" end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s_graph(l :: Loc, bindings :: List<is-s_let>) with:
-    label(self): "s_graph" end,
-  | s_when(l :: Loc, test :: Expr, block :: Expr) with:
-    label(self): "s_when" end,
+  | s-graph(l :: Loc, bindings :: List<is-s-let>) with:
+    label(self): "s-graph" end,
+    tosource(self):
+      PP.soft-surround(0, 1, # NOTE: Not indented
+        str-graph,
+        PP.flow-map(PP.hardline, _.tosource(), self.bindings),
+        str-end)
+    end
+  | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
+    label(self): "s-contract" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+    end
+  | s-when(l :: Loc, test :: Expr, block :: Expr) with:
+    label(self): "s-when" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
         str-when + PP.parens(self.test.tosource()) + str-colon,
         self.block.tosource(),
         str-end)
     end
-  | s_assign(l :: Loc, id :: Name, value :: Expr) with:
-    label(self): "s_assign" end,
+  | s-assign(l :: Loc, id :: Name, value :: Expr) with:
+    label(self): "s-assign" end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | s_if_pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
-    label(self): "s_if_pipe" end,
+  | s-if-pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
+    label(self): "s-if-pipe" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, str-ifcolon + str-space + str-end,
         PP.group(str-ifcolon), break-one, str-end,
         self.branches.map(fun(b): PP.group(b.tosource()) end))
     end
-  | s_if_pipe_else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
-    label(self): "s_if_pipe_else" end,
+  | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
+    label(self): "s-if-pipe-else" end,
     tosource(self):
       body = PP.separate(break-one, self.branches.map(fun(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-pipespace + str-elsecolon + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(str-ifcolon), body, str-end)
     end
-  | s_if(l :: Loc, branches :: List<IfBranch>) with:
-    label(self): "s_if" end,
+  | s-if(l :: Loc, branches :: List<IfBranch>) with:
+    label(self): "s-if" end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
         self.branches.map(fun(b): b.tosource() end))
       PP.group(branches + break-one + str-end)
     end
-  | s_if_else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
-    label(self): "s_if_else" end,
+  | s-if-else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
+    label(self): "s-if-else" end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
         self.branches.map(fun(b): b.tosource() end))
       _else = str-elsecolon + PP.nest(INDENT, break-one + self._else.tosource())
       PP.group(branches + break-one + _else + break-one + str-end)
     end
-  | s_cases(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
-    label(self): "s_cases" end,
+  | s-cases(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
+    label(self): "s-cases" end,
     tosource(self):
       header = str-cases + PP.parens(self.type.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -375,8 +392,8 @@ data Expr:
         PP.group(header), break-one, str-end,
         self.branches.map(fun(b): PP.group(b.tosource()) end))
     end
-  | s_cases_else(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
-    label(self): "s_cases_else" end,
+  | s-cases-else(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
+    label(self): "s-cases-else" end,
     tosource(self):
       header = str-cases + PP.parens(self.type.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -384,8 +401,8 @@ data Expr:
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
-  | s_try(l :: Loc, body :: Expr, id :: Bind, _except :: Expr) with:
-    label(self): "s_try" end,
+  | s-try(l :: Loc, body :: Expr, id :: Bind, _except :: Expr) with:
+    label(self): "s-try" end,
     tosource(self):
       _try = str-try + break-one
         + PP.nest(INDENT, self.body.tosource()) + break-one
@@ -393,12 +410,12 @@ data Expr:
         + PP.nest(INDENT, self._except.tosource()) + break-one
       PP.group(_try + _except + str-end)
     end
-  | s_op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+  | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
-    label(self): "s_op" end,
+    label(self): "s-op" end,
     tosource(self):
       fun collect-same-operands(exp):
-        if is-s_op(exp) and (exp.op == self.op):
+        if is-s-op(exp) and (exp.op == self.op):
           collect-same-operands(exp.left) + collect-same-operands(exp.right)
         else:
           [exp]
@@ -419,15 +436,15 @@ data Expr:
           end
       end
     end
-  | s_check_test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+  | s-check-test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
-  | s_not(l :: Loc, expr :: Expr) with:
-    label(self): "s_not" end,
+  | s-not(l :: Loc, expr :: Expr) with:
+    label(self): "s-not" end,
     tosource(self): PP.nest(INDENT, PP.flow([str-not, self.expr.tosource()])) end
-  | s_paren(l :: Loc, expr :: Expr) with:
-    label(self): "s_paren" end,
+  | s-paren(l :: Loc, expr :: Expr) with:
+    label(self): "s-paren" end,
     tosource(self): PP.parens(self.expr.tosource()) end
-  | s_lam(
+  | s-lam(
       l :: Loc,
       params :: List<String>, # Type parameters
       args :: List<Bind>, # Value parameters
@@ -436,12 +453,12 @@ data Expr:
       body :: Expr,
       _check :: Option<Expr>
     ) with:
-    label(self): "s_lam" end,
+    label(self): "s-lam" end,
     tosource(self):
-      funlam_tosource(str-fun,
+      funlam-tosource(str-fun,
         nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
-  | s_method(
+  | s-method(
       l :: Loc,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
@@ -449,107 +466,107 @@ data Expr:
       body :: Expr,
       _check :: Option<Expr>
     ) with:
-    label(self): "s_method" end,
+    label(self): "s-method" end,
     tosource(self):
-      funlam_tosource(str-method,
+      funlam-tosource(str-method,
         nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
-  | s_extend(l :: Loc, super :: Expr, fields :: List<Member>) with:
-    label(self): "s_extend" end,
+  | s-extend(l :: Loc, super :: Expr, fields :: List<Member>) with:
+    label(self): "s-extend" end,
     tosource(self):
       PP.group(self.super.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
-  | s_update(l :: Loc, super :: Expr, fields :: List<Member>) with:
-    label(self): "s_update" end,
-  | s_obj(l :: Loc, fields :: List<Member>) with:
-    label(self): "s_obj" end,
+  | s-update(l :: Loc, super :: Expr, fields :: List<Member>) with:
+    label(self): "s-update" end,
+  | s-obj(l :: Loc, fields :: List<Member>) with:
+    label(self): "s-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | s_list(l :: Loc, values :: List<Expr>) with:
-    label(self): "s_list" end,
+  | s-list(l :: Loc, values :: List<Expr>) with:
+    label(self): "s-list" end,
     tosource(self):
       PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
         self.values.map(fun(v): v.tosource() end))
     end
-  | s_app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
-    label(self): "s_app" end,
+  | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
+    label(self): "s-app" end,
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
-  | s_prim_app(l :: Loc, _fun :: String, args :: List<Expr>) with:
-    label(self): "s_prim_app" end,
+  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
+    label(self): "s-prim-app" end,
     tosource(self):
       PP.group(PP.str(self._fun)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
-  | s_prim_val(l :: Loc, name :: String) with:
-    label(self): "s_prim_val" end,
+  | s-prim-val(l :: Loc, name :: String) with:
+    label(self): "s-prim-val" end,
     tosource(self): PP.str(self.name) end
-  | s_left_app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
-    label(self): "s_left_app" end,
+  | s-left-app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
+    label(self): "s-left-app" end,
     tosource(self):
       PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + str-period + self._fun.tosource())
           + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
-  | s_id(l :: Loc, id :: Name) with:
-    label(self): "s_id" end,
+  | s-id(l :: Loc, id :: Name) with:
+    label(self): "s-id" end,
     tosource(self): self.id.tosource() end
-  | s_id_var(l :: Loc, id :: Name) with:
-    label(self): "s_id_var" end,
+  | s-id-var(l :: Loc, id :: Name) with:
+    label(self): "s-id-var" end,
     tosource(self): PP.str("!") + self.id.tosource() end
-  | s_id_letrec(l :: Loc, id :: Name) with:
-    label(self): "s_id_letrec" end,
+  | s-id-letrec(l :: Loc, id :: Name) with:
+    label(self): "s-id-letrec" end,
     tosource(self): PP.str("~") + self.id.tosource() end
-  | s_undefined(l :: Loc) with:
-    label(self): "s_undefined" end,
+  | s-undefined(l :: Loc) with:
+    label(self): "s-undefined" end,
     tosource(self): PP.str("undefined") end
-  | s_num(l :: Loc, n :: Number) with:
-    label(self): "s_num" end,
+  | s-num(l :: Loc, n :: Number) with:
+    label(self): "s-num" end,
     tosource(self): PP.number(self.n) end
-  | s_bool(l :: Loc, b :: Bool) with:
-    label(self): "s_bool" end,
+  | s-bool(l :: Loc, b :: Bool) with:
+    label(self): "s-bool" end,
     tosource(self): PP.str(tostring(self.b)) end
-  | s_str(l :: Loc, s :: String) with:
-    label(self): "s_str" end,
+  | s-str(l :: Loc, s :: String) with:
+    label(self): "s-str" end,
     tosource(self): PP.str(torepr(self.s)) end
-  | s_dot(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s_dot" end,
+  | s-dot(l :: Loc, obj :: Expr, field :: String) with:
+    label(self): "s-dot" end,
     tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
-  | s_get_bang(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s_get_bang" end,
+  | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
+    label(self): "s-get-bang" end,
     tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | s_bracket(l :: Loc, obj :: Expr, field :: Expr) with:
-    label(self): "s_bracket" end,
+  | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
+    label(self): "s-bracket" end,
     tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
-  | s_colon(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s_colon" end,
+  | s-colon(l :: Loc, obj :: Expr, field :: String) with:
+    label(self): "s-colon" end,
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
-  | s_colon_bracket(l :: Loc, obj :: Expr, field :: Expr) with:
-    label(self): "s_colon_bracket" end,
+  | s-colon-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
+    label(self): "s-colon-bracket" end,
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
-  | s_data(
+  | s-data(
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
       ) with:
-    label(self): "s_data" end,
+    label(self): "s-data" end,
     tosource(self):
-      fun optional_section(lbl, section):
+      fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
@@ -561,27 +578,27 @@ data Expr:
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
-      shared = optional_section(str-sharing,
-        PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
+      shared = optional-section(str-sharing,
+        PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
         | none => PP.mt-doc
-        | some(chk) => optional_section(str-where, chk.tosource())
+        | some(chk) => optional-section(str-where, chk.tosource())
       end
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
-  | s_data_expr(
+  | s-data-expr(
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
     ) with:
-      label(self): "s_data_expr" end,
+      label(self): "s-data-expr" end,
     tosource(self):
-      fun optional_section(lbl, section):
+      fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
         end
@@ -593,23 +610,23 @@ data Expr:
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
         str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
-      shared = optional_section(str-sharing,
-        PP.separate(PP.commabreak, self.shared_members.map(fun(s): s.tosource() end)))
+      shared = optional-section(str-sharing,
+        PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
         | none => PP.mt-doc
-        | some(chk) => optional_section(str-where, chk.tosource())
+        | some(chk) => optional-section(str-where, chk.tosource())
       end
       footer = break-one + str-end
       header + _deriving + PP.group(PP.nest(INDENT, variants) + shared + _check + footer)
     end
-  | s_for(
+  | s-for(
       l :: Loc,
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
       body :: Expr
     ) with:
-      label(self): "s_for" end,
+      label(self): "s-for" end,
     tosource(self):
       header = PP.group(str-for
           + self.iterator.tosource()
@@ -619,12 +636,12 @@ data Expr:
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
-  | s_check(
+  | s-check(
       l :: Loc,
       name :: Option<String>,
       body :: Expr
     ) with:
-      label(self): "s_check" end,
+      label(self): "s-check" end,
     tosource(self):
       cases(Option) self.name:
         | none => PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
@@ -638,9 +655,9 @@ sharing:
 end
 
 data Bind:
-  | s_bind(l :: Loc, shadows :: Bool, id :: Name, ann :: Ann) with:
+  | s-bind(l :: Loc, shadows :: Bool, id :: Name, ann :: Ann) with:
     tosource(self):
-      if is-a_blank(self.ann):
+      if is-a-blank(self.ann):
         if self.shadows: PP.str("shadow ") + self.id.tosource()
         else: self.id.tosource()
         end
@@ -659,15 +676,15 @@ sharing:
 end
 
 data Member:
-  | s_data_field(l :: Loc, name :: Expr, value :: Expr) with:
-    label(self): "s_data_field" end,
+  | s-data-field(l :: Loc, name :: Expr, value :: Expr) with:
+    label(self): "s-data-field" end,
     tosource(self): PP.nest(INDENT, self.name.tosource() + str-colonspace + self.value.tosource()) end,
-  | s_mutable_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
-    label(self): "s_mutable_field" end,
+  | s-mutable-field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
+    label(self): "s-mutable-field" end,
     tosource(self): PP.nest(INDENT, str-mutable + self.name.tosource() + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource()) end,
-  | s_once_field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
-    label(self): "s_once_field" end
-  | s_method_field(
+  | s-once-field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
+    label(self): "s-once-field" end
+  | s-method-field(
       l :: Loc,
       name :: Expr,
       args :: List<Bind>, # Value parameters
@@ -676,13 +693,13 @@ data Member:
       body :: Expr,
       _check :: Option<Expr>
     ) with:
-      label(self): "s_method_field" end,
+      label(self): "s-method-field" end,
     tosource(self):
       name-part = cases(Expr) self.name:
-        | s_str(l, s) => PP.str(s)
+        | s-str(l, s) => PP.str(s)
         | else => self.name.tosource()
       end
-      funlam_tosource(name-part,
+      funlam-tosource(name-part,
         nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
 sharing:
@@ -692,8 +709,8 @@ sharing:
 end
 
 data ForBind:
-  | s_for_bind(l :: Loc, bind :: Bind, value :: Expr) with:
-    label(self): "s_for_bind" end,
+  | s-for-bind(l :: Loc, bind :: Bind, value :: Expr) with:
+    label(self): "s-for-bind" end,
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
@@ -704,16 +721,16 @@ sharing:
 end
 
 data VariantMemberType:
-  | s_normal with: tosource(self): PP.str("") end
-  | s_cyclic with: tosource(self): PP.str("cyclic ") end
-  | s_mutable with: tosource(self): PP.str("mutable ") end
+  | s-normal with: tosource(self): PP.str("") end
+  | s-cyclic with: tosource(self): PP.str("cyclic ") end
+  | s-mutable with: tosource(self): PP.str("mutable ") end
 end
 
 data VariantMember:
-  | s_variant_member(l :: Loc, member_type :: VariantMemberType, bind :: Bind) with:
-    label(self): "s_variant_member" end,
+  | s-variant-member(l :: Loc, member-type :: VariantMemberType, bind :: Bind) with:
+    label(self): "s-variant-member" end,
     tosource(self):
-      self.member_type.tosource() + self.bind.tosource()
+      self.member-type.tosource() + self.bind.tosource()
     end
 sharing:
   visit(self, visitor):
@@ -722,34 +739,34 @@ sharing:
 end
 
 data Variant:
-  | s_variant(
+  | s-variant(
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ) with:
-    label(self): "s_variant" end,
+    label(self): "s-variant" end,
     tosource(self):
       header-nowith =
         PP.str(self.name)
         + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
         self.members.map(fun(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with_members.map(fun(m): m.tosource() end)
+      withs = self.with-members.map(fun(m): m.tosource() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
-  | s_singleton_variant(
+  | s-singleton-variant(
       l :: Loc,
       name :: String,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ) with:
-    label(self): "s_singleton_variant" end,
+    label(self): "s-singleton-variant" end,
     tosource(self):
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with_members.map(fun(m): m.tosource() end)
+      withs = self.with-members.map(fun(m): m.tosource() end)
       if list.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
@@ -761,22 +778,22 @@ sharing:
 end
 
 data DatatypeVariant:
-  | s_datatype_variant(
+  | s-datatype-variant(
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
       constructor :: Constructor
     ) with:
-    label(self): "s_datatype_variant" end,
+    label(self): "s-datatype-variant" end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
-  | s_datatype_singleton_variant(
+  | s-datatype-singleton-variant(
       l :: Loc,
       name :: String,
       constructor :: Constructor
     ) with:
-    label(self): "s_datatype_singleton_variant" end,
+    label(self): "s-datatype-singleton-variant" end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
@@ -787,12 +804,12 @@ sharing:
 end
 
 data Constructor:
-  | s_datatype_constructor(
+  | s-datatype-constructor(
       l :: Loc,
       self :: String,
       body :: Expr
       ) with:
-    label(self): "s_datatype_constructor" end,
+    label(self): "s-datatype-constructor" end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
@@ -803,8 +820,8 @@ sharing:
 end
 
 data IfBranch:
-  | s_if_branch(l :: Loc, test :: Expr, body :: Expr) with:
-    label(self): "s_if_branch" end,
+  | s-if-branch(l :: Loc, test :: Expr, body :: Expr) with:
+    label(self): "s-if-branch" end,
     tosource(self):
       str-if
         + PP.nest(2 * INDENT, self.test.tosource() + str-colon)
@@ -817,8 +834,8 @@ sharing:
 end
 
 data IfPipeBranch:
-  | s_if_pipe_branch(l :: Loc, test :: Expr, body :: Expr) with:
-    label(self): "s_if_pipe_branch" end,
+  | s-if-pipe-branch(l :: Loc, test :: Expr, body :: Expr) with:
+    label(self): "s-if-pipe-branch" end,
     tosource(self):
       str-pipespace
         + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-thencolon)
@@ -831,8 +848,8 @@ sharing:
 end
 
 data CasesBranch:
-  | s_cases_branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
-    label(self): "s_cases_branch" end,
+  | s-cases-branch(l :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
+    label(self): "s-cases-branch" end,
     tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name)
@@ -847,44 +864,45 @@ sharing:
 end
 
 data Ann:
-  | a_blank with:
-    label(self): "a_blank" end,
+  | a-blank with:
+    label(self): "a-blank" end,
     tosource(self): str-any end
-  | a_any with:
-    label(self): "a_any" end,
+  | a-any with:
+    label(self): "a-any" end,
     tosource(self): str-any end
-  | a_name(l :: Loc, id :: String) with:
-    label(self): "a_name" end,
+  | a-name(l :: Loc, id :: String) with:
+    label(self): "a-name" end,
     tosource(self): PP.str(self.id) end
-  | a_arrow(l :: Loc, args :: List<Ann>, ret :: Ann) with:
-    label(self): "a_arrow" end,
+  | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Bool) with:
+    label(self): "a-arrow" end,
     tosource(self):
-      PP.surround(INDENT, 1, PP.lparen,
-        PP.separate(str-space,
-          [PP.separate(PP.commabreak,
-            self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()]), PP.rparen)
+      ann = PP.separate(str-space,
+        [PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()])
+      if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else: ann
+      end
     end
-  | a_method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
-    label(self): "a_method" end,
-    tosource(self): PP.str("NYI: A_method") end
-  | a_record(l :: Loc, fields :: List<AField>) with:
-    label(self): "a_record" end,
+  | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
+    label(self): "a-method" end,
+    tosource(self): PP.str("NYI: A-method") end
+  | a-record(l :: Loc, fields :: List<AField>) with:
+    label(self): "a-record" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end
-  | a_app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
-    label(self): "a_app" end,
+  | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
+    label(self): "a-app" end,
     tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
     end
-  | a_pred(l :: Loc, ann :: Ann, exp :: Expr) with:
-    label(self): "a_pred" end,
+  | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
+    label(self): "a-pred" end,
     tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end
-  | a_dot(l :: Loc, obj :: String, field :: String) with:
-    label(self): "a_dot" end,
+  | a-dot(l :: Loc, obj :: String, field :: String) with:
+    label(self): "a-dot" end,
     tosource(self): PP.str(self.obj + "." + self.field) end
 sharing:
   visit(self, visitor):
@@ -893,10 +911,10 @@ sharing:
 end
 
 data AField:
-  | a_field(l :: Loc, name :: String, ann :: Ann) with:
-    label(self): "a_field" end,
+  | a-field(l :: Loc, name :: String, ann :: Ann) with:
+    label(self): "a-field" end,
     tosource(self):
-      if is-a_blank(self.ann): PP.str(self.name)
+      if is-a-blank(self.ann): PP.str(self.name)
       else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())
       end
     end
@@ -917,31 +935,31 @@ end
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s_variant(_, name, _, _) => [s_name(name), s_name(make-checker-name(name))]
-      | s_singleton_variant(_, name, _) => [s_name(name), s_name(make-checker-name(name))]
+      | s-variant(_, name, _, _) => [s-name(name), s-name(make-checker-name(name))]
+      | s-singleton-variant(_, name, _) => [s-name(name), s-name(make-checker-name(name))]
     end
   end
   cases(Expr) stmt:
-    | s_let(_, b, _) => [b.id]
-    | s_var(_, b, _) => [b.id]
-    | s_fun(_, name, _, _, _, _, _, _) => [s_name(name)]
-    | s_graph(_, bindings) => flatten(bindings.map(binding-ids))
-    | s_data(_, name, _, _, variants, _, _) =>
-      s_name(name) ^ link(flatten(variants.map(variant-ids)))
+    | s-let(_, b, _) => [b.id]
+    | s-var(_, b, _) => [b.id]
+    | s-fun(_, name, _, _, _, _, _, _) => [s-name(name)]
+    | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
+    | s-data(_, name, _, _, variants, _, _) =>
+      s-name(name) ^ link(flatten(variants.map(variant-ids)))
     | else => []
   end
 end
 
-fun block-ids(b :: is-s_block) -> List<Name>:
+fun block-ids(b :: is-s-block) -> List<Name>:
   cases(Expr) b:
-    | s_block(_, stmts) => flatten(stmts.map(binding-ids))
+    | s-block(_, stmts) => flatten(stmts.map(binding-ids))
     | else => raise("Non-block given to block-ids")
   end
 end
 
 fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
-    | s_program(_, _, _, b) => block-ids(b)
+    | s-program(_, _, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end
 end
@@ -959,9 +977,9 @@ end
 # Equivalence modulo srclocs
 fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
   cases(Program) ast1:
-    | s_program(_, provide1, imports1, body1) =>
+    | s-program(_, provide1, imports1, body1) =>
       cases(Program) ast2:
-        | s_program(_, provide2, imports2, body2) =>
+        | s-program(_, provide2, imports2, body2) =>
           length-andmap(equiv-ast-header, imports1, imports2) and
             equiv-ast(body1, body2)
         | else => false
@@ -971,14 +989,14 @@ end
 
 fun equiv-ast-member(m1 :: Member, m2 :: Member):
   cases(Member) m1:
-    | s_data_field(_, n1, v1) =>
+    | s-data-field(_, n1, v1) =>
       cases(Member) m2:
-        | s_data_field(_, n2, v2) => equiv-ast(n1, n2) and equiv-ast(v1, v2)
+        | s-data-field(_, n2, v2) => equiv-ast(n1, n2) and equiv-ast(v1, v2)
         | else => false
       end
-    | s_method_field(_, n1, args1, ann1, doc1, body1, check1) =>
+    | s-method-field(_, n1, args1, ann1, doc1, body1, check1) =>
       cases(Member) m2:
-        | s_method_field(_, n2, args2, ann2, doc2, body2, check2) =>
+        | s-method-field(_, n2, args2, ann2, doc2, body2, check2) =>
           (n1 == n2) and
             length-andmap(equiv-ast-bind, args1, args2) and
             equiv-ast-ann(ann1, ann2) and
@@ -993,9 +1011,9 @@ end
 
 fun equiv-ast-bind(b1 :: Bind, b2 :: Bind):
   cases(Bind) b1:
-    | s_bind(_, shadow1, id1, ann1) =>
+    | s-bind(_, shadow1, id1, ann1) =>
       cases(Bind) b2:
-        | s_bind(_, shadow2, id2, ann2) =>
+        | s-bind(_, shadow2, id2, ann2) =>
           (shadow1 == shadow2) and
             (id1 == id2) and
             equiv-ast-ann(ann1, ann2)
@@ -1005,9 +1023,9 @@ end
 
 fun equiv-ast-for-binding(b1 :: ForBind, b2 :: ForBind):
   cases(ForBind) b1:
-    | s_for_bind(_, bind1, value1) =>
+    | s-for-bind(_, bind1, value1) =>
       cases(ForBind) b2:
-        | s_for_bind(_, bind2, value2) =>
+        | s-for-bind(_, bind2, value2) =>
             equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)      
         | else => false
       end
@@ -1016,9 +1034,9 @@ end
 
 fun equiv-ast-if-branch(b1 :: IfBranch, b2 :: IfBranch):
   cases(IfBranch) b1:
-    | s_if_branch(_, expr1, body1) =>
+    | s-if-branch(_, expr1, body1) =>
       cases(IfBranch) b2:
-        | s_if_branch(_, expr2, body2) =>
+        | s-if-branch(_, expr2, body2) =>
           equiv-ast(expr1, expr2) and equiv-ast(body1, body2)
         | else => false
       end
@@ -1027,9 +1045,9 @@ end
 
 fun equiv-ast-if-pipe-branch(b1 :: IfPipeBranch, b2 :: IfPipeBranch):
   cases(IfPipeBranch) b1:
-    | s_if_pipe_branch(_, expr1, body1) =>
+    | s-if-pipe-branch(_, expr1, body1) =>
       cases(IfPipeBranch) b2:
-        | s_if_pipe_branch(_, expr2, body2) =>
+        | s-if-pipe-branch(_, expr2, body2) =>
           equiv-ast(expr1, expr2) and equiv-ast(body1, body2)
         | else => false
       end
@@ -1038,9 +1056,9 @@ end
 
 fun equiv-ast-cases-branch(cb1 :: CasesBranch, cb2 :: CasesBranch):
   cases(CasesBranch) cb1:
-    | s_cases_branch(_, n1, ar1, body1) =>
+    | s-cases-branch(_, n1, ar1, body1) =>
       cases(CasesBranch) cb2:
-        | s_cases_branch(_, n2, ar2, body2) =>
+        | s-cases-branch(_, n2, ar2, body2) =>
           (n1 == n2) and
             equiv-ast(ar1, ar2) and
             equiv-ast(body1, body2)
@@ -1051,9 +1069,9 @@ end
 
 fun equiv-ast-variant-member(m1 :: VariantMember, m2 :: VariantMember):
   cases(VariantMember) m1:
-    | s_variant_member(_, t1, b1) =>
+    | s-variant-member(_, t1, b1) =>
       cases(VariantMember) m2:
-        | s_variant_member(_, t2, b2) =>
+        | s-variant-member(_, t2, b2) =>
           (t1 == t2) and equiv-ast-bind(b1, b2)
         | else => false
       end
@@ -1062,9 +1080,9 @@ end
 
 fun equiv-ast-variant(v1 :: Variant, v2 :: Variant):
   cases(Variant) v1:
-    | s_variant(_, n1, b1, wm1) =>
+    | s-variant(_, n1, b1, wm1) =>
       cases(Variant) v2:
-        | s_variant(_, n2, b2, wm2) =>
+        | s-variant(_, n2, b2, wm2) =>
           (n1 == n2) and
             length-andmap(equiv-ast-bind, b1, b2) and
             length-andmap(equiv-ast-member, wm1, wm2)
@@ -1111,8 +1129,8 @@ end
 
 fun equiv-ast-ann(a1, a2):
   cases(Ann) a1:
-    | a_any => is-a_any(a2)
-    | a_blank => is-a_blank(a2)
+    | a-any => is-a-any(a2)
+    | a-blank => is-a-blank(a2)
     | else =>
       raise("nyi equiv-ast-ann")
   end
@@ -1121,7 +1139,7 @@ fun equiv-ast-ann(a1, a2):
   #   (and
   #    (equiv-ast-ann a1 a2)
   #    (equiv-ast pred1 pred2))]
-  #  [(cons (a-arrow _ args1 ret1) (a-arrow _ args2 ret2))
+  #  [(cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
@@ -1164,28 +1182,28 @@ end
 fun equiv-ast-header(h1 :: Header, h2 :: Header):
   fun equiv-import-type(f1, f2):
     cases(ImportType) f1:
-      | s_file_import(n1) =>
+      | s-file-import(n1) =>
         cases(ImportType) f2:
-          | s_file_import(n2) => (n1 == n2)
+          | s-file-import(n2) => (n1 == n2)
           | else => false
         end
-      | s_const_import(n1) =>
+      | s-const-import(n1) =>
         cases(ImportType) f2:
-          | s_const_import(n2) => (n1 == n2)
+          | s-const-import(n2) => (n1 == n2)
           | else => false
         end
     end
   end
   cases(Header) h1:
-    | s_provide_all(_) => is-s_provide_all(h2)
-    | s_provide(_, expr1) =>
+    | s-provide-all(_) => is-s-provide-all(h2)
+    | s-provide(_, expr1) =>
       cases(Header) h2:
-        | s_provide(_, expr2) => equiv-ast(expr1, expr2)
+        | s-provide(_, expr2) => equiv-ast(expr1, expr2)
         | else => false
       end
-    | s_import(_, file1, name1) =>
+    | s-import(_, file1, name1) =>
       cases(Header) h2:
-        | s_import(_, file2, name2) =>
+        | s-import(_, file2, name2) =>
           equiv-import-type(file1, file2) and (name1 == name2)
         | else => false
       end
@@ -1194,16 +1212,16 @@ end
 
 fun equiv-ast-let-bind(lb1 :: LetBind, lb2 :: LetBind):
   cases(LetBind) lb1:
-    | s_let_bind(_, bind1, value1) => 
+    | s-let-bind(_, bind1, value1) => 
       cases(LetBind) lb2:
-        | s_let_bind(_, bind2, value2) =>
+        | s-let-bind(_, bind2, value2) =>
           equiv-ast-bind(bind1, bind2) and
             equiv-ast(value1, value2)
         | else => false
       end
-    | s_var_bind(_, bind1, value1) => 
+    | s-var-bind(_, bind1, value1) => 
       cases(LetBind) lb2:
-        | s_var_bind(_, bind2, value2) => 
+        | s-var-bind(_, bind2, value2) => 
           equiv-ast-bind(bind1, bind2) and
             equiv-ast(value1, value2)
         | else => false
@@ -1213,9 +1231,9 @@ end
 
 fun equiv-ast-letrec-bind(lb1 :: LetrecBind, lb2 :: LetrecBind):
   cases(LetrecBind) lb1:
-    | s_letrec_bind(_, bind1, value1) => 
+    | s-letrec-bind(_, bind1, value1) => 
       cases(LetrecBind) lb2:
-        | s_letrec_bind(_, bind2, value2) =>
+        | s-letrec-bind(_, bind2, value2) =>
           equiv-ast-bind(bind1, bind2) and
             equiv-ast(value1, value2)
         | else => false
@@ -1236,244 +1254,244 @@ end
 
 fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
   cases (Expr) ast1:
-    | s_block(_, stmts1) =>
+    | s-block(_, stmts1) =>
       cases(Expr) ast2:
-        | s_block(_, stmts2) => length-andmap(equiv-ast, stmts1, stmts2)
+        | s-block(_, stmts2) => length-andmap(equiv-ast, stmts1, stmts2)
         | else => false
       end
-    | s_fun(_, n1, p1, ar1, an1, d1, b1, c1) =>
+    | s-fun(_, n1, p1, ar1, an1, d1, b1, c1) =>
       cases(Expr) ast2:
-        | s_fun(_, n2, p2, ar2, an2, d2, b2, c2) =>
+        | s-fun(_, n2, p2, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
               n1, p1, ar1, an1, d1, b1, c1,
               n2, p2, ar2, an2, d2, b2, c2
             )
         | else => false
       end
-    | s_lam(_, p1, ar1, an1, d1, b1, c1) =>
+    | s-lam(_, p1, ar1, an1, d1, b1, c1) =>
       cases(Expr) ast2:
-        | s_lam(_, p2, ar2, an2, d2, b2, c2) =>
+        | s-lam(_, p2, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
               "anon", p2, ar1, an1, d1, b1, c1,
               "anon", p2, ar2, an2, d2, b2, c2
             )
         | else => false
       end
-    | s_method(_, ar1, an1, d1, b1, c1) =>
+    | s-method(_, ar1, an1, d1, b1, c1) =>
       cases(Expr) ast2:
-        | s_method(_, ar2, an2, d2, b2, c2) =>
+        | s-method(_, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
               "meth", [], ar1, an1, d1, b1, c1,
               "meth", [], ar2, an2, d2, b2, c2
             )
         | else => false
       end
-    | s_check(_, name1, body1) =>
+    | s-check(_, name1, body1) =>
       cases(Expr) ast2:
-        | s_check(_, name2, body2) => (name1 == name2) and equiv-ast(body1, body2)
+        | s-check(_, name2, body2) => (name1 == name2) and equiv-ast(body1, body2)
         | else => false
       end
-    | s_var(_, bind1, value1) =>
+    | s-var(_, bind1, value1) =>
       cases(Expr) ast2:
-        | s_var(_, bind2, value2) =>
+        | s-var(_, bind2, value2) =>
           equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)
         | else => false
       end
-    | s_let(_, bind1, value1) =>
+    | s-let(_, bind1, value1) =>
       cases(Expr) ast2:
-        | s_let(_, bind2, value2) =>
+        | s-let(_, bind2, value2) =>
           equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)
         | else => false
       end
-    | s_graph(_, bindings1) =>
+    | s-graph(_, bindings1) =>
       cases(Expr) ast2:
-        | s_graph(_, bindings2) => length-andmap(equiv-ast, bindings1, bindings2)
+        | s-graph(_, bindings2) => length-andmap(equiv-ast, bindings1, bindings2)
         | else => false
       end
-    | s_list(_, values1) =>
+    | s-list(_, values1) =>
       cases(Expr) ast2:
-        | s_list(_, values2) => length-andmap(equiv-ast, values1, values2)
+        | s-list(_, values2) => length-andmap(equiv-ast, values1, values2)
         | else => false
       end
-    | s_op(_, op1, left1, right1) =>
+    | s-op(_, op1, left1, right1) =>
       cases(Expr) ast2:
-        | s_op(_, op2, left2, right2) =>
+        | s-op(_, op2, left2, right2) =>
             (op1 == op2) and
               equiv-ast(left1, left2) and
               equiv-ast(right1, right2)
         | else => false
       end
-    | s_check_test(_, op1, left1, right1) =>
+    | s-check-test(_, op1, left1, right1) =>
       cases(Expr) ast2:
-        | s_check_test(_, op2, left2, right2) =>
+        | s-check-test(_, op2, left2, right2) =>
             (op1 == op2) and
               equiv-ast(left1, left2) and
               equiv-ast(right1, right2)
         | else => false
       end
-    | s_user_block(_, block1) =>
+    | s-user-block(_, block1) =>
       cases(Expr) ast2:
-        | s_user_block(_, block2) => equiv-ast(block1, block2)
+        | s-user-block(_, block2) => equiv-ast(block1, block2)
         | else => false
       end
-    | s_when(_, test1, block1) =>
+    | s-when(_, test1, block1) =>
       cases(Expr) ast2:
-        | s_when(_, test2, block2) =>
+        | s-when(_, test2, block2) =>
           equiv-ast(test1, test2) and equiv-ast(block1, block2)
         | else => false
       end
-    | s_if(_, branches1) =>
+    | s-if(_, branches1) =>
       cases(Expr) ast2:
-        | s_if(_, branches2) =>
+        | s-if(_, branches2) =>
           length-andmap(equiv-ast-if-branch, branches1, branches2)
         | else => false
       end
-    | s_if_pipe(_, branches1) =>
+    | s-if-pipe(_, branches1) =>
       cases(Expr) ast2:
-        | s_if_pipe(_, branches2) =>
+        | s-if-pipe(_, branches2) =>
           length-andmap(equiv-ast-if-pipe-branch, branches1, branches2)
         | else => false
       end
-    | s_if_else(_, branches1, _else1) => 
+    | s-if-else(_, branches1, _else1) => 
       cases(Expr) ast2:
-        | s_if_else(_, branches2, _else2) =>
+        | s-if-else(_, branches2, _else2) =>
           length-andmap(equiv-ast-if-branch, branches1, branches2) and
             equiv-ast(_else1, _else2)
         | else => false
       end
-    | s_if_pipe_else(_, branches1, _else1) => 
+    | s-if-pipe-else(_, branches1, _else1) => 
       cases(Expr) ast2:
-        | s_if_pipe_else(_, branches2, _else2) =>
+        | s-if-pipe-else(_, branches2, _else2) =>
           length-andmap(equiv-ast-if-pipe-branch, branches1, branches2) and
             equiv-ast(_else1, _else2)
         | else => false
       end
-    | s_try(_, body1, id1, except1) =>
+    | s-try(_, body1, id1, except1) =>
       cases(Expr) ast2:
-        | s_try(_, body2, id2, except2) =>
+        | s-try(_, body2, id2, except2) =>
           equiv-ast(body1, body2) and
             equiv-ast-bind(id1, id2) and
             equiv-ast(except1, except2)
         | else => false
       end
-    | s_cases(_, type1, val1, branches1) => 
+    | s-cases(_, type1, val1, branches1) => 
       cases(Expr) ast2:
-        | s_cases(_, type2, val2, branches2) =>
+        | s-cases(_, type2, val2, branches2) =>
           equiv-ast-ann(type1, type2) and
             equiv-ast(val1, val2) and
             length-andmap(equiv-ast-cases-branch, branches1, branches2)
         | else => false
       end
-    | s_cases_else(_, type1, val1, branches1, _else1) =>
+    | s-cases-else(_, type1, val1, branches1, _else1) =>
       cases(Expr) ast2:
-        | s_cases_else(_, type2, val2, branches2, _else2) =>
+        | s-cases-else(_, type2, val2, branches2, _else2) =>
           equiv-ast-ann(type1, type2) and
             equiv-ast(val1, val2) and
             length-andmap(equiv-ast-cases-branch, branches1, branches2) and
             equiv-ast(_else1, _else2)
         | else => false
       end
-    | s_not(_, expr1) => 
+    | s-not(_, expr1) => 
       cases(Expr) ast2:
-        | s_not(_, expr2) => equiv-ast(expr1, expr2)
+        | s-not(_, expr2) => equiv-ast(expr1, expr2)
         | else => false
       end
-    | s_paren(_, expr1) =>
+    | s-paren(_, expr1) =>
       cases(Expr) ast2:
-        | s_paren(_, expr2) => equiv-ast(expr1, expr2)
+        | s-paren(_, expr2) => equiv-ast(expr1, expr2)
         | else => false
       end
-    | s_extend(_, super1, fields1) => 
+    | s-extend(_, super1, fields1) => 
       cases(Expr) ast2:
-        | s_extend(_, super2, fields2) => 
+        | s-extend(_, super2, fields2) => 
           equiv-ast(super1, super2) and length-andmap(equiv-ast-member, fields1, fields2)
         | else => false
       end
-    | s_update(_, super1, fields1) => 
+    | s-update(_, super1, fields1) => 
       cases(Expr) ast2:
-        | s_update(_, super2, fields2) => 
+        | s-update(_, super2, fields2) => 
           equiv-ast(super1, super2) and length-andmap(equiv-ast-member, fields1, fields2)
         | else => false
       end
-    | s_obj(_, fields1) => 
+    | s-obj(_, fields1) => 
       cases(Expr) ast2:
-        | s_obj(_, fields2) => length-andmap(equiv-ast-member, fields1, fields2)
+        | s-obj(_, fields2) => length-andmap(equiv-ast-member, fields1, fields2)
         | else => false
       end
-    | s_app(_, fun1, args1) =>
+    | s-app(_, fun1, args1) =>
       cases(Expr) ast2:
-        | s_app(_, fun2, args2) =>
+        | s-app(_, fun2, args2) =>
           equiv-ast(fun1, fun2) and length-andmap(equiv-ast, args1, args2)
         | else => false
       end
-    | s_prim_app(_, fun1, args1) =>
+    | s-prim-app(_, fun1, args1) =>
       cases(Expr) ast2:
-        | s_prim_app(_, fun2, args2) =>
+        | s-prim-app(_, fun2, args2) =>
           (fun1 == fun2) and length-andmap(equiv-ast, args1, args2)
         | else => false
       end
-    | s_prim_val(_, name1) =>
+    | s-prim-val(_, name1) =>
       cases(Expr) ast2:
-        | s_prim_val(_, name2) => name1 == name2
+        | s-prim-val(_, name2) => name1 == name2
         | else => false
       end
-    | s_left_app(_, obj1, fun1, args1) =>
+    | s-left-app(_, obj1, fun1, args1) =>
       cases(Expr) ast2:
-        | s_left_app(_, obj2, fun2, args2) =>
+        | s-left-app(_, obj2, fun2, args2) =>
           equiv-ast(obj1, obj2) and
             equiv-ast(fun1, fun2) and
             length-andmap(equiv-ast, args1, args2)
         | else => false
       end
-    | s_assign(_, id1, value1) =>
+    | s-assign(_, id1, value1) =>
       cases(Expr) ast2:
-        | s_assign(_, id2, value2) =>
+        | s-assign(_, id2, value2) =>
           (id1 == id2) and
             equiv-ast(value1, value2)
         | else => false
       end
-    | s_colon(_, obj1, field1) =>
+    | s-colon(_, obj1, field1) =>
       cases(Expr) ast2:
-        | s_colon(_, obj2, field2) =>
+        | s-colon(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and (field1 == field2)
         | else => false
       end
-    | s_dot(_, obj1, field1) =>
+    | s-dot(_, obj1, field1) =>
       cases(Expr) ast2:
-        | s_dot(_, obj2, field2) =>
+        | s-dot(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and (field1 == field2)
         | else => false
       end
-    | s_get-bang(_, obj1, field1) =>
+    | s-get-bang(_, obj1, field1) =>
       cases(Expr) ast2:
-        | s_get-bang(_, obj2, field2) =>
+        | s-get-bang(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and (field1 == field2)
         | else => false
       end
-    | s_bracket(_, obj1, field1) =>
+    | s-bracket(_, obj1, field1) =>
       cases(Expr) ast2:
-        | s_bracket(_, obj2, field2) =>
+        | s-bracket(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and equiv-ast(field1, field2)
         | else => false
       end
-    | s_colon_bracket(_, obj1, field1) =>
+    | s-colon-bracket(_, obj1, field1) =>
       cases(Expr) ast2:
-        | s_colon_bracket(_, obj2, field2) =>
+        | s-colon-bracket(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and equiv-ast(field1, field2)
         | else => false
       end
-    | s_for(_, iter1, binds1, ann1, body1) =>
+    | s-for(_, iter1, binds1, ann1, body1) =>
       cases(Expr) ast2:
-        | s_for(_, iter2, binds2, ann2, body2) =>
+        | s-for(_, iter2, binds2, ann2, body2) =>
           equiv-ast(iter1, iter2) and
             length-andmap(equiv-ast-for-binding, binds1, binds2) and
             equiv-ast-ann(ann1, ann2) and
             equiv-ast(body1, body2)
         | else => false
       end
-    | s_data(_, n1, p1, m1, v1, sm1, c1) =>
+    | s-data(_, n1, p1, m1, v1, sm1, c1) =>
       cases(Expr) ast2:
-        | s_data(_, n2, p2, m2, v2, sm2, c2) =>
+        | s-data(_, n2, p2, m2, v2, sm2, c2) =>
           (n1 == n2) and
             length-andmap(_ == _, p1, p2) and
             length-andmap(equiv-ast, m1, m2) and
@@ -1482,9 +1500,9 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-opt(c1, c2)
         | else => false
       end
-    | s_data_expr(_, n1, p1, m1, v1, sm1, c1) =>
+    | s-data-expr(_, n1, p1, m1, v1, sm1, c1) =>
       cases(Expr) ast2:
-        | s_data_expr(_, n2, p2, m2, v2, sm2, c2) =>
+        | s-data-expr(_, n2, p2, m2, v2, sm2, c2) =>
           (n1 == n2) and
             length-andmap(_ == _, p1, p2) and
             length-andmap(equiv-ast, m1, m2) and
@@ -1493,48 +1511,48 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-opt(c1, c2)
         | else => false
       end
-    | s_num(_, n1) =>
+    | s-num(_, n1) =>
       cases(Expr) ast2:
-        | s_num(_, n2) => n1 == n2
+        | s-num(_, n2) => n1 == n2
         | else => false
       end
-    | s_str(_, s1) =>
+    | s-str(_, s1) =>
       cases(Expr) ast2:
-        | s_str(_, s2) => s1 == s2
+        | s-str(_, s2) => s1 == s2
         | else => false
       end
-    | s_bool(_, b1) => 
+    | s-bool(_, b1) => 
       cases(Expr) ast2:
-        | s_bool(_, b2) => b1 == b2
+        | s-bool(_, b2) => b1 == b2
         | else => false
       end
-    | s_undefined(_) =>
-      is-s_undefined(ast2)
-    | s_id(_, id1) =>
+    | s-undefined(_) =>
+      is-s-undefined(ast2)
+    | s-id(_, id1) =>
       cases(Expr) ast2:
-        | s_id(_, id2) => id1 == id2
+        | s-id(_, id2) => id1 == id2
         | else => false
       end
-    | s_id_var(_, id1) =>
+    | s-id-var(_, id1) =>
       cases(Expr) ast2:
-        | s_id_var(_, id2) => id1 == id2
+        | s-id-var(_, id2) => id1 == id2
         | else => false
       end
-    | s_id_letrec(_, id1) =>
+    | s-id-letrec(_, id1) =>
       cases(Expr) ast2:
-        | s_id_letrec(_, id2) => id1 == id2
+        | s-id-letrec(_, id2) => id1 == id2
         | else => false
       end
-    | s_let_expr(_, let-binds1, body1) =>
+    | s-let-expr(_, let-binds1, body1) =>
       cases(Expr) ast2:
-        | s_let_expr(_, let-binds2, body2) =>
+        | s-let-expr(_, let-binds2, body2) =>
           length-andmap(equiv-ast-let-bind, let-binds1, let-binds2) and
             equiv-ast(body1, body2)
         | else => false
       end
-    | s_letrec(_, let-binds1, body1) =>
+    | s-letrec(_, let-binds1, body1) =>
       cases(Expr) ast2:
-        | s_letrec(_, let-binds2, body2) =>
+        | s-letrec(_, let-binds2, body2) =>
           length-andmap(equiv-ast-letrec-bind, let-binds1, let-binds2) and
             equiv-ast(body1, body2)
         | else => false
@@ -1550,140 +1568,140 @@ default-map-visitor = {
     end
   end,
 
-  s_program(self, l, _provide, imports, body):
-    s_program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
+  s-program(self, l, _provide, imports, body):
+    s-program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  s_import(self, l, import_type, name):
-    s_import(l, import_type, name)
+  s-import(self, l, import-type, name):
+    s-import(l, import-type, name)
   end,
-  s_provide(self, l, expr):
-    s_provide(l, expr.visit(self))
+  s-provide(self, l, expr):
+    s-provide(l, expr.visit(self))
   end,
-  s_provide_all(self, l):
-    s_provide_all(l)
+  s-provide-all(self, l):
+    s-provide-all(l)
   end,
-  s_provide_none(self, l):
-    s_provide_none(l)
-  end,
-
-  s_bind(self, l, shadows, name, ann):
-    s_bind(l, shadows, name, ann.visit(self))
+  s-provide-none(self, l):
+    s-provide-none(l)
   end,
 
-  s_var_bind(self, l, bind, expr):
-    s_var_bind(l, bind.visit(self), expr.visit(self))
-  end,
-  s_let_bind(self, l, bind, expr):
-    s_let_bind(l, bind.visit(self), expr.visit(self))
+  s-bind(self, l, shadows, name, ann):
+    s-bind(l, shadows, name, ann.visit(self))
   end,
 
-  s_let_expr(self, l, binds, body):
-    s_let_expr(l, binds.map(_.visit(self)), body.visit(self))
+  s-var-bind(self, l, bind, expr):
+    s-var-bind(l, bind.visit(self), expr.visit(self))
+  end,
+  s-let-bind(self, l, bind, expr):
+    s-let-bind(l, bind.visit(self), expr.visit(self))
   end,
 
-  s_letrec_bind(self, l, bind, expr):
-    s_letrec_bind(l, bind.visit(self), expr.visit(self))
+  s-let-expr(self, l, binds, body):
+    s-let-expr(l, binds.map(_.visit(self)), body.visit(self))
   end,
 
-  s_letrec(self, l, binds, body):
-    s_letrec(l, binds.map(_.visit(self)), body.visit(self))
+  s-letrec-bind(self, l, bind, expr):
+    s-letrec-bind(l, bind.visit(self), expr.visit(self))
   end,
 
-  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
-    s_hint_exp(l, hints, exp.visit(self))
+  s-letrec(self, l, binds, body):
+    s-letrec(l, binds.map(_.visit(self)), body.visit(self))
   end,
 
-  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    s_instantiate(l, expr.visit(self), params.map(_.visit(self)))
+  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    s-hint-exp(l, hints, exp.visit(self))
   end,
 
-  s_block(self, l, stmts):
-    s_block(l, stmts.map(_.visit(self)))
+  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+    s-instantiate(l, expr.visit(self), params.map(_.visit(self)))
   end,
 
-  s_user_block(self, l :: Loc, body :: Expr):
-    s_user_block(l, body.visit(self))
+  s-block(self, l, stmts):
+    s-block(l, stmts.map(_.visit(self)))
   end,
 
-  s_fun(self, l, name, params, args, ann, doc, body, _check):
-    s_fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+  s-user-block(self, l :: Loc, body :: Expr):
+    s-user-block(l, body.visit(self))
   end,
 
-  s_var(self, l :: Loc, name :: Bind, value :: Expr):
-    s_var(l, name.visit(self), value.visit(self))
+  s-fun(self, l, name, params, args, ann, doc, body, _check):
+    s-fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
 
-  s_let(self, l :: Loc, name :: Bind, value :: Expr):
-    s_let(l, name.visit(self), value.visit(self)) 
+  s-var(self, l :: Loc, name :: Bind, value :: Expr):
+    s-var(l, name.visit(self), value.visit(self))
   end,
 
-  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
-    s_graph(l, bindings.map(_.visit(self)))
+  s-let(self, l :: Loc, name :: Bind, value :: Expr):
+    s-let(l, name.visit(self), value.visit(self)) 
   end,
 
-  s_when(self, l :: Loc, test :: Expr, block :: Expr):
-    s_when(l, test.visit(self), block.visit(self))
+  s-graph(self, l :: Loc, bindings :: List<is-s-let>):
+    s-graph(l, bindings.map(_.visit(self)))
   end,
 
-  s_assign(self, l :: Loc, id :: String, value :: Expr):
-    s_assign(l, id, value.visit(self))
+  s-when(self, l :: Loc, test :: Expr, block :: Expr):
+    s-when(l, test.visit(self), block.visit(self))
   end,
 
-  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
-    s_if_branch(l, test.visit(self), body.visit(self))
+  s-assign(self, l :: Loc, id :: String, value :: Expr):
+    s-assign(l, id, value.visit(self))
   end,
 
-  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
-    s_if_pipe_branch(l, test.visit(self), body.visit(self))
+  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s-if-branch(l, test.visit(self), body.visit(self))
   end,
 
-  s_if(self, l :: Loc, branches :: List<IfBranch>):
-    s_if(l, branches.map(_.visit(self)))
+  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s-if-pipe-branch(l, test.visit(self), body.visit(self))
   end,
-  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    s_if_else(l, branches.map(_.visit(self)), _else.visit(self))
+
+  s-if(self, l :: Loc, branches :: List<IfBranch>):
+    s-if(l, branches.map(_.visit(self)))
+  end,
+  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    s-if-else(l, branches.map(_.visit(self)), _else.visit(self))
   end,
   
-  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    s_if_pipe(l, branches.map(_.visit(self)))
+  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+    s-if-pipe(l, branches.map(_.visit(self)))
   end,
-  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    s_if_pipe_else(l, branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
-    s_cases_branch(l, name, args.map(_.visit(self)), body.visit(self))
+  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    s-if-pipe-else(l, branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s_cases(l, type, val.visit(self), branches.map(_.visit(self)))
-  end,
-  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s_cases_else(l, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  s-cases-branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    s-cases-branch(l, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s_try(l, body.visit(self), id.visit(self), _except.visit(self))
+  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s-cases(l, type, val.visit(self), branches.map(_.visit(self)))
+  end,
+  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s-cases-else(l, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s_op(l, op, left.visit(self), right.visit(self))
+  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    s-try(l, body.visit(self), id.visit(self), _except.visit(self))
   end,
 
-  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s_check_test(l, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(l, op, left.visit(self), right.visit(self))
   end,
 
-  s_not(self, l :: Loc, expr :: Expr):
-    s_not(l, expr.visit(self))
+  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-check-test(l, op, left.visit(self), right.visit(self))
   end,
 
-  s_paren(self, l :: Loc, expr :: Expr):
-    s_paren(l, expr.visit(self))
+  s-not(self, l :: Loc, expr :: Expr):
+    s-not(l, expr.visit(self))
   end,
 
-  s_lam(
+  s-paren(self, l :: Loc, expr :: Expr):
+    s-paren(l, expr.visit(self))
+  end,
+
+  s-lam(
       self,
       l :: Loc,
       params :: List<String>,
@@ -1693,9 +1711,9 @@ default-map-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
-  s_method(
+  s-method(
       self,
       l :: Loc,
       args :: List<Bind>, # Value parameters
@@ -1704,109 +1722,109 @@ default-map-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_method(l, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-method(l, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
-  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s_extend(l, super.visit(self), fields.map(_.visit(self)))
+  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s-extend(l, super.visit(self), fields.map(_.visit(self)))
   end,
-  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s_update(l, super.visit(self), fields.map(_.visit(self)))
+  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s-update(l, super.visit(self), fields.map(_.visit(self)))
   end,
-  s_obj(self, l :: Loc, fields :: List<Member>):
-    s_obj(l, fields.map(_.visit(self)))
+  s-obj(self, l :: Loc, fields :: List<Member>):
+    s-obj(l, fields.map(_.visit(self)))
   end,
-  s_list(self, l :: Loc, values :: List<Expr>):
-    s_list(l, values.map(_.visit(self)))
+  s-list(self, l :: Loc, values :: List<Expr>):
+    s-list(l, values.map(_.visit(self)))
   end,
-  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    s_app(l, _fun.visit(self), args.map(_.visit(self)))
+  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    s-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s_prim_app(l, _fun, args.map(_.visit(self)))
+  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+    s-prim-app(l, _fun, args.map(_.visit(self)))
   end,
-  s_prim_val(self, l :: Loc, name :: String):
-    s_prim_val(l, name)
+  s-prim-val(self, l :: Loc, name :: String):
+    s-prim-val(l, name)
   end,
-  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
-    s_left_app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
+  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+    s-left-app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
-  s_id(self, l :: Loc, id :: String):
-    s_id(l, id)
+  s-id(self, l :: Loc, id :: String):
+    s-id(l, id)
   end,
-  s_id_var(self, l :: Loc, id :: String):
-    s_id_var(l, id)
+  s-id-var(self, l :: Loc, id :: String):
+    s-id-var(l, id)
   end,
-  s_id_letrec(self, l :: Loc, id :: String):
-    s_id_letrec(l, id)
+  s-id-letrec(self, l :: Loc, id :: String):
+    s-id-letrec(l, id)
   end,
-  s_undefined(self, l :: Loc):
-    s_undefined(self)
+  s-undefined(self, l :: Loc):
+    s-undefined(self)
   end,
-  s_num(self, l :: Loc, n :: Number):
-    s_num(l, n)
+  s-num(self, l :: Loc, n :: Number):
+    s-num(l, n)
   end,
-  s_bool(self, l :: Loc, b :: Bool):
-    s_bool(l, b)
+  s-bool(self, l :: Loc, b :: Bool):
+    s-bool(l, b)
   end,
-  s_str(self, l :: Loc, s :: String):
-    s_str(l, s)
+  s-str(self, l :: Loc, s :: String):
+    s-str(l, s)
   end,
-  s_dot(self, l :: Loc, obj :: Expr, field :: String):
-    s_dot(l, obj.visit(self), field)
+  s-dot(self, l :: Loc, obj :: Expr, field :: String):
+    s-dot(l, obj.visit(self), field)
   end,
-  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
-    s_get_bang(l, obj.visit(self), field)
+  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+    s-get-bang(l, obj.visit(self), field)
   end,
-  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s_bracket(l, obj.visit(self), field.visit(self))
+  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s-bracket(l, obj.visit(self), field.visit(self))
   end,
-  s_colon(self, l :: Loc, obj :: Expr, field :: String):
-    s_colon(l, obj.visit(self), field)
+  s-colon(self, l :: Loc, obj :: Expr, field :: String):
+    s-colon(l, obj.visit(self), field)
   end,
-  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s_colon_bracket(l, obj.visit(self), field.visit(self))
+  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s-colon-bracket(l, obj.visit(self), field.visit(self))
   end,
-  s_data(
+  s-data(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
     ):
-    s_data(
+    s-data(
         l,
         name,
         params,
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
-        shared_members.map(_.visit(self)),
+        shared-members.map(_.visit(self)),
         self.option(_check)
       )
   end,
-  s_data_expr(
+  s-data-expr(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
     ):
-    s_data_expr(
+    s-data-expr(
         l,
         name,
         params,
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
-        shared_members.map(_.visit(self)),
+        shared-members.map(_.visit(self)),
         self.option(_check)
       )
   end,
-  s_for(
+  s-for(
       self,
       l :: Loc,
       iterator :: Expr,
@@ -1814,22 +1832,22 @@ default-map-visitor = {
       ann :: Ann,
       body :: Expr
     ):
-    s_for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
   end,
-  s_check(self, l :: Loc, name :: Option<String>, body :: Expr):
-    s_check(l, name, body.visit(self))  
+  s-check(self, l :: Loc, name :: Option<String>, body :: Expr):
+    s-check(l, name, body.visit(self))  
   end,
 
-  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
-    s_data_field(l, name, value.visit(self))
+  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
+    s-data-field(l, name, value.visit(self))
   end,
-  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s_mutable_field(l, name, ann, value.visit(self))
+  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s-mutable-field(l, name, ann, value.visit(self))
   end,
-  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s_once_field(l, name, ann, value.visit(self))
+  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s-once-field(l, name, ann, value.visit(self))
   end,
-  s_method_field(
+  s-method-field(
       self,
       l :: Loc,
       name :: Expr,
@@ -1839,7 +1857,7 @@ default-map-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_method_field(
+    s-method-field(
         l,
         name,
         args.map(_.visit(self)),
@@ -1850,78 +1868,78 @@ default-map-visitor = {
       )
   end,
 
-  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s_for_bind(l, bind.visit(self), value.visit(self))   
+  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s-for-bind(l, bind.visit(self), value.visit(self))   
   end,
-  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
-    s_variant_member(l, member_type, bind.visit(self))
+  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+    s-variant-member(l, member-type, bind.visit(self))
   end,
-  s_variant(
+  s-variant(
       self,
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ):
-    s_variant(l, name, members.map(_.visit(self)), with_members.map(_.visit(self)))
+    s-variant(l, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
-  s_singleton_variant(
+  s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ):
-    s_singleton_variant(l, name, with_members.map(_.visit(self)))
+    s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  s_datatype_variant(
+  s-datatype-variant(
       self,
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
       constructor :: Constructor
     ):
-    s_datatype_variant(l, name, members.map(_.visit(self)), constructor.visit(self))
+    s-datatype-variant(l, name, members.map(_.visit(self)), constructor.visit(self))
   end,
-  s_datatype_singleton_variant(
+  s-datatype-singleton-variant(
       self,
       l :: Loc,
       name :: String,
       constructor :: Constructor
     ):
-    s_datatype_singleton_variant(l, name, constructor.visit(self))
+    s-datatype-singleton-variant(l, name, constructor.visit(self))
   end,
-  s_datatype_constructor(
+  s-datatype-constructor(
       self,
       l :: Loc,
       self-arg :: String,
       body :: Expr
       ):
-    s_datatype_constructor(l, self-arg, body.visit(self))
+    s-datatype-constructor(l, self-arg, body.visit(self))
   end,
 
-  a_blank(self): a_blank end,
-  a_any(self): a_any end,
-  a_name(self, l, id): a_name(l, id) end,
-  a_arrow(self, l, args, ret):
-    a_arrow(l, args.map(_.visit(self)), ret.visit(self))
+  a-blank(self): a-blank end,
+  a-any(self): a-any end,
+  a-name(self, l, id): a-name(l, id) end,
+  a-arrow(self, l, args, ret, use-parens):
+    a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
-  a_method(self, l, args, ret):
-    a_method(l, args.map(_.visit(self)), ret.visit(self))
+  a-method(self, l, args, ret):
+    a-method(l, args.map(_.visit(self)), ret.visit(self))
   end,
-  a_record(self, l, fields):
-    a_record(l, fields.map(_.visit(self)))
+  a-record(self, l, fields):
+    a-record(l, fields.map(_.visit(self)))
   end,
-  a_app(self, l, ann, args):
-    a_app(l, ann.visit(self), args.map(_.visit(self)))
+  a-app(self, l, ann, args):
+    a-app(l, ann.visit(self), args.map(_.visit(self)))
   end,
-  a_pred(self, l, ann, exp):
-    a_pred(l, ann.visit(self), exp.visit(self))
+  a-pred(self, l, ann, exp):
+    a-pred(l, ann.visit(self), exp.visit(self))
   end,
-  a_dot(self, l, obj, field):
-    a_dot(l, obj, field)
+  a-dot(self, l, obj, field):
+    a-dot(l, obj, field)
   end,
-  a_field(self, l, name, ann):
-    a_field(l, name, ann.visit(self))
+  a-field(self, l, name, ann):
+    a-field(l, name, ann.visit(self))
   end
 }
 
@@ -1934,140 +1952,140 @@ default-iter-visitor = {
     end
   end,
   
-  s_program(self, l, _provide, imports, body):
+  s-program(self, l, _provide, imports, body):
     _provide.visit(self) and list.all(_.visit(self), imports) and body.visit(self)
   end,
   
-  s_import(self, l, import_type, name):
+  s-import(self, l, import-type, name):
     true
   end,
-  s_provide(self, l, expr):
+  s-provide(self, l, expr):
     expr.visit(self)
   end,
-  s_provide_all(self, l):
+  s-provide-all(self, l):
     true
   end,
-  s_provide_none(self, l):
+  s-provide-none(self, l):
     true
   end,
   
-  s_bind(self, l, shadows, name, ann):
+  s-bind(self, l, shadows, name, ann):
     ann.visit(self)
   end,
   
-  s_var_bind(self, l, bind, expr):
+  s-var-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
-  s_let_bind(self, l, bind, expr):
+  s-let-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
   
-  s_let_expr(self, l, binds, body):
+  s-let-expr(self, l, binds, body):
     list.all(_.visit(self), binds) and body.visit(self)
   end,
   
-  s_letrec_bind(self, l, bind, expr):
+  s-letrec-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
   
-  s_letrec(self, l, binds, body):
+  s-letrec(self, l, binds, body):
     list.all(_.visit(self), binds) and body.visit(self)
   end,
   
-  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
     exp.visit(self)
   end,
   
-  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     expr.visit(self) and list.all(_.visit(self))
   end,
   
-  s_block(self, l, stmts):
+  s-block(self, l, stmts):
     list.all(_.visit(self), stmts)
   end,
   
-  s_user_block(self, l :: Loc, body :: Expr):
+  s-user-block(self, l :: Loc, body :: Expr):
     body.visit(self)
   end,
   
-  s_fun(self, l, name, params, args, ann, doc, body, _check):
+  s-fun(self, l, name, params, args, ann, doc, body, _check):
     list.all(_.visit(self), args) and body.visit(self) and self.option(_check)
   end,
   
-  s_var(self, l :: Loc, name :: Bind, value :: Expr):
+  s-var(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
   
-  s_let(self, l :: Loc, name :: Bind, value :: Expr):
+  s-let(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
   
-  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
+  s-graph(self, l :: Loc, bindings :: List<is-s-let>):
     list.all(_.visit(self), bindings)
   end,
   
-  s_when(self, l :: Loc, test :: Expr, block :: Expr):
+  s-when(self, l :: Loc, test :: Expr, block :: Expr):
     test.visit(self) and block.visit(self)
   end,
   
-  s_assign(self, l :: Loc, id :: String, value :: Expr):
+  s-assign(self, l :: Loc, id :: String, value :: Expr):
     value.visit(self)
   end,
   
-  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
+  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
   
-  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
+  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
   
-  s_if(self, l :: Loc, branches :: List<IfBranch>):
+  s-if(self, l :: Loc, branches :: List<IfBranch>):
     list.all(_.visit(self), branches)
   end,
-  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
     list.all(_.visit(self), branches) and _else.visit(self)
   end,
   
-  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
     list.all(_.visit(self), branches)
   end,
-  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    list.all(_.visit(self), branches) and  _else.visit(self)
+  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    list.all(_.visit(self), branches) and _else.visit(self)
   end,
   
-  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  s-cases-branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     list.all(_.visit(self), args) and body.visit(self)
   end,
   
-  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
     type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
   end,
-  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
   end,
   
-  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
     body.visit(self) and id.visit(self) and _except.visit(self)
   end,
   
-  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
   
-  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
   
-  s_not(self, l :: Loc, expr :: Expr):
+  s-not(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
   
-  s_paren(self, l :: Loc, expr :: Expr):
+  s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
   
-  s_lam(
+  s-lam(
       self,
       l :: Loc,
       params :: List<String>,
@@ -2079,7 +2097,7 @@ default-iter-visitor = {
       ):
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  s_method(
+  s-method(
       self,
       l :: Loc,
       args :: List<Bind>, # Value parameters
@@ -2090,97 +2108,97 @@ default-iter-visitor = {
       ):
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     super.visit(self) and list.all(_.visit(self), fields)
   end,
-  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
     super.visit(self) and list.all(_.visit(self), fields)
   end,
-  s_obj(self, l :: Loc, fields :: List<Member>):
+  s-obj(self, l :: Loc, fields :: List<Member>):
     list.all(_.visit(self), fields)
   end,
-  s_list(self, l :: Loc, values :: List<Expr>):
+  s-list(self, l :: Loc, values :: List<Expr>):
     list.all(_.visit(self), values)
   end,
-  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and list.all(_.visit(self), args)
   end,
-  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     list.all(_.visit(self), args)
   end,
-  s_prim_val(self, l :: Loc, name :: String):
+  s-prim-val(self, l :: Loc, name :: String):
     true
   end,
-  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)
   end,
-  s_id(self, l :: Loc, id :: String):
+  s-id(self, l :: Loc, id :: String):
     true
   end,
-  s_id_var(self, l :: Loc, id :: String):
+  s-id-var(self, l :: Loc, id :: String):
     true
   end,
-  s_id_letrec(self, l :: Loc, id :: String):
+  s-id-letrec(self, l :: Loc, id :: String):
     true
   end,
-  s_undefined(self, l :: Loc):
+  s-undefined(self, l :: Loc):
     true
   end,
-  s_num(self, l :: Loc, n :: Number):
+  s-num(self, l :: Loc, n :: Number):
     true
   end,
-  s_bool(self, l :: Loc, b :: Bool):
+  s-bool(self, l :: Loc, b :: Bool):
     true
   end,
-  s_str(self, l :: Loc, s :: String):
+  s-str(self, l :: Loc, s :: String):
     true
   end,
-  s_dot(self, l :: Loc, obj :: Expr, field :: String):
+  s-dot(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
+  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     obj.visit(self) and field.visit(self)
   end,
-  s_colon(self, l :: Loc, obj :: Expr, field :: String):
+  s-colon(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     obj.visit(self) and field.visit(self)
   end,
-  s_data(
+  s-data(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
     list.all(_.visit(self), mixins) 
     and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared_members)
+    and list.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
-  s_data_expr(
+  s-data-expr(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
     list.all(_.visit(self), mixins)
     and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared_members)
+    and list.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
-  s_for(
+  s-for(
       self,
       l :: Loc,
       iterator :: Expr,
@@ -2190,20 +2208,20 @@ default-iter-visitor = {
       ):
     iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s_check(self, l :: Loc, name :: String, body :: Expr):
+  s-check(self, l :: Loc, name :: String, body :: Expr):
     body.visit(self)
   end,
   
-  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
+  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
     value.visit(self)
   end,
-  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
     ann.visit(self) and value.visit(self)
   end,
-  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
     ann.visit(self) and value.visit(self)
   end,
-  s_method_field(
+  s-method-field(
       self,
       l :: Loc,
       name :: Expr,
@@ -2216,30 +2234,30 @@ default-iter-visitor = {
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   
-  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
+  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
-  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
+  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
-  s_variant(
+  s-variant(
       self,
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
-      with_members :: List<Member>
+      with-members :: List<Member>
       ):
-    list.all(_.visit(self), members) and list.all(_.visit(self), with_members)
+    list.all(_.visit(self), members) and list.all(_.visit(self), with-members)
   end,
-  s_singleton_variant(
+  s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
-      with_members :: List<Member>
+      with-members :: List<Member>
       ):
-    list.all(_.visit(self), with_members)
+    list.all(_.visit(self), with-members)
   end,
-  s_datatype_variant(
+  s-datatype-variant(
       self,
       l :: Loc,
       name :: String,
@@ -2248,7 +2266,7 @@ default-iter-visitor = {
       ):
     list.all(_.visit(self), members) and constructor.visit(self)
   end,
-  s_datatype_singleton_variant(
+  s-datatype-singleton-variant(
       self,
       l :: Loc,
       name :: String,
@@ -2256,7 +2274,7 @@ default-iter-visitor = {
       ):
     constructor.visit(self)
   end,
-  s_datatype_constructor(
+  s-datatype-constructor(
       self,
       l :: Loc,
       self-arg :: String,
@@ -2264,34 +2282,34 @@ default-iter-visitor = {
       ):
     body.visit(self)
   end,
-  a_blank(self):
+  a-blank(self):
     true
   end,
-  a_any(self):
+  a-any(self):
     true
   end,
-  a_name(self, l, id):
+  a-name(self, l, id):
     true
   end,
-  a_arrow(self, l, args, ret):
+  a-arrow(self, l, args, ret, _):
     list.all(_.visit(self), args) and ret.visit(self)
   end,
-  a_method(self, l, args, ret):
+  a-method(self, l, args, ret):
     list.all(_.visit(self), args) and ret.visit(self)
   end,
-  a_record(self, l, fields):
+  a-record(self, l, fields):
     list.all(_.visit(self), fields)
   end,
-  a_app(self, l, ann, args):
+  a-app(self, l, ann, args):
     ann.visit(self) and list.all(_.visit(self), args)
   end,
-  a_pred(self, l, ann, exp):
+  a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
   end,
-  a_dot(self, l, obj, field):
+  a-dot(self, l, obj, field):
     true
   end,
-  a_field(self, l, name, ann):
+  a-field(self, l, name, ann):
     ann.visit(self)
   end
 }
@@ -2304,140 +2322,140 @@ dummy-loc-visitor = {
     end
   end,
 
-  s_program(self, l, _provide, imports, body):
-    s_program(dummy-loc, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
+  s-program(self, l, _provide, imports, body):
+    s-program(dummy-loc, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  s_import(self, l, import_type, name):
-    s_import(dummy-loc, import_type, name)
+  s-import(self, l, import-type, name):
+    s-import(dummy-loc, import-type, name)
   end,
-  s_provide(self, l, expr):
-    s_provide(dummy-loc, expr.visit(self))
+  s-provide(self, l, expr):
+    s-provide(dummy-loc, expr.visit(self))
   end,
-  s_provide_all(self, l):
-    s_provide_all(l)
+  s-provide-all(self, l):
+    s-provide-all(l)
   end,
-  s_provide_none(self, l):
-    s_provide_none(l)
-  end,
-
-  s_bind(self, l, shadows, name, ann):
-    s_bind(dummy-loc, shadows, name, ann.visit(self))
+  s-provide-none(self, l):
+    s-provide-none(l)
   end,
 
-  s_var_bind(self, l, bind, expr):
-    s_var_bind(dummy-loc, bind.visit(self), expr.visit(self))
-  end,
-  s_let_bind(self, l, bind, expr):
-    s_let_bind(dummy-loc, bind.visit(self), expr.visit(self))
+  s-bind(self, l, shadows, name, ann):
+    s-bind(dummy-loc, shadows, name, ann.visit(self))
   end,
 
-  s_let_expr(self, l, binds, body):
-    s_let_expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  s-var-bind(self, l, bind, expr):
+    s-var-bind(dummy-loc, bind.visit(self), expr.visit(self))
+  end,
+  s-let-bind(self, l, bind, expr):
+    s-let-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
-  s_letrec_bind(self, l, bind, expr):
-    s_letrec_bind(dummy-loc, bind.visit(self), expr.visit(self))
+  s-let-expr(self, l, binds, body):
+    s-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
   end,
 
-  s_letrec(self, l, binds, body):
-    s_letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  s-letrec-bind(self, l, bind, expr):
+    s-letrec-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
-  s_hint_exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
-    s_hint_exp(dummy-loc, hints, exp.visit(self))
+  s-letrec(self, l, binds, body):
+    s-letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self))
   end,
 
-  s_instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    s_instantiate(dummy-loc, expr.visit(self), params.map(_.visit(self)))
+  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    s-hint-exp(dummy-loc, hints, exp.visit(self))
   end,
 
-  s_block(self, l, stmts):
-    s_block(dummy-loc, stmts.map(_.visit(self)))
+  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+    s-instantiate(dummy-loc, expr.visit(self), params.map(_.visit(self)))
   end,
 
-  s_user_block(self, l :: Loc, body :: Expr):
-    s_user_block(dummy-loc, body.visit(self))
+  s-block(self, l, stmts):
+    s-block(dummy-loc, stmts.map(_.visit(self)))
   end,
 
-  s_fun(self, l, name, params, args, ann, doc, body, _check):
-    s_fun(dummy-loc, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+  s-user-block(self, l :: Loc, body :: Expr):
+    s-user-block(dummy-loc, body.visit(self))
   end,
 
-  s_var(self, l :: Loc, name :: Bind, value :: Expr):
-    s_var(dummy-loc, name.visit(self), value.visit(self))
+  s-fun(self, l, name, params, args, ann, doc, body, _check):
+    s-fun(dummy-loc, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
 
-  s_let(self, l :: Loc, name :: Bind, value :: Expr):
-    s_let(dummy-loc, name.visit(self), value.visit(self)) 
+  s-var(self, l :: Loc, name :: Bind, value :: Expr):
+    s-var(dummy-loc, name.visit(self), value.visit(self))
   end,
 
-  s_graph(self, l :: Loc, bindings :: List<is-s_let>):
-    s_graph(dummy-loc, bindings.map(_.visit(self)))
+  s-let(self, l :: Loc, name :: Bind, value :: Expr):
+    s-let(dummy-loc, name.visit(self), value.visit(self)) 
   end,
 
-  s_when(self, l :: Loc, test :: Expr, block :: Expr):
-    s_when(dummy-loc, test.visit(self), block.visit(self))
+  s-graph(self, l :: Loc, bindings :: List<is-s-let>):
+    s-graph(dummy-loc, bindings.map(_.visit(self)))
   end,
 
-  s_assign(self, l :: Loc, id :: String, value :: Expr):
-    s_assign(dummy-loc, id, value.visit(self))
+  s-when(self, l :: Loc, test :: Expr, block :: Expr):
+    s-when(dummy-loc, test.visit(self), block.visit(self))
   end,
 
-  s_if_branch(self, l :: Loc, test :: Expr, body :: Expr):
-    s_if_branch(dummy-loc, test.visit(self), body.visit(self))
+  s-assign(self, l :: Loc, id :: String, value :: Expr):
+    s-assign(dummy-loc, id, value.visit(self))
   end,
 
-  s_if_pipe_branch(self, l :: Loc, test :: Expr, body :: Expr):
-    s_if_pipe_branch(dummy-loc, test.visit(self), body.visit(self))
+  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s-if-branch(dummy-loc, test.visit(self), body.visit(self))
   end,
 
-  s_if(self, l :: Loc, branches :: List<IfBranch>):
-    s_if(dummy-loc, branches.map(_.visit(self)))
+  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+    s-if-pipe-branch(dummy-loc, test.visit(self), body.visit(self))
   end,
-  s_if_else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    s_if_else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
+
+  s-if(self, l :: Loc, branches :: List<IfBranch>):
+    s-if(dummy-loc, branches.map(_.visit(self)))
+  end,
+  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    s-if-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
   end,
   
-  s_if_pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    s_if_pipe(dummy-loc, branches.map(_.visit(self)))
+  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+    s-if-pipe(dummy-loc, branches.map(_.visit(self)))
   end,
-  s_if_pipe_else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    s_if_pipe_else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s_cases_branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
-    s_cases_branch(dummy-loc, name, args.map(_.visit(self)), body.visit(self))
+  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    s-if-pipe-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s_cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s_cases(dummy-loc, type, val.visit(self), branches.map(_.visit(self)))
-  end,
-  s_cases_else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s_cases_else(dummy-loc, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  s-cases-branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    s-cases-branch(dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s_try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s_try(dummy-loc, body.visit(self), id.visit(self), _except.visit(self))
+  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s-cases(dummy-loc, type, val.visit(self), branches.map(_.visit(self)))
+  end,
+  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s-cases-else(dummy-loc, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s_op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s_op(dummy-loc, op, left.visit(self), right.visit(self))
+  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    s-try(dummy-loc, body.visit(self), id.visit(self), _except.visit(self))
   end,
 
-  s_check_test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s_check_test(dummy-loc, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
-  s_not(self, l :: Loc, expr :: Expr):
-    s_not(dummy-loc, expr.visit(self))
+  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-check-test(dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
-  s_paren(self, l :: Loc, expr :: Expr):
-    s_paren(dummy-loc, expr.visit(self))
+  s-not(self, l :: Loc, expr :: Expr):
+    s-not(dummy-loc, expr.visit(self))
   end,
 
-  s_lam(
+  s-paren(self, l :: Loc, expr :: Expr):
+    s-paren(dummy-loc, expr.visit(self))
+  end,
+
+  s-lam(
       self,
       l :: Loc,
       params :: List<String>,
@@ -2447,9 +2465,9 @@ dummy-loc-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_lam(dummy-loc, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-lam(dummy-loc, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
-  s_method(
+  s-method(
       self,
       l :: Loc,
       args :: List<Bind>, # Value parameters
@@ -2458,109 +2476,109 @@ dummy-loc-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_method(dummy-loc, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-method(dummy-loc, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
   end,
-  s_extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s_extend(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s-extend(dummy-loc, super.visit(self), fields.map(_.visit(self)))
   end,
-  s_update(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s_update(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
+    s-update(dummy-loc, super.visit(self), fields.map(_.visit(self)))
   end,
-  s_obj(self, l :: Loc, fields :: List<Member>):
-    s_obj(dummy-loc, fields.map(_.visit(self)))
+  s-obj(self, l :: Loc, fields :: List<Member>):
+    s-obj(dummy-loc, fields.map(_.visit(self)))
   end,
-  s_list(self, l :: Loc, values :: List<Expr>):
-    s_list(dummy-loc, values.map(_.visit(self)))
+  s-list(self, l :: Loc, values :: List<Expr>):
+    s-list(dummy-loc, values.map(_.visit(self)))
   end,
-  s_app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    s_app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
+  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
   end,
-  s_prim_app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s_prim_app(dummy-loc, _fun, args.map(_.visit(self)))
+  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)))
   end,
-  s_prim_val(self, l :: Loc, name :: String):
-    s_prim_val(dummy-loc, name)
+  s-prim-val(self, l :: Loc, name :: String):
+    s-prim-val(dummy-loc, name)
   end,
-  s_left_app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
-    s_left_app(dummy-loc, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
+  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
+    s-left-app(dummy-loc, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
-  s_id(self, l :: Loc, id :: String):
-    s_id(dummy-loc, id)
+  s-id(self, l :: Loc, id :: String):
+    s-id(dummy-loc, id)
   end,
-  s_id_var(self, l :: Loc, id :: String):
-    s_id_var(dummy-loc, id)
+  s-id-var(self, l :: Loc, id :: String):
+    s-id-var(dummy-loc, id)
   end,
-  s_id_letrec(self, l :: Loc, id :: String):
-    s_id_letrec(dummy-loc, id)
+  s-id-letrec(self, l :: Loc, id :: String):
+    s-id-letrec(dummy-loc, id)
   end,
-  s_undefined(self, l :: Loc):
-    s_undefined(self)
+  s-undefined(self, l :: Loc):
+    s-undefined(self)
   end,
-  s_num(self, l :: Loc, n :: Number):
-    s_num(dummy-loc, n)
+  s-num(self, l :: Loc, n :: Number):
+    s-num(dummy-loc, n)
   end,
-  s_bool(self, l :: Loc, b :: Bool):
-    s_bool(dummy-loc, b)
+  s-bool(self, l :: Loc, b :: Bool):
+    s-bool(dummy-loc, b)
   end,
-  s_str(self, l :: Loc, s :: String):
-    s_str(dummy-loc, s)
+  s-str(self, l :: Loc, s :: String):
+    s-str(dummy-loc, s)
   end,
-  s_dot(self, l :: Loc, obj :: Expr, field :: String):
-    s_dot(dummy-loc, obj.visit(self), field)
+  s-dot(self, l :: Loc, obj :: Expr, field :: String):
+    s-dot(dummy-loc, obj.visit(self), field)
   end,
-  s_get_bang(self, l :: Loc, obj :: Expr, field :: String):
-    s_get_bang(dummy-loc, obj.visit(self), field)
+  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+    s-get-bang(dummy-loc, obj.visit(self), field)
   end,
-  s_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s_bracket(dummy-loc, obj.visit(self), field.visit(self))
+  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s-bracket(dummy-loc, obj.visit(self), field.visit(self))
   end,
-  s_colon(self, l :: Loc, obj :: Expr, field :: String):
-    s_colon(dummy-loc, obj.visit(self), field)
+  s-colon(self, l :: Loc, obj :: Expr, field :: String):
+    s-colon(dummy-loc, obj.visit(self), field)
   end,
-  s_colon_bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s_colon_bracket(dummy-loc, obj.visit(self), field.visit(self))
+  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+    s-colon-bracket(dummy-loc, obj.visit(self), field.visit(self))
   end,
-  s_data(
+  s-data(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
     ):
-    s_data(
+    s-data(
         dummy-loc,
         name,
         params,
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
-        shared_members.map(_.visit(self)),
+        shared-members.map(_.visit(self)),
         self.option(_check)
       )
   end,
-  s_data_expr(
+  s-data-expr(
       self,
       l :: Loc,
       name :: String,
       params :: List<String>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
-      shared_members :: List<Member>,
+      shared-members :: List<Member>,
       _check :: Option<Expr>
     ):
-    s_data_expr(
+    s-data-expr(
         dummy-loc,
         name,
         params,
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
-        shared_members.map(_.visit(self)),
+        shared-members.map(_.visit(self)),
         self.option(_check)
       )
   end,
-  s_for(
+  s-for(
       self,
       l :: Loc,
       iterator :: Expr,
@@ -2568,22 +2586,22 @@ dummy-loc-visitor = {
       ann :: Ann,
       body :: Expr
     ):
-    s_for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
   end,
-  s_check(self, l :: Loc, name :: Option<String>, body :: Expr):
-    s_check(dummy-loc, name, body.visit(self))  
+  s-check(self, l :: Loc, name :: Option<String>, body :: Expr):
+    s-check(dummy-loc, name, body.visit(self))  
   end,
 
-  s_data_field(self, l :: Loc, name :: Expr, value :: Expr):
-    s_data_field(dummy-loc, name, value.visit(self))
+  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
+    s-data-field(dummy-loc, name, value.visit(self))
   end,
-  s_mutable_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s_mutable_field(dummy-loc, name, ann, value.visit(self))
+  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s-mutable-field(dummy-loc, name, ann, value.visit(self))
   end,
-  s_once_field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s_once_field(dummy-loc, name, ann, value.visit(self))
+  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    s-once-field(dummy-loc, name, ann, value.visit(self))
   end,
-  s_method_field(
+  s-method-field(
       self,
       l :: Loc,
       name :: Expr,
@@ -2593,7 +2611,7 @@ dummy-loc-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s_method_field(
+    s-method-field(
         dummy-loc,
         name,
         args.map(_.visit(self)),
@@ -2604,92 +2622,92 @@ dummy-loc-visitor = {
       )
   end,
 
-  s_for_bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s_for_bind(dummy-loc, bind.visit(self), value.visit(self))   
+  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s-for-bind(dummy-loc, bind.visit(self), value.visit(self))   
   end,
-  s_variant_member(self, l :: Loc, member_type :: VariantMemberType, bind :: Bind):
-    s_variant_member(dummy-loc, member_type, bind.visit(self))
+  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+    s-variant-member(dummy-loc, member-type, bind.visit(self))
   end,
-  s_variant(
+  s-variant(
       self,
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ):
-    s_variant(dummy-loc, name, members.map(_.visit(self)), with_members.map(_.visit(self)))
+    s-variant(dummy-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
-  s_singleton_variant(
+  s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
-      with_members :: List<Member>
+      with-members :: List<Member>
     ):
-    s_singleton_variant(dummy-loc, name, with_members.map(_.visit(self)))
+    s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-  s_datatype_variant(
+  s-datatype-variant(
       self,
       l :: Loc,
       name :: String,
       members :: List<VariantMember>,
       constructor :: Constructor
     ):
-    s_datatype_variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
+    s-datatype-variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
   end,
-  s_datatype_singleton_variant(
+  s-datatype-singleton-variant(
       self,
       l :: Loc,
       name :: String,
       constructor :: Constructor
     ):
-    s_datatype_singleton_variant(dummy-loc, name, constructor.visit(self))
+    s-datatype-singleton-variant(dummy-loc, name, constructor.visit(self))
   end,
-  s_datatype_constructor(
+  s-datatype-constructor(
       self,
       l :: Loc,
       self-arg :: String,
       body :: Expr
       ):
-    s_datatype_constructor(dummy-loc, self-arg, body.visit(self))
+    s-datatype-constructor(dummy-loc, self-arg, body.visit(self))
   end,
 
-  a_blank(self): a_blank end,
-  a_any(self): a_any end,
-  a_name(self, l, id): a_name(dummy-loc, id) end,
-  a_arrow(self, l, args, ret):
-    a_arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self))
+  a-blank(self): a-blank end,
+  a-any(self): a-any end,
+  a-name(self, l, id): a-name(dummy-loc, id) end,
+  a-arrow(self, l, args, ret, use-parens):
+    a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
-  a_method(self, l, args, ret):
-    a_method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
+  a-method(self, l, args, ret):
+    a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
   end,
-  a_record(self, l, fields):
-    a_record(dummy-loc, fields.map(_.visit(self)))
+  a-record(self, l, fields):
+    a-record(dummy-loc, fields.map(_.visit(self)))
   end,
-  a_app(self, l, ann, args):
-    a_app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
+  a-app(self, l, ann, args):
+    a-app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
   end,
-  a_pred(self, l, ann, exp):
-    a_pred(dummy-loc, ann.visit(self), exp.visit(self))
+  a-pred(self, l, ann, exp):
+    a-pred(dummy-loc, ann.visit(self), exp.visit(self))
   end,
-  a_dot(self, l, obj, field):
-    a_dot(dummy-loc, obj, field)
+  a-dot(self, l, obj, field):
+    a-dot(dummy-loc, obj, field)
   end,
-  a_field(self, l, name, ann):
-    a_field(dummy-loc, name, ann.visit(self))
+  a-field(self, l, name, ann):
+    a-field(dummy-loc, name, ann.visit(self))
   end
 }
 
 fun build-loc(l):
   cases(S.Srcloc) l:
     | srcloc(source, start-line, start-column, start-char, end-line, end-column, end-char) =>
-      s_obj(l, [
-          s_data_field(l, s_str(l, "source"), s_str(l, source)),
-          s_data_field(l, s_str(l, "start-line"), s_num(l, start-line)),
-          s_data_field(l, s_str(l, "start-column"), s_num(l, start-column)),
-          s_data_field(l, s_str(l, "start-char"), s_num(l, start-char)),
-          s_data_field(l, s_str(l, "end-line"), s_num(l, end-line)),
-          s_data_field(l, s_str(l, "end-column"), s_num(l, end-column)),
-          s_data_field(l, s_str(l, "end-char"), s_num(l, end-char))
+      s-obj(l, [
+          s-data-field(l, s-str(l, "source"), s-str(l, source)),
+          s-data-field(l, s-str(l, "start-line"), s-num(l, start-line)),
+          s-data-field(l, s-str(l, "start-column"), s-num(l, start-column)),
+          s-data-field(l, s-str(l, "start-char"), s-num(l, start-char)),
+          s-data-field(l, s-str(l, "end-line"), s-num(l, end-line)),
+          s-data-field(l, s-str(l, "end-column"), s-num(l, end-column)),
+          s-data-field(l, s-str(l, "end-char"), s-num(l, end-char))
         ])
   end
 end

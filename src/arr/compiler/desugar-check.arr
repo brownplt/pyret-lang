@@ -12,11 +12,11 @@ end
 
 
 check-stmts-visitor = A.default-map-visitor.{
-  s_check_test(self, l, op, left, right):
+  s-check-test(self, l, op, left, right):
     fun check-op(fieldname):
-      A.s_app(l, A.s_dot(l, U.checkers(l), fieldname),
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [
-          A.s_str(l, A.s_check_test(l, op, left, right).tosource().pretty(80).join-str("\n")),
+          A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           left,
           right,
           A.build-loc(l)
@@ -25,10 +25,10 @@ check-stmts-visitor = A.default-map-visitor.{
     if op == "opis": check-op("check-is")
     else if op == "opsatisfies": check-op("check-satisfies")
     else if op == "opraises":
-      A.s_app(l, A.s_dot(l, U.checkers(l), "check-raises-str"),
+      A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
         [
-          A.s_str(l, A.s_check_test(l, op, left, right).tosource().pretty(80).join-str("\n")),
-          A.s_lam(l, [], [], A.a_blank, "", left, none),
+          A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
+          A.s-lam(l, [], [], A.a-blank, "", left, none),
           right,
           A.build-loc(l)
         ])
@@ -42,17 +42,17 @@ fun get-checks(stmts):
   var standalone-counter = 0
   fun add-check(stmt, lst):
     cases(A.Expr) stmt:
-      | s_fun(l, name, _, _, _, _, _, _check) =>
+      | s-fun(l, name, _, _, _, _, _, _check) =>
         cases(Option) _check:
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
-      | s_data(l, name, _, _, _, _, _check) =>
+      | s-data(l, name, _, _, _, _, _check) =>
         cases(Option) _check:
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
-     | s_check(l, name, body) =>
+     | s-check(l, name, body) =>
         check-name = cases(Option) name:
           | none =>
             standalone-counter := standalone-counter + 1
@@ -71,55 +71,55 @@ fun create-check-block(l, checks):
     cases(CheckInfo) c:
       | check-info(l2, name, body) =>
         check-fun = lam(l2, [], body)
-        A.s_obj(l2, [
-            A.s_data_field(l2, A.s_str(l2, "name"), A.s_str(l2, name)),
-            A.s_data_field(l2, A.s_str(l2, "run"), check-fun),
-            A.s_data_field(l2, A.s_str(l2, "location"), A.build-loc(l2))
+        A.s-obj(l2, [
+            A.s-data-field(l2, A.s-str(l2, "name"), A.s-str(l2, name)),
+            A.s-data-field(l2, A.s-str(l2, "run"), check-fun),
+            A.s-data-field(l2, A.s-str(l2, "location"), A.build-loc(l2))
           ])
     end
   end
   checkers = checks.map(create-checker)
-  A.s_block(l, [
-      A.s_app(l, A.s_dot(l, U.checkers(l), "run-checks"), [
-          A.s_str(l, l.source),
-          A.s_list(l, checkers)
+  A.s-block(l, [
+      A.s-app(l, A.s-dot(l, U.checkers(l), "run-checks"), [
+          A.s-str(l, l.source),
+          A.s-list(l, checkers)
         ])
     ])
 end
 
 fun lam(l, args, body):
-  A.s_lam(l, [], args.map(fun(sym): A.s-bind(l, false, sym, A.a_blank) end), A.a_blank, "", body, none)
+  A.s-lam(l, [], args.map(fun(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
 end
 
 no-checks-visitor = A.default-map-visitor.{
-  s_check(self, l, name, body):
-    A.s_id(l, A.s_name("nothing"))
+  s-check(self, l, name, body):
+    A.s-id(l, A.s-name("nothing"))
   end
 }
 
 check-visitor = A.default-map-visitor.{
-  s_block(self, l, stmts):
+  s-block(self, l, stmts):
     checks-to-perform = get-checks(stmts)
     ds-stmts = stmts.map(_.visit(self))
     do-checks = create-check-block(l, checks-to-perform)
-    if is-empty(checks-to-perform): A.s_block(l, ds-stmts)
+    if is-empty(checks-to-perform): A.s-block(l, ds-stmts)
     else if is-empty(ds-stmts): raise("Empty block")
     else:
-      id-result = A.s_name(G.make-name("result-after-checks"))
+      id-result = A.s-name(G.make-name("result-after-checks"))
       last-expr = ds-stmts.last()
-      A.s_block(
+      A.s-block(
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
             [
-              A.s_let(l, A.s_bind(l, false, id-result, A.a_blank), last-expr),
+              A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr),
               do-checks,
-              A.s_id(l, id-result)
+              A.s-id(l, id-result)
             ]
         )
     end
   end,
-  s_check(self, l, name, body):
-    A.s_id(l, A.s_name("nothing"))
+  s-check(self, l, name, body):
+    A.s-id(l, A.s-name("nothing"))
   end
 }
 
@@ -128,8 +128,8 @@ fun desugar-check(prog):
         Preconditions on prog:
           - well-formed
         Postconditions on prog:
-          - contains no s_check or s_check_test statements
-          - all where blocks on s_lam, s_fun, s_data, s_method are none"
+          - contains no s-check or s-check-test statements
+          - all where blocks on s-lam, s-fun, s-data, s-method are none"
   prog.visit(check-visitor)
 end
 
