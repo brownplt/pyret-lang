@@ -99,9 +99,10 @@ paren-expr: PARENSPACE binop-expr RPAREN
 
 id-expr: NAME
 
-prim-expr: num-expr | bool-expr | string-expr
+prim-expr: num-expr | frac-expr | bool-expr | string-expr
 
 num-expr: NUMBER
+frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 

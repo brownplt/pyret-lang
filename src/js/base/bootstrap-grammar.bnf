@@ -1,7 +1,7 @@
 #lang ragg
 
 /*
-  name: PyretGrammar
+  name: BootstrapGrammar
 */
 
 program: prelude block
@@ -19,15 +19,18 @@ block: stmt*
 
 stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
-    | graph-expr
+    | graph-expr | contract-stmt
 
-let-expr: [VAL] binding EQUALS binop-expr
+let-expr: [VAL] toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
+toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
-letrec-expr: LETREC letrec-binding* let-expr COLON block END
+letrec-expr: LETREC letrec-binding* let-expr COLON block end
 letrec-binding: let-expr COMMA
+
+contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN fun-header COLON doc-string block where-clause end
 fun-header: ty-params NAME args return-ann
@@ -62,7 +65,7 @@ first-datatype-variant: NAME variant-members constructor-clause | NAME construct
 datatype-variant: BAR NAME variant-members constructor-clause | BAR NAME constructor-clause
 constructor-clause: WITHCONSTRUCTOR (PARENSPACE|PARENNOSPACE) NAME RPAREN COLON block end
 
-var-expr: VAR binding EQUALS binop-expr
+var-expr: VAR toplevel-binding EQUALS binop-expr
 assign-expr: NAME COLONEQUALS binop-expr
 
 graph-expr: GRAPH let-expr* end
@@ -164,12 +167,13 @@ record-ann: LBRACE [list-ann-field* ann-field] RBRACE
 list-ann-field: ann-field COMMA
 ann-field: NAME COLON ann | NAME COLONCOLON ann
 
+noparen-arrow-ann: [arrow-ann-elt* ann] THINARROW ann
 arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] THINARROW ann RPAREN
 arrow-ann-elt: ann COMMA
 
 app-ann: (name-ann|dot-ann) (LANGLE|LT) app-ann-elt* ann (RANGLE|GT)
 app-ann-elt: ann COMMA
 
-pred-ann: ann (PARENSPACE|PARENNOSPACE) binop-expr RPAREN
+pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN
 
 dot-ann : NAME DOT NAME
