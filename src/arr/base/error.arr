@@ -38,6 +38,7 @@ data RuntimeError:
       "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())
     end
   | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val)
+  | uninitialized-id(loc, name :: String)
   | user-break
 end
 

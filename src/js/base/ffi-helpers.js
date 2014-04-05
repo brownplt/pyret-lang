@@ -63,6 +63,16 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
       raise(err("plus-error")(left, right));
     }
 
+    function throwUninitializedId(loc, name) {
+      checkSrcloc(loc);
+      runtime.checkString(name);
+      raise(err("uninitialized-id")(loc, name));
+    }
+
+    function throwUninitializedIdMkLoc(loc, name) {
+      throwUninitializedId(runtime.makeSrcloc(loc), name);
+    }
+
     return {
       throwPlusError: throwPlusError,
       throwInternalError: throwInternalError,
@@ -70,6 +80,8 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
       throwLookupNonObject: throwLookupNonObject,
       throwTypeMismatch: throwTypeMismatch,
       throwMessageException: throwMessageException,
+      throwUninitializedId: throwUninitializedId,
+      throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       makeList: makeList,
       makeNone: function() { return runtime.getField(O, "none"); },
       makeSome: function(v) { return runtime.getField(O, "some").app(v); },

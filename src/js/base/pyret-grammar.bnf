@@ -26,7 +26,7 @@ binding: [SHADOW] NAME [COLONCOLON ann]
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
-letrec-expr: LETREC letrec-binding* let-expr COLON block END
+letrec-expr: LETREC letrec-binding* let-expr COLON block end
 letrec-binding: let-expr COMMA
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
