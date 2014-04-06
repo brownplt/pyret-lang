@@ -3,8 +3,8 @@ define([
     "js/runtime-anf",
     "js/ffi-helpers",
     "js/dialects-lib",
-    "arr/compiler/compile-structs.arr",
-    "arr/compiler/compile.arr",
+    "compiler/compile-structs.arr",
+    "compiler/compile.arr",
     "trove/parse-pyret",
     "trove/checker"],
 function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {

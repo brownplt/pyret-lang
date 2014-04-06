@@ -1,5 +1,12 @@
 var R = require("requirejs");
 
+R.config({
+  paths: {
+    trove: "./trove",
+    js: "./js",
+    compiler: "./arr/compiler"
+  }
+});
 
 R([process.argv[2], "js/runtime-anf", "trove/checker"], function(mainModule, RT, checkerLib) {
   var rt = RT.makeRuntime({

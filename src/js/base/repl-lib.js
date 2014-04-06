@@ -1,4 +1,4 @@
-define(["q", "./eval-lib", "arr/compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
+define(["q", "./eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace) {

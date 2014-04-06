@@ -1,4 +1,4 @@
-define(["../../src/js/base/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
+define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
   var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);

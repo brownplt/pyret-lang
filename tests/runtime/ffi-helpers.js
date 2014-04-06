@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], function (matchers, jsnums, ffiLib) {
+define(["./matchers", "js/js-numbers", "js/ffi-helpers"], function (matchers, jsnums, ffiLib) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -8,7 +8,7 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], 
 
   function performTest(useCompiled){
 
-    var R = r('./build/phase1/js/runtime-anf');
+    var R = r('js/runtime-anf');
 
     var output;
     var rt;
