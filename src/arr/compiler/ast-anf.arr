@@ -27,7 +27,7 @@ str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
 
-dummy-loc = SL.srcloc("dummy-location", -1, -1, -1, -1, -1, -1)
+dummy-loc = SL.builtin("dummy-location")
 
 Loc = SL.Srcloc
 
@@ -48,12 +48,12 @@ sharing:
 end
 
 data AImport:
-  | a-import-file(l :: Loc, file :: String, name :: String) with:
+  | a-import-file(l :: Loc, file :: String, name :: Name) with:
     label(self): "a-import-file" end,
     tosource(self):
       PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, PP.str(self.name)])
     end
-  | a-import-builtin(l :: Loc, lib :: String, name :: String) with:
+  | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
     label(self): "a-import-builtin" end,
     tosource(self):
       PP.flow([str-import, PP.str(self.lib), str-as, PP.str(self.name)])
@@ -94,7 +94,7 @@ data AExpr:
         + PP.nest(INDENT, self._except.tosource()) + break-one
       PP.group(_try + _except + str-end)
     end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
+  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
       PP.group(
@@ -131,9 +131,9 @@ sharing:
 end
 
 data ABind:
-  | a-bind(l :: Loc, id :: String, ann :: A.Ann) with:
+  | a-bind(l :: Loc, id :: Name, ann :: A.Ann) with:
     label(self): "a-bind" end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): PP.str(self.id.tostring()) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -197,7 +197,7 @@ data ALettable:
     tosource(self):
       PP.str("data-expr")
     end
-  | a-assign(l :: Loc, id :: String, value :: AVal) with:
+  | a-assign(l :: Loc, id :: Name, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
@@ -288,15 +288,15 @@ data AVal:
   | a-undefined(l :: Loc) with:
     label(self): "a-undefined" end,
     tosource(self): PP.str("UNDEFINED") end
-  | a-id(l :: Loc, id :: String) with:
+  | a-id(l :: Loc, id :: Name) with:
     label(self): "a-id" end,
-    tosource(self): PP.str(self.id) end
-  | a-id-var(l :: Loc, id :: String) with:
+    tosource(self): PP.str(self.id.tostring()) end
+  | a-id-var(l :: Loc, id :: Name) with:
     label(self): "a-id-var" end,
-    tosource(self): PP.str("!" + self.id) end
-  | a-id-letrec(l :: Loc, id :: String) with:
+    tosource(self): PP.str("!" + self.id.tostring()) end
+  | a-id-letrec(l :: Loc, id :: Name) with:
     label(self): "a-id-letrec" end,
-    tosource(self): PP.str("~" + self.id) end
+    tosource(self): PP.str("~" + self.id.tostring()) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -396,10 +396,10 @@ default-map-visitor = {
   a-program(self, l :: Loc, imports :: List<AHeader>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
   end,
-  a-import-file(self, l :: Loc, file :: String, name :: String):
+  a-import-file(self, l :: Loc, file :: String, name :: Name):
     a-import-file(l, file, name)
   end,
-  a-import-builtin(self, l :: Loc, lib :: String, name :: String):
+  a-import-builtin(self, l :: Loc, lib :: String, name :: Name):
     a-import-builtin(l, lib, name)
   end,
   a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
@@ -432,7 +432,7 @@ default-map-visitor = {
   a-lettable(self, e :: ALettable):
     a-lettable(e.visit(self))
   end,
-  a-assign(self, l :: Loc, id :: String, value :: AVal):
+  a-assign(self, l :: Loc, id :: Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
   a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
@@ -468,7 +468,7 @@ default-map-visitor = {
   a-val(self, v :: AVal):
     a-val(v.visit(self))
   end,
-  a-bind(self, l :: Loc, id :: String, ann :: A.Ann):
+  a-bind(self, l :: Loc, id :: Name, ann :: A.Ann):
     a-bind(l, id, ann)
   end,
   a-field(self, l :: Loc, name :: String, value :: AVal):
@@ -486,18 +486,18 @@ default-map-visitor = {
   a-undefined(self, l :: Loc):
     a-undefined(l)
   end,
-  a-id(self, l :: Loc, id :: String):
+  a-id(self, l :: Loc, id :: Name):
     a-id(l, id)
   end,
-  a-id-var(self, l :: Loc, id :: String):
+  a-id-var(self, l :: Loc, id :: Name):
     a-id-var(l, id)
   end,
-  a-id-letrec(self, l :: Loc, id :: String):
+  a-id-letrec(self, l :: Loc, id :: Name):
     a-id-letrec(l, id)
   end
 }
 
-fun freevars-e(expr :: AExpr) -> Set<String>:
+fun freevars-e(expr :: AExpr) -> Set<Name>:
   cases(AExpr) expr:
     | a-let(_, b, e, body) =>
       freevars-e(body).remove(b.id).union(freevars-l(e))
@@ -518,11 +518,11 @@ where:
         a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
 end
 
-fun freevars-variant(v :: AVariant) -> Set<String>:
+fun freevars-variant(v :: AVariant) -> Set<Name>:
   unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
 end
 
-fun freevars-l(e :: ALettable) -> Set<String>:
+fun freevars-l(e :: ALettable) -> Set<Name>:
   cases(ALettable) e:
     | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
     | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
@@ -542,7 +542,7 @@ fun freevars-l(e :: ALettable) -> Set<String>:
   end
 end
 
-fun freevars-v(v :: AVal) -> Set<String>:
+fun freevars-v(v :: AVal) -> Set<Name>:
   cases(AVal) v:
     | a-id(_, id) => list-set([id])
     | a-id-var(_, id) => list-set([id])

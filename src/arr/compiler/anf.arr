@@ -4,17 +4,18 @@ provide *
 
 import ast as A
 import "./ast-anf.arr" as N
-import "./gensym.arr" as G
+
+names = A.global-names
 
 fun mk-id(loc, base):
-  t = G.make-name(base)
+  t = names.make-atom(base)
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 
 data ANFCont:
   | k-cont(k :: (N.ALettable -> N.AExpr)) with:
     apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
-  | k-id(name :: String) with:
+  | k-id(name :: Name) with:
     apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(v) =>
@@ -48,7 +49,7 @@ fun bind(l, id): N.a-bind(l, id, A.a-blank);
 
 fun anf-bind(b):
   cases(A.Bind) b:
-    | s-bind(l, shadows, id, ann) => N.a-bind(l, tostring(id), ann)
+    | s-bind(l, shadows, id, ann) => N.a-bind(l, id, ann)
   end
 end
 
@@ -89,8 +90,8 @@ fun anf-import(i :: A.Import):
   cases(A.Import) i:
     | s-import(l, f, name) =>
       cases(A.ImportType) f:
-        | s-file-import(fname) => N.a-import-file(l, fname, tostring(name))
-        | s-const-import(module) => N.a-import-builtin(l, module, tostring(name))
+        | s-file-import(fname) => N.a-import-file(l, fname, name)
+        | s-const-import(module) => N.a-import-builtin(l, module, name)
       end
   end
 end
@@ -123,9 +124,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-str(l, s) => k.apply(l, N.a-val(N.a-str(l, s)))
     | s-undefined(l) => k.apply(l, N.a-val(N.a-undefined(l)))
     | s-bool(l, b) => k.apply(l, N.a-val(N.a-bool(l, b)))
-    | s-id(l, id) => k.apply(l, N.a-val(N.a-id(l, tostring(id))))
-    | s-id-var(l, id) => k.apply(l, N.a-val(N.a-id-var(l, tostring(id))))
-    | s-id-letrec(l, id) => k.apply(l, N.a-val(N.a-id-letrec(l, tostring(id))))
+    | s-id(l, id) => k.apply(l, N.a-val(N.a-id(l, id)))
+    | s-id-var(l, id) => k.apply(l, N.a-val(N.a-id-var(l, id)))
+    | s-id-letrec(l, id) => k.apply(l, N.a-val(N.a-id-letrec(l, id)))
 
     | s-let-expr(l, binds, body) =>
       cases(List) binds:
@@ -133,11 +134,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | link(f, r) =>
           cases(A.LetBind) f:
             | s-var-bind(l2, b, val) => anf(val, k-cont(fun(lettable):
-                    N.a-var(l2, N.a-bind(l2, tostring(b.id), b.ann), lettable,
+                    N.a-var(l2, N.a-bind(l2, b.id, b.ann), lettable,
                       anf(A.s-let-expr(l, r, body), k))
                   end))
             | s-let-bind(l2, b, val) => anf(val, k-cont(fun(lettable):
-                    N.a-let(l2, N.a-bind(l2, tostring(b.id), b.ann), lettable,
+                    N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
                       anf(A.s-let-expr(l, r, body), k))
                   end))
           end
@@ -148,7 +149,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         A.s-var-bind(b.l, b.b, A.s-undefined(l))
       end
       assigns = for map(b from binds):
-        A.s-assign(b.l, tostring(b.b.id), b.value)
+        A.s-assign(b.l, b.b.id, b.value)
       end
       anf(A.s-let-expr(l, let-binds, A.s-block(l, assigns + [body])), k)
 
@@ -163,9 +164,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end
             new-bind = cases(A.Bind) b:
               | s-bind(l3, shadows, name, ann) =>
-                cases(A.Name) name:
-                  | s-atom(base, serial) => N.a-bind(l3, base, ann)
-                end
+                N.a-bind(l3, name, ann)
             end
             N.a-variant-member(l2, a-type, new-bind)
         end
@@ -231,9 +230,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      k.apply(l, N.a-lam(l, args.map(fun(b): bind(b.l, tostring(b.id)) end), anf-term(body)))
+      k.apply(l, N.a-lam(l, args.map(fun(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
     | s-method(l, args, ret, doc, body, _) =>
-      k.apply(l, N.a-method(l, args.map(fun(b): bind(b.l, tostring(b.id)) end), anf-term(body)))
+      k.apply(l, N.a-method(l, args.map(fun(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
 
     | s-app(l, f, args) =>
       anf-name(f, "anf_fun", fun(v):
@@ -271,7 +270,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(obj, "anf_get_bang", fun(t): k.apply(l, N.a-get-bang(l, t, field)) end)
 
     | s-assign(l, id, value) =>
-      anf-name(value, "anf_assign", fun(v): k.apply(l, N.a-assign(l, tostring(id), v)) end)
+      anf-name(value, "anf_assign", fun(v): k.apply(l, N.a-assign(l, id, v)) end)
 
     | s-obj(l, fields) =>
       exprs = fields.map(_.value)
