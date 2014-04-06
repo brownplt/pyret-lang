@@ -1,6 +1,5 @@
 var r = require("requirejs")
-
-define(["./matchers"], function (matchers) {
+define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
 
     _ = require('jasmine-node');
     var path = require('path');
@@ -15,10 +14,8 @@ define(["./matchers"], function (matchers) {
     }
 
     function performTest(useCompiled) {
-
       var output;
       var rt;
-      var R = require("js/runtime-anf");
 
       /**@ param {string} str, output*/
       function stdout(str) {
@@ -46,7 +43,7 @@ define(["./matchers"], function (matchers) {
 
       beforeEach(function(){
           output = "";
-          rt = R.makeRuntime({'stdout' : stdout});
+          rt = rtLib.makeRuntime({'stdout' : stdout});
           addPyretMatchers(this, rt);
 
           //Make Examples for testing
