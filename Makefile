@@ -94,19 +94,19 @@ $(PHASE1):
 	mkdir -p build/phase1
 	mkdir -p build/phase1/trove
 	cd build/phase1 && \
-		find ../../src -type d | cut -d'/' -f5- | xargs mkdir -p
+		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
 
 $(PHASE2):
 	mkdir -p build/phase2
 	mkdir -p build/phase2/trove
 	cd build/phase2 && \
-		find ../../src -type d | cut -d'/' -f5- | xargs mkdir -p
+		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
 
 $(PHASE3):
 	mkdir -p build/phase3
 	mkdir -p build/phase3/trove
 	cd build/phase3 && \
-		find ../../src -type d | cut -d'/' -f5- | xargs mkdir -p
+		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
 
 $(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
