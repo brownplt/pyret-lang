@@ -60,7 +60,8 @@ $(function() {
     var replContainer = $("<div>").addClass("repl");
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
-    var repl = replLib.create(runtime, runtime.namespace);
+    var dialect = "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
+    var repl = replLib.create(dialect, runtime, runtime.namespace);
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);

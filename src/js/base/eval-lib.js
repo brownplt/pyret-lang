@@ -64,20 +64,21 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
       );
   }
 
-  function compileSrcPyret(runtime, src, options, ondone) {
-    parsePyret(runtime, src, options, function(parsed) {
+  function compileSrcPyret(dialect, runtime, src, options, ondone) {
+    parsePyret(dialect, runtime, src, options, function(parsed) {
       compilePyret(runtime, parsed, options, ondone);
     });
   }
 
-  function parsePyret(runtime, src, options, ondone) {
+  function parsePyret(dialect, runtime, src, options, ondone) {
     var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
     if (!options.name) { options.name = randomName(); }
-    return ondone(runtime.getField(pp, "surface-parse").app(runtime.makeString(src), runtime.makeString(options.name)));
+    return ondone(runtime.getField(pp, "surface-parse").app(
+      runtime.makeString(dialect), runtime.makeString(src), runtime.makeString(options.name)));
   }
 
-  function evalPyret(runtime, src, options, ondone) {
-    parsePyret(runtime, src, options, function(parsed) {
+  function evalPyret(dialect, runtime, src, options, ondone) {
+    parsePyret(dialect, runtime, src, options, function(parsed) {
       evalParsedPyret(runtime, parsed, options, ondone);
     });
   }

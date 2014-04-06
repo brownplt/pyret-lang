@@ -6,7 +6,19 @@ import exec as X
 import string-dict as D
 import "./compile.arr" as CM
 import "./compile-structs.arr" as CS
+import format as Format
+import either as E
+format = Format.format
+Either = E.Either
+left = E.left
+right = E.right
 
+
+fun parse-dialects(arg-index, name, val):
+  if (val == "Pyret") or (val == "Bootstrap"): left(val)
+  else: right(format("~a expected a dialect, got ~a", [name, torepr(val)]))
+  end
+end
 
 fun main(args):
   options = {
@@ -25,7 +37,10 @@ fun main(args):
     no-check-mode:
       C.flag(C.once, "Skip checks"),
     allow-shadow:
-      C.flag(C.once, "Run without checking for shadowed variables")
+      C.flag(C.once, "Run without checking for shadowed variables"),
+    dialect:
+        C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
+          "Pyret", some("d"), C.once, "Dialect of Pyret to use")
   }
   
   params-parsed = C.parse-args(options, args)
@@ -47,6 +62,7 @@ fun main(args):
       if not is-empty(rest):
         program-name = rest.first
         result = CM.compile-js(
+          r.get("dialect"),
           F.file-to-string(program-name),
           program-name,
           libs,
@@ -80,6 +96,7 @@ fun main(args):
             )
         else if r.has-key("compile-module-js"):
           CM.compile-js(
+            r.get("dialect"),
             F.file-to-string(r.get("compile-module-js")),
             r.get("compile-module-js"),
             libs,

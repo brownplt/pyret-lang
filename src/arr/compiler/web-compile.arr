@@ -11,8 +11,8 @@ import "./resolve-scope.arr" as R
 import "./desugar.arr" as D
 import "./desugar-check.arr" as CH
 
-fun compile-js(code, name, libs, safe-stack):
-  ast = PP.surface-parse(code, name)
+fun compile-js(dialect, code, name, libs, safe-stack):
+  ast = PP.surface-parse(dialect, code, name)
   ast-ended = U.append-nothing-if-necessary(ast)
   wf = W.check-well-formed(ast-ended)
   cases(C.CompileResult) wf:
@@ -38,11 +38,11 @@ fun compile-js(code, name, libs, safe-stack):
   end
 end
 
-fun compile-runnable-js(code, name, libs, options):
-  compile-js(code, name, libs, options).pyret-to-js-runnable()
+fun compile-runnable-js(dialect, code, name, libs, options):
+  compile-js(dialect, code, name, libs, options).pyret-to-js-runnable()
 end
 
-fun compile-standalone-js(code, name, libs, options):
-  compile-js(code, name, libs, options).pyret-to-js-standalone()
+fun compile-standalone-js(dialect, code, name, libs, options):
+  compile-js(dialect, code, name, libs, options).pyret-to-js-standalone()
 end
 

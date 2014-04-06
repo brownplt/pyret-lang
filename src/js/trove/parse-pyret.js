@@ -1,8 +1,16 @@
-define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser", "js/bootstrap-tokenizer", "js/bootstrap-parser"], function(util, ffi, astLib, srclocLib, PT, PG, BT, BG) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
+
+    var dialects = {
+      "Pyret": { Tokenizer: PT.Tokenizer, Grammar: PG.PyretGrammar },
+      "Bootstrap": { Tokenizer: BT.Tokenizer, Grammar: BG.BootstrapGrammar },
+      "pyret": { Tokenizer: PT.Tokenizer, Grammar: PG.PyretGrammar },
+      "bootstrap": { Tokenizer: BT.Tokenizer, Grammar: BG.BootstrapGrammar }
+    }
+    
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
@@ -885,32 +893,33 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       "satisfies": RUNTIME.makeString("opsatisfies"),
     }
 
-    function parseDataRaw(data, fileName) {
-      const toks = T.Tokenizer;
+    function parseDataRaw(dialect, data, fileName) {
+      const toks = dialects[dialect].Tokenizer;
+      const grammar = dialects[dialect].Grammar;
       toks.tokenizeFrom(data);
       // while (toks.hasNext())
       //   console.log(toks.next().toString(true));
-      var parsed = G.PyretGrammar.parse(toks);
+      var parsed = grammar.parse(toks);
       //console.log("Result:");
-      var countParses = G.PyretGrammar.countAllParses(parsed);
+      var countParses = grammar.countAllParses(parsed);
       if (countParses == 0) {
-        var nextTok = toks.next();
+        var nextTok = toks.curTok; // TODO : THIS IS ALMOST ALWAYS OFF BY ONE
         console.error("There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
         throw RUNTIME.makeMessageException("No parses found");
       }
       //console.log("There were " + countParses + " potential parses");
-      var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
+      var posViolations = grammar.checkPositionContainment(parsed);
       if (posViolations) {
         console.error("Not all nodes contain their children!");
       } else {
         if (countParses === 1) {
-          var ast = G.PyretGrammar.constructUniqueParse(parsed);
+          var ast = grammar.constructUniqueParse(parsed);
 //          console.log(ast.toString());
           return translate(ast, fileName);
         } else {
-          var asts = G.PyretGrammar.constructAllParses(parsed);
+          var asts = grammar.constructAllParses(parsed);
           throw "Non-unique parse";
           for (var i = 0; i < asts.length; i++) {
             //console.log("Parse " + i + ": " + asts[i].toString());
@@ -921,10 +930,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       }
     }
     
-    function parseData(data, fileName) {
+    function parseData(dialect, data, fileName) {
+      RUNTIME.checkIf(dialect, RUNTIME.isString);
       RUNTIME.checkIf(data, RUNTIME.isString);
       RUNTIME.checkIf(fileName, RUNTIME.isString);
-      return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+      return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
     
 

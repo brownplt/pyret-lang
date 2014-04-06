@@ -208,6 +208,7 @@ $(function() {
                 compileStart = window.performance.now();
                 console.profile("compileProfile");
                 return gf(myWC, "compile-js").app(
+                  s("Pyret"), // NOTE: CHANGE THIS
                   s(src),
                   s(name),
                   gf(myCS, "standard-builtins"),
