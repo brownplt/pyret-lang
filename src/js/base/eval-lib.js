@@ -2,8 +2,9 @@ define([
     "js/secure-loader",
     "js/runtime-anf",
     "js/ffi-helpers",
-    "compiler/compile-structs.arr",
-    "compiler/compile.arr",
+    "js/dialects-lib",
+    "arr/compiler/compile-structs.arr",
+    "arr/compiler/compile.arr",
     "trove/parse-pyret",
     "trove/checker"],
 function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
@@ -19,7 +20,7 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     return "anon" + Math.floor(Math.random() * 10000000);
   }
 
-  function compilePyret(runtime, src, options, ondone) {
+  function compilePyret(runtime, ast, options, ondone) {
     function getExports(lib) {
       return runtime.getField(lib(runtime, runtime.namespace), "provide");
     }
@@ -27,6 +28,7 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
+    var dialects = dialectsLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
     var name = options.name || randomName();
@@ -35,7 +37,7 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     runtime.run(function(_, namespace) {
         return runtime.safeCall(function() {
             return gf(comp, "compile-js-ast").app(
-                src,
+                ast,
                 s(name),
                 compileEnv,
                 runtime.makeObject({
@@ -72,6 +74,7 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
 
   function parsePyret(runtime, src, options, ondone) {
     var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
+    var dialects = dialectsLib(runtime, runtime.namespace);
     if (!options.name) { options.name = randomName(); }
     return ondone(runtime.getField(pp, "surface-parse").app(runtime.makeString(src), runtime.makeString(options.name)));
   }

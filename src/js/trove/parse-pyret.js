@@ -912,11 +912,23 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       RUNTIME.checkIf(fileName, RUNTIME.isString);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
+    function parsePyret(data, fileName) {
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
+    function parseBootstrap(data, fileName) {
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
     
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'surface-parse': RUNTIME.makeFunction(parseData)
+        'parse-dialect': RUNTIME.makeFunction(parseDataDialect),
+        'surface-parse': RUNTIME.makeFunction(parsePyret), // TODO: Rename this eventually
+        'parse-bootstrap': RUNTIME.makeFunction(parseBootstrap)
       }),
       answer: NAMESPACE.get("nothing")
     });

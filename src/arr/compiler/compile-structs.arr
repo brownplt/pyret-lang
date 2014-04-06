@@ -3,6 +3,11 @@
 provide *
 import ast as A
 
+data PyretDialect:
+  | Pyret
+  | Bootstrap
+end
+
 data CompileEnvironment:
   | compile-env(bindings :: List<CompileBinding>)
 end

@@ -1,13 +1,10 @@
-define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
+define(["q", "./eval-lib", "arr/compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace) {
     var toRun = [];
     var somethingRunning = false;
     function get(obj, fld) { return runtime.getField(obj, fld); }
-    var compileStructs = get(cs(runtime, namespace), "provide");
-//    var standardCompileEnv = get(compileStructs, "standard-builtins");
-    var initialCompileEnv = get(compileStructs, "standard-builtins");
     var replCompileEnv = initialCompileEnv;
     var replSupport = get(rs(runtime, namespace), "provide");
     
