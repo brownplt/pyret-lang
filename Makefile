@@ -31,6 +31,27 @@ PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS
 
 PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
 
+
+PHASE1_DIRS := $(sort $(dir $(PHASE1_ALL_DEPS)))
+PHASE2_DIRS := $(sort $(dir $(PHASE2_ALL_DEPS)))
+PHASE3_DIRS := $(sort $(dir $(PHASE3_ALL_DEPS)))
+
+# NOTE: Needs TWO blank lines here, dunno why
+define \n
+
+
+endef
+ifneq ($(findstring .exe,$(SHELL)),)
+	override SHELL:=$(COMSPEC)$(ComSpec)
+	MKDIR = $(foreach dir,$1,if not exist "$(dir)". (md "$(dir)".)$(\n))
+	RMDIR = $(foreach dir,$1,if exist "$(dir)". (rd /S /Q "$(dir)".)$(\n))
+	RM = if exist "$1". (del $1)
+else
+	MKDIR = mkdir -p $1
+	RMDIR = rm -rf $1
+	RM = rm -f $1
+endif
+
 WEB_DEPS = \
  node_modules/requirejs/require.js \
  src/web/playground.html \
@@ -78,7 +99,7 @@ web: $(WEB_TARGETS) $(WEB)/web-compile.js
 $(WEB_TARGETS): | $(WEB)
 
 $(WEB):
-	mkdir -p $(WEB)
+	@$(call MKDIR,$(WEB))
 $(WEB)/%: lib/CodeMirror/%
 	cp $< $@
 $(WEB)/%: src/web/%
@@ -91,22 +112,13 @@ $(WEB)/web-compile.js: $(PHASE2_ALL_DEPS)
 	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove include=js/runtime-anf
 
 $(PHASE1):
-	mkdir -p build/phase1
-	mkdir -p build/phase1/trove
-	cd build/phase1 && \
-		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
+	@$(call MKDIR,$(PHASE1_DIRS))
 
 $(PHASE2):
-	mkdir -p build/phase2
-	mkdir -p build/phase2/trove
-	cd build/phase2 && \
-		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
+	@$(call MKDIR,$(PHASE2_DIRS))
 
 $(PHASE3):
-	mkdir -p build/phase3
-	mkdir -p build/phase3/trove
-	cd build/phase3 && \
-		find ../../src -type d | cut -d'/' -f4- | xargs mkdir -p
+	@$(call MKDIR,$(PHASE3_DIRS))
 
 $(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
@@ -209,11 +221,11 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 
 .PHONY : install
 install:
-	mkdir -p deps/closure-compiler
+	@$(call MKDIR,deps/closure-compiler)
 	curl "http://dl.google.com/closure-compiler/compiler-latest.zip" > compiler-latest.zip
 	unzip compiler-latest.zip -d deps/closure-compiler 
-	rm compiler-latest.zip
-	mkdir -p node_modules 
+	@$(call RM,compiler-latest.zip)
+	@$(call MKDIR,node_modules)
 	npm install jasmine-node
 	npm install requirejs
 	npm install q
@@ -256,9 +268,9 @@ compiler-test: phase1
 
 .PHONY : clean
 clean:
-	rm -rf $(PHASE1)
-	rm -rf $(PHASE2)
-	rm -rf $(PHASE3)
+	$(call RMDIR,$(PHASE1))
+	$(call RMDIR,$(PHASE2))
+	$(call RMDIR,$(PHASE3))
 
 
 # Written this way because cmd.exe complains about && in command lines
@@ -266,4 +278,3 @@ new-bootstrap: no-diff-standalone
 	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
 no-diff-standalone: standalone2 standalone3
 	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
-
