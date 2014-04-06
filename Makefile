@@ -107,7 +107,7 @@ $(WEB)/%: src/web/%
 $(WEB)/%: img/%
 	cp $< $@
 
-$(WEB)/web-compile.js: $(PHASE2_ALL_DEPS)
+$(WEB)/web-compile.js: $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS))
 	cd $(PHASE2) && \
 	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove include=js/runtime-anf
 
