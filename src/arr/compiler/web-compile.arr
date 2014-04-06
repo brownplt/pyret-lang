@@ -12,7 +12,7 @@ import "./desugar.arr" as D
 import "./desugar-check.arr" as CH
 
 fun compile-js(dialect, code, name, libs, safe-stack):
-  ast = PP.surface-parse(dialect, code, name)
+  ast = PP.surface-parse(code, name)
   ast-ended = U.append-nothing-if-necessary(ast)
   wf = W.check-well-formed(ast-ended)
   cases(C.CompileResult) wf:

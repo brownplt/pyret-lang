@@ -36,7 +36,7 @@ fun compile-js-ast(ast, name, libs, options):
 end
 
 fun compile-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  ast = PP.surface-parse(dialect, code, name)
+  ast = PP.parse-dialect(dialect, code, name)
   compile-js-ast(ast, name, libs, options)
 end
 

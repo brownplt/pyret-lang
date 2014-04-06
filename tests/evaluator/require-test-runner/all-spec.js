@@ -2,24 +2,19 @@ var r = require("requirejs");
 
 r.config({
   waitSeconds: 15000,
-  baseUrl: "../..",
-  paths: {
-    trove: "build/phase1/trove",
-    js: "build/phase1/js",
-    compiler: "build/phase1/arr/compiler"
-  }
+  baseUrl: "../../build/phase1"
 });
 
 console.log("Starting all-spec");
 
 r([
-    "./tests/evaluator/constants",
-    "./tests/evaluator/conditionals",
-    "./tests/evaluator/data",
-    "./tests/evaluator/errors",
-    "./tests/evaluator/well-formed",
-    "./tests/evaluator/check",
-    "./tests/evaluator/stack"
+    "../../tests/evaluator/constants",
+    "../../tests/evaluator/conditionals",
+    "../../tests/evaluator/data",
+    "../../tests/evaluator/errors",
+    "../../tests/evaluator/well-formed",
+    "../../tests/evaluator/check",
+    "../../tests/evaluator/stack"
     ], function (
       constants,
       conditionals,

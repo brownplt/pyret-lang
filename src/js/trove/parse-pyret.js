@@ -1,15 +1,10 @@
-define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser", "js/bootstrap-tokenizer", "js/bootstrap-parser"], function(util, ffi, astLib, srclocLib, PT, PG, BT, BG) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
 
-    var dialects = {
-      "Pyret": { Tokenizer: PT.Tokenizer, Grammar: PG.PyretGrammar },
-      "Bootstrap": { Tokenizer: BT.Tokenizer, Grammar: BG.BootstrapGrammar },
-      "pyret": { Tokenizer: PT.Tokenizer, Grammar: PG.PyretGrammar },
-      "bootstrap": { Tokenizer: BT.Tokenizer, Grammar: BG.BootstrapGrammar }
-    }
+    var dialects = dialectsLib(RUNTIME, NAMESPACE);
     
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function translate(node, fileName) {
@@ -894,8 +889,8 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
     }
 
     function parseDataRaw(dialect, data, fileName) {
-      const toks = dialects[dialect].Tokenizer;
-      const grammar = dialects[dialect].Grammar;
+      const toks = dialects.dialects[dialect].Tokenizer;
+      const grammar = dialects.dialects[dialect].Grammar;
       toks.tokenizeFrom(data);
       // while (toks.hasNext())
       //   console.log(toks.next().toString(true));
@@ -903,7 +898,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       //console.log("Result:");
       var countParses = grammar.countAllParses(parsed);
       if (countParses == 0) {
-        var nextTok = toks.curTok; // TODO : THIS IS ALMOST ALWAYS OFF BY ONE
+        var nextTok = toks.next(); // TODO : THIS IS ALMOST ALWAYS OFF BY ONE
         console.error("There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
@@ -930,17 +925,29 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       }
     }
     
-    function parseData(dialect, data, fileName) {
+    function parseDataDialect(dialect, data, fileName) {
       RUNTIME.checkIf(dialect, RUNTIME.isString);
       RUNTIME.checkIf(data, RUNTIME.isString);
       RUNTIME.checkIf(fileName, RUNTIME.isString);
       return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
+    function parsePyret(data, fileName) {
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
+    function parseBootstrap(data, fileName) {
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
     
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'surface-parse': RUNTIME.makeFunction(parseData)
+        'parse-dialect': RUNTIME.makeFunction(parseDataDialect),
+        'surface-parse': RUNTIME.makeFunction(parsePyret), // TODO: Rename this eventually
+        'parse-bootstrap': RUNTIME.makeFunction(parseBootstrap)
       }),
       answer: NAMESPACE.get("nothing")
     });

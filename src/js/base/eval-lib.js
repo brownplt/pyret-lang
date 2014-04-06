@@ -1,11 +1,12 @@
 define([
     "js/runtime-anf",
     "js/ffi-helpers",
-    "compiler/compile-structs.arr",
-    "compiler/compile.arr",
+    "js/dialects-lib",
+    "arr/compiler/compile-structs.arr",
+    "arr/compiler/compile.arr",
     "trove/parse-pyret",
     "trove/checker"],
-function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
+function(rtLib, ffiHelpersLib, dialectsLib, csLib, compLib, parseLib, checkerLib) {
   if(requirejs.isBrowser) {
     var r = requirejs;
     var define = window.define;
@@ -18,7 +19,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     return "anon" + Math.floor(Math.random() * 10000000);
   }
 
-  function compilePyret(runtime, src, options, ondone) {
+  function compilePyret(runtime, ast, options, ondone) {
     function getExports(lib) {
       return runtime.getField(lib(runtime, runtime.namespace), "provide");
     }
@@ -26,6 +27,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
+    var dialects = dialectsLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
     var name = options.name || randomName();
@@ -34,7 +36,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     runtime.run(function(_, namespace) {
         return runtime.safeCall(function() {
             return gf(comp, "compile-js-ast").app(
-                src,
+                ast,
                 s(name),
                 compileEnv,
                 runtime.makeObject({
@@ -64,21 +66,24 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
       );
   }
 
-  function compileSrcPyret(dialect, runtime, src, options, ondone) {
-    parsePyret(dialect, runtime, src, options, function(parsed) {
+  function compileSrcPyret(runtime, src, options, ondone) {
+    parsePyret(runtime, src, options, function(parsed) {
       compilePyret(runtime, parsed, options, ondone);
     });
   }
 
-  function parsePyret(dialect, runtime, src, options, ondone) {
+  function parsePyret(runtime, src, options, ondone) {
     var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
+    var dialects = dialectsLib(runtime, runtime.namespace);
     if (!options.name) { options.name = randomName(); }
-    return ondone(runtime.getField(pp, "surface-parse").app(
-      runtime.makeString(dialect), runtime.makeString(src), runtime.makeString(options.name)));
+    return ondone(runtime.getField(pp, "parse-dialect").app(
+      runtime.makeString(options.dialect || dialects.defaultDialect), 
+      runtime.makeString(src), 
+      runtime.makeString(options.name)));
   }
 
-  function evalPyret(dialect, runtime, src, options, ondone) {
-    parsePyret(dialect, runtime, src, options, function(parsed) {
+  function evalPyret(runtime, src, options, ondone) {
+    parsePyret(runtime, src, options, function(parsed) {
       evalParsedPyret(runtime, parsed, options, ondone);
     });
   }

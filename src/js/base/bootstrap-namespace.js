@@ -53,7 +53,7 @@ define(["./namespace"], function(Namespace) {
       'not': makeFunction(bool_not),
 
       'max': rt.namespace.get("num-max"),
-      'min': rt.namespace.get("num-min")
+      'min': rt.namespace.get("num-min"),
 
       'num-max': rt.namespace.get("num-max"),
       'num-min': rt.namespace.get("num-min"),

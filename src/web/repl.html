@@ -61,7 +61,7 @@ $(function() {
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
     var dialect = "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
-    var repl = replLib.create(dialect, runtime, runtime.namespace);
+    var repl = replLib.create(dialect, runtime, runtime.namespace); // XXXb
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);

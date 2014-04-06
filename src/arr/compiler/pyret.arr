@@ -79,7 +79,7 @@ fun main(args):
             end
           | err(errors) =>
             print-error("Compilation errors:")
-            for list.each(e from errors.sort-by(err-less, _ == _)):
+            for list.each(e from errors):
               print-error(tostring(e))
             end
             raise("There were compilation errors")
@@ -113,7 +113,7 @@ fun main(args):
           | ok(comp-object) => comp-object.print-js-runnable(display)
           | err(errors) =>
             print-error("Compilation errors:")
-            for list.each(e from errors.sort-by(err-less, _ == _)):
+            for list.each(e from errors):
               print-error(tostring(e))
             end
             raise("There were compilation errors")

@@ -1,13 +1,10 @@
-define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
+define(["q", "./eval-lib", "arr/compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
 
   var defer = function(f) { setTimeout(f, 0); }
-  function createRepl(dialect, runtime, namespace) {
+  function createRepl(dialect, runtime, namespace, initialCompileEnv) {
     var toRun = [];
     var somethingRunning = false;
     function get(obj, fld) { return runtime.getField(obj, fld); }
-    var compileStructs = get(cs(runtime, namespace), "provide");
-//    var standardCompileEnv = get(compileStructs, "standard-builtins");
-    var initialCompileEnv = get(compileStructs, "standard-builtins");
     var replCompileEnv = initialCompileEnv;
     var replSupport = get(rs(runtime, namespace), "provide");
     
@@ -45,7 +42,7 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
     function restartInteractions(code) {
       var deferred = Q.defer();
       var name = "replMain";
-      eval.parsePyret(dialect, runtime, code, { name: name }, function(ast) {
+      eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(ast) {
         toRun.unshift({
             ast: get(replSupport, "make-provide-all").app(ast),
             beforeRun: function() { replCompileEnv = initialCompileEnv; },
@@ -59,7 +56,7 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
     function run(code) {
       var deferred = Q.defer();
       var name = "replRun";
-      eval.parsePyret(dialect, runtime, code, { name: name }, function(ast) {
+      eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(ast) {
         toRun.unshift({
             ast: get(replSupport, "make-provide-all").app(ast),
             name: name,
