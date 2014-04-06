@@ -160,6 +160,13 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
   var cur-shared = []
   errors := []
   well-formed-visitor = A.default-iter-visitor.{
+    s-program(self, l, _provide, imports, body):
+      ok-body = cases(A.Expr) body:
+        | s-block(l2, stmts) => list.all(_.visit(self), stmts)
+        | else => body.visit(self)
+      end
+      ok-body and (_provide.visit(self)) and (list.all(_.visit(self), imports))
+    end,
     s-op(self, l, op, left, right):
       reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
     end,
@@ -171,7 +178,9 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       list.all(_.visit(self), args) and body.visit(self)
     end,
     s-block(self, l, stmts):
-      if is-empty(stmts): true
+      if is-empty(stmts):
+        wf-error("Empty block", l)
+        true
       else:
         wf-last-stmt(stmts.last())
         bind-stmts = stmts.filter(fun(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
