@@ -1199,7 +1199,7 @@ function createMethodDict() {
       else if(isBoolean(v)) { return v; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
-      else { ffi.throwInternalError("Cannot unwrap", v); }
+      else { ffi.throwInternalError("Cannot unwrap", [v]); }
     }
 
     function wrap(v) {
@@ -1690,7 +1690,7 @@ function createMethodDict() {
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
     var string_length = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       return thisRuntime.makeNumber(s.length);
     }
     var string_tonumber = function(s) {

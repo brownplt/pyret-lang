@@ -86,7 +86,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
             output.append($("<div>").text(String(exn.map(function(e) { return runtime.toReprJS(e, "tostring"); }))));
           }
           else if('exn' in exn) {
-            output.append($("<div>").text(String(result.exn)));
+            output.append($("<div>").text(String(exn)));
           } else {
             output.append($("<div>").text("An unexpected error occurred"));
           }
@@ -107,11 +107,9 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
         var toCall = runtime.getField(runtime.getParam("current-checker"), "summary");
         var R = runtime;
         var gf = R.getField;
-        R.run(function(_, _) {
+        R.runThunk(function() {
             return toCall.app();
           },
-          R.namespace,
-          {sync: false},
           function(result) {
             if(R.isSuccessResult(result)) {
               if (R.unwrap(gf(result.result, "total")) !== 0 || isMain) {

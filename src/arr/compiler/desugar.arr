@@ -18,6 +18,9 @@ end
 
 mt-d-env = d-env(set([]), set([]), set([]))
 
+fun g(id): A.s-global(id);
+fun gid(l, id): A.s-id(l, g(id));
+
 fun check-bool(l, id, e, then, err):
   A.s-let-expr(l, [A.s-let-bind(l, id.id-b, e)],
     A.s-if-else(l,
@@ -25,7 +28,13 @@ fun check-bool(l, id, e, then, err):
       err))
 end
 fun make-message-exception(l, msg):
-  A.s-prim-app(l, "raise", [A.s-str(l, msg)])
+  make-message-exception-e(l, A.s-str(l, msg))
+end
+fun make-message-exception-e(l, msg-e):
+  A.s-prim-app(l, "raise", [msg-e])
+end
+fun bool-exn(l, message, val):
+  make-message-exception-e(l, A.s-app(l, gid(l, "_plus"), [A.s-str(l, message + ": "), A.s-app(l, gid(l, "torepr"), [val])]))
 end
 
 
@@ -83,7 +92,7 @@ fun make-torepr(l, vname, fields):
   self = mk-id(l, "self")
   fun str(s): A.s-str(l, s) end
   fun call-torepr(val):
-    A.s-app(l, A.s-id(l, A.s-global("torepr")), [A.s-dot(l, self.id-e, val.bind.id.toname())])
+    A.s-app(l, gid(l, "torepr"), [A.s-dot(l, self.id-e, val.bind.id.toname())])
   end
   fun concat(v1, v2):
     A.s-op(l, "op+", v1, v2)
@@ -375,22 +384,26 @@ fun desugar-expr(expr :: A.Expr):
       A.s-letrec(l, new-binds, desugar-expr(body))
     | s-data-expr(l, name, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
+        fun make-methods(l2, vname, members):
+          [
+            A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, members)),
+            A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members))
+          ]
+        end
         cases(A.Variant) v:
           | s-variant(l2, vname, members, with-members) =>
-            m = A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, members))
-            tr = A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members))
+            methods = make-methods(l2, vname, members)
             A.s-variant(
               l2,
               vname,
-              members.map(desugar-variant-member(_)),
-              ([m, tr] + with-members).map(desugar-member(_)))
+              members.map(desugar-variant-member),
+              (methods + with-members).map(desugar-member))
           | s-singleton-variant(l2, vname, with-members) =>
-            m = A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, []))
-            tr = A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, []))
+            methods = make-methods(l2, vname, [])
             A.s-singleton-variant(
               l2,
               vname,
-              ([m, tr] + with-members).map(desugar-member(_)))
+              (methods + with-members).map(desugar-member))
         end
       end
       A.s-data-expr(l, name, params, mixins.map(desugar-expr), variants.map(extend-variant),
@@ -406,8 +419,8 @@ fun desugar-expr(expr :: A.Expr):
       test-id = mk-id(l, "when-")
       check-bool(l, test-id, desugar-expr(test),
         A.s-if-else(l,
-          [A.s-if-branch(l, test-id.id-e, A.s-block(l, [desugar-expr(body), A.s-id(l, A.s-global("nothing"))]))],
-          A.s-block(l, [A.s-id(l, A.s-global("nothing"))])),
+          [A.s-if-branch(l, test-id.id-e, A.s-block(l, [desugar-expr(body), gid(l, "nothing")]))],
+          A.s-block(l, [gid(l, "nothing")])),
         make-message-exception(l, "Pyret Type Error: Condition for 'when' was not a boolean"))
     | s-if(l, branches) =>
       raise("If must have else for now")
@@ -432,7 +445,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
-          A.s-app(l, A.s-id(l, A.s-global(field)), [desugar-expr(left), desugar-expr(right)])
+          A.s-app(l, gid(l, field), [desugar-expr(left), desugar-expr(right)])
         | none =>
           fun thunk(e): A.s-lam(l, [], [], A.a-blank, "", A.s-block(l, [e]), none) end
           fun opbool(fld):
@@ -468,13 +481,13 @@ fun desugar-expr(expr :: A.Expr):
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, or-oper, desugar-expr(operands.first), or-oper.id-e,
-                    make-message-exception(l, "Pyret Type Error: Second argument to 'or' was not a boolean"))
+                    bool-exn(l, "Pyret Type Error: Second argument to 'or' was not a boolean", or-oper.id-e))
                 | link(_, _) =>
                   check-bool(l, or-oper, desugar-expr(operands.first),
                     A.s-if-else(l,
                       [A.s-if-branch(l, or-oper.id-e, A.s-bool(l, true))],
                       helper(operands.rest)),
-                    make-message-exception(l, "Pyret Type Error: First argument 'or' was not a boolean"))
+                    bool-exn(l, "Pyret Type Error: First argument 'or' was not a boolean", or-oper.id-e))
               end
             end
             operands = collect-ors(expr)
@@ -485,13 +498,13 @@ fun desugar-expr(expr :: A.Expr):
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, and-oper, desugar-expr(operands.first), and-oper.id-e,
-                    make-message-exception(l, "Pyret Type Error: Second argument to 'and' was not a boolean"))
+                    bool-exn(l, "Pyret Type Error: Second argument to 'and' was not a boolean", and-oper.id-e))
                 | link(_, _) =>
                   check-bool(l, and-oper, desugar-expr(operands.first),
                     A.s-if-else(l,
                       [A.s-if-branch(l, and-oper.id-e, helper(operands.rest))],
                       A.s-bool(l, false)),
-                    make-message-exception(l, "Pyret Type Error: First argument 'and' was not a boolean"))
+                    bool-exn(l, "Pyret Type Error: First argument 'and' was not a boolean", and-oper.id-e))
               end
             end
             operands = collect-ands(expr)
@@ -512,11 +525,11 @@ fun desugar-expr(expr :: A.Expr):
       elts.foldr(fun(elt, list-expr):
           A.s-app(
               l,
-              A.s-id(l, A.s-global("_link")),
+              gid(l, "_link"),
               [desugar-expr(elt), list-expr]
             )
         end,
-        desugar-expr(A.s-id(l, A.s-global("_empty"))))
+        desugar-expr(gid(l, "_empty")))
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, _, _, _) => A.s-str(l, "Checks should have been desugared")
