@@ -1,13 +1,13 @@
 var r = require("requirejs")
 
-define(["./matchers", "lib/js-numbers/src/js-numbers"], function (matchers, jsnums) {
+define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
 
 _ = require('jasmine-node');
 var path = require('path');
 var addPyretMatchers = matchers.addPyretMatchers;
 
 function performTest(useCompiled) {
-      var R = r('./build/phase1/js/runtime-anf');
+      var R = r('js/runtime-anf');
 
 var output;
 var rt;

@@ -16,10 +16,9 @@ define(["./matchers"], function (matchers) {
 
     function performTest(useCompiled) {
 
-      var R = r('./build/phase1/js/runtime-anf');
-
       var output;
       var rt;
+      var R = require("js/runtime-anf");
 
       /**@ param {string} str, output*/
       function stdout(str) {
@@ -46,7 +45,6 @@ define(["./matchers"], function (matchers) {
       var anObj;
 
       beforeEach(function(){
-
           output = "";
           rt = R.makeRuntime({'stdout' : stdout});
           addPyretMatchers(this, rt);
