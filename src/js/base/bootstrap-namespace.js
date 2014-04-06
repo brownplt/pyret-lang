@@ -1,6 +1,12 @@
-define(["./namespace"], function(Namespace) {
+define(["./namespace", "trove/image", "trove/world"], function(Namespace, imageLib, worldLib) {
 
   function makeBootstrapNamespace(rt) {
+    var get = rt.getField;
+
+    var image = get(imageLib(rt, rt.namespace), "provide");
+    var world = get(worldLib(rt, rt.namespace), "provide");
+
+    var makeFunction = rt.makeFunction;
 
     /* Most of what Bootstrap uses is just friendly names for the identifiers
      * we are used to (e.g. add, sub, max, instead of num-add, num-sub,
@@ -27,8 +33,8 @@ define(["./namespace"], function(Namespace) {
       'tostring': rt.namespace.get("tostring"),
       'print': rt.namespace.get("print"),
       'display': rt.namespace.get("display"),
-      'print-error': rt.namespace.get("print_error"),
-      'display-error': rt.namespace.get("display_error"),
+      'print-error': rt.namespace.get("print-error"),
+      'display-error': rt.namespace.get("display-error"),
       'raise': rt.namespace.get("raise"),
       'builtins': rt.namespace.get("builtins"),
       'nothing': rt.namespace.get("nothing"),
@@ -91,8 +97,17 @@ define(["./namespace"], function(Namespace) {
       'string-tolower': rt.namespace.get("string-tolower"),
       'string-explode': rt.namespace.get("string-explode"),
       'string-index-of': rt.namespace.get("string-index-of")
+
     });
-    return n;
+    var imageFields = {};
+    rt.getFields(image).forEach(function(f) {
+      imageFields[f] = get(image, f);
+    });
+    var worldFields = {};
+    rt.getFields(world).forEach(function(f) {
+      worldFields[f] = get(world, f);
+    });
+    return n.merge(Namespace.namespace(imageFields)).merge(Namespace.namespace(worldFields));
   }
 
   return {

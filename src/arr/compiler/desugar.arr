@@ -523,9 +523,9 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-list(l, elts) =>
       elts.foldr(fun(elt, list-expr):
-          A.s-app(
+          A.s-prim-app(
               l,
-              gid(l, "_link"),
+              "_link",
               [desugar-expr(elt), list-expr]
             )
         end,

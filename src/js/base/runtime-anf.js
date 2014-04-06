@@ -2092,6 +2092,7 @@ function createMethodDict() {
         'log': log,
 
         'makeSrcloc': makeSrcloc,
+        '_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {

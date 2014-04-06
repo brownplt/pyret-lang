@@ -55,13 +55,16 @@ $(function() {
     },
     waitSeconds: 0
   });
-  require(["js/repl-lib", "./repl-ui", "js/runtime-anf"], function(replLib, replUI, rtLib) {
+  require(["js/repl-lib", "./repl-ui", "js/runtime-anf", "js/dialects-lib"], function(replLib, replUI, rtLib, dialectLib) {
     $("#loader").hide();
     var replContainer = $("<div>").addClass("repl");
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
+    var dialects = dialectLib(runtime, runtime.namespace);
     var dialect = "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
-    var repl = replLib.create(dialect, runtime, runtime.namespace); // XXXb
+    var replNS = dialects.dialects[dialect].makeNamespace(runtime);
+    var replEnv = dialects.dialects[dialect].compileEnv;
+    var repl = replLib.create(dialect, runtime, replNS, replEnv);
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);

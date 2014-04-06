@@ -23,14 +23,14 @@ function(util,
       "Bootstrap": { 
         Tokenizer: BT.Tokenizer, 
         Grammar: BG.BootstrapGrammar, 
-        makeNamespace: BN.makeBootstrapNamespace,
-        compileEnv: get(pcs, "standard-builtins")
+        makeNamespace: BN.create,
+        compileEnv: get(pcs, "bootstrap-builtins")
       },
       "bootstrap": { 
         Tokenizer: BT.Tokenizer, 
         Grammar: BG.BootstrapGrammar, 
-        makeNamespace: BN.makeBootstrapNamespace,
-        compileEnv: get(pcs, "standard-builtins")
+        makeNamespace: BN.create,
+        compileEnv: get(pcs, "bootstrap-builtins")
       }
     }
     
