@@ -9,7 +9,7 @@ r.config({
   }
 });
 
-console.log("Starting all-spec");
+console.log("Starting evaluator tests");
 
 r([
     "../constants",
