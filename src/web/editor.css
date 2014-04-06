@@ -225,6 +225,7 @@ body {
 }
 
 .blueButton {
+    font-family: sans-serif;
     background-color: #06f;
     border: 1px solid #06f;
     border-radius: 3px;
@@ -250,4 +251,22 @@ body {
 
 .runButton {
     width: 50px;
+}
+
+#loader {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background: url('./../../img/pyret-spin.gif') 50% 50% no-repeat rgb(249,249,249);
+  background-size: 200px 200px;
+}
+
+#loader p {
+  position: fixed;
+  top: 20%;
+  text-align: center;
+  width: 100%;
 }
