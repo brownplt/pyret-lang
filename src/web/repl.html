@@ -11,9 +11,11 @@
   <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
   <script src="editor.js"></script>
   <script src="draw.js"></script>
+  <link rel="stylesheet" href="reset.css"></link>
   <link rel="stylesheet" href="editor.css"></link>
 </head>
 <body>
+<div id="loader"><p>Raising the masts...</p></div>
 <div id="REPL" class="replContainer"></div>
 </body>
 
@@ -30,6 +32,19 @@ function ct_error(/* varargs */) {
   }
 }
 $(function() {
+  var texts = [
+      "Raising the masts...",
+      "Securing the oarlocks...",
+      "Hoisting the anchor...",
+      "Swabbing the decks...",
+      "Debarnacling the keel...",
+      "Checking the cargo manifest...",
+      "Assembling the crew...",
+      "Inspecting the turnbuckles...",
+      "Furling the rollers...",
+      "Lashing the jib-boom..."
+    ];
+  $("#loader p").text(texts[Math.floor(Math.random() * texts.length)]);
   requirejs.config({
     paths: {
       "js": "../../build/phase1/js",
@@ -41,6 +56,7 @@ $(function() {
     waitSeconds: 0
   });
   require(["js/repl-lib", "./repl-ui", "js/runtime-anf"], function(replLib, replUI, rtLib) {
+    $("#loader").hide();
     var replContainer = $("<div>").addClass("repl");
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
@@ -54,9 +70,11 @@ $(function() {
     var cm = replUI.makeEditor(codeContainer, {
         simpleEditor: false,
         initial: "print('Ahoy, world!')",
-        run: RUN_CODE
+        run: RUN_CODE,
+        initialGas: 500
       });
   });
 });
 </script>
 </html>
+
