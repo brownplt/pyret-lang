@@ -37,6 +37,7 @@ define(["js/js-numbers"], function (jsnums) {
                 this.message = function() {
                   if (rt.isFailureResult(this.actual)) {
                     console.log("Exn: ", this.actual.exn);
+                    console.log("String Exn: ", String(this.actual.exn));
                     var err = this.actual.exn[0];
                     if(err) {
                       var errstr = rt.unwrap(rt.getField(err, "tostring").app());

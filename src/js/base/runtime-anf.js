@@ -884,7 +884,7 @@ function createMethodDict() {
             from: topSrc(new Error()), near: "toRepr",
             go: function(ret) {
               if (stack.length === 0) {
-                ffi.throwInternalException("Somehow we've drained the toRepr worklist, but have results coming back");
+                ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
               top.todo.pop();
@@ -1199,7 +1199,7 @@ function createMethodDict() {
       else if(isBoolean(v)) { return v; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
-      else { ffi.throwInternalException("Cannot unwrap", v); }
+      else { ffi.throwInternalError("Cannot unwrap", v); }
     }
 
     function wrap(v) {
@@ -1209,7 +1209,7 @@ function createMethodDict() {
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { ffi.throwInternalException("Cannot wrap", v); }
+      else { ffi.throwInternalError("Cannot wrap", v); }
     }
 
     function mkPred(jsPred) {
@@ -1548,7 +1548,7 @@ function createMethodDict() {
 
     var minus = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r)
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
         return safeTail(function() {
@@ -1561,7 +1561,7 @@ function createMethodDict() {
 
     var times = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
         return safeTail(function() {
@@ -1574,7 +1574,7 @@ function createMethodDict() {
 
     var divide = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         if (jsnums.equals(0, r)) {
           throw makeMessageException("Division by zero");
         }
@@ -1590,10 +1590,10 @@ function createMethodDict() {
 
     var lessthan = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThan(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
         return safeTail(function() {
@@ -1606,10 +1606,10 @@ function createMethodDict() {
 
     var greaterthan = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThan(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
         return safeTail(function() {
@@ -1622,10 +1622,10 @@ function createMethodDict() {
 
     var lessequal = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
         return safeTail(function() {
@@ -1638,10 +1638,10 @@ function createMethodDict() {
 
     var greaterequal = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
         return safeTail(function() {

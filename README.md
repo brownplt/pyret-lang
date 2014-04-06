@@ -31,17 +31,23 @@ different (in yet-to-be-documented ways) from the master branch.
 
 The easiest way to *run* a Pyret program in this branch is:
 
-$ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
+    $ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
 
 Where X is a number from 0-3.
 
 You can also run
 
-$ make web
+    $ make web
 
 and the file `build/web/playground.html` will be created.  You can visit this
 page in a browser and get an interactive experience running Pyret programs, and
 getting some statistics on how the runtime ran a particular program.
+
+You can also see our prototype REPL by opening the file
+
+    ./src/web/repl.html
+
+in a browse; this only depends on `make phase1`.
 
 Phases
 ------
@@ -76,5 +82,14 @@ phase 0, build both standalone2 and standalone3, and check:
     
         $ diff build/phase2/pyret.js build/phase3/pyret.js
 
-    And it should be empty, which indicates that the bootstrapped compiler is at
+    And it should be empty, which indicates that the bootstrapped compiler is
+at
     least correct enough to recompile itself without error.
+
+    To rebuild the compiler and get a new `phase0`, run
+
+        $ make new-bootstrap
+
+    which will build the phase2 and phase3 standalones, check the diff, and
+    copy to phase0 if the diff is empty.
+
