@@ -59,7 +59,7 @@ function(rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
           });
         },
         runtime.namespace,
-        { sync: ('sync' in options) ? options.sync : true, initialGas: 5000 },
+        { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
         ondone
       );
   }
