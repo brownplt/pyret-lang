@@ -1891,6 +1891,13 @@ function createMethodDict() {
       return makeNumber(Math.floor(Math.random() * max));
     }
 
+    function loadModule(module, runtime, namespace, withModule) {
+      return thisRuntime.safeCall(function() {
+          return getField(module(runtime, namespace), "provide");
+        },
+        withModule);
+    }
+
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
@@ -2094,6 +2101,7 @@ function createMethodDict() {
         'makeSrcloc': makeSrcloc,
         '_link': function(f, r) { return getField(list, "link").app(f, r); },
 
+        'loadModule' : loadModule,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;
