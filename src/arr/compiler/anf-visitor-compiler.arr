@@ -434,25 +434,34 @@ fun compile-program(self, l, headers, split, env):
   module-id = G.make-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
+  fun wrap-modules(modules, body):
+    cases(List) modules:
+      | empty =>
+        j-return(rt-method(
+            "safeCall", [
+              j-fun([], j-block([body])),
+              j-fun(["moduleVal"],
+                j-block([
+                  j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
+                  j-return(j-id("moduleVal"))
+                ]))]))
+      | link(f, r) =>
+        j-return(rt-method("loadModule",
+          [j-id(f.input-id), j-id("R"), j-id("NAMESPACE"), j-fun([f.id], wrap-modules(r, j-block([body])))]))
+    end
+  end
+  module-specs = for map2(id from ids, in-id from input-ids):
+    { id: id, input-id: in-id }
+  end
   j-app(j-id("define"), [j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([
             j-return(j-fun(["R", "NAMESPACE"],
                 j-block([
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
-                      j-block(mk-abbrevs(l) + [
-                          j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
-                              j-block(
-                                [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
-                                namespace-binds +
-                                for map2(id from ids, in-id from input-ids):
-                                  j-var(id, get-field(inst(in-id), j-str("provide"), obj-of-loc(l)))
-                                end +
-                                split.helpers.map(compile-helper(self, _)) +
-                                [split.body.visit(self)]))),
-                          j-return(module-ref(module-id))
-                        ]))
-                  ])))
-        ]))])
+                      j-block(mk-abbrevs(l) +
+                              namespace-binds +
+                              split.helpers.map(compile-helper(self, _)) +
+                              [wrap-modules(module-specs, split.body.visit(self))]))])))]))])
 end
 
 fun splitting-compiler(env):
