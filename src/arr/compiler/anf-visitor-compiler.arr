@@ -447,7 +447,7 @@ fun compile-program(self, l, headers, split, env):
                 ]))]))
       | link(f, r) =>
         j-return(rt-method("loadModule",
-          [j-id(f.input-id), j-id("R"), j-id("NAMESPACE"), j-fun([f.id], wrap-modules(r, j-block([body])))]))
+          [j-id(f.input-id), j-id("R"), j-id("NAMESPACE"), j-fun([f.id], j-block([wrap-modules(r, body)]))]))
     end
   end
   module-specs = for map2(id from ids, in-id from input-ids):
