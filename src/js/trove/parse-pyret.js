@@ -898,7 +898,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       //console.log("Result:");
       var countParses = grammar.countAllParses(parsed);
       if (countParses == 0) {
-        var nextTok = toks.next(); // TODO : THIS IS ALMOST ALWAYS OFF BY ONE
+        var nextTok = toks.curTok; 
         console.error("There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
