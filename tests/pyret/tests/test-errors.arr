@@ -6,7 +6,7 @@ import srcloc as S
 check:
   fun get-err(thunk):
     cases(Either) run-task(thunk):
-      | left(v) => "not-error"
+      | left(v) => raise("no error")
       | right(v) => v
     end
   end
@@ -69,7 +69,7 @@ check:
   e8 satisfies E.is-uninitialized-id
   e8.name is "x-unbound"
   e8.loc satisfies S.is-srcloc
-
+ 
   e9 = get-err(fun(): letrec x = y-unbound, y-unbound = 10: x end end)
   e9 satisfies E.is-uninitialized-id
   e9.name is "y-unbound"
