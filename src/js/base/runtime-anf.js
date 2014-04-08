@@ -1877,7 +1877,7 @@ function createMethodDict() {
       }
     }
     function random(max) {
-      return makeNumber(Math.floor(Math.random() * max));
+      return makeNumber(jsnums.floor(jsnums.times(Math.random(), max)));
     }
 
     function loadModule(module, runtime, namespace, withModule) {
@@ -2103,10 +2103,7 @@ function createMethodDict() {
         },
         'getParam' : getParam,
         'setParam' : setParam,
-        'hasParam' : hasParam,
-        '_link' : function(f, r) {
-          return thisRuntime.namespace.get("_link").app(f, r);
-        }
+        'hasParam' : hasParam
     };
 
 

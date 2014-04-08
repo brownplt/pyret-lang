@@ -1,13 +1,12 @@
 define([
     "js/secure-loader",
     "js/runtime-anf",
-    "js/ffi-helpers",
     "js/dialects-lib",
+    "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
     "trove/parse-pyret",
     "trove/checker"],
-function(rtLib, ffiHelpersLib, dialectsLib, csLib, compLib, parseLib, checkerLib) {
 function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
   if(requirejs.isBrowser) {
     var r = requirejs;
