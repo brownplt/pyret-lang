@@ -60,10 +60,16 @@ define(["requirejs", "js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "tr
             });
         }
         else if(execRt.isFailureResult(r)) {
-          console.error("Failed: ", r, String(r.exn), r.exn.stack);
           return callingRt.makeObject({
               "success": callingRt.makeBoolean(false),
-              "failure": r.exn
+              "failure": r.exn.exn,
+              "render-error-message": callingRt.makeFunction(function() {
+                callingRt.pauseStack(function(restarter) {
+                  execRt.runThunk(function() {
+                    return execRt.getField(r.exn.exn, "tostring").app()
+                  }, function(v) { return restarter.resume(v.result); })
+                });
+              })
             });
         }
       }
