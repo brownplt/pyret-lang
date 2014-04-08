@@ -1,4 +1,4 @@
-define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(rjs, ffi, runtimeLib, checkerLib) {
+define(["requirejs", "js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(rjs, loader, ffi, runtimeLib, checkerLib) {
 
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
@@ -17,7 +17,6 @@ define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], funct
     }
 
     function exec(str, modname, loaddir, checkAll, args) {
-      var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
       rjs.config({ baseUrl: loaddir });
 
@@ -69,13 +68,7 @@ define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], funct
         }
       }
 
-      function OMGBADIDEA(name, src) {
-        var define = function(libs, fun) {
-          oldDefine(name, libs, fun);
-        }
-        eval(src);
-      }
-      OMGBADIDEA(name, str);
+      loader.goodIdea(name, str);
 
       /* pauseStack clears the stack of this runtime, and closes over it
          in the restarter continuation, passing it in here.  Calling

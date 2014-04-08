@@ -142,7 +142,7 @@ require.config({
   }
 });
 $(function() {
-  require(["arr/compiler/web-compile.arr"], function(wc) {
+  require(["arr/compiler/web-compile.arr", "js/secure-loader"], function(wc, loader) {
     require([
       "js/runtime-anf",
       "arr/compiler/compile-structs.arr"
@@ -168,14 +168,6 @@ $(function() {
       var oldDefine = define;
       var profileCounter = 0;
       
-      function OMGBADIDEA(name, src) {
-        console.log("Bad idea: ", name);
-        var define = function(libs, fun) {
-          console.log("Defining: ", name);
-          oldDefine(name, libs, fun);
-        }
-        eval(src);
-      }
       var gas = Number($("#gas").val());
       var myRT = rt.makeRuntime({
         initialGas: gas,
@@ -221,7 +213,7 @@ $(function() {
 
                   console.log("About to run");
                   setStatus("Running...");
-                  OMGBADIDEA(name, jscode); 
+                  loader.goodIdea(name, jscode); 
                   setTimeout(function() {
                       require([name], function(a) {
                           console.profile("execute");

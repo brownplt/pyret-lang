@@ -1,6 +1,13 @@
 define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
   function merge(obj, extension) {
-    return _.merge(_.clone(obj), extension);
+    var newobj = {};
+    Object.keys(obj).forEach(function(k) {
+      newobj[k] = obj[k];
+    });
+    Object.keys(extension).forEach(function(k) {
+      newobj[k] = extension[k];
+    });
+    return newobj;
   }
   function makeEditor(container, options) {
     var initial = "";
@@ -52,7 +59,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       gutters: optGutters.concat(["CodeMirror-foldgutter"])
     };
 
-    cmOptions = merge(cmOptions, options.cmOptions);
+    cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
 
@@ -259,7 +266,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
                         enablePrompt(uiOptions.wrappingReturnHandler(output)),
                         write,
                         enablePrompt(uiOptions.wrappingOnError(output)),
-                        merge(options, _.merge(replOpts, {check: true})));
+                        merge(options, merge(replOpts, {check: true})));
           }, false)(code, merge(opts, {name: lastNameRun, cm: lastEditorRun || echoCM}), replOpts);
         },
         "interactions");

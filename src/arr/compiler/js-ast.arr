@@ -112,6 +112,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("throw ")
       self.exp.print-ugly-source(printer)
+      printer(";")
     end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) + PP.str(";")

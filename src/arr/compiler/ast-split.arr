@@ -115,6 +115,18 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
   cases(N.AExpr) expr:
     | a-let(l, b, e, body) =>
       handle-bind(l, false, b, e, body)
+    | a-seq(l, e1, e2) =>
+      cases(N.a-lettable) e1:
+        | a-app(l2, f, args) => handle-bind(l, false, N.a-bind(l2, A.global-names.make-atom("anf_begin_app_dropped"), A.a-blank), e1, e2)
+        | else =>
+          e1-split = ast-split-lettable(e1)
+          e2-split = ast-split-expr(e2)
+          split-result-int-e(
+            e1-split.helpers + e2-split.helpers,
+            N.a-seq(l, e1-split.body, e2-split.body),
+            e1-split.freevars.union(e2-split.freevars)
+          )
+      end
     | a-var(l, b, e, body) =>
       cases(N.ALettable) e:
         | a-val(v) => handle-bind(l, true, b, e, body)

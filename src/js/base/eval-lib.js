@@ -1,4 +1,5 @@
 define([
+    "js/secure-loader",
     "js/runtime-anf",
     "js/ffi-helpers",
     "js/dialects-lib",
@@ -7,6 +8,7 @@ define([
     "trove/parse-pyret",
     "trove/checker"],
 function(rtLib, ffiHelpersLib, dialectsLib, csLib, compLib, parseLib, checkerLib) {
+function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
   if(requirejs.isBrowser) {
     var r = requirejs;
     var define = window.define;
@@ -89,10 +91,6 @@ function(rtLib, ffiHelpersLib, dialectsLib, csLib, compLib, parseLib, checkerLib
   }
 
   function evalParsedPyret(runtime, ast, options, ondone) {
-    function OMGBADIDEA(name, src) {
-      var evalstr = "(function(define) { " + src + " })";
-      eval(evalstr)(function(deps, body) { define(name, deps, body); });
-    }
     if (!options.name) { options.name = randomName(); }
     var modname = randomName();
     var namespace = options.namespace || runtime.namespace;
@@ -115,7 +113,7 @@ function(rtLib, ffiHelpersLib, dialectsLib, csLib, compLib, parseLib, checkerLib
             if (typeof result.result !== 'string') {
               throw new Error("Non-string result from compilation: " + result.result);
             }
-            OMGBADIDEA(modname, result.result); 
+            loader.goodIdea(modname, result.result); 
             r([modname], function(a) {
                 var sync = false;
                 var gas = options.gas || 5000;

@@ -107,8 +107,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
         else:
           cases(A.Expr) f:
             | else => anf(f, k-cont(fun(lettable):
-                    t = mk-id(f.l, "anf_begin_dropped")
-                    N.a-let(f.l, t.id-b, lettable, anf-block-help(r))
+                    N.a-seq(f.l, lettable, anf-block-help(r))
                   end))
           end
         end
