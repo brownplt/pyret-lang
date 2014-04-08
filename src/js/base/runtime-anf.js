@@ -881,7 +881,7 @@ function createMethodDict() {
       } catch(e) {
         if (thisRuntime.isCont(e)) {
           var stacklet = {
-            from: topSrc(new Error()), near: "toRepr",
+            from: ["runtime torepr"], near: "toRepr",
             go: function(ret) {
               if (stack.length === 0) {
                 ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
@@ -896,7 +896,7 @@ function createMethodDict() {
           throw e;
         } else {
           if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push(topSrc(new Error())); 
+            e.pyretStack.push(["runtime torepr"]); 
           }
           throw e;
         }
@@ -1335,26 +1335,6 @@ function createMethodDict() {
       return after(result);
     }
 
-    // Call like: topSrc(new Error())
-    function topSrc(error) {
-//      var stackFrame = {src:"runtime runtime"};//error.stack.split("\n")[1].trim().split(":");
-/*
-      return {
-        src: stackFrame[0].split(" ")[1],
-        "start-line": stackFrame[1],
-        "start-column": stackFrame[2],
-        "end-line": stackFrame[1],
-        "end-column": stackFrame[2]
-      };
-*/
-      return {
-        src: "runtime",
-        "start-line": -1,
-        "start-column": -1,
-        "end-line": -1,
-        "end-column": -1
-      }
-    }
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
@@ -1375,7 +1355,7 @@ function createMethodDict() {
       }
       startTimer();
       var that = this;
-      var theOneTrueStackTop = topSrc(new Error());
+      var theOneTrueStackTop = ["top-of-stack"]
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
