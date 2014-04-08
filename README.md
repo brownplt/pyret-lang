@@ -35,19 +35,11 @@ The easiest way to *run* a Pyret program in this branch is:
 
 Where X is a number from 0-3.
 
-You can also run
-
-    $ make web
-
-and the file `build/web/playground.html` will be created.  You can visit this
-page in a browser and get an interactive experience running Pyret programs, and
-getting some statistics on how the runtime ran a particular program.
-
 You can also see our prototype REPL by opening the file
 
     ./src/web/repl.html
 
-in a browse; this only depends on `make phase1`.
+in a browser; this only depends on `make phase1`.
 
 Phases
 ------
