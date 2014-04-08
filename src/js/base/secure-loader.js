@@ -2,7 +2,14 @@ define(["require"], function(rjs) {
   if(requirejs.isBrowser) {
     // initSES.js had better be on the page already
     if(!cajaVM) {
-      console.error("This page cannot load without loading initSES.js first!");
+      console.warn("Loading without SES");
+      var compileExpr = function(src) {
+        return function(env) {
+          var define = env.define;
+          Function("define", src)(define);
+        }
+      };
+      cajaVM = { compileExpr: compileExpr };
     }
     var defn = define;
   }
