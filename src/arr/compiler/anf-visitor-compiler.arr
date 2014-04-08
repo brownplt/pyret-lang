@@ -274,7 +274,7 @@ compiler-visitor = {
     rt-field(str)
   end,
   a-undefined(self, l :: Loc):
-    rt-field("j-undefined")
+    rt-field("undefined")
   end,
   a-id(self, l :: Loc, id :: String):
     j-id(js-id-of(id.tostring()))
@@ -285,7 +285,7 @@ compiler-visitor = {
   a-id-letrec(self, l :: Loc, id :: String):
     s = id.tostring()
     j-ternary(
-      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, rt-field("j-undefined")),
+      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, rt-field("undefined")),
       raise-id-exn(obj-of-loc(l), id.toname()),
       j-dot(j-id(js-id-of(s)), "$var"))
   end,
