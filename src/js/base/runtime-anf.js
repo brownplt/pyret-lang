@@ -2098,7 +2098,10 @@ function createMethodDict() {
         },
         'getParam' : getParam,
         'setParam' : setParam,
-        'hasParam' : hasParam
+        'hasParam' : hasParam,
+        '_link' : function(f, r) {
+          return thisRuntime.namespace.get("_link").app(f, r);
+        }
     };
 
     
