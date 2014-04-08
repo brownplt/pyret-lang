@@ -44,25 +44,11 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
                 })
               );
           },
-          function(compiled) {
-            return runtime.safeTail(function() {
-                if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                  return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
-                }
-                else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                  throw ffi.toArray(gf(compiled, "problems"));
-                }
-                else {
-                  console.error(compiled);
-                  throw new Error("Unknown result type while compiling: ", compiled);
-                }
-              });
-          });
-        },
-        runtime.namespace,
-        { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
-        ondone
-      );
+          runtime.namespace,
+          { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
+          ondone
+        );
+      });
   }
 
   function compileSrcPyret(runtime, src, options, ondone) {
@@ -90,31 +76,32 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     function getExports(lib) {
       return runtime.getField(lib(runtime, runtime.namespace), "provide");
     }
-    var checker = getExports(checkerLib);
-    var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
-    runtime.setParam("current-checker", currentChecker);
+    runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
+      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
+      runtime.setParam("current-checker", currentChecker);
 
-    compilePyret(
-        runtime,
-        ast,
-        options,
-        function(result) {
-          if(runtime.isFailureResult(result)) {
-            ondone(result);
-          }
-          else {
-            if (typeof result.result !== 'string') {
-              throw new Error("Non-string result from compilation: " + result.result);
+      compilePyret(
+          runtime,
+          ast,
+          options,
+          function(result) {
+            if(runtime.isFailureResult(result)) {
+              ondone(result);
             }
-            loader.goodIdea(modname, result.result); 
-            r([modname], function(a) {
-                var sync = false;
-                var gas = options.gas || 5000;
-                runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
-              });
+            else {
+              if (typeof result.result !== 'string') {
+                throw new Error("Non-string result from compilation: " + result.result);
+              }
+              loader.goodIdea(modname, result.result); 
+              r([modname], function(a) {
+                  var sync = false;
+                  var gas = options.gas || 5000;
+                  runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
+                });
+            }
           }
-        }
-      );
+        );
+    });
   }
 
   return {

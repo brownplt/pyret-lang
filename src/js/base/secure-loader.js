@@ -1,15 +1,18 @@
 define(["require"], function(rjs) {
+  function unsafeCaja() {
+    var compileExpr = function(src) {
+      return function(env) {
+        var define = env.define;
+        Function("define", src)(define);
+      }
+    };
+    cajaVM = { compileExpr: compileExpr };
+  }
   if(requirejs.isBrowser) {
     // initSES.js had better be on the page already
     if(!cajaVM) {
       console.warn("Loading without SES");
-      var compileExpr = function(src) {
-        return function(env) {
-          var define = env.define;
-          Function("define", src)(define);
-        }
-      };
-      cajaVM = { compileExpr: compileExpr };
+      unsafeCaja();
     }
     var defn = define;
   }
@@ -22,20 +25,14 @@ define(["require"], function(rjs) {
     console.log = function() { /* intentional no-op to suppress SES logging */ }
     var script = new VM.Script(source);
     script.runInThisContext();
+//    unsafeCaja();
     console.log = oldLog;
     var defn = define;
   }
 
   function safeEval(string, env) {
     var f = cajaVM.compileExpr(string);
-    var defaultEnv = {
-      undefined: undefined,
-      Object: Object
-    };
-    Object.keys(env).forEach(function(k) {
-      defaultEnv[k] = env[k];
-    });
-    f(defaultEnv);
+    f(env);
   }
 
   function goodIdea(name, src) {
