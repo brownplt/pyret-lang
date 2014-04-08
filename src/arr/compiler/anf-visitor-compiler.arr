@@ -17,7 +17,6 @@ j-method = J.j-method
 j-block = J.j-block
 j-true = J.j-true
 j-false = J.j-false
-j-undefined = J.j-undefined
 j-num = J.j-num
 j-str = J.j-str
 j-return = J.j-return
@@ -176,7 +175,7 @@ fun compile-split-app(
                 j-block([j-throw(j-id(e))]))
           ]))])
   j-block([
-      j-var(z, j-undefined),
+      j-var(z, rt-field("undefined")),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -211,6 +210,9 @@ compiler-visitor = {
   end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: String, helper-args :: List<N.AVal>):
     compile-split-app(self, l, is-var, f, args, name, helper-args)
+  end,
+  a-seq(self, l, e1, e2):
+    j-block(link(e1.visit(self), e2.visit(self).stmts))
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     compiled-consq = consq.visit(self)
@@ -272,7 +274,7 @@ compiler-visitor = {
     rt-field(str)
   end,
   a-undefined(self, l :: Loc):
-    j-undefined
+    rt-field("j-undefined")
   end,
   a-id(self, l :: Loc, id :: String):
     j-id(js-id-of(id.tostring()))
@@ -283,7 +285,7 @@ compiler-visitor = {
   a-id-letrec(self, l :: Loc, id :: String):
     s = id.tostring()
     j-ternary(
-      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, j-undefined),
+      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, rt-field("j-undefined")),
       raise-id-exn(obj-of-loc(l), id.toname()),
       j-dot(j-id(js-id-of(s)), "$var"))
   end,
@@ -319,7 +321,7 @@ compiler-visitor = {
               member-names.map(js-id-of),
               arity-check(
                 [
-                  j-var("dict", j-method(j-id("Object"), "create", [j-id(base-id)]))
+                  j-var("dict", rt-method("create", [j-id(base-id)]))
                 ] +
                 for map2(n from member-names, m from members):
                   cases(N.AMemberType) m.member-type:

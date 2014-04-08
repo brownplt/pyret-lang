@@ -85,14 +85,10 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
-  | a-try(l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr) with:
-    label(self): "a-try" end,
+  | a-seq(l :: Loc, e1 :: ALettable, e2 :: AExpr) with:
+    label(self): "a-seq" end,
     tosource(self):
-      _try = str-try + break-one
-        + PP.nest(INDENT, self.body.tosource()) + break-one
-      _except = str-except + PP.parens(self.b.tosource()) + str-colon + break-one
-        + PP.nest(INDENT, self._except.tosource()) + break-one
-      PP.group(_try + _except + str-end)
+      self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
   | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
@@ -323,8 +319,8 @@ fun strip-loc-expr(expr :: AExpr):
       a-let(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
     | a-var(_, bind, val, body) =>
       a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
-    | a-try(_, body, bind, _except) =>
-      a-try(dummy-loc, body^strip-loc-expr(), bind^strip-loc-bind(), _except^strip-loc-expr())
+    | a-seq(_, e1, e2) =>
+      a-let(dummy-loc, e1^strip-loc-lettable(), e2^strip-loc-expr())
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
     | a-split-app(_, is-var, f, args, helper, helper-args) =>
@@ -408,8 +404,8 @@ default-map-visitor = {
   a-var(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-var(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
-  a-try(self, l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr):
-    a-try(l, body.visit(self), b.visit(self), _except.visit(self))
+  a-seq(self, l :: Loc, e1 :: ALettable, e2 :: AExpr):
+    a-seq(l, e1.visit(self), e2.visit(self))
   end,
   a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
@@ -503,8 +499,8 @@ fun freevars-e(expr :: AExpr) -> Set<Name>:
       freevars-e(body).remove(b.id).union(freevars-l(e))
     | a-var(_, b, e, body) =>
       freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-try(_, body, b, c) =>
-      freevars-e(c).remove(b.id).union(freevars-e(body))
+    | a-seq(_, e1, e2) =>
+      freevars-l(e1).union(freevars-e(e2))
     | a-split-app(_, _, f, args, name, helper-args) =>
       freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
     | a-lettable(e) => freevars-l(e)

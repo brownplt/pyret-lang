@@ -2054,6 +2054,12 @@ function createMethodDict() {
         'equiv': sameJSPy,
         'raise': raiseJSJS,
 
+        'pyretTrue': pyretTrue,
+        'pyretFalse': pyretFalse,
+
+        'undefined': undefined,
+        'create': Object.create,
+
         'hasField' : hasField.app,
 
         'toReprJS' : toReprJS,
@@ -2093,9 +2099,6 @@ function createMethodDict() {
         }
     };
 
-    
-    thisRuntime['pyretTrue'] = pyretTrue;
-    thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
     var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
