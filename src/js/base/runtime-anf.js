@@ -275,7 +275,7 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLoc(val, field, loc) {
-    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
+    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
@@ -1002,7 +1002,7 @@ function createMethodDict() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
             var g = getField;
-            return s ? g(s, "source") +
+            return s && hasField.app(s, "source") ? g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
@@ -1882,9 +1882,27 @@ function createMethodDict() {
 
     function loadModule(module, runtime, namespace, withModule) {
       return thisRuntime.safeCall(function() {
-          return getField(module(runtime, namespace), "provide");
+          return module(thisRuntime, namespace);
         },
-        withModule);
+        function(m) { return withModule(getField(m, "provide")); });
+    }
+    function loadModules(namespace, modules, withModules) {
+      function loadModulesInt(toLoad, loaded) {
+        if(toLoad.length > 0) {
+          var nextMod = toLoad.pop();
+          return loadModule(nextMod, thisRuntime, namespace, function(m) {
+            return safeTail(function() {
+              loaded.unshift(m);
+              return loadModulesInt(toLoad, loaded);
+            });
+          });
+        }
+        else {
+          return safeTail(function() { return withModules.apply(null, loaded); });
+        }
+      }
+      var modulesCopy = modules.slice(0, modules.length);
+      return loadModulesInt(modulesCopy, []);
     }
 
     //Export the runtime
@@ -2097,6 +2115,7 @@ function createMethodDict() {
         '_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
+        'loadModules' : loadModules,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;

@@ -251,7 +251,7 @@ repl-test: phase1
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr
+tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr phase1
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
 .PHONY : pyret-test

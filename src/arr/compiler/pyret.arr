@@ -75,7 +75,7 @@ fun main(args):
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
             if (exec-result.success): print(exec-result.render-check-results())
-            else: print(exec-result.failure)
+            else: print(exec-result.render-error-message())
             end
           | err(errors) =>
             print-error("Compilation errors:")
