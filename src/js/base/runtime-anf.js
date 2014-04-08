@@ -1337,7 +1337,8 @@ function createMethodDict() {
 
     // Call like: topSrc(new Error())
     function topSrc(error) {
-      var stackFrame = error.stack.split("\n")[1].trim().split(":");
+//      var stackFrame = {src:"runtime runtime"};//error.stack.split("\n")[1].trim().split(":");
+/*
       return {
         src: stackFrame[0].split(" ")[1],
         "start-line": stackFrame[1],
@@ -1345,6 +1346,14 @@ function createMethodDict() {
         "end-line": stackFrame[1],
         "end-column": stackFrame[2]
       };
+*/
+      return {
+        src: "runtime",
+        "start-line": -1,
+        "start-column": -1,
+        "end-line": -1,
+        "end-column": -1
+      }
     }
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/

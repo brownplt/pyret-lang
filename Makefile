@@ -217,7 +217,7 @@ install:
 	npm install jasmine-node
 	npm install requirejs
 	npm install q
-	npm install lodash
+	npm install ses
 	git submodule init
 	git submodule update lib/CodeMirror
 
