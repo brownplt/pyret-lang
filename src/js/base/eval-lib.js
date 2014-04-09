@@ -44,11 +44,24 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
                 })
               );
           },
-          runtime.namespace,
-          { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
-          ondone
-        );
-      });
+          function(compiled) {
+            return runtime.safeTail(function() {
+                if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                  return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
+                }
+                else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                  throw ffi.toArray(gf(compiled, "problems"));
+                }
+                else {
+                  throw new Error("Unknown result type while compiling: ", compiled);
+                }
+              });
+
+          });
+        },
+        runtime.namespace,
+        { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
+        ondone)
   }
 
   function compileSrcPyret(runtime, src, options, ondone) {
