@@ -1,7 +1,8 @@
-define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-structs.arr"], function(ffiLib, srclocLib, errorLib, csLib) {
+define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-structs.arr", "trove/image-lib"], function(ffiLib, srclocLib, errorLib, csLib, imageLib) {
 
   function drawError(container, editor, runtime, exception) {
     var ffi = ffiLib(runtime, runtime.namespace);
+    var image = imageLib(runtime, runtime.namespace);
     var cases = ffi.cases;
     runtime.loadModules(runtime.namespace, [srclocLib, errorLib, csLib], function(srcloc, error, cs) {
       var get = runtime.getField;
@@ -136,17 +137,55 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         e.forEach(drawCompileError);
       }
 
+      function getDomValue(v, f) {
+        if(runtime.isOpaque(v) && image.isImage(v.val)) {
+          f(v.val.toDomNode());
+        } else {
+          runtime.safeCall(function() {
+            return runtime.toReprJS(v, "_torepr")
+          }, function(str) {
+            f($("<div>").text(str));
+          });
+        }
+      }
+
       function drawPyretException(e) {
-        function drawPyretValueAsException() {
-          container.append($("<div>").text(String(e)));
+        function drawRuntimeErrorToString(e) {
+          return function() {
+            container.append($("<div>").text(String(e)));
+          }
+        }
+        function drawGenericTypeMismatch(value, type) {
+          // TODO(joe): How to improve this search?
+          var srclocStack = e.pyretStack.map(runtime.makeSrcloc);
+          var isSrcloc = function(s) { return runtime.unwrap(get(srcloc, "is-srcloc").app(s)); }
+          var userLocs = srclocStack.filter(function(l) { return l && isSrcloc(l); });
+          var probablyErrorLocation = userLocs[0];
+          var dom = $("<div>").addClass("compile-error");
+          getDomValue(value, function(valDom) {
+            dom.append($("<p>").text("Expected to get a " + type + " as an argument, but got this instead: "));
+            dom.append($("<br>"));
+            dom.append(valDom);
+            $(valDom).trigger({type: 'afterAttach'});
+            $('*', valDom).trigger({type : 'afterAttach'});
+            container.append(dom);
+            hoverLocs(dom, [probablyErrorLocation]);
+          });
         }
         function drawPyretRuntimeError() {
-          container.append($("<div>").text(String(e)));
-//          ffi.cases(exception, get(error, "RuntimeError"), "RuntimeError", {
-//            
-//          });
+          cases(get(error, "RuntimeError"), "RuntimeError", e.exn, {
+              "generic-type-mismatch": drawGenericTypeMismatch,
+              "else": drawRuntimeErrorToString(e)
+            });
         }
-
+        if(!runtime.isObject(e.exn)) {
+          drawRuntimeErrorToString(e)();
+        }
+        else if(mkPred("RuntimeError")(e.exn)) {
+          drawPyretRuntimeError();
+        } else {
+          drawRuntimeErrorToString(e);
+        }
       }
 
       function drawUnknownException(e) {

@@ -88,7 +88,12 @@ define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, check
         }
         else {
           var exn = err.exn;
-          errorUI.drawError(output, uiOptions.cm, runtime, exn);
+          try {
+            errorUI.drawError(output, uiOptions.cm, runtime, exn);
+          }
+          catch(e) {
+            console.error("There was an error while reporting the error: ", e);
+          }
         }
       };}
 
