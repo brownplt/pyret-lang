@@ -368,7 +368,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
 where:
   scope-env-from-env(C.compile-env([
       C.builtin-id("x")
-    ])).get("x") is let-bind(S.srcloc("pyret-builtin", 0, 0, 0, 0, 0, 0), names.s-global("x"))
+    ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"))
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
