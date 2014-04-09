@@ -1,4 +1,4 @@
-define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
+define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, checkUI, errorUI) {
   function merge(obj, extension) {
     var newobj = {};
     Object.keys(obj).forEach(function(k) {
@@ -88,15 +88,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
         }
         else {
           var exn = err.exn;
-          // compile errors
-          if(exn instanceof Array) {
-            output.append($("<div>").text(String(exn.map(function(e) { return runtime.toReprJS(e, "tostring"); }))));
-          }
-          else if('exn' in exn) {
-            output.append($("<div>").text(String(exn)));
-          } else {
-            output.append($("<div>").text("An unexpected error occurred"));
-          }
+          errorUI.drawError(output, uiOptions.cm, runtime, exn);
         }
       };}
 

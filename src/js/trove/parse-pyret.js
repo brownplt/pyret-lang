@@ -36,6 +36,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
+        console.log(tok);
         return RUNTIME.makeString(tok.value);
       }
       function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
@@ -907,28 +908,15 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       }
     }
     
-    function parseData(data, fileName) {
+    function parsePyret(data, fileName) {
       RUNTIME.checkIf(data, RUNTIME.isString);
       RUNTIME.checkIf(fileName, RUNTIME.isString);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
-    function parsePyret(data, fileName) {
-      RUNTIME.checkIf(data, RUNTIME.isString);
-      RUNTIME.checkIf(fileName, RUNTIME.isString);
-      return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
-    }
-    function parseBootstrap(data, fileName) {
-      RUNTIME.checkIf(data, RUNTIME.isString);
-      RUNTIME.checkIf(fileName, RUNTIME.isString);
-      return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
-    }
-    
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'parse-dialect': RUNTIME.makeFunction(parseDataDialect),
         'surface-parse': RUNTIME.makeFunction(parsePyret), // TODO: Rename this eventually
-        'parse-bootstrap': RUNTIME.makeFunction(parseBootstrap)
       }),
       answer: NAMESPACE.get("nothing")
     });

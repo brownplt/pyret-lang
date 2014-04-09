@@ -2,7 +2,6 @@ define([
     "js/secure-loader",
     "js/runtime-anf",
     "js/ffi-helpers",
-    "js/dialects-lib",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
     "trove/parse-pyret",
@@ -28,7 +27,6 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
-    var dialects = dialectsLib(runtime, runtime.namespace);
     var cs = getExports(csLib);
     var comp = getExports(compLib);
     var name = options.name || randomName();
@@ -74,7 +72,6 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
 
   function parsePyret(runtime, src, options, ondone) {
     var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
-    var dialects = dialectsLib(runtime, runtime.namespace);
     if (!options.name) { options.name = randomName(); }
     return ondone(runtime.getField(pp, "surface-parse").app(runtime.makeString(src), runtime.makeString(options.name)));
   }

@@ -17,7 +17,6 @@ r([
     "../data",
     "../errors",
     "../well-formed",
-    "../check",
     "../stack"
     ], function (
       constants,

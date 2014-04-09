@@ -16,6 +16,26 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         return runtime.unwrap(gf(S, "Srcloc").app(val));
       });
 
+      function cases(pred, predName, val, casesObj) {
+        if(!pred.app(val)) {
+          throwTypeMismatch(val, predName);
+        }
+        var pyretObj = {}
+        var els = runtime.makeFunction(function(v) {
+          throwMessageException("No cases matched");
+        });
+        Object.keys(casesObj).forEach(function(k) {
+          if(k !== "else") {
+            pyretObj[k] = runtime.makeFunction(casesObj[k]);
+          } else {
+            els = runtime.makeFunction(casesObj[k]);
+          }
+        });
+        return runtime.safeTail(function() {
+          return gf(val, "_match").app(runtime.makeObject(pyretObj), els);
+        });
+      }
+
       function err(str) { return gf(ERR, str).app; }
       var raise = runtime.raise;
 
@@ -78,6 +98,9 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwMessageException: throwMessageException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
+
+        cases: cases,
+
         makeList: makeList,
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },

@@ -270,3 +270,24 @@ body {
   text-align: center;
   width: 100%;
 }
+
+.error-highlight {
+  background-color: #FCC;
+}
+
+.compile-error {
+  background-color: #FCC;
+  font-family: sans-serif;
+  border: 1px solid black;
+  border-radius: 1em;
+  padding: 1em;
+}
+
+.compile-error .code {
+  font-family: monospace; 
+}
+
+.compile-error .srcloc {
+  font-family: monospace; 
+}
+
