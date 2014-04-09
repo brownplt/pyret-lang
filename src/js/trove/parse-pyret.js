@@ -36,7 +36,6 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
-        console.log(tok);
         return RUNTIME.makeString(tok.value);
       }
       function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
