@@ -105,12 +105,13 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
               if (typeof result.result !== 'string') {
                 throw new Error("Non-string result from compilation: " + result.result);
               }
-              loader.goodIdea(modname, result.result); 
-              r([modname], function(a) {
-                  var sync = false;
-                  var gas = options.gas || 5000;
-                  runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
-                });
+              loader.goodIdea(modname, result.result).then(function(modname) {
+                r([modname], function(a) {
+                    var sync = false;
+                    var gas = options.gas || 5000;
+                    runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
+                  });
+              });
             }
           }
         );

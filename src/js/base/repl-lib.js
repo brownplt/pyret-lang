@@ -1,7 +1,8 @@
 define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
 
   var defer = function(f) { setTimeout(f, 0); }
-  function createRepl(runtime, namespace) {
+  function createRepl(runtime, namespace, options) {
+    var mainName = options.name || "replMain";
     return runtime.loadModules(namespace, [cs, rs], function(compileStructs, replSupport) {
       var toRun = [];
       var somethingRunning = false;
@@ -42,12 +43,11 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       }
       function restartInteractions(code) {
         var deferred = Q.defer();
-        var name = "replMain";
-        eval.parsePyret(runtime, code, { name: name }, function(ast) {
+        eval.parsePyret(runtime, code, { name: mainName }, function(ast) {
           toRun.unshift({
               ast: get(replSupport, "make-provide-all").app(ast),
               beforeRun: function() { replCompileEnv = initialCompileEnv; },
-              name: name,
+              name: mainName,
               onRun: makeResumer(deferred)
             });
           runIfFree();

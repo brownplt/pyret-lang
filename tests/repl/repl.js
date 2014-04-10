@@ -8,6 +8,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
   var err;
   var aRepl;
   var ffi;
+  var replCount = 0;
   function getVal(result) {
     if(!rt.isSuccessResult(result)) {
       console.error("Tried to getVal of non-SuccessResult: ", result, result.exn.stack);
@@ -31,7 +32,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       same = P.checkEvalsTo;
       err = P.checkError;
       ffi = ffiLib(rt, rt.namespace);
-      aRepl = repl.create(rt, rt.namespace);
+      aRepl = repl.create(rt, rt.namespace { name: "repl-test" + replCount++);
     });
 
     describe("repl", function() {

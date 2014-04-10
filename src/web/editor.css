@@ -283,6 +283,10 @@ body {
   padding: 1em;
 }
 
+.compile-error:hover {
+  background-color: #F99;
+}
+
 .compile-error .code {
   font-family: monospace; 
 }

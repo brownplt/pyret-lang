@@ -782,7 +782,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         'num-expr': function(node) {
           // (num-expr n)
           return RUNTIME.getField(ast, 's-num')
-            .app(pos(node.pos), number(node.kids[0]));
+            .app(pos(node), number(node.kids[0]));
         },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')

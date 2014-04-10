@@ -47,6 +47,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         }
       }
       function hoverLocs(elt, locs) {
+        // CLICK to *cycle* through locations
         var marks = [];
         elt.on("mouseenter", function() {
           mapK(locs, highlightSrcloc, function(ms) {

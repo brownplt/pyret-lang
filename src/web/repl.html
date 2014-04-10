@@ -1,6 +1,5 @@
 <html>
 <head>
-  <script src="../../node_modules/ses/initSES.js"></script>
   <script src="../../node_modules/requirejs/require.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
   <script src="../../lib/CodeMirror/lib/codemirror.js"></script>
@@ -8,9 +7,11 @@
   <script src="../../lib/CodeMirror/addon/fold/foldgutter.js"></script>
   <script src="../../lib/CodeMirror/addon/fold/indent-fold.js"></script>
   <script src="../../lib/CodeMirror/mode/pyret/pyret.js"></script>
-  <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
   <script src="editor.js"></script>
   <script src="draw.js"></script>
+  <script type="text/javascript"
+          src="https://caja.appspot.com/caja.js"></script>
+  <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
   <link rel="stylesheet" href="reset.css"></link>
   <link rel="stylesheet" href="editor.css"></link>
 </head>
@@ -60,7 +61,7 @@ $(function() {
     var replContainer = $("<div>").addClass("repl");
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
-    var repl = replLib.create(runtime, runtime.namespace);
+    var repl = replLib.create(runtime, runtime.namespace, {name: "definitions"});
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);

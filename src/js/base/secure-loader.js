@@ -1,4 +1,5 @@
-define(["require"], function(rjs) {
+define(["require", "q"], function(rjs, Q) {
+  var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {
       return function(env) {
@@ -6,15 +7,27 @@ define(["require"], function(rjs) {
         Function("define", src)(define);
       }
     };
-    cajaVM = { compileExpr: compileExpr };
+    ourCajaVM = { compileExpr: compileExpr };
   }
   if(requirejs.isBrowser) {
-    // initSES.js had better be on the page already
-    if(!cajaVM) {
-      console.warn("Loading without SES");
+    // caja.js had better be on the page already
+    if(typeof caja === "undefined") {
+      console.warn("Page was loaded without SES, so evals will be unguarded. Does this page load https://caja.appspot.com/caja.js?");
       unsafeCaja();
     }
-    var defn = define;
+    else {
+      caja.initialize({
+        debug: true,
+        forceES5Mode: true
+      });
+      caja.load(undefined, undefined, function(frame) {
+        ourCajaVM = {
+          compileExpr: function(s) {
+            return function(env) { frame.code("https://", "application/javascript", s).api(env).run(); }
+          }
+        };
+      });
+    }
   }
   else {
     var FS = require("fs");
@@ -24,22 +37,25 @@ define(["require"], function(rjs) {
     var oldLog = console.log;
     console.log = function() { /* intentional no-op to suppress SES logging */ }
     var script = new VM.Script(source);
-//    script.runInThisContext();
-    unsafeCaja();
+    script.runInThisContext();
+    ourCajaVM = cajaVM;
+//    unsafeCaja();
     console.log = oldLog;
-    var defn = define;
   }
 
   function safeEval(string, env) {
-    var f = cajaVM.compileExpr(string);
+    var f = ourCajaVM.compileExpr(string);
     f(env);
   }
 
   function goodIdea(name, src) {
+    var deferred = Q.defer();
     safeEval(src, { define: function(deps, body) {
-        defn(name, deps, body);
+        define(name, deps, body);
+        deferred.resolve(name);
       }
     });
+    return deferred.promise;
   }
 
   return {
