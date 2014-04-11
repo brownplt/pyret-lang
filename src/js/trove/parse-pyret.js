@@ -4,6 +4,18 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
+    function makePyretPos(fileName, p) {
+      var n = RUNTIME.makeNumber;
+      return RUNTIME.getField(srcloc, "srcloc").app(
+          RUNTIME.makeString(fileName),
+          n(p.startRow),
+          n(p.startCol),
+          n(p.startChar),
+          n(p.endRow),
+          n(p.endCol),
+          n(p.endChar)
+        );
+    }
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
       // We might have to rewrite the whole algorithm
@@ -16,18 +28,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       function tr(node) {
         return translators[node.name](node);
       }
-      function pos(p) {
-        var n = RUNTIME.makeNumber;
-        return RUNTIME.getField(srcloc, "srcloc").app(
-            RUNTIME.makeString(fileName),
-            n(p.startRow),
-            n(p.startCol),
-            n(p.startChar),
-            n(p.endRow),
-            n(p.endCol),
-            n(p.endChar)
-          );
-      }
+      var pos = function(p) { return makePyretPos(fileName, p); };
       var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
@@ -884,7 +885,8 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         console.error("There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
-        throw RUNTIME.makeMessageException("No parses found");
+        console.log(nextTok);
+        RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
       }
       //console.log("There were " + countParses + " potential parses");
       var posViolations = G.PyretGrammar.checkPositionContainment(parsed);

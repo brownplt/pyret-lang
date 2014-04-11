@@ -31,7 +31,11 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           return cases(get(srcloc, "Srcloc"), "Srcloc", s, {
             "builtin": function(_) { /* no-op */ },
             "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
-              var marker = editor.markText({ line: startL - 1, ch: startC }, { line: endL - 1, ch: endC }, { className: "error-highlight" });
+              var extraCharForZeroWidthLocs = endCh === startCh ? 1 : 0;
+              var marker = editor.markText(
+                { line: startL - 1, ch: startC },
+                { line: endL - 1, ch: endC + extraCharForZeroWidthLocs },
+                { className: "error-highlight" });
               return marker;
             }
           })
@@ -55,7 +59,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           });
         });
         elt.on("mouseleave", function() {
-          marks.forEach(function(m) { m.clear(); })
+          marks.forEach(function(m) { return m && m.clear(); })
           marks = [];
         });
       }
@@ -65,6 +69,26 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
       }
 
       function drawCompileErrors(e) {
+        function drawUnboundId(idExpr) {
+          var dom = $("<div>").addClass("compile-error");
+          var name = get(get(idExpr, "id"), "toname").app();
+          var loc = get(idExpr, "l");
+          cases(get(srcloc, "Srcloc"), "Srcloc", loc, {
+            "builtin": function(_) {
+              console.error("Should not be allowed to have a builtin that's unbound", e);
+            },
+            "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
+              var p = $("<p>");
+              p.append("The name ");
+              p.append($("<span>").addClass("code").text(name));
+              p.append(" is used but not defined at ");
+              dom.append(p);
+              dom.append(drawSrcloc(loc));
+              hoverLocs(dom, [loc]);
+              container.append(dom);
+            }
+          });
+        }
         function drawShadowId(id, newLoc, oldLoc) {
           var dom = $("<div>").addClass("compile-error");
           cases(get(srcloc, "Srcloc"), "Srcloc", oldLoc, {
@@ -127,9 +151,12 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           };
         }
 
+
         function drawCompileError(e) {
           cases(get(cs, "CompileError"), "CompileError", e, {
+              "unbound-id": drawUnboundId,
               "shadow-id": drawShadowId,
+              "duplicate-id": drawShadowId, // NOTE(joe): intentional re-use, not copypasta
               "wf-err": drawWfError,
               "wf-err-split": drawWfErrSplit,
               "else": drawErrorToString(e)
@@ -156,26 +183,134 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
             container.append($("<div>").text(String(e)));
           }
         }
-        function drawGenericTypeMismatch(value, type) {
-          // TODO(joe): How to improve this search?
+        function getLastUserLocation(e) {
           var srclocStack = e.pyretStack.map(runtime.makeSrcloc);
           var isSrcloc = function(s) { return runtime.unwrap(get(srcloc, "is-srcloc").app(s)); }
           var userLocs = srclocStack.filter(function(l) { return l && isSrcloc(l); });
           var probablyErrorLocation = userLocs[0];
+          return probablyErrorLocation;
+        }
+        function drawGenericTypeMismatch(value, type) {
+          // TODO(joe): How to improve this search?
+          var probablyErrorLocation = getLastUserLocation(e);
           var dom = $("<div>").addClass("compile-error");
           getDomValue(value, function(valDom) {
-            dom.append($("<p>").text("Expected to get a " + type + " as an argument, but got this instead: "));
-            dom.append($("<br>"));
-            dom.append(valDom);
+            dom.append($("<p>").text("Expected to get a " + type + " as an argument, but got this instead: "))
+              .append($("<br>"))
+              .append(valDom)
+              .append($("<br>"))
+              .append($("<p>").text("at "))
+              .append($("<br>"))
+              .append(drawSrcloc(probablyErrorLocation));
             $(valDom).trigger({type: 'afterAttach'});
             $('*', valDom).trigger({type : 'afterAttach'});
             container.append(dom);
             hoverLocs(dom, [probablyErrorLocation]);
           });
         }
+        function drawArityMismatch(funLoc, arity, args) {
+          args = ffi.toArray(args);
+          var probablyErrorLocation = getLastUserLocation(e);
+          var dom = $("<div>").addClass("compile-error");
+          mapK(args, getDomValue, function(argDoms) {
+            cases(get(srcloc, "Srcloc"), "Srcloc", funLoc, {
+              "srcloc": function(/* skip args */) {
+                dom.append($("<p>").text("Expected to get " + arity + " arguments when calling the function at"))
+                  .append($("<br>"))
+                  .append(drawSrcloc(funLoc))
+                  .append($("<br>"))
+                  .append($("<br>"))
+                  .append($("p").text("from"))
+                  .append($("<br>"))
+                  .append($("<br>"))
+                  .append(drawSrcloc(probablyErrorLocation))
+                  .append($("<br>"))
+                  .append($("<p>").text("but got these " + args.length + " arguments: "))
+                  .append($("<br>"))
+                  .append(argDoms)
+                container.append(dom);
+                argDoms.forEach(function(a) {
+                  $(a).trigger({type: 'afterAttach'});
+                  $('*', a).trigger({type : 'afterAttach'});
+                });
+                hoverLocs(dom, [funLoc, probablyErrorLocation]);
+              },
+              "builtin": function(name) {
+                dom.append($("<p>").text("Expected to get " + arity + " arguments at"))
+                  .append($("<br>"))
+                  .append(drawSrcloc(probablyErrorLocation))
+                  .append($("<br>"))
+                  .append($("<p>").text("but got these " + args.length + " arguments: "))
+                  .append($("<br>"))
+                  .append(argDoms);
+                container.append(dom);
+                argDoms.forEach(function(a) {
+                  $(a).trigger({type: 'afterAttach'});
+                  $('*', a).trigger({type : 'afterAttach'});
+                });
+                hoverLocs(dom, [probablyErrorLocation]);
+              }
+            });
+          });
+        }
+        function drawMessageException(message) {
+          var probablyErrorLocation = getLastUserLocation(e);
+          var dom = $("<div>").addClass("compile-error");
+          dom.append($("<p>").text(message + "At:"))
+            .append($("<br>"))
+            .append(drawSrcloc(probablyErrorLocation));
+          hoverLocs(dom, [probablyErrorLocation]);
+        }
+        function drawNonBooleanCondition(loc, type, value) {
+          getDomValue(value, function(v) {
+            var dom = $("<div>").addClass("compile-error");
+            dom.append($("<p>").text("Expected true or false for the test in an " + type + " expression, but got:"));
+            dom.append($("<br>"));
+            dom.append(v);
+            $(v).trigger({type: 'afterAttach'});
+            $('*', v).trigger({type : 'afterAttach'});
+            dom.append(drawSrcloc(loc));
+            hoverLocs(dom, [loc]);
+            container.append(dom);
+          });
+        }
+        function drawNonBooleanOp(loc, position, type, value) {
+          getDomValue(value, function(v) {
+            var dom = $("<div>").addClass("compile-error");
+            dom.append($("<p>").text("Expected true or false for the " + position + " argument in " + type + " expression, but got:"));
+            dom.append($("<br>"));
+            dom.append(v);
+            $(v).trigger({type: 'afterAttach'});
+            $('*', v).trigger({type : 'afterAttach'});
+            dom.append($("<br>"));
+            dom.append(drawSrcloc(loc));
+            hoverLocs(dom, [loc]);
+            container.append(dom);
+          });
+        }
         function drawPyretRuntimeError() {
           cases(get(error, "RuntimeError"), "RuntimeError", e.exn, {
               "generic-type-mismatch": drawGenericTypeMismatch,
+              "arity-mismatch": drawArityMismatch,
+              "message-exception": drawMessageException,
+              "non-boolean-condition": drawNonBooleanCondition,
+              "non-boolean-op": drawNonBooleanOp,
+              "else": drawRuntimeErrorToString(e)
+            });
+        }
+
+        function drawParseErrorNextToken(loc, nextToken) {
+          var dom = $("<div>").addClass("compile-error");
+          dom.append($("<p>").text("Parse error near ").append(drawSrcloc(loc)))
+            .append($("<br>"))
+            .append($("<p>").text("The next token was " + nextToken));
+          hoverLocs(dom, [loc]);
+          container.append(dom);
+        }
+
+        function drawPyretParseError() {
+          cases(get(error, "ParseError"), "ParseError", e.exn, {
+              "parse-error-next-token": drawParseErrorNextToken,
               "else": drawRuntimeErrorToString(e)
             });
         }
@@ -184,6 +319,9 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         }
         else if(mkPred("RuntimeError")(e.exn)) {
           drawPyretRuntimeError();
+        }
+        else if(mkPred("ParseError")(e.exn)) {
+          drawPyretParseError();
         } else {
           drawRuntimeErrorToString(e);
         }

@@ -1017,11 +1017,11 @@ function createMethodDict() {
     };
 
     function makeSrcloc(arr) {
-      if (arr instanceof Array && arr.length === 1) {
+      if (typeof arr === "object" && arr.length === 1) {
         checkString(arr[0]);
         return getField(srcloc, "builtin").app(arr[0])
       }
-      else if (arr instanceof Array && arr.length === 7) {
+      else if (typeof arr === "object" && arr.length === 7) {
         return getField(srcloc, "srcloc").app(
             arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
           )
@@ -2123,6 +2123,11 @@ function createMethodDict() {
     var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     thisRuntime["ffi"] = ffi;
+
+    // NOTE(joe): set a few of these explicitly to work with s-prim-app
+    thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
+    thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));

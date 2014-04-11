@@ -40,14 +40,17 @@ div.CodeMirror span.CodeMirror-matchingbracket {
 }
 
 .CodeMirror-scroll {
-  overflow-y: hidden;
+  overflow-y: scroll;
   overflow-x: auto;
 }
 
-.repl .CodeMirror-scroll {
+.repl {
+  height: 100%;
+  overflow-y: scroll;
+}
+.CodeMirror-scroll {
   height: auto;
 }
-
 .check {
   font-family: monospace;
   border: 1px solid black;
@@ -203,6 +206,7 @@ body {
   left: 0;
   width: 50%;
   margin:0;
+  height: 100%;
 }
 
 .replContainer {
@@ -276,15 +280,14 @@ body {
 }
 
 .compile-error {
-  background-color: #FCC;
   font-family: sans-serif;
-  border: 1px solid black;
+  border: 1px solid #F33;
   border-radius: 1em;
   padding: 1em;
 }
 
 .compile-error:hover {
-  background-color: #F99;
+  background-color: #FCC;
 }
 
 .compile-error .code {

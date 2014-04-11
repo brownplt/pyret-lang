@@ -184,11 +184,11 @@ fun compile-split-app(
 end
 
 
-fun arity-check(body-stmts, arity):
+fun arity-check(loc, body-stmts, arity):
   j-block(
     link(
       j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-throw(rt-method("makeMessageException", [j-str("Arity mismatch")]))),
+        j-method(rt-field("ffi"), "throwArityErrorC", [obj-of-loc(loc), j-num(arity), j-id("arguments")])),
       body-stmts))
 end
 
@@ -247,15 +247,15 @@ compiler-visitor = {
     rt-method("getColonField", [obj.visit(self), j-str(field)])
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    rt-method("makeFunction", [j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(body.visit(self).stmts, args.length()))])
+    rt-method("makeFunction", [j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, body.visit(self).stmts, args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
     compiled-body-stmts = body.visit(self).stmts
     rt-method("makeMethod", [j-fun([js-id-of(args.first.id.tostring())],
       j-block([
-        j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(compiled-body-stmts, args.length() - 1)))])),
+        j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length() - 1)))])),
        
-      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(compiled-body-stmts, args.length()))])
+      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length()))])
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
@@ -312,7 +312,7 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(base-id, brands-id, vname, members):
+    fun make-variant-constructor(l2, base-id, brands-id, vname, members):
       member-names = members.map(fun(m): m.bind.id.toname();)
       j-field(
           vname,
@@ -320,6 +320,7 @@ compiler-visitor = {
             j-fun(
               member-names.map(js-id-of),
               arity-check(
+                l2,
                 [
                   j-var("dict", rt-method("create", [j-id(base-id)]))
                 ] +
@@ -355,10 +356,10 @@ compiler-visitor = {
       predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
 
       cases(N.AVariant) v:
-        | a-variant(_, _, members, with-members) =>
+        | a-variant(l2, _, members, with-members) =>
           {
             stmts: stmts,
-            constructor: make-variant-constructor(variant-base-id, variant-brand-obj-id, vname, members),
+            constructor: make-variant-constructor(l2, variant-base-id, variant-brand-obj-id, vname, members),
             predicate: predicate
           }
         | a-singleton-variant(_, _, with-members) =>

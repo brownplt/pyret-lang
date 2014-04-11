@@ -89,6 +89,47 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwUninitializedId(runtime.makeSrcloc(loc), name);
       }
 
+      function throwArityError(funLoc, arity, args) {
+        checkSrcloc(funLoc);
+        runtime.checkNumber(arity);
+        runtime.checkList(args);
+        raise(err("arity-mismatch")(funLoc, arity, args));
+      }
+
+      function throwArityErrorC(funLoc, arity, args) {
+        var loc = runtime.makeSrcloc(funLoc);
+        var argsPyret = makeList(Array.prototype.slice.call(args, 0, args.length));
+        throwArityError(loc, arity, argsPyret);
+      }
+
+      function locFromObj(obj) {
+        if (!runtime.hasField(obj, "source")) { return runtime.makeSrcloc(["builtin"]); }
+        return runtime.makeSrcloc([
+          gf(obj, "source"),
+          gf(obj, "start-line"),
+          gf(obj, "start-column"),
+          gf(obj, "start-char"),
+          gf(obj, "end-line"),
+          gf(obj, "end-column"),
+          gf(obj, "end-char")
+        ]);
+      }
+      function throwNonBooleanCondition(locAsObj, type, val) {
+        runtime.checkString(type);
+        runtime.checkPyretVal(val);
+        raise(err("non-boolean-condition")(locFromObj(locAsObj), type, val));
+      }
+      function throwNonBooleanOp(locAsObj, position, type, val) {
+        runtime.checkString(position);
+        runtime.checkString(type);
+        runtime.checkPyretVal(val);
+        raise(err("non-boolean-op")(locFromObj(locAsObj), position, type, val));
+      }
+
+      function throwParseErrorNextToken(loc, nextToken) {
+        raise(err("parse-error-next-token")(loc, nextToken));
+      }
+
       return {
         throwPlusError: throwPlusError,
         throwInternalError: throwInternalError,
@@ -98,6 +139,12 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwMessageException: throwMessageException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
+        throwArityError: throwArityError,
+        throwArityErrorC: throwArityErrorC,
+        throwNonBooleanCondition: throwNonBooleanCondition,
+        throwNonBooleanOp: throwNonBooleanOp,
+
+        throwParseErrorNextToken: throwParseErrorNextToken,
 
         cases: cases,
 

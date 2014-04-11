@@ -43,13 +43,17 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       }
       function restartInteractions(code) {
         var deferred = Q.defer();
-        eval.parsePyret(runtime, code, { name: mainName }, function(ast) {
-          toRun.unshift({
-              ast: get(replSupport, "make-provide-all").app(ast),
-              beforeRun: function() { replCompileEnv = initialCompileEnv; },
-              name: mainName,
-              onRun: makeResumer(deferred)
-            });
+        eval.parsePyret(runtime, code, { name: mainName }, function(astResult) {
+          if(runtime.isSuccessResult(astResult)) {
+            toRun.unshift({
+                ast: get(replSupport, "make-provide-all").app(astResult.result),
+                beforeRun: function() { replCompileEnv = initialCompileEnv; },
+                name: mainName,
+                onRun: makeResumer(deferred)
+              });
+          } else {
+            deferred.resolve(astResult);
+          }
           runIfFree();
         });
         return deferred.promise;
@@ -57,12 +61,16 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       function run(code) {
         var deferred = Q.defer();
         var name = "replRun";
-        eval.parsePyret(runtime, code, { name: name }, function(ast) {
-          toRun.unshift({
-              ast: get(replSupport, "make-provide-all").app(ast),
-              name: name,
-              onRun: makeResumer(deferred)
-            });
+        eval.parsePyret(runtime, code, { name: name }, function(astResult) {
+          if(runtime.isSuccessResult(astResult)) {
+            toRun.unshift({
+                ast: get(replSupport, "make-provide-all").app(astResult.result),
+                name: name,
+                onRun: makeResumer(deferred)
+              });
+          } else {
+            deferred.resolve(astResult);
+          }
           runIfFree();
         });
         return deferred.promise;
