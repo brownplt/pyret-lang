@@ -889,23 +889,18 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
         RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
       }
       //console.log("There were " + countParses + " potential parses");
-      var posViolations = G.PyretGrammar.checkPositionContainment(parsed);
-      if (posViolations) {
-        console.error("Not all nodes contain their children!");
+      if (countParses === 1) {
+        var ast = G.PyretGrammar.constructUniqueParse(parsed);
+        //          console.log(ast.toString());
+        return translate(ast, fileName);
       } else {
-        if (countParses === 1) {
-          var ast = G.PyretGrammar.constructUniqueParse(parsed);
-//          console.log(ast.toString());
-          return translate(ast, fileName);
-        } else {
-          var asts = G.PyretGrammar.constructAllParses(parsed);
-          throw "Non-unique parse";
-          for (var i = 0; i < asts.length; i++) {
-            //console.log("Parse " + i + ": " + asts[i].toString());
-//            console.log(("" + asts[i]) === ("" + asts2[i]));
-          }
-          return translate(ast, fileName);
+        var asts = G.PyretGrammar.constructAllParses(parsed);
+        throw "Non-unique parse";
+        for (var i = 0; i < asts.length; i++) {
+          //console.log("Parse " + i + ": " + asts[i].toString());
+          //            console.log(("" + asts[i]) === ("" + asts2[i]));
         }
+        return translate(ast, fileName);
       }
     }
     
