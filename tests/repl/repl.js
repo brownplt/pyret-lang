@@ -32,7 +32,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       same = P.checkEvalsTo;
       err = P.checkError;
       ffi = ffiLib(rt, rt.namespace);
-      aRepl = repl.create(rt, rt.namespace { name: "repl-test" + replCount++);
+      aRepl = repl.create(rt, rt.namespace, { name: "repl-test" + replCount++});
     });
 
     describe("repl", function() {
