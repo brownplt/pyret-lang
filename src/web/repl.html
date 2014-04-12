@@ -9,8 +9,8 @@
   <script src="../../lib/CodeMirror/mode/pyret/pyret.js"></script>
   <script src="editor.js"></script>
   <script src="draw.js"></script>
-  <script type="text/javascript"
-          src="https://caja.appspot.com/caja.js"></script>
+<!--  <script type="text/javascript"
+          src="https://caja.appspot.com/caja.js"></script> -->
   <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
   <link rel="stylesheet" href="reset.css"></link>
   <link rel="stylesheet" href="editor.css"></link>
@@ -50,6 +50,7 @@ $(function() {
     paths: {
       "js": "../../build/phase1/js",
       "compiler": "../../build/phase1/arr/compiler",
+      "arr": "../../build/phase1/arr/",
       "trove": "../../build/phase1/trove",
       "q": "../../node_modules/q/q",
       "fs": "fsstub"
@@ -62,10 +63,10 @@ $(function() {
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
     var dialects = dialectLib(runtime, runtime.namespace);
-    var dialect = "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
+    var dialect = "Pyret"; // TODO: CHANGE THIS AS NEEDED
     var replNS = dialects.dialects[dialect].makeNamespace(runtime);
     var replEnv = dialects.dialects[dialect].compileEnv;
-    var repl = replLib.create(runtime, runtime.namespace, {name: "definitions", dialect: "Pyret"});
+    var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: "Pyret"});
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);
