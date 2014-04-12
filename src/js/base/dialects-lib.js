@@ -1,5 +1,5 @@
 define(["js/runtime-util", 
-        "js/pyret-tokenizer", "js/pyret-parser", "arr/compiler/compile-structs.arr",
+        "js/pyret-tokenizer", "js/pyret-parser", "compiler/compile-structs.arr",
         "js/bootstrap-tokenizer", "js/bootstrap-parser", "js/bootstrap-namespace"], 
 function(util, 
          PT, PG, PCS,

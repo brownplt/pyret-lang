@@ -65,7 +65,7 @@ $(function() {
     var dialect = "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
     var replNS = dialects.dialects[dialect].makeNamespace(runtime);
     var replEnv = dialects.dialects[dialect].compileEnv;
-    var repl = replLib.create(runtime, runtime.namespace, {name: "definitions", dialect: "Pyret"});
+    var repl = replLib.create(runtime, runtime.namespace, replEnv, {name: "definitions", dialect: "Pyret"});
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);
