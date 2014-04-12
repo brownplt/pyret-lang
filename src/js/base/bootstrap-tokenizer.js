@@ -50,8 +50,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
     var tok_type = tok.name;
     if (tok_type === "PAREN?") {
       for (var j = 0; j < this.Tokens.length; j++) {
-        this.Tokens[j].val.lastIndex = 0;
+        if (STICKY_REGEXP !== '') {
+          var oldIndex = this.Tokens[j].val.lastIndex;
+          this.Tokens[j].val.lastIndex = 0;
+        }
         var op = this.Tokens[j].val.exec(match[0]);
+        if (STICKY_REGEXP !== '') {
+          this.Tokens[j].val.lastIndex = oldIndex;
+        }
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
