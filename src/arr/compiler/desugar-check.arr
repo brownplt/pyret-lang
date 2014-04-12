@@ -52,7 +52,7 @@ fun get-checks(stmts):
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
-     | s-check(l, name, body) =>
+     | s-check(l, name, body, keyword-check) =>
         check-name = cases(Option) name:
           | none =>
             standalone-counter := standalone-counter + 1
@@ -92,7 +92,7 @@ fun lam(l, args, body):
 end
 
 no-checks-visitor = A.default-map-visitor.{
-  s-check(self, l, name, body):
+  s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name("nothing"))
   end
 }
@@ -111,14 +111,14 @@ check-visitor = A.default-map-visitor.{
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
             [
-              A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr),
+              A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr, false),
               do-checks,
               A.s-id(l, id-result)
             ]
         )
     end
   end,
-  s-check(self, l, name, body):
+  s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name("nothing"))
   end
 }

@@ -22,7 +22,8 @@ str-letrec = PP.str("letrec")
 str-block = PP.str("block:")
 str-brackets = PP.str("[]")
 str-cases = PP.str("cases")
-str-check = PP.str("check:")
+str-checkcolon = PP.str("check:")
+str-examplescolon = PP.str("examples:")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(": ")
@@ -34,7 +35,7 @@ str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
-str-elsecolon = PP.str("else:")
+str-elsecolon = PP.str("otherwise:")
 str-elsespace = PP.str("else ")
 str-end = PP.str("end")
 str-except = PP.str("except")
@@ -43,7 +44,7 @@ str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-graph = PP.str("graph:")
 str-if = PP.str("if ")
-str-ifcolon = PP.str("if:")
+str-ifcolon = PP.str("ask:")
 str-import = PP.str("import")
 str-method = PP.str("method")
 str-mutable = PP.str("mutable")
@@ -62,6 +63,7 @@ str-thickarrow = PP.str("=>")
 str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
+str-val = PP.str("val ")
 str-when = PP.str("when")
 str-where = PP.str("where:")
 str-with = PP.str("with:")
@@ -323,10 +325,12 @@ data Expr:
         + PP.group(PP.nest(INDENT, self.name.tosource()
             + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s-let(l :: Loc, name :: Bind, value :: Expr) with:
+  | s-let(l :: Loc, name :: Bind, value :: Expr, keyword-val :: Bool) with:
     label(self): "s-let" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
+      PP.group(PP.nest(INDENT,
+          if self.keyword-val: str-val else: PP.mt-doc end
+            + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-graph(l :: Loc, bindings :: List<is-s-let>) with:
     label(self): "s-graph" end,
@@ -530,6 +534,9 @@ data Expr:
   | s-num(l :: Loc, n :: Number) with:
     label(self): "s-num" end,
     tosource(self): PP.number(self.n) end
+  | s-frac(l :: Loc, num :: Number, den :: Number) with:
+    label(self): "s-frac" end,
+    tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Bool) with:
     label(self): "s-bool" end,
     tosource(self): PP.str(tostring(self.b)) end
@@ -639,13 +646,19 @@ data Expr:
   | s-check(
       l :: Loc,
       name :: Option<String>,
-      body :: Expr
+      body :: Expr,
+      keyword-check :: Bool
     ) with:
       label(self): "s-check" end,
     tosource(self):
       cases(Option) self.name:
-        | none => PP.surround(INDENT, 1, str-check, self.body.tosource(), str-end)
-        | some(name) => PP.surround(INDENT, 1, PP.str("check ") + PP.dquote(name) + str-colon, self.body.tosource(), str-end)
+        | none => PP.surround(INDENT, 1,
+            if self.keyword-check: str-checkcolon else: str-examplescolon end,
+            self.body.tosource(), str-end)
+        | some(name) => PP.surround(INDENT, 1,
+            if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
+              + PP.dquote(name) + str-colon,
+            self.body.tosource(), str-end)
       end
     end
 sharing:
@@ -940,7 +953,7 @@ fun binding-ids(stmt) -> List<Name>:
     end
   end
   cases(Expr) stmt:
-    | s-let(_, b, _) => [b.id]
+    | s-let(_, b, _, _) => [b.id]
     | s-var(_, b, _) => [b.id]
     | s-fun(_, name, _, _, _, _, _, _) => [s-name(name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
@@ -1286,9 +1299,9 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             )
         | else => false
       end
-    | s-check(_, name1, body1) =>
+    | s_check(_, name1, body1, check1) =>
       cases(Expr) ast2:
-        | s-check(_, name2, body2) => (name1 == name2) and equiv-ast(body1, body2)
+        | s_check(_, name2, body2, check2) => (name1 == name2) and (check1 == check2) and equiv-ast(body1, body2)
         | else => false
       end
     | s-var(_, bind1, value1) =>
@@ -1297,10 +1310,10 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
           equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)
         | else => false
       end
-    | s-let(_, bind1, value1) =>
+    | s-let(_, bind1, value1, keyword-val1) =>
       cases(Expr) ast2:
-        | s-let(_, bind2, value2) =>
-          equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)
+        | s-let(_, bind2, value2, keyword-val2) =>
+          (keyword-val1 == keyword-val2) and equiv-ast-bind(bind1, bind2) and equiv-ast(value1, value2)
         | else => false
       end
     | s-graph(_, bindings1) =>
@@ -1516,6 +1529,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-num(_, n2) => n1 == n2
         | else => false
       end
+    | s-frac(_, n1, d1) =>
+      cases(Expr) ast2:
+        | s-frac(_, n2, d2) => (n1 == n2) and (d1 == d2)
+        | else => false
+      end
     | s-str(_, s1) =>
       cases(Expr) ast2:
         | s-str(_, s2) => s1 == s2
@@ -1632,8 +1650,8 @@ default-map-visitor = {
     s-var(l, name.visit(self), value.visit(self))
   end,
 
-  s-let(self, l :: Loc, name :: Bind, value :: Expr):
-    s-let(l, name.visit(self), value.visit(self)) 
+  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Bool):
+    s-let(l, name.visit(self), value.visit(self), keyword-val) 
   end,
 
   s-graph(self, l :: Loc, bindings :: List<is-s-let>):
@@ -1763,6 +1781,9 @@ default-map-visitor = {
   s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
   end,
+  s-frac(self, l :: Loc, num :: Number, den :: Number):
+    s-frac(l, num, den)
+  end,
   s-bool(self, l :: Loc, b :: Bool):
     s-bool(l, b)
   end,
@@ -1834,8 +1855,8 @@ default-map-visitor = {
     ):
     s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
   end,
-  s-check(self, l :: Loc, name :: Option<String>, body :: Expr):
-    s-check(l, name, body.visit(self))  
+  s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Bool):
+    s-check(l, name, body.visit(self), keyword-check)
   end,
 
   s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
@@ -2016,7 +2037,7 @@ default-iter-visitor = {
     name.visit(self) and value.visit(self)
   end,
   
-  s-let(self, l :: Loc, name :: Bind, value :: Expr):
+  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Bool):
     name.visit(self) and value.visit(self)
   end,
   
@@ -2147,6 +2168,9 @@ default-iter-visitor = {
   s-num(self, l :: Loc, n :: Number):
     true
   end,
+  s-frac(self, l :: Loc, num :: Number, den :: Number):
+    true
+  end,
   s-bool(self, l :: Loc, b :: Bool):
     true
   end,
@@ -2208,7 +2232,7 @@ default-iter-visitor = {
       ):
     iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s-check(self, l :: Loc, name :: String, body :: Expr):
+  s-check(self, l :: Loc, name :: String, body :: Expr, keyword-check :: Bool):
     body.visit(self)
   end,
   
@@ -2386,8 +2410,8 @@ dummy-loc-visitor = {
     s-var(dummy-loc, name.visit(self), value.visit(self))
   end,
 
-  s-let(self, l :: Loc, name :: Bind, value :: Expr):
-    s-let(dummy-loc, name.visit(self), value.visit(self)) 
+  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Bool):
+    s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val) 
   end,
 
   s-graph(self, l :: Loc, bindings :: List<is-s-let>):
@@ -2517,6 +2541,9 @@ dummy-loc-visitor = {
   s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
+  s-frac(self, l :: Loc, num :: Number, den :: Number):
+    s-frac(dummy-loc, num, den)
+  end,
   s-bool(self, l :: Loc, b :: Bool):
     s-bool(dummy-loc, b)
   end,
@@ -2588,8 +2615,8 @@ dummy-loc-visitor = {
     ):
     s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
   end,
-  s-check(self, l :: Loc, name :: Option<String>, body :: Expr):
-    s-check(dummy-loc, name, body.visit(self))  
+  s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Bool):
+    s-check(dummy-loc, name, body.visit(self), keyword-check)
   end,
 
   s-data-field(self, l :: Loc, name :: Expr, value :: Expr):

@@ -520,6 +520,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-var(l, x) => expr
     | s-id-letrec(l, x) => expr
     | s-num(_, _) => expr
+    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
@@ -534,7 +535,7 @@ fun desugar-expr(expr :: A.Expr):
         desugar-expr(gid(l, "_empty")))
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _) => A.s-str(l, "Checks should have been desugared")
+    | s-check(l, _, _, _) => A.s-str(l, "Checks should have been desugared")
     | s-check-test(l, _, _, _) => make-message-exception(l, "Checks should have been desugared")
     | else => raise("NYI (desugar): " + torepr(expr))
   end

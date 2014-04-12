@@ -37,9 +37,9 @@ define(["require", "q"], function(rjs, Q) {
     var oldLog = console.log;
     console.log = function() { /* intentional no-op to suppress SES logging */ }
     var script = new VM.Script(source);
-    script.runInThisContext();
-    ourCajaVM = cajaVM;
-//    unsafeCaja();
+//    script.runInThisContext();
+//    ourCajaVM = cajaVM;
+    unsafeCaja();
     console.log = oldLog;
   }
 

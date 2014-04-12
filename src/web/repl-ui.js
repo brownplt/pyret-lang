@@ -141,7 +141,6 @@ define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, check
       codeRunner(src, theseUIOptions, options);
     }
   }
-
   //: -> (code -> printing it on the repl)
   function makeRepl(container, repl, runtime) {
     var items = [];
@@ -215,9 +214,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, check
       var thisReturnHandler;
       if (uiOptions.wrappingReturnHandler) {
         thisReturnHandler = uiOptions.wrappingReturnHandler(output);
-        console.log("Using the wrapping return handler");
       } else {
-        console.log("Using default return handler");
         thisReturnHandler = uiOptions.handleReturn || defaultReturnHandler;
       }
       var thisError;

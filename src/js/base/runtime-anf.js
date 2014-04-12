@@ -1663,7 +1663,11 @@ function createMethodDict() {
       return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
     }
 
-
+    var string_equals = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isString);
+      thisRuntime.checkIf(r, thisRuntime.isString);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var string_append = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isString);
       thisRuntime.checkIf(r, thisRuntime.isString);
@@ -1732,7 +1736,11 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
-
+    var num_equals = function(l, r) {
+      thisRuntime.checkIf(l, thisRuntime.isNumber);
+      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var num_max = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isNumber);
       thisRuntime.checkIf(r, thisRuntime.isNumber);
@@ -1869,7 +1877,7 @@ function createMethodDict() {
       }
     }
     function random(max) {
-      return makeNumber(Math.floor(Math.random() * max));
+      return makeNumber(jsnums.floor(jsnums.times(Math.random(), max)));
     }
 
     function loadModule(module, runtime, namespace, withModule) {
@@ -1935,6 +1943,7 @@ function createMethodDict() {
 
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
+          'num-equals': makeFunction(num_equals),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
@@ -1954,6 +1963,7 @@ function createMethodDict() {
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
 
+          'string-equals': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
@@ -2024,7 +2034,6 @@ function createMethodDict() {
         'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
-      
         'plus': plus,
         'minus': minus,
         'times': times,
@@ -2103,6 +2112,7 @@ function createMethodDict() {
         'log': log,
 
         'makeSrcloc': makeSrcloc,
+        '_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
@@ -2112,10 +2122,7 @@ function createMethodDict() {
         },
         'getParam' : getParam,
         'setParam' : setParam,
-        'hasParam' : hasParam,
-        '_link' : function(f, r) {
-          return thisRuntime.namespace.get("_link").app(f, r);
-        }
+        'hasParam' : hasParam
     };
 
 

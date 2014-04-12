@@ -35,23 +35,23 @@ fun compile-js-ast(ast, name, libs, options):
   end
 end
 
-fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  ast = PP.surface-parse(code, name)
+fun compile-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  ast = PP.parse-dialect(dialect, code, name)
   compile-js-ast(ast, name, libs, options)
 end
 
-fun compile-runnable-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  compile-js(code, name, libs, options).pyret-to-js-runnable()
+fun compile-runnable-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  compile-js(dialect, code, name, libs, options).pyret-to-js-runnable()
 end
 
-fun compile-runnable-js-file(js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+fun compile-runnable-js-file(dialect, js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   code = F.file-to-string(js-file)
-  compile-runnable-js(code, js-file, libs, options)
+  compile-runnable-js(dialect, code, js-file, libs, options)
 end
 
-fun compile-standalone-js-file(js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+fun compile-standalone-js-file(dialect, js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   code = F.file-to-string(js-file)
-  compile-standalone-js(code, js-file, libs, options)
+  compile-standalone-js(dialect, code, js-file, libs, options)
 end
 
 fun compile-standalone-js(code, name, libs, options) -> C.CompileResult<String, Any>:

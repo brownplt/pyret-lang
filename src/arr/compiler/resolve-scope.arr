@@ -67,7 +67,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
         else: fun(e): e;
         end
       cases(A.Expr) f:
-        | s-let(l, bind, expr) =>
+        | s-let(l, bind, expr, _) =>
           handle-let-bind(l, A.s-let-bind(l, bind, expr))
         | s-var(l, bind, expr) =>
           handle-let-bind(l, A.s-var-bind(l, bind, expr))
@@ -247,7 +247,7 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
             | module-bindings(mname, bindings) =>
               lst + 
                 for map(name from bindings):
-                  A.s-let(l, A.s-bind(l, false, A.s-name(name), A.a-blank), A.s-dot(l, A.s-id(l, A.s-name(mname)), name))
+                  A.s-let(l, A.s-bind(l, false, A.s-name(name), A.a-blank), A.s-dot(l, A.s-id(l, A.s-name(mname)), name), false)
                 end
             | else => lst
           end

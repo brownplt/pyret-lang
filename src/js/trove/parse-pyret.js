@@ -1,8 +1,11 @@
-define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, astLib, srclocLib, T, G) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
+
+    var dialects = dialectsLib(RUNTIME, NAMESPACE);
+    
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function makePyretPos(fileName, p) {
       var n = RUNTIME.makeNumber;
@@ -165,9 +168,15 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'let-expr': function(node) {
-          // (let-expr bind EQUALS e)
-          return RUNTIME.getField(ast, 's-let')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          if (node.kids.length === 3) {
+            // (let-expr bind EQUALS e)
+            return RUNTIME.getField(ast, 's-let')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
+          } else {
+            // (let-expr VAL bind EQUALS e)
+            return RUNTIME.getField(ast, 's-let')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), RUNTIME.makeBoolean(true));
+          }
         },
         'multi-let-expr': function(node) {
           // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
@@ -264,11 +273,13 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
             return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), F.makeNone(), tr(node.kids[1]));
+              .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
+                   RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
           } else {
             // (check-expr CHECK STRING COLON body END)
             return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]));
+              .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+                   RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
           }
         },
         'check-test': function(node) {
@@ -785,6 +796,12 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
           return RUNTIME.getField(ast, 's-num')
             .app(pos(node.pos), number(node.kids[0]));
         },
+        'frac-expr': function(node) {
+          // (frac-expr n)
+          var numden = node.kids[0].value.split("/");
+          return RUNTIME.getField(ast, 's-frac')
+            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+        },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')
             .app(pos(node.pos), string(node.kids[0]));
@@ -872,16 +889,17 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       "satisfies": RUNTIME.makeString("opsatisfies"),
     }
 
-    function parseDataRaw(data, fileName) {
-      const toks = T.Tokenizer;
+    function parseDataRaw(dialect, data, fileName) {
+      const toks = dialects.dialects[dialect].Tokenizer;
+      const grammar = dialects.dialects[dialect].Grammar;
       toks.tokenizeFrom(data);
       // while (toks.hasNext())
       //   console.log(toks.next().toString(true));
-      var parsed = G.PyretGrammar.parse(toks);
+      var parsed = grammar.parse(toks);
       //console.log("Result:");
-      var countParses = G.PyretGrammar.countAllParses(parsed);
+      var countParses = grammar.countAllParses(parsed);
       if (countParses == 0) {
-        var nextTok = toks.next();
+        var nextTok = toks.curTok; 
         console.error("There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
@@ -890,11 +908,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       }
       //console.log("There were " + countParses + " potential parses");
       if (countParses === 1) {
-        var ast = G.PyretGrammar.constructUniqueParse(parsed);
+        var ast = grammar.constructUniqueParse(parsed);
         //          console.log(ast.toString());
         return translate(ast, fileName);
       } else {
-        var asts = G.PyretGrammar.constructAllParses(parsed);
+        var asts = grammar.constructAllParses(parsed);
         throw "Non-unique parse";
         for (var i = 0; i < asts.length; i++) {
           //console.log("Parse " + i + ": " + asts[i].toString());
@@ -904,15 +922,28 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/pyret-toke
       }
     }
     
+    function parseDataDialect(dialect, data, fileName) {
+      RUNTIME.checkIf(dialect, RUNTIME.isString);
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
     function parsePyret(data, fileName) {
       RUNTIME.checkIf(data, RUNTIME.isString);
       RUNTIME.checkIf(fileName, RUNTIME.isString);
-      return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+      return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    }
+    function parseBootstrap(data, fileName) {
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
+        'parse-dialect': RUNTIME.makeFunction(parseDataDialect),
         'surface-parse': RUNTIME.makeFunction(parsePyret), // TODO: Rename this eventually
+        'parse-bootstrap': RUNTIME.makeFunction(parseBootstrap)
       }),
       answer: NAMESPACE.get("nothing")
     });

@@ -50,14 +50,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     var tok_type = tok.name;
     if (tok_type === "PAREN?") {
       for (var j = 0; j < this.Tokens.length; j++) {
-        if (STICKY_REGEXP !== '') {
-          var oldIndex = this.Tokens[j].val.lastIndex;
-          this.Tokens[j].val.lastIndex = 0;
-        }
+        this.Tokens[j].val.lastIndex = 0;
         var op = this.Tokens[j].val.exec(match[0]);
-        if (STICKY_REGEXP !== '') {
-          this.Tokens[j].val.lastIndex = oldIndex;
-        }
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
@@ -155,6 +149,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
     {name: "VAR", val: new RegExp(kw("var"), STICKY_REGEXP)},
+    {name: "VAL", val: new RegExp(kw("val"), STICKY_REGEXP)},
     {name: "LETREC", val: new RegExp(kw("letrec"), STICKY_REGEXP)},
     {name: "LET", val: new RegExp(kw("let"), STICKY_REGEXP)},
     {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
@@ -163,16 +158,18 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "METHOD", val: new RegExp(kw("method"), STICKY_REGEXP)},
     {name: "DOC", val: new RegExp(kw("doc:"), STICKY_REGEXP)},
     {name: "WHERE", val: new RegExp(kw("where:"), STICKY_REGEXP)},
+    {name: "EXAMPLESCOLON", val: new RegExp(kw("examples:"), STICKY_REGEXP)},
     {name: "CHECKCOLON", val: new RegExp(kw("check:"), STICKY_REGEXP)},
+    {name: "EXAMPLES", val: new RegExp(kw("examples"), STICKY_REGEXP)},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
     {name: "TRY", val: new RegExp(kw("try:"), STICKY_REGEXP)},
     {name: "EXCEPT", val: new RegExp(kw("except"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
-    {name: "IFCOLON", val: new RegExp(kw("if:"), STICKY_REGEXP)},
+    {name: "IFCOLON", val: new RegExp(kw("ask:"), STICKY_REGEXP)},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(kw("then:"), STICKY_REGEXP)},
-    {name: "ELSECOLON", val: new RegExp(kw("else:"), STICKY_REGEXP)},
+    {name: "ELSECOLON", val: new RegExp(kw("otherwise:"), STICKY_REGEXP)},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
     {name: "ELSE", val: new RegExp(kw("else"), STICKY_REGEXP)},
     {name: "DATA", val: new RegExp(kw("data"), STICKY_REGEXP)},

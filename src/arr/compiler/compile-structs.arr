@@ -41,23 +41,23 @@ data CompileError:
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is assigned at " + tostring(self.loc)
-        + ", but its definition at " + tostring(self.prev-loc) + " is not assignable."
-        + "  (Only names declared with var are assignable.)"
+        + ", but its definition at " + self.prev-loc.format(not self.loc.same-file(self.prev-loc))
+        + " is not assignable.  (Only names declared with var are assignable.)"
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     tostring(self):
       self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
-        + " and an identifier (at " + tostring(self.id-loc) + ")"
+        + " and an identifier (at " + self.id-loc.format(not self.var-loc.same-file(self.id-loc)) + ")"
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
-        + ", but is already declared at " + tostring(self.old-loc)
+        + ", but is already declared at " + self.old-loc.format(not self.new-loc.same-file(self.old-loc))
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
-        + " and at " + tostring(self.old-loc)
+        + " and at " + self.old-loc.format(not self.new-loc.same-file(self.old-loc))
     end
 end
 
@@ -66,74 +66,167 @@ data CompileBinding:
   | module-bindings(name :: String, bindings :: List<String>)
 end
 
-runtime-builtins =
-  list.map(builtin-id, [
-    "test-print",
-    "print",
-    "display",
-    "print-error",
-    "display-error",
-    "tostring",
-    "torepr",
-    "brander",
-    "raise",
-    "nothing",
-    "builtins",
-    "is-nothing",
-    "is-number",
-    "is-string",
-    "is-boolean",
-    "is-object",
-    "is-function",
-    "gensym",
-    "random",
-    "run-task",
-    "_plus",
-    "_minus",
-    "_times",
-    "_divide",
-    "_lessthan",
-    "_lessequal",
-    "_greaterthan",
-    "_greaterequal",
-    "string-contains",
-    "string-append",
-    "string-length",
-    "string-tonumber",
-    "string-repeat",
-    "string-substring",
-    "string-replace",
-    "string-split",
-    "string-char-at",
-    "string-toupper",
-    "string-tolower",
-    "string-explode",
-    "string-index-of",
-    "num-max",
-    "num-min",
-    "num-abs",
-    "num-sin",
-    "num-cos",
-    "num-tan",
-    "num-asin",
-    "num-acos",
-    "num-atan",
-    "num-modulo",
-    "num-truncate",
-    "num-sqrt",
-    "num-ceiling",
-    "num-floor",
-    "num-log",
-    "num-exp",
-    "num-exact",
-    "num-is-integer",
-    "num-expt",
-    "num-tostring"
+runtime-builtins = list.map(builtin-id, [
+  "test-print",
+  "print",
+  "display",
+  "print-error",
+  "display-error",
+  "tostring",
+  "torepr",
+  "brander",
+  "raise",
+  "nothing",
+  "builtins",
+  "is-nothing",
+  "is-number",
+  "is-string",
+  "is-boolean",
+  "is-object",
+  "is-function",
+  "gensym",
+  "random",
+  "run-task",
+  "_plus",
+  "_minus",
+  "_times",
+  "_divide",
+  "_lessthan",
+  "_lessequal",
+  "_greaterthan",
+  "_greaterequal",
+  "string-contains",
+  "string-append",
+  "string-length",
+  "string-tonumber",
+  "string-repeat",
+  "string-substring",
+  "string-replace",
+  "string-split",
+  "string-char-at",
+  "string-toupper",
+  "string-tolower",
+  "string-explode",
+  "string-index-of",
+  "num-max",
+  "num-min",
+  "num-abs",
+  "num-sin",
+  "num-cos",
+  "num-tan",
+  "num-asin",
+  "num-acos",
+  "num-atan",
+  "num-modulo",
+  "num-truncate",
+  "num-sqrt",
+  "num-ceiling",
+  "num-floor",
+  "num-log",
+  "num-exp",
+  "num-exact",
+  "num-is-integer",
+  "num-expt",
+  "num-tostring"
 ])
 
 no-builtins = compile-env([])
 
 minimal-builtins = compile-env(runtime-builtins)
+
+bootstrap-builtins = compile-env(
+  runtime-builtins + list.map(builtin-id, [
+  
+
+  "_link",
+  "_empty",
+
+  # new arithmetic aliases  
+  "add",
+  "sub",
+  "div",
+  "mul",
+
+  # from js/trove/image.js
+  "circle",
+  "is-image-color",
+  "is-mode",
+  "is-x-place",
+  "is-y-place",
+  "is-angle",
+  "is-side-count",
+  "is-step-count",
+  "is-image",
+  "bitmap-url",
+  "open-image-url",
+  "image-url",
+  "image-equals",
+  "text",
+  "normal",
+  "text-font",
+  "overlay",
+  "middle",
+  "overlay-xy",
+  "overlay-align",
+  "underlay",
+  "middle",
+  "underlay-xy",
+  "underlay-align",
+  "beside-align",
+  "beside",
+  "above",
+  "middle",
+  "above-align",
+  "empty-scene",
+  "put-image",
+  "place-image",
+  "place-image-align",
+  "rotate",
+  "scale",
+  "scale-xy",
+  "flip-horizontal",
+  "flip-vertical",
+  "frame",
+  "crop",
+  "line",
+  "add-line",
+  "scene-line",
+  "square",
+  "rectangle",
+  "regular-polygon",
+  "ellipse",
+  "triangle",
+  "triangle-sas",
+  "triangle-sss",
+  "triangle-ass",
+  "triangle-ssa",
+  "triangle-aas",
+  "triangle-asa",
+  "triangle-saa",
+  "right-triangle",
+  "isosceles-triangle",
+  "star",
+  "star-sized",
+  "radial-star",
+  "star-polygon",
+  "rhombus",
+  "image-to-color-list",
+  "color-list-to-image",
+  "color-list-to-bitmap",
+  "image-width",
+  "image-height",
+  "image-baseline",
+  "name-to-color",
+
+  # from js/trove/world.js
+  "big-bang",
+  "on-tick",
+  "on-tick-n",
+  "to-draw",
+  "on-mouse",
+  "on-key",
+  "stop-when",
+  "is-key-equal"]))
 
 standard-builtins = compile-env(
     runtime-builtins + [
@@ -188,3 +281,4 @@ standard-builtins = compile-env(
           "list-set"
         ])
     ])
+

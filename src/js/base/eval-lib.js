@@ -1,12 +1,13 @@
 define([
     "js/secure-loader",
     "js/runtime-anf",
+    "js/dialects-lib",
     "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
     "trove/parse-pyret",
     "trove/checker"],
-function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
+function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
   if(requirejs.isBrowser) {
     var r = requirejs;
     var define = window.define;
@@ -27,41 +28,42 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
     var ffi = ffiHelpersLib(runtime, runtime.namespace);
-    var cs = getExports(csLib);
-    var comp = getExports(compLib);
-    var name = options.name || randomName();
-    var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
+    var dialects = dialectsLib(runtime, runtime.namespace);
+    runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
+      var name = options.name || randomName();
+      var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
 
-    runtime.run(function(_, namespace) {
-        return runtime.safeCall(function() {
-            return gf(comp, "compile-js-ast").app(
-                ast,
-                s(name),
-                compileEnv,
-                runtime.makeObject({
-                  "check-mode": runtime.pyretTrue,
-                  "allow-shadowed": runtime.pyretFalse
-                })
-              );
+      runtime.run(function(_, namespace) {
+          return runtime.safeCall(function() {
+              return gf(comp, "compile-js-ast").app(
+                  ast,
+                  s(name),
+                  compileEnv,
+                  runtime.makeObject({
+                    "check-mode": runtime.pyretTrue,
+                    "allow-shadowed": runtime.pyretFalse
+                  })
+                );
+            },
+            function(compiled) {
+              return runtime.safeTail(function() {
+                  if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                    return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
+                  }
+                  else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                    throw ffi.toArray(gf(compiled, "problems"));
+                  }
+                  else {
+                    throw new Error("Unknown result type while compiling: ", compiled);
+                  }
+                });
+
+            });
           },
-          function(compiled) {
-            return runtime.safeTail(function() {
-                if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                  return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
-                }
-                else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                  throw ffi.toArray(gf(compiled, "problems"));
-                }
-                else {
-                  throw new Error("Unknown result type while compiling: ", compiled);
-                }
-              });
-
-          });
-        },
-        runtime.namespace,
-        { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
-        ondone)
+          runtime.namespace,
+          { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
+          ondone)
+    });
   }
 
   function compileSrcPyret(runtime, src, options, ondone) {
@@ -76,9 +78,13 @@ function(loader, rtLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
 
   function parsePyret(runtime, src, options, ondone) {
     var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
+    var dialects = dialectsLib(runtime, runtime.namespace);
     if (!options.name) { options.name = randomName(); }
     return runtime.runThunk(function() {
-      return runtime.getField(pp, "surface-parse").app(runtime.makeString(src), runtime.makeString(options.name));
+      return runtime.getField(pp, "parse-dialect").app(
+                runtime.makeString(options.dialect || dialects.defaultDialect), 
+                runtime.makeString(src), 
+                runtime.makeString(options.name));
     }, ondone);
   }
 

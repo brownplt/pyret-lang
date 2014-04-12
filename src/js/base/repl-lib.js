@@ -1,13 +1,13 @@
-define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-support.arr"], function(Q, eval, cs, rs) {
+define(["q", "./eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
 
   var defer = function(f) { setTimeout(f, 0); }
-  function createRepl(runtime, namespace, options) {
-    var mainName = options.name || "replMain";
-    return runtime.loadModules(namespace, [cs, rs], function(compileStructs, replSupport) {
+  function createRepl(runtime, namespace, initialCompileEnv, options) {
+    var dialect = options.dialect || "Pyret";
+    var mainName = options.name || "repl-main";
+    return runtime.loadModules(namespace, [rs], function(replSupport) {
       var toRun = [];
       var somethingRunning = false;
       function get(obj, fld) { return runtime.getField(obj, fld); }
-      var initialCompileEnv = get(compileStructs, "standard-builtins");
       var replCompileEnv = initialCompileEnv;
       
       function evaluate(toEval) {
@@ -43,7 +43,7 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       }
       function restartInteractions(code) {
         var deferred = Q.defer();
-        eval.parsePyret(runtime, code, { name: mainName }, function(astResult) {
+        eval.parsePyret(runtime, code, { name: mainName, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             toRun.unshift({
                 ast: get(replSupport, "make-provide-all").app(astResult.result),
@@ -61,7 +61,7 @@ define(["q", "./eval-lib", "compiler/compile-structs.arr", "compiler/repl-suppor
       function run(code) {
         var deferred = Q.defer();
         var name = "replRun";
-        eval.parsePyret(runtime, code, { name: name }, function(astResult) {
+        eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             toRun.unshift({
                 ast: get(replSupport, "make-provide-all").app(astResult.result),

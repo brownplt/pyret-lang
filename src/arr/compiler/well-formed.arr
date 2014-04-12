@@ -116,7 +116,7 @@ end
 
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _) => wf-error("Cannot end a block in a let-binding", l)
+    | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
     | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
     | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
@@ -260,7 +260,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ensure-unique-ids(args)
       list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
-    s-check(self, l, name, body):
+    s-check(self, l, name, body, keyword-check):
       wrap-visit-check(self, some(body))
     end,
     s-if(self, l, branches):

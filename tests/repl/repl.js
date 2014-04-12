@@ -1,5 +1,6 @@
 var r = require("requirejs")
-define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "js/ffi-helpers"], function(Q, rtLib, e, repl, ffiLib) {
+define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "js/ffi-helpers", 
+       "js/dialects-lib"], function(Q, rtLib, e, repl, ffiLib, dialectsLib) {
 
   var _ = require('jasmine-node');
   var rt;
@@ -32,7 +33,10 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       same = P.checkEvalsTo;
       err = P.checkError;
       ffi = ffiLib(rt, rt.namespace);
-      aRepl = repl.create(rt, rt.namespace, { name: "repl-test" + replCount++});
+      dialects = dialectsLib(rt, rt.namespace);
+      dialect = "Pyret";
+      dialectConfig = dialects.dialects[dialect];
+      aRepl = repl.create(rt, dialectConfig.makeNamespace(rt), dialectConfig.compileEnv, { name: "repl-test" + replCount++, dialect: dialect});
     });
 
     describe("repl", function() {

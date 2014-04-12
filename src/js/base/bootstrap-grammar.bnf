@@ -1,7 +1,7 @@
 #lang ragg
 
 /*
-  name: PyretGrammar
+  name: BootstrapGrammar
 */
 
 program: prelude block
@@ -21,7 +21,7 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
     | graph-expr | contract-stmt
 
-let-expr: toplevel-binding EQUALS binop-expr
+let-expr: [VAL] toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
 toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
@@ -43,8 +43,8 @@ return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
-check-expr: CHECK STRING COLON block end
-check-expr: CHECKCOLON block end
+check-expr: (CHECK|EXAMPLES) STRING COLON block end
+check-expr: (CHECKCOLON|EXAMPLESCOLON) block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
@@ -72,13 +72,7 @@ graph-expr: GRAPH let-expr* end
 
 when-expr: WHEN binop-expr COLON block end
 
-binop-expr: binop-clause (binop binop-clause)*
-binop-clause: not-expr | expr
-
-not-expr: NOT expr
-
-binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
-     | NEQ  | LT  | GT | AND | OR
+binop-expr: expr
 
 check-op: IS | RAISES | SATISFIES
 
