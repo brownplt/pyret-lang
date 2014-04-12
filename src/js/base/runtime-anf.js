@@ -1877,7 +1877,7 @@ function createMethodDict() {
       }
     }
     function random(max) {
-      return makeNumber(jsnums.floor(jsnums.times(Math.random(), max)));
+      return makeNumber(jsnums.floor(jsnums.multiply(Math.random(), max)));
     }
 
     function loadModule(module, runtime, namespace, withModule) {
