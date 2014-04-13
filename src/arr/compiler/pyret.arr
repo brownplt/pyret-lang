@@ -4,8 +4,8 @@ import cmdline as C
 import file as F
 import exec as X
 import string-dict as D
-import "./compile.arr" as CM
-import "./compile-structs.arr" as CS
+import "compiler/compile.arr" as CM
+import "compiler/compile-structs.arr" as CS
 import format as Format
 import either as E
 format = Format.format

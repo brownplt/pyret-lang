@@ -3,7 +3,7 @@
 provide *
 
 import ast as A
-import "./ast-anf.arr" as N
+import "compiler/ast-anf.arr" as N
 
 names = A.global-names
 

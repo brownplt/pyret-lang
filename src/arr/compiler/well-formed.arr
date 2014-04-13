@@ -4,7 +4,7 @@ provide {
   check-well-formed: check-well-formed
 } end
 import ast as A
-import "./compile-structs.arr" as C
+import "compiler/compile-structs.arr" as C
 import format as F
 
 # TODO: Make this a mutable field when we have them...
