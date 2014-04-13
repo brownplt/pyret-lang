@@ -109,7 +109,7 @@ $(WEB)/%: img/%
 
 $(WEB)/web-compile.js: $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS))
 	cd $(PHASE2) && \
-	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove include=js/runtime-anf
+	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf
 
 $(PHASE1):
 	@$(call MKDIR,$(PHASE1_DIRS))

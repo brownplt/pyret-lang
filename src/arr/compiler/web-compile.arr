@@ -3,13 +3,13 @@
 provide *
 import ast as A
 import parse-pyret as PP
-import "./js-of-pyret.arr" as P
-import "./compile-structs.arr" as C
-import "./well-formed.arr" as W
-import "./ast-util.arr" as U
-import "./resolve-scope.arr" as R
-import "./desugar.arr" as D
-import "./desugar-check.arr" as CH
+import "compiler/js-of-pyret.arr" as P
+import "compiler/compile-structs.arr" as C
+import "compiler/well-formed.arr" as W
+import "compiler/ast-util.arr" as U
+import "compiler/resolve-scope.arr" as R
+import "compiler/desugar.arr" as D
+import "compiler/desugar-check.arr" as CH
 
 fun compile-js(dialect, code, name, libs, safe-stack):
   ast = PP.surface-parse(code, name)

@@ -138,14 +138,14 @@
 require.config({
   waitSeconds: 15000,
   paths: {
-    "arr/compiler/web-compile.arr": "web-compile"
+    compiler: "./arr/compiler"
   }
 });
 $(function() {
-  require(["arr/compiler/web-compile.arr", "js/secure-loader"], function(wc, loader) {
+  require(["compiler/web-compile.arr", "js/secure-loader"], function(wc, loader) {
     require([
       "js/runtime-anf",
-      "arr/compiler/compile-structs.arr"
+      "compiler/compile-structs.arr"
     ], function(rt, cs) {
 
       function setStatus(str) {

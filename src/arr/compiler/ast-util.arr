@@ -3,7 +3,7 @@
 provide *
 import ast as A
 import parse-pyret as PP
-import "./compile-structs.arr" as CS
+import "compiler/compile-structs.arr" as CS
 import string-dict as SD
 import either as E
 

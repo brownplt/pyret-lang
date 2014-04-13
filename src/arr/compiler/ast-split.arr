@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-import "./ast-anf.arr" as N
+import "compiler/ast-anf.arr" as N
 import ast as A
 import pprint as PP
 

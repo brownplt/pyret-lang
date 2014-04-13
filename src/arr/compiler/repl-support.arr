@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-import "./compile-structs.arr" as C
+import "compiler/compile-structs.arr" as C
 import ast as A
 
 

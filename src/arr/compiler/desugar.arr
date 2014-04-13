@@ -3,8 +3,8 @@
 provide *
 import ast as A
 import parse-pyret as PP
-import "./compile-structs.arr" as C
-import "./ast-util.arr" as U
+import "compiler/compile-structs.arr" as C
+import "compiler/ast-util.arr" as U
 
 names = A.MakeName(0)
 

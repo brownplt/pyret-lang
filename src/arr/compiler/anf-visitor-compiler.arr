@@ -2,11 +2,11 @@
 
 provide *
 import ast as A
-import "./ast-anf.arr" as N
-import "./ast-split.arr" as S
-import "./js-ast.arr" as J
-import "./gensym.arr" as G
-import "./compile-structs.arr" as CS
+import "compiler/ast-anf.arr" as N
+import "compiler/ast-split.arr" as S
+import "compiler/js-ast.arr" as J
+import "compiler/gensym.arr" as G
+import "compiler/compile-structs.arr" as CS
 import string-dict as D
 import srcloc as SL
 

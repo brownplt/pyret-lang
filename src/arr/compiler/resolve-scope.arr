@@ -5,9 +5,9 @@ import ast as A
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
-import "./compile-structs.arr" as C
-import "./ast-util.arr" as U
-import "./gensym.arr" as G
+import "compiler/compile-structs.arr" as C
+import "compiler/ast-util.arr" as U
+import "compiler/gensym.arr" as G
 
 fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
 

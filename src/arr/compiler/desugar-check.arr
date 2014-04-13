@@ -3,8 +3,8 @@
 provide *
 import ast as A
 import srcloc as SL
-import "./gensym.arr" as G
-import "./ast-util.arr" as U
+import "compiler/gensym.arr" as G
+import "compiler/ast-util.arr" as U
 
 data CheckInfo:
   | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr)
