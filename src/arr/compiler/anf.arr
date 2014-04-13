@@ -26,8 +26,7 @@ data ANFCont:
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, e-name.id-b, expr,
-            N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [e-name.id-e]),
-              N.a-lettable(N.a-val(name.id-e))))
+            N.a-lettable(N.a-app(l, N.a-id(l, self.name), [e-name.id-e])))
       end
     end
 end

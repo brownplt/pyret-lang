@@ -147,8 +147,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
     | a-lettable(e) =>
       cases(N.ALettable) e:
         | a-app(l, f, args) =>
-          name = names.make-atom("solo-app")
-          ast-split-expr(N.a-let(l, N.a-bind(l, name, A.a-blank), e, N.a-lettable(N.a-val(N.a-id(l, name)))))
+          split-result-int-e(concat-empty, N.a-tail-app(l, f, args), N.freevars-v(f).union(unions(args.map(N.freevars-v))))
         | else =>
           let-result = ast-split-lettable(e)
           split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
