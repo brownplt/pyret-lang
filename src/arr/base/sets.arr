@@ -14,52 +14,59 @@ import option as option
 List = list.List
 empty = list.empty
 link = list.link
+is-empty = list.is-empty
 
 # SETS
 
+
 data AVLTree:
   | leaf with:
-      height(self) -> Number: 0 end,
-      contains(self, val :: Any) -> Bool: false end,
-      insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
-      remove(self, val :: Any) -> AVLTree: leaf end,
-      preorder(self) -> List: empty end,
-      inorder(self) -> List: empty end,
-      postorder(self) -> List: empty end
-      
+    height(self) -> Number: 0 end,
+    contains(self, val :: Any) -> Bool: false end,
+    insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
+    remove(self, val :: Any) -> AVLTree: leaf end,
+    preorder(self) -> List: empty end,
+    inorder(self) -> List: empty end,
+    postorder(self) -> List: empty end,
+    fold(self, f, base): base end
+    
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
-      height(self) -> Number: self.h end,
-      contains(self, val :: Any) -> Bool:
-        if val == self.value: true
-        else if val < self.value: self.left.contains(val)
-        else: self.right.contains(val)
-        end
-      end,
-      insert(self, val :: Any) -> AVLTree:
-        if val == self.value: mkbranch(val, self.left, self.right)
-        else if val < self.value:
-          rebalance(mkbranch(self.value, self.left.insert(val), self.right))
-        else:
-          rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
-        end
-      end,
-      remove(self, val :: Any) -> AVLTree:
-        if val == self.value: remove-root(self)
-        else if val < self.value:
-          rebalance(mkbranch(self.value, self.left.remove(val), self.right))
-        else:
-          rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
-        end
-      end,
-      preorder(self) -> List: link(self.value, self.left.preorder() + self.right.preorder()) end,
-      inorder(self) -> List: self.left.inorder() + link(self.value, self.right.inorder()) end,
-      postorder(self) -> List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end
+    height(self) -> Number: self.h end,
+    contains(self, val :: Any) -> Bool:
+      if val == self.value: true
+      else if val < self.value: self.left.contains(val)
+      else: self.right.contains(val)
+      end
+    end,
+    insert(self, val :: Any) -> AVLTree:
+      if val == self.value: mkbranch(val, self.left, self.right)
+      else if val < self.value:
+        rebalance(mkbranch(self.value, self.left.insert(val), self.right))
+      else:
+        rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
+      end
+    end,
+    remove(self, val :: Any) -> AVLTree:
+      if val == self.value: remove-root(self)
+      else if val < self.value:
+        rebalance(mkbranch(self.value, self.left.remove(val), self.right))
+      else:
+        rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
+      end
+    end,
+    preorder(self) -> List: link(self.value, self.left.preorder() + self.right.preorder()) end,
+    inorder(self) -> List: self.left.inorder() + link(self.value, self.right.inorder()) end,
+    postorder(self) -> List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end,
+    fold(self, f, base): self.right.fold(f, self.left.fold(f, f(base, self.value))) end
 sharing:
   to-list(self) -> List: self.inorder() end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
   end
 end
+
+fun tree-fold(f, base, tree): tree.fold(f, base) end
+
 
 fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
@@ -74,13 +81,13 @@ fun rebalance(tree :: AVLTree):
   end
   fun left-right(t):
     mkbranch(t.left.right.value,
-             mkbranch(t.left.value, t.left.left, t.left.right.left),
-             mkbranch(t.value, t.left.right.right, t.right))
+      mkbranch(t.left.value, t.left.left, t.left.right.left),
+      mkbranch(t.value, t.left.right.right, t.right))
   end
   fun right-left(t):
     mkbranch(t.right.left.value,
-             mkbranch(t.value, t.left, t.right.left.left),
-             mkbranch(t.right.value, t.right.left.right, t.right.right))
+      mkbranch(t.value, t.left, t.right.left.left),
+      mkbranch(t.right.value, t.right.left.right, t.right.right))
   end
   lh = tree.left.height()
   rh = tree.right.height()
@@ -138,158 +145,158 @@ fun swap-next-lowest(tree :: AVLTree):
     end
   end
   rebalance(mkbranch(greatest(tree.left).value,
-                     remove-greatest-and-rebalance(tree.left),
-                     tree.right))
+      remove-greatest-and-rebalance(tree.left),
+      tree.right))
 end
 
 data Set:
   | list-set(elems :: List) with:
-
-      member(self, elem :: Any) -> Bool:
-        doc: 'Check to see if an element is in a set.'
-        self.elems.member(elem)
+    
+    member(self, elem :: Any) -> Bool:
+      doc: 'Check to see if an element is in a set.'
+      self.elems.member(elem)
       #where:
       #  sets.set([1, 2, 3]).member(2) is true
       #  sets.set([1, 2, 3]).member(4) is false
-      end,
-
-      add(self, elem :: Any) -> Set:
-        doc: "Add an element to the set if it is not already present."
-        if (self.elems.member(elem)):
-          self
-        else:
-          list-set(link(elem, self.elems))
-        end
+    end,
+    
+    add(self, elem :: Any) -> Set:
+      doc: "Add an element to the set if it is not already present."
+      if (self.elems.member(elem)):
+        self
+      else:
+        list-set(link(elem, self.elems))
+      end
       #where:
       #  sets.set([]).add(1) is sets.set([1])
       #  sets.set([1]).add(1) is sets.set([1])
       #  sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
       #  sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
-      end,
-
-      remove(self, elem :: Any) -> Set:
-        doc: "Remove an element from the set if it is present."
-        list-set(self.elems.filter(fun (x): x <> elem end))
+    end,
+    
+    remove(self, elem :: Any) -> Set:
+      doc: "Remove an element from the set if it is present."
+      list-set(self.elems.filter(fun (x): x <> elem end))
       #where:
       #  sets.set([1, 2]).remove(18) is sets.set([1, 2])
       #  sets.set([1, 2]).remove(2) is sets.set([1])
-      end,
-
-      to-list(self) -> List:
-        doc: 'Convert a set into a list of elements.'
-        self.elems
+    end,
+    
+    to-list(self) -> List:
+      doc: 'Convert a set into a list of elements.'
+      self.elems
       #where:
       #  sets.set([3, 1, 2]).to-list() is [1, 2, 3]
-      end,
-      union(self :: Set, other :: Set) -> Set:
-        doc: 'Compute the union of this set and another set.'
-        for list.fold(u from self, elem from other.to-list()):
-          u.add(elem)
-        end
-      end,
-
-      intersect(self :: Set, other :: Set) -> Set:
-        doc: 'Compute the intersection of this set and another set.'
-        for list.fold(u from self, elem from self.to-list()):
-          if other.member(elem):
-            u
-          else:
-            u.remove(elem)
-          end
-        end
-      end,
-
-      difference(self :: Set, other :: Set) -> Set:
-        doc: 'Compute the difference of this set and another set.'
-        for list.fold(u from self, elem from self.to-list()):
-          if other.member(elem):
-            u.remove(elem)
-          else:
-            u
-          end
+    end,
+    union(self :: Set, other :: Set) -> Set:
+      doc: 'Compute the union of this set and another set.'
+      for tree-fold(u from self, elem from other.elems):
+        u.add(elem)
+      end
+    end,
+    
+    intersect(self :: Set, other :: Set) -> Set:
+      doc: 'Compute the intersection of this set and another set.'
+      for tree-fold(u from self, elem from self.elems):
+        if other.member(elem):
+          u
+        else:
+          u.remove(elem)
         end
       end
-
-
+    end,
+    
+    difference(self :: Set, other :: Set) -> Set:
+      doc: 'Compute the difference of this set and another set.'
+      for tree-fold(u from self, elem from self.elems):
+        if other.member(elem):
+          u.remove(elem)
+        else:
+          u
+        end
+      end
+    end
+    
+    
   | tree-set(elems :: AVLTree) with:
-
-      member(self, elem :: Any) -> Bool:
-        doc: 'Check to see if an element is in a set.'
-        self.elems.contains(elem)
+    
+    member(self, elem :: Any) -> Bool:
+      doc: 'Check to see if an element is in a set.'
+      self.elems.contains(elem)
       #where:
       #  sets.tree-set([1, 2, 3]).member(2) is true
       #  sets.tree-set([1, 2, 3]).member(4) is false
-      end,
-
-      add(self, elem :: Any) -> Set:
-        doc: "Add an element to the set if it is not already present."
-        tree-set(self.elems.insert(elem))
+    end,
+    
+    add(self, elem :: Any) -> Set:
+      doc: "Add an element to the set if it is not already present."
+      tree-set(self.elems.insert(elem))
       #where:
       #  sets.tree-set([]).add(1) is sets.tree-set([1])
       #  sets.tree-set([1]).add(1) is sets.tree-set([1])
       #  sets.tree-set([1, 2, 3]).add(2) is sets.tree-set([1, 2, 3])
       #  sets.tree-set([1, 2, 3]).add(1.5) is sets.tree-set([1, 2, 3, 1.5])
-      end,
-
-      remove(self, elem :: Any) -> Set:
-        doc: "Remove an element from the set if it is present."
-        tree-set(self.elems.remove(elem))
+    end,
+    
+    remove(self, elem :: Any) -> Set:
+      doc: "Remove an element from the set if it is present."
+      tree-set(self.elems.remove(elem))
       #where:
       #  sets.tree-set([1, 2]).remove(18) is sets.tree-set([1, 2])
       #  sets.tree-set([1, 2]).remove(2) is sets.tree-set([1])
-      end,
-
-      to-list(self) -> List:
-        doc: 'Convert a set into a list of elements.'
-        self.elems.preorder()
+    end,
+    
+    to-list(self) -> List:
+      doc: 'Convert a set into a list of elements.'
+      self.elems.preorder()
       #where:
       #  sets.tree-set([3, 1, 2]).to-list() is [1, 2, 3]
-      end,
-
-      union(self, other):
-        new-elems =
-          for list.fold(elems from self.elems, elem from other.to-list()):
-            elems.insert(elem)
-          end
-        tree-set(new-elems)
-      end,
-
-      intersect(self, other):
-        new-elems =
-          for list.fold(elems from self.elems, elem from self.to-list()):
-            if other.member(elem):
-              elems
-            else: 
-              elems.remove(elem)
-            end
-          end
-        tree-set(new-elems)
-      end,
-
-      difference(self :: Set, other :: Set) -> Set:
-        doc: 'Compute the difference of this set and another set.'
-        new-elems = for list.fold(elems from self.elems, elem from other.to-list()):
-          if self.member(elem):
-            elems.remove(elem)
-          else:
+    end,
+    
+    union(self, other):
+      new-elems =
+        for tree-fold(elems from self.elems, elem from other.elems):
+          elems.insert(elem)
+        end
+      tree-set(new-elems)
+    end,
+    
+    intersect(self, other):
+      new-elems =
+        for tree-fold(elems from self.elems, elem from self.elems):
+          if other.member(elem):
             elems
+          else: 
+            elems.remove(elem)
           end
         end
-        tree-set(new-elems)
+      tree-set(new-elems)
+    end,
+    
+    difference(self :: Set, other :: Set) -> Set:
+      doc: 'Compute the difference of this set and another set.'
+      new-elems = for tree-fold(elems from self.elems, elem from other.elems):
+        if self.member(elem):
+          elems.remove(elem)
+        else:
+          elems
+        end
       end
-
-      
+      tree-set(new-elems)
+    end
+    
+    
 sharing:
-
+  
   symmetric_difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'
     self.union(other).difference(self.intersect(other))
   end,
-    
+  
   _equals(self, other):
     Set(other) and (self.to-list().sort() == other.to-list().sort())
   end
-
+  
 end
 
 fun list-to-set(lst :: List, base-set :: Set) -> Set:
