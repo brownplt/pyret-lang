@@ -42,14 +42,20 @@ div.CodeMirror span.CodeMirror-matchingbracket {
 .CodeMirror-scroll {
   overflow-y: scroll;
   overflow-x: auto;
+  height: auto;
+}
+
+
+.replMain .CodeMirror {
+  height: 90%;
+}
+.replMain .CodeMirror-scroll {
+  height: 100%;
 }
 
 .repl {
   height: 100%;
   overflow-y: scroll;
-}
-.CodeMirror-scroll {
-  height: auto;
 }
 .check {
   font-family: monospace;

@@ -26,15 +26,28 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         drawUnknownException(exception);
       }
 
+      function cmPosFromSrcloc(s) {
+        return cases(get(srcloc, "Srcloc"), "Srcloc", s, {
+          "builtin": function(_) { throw new Error("Cannot get CodeMirror loc from builtin location"); },
+          "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
+            var extraCharForZeroWidthLocs = endCh === startCh ? 1 : 0;
+            return {
+              start: { line: startL - 1, ch: startC },
+              end: { line: endL - 1, ch: endC + extraCharForZeroWidthLocs }
+            };
+          }
+        });
+      }
+
       function highlightSrcloc(s, withMarker) {
         return runtime.safeCall(function() {
           return cases(get(srcloc, "Srcloc"), "Srcloc", s, {
             "builtin": function(_) { /* no-op */ },
             "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
-              var extraCharForZeroWidthLocs = endCh === startCh ? 1 : 0;
+              var cmLoc = cmPosFromSrcloc(s);
               var marker = editor.markText(
-                { line: startL - 1, ch: startC },
-                { line: endL - 1, ch: endC + extraCharForZeroWidthLocs },
+                cmLoc.start,
+                cmLoc.end,
                 { className: "error-highlight" });
               return marker;
             }
@@ -62,6 +75,24 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           marks.forEach(function(m) { return m && m.clear(); })
           marks = [];
         });
+        var locIndex = 0;
+        if (locs.filter(function(e) { return runtime.isObject(e) && get(srcloc, "is-srcloc").app(e); }).length > 0) {
+          elt.on("click", function() {
+            function gotoNextLoc() {
+              var curLoc = locs[locIndex];
+              function rotateLoc() { locIndex = (locIndex + 1) % locs.length; }
+              
+              return cases(get(srcloc, "Srcloc"), "Srcloc", curLoc, {
+                "builtin": function(_) { rotateLoc(); gotoNextLoc(); },
+                "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
+                  editor.scrollIntoView(cmPosFromSrcloc(curLoc).start, 100);
+                  rotateLoc();
+                }
+              });
+            }
+            gotoNextLoc();
+          });
+        }
       }
 
       function drawSrcloc(s) {
