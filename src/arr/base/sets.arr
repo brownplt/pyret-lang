@@ -268,8 +268,8 @@ data Set:
 
       difference(self :: Set, other :: Set) -> Set:
         doc: 'Compute the difference of this set and another set.'
-        new-elems = for list.fold(elems from self.elems, elem from self.to-list()):
-          if other.member(elem):
+        new-elems = for list.fold(elems from self.elems, elem from other.to-list()):
+          if self.member(elem):
             elems.remove(elem)
           else:
             elems
