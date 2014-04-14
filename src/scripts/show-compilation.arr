@@ -2,16 +2,16 @@
 
 import cmdline as C
 import parse-pyret as P
-import "./arr/compiler/desugar.arr" as D
-import "./arr/compiler/desugar-check.arr" as DC
-import "./arr/compiler/anf.arr" as A
-import "./arr/compiler/compile.arr" as CM
-import "./arr/compiler/compile-structs.arr" as CS
-import "./arr/compiler/resolve-scope.arr" as R
-import "./arr/compiler/ast-util.arr" as U
-import "./arr/compiler/anf.arr" as N
-import "./arr/compiler/ast-split.arr" as AS
-import "./arr/compiler/js-of-pyret.arr" as JS
+import "compiler/desugar.arr" as D
+import "compiler/desugar-check.arr" as DC
+import "compiler/anf.arr" as A
+import "compiler/compile.arr" as CM
+import "compiler/compile-structs.arr" as CS
+import "compiler/resolve-scope.arr" as R
+import "compiler/ast-util.arr" as U
+import "compiler/anf.arr" as N
+import "compiler/ast-split.arr" as AS
+import "compiler/js-of-pyret.arr" as JS
 import file as F
 
 options = {
@@ -66,7 +66,7 @@ cases (C.ParsedArguments) parsed-options:
         print("Split:")
         each(print, split.tosource().pretty(print-width))
 
-        comp = CM.compile-js(file-contents, file, CS.standard-builtins, {check-mode: false})
+        comp = CM.compile-js("Pyret", file-contents, file, CS.standard-builtins, {check-mode: false})
         cases(CM.CompileResult) comp:
           | ok(c) =>
             print("")

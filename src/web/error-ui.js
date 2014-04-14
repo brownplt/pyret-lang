@@ -55,7 +55,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         }, withMarker);
       }
       function mapK(inList, f, k, outList) {
-        if (inList.length === 0) { k(outList); }
+        if (inList.length === 0) { k(outList || []); }
         else {
           var newInList = inList.slice(1, inList.length);
           f(inList[0], function(v) {
@@ -319,6 +319,21 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
             container.append(dom);
           });
         }
+        function drawNonFunctionApp(loc, nonFunVal, args) {
+          getDomValue(nonFunVal, function(v) {
+            var dom = $("<div>").addClass("compile-error");
+            dom.append($("<p>").text("Expected a function in application but got:"));
+            dom.append($("<br>"));
+            dom.append(v);
+            $(v).trigger({type: 'afterAttach'});
+            $('*', v).trigger({type : 'afterAttach'});
+            dom.append($("<br>"));
+            dom.append(drawSrcloc(loc));
+            hoverLocs(dom, [loc]);
+            container.append(dom);
+          });
+        }
+        
         function drawPyretRuntimeError() {
           cases(get(error, "RuntimeError"), "RuntimeError", e.exn, {
               "generic-type-mismatch": drawGenericTypeMismatch,
@@ -326,6 +341,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
               "message-exception": drawMessageException,
               "non-boolean-condition": drawNonBooleanCondition,
               "non-boolean-op": drawNonBooleanOp,
+              "non-function-app": drawNonFunctionApp,
               "else": drawRuntimeErrorToString(e)
             });
         }

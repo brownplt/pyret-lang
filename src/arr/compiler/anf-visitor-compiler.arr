@@ -102,7 +102,11 @@ end
 fun rt-field(name): j-dot(j-id("R"), name);
 fun rt-method(name, args): j-method(j-id("R"), name, args);
 
-fun app(f, args): j-method(f, "app", args) end
+fun app(l, f, args):
+  j-ternary(rt-method("isFunction", [f]),
+    j-method(f, "app", args),
+    j-method(rt-field("ffi"), "throwNonFunApp", [obj-of-loc(l), f, j-list(false, args)]))
+end
 
 fun thunk-app(block):
   j-app(j-parens(j-fun([], block)), [])
@@ -127,12 +131,12 @@ fun compile-tail-app(compiler, l, f, args):
   compiled-args = args.map(_.visit(compiler))
   body =
     j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
+      j-block([j-expr(j-assign(z, app(l, compiled-f, compiled-args)))]),
       j-block([
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
           j-throw(rt-method("makeCont", 
               [j-obj([j-field("go",
-                      j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
+                      j-fun([js-id-of("ignored")], j-block([j-return(app(l, compiled-f, compiled-args))]))),
                       j-field("from", obj-of-loc(l))])]))]))
   j-block([
       body,
@@ -154,18 +158,18 @@ fun compile-split-app(
   z = js-id-of(G.make-name("z"))
   ss = js-id-of(G.make-name("ss"))
   ret = js-id-of(G.make-name("ret"))
+  f-app = js-id-of(G.make-name("f"))
   compiled-f = f.visit(compiler)
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
   body =
     j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
+      j-block([j-expr(j-assign(z, j-app(j-id(f-app), [])))]),
       j-block([
 #              rt-method("log", [j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
           j-throw(rt-method("makeCont", 
-              [j-obj([j-field("go",
-                      j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
+              [j-obj([j-field("go", j-id(f-app)),
                       j-field("from", obj-of-loc(l))])]))]))
   helper-ids = helper-args.rest.map(_.id).map(_.tostring()).map(js-id-of)
   catch =
@@ -201,6 +205,7 @@ fun compile-split-app(
           ]))])
   j-block([
       j-var(z, undefined),
+      j-var(f-app, j-fun(["_"], j-block([j-return(app(l, compiled-f, compiled-args))]))),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -256,7 +261,7 @@ compiler-visitor = {
     j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self))
   end,
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
-    app(f.visit(self), args.map(_.visit(self)))
+    app(l, f.visit(self), args.map(_.visit(self)))
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     rt-method(f, args.map(_.visit(self)))
@@ -510,7 +515,7 @@ fun non-splitting-compiler(env):
   compiler-visitor.{
     a-program(self, l, headers, body):
       simplified = body.visit(remove-useless-if-visitor)
-      split = S.split-result([], simplified, A.freevars-e(simplified))
+      split = S.split-result([], simplified, N.freevars-e(simplified))
       compile-program(self, l, headers, split, env)
     end
   }

@@ -740,6 +740,12 @@ function createMethodDict() {
     var checkOpaque = makeCheckType(isFunction, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
+    var checkArity = function(expected, args) {
+      if (expected !== args.length) {
+        throw ffi.throwArityErrorC(["image"], expected, args);
+      }
+    }
+
     function confirm(val, test) {
       if(!test(val)) {
           throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
@@ -910,7 +916,7 @@ function createMethodDict() {
         if (method === "_torepr") {
           return ('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (val))) + '"');
         } else {
-          return String(/**@type {!PString}*/ (next));
+          return String(/**@type {!PString}*/ (val));
         }
       }
       return toReprLoop(val, method);

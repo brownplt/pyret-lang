@@ -28,7 +28,33 @@ define(["./namespace", "trove/image", "trove/world"], function(Namespace, imageL
       return rt.makeBoolean(!l);
     }
 
+    var add = function(l, r) {
+      rt.ffi.checkArity(2, arguments);
+      checkNumber(l);
+      checkNumber(r);
+      return jsnums.add(l, r);
+    }
+    var sub = function(l, r) {
+      rt.ffi.checkArity(2, arguments);
+      checkNumber(l);
+      checkNumber(r);
+      return jsnums.subtract(l, r);
+    }
+    var mul = function(l, r) {
+      rt.ffi.checkArity(2, arguments);
+      checkNumber(l);
+      checkNumber(r);
+      return jsnums.divide(l, r);
+    }
+    var div = function(l, r) {
+      rt.ffi.checkArity(2, arguments);
+      checkNumber(l);
+      checkNumber(r);
+      return jsnums.divide(l, r);
+    }
+
     var n = Namespace.namespace({
+      '_empty': rt.namespace.get("_empty"),
       'torepr': rt.namespace.get("torepr"),
       'tostring': rt.namespace.get("tostring"),
       'print': rt.namespace.get("print"),
@@ -45,10 +71,10 @@ define(["./namespace", "trove/image", "trove/world"], function(Namespace, imageL
       'is-function': rt.namespace.get("is-function"),
       'is-object': rt.namespace.get("is-object"),
 
-      'add': rt.namespace.get("_plus"),
-      'sub': rt.namespace.get("_minus"),
-      'mul': rt.namespace.get("_times"),
-      'div': rt.namespace.get("_divide"),
+      'add': rt.makeFunction(add),
+      'sub': rt.makeFunction(sub),
+      'mul': rt.makeFunction(mul),
+      'div': rt.makeFunction(div),
       'less': rt.namespace.get("_lessthan"),
       'greater': rt.namespace.get("_greaterthan"),
       'greaterequal': rt.namespace.get("_greaterequal"),

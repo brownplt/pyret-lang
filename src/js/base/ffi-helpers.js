@@ -36,6 +36,13 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         });
       }
 
+      var checkArity = function(expected, args) {
+        if (expected !== args.length) {
+          throw runtime.ffi.throwArityErrorC(["builtin"], expected, args);
+        }
+      }
+
+
       function err(str) { return gf(ERR, str).app; }
       var raise = runtime.raise;
 
@@ -126,6 +133,12 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         raise(err("non-boolean-op")(locFromObj(locAsObj), position, type, val));
       }
 
+      function throwNonFunApp(locArray, funVal, args) {
+        runtime.checkPyretVal(funVal);
+        var argList = makeList(args);
+        raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal, argList));
+      }
+
       function throwParseErrorNextToken(loc, nextToken) {
         raise(err("parse-error-next-token")(loc, nextToken));
       }
@@ -143,10 +156,13 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwArityErrorC: throwArityErrorC,
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
+        throwNonFunApp: throwNonFunApp,
 
         throwParseErrorNextToken: throwParseErrorNextToken,
 
         cases: cases,
+
+        checkArity: checkArity,
 
         makeList: makeList,
         makeNone: function() { return runtime.getField(O, "none"); },

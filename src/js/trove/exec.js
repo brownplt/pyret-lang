@@ -66,8 +66,18 @@ define(["requirejs", "js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "tr
               "render-error-message": callingRt.makeFunction(function() {
                 callingRt.pauseStack(function(restarter) {
                   execRt.runThunk(function() {
-                    return execRt.getField(r.exn.exn, "tostring").app()
-                  }, function(v) { return restarter.resume(v.result); })
+                    if(execRt.isPyretVal(r.exn.exn)) {
+                      return (execRt.getField(r.exn.exn, "tostring").app() + JSON.stringify(r.exn.pyretStack));
+                    } else {
+                      return String(r.exn);
+                    }
+                  }, function(v) {
+                    if(execRt.isSuccessResult(v)) {
+                      return restarter.resume(v.result)
+                    } else {
+                      console.error("There was an exception while rendering the exception: ", v, r);
+                    }
+                  })
                 });
               })
             });

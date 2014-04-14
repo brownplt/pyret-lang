@@ -97,7 +97,7 @@ data AExpr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
+  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
       PP.group(
@@ -108,7 +108,7 @@ data AExpr:
                 PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))))) +
         break-one +
         PP.group(PP.nest(INDENT, PP.str("and then") + break-one
-              + PP.str(self.helper)
+              + PP.str(self.helper.tostring())
               + PP.parens(PP.nest(INDENT,
                 PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))))
     end

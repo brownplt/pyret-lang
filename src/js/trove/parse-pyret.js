@@ -225,7 +225,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
         },
         'contract-stmt': function(node) {
           // (contract-stmt NAME COLONCOLON ann)
-          return RUNTIME.getField(ast, 's_contract_stmt')
+          return RUNTIME.getField(ast, 's-contract')
             .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
         },
         'graph-expr': function(node) {

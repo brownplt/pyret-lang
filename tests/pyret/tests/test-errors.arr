@@ -75,4 +75,18 @@ check:
   e9.name is "y-unbound"
   e9.loc satisfies S.is-srcloc
 
+  e10 = get-err(fun(): 5() end)
+  e10 satisfies E.is-non-function-app
+  e10.non-fun-val is 5
+  e10.loc satisfies S.is-srcloc
+  e10.args is []
+
+  e11 = get-err(fun(): 5(6, 7 + 8) end)
+  e11 satisfies E.is-non-function-app
+  e11.non-fun-val is 5
+  e11.loc satisfies S.is-srcloc
+  e11.args is [6, 15]
+
+
 end
+

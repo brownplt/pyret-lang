@@ -143,16 +143,11 @@ define([
 
     var checkPointsCount = p(image.isPointsCount);
 
+    var checkArity = ffi.checkArity;
 
     var checkListofColor = p(function(val) {
       return ffi.makeList(ffi.toArray(val).map(p(isColor)));
     });
-
-    var checkArity = function(expected, args) {
-      if (expected !== args.length) {
-        throw runtime.ffi.throwArityErrorC(["image"], expected, args);
-      }
-    }
 
     function makeImage(i) {
       return runtime.makeOpaque(i, image.imageEquals);
