@@ -327,7 +327,7 @@ fun strip-loc-expr(expr :: AExpr):
     | a-var(_, bind, val, body) =>
       a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
     | a-seq(_, e1, e2) =>
-      a-let(dummy-loc, e1^strip-loc-lettable(), e2^strip-loc-expr())
+      a-seq(dummy-loc, e1^strip-loc-lettable(), e2^strip-loc-expr())
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
     | a-split-app(_, is-var, f, args, helper, helper-args) =>
@@ -503,22 +503,39 @@ default-map-visitor = {
   end
 }
 
-fun freevars-e(expr :: AExpr) -> Set<Name>:
+fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AExpr) expr:
     | a-let(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
+      from-body = freevars-e-acc(body, seen-so-far)
+      freevars-l-acc(e, from-body.remove(b.id))
     | a-var(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
+      from-body = freevars-e-acc(body, seen-so-far)
+      freevars-l-acc(e, from-body.remove(b.id))
     | a-seq(_, e1, e2) =>
-      freevars-l(e1).union(freevars-e(e2))
+      from-e2 = freevars-e-acc(e2, seen-so-far)
+      freevars-l-acc(e1, from-e2)
     | a-tail-app(_, f, args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)))
+      from-f = freevars-v-acc(f, seen-so-far)
+      for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
     | a-split-app(_, _, f, args, name, helper-args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
-    | a-lettable(e) => freevars-l(e)
+      from-f = freevars-v-acc(f, seen-so-far)
+      with-args = for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+      with-helper-args = for fold(acc from with-args, arg from helper-args):
+        freevars-v-acc(arg, acc)
+      end
+      with-helper-args.remove(name)
+    | a-lettable(e) => freevars-l-acc(e, seen-so-far)
     | a-if(_, c, t, a) =>
-      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
+      freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
   end
+end
+
+fun freevars-e(expr :: AExpr) -> Set<Name>:
+  freevars-e-acc(expr, set([]))
 where:
   d = dummy-loc
   freevars-e(
@@ -526,41 +543,78 @@ where:
         a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
 end
 
-fun freevars-variant(v :: AVariant) -> Set<Name>:
-  unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
+fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
+  for fold(acc from seen-so-far, member from v.with-members):
+    freevars-v-acc(member, acc)
+  end
 end
 
-fun freevars-l(e :: ALettable) -> Set<Name>:
+fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(ALettable) e:
-    | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
-    | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
-    | a-prim-app(_, _, args) => unions(args.map(freevars-v))
-    | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
-    | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
+    | a-app(_, f, args) =>
+      from-f = freevars-v-acc(f, seen-so-far)
+      for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+    | a-prim-app(_, _, args) =>
+      for fold(acc from seen-so-far, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+    | a-lam(_, args, body) =>
+      from-body = freevars-e-acc(body, seen-so-far)
+      from-body.difference(set(args.map(_.id)))
+    | a-method(_, args, body) =>
+      from-body = freevars-e-acc(body, seen-so-far)
+      from-body.difference(set(args.map(_.id)))
+    | a-obj(_, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
+    | a-update(_, super, fields) =>
+      from-super = freevars-v-acc(super, seen-so-far)
+      for fold(acc from from-super, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
     | a-data-expr(_, _, variants, shared) =>
-      unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
-    | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
-    | a-dot(_, obj, _) => freevars-v(obj)
-    | a-colon(_, obj, _) => freevars-v(obj)
-    | a-get-bang(_, obj, _) => freevars-v(obj)
-    | a-val(v) => freevars-v(v)
+      from-variants = for fold(acc from seen-so-far, v from variants):
+        freevars-variant-acc(v, acc)
+      end
+      for fold(acc from from-variants, s from shared):
+        freevars-v-acc(s.value, acc)
+      end
+    | a-extend(_, super, fields) =>
+      from-super = freevars-v-acc(super, seen-so-far)
+      for fold(acc from from-super, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
+    | a-dot(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-colon(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-get-bang(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-val(v) => freevars-v-acc(v, seen-so-far)
     | else => raise("Non-lettable in freevars-l " + torepr(e))
   end
 end
 
-fun freevars-v(v :: AVal) -> Set<Name>:
+fun freevars-l(e :: ALettable) -> Set<Name>:
+  freevars-l-acc(e, set([]))
+end
+
+fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AVal) v:
-    | a-id(_, id) => list-set([id])
-    | a-id-var(_, id) => list-set([id])
-    | a-id-letrec(_, id) => list-set([id])
-    | else => list-set([])
+    | a-id(_, id) => seen-so-far.add(id)
+    | a-id-var(_, id) => seen-so-far.add(id)
+    | a-id-letrec(_, id) => seen-so-far.add(id)
+    | else => seen-so-far
   end
 end
 
+fun freevars-v(v :: AVal) -> Set<Name>:
+  freevars-v-acc(v, set([]))
+end
+
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from list-set([]), s from ss):
+  for fold(unioned from set([]), s from ss):
     unioned.union(s)
   end
 end

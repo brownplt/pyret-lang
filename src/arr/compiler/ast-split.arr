@@ -48,17 +48,14 @@ fun freevars-helper(h :: Helper):
 end
 
 data SplitResult:
-  | split-result(helpers :: List<Helper>, body :: N.AExpr) with:
+  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<Name>) with:
     tosource(self):
       PP.vert(self.helpers.map(_.tosource()) + [self.body.tosource()])
     end
 end
 
 fun freevars-split-result(sr :: SplitResult):
-  cases(SplitResult) sr:
-    | split-result(helpers, body) =>
-      unions(helpers.map(freevars-helper)).union(N.freevars-e(body))
-  end
+  sr.freevars
 end
 
 data SplitResultInt:
@@ -75,7 +72,7 @@ data SplitResultInt:
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from list-set([]), s from ss):
+  for fold(unioned from set([]), s from ss):
     unioned.union(s)
   end
 end
@@ -83,7 +80,7 @@ end
 
 fun ast-split(expr :: N.AExpr) -> SplitResult:
   r = ast-split-expr(expr)
-  split-result(r.helpers.to-list(), r.body)
+  split-result(r.helpers.to-list(), r.body, r.freevars)
 end
 
 fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
@@ -122,9 +119,9 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
           e1-split = ast-split-lettable(e1)
           e2-split = ast-split-expr(e2)
           split-result-int-e(
-            e1-split.helpers + e2-split.helpers,
+            e2-split.helpers + e1-split.helpers,
             N.a-seq(l, e1-split.body, e2-split.body),
-            e1-split.freevars.union(e2-split.freevars)
+            e2-split.freevars.union(e1-split.freevars)
           )
       end
     | a-var(l, b, e, body) =>
@@ -163,14 +160,14 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
       split-result-int-l(
           body-split.helpers,
           N.a-lam(l, args, body-split.body),
-          body-split.freevars.difference(list-set(args.map(_.id)))
+          body-split.freevars.difference(set(args.map(_.id)))
         )
     | a-method(l, args, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
           N.a-method(l, args, body-split.body),
-          body-split.freevars.difference(list-set(args.map(_.id)))
+          body-split.freevars.difference(set(args.map(_.id)))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))
@@ -195,14 +192,14 @@ check:
   d = N.dummy-loc
   n = A.global-names.make-atom
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
-  split-strip(e1) is split-result-int-e(concat-empty, e1, list-set([]))
+  split-strip(e1) is split-result-int-e(concat-empty, e1, set([]))
 
   x = n("x")
   e2 = N.a-let(d, N.a-bind(d, x, A.a-blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
   e2-split = split-strip(e2)
   e2-split.helpers.to-list() is []
   e2-split.body is e2
-  e2-split.freevars is list-set([])
+  e2-split.freevars is set([])
 
   v = n("v")
   f = n("f")

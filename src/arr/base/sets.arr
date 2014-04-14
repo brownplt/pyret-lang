@@ -51,8 +51,8 @@ data AVLTree:
           rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
         end
       end,
-      preorder(self) -> List: list.link(self.value, self.left.preorder() + self.right.preorder()) end,
-      inorder(self) -> List: self.left.inorder() + list.link(self.value, self.right.inorder()) end,
+      preorder(self) -> List: link(self.value, self.left.preorder() + self.right.preorder()) end,
+      inorder(self) -> List: self.left.inorder() + link(self.value, self.right.inorder()) end,
       postorder(self) -> List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end
 sharing:
   to-list(self) -> List: self.inorder() end,
@@ -158,7 +158,7 @@ data Set:
         if (self.elems.member(elem)):
           self
         else:
-          list-set(list.link(elem, self.elems))
+          list-set(link(elem, self.elems))
         end
       #where:
       #  sets.set([]).add(1) is sets.set([1])
@@ -180,7 +180,36 @@ data Set:
         self.elems
       #where:
       #  sets.set([3, 1, 2]).to-list() is [1, 2, 3]
+      end,
+      union(self :: Set, other :: Set) -> Set:
+        doc: 'Compute the union of this set and another set.'
+        for list.fold(u from self, elem from other.to-list()):
+          u.add(elem)
+        end
+      end,
+
+      intersect(self :: Set, other :: Set) -> Set:
+        doc: 'Compute the intersection of this set and another set.'
+        for list.fold(u from self, elem from self.to-list()):
+          if other.member(elem):
+            u
+          else:
+            u.remove(elem)
+          end
+        end
+      end,
+
+      difference(self :: Set, other :: Set) -> Set:
+        doc: 'Compute the difference of this set and another set.'
+        for list.fold(u from self, elem from self.to-list()):
+          if other.member(elem):
+            u.remove(elem)
+          else:
+            u
+          end
+        end
       end
+
 
   | tree-set(elems :: AVLTree) with:
 
@@ -215,37 +244,42 @@ data Set:
         self.elems.preorder()
       #where:
       #  sets.tree-set([3, 1, 2]).to-list() is [1, 2, 3]
+      end,
+
+      union(self, other):
+        new-elems =
+          for list.fold(elems from self.elems, elem from other.to-list()):
+            elems.insert(elem)
+          end
+        tree-set(new-elems)
+      end,
+
+      intersect(self, other):
+        new-elems =
+          for list.fold(elems from self.elems, elem from self.to-list()):
+            if other.member(elem):
+              elems
+            else: 
+              elems.remove(elem)
+            end
+          end
+        tree-set(new-elems)
+      end,
+
+      difference(self :: Set, other :: Set) -> Set:
+        doc: 'Compute the difference of this set and another set.'
+        new-elems = for list.fold(elems from self.elems, elem from self.to-list()):
+          if other.member(elem):
+            elems.remove(elem)
+          else:
+            elems
+          end
+        end
+        tree-set(new-elems)
       end
 
+      
 sharing:
-  union(self :: Set, other :: Set) -> Set:
-    doc: 'Compute the union of this set and another set.'
-    for list.fold(u from self, elem from other.to-list()):
-      u.add(elem)
-    end
-  end,
-
-  intersect(self :: Set, other :: Set) -> Set:
-    doc: 'Compute the intersection of this set and another set.'
-    for list.fold(u from self, elem from self.to-list()):
-      if other.member(elem):
-        u
-      else:
-        u.remove(elem)
-      end
-    end
-  end,
-
-  difference(self :: Set, other :: Set) -> Set:
-    doc: 'Compute the difference of this set and another set.'
-    for list.fold(u from self, elem from self.to-list()):
-      if other.member(elem):
-        u.remove(elem)
-      else:
-        u
-      end
-    end
-  end,
 
   symmetric_difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'

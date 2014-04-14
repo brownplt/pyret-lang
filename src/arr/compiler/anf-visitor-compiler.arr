@@ -44,6 +44,11 @@ j-ternary = J.j-ternary
 j-null = J.j-null
 j-parens = J.j-parens
 
+get-field-loc = j-id("G")
+throw-uninitialized = j-id("U")
+source-name = j-id("M")
+undefined = j-id("D")
+
 Loc = SL.Srcloc
 
 js-id-of = block:
@@ -83,11 +88,11 @@ fun obj-of-loc(l):
 end
 
 fun get-field(obj, field, loc):
-  j-app(j-id("G"), [obj, field, loc])
+  j-app(get-field-loc, [obj, field, loc])
 end
 
 fun raise-id-exn(loc, name):
-  j-app(j-id("U"), [loc, j-str(name)])
+  j-app(throw-uninitialized, [loc, j-str(name)])
 end
 
 fun add-stack-frame(exn-id, loc):
@@ -195,7 +200,7 @@ fun compile-split-app(
                 j-block([j-throw(j-id(e))]))
           ]))])
   j-block([
-      j-var(z, rt-field("undefined")),
+      j-var(z, undefined),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -277,7 +282,7 @@ compiler-visitor = {
     rt-method("makeMethod", [j-fun([js-id-of(args.first.id.tostring())],
       j-block([
         j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length() - 1)))])),
-       
+      #undefined])
       j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length()))])
   end,
   a-val(self, v :: N.AVal):
@@ -297,7 +302,7 @@ compiler-visitor = {
     rt-field(str)
   end,
   a-undefined(self, l :: Loc):
-    rt-field("undefined")
+    undefined
   end,
   a-id(self, l :: Loc, id :: String):
     j-id(js-id-of(id.tostring()))
@@ -308,7 +313,7 @@ compiler-visitor = {
   a-id-letrec(self, l :: Loc, id :: String):
     s = id.tostring()
     j-ternary(
-      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, rt-field("undefined")),
+      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, undefined),
       raise-id-exn(obj-of-loc(l), id.toname()),
       j-dot(j-id(js-id-of(s)), "$var"))
   end,
@@ -440,7 +445,8 @@ fun mk-abbrevs(l):
     j-var("U", j-fun(["loc", "name"],
         j-block([j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
                           [j-id("loc"), j-id("name")])]))),
-    j-var("M", j-str(l.source))
+    j-var("M", j-str(l.source)),
+    j-var("D", rt-field("undefined"))
   ]
 end
 
@@ -504,7 +510,7 @@ fun non-splitting-compiler(env):
   compiler-visitor.{
     a-program(self, l, headers, body):
       simplified = body.visit(remove-useless-if-visitor)
-      split = S.split-result([], simplified)
+      split = S.split-result([], simplified, A.freevars-e(simplified))
       compile-program(self, l, headers, split, env)
     end
   }
