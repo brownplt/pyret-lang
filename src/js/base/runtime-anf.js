@@ -815,13 +815,8 @@ function createMethodDict() {
     var escapeString = function (s) {
         return '"' + replaceUnprintableStringChars(s) + '"';
     };
-    /**
-      Creates the js string representation for the value
-      @param {!PBase} val
 
-      @return {!string} the value given in
-    */
-    function toReprJS(val, method) {
+    function toReprLoop(val, method) {
       var stack = [{todo: [val], done: []}];
       function toReprHelp() {
         while (stack.length > 0 && stack[0].todo.length > 0) {
@@ -901,6 +896,24 @@ function createMethodDict() {
           throw e;
         }
       }
+    }
+    /**
+      Creates the js string representation for the value
+      @param {!PBase} val
+
+      @return {!string} the value given in
+    */
+    function toReprJS(val, method) {
+      if (isNumber(val)) { return String(val); }
+      else if (isBoolean(val)) { return String(val); }
+      else if (isString(val)) {
+        if (method === "_torepr") {
+          return ('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (val))) + '"');
+        } else {
+          return String(/**@type {!PString}*/ (next));
+        }
+      }
+      return toReprLoop(val, method);
     }
 
     /**@type {PFunction} */
