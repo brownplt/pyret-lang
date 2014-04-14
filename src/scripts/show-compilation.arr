@@ -12,10 +12,12 @@ import "compiler/ast-util.arr" as U
 import "compiler/anf.arr" as N
 import "compiler/ast-split.arr" as AS
 import "compiler/js-of-pyret.arr" as JS
+import "compiler/desugar-check.arr" as CH
 import file as F
 
 options = {
-  width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width")
+  width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
+  dialect: C.next-val-default(C.String, "Pyret", some("w"), C.once, "Dialect to use")
 }
 
 parsed-options = C.parse-cmdline(options)
@@ -23,6 +25,7 @@ parsed-options = C.parse-cmdline(options)
 cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
     print-width = opts.get("width")
+    dialect = opts.get("dialect")
     print("Success")
     cases (List) rest:
       | empty => print("Require a file name")
@@ -32,7 +35,7 @@ cases (C.ParsedArguments) parsed-options:
         print("")
         print("Read file:")
         print(file-contents)
-        parsed = P.surface-parse(file-contents, file)
+        parsed = P.parse-dialect(dialect, file-contents, file)
         print("")
         print("Parsed:")
         each(print, parsed.tosource().pretty(print-width))
@@ -66,7 +69,7 @@ cases (C.ParsedArguments) parsed-options:
         print("Split:")
         each(print, split.tosource().pretty(print-width))
 
-        comp = CM.compile-js("Pyret", file-contents, file, CS.standard-builtins, {check-mode: false})
+        comp = CM.compile-js(dialect, file-contents, file, CS.standard-builtins, {check-mode: false})
         cases(CM.CompileResult) comp:
           | ok(c) =>
             print("")

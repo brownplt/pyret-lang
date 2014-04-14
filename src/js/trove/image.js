@@ -347,7 +347,7 @@ define([
           if (image.isScene(background)) {
             return makeImage(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
-            var newScene = makeSceneImage(background.getWidth(), background.getHeight(), [], false);
+            var newScene = image.makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
             newScene = newScene.add(picture, jsnums.toFixnum(x), background.getHeight() - jsnums.toFixnum(y));
             return makeImage(newScene);

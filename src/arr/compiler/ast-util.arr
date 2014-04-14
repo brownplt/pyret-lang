@@ -14,6 +14,7 @@ fun ok-last(stmt):
     A.is-s-fun(stmt) or
     A.is-s-data(stmt) or
     A.is-s-graph(stmt) or
+    A.is-s-contract(stmt) or
     A.is-s-check(stmt)
   )
 end

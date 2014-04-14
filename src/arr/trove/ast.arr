@@ -343,7 +343,7 @@ data Expr:
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-contract" end,
     tosource(self):
-      PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+      PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource())
     end
   | s-when(l :: Loc, test :: Expr, block :: Expr) with:
     label(self): "s-when" end,
@@ -1662,6 +1662,10 @@ default-map-visitor = {
     s-when(l, test.visit(self), block.visit(self))
   end,
 
+  s-contract(self, l, name, ann):
+    s-contract(l, name, ann.visit(self))
+  end,
+
   s-assign(self, l :: Loc, id :: String, value :: Expr):
     s-assign(l, id, value.visit(self))
   end,
@@ -2047,6 +2051,10 @@ default-iter-visitor = {
   
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     test.visit(self) and block.visit(self)
+  end,
+
+  s-contract(self, l :: Loc, name :: Name, ann :: Ann):
+    ann.visit(self)
   end,
   
   s-assign(self, l :: Loc, id :: String, value :: Expr):

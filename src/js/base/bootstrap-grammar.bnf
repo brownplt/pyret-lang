@@ -41,10 +41,10 @@ args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
 list-arg-elt: binding COMMA
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
-where-clause: [WHERE block]
+where-clause: [WHERE|EXAMPLESCOLON block]
 
 check-expr: (CHECK|EXAMPLES) STRING COLON block end
-check-expr: (CHECKCOLON|EXAMPLESCOLON) block end
+   | (CHECKCOLON|EXAMPLESCOLON) block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
