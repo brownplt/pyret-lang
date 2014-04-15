@@ -105,6 +105,15 @@ $(function() {
         run: RUN_CODE,
         initialGas: 500
       });
+    var lskey = "patch_saved_program";
+    function save() {
+      window.localStorage.setItem(lskey, cm.getValue());
+    }
+    $("#saveButton").click(save);
+    setInterval(save, 3000);
+    if(window.localStorage.hasOwnProperty(lskey)) {
+      cm.setValue(window.localStorage.getItem(lskey));
+    }
   });
 });
 </script>

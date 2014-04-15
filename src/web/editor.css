@@ -323,6 +323,7 @@ body {
 
 .error-highlight {
   background-color: #FCC;
+  border-bottom: 2px solid #F33;
 }
 
 .compile-error {

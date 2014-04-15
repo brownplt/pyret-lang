@@ -183,6 +183,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
         }
         dialog.dialog({
           title: 'big-bang',
+          position: ["left", "top"],
 			    bgiframe : true,
 			    modal : true,
 			    overlay : { opacity: 0.5, background: 'black'},
