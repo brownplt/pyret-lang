@@ -1,4 +1,4 @@
-define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-structs.arr", "trove/image-lib"], function(ffiLib, srclocLib, errorLib, csLib, imageLib) {
+define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-structs.arr", "trove/image-lib", "./output-ui"], function(ffiLib, srclocLib, errorLib, csLib, imageLib, outputUI) {
 
   function drawError(container, editor, runtime, exception) {
     var ffi = ffiLib(runtime, runtime.namespace);
@@ -243,45 +243,39 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           args = ffi.toArray(args);
           var probablyErrorLocation = getLastUserLocation(e);
           var dom = $("<div>").addClass("compile-error");
-          mapK(args, getDomValue, function(argDoms) {
-            cases(get(srcloc, "Srcloc"), "Srcloc", funLoc, {
-              "srcloc": function(/* skip args */) {
-                dom.append($("<p>").text("Expected to get " + arity + " arguments when calling the function at"))
-                  .append($("<br>"))
-                  .append(drawSrcloc(funLoc))
-                  .append($("<br>"))
-                  .append($("<br>"))
-                  .append($("p").text("from"))
-                  .append($("<br>"))
-                  .append($("<br>"))
-                  .append(drawSrcloc(probablyErrorLocation))
-                  .append($("<br>"))
-                  .append($("<p>").text("but got these " + args.length + " arguments: "))
-                  .append($("<br>"))
-                  .append(argDoms)
-                container.append(dom);
-                argDoms.forEach(function(a) {
-                  $(a).trigger({type: 'afterAttach'});
-                  $('*', a).trigger({type : 'afterAttach'});
-                });
-                hoverLocs(dom, [funLoc, probablyErrorLocation]);
-              },
-              "builtin": function(name) {
-                dom.append($("<p>").text("Expected to get " + arity + " arguments at"))
-                  .append($("<br>"))
-                  .append(drawSrcloc(probablyErrorLocation))
-                  .append($("<br>"))
-                  .append($("<p>").text("but got these " + args.length + " arguments: "))
-                  .append($("<br>"))
-                  .append(argDoms);
-                container.append(dom);
-                argDoms.forEach(function(a) {
-                  $(a).trigger({type: 'afterAttach'});
-                  $('*', a).trigger({type : 'afterAttach'});
-                });
-                hoverLocs(dom, [probablyErrorLocation]);
-              }
+          var argDom = $("<div>");
+          setTimeout(function() {
+            args.forEach(function(a) {
+              outputUI.renderPyretValue(argDom, runtime, a);
             });
+          }, 0);
+          cases(get(srcloc, "Srcloc"), "Srcloc", funLoc, {
+            "srcloc": function(/* skip args */) {
+              dom.append($("<p>").text("Expected to get " + arity + " arguments when calling the function at"))
+                .append($("<br>"))
+                .append(drawSrcloc(funLoc))
+                .append($("<br>"))
+                .append($("<p>").text("from"))
+                .append($("<br>"))
+                .append(drawSrcloc(probablyErrorLocation))
+                .append($("<br>"))
+                .append($("<p>").text("but got these " + args.length + " arguments: "))
+                .append($("<br>"))
+                .append(argDom)
+              container.append(dom);
+              hoverLocs(dom, [funLoc, probablyErrorLocation]);
+            },
+            "builtin": function(name) {
+              dom.append($("<p>").text("Expected to get " + arity + " arguments at"))
+                .append($("<br>"))
+                .append(drawSrcloc(probablyErrorLocation))
+                .append($("<br>"))
+                .append($("<p>").text("but got these " + args.length + " arguments: "))
+                .append($("<br>"))
+                .append(argDom);
+              container.append(dom);
+              hoverLocs(dom, [probablyErrorLocation]);
+            }
           });
         }
         function drawMessageException(message) {

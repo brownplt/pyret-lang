@@ -15,6 +15,12 @@ div.CodeMirror span.CodeMirror-matchingbracket {
     color: #606;
 }
 
+.replTextOutput .CodeMirror {
+  border: none;
+  background-color: transparent;
+  margin-top: -0.5em;
+}
+
 .CodeMirror-foldgutter {
   width: 1em;
 }
@@ -54,6 +60,7 @@ div.CodeMirror span.CodeMirror-matchingbracket {
 }
 
 .repl {
+  padding-left: 0.5em;
   height: 100%;
   overflow-y: scroll;
 }
@@ -281,6 +288,13 @@ body {
   width: 100%;
 }
 
+.replOutput {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  padding-left: 0.5em;
+  color: #1f1180
+}
+
 .error-highlight {
   background-color: #FCC;
 }
@@ -304,3 +318,8 @@ body {
   font-family: monospace; 
 }
 
+.topbar {
+  position: fixed;
+  width: 100%;
+  background-color: #eee;
+}

@@ -1,4 +1,4 @@
-define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, checkUI, errorUI) {
+define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(imageLib, checkUI, errorUI, outputUI) {
   function merge(obj, extension) {
     var newobj = {};
     Object.keys(obj).forEach(function(k) {
@@ -100,13 +100,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, check
       function highlightingCheckReturn(output) { return function(obj) {
         if(!isMain) {
           var answer = runtime.getField(obj.result, "answer");
-          if(runtime.isOpaque(answer) && image.isImage(answer.val)) {
-            var imageDom = output.append(answer.val.toDomNode());
-            $(imageDom).trigger({type: 'afterAttach'});
-            $('*', imageDom).trigger({type : 'afterAttach'});
-          } else {
-            output.append($("<div>").text(runtime.toReprJS(runtime.getField(obj.result, "answer"), "_torepr")));
-          }
+          outputUI.renderPyretValue(output, runtime, answer);
         }
         var toCall = runtime.getField(runtime.getParam("current-checker"), "summary");
         var R = runtime;
@@ -264,7 +258,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui"], function(imageLib, check
                         write,
                         enablePrompt(uiOptions.wrappingOnError(output)),
                         merge(options, merge(replOpts, {check: true})));
-          }, false)(code, merge(opts, {name: lastNameRun, cm: lastEditorRun || echoCM}), replOpts);
+          }, false)(code, merge(opts, {name: lastNameRun, cm: echoCM}), replOpts);
         },
         "interactions");
 
