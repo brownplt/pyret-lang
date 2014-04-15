@@ -43,6 +43,7 @@ define(["q", "./eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], func
       }
       function restartInteractions(code) {
         var deferred = Q.defer();
+        toRun = [];
         eval.parsePyret(runtime, code, { name: mainName, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             toRun.unshift({

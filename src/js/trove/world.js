@@ -400,7 +400,7 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
         "is-key-equal": makeFunction(function(key1, key2) {
           checkString(key1);
           checkString(key2);
-          return key1.toString().toLowerCase() === key1.toString().toLowerCase();
+          return key1.toString().toLowerCase() === key2.toString().toLowerCase();
         })
       })
     });

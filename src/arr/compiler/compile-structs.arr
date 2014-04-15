@@ -110,6 +110,7 @@ runtime-builtins = list.map(builtin-id, [
   "string-index-of",
   "num-max",
   "num-min",
+  "num-equals",
   "num-abs",
   "num-sin",
   "num-cos",
