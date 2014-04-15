@@ -96,7 +96,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
       }
 
       function drawSrcloc(s) {
-        return $("<span>").addClass("srcloc").text(get(s, "format").app(true))
+        return s ? $("<span>").addClass("srcloc").text(get(s, "format").app(true)) : $("<span>");
       }
 
       function drawCompileErrors(e) {
@@ -281,10 +281,15 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         function drawMessageException(message) {
           var probablyErrorLocation = getLastUserLocation(e);
           var dom = $("<div>").addClass("compile-error");
-          dom.append($("<p>").text(message + "At:"))
-            .append($("<br>"))
-            .append(drawSrcloc(probablyErrorLocation));
-          hoverLocs(dom, [probablyErrorLocation]);
+          if(probablyErrorLocation !== undefined) {
+            dom.append($("<p>").text(message + " At:"))
+              .append($("<br>"))
+              .append(drawSrcloc(probablyErrorLocation));
+            hoverLocs(dom, [probablyErrorLocation]);
+          } else {
+            dom.append($("<p>").text(message));
+          }
+          container.append(dom);
         }
         function drawNonBooleanCondition(loc, type, value) {
           getDomValue(value, function(v) {
@@ -327,6 +332,9 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
             container.append(dom);
           });
         }
+        function drawUserBreak() {
+          container.append($("<div>").addClass("compile-error").text("Program stopped by user"));
+        }
         
         function drawPyretRuntimeError() {
           cases(get(error, "RuntimeError"), "RuntimeError", e.exn, {
@@ -336,6 +344,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
               "non-boolean-condition": drawNonBooleanCondition,
               "non-boolean-op": drawNonBooleanOp,
               "non-function-app": drawNonFunctionApp,
+              "user-break": drawUserBreak,
               "else": drawRuntimeErrorToString(e)
             });
         }

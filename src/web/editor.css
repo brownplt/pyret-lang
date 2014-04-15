@@ -307,6 +307,13 @@ body {
   float: right;
 }
 
+.replPrint {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  padding-left: 0.5em;
+  color: #111;
+}
+
 .replOutput {
   padding-top: 0;
   padding-bottom: 0.5em;
@@ -341,4 +348,45 @@ body {
   position: fixed;
   width: 100%;
   background-color: #eee;
+}
+
+/* From internet: http://stackoverflow.com/questions/5663137/jquery-modal-dialog-is-hidden-by-overlay-div-if-dialogs-parent-has-fixed-positi */
+.ui-widget-overlay{
+  position:fixed;
+  z-index: 9500;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.5;
+  background-color: #111;
+}
+/* end from internet */
+
+.ui-dialog {
+  border: 2px solid #111;
+  background-color: #eee;
+  border-radius: 5px;
+  z-index: 10000;
+}
+
+.ui-dialog-titlebar {
+  background-color: #2a348b;
+}
+
+.ui-dialog-title {
+  color: #eee;
+  font-family: sans-serif;
+}
+
+.ui-dialog-titlebar-close {
+  float: right;
+}
+
+.ui-dialog-titlebar-close .ui-button-text {
+  display: none;
+}
+
+.ui-dialog-titlebar-close .ui-button-icon-primary:before {
+  content: "×"
 }

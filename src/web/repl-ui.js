@@ -100,11 +100,11 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
           function(result) {
             if(R.isSuccessResult(result)) {
               if (R.unwrap(gf(result.result, "total")) !== 0 || isMain) {
-                output.append($("<pre>").text(R.unwrap(gf(result.result, "message"))));
+                output.append($("<pre>").addClass("replOutput").text(R.unwrap(gf(result.result, "message"))));
               }
             }
             else {
-              output.append($("<div>").text(String(result.exn)));
+              output.append($("<div>").addClass("replOutput").text(String(result.exn)));
             }
           });
 
@@ -161,21 +161,25 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     var output = jQuery("<div id='output' class='cm-s-default'>");
     runtime.setStdout(function(str) {
         ct_log(str);
-        output.append($("<div>").text(str));
+        output.append($("<div>").addClass("replPrint").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
-        /*var dialog = $("<div>");
-        div.dialog({
+        var dialog = $("<div>").css({"z-index": 10000});
+        output.append(dialog);
+        function onClose() {
+          onBreak();
+        }
+        dialog.dialog({
           title: 'big-bang',
 			    bgiframe : true,
 			    modal : true,
 			    overlay : { opacity: 0.5, background: 'black'},
-			    buttons : { "Save" : closeDialog },
+			    //buttons : { "Save" : closeDialog },
           width : 400,
           height : 500,
           close : onClose 
-        });*/
-        output.append(dom);
+        });
+        dialog.append(dom);
       });
 
     var clearRepl = function() {
