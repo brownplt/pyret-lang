@@ -67,17 +67,34 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         // CLICK to *cycle* through locations
         var marks = [];
         elt.on("mouseenter", function() {
+          var curLoc = locs[locIndex];
+          var view = editor.getScrollInfo();
+          cases(get(srcloc, "Srcloc"), "Srcloc", curLoc, {
+            "builtin": function(_) { },
+            "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
+              var charCh = editor.charCoords(cmPosFromSrcloc(curLoc).start, "local");
+              if (view.top > charCh.top) {
+                jQuery(".warning-upper").fadeIn("fast");
+              } else if (view.top + view.clientHeight < charCh.bottom) {
+                jQuery(".warning-lower").fadeIn("fast");
+              }
+            }
+          });
           mapK(locs, highlightSrcloc, function(ms) {
             marks = marks.concat(ms);
           });
         });
         elt.on("mouseleave", function() {
+          jQuery(".warning-upper").fadeOut("fast");
+          jQuery(".warning-lower").fadeOut("fast");
           marks.forEach(function(m) { return m && m.clear(); })
           marks = [];
         });
         var locIndex = 0;
         if (locs.filter(function(e) { return runtime.isObject(e) && get(srcloc, "is-srcloc").app(e); }).length > 0) {
           elt.on("click", function() {
+            jQuery(".warning-upper").fadeOut("fast");
+            jQuery(".warning-lower").fadeOut("fast");
             function gotoNextLoc() {
               var curLoc = locs[locIndex];
               function rotateLoc() { locIndex = (locIndex + 1) % locs.length; }
