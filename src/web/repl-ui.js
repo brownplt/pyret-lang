@@ -46,11 +46,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
       viewportMargin: Infinity,
       lineNumbers: useLineNumbers,
       matchBrackets: true,
-      lineWrapping: true,
-      foldGutter: {
-        rangeFinder: CodeMirror.fold.indent
-      },
-      gutters: optGutters.concat(["CodeMirror-foldgutter"])
+      lineWrapping: true
     };
 
     cmOptions = merge(cmOptions, options.cmOptions || {});
@@ -168,7 +164,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
         output.append($("<div>").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
-        var dialog = $("<div>");
+        /*var dialog = $("<div>");
         div.dialog({
           title: 'big-bang',
 			    bgiframe : true,
@@ -178,7 +174,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
           width : 400,
           height : 500,
           close : onClose 
-        });
+        });*/
         output.append(dom);
       });
 

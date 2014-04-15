@@ -21,16 +21,6 @@ div.CodeMirror span.CodeMirror-matchingbracket {
   margin-top: -0.5em;
 }
 
-.CodeMirror-foldgutter {
-  width: 1em;
-}
-.CodeMirror-foldgutter-open:after {
-  content: "\25BE";
-}
-.CodeMirror-foldgutter-folded:after {
-  content: "\25B8";
-}
-
 #output {
   font-family : monospace;
 }
@@ -55,6 +45,7 @@ div.CodeMirror span.CodeMirror-matchingbracket {
 .replMain .CodeMirror {
   height: 100%;
   box-sizing: border-box;
+  -moz-box-sizing: border-box;
 }
 .replMain .CodeMirror-scroll {
   height: 100%;
@@ -106,42 +97,6 @@ div.CodeMirror span.CodeMirror-matchingbracket {
     width: 25px;
 }
 
-.gutterButton {
-    color: #eee;
-    width: 25px;
-    border-radius: 5px 0 0 5px;
-    height: 1.5em;
-    display: inline-block;
-    text-align: center;
-    background-color: #9cf;
-}
-
-.gutterButton.active {
-  background-color: #06f;
-}
-
-.gutterButton.active.submittable {
-  border: 1px solid #06f;
-  width: 55px;
-  margin-left: -25px;
-}
-
-.gutterButton.active.submittable:hover {
-  background-color: #eee;
-  color: #06f;
-  }
-
-.gutterButton:hover {
-    cursor: pointer;
-}
-
-.gutterButton.inactive {
-    background-color: #f60;
-}
-
-.gutterButton.inactive:hover {
-    cursor: default;
-}
 
 .progressContainer {
     width: 90%;
@@ -214,15 +169,6 @@ body {
   padding: 0;
 }
 
-#toolbar {
-  position: fixed;
-  z-index: 8000;
-  top: 50px;
-  height: 25px;
-  width: 100%;
-  background-color: #111;
-}
-
 .replMain {
   position: absolute;
   z-index: 7000;
@@ -233,6 +179,7 @@ body {
   max-height: 100%;
   padding-top: 80px;
   box-sizing: border-box;
+  -moz-box-sizing: border-box;
   margin:0;
 }
 
@@ -246,6 +193,7 @@ body {
   max-height: 100%;
   padding-top: 80px;
   box-sizing: border-box;
+  -moz-box-sizing: border-box;
   margin:0;
 }
 
@@ -266,13 +214,11 @@ body {
     border-radius: 3px;
     color: #eee;
     text-align: center;
-    margin: 3px 3px 3px auto;
-    padding: 5px;
 }
 
 .blueButton:hover {
     background-color: #eee;
-    color: #06f;
+    color: #469ad4;
     cursor: pointer;
 }
 
@@ -281,10 +227,6 @@ body {
     border: 1px solid #9cc;
     color: #ddd;
     cursor: default;
-}
-
-.toolbarButton {
-  font-size: 10pt;
 }
 
 
@@ -318,6 +260,19 @@ body {
   height: 50px;
   background: url("./../../img/patch-logo.png") 0 0 no-repeat #2a348b;
   background-size: 150.15px 50px;
+  padding-left: 200px;
+}
+
+#header div {
+  width: 100px;
+  margin-top: 15px;
+  float: left;
+  padding-right: 2em;
+}
+
+#header a {
+  color: #eee;
+  font-family: sans-serif;
 }
 
 #main {
@@ -326,13 +281,37 @@ body {
   height: 100%;
   padding-top: 75px;
   box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+#toolbar {
+  position: fixed;
+  z-index: 8000;
+  top: 50px;
+  height: 25px;
+  width: 100%;
+  background-color: #111;
+}
+
+#program-name-container {
+  color: #eee;
+  float: left;
+  font-family: sans-serif;
+}
+
+#saveButton {
+  float: left;
+}
+
+.rhs {
+  float: right;
 }
 
 .replOutput {
   padding-top: 0;
   padding-bottom: 0.5em;
   padding-left: 0.5em;
-  color: #1f1180
+  color: #1f1180;
 }
 
 .error-highlight {

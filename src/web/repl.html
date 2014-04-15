@@ -20,11 +20,20 @@
   <link rel="stylesheet" href="editor.css"></link>
 </head>
 <body>
-<div id="header"></div>
+<div id="header">
+  <div id="docs"><a>Documentation</a></div>
+  <div id="programs"><a>My Programs</a></div>
+  <div id="logout"><a>Logout</a></div>
+</div>
 <div id="toolbar">
-  <button id="runButton" class="blueButton">Run</button>
-  <button id="breakButton" class="blueButton">Stop</button>
-  <button id="clearButton" class="blueButton">Clear</button>
+  <div id="program-name-container">
+    <label for="program-name">Project Name:</label>
+    <input id="program-name" type="text"></input>
+  </div>
+  <button id="saveButton" class="blueButton">Save</button>
+  <button id="clearButton" class="blueButton rhs">Clear</button>
+  <button id="breakButton" class="blueButton rhs">Stop</button>
+  <button id="runButton" class="blueButton rhs">Run</button>
 </div>
 <div id="loader"><p>Raising the masts...</p></div>
 <div id="main">
