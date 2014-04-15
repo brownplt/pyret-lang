@@ -187,9 +187,9 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
 			    modal : true,
 			    overlay : { opacity: 0.5, background: 'black'},
 			    //buttons : { "Save" : closeDialog },
-          width : 400,
-          height : 500,
-          close : onClose 
+          width : "auto",
+          height : "auto",
+          close : onClose
         });
         dialog.append(dom);
       });
