@@ -15,12 +15,6 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
       initial = options.initial;
     }
 
-    var runButton = drawRunButton();
-    if (options.run && !options.simpleEditor) {
-      container.append(runButton);
-      container.append(drawClearFix());
-    }
-
     var textarea = jQuery("<textarea>");
     textarea.val(initial);
     container.append(textarea);
@@ -63,12 +57,11 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
 
-    if (options.run) {
-      runButton.on("click", function () {
+    if(options.runButton) {
+      options.runButton.on("click", function() {
         runFun(CM.getValue(), {check: true});
       });
     }
-
 
     return CM;
   }
@@ -136,7 +129,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     }
   }
   //: -> (code -> printing it on the repl)
-  function makeRepl(container, repl, runtime) {
+  function makeRepl(container, repl, runtime, options) {
     var items = [];
     var pointer = -1;
     var current = "";
@@ -175,10 +168,19 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
         output.append($("<div>").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
+        var dialog = $("<div>");
+        div.dialog({
+          title: 'big-bang',
+			    bgiframe : true,
+			    modal : true,
+			    overlay : { opacity: 0.5, background: 'black'},
+			    buttons : { "Save" : closeDialog },
+          width : 400,
+          height : 500,
+          close : onClose 
+        });
         output.append(dom);
       });
-
-    var clearDiv = jQuery("<div class='clear'>");
 
     var clearRepl = function() {
       output.empty();
@@ -188,11 +190,10 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
       lastEditorRun = null;
     };
 
-    var clearButton = $("<button>").addClass("blueButton").text("Clear")
-      .click(clearRepl);
-    var breakButton = $("<button>").addClass("blueButton").text("Stop");
-    container.append(clearButton).append(breakButton).append(output).append(promptContainer).
-      append(clearDiv);
+    var clearButton = options.clearButton;
+    clearButton.click(clearRepl);
+    var breakButton = options.breakButton;
+    container.append(output).append(promptContainer);
 
 
     var runCode = makeHighlightingRunCode(runtime, function (src, uiOptions, options) {
@@ -492,7 +493,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     }, name);
 */
   }
-  
+
   return {
     makeRepl: makeRepl,
     makeEditor: makeEditor

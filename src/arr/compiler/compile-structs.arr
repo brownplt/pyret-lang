@@ -146,6 +146,10 @@ bootstrap-builtins = compile-env(
   "sub",
   "div",
   "mul",
+  "less",
+  "greater",
+  "greaterequal",
+  "lessequal",
 
   # from js/trove/image.js
   "circle",

@@ -1,7 +1,11 @@
+<!doctype HTML>
 <html>
 <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Patch ┄ Bootstrap</title>
   <script src="../../node_modules/requirejs/require.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
   <script src="../../lib/CodeMirror/lib/codemirror.js"></script>
   <script src="../../lib/CodeMirror/addon/fold/foldcode.js"></script>
   <script src="../../lib/CodeMirror/addon/fold/foldgutter.js"></script>
@@ -16,8 +20,16 @@
   <link rel="stylesheet" href="editor.css"></link>
 </head>
 <body>
+<div id="header"></div>
+<div id="toolbar">
+  <button id="runButton" class="blueButton">Run</button>
+  <button id="breakButton" class="blueButton">Stop</button>
+  <button id="clearButton" class="blueButton">Clear</button>
+</div>
 <div id="loader"><p>Raising the masts...</p></div>
+<div id="main">
 <div id="REPL" class="replContainer"></div>
+</div>
 </body>
 
 <script>
@@ -67,13 +79,17 @@ $(function() {
     var replNS = dialects.dialects[dialect].makeNamespace(runtime);
     var replEnv = dialects.dialects[dialect].compileEnv;
     var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
-    var codeRunner = replUI.makeRepl(replContainer, repl, runtime);
+    var codeRunner = replUI.makeRepl(replContainer, repl, runtime, {
+        breakButton: $("#breakButton"),
+        clearButton: $("#clearButton")
+      });
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);
     };
     var codeContainer = $("<div>").addClass("replMain");
-    $(document.body).prepend(codeContainer);
+    $("#main").prepend(codeContainer);
     var cm = replUI.makeEditor(codeContainer, {
+        runButton: $("#runButton"),
         simpleEditor: false,
         initial: "print('Ahoy, world!')",
         run: RUN_CODE,
