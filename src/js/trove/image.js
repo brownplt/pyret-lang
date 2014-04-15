@@ -728,7 +728,7 @@ define([
         "image-to-color-list": f(function(maybeImage) {
           checkArity(1, arguments);
           var img = checkImage(maybeImage);
-          return makeImage(image.imageToColorList(img));
+          return image.imageToColorList(img);
         }),
 
         "color-list-to-image": f(function(maybeList, maybeWidth, maybeHeight, maybePinholeX, maybePinholeY) {

@@ -89,6 +89,8 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
       'max': rt.namespace.get("num-max"),
       'min': rt.namespace.get("num-min"),
 
+      'random': rt.namespace.get("random"),
+
       'num-max': rt.namespace.get("num-max"),
       'num-min': rt.namespace.get("num-min"),
       'num-equals': rt.namespace.get("num-equals"),

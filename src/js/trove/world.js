@@ -373,12 +373,12 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
           bigBang(initialWorldValue, arr);
         }),
         "on-tick": makeFunction(function(handler) {
-          runtime.checkIf(handler, runtime.isFunction);
+          runtime.checkFunction(handler);
           return new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000));
         }),
         "on-tick-n": makeFunction(function(handler, n) {
-          runtime.checkIf(handler, runtime.isFunction);
-          checkNum(runtime.isNumber(n));
+          runtime.checkFunction(handler);
+          runtime.checkNumber(n);
           return new OnTick(handler, Math.floor(n.toFixnum() * 1000));
         }),
         "to-draw": makeFunction(function(drawer) {
