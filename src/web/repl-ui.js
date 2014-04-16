@@ -194,23 +194,14 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
 			    //buttons : { "Save" : closeDialog },
           width : "auto",
           height : "auto",
-          close : onClose
+          close : onClose,
+          closeOnEscape : true
         });
         dialog.append(dom);
       });
 
-    var clearRepl = function() {
-      output.empty();
-      showPrompt();
-      lastNameRun = 'interactions';
-      lastEditorRun = null;
-    };
-
-    var clearButton = options.clearButton;
-    clearButton.click(clearRepl);
     var breakButton = options.breakButton;
     container.append(output).append(promptContainer);
-
 
     var runCode = makeHighlightingRunCode(runtime, function (src, uiOptions, options) {
       breakButton.attr("disabled", false);

@@ -721,8 +721,9 @@ define([], function() {
     function on_key(press) {
         return function() {
             var wrappedPress = function(e) {
-                preventDefault(e);
+                if(e.keyCode === 27) { return; } // Escape events are not for world; the environment handles them
                 stopPropagation(e);
+                preventDefault(e);
                 change_world(function(w, k) { press(w, e, k); }, doNothing);
             };
             return {

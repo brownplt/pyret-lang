@@ -30,7 +30,7 @@
     <input id="program-name" type="text"></input>
   </div>
   <button id="saveButton" class="blueButton">Save</button>
-  <button id="clearButton" class="blueButton rhs">Clear</button>
+  <button id="shareButton" class="blueButton">Share</button>
   <button id="breakButton" class="blueButton rhs">Stop</button>
   <button id="runButton" class="blueButton rhs">Run</button>
 </div>
@@ -66,6 +66,9 @@ $(function() {
       "Lashing the jib-boom..."
     ];
   $("#loader p").text(texts[Math.floor(Math.random() * texts.length)]);
+  setInterval(function() {
+    $("#loader p").text(texts[Math.floor(Math.random() * texts.length)]);
+  }, 700);
   requirejs.config({
     paths: {
       "js": "../../build/phase1/js",
@@ -88,8 +91,7 @@ $(function() {
     var replEnv = dialects.dialects[dialect].compileEnv;
     var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
     var codeRunner = replUI.makeRepl(replContainer, repl, runtime, {
-        breakButton: $("#breakButton"),
-        clearButton: $("#clearButton")
+        breakButton: $("#breakButton")
       });
     window.RUN_CODE = function(src, uiOpts, replOpts) {
       codeRunner(src, uiOpts, replOpts);

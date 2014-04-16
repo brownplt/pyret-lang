@@ -6,7 +6,8 @@
 .cm-s-default .cm-function-name { color: #111; }
 .cm-s-default .cm-variable { color: #111; }
 .cm-s-default .cm-keyword { color: #636; }
-.cm-s-default .cm-string { color: #c30; }
+.cm-s-default .cm-number { color: #164; }
+.cm-s-default .cm-string { color: #164; }
 .cm-s-default .cm-type { color: #339; }
 .cptteach-fixed { line-height: 1.5; background: #ddd; }
 
@@ -303,6 +304,14 @@ body {
 #saveButton {
   float: left;
 }
+#shareButton {
+  float: left;
+}
+
+#notifier {
+  padding-left: 500px;
+  color: #111;
+}
 
 .rhs {
   float: right;
@@ -407,10 +416,14 @@ body {
 .ui-dialog-title {
   color: #eee;
   font-family: sans-serif;
+  position: relative;
+  left: 30px;
 }
 
 .ui-dialog-titlebar-close {
-  float: right;
+  position: relative;
+  left: 5px;
+  top: 5px;
 }
 
 .ui-dialog-titlebar-close .ui-button-text {
@@ -420,3 +433,4 @@ body {
 .ui-dialog-titlebar-close .ui-button-icon-primary:before {
   content: "×"
 }
+
