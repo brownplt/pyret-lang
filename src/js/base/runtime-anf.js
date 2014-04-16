@@ -736,8 +736,8 @@ function createMethodDict() {
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
     var checkFunction = makeCheckType(isFunction, "Function");
-    var checkMethod = makeCheckType(isFunction, "Method");
-    var checkOpaque = makeCheckType(isFunction, "Opaque");
+    var checkMethod = makeCheckType(isMethod, "Method");
+    var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
     var checkArity = function(expected, args) {
@@ -1850,6 +1850,10 @@ function createMethodDict() {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
+    var num_is_fixnum = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(typeof n === "number");
+    }
     var num_expt = function(n, pow) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       thisRuntime.checkIf(pow, thisRuntime.isNumber);
@@ -1979,6 +1983,7 @@ function createMethodDict() {
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
           'num-is-integer': makeFunction(num_is_integer),
+          'num-is-fixnum': makeFunction(num_is_fixnum),
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
 

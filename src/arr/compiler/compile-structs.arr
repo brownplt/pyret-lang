@@ -127,6 +127,7 @@ runtime-builtins = list.map(builtin-id, [
   "num-exp",
   "num-exact",
   "num-is-integer",
+  "num-is-fixnum",
   "num-expt",
   "num-tostring"
 ])
