@@ -297,7 +297,11 @@ compiler-visitor = {
     j-field(name, value.visit(self))
   end,
   a-num(self, l :: Loc, n :: Number):
-    rt-method("makeNumber", [j-num(n)])
+    if num-is-fixnum(n):
+      rt-method("makeNumber", [j-num(n)])
+    else:
+      rt-method("makeNumberFromString", [j-str(tostring(n))])
+    end
   end,
   a-str(self, l :: Loc, s :: String):
     rt-method("makeString", [j-str(s)])
