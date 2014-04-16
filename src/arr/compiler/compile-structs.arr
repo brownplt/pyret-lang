@@ -152,6 +152,8 @@ bootstrap-builtins = compile-env(
   "greater",
   "greaterequal",
   "lessequal",
+  "max",
+  "min",
 
   # new boolean aliases
   "and",
