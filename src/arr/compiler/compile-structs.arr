@@ -153,6 +153,9 @@ bootstrap-builtins = compile-env(
   "greaterequal",
   "lessequal",
 
+  "max",
+  "min",
+
   # from js/trove/image.js
   "circle",
   "is-image-color",
