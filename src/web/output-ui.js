@@ -9,19 +9,54 @@ define(["trove/image-lib"], function(imageLib) {
     if(runtime.isOpaque(answer) && image.isImage(answer.val)) {
       var container = $("<div>").addClass('replOutput');
       output.append(container);
-      var imageDom = container.append(answer.val.toDomNode());
-      $(imageDom).trigger({type: 'afterAttach'});
-      $('*', imageDom).trigger({type : 'afterAttach'});
-      return imageDom;
+      var imageDom;
+      var maxWidth = output.width() * .75;
+      var maxHeight = $(document).height() * .6;
+      var realWidth = answer.val.getWidth();
+      var realHeight = answer.val.getHeight();
+      if(answer.val.getWidth() > maxWidth || answer.val.getHeight() > maxHeight) {
+        container.addClass("replImageThumbnail");
+        var scaleFactorX = 100 / realWidth;
+        var scaleFactorY = 200 / realHeight;
+        var scaleFactor = scaleFactorX < scaleFactorY ? scaleFactorX : scaleFactorY;
+        var scaled = image.makeScaleImage(scaleFactor, scaleFactor, answer.val);
+        imageDom = scaled.toDomNode();
+        container.append(imageDom);
+        $(imageDom).trigger({type: 'afterAttach'});
+        $('*', imageDom).trigger({type : 'afterAttach'});
+        var originalImageDom = answer.val.toDomNode();
+        $(imageDom).on("click", function() {
+          var dialog = $("<div>");
+          dialog.dialog({
+            modal: true,
+            height: $(document).height() * .9,
+            width: $(document).width() * .9,
+            resizable: true
+          });
+          dialog.css({"overflow": "scroll"});
+          dialog.append($(originalImageDom));
+          $(originalImageDom).trigger({type: 'afterAttach'});
+          $('*', originalImageDom).trigger({type : 'afterAttach'});
+        });
+
+      } else {
+        imageDom = answer.val.toDomNode();
+        container.append(imageDom);
+        $(imageDom).trigger({type: 'afterAttach'});
+        $('*', imageDom).trigger({type : 'afterAttach'});
+        return imageDom;
+      }
     } else {
-      var echoContainer = $("<div>").addClass("replTextOutput");
-      var text = runtime.toReprJS(answer, "_torepr");
-      var echo = $("<textarea class='CodeMirror'>");
-      output.append(echoContainer);
-      echoContainer.append(echo);
-      var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: 'nocursor' });
-      echoCM.setValue(text);
-      return echoContainer;
+      if (!runtime.isNothing(answer)) {
+        var echoContainer = $("<div>").addClass("replTextOutput");
+        var text = runtime.toReprJS(answer, "_torepr");
+        var echo = $("<textarea class='CodeMirror'>");
+        output.append(echoContainer);
+        echoContainer.append(echo);
+        var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: 'nocursor' });
+        echoCM.setValue(text);
+        return echoContainer;
+      }
     }
   }
   return { renderPyretValue: renderPyretValue };

@@ -1,4 +1,5 @@
 .CodeMirror, .inlineExample { line-height: 1.5; border: 1px solid black; background: #f8f8f8; color: #eee; }
+.CodeMirror { line-height: 1.3; }
 .CodeMirror div.CodeMirror-cursor { border-left: 1px solid #bbb; }
 .cm-s-default.CodeMirror { color: #111; }
 .cm-s-default .cm-comment { color: #39f; }
@@ -308,11 +309,6 @@ body {
   float: left;
 }
 
-#notifier {
-  padding-left: 500px;
-  color: #111;
-}
-
 .rhs {
   float: right;
 }
@@ -329,6 +325,18 @@ body {
   padding-bottom: 0.5em;
   padding-left: 0.5em;
   color: #1f1180;
+}
+
+.replImageThumbnail canvas {
+  cursor: pointer;
+  border: 1px solid #111;
+  margin: 1px;
+}
+
+.replImageThumbnail canvas:hover {
+  cursor: pointer;
+  border: 2px solid #111;
+  margin: 0px;
 }
 
 .error-highlight {
