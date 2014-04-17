@@ -71,6 +71,10 @@ define([
     };
 
 
+    var less = function(lhs, rhs) {
+      return (rhs - lhs) > 0.00001;
+    }
+
 
 
     var p = function(pred) {
@@ -148,6 +152,8 @@ define([
     var checkListofColor = p(function(val) {
       return ffi.makeList(ffi.toArray(val).map(p(isColor)));
     });
+
+    var throwMessage = ffi.throwMessageException;
 
     function makeImage(i) {
       return runtime.makeOpaque(i, image.imageEquals);
@@ -547,6 +553,21 @@ define([
           var base = checkNonNegativeReal(maybeBase);
           var angleC = checkAngle(maybeAngleC);
           var sideB = checkNonNegativeReal(maybeSideB);
+          
+          var sideA2 = (base * base) + (sideB * sideB) - (2 * base * sideB * Math.cos(angleC * Math.PI/180));
+          
+          if (sideA2 <= 0) {
+            throwMessage("The given side, angle and side will not form a triangle: " 
+                         + base + ", " + angleC + ", " + sideB);
+          } else {
+            var sideA = Math.sqrt(sideA2);
+            if (less(base + sideB, sideA) ||
+                less(sideA + sideB, base) ||
+                less(base + sideA, sideB)) {
+              throwMessage("The given side, angle and side will not form a triangle: " 
+                           + base + ", " + angleC + ", " + sideB);
+            }
+          }
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
@@ -560,6 +581,12 @@ define([
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
           var sideC = checkNonNegativeReal(maybeSideC);
+          if (less(base + sideB, sideC) ||
+              less(sideC + sideB, base) ||
+              less(base + sideC, sideB)) {
+            throwMessage("The given sides will not form a triangle: " 
+                         + base + ", " + sideB + ", " + sideC);
+          }
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
@@ -587,11 +614,25 @@ define([
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
           var angleA = checkAngle(maybeAngleA);
+          var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
+          var angleC = (180 - angleA - angleB);
+          var sideA2 = (base * base) + (sideB * sideB) - (2 * base * sideB * Math.cos(angleC * Math.PI/180));
+          
+          if (sideA2 <= 0) {
+            throwMessage("The given side, side and angle will not form a triangle: " 
+                         + base + ", " + sideB + ", " + angleA);
+          } else {
+            var sideA = Math.sqrt(sideA2);
+            if (less(base + sideB, sideA) ||
+                less(sideA + sideB, base) ||
+                less(base + sideA, sideB)) {
+              throwMessage("The given side, side and angle will not form a triangle: " 
+                           + base + ", " + sideB + ", " + angleA);
+            }
+          }
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
-          var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
-          var angleC = (180 - angleA - angleB);
           return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
                                     String(mode), color));
