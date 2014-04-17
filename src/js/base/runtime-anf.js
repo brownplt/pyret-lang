@@ -858,6 +858,12 @@ function createMethodDict() {
                 }
                 stack.push({todo: vals, done: [], keys: keys});
               }
+            } else if (isFunction(next)) {
+              top.todo.pop();
+              top.done.push("<function>");
+            } else if (isMethod(next)) {
+              top.todo.pop();
+              top.done.push("<method>");
             } else {
               top.todo.pop();
               top.done.push(String(next));
