@@ -601,6 +601,10 @@ define([
           var angle = checkAngle(maybeAngle);
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
+          if (less(180, angle)) {
+            throwMessage("The given angle, side and side will not form a triangle: " 
+                         + angle + ", " + base + ", " + sideB);
+          }
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
@@ -614,6 +618,10 @@ define([
           var base = checkNonNegativeReal(maybeBase);
           var sideB = checkNonNegativeReal(maybeSideB);
           var angleA = checkAngle(maybeAngleA);
+          if (less(180, angleA)) {
+            throwMessage("The given side, side and angle will not form a triangle: " 
+                         + base + ", " + sideB + ", " + angleA);
+          }
           var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
           var angleC = (180 - angleA - angleB);
           var sideA2 = (base * base) + (sideB * sideB) - (2 * base * sideB * Math.cos(angleC * Math.PI/180));
@@ -647,6 +655,10 @@ define([
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleC = (180 - angleA - angleB);
+          if (less(angleC, 0)) {
+            throwMessage("The given angle, angle and side will not form a triangle: " 
+                         + angleA + ", " + angleB + ", " + base);
+          }
           var sideB = (base * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
           return makeImage(
             image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
@@ -662,6 +674,10 @@ define([
           var color = checkColor(maybeColor);
           if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleC = (180 - angleA - angleB);
+          if (less(angleC, 0)) {
+            throwMessage("The given angle, side and angle will not form a triangle: " 
+                         + angleA + ", " + sideC + ", " + angleB);
+          }
           var base = (sideC * Math.sin(angleA*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
           var sideB = (sideC * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
           return makeImage(
