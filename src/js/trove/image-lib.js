@@ -1142,21 +1142,24 @@ define([
     // See http://docs.racket-lang.org/teachpack/2htdpimage.html#(def._((lib._2htdp/image..rkt)._triangle))
     var TriangleImage = function(sideC, angleA, sideB, style, color) {
       BaseImage.call(this);
-      this.width = sideC;
-      this.height = Math.sqrt(Math.pow(sideB,2) - Math.pow(0.5*sideC,2));
+      var thirdX = sideB * Math.cos(angleA * Math.PI/180);
+      var thirdY = sideB * Math.sin(angleA * Math.PI/180);
+
+      var offsetX = 0 - Math.min(0, thirdX); // angleA could be obtuse
+
+      this.width = Math.max(sideC, thirdX) + offsetX;
+      this.height = thirdY;
       
       var vertices = [];
       // if angle < 180 start at the top of the canvas, otherwise start at the bottom
       if(angleA < 180){
-        vertices.push({x: 0, y: 0});
-        vertices.push({x: sideC, y: 0});
-        vertices.push({x: sideB*Math.cos(angleA*Math.PI/180),
-                       y: this.height});
+        vertices.push({x: offsetX + 0, y: 0});
+        vertices.push({x: offsetX + sideC, y: 0});
+        vertices.push({x: offsetX + thirdX, y: thirdY});
       } else {
-        vertices.push({x: 0, y: this.height - 0});
-        vertices.push({x: sideC, y: this.height - 0});
-        vertices.push({x: Math.abs(sideB*Math.cos(angleA*Math.PI/180)),
-                       y: 0});
+        vertices.push({x: offsetX + 0, y: thirdY});
+        vertices.push({x: offsetX + sideC, y: thirdY});
+        vertices.push({x: offsetX + thirdX, y: 0});
       }
       this.vertices = vertices;
       
