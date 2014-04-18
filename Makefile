@@ -17,7 +17,7 @@ WEB = build/web
 SRC_JS := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
 ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
-PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser-comp.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
+PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
 
 
@@ -159,20 +159,17 @@ $(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
 $(PHASE3)/main-wrapper.js: src/scripts/main-wrapper.js
 	cp $< $@
 
-$(PHASE1)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
+$(PHASE1)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE1)/$(JS)/$*-grammar.js
 	node $(PHASE1)/$(JS)/$*-grammar.js $(PHASE1)/$(JS)/$*-parser.js
-	$(CLOSURE) --js $(PHASE1)/$(JS)/$*-parser.js --js_output_file $(PHASE1)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE2)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
+$(PHASE2)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE2)/$(JS)/$*-grammar.js
 	node $(PHASE2)/$(JS)/$*-grammar.js $(PHASE2)/$(JS)/$*-parser.js
-	$(CLOSURE) --js $(PHASE2)/$(JS)/$*-parser.js --js_output_file $(PHASE2)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
-$(PHASE3)/$(JS)/%-parser-comp.js: src/$(JSBASE)/%-grammar.bnf $(wildcard lib/jglr/*.js)
+$(PHASE3)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
 	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE3)/$(JS)/$*-grammar.js
 	node $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
-	$(CLOSURE) --js $(PHASE3)/$(JS)/$*-parser.js --js_output_file $(PHASE3)/$(JS)/$*-parser-comp.js --warning_level VERBOSE --externs src/scripts/externs.env --accept_const_keyword
 
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
@@ -221,10 +218,6 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 
 .PHONY : install
 install:
-	@$(call MKDIR,deps/closure-compiler)
-	curl "http://dl.google.com/closure-compiler/compiler-latest.zip" > compiler-latest.zip
-	unzip compiler-latest.zip -d deps/closure-compiler 
-	@$(call RM,compiler-latest.zip)
 	@$(call MKDIR,node_modules)
 	npm install jasmine-node
 	npm install requirejs

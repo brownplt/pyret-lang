@@ -12,9 +12,7 @@ commenting and reporting issues.
 All Aboard
 ----------
 
-First, make sure ye've installed [Node >= 0.10](http://nodejs.org) and [Java
-7](http://www.oracle.com/technetwork/java/javase/downloads/index.htm).  Then
-run:
+First, make sure ye've installed [Node >= 0.10](http://nodejs.org).  Then run:
 
     $ make install && make && make test
 
