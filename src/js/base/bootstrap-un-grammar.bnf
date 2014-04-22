@@ -4,9 +4,11 @@
   name: BootstrapGrammar
 */
 
-program: prelude block
+program: prelude toplevel-block
 
-end: END | SEMI
+toplevel-block: stmt*
+
+end: END | SEMI | {errorPriority: 1}
 
 prelude: [provide-stmt] import-stmt*
 
@@ -15,7 +17,9 @@ import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR
 
-block: stmt*
+block: block-prelude* [stmt]
+
+block-prelude: let-expr
 
 stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
@@ -32,13 +36,14 @@ letrec-binding: let-expr COMMA
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
-fun-expr: FUN fun-header [COLON] doc-string block where-clause end
+fun-expr: FUN fun-header maybe-colon doc-string block where-clause end
+maybe-colon: [COLON]
 fun-header: ty-params NAME args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
 list-ty-param: NAME COMMA
 args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
-list-arg-elt: binding COMMA
+list-arg-elt: binding [COMMA]
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE|EXAMPLESCOLON block]
@@ -100,7 +105,7 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: FUN ty-params [args] return-ann COLON doc-string block where-clause end
+lambda-expr: FUN ty-params args return-ann COLON doc-string block where-clause end
 
 method-expr: METHOD args return-ann COLON doc-string block where-clause end
 
@@ -108,7 +113,7 @@ app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] RPAREN
-app-arg-elt: binop-expr COMMA
+app-arg-elt: binop-expr [COMMA]
 
 left-app-expr: expr CARET left-app-fun-expr app-args
 left-app-fun-expr: id-expr | id-expr DOT NAME
@@ -146,7 +151,7 @@ update-expr: expr BANG LBRACE fields RBRACE
 if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
 else-if: ELSEIF binop-expr COLON block
 if-pipe-expr: IFCOLON if-pipe-branch* [BAR ELSECOLON block] end
-if-pipe-branch: BAR binop-expr THENCOLON block
+if-pipe-branch: BAR binop-expr (THENCOLON|THEN) block
 
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [args] THICKARROW block

@@ -172,6 +172,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "IFCOLON", val: new RegExp(kw("ask:"), STICKY_REGEXP)},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(kw("then:"), STICKY_REGEXP)},
+    {name: "THEN", val: new RegExp(kw("then"), STICKY_REGEXP)},
     {name: "ELSECOLON", val: new RegExp(kw("otherwise:"), STICKY_REGEXP)},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
     {name: "ELSE", val: new RegExp(kw("else"), STICKY_REGEXP)},
