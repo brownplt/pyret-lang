@@ -28,6 +28,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       // and returns a function to be called when all the new todos are done (which gets put into doing)
       // if a todo item is a Pyret value, it just gets pushed across to done
       // if a todo item is an array, then doing = RUNTIME.makeList and it creates a stack frame
+      var noticedErrors = [];
       function tr(node) {
         return translators[node.name](node);
       }
@@ -47,17 +48,12 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       const translators = {
         'program': function(node) {
           if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   tr(node.kids[0].kids[0]),
-                   makeList(node.kids[0].kids.slice(1).map(tr)),
-                   tr(node.kids[1]));
+            tr(node.kids[0].kids[0]);
+            node.kids[0].kids.slice(1).forEach(tr);
+            tr(node.kids[1]);
           } else {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos)),
-                   makeList(node.kids[0].kids.map(tr)),
-                   tr(node.kids[1]));
+            node.kids[0].kids.forEach(tr);
+            tr(node.kids[1]);
           }
         },
         'provide-stmt': function(node) {
@@ -234,7 +230,13 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
             .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'fun-expr': function(node) {
-          // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
+          // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check end)
+          if (node.kids[2].name === "maybe-colon" && node.kids[2].kids.length === 0) {
+            console.error("Missing colon", node.kids[2]);
+          }
+          if (node.kids[6].name === "end" && node.kids[6].kids.length === 0) {
+            console.error("Missing end", node.kids[6]);
+          }
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1].kids[1]),
                  tr(node.kids[1].kids[0]),
@@ -420,6 +422,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
         },
         'list-arg-elt': function(node) {
           // (list-arg-elt arg COMMA)
+          if(node.kids.length === 1) { console.error("Missing comma in formal params"); }
           return tr(node.kids[0]);
         },
         'variant-member': function(node) {
@@ -545,6 +548,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           }
         },
         'app-arg-elt': function(node) {
+          if(node.kids.length === 1) { console.error("Missing comma in actual params"); }
           // (app-arg-elt e COMMA)
           return tr(node.kids[0]);
         },
@@ -868,7 +872,8 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           return tr(node.kids[0]);
         }
       };
-      return tr(node);
+      tr(node);
+      return makeList(noticedErrors);
     }
 
     const opLookup = {
@@ -898,9 +903,10 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       var parsed = grammar.parse(toks);
       //console.log("Result:");
       var countParses = grammar.countAllParses(parsed);
+      console.log("There were " + countParses + " parses");
       if (countParses == 0) {
         var nextTok = toks.curTok; 
-        console.error("There were " + countParses + " potential parses.\n" +
+        console.error("Couldn't parse it even with the ungrammar.  There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
         console.log(nextTok);
@@ -915,7 +921,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
         var errors = [];
         var asts = grammar.constructAllParses(parsed);
         return asts.map(function(a) {
-          return translate(ast, fileName);
+          return translate(a, fileName);
         });
       }
     }
@@ -934,5 +940,4 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       answer: NAMESPACE.get("nothing")
     });
   });
-});
 });
