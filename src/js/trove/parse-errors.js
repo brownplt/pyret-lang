@@ -1,8 +1,14 @@
-define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
-  return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, errorLib, dialectsLib) {
+  return util.memoModule("parse-errors", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
+    var error = RUNTIME.getField(errorLib(RUNTIME, NAMESPACE), "provide");
+    function err(name, args) {
+      var f = get(error, name).app;
+      f.apply(undefined, args);
+    }
+    var get = RUNTIME.getField;
 
     var dialects = dialectsLib(RUNTIME, NAMESPACE);
     
@@ -82,14 +88,35 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           return RUNTIME.getField(ast, 's-file-import')
             .app(string(node.kids[0]))
         },
+        'toplevel-block': function(node) {
+          node.kids.map(tr);
+        },
         'block': function(node) {
+          // Block is empty
+          if (node.kids.length === 0) {
+            noticedErrors.push(err("empty-block", [pos(node.pos)]));
+          }
+          // good-block or bad-block
+          else {
+            tr(node.kids[0]);
+          }
           // (block stmts ...)
           return RUNTIME.getField(ast, 's-block')
             .app(pos(node.pos), makeList(node.kids.map(tr)));
         },
+        'good-block': function(node) {
+          node.kids.forEach(tr);
+        },
+        'bad-block': function(node) {
+          noticedErrors.push(err("bad-block-stmt", [pos(node.pos)]));
+          node.kids.forEach(tr);
+        },
+        'block-prelude': function(node) {
+          tr(node.kids[0]);
+        },
         'stmt': function(node) {
           // (stmt s)
-          return tr(node.kids[0]);
+          tr(node.kids[0]);
         },
         'data-with': function(node) {
           if (node.kids.length === 0) {
@@ -232,10 +259,10 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
         'fun-expr': function(node) {
           // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check end)
           if (node.kids[2].name === "maybe-colon" && node.kids[2].kids.length === 0) {
-            console.error("Missing colon", node.kids[2]);
+            noticedErrors.push(err("fun-missing-colon"), [pos(node.pos)]);
           }
           if (node.kids[6].name === "end" && node.kids[6].kids.length === 0) {
-            console.error("Missing end", node.kids[6]);
+            noticedErrors.push(err("fun-missing-end"), [pos(node.pos)]);
           }
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1].kids[1]),
@@ -422,7 +449,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
         },
         'list-arg-elt': function(node) {
           // (list-arg-elt arg COMMA)
-          if(node.kids.length === 1) { console.error("Missing comma in formal params"); }
+          if(node.kids.length === 1) {
+            noticedErrors.push(err("args-missing-comma"), [pos(node.pos)]);
+          }
           return tr(node.kids[0]);
         },
         'variant-member': function(node) {
@@ -548,7 +577,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           }
         },
         'app-arg-elt': function(node) {
-          if(node.kids.length === 1) { console.error("Missing comma in actual params"); }
+          if(node.kids.length === 1) {
+            noticedErrors.push(err("app-args-missing-comma", [pos(node.pos)]));
+          }
           // (app-arg-elt e COMMA)
           return tr(node.kids[0]);
         },
@@ -920,9 +951,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       } else {
         var errors = [];
         var asts = grammar.constructAllParses(parsed);
-        return asts.map(function(a) {
+        return makeList(asts.map(function(a) {
           return translate(a, fileName);
-        });
+        }));
       }
     }
     
