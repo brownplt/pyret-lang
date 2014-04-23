@@ -62,4 +62,27 @@ data ParseError:
     tostring(self):
       "parse error around " + self.loc.format(true) + ", next token was " + self.next-token
     end
+  | empty-block(loc :: Loc) with:
+    tostring(self):
+      "Empty block at " + self.loc.format(true)
+    end
+  | bad-block-stmt(loc :: Loc) with:
+    tostring(self):
+      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    end
+  | bad-check-block-stmt(loc :: Loc) with:
+    tostring(self):
+      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    end
+  | fun-missing-colon(loc :: Loc) with:
+    tostring(self): "fun-missing-colon: " + self.loc.format(true) end
+  | fun-missing-end(loc :: Loc) with:
+    tostring(self): "fun-missing-end: " + self.loc.format(true) end
+  | args-missing-comma(loc :: Loc) with:
+    tostring(self): "args-missing-comma: " + self.loc.format(true) end
+  | app-args-missing-comma(loc :: Loc) with:
+    tostring(self): "app-args-missing-comma: " + self.loc.format(true) end
+  | missing-end(loc)
+  | missing-comma(loc)
 end
+

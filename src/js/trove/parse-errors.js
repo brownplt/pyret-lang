@@ -1,12 +1,13 @@
 define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, errorLib, dialectsLib) {
   return util.memoModule("parse-errors", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
+    var makeList = F.makeList;
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
     var error = RUNTIME.getField(errorLib(RUNTIME, NAMESPACE), "provide");
     function err(name, args) {
       var f = get(error, name).app;
-      f.apply(undefined, args);
+      return f.apply(undefined, args);
     }
     var get = RUNTIME.getField;
 
@@ -39,7 +40,6 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
         return translators[node.name](node);
       }
       var pos = function(p) { return makePyretPos(fileName, p); };
-      var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
           return RUNTIME.getField(ast, 's-underscore');
@@ -100,9 +100,24 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
           else {
             tr(node.kids[0]);
           }
-          // (block stmts ...)
-          return RUNTIME.getField(ast, 's-block')
-            .app(pos(node.pos), makeList(node.kids.map(tr)));
+        },
+        'check-block': function(node) {
+          if(node.kids.length === 0) {
+            noticedErrors.push(err("empty-block", [pos(node.pos)]));
+          }
+          else {
+            tr(node.kids[0]);
+          }
+        },
+        'good-check-block': function(node) {
+          node.kids.forEach(tr);
+        },
+        'bad-check-block': function(node) {
+          noticedErrors.push(err("bad-check-block-stmt", [pos(node.pos)]));
+          node.kids.forEach(tr);
+        },
+        'check-stmt': function(node) {
+          tr(node.kids[0])
         },
         'good-block': function(node) {
           node.kids.forEach(tr);
@@ -259,10 +274,10 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
         'fun-expr': function(node) {
           // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check end)
           if (node.kids[2].name === "maybe-colon" && node.kids[2].kids.length === 0) {
-            noticedErrors.push(err("fun-missing-colon"), [pos(node.pos)]);
+            noticedErrors.push(err("fun-missing-colon", [pos(node.kids[2].pos)]));
           }
           if (node.kids[6].name === "end" && node.kids[6].kids.length === 0) {
-            noticedErrors.push(err("fun-missing-end"), [pos(node.pos)]);
+            noticedErrors.push(err("fun-missing-end", [pos(node.kids[6].pos)]));
           }
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1].kids[1]),
@@ -301,6 +316,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
         'check-expr': function(node) {
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
+            if (node.kids[2].kids.length === 0) {
+              noticedErrors.push(err("missing-end", [pos(node.kids[2].pos)]));
+            }
             return RUNTIME.getField(ast, 's-check')
               .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
@@ -450,7 +468,7 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
         'list-arg-elt': function(node) {
           // (list-arg-elt arg COMMA)
           if(node.kids.length === 1) {
-            noticedErrors.push(err("args-missing-comma"), [pos(node.pos)]);
+            noticedErrors.push(err("args-missing-comma", [pos(node.pos)]));
           }
           return tr(node.kids[0]);
         },
@@ -715,6 +733,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
           }
         },
         'if-pipe-expr': function(node) {
+          if (node.kids[node.kids.length - 1].kids.length === 0) {
+            noticedErrors.push(err("missing-end", [pos(node.kids[node.kids.length - 1])]));
+          }
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
             return RUNTIME.getField(ast, 's-if-pipe-else')
@@ -947,11 +968,11 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js
       if (countParses === 1) {
         var ast = grammar.constructUniqueParse(parsed);
         //          console.log(ast.toString());
-        return translate(ast, fileName);
+        return makeList([translate(ast, fileName)])
       } else {
         var errors = [];
         var asts = grammar.constructAllParses(parsed);
-        return makeList(asts.map(function(a) {
+        return F.makeList(asts.map(function(a) {
           return translate(a, fileName);
         }));
       }

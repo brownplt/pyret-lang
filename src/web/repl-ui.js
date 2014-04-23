@@ -177,7 +177,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     var output = jQuery("<div id='output' class='cm-s-default'>");
     runtime.setStdout(function(str) {
         ct_log(str);
-        output.append($("<div>").addClass("replPrint").text(str));
+        output.append($("<pre>").addClass("replPrint").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
         var dialog = $("<div>").css({"z-index": 10000});

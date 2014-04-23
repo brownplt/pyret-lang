@@ -17,7 +17,15 @@ import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR
 
-block: block-prelude* [stmt]
+block: good-block | bad-block | {errorPriority: 1}
+good-block: block-prelude* stmt 
+bad-block: stmt stmt+
+
+check-block: good-check-block | bad-check-block | {errorPriority: 1}
+
+good-check-block: let-expr* check-test+
+
+bad-check-block: stmt+
 
 block-prelude: let-expr
 
@@ -37,7 +45,8 @@ letrec-binding: let-expr COMMA
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN fun-header maybe-colon doc-string block where-clause end
-maybe-colon: [COLON]
+maybe-colon: COLON | {errorPriority: 1}
+
 fun-header: ty-params NAME args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
@@ -46,10 +55,10 @@ args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
 list-arg-elt: binding [COMMA]
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
-where-clause: [WHERE|EXAMPLESCOLON block]
+where-clause: [WHERE|EXAMPLESCOLON check-block]
 
-check-expr: (CHECK|EXAMPLES) STRING COLON block end
-   | (CHECKCOLON|EXAMPLESCOLON) block end
+check-expr: (CHECK|EXAMPLES) STRING COLON check-block end
+   | (CHECKCOLON|EXAMPLESCOLON) check-block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
