@@ -12,10 +12,25 @@
 .cm-s-default .cm-type { color: #339; }
 .cptteach-fixed { line-height: 1.5; background: #ddd; }
 
+div.CodeMirror span.CodeMirror-matchingbracket-region {
+    background-color: #cdf;
+}
+
 div.CodeMirror span.CodeMirror-matchingbracket {
     font-weight: bold;
     background-color: #ddd;
     color: #111;
+}
+
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket {
+    font-weight: bold;
+    background-color: #fdd;
+    color: #e11;
+}
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
+    background-color: #fdc;
 }
 
 .replTextOutput .CodeMirror {
