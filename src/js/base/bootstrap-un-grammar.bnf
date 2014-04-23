@@ -17,11 +17,11 @@ import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR
 
-block: good-block | bad-block | {errorPriority: 1}
+block: good-block | bad-block {errorPriority: 1}
 good-block: block-prelude* stmt 
 bad-block: stmt stmt+
 
-check-block: good-check-block | bad-check-block | {errorPriority: 1}
+check-block: good-check-block | bad-check-block {errorPriority: 1}
 
 good-check-block: let-expr* check-test+
 
