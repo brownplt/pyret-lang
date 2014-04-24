@@ -2,6 +2,7 @@
 
 /*
   name: BootstrapGrammar
+  sortBy: errorPriority
 */
 
 program: prelude toplevel-block
