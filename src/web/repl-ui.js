@@ -397,6 +397,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
       breakButton.attr("disabled", true);
       evaluator.requestBreak(function(restarter) {
           restarter.break();
+          showPrompt();
         });
     };
 

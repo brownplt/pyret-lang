@@ -1452,7 +1452,7 @@ function createMethodDict() {
                     },
                     break: function() {
                       checkResume();
-                      onDone(new FailureResult(makeMessageException("User break"), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                      onDone(new FailureResult(new PyretFailException(ffi.makeMessageException("User break")), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
                     },
                     error: function(err) {
                       checkResume();

@@ -70,6 +70,11 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         raise(err("message-exception")(message));
       }
 
+      function makeMessageException(message) {
+        runtime.checkString(message);
+        return err("message-exception")(message);
+      }
+
       function throwTypeMismatch(val, typeName) {
         // NOTE(joe): can't use checkPyretVal here, because it will re-enter
         // this function and blow up... so bottom out at "nothing"
@@ -159,6 +164,8 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwNonFunApp: throwNonFunApp,
 
         throwParseErrorNextToken: throwParseErrorNextToken,
+
+        makeMessageException: makeMessageException,
 
         cases: cases,
 
