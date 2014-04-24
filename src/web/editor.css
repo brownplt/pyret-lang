@@ -1,5 +1,22 @@
 .CodeMirror, .inlineExample { line-height: 1.5; border: 1px solid black; background: #f8f8f8; color: #eee; }
-.CodeMirror { line-height: 1.3; }
+.replMain .CodeMirror {
+  line-height: 1.3;
+  border-top: none;
+  border-bottom: none;
+}
+.repl .CodeMirror {
+  background-color: #f8f8f8;
+  line-height: 1.3;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.repl .CodeMirror-lines {
+  padding: 0;
+}
+.repl .CodeMirror pre {
+  padding: 0;
+}
 .CodeMirror div.CodeMirror-cursor { border-left: 1px solid #bbb; }
 .cm-s-default.CodeMirror { color: #111; }
 .cm-s-default .cm-comment { color: #39f; }
@@ -36,7 +53,6 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
 .replTextOutput .CodeMirror {
   border: none;
   background-color: transparent;
-  margin-top: -0.5em;
 }
 
 #output {
@@ -73,6 +89,8 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
   padding-left: 0.5em;
   height: 100%;
   overflow-y: scroll;
+  background-color: #f8f8f8;
+  cursor: text;
 }
 .check {
   font-family: monospace;
@@ -172,9 +190,23 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
     padding: 3px;
 }
 
+.prompt-container {
+  padding-top: 5px;
+}
+.echo-container {
+  padding-top: 5px;
+}
+
 .repl-prompt {
   width: 90%;
   display: inline-block;
+}
+
+.repl-prompt-arrow {
+  font-family: monospace;
+  vertical-align: top;
+  display: inline-block;
+  line-height: 1.3;
 }
 
 .repl-echo {
@@ -195,7 +227,8 @@ body {
   top:0;
   height: 100%;
   max-height: 100%;
-  padding-top: 80px;
+  padding-top: 75px;
+  padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
   margin:0;
@@ -210,6 +243,7 @@ body {
   height: 100%;
   max-height: 100%;
   padding-top: 80px;
+  padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
   margin:0;
@@ -298,6 +332,7 @@ body {
   z-index: 5000;
   height: 100%;
   padding-top: 75px;
+  padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
 }
@@ -309,6 +344,14 @@ body {
   height: 25px;
   width: 100%;
   background-color: #111;
+}
+
+#footer {
+  height: 5px;
+  background-color: #111;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
 }
 
 #program-name-container {
@@ -338,7 +381,6 @@ body {
 .replOutput {
   padding-top: 0;
   padding-bottom: 0.5em;
-  padding-left: 0.5em;
   color: #1f1180;
 }
 

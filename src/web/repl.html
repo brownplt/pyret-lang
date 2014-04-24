@@ -38,6 +38,7 @@
 <div id="main">
 <div id="REPL" class="replContainer"></div>
 </div>
+<div id="footer"></div>
 </body>
 
 <script>
@@ -90,30 +91,46 @@ $(function() {
     var replNS = dialects.dialects[dialect].makeNamespace(runtime);
     var replEnv = dialects.dialects[dialect].compileEnv;
     var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
-    var codeRunner = replUI.makeRepl(replContainer, repl, runtime, {
+
+    // NOTE(joe): This forces the loading of all the built-in compiler libs
+    repl.restartInteractions("");
+
+    var replWidget = replUI.makeRepl(replContainer, repl, runtime, {
         breakButton: $("#breakButton")
       });
     window.RUN_CODE = function(src, uiOpts, replOpts) {
-      codeRunner(src, uiOpts, replOpts);
+      replWidget.runCode(src, uiOpts, replOpts);
     };
     var codeContainer = $("<div>").addClass("replMain");
     $("#main").prepend(codeContainer);
-    var cm = replUI.makeEditor(codeContainer, {
+    var editor = replUI.makeEditor(codeContainer, {
         runButton: $("#runButton"),
         simpleEditor: false,
         initial: "print('Ahoy, world!')",
         run: RUN_CODE,
         initialGas: 500
       });
+    $(document).on("keydown", function(e) {
+      if(e.ctrlKey) {
+        if(e.keyCode === 68) { // "Ctrl-d"
+          editor.focus();
+          e.stopImmediatePropagation();
+        } else if(e.keyCode === 73) { // "Ctrl-i"
+          replWidget.focus();
+          e.stopImmediatePropagation();
+        }
+      }
+    });
     var lskey = "patch_saved_program";
     function save() {
-      window.localStorage.setItem(lskey, cm.getValue());
+      window.localStorage.setItem(lskey, editor.cm.getValue());
     }
     $("#saveButton").click(save);
     setInterval(save, 3000);
     if(window.localStorage.hasOwnProperty(lskey)) {
-      cm.setValue(window.localStorage.getItem(lskey));
+      editor.cm.setValue(window.localStorage.getItem(lskey));
     }
+    editor.focus();
   });
 });
 </script>
