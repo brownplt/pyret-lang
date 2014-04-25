@@ -16,6 +16,7 @@ define(["trove/image-lib"], function(imageLib) {
       var realHeight = answer.val.getHeight();
       if(answer.val.getWidth() > maxWidth || answer.val.getHeight() > maxHeight) {
         container.addClass("replImageThumbnail");
+        container.attr("title", "Click to see full image");
         var scaleFactorX = 100 / realWidth;
         var scaleFactorY = 200 / realHeight;
         var scaleFactor = scaleFactorX < scaleFactorY ? scaleFactorX : scaleFactorY;
