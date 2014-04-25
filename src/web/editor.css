@@ -17,7 +17,7 @@
 .repl .CodeMirror pre {
   padding: 0;
 }
-.CodeMirror div.CodeMirror-cursor { border-left: 1px solid #bbb; }
+.CodeMirror div.CodeMirror-cursor { border-left: 2px solid #111; }
 .cm-s-default.CodeMirror { color: #111; }
 .cm-s-default .cm-comment { color: #39f; }
 .cm-s-default .cm-builtin { color: #555; }

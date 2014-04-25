@@ -9,6 +9,14 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     });
     return newobj;
   }
+  var animationDiv = null;
+  function closeAnimationIfOpen() {
+    if(animationDiv) {
+      animationDiv.empty();
+      animationDiv.dialog("destroy");
+      animationDiv = null;
+    }
+  }
   function makeEditor(container, options) {
     var initial = "";
     if (options.hasOwnProperty("initial")) {
@@ -89,6 +97,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
 
     return function(src, uiOptions, options) {
       function highlightingOnError(output) { return function(err) {
+        closeAnimationIfOpen();
         ct_log(err);
         if (!runtime.isFailureResult(err)) {
           ct_err("Got a non-failure result in OnError handler: ", err);
@@ -190,12 +199,12 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
         output.append($("<div>").addClass("replPrint").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
-        var dialog = $("<div>").css({"z-index": 10000});
-        output.append(dialog);
+        animationDiv = $("<div>").css({"z-index": 10000});
+        output.append(animationDiv);
         function onClose() {
           onBreak();
         }
-        dialog.dialog({
+        animationDiv.dialog({
           title: 'big-bang',
           position: ["left", "top"],
 			    bgiframe : true,
@@ -207,7 +216,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
           close : onClose,
           closeOnEscape : true
         });
-        dialog.append(dom);
+        animationDiv.append(dom);
       });
 
     var breakButton = options.breakButton;
@@ -402,6 +411,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
       breakButton.attr("disabled", true);
       evaluator.requestBreak(function(restarter) {
           restarter.break();
+          closeAnimationIfOpen();
           showPrompt();
         });
     };
