@@ -60,7 +60,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           console.error("Failure: ", err);
           fail();
         });
-      });
+      }, 10000);
 
       it("should allow recursive references in the same block", function(done) {
         aRepl.restartInteractions("");
