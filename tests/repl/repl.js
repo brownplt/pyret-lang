@@ -12,7 +12,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
   var replCount = 0;
   function getVal(result) {
     if(!rt.isSuccessResult(result)) {
-      console.error("Tried to getVal of non-SuccessResult: ", result, result.exn.stack);
+      console.error("Tried to getVal of non-SuccessResult: ", result, result.exn ? result.exn.stack : "No stack");
       throw result.exn;
     }
     return rt.getField(result.result, "answer");
@@ -173,6 +173,32 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           });
 
       });
+
+      it("should allow stopping", function(done) {
+        aRepl.restartInteractions("fun fact(n): if n < 1: 1 else: n * fact(n - 1);;").then(function(replResult) {
+          setTimeout(function() {
+              aRepl.stop();
+            }, 1000);
+          return aRepl.run("fact(100000)");
+        }).then(function(result) {
+          expect(result).toPassPredicate(rt.isFailureResult)
+          expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);
+          done();
+        });
+      });
+
+      it("should allow stopping nested inside tasks", function(done) {
+        aRepl.restartInteractions("fun fact(n): if n < 1: 1 else: n * fact(n - 1);;").then(function(replResult) {
+          setTimeout(function() {
+              aRepl.stop();
+            }, 1000);
+          return aRepl.run("run-task(fun(): fact(100000) 'done' end)");
+        }).then(function(result) {
+          expect(result).toPassPredicate(rt.isFailureResult);
+          expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);
+          done();
+        });
+      }, 10000);
     });
 
   }

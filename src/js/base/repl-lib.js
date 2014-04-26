@@ -81,10 +81,16 @@ define(["q", "./eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], func
           afterPause(resumer);
         });
       }
+      function stop() {
+        runtime.schedulePause(function(resumer) {
+          resumer.break();
+        });
+      }
       return {
         restartInteractions: restartInteractions,
         run: run,
-        pause: pause
+        pause: pause,
+        stop: stop
       }
     });
   }

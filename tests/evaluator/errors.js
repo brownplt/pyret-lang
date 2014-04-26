@@ -27,7 +27,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
         
-      });
+      }, 10000);
       it("should work for exceptional computation", function(done) {
         var prog =
 "cases(Either) run-task(fun(): raise('ahoy') end):\n" +
@@ -35,9 +35,23 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "    | right(exn) => exn\n" +
 "end";
         same(prog, rt.makeString('ahoy'));
-        
+
         P.wait(done);
-      });
+      }, 10000);
+
+      it("should work when nested", function(done) {
+        var prog =
+"fun f(n):\n" +
+"  cases(Either) run-task(fun(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
+"      | left(v) => v\n" +
+"      | right(exn) => n + exn\n" +
+"  end\n" +
+"end\n" +
+"f(5)";
+        same(prog, rt.makeNumber(15));
+
+        P.wait(done);
+      }, 20000);
     });
 
     xdescribe("lookup-number", function() {

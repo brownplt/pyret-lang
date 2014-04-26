@@ -70,6 +70,12 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toBeInstanceOf : function(cls) {
                 return this.actual instanceof cls;
+            },
+            toContainString : function(s) {
+                return this.actual.indexOf(s) !== -1;
+            },
+            toBeMessageExn : function(rt, s) {
+                return rt1.unwrap(rt1.getField(e, "message")).indexOf(s) !== -1;
             }
         });
     }

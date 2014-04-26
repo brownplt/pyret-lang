@@ -1362,7 +1362,13 @@ function createMethodDict() {
 
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
+    var RUN_ACTIVE = false;
     function run(program, namespace, options, onDone) {
+      if(RUN_ACTIVE) {
+        onDone(new FailureResult(ffi.makeMessageException("Internal: run called while already running")));
+        return;
+      }
+      RUN_ACTIVE = true;
       var start;
       function startTimer() {
         if (typeof window !== "undefined" && window.performance) {
@@ -1378,6 +1384,18 @@ function createMethodDict() {
           return process.hrtime(start);
         }
       }
+      function getStats() {
+        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+      }
+      function finishFailure(exn) {
+        RUN_ACTIVE = false;
+        onDone(new FailureResult(exn, getStats()));
+      }
+      function finishSuccess(answer) {
+        RUN_ACTIVE = false;
+        onDone(new SuccessResult(answer, getStats()));
+      }
+
       startTimer();
       var that = this;
       var theOneTrueStackTop = ["top-of-stack"]
@@ -1448,15 +1466,16 @@ function createMethodDict() {
                       checkResume();
                       val = restartVal;
                       TOS++;
+                      RUN_ACTIVE = true;
                       setTimeout(iter, 0);
                     },
                     break: function() {
                       checkResume();
-                      onDone(new FailureResult(new PyretFailException(ffi.makeMessageException("User break")), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                      finishFailure(new PyretFailException(ffi.userBreak));
                     },
                     error: function(err) {
                       checkResume();
-                      onDone(new FailureResult(err, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                      finishFailure(err);
                     }
                   });
                 })(false);
@@ -1484,15 +1503,15 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
                 e.pyretStack.push(next.from);
               }
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+              finishFailure(e);
               return;
             } else {
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+              finishFailure(e);
               return;
             }
           }
         }
-        onDone(new SuccessResult(val, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+        finishSuccess(val);
         return;
       }
       thisRuntime.GAS = initialGas;
@@ -1504,12 +1523,15 @@ function createMethodDict() {
     }
 
     function pauseStack(resumer) {
+      if(!RUN_ACTIVE) { ffi.throwMessageException("pauseStack called during another pause"); }
+      RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       throw makePause(resumer);
     }
 
     var manualPause = null;
     function schedulePause(resumer) {
+      if(!RUN_ACTIVE) { ffi.throwMessageException("schedulePause called during another pause"); }
       manualPause = resumer;
     }
 
@@ -1529,8 +1551,15 @@ function createMethodDict() {
         thisRuntime.run(function(_, __) {
             return thunk.app();
           }, thisRuntime.namespace, {
-            sync: true
-          }, function(result) { restarter.resume(wrapResult(result)) });
+            sync: false
+          }, function(result) {
+            if(isFailureResult(result) &&
+               isPyretException(result.exn) &&
+               ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
+            else {
+              restarter.resume(wrapResult(result))
+            }
+          });
       });
     }
 

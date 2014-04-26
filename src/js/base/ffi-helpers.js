@@ -44,6 +44,11 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
 
 
       function err(str) { return gf(ERR, str).app; }
+      function errPred(str) {
+        return function(val) {
+          return runtime.unwrap(gf(ERR, str).app(val));
+        };
+      }
       var raise = runtime.raise;
 
       function throwInternalError(message, otherArgs) {
@@ -166,6 +171,8 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
         throwParseErrorNextToken: throwParseErrorNextToken,
 
         makeMessageException: makeMessageException,
+        userBreak: gf(ERR, "user-break"),
+        isUserBreak: errPred("is-user-break"),
 
         cases: cases,
 
