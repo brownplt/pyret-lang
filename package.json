@@ -19,7 +19,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "postinstall": "make",
+    "postinstall": "make install && make",
     "test": "make test"
   },
   "repository": {
