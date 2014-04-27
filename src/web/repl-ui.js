@@ -267,7 +267,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
           echoSpan.append(echo);
           echoContainer.append(drawPromptArrow()).append(echoSpan);
           write(echoContainer);
-          var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: 'nocursor' });
+          var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: true });
           echoCM.setValue(code);
           breakButton.attr("disabled", false);
           CM.setValue("");
