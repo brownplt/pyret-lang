@@ -6,8 +6,14 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "js/js-numbers"],
-       function (require, Namespace, jsnumsIn) {
+define(["./namespace", "js/js-numbers"],
+       function (Namespace, jsnumsIn) {
+  if(requirejs.isBrowser) {
+    var require = requirejs;
+  }
+  else {
+    var require = requirejs.nodeRequire("requirejs");
+  }
 
 
 
@@ -1537,7 +1543,6 @@ function createMethodDict() {
 
     function execThunk(thunk) {
       function wrapResult(res) {
-        var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
@@ -1760,9 +1765,7 @@ function createMethodDict() {
       thisRuntime.checkIf(s, thisRuntime.isString);
       thisRuntime.checkIf(splitstr, thisRuntime.isString);
       
-      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-      // TODO: Repeated?
-      return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
+      return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_charat = function(s, n) {
       thisRuntime.checkIf(s, thisRuntime.isString);
@@ -1781,8 +1784,7 @@ function createMethodDict() {
     }
     var string_explode = function(s) {
       thisRuntime.checkIf(s, thisRuntime.isString);
-      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-      return list.makeList(s.split("").map(thisRuntime.makeString));
+      return ffi.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
       thisRuntime.checkIf(s, thisRuntime.isString);

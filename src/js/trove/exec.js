@@ -1,4 +1,13 @@
-define(["requirejs", "js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(rjs, loader, ffi, runtimeLib, checkerLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(loader, ffi, runtimeLib, checkerLib) {
+
+  if(requirejs.isBrowser) {
+    var rjs = requirejs;
+    var define = window.define;
+  }
+  else {
+    var rjs = require("requirejs");
+    var define = r.define;
+  }
 
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
