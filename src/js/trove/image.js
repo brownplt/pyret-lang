@@ -221,7 +221,7 @@ define([
         "bitmap-url": bitmapURL,
         "open-image-url": bitmapURL,
         "image-url": bitmapURL,
-        "image-equals": f(function(maybeImage1, maybeImage2) {
+        "images-equal": f(function(maybeImage1, maybeImage2) {
           checkArity(2, arguments);
           // TODO: The original version of the image library's equals function passes a union-find datastructure
           // for some reason.  Our runtime.same method doesn't.  Could be a problem...

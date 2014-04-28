@@ -57,6 +57,15 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
     }
     var n = Namespace.namespace({
       '_empty': rt.namespace.get("_empty"),
+      '_plus': rt.namespace.get("_plus"),
+      '_minus': rt.namespace.get("_minus"),
+      '_times': rt.namespace.get("_times"),
+      '_divide': rt.namespace.get("_divide"),
+      '_lessthan': rt.namespace.get("_lessthan"),
+      '_greaterthan': rt.namespace.get("_greaterthan"),
+      '_greaterequal': rt.namespace.get("_greaterequal"),
+      '_lessequal': rt.namespace.get("_lessequal"),
+
       'torepr': rt.namespace.get("torepr"),
       'tostring': rt.namespace.get("tostring"),
       'print': rt.namespace.get("print"),
@@ -93,7 +102,7 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
 
       'num-max': rt.namespace.get("num-max"),
       'num-min': rt.namespace.get("num-min"),
-      'num-equals': rt.namespace.get("num-equals"),
+      'nums-equal': rt.namespace.get("nums-equal"),
       'num-abs': rt.namespace.get("num-abs"),
       'num-sin': rt.namespace.get("num-sin"),
       'num-cos': rt.namespace.get("num-cos"),
@@ -113,7 +122,7 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
       'num-expt': rt.namespace.get("num-expt"),
       'num-tostring': rt.namespace.get("num-tostring"),
 
-      'string-equals': rt.namespace.get("string-equals"),
+      'strings-equal': rt.namespace.get("strings-equal"),
       'string-contains': rt.namespace.get("string-contains"),
       'string-append': rt.namespace.get("string-append"),
       'string-length': rt.namespace.get("string-length"),

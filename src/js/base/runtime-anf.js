@@ -1723,18 +1723,18 @@ function createMethodDict() {
     }
 
     var string_equals = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(same(l, r));
     }
     var string_append = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
       return thisRuntime.makeString(l.concat(r));
     }
     var string_contains = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
     var string_length = function(s) {
@@ -1742,7 +1742,7 @@ function createMethodDict() {
       return thisRuntime.makeNumber(s.length);
     }
     var string_tonumber = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       var num = jsnums.fromString(s);
       if(num !== false) {
         return makeNumberBig(/**@type {Bignum}*/ (num));
@@ -1752,8 +1752,8 @@ function createMethodDict() {
       }
     }
     var string_repeat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkString(s);
+      thisRuntime.checkNumber(n);
       var resultStr = "";
       // TODO(joe): loop up to a fixnum?
       for(var i = 0; i < jsnums.toFixnum(n); i++) {
@@ -1762,14 +1762,14 @@ function createMethodDict() {
       return makeString(resultStr);
     }
     var string_split = function(s, splitstr) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(splitstr, thisRuntime.isString);
+      thisRuntime.checkString(s);
+      thisRuntime.checkString(splitstr);
       
       return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_charat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkString(s);
+      thisRuntime.checkNumber(n);
       
       //TODO: Handle bignums that are beyond javascript
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
@@ -1793,8 +1793,8 @@ function createMethodDict() {
     }
 
     var num_equals = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isNumber);
-      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      thisRuntime.checkNumber(l);
+      thisRuntime.checkNumber(r);
       return thisRuntime.makeBoolean(same(l, r));
     }
     var num_max = function(l, r) {
@@ -2003,7 +2003,7 @@ function createMethodDict() {
 
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
-          'num-equals': makeFunction(num_equals),
+          'nums-equal': makeFunction(num_equals),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
@@ -2024,7 +2024,7 @@ function createMethodDict() {
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
 
-          'string-equals': makeFunction(string_equals),
+          'strings-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
