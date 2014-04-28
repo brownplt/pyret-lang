@@ -33,14 +33,18 @@ define(["require", "q"], function(rjs, Q) {
     var FS = require("fs");
     var VM = require("vm");
 
-    var source = FS.readFileSync(require.nodeRequire.resolve("ses/initSES.js"));
-    var oldLog = console.log;
-    console.log = function() { /* intentional no-op to suppress SES logging */ }
-    var script = new VM.Script(source);
-//    script.runInThisContext();
-//    ourCajaVM = cajaVM;
-    unsafeCaja();
-    console.log = oldLog;
+    var RUN_SES = false; // NOTE(joe): skipping on servers for now; SES isn't really there yet
+    if(RUN_SES) {
+      var source = FS.readFileSync(require.nodeRequire.resolve("ses/initSES.js"));
+      var oldLog = console.log;
+      console.log = function() { /* intentional no-op to suppress SES logging */ }
+      var script = new VM.Script(source);
+      script.runInThisContext();
+      ourCajaVM = cajaVM;
+      console.log = oldLog;
+    } else {
+      unsafeCaja();
+    }
   }
 
   function safeEval(string, env) {
