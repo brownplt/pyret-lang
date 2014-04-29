@@ -77,6 +77,7 @@
                               (save-excursion (forward-char -5) (pyret-WITH))
                               (save-excursion (forward-char -8) (pyret-SHARING))
                               (save-excursion (forward-char -5) (pyret-CHECK))
+                              (save-excursion (forward-char -8) (pyret-EXAMPLES))
                               (save-excursion (forward-char -6) (pyret-WHERE))
                               (save-excursion (forward-char -6) (pyret-BLOCK))
                               (save-excursion (forward-char -6) (pyret-GRAPH)))
@@ -87,16 +88,16 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords-regex 
   (regexp-opt
-   '("fun" "method" "var" "when" "import" "provide" "check"
+   '("fun" "method" "var" "val" "when" "import" "provide" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
      "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
      "as" "if" "else" "deriving")))
 (defconst pyret-keywords-colon-regex
   (regexp-opt
-   '("doc" "try" "with" "if" "then" "sharing" "where" "case" "graph" "block")))
+   '("doc" "try" "with" "if" "then" "sharing" "where" "case" "graph" "block" "otherwise")))
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
-                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "*" "/"))) ;; NOTE: No hyphen by itself
+                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
 (defconst pyret-font-lock-keywords-1
@@ -244,10 +245,12 @@
 (defsubst pyret-CASES () (pyret-keyword "cases"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
 (defsubst pyret-IFCOLON () (pyret-keyword "if:"))
+(defsubst pyret-ASKCOLON () (pyret-keyword "ask:"))
 (defsubst pyret-THEN () () (pyret-keyword "then:"))
 (defsubst pyret-IF () (pyret-keyword "if"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))
+(defsubst pyret-OTHERWISE () (pyret-keyword "otherwise:"))
 (defsubst pyret-IMPORT () (pyret-keyword "import"))
 (defsubst pyret-PROVIDE () (pyret-keyword "provide"))
 (defsubst pyret-DATA () (pyret-keyword "data"))
@@ -530,6 +533,10 @@
             (incf (pyret-indent-cases defered-opened))
             (push 'ifcond opens)
             (forward-char 3))
+           ((pyret-ASKCOLON)
+            (incf (pyret-indent-cases defered-opened))
+            (push 'ifcond opens)
+            (forward-char 4))
            ((pyret-IF)
             (incf (pyret-indent-fun defered-opened))
             (push 'if opens)
@@ -939,7 +946,7 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'indent-tabs-mode) nil)
   (set (make-local-variable 'paragraph-start)
        (concat "\\|[ \t]*" 
-               (regexp-opt '("|" "fun" "case" "data" "for" "sharing" "try" "except" "when" "check"))))
+               (regexp-opt '("|" "fun" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "if:"))))
   (setq major-mode 'pyret-mode)
   (setq mode-name "Pyret")
   (set (make-local-variable 'pyret-nestings-at-line-start) (vector))

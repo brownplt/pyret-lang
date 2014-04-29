@@ -121,9 +121,26 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done)
       });
-      xit("empty blocks", function(done) {
-        P.checkCompileError("fun(): where: 5 end", function(e){ 
-          expect(rt.unwrap(e)).toEqual("Empty block"); return true; 
+      it("should notice empty blocks", function(done) {
+        P.checkCompileError("fun(): end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkCompileError("for each(elt from []): end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkCompileError("letrec x = 10: end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkCompileError("let x = 10: end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
+        });
+        P.checkCompileError("when true: end", function(e) {
+          expect(e.length).toEqual(1);
+          return true;
         });
         P.wait(done);
       });

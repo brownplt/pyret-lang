@@ -1,17 +1,26 @@
-define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
+define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(imageLib, checkUI, errorUI, outputUI) {
   function merge(obj, extension) {
-    return _.merge(_.clone(obj), extension);
+    var newobj = {};
+    Object.keys(obj).forEach(function(k) {
+      newobj[k] = obj[k];
+    });
+    Object.keys(extension).forEach(function(k) {
+      newobj[k] = extension[k];
+    });
+    return newobj;
+  }
+  var animationDiv = null;
+  function closeAnimationIfOpen() {
+    if(animationDiv) {
+      animationDiv.empty();
+      animationDiv.dialog("destroy");
+      animationDiv = null;
+    }
   }
   function makeEditor(container, options) {
     var initial = "";
     if (options.hasOwnProperty("initial")) {
       initial = options.initial;
-    }
-
-    var runButton = drawRunButton();
-    if (options.run && !options.simpleEditor) {
-      container.append(runButton);
-      container.append(drawClearFix());
     }
 
     var textarea = jQuery("<textarea>");
@@ -45,25 +54,38 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       viewportMargin: Infinity,
       lineNumbers: useLineNumbers,
       matchBrackets: true,
-      lineWrapping: true,
-      foldGutter: {
-        rangeFinder: CodeMirror.fold.indent
-      },
-      gutters: optGutters.concat(["CodeMirror-foldgutter"])
+      lineWrapping: true
     };
 
-    cmOptions = merge(cmOptions, options.cmOptions);
+    cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
 
-    if (options.run) {
-      runButton.on("click", function () {
+
+    if (useLineNumbers) {
+      var upperWarning = jQuery("<div>").addClass("warning-upper");
+      var upperArrow = jQuery("<img>").addClass("warning-upper-arrow").attr("src", "./../../img/up-arrow.png");
+      upperWarning.append(upperArrow);
+      CM.display.wrapper.appendChild(upperWarning.get(0));
+      var lowerWarning = jQuery("<div>").addClass("warning-lower");
+      var lowerArrow = jQuery("<img>").addClass("warning-lower-arrow").attr("src", "./../../img/down-arrow.png");
+      lowerWarning.append(lowerArrow);
+      CM.display.wrapper.appendChild(lowerWarning.get(0));
+    }
+
+    if(options.runButton) {
+      options.runButton.on("click", function() {
         runFun(CM.getValue(), {check: true});
       });
     }
 
-
-    return CM;
+    return {
+      cm: CM,
+      run: function() {
+        runFun(CM.getValue(), {check: true});
+      },
+      focus: function() { CM.focus(); }
+    };
   }
 
   function formatCode(container, src) {
@@ -75,20 +97,18 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
 
     return function(src, uiOptions, options) {
       function highlightingOnError(output) { return function(err) {
+        closeAnimationIfOpen();
         ct_log(err);
         if (!runtime.isFailureResult(err)) {
           ct_err("Got a non-failure result in OnError handler: ", err);
         }
         else {
           var exn = err.exn;
-          // compile errors
-          if(exn instanceof Array) {
-            output.append($("<div>").text(String(exn.map(function(e) { return runtime.toReprJS(e, "tostring"); }))));
+          try {
+            errorUI.drawError(output, uiOptions.cm, runtime, exn);
           }
-          else if('exn' in exn) {
-            output.append($("<div>").text(String(result.exn)));
-          } else {
-            output.append($("<div>").text("An unexpected error occurred"));
+          catch(e) {
+            console.error("There was an error while reporting the error: ", e);
           }
         }
       };}
@@ -96,30 +116,22 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       function highlightingCheckReturn(output) { return function(obj) {
         if(!isMain) {
           var answer = runtime.getField(obj.result, "answer");
-          if(runtime.isOpaque(answer) && image.isImage(answer.val)) {
-            var imageDom = output.append(answer.val.toDomNode());
-            $(imageDom).trigger({type: 'afterAttach'});
-            $('*', imageDom).trigger({type : 'afterAttach'});
-          } else {
-            output.append($("<div>").text(runtime.toReprJS(runtime.getField(obj.result, "answer"), "_torepr")));
-          }
+          outputUI.renderPyretValue(output, runtime, answer);
         }
         var toCall = runtime.getField(runtime.getParam("current-checker"), "summary");
         var R = runtime;
         var gf = R.getField;
-        R.run(function(_, _) {
+        R.runThunk(function() {
             return toCall.app();
           },
-          R.namespace,
-          {sync: false},
           function(result) {
             if(R.isSuccessResult(result)) {
               if (R.unwrap(gf(result.result, "total")) !== 0 || isMain) {
-                output.append($("<pre>").text(R.unwrap(gf(result.result, "message"))));
+                output.append($("<pre>").addClass("replOutput").text(R.unwrap(gf(result.result, "message"))));
               }
             }
             else {
-              output.append($("<div>").text(String(result.exn)));
+              output.append($("<div>").addClass("replOutput").text(String(result.exn)));
             }
           });
 
@@ -135,13 +147,11 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
           wrappingOnError: highlightingOnError
       });
       theseUIOptions.wrappingReturnHandler = highlightingCheckReturn;
-      //clear();
       codeRunner(src, theseUIOptions, options);
     }
   }
-
   //: -> (code -> printing it on the repl)
-  function makeRepl(container, repl, runtime) {
+  function makeRepl(container, repl, runtime, options) {
     var items = [];
     var pointer = -1;
     var current = "";
@@ -170,52 +180,57 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       }
     }
 
-    var promptContainer = jQuery("<div id='prompt-container'>");
-    var prompt = jQuery("<div>").addClass("repl-prompt");
-    promptContainer.append(prompt);
+    var promptContainer = jQuery("<div class='prompt-container'>");
+    var promptArrow = drawPromptArrow();
+    var prompt = jQuery("<span>").addClass("repl-prompt");
+    function showPrompt() {
+      promptContainer.hide();
+      promptContainer.fadeIn(100);
+      CM.setValue("");
+      CM.focus();
+    }
+    promptContainer.append(promptArrow).append(prompt);
+
+    container.click(function() { CM.focus(); });
 
     var output = jQuery("<div id='output' class='cm-s-default'>");
     runtime.setStdout(function(str) {
         ct_log(str);
-        output.append($("<div>").text(str));
+        output.append($("<div>").addClass("replPrint").text(str));
       });
     runtime.setParam("current-animation-port", function(dom) {
-        output.append(dom);
+        animationDiv = $("<div>").css({"z-index": 10000});
+        output.append(animationDiv);
+        function onClose() {
+          onBreak();
+        }
+        animationDiv.dialog({
+          title: 'big-bang',
+          position: ["left", "top"],
+			    bgiframe : true,
+			    modal : true,
+			    overlay : { opacity: 0.5, background: 'black'},
+			    //buttons : { "Save" : closeDialog },
+          width : "auto",
+          height : "auto",
+          close : onClose,
+          closeOnEscape : true
+        });
+        animationDiv.append(dom);
       });
 
-    var clearDiv = jQuery("<div class='clear'>");
-
-    var clearRepl = function() {
-      output.empty();
-      promptContainer.hide();
-      promptContainer.fadeIn(100);
-      lastNameRun = 'interactions';
-      lastEditorRun = null;
-    };
-
-    var clearButton = $("<button>").addClass("blueButton").text("Clear")
-      .click(clearRepl);
-    var breakButton = $("<button>").addClass("blueButton").text("Stop");
-    container.append(clearButton).append(breakButton).append(output).append(promptContainer).
-      append(clearDiv);
-
+    var breakButton = options.breakButton;
+    container.append(output).append(promptContainer);
 
     var runCode = makeHighlightingRunCode(runtime, function (src, uiOptions, options) {
       breakButton.attr("disabled", false);
-      CM.setOption("readOnly", "nocursor");
-      CM.getDoc().eachLine(function (line) {
-        CM.addLineClass(line, 'background', 'cptteach-fixed');
-      });
       output.empty();
       promptContainer.hide();
-      promptContainer.fadeIn(100);
       var defaultReturnHandler = options.check ? checkModePrettyPrint : prettyPrint;
       var thisReturnHandler;
       if (uiOptions.wrappingReturnHandler) {
         thisReturnHandler = uiOptions.wrappingReturnHandler(output);
-        console.log("Using the wrapping return handler");
       } else {
-        console.log("Using default return handler");
         thisReturnHandler = uiOptions.handleReturn || defaultReturnHandler;
       }
       var thisError;
@@ -227,7 +242,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       var thisWrite = uiOptions.write || write;
       lastNameRun = uiOptions.name || "interactions";
       lastEditorRun = uiOptions.cm || null;
-      evaluator.runMain(uiOptions.name || "run", src, clear, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
+      evaluator.runMain(uiOptions.name || "run", src, enablePrompt(thisReturnHandler), thisWrite, enablePrompt(thisError), options);
     }, true);
 
     var enablePrompt = function (handler) { return function (result) {
@@ -238,6 +253,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
           CM.removeLineClass(line, 'background', 'cptteach-fixed');
         });
         output.get(0).scrollTop = output.get(0).scrollHeight;
+        showPrompt();
         return handler(result);
       };
     }
@@ -245,27 +261,25 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
     var runner = makeLoggingRunCode(function(code, opts, replOpts){
           items.unshift(code);
           pointer = -1;
-          var echoContainer = $("<div>");
-          var echo = $("<textarea class='repl-echo CodeMirror'>");
-          echoContainer.append(echo);
+          var echoContainer = $("<div class='echo-container'>");
+          var echoSpan = $("<span>").addClass("repl-echo");
+          var echo = $("<textarea>");
+          echoSpan.append(echo);
+          echoContainer.append(drawPromptArrow()).append(echoSpan);
           write(echoContainer);
-          var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: 'nocursor' });
+          var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: true });
           echoCM.setValue(code);
-          write(jQuery('<br/>'));
           breakButton.attr("disabled", false);
-          CM.setOption("readOnly", "nocursor");
-          CM.getDoc().eachLine(function (line) {
-            CM.addLineClass(line, 'background', 'cptteach-fixed');
-          });
+          CM.setValue("");
+          promptContainer.hide();
           makeHighlightingRunCode(runtime, function(src, uiOptions, options) {
             evaluator.runRepl('interactions',
                         src,
-                        clear,
                         enablePrompt(uiOptions.wrappingReturnHandler(output)),
                         write,
                         enablePrompt(uiOptions.wrappingOnError(output)),
-                        merge(options, _.merge(replOpts, {check: true})));
-          }, false)(code, merge(opts, {name: lastNameRun, cm: lastEditorRun || echoCM}), replOpts);
+                        merge(options, merge(replOpts, {check: true})));
+          }, false)(code, merge(opts, {name: lastNameRun, cm: echoCM}), replOpts);
         },
         "interactions");
 
@@ -285,7 +299,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
           'Ctrl-Alt-Down': "goLineDown"
         }
       }
-    });
+    }).cm;
 
     var lastNameRun = 'interactions';
     var lastEditorRun = null;
@@ -294,17 +308,12 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       output.append(dom);
     };
 
-    var clear = function() {
-      allowInput(CM, true)();
-    };
-
     var onError = function(err, editor) {
       ct_log("onError: ", err);
       if (err.message) {
         write(jQuery('<span/>').css('color', 'red').append(err.message));
         write(jQuery('<br/>'));
       }
-      clear();
     };
 
     var prettyPrint = function(result) {
@@ -402,41 +411,23 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       breakButton.attr("disabled", true);
       evaluator.requestBreak(function(restarter) {
           restarter.break();
+          closeAnimationIfOpen();
+          showPrompt();
         });
     };
-
-
-    var allowInput = function(CM, clear) { return function() {
-      if (clear) {
-        CM.setValue("");
-      }
-
-      CM.setOption("readOnly", false);;
-      CM.getDoc().eachLine(function (line) {
-        CM.removeLineClass(line, 'background', 'cptteach-fixed');
-      });
-      breakButton.attr("disabled", true);
-
-      CM.focus();
-    } };
-
-    var onReset = function() {
-      evaluator.requestReset(function() {
-        output.empty();
-        clear();
-      });
-    };
-
 
 
     breakButton.attr("disabled", true);
     breakButton.click(onBreak);
 
-    return runCode;
+    return {
+      runCode: runCode,
+      focus: function() { CM.focus(); }
+    };
   }
 
   function makeEvaluator(container, repl, runtime, handleReturnValue) {
-    var runMainCode = function(name, src, afterRun, returnHandler, writer, onError, options) {
+    var runMainCode = function(name, src, returnHandler, writer, onError, options) {
       repl.restartInteractions(src).then(function(result) {
         if(runtime.isSuccessResult(result)) {
           returnHandler(result);
@@ -446,7 +437,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
       });
     };
 
-    var runReplCode = function(name, src, afterRun, returnHandler, writer, onError, options) {
+    var runReplCode = function(name, src, returnHandler, writer, onError, options) {
       repl.run(src).then(function(result) {
         if(runtime.isSuccessResult(result)) {
           returnHandler(result);
@@ -499,7 +490,7 @@ define(["trove/image-lib", "./check-ui"], function(imageLib, checkUI) {
     }, name);
 */
   }
-  
+
   return {
     makeRepl: makeRepl,
     makeEditor: makeEditor

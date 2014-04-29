@@ -38,6 +38,10 @@ define(["../../../lib/jglr/jglr"], function(E) {
     this.parenIsForExp = true; // initialize this at the beginning of file to true
   }
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
+  Tokenizer.prototype.tokenizeFrom = function(str) {
+    GenTokenizer.prototype.tokenizeFrom.call(this, str);
+    this.parenIsForExp = true;
+  }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
     if (tok_type === "STRING") s = fixEscapes(s);
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
@@ -46,8 +50,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
     var tok_type = tok.name;
     if (tok_type === "PAREN?") {
       for (var j = 0; j < this.Tokens.length; j++) {
-        this.Tokens[j].val.lastIndex = 0;
+        if (STICKY_REGEXP !== '') {
+          var oldIndex = this.Tokens[j].val.lastIndex;
+          this.Tokens[j].val.lastIndex = 0;
+        }
         var op = this.Tokens[j].val.exec(match[0]);
+        if (STICKY_REGEXP !== '') {
+          this.Tokens[j].val.lastIndex = oldIndex;
+        }
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
@@ -66,15 +76,16 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
-  const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", 
+  const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", "%",
                                     "<", ">", "and", "or", "not", "is", "raises"]);
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
+  const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const opparen = new RegExp("^" + operator_regex_str + "(?=\\()", STICKY_REGEXP); // NOTE: likewise
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
-  const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r)", STICKY_REGEXP)
+  const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r|$)", STICKY_REGEXP)
   const bar = new RegExp("^\\|", STICKY_REGEXP);
   const langle = new RegExp("^<", STICKY_REGEXP);
   const rangle = new RegExp("^>", STICKY_REGEXP);
@@ -86,6 +97,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const rparen = new RegExp("^\\)", STICKY_REGEXP);
   const period = new RegExp("^\\.", STICKY_REGEXP);
   const bang = new RegExp("^!", STICKY_REGEXP);
+  const percent = new RegExp("^%", STICKY_REGEXP);
   const comma = new RegExp("^,", STICKY_REGEXP);
   const thinarrow = new RegExp("^->", STICKY_REGEXP);
   const thickarrow = new RegExp("^=>", STICKY_REGEXP);
@@ -179,6 +191,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
+    {name: "PERCENT", val: percent},
     {name: "COMMA", val: comma},
     {name: "THINARROW", val: thinarrow},
     {name: "THICKARROW", val: thickarrow},
@@ -188,6 +201,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "CARET", val: caret},
     {name: "BAR", val: bar},
 
+    {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
     {name: "STRING", val: dquot_str}, 
     {name: "STRING", val: squot_str},

@@ -35,41 +35,48 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         }
       }
 
+      var hasKey = RUNTIME.makeMethodFromFun(function(self, str) {
+        RUNTIME.checkIf(str, RUNTIME.isString);
+        var s = unwrap(str); 
+        return RUNTIME.makeBoolean(RUNTIME.getField(self, "the-dict").val.hasBinding(s));
+      });
+      var get = RUNTIME.makeMethodFromFun(function(self, str) {
+        RUNTIME.checkIf(str, RUNTIME.isString);
+        var s = unwrap(str); 
+        var dict = RUNTIME.getField(self, "the-dict");
+        if(dict.val instanceof ImmutableStringDict) {
+          return dict.val.get(s);
+        }
+        else {
+          return dict.val.get(s);
+        }
+      });
+
+      var set = RUNTIME.makeMethodFromFun(function(self, str, val) {
+        RUNTIME.checkIf(str, RUNTIME.isString);
+        var s = unwrap(str);
+        var dict = RUNTIME.getField(self, "the-dict");
+        if(dict.val instanceof ImmutableStringDict) {
+          return stringDictObj(dict.val.set(s, val));
+        }
+        else {
+          dict.val.set(s, val);
+          return self;
+        }
+      });
+
+      var keys = RUNTIME.makeMethodFromFun(function(self) {
+        var dict = RUNTIME.getField(self, "the-dict");
+        return F.makeList(dict.val.getNames().map(RUNTIME.makeString));
+      });
+
       function stringDictObj(aDict) {
         return RUNTIME.makeObject({
             'the-dict': RUNTIME.makeOpaque(aDict, equalsDict),
-            'has-key': RUNTIME.makeMethodFromFun(function(self, str) {
-                RUNTIME.checkIf(str, RUNTIME.isString);
-                var s = unwrap(str); 
-                return RUNTIME.makeBoolean(RUNTIME.getField(self, "the-dict").val.hasBinding(s));
-              }),
-            'get': RUNTIME.makeMethodFromFun(function(self, str) {
-                RUNTIME.checkIf(str, RUNTIME.isString);
-                var s = unwrap(str); 
-                var dict = RUNTIME.getField(self, "the-dict");
-                if(dict.val instanceof ImmutableStringDict) {
-                  return dict.val.get(s);
-                }
-                else {
-                  return dict.val.get(s);
-                }
-              }),
-            'set': RUNTIME.makeMethodFromFun(function(self, str, val) {
-                RUNTIME.checkIf(str, RUNTIME.isString);
-                var s = unwrap(str);
-                var dict = RUNTIME.getField(self, "the-dict");
-                if(dict.val instanceof ImmutableStringDict) {
-                  return stringDictObj(dict.val.set(s, val));
-                }
-                else {
-                  dict.val.set(s, val);
-                  return self;
-                }
-              }),
-            'keys': RUNTIME.makeMethodFromFun(function(self) {
-                var dict = RUNTIME.getField(self, "the-dict");
-                return F.makeList(dict.val.getNames().map(RUNTIME.makeString));
-              })
+            'has-key': hasKey,
+            'get': get,
+            'set': set,
+            'keys': keys
           });
       }
 

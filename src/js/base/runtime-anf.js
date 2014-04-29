@@ -6,8 +6,14 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["require", "./namespace", "js/js-numbers"],
-       function (require, Namespace, jsnumsIn) {
+define(["./namespace", "js/js-numbers"],
+       function (Namespace, jsnumsIn) {
+  if(requirejs.isBrowser) {
+    var require = requirejs;
+  }
+  else {
+    var require = requirejs.nodeRequire("requirejs");
+  }
 
 
 
@@ -275,7 +281,7 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLoc(val, field, loc) {
-    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
+    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
@@ -736,9 +742,15 @@ function createMethodDict() {
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
     var checkFunction = makeCheckType(isFunction, "Function");
-    var checkMethod = makeCheckType(isFunction, "Method");
-    var checkOpaque = makeCheckType(isFunction, "Opaque");
+    var checkMethod = makeCheckType(isMethod, "Method");
+    var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
+
+    var checkArity = function(expected, args) {
+      if (expected !== args.length) {
+        throw ffi.throwArityErrorC(["image"], expected, args);
+      }
+    }
 
     function confirm(val, test) {
       if(!test(val)) {
@@ -815,13 +827,8 @@ function createMethodDict() {
     var escapeString = function (s) {
         return '"' + replaceUnprintableStringChars(s) + '"';
     };
-    /**
-      Creates the js string representation for the value
-      @param {!PBase} val
 
-      @return {!string} the value given in
-    */
-    function toReprJS(val, method) {
+    function toReprLoop(val, method) {
       var stack = [{todo: [val], done: []}];
       function toReprHelp() {
         while (stack.length > 0 && stack[0].todo.length > 0) {
@@ -857,6 +864,12 @@ function createMethodDict() {
                 }
                 stack.push({todo: vals, done: [], keys: keys});
               }
+            } else if (isFunction(next)) {
+              top.todo.pop();
+              top.done.push("<function>");
+            } else if (isMethod(next)) {
+              top.todo.pop();
+              top.done.push("<method>");
             } else {
               top.todo.pop();
               top.done.push(String(next));
@@ -881,10 +894,10 @@ function createMethodDict() {
       } catch(e) {
         if (thisRuntime.isCont(e)) {
           var stacklet = {
-            from: topSrc(new Error()), near: "toRepr",
+            from: ["runtime torepr"], near: "toRepr",
             go: function(ret) {
               if (stack.length === 0) {
-                ffi.throwInternalException("Somehow we've drained the toRepr worklist, but have results coming back");
+                ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
               top.todo.pop();
@@ -896,11 +909,29 @@ function createMethodDict() {
           throw e;
         } else {
           if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push(topSrc(new Error())); 
+            e.pyretStack.push(["runtime torepr"]); 
           }
           throw e;
         }
       }
+    }
+    /**
+      Creates the js string representation for the value
+      @param {!PBase} val
+
+      @return {!string} the value given in
+    */
+    function toReprJS(val, method) {
+      if (isNumber(val)) { return String(val); }
+      else if (isBoolean(val)) { return String(val); }
+      else if (isString(val)) {
+        if (method === "_torepr") {
+          return ('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (val))) + '"');
+        } else {
+          return String(/**@type {!PString}*/ (val));
+        }
+      }
+      return toReprLoop(val, method);
     }
 
     /**@type {PFunction} */
@@ -1002,7 +1033,7 @@ function createMethodDict() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
             var g = getField;
-            return s ? g(s, "src") +
+            return s && hasField.app(s, "source") ? g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
@@ -1017,11 +1048,11 @@ function createMethodDict() {
     };
 
     function makeSrcloc(arr) {
-      if (arr instanceof Array && arr.length === 1) {
+      if (typeof arr === "object" && arr.length === 1) {
         checkString(arr[0]);
         return getField(srcloc, "builtin").app(arr[0])
       }
-      else if (arr instanceof Array && arr.length === 7) {
+      else if (typeof arr === "object" && arr.length === 7) {
         return getField(srcloc, "srcloc").app(
             arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
           )
@@ -1199,7 +1230,7 @@ function createMethodDict() {
       else if(isBoolean(v)) { return v; }
       else if(isObject(v)) { return v; }
       else if(isOpaque(v)) { return v; }
-      else { ffi.throwInternalException("Cannot unwrap", v); }
+      else { ffi.throwInternalError("Cannot unwrap", [v]); }
     }
 
     function wrap(v) {
@@ -1209,7 +1240,7 @@ function createMethodDict() {
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { ffi.throwInternalException("Cannot wrap", v); }
+      else { ffi.throwInternalError("Cannot wrap", v); }
     }
 
     function mkPred(jsPred) {
@@ -1335,20 +1366,15 @@ function createMethodDict() {
       return after(result);
     }
 
-    // Call like: topSrc(new Error())
-    function topSrc(error) {
-      var stackFrame = error.stack.split("\n")[1].trim().split(":");
-      return {
-        src: stackFrame[0].split(" ")[1],
-        "start-line": stackFrame[1],
-        "start-column": stackFrame[2],
-        "end-line": stackFrame[1],
-        "end-column": stackFrame[2]
-      };
-    }
 
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
+    var RUN_ACTIVE = false;
     function run(program, namespace, options, onDone) {
+      if(RUN_ACTIVE) {
+        onDone(new FailureResult(ffi.makeMessageException("Internal: run called while already running")));
+        return;
+      }
+      RUN_ACTIVE = true;
       var start;
       function startTimer() {
         if (typeof window !== "undefined" && window.performance) {
@@ -1364,9 +1390,21 @@ function createMethodDict() {
           return process.hrtime(start);
         }
       }
+      function getStats() {
+        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+      }
+      function finishFailure(exn) {
+        RUN_ACTIVE = false;
+        onDone(new FailureResult(exn, getStats()));
+      }
+      function finishSuccess(answer) {
+        RUN_ACTIVE = false;
+        onDone(new SuccessResult(answer, getStats()));
+      }
+
       startTimer();
       var that = this;
-      var theOneTrueStackTop = topSrc(new Error());
+      var theOneTrueStackTop = ["top-of-stack"]
       var kickoff = {
           go: function(ignored) {
             return program(thisRuntime, namespace);
@@ -1434,15 +1472,16 @@ function createMethodDict() {
                       checkResume();
                       val = restartVal;
                       TOS++;
+                      RUN_ACTIVE = true;
                       setTimeout(iter, 0);
                     },
                     break: function() {
                       checkResume();
-                      onDone(new FailureResult(makeMessageException("User break"), { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                      finishFailure(new PyretFailException(ffi.userBreak));
                     },
                     error: function(err) {
                       checkResume();
-                      onDone(new FailureResult(err, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+                      finishFailure(err);
                     }
                   });
                 })(false);
@@ -1470,15 +1509,15 @@ function createMethodDict() {
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
                 e.pyretStack.push(next.from);
               }
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+              finishFailure(e);
               return;
             } else {
-              onDone(new FailureResult(e, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+              finishFailure(e);
               return;
             }
           }
         }
-        onDone(new SuccessResult(val, { bounces: BOUNCES, tos: TOS, time: endTimer() }));
+        finishSuccess(val);
         return;
       }
       thisRuntime.GAS = initialGas;
@@ -1490,18 +1529,20 @@ function createMethodDict() {
     }
 
     function pauseStack(resumer) {
+      if(!RUN_ACTIVE) { ffi.throwMessageException("pauseStack called during another pause"); }
+      RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       throw makePause(resumer);
     }
 
     var manualPause = null;
     function schedulePause(resumer) {
+      if(!RUN_ACTIVE) { ffi.throwMessageException("schedulePause called during another pause"); }
       manualPause = resumer;
     }
 
     function execThunk(thunk) {
       function wrapResult(res) {
-        var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
@@ -1515,8 +1556,15 @@ function createMethodDict() {
         thisRuntime.run(function(_, __) {
             return thunk.app();
           }, thisRuntime.namespace, {
-            sync: true
-          }, function(result) { restarter.resume(wrapResult(result)) });
+            sync: false
+          }, function(result) {
+            if(isFailureResult(result) &&
+               isPyretException(result.exn) &&
+               ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
+            else {
+              restarter.resume(wrapResult(result))
+            }
+          });
       });
     }
 
@@ -1548,7 +1596,7 @@ function createMethodDict() {
 
     var minus = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r)
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
         return safeTail(function() {
@@ -1561,7 +1609,7 @@ function createMethodDict() {
 
     var times = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
         return safeTail(function() {
@@ -1574,7 +1622,7 @@ function createMethodDict() {
 
     var divide = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         if (jsnums.equals(0, r)) {
           throw makeMessageException("Division by zero");
         }
@@ -1590,10 +1638,10 @@ function createMethodDict() {
 
     var lessthan = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThan(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
         return safeTail(function() {
@@ -1606,10 +1654,10 @@ function createMethodDict() {
 
     var greaterthan = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThan(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
         return safeTail(function() {
@@ -1622,10 +1670,10 @@ function createMethodDict() {
 
     var lessequal = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
         return safeTail(function() {
@@ -1638,10 +1686,10 @@ function createMethodDict() {
 
     var greaterequal = function(l, r) {
       if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isNumber);
+        thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r));
       } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkIf(r, thisRuntime.isString);
+        thisRuntime.checkString(r);
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
         return safeTail(function() {
@@ -1674,23 +1722,27 @@ function createMethodDict() {
       return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
     }
 
-
+    var string_equals = function(l, r) {
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var string_append = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
       return thisRuntime.makeString(l.concat(r));
     }
     var string_contains = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isString);
-      thisRuntime.checkIf(r, thisRuntime.isString);
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
     var string_length = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       return thisRuntime.makeNumber(s.length);
     }
     var string_tonumber = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       var num = jsnums.fromString(s);
       if(num !== false) {
         return makeNumberBig(/**@type {Bignum}*/ (num));
@@ -1700,8 +1752,8 @@ function createMethodDict() {
       }
     }
     var string_repeat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkString(s);
+      thisRuntime.checkNumber(n);
       var resultStr = "";
       // TODO(joe): loop up to a fixnum?
       for(var i = 0; i < jsnums.toFixnum(n); i++) {
@@ -1710,16 +1762,14 @@ function createMethodDict() {
       return makeString(resultStr);
     }
     var string_split = function(s, splitstr) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(splitstr, thisRuntime.isString);
+      thisRuntime.checkString(s);
+      thisRuntime.checkString(splitstr);
       
-      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-      // TODO: Repeated?
-      return list.makeList(s.split(splitstr).map(thisRuntime.makeString));
+      return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_charat = function(s, n) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkString(s);
+      thisRuntime.checkNumber(n);
       
       //TODO: Handle bignums that are beyond javascript
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
@@ -1734,8 +1784,7 @@ function createMethodDict() {
     }
     var string_explode = function(s) {
       thisRuntime.checkIf(s, thisRuntime.isString);
-      var list = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-      return list.makeList(s.split("").map(thisRuntime.makeString));
+      return ffi.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
       thisRuntime.checkIf(s, thisRuntime.isString);
@@ -1743,7 +1792,11 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
-
+    var num_equals = function(l, r) {
+      thisRuntime.checkNumber(l);
+      thisRuntime.checkNumber(r);
+      return thisRuntime.makeBoolean(same(l, r));
+    }
     var num_max = function(l, r) {
       thisRuntime.checkIf(l, thisRuntime.isNumber);
       thisRuntime.checkIf(r, thisRuntime.isNumber);
@@ -1834,6 +1887,10 @@ function createMethodDict() {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
+    var num_is_fixnum = function(n) {
+      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      return thisRuntime.makeBoolean(typeof n === "number");
+    }
     var num_expt = function(n, pow) {
       thisRuntime.checkIf(n, thisRuntime.isNumber);
       thisRuntime.checkIf(pow, thisRuntime.isNumber);
@@ -1880,7 +1937,32 @@ function createMethodDict() {
       }
     }
     function random(max) {
-      return makeNumber(Math.floor(Math.random() * max));
+      return makeNumber(jsnums.floor(jsnums.multiply(Math.random(), max)));
+    }
+
+    function loadModule(module, runtime, namespace, withModule) {
+      return thisRuntime.safeCall(function() {
+          return module(thisRuntime, namespace);
+        },
+        function(m) { return withModule(getField(m, "provide")); });
+    }
+    function loadModules(namespace, modules, withModules) {
+      function loadModulesInt(toLoad, loaded) {
+        if(toLoad.length > 0) {
+          var nextMod = toLoad.pop();
+          return loadModule(nextMod, thisRuntime, namespace, function(m) {
+            return safeTail(function() {
+              loaded.unshift(m);
+              return loadModulesInt(toLoad, loaded);
+            });
+          });
+        }
+        else {
+          return safeTail(function() { return withModules.apply(null, loaded); });
+        }
+      }
+      var modulesCopy = modules.slice(0, modules.length);
+      return loadModulesInt(modulesCopy, []);
     }
 
     //Export the runtime
@@ -1921,6 +2003,7 @@ function createMethodDict() {
 
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
+          'nums-equal': makeFunction(num_equals),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
@@ -1937,9 +2020,11 @@ function createMethodDict() {
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
           'num-is-integer': makeFunction(num_is_integer),
+          'num-is-fixnum': makeFunction(num_is_fixnum),
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
 
+          'strings-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
@@ -2010,7 +2095,6 @@ function createMethodDict() {
         'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
-      
         'plus': plus,
         'minus': minus,
         'times': times,
@@ -2058,6 +2142,12 @@ function createMethodDict() {
         'equiv': sameJSPy,
         'raise': raiseJSJS,
 
+        'pyretTrue': pyretTrue,
+        'pyretFalse': pyretFalse,
+
+        'undefined': undefined,
+        'create': Object.create,
+
         'hasField' : hasField.app,
 
         'toReprJS' : toReprJS,
@@ -2082,6 +2172,11 @@ function createMethodDict() {
         'serial' : Math.random(),
         'log': log,
 
+        'makeSrcloc': makeSrcloc,
+        '_link': function(f, r) { return getField(list, "link").app(f, r); },
+
+        'loadModule' : loadModule,
+        'loadModules' : loadModules,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;
@@ -2091,13 +2186,16 @@ function createMethodDict() {
         'hasParam' : hasParam
     };
 
-    
-    thisRuntime['pyretTrue'] = pyretTrue;
-    thisRuntime['pyretFalse'] = pyretFalse;
 
     var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
     var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
+    thisRuntime["ffi"] = ffi;
+
+    // NOTE(joe): set a few of these explicitly to work with s-prim-app
+    thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
+    thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))
                        .set("_empty", getField(list, "empty"));

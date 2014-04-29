@@ -1,0 +1,41 @@
+{
+  "name": "pyret-lang",
+  "version": "0.0.0",
+  "description": "The Pyret programming language",
+  "main": "build/phase0/main-wrapper.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "dependencies": {
+    "jasmine-node": "~1.14.3",
+    "sweet.js": "~0.4.2",
+    "jquery": "~2.1.0",
+    "ses": "~0.0.0",
+    "requirejs": "~2.1.11",
+    "q": "~1.0.1",
+    "lodash": "~2.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brownplt/pyret-lang"
+  },
+  "keywords": [
+    "programming",
+    "language",
+    "education",
+    "scripting",
+    "functional"
+  ],
+  "author": "Joe Gibbs Politz",
+  "license": "Apache2",
+  "bugs": {
+    "url": "https://github.com/brownplt/pyret-lang/issues"
+  },
+  "homepage": "https://github.com/brownplt/pyret-lang"
+}

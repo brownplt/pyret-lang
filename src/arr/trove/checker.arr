@@ -29,6 +29,10 @@ data TestResult:
     end
 end
 
+fun real-loc(l):
+  SL.srcloc(l.source, l.start-line, l.start-column, l.start-char, l.end-line, l.end-column, l.end-char)
+end
+
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
   var block-results = []
   fun add-block-result(cbr :: CheckBlockResult):
@@ -45,33 +49,33 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         for each(c from checks):
           reset-results()
           c.run()
-          add-block-result(check-block-result(c.name, c.location, current-results))
+          add-block-result(check-block-result(c.name, real-loc(c.location), current-results))
         end
       end
     end,
     check-is(self, code, left, right, loc):
       if left == right:
-        add-result(success(loc, code))
+        add-result(success(real-loc(loc), code))
       else:
-        add-result(failure-not-equal(loc, code, left, right))
+        add-result(failure-not-equal(real-loc(loc), code, left, right))
       end
     end,
     check-satisfies(self, code, left, pred, loc):
       if pred(left):
-        add-result(success(loc, code))
+        add-result(success(real-loc(loc), code))
       else:
-        add-result(failure-not-satisfied(loc, code, left, pred))
+        add-result(failure-not-satisfied(real-loc(loc), code, left, pred))
       end
     end,
     check-raises(self, code, thunk, expected, comparator, loc):
       result = run-task(thunk)
       cases(Either) result:
-        | left(v) => add-result(failure-no-exn(loc, code, expected))
+        | left(v) => add-result(failure-no-exn(real-loc(loc), code, expected))
         | right(v) =>
           if comparator(v, expected):
-            add-result(success(loc, code))
+            add-result(success(real-loc(loc), code))
           else:
-            add-result(failure-wrong-exn(loc, code, expected, v))
+            add-result(failure-wrong-exn(real-loc(loc), code, expected, v))
           end
       end
     end,
@@ -98,18 +102,15 @@ fun results-summary(block-results :: List<CheckBlockResult>):
       total: 0
     }
   complete-summary = for fold(summary from init, br from block-results.reverse()):
-    fun format-loc(l):
-      l.source + ":" + tostring(l.start-line) + ":" + tostring(l.start-column)
-    end
     block-summary = for fold(s from init, tr from br.test-results.reverse()):
       cases(TestResult) tr:
         | success(loc, code) => s.{
-            message: s.message + "\n  " + loc^format-loc() + ": ok",
+            message: s.message + "\n  " + loc.format(false) + ": ok",
             passed: s.passed + 1,
             total: s.total + 1
           }
         | else =>
-          m = s.message + "\n  " + tr.loc^format-loc() + ": failed because: \n    " + tr.reason()
+          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    " + tr.reason()
           s.{
             message: m,
             failed: s.failed + 1,
@@ -117,7 +118,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
           }
       end
     end
-    message = summary.message + "\n\n" + br.loc^format-loc() + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     rest-of-message =
       if block-summary.failed == 0: ""
       else: block-summary.message

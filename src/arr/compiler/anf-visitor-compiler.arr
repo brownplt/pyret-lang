@@ -2,11 +2,11 @@
 
 provide *
 import ast as A
-import "./ast-anf.arr" as N
-import "./ast-split.arr" as S
-import "./js-ast.arr" as J
-import "./gensym.arr" as G
-import "./compile-structs.arr" as CS
+import "compiler/ast-anf.arr" as N
+import "compiler/ast-split.arr" as S
+import "compiler/js-ast.arr" as J
+import "compiler/gensym.arr" as G
+import "compiler/compile-structs.arr" as CS
 import string-dict as D
 import srcloc as SL
 
@@ -17,7 +17,6 @@ j-method = J.j-method
 j-block = J.j-block
 j-true = J.j-true
 j-false = J.j-false
-j-undefined = J.j-undefined
 j-num = J.j-num
 j-str = J.j-str
 j-return = J.j-return
@@ -45,14 +44,21 @@ j-ternary = J.j-ternary
 j-null = J.j-null
 j-parens = J.j-parens
 
+get-field-loc = j-id("G")
+throw-uninitialized = j-id("U")
+source-name = j-id("M")
+undefined = j-id("D")
+
 Loc = SL.Srcloc
 
 js-id-of = block:
   var js-ids = D.string-dict()
   fun(id :: String):
+    when not is-string(id): raise("js-id-of got non-string: " + torepr(id));
     if js-ids.has-key(id):
       js-ids.get(id)
-    else: no-hyphens = string-replace(id, "-", "_DASH_")
+    else:
+      no-hyphens = string-replace(id, "-", "_DASH_")
       safe-id = G.make-name(no-hyphens)
       js-ids.set(id, safe-id)
       safe-id
@@ -82,9 +88,12 @@ fun obj-of-loc(l):
 end
 
 fun get-field(obj, field, loc):
-  j-app(j-id("G"), [obj, field, loc])
+  j-app(get-field-loc, [obj, field, loc])
 end
 
+fun raise-id-exn(loc, name):
+  j-app(throw-uninitialized, [loc, j-str(name)])
+end
 
 fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [loc])
@@ -93,7 +102,11 @@ end
 fun rt-field(name): j-dot(j-id("R"), name);
 fun rt-method(name, args): j-method(j-id("R"), name, args);
 
-fun app(f, args): j-method(f, "app", args) end
+fun app(l, f, args):
+  j-ternary(rt-method("isFunction", [f]),
+    j-method(f, "app", args),
+    j-method(rt-field("ffi"), "throwNonFunApp", [obj-of-loc(l), f, j-list(false, args)]))
+end
 
 fun thunk-app(block):
   j-app(j-parens(j-fun([], block)), [])
@@ -103,35 +116,62 @@ fun thunk-app-stmt(stmt):
   thunk-app(j-block([stmt]))
 end
 
-fun helper-name(s :: String): "$H" + js-id-of(s);
+fun helper-name(s :: String): "$H" + js-id-of(s.tostring());
 
 fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
   cases(S.Helper) h:
     | helper(name, args, body) =>
-      j-var(helper-name(name), j-fun(args.map(js-id-of), body.visit(compiler)))
+      j-var(helper-name(name), j-fun(args.map(_.tostring()).map(js-id-of), body.visit(compiler)))
   end
 end
 
-fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
+fun compile-tail-app(compiler, l, f, args):
+  z = js-id-of(G.make-name("z"))
+  compiled-f = f.visit(compiler)
+  compiled-args = args.map(_.visit(compiler))
+  body =
+    j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
+      j-block([j-expr(j-assign(z, app(l, compiled-f, compiled-args)))]),
+      j-block([
+          j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+          j-throw(rt-method("makeCont", 
+              [j-obj([j-field("go",
+                      j-fun([js-id-of("ignored")], j-block([j-return(app(l, compiled-f, compiled-args))]))),
+                      j-field("from", obj-of-loc(l))])]))]))
+  j-block([
+      body,
+      j-expr(j-unop(rt-field("GAS"), j-incr)),
+      j-return(j-id(z))
+    ])
+end
+
+fun compile-split-app(
+    compiler,
+    l :: Loc,
+    is-var :: Boolean,
+    f :: N.AVal,
+    args :: List<A.Name>,
+    name :: A.Name,
+    helper-args :: List<A.AVal>):
   when is-var: raise("Can't handle splitting on a var yet");
   e = js-id-of(G.make-name("e"))
   z = js-id-of(G.make-name("z"))
   ss = js-id-of(G.make-name("ss"))
   ret = js-id-of(G.make-name("ret"))
+  f-app = js-id-of(G.make-name("f"))
   compiled-f = f.visit(compiler)
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
   body =
     j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([j-expr(j-assign(z, app(compiled-f, compiled-args)))]),
+      j-block([j-expr(j-assign(z, j-app(j-id(f-app), [])))]),
       j-block([
 #              rt-method("log", [j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
           j-throw(rt-method("makeCont", 
-              [j-obj([j-field("go",
-                      j-fun([js-id-of("ignored")], j-block([j-return(app(compiled-f, compiled-args))]))),
+              [j-obj([j-field("go", j-id(f-app)),
                       j-field("from", obj-of-loc(l))])]))]))
-  helper-ids = helper-args.rest.map(_.id).map(js-id-of)
+  helper-ids = helper-args.rest.map(_.id).map(_.tostring()).map(js-id-of)
   catch =
     j-block([
 #          rt-method("log", [j-str("Catching, "), obj-of-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
@@ -141,11 +181,11 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
             j-var(ss,
               j-obj([
                 j-field("from", j-id("from")),
-                j-field("go", j-fun([js-id-of(helper-args.first.id)],
+                j-field("go", j-fun([js-id-of(helper-args.first.id.tostring())],
                   j-block([
                     j-return(j-app(j-id(helper-name(name)),
                         link(
-                            j-id(js-id-of(helper-args.first.id)),
+                            j-id(js-id-of(helper-args.first.id.tostring())),
                             helper-ids.map(fun(a): j-id(a);)
                             #helper-ids.map(fun(a): j-dot(j-id("this"), a) end)
                             )))])))]
@@ -164,7 +204,8 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
                 j-block([j-throw(j-id(e))]))
           ]))])
   j-block([
-      j-var(z, j-undefined),
+      j-var(z, undefined),
+      j-var(f-app, j-fun(["_"], j-block([j-return(app(l, compiled-f, compiled-args))]))),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [j-id(z)] + compiled-helper-args.rest)),
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -173,11 +214,11 @@ fun compile-split-app(compiler, l, is-var, f, args, name, helper-args):
 end
 
 
-fun arity-check(body-stmts, arity):
+fun arity-check(loc, body-stmts, arity):
   j-block(
     link(
       j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-throw(rt-method("makeMessageException", [j-str("Arity mismatch")]))),
+        j-method(rt-field("ffi"), "throwArityErrorC", [obj-of-loc(loc), j-num(arity), j-id("arguments")])),
       body-stmts))
 end
 
@@ -186,7 +227,7 @@ compiler-visitor = {
     compiled-body = body.visit(self)
     j-block(
         link(
-            j-var(js-id-of(b.id), e.visit(self)),
+            j-var(js-id-of(b.id.tostring()), e.visit(self)),
             compiled-body.stmts
           )
       )
@@ -194,11 +235,17 @@ compiler-visitor = {
   a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     j-block(link(
-              j-var(js-id-of(b.id), j-obj([j-field("$var", e.visit(self)), j-field("$name", j-str(js-id-of(b.id)))])),
+              j-var(js-id-of(b.id.tostring()), j-obj([j-field("$var", e.visit(self)), j-field("$name", j-str(b.id.toname()))])),
               compiled-body.stmts))
+  end,
+  a-tail-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
+    compile-tail-app(self, l, f, args)
   end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: String, helper-args :: List<N.AVal>):
     compile-split-app(self, l, is-var, f, args, name, helper-args)
+  end,
+  a-seq(self, l, e1, e2):
+    j-block(link(e1.visit(self), e2.visit(self).stmts))
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     compiled-consq = consq.visit(self)
@@ -211,10 +258,10 @@ compiler-visitor = {
     j-block([j-return(e.visit(self))])
   end,
   a-assign(self, l :: Loc, id :: String, value :: N.AVal):
-    j-dot-assign(j-id(js-id-of(id)), "$var", value.visit(self))
+    j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self))
   end,
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
-    app(f.visit(self), args.map(_.visit(self)))
+    app(l, f.visit(self), args.map(_.visit(self)))
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     rt-method(f, args.map(_.visit(self)))
@@ -233,15 +280,15 @@ compiler-visitor = {
     rt-method("getColonField", [obj.visit(self), j-str(field)])
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    rt-method("makeFunction", [j-fun(args.map(_.id).map(js-id-of), arity-check(body.visit(self).stmts, args.length()))])
+    rt-method("makeFunction", [j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, body.visit(self).stmts, args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
     compiled-body-stmts = body.visit(self).stmts
-    rt-method("makeMethod", [j-fun([js-id-of(args.first.id)],
+    rt-method("makeMethod", [j-fun([js-id-of(args.first.id.tostring())],
       j-block([
-        j-return(j-fun(args.rest.map(_.id).map(js-id-of), arity-check(compiled-body-stmts, args.length() - 1)))])),
-       
-      j-fun(args.map(_.id).map(js-id-of), arity-check(compiled-body-stmts, args.length()))])
+        j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length() - 1)))])),
+      #undefined])
+      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length()))])
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
@@ -250,7 +297,11 @@ compiler-visitor = {
     j-field(name, value.visit(self))
   end,
   a-num(self, l :: Loc, n :: Number):
-    rt-method("makeNumber", [j-num(n)])
+    if num-is-fixnum(n):
+      rt-method("makeNumber", [j-num(n)])
+    else:
+      rt-method("makeNumberFromString", [j-str(tostring(n))])
+    end
   end,
   a-str(self, l :: Loc, s :: String):
     rt-method("makeString", [j-str(s)])
@@ -260,16 +311,20 @@ compiler-visitor = {
     rt-field(str)
   end,
   a-undefined(self, l :: Loc):
-    j-undefined
+    undefined
   end,
   a-id(self, l :: Loc, id :: String):
-    j-id(js-id-of(id))
+    j-id(js-id-of(id.tostring()))
   end,
   a-id-var(self, l :: Loc, id :: String):
-    j-dot(j-id(js-id-of(id)), "$var")
+    j-dot(j-id(js-id-of(id.tostring())), "$var")
   end,
   a-id-letrec(self, l :: Loc, id :: String):
-    j-dot(j-id(js-id-of(id)), "$var")
+    s = id.tostring()
+    j-ternary(
+      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, undefined),
+      raise-id-exn(obj-of-loc(l), id.toname()),
+      j-dot(j-id(js-id-of(s)), "$var"))
   end,
 
   a-data-expr(self, l, name, variants, shared):
@@ -294,16 +349,17 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(base-id, brands-id, vname, members):
-      member-names = members.map(fun(m): m.bind.id;)
+    fun make-variant-constructor(l2, base-id, brands-id, vname, members):
+      member-names = members.map(fun(m): m.bind.id.toname();)
       j-field(
           vname,
           rt-method("makeFunction", [
             j-fun(
               member-names.map(js-id-of),
               arity-check(
+                l2,
                 [
-                  j-var("dict", j-method(j-id("Object"), "create", [j-id(base-id)]))
+                  j-var("dict", rt-method("create", [j-id(base-id)]))
                 ] +
                 for map2(n from member-names, m from members):
                   cases(N.AMemberType) m.member-type:
@@ -337,10 +393,10 @@ compiler-visitor = {
       predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
 
       cases(N.AVariant) v:
-        | a-variant(_, _, members, with-members) =>
+        | a-variant(l2, _, members, with-members) =>
           {
             stmts: stmts,
-            constructor: make-variant-constructor(variant-base-id, variant-brand-obj-id, vname, members),
+            constructor: make-variant-constructor(l2, variant-base-id, variant-brand-obj-id, vname, members),
             predicate: predicate
           }
         | a-singleton-variant(_, _, with-members) =>
@@ -392,13 +448,24 @@ check:
 
 end
 
+fun mk-abbrevs(l):
+  [
+    j-var("G", rt-field("getFieldLoc")),
+    j-var("U", j-fun(["loc", "name"],
+        j-block([j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
+                          [j-id("loc"), j-id("name")])]))),
+    j-var("M", j-str(l.source)),
+    j-var("D", rt-field("undefined"))
+  ]
+end
+
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
   namespace-binds = for map(n from free-ids.to-list()):
-    j-var(js-id-of(n), j-method(j-id("NAMESPACE"), "get", [j-str(n)]))
+    j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [j-str(n.toname())]))
   end
-  ids = headers.map(_.name).map(js-id-of)
+  ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
   filenames = headers.map(fun(h):
       cases(N.AHeader) h:
         | a-import-builtin(_, name, _) => "trove/" + name
@@ -408,27 +475,34 @@ fun compile-program(self, l, headers, split, env):
   module-id = G.make-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
+  fun wrap-modules(modules, body):
+    cases(List) modules:
+      | empty =>
+        j-return(rt-method(
+            "safeCall", [
+              j-fun([], j-block([body])),
+              j-fun(["moduleVal"],
+                j-block([
+                  j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
+                  j-return(j-id("moduleVal"))
+                ]))]))
+      | link(f, r) =>
+        j-return(rt-method("loadModule",
+          [j-id(f.input-id), j-id("R"), j-id("NAMESPACE"), j-fun([f.id], j-block([wrap-modules(r, body)]))]))
+    end
+  end
+  module-specs = for map2(id from ids, in-id from input-ids):
+    { id: id, input-id: in-id }
+  end
   j-app(j-id("define"), [j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([
             j-return(j-fun(["R", "NAMESPACE"],
                 j-block([
                     j-if(module-ref(module-id),
                       j-block([j-return(module-ref(module-id))]),
-                      j-block([
-                          j-var("G", rt-field("getFieldLoc")),
-                          j-var("M", j-str(l.source)),
-                          j-bracket-assign(rt-field("modules"), j-str(module-id), thunk-app(
-                              j-block(
-                                [ j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0)) ] +
-                                namespace-binds +
-                                for map2(id from ids, in-id from input-ids):
-                                  j-var(id, get-field(inst(in-id), j-str("provide"), obj-of-loc(l)))
-                                end +
-                                split.helpers.map(compile-helper(self, _)) +
-                                [split.body.visit(self)]))),
-                          j-return(module-ref(module-id))
-                        ]))
-                  ])))
-        ]))])
+                      j-block(mk-abbrevs(l) +
+                              namespace-binds +
+                              split.helpers.map(compile-helper(self, _)) +
+                              [wrap-modules(module-specs, split.body.visit(self))]))])))]))])
 end
 
 fun splitting-compiler(env):
@@ -445,7 +519,7 @@ fun non-splitting-compiler(env):
   compiler-visitor.{
     a-program(self, l, headers, body):
       simplified = body.visit(remove-useless-if-visitor)
-      split = S.split-result([], simplified)
+      split = S.split-result([], simplified, N.freevars-e(simplified))
       compile-program(self, l, headers, split, env)
     end
   }

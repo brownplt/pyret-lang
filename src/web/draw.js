@@ -41,4 +41,6 @@ function drawErrorLocations(links) {
   return container;
 }
 
-
+function drawPromptArrow() {
+  return jQuery("<span>&gt;&nbsp;</span>").addClass("repl-prompt-arrow");
+}

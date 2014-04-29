@@ -99,7 +99,7 @@ xfg("false", "true") +
 
       });
 
-      it("should error if given a non-boolean, but still short-circuit", function(done) {
+      xit("should error if given a non-boolean, but still short-circuit", function(done) {
         var pte = function(e) {
           return rt.unwrap(e.exn).indexOf("Pyret Type Error") !== -1;
         };
@@ -143,17 +143,6 @@ xfg("false", "true") +
              "x", rt.makeNumber(0));
         P.wait(done);
 
-      });
-
-      it("should error if given a non-boolean, but still short-circuit", function(done) {
-        var pte = function(e) {
-          return rt.unwrap(e.exn).indexOf("Pyret Type Error") !== -1;
-        };
-        err("false or 5", pte);
-        err("false or 'foo'", pte);
-        same("true or 'foo'", rt.pyretTrue);
-        same("true or block: raise('do not get here') end", rt.pyretTrue)
-        P.wait(done);
       });
     });
 

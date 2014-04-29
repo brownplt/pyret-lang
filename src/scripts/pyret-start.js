@@ -1,4 +1,4 @@
-define(["js/runtime-anf", "arr/compiler/pyret.arr"], function(RT, pyret) {
+define(["requirejs", "js/runtime-anf", "compiler/pyret.arr"], function(r, RT, pyret) {
   var rt = RT.makeRuntime({
     initialGas: 500,
     stdout: function(str) { process.stdout.write(str); },

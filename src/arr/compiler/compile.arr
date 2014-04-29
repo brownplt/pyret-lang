@@ -4,13 +4,13 @@ provide *
 import file as F
 import ast as A
 import parse-pyret as PP
-import "./js-of-pyret.arr" as P
-import "./compile-structs.arr" as C
-import "./well-formed.arr" as W
-import "./ast-util.arr" as U
-import "./resolve-scope.arr" as R
-import "./desugar.arr" as D
-import "./desugar-check.arr" as CH
+import "compiler/js-of-pyret.arr" as P
+import "compiler/compile-structs.arr" as C
+import "compiler/well-formed.arr" as W
+import "compiler/ast-util.arr" as U
+import "compiler/resolve-scope.arr" as R
+import "compiler/desugar.arr" as D
+import "compiler/desugar-check.arr" as CH
 
 fun compile-js-ast(ast, name, libs, options):
   ast-ended = U.append-nothing-if-necessary(ast)
@@ -35,23 +35,23 @@ fun compile-js-ast(ast, name, libs, options):
   end
 end
 
-fun compile-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  ast = PP.surface-parse(code, name)
+fun compile-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  ast = PP.parse-dialect(dialect, code, name)
   compile-js-ast(ast, name, libs, options)
 end
 
-fun compile-runnable-js(code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  compile-js(code, name, libs, options).pyret-to-js-runnable()
+fun compile-runnable-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+  compile-js(dialect, code, name, libs, options).pyret-to-js-runnable()
 end
 
-fun compile-runnable-js-file(js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+fun compile-runnable-js-file(dialect, js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   code = F.file-to-string(js-file)
-  compile-runnable-js(code, js-file, libs, options)
+  compile-runnable-js(dialect, code, js-file, libs, options)
 end
 
-fun compile-standalone-js-file(js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
+fun compile-standalone-js-file(dialect, js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   code = F.file-to-string(js-file)
-  compile-standalone-js(code, js-file, libs, options)
+  compile-standalone-js(dialect, code, js-file, libs, options)
 end
 
 fun compile-standalone-js(code, name, libs, options) -> C.CompileResult<String, Any>:

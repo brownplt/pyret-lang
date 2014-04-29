@@ -10,7 +10,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
 
   function performTest(useCompiled){
 
-    var R = require("./build/phase1/js/runtime-anf");
+    var R = require("js/runtime-anf");
 
     var output;
     var rt;

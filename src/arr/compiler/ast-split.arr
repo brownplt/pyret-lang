@@ -1,10 +1,11 @@
 #lang pyret
 
 provide *
-import "./ast-anf.arr" as N
-import "./gensym.arr" as G
+import "compiler/ast-anf.arr" as N
 import ast as A
 import pprint as PP
+
+names = A.global-names
 
 INDENT = 2
 # Use this instead of built-in lists because append has quadratic
@@ -30,11 +31,11 @@ end
 
 
 data Helper:
-  | helper(name :: String, args :: List<String>, body :: N.AExpr) with:
+  | helper(name :: Name, args :: List<Name>, body :: N.AExpr) with:
     tosource(self):
       arg-list = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen,
-          PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))
-      header = PP.group(PP.str("helper " + self.name) + arg-list + PP.str(" {"))
+          PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
+      header = PP.group(PP.str("helper " + self.name.tostring()) + arg-list + PP.str(" {"))
       PP.surround(INDENT, 1, header, self.body.tosource(), PP.str("}"))
     end
 end
@@ -47,17 +48,14 @@ fun freevars-helper(h :: Helper):
 end
 
 data SplitResult:
-  | split-result(helpers :: List<Helper>, body :: N.AExpr) with:
+  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<Name>) with:
     tosource(self):
       PP.vert(self.helpers.map(_.tosource()) + [self.body.tosource()])
     end
 end
 
 fun freevars-split-result(sr :: SplitResult):
-  cases(SplitResult) sr:
-    | split-result(helpers, body) =>
-      unions(helpers.map(freevars-helper)).union(N.freevars-e(body))
-  end
+  sr.freevars
 end
 
 data SplitResultInt:
@@ -74,7 +72,7 @@ data SplitResultInt:
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from list-set([]), s from ss):
+  for fold(unioned from set([]), s from ss):
     unioned.union(s)
   end
 end
@@ -82,7 +80,7 @@ end
 
 fun ast-split(expr :: N.AExpr) -> SplitResult:
   r = ast-split-expr(expr)
-  split-result(r.helpers.to-list(), r.body)
+  split-result(r.helpers.to-list(), r.body, r.freevars)
 end
 
 fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
@@ -91,7 +89,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
       | a-app(l2, f, args) =>
         rest-split = ast-split-expr(body)
         fvs = rest-split.freevars.remove(b.id)
-        h = helper(G.make-name(b.id), link(b.id, fvs.to-list()), rest-split.body)
+        h = helper(names.make-atom(b.id.toname()), link(b.id, fvs.to-list()), rest-split.body)
         split-result-int-e(
             concat-singleton(h) + rest-split.helpers,
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),
@@ -114,13 +112,25 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
   cases(N.AExpr) expr:
     | a-let(l, b, e, body) =>
       handle-bind(l, false, b, e, body)
+    | a-seq(l, e1, e2) =>
+      cases(N.a-lettable) e1:
+        | a-app(l2, f, args) => handle-bind(l, false, N.a-bind(l2, A.global-names.make-atom("anf_begin_app_dropped"), A.a-blank), e1, e2)
+        | else =>
+          e1-split = ast-split-lettable(e1)
+          e2-split = ast-split-expr(e2)
+          split-result-int-e(
+            e2-split.helpers + e1-split.helpers,
+            N.a-seq(l, e1-split.body, e2-split.body),
+            e2-split.freevars.union(e1-split.freevars)
+          )
+      end
     | a-var(l, b, e, body) =>
       cases(N.ALettable) e:
         | a-val(v) => handle-bind(l, true, b, e, body)
         | else =>
-          n = G.make-name("var-bind")
+          n = names.make-atom("var-bind")
           ast-split-expr(
-            N.a-let(l, N.a-bind(l, n, A.a_blank), e,
+            N.a-let(l, N.a-bind(l, n, A.a-blank), e,
               N.a-var(l, b, N.a-val(N.a-id(l, n)), body)))
       end
     | a-if(l, cond, consq, alt) =>
@@ -134,8 +144,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
     | a-lettable(e) =>
       cases(N.ALettable) e:
         | a-app(l, f, args) =>
-          name = G.make-name("solo-app")
-          ast-split-expr(N.a-let(l, N.a-bind(l, name, A.a_blank), e, N.a-lettable(N.a-val(N.a-id(l, name)))))
+          split-result-int-e(concat-empty, N.a-tail-app(l, f, args), N.freevars-v(f).union(unions(args.map(N.freevars-v))))
         | else =>
           let-result = ast-split-lettable(e)
           split-result-int-e(let-result.helpers, N.a-lettable(let-result.body), let-result.freevars)
@@ -151,14 +160,14 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
       split-result-int-l(
           body-split.helpers,
           N.a-lam(l, args, body-split.body),
-          body-split.freevars.difference(list-set(args.map(_.id)))
+          body-split.freevars.difference(set(args.map(_.id)))
         )
     | a-method(l, args, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
           N.a-method(l, args, body-split.body),
-          body-split.freevars.difference(list-set(args.map(_.id)))
+          body-split.freevars.difference(set(args.map(_.id)))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))
@@ -166,7 +175,7 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
 end
 
 fun param(l, name):
-  N.a-bind(l, name, A.a_blank)
+  N.a-bind(l, name, A.a-blank)
 end
 
 check:
@@ -179,24 +188,28 @@ check:
     res = ast-split-expr(e)
     split-result-int-e(res.helpers.map(strip-helper), N.strip-loc-expr(res.body), N.freevars-e(e))
   end
-  b = A.a_blank
+  b = A.a-blank
   d = N.dummy-loc
+  n = A.global-names.make-atom
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
-  split-strip(e1) is split-result-int-e(concat-empty, e1, list-set([]))
+  split-strip(e1) is split-result-int-e(concat-empty, e1, set([]))
 
-  e2 = N.a-let(d, N.a-bind(d, "x", A.a_blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, "x"))))
+  x = n("x")
+  e2 = N.a-let(d, N.a-bind(d, x, A.a-blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
   e2-split = split-strip(e2)
   e2-split.helpers.to-list() is []
   e2-split.body is e2
-  e2-split.freevars is list-set([])
+  e2-split.freevars is set([])
 
-  e3 = N.a-let(d, N.a-bind(d, "v", A.a_blank), N.a-app(d, N.a-id(d, "f"), [N.a-num(d, 5)]),
-    N.a-lettable(N.a-val(N.a-id(d, "v"))))
+  v = n("v")
+  f = n("f")
+  e3 = N.a-let(d, N.a-bind(d, v, A.a-blank), N.a-app(d, N.a-id(d, f), [N.a-num(d, 5)]),
+    N.a-lettable(N.a-val(N.a-id(d, v))))
   e3-split = split-strip(e3)
   e3-split.helpers.to-list().length() is 1
   e3-split.helpers.to-list().first.body is
-    N.a-lettable(N.a-val(N.a-id(d, "v")))
+    N.a-lettable(N.a-val(N.a-id(d, v)))
   e3-split.body is
-    N.a-split-app(d, false, N.a-id(d, "f"), [N.a-num(d, 5)], e3-split.helpers.to-list().first.name, [N.a-id(d, "v")])
+    N.a-split-app(d, false, N.a-id(d, f), [N.a-num(d, 5)], e3-split.helpers.to-list().first.name, [N.a-id(d, v)])
 end
 

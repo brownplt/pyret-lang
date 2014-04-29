@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], function (matchers, jsnums, ffiLib) {
+define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-helpers", "trove/srcloc"], function (matchers, e, jsnums, ffiLib, srclocLib) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -8,11 +8,12 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], 
 
   function performTest(useCompiled){
 
-    var R = r('./build/phase1/js/runtime-anf');
+    var R = r('js/runtime-anf');
 
     var output;
     var rt;
     var ffi;
+    var get;
 
     /**@ param {string} str, output*/
     function stdout(str) {
@@ -23,6 +24,8 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], 
     beforeEach(function(){
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
+        get = rt.getField;
+        P = e.makeEvalCheckers(this, rt);
         ffi = ffiLib(rt, rt.namespace);
         addPyretMatchers(this, rt);
     });
@@ -31,6 +34,20 @@ define(["./matchers", "../../lib/js-numbers/src/js-numbers", "js/ffi-helpers"], 
     describe("FFI", function() {
       it("should make lists and come back", function() {
         expect(ffi.toArray(ffi.makeList([1,2,3]))).toEqual([1,2,3]);
+      });
+
+      it("should work with cases", function(done) {
+        rt.loadModules(rt.namespace, [srclocLib], function(srcloc) {
+          ffi.cases(get(srcloc, "Srcloc"), "Srcloc", get(srcloc, "builtin").app("some-module"), {
+            "builtin": function(m) {
+              expect(m).toEqual("some-module");
+            },
+            "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
+              fail();
+            }
+          });
+        });
+        P.wait(done);
       });
     });
   }

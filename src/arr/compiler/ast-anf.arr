@@ -27,7 +27,7 @@ str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
 
-dummy-loc = SL.srcloc("dummy-location", -1, -1, -1, -1, -1, -1)
+dummy-loc = SL.builtin("dummy-location")
 
 Loc = SL.Srcloc
 
@@ -36,7 +36,7 @@ data AProg:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
-        PP.flow_map(PP.hardline, fun(i): i.tosource() end, self.imports)
+        PP.flow-map(PP.hardline, fun(i): i.tosource() end, self.imports)
           + PP.hardline
           + self.body.tosource()
         )
@@ -48,12 +48,12 @@ sharing:
 end
 
 data AImport:
-  | a-import-file(l :: Loc, file :: String, name :: String) with:
+  | a-import-file(l :: Loc, file :: String, name :: Name) with:
     label(self): "a-import-file" end,
     tosource(self):
       PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, PP.str(self.name)])
     end
-  | a-import-builtin(l :: Loc, lib :: String, name :: String) with:
+  | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
     label(self): "a-import-builtin" end,
     tosource(self):
       PP.flow([str-import, PP.str(self.lib), str-as, PP.str(self.name)])
@@ -85,16 +85,19 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
-  | a-try(l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr) with:
-    label(self): "a-try" end,
+  | a-seq(l :: Loc, e1 :: ALettable, e2 :: AExpr) with:
+    label(self): "a-seq" end,
     tosource(self):
-      _try = str-try + break-one
-        + PP.nest(INDENT, self.body.tosource()) + break-one
-      _except = str-except + PP.parens(self.b.tosource()) + str-colon + break-one
-        + PP.nest(INDENT, self._except.tosource()) + break-one
-      PP.group(_try + _except + str-end)
+      self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>) with:
+  | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
+    label(self): "a-tail-app" end,
+    tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+    end
+  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
       PP.group(
@@ -105,7 +108,7 @@ data AExpr:
                 PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))))) +
         break-one +
         PP.group(PP.nest(INDENT, PP.str("and then") + break-one
-              + PP.str(self.helper)
+              + PP.str(self.helper.tostring())
               + PP.parens(PP.nest(INDENT,
                 PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))))
     end
@@ -131,9 +134,9 @@ sharing:
 end
 
 data ABind:
-  | a-bind(l :: Loc, id :: String, ann :: A.Ann) with:
+  | a-bind(l :: Loc, id :: Name, ann :: A.Ann) with:
     label(self): "a-bind" end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): PP.str(self.id.tostring()) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -197,7 +200,7 @@ data ALettable:
     tosource(self):
       PP.str("data-expr")
     end
-  | a-assign(l :: Loc, id :: String, value :: AVal) with:
+  | a-assign(l :: Loc, id :: Name, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
@@ -288,15 +291,15 @@ data AVal:
   | a-undefined(l :: Loc) with:
     label(self): "a-undefined" end,
     tosource(self): PP.str("UNDEFINED") end
-  | a-id(l :: Loc, id :: String) with:
+  | a-id(l :: Loc, id :: Name) with:
     label(self): "a-id" end,
-    tosource(self): PP.str(self.id) end
-  | a-id-var(l :: Loc, id :: String) with:
+    tosource(self): PP.str(self.id.tostring()) end
+  | a-id-var(l :: Loc, id :: Name) with:
     label(self): "a-id-var" end,
-    tosource(self): PP.str("!" + self.id) end
-  | a-id-letrec(l :: Loc, id :: String) with:
+    tosource(self): PP.str("!" + self.id.tostring()) end
+  | a-id-letrec(l :: Loc, id :: Name) with:
     label(self): "a-id-letrec" end,
-    tosource(self): PP.str("~" + self.id) end
+    tosource(self): PP.str("~" + self.id.tostring()) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -323,8 +326,8 @@ fun strip-loc-expr(expr :: AExpr):
       a-let(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
     | a-var(_, bind, val, body) =>
       a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
-    | a-try(_, body, bind, _except) =>
-      a-try(dummy-loc, body^strip-loc-expr(), bind^strip-loc-bind(), _except^strip-loc-expr())
+    | a-seq(_, e1, e2) =>
+      a-seq(dummy-loc, e1^strip-loc-lettable(), e2^strip-loc-expr())
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
     | a-split-app(_, is-var, f, args, helper, helper-args) =>
@@ -396,10 +399,10 @@ default-map-visitor = {
   a-program(self, l :: Loc, imports :: List<AHeader>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
   end,
-  a-import-file(self, l :: Loc, file :: String, name :: String):
+  a-import-file(self, l :: Loc, file :: String, name :: Name):
     a-import-file(l, file, name)
   end,
-  a-import-builtin(self, l :: Loc, lib :: String, name :: String):
+  a-import-builtin(self, l :: Loc, lib :: String, name :: Name):
     a-import-builtin(l, lib, name)
   end,
   a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
@@ -408,8 +411,8 @@ default-map-visitor = {
   a-var(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-var(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
-  a-try(self, l :: Loc, body :: AExpr, b :: ABind, _except :: AExpr):
-    a-try(l, body.visit(self), b.visit(self), _except.visit(self))
+  a-seq(self, l :: Loc, e1 :: ALettable, e2 :: AExpr):
+    a-seq(l, e1.visit(self), e2.visit(self))
   end,
   a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
@@ -423,6 +426,9 @@ default-map-visitor = {
   a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
     a-variant-member(l, member-type, bind.visit(self))
   end,
+  a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
+    a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
     a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
@@ -432,7 +438,7 @@ default-map-visitor = {
   a-lettable(self, e :: ALettable):
     a-lettable(e.visit(self))
   end,
-  a-assign(self, l :: Loc, id :: String, value :: AVal):
+  a-assign(self, l :: Loc, id :: Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
   a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
@@ -468,7 +474,7 @@ default-map-visitor = {
   a-val(self, v :: AVal):
     a-val(v.visit(self))
   end,
-  a-bind(self, l :: Loc, id :: String, ann :: A.Ann):
+  a-bind(self, l :: Loc, id :: Name, ann :: A.Ann):
     a-bind(l, id, ann)
   end,
   a-field(self, l :: Loc, name :: String, value :: AVal):
@@ -486,73 +492,129 @@ default-map-visitor = {
   a-undefined(self, l :: Loc):
     a-undefined(l)
   end,
-  a-id(self, l :: Loc, id :: String):
+  a-id(self, l :: Loc, id :: Name):
     a-id(l, id)
   end,
-  a-id-var(self, l :: Loc, id :: String):
+  a-id-var(self, l :: Loc, id :: Name):
     a-id-var(l, id)
   end,
-  a-id-letrec(self, l :: Loc, id :: String):
+  a-id-letrec(self, l :: Loc, id :: Name):
     a-id-letrec(l, id)
   end
 }
 
-fun freevars-e(expr :: AExpr) -> Set<String>:
+fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AExpr) expr:
     | a-let(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
+      from-body = freevars-e-acc(body, seen-so-far)
+      freevars-l-acc(e, from-body.remove(b.id))
     | a-var(_, b, e, body) =>
-      freevars-e(body).remove(b.id).union(freevars-l(e))
-    | a-try(_, body, b, c) =>
-      freevars-e(c).remove(b.id).union(freevars-e(body))
+      from-body = freevars-e-acc(body, seen-so-far)
+      freevars-l-acc(e, from-body.remove(b.id))
+    | a-seq(_, e1, e2) =>
+      from-e2 = freevars-e-acc(e2, seen-so-far)
+      freevars-l-acc(e1, from-e2)
+    | a-tail-app(_, f, args) =>
+      from-f = freevars-v-acc(f, seen-so-far)
+      for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
     | a-split-app(_, _, f, args, name, helper-args) =>
-      freevars-v(f).union(unions(args.map(freevars-v)).union(unions(helper-args.rest.map(freevars-v)))).remove(name)
-    | a-lettable(e) => freevars-l(e)
+      from-f = freevars-v-acc(f, seen-so-far)
+      with-args = for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+      with-helper-args = for fold(acc from with-args, arg from helper-args):
+        freevars-v-acc(arg, acc)
+      end
+      with-helper-args.remove(name)
+    | a-lettable(e) => freevars-l-acc(e, seen-so-far)
     | a-if(_, c, t, a) =>
-      freevars-v(c).union(freevars-e(t)).union(freevars-e(a))
+      freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
   end
+end
+
+fun freevars-e(expr :: AExpr) -> Set<Name>:
+  freevars-e-acc(expr, set([]))
 where:
   d = dummy-loc
   freevars-e(
-      a-let(d, a-bind(d, "x", A.a_blank), a-val(a-num(d, 4)),
+      a-let(d, a-bind(d, "x", A.a-blank), a-val(a-num(d, 4)),
         a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
 end
 
-fun freevars-variant(v :: AVariant) -> Set<String>:
-  unions(v.with-members.map(fun(wm): freevars-v(wm.value);))
+fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
+  for fold(acc from seen-so-far, member from v.with-members):
+    freevars-v-acc(member, acc)
+  end
 end
 
-fun freevars-l(e :: ALettable) -> Set<String>:
+fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(ALettable) e:
-    | a-assign(_, id, v) => freevars-v(v).union(list-set([id]))
-    | a-app(_, f, args) => freevars-v(f).union(unions(args.map(freevars-v)))
-    | a-prim-app(_, _, args) => unions(args.map(freevars-v))
-    | a-lam(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-method(_, args, body) => freevars-e(body).difference(list-set(args.map(_.id)))
-    | a-obj(_, fields) => unions(fields.map(fun(f): freevars-v(f.value) end))
-    | a-update(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
+    | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
+    | a-app(_, f, args) =>
+      from-f = freevars-v-acc(f, seen-so-far)
+      for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+    | a-prim-app(_, _, args) =>
+      for fold(acc from seen-so-far, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+    | a-lam(_, args, body) =>
+      from-body = freevars-e-acc(body, seen-so-far)
+      from-body.difference(set(args.map(_.id)))
+    | a-method(_, args, body) =>
+      from-body = freevars-e-acc(body, seen-so-far)
+      from-body.difference(set(args.map(_.id)))
+    | a-obj(_, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
+    | a-update(_, super, fields) =>
+      from-super = freevars-v-acc(super, seen-so-far)
+      for fold(acc from from-super, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
     | a-data-expr(_, _, variants, shared) =>
-      unions(variants.map(freevars-variant)).union(unions(shared.map(fun(f): freevars-v(f.value);)))
-    | a-extend(_, super, fields) => freevars-v(super).union(unions(fields.map(_.value).map(freevars-v)))
-    | a-dot(_, obj, _) => freevars-v(obj)
-    | a-colon(_, obj, _) => freevars-v(obj)
-    | a-get-bang(_, obj, _) => freevars-v(obj)
-    | a-val(v) => freevars-v(v)
+      from-variants = for fold(acc from seen-so-far, v from variants):
+        freevars-variant-acc(v, acc)
+      end
+      for fold(acc from from-variants, s from shared):
+        freevars-v-acc(s.value, acc)
+      end
+    | a-extend(_, super, fields) =>
+      from-super = freevars-v-acc(super, seen-so-far)
+      for fold(acc from from-super, f from fields):
+        freevars-v-acc(f.value, acc)
+      end
+    | a-dot(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-colon(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-get-bang(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-val(v) => freevars-v-acc(v, seen-so-far)
     | else => raise("Non-lettable in freevars-l " + torepr(e))
   end
 end
 
-fun freevars-v(v :: AVal) -> Set<String>:
+fun freevars-l(e :: ALettable) -> Set<Name>:
+  freevars-l-acc(e, set([]))
+end
+
+fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AVal) v:
-    | a-id(_, id) => list-set([id])
-    | a-id-var(_, id) => list-set([id])
-    | a-id-letrec(_, id) => list-set([id])
-    | else => list-set([])
+    | a-id(_, id) => seen-so-far.add(id)
+    | a-id-var(_, id) => seen-so-far.add(id)
+    | a-id-letrec(_, id) => seen-so-far.add(id)
+    | else => seen-so-far
   end
 end
 
+fun freevars-v(v :: AVal) -> Set<Name>:
+  freevars-v-acc(v, set([]))
+end
+
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from list-set([]), s from ss):
+  for fold(unioned from set([]), s from ss):
     unioned.union(s)
   end
 end

@@ -1,4 +1,13 @@
-define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(rjs, ffi, runtimeLib, checkerLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(loader, ffi, runtimeLib, checkerLib) {
+
+  if(requirejs.isBrowser) {
+    var rjs = requirejs;
+    var define = window.define;
+  }
+  else {
+    var rjs = require("requirejs");
+    var define = r.define;
+  }
 
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
@@ -17,7 +26,6 @@ define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], funct
     }
 
     function exec(str, modname, loaddir, checkAll, args) {
-      var oldDefine = rjs.define;
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
       rjs.config({ baseUrl: loaddir });
 
@@ -61,21 +69,31 @@ define(["requirejs", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], funct
             });
         }
         else if(execRt.isFailureResult(r)) {
-          console.error("Failed: ", r, r.exn, r.exn.stack);
           return callingRt.makeObject({
               "success": callingRt.makeBoolean(false),
-              "failure": r.exn
+              "failure": r.exn.exn,
+              "render-error-message": callingRt.makeFunction(function() {
+                callingRt.pauseStack(function(restarter) {
+                  execRt.runThunk(function() {
+                    if(execRt.isPyretVal(r.exn.exn)) {
+                      return (execRt.getField(r.exn.exn, "tostring").app() + JSON.stringify(r.exn.pyretStack));
+                    } else {
+                      return String(r.exn);
+                    }
+                  }, function(v) {
+                    if(execRt.isSuccessResult(v)) {
+                      return restarter.resume(v.result)
+                    } else {
+                      console.error("There was an exception while rendering the exception: ", v, r);
+                    }
+                  })
+                });
+              })
             });
         }
       }
 
-      function OMGBADIDEA(name, src) {
-        var define = function(libs, fun) {
-          oldDefine(name, libs, fun);
-        }
-        eval(src);
-      }
-      OMGBADIDEA(name, str);
+      loader.goodIdea(name, str);
 
       /* pauseStack clears the stack of this runtime, and closes over it
          in the restarter continuation, passing it in here.  Calling

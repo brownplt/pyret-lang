@@ -4,9 +4,21 @@ import cmdline as C
 import file as F
 import exec as X
 import string-dict as D
-import "./compile.arr" as CM
-import "./compile-structs.arr" as CS
+import "compiler/compile.arr" as CM
+import "compiler/compile-structs.arr" as CS
+import format as Format
+import either as E
+format = Format.format
+Either = E.Either
+left = E.left
+right = E.right
 
+
+fun parse-dialects(arg-index, name, val):
+  if (val == "Pyret") or (val == "Bootstrap"): left(val)
+  else: right(format("~a expected a dialect, got ~a", [name, torepr(val)]))
+  end
+end
 
 fun main(args):
   options = {
@@ -25,11 +37,21 @@ fun main(args):
     no-check-mode:
       C.flag(C.once, "Skip checks"),
     allow-shadow:
-      C.flag(C.once, "Run without checking for shadowed variables")
+      C.flag(C.once, "Run without checking for shadowed variables"),
+    dialect:
+        C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
+          "Pyret", some("d"), C.once, "Dialect of Pyret to use")
   }
   
   params-parsed = C.parse-args(options, args)
 
+  fun err-less(e1, e2):
+    if (e1.loc.before(e2.loc)): true
+    else if (e1.loc.after(e2.loc)): false
+    else: tostring(e1) < tostring(e2)
+    end
+  end
+  
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
       check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
@@ -40,6 +62,7 @@ fun main(args):
       if not is-empty(rest):
         program-name = rest.first
         result = CM.compile-js(
+          r.get("dialect"),
           F.file-to-string(program-name),
           program-name,
           libs,
@@ -52,7 +75,7 @@ fun main(args):
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
             if (exec-result.success): print(exec-result.render-check-results())
-            else: print(exec-result.failure)
+            else: print(exec-result.render-error-message())
             end
           | err(errors) =>
             print-error("Compilation errors:")
@@ -73,6 +96,7 @@ fun main(args):
             )
         else if r.has-key("compile-module-js"):
           CM.compile-js(
+            r.get("dialect"),
             F.file-to-string(r.get("compile-module-js")),
             r.get("compile-module-js"),
             libs,
@@ -82,8 +106,8 @@ fun main(args):
             }
             )
         else:
-          print("Unknown command line options")
           print(C.usage-info(options).join-str("\n"))
+          raise("Unknown command line options")
         end
         cases(CS.CompileResult) result:
           | ok(comp-object) => comp-object.print-js-runnable(display)

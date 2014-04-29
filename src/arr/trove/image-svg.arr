@@ -47,7 +47,7 @@ data Attr:
       if is-empty(self.vals): PP.mt-doc
       else:
         PP.str(self.name) + PP.str('="') 
-          + PP.flow_map(PP.str(";") + PP.break(1),
+          + PP.flow-map(PP.str(";") + PP.break(1),
           fun(v): PP.group(PP.str(v.name) + PP.str(":") + PP.break(1) + PP.str(v.val)) end,
           self.vals)
           + PP.str(';"')
@@ -83,10 +83,10 @@ end
 
 data Color:
   | color(
-      red :: Number(between(0, _, 255)),
-      green :: Number(between(0, _, 255)),
-      blue :: Number(between(0, _, 255)),
-      alpha :: Number(between(0, _, 255))) with:
+      red :: Number%(between(0, _, 255)),
+      green :: Number%(between(0, _, 255)),
+      blue :: Number%(between(0, _, 255)),
+      alpha :: Number%(between(0, _, 255))) with:
     tostring(self):
       "#" + tohex(self.red, 2) + tohex(self.green, 2) + tohex(self.blue, 2)
     end 
@@ -110,14 +110,14 @@ data PenJoin:
   | miter
 end
 data Pen:
-  | pen(color :: Color, width :: Number(between(0, _, 255)),
+  | pen(color :: Color, width :: Number%(between(0, _, 255)),
       style :: PenStyle, cap :: PenCap, join :: PenJoin)
 end
 
 data Mode:
   | filled
   | outline
-  | opacity(o :: Number(between(0, _, 255)))
+  | opacity(o :: Number%(between(0, _, 255)))
 end
 
 data CombineMode:
@@ -152,7 +152,7 @@ data Region:
 end
 
 data Image:
-  | empty-image(width :: Number(nonneg), height :: Number(nonneg), color :: Color) with:
+  | empty-image(width :: Number%(nonneg), height :: Number%(nonneg), color :: Color) with:
     as-svg(self):
       node("rect",
         [simple("width", tostring(self.width)), simple("height", tostring(self.height)),
@@ -165,7 +165,7 @@ data Image:
       p = pt(self.width / 2, self.height / 2)
       rg(p.scale(-1, -1), p)
     end
-  | itext(str :: String, size :: Number(between(1, _, 255)), color :: Color) with: # Todo: fonts
+  | itext(str :: String, size :: Number%(between(1, _, 255)), color :: Color) with: # Todo: fonts
     as-svg(self):
       node("text",
         [simple("x", "0"), simple("y", "0"),
@@ -186,21 +186,21 @@ data Image:
         | union => self.image.bounds().translate(self.x, self.y).union(self.scene.bounds())
       end
     end
-  | icircle(radius :: Number(nonneg), mode :: Mode, color :: Color) with:
+  | icircle(radius :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self): # Todo: Mode
       node("circle", [simple("r", tostring(self.radius)),
           mixed("style", [simple("fill", tostring(self.color)),
               simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
     end,
     bounds(self): rg(pt(0 - self.radius, 0 - self.radius), pt(self.radius, self.radius)) end
-  | iellipse(width :: Number(nonneg), height :: Number(nonneg), mode :: Mode, color :: Color) with:
+  | iellipse(width :: Number%(nonneg), height :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self): # Todo: Mode
       node("ellipse", [simple("rx", tostring(self.width / 2)), simple("ry", tostring(self.height / 2)),
           mixed("style", [simple("fill", tostring(self.color)),
               simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
     end,
     bounds(self): rg(pt((0 - self.width) / 2, (0 - self.height) / 2), pt(self.width / 2, self.height / 2)) end
-  | irectangle(width :: Number(nonneg), height :: Number(nonneg), mode :: Mode, color :: Color) with:
+  | irectangle(width :: Number%(nonneg), height :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self): # Todo: Mode
       node("rect", [simple("width", tostring(self.width)), simple("height", tostring(self.height)),
           mixed("style", [simple("fill", tostring(self.color)), simple("fill-opacity", tostring(self.color.alpha / 255))])], [])
@@ -225,7 +225,7 @@ data Image:
       end
       rg(min, max)
     end
-  | istar(side-length :: Number(nonneg), mode :: Mode, color :: Color) with:
+  | istar(side-length :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self):
       radius = self.side-length / ((2 * (1 - cosdeg(72))).sqrt())
       points = for list.map(i from range(0, 5)):
@@ -242,7 +242,7 @@ data Image:
       end
       ipolygon(points, self.mode, self.color).bounds()
     end
-  | itriangle(side-length :: Number(nonneg), mode :: Mode, color :: Color) with:
+  | itriangle(side-length :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self):
       third-point-y = 0 - (self.side-length * sindeg(60))
       points =
@@ -259,7 +259,7 @@ data Image:
         end
       ipolygon(points, self.mode, self.color).bounds()
     end
-  | iisosceles-triangle(side-length :: Number(nonneg), angle :: Number(between(0, _, 360)),
+  | iisosceles-triangle(side-length :: Number%(nonneg), angle :: Number%(between(0, _, 360)),
       mode :: Mode, color :: Color) with:
     as-svg(self):
       other-angles = (180 - self.angle) / 2
@@ -281,14 +281,14 @@ data Image:
         end
       ipolygon(points, self.mode, self.color).bounds()
     end
-  | irotate(angle :: Number(between(0, _, 360)), image :: Image) with:
+  | irotate(angle :: Number%(between(0, _, 360)), image :: Image) with:
     as-svg(self):
       node("g",
         [simple("transform", "rotate(" + self.angle.tostring-fixed(5) + ",0,0)")],
         [self.image.as-svg()])
     end,
     bounds(self): self.image.bounds().rotate(self.angle) end
-  | iscale(factor :: Number(nonneg), image :: Image) with:
+  | iscale(factor :: Number%(nonneg), image :: Image) with:
     as-svg(self):
       node("g",
         [simple("transform", "scale(" + self.factor.tostring-fixed(5) + ")")],
@@ -350,9 +350,9 @@ sharing:
 end
 
 fun rgb(
-    red :: Number(between(0, _, 255)),
-    green :: Number(between(0, _, 255)),
-    blue :: Number(between(0, _, 255))):
+    red :: Number%(between(0, _, 255)),
+    green :: Number%(between(0, _, 255)),
+    blue :: Number%(between(0, _, 255))):
   color(red, green, blue, 255)
 end
 

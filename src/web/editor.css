@@ -1,28 +1,58 @@
 .CodeMirror, .inlineExample { line-height: 1.5; border: 1px solid black; background: #f8f8f8; color: #eee; }
-.CodeMirror div.CodeMirror-cursor { border-left: 1px solid #bbb; }
+.replMain .CodeMirror {
+  line-height: 1.3;
+  border-top: none;
+  border-bottom: none;
+}
+.repl .CodeMirror {
+  background-color: #f8f8f8;
+  line-height: 1.3;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.repl .CodeMirror-lines {
+  padding: 0;
+}
+.repl .CodeMirror pre {
+  padding: 0;
+}
+.CodeMirror div.CodeMirror-cursor { border-left: 2px solid #111; }
 .cm-s-default.CodeMirror { color: #111; }
 .cm-s-default .cm-comment { color: #39f; }
 .cm-s-default .cm-builtin { color: #555; }
 .cm-s-default .cm-function-name { color: #111; }
 .cm-s-default .cm-variable { color: #111; }
 .cm-s-default .cm-keyword { color: #636; }
-.cm-s-default .cm-string { color: #c30; }
+.cm-s-default .cm-number { color: #164; }
+.cm-s-default .cm-string { color: #164; }
 .cm-s-default .cm-type { color: #339; }
 .cptteach-fixed { line-height: 1.5; background: #ddd; }
 
-div.CodeMirror span.CodeMirror-matchingbracket {
-    font-weight: bold;
-    color: #606;
+div.CodeMirror span.CodeMirror-matchingbracket-region {
+    background-color: #cdf;
 }
 
-.CodeMirror-foldgutter {
-  width: 1em;
+div.CodeMirror span.CodeMirror-matchingbracket {
+    font-weight: bold;
+    background-color: #ddd;
+    color: #111;
 }
-.CodeMirror-foldgutter-open:after {
-  content: "\25BE";
+
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket {
+    font-weight: bold;
+    background-color: #fdd;
+    color: #e11;
 }
-.CodeMirror-foldgutter-folded:after {
-  content: "\25B8";
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
+    background-color: #fdc;
+}
+
+.replTextOutput .CodeMirror {
+  border: none;
+  background-color: transparent;
 }
 
 #output {
@@ -40,14 +70,28 @@ div.CodeMirror span.CodeMirror-matchingbracket {
 }
 
 .CodeMirror-scroll {
-  overflow-y: hidden;
+  overflow-y: scroll;
   overflow-x: auto;
-}
-
-.repl .CodeMirror-scroll {
   height: auto;
 }
 
+
+.replMain .CodeMirror {
+  height: 100%;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+.replMain .CodeMirror-scroll {
+  height: 100%;
+}
+
+.repl {
+  padding-left: 0.5em;
+  height: 100%;
+  overflow-y: scroll;
+  background-color: #f8f8f8;
+  cursor: text;
+}
 .check {
   font-family: monospace;
   border: 1px solid black;
@@ -89,42 +133,6 @@ div.CodeMirror span.CodeMirror-matchingbracket {
     width: 25px;
 }
 
-.gutterButton {
-    color: #eee;
-    width: 25px;
-    border-radius: 5px 0 0 5px;
-    height: 1.5em;
-    display: inline-block;
-    text-align: center;
-    background-color: #9cf;
-}
-
-.gutterButton.active {
-  background-color: #06f;
-}
-
-.gutterButton.active.submittable {
-  border: 1px solid #06f;
-  width: 55px;
-  margin-left: -25px;
-}
-
-.gutterButton.active.submittable:hover {
-  background-color: #eee;
-  color: #06f;
-  }
-
-.gutterButton:hover {
-    cursor: pointer;
-}
-
-.gutterButton.inactive {
-    background-color: #f60;
-}
-
-.gutterButton.inactive:hover {
-    cursor: default;
-}
 
 .progressContainer {
     width: 90%;
@@ -182,9 +190,23 @@ div.CodeMirror span.CodeMirror-matchingbracket {
     padding: 3px;
 }
 
+.prompt-container {
+  padding-top: 5px;
+}
+.echo-container {
+  padding-top: 5px;
+}
+
 .repl-prompt {
   width: 90%;
   display: inline-block;
+}
+
+.repl-prompt-arrow {
+  font-family: monospace;
+  vertical-align: top;
+  display: inline-block;
+  line-height: 1.3;
 }
 
 .repl-echo {
@@ -199,20 +221,32 @@ body {
 
 .replMain {
   position: absolute;
-  top: 0;
+  z-index: 7000;
   left: 0;
   width: 50%;
+  top:0;
+  height: 100%;
+  max-height: 100%;
+  padding-top: 75px;
+  padding-bottom: 5px;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
   margin:0;
 }
 
 .replContainer {
   position: absolute;
-  margin:0;
-  padding:0;
-  right:0;
-  top:;
+  z-index: 7000;
+  right: 0;
   width: 50%;
-  height: 90%;
+  top:0;
+  height: 100%;
+  max-height: 100%;
+  padding-top: 80px;
+  padding-bottom: 5px;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  margin:0;
 }
 
 .replContainer.maximized {
@@ -225,18 +259,18 @@ body {
 }
 
 .blueButton {
-    background-color: #06f;
-    border: 1px solid #06f;
+    font-family: sans-serif;
+/*  darker blue option #2a348b */
+    background-color: #469ad4;
+    border: 1px solid #469ad4;
     border-radius: 3px;
     color: #eee;
     text-align: center;
-    margin: 3px 3px 3px auto;
-    padding: 5px;
 }
 
 .blueButton:hover {
     background-color: #eee;
-    color: #06f;
+    color: #469ad4;
     cursor: pointer;
 }
 
@@ -251,3 +285,217 @@ body {
 .runButton {
     width: 50px;
 }
+
+#loader {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background: url('./../../img/pyret-spin.gif') 50% 50% no-repeat rgb(249,249,249);
+  background-size: 200px 200px;
+}
+
+#loader p {
+  position: fixed;
+  top: 20%;
+  text-align: center;
+  width: 100%;
+}
+
+#header {
+  position: fixed;
+  z-index: 9000;
+  top: 0;
+  width: 100%;
+  height: 50px;
+  background: url("./../../img/patch-logo.png") 0 0 no-repeat #2a348b;
+  background-size: 150.15px 50px;
+  padding-left: 200px;
+}
+
+#header div {
+  width: 100px;
+  margin-top: 15px;
+  float: left;
+  padding-right: 2em;
+}
+
+#header a {
+  color: #eee;
+  font-family: sans-serif;
+}
+
+#main {
+  width: 100%;
+  z-index: 5000;
+  height: 100%;
+  padding-top: 75px;
+  padding-bottom: 5px;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+#toolbar {
+  position: fixed;
+  z-index: 8000;
+  top: 50px;
+  height: 25px;
+  width: 100%;
+  background-color: #111;
+}
+
+#footer {
+  height: 5px;
+  background-color: #111;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+#program-name-container {
+  color: #eee;
+  float: left;
+  font-family: sans-serif;
+}
+
+#saveButton {
+  float: left;
+}
+#shareButton {
+  float: left;
+}
+
+.rhs {
+  float: right;
+}
+
+.replPrint {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  padding-left: 0.5em;
+  color: #111;
+}
+
+.replOutput {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  color: #1f1180;
+}
+
+.replImageThumbnail canvas {
+  cursor: pointer;
+  border: 1px solid #111;
+  margin: 1px;
+}
+
+.replImageThumbnail canvas:hover {
+  cursor: pointer;
+  border: 2px solid #111;
+  margin: 0px;
+}
+
+.error-highlight {
+  background-color: #FCC;
+  border-bottom: 2px solid #F33;
+}
+
+.compile-error {
+  font-family: sans-serif;
+  border: 1px solid #F33;
+  border-radius: 1em;
+  padding: 1em;
+}
+
+.compile-error:hover {
+  background-color: #FCC;
+}
+
+.compile-error .code {
+  font-family: monospace; 
+}
+
+.compile-error .srcloc {
+  font-family: monospace; 
+}
+
+.warning-upper {
+   position: absolute;
+   top: 0;
+   width: 100%;
+   text-align: center;
+   display:none;
+   background: -moz-linear-gradient(top,  rgba(221,44,44,1) 0%, rgba(145,78,78,0) 50%); /* FF3.6+ */
+   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(221,44,44,1)), color-stop(50%,rgba(145,78,78,0))); /* Chrome,Safari4+ */
+   background: -webkit-linear-gradient(top,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* Chrome10+,Safari5.1+ */
+   background: -o-linear-gradient(top,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* Opera 11.10+ */
+   background: -ms-linear-gradient(top,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* IE10+ */
+   background: linear-gradient(to bottom,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* W3C */
+}
+
+.warning-lower {
+   background: -moz-linear-gradient(top,  rgba(145,78,78,0) 50%, rgba(221,44,44,1) 100%); /* FF3.6+ */
+   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(145,78,78,0)), color-stop(100%,rgba(221,44,44,1))); /* Chrome,Safari4+ */
+   background: -webkit-linear-gradient(top,  rgba(145,78,78,0) 50%,rgba(221,44,44,1) 100%); /* Chrome10+,Safari5.1+ */
+   background: -o-linear-gradient(top,  rgba(145,78,78,0) 50%,rgba(221,44,44,1) 100%); /* Opera 11.10+ */
+   background: -ms-linear-gradient(top,  rgba(145,78,78,0) 50%,rgba(221,44,44,1) 100%); /* IE10+ */
+   background: linear-gradient(to bottom,  rgba(145,78,78,0) 50%,rgba(221,44,44,1) 100%); /* W3C */
+   position: absolute;
+   bottom: 0;
+   width: 100%;
+   text-align: center;
+   display:none;
+}
+
+.topbar {
+  position: fixed;
+  width: 100%;
+  background-color: #eee;
+}
+
+/* From internet: http://stackoverflow.com/questions/5663137/jquery-modal-dialog-is-hidden-by-overlay-div-if-dialogs-parent-has-fixed-positi */
+.ui-widget-overlay{
+  position:fixed;
+  z-index: 9500;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.5;
+  background: #111;
+}
+/* end from internet */
+
+.ui-dialog {
+  border: 2px solid #111;
+  background-color: #eee;
+  border-radius: 5px;
+  z-index: 10000;
+}
+
+.ui-dialog-titlebar {
+  background-color: #2a348b;
+}
+
+.ui-dialog-title {
+  color: #eee;
+  font-family: sans-serif;
+  position: relative;
+  left: 30px;
+}
+
+.ui-dialog-titlebar-close {
+  position: relative;
+  left: 5px;
+  top: 5px;
+}
+
+.ui-dialog-titlebar-close .ui-button-text {
+  display: none;
+}
+
+.ui-dialog-titlebar-close .ui-button-icon-primary:before {
+  content: "×"
+}
+

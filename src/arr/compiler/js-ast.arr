@@ -33,7 +33,7 @@ data JBlock:
     tosource(self):
       cases(List) self.stmts:
         | empty => PP.mt-doc
-        | else => PP.flow_map(PP.hardline, _.tosource(), self.stmts)
+        | else => PP.flow-map(PP.hardline, _.tosource(), self.stmts)
       end
     end
 sharing:
@@ -112,6 +112,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("throw ")
       self.exp.print-ugly-source(printer)
+      printer(";")
     end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) + PP.str(";")

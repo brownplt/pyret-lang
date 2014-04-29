@@ -32,16 +32,15 @@ provide {
 import cmdline-lib as CL
 import format as F
 import string-dict as D
+import either as E
 format = F.format
+Either = E.Either
+left = E.left
+right = E.right
 
 all-cmdline-params = CL.command-line-arguments()
 file-name = all-cmdline-params.first
 other-args = all-cmdline-params.rest
-
-data Either:
-  | left(val)
-  | right(val)
-end
 
 data ParseParam:
   | read-number with:
@@ -71,7 +70,7 @@ data ParseParam:
     parse(self, arg-index :: Number, param-name :: String, s :: String):
       self.parser(arg-index, param-name, s)
     end,
-    parse-string(self): format("<~a>", self.name) end
+    parse-string(self): format("<~a>", [self.name]) end
 end
 
 data ParsedArguments:
