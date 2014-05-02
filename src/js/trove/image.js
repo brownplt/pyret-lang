@@ -77,34 +77,34 @@ define([
 
 
 
-    var p = function(pred) {
-      return function(val) { return runtime.confirm(val, pred); };
+    var p = function(pred, name) {
+      return function(val) { runtime.makeCheckType(pred, name)(val); return val; }
     }
 
-    var checkString = p(runtime.isString);
-    var checkStringOrFalse = p(function(val) { return runtime.isString(val) || runtime.isPyretFalse; });
+    var checkString = p(runtime.isString, "String");
+    var checkStringOrFalse = p(function(val) { return runtime.isString(val) || runtime.isPyretFalse; }, "String or false");
 
     var checkByte = p(function(val) {
         return runtime.isNumber(val) && jsnums.greaterThanOrEqual(val, 0) && jsnums.greaterThanOrEqual(255, val);
-      });
+      }, "Number between 0 and 255");
     var checkReal = p(function(val) {
         return runtime.isNumber(val) && jsnums.isReal(val);
-      });
-    var checkBoolean = p(runtime.isBoolean);
+      }, "Real Number");
+    var checkBoolean = p(runtime.isBoolean, "Boolean");
 
     var checkNatural = p(function(val) {
         return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 1);
-      });
+      }, "Natural Number");
 
     var checkPositiveInteger = p(function(val) {
         return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
-      });
+      }, "Positive Integer");
 
     var checkNonNegativeReal = p(function(val) {
         return runtime.isNumber(val) && jsnums.isReal(val) && jsnums.greaterThanOrEqual(val, 0);
-      });
+      }, "Non-negative Real Number");
 
-    var _checkColor = p(image.isColorOrColorString);
+    var _checkColor = p(image.isColorOrColorString, "Color");
 
     var checkColor = function(val) {
         var aColor = _checkColor(val);
@@ -114,44 +114,42 @@ define([
         return aColor;
     };
 
-    var checkImage = function(maybeImage) { 
-      runtime.confirm(maybeImage, runtime.isOpaque);
-      runtime.confirm(maybeImage, function(x) { return image.isImage(x.val); });
-      return maybeImage.val;
-    };
-    var checkImageOrScene = function(maybeImage) {
-      runtime.confirm(maybeImage, runtime.isOpaque);
-      runtime.confirm(maybeImage, function(x) { return image.isImage(x.val) || image.isScene(x.val); });
-      return maybeImage.val;
-    };
+    var checkImage = function(val) {
+      runtime.makeCheckType(function(v) { return runtime.isOpaque(v) && image.isImage(v.val); }, "Image")(val);
+      return val.val;
+    }
+    var checkImageOrScene = function(val) {
+      runtime.makeCheckType(function(v) { return runtime.isOpaque(v) && (image.isImage(val.val) || image.isScene(val.val)); }, "Image")(val);
+      return val.val;
+    }
 
-    var checkFontFamily = p(isFontFamily);
+    var checkFontFamily = p(isFontFamily, "Font Family");
 
-    var checkFontStyle = p(isFontStyle);
+    var checkFontStyle = p(isFontStyle, "Font Style");
 
-    var checkFontWeight = p(isFontWeight);
+    var checkFontWeight = p(isFontWeight, "Font Weight");
 
-    var checkPlaceX = p(isPlaceX);
+    var checkPlaceX = p(isPlaceX, "X Place");
 
-    var checkPlaceY = p(isPlaceY);
+    var checkPlaceY = p(isPlaceY, "Y Place");
 
 
-    var checkAngle = p(image.isAngle);
+    var checkAngle = p(image.isAngle, "Angle");
 
 
-    var checkMode = p(isMode);
+    var checkMode = p(isMode, "Mode");
 
-    var checkSideCount = p(image.isSideCount);
+    var checkSideCount = p(image.isSideCount, "Side Count");
 
-    var checkStepCount = p(image.isStepCount);
+    var checkStepCount = p(image.isStepCount, "Step Count");
 
-    var checkPointsCount = p(image.isPointsCount);
+    var checkPointsCount = p(image.isPointsCount, "Points Count");
 
     var checkArity = ffi.checkArity;
 
     var checkListofColor = p(function(val) {
       return ffi.makeList(ffi.toArray(val).map(p(isColor)));
-    });
+    }, "List<Color>");
 
     var throwMessage = ffi.throwMessageException;
 

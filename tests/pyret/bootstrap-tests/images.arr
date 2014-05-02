@@ -65,7 +65,18 @@ examples:
 
   text("my string", 12, "blue") satisfies is-image
   text-font("a string", 12, "green", "Lucida", "roman", "normal", "bold", false) satisfies is-image
-
+  
+  text(5, 12, "blue") raises "String"
+  text("my string", "nan", "blue") raises "Positive Integer"
+  text(5, 12, 42) raises "String"
+  
+  f = fun(v): 5 end
+  
+  circle(f, "solid", "red") raises "Number"
+  circle(50, 50, "red") satisfies is-image
+  circle(50, -2, "red") raises "Mode"
+  circle(50, "solid", f) raises "Color"
+  
   c = circle(50, "solid", "red")
   t = triangle(100, "outline", "blue")
   s = square(80, "solid", "green")
@@ -74,7 +85,13 @@ examples:
   c satisfies is-image
   t satisfies is-image
   overlay(c, t) satisfies is-image
+  overlay(c, 5) raises "Image"
+  overlay(5, c) raises "Image"
+  
   overlay-xy(c, 4.5, -20, t) satisfies is-image
+  overlay-xy(c, c, c, c) raises "Number"
+  overlay-xy("a", 4.5, -20, t) raises "Image"
+  
   overlay-align("left", "top", c, t) satisfies is-image
   underlay(c, t) satisfies is-image
   underlay-xy(c, 4.5, -20, t) satisfies is-image
