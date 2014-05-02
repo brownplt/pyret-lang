@@ -33,6 +33,8 @@
   <button id="shareButton" class="blueButton">Share</button>
   <button id="breakButton" class="blueButton rhs">Stop</button>
   <button id="runButton" class="blueButton rhs">Run</button>
+  <button id="toggleDialect" class="blueButton rhs"
+  style="margin-right: 5em">Switch to Pyret</button>
 </div>
 <div id="loader"><p>Raising the masts...</p></div>
 <div id="main">
@@ -87,50 +89,74 @@ $(function() {
     $("#REPL").append(replContainer);
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
     var dialects = dialectLib(runtime, runtime.namespace);
-    var dialect = window.location.hash.slice(1) || "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
-    var replNS = dialects.dialects[dialect].makeNamespace(runtime);
-    var replEnv = dialects.dialects[dialect].compileEnv;
-    var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
-
-    // NOTE(joe): This forces the loading of all the built-in compiler libs
-    repl.restartInteractions("");
-
-    var replWidget = replUI.makeRepl(replContainer, repl, runtime, {
-        breakButton: $("#breakButton")
-      });
-    window.RUN_CODE = function(src, uiOpts, replOpts) {
-      replWidget.runCode(src, uiOpts, replOpts);
-    };
-    var codeContainer = $("<div>").addClass("replMain");
-    $("#main").prepend(codeContainer);
-    var editor = replUI.makeEditor(codeContainer, {
-        runButton: $("#runButton"),
-        simpleEditor: false,
-        initial: "print('Ahoy, world!')",
-        run: RUN_CODE,
-        initialGas: 500
-      });
+    var editor = undefined;
+    var codeContainer = undefined;
+    var replWidget = undefined;
+    var lskey = "patch_saved_program";
     $(document).on("keydown", function(e) {
       if(e.ctrlKey) {
         if(e.keyCode === 68) { // "Ctrl-d"
-          editor.focus();
-          e.stopImmediatePropagation();
+          if (editor !== undefined) {
+            editor.focus();
+            e.stopImmediatePropagation();
+          }
         } else if(e.keyCode === 73) { // "Ctrl-i"
-          replWidget.focus();
-          e.stopImmediatePropagation();
+          if (replWidget !== undefined) {
+            replWidget.focus();
+            e.stopImmediatePropagation();
+          }
         }
       }
     });
-    var lskey = "patch_saved_program";
     function save() {
-      window.localStorage.setItem(lskey, editor.cm.getValue());
+      if (editor !== undefined) {
+        window.localStorage.setItem(lskey, editor.cm.getValue());
+      }
     }
     $("#saveButton").click(save);
     setInterval(save, 3000);
-    if(window.localStorage.hasOwnProperty(lskey)) {
-      editor.cm.setValue(window.localStorage.getItem(lskey));
+    $("#toggleDialect").click(function(e) {
+      var dialect = window.location.hash.slice(1) || "Bootstrap";
+      dialect = (dialect === "Pyret") ? "Bootstrap" : "Pyret";
+      window.location.hash = dialect;
+    });
+    function onHashChange() {
+      var dialect = window.location.hash.slice(1) || "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
+      $("#toggleDialect").text("Switch to " + (dialect === "Pyret" ? "Bootstrap" : "Pyret"));
+      var replNS = dialects.dialects[dialect].makeNamespace(runtime);
+      var replEnv = dialects.dialects[dialect].compileEnv;
+      var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
+
+      // NOTE(joe): This forces the loading of all the built-in compiler libs
+      repl.restartInteractions("");
+
+      replWidget = replUI.makeRepl(replContainer, repl, runtime, {
+          breakButton: $("#breakButton")
+        });
+      window.RUN_CODE = function(src, uiOpts, replOpts) {
+        replWidget.runCode(src, uiOpts, replOpts);
+      };
+      if (codeContainer !== undefined) {
+          $("#main").removeChild(codeContainer); 
+      }
+      codeContainer = $("<div>").addClass("replMain");
+      $("#main").prepend(codeContainer);
+      editor = replUI.makeEditor(codeContainer, {
+          runButton: $("#runButton"),
+          simpleEditor: false,
+          initial: "print('Ahoy, world!')",
+          run: RUN_CODE,
+          initialGas: 500
+        });
+      if(window.localStorage.hasOwnProperty(lskey)) {
+        editor.cm.setValue(window.localStorage.getItem(lskey));
+      }
+      editor.focus();
     }
-    editor.focus();
+    if ("onhashchange" in window) {
+      window.onhashchange = onHashChange;
+    }
+    onHashChange();
   });
 });
 </script>
