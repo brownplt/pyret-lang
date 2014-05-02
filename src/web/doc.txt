@@ -85,6 +85,7 @@ and string- prefixes for Bootstrap, if necessary and if we'll only be working
 over strings and numbers.  For full Pyret, they stay this way because contains
 could be useful for a number of uses.
 
+strings-equal
 string-contains
 string-append
 string-length
@@ -100,7 +101,7 @@ string-explode
 string-index-of
 num-max
 num-min
-num-equals
+nums-equal
 num-abs
 num-sin
 num-cos
@@ -151,7 +152,7 @@ is-image
 bitmap-url
 open-image-url
 image-url
-image-equals
+images-equal
 text
 normal
 text-font
