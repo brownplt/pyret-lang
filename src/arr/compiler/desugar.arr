@@ -449,7 +449,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
-          A.s-app(l, gid(l, field), [desugar-expr(left), desugar-expr(right)])
+          ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
+            fun(e1, e2):
+              A.s-app(l, gid(l, field), [e1, e2])
+            end)
         | none =>
           fun thunk(e): A.s-lam(l, [], [], A.a-blank, "", A.s-block(l, [e]), none) end
           fun opbool(fld):

@@ -111,4 +111,9 @@ check:
   3.22222222222222222222222222222222222222222 satisfies negate(num-is-fixnum)
   
 
+  # Test currying of binops
+  (_ * 4)(2) is 8
+  (3 + _)(12) is 15
+  (_ / _)(6, 3) is 2
+  
 end
