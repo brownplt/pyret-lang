@@ -90,7 +90,8 @@ $(function() {
     var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
     var dialects = dialectLib(runtime, runtime.namespace);
     var editor = undefined;
-    var codeContainer = undefined;
+    var codeContainer = $("<div>").addClass("replMain");
+    $("#main").prepend(codeContainer);
     var replWidget = undefined;
     var lskey = "patch_saved_program";
     $(document).on("keydown", function(e) {
@@ -130,17 +131,14 @@ $(function() {
       // NOTE(joe): This forces the loading of all the built-in compiler libs
       repl.restartInteractions("");
 
+      replContainer.empty();
       replWidget = replUI.makeRepl(replContainer, repl, runtime, {
           breakButton: $("#breakButton")
         });
       window.RUN_CODE = function(src, uiOpts, replOpts) {
         replWidget.runCode(src, uiOpts, replOpts);
       };
-      if (codeContainer !== undefined) {
-          $("#main").removeChild(codeContainer); 
-      }
-      codeContainer = $("<div>").addClass("replMain");
-      $("#main").prepend(codeContainer);
+      codeContainer.empty(); 
       editor = replUI.makeEditor(codeContainer, {
           runButton: $("#runButton"),
           simpleEditor: false,
