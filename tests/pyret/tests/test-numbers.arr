@@ -101,6 +101,16 @@ check:
   num-expt(2, -1) is 1 / 2
   num-expt(4, 1 / 2) is 2
 
+  num-sqrt(9) is 3
+  num-sqrt("nan") raises "expected Number"
+
+  num-expt(3, 2) is 9
+  num-expt("nan", 2) raises "expected Number"
+  num-expt(2, "nan") raises "expected Number"
+
+  num-ceiling(2.5) is 3
+  num-ceiling("nan") raises "expected Number"
+
   num-exp(3) satisfies around(20.08, 0.01)
   num-exp(1) satisfies around(2.71, 0.01)
   num-exp(0) is 1

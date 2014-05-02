@@ -40,7 +40,7 @@ fun main(args):
       C.flag(C.once, "Run without checking for shadowed variables"),
     dialect:
         C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
-          "Pyret", some("d"), C.once, "Dialect of Pyret to use")
+          "Pyret", some("d"), C.once, "Dialect of Pyret to use when compiling")
   }
   
   params-parsed = C.parse-args(options, args)
@@ -56,7 +56,10 @@ fun main(args):
     | success(r, rest) => 
       check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
-      libs = if r.has-key("library"): CS.minimal-builtins else: CS.standard-builtins end
+      libs =
+        if r.has-key("library"): CS.minimal-builtins
+        else if r.get("dialect") == "Bootstrap": CS.bootstrap-builtins
+        else: CS.standard-builtins end
       module-dir = r.get("module-load-dir")
       check-all = r.has-key("check-all")
       if not is-empty(rest):
@@ -73,7 +76,7 @@ fun main(args):
           )
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
-            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
+            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
             if (exec-result.success): print(exec-result.render-check-results())
             else: print(exec-result.render-error-message())
             end

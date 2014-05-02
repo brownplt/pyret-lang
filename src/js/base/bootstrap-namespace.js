@@ -47,7 +47,7 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
       rt.ffi.checkArity(2, arguments);
       rt.checkNumber(l);
       rt.checkNumber(r);
-      return jsnums.divide(l, r);
+      return jsnums.multiply(l, r);
     }
     var div = function(l, r) {
       rt.ffi.checkArity(2, arguments);

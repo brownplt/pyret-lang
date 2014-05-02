@@ -1855,11 +1855,11 @@ function createMethodDict() {
       }
     }
     var num_sqrt = function(n) { 
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
     var num_ceiling = function(n) { 
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n));
     }
     var num_floor = function(n) { 
@@ -1892,8 +1892,8 @@ function createMethodDict() {
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      thisRuntime.checkIf(pow, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(pow, thisRuntime.isNumber);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n, digits) {

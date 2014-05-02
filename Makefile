@@ -244,9 +244,12 @@ repl-test: phase1
 	cd tests/repl/ && node test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
+BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
 tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr phase1
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr phase1
+	node $(PHASE1)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : pyret-test
 pyret-test: phase1 $(TEST_JS)
@@ -259,6 +262,13 @@ compiler-test: phase1
 	node build/phase1/main-wrapper.js \
     --module-load-dir build/phase1/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
+
+.PHONY : bootstrap-test
+bootstrap-test: phase1 $(BS_TEST_JS)
+	node build/phase1/main-wrapper.js \
+    --module-load-dir tests/pyret \
+    --dialect Bootstrap \
+    -check-all tests/pyret/bootstrap-main.arr \
 
 .PHONY : clean
 clean:

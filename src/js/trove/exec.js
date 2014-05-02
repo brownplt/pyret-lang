@@ -1,4 +1,4 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"], function(loader, ffi, runtimeLib, checkerLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib) {
 
   if(requirejs.isBrowser) {
     var rjs = requirejs;
@@ -12,20 +12,22 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"]
   return function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
 
-    function execWithDir(jsStr, modnameP, loaddirP, checkAllP, params) {
-      RUNTIME.checkIf(jsStr, RUNTIME.isString);
-      RUNTIME.checkIf(modnameP, RUNTIME.isString);
-      RUNTIME.checkIf(loaddirP, RUNTIME.isString);
-      RUNTIME.checkIf(checkAllP, RUNTIME.isBoolean);
+    function execWithDir(jsStr, modnameP, loaddirP, checkAllP, dialectP, params) {
+      RUNTIME.checkString(jsStr);
+      RUNTIME.checkString(modnameP);
+      RUNTIME.checkString(loaddirP);
+      RUNTIME.checkBoolean(checkAllP);
+      RUNTIME.checkString(dialectP);
       var str = RUNTIME.unwrap(jsStr);
       var modname = RUNTIME.unwrap(modnameP);
       var loaddir = RUNTIME.unwrap(loaddirP);
       var checkAll = RUNTIME.unwrap(checkAllP);
+      var dialect = RUNTIME.unwrap(dialectP);
       var argsArray = F.toArray(params).map(RUNTIME.unwrap);
-      return exec(str, modname, loaddir, checkAll, argsArray);
+      return exec(str, modname, loaddir, checkAll, dialect, argsArray);
     }
 
-    function exec(str, modname, loaddir, checkAll, args) {
+    function exec(str, modname, loaddir, checkAll, dialect, args) {
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
       rjs.config({ baseUrl: loaddir });
 
@@ -33,6 +35,8 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"]
         stdout: function(str) { process.stdout.write(str); },
         stderr: function(str) { process.stderr.write(str); }
       });
+      var dialect = dialectsLib(newRuntime, newRuntime.namespace).dialects[dialect];
+      var newNamespace = dialect.makeNamespace(newRuntime);
       var fnew = ffi(newRuntime, newRuntime.namespace);
       newRuntime.setParam("command-line-arguments", args);
 
@@ -114,7 +118,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker"]
                  (if it ever does), the continuation is called with r as either
                  a Success or Failure Result from newRuntime. */
 
-              newRuntime.run(a, newRuntime.namespace, {sync: true}, function(r) {
+              newRuntime.run(a, newNamespace, {sync: true}, function(r) {
 
                   /* makeResult handles turning values from the new runtime into values that
                      the calling runtime understands (since they don't share
