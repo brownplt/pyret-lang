@@ -229,7 +229,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test bootstrap-test
 
 .PHONY : runtime-test
 runtime-test : phase1
