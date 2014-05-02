@@ -367,6 +367,8 @@ fun desugar-expr(expr :: A.Expr):
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-method(l, args, ann, doc, body, _check) =>
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
+    | s-let(l, name, value, keyword-val) =>
+      A.s-let(l, name, desugar-expr(value), keyword-val)
     | s-let-expr(l, binds, body) =>
       new-binds = for map(bind from binds):
         cases(A.LetBind) bind:
@@ -544,37 +546,53 @@ fun desugar-expr(expr :: A.Expr):
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
-  p = fun(str): PP.surface-parse(str, "test").block;
   d = A.dummy-loc
-  ds = desugar-expr
+  unglobal = A.default-map-visitor.{
+    s-global(self, s): A.s-name(d, s) end,
+    s-atom(self, base, serial): A.s-name(d, base) end
+  }
+  p = fun(str): PP.surface-parse(str, "test").block;
+  ds = fun(prog): desugar-expr(prog).visit(unglobal) end
+  id = fun(s): A.s-id(d, A.s-name(d, s));
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
   equiv = fun(e): A.equiv-ast(_, e) end
+  pretty = fun(prog): prog.tosource().pretty(80).join-str("\n") end
 
-  "no tests right now"
-
-#  prog2 = p("[1,2,1 + 2]")
-#  ds(prog2) satisfies
-#    equiv(p("_link(1, _link(2, _link(_plus(1, 2), _empty)))"))
-
-#  prog3 = p("for map(elt from l): elt + 1 end")
-#  ds(prog3) satisfies
-#    equiv(p("map(fun(elt): _plus(elt, 1) end, l)"))
-
-# Some kind of bizarre parse error here
-#  prog4 = p("(((5 + 1)) == 6) or o^f()")
-#  ds(prog4) satisfies
-#    equiv(p("builtins.equiv(5._plus(1), 6)._or(fun(): f(o) end)"))
-
-#  ds(p("(5)")) satisfies equiv(ds(p("5")))
-
-#  prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
-#  dsed5 = ds(prog5)
-#  cases-name = dsed5.stmts.first.binds.first.b.id
-#  compare = (cases-name + " = l " +
-#             cases-name + "._match({empty: fun(): 5._plus(4) end, link: fun(f, r): 10 end},
-#                                   fun(): raise('no cases matched') end)")
-#  dsed5 satisfies equiv(ds(p(compare)))
-
+  if-else = "if true: 5 else: 6 end"
+  ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
+  p(if-else)^pretty() is if-else
+  p(ask-otherwise)^pretty() is ask-otherwise
+  
+  prog2 = p("[1,2,1 + 2]")
+  ds(prog2)
+    satisfies equiv(
+    A.s-block(d,
+      [ A.s-prim-app(d, "_link",
+          [ one,
+            A.s-prim-app(d, "_link",
+              [ two,
+                A.s-prim-app(d, "_link",
+                  [A.s-app(d, id("_plus"), [one, two]), id("_empty")])])])]))
+  
+  prog3 = p("for map(elt from l): elt + 1 end")
+  ds(prog3)
+    satisfies equiv(p("map(fun(elt): _plus(elt, 1) end, l)"))
+  
+  # Some kind of bizarre parse error here
+  # prog4 = p("(((5 + 1)) == 6) or o^f()")
+  #  ds(prog4) satisfies
+  #    equiv(p("builtins.equiv(5._plus(1), 6)._or(fun(): f(o) end)"))
+  
+  # ds(p("(5)")) satisfies equiv(ds(p("5")))
+  
+  # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
+  # dsed5 = ds(prog5)
+  # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
+  # compare = (cases-name + " = l " +
+  #   cases-name + "._match({empty: fun(): 5._plus(4) end, link: fun(f, r): 10 end},
+  #   fun(): raise('no cases matched') end)")
+  # dsed5 satisfies equiv(ds(p(compare)))
+  
 end
 

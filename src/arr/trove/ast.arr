@@ -35,7 +35,8 @@ str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
-str-elsecolon = PP.str("otherwise:")
+str-elsecolon = PP.str("else:")
+str-otherwisecolon = PP.str("otherwise:")
 str-elsespace = PP.str("else ")
 str-end = PP.str("end")
 str-except = PP.str("except")
@@ -44,7 +45,7 @@ str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-graph = PP.str("graph:")
 str-if = PP.str("if ")
-str-ifcolon = PP.str("ask:")
+str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
 str-method = PP.str("method")
 str-mutable = PP.str("mutable")
@@ -104,7 +105,10 @@ sharing:
   _lessthan(self, other): self.key() < other.key() end,
   _lessequal(self, other): self.key() <= other.key() end,
   _greaterthan(self, other): self.key() > other.key() end,
-  _greaterequal(self, other): self.key() >= other.key() end
+  _greaterequal(self, other): self.key() >= other.key() end,
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 fun MakeName(start):
@@ -361,16 +365,16 @@ data Expr:
   | s-if-pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
     label(self): "s-if-pipe" end,
     tosource(self):
-      PP.surround-separate(INDENT, 1, str-ifcolon + str-space + str-end,
-        PP.group(str-ifcolon), break-one, str-end,
+      PP.surround-separate(INDENT, 1, str-askcolon + str-space + str-end,
+        PP.group(str-askcolon), break-one, str-end,
         self.branches.map(fun(b): PP.group(b.tosource()) end))
     end
   | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
     label(self): "s-if-pipe-else" end,
     tosource(self):
       body = PP.separate(break-one, self.branches.map(fun(b): PP.group(b.tosource()) end))
-        + break-one + PP.group(str-pipespace + str-elsecolon + break-one + self._else.tosource())
-      PP.surround(INDENT, 1, PP.group(str-ifcolon), body, str-end)
+        + break-one + PP.group(str-pipespace + str-otherwisecolon + break-one + self._else.tosource())
+      PP.surround(INDENT, 1, PP.group(str-askcolon), body, str-end)
     end
   | s-if(l :: Loc, branches :: List<IfBranch>) with:
     label(self): "s-if" end,
@@ -1608,12 +1612,28 @@ default-map-visitor = {
     end
   end,
 
+  s-underscore(self, l):
+    s-underscore(l)
+  end,
+
+  s-name(self, l, s):
+    s-name(l, s)
+  end,
+
+  s-global(self, s):
+    s-global(s)
+  end,
+
+  s-atom(self, base, serial):
+    s-atom(base, serial)
+  end,
+  
   s-program(self, l, _provide, imports, body):
     s-program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s-import(self, l, import-type, name):
-    s-import(l, import-type, name)
+    s-import(l, import-type, name.visit(self))
   end,
   s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
@@ -1626,7 +1646,7 @@ default-map-visitor = {
   end,
 
   s-bind(self, l, shadows, name, ann):
-    s-bind(l, shadows, name, ann.visit(self))
+    s-bind(l, shadows, name.visit(self), ann.visit(self))
   end,
 
   s-var-bind(self, l, bind, expr):
@@ -1685,11 +1705,11 @@ default-map-visitor = {
   end,
 
   s-contract(self, l, name, ann):
-    s-contract(l, name, ann.visit(self))
+    s-contract(l, name.visit(self), ann.visit(self))
   end,
 
-  s-assign(self, l :: Loc, id :: String, value :: Expr):
-    s-assign(l, id, value.visit(self))
+  s-assign(self, l :: Loc, id :: Name, value :: Expr):
+    s-assign(l, id.visit(self), value.visit(self))
   end,
 
   s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
@@ -1792,14 +1812,14 @@ default-map-visitor = {
   s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     s-left-app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
-  s-id(self, l :: Loc, id :: String):
-    s-id(l, id)
+  s-id(self, l :: Loc, id :: Name):
+    s-id(l, id.visit(self))
   end,
-  s-id-var(self, l :: Loc, id :: String):
-    s-id-var(l, id)
+  s-id-var(self, l :: Loc, id :: Name):
+    s-id-var(l, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: String):
-    s-id-letrec(l, id)
+  s-id-letrec(self, l :: Loc, id :: Name):
+    s-id-letrec(l, id.visit(self))
   end,
   s-undefined(self, l :: Loc):
     s-undefined(self)
@@ -1999,13 +2019,26 @@ default-iter-visitor = {
       | some(v) => v.visit(self)
     end
   end,
+
+  s-underscore(self, l):
+    true
+  end,
+  s-name(self, l, s):
+    true
+  end,
+  s-global(self, s):
+    true
+  end,
+  s-atom(self, base, serial):
+    true
+  end,
   
   s-program(self, l, _provide, imports, body):
     _provide.visit(self) and list.all(_.visit(self), imports) and body.visit(self)
   end,
   
   s-import(self, l, import-type, name):
-    true
+    name.visit(self)
   end,
   s-provide(self, l, expr):
     expr.visit(self)
@@ -2018,7 +2051,7 @@ default-iter-visitor = {
   end,
   
   s-bind(self, l, shadows, name, ann):
-    ann.visit(self)
+    name.visit(self) and ann.visit(self)
   end,
   
   s-var-bind(self, l, bind, expr):
@@ -2077,11 +2110,11 @@ default-iter-visitor = {
   end,
 
   s-contract(self, l :: Loc, name :: Name, ann :: Ann):
-    ann.visit(self)
+    name.visit(self) and ann.visit(self)
   end,
   
-  s-assign(self, l :: Loc, id :: String, value :: Expr):
-    value.visit(self)
+  s-assign(self, l :: Loc, id :: Name, value :: Expr):
+    id.visit(self) and value.visit(self)
   end,
   
   s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
@@ -2184,14 +2217,14 @@ default-iter-visitor = {
   s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)
   end,
-  s-id(self, l :: Loc, id :: String):
-    true
+  s-id(self, l :: Loc, id :: Name):
+    id.visit(self)
   end,
-  s-id-var(self, l :: Loc, id :: String):
-    true
+  s-id-var(self, l :: Loc, id :: Name):
+    id.visit(self)
   end,
-  s-id-letrec(self, l :: Loc, id :: String):
-    true
+  s-id-letrec(self, l :: Loc, id :: Name):
+    id.visit(self)
   end,
   s-undefined(self, l :: Loc):
     true
@@ -2378,12 +2411,25 @@ dummy-loc-visitor = {
     end
   end,
 
+  s-underscore(self, l):
+    s-underscore(dummy-loc)
+  end,
+  s-name(self, l, s):
+    s-name(dummy-loc, s)
+  end,
+  s-global(self, s):
+    s-global(s)
+  end,
+  s-atom(self, base, serial):
+    s-atom(base, serial)
+  end,
+  
   s-program(self, l, _provide, imports, body):
     s-program(dummy-loc, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s-import(self, l, import-type, name):
-    s-import(dummy-loc, import-type, name)
+    s-import(dummy-loc, import-type, name.visit(self))
   end,
   s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))
@@ -2396,7 +2442,7 @@ dummy-loc-visitor = {
   end,
 
   s-bind(self, l, shadows, name, ann):
-    s-bind(dummy-loc, shadows, name, ann.visit(self))
+    s-bind(dummy-loc, shadows, name.visit(self), ann.visit(self))
   end,
 
   s-var-bind(self, l, bind, expr):
@@ -2452,6 +2498,10 @@ dummy-loc-visitor = {
 
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     s-when(dummy-loc, test.visit(self), block.visit(self))
+  end,
+
+  s-contract(self, l, name, ann):
+    s-contract(dummy-loc, name.visit(self), ann.visit(self))
   end,
 
   s-assign(self, l :: Loc, id :: String, value :: Expr):
@@ -2558,14 +2608,14 @@ dummy-loc-visitor = {
   s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
     s-left-app(dummy-loc, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
-  s-id(self, l :: Loc, id :: String):
-    s-id(dummy-loc, id)
+  s-id(self, l :: Loc, id :: Name):
+    s-id(dummy-loc, id.visit(self))
   end,
-  s-id-var(self, l :: Loc, id :: String):
-    s-id-var(dummy-loc, id)
+  s-id-var(self, l :: Loc, id :: Name):
+    s-id-var(dummy-loc, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: String):
-    s-id-letrec(dummy-loc, id)
+  s-id-letrec(self, l :: Loc, id :: Name):
+    s-id-letrec(dummy-loc, id.visit(self))
   end,
   s-undefined(self, l :: Loc):
     s-undefined(self)

@@ -692,8 +692,8 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           }
         },
         'if-pipe-expr': function(node) {
-          if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
-            // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
+          if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
+            // (if-pipe-expr IFCOLON branch ... BAR OTHERWISECOLON else END)
             return RUNTIME.getField(ast, 's-if-pipe-else')
               .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
                    tr(node.kids[node.kids.length - 2]));
