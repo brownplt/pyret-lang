@@ -69,7 +69,7 @@ str-where = PP.str("where:")
 str-with = PP.str("with:")
 
 data Name:
-  | s-underscore with:
+  | s-underscore(l :: Loc) with:
     to-compiled-source(self): raise("Cannot compile underscores") end,
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
@@ -77,7 +77,7 @@ data Name:
     toname(self): raise("Cannot get name for underscore") end,
     key(self): "underscore#" end
 
-  | s-name(s :: String) with:
+  | s-name(l :: Loc, s :: String) with:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
@@ -949,17 +949,17 @@ end
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s-variant(_, _, name, _, _) => [s-name(name), s-name(make-checker-name(name))]
-      | s-singleton-variant(_, name, _) => [s-name(name), s-name(make-checker-name(name))]
+      | s-variant(_, l2, name, _, _) => [s-name(l2, name), s-name(l2, make-checker-name(name))]
+      | s-singleton-variant(l, name, _) => [s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
   cases(Expr) stmt:
     | s-let(_, b, _, _) => [b.id]
     | s-var(_, b, _) => [b.id]
-    | s-fun(_, name, _, _, _, _, _, _) => [s-name(name)]
+    | s-fun(l, name, _, _, _, _, _, _) => [s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
-    | s-data(_, name, _, _, variants, _, _) =>
-      s-name(name) ^ link(flatten(variants.map(variant-ids)))
+    | s-data(l, name, _, _, variants, _, _) =>
+      s-name(l, name) ^ link(flatten(variants.map(variant-ids)))
     | else => []
   end
 end
@@ -1001,6 +1001,22 @@ fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
   end
 end
 
+fun equiv-name(n1 :: Name, n2 :: Name):
+  cases(Name) n1:
+    | s-underscore(_) =>
+      cases(Name) n2:
+        | s-underscore(_) => true
+        | else => false
+      end
+    | s-name(_, s1) =>
+      cases(Name) n2:
+        | s-name(_, s2) => s1 == s2
+        | else => false
+      end
+    | else => n1 == n2
+  end
+end
+
 fun equiv-ast-member(m1 :: Member, m2 :: Member):
   cases(Member) m1:
     | s-data-field(_, n1, v1) =>
@@ -1029,7 +1045,7 @@ fun equiv-ast-bind(b1 :: Bind, b2 :: Bind):
       cases(Bind) b2:
         | s-bind(_, shadow2, id2, ann2) =>
           (shadow1 == shadow2) and
-            (id1 == id2) and
+            equiv-name(id1, id2) and
             equiv-ast-ann(ann1, ann2)
       end
   end
@@ -1218,7 +1234,7 @@ fun equiv-ast-header(h1 :: Header, h2 :: Header):
     | s-import(_, file1, name1) =>
       cases(Header) h2:
         | s-import(_, file2, name2) =>
-          equiv-import-type(file1, file2) and (name1 == name2)
+          equiv-import-type(file1, file2) and equiv-name(name1, name2)
         | else => false
       end
   end
@@ -1322,6 +1338,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-graph(_, bindings2) => length-andmap(equiv-ast, bindings1, bindings2)
         | else => false
       end
+    | s-contract(_, name1, ann1) =>
+      cases(Expr) ast2:
+        | s-contract(_, name2, ann2) => equiv-name(name1, name2) and equiv-ast-ann(ann1, ann2)
+        | else => false
+      end          
     | s-list(_, values1) =>
       cases(Expr) ast2:
         | s-list(_, values2) => length-andmap(equiv-ast, values1, values2)
@@ -1460,7 +1481,7 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
     | s-assign(_, id1, value1) =>
       cases(Expr) ast2:
         | s-assign(_, id2, value2) =>
-          (id1 == id2) and
+          equiv-name(id1, id2) and
             equiv-ast(value1, value2)
         | else => false
       end
@@ -1549,17 +1570,17 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       is-s-undefined(ast2)
     | s-id(_, id1) =>
       cases(Expr) ast2:
-        | s-id(_, id2) => id1 == id2
+        | s-id(_, id2) => equiv-name(id1, id2)
         | else => false
       end
     | s-id-var(_, id1) =>
       cases(Expr) ast2:
-        | s-id-var(_, id2) => id1 == id2
+        | s-id-var(_, id2) => equiv-name(id1, id2)
         | else => false
       end
     | s-id-letrec(_, id1) =>
       cases(Expr) ast2:
-        | s-id-letrec(_, id2) => id1 == id2
+        | s-id-letrec(_, id2) => equiv-name(id1, id2)
         | else => false
       end
     | s-let-expr(_, let-binds1, body1) =>

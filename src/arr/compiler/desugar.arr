@@ -232,7 +232,7 @@ fun desugar-member(f):
 end
 
 fun is-underscore(e):
-  A.is-s-id(e) and (e.id == A.s-underscore)
+  A.is-s-id(e) and A.is-s-underscore(e.id)
 end
 
 fun ds-curry-args(l, args):
@@ -298,7 +298,7 @@ where:
   d = A.dummy-loc
   n = A.s-global
   id = fun(s): A.s-id(d, A.s-global(s));
-  under = A.s-id(d, A.s-underscore)
+  under = A.s-id(d, A.s-underscore(d))
   ds-ed = ds-curry(
       d,
       id("f"),

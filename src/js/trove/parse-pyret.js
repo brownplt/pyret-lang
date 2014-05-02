@@ -35,9 +35,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
-          return RUNTIME.getField(ast, 's-underscore');
+          return RUNTIME.getField(ast, 's-underscore').app(pos(tok.pos));
         else
-          return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
+          return RUNTIME.getField(ast, 's-name').app(pos(tok.pos), RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);

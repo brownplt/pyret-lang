@@ -128,7 +128,7 @@ end
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
-    A.s-bind(mem.l, false, A.s-name(mem.name.s), A.a-blank)
+    A.s-bind(mem.l, false, A.s-name(mem.l, mem.name.s), A.a-blank)
   end
 end
 

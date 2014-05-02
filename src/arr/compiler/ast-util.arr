@@ -19,7 +19,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name("builtins")), "current-checker"), []) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), []) end
 
 fun append-nothing-if-necessary(prog :: A.Program):
   cases(A.Program) prog:
@@ -27,11 +27,11 @@ fun append-nothing-if-necessary(prog :: A.Program):
       new-body = cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
-            | empty => A.s-block(l2, [A.s-id(l2, A.s-name("nothing"))])
+            | empty => A.s-block(l2, [A.s-id(l2, A.s-name(l2, "nothing"))])
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): A.s-block(l2, stmts)
-              else: A.s-block(l2, stmts + [A.s-id(l2, A.s-name("nothing"))])
+              else: A.s-block(l2, stmts + [A.s-id(l2, A.s-name(l2, "nothing"))])
               end
           end
         | else => body
@@ -51,7 +51,7 @@ flatten-single-blocks = A.default-map-visitor.{
 check:
   d = A.dummy-loc
   PP.surface-parse("x", "test").block.visit(flatten-single-blocks) satisfies
-    A.equiv-ast(_, A.s-id(d, A.s-name("x")))
+    A.equiv-ast(_, A.s-id(d, A.s-name(d, "x")))
 end
 
 merge-nested-blocks = A.default-map-visitor.{
@@ -138,9 +138,9 @@ fun binding-env-from-env(initial-env):
     cases(C.CompileBinding) binding:
       | module-bindings(name, ids) =>
         mod = for list.fold(m from SD.immutable-string-dict(), b from ids):
-          m.set(A.s-name(b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
+          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
-        acc.set(A.s-name(name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
+        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
       | builtin-id(name) => acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
     end
   end
