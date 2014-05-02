@@ -86,89 +86,116 @@
   "Keymap for Pyret major mode")
 
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
-(defconst pyret-keywords-regex 
-  (regexp-opt
-   '("fun" "method" "var" "val" "when" "import" "provide" "check"
+(defconst pyret-keywords
+   '("fun" "method" "var" "when" "import" "provide" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
      "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
-     "as" "if" "else" "deriving")))
-(defconst pyret-keywords-colon-regex
-  (regexp-opt
-   '("doc" "try" "with" "if" "then" "sharing" "where" "case" "graph" "block" "otherwise")))
+     "as" "if" "else" "deriving"))
+(defconst pyret-keywords-colon
+   '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
+(defconst pyret-paragraph-starters
+  '("|" "fun" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
+
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" ";" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
-(defconst pyret-font-lock-keywords-1
-  (list
-   `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
-       pyret-keywords-colon-regex
-       "\\)\\(:\\)") 
-     (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
-   `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
-       pyret-keywords-regex "-" pyret-ident-regex
-       "\\)[ \t]*\\((\\)")
-     (1 font-lock-builtin-face) (2 font-lock-function-name-face) (3 font-lock-builtin-face))
-   `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
-       pyret-keywords-regex "-" pyret-ident-regex
-       "\\)")
-     (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
-   `(,(concat 
-       "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
-       pyret-keywords-regex
-       "\\)\\b")
-     (1 font-lock-builtin-face) (2 font-lock-keyword-face))
-   `(,pyret-punctuation-regex . font-lock-builtin-face)
-   `(,(concat "\\_<" (regexp-opt '("true" "false") t) "\\_>") . font-lock-constant-face)
-   )
-  "Minimal highlighting expressions for Pyret mode")
-
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
-(defconst pyret-font-lock-keywords-2
-  (append
-   (list
-    ;; "| IDENT(whatever) =>" is a function name
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)(.*?)[ \t]*=>")
-      (1 font-lock-builtin-face) (2 font-lock-function-name-face))
-    ;; "| KEYWORD =>" is a variable name
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-keywords-regex "\\)[ \t]*=>")
-      (1 font-lock-builtin-face) (2 font-lock-keyword-face))
-    ;; "| IDENT =>" is a variable name
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
-      (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
-    ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
-    `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\|end\\|;\\)")
-      (1 font-lock-builtin-face) (2 font-lock-type-face))
-    )
-   pyret-font-lock-keywords-1
-   (list
-    ;; "data IDENT: IDENT" without the leading |
-    ;; or "data IDENT<blah>: IDENT
-    `(,(concat "\\(\\<data\\>\\)" pyret-ws-regex "+"
-               "\\(" pyret-ident-regex "\\)\\(<.*?>\\)?"
-               pyret-ws-regex "*\\(:\\)" pyret-ws-regex "*\\(" pyret-ident-regex "\\)")
-      (1 font-lock-keyword-face) (2 font-lock-type-face) (4 font-lock-builtin-face) (5 font-lock-type-face))
-    ;; "data IDENT"
-    `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
-      (1 font-lock-keyword-face) (2 font-lock-type-face))
-    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
-      (1 font-lock-variable-name-face) (2 font-lock-type-face))
-    `(,(concat "\\(->\\)[ \t]*\\(" pyret-ident-regex "\\)")
-      (1 font-lock-builtin-face) (2 font-lock-type-face))
-    `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
-    `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\)")  (1 font-lock-function-name-face))
-    `(,pyret-ident-regex . font-lock-variable-name-face)
-    '("-" . font-lock-builtin-face)
-    ))
-  "Additional highlighting for Pyret mode")
 
-(defconst pyret-font-lock-keywords pyret-font-lock-keywords-2
-  "Default highlighting expressions for Pyret mode")
 
+(defconst pyret-bootstrap-keywords
+  '("val"))
+(defconst pyret-bootstrap-keywords-colon
+  '("examples"))
+(defconst pyret-bootstrap-paragraph-starters
+  '("examples"))
+
+(defun pyret-add-lists (dest src)
+  (mapcar (lambda (kw) (add-to-list dest kw)) src))
+(defmacro pyret-del-lists (dest src)  
+  `(mapcar (lambda (kw) (setq ,dest (delete kw ,dest))) ,src))
+(defun pyret-add-bootstrap-keywords ()
+  (pyret-add-lists 'pyret-keywords           pyret-bootstrap-keywords)
+  (pyret-add-lists 'pyret-keywords-colon     pyret-bootstrap-keywords-colon)
+  (pyret-add-lists 'pyret-paragraph-starters pyret-bootstrap-paragraph-starters))
+(defun pyret-remove-bootstrap-keywords ()
+  (pyret-del-lists pyret-keywords           pyret-bootstrap-keywords)
+  (pyret-del-lists pyret-keywords-colon     pyret-bootstrap-keywords-colon)
+  (pyret-del-lists pyret-paragraph-starters pyret-bootstrap-paragraph-starters))
+
+
+(defun pyret-recompute-lexical-regexes ()
+  (defconst pyret-keywords-regex (regexp-opt pyret-keywords))
+  (defconst pyret-keywords-colon-regex (regexp-opt pyret-keywords-colon))
+  (defconst pyret-font-lock-keywords-1
+    (list
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-colon-regex
+         "\\)\\(:\\)") 
+       (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-regex "-" pyret-ident-regex
+         "\\)[ \t]*\\((\\)")
+       (1 font-lock-builtin-face) (2 font-lock-function-name-face) (3 font-lock-builtin-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-regex "-" pyret-ident-regex
+         "\\)")
+       (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-regex
+         "\\)\\b")
+       (1 font-lock-builtin-face) (2 font-lock-keyword-face))
+     `(,pyret-punctuation-regex . font-lock-builtin-face)
+     `(,(concat "\\_<" (regexp-opt '("true" "false") t) "\\_>") . font-lock-constant-face)
+     )
+    "Minimal highlighting expressions for Pyret mode")
+
+  (defconst pyret-font-lock-keywords-2
+    (append
+     (list
+      ;; "| IDENT(whatever) =>" is a function name
+      `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)(.*?)[ \t]*=>")
+        (1 font-lock-builtin-face) (2 font-lock-function-name-face))
+      ;; "| KEYWORD =>" is a variable name
+      `(,(concat "\\([|]\\)[ \t]+\\(" pyret-keywords-regex "\\)[ \t]*=>")
+        (1 font-lock-builtin-face) (2 font-lock-keyword-face))
+      ;; "| IDENT =>" is a variable name
+      `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*=>")
+        (1 font-lock-builtin-face) (2 font-lock-variable-name-face))
+      ;; "| IDENT (", "| IDENT with", "| IDENT" are all considered type names
+      `(,(concat "\\([|]\\)[ \t]+\\(" pyret-ident-regex "\\)[ \t]*\\(?:(\\|with\\|$\\|end\\|;\\)")
+        (1 font-lock-builtin-face) (2 font-lock-type-face))
+      )
+     pyret-font-lock-keywords-1
+     (list
+      ;; "data IDENT: IDENT" without the leading |
+      ;; or "data IDENT<blah>: IDENT
+      `(,(concat "\\(\\<data\\>\\)" pyret-ws-regex "+"
+                 "\\(" pyret-ident-regex "\\)\\(<.*?>\\)?"
+                 pyret-ws-regex "*\\(:\\)" pyret-ws-regex "*\\(" pyret-ident-regex "\\)")
+        (1 font-lock-keyword-face) (2 font-lock-type-face) (4 font-lock-builtin-face) (5 font-lock-type-face))
+      ;; "data IDENT"
+      `(,(concat "\\(\\<data\\>\\)[ \t]+\\(" pyret-ident-regex "\\)") 
+        (1 font-lock-keyword-face) (2 font-lock-type-face))
+      `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*::[ \t]*\\(" pyret-ident-regex "\\)") 
+        (1 font-lock-variable-name-face) (2 font-lock-type-face))
+      `(,(concat "\\(->\\)[ \t]*\\(" pyret-ident-regex "\\)")
+        (1 font-lock-builtin-face) (2 font-lock-type-face))
+      `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
+      `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\)")  (1 font-lock-function-name-face))
+      `(,pyret-ident-regex . font-lock-variable-name-face)
+      '("-" . font-lock-builtin-face)
+      ))
+    "Additional highlighting for Pyret mode")
+
+  (defconst pyret-font-lock-keywords pyret-font-lock-keywords-2
+    "Default highlighting expressions for Pyret mode")
+  )
 
 (defconst pyret-mode-syntax-table
   (let ((st (make-syntax-table)))
@@ -244,7 +271,6 @@
 (defsubst pyret-LETREC () (pyret-keyword "letrec"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
 (defsubst pyret-WHEN () (pyret-keyword "when"))
-(defsubst pyret-IFCOLON () (pyret-keyword "if:"))
 (defsubst pyret-ASKCOLON () (pyret-keyword "ask:"))
 (defsubst pyret-THEN () () (pyret-keyword "then:"))
 (defsubst pyret-IF () (pyret-keyword "if"))
@@ -261,6 +287,7 @@
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing:"))
+(defsubst pyret-EXAMPLES () (pyret-keyword "examples"))
 (defsubst pyret-CHECK () (pyret-keyword "check"))
 (defsubst pyret-WHERE () (pyret-keyword "where:"))
 (defsubst pyret-GRAPH () (pyret-keyword "graph:"))
@@ -529,10 +556,6 @@
             (push 'wantcolon opens)
             (push 'needsomething opens)
             (forward-char 4))
-           ((pyret-IFCOLON)
-            (incf (pyret-indent-cases defered-opened))
-            (push 'ifcond opens)
-            (forward-char 3))
            ((pyret-ASKCOLON)
             (incf (pyret-indent-cases defered-opened))
             (push 'ifcond opens)
@@ -644,6 +667,11 @@
             (push 'check opens)
             (push 'wantcolon opens)
             (forward-char 5))
+           ((and (pyret-EXAMPLES) (equal pyret-dialect 'Bootstrap) (not opens))
+            (incf (pyret-indent-shared defered-opened))
+            (push 'check opens)
+            (push 'wantcolon opens)
+            (forward-char 8))
            ((pyret-TRY)
             (incf (pyret-indent-try defered-opened))
             (push 'try opens)
@@ -937,7 +965,11 @@ For detail, see `comment-dwim'."
   (kill-all-local-variables)
   (set-syntax-table pyret-mode-syntax-table)
   (use-local-map pyret-mode-map)
+  (pyret-remove-bootstrap-keywords)
+  (pyret-recompute-lexical-regexes)
+  (set (make-local-variable 'pyret-dialect) 'Pyret)
   (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
+  (font-lock-refresh-defaults)
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'indent-line-function) 'pyret-indent-line)  
@@ -945,8 +977,7 @@ For detail, see `comment-dwim'."
   (set (make-local-variable 'tab-width) 2)
   (set (make-local-variable 'indent-tabs-mode) nil)
   (set (make-local-variable 'paragraph-start)
-       (concat "\\|[ \t]*" 
-               (regexp-opt '("|" "fun" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "if:"))))
+       (concat "\\|[ \t]*" (regexp-opt pyret-paragraph-starters)))
   (setq major-mode 'pyret-mode)
   (setq mode-name "Pyret")
   (set (make-local-variable 'pyret-nestings-at-line-start) (vector))
@@ -960,6 +991,24 @@ For detail, see `comment-dwim'."
                nil t)
   (run-hooks 'pyret-mode-hook))
 
+(define-minor-mode bootstrap-mode
+  "The Bootstrap dialect of Pyret"
+  :lighter " [Bootstrap]"
+  (when (equal major-mode 'pyret-mode)
+    (if (equal pyret-dialect 'Pyret) ;; Enabling Bootstrap mode
+        (progn
+          (setq pyret-dialect 'Bootstrap)
+          (pyret-add-bootstrap-keywords))
+      (progn
+        (setq pyret-dialect 'Pyret)
+        (pyret-remove-bootstrap-keywords)))
+    (pyret-recompute-lexical-regexes)
+    (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
+    (font-lock-refresh-defaults)
+    (set (make-local-variable 'paragraph-start)
+         (concat "\\|[ \t]*" (regexp-opt pyret-paragraph-starters)))
+    )
+  )
 
 (defun pyret-reload-mode-all-buffers ()
   "Debugging function to help reload the pyret major mode in all open buffers"
