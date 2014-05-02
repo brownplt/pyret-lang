@@ -77,7 +77,7 @@ binop-expr: binop-clause (binop binop-clause)*
 binop-clause: expr
 
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
-     | NEQ  | LT  | GT
+     | NEQ  | LT  | GT | AND | OR
 
 check-op: IS | RAISES | SATISFIES
 

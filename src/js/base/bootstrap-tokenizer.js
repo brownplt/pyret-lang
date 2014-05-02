@@ -77,7 +77,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
   const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", "%",
-                                    "<", ">", "is", "raises"]);
+                                    "<", ">", "and", "or", "is", "raises"]);
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
@@ -118,6 +118,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp("^\\s+<>\\s+", STICKY_REGEXP);
   const oplt = new RegExp("^\\s*<\\s*", STICKY_REGEXP);
   const opgt = new RegExp("^\\s*>\\s*", STICKY_REGEXP);
+  const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
+  const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opsatisfies = new RegExp("^satisfies(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
@@ -216,6 +218,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "NEQ", val: opneq, parenIsForExp: true},
     {name: "LT", val: oplt, parenIsForExp: true},
     {name: "GT", val: opgt, parenIsForExp: true},
+    {name: "AND", val: opand},
+    {name: "OR", val: opor},
     {name: "IS", val: opis},
     {name: "SATISFIES", val: opsatisfies},
     {name: "RAISES", val: opraises},

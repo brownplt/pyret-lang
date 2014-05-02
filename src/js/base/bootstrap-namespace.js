@@ -91,8 +91,8 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
       'greaterequal': rt.namespace.get("_greaterequal"),
       'lessequal': rt.namespace.get("_lessequal"),
 
-      'and': makeFunction(bool_and),
-      'or': makeFunction(bool_or),
+      'both': makeFunction(bool_and),
+      'either': makeFunction(bool_or),
       'not': makeFunction(bool_not),
 
       'max': rt.namespace.get("num-max"),

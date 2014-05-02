@@ -154,8 +154,8 @@ bootstrap-builtins = compile-env(
   "greaterequal",
   "lessequal",
 
-  "and",
-  "or",
+  "both",
+  "either",
   "not",
 
   "max",
