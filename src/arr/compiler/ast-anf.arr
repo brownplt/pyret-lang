@@ -146,6 +146,7 @@ end
 data AVariant:
   | a-variant(
       l :: Loc,
+      constr-loc :: Loc,
       name :: String,
       members :: List<AVariantMember>,
       with-members :: List<AField>
@@ -417,8 +418,8 @@ default-map-visitor = {
   a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
   end,
-  a-variant(self, l :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
-    a-variant(l, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
+  a-variant(self, l :: Loc, constr-loc :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
+    a-variant(l, constr-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
   a-singleton-variant(self, l :: Loc, name :: String, with-members :: List<AField>):
     a-singleton-variant(l, name, with-members.map(_.visit(self)))

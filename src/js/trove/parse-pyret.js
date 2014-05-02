@@ -104,48 +104,60 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
             return tr(node.kids[1]);
           }
         },
+        'variant-constructor': function(node) {
+          // (variant-constructor NAME variant-members)
+          return {
+            pos: pos(node.pos),
+            name: symbol(node.kids[0]),
+            args: tr(node.kids[1])
+          }
+        },
         'data-variant': function(node) {
-          if (node.kids.length === 4) {
-            // (data-variant PIPE NAME args with)
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
-          } else {
+          if (node.kids[1].value !== undefined) {
             // (data-variant PIPE NAME with)
             return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
+          } else {
+            // (data-variant PIPE variant-constructor with)
+            var constr = tr(node.kids[1])
+            return RUNTIME.getField(ast, 's-variant')
+              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
           }
         },
         'first-data-variant': function(node) {
-          if (node.kids.length === 3) {
-            // (first-data-variant NAME args with)
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
-          } else {
+          if (node.kids[0].value !== undefined) {
             // (first-data-variant NAME with)
             return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
+          } else {
+            // (first-data-variant variant-constructor with)
+            var constr = tr(node.kids[0])
+            return RUNTIME.getField(ast, 's-variant')
+              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
           }
         },
         'datatype-variant': function(node) {
-          if (node.kids.length === 4) {
-            // (datatype-variant PIPE NAME args constructor)
-            return RUNTIME.getField(ast, 's-datatype-variant')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
-          } else {
+          if (node.kids[1].value !== undefined) {
             // (datatype-variant PIPE NAME constructor)
             return RUNTIME.getField(ast, 's-datatype-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
+          } else {
+            // (datatype-variant PIPE variant-constructor constructor)
+            var constr = tr(node.kids[1])
+            return RUNTIME.getField(ast, 's-datatype-variant')
+              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
           }
         },
         'first-datatype-variant': function(node) {
-          if (kids.length === 4) {
-            // (first-datatype-variant NAME args constructor)
-            return RUNTIME.getField(ast, 's-datatype-variant')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
-          } else {
-            // (first-datatype-variant NAME constructor)
+          if (node.kids[0].value !== undefined) {
+            // (datatype-variant NAME constructor)
             return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[0]));
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
+          } else {
+            // (datatype-variant variant-constructor constructor)
+            var constr = tr(node.kids[0])
+            return RUNTIME.getField(ast, 's-datatype-variant')
+              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
           }
         },
         'data-sharing': function(node) {

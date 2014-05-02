@@ -169,13 +169,13 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       fun anf-variant(v :: A.Variant, kv :: (N.AVariant -> N.AExpr)):
         cases(A.Variant) v:
-          | s-variant(l2, vname, members, with-members) =>
+          | s-variant(l2, constr-loc, vname, members, with-members) =>
             with-exprs = with-members.map(_.value)
             anf-name-rec(with-exprs, "anf_variant_member", fun(ts):
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name.s, t)
                   end
-                kv(N.a-variant(l, vname, members.map(anf-member), new-fields))
+                kv(N.a-variant(l2, constr-loc, vname, members.map(anf-member), new-fields))
               end)
           | s-singleton-variant(l2, vname, with-members) =>
             with-exprs = with-members.map(_.value)
@@ -183,7 +183,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name.s, t)
                   end
-                kv(N.a-singleton-variant(l, vname, new-fields))
+                kv(N.a-singleton-variant(l2, vname, new-fields))
               end)
         end
       end

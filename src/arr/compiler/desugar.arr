@@ -394,10 +394,11 @@ fun desugar-expr(expr :: A.Expr):
           ]
         end
         cases(A.Variant) v:
-          | s-variant(l2, vname, members, with-members) =>
+          | s-variant(l2, constr-loc, vname, members, with-members) =>
             methods = make-methods(l2, vname, members)
             A.s-variant(
               l2,
+              constr-loc,
               vname,
               members.map(desugar-variant-member),
               (methods + with-members).map(desugar-member))

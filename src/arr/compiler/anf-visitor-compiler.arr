@@ -393,10 +393,10 @@ compiler-visitor = {
       predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
 
       cases(N.AVariant) v:
-        | a-variant(l2, _, members, with-members) =>
+        | a-variant(l2, constr-loc, _, members, with-members) =>
           {
             stmts: stmts,
-            constructor: make-variant-constructor(l2, variant-base-id, variant-brand-obj-id, vname, members),
+            constructor: make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, vname, members),
             predicate: predicate
           }
         | a-singleton-variant(_, _, with-members) =>

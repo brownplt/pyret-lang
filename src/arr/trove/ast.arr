@@ -754,6 +754,7 @@ end
 data Variant:
   | s-variant(
       l :: Loc,
+      constr-loc :: Loc,
       name :: String,
       members :: List<VariantMember>,
       with-members :: List<Member>
@@ -948,7 +949,7 @@ end
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s-variant(_, name, _, _) => [s-name(name), s-name(make-checker-name(name))]
+      | s-variant(_, _, name, _, _) => [s-name(name), s-name(make-checker-name(name))]
       | s-singleton-variant(_, name, _) => [s-name(name), s-name(make-checker-name(name))]
     end
   end
@@ -1093,9 +1094,9 @@ end
 
 fun equiv-ast-variant(v1 :: Variant, v2 :: Variant):
   cases(Variant) v1:
-    | s-variant(_, n1, b1, wm1) =>
+    | s-variant(_, _, n1, b1, wm1) =>
       cases(Variant) v2:
-        | s-variant(_, n2, b2, wm2) =>
+        | s-variant(_, _, n2, b2, wm2) =>
           (n1 == n2) and
             length-andmap(equiv-ast-bind, b1, b2) and
             length-andmap(equiv-ast-member, wm1, wm2)
@@ -1902,11 +1903,12 @@ default-map-visitor = {
   s-variant(
       self,
       l :: Loc,
+      constr-loc :: Loc,
       name :: String,
       members :: List<VariantMember>,
       with-members :: List<Member>
     ):
-    s-variant(l, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
+    s-variant(l, constr-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
   s-singleton-variant(
       self,
@@ -2275,6 +2277,7 @@ default-iter-visitor = {
   s-variant(
       self,
       l :: Loc,
+      constr-loc :: Loc,
       name :: String,
       members :: List<VariantMember>,
       with-members :: List<Member>
@@ -2666,11 +2669,12 @@ dummy-loc-visitor = {
   s-variant(
       self,
       l :: Loc,
+      constr-loc :: Loc,
       name :: String,
       members :: List<VariantMember>,
       with-members :: List<Member>
     ):
-    s-variant(dummy-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
+    s-variant(dummy-loc, dummy-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
   s-singleton-variant(
       self,

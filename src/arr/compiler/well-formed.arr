@@ -192,7 +192,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
       list.all(_.visit(self), with-members)
     end,
-    s-variant(self, l, name, binds, with-members):
+    s-variant(self, l, constr-loc, name, binds, with-members):
       ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
       list.all(_.visit(self), binds) and list.all(_.visit(self), with-members)
     end,
