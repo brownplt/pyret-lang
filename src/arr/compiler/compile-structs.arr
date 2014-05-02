@@ -138,6 +138,41 @@ no-builtins = compile-env([])
 minimal-builtins = compile-env(runtime-builtins)
 
 bootstrap-builtins = compile-env(
+  [module-bindings("list", [
+      "List",
+      "is-empty",
+      "is-link",
+      "empty",
+      "link",
+      "range",
+      "repeat",
+      "filter",
+      "partition",
+      "split-at",
+      "any",
+      "find",
+      "map",
+      "map2",
+      "map3",
+      "map4",
+      "map_n",
+      "map2_n",
+      "map3_n",
+      "map4_n",
+      "each",
+      "each2",
+      "each3",
+      "each4",
+      "each_n",
+      "each2_n",
+      "each3_n",
+      "each4_n",
+      "fold",
+      "fold2",
+      "fold3",
+      "fold4",
+      "index"
+  ])] +
   runtime-builtins + list.map(builtin-id, [
   
 
@@ -188,7 +223,7 @@ bootstrap-builtins = compile-env(
   "underlay-align",
   "beside-align",
   "beside",
-  "above",
+ "above",
   "middle",
   "above-align",
   "empty-scene",
@@ -240,7 +275,9 @@ bootstrap-builtins = compile-env(
   "on-mouse",
   "on-key",
   "stop-when",
-  "is-key-equal"]))
+  "is-key-equal"
+  ])
+)
 
 standard-builtins = compile-env(
     runtime-builtins + [
