@@ -152,7 +152,7 @@ update-expr: expr BANG LBRACE fields RBRACE
 
 if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
 else-if: ELSEIF binop-expr COLON block
-if-pipe-expr: IFCOLON if-pipe-branch* [BAR ELSECOLON block] end
+if-pipe-expr: ASKCOLON if-pipe-branch* [BAR OTHERWISECOLON block] end
 if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN expr COLON cases-branch* [BAR ELSE THICKARROW block] end

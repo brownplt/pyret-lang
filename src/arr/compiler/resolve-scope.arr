@@ -12,7 +12,7 @@ import "compiler/gensym.arr" as G
 fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
 
 fun mk-id(loc, base):
-  t = A.s-name(base)
+  t = A.s-name(loc, base)
   { id: t, id-b: mk-bind(loc, t), id-e: A.s-id(loc, t) }
 end
 
@@ -74,7 +74,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           new-letrecs = link(A.s-letrec-bind(
               l,
-              A.s-bind(l, false, A.s-name(name), A.a-blank),
+              A.s-bind(l, false, A.s-name(l, name), A.a-blank),
               A.s-lam(l, params, args, ann, doc, body, _check)
             ), letrec-binds)
           resolved-inner = desugar-scope-block(rest-stmts, [], new-letrecs)
@@ -84,7 +84,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
             [wrap-lets(A.s-block(l, resolved-inner))]
           end
         | s-data(l, name, params, mixins, variants, shared, _check) =>
-          fun b(loc, id): A.s-bind(loc, false, A.s-name(id), A.a-blank);
+          fun b(loc, id): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
           fun variant-binds(data-blob-id, v):
             vname = v.name
             checker-name = A.make-checker-name(vname)
@@ -97,9 +97,9 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           blob-id = G.make-name(name)
           data-expr = A.s-data-expr(l, name, params, mixins, variants, shared, _check)
           bind-data = A.s-letrec-bind(l, b(l, blob-id), data-expr)
-          bind-data-pred = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id(l, A.s-name(blob-id)), name))
+          bind-data-pred = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id(l, A.s-name(l, blob-id)), name))
           all-binds = for fold(acc from [bind-data-pred, bind-data], v from variants):
-            variant-binds(A.s-id(l, A.s-name(blob-id)), v) + acc
+            variant-binds(A.s-id(l, A.s-name(l, blob-id)), v) + acc
           end
 
           if is-empty(letrec-binds):
@@ -125,8 +125,8 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
 where:
   p = fun(str): PP.surface-parse(str, "test").block;
   d = A.dummy-loc
-  b = fun(s): A.s-bind(d, false, A.s-name(s), A.a-blank);
-  id = fun(s): A.s-id(d, A.s-name(s));
+  b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
+  id = fun(s): A.s-id(d, A.s-name(d, s));
   bk = fun(e): A.s-block(d, [e]) end
   bs = fun(str):
     A.s-block(d, desugar-scope-block(p(str).stmts, [], []))
@@ -200,7 +200,7 @@ where:
       A.s-block(d,
           [
             p-s(id("x")),
-            A.s-assign(d, A.s-name("x"), A.s-num(d, 3)),
+            A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
             p-s(id("x"))
           ]
         )
@@ -247,7 +247,7 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
             | module-bindings(mname, bindings) =>
               lst + 
                 for map(name from bindings):
-                  A.s-let(l, A.s-bind(l, false, A.s-name(name), A.a-blank), A.s-dot(l, A.s-id(l, A.s-name(mname)), name), false)
+                  A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank), A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
                 end
             | else => lst
           end
@@ -292,7 +292,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
       end
       wrapped = wrap-env-imports(l, with-provides, compile-env)
       full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
-          A.s-import(l, A.s-const-import(k), A.s-name(k))
+          A.s-import(l, A.s-const-import(k), A.s-name(l, k))
         end
 
       A.s-program(l, A.s-provide-none(l), full-imports, wrapped.visit(desugar-scope-visitor))
@@ -300,8 +300,8 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   
 where:
   d = A.dummy-loc
-  b = fun(s): A.s-bind(d, false, A.s-name(s), A.a-blank);
-  id = fun(s): A.s-id(d, A.s-name(s));
+  b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
+  id = fun(s): A.s-id(d, A.s-name(d, s));
   checks = A.s-data-field(
                   d,
                   A.s-str(d, "checks"),
@@ -328,7 +328,7 @@ where:
     A.equiv-ast-prog(_, compare1)
 
   compare2 = A.s-program(d, A.s-provide-none(d), [
-        A.s-import(d, A.s-file-import("./foo.arr"), A.s-name("F"))
+        A.s-import(d, A.s-file-import("./foo.arr"), A.s-name(d, "F"))
       ],
       A.s-block(d, [
         A.s-block(d, [
@@ -381,14 +381,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun make-atom-for(bind, env, type):
     cases(A.Name) bind.id:
-      | s-name(s) =>
+      | s-name(l, s) =>
         when env.has-key(s) and (not bind.shadows):
           old-loc = env.get(s).loc
-          shadowing-instances := link(C.shadow-id(s, bind.l, old-loc), shadowing-instances)
+          shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
         end
         atom = names.make-atom(s)
-        { atom: atom, env: env.set(s, type(bind.l, atom)) }
-      | s-underscore =>
+        { atom: atom, env: env.set(s, type(l, atom)) }
+      | s-underscore(l) =>
         atom = names.make-atom("$underscore")
         { atom: atom, env: env }
       | else => raise("Unexpected atom type: " + torepr(bind))
@@ -397,7 +397,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun handle-id(env, l, id):
     cases(A.Name) id:
-      | s-name(s) =>
+      | s-name(l2, s) =>
         if env.has-key(s):
           cases (ScopeBinding) env.get(s):
             | let-bind(_, atom) => A.s-id(l, atom)
@@ -408,7 +408,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         else:
           A.s-id(l, names.s-global(s))
         end
-      | s-underscore => A.s-id(l, A.s-underscore)
+      | s-underscore(_) => A.s-id(l, id)
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
@@ -537,7 +537,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     s-assign(self, l, id, expr):
       cases(A.Name) id:
-        | s-name(s) =>
+        | s-name(l2, s) =>
           if self.env.has-key(s):
             cases (ScopeBinding) self.env.get(s):
               | var-bind(loc, atom) => A.s-assign(l, atom, expr.visit(self))
@@ -546,7 +546,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           else:
             raise("Assignment to global " + torepr(l))
           end
-        | s-underscore =>
+        | s-underscore(_) =>
           A.s-assign(l, id, expr)
         | else => raise("Wasn't expecting a non-s-name in resolve-names for assignment: " + torepr(id))
       end
@@ -564,7 +564,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     s-bind(self, l, shadows, id, ann):
       cases(A.Name) id:
-        | s-underscore => A.s-bind(l, shadows, id, ann)
+        | s-underscore(_) => A.s-bind(l, shadows, id, ann)
         | else => 
           raise("Should not reach non-underscore bindings in resolve-names" + torepr(l) + torepr(id))
       end

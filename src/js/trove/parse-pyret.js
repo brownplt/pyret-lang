@@ -35,9 +35,9 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
       var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
-          return RUNTIME.getField(ast, 's-underscore');
+          return RUNTIME.getField(ast, 's-underscore').app(pos(tok.pos));
         else
-          return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
+          return RUNTIME.getField(ast, 's-name').app(pos(tok.pos), RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
@@ -692,8 +692,8 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           }
         },
         'if-pipe-expr': function(node) {
-          if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
-            // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
+          if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
+            // (if-pipe-expr IFCOLON branch ... BAR OTHERWISECOLON else END)
             return RUNTIME.getField(ast, 's-if-pipe-else')
               .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
                    tr(node.kids[node.kids.length - 2]));
