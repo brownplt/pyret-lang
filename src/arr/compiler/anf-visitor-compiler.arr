@@ -476,20 +476,20 @@ fun compile-program(self, l, headers, split, env):
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(fun(f): G.make-name(f) end)
   fun wrap-modules(modules, body):
-    cases(List) modules:
-      | empty =>
-        j-return(rt-method(
-            "safeCall", [
-              j-fun([], j-block([body])),
-              j-fun(["moduleVal"],
-                j-block([
-                  j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
-                  j-return(j-id("moduleVal"))
-                ]))]))
-      | link(f, r) =>
-        j-return(rt-method("loadModule",
-          [j-id(f.input-id), j-id("R"), j-id("NAMESPACE"), j-fun([f.id], j-block([wrap-modules(r, body)]))]))
-    end
+    mod-input-ids = modules.map(fun(f): j-id(f.input-id) end)
+    mod-ids = modules.map(_.id)
+    j-return(rt-method("loadModules",
+        [j-id("NAMESPACE"), j-list(false, mod-input-ids),
+          j-fun(mod-ids,
+            j-block([
+                j-return(rt-method(
+                    "safeCall", [
+                      j-fun([], j-block([body])),
+                      j-fun(["moduleVal"],
+                        j-block([
+                            j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
+                            j-return(j-id("moduleVal"))
+                    ]))]))]))]))
   end
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }
