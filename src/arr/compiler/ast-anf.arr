@@ -13,6 +13,7 @@ str-letrec = PP.str("letrec ")
 str-period = PP.str(".")
 str-bang = PP.str("!")
 str-colon = PP.str(":")
+str-coloncolon = PP.str("::")
 str-colonspace = PP.str(":")
 str-end = PP.str("end")
 str-let = PP.str("let ")
@@ -51,12 +52,12 @@ data AImport:
   | a-import-file(l :: Loc, file :: String, name :: Name) with:
     label(self): "a-import-file" end,
     tosource(self):
-      PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, PP.str(self.name)])
+      PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
     end
   | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
     label(self): "a-import-builtin" end,
     tosource(self):
-      PP.flow([str-import, PP.str(self.lib), str-as, PP.str(self.name)])
+      PP.flow([str-import, PP.str(self.lib), str-as, self.name.tosource()])
     end
 sharing:
   visit(self, visitor):
@@ -93,7 +94,7 @@ data AExpr:
   | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
     label(self): "a-tail-app" end,
     tosource(self):
-      PP.group(self._fun.tosource()
+      PP.group(self.f.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
     end
@@ -108,7 +109,7 @@ data AExpr:
                 PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))))) +
         break-one +
         PP.group(PP.nest(INDENT, PP.str("and then") + break-one
-              + PP.str(self.helper.tostring())
+              + self.helper.tosource()
               + PP.parens(PP.nest(INDENT,
                 PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))))
     end
@@ -136,7 +137,11 @@ end
 data ABind:
   | a-bind(l :: Loc, id :: Name, ann :: A.Ann) with:
     label(self): "a-bind" end,
-    tosource(self): PP.str(self.id.tostring()) end
+    tosource(self):
+      if A.is-a-blank(self.ann): self.id.tosource()
+      else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+      end
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -204,7 +209,7 @@ data ALettable:
   | a-assign(l :: Loc, id :: Name, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, PP.str(self.id) + str-spacecolonequal + break-one + self.value.tosource()))
+      PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
     label(self): "a-app" end,

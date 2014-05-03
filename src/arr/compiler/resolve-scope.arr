@@ -26,18 +26,32 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr):
   end
 end
 
-fun resolve-import(i :: A.Import):
-  cases(A.Import) i:
-    | s-import(l, imp, name) =>
-      cases(A.ImportType) imp:
-        | s-file-import(file) =>
-          if string-contains(file, "/"): i
-          else: A.s-import(l, A.s-file-import("./" + file), name)
-          end
-        | else => i
-      end
-    | else => i
+fun resolve-imports(imports :: List<A.Import>):
+  fun resolve-import-type(imp :: A.ImportType):
+    cases(A.ImportType) imp:
+      | s-file-import(l, file) =>
+        if string-contains(file, "/"): imp
+        else: A.s-file-import(l, "./" + file)
+        end
+      | s-const-import(_, _) => imp
+    end
   end
+  ret = for fold(acc from {imports: [], lets: []}, i from imports):
+    cases(A.Import) i:
+      | s-import(l, imp, name) =>
+        new-i = A.s-import(l, resolve-import-type(imp), name)
+        acc.{imports: link(new-i, acc.imports)}
+      | s-import-fields(l, fields, imp) =>
+        imp-str = if A.is-s-const-import(imp): imp.module else: "mod-import" end
+        imp-name = A.s-name(imp.l, G.make-name(imp-str))
+        new-i = A.s-import(l, resolve-import-type(imp), imp-name)
+        new-lets = for map(f from fields.reverse()):
+          A.s-let(f.l, A.s-bind(l, false, f, A.a-blank), A.s-dot(l, A.s-id(l, imp-name), f.tostring()), false)
+        end
+        acc.{imports: link(new-i, acc.imports), lets: new-lets + acc.lets}
+    end
+  end
+  { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
 end
 
 
@@ -268,14 +282,21 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           - contains no s-let, s-var, s-data"
   cases(A.Program) prog:
     | s-program(l, _provide-raw, imports-raw, body) =>
-      imports = imports-raw.map(resolve-import)
+      imports-and-lets = resolve-imports(imports-raw)
+      imports = imports-and-lets.imports
+      extra-lets = imports-and-lets.lets
       str = A.s-str(l, _)
       prov = cases(A.Provide) resolve-provide(_provide-raw, body):
         | s-provide-none(_) => A.s-obj(l, [])
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
-      with-provides = cases(A.Expr) body:
+      with-imports = cases(A.Expr) body:
+        | s-block(l2, stmts) =>
+          A.s-block(l2, extra-lets + stmts)
+        | else => A.s-block(l, extra-lets + [body])
+      end
+      with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
           last = stmts.last()
           new-stmts = stmts.take(stmts.length() - 1) + [A.s-obj(l2, [
@@ -288,11 +309,11 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
                 )
             ])]
           A.s-block(l2, new-stmts)
-        | else => body
+        | else => with-imports
       end
       wrapped = wrap-env-imports(l, with-provides, compile-env)
       full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
-          A.s-import(l, A.s-const-import(k), A.s-name(l, k))
+          A.s-import(l, A.s-const-import(l, k), A.s-name(l, k))
         end
 
       A.s-program(l, A.s-provide-none(l), full-imports, wrapped.visit(desugar-scope-visitor))
@@ -328,7 +349,7 @@ where:
     A.equiv-ast-prog(_, compare1)
 
   compare2 = A.s-program(d, A.s-provide-none(d), [
-        A.s-import(d, A.s-file-import("./foo.arr"), A.s-name(d, "F"))
+        A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
       A.s-block(d, [
         A.s-block(d, [

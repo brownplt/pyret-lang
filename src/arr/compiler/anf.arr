@@ -89,8 +89,8 @@ fun anf-import(i :: A.Import):
   cases(A.Import) i:
     | s-import(l, f, name) =>
       cases(A.ImportType) f:
-        | s-file-import(fname) => N.a-import-file(l, fname, name)
-        | s-const-import(module) => N.a-import-builtin(l, module, name)
+        | s-file-import(_, fname) => N.a-import-file(l, fname, name)
+        | s-const-import(_, module) => N.a-import-builtin(l, module, name)
       end
   end
 end

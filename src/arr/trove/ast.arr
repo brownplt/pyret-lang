@@ -194,6 +194,13 @@ data Import:
     tosource(self):
       PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
+  | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
+    label(self): "s-import-fields" end,
+    tosource(self):
+      PP.flow([str-import,
+          PP.flow-map(PP.commabreak, _.tosource(), self.fields),
+          str-from, self.file.tosource()])
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -220,10 +227,10 @@ sharing:
 end
 
 data ImportType:
-  | s-file-import(file :: String) with:
+  | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
     tosource(self): PP.dquote(PP.str(self.file)) end
-  | s-const-import(module :: String) with:
+  | s-const-import(l :: Loc, module :: String) with:
     label(self): "s-const-import" end,
     tosource(self): PP.str(self.module) end
 sharing:
@@ -998,7 +1005,8 @@ fun equiv-ast-prog(ast1 :: Program, ast2 :: Program):
     | s-program(_, provide1, imports1, body1) =>
       cases(Program) ast2:
         | s-program(_, provide2, imports2, body2) =>
-          length-andmap(equiv-ast-header, imports1, imports2) and
+          equiv-ast-provide(provide1, provide2) and
+          length-andmap(equiv-ast-import, imports1, imports2) and
             equiv-ast(body1, body2)
         | else => false
       end
@@ -1213,32 +1221,44 @@ fun equiv-ast-fun(
      (name1 == name2)
 end
 
-fun equiv-ast-header(h1 :: Header, h2 :: Header):
-  fun equiv-import-type(f1, f2):
-    cases(ImportType) f1:
-      | s-file-import(n1) =>
-        cases(ImportType) f2:
-          | s-file-import(n2) => (n1 == n2)
-          | else => false
-        end
-      | s-const-import(n1) =>
-        cases(ImportType) f2:
-          | s-const-import(n2) => (n1 == n2)
-          | else => false
-        end
-    end
-  end
-  cases(Header) h1:
-    | s-provide-all(_) => is-s-provide-all(h2)
-    | s-provide(_, expr1) =>
-      cases(Header) h2:
-        | s-provide(_, expr2) => equiv-ast(expr1, expr2)
+fun equiv-ast-provide(p1 :: Provide, p2 :: Provide):
+  cases(Provide) p1:
+    | s-provide(_, b1) =>
+      cases(Provide) p2:
+        | s-provide(_, b2) => equiv-ast(b1, b2)
         | else => false
       end
-    | s-import(_, file1, name1) =>
-      cases(Header) h2:
-        | s-import(_, file2, name2) =>
-          equiv-import-type(file1, file2) and equiv-name(name1, name2)
+    | s-provide-all(_) => is-s-provide-all(p2)
+    | s-provide-none(_) => is-s-provide-none(p2)
+  end
+end
+
+fun equiv-import-type(f1, f2):
+  cases(ImportType) f1:
+    | s-file-import(_, n1) =>
+      cases(ImportType) f2:
+        | s-file-import(_, n2) => equiv-name(n1, n2)
+        | else => false
+      end
+    | s-const-import(_, n1) =>
+      cases(ImportType) f2:
+        | s-const-import(_, n2) => equiv-name(n1, n2)
+        | else => false
+      end
+  end
+end
+
+fun equiv-ast-import(i1 :: Import, i2 :: Import):
+  cases(Import) i1:
+    | s-import(_, f1, n1) =>
+      cases(Import) i2:
+        | s-import(_, f2, n2) => equiv-import-type(f1, f2) and equiv-name(n1, n2)
+        | else => false
+      end
+    | s-import-fields(_, fields1, f1) =>
+      cases(Import) i2:
+        | s-import-fields(_, fields2, f2) =>
+          length-andmap(equiv-name, fields1, fields2) and equiv-name(f1, f2)
         | else => false
       end
   end
@@ -1634,6 +1654,9 @@ default-map-visitor = {
 
   s-import(self, l, import-type, name):
     s-import(l, import-type, name.visit(self))
+  end,
+  s-import-fields(self, l, fields, import-type):
+    s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
   s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
@@ -2040,6 +2063,9 @@ default-iter-visitor = {
   s-import(self, l, import-type, name):
     name.visit(self)
   end,
+  s-import-fields(self, l, fields, import-type):
+    list.all(_.visit(self), fields)
+  end,
   s-provide(self, l, expr):
     expr.visit(self)
   end,
@@ -2430,6 +2456,9 @@ dummy-loc-visitor = {
 
   s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type, name.visit(self))
+  end,
+  s-import-fields(self, l, fields, import-type):
+    s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type)
   end,
   s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))

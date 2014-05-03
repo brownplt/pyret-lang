@@ -17,7 +17,7 @@ import file as F
 
 options = {
   width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
-  dialect: C.next-val-default(C.String, "Pyret", some("w"), C.once, "Dialect to use")
+  dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use")
 }
 
 parsed-options = C.parse-cmdline(options)

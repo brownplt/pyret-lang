@@ -72,19 +72,29 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
           }
         },
         'import-stmt': function(node) {
-          // (import-stmt IMPORT mod AS NAME)
-          return RUNTIME.getField(ast, 's-import')
-            .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
+          if (node.kids[node.kids.length - 2].name === "AS") {
+            // (import-stmt IMPORT mod AS NAME)
+            return RUNTIME.getField(ast, 's-import')
+              .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
+          } else {
+            // (import-stmt IMPORT NAME (COMMA NAME)* FROM mod)
+            var names = [];
+            for (var i = 1; i < node.kids.length - 2; i += 2) {
+              names.push(name(node.kids[i]));
+            }
+            return RUNTIME.getField(ast, 's-import-fields')
+              .app(pos(node.pos), makeList(names), tr(node.kids[node.kids.length - 1]));
+          }
         },
         'import-name': function(node) {
           // (import-name NAME)
           return RUNTIME.getField(ast, 's-const-import')
-            .app(symbol(node.kids[0]))
+            .app(pos(node.pos), symbol(node.kids[0]))
         },
         'import-string': function(node) {
           // (import-string STRING)
           return RUNTIME.getField(ast, 's-file-import')
-            .app(string(node.kids[0]))
+            .app(pos(node.pos), string(node.kids[0]))
         },
         'block': function(node) {
           // (block stmts ...)

@@ -280,7 +280,7 @@ end
 binding-handlers = {
   s-header(_, imp, env):
     cases(A.ImportType) imp.file:
-      | s-const-import(modname) =>
+      | s-const-import(_, modname) =>
         if env.has-key(modname): env.set(imp.name, env.get(modname.key()))
         else: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
         end
