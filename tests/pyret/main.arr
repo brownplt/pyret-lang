@@ -1,6 +1,7 @@
-import "./tests/test-strings.arr" as S
-import "./tests/test-numbers.arr" as N
-import "./tests/test-errors.arr" as E
+import "./tests/test-strings.arr" as _
+import "./tests/test-numbers.arr" as _
+import "./tests/test-errors.arr" as _
+import "./tests/test-import.arr" as _
+import "./tests/test-sets.arr" as _
 #import "./tests/test-binops.arr" as B
 
-#B.run-tests()

@@ -15,6 +15,7 @@ List = list.List
 empty = list.empty
 link = list.link
 is-empty = list.is-empty
+fold = list.fold
 
 # SETS
 
@@ -155,9 +156,6 @@ data Set:
     member(self, elem :: Any) -> Bool:
       doc: 'Check to see if an element is in a set.'
       self.elems.member(elem)
-      #where:
-      #  sets.set([1, 2, 3]).member(2) is true
-      #  sets.set([1, 2, 3]).member(4) is false
     end,
     
     add(self, elem :: Any) -> Set:
@@ -167,37 +165,28 @@ data Set:
       else:
         list-set(link(elem, self.elems))
       end
-      #where:
-      #  sets.set([]).add(1) is sets.set([1])
-      #  sets.set([1]).add(1) is sets.set([1])
-      #  sets.set([1, 2, 3]).add(2) is sets.set([1, 2, 3])
-      #  sets.set([1, 2, 3]).add(1.5) is sets.set([1, 2, 3, 1.5])
     end,
     
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       list-set(self.elems.filter(fun (x): x <> elem end))
-      #where:
-      #  sets.set([1, 2]).remove(18) is sets.set([1, 2])
-      #  sets.set([1, 2]).remove(2) is sets.set([1])
     end,
     
     to-list(self) -> List:
       doc: 'Convert a set into a list of elements.'
       self.elems
-      #where:
-      #  sets.set([3, 1, 2]).to-list() is [1, 2, 3]
     end,
+
     union(self :: Set, other :: Set) -> Set:
       doc: 'Compute the union of this set and another set.'
-      for tree-fold(u from self, elem from other.elems):
+      for fold(u from self, elem from other.elems):
         u.add(elem)
       end
     end,
     
     intersect(self :: Set, other :: Set) -> Set:
       doc: 'Compute the intersection of this set and another set.'
-      for tree-fold(u from self, elem from self.elems):
+      for fold(u from self, elem from self.elems):
         if other.member(elem):
           u
         else:
@@ -208,7 +197,7 @@ data Set:
     
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
-      for tree-fold(u from self, elem from self.elems):
+      for fold(u from self, elem from self.elems):
         if other.member(elem):
           u.remove(elem)
         else:
@@ -223,34 +212,21 @@ data Set:
     member(self, elem :: Any) -> Bool:
       doc: 'Check to see if an element is in a set.'
       self.elems.contains(elem)
-      #where:
-      #  sets.tree-set([1, 2, 3]).member(2) is true
-      #  sets.tree-set([1, 2, 3]).member(4) is false
     end,
     
     add(self, elem :: Any) -> Set:
       doc: "Add an element to the set if it is not already present."
       tree-set(self.elems.insert(elem))
-      #where:
-      #  sets.tree-set([]).add(1) is sets.tree-set([1])
-      #  sets.tree-set([1]).add(1) is sets.tree-set([1])
-      #  sets.tree-set([1, 2, 3]).add(2) is sets.tree-set([1, 2, 3])
-      #  sets.tree-set([1, 2, 3]).add(1.5) is sets.tree-set([1, 2, 3, 1.5])
     end,
     
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       tree-set(self.elems.remove(elem))
-      #where:
-      #  sets.tree-set([1, 2]).remove(18) is sets.tree-set([1, 2])
-      #  sets.tree-set([1, 2]).remove(2) is sets.tree-set([1])
     end,
     
     to-list(self) -> List:
       doc: 'Convert a set into a list of elements.'
-      self.elems.preorder()
-      #where:
-      #  sets.tree-set([3, 1, 2]).to-list() is [1, 2, 3]
+      self.elems.inorder()
     end,
     
     union(self, other):
