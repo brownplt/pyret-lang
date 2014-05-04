@@ -69,13 +69,17 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 # MAIN TARGET
 .PHONY : phase1
-phase1: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+phase1: phase1.built
+	touch phase1
 
-.PHONY : phase2
+build/phase1/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+	touch build/phase1/phase1.built
+
 phase2: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
+	touch phase2
 
-.PHONY : phase3
 phase3: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
+	touch phase3
 
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
@@ -232,39 +236,39 @@ install:
 test: runtime-test evaluator-test compiler-test repl-test pyret-test bootstrap-test
 
 .PHONY : runtime-test
-runtime-test : phase1
+runtime-test : build/phase1/phase1.built
 	cd tests/runtime/ && node test.js require-test-runner/
 
 .PHONY : evaluator-test
-evaluator-test: phase1
+evaluator-test: build/phase1/phase1.built
 	cd tests/evaluator/ && node test.js require-test-runner/
 
 .PHONY : repl-test
-repl-test: phase1
+repl-test: build/phase1/phase1.built
 	cd tests/repl/ && node test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr phase1
+tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr build/phase1/phase1.built
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr phase1
+tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr build/phase1/phase1.built
 	node $(PHASE1)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : pyret-test
-pyret-test: phase1 $(TEST_JS)
+pyret-test: build/phase1/phase1.built $(TEST_JS)
 	node build/phase1/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
 .PHONY : compiler-test
-compiler-test: phase1
+compiler-test: build/phase1/phase1.built
 	node build/phase1/main-wrapper.js \
     --module-load-dir build/phase1/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
 
 .PHONY : bootstrap-test
-bootstrap-test: phase1 $(BS_TEST_JS)
+bootstrap-test: build/phase1/phase1.built $(BS_TEST_JS)
 	node build/phase1/main-wrapper.js \
     --module-load-dir tests/pyret \
     --dialect Bootstrap \
