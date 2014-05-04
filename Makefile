@@ -70,21 +70,18 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 # MAIN TARGET
 .PHONY : phase1
 phase1: build/phase1/phase1.built
-	touch phase1
 
 build/phase1/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
 	touch build/phase1/phase1.built
 
 .PHONY : phase2
 phase2: build/phase2/phase2.built
-	touch phase2
 
 build/phase2/phase2.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
 	touch build/phase2/phase2.built
 
 .PHONY : phase3
 phase3: build/phase3/phase3.built
-	touch phase3
 
 build/phase3/phase3.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
 	touch build/phase3/phase3.built
