@@ -1237,12 +1237,12 @@ fun equiv-import-type(f1, f2):
   cases(ImportType) f1:
     | s-file-import(_, n1) =>
       cases(ImportType) f2:
-        | s-file-import(_, n2) => equiv-name(n1, n2)
+        | s-file-import(_, n2) => n1 == n2
         | else => false
       end
     | s-const-import(_, n1) =>
       cases(ImportType) f2:
-        | s-const-import(_, n2) => equiv-name(n1, n2)
+        | s-const-import(_, n2) => n1 == n2
         | else => false
       end
   end
