@@ -77,13 +77,13 @@ build/phase1/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(P
 .PHONY : phase2
 phase2: build/phase2/phase2.built
 
-build/phase2/phase2.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+build/phase2/phase2.built: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
 	touch build/phase2/phase2.built
 
 .PHONY : phase3
 phase3: build/phase3/phase3.built
 
-build/phase3/phase3.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+build/phase3/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
 	touch build/phase3/phase3.built
 
 
