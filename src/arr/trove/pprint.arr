@@ -228,7 +228,7 @@ fun infix(n :: Number, b :: Number, op :: PPrintDoc, x :: PPrintDoc, y :: PPrint
   prefix(n, b, (x + blank(b) + op), y)
 end
 fun infix-break(n :: Number, b :: Number, op :: PPrintDoc, x :: PPrintDoc, y :: PPrintDoc):
-  prefix(n, b, (x + blank(b)), (op + blank(b) + y))
+  prefix(n, b, x, (op + blank(b) + y))
 end
 fun surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrintDoc, close :: PPrintDoc):
   if is-mt-doc(close): group(open + nest(n, break(b) + contents))

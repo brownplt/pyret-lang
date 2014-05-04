@@ -8,7 +8,7 @@ format = F.format
 
 INDENT = 2
 break-one = PP.break(1)
-
+blank-one = PP.blank(1)
 
 fun string-printer():
   var str = ""
@@ -271,11 +271,10 @@ data JExpr:
       self.altern.print-ugly-source(printer)
     end,
     tosource(self):
-      PP.parens(PP.group(self.test.tosource() +
-                         PP.str("?") +
-                         self.consq.tosource() +
-                         PP.str(":") +
-                         self.altern.tosource()))
+      PP.parens(
+        self.test.tosource()
+          + PP.nest(INDENT, break-one + PP.str("?") + blank-one + PP.nest(INDENT, self.consq.tosource()))
+          + PP.nest(INDENT, break-one + PP.str(":") + blank-one + PP.nest(INDENT, self.altern.tosource())))
     end
   | j-assign(name :: String, rhs :: JExpr) with:
     print-ugly-source(self, printer):
