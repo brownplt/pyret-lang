@@ -25,3 +25,4 @@ pyret.org/pyret-frog/getting-started/
 pyret.org/pyret-frog/tags/
 pyret.org/pyret-frog/tour/
 tests/pyret/tests/*.arr.js
+tests/pyret/bootstrap-tests/*.arr.js
