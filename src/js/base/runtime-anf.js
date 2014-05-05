@@ -1892,13 +1892,18 @@ function createMethodDict() {
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
-      thisRuntime.checkNumber(n, thisRuntime.isNumber);
-      thisRuntime.checkNumber(pow, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
+      thisRuntime.checkNumber(pow);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
-    var num_tostring = function(n, digits) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      thisRuntime.checkIf(digits, thisRuntime.isNumber);
+    var num_tostring = function(n) {
+      thisRuntime.checkNumber(n);
+      return makeString(String(n));
+    }
+    var num_tostring_digits = function(n, digits) {
+      thisRuntime.checkArity(2);
+      thisRuntime.checkNumber(n);
+      thisRuntime.checkNumber(digits);
       var d = jsnums.toFixnum(digits);
       var tenDigits = jsnums.expt(10, digits);
       if (n != n) { return thisRuntime.makeString("NaN"); }

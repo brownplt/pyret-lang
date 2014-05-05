@@ -24,6 +24,10 @@ examples:
   nums-equal(true, 5) raises "Number"
   nums-equal(33, false) raises "Number"
 
+  num-tostring("a") raises "Number"
+  num-tostring(5) is "5"
+  num-tostring(1/2) is "1/2"
+
   strings-equal("abcd", "abcd") is true
   strings-equal("", "") is true
   strings-equal("a", "") is false
