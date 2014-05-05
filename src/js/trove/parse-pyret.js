@@ -945,19 +945,19 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
     }
     
     function parseDataDialect(dialect, data, fileName) {
-      RUNTIME.checkIf(dialect, RUNTIME.isString);
-      RUNTIME.checkIf(data, RUNTIME.isString);
-      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      RUNTIME.checkString(dialect);
+      RUNTIME.checkString(data);
+      RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
     function parsePyret(data, fileName) {
-      RUNTIME.checkIf(data, RUNTIME.isString);
-      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      RUNTIME.checkString(data);
+      RUNTIME.checkString(fileName);
       return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
     function parseBootstrap(data, fileName) {
-      RUNTIME.checkIf(data, RUNTIME.isString);
-      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      RUNTIME.checkString(data);
+      RUNTIME.checkString(fileName);
       return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 

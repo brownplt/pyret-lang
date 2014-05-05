@@ -87,7 +87,7 @@ define(["js/runtime-util", "./list"], function(util, L) {
       return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
           format: RUNTIME.makeFunction(function(str, args) {
-            RUNTIME.checkIf(str, RUNTIME.isString);
+            RUNTIME.checkString(str);
             return RUNTIME.makeString(format(RUNTIME.unwrap(str), listToArr(args)));
           }),
         }),

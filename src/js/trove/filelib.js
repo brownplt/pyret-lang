@@ -14,19 +14,19 @@ define(["../js/runtime-util", "fs"], function(util, fs) {
     return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
             "open-input-file": RUNTIME.makeFunction(function(filename) {
-                RUNTIME.checkIf(filename, RUNTIME.isString);
+                RUNTIME.checkString(filename);
                 var s = RUNTIME.unwrap(filename);
                 return RUNTIME.makeOpaque(new InputFile(s));
               }),
             "open-output-file": RUNTIME.makeFunction(function(filename, append) {
-                RUNTIME.checkIf(filename, RUNTIME.isString);
-                RUNTIME.checkIf(append, RUNTIME.isBoolean);
+                RUNTIME.checkString(filename);
+                RUNTIME.checkBoolean(append);
                 var s = RUNTIME.unwrap(filename);
                 var b = RUNTIME.unwrap(append);
                 return RUNTIME.makeOpaque(new OutputFile(s, b));
               }),
             "read-file": RUNTIME.makeFunction(function(file) {
-                RUNTIME.checkIf(file, RUNTIME.isOpaque);
+                RUNTIME.checkOpaque(file);
                 var v = file.val;
                 if(v instanceof InputFile) {
                   return RUNTIME.makeString(fs.readFileSync(v.name, {encoding: 'utf8'}));
@@ -36,8 +36,8 @@ define(["../js/runtime-util", "fs"], function(util, fs) {
                 }
               }),
             "display": RUNTIME.makeFunction(function(file, val) {
-                RUNTIME.checkIf(file, RUNTIME.isOpaque);
-                RUNTIME.checkIf(val, RUNTIME.isString);
+                RUNTIME.checkOpaque(file);
+                RUNTIME.checkString(val);
                 var v = file.val;
                 var s = RUNTIME.unwrap(val);
                 if(v instanceof OutputFile) {

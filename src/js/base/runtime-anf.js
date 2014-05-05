@@ -1706,9 +1706,9 @@ function createMethodDict() {
     };
 
     var string_substring = function(s, min, max) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(min, thisRuntime.isNumber);
-      thisRuntime.checkIf(max, thisRuntime.isNumber);
+      thisRuntime.checkString(s);
+      thisRuntime.checkNumber(min);
+      thisRuntime.checkNumber(max);
       if(jsnums.greaterThan(min, max)) {
         throw makeMessageException("substring: min index " + String(min) + " is greater than max index " + String(max));
       }
@@ -1721,9 +1721,9 @@ function createMethodDict() {
       return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(find, thisRuntime.isString);
-      thisRuntime.checkIf(replace, thisRuntime.isString);
+      thisRuntime.checkString(s);
+      thisRuntime.checkString(find);
+      thisRuntime.checkString(replace);
       return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
     }
 
@@ -1780,20 +1780,20 @@ function createMethodDict() {
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
     }
     var string_toupper = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       return thisRuntime.makeString(s.toUpperCase());
     }
     var string_tolower = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       return thisRuntime.makeString(s.toLowerCase());
     }
     var string_explode = function(s) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
+      thisRuntime.checkString(s);
       return ffi.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
-      thisRuntime.checkIf(s, thisRuntime.isString);
-      thisRuntime.checkIf(find, thisRuntime.isString);
+      thisRuntime.checkString(s);
+      thisRuntime.checkString(find);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
@@ -1803,54 +1803,54 @@ function createMethodDict() {
       return thisRuntime.makeBoolean(same(l, r));
     }
     var num_max = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isNumber);
-      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      thisRuntime.checkNumber(l);
+      thisRuntime.checkNumber(r);
       if (jsnums.greaterThanOrEqual(l, r)) { return l; } else { return r; }
     }
 
     var num_min = function(l, r) {
-      thisRuntime.checkIf(l, thisRuntime.isNumber);
-      thisRuntime.checkIf(r, thisRuntime.isNumber);
+      thisRuntime.checkNumber(l);
+      thisRuntime.checkNumber(r);
       if (jsnums.lessThanOrEqual(l, r)) { return l; } else { return r; }
     }
 
     var num_abs = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.abs(n));
     }
       
     var num_sin = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sin(n));
     }
     var num_cos = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.cos(n));
     }
     var num_tan = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.tan(n));
     }
     var num_asin = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.asin(n));
     }
     var num_acos = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.acos(n));
     }
     var num_atan = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.atan(n));
     }
 
     var num_modulo = function(n, mod) { 
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
-      thisRuntime.checkIf(mod, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
+      thisRuntime.checkNumber(mod);
       return thisRuntime.makeNumberBig(jsnums.modulo(n, mod));
     }
     var num_truncate = function(n) { 
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       if (isNaN(n)) {
         return n;
       } else if (jsnums.greaterThanOrEqual(n, 0)) {
@@ -1868,11 +1868,11 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(jsnums.ceiling(n));
     }
     var num_floor = function(n) { 
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.floor(n));
     }
     var num_log = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       if (jsnums.greaterThan(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.log(n));
       }
@@ -1881,19 +1881,19 @@ function createMethodDict() {
       }
     }
     var num_exp = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.exp(n));
     }
     var num_exact = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.toExact(n));
     }
     var num_is_integer = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
     var num_is_fixnum = function(n) {
-      thisRuntime.checkIf(n, thisRuntime.isNumber);
+      thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
