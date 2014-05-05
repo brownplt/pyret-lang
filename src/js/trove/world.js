@@ -360,8 +360,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
 
     var p = function(f) { return function(v) { return runtime.checkIf(v, f); }; };
     var checkHandler = p(isWorldConfigOption);
-    var checkNum = p(runtime.isNumber);
-    var checkString = p(runtime.isString);
     var checkNum = runtime.checkNumber;
     var checkString = runtime.checkString;
 
