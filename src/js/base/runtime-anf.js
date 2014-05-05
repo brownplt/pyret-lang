@@ -748,7 +748,7 @@ function createMethodDict() {
 
     var checkArity = function(expected, args) {
       if (expected !== args.length) {
-        throw ffi.throwArityErrorC(["image"], expected, args);
+        throw ffi.throwArityErrorC(["runtime"], expected, args);
       }
     }
 
@@ -1546,7 +1546,12 @@ function createMethodDict() {
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
-          return ffi.makeRight(res.exn.exn);
+          if(isPyretException(res.exn)) {
+            return ffi.makeRight(res.exn.exn);
+          }
+          else {
+            return ffi.makeRight(makeMessageException(String(res.exn)));
+          }
         } else {
           console.error("Bad execThunk result: ", res);
           return;
@@ -1897,11 +1902,12 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n) {
+      checkArity(1, arguments);
       thisRuntime.checkNumber(n);
       return makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
-      thisRuntime.checkArity(2);
+      thisRuntime.checkArity(2, arguments);
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
       var d = jsnums.toFixnum(digits);

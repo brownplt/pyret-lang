@@ -88,7 +88,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                     if(execRt.isSuccessResult(v)) {
                       return restarter.resume(v.result)
                     } else {
-                      console.error("There was an exception while rendering the exception: ", v, r);
+                      console.error("There was an exception while rendering the exception: ", r.exn, v.exn);
                     }
                   })
                 });

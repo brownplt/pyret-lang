@@ -1,12 +1,19 @@
-define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageLib, worldLib, ffiLib) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(util, imageLib, worldLib, ffiLib) {
 
-  return function(runtime, namespace) {
+  return util.memoModule("world", function(runtime, namespace) {
     var imageLibrary = imageLib(runtime, namespace);
     var rawJsworld = worldLib(runtime, namespace);
     var ffi = ffiLib(runtime, namespace);
     var isImage = imageLibrary.isImage;
 
     //////////////////////////////////////////////////////////////////////
+
+    // An Opaque is a Pyret concept for a value wrapping a hidden
+    // implementation.  Check that a value is one of these, and internally is
+    // a WorlConfigOption
+    var isOpaqueWorldConfigOption = function(v) {
+      return runtime.isOpaque(v) && isWorldConfigOption(v.val);
+    }
 
     var bigBang = function(initW, handlers) {
         var outerToplevelNode = jQuery('<span/>').css('padding', '0px').get(0);
@@ -23,8 +30,8 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
         var isOutputConfigSeen = false;
 
         for (var i = 0 ; i < handlers.length; i++) {
-            if (isWorldConfigOption(handlers[i])) {
-                configs.push(handlers[i].toRawHandler(toplevelNode));
+            if (isOpaqueWorldConfigOption(handlers[i])) {
+                configs.push(handlers[i].val.toRawHandler(toplevelNode));
             }
             else {
                 configs.push(handlers[i]);
@@ -371,31 +378,43 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
           var initialWorldValue = init;
           arr.map(function(h) { checkHandler(h); });
           bigBang(initialWorldValue, arr);
+          ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
         }),
         "on-tick": makeFunction(function(handler) {
+          ffi.checkArity(1, arguments);
           runtime.checkFunction(handler);
-          return new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000));
+          return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
         }),
         "on-tick-n": makeFunction(function(handler, n) {
+          ffi.checkArity(2, arguments);
           runtime.checkFunction(handler);
           runtime.checkNumber(n);
-          return new OnTick(handler, Math.floor(n.toFixnum() * 1000));
+          var fixN = typeof n === "number" ? fixN : n.toFixnum();
+          return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
         }),
         "to-draw": makeFunction(function(drawer) {
-          runtime.checkIf(drawer, runtime.isFunction);
-          return new ToDraw(drawer);
+          ffi.checkArity(1, arguments);
+          runtime.checkFunction(drawer);
+          return runtime.makeOpaque(new ToDraw(drawer));
         }),
         "stop-when": makeFunction(function(stopper) {
-          runtime.checkIf(stopper, runtime.isFunction);
-          return new StopWhen(stopper);
+          ffi.checkArity(1, arguments);
+          runtime.checkFunction(stopper);
+          return runtime.makeOpaque(new StopWhen(stopper));
         }),
         "on-key": makeFunction(function(onKey) {
-          runtime.checkIf(onKey, runtime.isFunction);
-          return new OnKey(onKey);
+          ffi.checkArity(1, arguments);
+          runtime.checkFunction(onKey);
+          return runtime.makeOpaque(new OnKey(onKey));
         }),
         "on-mouse": makeFunction(function(onMouse) {
-          runtime.checkIf(onMouse, runtime.isFunction);
-          return new OnMouse(onMouse);
+          ffi.checkArity(1, arguments);
+          runtime.checkFunction(onMouse);
+          return runtime.makeOpaque(new OnMouse(onMouse));
+        }),
+        "is-world-config": makeFunction(function(v) {
+          if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
+          return runtime.makeBoolean(isWorldConfigOption(v.val));
         }),
         "is-key-equal": makeFunction(function(key1, key2) {
           checkString(key1);
@@ -404,5 +423,5 @@ define(["trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(imageL
         })
       })
     });
-  };
+  });
 });
