@@ -36,7 +36,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
             else {
                 configs.push(handlers[i]);
             }
-            if (isOutputConfig(handlers[i])) { isOutputConfigSeen = true; }
+            if (isOpaqueOutputConfig(handlers[i])) { isOutputConfigSeen = true; }
         }
         
         // If we haven't seen an onDraw function, use the default one.
@@ -243,6 +243,9 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
     var OutputConfig = function() {}
     OutputConfig.prototype = Object.create(WorldConfigOption.prototype);
     var isOutputConfig = function(v) { return v instanceof OutputConfig; };
+    var isOpaqueOutputConfig = function(v) {
+      return runtime.isOpaque(v) && isOutputConfig(v.val);
+    }
 
 
 
@@ -358,12 +361,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         return rawJsworld.stop_when(worldFunction);
     };
 
-    var p = function(f) { return function(v) { return runtime.checkIf(v, f); }; };
-    var checkHandler = p(isWorldConfigOption);
-    var checkNum = p(runtime.isNumber);
-    var checkString = p(runtime.isString);
-    var checkNum = runtime.checkNumber;
-    var checkString = runtime.checkString;
+    var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
 
 
 
@@ -419,8 +417,8 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
           return runtime.makeBoolean(isWorldConfigOption(v.val));
         }),
         "is-key-equal": makeFunction(function(key1, key2) {
-          checkString(key1);
-          checkString(key2);
+          runtime.checkString(key1);
+          runtime.checkString(key2);
           return key1.toString().toLowerCase() === key2.toString().toLowerCase();
         })
       })
