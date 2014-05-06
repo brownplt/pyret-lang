@@ -12,6 +12,7 @@ PHASE1 = build/phase1
 PHASE2 = build/phase2
 PHASE3 = build/phase3
 WEB = build/web
+DOCS = docs
 
 # CUSTOMIZE THESE IF NECESSARY
 SRC_JS := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
@@ -31,10 +32,12 @@ PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS
 
 PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
 
+DOCS_DEPS = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
 
 PHASE1_DIRS := $(sort $(dir $(PHASE1_ALL_DEPS)))
 PHASE2_DIRS := $(sort $(dir $(PHASE2_ALL_DEPS)))
 PHASE3_DIRS := $(sort $(dir $(PHASE3_ALL_DEPS)))
+DOCS_DIRS := $(sort $(dir $(DOCS_DEPS)))
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
@@ -69,22 +72,22 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 # MAIN TARGET
 .PHONY : phase1
-phase1: build/phase1/phase1.built
+phase1: $(PHASE1)/phase1.built
 
-build/phase1/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
-	touch build/phase1/phase1.built
+$(PHASE1)/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+	touch $(PHASE1)/phase1.built
 
 .PHONY : phase2
-phase2: build/phase2/phase2.built
+phase2: $(PHASE2)/phase2.built
 
-build/phase2/phase2.built: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
-	touch build/phase2/phase2.built
+$(PHASE2)/phase2.built: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
+	touch $(PHASE2)/phase2.built
 
 .PHONY : phase3
-phase3: build/phase3/phase3.built
+phase3: $(PHASE3)/phase3.built
 
-build/phase3/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
-	touch build/phase3/phase3.built
+$(PHASE3)/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
+	touch $(PHASE3)/phase3.built
 
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
@@ -184,6 +187,28 @@ $(PHASE3)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokeniz
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
+.PHONY : docs
+docs: $(DOCS_DEPS)
+
+$(DOCS_DEPS): | $(PHASE1)/phase1.built docs-trove
+
+docs-trove:
+	@$(call MKDIR,$(DOCS_DIRS))
+
+$(DOCS)/generated/trove/%.js.rkt : src/$(JSTROVE)/%.js docs/create-js-generated-docs.js
+	node docs/create-js-generated-docs.js $(patsubst src/$(JSTROVE)/%,$(PHASE1)/$(TROVE)/%,$<) > $@
+
+$(DOCS)/generated/js/%.js.rkt : src/$(JSBASE)/%.js docs/create-js-generated-docs.js
+	node docs/create-js-generated-docs.js $(patsubst src/$(JSBASE)/%,$(PHASE1)/js/%,$<) > $@
+
+$(DOCS)/generated/trove/%.js.rkt : src/$(TROVE)/%.arr
+	touch $@
+$(DOCS)/generated/trove/%.js.rkt : src/$(BASE)/%.arr
+	touch $@
+$(DOCS)/generated/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr
+	touch $@
+
+
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
@@ -241,40 +266,40 @@ install:
 test: runtime-test evaluator-test compiler-test repl-test pyret-test bootstrap-test
 
 .PHONY : runtime-test
-runtime-test : build/phase1/phase1.built
+runtime-test : $(PHASE1)/phase1.built
 	cd tests/runtime/ && node test.js require-test-runner/
 
 .PHONY : evaluator-test
-evaluator-test: build/phase1/phase1.built
+evaluator-test: $(PHASE1)/phase1.built
 	cd tests/evaluator/ && node test.js require-test-runner/
 
 .PHONY : repl-test
-repl-test: build/phase1/phase1.built
+repl-test: $(PHASE1)/phase1.built
 	cd tests/repl/ && node test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr build/phase1/phase1.built
+tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PHASE1)/phase1.built
 	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr build/phase1/phase1.built
+tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PHASE1)/phase1.built
 	node $(PHASE1)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : pyret-test
-pyret-test: build/phase1/phase1.built $(TEST_JS)
-	node build/phase1/main-wrapper.js \
+pyret-test: $(PHASE1)/phase1.built $(TEST_JS)
+	node $(PHASE1)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
 .PHONY : compiler-test
-compiler-test: build/phase1/phase1.built
-	node build/phase1/main-wrapper.js \
-    --module-load-dir build/phase1/arr/compiler/ \
+compiler-test: $(PHASE1)/phase1.built
+	node $(PHASE1)/main-wrapper.js \
+    --module-load-dir $(PHASE1)/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
 
 .PHONY : bootstrap-test
-bootstrap-test: build/phase1/phase1.built $(BS_TEST_JS)
-	node build/phase1/main-wrapper.js \
+bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
+	node $(PHASE1)/main-wrapper.js \
     --module-load-dir tests/pyret \
     --dialect Bootstrap \
     -check-all tests/pyret/bootstrap-main.arr \

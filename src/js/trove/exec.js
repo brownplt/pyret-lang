@@ -6,7 +6,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
   }
   else {
     var rjs = require("requirejs");
-    var define = r.define;
+    var define = rjs.define;
   }
 
   return function(RUNTIME, NAMESPACE) {
