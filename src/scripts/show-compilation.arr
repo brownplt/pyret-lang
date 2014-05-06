@@ -4,7 +4,6 @@ import cmdline as C
 import parse-pyret as P
 import "compiler/desugar.arr" as D
 import "compiler/desugar-check.arr" as DC
-import "compiler/anf.arr" as A
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/resolve-scope.arr" as R
