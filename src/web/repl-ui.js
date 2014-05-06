@@ -1,4 +1,4 @@
-define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(imageLib, checkUI, errorUI, outputUI) {
+define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui", "trove/world-lib"], function(imageLib, checkUI, errorUI, outputUI, worldLib) {
   function merge(obj, extension) {
     var newobj = {};
     Object.keys(obj).forEach(function(k) {
@@ -152,6 +152,8 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
   }
   //: -> (code -> printing it on the repl)
   function makeRepl(container, repl, runtime, options) {
+    
+    var Jsworld = worldLib(runtime, runtime.namespace);
     var items = [];
     var pointer = -1;
     var current = "";
@@ -202,7 +204,8 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
         animationDiv = $("<div>").css({"z-index": 10000});
         output.append(animationDiv);
         function onClose() {
-          onBreak();
+          Jsworld.shutdown({ errorShutdown: runtime.ffi.userBreak });
+          showPrompt();
         }
         animationDiv.dialog({
           title: 'big-bang',
@@ -409,9 +412,9 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
 
     var onBreak = function() {
       breakButton.attr("disabled", true);
-      evaluator.requestBreak(function(restarter) {
-          restarter.break();
+      evaluator.requestBreak(function() {
           closeAnimationIfOpen();
+          Jsworld.shutdown({ errorShutdown: "break" });
           showPrompt();
         });
     };
@@ -448,7 +451,8 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui"], function(
     };
 
     var breakFun = function(afterBreak) {
-      repl.pause(afterBreak);
+      repl.stop();
+      afterBreak();
     };
 
     var resetFun = function(afterReset) {

@@ -1,7 +1,7 @@
 
-define([], function() {
+define(["js/runtime-util"], function(util) {
 
-  return function(runtime, namespace) {
+  return util.memoModule("world-lib", function(runtime, namespace) {
     var rawJsworld = {};
 
     // Stuff here is copy-and-pasted from Chris King's JSWorld.
@@ -1248,5 +1248,5 @@ define([], function() {
     Jsworld.raw_node = raw_node;
 
     return Jsworld;
-  };
+  });
 });

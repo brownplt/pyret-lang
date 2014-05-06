@@ -1376,9 +1376,13 @@ function createMethodDict() {
     }
 
 
-    /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     var RUN_ACTIVE = false;
+    var currentThreadId = 0;
+    var activeThreads = [];
+      
+    /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
+      
       if(RUN_ACTIVE) {
         onDone(new FailureResult(ffi.makeMessageException("Internal: run called while already running")));
         return;
@@ -1430,10 +1434,62 @@ function createMethodDict() {
       var sync = options.sync || false;
       var initialGas = options.initialGas || INITIAL_GAS;
 
+      var threadIsCurrentlyPaused = false;
+      var threadIsDead = false;
+      currentThreadId += 1;
+      // Special case of the first thread to run in between breaks.
+      // This is the only thread notified of the break, others just die
+      // silently.
+      if(activeThreads.length === 0) {
+        var breakFun = function() {
+          threadIsCurrentlyPaused = true;
+          threadIsDead = true;
+          finishFailure(new PyretFailException(ffi.userBreak));
+        };
+      }
+      else {
+        var breakFun = function() {
+          threadIsCurrentlyPaused = true;
+          threadIsDead = true;
+        };
+      }
+
+      var thisThread = {
+        handlers: {
+          resume: function(restartVal) {
+            if(!threadIsCurrentlyPaused) { throw new Error("Stack already running"); }
+            if(threadIsDead) { throw new Error("Failed to resume; thread has been killed"); }
+            threadIsCurrentlyPaused = false;
+            val = restartVal;
+            TOS++;
+            RUN_ACTIVE = true;
+            setTimeout(iter, 0);
+          },
+          break: breakFun,
+          error: function(errVal) {
+            threadIsCurrentlyPaused = true;
+            threadIsDead = true;
+            finishFailure(new PyretFailException(errVal));
+          }
+        },
+        pause: function() {
+          threadIsCurrentlyPaused = true;
+        },
+        id: currentThreadId
+      };
+      activeThreads.push(thisThread);
+
       // iter :: () -> Undefined
       // This function should not return anything meaningful, as state
       // and fallthrough are carefully managed.
       function iter() {
+        // If the thread is dead, return has already been processed
+        if (threadIsDead) {
+          return;
+        }
+        // If the thread is paused, something is wrong; only resume() should
+        // be used to re-enter
+        if (threadIsCurrentlyPaused) { throw new Error("iter entered during stopped execution"); }
         var loop = true;
         while (loop) {
           loop = false;
@@ -1442,7 +1498,7 @@ function createMethodDict() {
               var thePause = manualPause;
               manualPause = null;
               pauseStack(function(restarter) {
-                  return thePause({
+                  thePause.setHandlers({
                       resume: function() { restarter.resume(val); },
                       break: restarter.break,
                       error: restarter.error
@@ -1469,31 +1525,8 @@ function createMethodDict() {
               }
 
               if(isPause(e)) {
-                (function(hasBeenResumed) {
-                  function checkResume() {
-                    if(hasBeenResumed) {
-                      throw Error("This stack has already been resumed or broken ", theOneTrueStack);
-                    }
-                    hasBeenResumed = true;
-                  }
-                  e.resumer({
-                    resume: function(restartVal) {
-                      checkResume();
-                      val = restartVal;
-                      TOS++;
-                      RUN_ACTIVE = true;
-                      setTimeout(iter, 0);
-                    },
-                    break: function() {
-                      checkResume();
-                      finishFailure(new PyretFailException(ffi.userBreak));
-                    },
-                    error: function(err) {
-                      checkResume();
-                      finishFailure(err);
-                    }
-                  });
-                })(false);
+                thisThread.pause();
+                e.resumer.setHandlers(thisThread.handlers);
                 return;
               }
               else if(isCont(e)) {
@@ -1537,17 +1570,84 @@ function createMethodDict() {
       return run(f, thisRuntime.namespace, {}, then);
     }
 
+    function breakAll() {
+      RUN_ACTIVE = false;
+      var threadsToBreak = activeThreads;
+      activeThreads = [];
+      for(var i = 0; i < threadsToBreak.length; i++) {
+        threadsToBreak[i].handlers.break();
+      }
+    }
+
     function pauseStack(resumer) {
-      if(!RUN_ACTIVE) { ffi.throwMessageException("pauseStack called during another pause"); }
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
-      throw makePause(resumer);
+      var pause = new PausePackage();
+      resumer(pause);
+      throw makePause(pause);
     }
+
+    function PausePackage() {
+      this.resumeVal = null;
+      this.errorVal = null;
+      this.breakFlag = false;
+      this.handlers = null;
+    }
+    PausePackage.prototype = {
+      setHandlers: function(handlers) {
+        if(this.breakFlag) {
+          handlers.break();
+        }
+        else if (this.resumeVal !== null) {
+          handlers.resume(resumeVal);
+        }
+        else if (this.errorVal !== null) {
+          handlers.error(errorVal);
+        }
+        else {
+          this.handlers = handlers;
+        }
+      },
+      break: function() {
+        if(this.resumeVal !== null || this.errorVal !== null) {
+          throw "Cannot break with resume or error requested";
+        }
+        if(this.handlers !== null) {
+          this.handlers.break();
+        }
+        else {
+          this.breakFlag = true;
+        }
+      },
+      error: function(err) {
+        if(this.resumeVal !== null || this.breakFlag) {
+          throw "Cannot error with resume or break requested";
+        }
+        if(this.handlers !== null) {
+          this.handlers.error(err);
+        }
+        else {
+          this.errorVal = err;
+        }
+      },
+      resume: function(val) {
+        if(this.errorVal !== null || this.breakFlag) {
+          throw "Cannot resume eith error or break requested";
+        }
+        if(this.handlers !== null) {
+          this.handlers.resume(val);
+        }
+        else {
+          this.resumeVal = val;
+        }
+      }
+    };
 
     var manualPause = null;
     function schedulePause(resumer) {
-      if(!RUN_ACTIVE) { ffi.throwMessageException("schedulePause called during another pause"); }
-      manualPause = resumer;
+      var pause = new PausePackage();
+      manualPause = pause;
+      resumer(pause);
     }
 
     function execThunk(thunk) {
@@ -2074,6 +2174,7 @@ function createMethodDict() {
 
         'pauseStack'  : pauseStack,
         'schedulePause'  : schedulePause,
+        'breakAll' : breakAll,
 
         'getField'    : getField,
         'getFieldLoc'    : getFieldLoc,
