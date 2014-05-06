@@ -13,7 +13,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
     var F = ffi(RUNTIME, NAMESPACE);
 
     function execWithDir(jsStr, modnameP, loaddirP, checkAllP, dialectP, params) {
-      F.checkArity(6, arguments);
+      F.checkArity(6, arguments, "exec");
       RUNTIME.checkString(jsStr);
       RUNTIME.checkString(modnameP);
       RUNTIME.checkString(loaddirP);

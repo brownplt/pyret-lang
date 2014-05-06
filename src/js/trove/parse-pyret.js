@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
+define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
   return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
@@ -945,20 +945,20 @@ define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "js/dialects-l
     }
     
     function parseDataDialect(dialect, data, fileName) {
-      F.checkArity(3, arguments);
+      F.checkArity(3, arguments, "parse-dialect");
       RUNTIME.checkString(dialect);
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
     function parsePyret(data, fileName) {
-      F.checkArity(2, arguments);
+      F.checkArity(2, arguments, "surface-parse");
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
     function parseBootstrap(data, fileName) {
-      F.checkArity(2, arguments);
+      F.checkArity(2, arguments, "parse-bootstrap");
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));

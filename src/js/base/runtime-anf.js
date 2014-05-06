@@ -6,7 +6,7 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["./namespace", "js/js-numbers"],
+define(["js/namespace", "js/js-numbers"],
        function (Namespace, jsnumsIn) {
   if(requirejs.isBrowser) {
     var require = requirejs;
@@ -734,9 +734,9 @@ function createMethodDict() {
       }
     }
 
-    var checkArity = function(expected, args) {
+    var checkArity = function(expected, args, source) {
       if (expected !== args.length) {
-        throw ffi.throwArityErrorC(["runtime"], expected, args);
+        throw ffi.throwArityErrorC([source], expected, args);
       }
     }
 
@@ -747,7 +747,7 @@ function createMethodDict() {
         throw("MakeCheckType was called with the wrong number of arguments: expected 2, got " + arguments.length);
       }
       return function(val) { 
-        checkArity(1, arguments);
+        checkArity(1, arguments, "runtime");
         return checkType(val, test, typeName); 
       };
     }
@@ -761,7 +761,7 @@ function createMethodDict() {
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
     function confirm(val, test) {
-      thisRuntime.checkArity(2, arguments);
+      checkArity(2, arguments, "runtime");
       if(!test(val)) {
           throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
       }
@@ -2014,12 +2014,12 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n) {
-      thisRuntime.checkArity(1, arguments);
+      checkArity(1, arguments, "num-tostring");
       thisRuntime.checkNumber(n);
       return makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
-      thisRuntime.checkArity(2, arguments);
+      checkArity(2, arguments, "num-tostring-digits");
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
       var d = jsnums.toFixnum(digits);

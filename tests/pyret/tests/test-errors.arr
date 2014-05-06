@@ -2,6 +2,11 @@ provide *
 
 import error as E
 import srcloc as S
+import format as F
+import parse-pyret as P
+import world as W
+import string-dict as D
+import filelib as FL
 
 check:
   fun get-err(thunk):
@@ -87,6 +92,124 @@ check:
   e11.loc satisfies S.is-srcloc
   e11.args is [6, 15]
 
+  e12 = get-err(fun(): num-tostring("two", "arguments") end)
+  e12 satisfies E.is-arity-mismatch
+  e12.expected-arity is 1
+  e12.args.length() is 2
+  e12.fun-loc satisfies S.is-builtin
+  e12.fun-loc.module-name is "num-tostring"
+  
+  e13 = get-err(fun(): P.parse-dialect("missing", "argument") end)
+  e13 satisfies E.is-arity-mismatch
+  e13.expected-arity is 3
+  e13.args.length() is 2
+  e13.fun-loc satisfies S.is-builtin
+  e13.fun-loc.module-name is "parse-dialect"
+  
+  e14 = get-err(fun(): P.surface-parse("too", "many", "arguments") end)
+  e14 satisfies E.is-arity-mismatch
+  e14.expected-arity is 2
+  e14.args.length() is 3
+  e14.fun-loc satisfies S.is-builtin
+  e14.fun-loc.module-name is "surface-parse"
+  
+  e15 = get-err(fun(): P.parse-bootstrap("too", "many", "arguments") end)
+  e15 satisfies E.is-arity-mismatch
+  e15.expected-arity is 2
+  e15.args.length() is 3
+  e15.fun-loc satisfies S.is-builtin
+  e15.fun-loc.module-name is "parse-bootstrap"
+
+  e16 = get-err(fun(): F.format("too", "many", "arguments") end)
+  e16 satisfies E.is-arity-mismatch
+  e16.expected-arity is 2
+  e16.args.length() is 3
+  e16.fun-loc satisfies S.is-builtin
+  e16.fun-loc.module-name is "format"
+  
+  e17 = get-err(fun(): W.big-bang("too", "many", "arguments") end)
+  e17 satisfies E.is-arity-mismatch
+  e17.expected-arity is 2
+  e17.args.length() is 3
+  e17.fun-loc satisfies S.is-builtin
+  e17.fun-loc.module-name is "big-bang"
+  
+  e18 = get-err(fun(): W.is-world-config("too", "many", "arguments") end)
+  e18 satisfies E.is-arity-mismatch
+  e18.expected-arity is 1
+  e18.args.length() is 3
+  e18.fun-loc satisfies S.is-builtin
+  e18.fun-loc.module-name is "is-world-config"
+  
+  e19 = get-err(fun(): W.is-key-equal("too", "many", "arguments") end)
+  e19 satisfies E.is-arity-mismatch
+  e19.expected-arity is 2
+  e19.args.length() is 3
+  e19.fun-loc satisfies S.is-builtin
+  e19.fun-loc.module-name is "is-key-equal"
+  
+  e20 = get-err(fun(): D.to-dict("too", "many", "arguments") end)
+  e20 satisfies E.is-arity-mismatch
+  e20.expected-arity is 1
+  e20.args.length() is 3
+  e20.fun-loc satisfies S.is-builtin
+  e20.fun-loc.module-name is "to-dict"
+  
+  e21 = get-err(fun(): D.immutable-string-dict("too", "many", "arguments") end)
+  e21 satisfies E.is-arity-mismatch
+  e21.expected-arity is 0
+  e21.args.length() is 3
+  e21.fun-loc satisfies S.is-builtin
+  e21.fun-loc.module-name is "immutable-string-dict"
+  
+  e22 = get-err(fun(): D.string-dict("too", "many", "arguments") end)
+  e22 satisfies E.is-arity-mismatch
+  e22.expected-arity is 0
+  e22.args.length() is 3
+  e22.fun-loc satisfies S.is-builtin
+  e22.fun-loc.module-name is "string-dict"
+  
+  e23 = get-err(fun(): FL.open-input-file("too", "many", "arguments") end)
+  e23 satisfies E.is-arity-mismatch
+  e23.expected-arity is 1
+  e23.args.length() is 3
+  e23.fun-loc satisfies S.is-builtin
+  e23.fun-loc.module-name is "open-input-file"
+  
+  e24 = get-err(fun(): FL.open-output-file("too", "many", "arguments") end)
+  e24 satisfies E.is-arity-mismatch
+  e24.expected-arity is 2
+  e24.args.length() is 3
+  e24.fun-loc satisfies S.is-builtin
+  e24.fun-loc.module-name is "open-output-file"
+  
+  e25 = get-err(fun(): FL.read-file("too", "many", "arguments") end)
+  e25 satisfies E.is-arity-mismatch
+  e25.expected-arity is 1
+  e25.args.length() is 3
+  e25.fun-loc satisfies S.is-builtin
+  e25.fun-loc.module-name is "read-file"
+  
+  e26 = get-err(fun(): FL.display("too", "many", "arguments") end)
+  e26 satisfies E.is-arity-mismatch
+  e26.expected-arity is 2
+  e26.args.length() is 3
+  e26.fun-loc satisfies S.is-builtin
+  e26.fun-loc.module-name is "display"
+
+  e27 = get-err(fun(): FL.close-output-file("too", "many", "arguments") end)
+  e27 satisfies E.is-arity-mismatch
+  e27.expected-arity is 1
+  e27.args.length() is 3
+  e27.fun-loc satisfies S.is-builtin
+  e27.fun-loc.module-name is "close-output-file"
+
+  e28 = get-err(fun(): FL.close-input-file("too", "many", "arguments") end)
+  e28 satisfies E.is-arity-mismatch
+  e28.expected-arity is 1
+  e28.args.length() is 3
+  e28.fun-loc satisfies S.is-builtin
+  e28.fun-loc.module-name is "close-input-file"
 
 end
 

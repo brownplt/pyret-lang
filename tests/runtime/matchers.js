@@ -76,6 +76,18 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toBeMessageExn : function(rt, s) {
                 return rt1.unwrap(rt1.getField(e, "message")).indexOf(s) !== -1;
+            },
+            toThrowRuntimeExn : function(s) {
+                try {
+                  this.actual();
+                  return false;
+                } catch(e) {
+                  if (e.toString().indexOf(s) >= 0) return true;
+                  this.message = function() {
+                    return ["Expected " + JSON.stringify(s) + " but got " + JSON.stringify(e.toString())];
+                  }
+                  return false;
+                }
             }
         });
     }

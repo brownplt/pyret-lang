@@ -1,5 +1,5 @@
 
-define(["js/runtime-util", "./list", "js/ffi-helpers"], function(util, L, ffiLib) {
+define(["js/runtime-util", "trove/list", "js/ffi-helpers"], function(util, L, ffiLib) {
 
   return util.memoModule("format", function(RUNTIME, NAMESPACE) {
     var F = ffiLib(RUNTIME, NAMESPACE);
@@ -88,7 +88,7 @@ define(["js/runtime-util", "./list", "js/ffi-helpers"], function(util, L, ffiLib
       return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
           format: RUNTIME.makeFunction(function(str, args) {
-            F.checkArity(2, arguments);
+            F.checkArity(2, arguments, "format");
             RUNTIME.checkString(str);
             return RUNTIME.makeString(format(RUNTIME.unwrap(str), listToArr(args)));
           }),

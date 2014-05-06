@@ -14,6 +14,7 @@ define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-help
     var rt;
     var ffi;
     var get;
+    var str;
 
     /**@ param {string} str, output*/
     function stdout(str) {
@@ -25,6 +26,7 @@ define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-help
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
         get = rt.getField;
+        str = rt.makeString;
         P = e.makeEvalCheckers(this, rt);
         ffi = ffiLib(rt, rt.namespace);
         addPyretMatchers(this, rt);
@@ -49,6 +51,15 @@ define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-help
         });
         P.wait(done);
       });
+
+      it("should catch type/arity errors in runtime functions", function(done) {
+        // Can't use toThrow because of generative structs
+        expect(function() { ffi.throwFieldNotFound("not a srcloc", undefined, undefined); })
+          .toThrowRuntimeExn("Error: expected Srcloc, but got \"not a srcloc\"");
+        expect(function() { rt.confirm(str("too"), str("many"), str("arguments")); })
+          .toThrowRuntimeExn("expects 2 arguments");
+        P.wait(done);
+      })
     });
   }
 

@@ -1,4 +1,4 @@
-define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
+define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
 
   return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
     var ffi = ffiLib(RUNTIME, NAMESPACE);
@@ -15,13 +15,13 @@ define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib
     return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
             "open-input-file": RUNTIME.makeFunction(function(filename) {
-                ffi.checkArity(1, arguments);
+                ffi.checkArity(1, arguments, "open-input-file");
                 RUNTIME.checkString(filename);
                 var s = RUNTIME.unwrap(filename);
                 return RUNTIME.makeOpaque(new InputFile(s));
               }),
             "open-output-file": RUNTIME.makeFunction(function(filename, append) {
-                ffi.checkArity(2, arguments);
+                ffi.checkArity(2, arguments, "open-output-file");
                 RUNTIME.checkString(filename);
                 RUNTIME.checkBoolean(append);
                 var s = RUNTIME.unwrap(filename);
@@ -29,7 +29,7 @@ define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib
                 return RUNTIME.makeOpaque(new OutputFile(s, b));
               }),
             "read-file": RUNTIME.makeFunction(function(file) {
-                ffi.checkArity(1, arguments);
+                ffi.checkArity(1, arguments, "read-file");
                 RUNTIME.checkOpaque(file);
                 var v = file.val;
                 if(v instanceof InputFile) {
@@ -40,7 +40,7 @@ define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib
                 }
               }),
             "display": RUNTIME.makeFunction(function(file, val) {
-                ffi.checkArity(2, arguments);
+                ffi.checkArity(2, arguments, "display");
                 RUNTIME.checkOpaque(file);
                 RUNTIME.checkString(val);
                 var v = file.val;
@@ -53,8 +53,12 @@ define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib
                   throw Error("Expected file in read-file, but got something else");
                 }
               }),
-            "close-output-file": RUNTIME.makeFunction(function(file) { }),
-            "close-input-file": RUNTIME.makeFunction(function(file) { })
+            "close-output-file": RUNTIME.makeFunction(function(file) { 
+                ffi.checkArity(1, arguments, "close-output-file");
+              }),
+            "close-input-file": RUNTIME.makeFunction(function(file) { 
+                ffi.checkArity(1, arguments, "close-input-file");
+              })
           }),
         answer: NAMESPACE.get("nothing")
       });

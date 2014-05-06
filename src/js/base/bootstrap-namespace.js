@@ -1,4 +1,4 @@
-define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(Namespace, imageLib, worldLib, jsnums) {
+define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function(Namespace, imageLib, worldLib, jsnums) {
 
   function makeBootstrapNamespace(rt) {
     var get = rt.getField;
@@ -14,43 +14,43 @@ define(["./namespace", "trove/image", "trove/world", "js/js-numbers"], function(
      * special to Bootstrap and we define them here. */
 
     var bool_and = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "both");
       rt.checkBoolean(l);
       rt.checkBoolean(r);
       return rt.makeBoolean(l && r);
     }
     var bool_or = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "either");
       rt.checkBoolean(l);
       rt.checkBoolean(r);
       return rt.makeBoolean(l || r);
     }
     var bool_not = function(l) {
-      rt.ffi.checkArity(1, arguments);
+      rt.ffi.checkArity(1, arguments, "not");
       rt.checkBoolean(l);
       return rt.makeBoolean(!l);
     }
 
     var add = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "add");
       rt.checkNumber(l);
       rt.checkNumber(r);
       return jsnums.add(l, r);
     }
     var sub = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "sub");
       rt.checkNumber(l);
       rt.checkNumber(r);
       return jsnums.subtract(l, r);
     }
     var mul = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "mul");
       rt.checkNumber(l);
       rt.checkNumber(r);
       return jsnums.multiply(l, r);
     }
     var div = function(l, r) {
-      rt.ffi.checkArity(2, arguments);
+      rt.ffi.checkArity(2, arguments, "div");
       rt.checkNumber(l);
       rt.checkNumber(r);
       return jsnums.divide(l, r);
