@@ -1,5 +1,5 @@
 define([
-    "./image-structs",
+    "trove/image-structs",
     "js/ffi-helpers",
     "js/js-numbers"
   ], function(
