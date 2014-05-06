@@ -77,7 +77,8 @@ fun main(args):
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
-            if (exec-result.success): print(exec-result.render-check-results())
+            if (exec-result.success):
+              when check-mode: print(exec-result.render-check-results()) end
             else:
               print(exec-result.render-error-message())
               raise("There were test errors")
