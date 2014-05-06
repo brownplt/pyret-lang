@@ -1841,7 +1841,8 @@ function createMethodDict() {
       thisRuntime.checkString(s);
       thisRuntime.checkString(find);
       thisRuntime.checkString(replace);
-      return thisRuntime.makeString(s.replace(new RegExp(find,'g'), replace));
+      var escapedFind = find.replace(/\\/g, "\\\\");
+      return thisRuntime.makeString(s.replace(new RegExp(escapedFind,'g'), replace));
     }
 
     var string_equals = function(l, r) {
