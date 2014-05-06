@@ -204,7 +204,8 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui", "trove/wor
         animationDiv = $("<div>").css({"z-index": 10000});
         output.append(animationDiv);
         function onClose() {
-          onBreak();
+          Jsworld.shutdown({ cleanShutdown: true });
+          showPrompt();
         }
         animationDiv.dialog({
           title: 'big-bang',
@@ -413,7 +414,7 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui", "trove/wor
       breakButton.attr("disabled", true);
       evaluator.requestBreak(function() {
           closeAnimationIfOpen();
-          Jsworld.shutdown({ errorShutdown: runtime.ffi.userBreak });
+          Jsworld.shutdown({ cleanShutdown: true });
           showPrompt();
         });
     };

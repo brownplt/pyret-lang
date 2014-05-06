@@ -1314,11 +1314,12 @@ function createMethodDict() {
     function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
 
-    function Pause(stack, resumer) {
+    function Pause(stack, pause, resumer) {
       this.stack = stack;
+      this.pause = pause;
       this.resumer = resumer;
     }
-    function makePause(resumer) { return new Pause([], resumer); }
+    function makePause(pause, resumer) { return new Pause([], pause, resumer); }
     function isPause(v) { return v instanceof Pause; }
     Pause.prototype = Object.create(Cont.prototype);
 
@@ -1528,7 +1529,8 @@ function createMethodDict() {
 
               if(isPause(e)) {
                 thisThread.pause();
-                e.resumer.setHandlers(thisThread.handlers);
+                e.pause.setHandlers(thisThread.handlers);
+                if(e.resumer) { e.resumer(e.pause); }
                 return;
               }
               else if(isCont(e)) {
@@ -1586,8 +1588,7 @@ function createMethodDict() {
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
-      resumer(pause);
-      throw makePause(pause);
+      throw makePause(pause, resumer);
     }
 
     function PausePackage() {
