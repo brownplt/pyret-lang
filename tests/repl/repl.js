@@ -184,7 +184,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           expect(result).toPassPredicate(rt.isFailureResult)
           expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);
           done();
-        });
+        }).fail(function(err) { fail(); });
       });
 
       it("should allow stopping nested inside tasks", function(done) {
@@ -197,7 +197,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           expect(result).toPassPredicate(rt.isFailureResult);
           expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);
           done();
-        });
+        }).fail(function(err) { fail(); });
       }, 10000);
     });
 

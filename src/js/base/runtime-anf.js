@@ -1378,7 +1378,7 @@ function createMethodDict() {
 
     var RUN_ACTIVE = false;
     var currentThreadId = 0;
-    var activeThreads = [];
+    var activeThreads = {};
       
     /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
     function run(program, namespace, options, onDone) {
@@ -1408,10 +1408,12 @@ function createMethodDict() {
       }
       function finishFailure(exn) {
         RUN_ACTIVE = false;
+        delete activeThreads[thisThread.id];
         onDone(new FailureResult(exn, getStats()));
       }
       function finishSuccess(answer) {
         RUN_ACTIVE = false;
+        delete activeThreads[thisThread.id];
         onDone(new SuccessResult(answer, getStats()));
       }
 
@@ -1440,7 +1442,7 @@ function createMethodDict() {
       // Special case of the first thread to run in between breaks.
       // This is the only thread notified of the break, others just die
       // silently.
-      if(activeThreads.length === 0) {
+      if(Object.keys(activeThreads).length === 0) {
         var breakFun = function() {
           threadIsCurrentlyPaused = true;
           threadIsDead = true;
@@ -1477,7 +1479,7 @@ function createMethodDict() {
         },
         id: currentThreadId
       };
-      activeThreads.push(thisThread);
+      activeThreads[currentThreadId] = thisThread;
 
       // iter :: () -> Undefined
       // This function should not return anything meaningful, as state
@@ -1573,9 +1575,10 @@ function createMethodDict() {
     function breakAll() {
       RUN_ACTIVE = false;
       var threadsToBreak = activeThreads;
-      activeThreads = [];
-      for(var i = 0; i < threadsToBreak.length; i++) {
-        threadsToBreak[i].handlers.break();
+      var keys = Object.keys(threadsToBreak);
+      activeThreads = {};
+      for(var i = 0; i < keys.length; i++) {
+        threadsToBreak[keys[i]].handlers.break();
       }
     }
 
