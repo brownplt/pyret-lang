@@ -1,7 +1,8 @@
 
-define(["js/runtime-util", "./list"], function(util, L) {
+define(["js/runtime-util", "./list", "js/ffi-helpers"], function(util, L, ffiLib) {
 
   return util.memoModule("format", function(RUNTIME, NAMESPACE) {
+    var F = ffiLib(RUNTIME, NAMESPACE);
     // Stolen from https://github.com/dyoo/whalesong/blob/master\
     // /whalesong/js-assembler/runtime-src/baselib-format.js
     var formatRegexp1 = new RegExp('~[sSaA]', 'g');
@@ -87,6 +88,7 @@ define(["js/runtime-util", "./list"], function(util, L) {
       return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
           format: RUNTIME.makeFunction(function(str, args) {
+            F.checkArity(2, arguments);
             RUNTIME.checkString(str);
             return RUNTIME.makeString(format(RUNTIME.unwrap(str), listToArr(args)));
           }),

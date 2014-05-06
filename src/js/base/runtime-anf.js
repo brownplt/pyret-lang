@@ -734,8 +734,22 @@ function createMethodDict() {
       }
     }
 
+    var checkArity = function(expected, args) {
+      if (expected !== args.length) {
+        throw ffi.throwArityErrorC(["runtime"], expected, args);
+      }
+    }
+
+
     var makeCheckType = function(test, typeName) {
-      return function(val) { return checkType(val, test, typeName); };
+      if (arguments.length !== 2) {
+        // can't use checkArity yet because ffi isn't initialized
+        throw("MakeCheckType was called with the wrong number of arguments: expected 2, got " + arguments.length);
+      }
+      return function(val) { 
+        checkArity(1, arguments);
+        return checkType(val, test, typeName); 
+      };
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
@@ -746,13 +760,8 @@ function createMethodDict() {
     var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
-    var checkArity = function(expected, args) {
-      if (expected !== args.length) {
-        throw ffi.throwArityErrorC(["runtime"], expected, args);
-      }
-    }
-
     function confirm(val, test) {
+      thisRuntime.checkArity(2, arguments);
       if(!test(val)) {
           throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
       }
@@ -1902,7 +1911,7 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n) {
-      checkArity(1, arguments);
+      thisRuntime.checkArity(1, arguments);
       thisRuntime.checkNumber(n);
       return makeString(String(n));
     }

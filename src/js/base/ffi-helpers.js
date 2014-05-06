@@ -14,7 +14,7 @@ define(["./runtime-util", "trove/list", "trove/option", "trove/either", "trove/e
 
       var checkSrcloc = runtime.makeCheckType(function(val) {
         return runtime.unwrap(gf(S, "Srcloc").app(val));
-      });
+      }, "Srcloc");
 
       function cases(pred, predName, val, casesObj) {
         if(!pred.app(val)) {

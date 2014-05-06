@@ -374,6 +374,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
     return makeObject({
       "provide": makeObject({
         "big-bang": makeFunction(function(init, handlers) {
+          ffi.checkArity(2, arguments);
           var arr = ffi.toArray(handlers);
           var initialWorldValue = init;
           arr.map(function(h) { checkHandler(h); });
@@ -413,10 +414,12 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
           return runtime.makeOpaque(new OnMouse(onMouse));
         }),
         "is-world-config": makeFunction(function(v) {
+          ffi.checkArity(1, arguments);
           if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
           return runtime.makeBoolean(isWorldConfigOption(v.val));
         }),
         "is-key-equal": makeFunction(function(key1, key2) {
+          ffi.checkArity(2, arguments);
           runtime.checkString(key1);
           runtime.checkString(key2);
           return key1.toString().toLowerCase() === key2.toString().toLowerCase();

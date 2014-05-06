@@ -84,6 +84,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           provide: RUNTIME.makeObject({
             'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
             'to-dict': RUNTIME.makeFunction(function(dict) {
+                F.checkArity(1, arguments);
                 RUNTIME.checkIf(dict, RUNTIME.isObject);
                 var fields = RUNTIME.getFields(dict);
                 var ns = new ImmutableStringDict(Object.create({}));
@@ -91,9 +92,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 return stringDictObj(ns);
               }),
             'immutable-string-dict': RUNTIME.makeFunction(function() {
+                F.checkArity(0, arguments);
                 return stringDictObj(new ImmutableStringDict(Object.create(null)));
               }),
             'string-dict': RUNTIME.makeFunction(function() {
+                F.checkArity(0, arguments);
                 return stringDictObj(new StringDict(Object.create(null)));
               }),
           }),

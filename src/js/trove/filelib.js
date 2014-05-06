@@ -1,6 +1,7 @@
-define(["../js/runtime-util", "fs"], function(util, fs) {
+define(["../js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
 
   return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
+    var ffi = ffiLib(RUNTIME, NAMESPACE);
     
     function InputFile(name) {
       this.name = name;
@@ -14,11 +15,13 @@ define(["../js/runtime-util", "fs"], function(util, fs) {
     return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
             "open-input-file": RUNTIME.makeFunction(function(filename) {
+                ffi.checkArity(1, arguments);
                 RUNTIME.checkString(filename);
                 var s = RUNTIME.unwrap(filename);
                 return RUNTIME.makeOpaque(new InputFile(s));
               }),
             "open-output-file": RUNTIME.makeFunction(function(filename, append) {
+                ffi.checkArity(2, arguments);
                 RUNTIME.checkString(filename);
                 RUNTIME.checkBoolean(append);
                 var s = RUNTIME.unwrap(filename);
@@ -26,6 +29,7 @@ define(["../js/runtime-util", "fs"], function(util, fs) {
                 return RUNTIME.makeOpaque(new OutputFile(s, b));
               }),
             "read-file": RUNTIME.makeFunction(function(file) {
+                ffi.checkArity(1, arguments);
                 RUNTIME.checkOpaque(file);
                 var v = file.val;
                 if(v instanceof InputFile) {
@@ -36,6 +40,7 @@ define(["../js/runtime-util", "fs"], function(util, fs) {
                 }
               }),
             "display": RUNTIME.makeFunction(function(file, val) {
+                ffi.checkArity(2, arguments);
                 RUNTIME.checkOpaque(file);
                 RUNTIME.checkString(val);
                 var v = file.val;
