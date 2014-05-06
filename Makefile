@@ -201,12 +201,12 @@ $(DOCS)/generated/trove/%.js.rkt : src/$(JSTROVE)/%.js docs/create-js-generated-
 $(DOCS)/generated/js/%.js.rkt : src/$(JSBASE)/%.js docs/create-js-generated-docs.js
 	node docs/create-js-generated-docs.js $(patsubst src/$(JSBASE)/%,$(PHASE1)/js/%,$<) > $@
 
-$(DOCS)/generated/trove/%.js.rkt : src/$(TROVE)/%.arr
-	touch $@
-$(DOCS)/generated/trove/%.js.rkt : src/$(BASE)/%.arr
-	touch $@
-$(DOCS)/generated/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr
-	touch $@
+$(DOCS)/generated/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-generated-docs.arr
+	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< > $@
+$(DOCS)/generated/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-generated-docs.arr
+	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< > $@
+$(DOCS)/generated/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-generated-docs.arr
+	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< > $@
 
 
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
