@@ -1602,10 +1602,10 @@ function createMethodDict() {
           handlers.break();
         }
         else if (this.resumeVal !== null) {
-          handlers.resume(resumeVal);
+          handlers.resume(this.resumeVal);
         }
         else if (this.errorVal !== null) {
-          handlers.error(errorVal);
+          handlers.error(this.errorVal);
         }
         else {
           this.handlers = handlers;
