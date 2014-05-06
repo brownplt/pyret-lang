@@ -121,12 +121,14 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
               if (typeof result.result !== 'string') {
                 throw new Error("Non-string result from compilation: " + result.result);
               }
-              loader.goodIdea(modname, result.result).then(function(modname) {
-                r([modname], function(a) {
-                    var sync = false;
-                    var gas = options.gas || 5000;
-                    runtime.run(a, namespace, {sync: sync, initialGas: gas}, ondone);
-                  });
+              var compiledModule = loader.goodIdea(runtime, modname, result.result);
+              compiledModule.then(function(mod) {
+                var sync = false;
+                var gas = options.gas || 5000;
+                runtime.run(mod, namespace, {sync: sync, initialGas: gas}, ondone);
+              });
+              compiledModule.fail(function(err) {
+                ondone(runtime.makeFailureResult(err));
               });
             }
           }

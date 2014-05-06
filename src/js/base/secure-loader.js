@@ -1,4 +1,4 @@
-define(["require", "q"], function(rjs, Q) {
+define(["require", "q", "js/ffi-helpers"], function(rjs, Q) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {
@@ -52,11 +52,28 @@ define(["require", "q"], function(rjs, Q) {
     f(env);
   }
 
-  function goodIdea(name, src) {
+  function goodIdea(runtime, name, src) {
     var deferred = Q.defer();
     safeEval(src, { define: function(deps, body) {
         define(name, deps, body);
-        deferred.resolve(name);
+        var loadSuccess = false;
+        function success(val) {
+          loadSuccess = true;
+          deferred.resolve(val);
+        }
+        // Since requirejs seems to not call our errback, use its global
+        // error handler.
+        var oldOnError = require.onError;
+        require.onError = function(err) {
+          require.onError = oldOnError;
+          var names = [];
+          for(var i = 0; i < err.requireModules.length; i++) {
+            require.undef(err.requireModules[i]);
+            names.push(err.requireModules[i]);
+          }
+          deferred.reject(runtime.makePyretFailException(runtime.ffi.makeModuleLoadFailureL(names)));
+        };
+        require([name], success);
       }
     });
     return deferred.promise;

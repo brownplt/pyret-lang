@@ -1068,6 +1068,10 @@ function createMethodDict() {
       }
     }
 
+    function makePyretFailException(exn) {
+      return new PyretFailException(exn);
+    }
+
     /**
       Raises a PyretFailException with the given string
       @param {!string} str
@@ -2200,6 +2204,8 @@ function createMethodDict() {
         'isObject'    : isObject,
         'isOpaque'    : isOpaque,
         'isPyretVal'  : isPyretVal,
+
+        'makePyretFailException': makePyretFailException,
 
         'isSuccessResult' : isSuccessResult,
         'makeSuccessResult' : makeSuccessResult,

@@ -98,7 +98,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
         }
       }
 
-      loader.goodIdea(name, str);
+      loader.goodIdea(RUNTIME, name, str);
 
       /* pauseStack clears the stack of this runtime, and closes over it
          in the restarter continuation, passing it in here.  Calling

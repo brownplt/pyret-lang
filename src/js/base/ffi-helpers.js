@@ -153,6 +153,15 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         raise(err("parse-error-next-token")(loc, nextToken));
       }
 
+      function throwModuleLoadFailureL(names) {
+        raise(makeModuleLoadFailureL(names));
+      }
+
+      function makeModuleLoadFailureL(names) {
+        var namesList = makeList(names);
+        return err("module-load-failure")(namesList);
+      }
+
       return {
         throwPlusError: throwPlusError,
         throwInternalError: throwInternalError,
@@ -167,12 +176,17 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
         throwNonFunApp: throwNonFunApp,
-
+        throwModuleLoadFailureL: throwModuleLoadFailureL,
+        
         throwParseErrorNextToken: throwParseErrorNextToken,
 
         makeMessageException: makeMessageException,
+        makeModuleLoadFailureL: makeModuleLoadFailureL,
+
         userBreak: gf(ERR, "user-break"),
         isUserBreak: errPred("is-user-break"),
+
+        errPred: errPred,
 
         cases: cases,
 

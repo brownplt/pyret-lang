@@ -54,6 +54,10 @@ data RuntimeError:
     tostring(self):
       "Error: The identifier " + self.name + " was used at " + self.loc.format(true) + " before it was defined."
     end
+  | module-load-failure(names :: List<String>) with:
+    tostring(self):
+      "Error: The following modules failed to load: " + torepr(self.names)
+    end
   | user-break
 end
 
