@@ -196,7 +196,7 @@ docs-trove:
 	@$(call MKDIR,$(DOCS_DIRS))
 
 $(DOCS)/generated/trove/%.js.rkt : src/$(JSTROVE)/%.js docs/create-js-generated-docs.js
-	node docs/create-js-generated-docs.js $(patsubst src/$(JSTROVE)/%,$(PHASE1)/$(TROVE)/%,$<) > $@
+	node docs/create-js-generated-docs.js $(patsubst src/$(JSTROVE)/%,$(PHASE1)/trove/%,$<) > $@
 
 $(DOCS)/generated/js/%.js.rkt : src/$(JSBASE)/%.js docs/create-js-generated-docs.js
 	node docs/create-js-generated-docs.js $(patsubst src/$(JSBASE)/%,$(PHASE1)/js/%,$<) > $@

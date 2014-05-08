@@ -13,6 +13,7 @@
          scribble/basic
          scribble/html-properties
          racket/list
+         racket/dict
          "scribble-helpers.rkt"
          )
 
@@ -25,22 +26,27 @@
 
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
-(define GEN-BASE (build-path "generated" "arr" "compiler"))
+(define GEN-BASE (build-path 'up "generated" "trove"))
 (define curr-doc-checks #f)
 
 (define (init-doc-checker read-docs)
   (map (lambda (mod)
-         (display (second mod))
          (list (second mod)
-               (map (lambda (spec) 
-                      (list (get-defn-field 'name spec) #f)) 
-                    (rest (rest mod)))))
+               (make-hash
+                (map (lambda (spec) 
+                       (cons (get-defn-field 'name spec) #f)) 
+                     (rest (rest mod))))))
        read-docs))
 
 (define (set-documented! modname name)
-  ;; add error checking
-  (set-cdr! (assoc name (second (assoc modname curr-doc-checks)))
-            (list #t)))
+  (let ([mod (assoc modname curr-doc-checks)])
+    (if mod
+        (if (dict-has-key? (second mod) name)
+            (if (dict-ref (second mod) name)
+                (error 'set-documented! (format "~s is already documented in module ~s" name modname))
+                (dict-set! (second mod) name #t))
+            (error 'set-documented! (format "Unknown identifier ~s in module ~s" name modname)))
+        (error 'set-documented! (format "Unknown module ~s" modname)))))
 
 (define (load-gen-docs)
   (let ([all-docs (directory-list GEN-BASE)])
@@ -68,7 +74,7 @@
 
 ;; defn-spec is '(fun-spec <assoc>)
 (define (get-defn-field field defn-spec)
-  (let ([f (assoc field (rest defn-spec))])
+empty  (let ([f (assoc field (rest defn-spec))])
     (if f (second f) #f)))
 
 ;; extracts the definition spec for the given function name
@@ -82,12 +88,13 @@
 (define css-js-additions (list "foo.css"))
 
 (define (div-style name)
-  (make-style name (cons (make-alt-tag "div")
-                         css-js-additions)))  
+  (make-style name (cons (make-alt-tag "div") css-js-additions)))
+(define (pre-style name)
+  (make-style name (cons (make-alt-tag "pre") css-js-additions)))
 
 ;;;;;;;;;; Scribble functions used in writing documentation ;;;;;;;;;;;;;;;;;;;
 
-(define (ignoremodule name) #f)
+(define (ignoremodule name) "")
 
 (define (ignore specnames)
   (for-each (lambda (n) (set-documented! (curr-module-name) n))
@@ -97,14 +104,17 @@
 ;; render documentation for all definitions in a module
 @(define (docmodule name #:friendly-title (friendly-title #f) 
                     . defs)
-  (section name) 
-   defs)
+  (list (title (or friendly-title name))
+        (para "Usage:")
+        (nested #:style (pre-style "code") "import " name " as ...")
+        defs))
 
 @(define (lod . assocLst)
    (let ([render-for "bs"])
      (second (assoc render-for assocLst))))
 
-(define (curr-module-name) "compiler/desugar-check")
+;; TODO: parameterize
+(define (curr-module-name) "option")
 
 (define dt elem)
 (define dd elem)
@@ -118,6 +128,7 @@
                    #:alt-docstrings (alt-docstrings #f)
                    . contents
                    )
+   (set-documented! (curr-module-name) name)
    (let ([spec (find-doc (curr-module-name) name)])
      ;; checklist
      ; - extract given args or lookup
@@ -130,28 +141,35 @@
             [input-types (map (lambda (i) (if (pair? i) (first i) i)) inputs)]
             [input-descr (map (lambda (i) (if (pair? i) (second i) #f)) inputs)]
             [argnames (or args (get-defn-field 'args spec))]
+            [doc (or alt-docstrings (get-defn-field 'doc spec))]
             )
-       (nested #:style (div-style "function")
-               (interleave-parbreaks/all
-                (list
-                 (nested #:style (div-style "signature")
-                         (interleave-parbreaks/all
-                          (list
-                           (para name " :: " input-types " -> " output)
-                           (para "Returns " output)
-                           (itemlist (map (lambda (name type descr)
-                                            (cond [(and name type descr)
-                                                   (item (dt name " :: " type)
-                                                         (dd descr))]
-                                                  [(and name type)
-                                                   (item (dt name " :: " type)
-                                                         (dd ""))]
-                                                  [(and name descr)
-                                                   (item (dt name) (dd descr))]
-                                                  [else (item (dt name) (dd ""))]))
-                                          (rest argnames) input-types input-descr))
-                         )))
-                 (nested #:style (div-style "description") contents)
-                 (nested #:style (div-style "examples") "empty for now")))))))
+       (if argnames
+           (nested #:style (div-style "function")
+                   (interleave-parbreaks/all
+                    (list
+                     (nested #:style (div-style "signature")
+                             (interleave-parbreaks/all
+                              (append
+                               (list
+                                (nested #:style (pre-style "code") name " :: " input-types " -> " output)
+                                (para "Returns " output)
+                                (itemlist (map (lambda (name type descr)
+                                                 (cond [(and name type descr)
+                                                        (item (dt name " :: " type)
+                                                              (dd descr))]
+                                                       [(and name type)
+                                                        (item (dt name " :: " type)
+                                                              (dd ""))]
+                                                       [(and name descr)
+                                                        (item (dt name) (dd descr))]
+                                                       [else (item (dt name) (dd ""))]))
+                                               argnames input-types input-descr))
+                               )
+                               (if doc (list doc) (list)))))
+                     (nested #:style (div-style "description") contents)
+                     (nested #:style (div-style "examples") 
+                             (para (bold "Examples:"))
+                             "empty for now"))))
+           (error 'function (format "Argument names not provided for name ~s" name))))))
 
 (define ALL-GEN-DOCS (load-gen-docs))

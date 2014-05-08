@@ -3,6 +3,10 @@
 *.swo
 *.out
 *.err
+*.bak
+docs/written/*.html
+docs/written/scribble*
+docs/compiled/
 docs/generated/
 build/phase1
 build/phase2
