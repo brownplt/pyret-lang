@@ -17,6 +17,8 @@ provide {
   flow-map: flow-map,
   vert: vert,
   parens: parens,
+  braces: braces,
+  brackets: brackets,
   dquote: dquote,
   squote: squote,
   align: align,
@@ -217,6 +219,8 @@ end
 fun flow(items): flow-map(break(1), fun(x): x end, items) end
 fun vert(items): flow-map(hardline, fun(x): x end, items) end
 fun parens(d): group(lparen + d + rparen) end
+fun braces(d): group(lbrace + d + rbrace) end
+fun brackets(d): group(lbrack + d + rbrack) end
 str-squote = str("'")
 str-dquote = str('"')
 fun dquote(s): group(str-dquote + s + str-dquote) end
