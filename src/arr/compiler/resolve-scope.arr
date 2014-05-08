@@ -372,10 +372,10 @@ end
 names = A.MakeName(0)
 
 data ScopeBinding:
-  | letrec-bind(loc, atom :: A.Name)
-  | let-bind(loc, atom :: A.Name)
-  | var-bind(loc, atom :: A.Name)
-  | global-bind(loc, atom :: A.Name)
+  | letrec-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | let-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | var-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
@@ -383,13 +383,13 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     cases(C.CompileBinding) b:
       | module-bindings(name, ids) => acc
       | builtin-id(name) =>
-        acc.set(name, let-bind(S.builtin("pyret-builtin"), names.s-global(name)))
+        acc.set(name, let-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
     end
   end
 where:
   scope-env-from-env(C.compile-env([
       C.builtin-id("x")
-    ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"))
+    ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
@@ -399,6 +399,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         Postconditions on p:
           - Contains no s-name in names"
   var shadowing-instances = []
+  bindings = SD.string-dict()
 
   fun make-atom-for(bind, env, type):
     cases(A.Name) bind.id:
@@ -408,23 +409,33 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
         end
         atom = names.make-atom(s)
-        { atom: atom, env: env.set(s, type(l, atom)) }
+        binding = type(l, atom, none)
+        bindings.set(atom.key(), binding)
+        { atom: atom, env: env.set(s, binding) }
       | s-underscore(l) =>
         atom = names.make-atom("$underscore")
+        bindings.set(atom.key(), type(l, atom, none))
         { atom: atom, env: env }
       | else => raise("Unexpected atom type: " + torepr(bind))
     end
   end
-
+  fun update-binding-expr(atom, expr):
+    cases(ScopeBinding) bindings.get(atom.key()):
+      | letrec-bind(loc, _, _) => bindings.set(atom.key(), letrec-bind(loc, atom, expr))
+      | let-bind(loc, _, _) => bindings.set(atom.key(), let-bind(loc, atom, expr))
+      | var-bind(loc, _, _) => bindings.set(atom.key(), var-bind(loc, atom, expr))
+      | global-bind(loc, _, _) => bindings.set(atom.key(), global-bind(loc, atom, expr))
+    end
+  end
   fun handle-id(env, l, id):
     cases(A.Name) id:
       | s-name(l2, s) =>
         if env.has-key(s):
           cases (ScopeBinding) env.get(s):
-            | let-bind(_, atom) => A.s-id(l, atom)
-            | letrec-bind(_, atom) => A.s-id-letrec(l, atom)
-            | var-bind(_, atom) => A.s-id-var(l, atom)
-            | global-bind(_, atom) => A.s-id(l, atom)
+            | let-bind(_, atom, _) => A.s-id(l, atom)
+            | letrec-bind(_, atom, _) => A.s-id-letrec(l, atom)
+            | var-bind(_, atom, _) => A.s-id-var(l, atom)
+            | global-bind(_, atom, _) => A.s-id(l, atom)
           end
         else:
           A.s-id(l, names.s-global(s))
@@ -454,6 +465,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-let-bind(l2, bind, expr) =>
             atom-env = make-atom-for(bind, acc.e, let-bind)
             visit-expr = expr.visit(self.{env: acc.e})
+            update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.e})), visit-expr)
             {
               e: atom-env.env,
@@ -462,6 +474,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-var-bind(l2, bind, expr) =>
             atom-env = make-atom-for(bind, acc.e, var-bind)
             visit-expr = expr.visit(self.{env: acc.e})
+            update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.e})), visit-expr)
             {
               e: atom-env.env,
@@ -483,7 +496,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         cases(A.LetrecBind) b:
           | s-letrec-bind(l2, bind, expr) =>
             new-bind = A.s-bind(l2, false, a, bind.ann.visit(self.{env: bind-env-and-atoms.env}))
-            A.s-letrec-bind(l2, new-bind, expr.visit(new-visitor))
+            visit-expr = expr.visit(new-visitor)
+            update-binding-expr(a, some(visit-expr))
+            A.s-letrec-bind(l2, new-bind, visit-expr)
         end
       end
       visit-body = body.visit(new-visitor)
@@ -495,7 +510,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind, acc.env, let-bind)
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
-            new-fb = A.s-for-bind(l2, new-bind, val.visit(self.{env: acc.env}))
+            visit-val = val.visit(self.{env: acc.env})
+            update-binding-expr(atom-env.atom, some(visit-val))
+            new-fb = A.s-for-bind(l2, new-bind, visit-val)
             { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
         end
       end
@@ -561,7 +578,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-name(l2, s) =>
           if self.env.has-key(s):
             cases (ScopeBinding) self.env.get(s):
-              | var-bind(loc, atom) => A.s-assign(l, atom, expr.visit(self))
+              | var-bind(loc, atom, _) => A.s-assign(l, atom, expr.visit(self))
               | else => raise("Assignment to non-var-binding " + torepr(l))
             end
           else:
@@ -593,7 +610,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   }
   {
     ast: p.visit(names-visitor),
-    shadowed: shadowing-instances
+    shadowed: shadowing-instances,
+    bindings: bindings
   }
 end
 
