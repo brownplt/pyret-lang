@@ -36,12 +36,12 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       var hasKey = RUNTIME.makeMethodFromFun(function(self, str) {
-        RUNTIME.checkIf(str, RUNTIME.isString);
+        RUNTIME.checkString(str);
         var s = unwrap(str); 
         return RUNTIME.makeBoolean(RUNTIME.getField(self, "the-dict").val.hasBinding(s));
       });
       var get = RUNTIME.makeMethodFromFun(function(self, str) {
-        RUNTIME.checkIf(str, RUNTIME.isString);
+        RUNTIME.checkString(str);
         var s = unwrap(str); 
         var dict = RUNTIME.getField(self, "the-dict");
         if(dict.val instanceof ImmutableStringDict) {
@@ -53,7 +53,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       });
 
       var set = RUNTIME.makeMethodFromFun(function(self, str, val) {
-        RUNTIME.checkIf(str, RUNTIME.isString);
+        RUNTIME.checkString(str);
         var s = unwrap(str);
         var dict = RUNTIME.getField(self, "the-dict");
         if(dict.val instanceof ImmutableStringDict) {
@@ -85,7 +85,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
             'to-dict': RUNTIME.makeFunction(function(dict) {
                 F.checkArity(1, arguments, "to-dict");
-                RUNTIME.checkIf(dict, RUNTIME.isObject);
+                RUNTIME.checkObject(dict);
                 var fields = RUNTIME.getFields(dict);
                 var ns = new ImmutableStringDict(Object.create({}));
                 fields.forEach(function(f) { ns = ns.set(f, RUNTIME.getField(dict, f)); });
