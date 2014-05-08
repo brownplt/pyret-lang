@@ -1,5 +1,10 @@
 #lang at-exp racket/base
 
+;; TODO
+; - figure out dd/dt/dl
+; - get path for loading module docs
+; - pull in everything under generated for all-docs
+
 ;; Scribble extensions for creating pyret.code.org documentation
 
 (require scribble/base
@@ -7,23 +12,146 @@
          scribble/decode
          scribble/basic
          scribble/html-properties
+         racket/list
+         "scribble-helpers.rkt"
          )
 
 (provide docmodule
          function
+         lod
+         ignore
+         ignoremodule
          )
 
-;; render documentation for all definitions in a module
-@(define (docmodule name ;#:name (name #f)
-                    . defs)
-  (section name 
-           defs))
+;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
+
+(define GEN-BASE (build-path "generated" "arr" "compiler"))
+(define curr-doc-checks #f)
+
+(define (init-doc-checker read-docs)
+  (map (lambda (mod)
+         (display (second mod))
+         (list (second mod)
+               (map (lambda (spec) 
+                      (list (get-defn-field 'name spec) #f)) 
+                    (rest (rest mod)))))
+       read-docs))
+
+(define (set-documented! modname name)
+  ;; add error checking
+  (set-cdr! (assoc name (second (assoc modname curr-doc-checks)))
+            (list #t)))
+
+(define (load-gen-docs)
+  (let ([all-docs (directory-list GEN-BASE)])
+    (let ([read-docs
+           (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
+      (set! curr-doc-checks (init-doc-checker read-docs))
+      read-docs)))
+
+
+;; finds module with given name within all files in docs/generated/arr/*
+;; mname is string naming the module
+(define (find-module mname)
+  (let ([m (findf (lambda (mspec) (equal? (second mspec) mname)) ALL-GEN-DOCS)])
+    (unless m
+      (error 'find-module (format "WARNING: module not found ~a~n" mname)))
+    m))
+
+;; finds definition in defn spec list that has given value for designated field
+;; by-field is symbol, indefns is list<specs>
+(define (find-defn by-field field-val indefns)
+  (let ([d (findf (lambda (d) (equal? field-val (second (assoc by-field (rest d))))) indefns)])
+    (unless d
+      (error 'find-defn (format "WARNING: no definition for ~a in module ~n" field-val)))
+    d))
+
+;; defn-spec is '(fun-spec <assoc>)
+(define (get-defn-field field defn-spec)
+  (let ([f (assoc field (rest defn-spec))])
+    (if f (second f) #f)))
+
+;; extracts the definition spec for the given function name
+;; - will look in all modules to find the name
+(define (find-doc mname fname)
+  (let ([mdoc (find-module mname)])
+    (find-defn 'name fname (rest (rest mdoc)))))
+
+;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define css-js-additions (list "foo.css"))
+
+(define (div-style name)
+  (make-style name (cons (make-alt-tag "div")
+                         css-js-additions)))  
+
+;;;;;;;;;; Scribble functions used in writing documentation ;;;;;;;;;;;;;;;;;;;
+
+(define (ignoremodule name) #f)
+
+(define (ignore specnames)
+  (for-each (lambda (n) (set-documented! (curr-module-name) n))
+            specnames))
   
+
+;; render documentation for all definitions in a module
+@(define (docmodule name #:friendly-title (friendly-title #f) 
+                    . defs)
+  (section name) 
+   defs)
+
+@(define (lod . assocLst)
+   (let ([render-for "bs"])
+     (second (assoc render-for assocLst))))
+
+(define (curr-module-name) "compiler/desugar-check")
+
+(define dt elem)
+(define dd elem)
+
+
+
 ;; render documentation for a function
-@(define (function #:name (name #f)
-                   #:contract (contract #f))
-  ;; check all required elements provided
-  (unless name
-    (error "Function definition missing a name field"))
-  ;; render the scribble
-  name)
+@(define (function name 
+                   #:contract (contract #f)
+                   #:args (args #f)
+                   #:alt-docstrings (alt-docstrings #f)
+                   . contents
+                   )
+   (let ([spec (find-doc (curr-module-name) name)])
+     ;; checklist
+     ; - extract given args or lookup
+     ; - get alt-docstrings or lookup doc
+     ; - if contract, check arity against generated
+     ; - make sure found funspec or unknown-item
+     ;; render the scribble 
+     (let* ([inputs (if (list? contract) (take contract (sub1 (length contract))) "OOPS")]
+            [output (if (list? contract) (last contract) "OOPS")]
+            [input-types (map (lambda (i) (if (pair? i) (first i) i)) inputs)]
+            [input-descr (map (lambda (i) (if (pair? i) (second i) #f)) inputs)]
+            [argnames (or args (get-defn-field 'args spec))]
+            )
+       (nested #:style (div-style "function")
+               (interleave-parbreaks/all
+                (list
+                 (nested #:style (div-style "signature")
+                         (interleave-parbreaks/all
+                          (list
+                           (para name " :: " input-types " -> " output)
+                           (para "Returns " output)
+                           (itemlist (map (lambda (name type descr)
+                                            (cond [(and name type descr)
+                                                   (item (dt name " :: " type)
+                                                         (dd descr))]
+                                                  [(and name type)
+                                                   (item (dt name " :: " type)
+                                                         (dd ""))]
+                                                  [(and name descr)
+                                                   (item (dt name) (dd descr))]
+                                                  [else (item (dt name) (dd ""))]))
+                                          (rest argnames) input-types input-descr))
+                         )))
+                 (nested #:style (div-style "description") contents)
+                 (nested #:style (div-style "examples") "empty for now")))))))
+
+(define ALL-GEN-DOCS (load-gen-docs))

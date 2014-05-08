@@ -155,7 +155,7 @@ fun process-fields(fields, bindings):
               ]
                 + (if doc == "": [] else: [spair("doc", '"' + doc + '"')] end))
           | s-id(_, id) =>
-            spair("unknown-item", '"' + name.s + '"')
+            spair("unknown-item", spair("name", '"' + name.s + '"'))
           | s-variant(_, _, variant-name, members, with-members) =>
             sexp("constr-spec",
               [ spair("name", '"' + variant-name + '"'),
