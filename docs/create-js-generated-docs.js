@@ -44,9 +44,9 @@ R(["js/runtime-anf", "fs"], function(RT, fs) {
   });
   var modName = trimPath(process.argv[2]);
   var importName = importPath(process.argv[2]);
-  console.log(";; Processing: " + process.argv[2]);
   function processPyretModule(module) {
     console.log("(module " + JSON.stringify(importName));
+    console.log("  (path \"" + process.argv[2] + "\")");
     var fields = rt.getFields(module);
     fields.forEach(function(name) {
       var field = rt.getField(module, name);

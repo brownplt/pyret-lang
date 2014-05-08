@@ -223,9 +223,11 @@ cases (C.ParsedArguments) parsed-options:
                 cases(A.Expr) find-result(p.value):
                   | s-obj(_, fields) =>
                     output = toplevel(
-                      [ comment("Processing " + file),
-                        sexp("module",
-                          leaf(torepr(trim-path(file))) ^ link(process-fields(fields, bindings))) ])
+                      [ sexp("module",
+                          [ leaf(torepr(trim-path(file))),
+                            spair("path", torepr(file))
+                          ]
+                            + process-fields(fields, bindings)) ])
                     nothing
                     output.tosource().pretty(80).each(print)
                   | else => nothing
