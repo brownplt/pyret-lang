@@ -45,6 +45,12 @@ data SExp:
     tosource(self): break-if-needed(self.kids) end
 end
 
+slist = sexp("list", _)
+fun spair(name, val):
+  if SExp(val): sexp(name, [val])
+  else: sexp(name, [leaf(tostring(val))])
+  end
+end
 
 fun find-result(expr):
   cases(A.Expr) expr:
@@ -143,30 +149,30 @@ fun process-fields(fields, bindings):
         cases(A.Expr) e: # Not guaranteed to be an Expr!
           | s-lam(_, params, args, ann, doc, _, _check) =>
             sexp("fun-spec",
-              [ sexp("name", [leaf('"' + name.s + '"')]),
-                sexp("arity", [leaf(tostring(args.length()))]),
-                sexp("args", args.map(fun(b): leaf('"' + b.id.toname() + '"') end))
+              [ spair("name", '"' + name.s + '"'),
+                spair("arity", tostring(args.length())),
+                spair("args", slist(args.map(fun(b): leaf('"' + b.id.toname() + '"') end)))
               ]
-                + (if doc == "": [] else: [sexp("doc", [leaf('"' + doc + '"')])] end))
+                + (if doc == "": [] else: [spair("doc", '"' + doc + '"')] end))
           | s-id(_, id) =>
-            sexp("unknown-item", [leaf('"' + name.s + '"')])
+            spair("unknown-item", '"' + name.s + '"')
           | s-variant(_, _, variant-name, members, with-members) =>
             sexp("constr-spec",
-              [ sexp("name", [leaf('"' + variant-name + '"')]),
-                sexp("members", members.map(fun(m): leaf('"' + m.bind.id.toname() + '"') end)),
-                sexp("with-members", with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end)) ])
+              [ spair("name", '"' + variant-name + '"'),
+                spair("members", slist(members.map(fun(m): leaf('"' + m.bind.id.toname() + '"') end))),
+                spair("with-members", slist(with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
           | s-singleton-variant(_,  variant-name, with-members) =>
             sexp("singleton-spec",
-              [ sexp("name", [leaf('"' + variant-name + '"')]),
-                sexp("with-members", with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end)) ])
+              [ spair("name", '"' + variant-name + '"'),
+                spair("with-members", slist(with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
           | s-data-expr(_, data-name, _, _, variants, shared, _) =>
             sexp("data-spec",
-              [ sexp("name", [leaf('"' + data-name + '"')]),
-                sexp("variants", variants.map(fun(m): leaf('"' + m.name + '"') end)),
-                sexp("shared", shared.map(fun(m): leaf('"' + m.name.tosource().pretty(80).first + '"') end)) ])
+              [ spair("name", '"' + data-name + '"'),
+                spair("variants", slist(variants.map(fun(m): leaf('"' + m.name + '"') end))),
+                spair("shared", slist(shared.map(fun(m): leaf('"' + m.name.tosource().pretty(80).first + '"') end))) ])
           | else =>
             sexp("unknown-item",
-              sexp("name", [leaf('"' + name.s + '"')]) ^ link(e.tosource().pretty(70).map(comment)))
+              spair("name", '"' + name.s + '"') ^ link(e.tosource().pretty(70).map(comment)))
         end
     end
   end
