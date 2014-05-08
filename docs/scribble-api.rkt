@@ -35,7 +35,7 @@
                (make-hash
                 (map (lambda (spec) 
                        (cons (get-defn-field 'name spec) #f)) 
-                     (rest (rest mod))))))
+                     (drop mod 3)))))
        read-docs))
 
 (define (set-documented! modname name)
@@ -74,14 +74,14 @@
 
 ;; defn-spec is '(fun-spec <assoc>)
 (define (get-defn-field field defn-spec)
-empty  (let ([f (assoc field (rest defn-spec))])
+  (let ([f (assoc field (rest defn-spec))])
     (if f (second f) #f)))
 
 ;; extracts the definition spec for the given function name
 ;; - will look in all modules to find the name
 (define (find-doc mname fname)
   (let ([mdoc (find-module mname)])
-    (find-defn 'name fname (rest (rest mdoc)))))
+    (find-defn 'name fname (drop mdoc 3))))
 
 ;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -114,7 +114,7 @@ empty  (let ([f (assoc field (rest defn-spec))])
      (second (assoc render-for assocLst))))
 
 ;; TODO: parameterize
-(define (curr-module-name) "option")
+(define (curr-module-name) "list")
 
 (define dt elem)
 (define dd elem)
@@ -142,34 +142,37 @@ empty  (let ([f (assoc field (rest defn-spec))])
             [input-descr (map (lambda (i) (if (pair? i) (second i) #f)) inputs)]
             [argnames (or args (get-defn-field 'args spec))]
             [doc (or alt-docstrings (get-defn-field 'doc spec))]
+            [arity (get-defn-field 'arity spec)]
             )
        (if argnames
-           (nested #:style (div-style "function")
-                   (interleave-parbreaks/all
-                    (list
-                     (nested #:style (div-style "signature")
-                             (interleave-parbreaks/all
-                              (append
-                               (list
-                                (nested #:style (pre-style "code") name " :: " input-types " -> " output)
-                                (para "Returns " output)
-                                (itemlist (map (lambda (name type descr)
-                                                 (cond [(and name type descr)
-                                                        (item (dt name " :: " type)
+           (if (or (not arity) (eq? arity (length argnames)))
+               (nested #:style (div-style "function")
+                       (interleave-parbreaks/all
+                        (list
+                         (nested #:style (div-style "signature")
+                                 (interleave-parbreaks/all
+                                  (append
+                                   (list
+                                    (nested #:style (pre-style "code") name " :: " input-types " -> " output)
+                                    (para "Returns " output)
+                                    (itemlist (map (lambda (name type descr)
+                                                     (cond [(and name type descr)
+                                                            (item (dt name " :: " type)
                                                               (dd descr))]
-                                                       [(and name type)
-                                                        (item (dt name " :: " type)
-                                                              (dd ""))]
-                                                       [(and name descr)
-                                                        (item (dt name) (dd descr))]
-                                                       [else (item (dt name) (dd ""))]))
-                                               argnames input-types input-descr))
-                               )
-                               (if doc (list doc) (list)))))
-                     (nested #:style (div-style "description") contents)
-                     (nested #:style (div-style "examples") 
-                             (para (bold "Examples:"))
-                             "empty for now"))))
+                                                           [(and name type)
+                                                            (item (dt name " :: " type)
+                                                                  (dd ""))]
+                                                           [(and name descr)
+                                                            (item (dt name) (dd descr))]
+                                                           [else (item (dt name) (dd ""))]))
+                                                   argnames input-types input-descr))
+                                    )
+                                   (if doc (list doc) (list)))))
+                         (nested #:style (div-style "description") contents)
+                         (nested #:style (div-style "examples") 
+                                 (para (bold "Examples:"))
+                                 "empty for now"))))
+               (error 'function (format "Provided argument names do not match expected arity ~a" arity)))
            (error 'function (format "Argument names not provided for name ~s" name))))))
 
 (define ALL-GEN-DOCS (load-gen-docs))

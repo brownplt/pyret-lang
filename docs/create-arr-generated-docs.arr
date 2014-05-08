@@ -190,7 +190,7 @@ fun process-fields(fields, bindings):
             sexp("data-spec",
               [ spair("name", torepr(data-name)),
                 spair("variants", slist(variants.map(fun(m): leaf(torepr(m.name)) end))),
-                spair("shared", slist(shared.map(fun(m): leaf(torepr(m.name.tosource().pretty(80).first)) end))) ])
+                spair("shared", slist(shared.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
           | else =>
             sexp("unknown-item",
               spair("name", torepr(name.s)) ^ link(e.tosource().pretty(70).map(comment)))
