@@ -1,9 +1,12 @@
 #lang at-exp racket/base
 
 ;; TODO
-; - figure out dd/dt/dl
 ; - get path for loading module docs
 ; - pull in everything under generated for all-docs
+; - turn set-documentation! errors into warnings that report at end of module
+; - relax xrefs to support items beyond strings (such as method names)
+;   idea here is xref["list" '("get" "to" "method")], with anchor formed
+;   by string-join if itemspec is a list.
 
 ;; Scribble extensions for creating pyret.code.org documentation
 
@@ -12,6 +15,7 @@
          scribble/decode
          scribble/basic
          scribble/html-properties
+         (for-syntax racket/base racket/syntax)
          racket/list
          racket/dict
          "scribble-helpers.rkt"
@@ -22,18 +26,26 @@
          lod
          ignore
          ignoremodule
+         xref
          )
+
+;;;;;;;;; Parameters and Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; tracks the module currently being processed
+(define curr-module-name (make-parameter #f))
+(define EMPTY-XREF-TABLE (make-hash))
 
 ;;;;;;;;;; API for generated module information ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Each module specification has the form
-;   (module name (spec-type (field val) ...) ...)
+;   (module name path (spec-type (field val) ...) ...)
 ; where 
 ;  - spec-type is one of path, fun-spec, unknown-item, data-spec, constr-spec
 ;  - each spec-type has a field called name
 
 (define mod-name second)
-(define mod-specs cddr)
+(define mod-path third)
+(define mod-specs cdddr)
 (define spec-type first)
 (define spec-fields rest)
 (define field-name first)
@@ -43,6 +55,12 @@
 
 (define GEN-BASE (build-path 'up "generated" "trove"))
 (define curr-doc-checks #f)
+
+;; print a warning message, optionally with name of issuing function
+(define (warning funname msg)
+  (if funname
+      (printf "WARNING in ~a: ~s~n" funname msg)
+      (printf "WARNING: ~s~n" msg)))
 
 (define (init-doc-checker read-docs)
   (map (lambda (mod)
@@ -114,8 +132,42 @@
 
 (define (div-style name)
   (make-style name (cons (make-alt-tag "div") css-js-additions)))
+
 (define (pre-style name)
   (make-style name (cons (make-alt-tag "pre") css-js-additions)))
+
+(define (span-style name)
+  (make-style name (cons (make-alt-tag "span") css-js-additions)))
+
+; style that drops html anchor -- use only with elems
+(define (anchored-elem-style anchor)
+  (make-style "anchor" (list (make-alt-tag "span") (url-anchor anchor))))
+
+(define dl-style (make-style "dl" (list (make-alt-tag "dl"))))
+(define dt-style (make-style "dt" (list (make-alt-tag "dt"))))
+(define dd-style (make-style "dd" (list (make-alt-tag "dd"))))
+
+;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Uses the xref table for error checking that
+;   we aren't generating links to unknown targets  
+; TODO: fix path to html file in "file" definition
+(define (xref modname itemname)
+  (traverse-element
+   (lambda (get set!)
+     (lambda (get set!)
+       (let* ([xref-table (get 'doc-xrefs '())]
+              [entry (assoc itemname xref-table)])
+         (unless (and entry (equal? (second entry) modname))
+           (error 'xref "No xref info for ~a in ~a~n" itemname modname))
+         (let* ([file (path->string 
+                       (build-path (current-directory) 
+                                   (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
+           (hyperlink file itemname)))))))
+
+; drops an "a name" anchor for cross-referencing
+(define (drop-anchor name)
+  (elem #:style (anchored-elem-style name) ""))
 
 ;;;;;;;;;; Scribble functions used in writing documentation ;;;;;;;;;;;;;;;;;;;
 
@@ -125,26 +177,40 @@
   (for-each (lambda (n) (set-documented! (curr-module-name) n))
             specnames))
   
+; generates dt for use in dl-style itemizations
+(define (dt . args) 
+  (elem #:style dt-style args))
+
+; generates dd for use in dl-style itemizations
+(define (dd . args) 
+  (elem #:style dd-style args))
+
+;; docmodule is a macro so that we can parameterize the
+;; module name before processing functions defined within
+;; the module.  Need this since module contents are nested
+;; within the module specification in the scribble sources
+@(define-syntax (docmodule stx)
+   (syntax-case stx ()
+     [(_ name args ...)
+      (syntax/loc stx
+        (parameterize ([curr-module-name name])
+          (let ([contents (docmodule-internal name args ...)])
+            (report-undocumented name)
+            contents)))]))
 
 ;; render documentation for all definitions in a module
-@(define (docmodule name #:friendly-title (friendly-title #f) 
-                    . defs)
-  (list (title (or friendly-title name))
-        (para "Usage:")
-        (nested #:style (pre-style "code") "import " name " as ...")
-        defs))
+;; this function does the actual work after syntax expansion
+@(define (docmodule-internal name 
+                             #:friendly-title (friendly-title #f) 
+                             . defs)
+   (list (title (or friendly-title name))
+         (para "Usage:")
+         (nested #:style (pre-style "code") "import " name " as ...")
+         (interleave-parbreaks/all defs)))
 
 @(define (lod . assocLst)
    (let ([render-for "bs"])
      (second (assoc render-for assocLst))))
-
-;; TODO: parameterize
-(define (curr-module-name) "list")
-
-(define dt elem)
-(define dd elem)
-
-
 
 ;; render documentation for a function
 @(define (function name 
@@ -153,14 +219,7 @@
                    #:alt-docstrings (alt-docstrings #f)
                    . contents
                    )
-   (set-documented! (curr-module-name) name)
    (let ([spec (find-doc (curr-module-name) name)])
-     ;; checklist
-     ; - extract given args or lookup
-     ; - get alt-docstrings or lookup doc
-     ; - if contract, check arity against generated
-     ; - make sure found funspec or unknown-item
-     ;; render the scribble 
      (let* ([inputs (if (list? contract) (take contract (sub1 (length contract))) "OOPS")]
             [output (if (list? contract) (last contract) "OOPS")]
             [input-types (map (lambda (i) (if (pair? i) (first i) i)) inputs)]
@@ -169,35 +228,53 @@
             [doc (or alt-docstrings (get-defn-field 'doc spec))]
             [arity (get-defn-field 'arity spec)]
             )
-       (if argnames
-           (if (or (not arity) (eq? arity (length argnames)))
-               (nested #:style (div-style "function")
-                       (interleave-parbreaks/all
-                        (list
-                         (nested #:style (div-style "signature")
-                                 (interleave-parbreaks/all
-                                  (append
-                                   (list
-                                    (nested #:style (pre-style "code") name " :: " input-types " -> " output)
-                                    (para "Returns " output)
-                                    (itemlist (map (lambda (name type descr)
+       ;; checklist
+       ; - TODO: make sure found funspec or unknown-item
+       ; confirm argnames provided
+       (unless argnames
+         (error 'function (format "Argument names not provided for name ~s" name)))
+       ; if contract, check arity against generated
+       (unless (or (not arity) (eq? arity (length argnames)))
+         (error 'function (format "Provided argument names do not match expected arity ~a" arity))) 
+       ; error checking complete, record name as documented
+       (set-documented! (curr-module-name) name)
+       ;; render the scribble 
+       ; defining processing-module because raw ref to curr-module-name in traverse-block
+       ;  wasn't getting bound properly -- don't know why
+       (let ([processing-module (curr-module-name)])
+         (interleave-parbreaks/all
+          (list (drop-anchor name)
+                (traverse-block ; use this to build xrefs on an early pass through docs
+                 (lambda (get set!)
+                   (set! 'doc-xrefs (cons (list name processing-module)
+                                          (get 'doc-xrefs '())))
+                   (nested #:style (div-style "function")
+                           (interleave-parbreaks/all
+                            (list
+                             (nested #:style (div-style "signature")
+                                     (interleave-parbreaks/all
+                                      (append
+                                       (list
+                                        (nested #:style (pre-style "code") name " :: " input-types " -> " output)
+                                        (para "Returns " output)
+                                        (para #:style dl-style
+                                              (map (lambda (name type descr)
                                                      (cond [(and name type descr)
-                                                            (item (dt name " :: " type)
-                                                              (dd descr))]
+                                                            (list (dt name " :: " type)
+                                                                  (dd descr))]
                                                            [(and name type)
-                                                            (item (dt name " :: " type)
+                                                            (list (dt name " :: " type)
                                                                   (dd ""))]
                                                            [(and name descr)
-                                                            (item (dt name) (dd descr))]
-                                                           [else (item (dt name) (dd ""))]))
+                                                            (list (dt name) (dd descr))]
+                                                           [else (list (dt name) (dd ""))]))
                                                    argnames input-types input-descr))
-                                    )
-                                   (if doc (list doc) (list)))))
-                         (nested #:style (div-style "description") contents)
-                         (nested #:style (div-style "examples") 
-                                 (para (bold "Examples:"))
-                                 "empty for now"))))
-               (error 'function (format "Provided argument names do not match expected arity ~a" arity)))
-           (error 'function (format "Argument names not provided for name ~s" name))))))
+                                        )
+                                       (if doc (list doc) (list)))))
+                             (nested #:style (div-style "description") contents)
+                             (nested #:style (div-style "examples") 
+                                     (para (bold "Examples:"))
+                                     "empty for now")))))))))
+         )))
 
 (define ALL-GEN-DOCS (load-gen-docs))
