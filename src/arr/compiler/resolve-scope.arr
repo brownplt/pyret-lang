@@ -452,6 +452,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-import(l2, file, name) =>
             atom-env = make-atom-for(A.s-bind(l2, false, name, A.a-blank), acc.e, let-bind)
             new-header = A.s-import(l2, file, atom-env.atom)
+            update-binding-expr(atom-env.atom, some(new-header))
             { e: atom-env.env, imps: link(new-header, acc.imps) }
           | else => acc
         end

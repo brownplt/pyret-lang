@@ -91,6 +91,10 @@ fun trim-path(path):
   ret
 end
 
+data CrossRef:
+  | crossref(module :: String, field :: String)
+end
+
 fun process-fields(fields, bindings):
   fun lookup-value(value):
     fun help(seen, item):
@@ -110,6 +114,7 @@ fun process-fields(fields, bindings):
         | some(v) =>
           # print("Further processing on " + v.tosource().pretty(80).first)
           cases(A.Expr) v:
+            | s-import(_, _, _) => v
             | s-id(_, id) => help(item^link(seen), id)
             | s-id-letrec(_, id) => help(item^link(seen), id)
             | s-id-var(_, id) => help(item^link(seen), id)
@@ -122,6 +127,7 @@ fun process-fields(fields, bindings):
               help-obj = help(seen, obj)
               # print("Looking for " + field + " on " + help-obj.tosource().pretty(80).join-str("\n"))
               cases(A.Expr) help-obj:
+                | s-import(_, file, _) => crossref(file.tosource().pretty(1000).first, field)
                 | s-obj(_, obj-fields) =>
                   cases(Option) obj-fields.find(fun(f): A.is-s-str(f.name) and (f.name.s == field) end):
                     | none => v
@@ -168,6 +174,11 @@ fun process-fields(fields, bindings):
         # print("***** Trying to lookup " + value.tosource().pretty(80).join-str("\n"))
         e = lookup-value(value)
         cases(A.Expr) e: # Not guaranteed to be an Expr!
+          | crossref(module, as-name) =>
+            sexp("re-export", [
+                spair("name", torepr(name.s)),
+                sexp("cross-ref", [leaf(torepr(module)), leaf(torepr(as-name))])
+              ])
           | s-lam(_, params, args, ann, doc, _, _check) =>
             sexp("fun-spec",
               [ spair("name", torepr(name.s)),
@@ -225,7 +236,7 @@ cases (C.ParsedArguments) parsed-options:
                     output = toplevel(
                       [ sexp("module",
                           [ leaf(torepr(trim-path(file))),
-                            spair("path", torepr(file))
+                            spair("path", torepr(string-replace(file, "\\", "/")))
                           ]
                             + process-fields(fields, bindings)) ])
                     nothing
