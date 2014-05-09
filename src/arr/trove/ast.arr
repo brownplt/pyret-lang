@@ -229,7 +229,7 @@ end
 data ImportType:
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
-    tosource(self): PP.dquote(PP.str(self.file)) end
+    tosource(self): PP.str(torepr(self.file)) end
   | s-const-import(l :: Loc, module :: String) with:
     label(self): "s-const-import" end,
     tosource(self): PP.str(self.module) end
