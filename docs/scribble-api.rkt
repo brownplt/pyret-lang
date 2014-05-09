@@ -24,6 +24,21 @@
          ignoremodule
          )
 
+;;;;;;;;;; API for generated module information ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Each module specification has the form
+;   (module name (spec-type (field val) ...) ...)
+; where 
+;  - spec-type is one of path, fun-spec, unknown-item, data-spec, constr-spec
+;  - each spec-type has a field called name
+
+(define mod-name second)
+(define mod-specs cddr)
+(define spec-type first)
+(define spec-fields rest)
+(define field-name first)
+(define field-val second)
+
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
 (define GEN-BASE (build-path 'up "generated" "trove"))
@@ -31,7 +46,7 @@
 
 (define (init-doc-checker read-docs)
   (map (lambda (mod)
-         (list (second mod)
+         (list (mod-name mod)
                (make-hash
                 (map (lambda (spec) 
                        (cons (get-defn-field 'name spec) #f)) 
@@ -48,6 +63,15 @@
             (error 'set-documented! (format "Unknown identifier ~s in module ~s" name modname)))
         (error 'set-documented! (format "Unknown module ~s" modname)))))
 
+(define (report-undocumented modname)
+  (let ([mod (assoc modname curr-doc-checks)])
+    (if mod
+        (dict-for-each (second mod) (lambda (key val)
+                                      (unless val
+                                        (printf "WARNING: undocumented export ~s from module ~s~n"
+                                                key modname))))
+        (error 'report-undocumented (format "Unknown module ~s" modname)))))
+
 (define (load-gen-docs)
   (let ([all-docs (directory-list GEN-BASE)])
     (let ([read-docs
@@ -55,27 +79,28 @@
       (set! curr-doc-checks (init-doc-checker read-docs))
       read-docs)))
 
+;;;;;;;;;;; Functions to extract information from generated documentation ;;;;;;;;;;;;;;
 
 ;; finds module with given name within all files in docs/generated/arr/*
 ;; mname is string naming the module
 (define (find-module mname)
-  (let ([m (findf (lambda (mspec) (equal? (second mspec) mname)) ALL-GEN-DOCS)])
+  (let ([m (findf (lambda (mspec) (equal? (mod-name mspec) mname)) ALL-GEN-DOCS)])
     (unless m
       (error 'find-module (format "WARNING: module not found ~a~n" mname)))
     m))
 
 ;; finds definition in defn spec list that has given value for designated field
 ;; by-field is symbol, indefns is list<specs>
-(define (find-defn by-field field-val indefns)
-  (let ([d (findf (lambda (d) (equal? field-val (second (assoc by-field (rest d))))) indefns)])
+(define (find-defn by-field for-val indefns)
+  (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
     (unless d
       (error 'find-defn (format "WARNING: no definition for ~a in module ~n" field-val)))
     d))
 
 ;; defn-spec is '(fun-spec <assoc>)
 (define (get-defn-field field defn-spec)
-  (let ([f (assoc field (rest defn-spec))])
-    (if f (second f) #f)))
+  (let ([f (assoc field (spec-fields defn-spec))])
+    (if f (field-val f) #f)))
 
 ;; extracts the definition spec for the given function name
 ;; - will look in all modules to find the name
