@@ -11,7 +11,9 @@
   @; Data expr for List
   @; Singleton data variant empty
   @; Data constructor link
+  @para{Here is an xref to @xref["list" "get-help"]} @;need para here to keep xref inline with text
   @section{Functions}
+  @;@function["I-should-yield-a-warning"] @;this line here for testing
   @function["get-help" #:contract (list "Any" "Number" "Any")]
   @function["set-help" #:contract (list "Any" "Number" "Any" "Any")]
   @function["reverse-help" #:contract (list "Any" "Any" "Any")]
