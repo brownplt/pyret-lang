@@ -444,6 +444,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
+  fun handle-ann(env, id):
+    cases(A.Name) id:
+      | s-name(_, s) =>
+        if env.has-key(s): env.get(s).atom
+        else: names.s-global(s)
+        end
+      | else => id
+    end
+  end
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     s-program(self, l, _provide, imports, body):
@@ -607,7 +616,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | else => 
           raise("Should not reach non-underscore bindings in resolve-names" + torepr(l) + torepr(id))
       end
-    end
+    end,
+    a-blank(self): A.a-blank end,
+    a-any(self): A.a-any end,
+    a-name(self, l, id): A.a-name(l, handle-ann(self.env, id)) end,
+    a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
+    a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
+    a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
+    a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
+    a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
+    a-dot(self, l, obj, field): A.a-dot(l, handle-ann(self.env, obj), field) end,
+    a-field(self, l, name, ann): A.a-field(l, name, handle-ann(self.env, ann)) end
   }
   {
     ast: p.visit(names-visitor),

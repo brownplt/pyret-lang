@@ -838,7 +838,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             return RUNTIME.getField(ast, 'a-any');
           } else {
             return RUNTIME.getField(ast, 'a-name')
-              .app(pos(node.pos), symbol(node.kids[0]));
+              .app(pos(node.pos), name(node.kids[0]));
           }
         },
         'record-ann': function(node) {
@@ -871,7 +871,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
           return RUNTIME.getField(ast, 'a-dot')
-            .app(pos(node.pos), symbol(node.kids[0]), symbol(node.kids[2]));
+            .app(pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
         },
         'ann': function(node) {
           // (ann a)

@@ -895,9 +895,9 @@ data Ann:
   | a-any with:
     label(self): "a-any" end,
     tosource(self): str-any end
-  | a-name(l :: Loc, id :: String) with:
+  | a-name(l :: Loc, id :: Name) with:
     label(self): "a-name" end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): self.id.tosource() end
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Bool) with:
     label(self): "a-arrow" end,
     tosource(self):
@@ -926,9 +926,9 @@ data Ann:
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     label(self): "a-pred" end,
     tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end
-  | a-dot(l :: Loc, obj :: String, field :: String) with:
+  | a-dot(l :: Loc, obj :: Name, field :: String) with:
     label(self): "a-dot" end,
-    tosource(self): PP.str(self.obj + "." + self.field) end
+    tosource(self): self.obj.tosource() + PP.str("." + self.field) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -2010,7 +2010,7 @@ default-map-visitor = {
 
   a-blank(self): a-blank end,
   a-any(self): a-any end,
-  a-name(self, l, id): a-name(l, id) end,
+  a-name(self, l, id): a-name(l, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
     a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
@@ -2027,7 +2027,7 @@ default-map-visitor = {
     a-pred(l, ann.visit(self), exp.visit(self))
   end,
   a-dot(self, l, obj, field):
-    a-dot(l, obj, field)
+    a-dot(l, obj.visit(self), field)
   end,
   a-field(self, l, name, ann):
     a-field(l, name, ann.visit(self))
@@ -2422,7 +2422,7 @@ default-iter-visitor = {
     ann.visit(self) and exp.visit(self)
   end,
   a-dot(self, l, obj, field):
-    true
+    obj.visit(self)
   end,
   a-field(self, l, name, ann):
     ann.visit(self)
@@ -2812,7 +2812,7 @@ dummy-loc-visitor = {
 
   a-blank(self): a-blank end,
   a-any(self): a-any end,
-  a-name(self, l, id): a-name(dummy-loc, id) end,
+  a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
     a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
@@ -2832,7 +2832,7 @@ dummy-loc-visitor = {
     a-dot(dummy-loc, obj, field)
   end,
   a-field(self, l, name, ann):
-    a-field(dummy-loc, name, ann.visit(self))
+    a-field(dummy-loc, name.visit(self), ann.visit(self))
   end
 }
 
