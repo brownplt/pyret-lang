@@ -168,6 +168,14 @@ fun process-fields(fields, bindings):
     end
     help([], value)
   end
+  fun method-spec(meth):
+    sexp("method-spec",
+      [ spair("name", meth.name.tosource().pretty(1000).first),
+        spair("arity", tostring(meth.args.length())),
+        spair("args", slist(meth.args.map(fun(b): leaf(torepr(b.id.toname())) end)))
+      ]
+        + (if meth.doc == "": [] else: [spair("doc", torepr(meth.doc))] end))
+  end
   for map(field from fields):
     cases(A.Member) field:
       | s-data-field(_, name, value) =>
@@ -192,16 +200,16 @@ fun process-fields(fields, bindings):
             sexp("constr-spec",
               [ spair("name", torepr(variant-name)),
                 spair("members", slist(members.map(fun(m): leaf(torepr(m.bind.id.toname())) end))),
-                spair("with-members", slist(with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
+                spair("with-members", slist(with-members.map(method-spec))) ])
           | s-singleton-variant(_,  variant-name, with-members) =>
             sexp("singleton-spec",
               [ spair("name", torepr(variant-name)),
-                spair("with-members", slist(with-members.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
+                spair("with-members", slist(with-members.map(method-spec))) ])
           | s-data-expr(_, data-name, _, _, variants, shared, _) =>
             sexp("data-spec",
               [ spair("name", torepr(data-name)),
                 spair("variants", slist(variants.map(fun(m): leaf(torepr(m.name)) end))),
-                spair("shared", slist(shared.map(fun(m): leaf(m.name.tosource().pretty(80).first) end))) ])
+                spair("shared", slist(shared.map(method-spec))) ])
           | else =>
             sexp("unknown-item",
               spair("name", torepr(name.s)) ^ link(e.tosource().pretty(70).map(comment)))
