@@ -4,6 +4,7 @@ provide *
 import file as F
 import ast as A
 import parse-pyret as PP
+import parse-errors as PE
 import "compiler/js-of-pyret.arr" as P
 import "compiler/compile-structs.arr" as C
 import "compiler/well-formed.arr" as W

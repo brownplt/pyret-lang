@@ -1,8 +1,15 @@
-define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, dialectsLib) {
-  return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
+define(["js/runtime-util", "js/ffi-helpers", "./ast", "./srcloc", "./error", "js/dialects-lib"], function(util, ffi, astLib, srclocLib, errorLib, dialectsLib) {
+  return util.memoModule("parse-errors", function(RUNTIME, NAMESPACE) {
     var F = ffi(RUNTIME, NAMESPACE);
+    var makeList = F.makeList;
     var srcloc = RUNTIME.getField(srclocLib(RUNTIME, NAMESPACE), "provide");
     var ast = RUNTIME.getField(astLib(RUNTIME, NAMESPACE), "provide");
+    var error = RUNTIME.getField(errorLib(RUNTIME, NAMESPACE), "provide");
+    function err(name, args) {
+      var f = get(error, name).app;
+      return f.apply(undefined, args);
+    }
+    var get = RUNTIME.getField;
 
     var dialects = dialectsLib(RUNTIME, NAMESPACE);
     
@@ -28,16 +35,16 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       // and returns a function to be called when all the new todos are done (which gets put into doing)
       // if a todo item is a Pyret value, it just gets pushed across to done
       // if a todo item is an array, then doing = RUNTIME.makeList and it creates a stack frame
+      var noticedErrors = [];
       function tr(node) {
         return translators[node.name](node);
       }
       var pos = function(p) { return makePyretPos(fileName, p); };
-      var makeList = F.makeList;
       function name(tok) {
         if (tok.value === "_")
-          return RUNTIME.getField(ast, 's-underscore').app(pos(tok.pos));
+          return RUNTIME.getField(ast, 's-underscore');
         else
-          return RUNTIME.getField(ast, 's-name').app(pos(tok.pos), RUNTIME.makeString(tok.value));
+          return RUNTIME.getField(ast, 's-name').app(RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
@@ -47,17 +54,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       const translators = {
         'program': function(node) {
           if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   tr(node.kids[0].kids[0]),
-                   makeList(node.kids[0].kids.slice(1).map(tr)),
-                   tr(node.kids[1]));
+            tr(node.kids[0].kids[0]);
+            node.kids[0].kids.slice(1).forEach(tr);
+            tr(node.kids[1]);
           } else {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos)),
-                   makeList(node.kids[0].kids.map(tr)),
-                   tr(node.kids[1]));
+            node.kids[0].kids.forEach(tr);
+            tr(node.kids[1]);
           }
         },
         'provide-stmt': function(node) {
@@ -72,38 +74,64 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           }
         },
         'import-stmt': function(node) {
-          if (node.kids[node.kids.length - 2].name === "AS") {
-            // (import-stmt IMPORT mod AS NAME)
-            return RUNTIME.getField(ast, 's-import')
-              .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
-          } else {
-            // (import-stmt IMPORT NAME (COMMA NAME)* FROM mod)
-            var names = [];
-            for (var i = 1; i < node.kids.length - 2; i += 2) {
-              names.push(name(node.kids[i]));
-            }
-            return RUNTIME.getField(ast, 's-import-fields')
-              .app(pos(node.pos), makeList(names), tr(node.kids[node.kids.length - 1]));
-          }
+          // (import-stmt IMPORT mod AS NAME)
+          return RUNTIME.getField(ast, 's-import')
+            .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
         },
         'import-name': function(node) {
           // (import-name NAME)
           return RUNTIME.getField(ast, 's-const-import')
-            .app(pos(node.pos), symbol(node.kids[0]))
+            .app(symbol(node.kids[0]))
         },
         'import-string': function(node) {
           // (import-string STRING)
           return RUNTIME.getField(ast, 's-file-import')
-            .app(pos(node.pos), string(node.kids[0]))
+            .app(string(node.kids[0]))
+        },
+        'toplevel-block': function(node) {
+          node.kids.map(tr);
         },
         'block': function(node) {
-          // (block stmts ...)
-          return RUNTIME.getField(ast, 's-block')
-            .app(pos(node.pos), makeList(node.kids.map(tr)));
+          // Block is empty
+          if (node.kids.length === 0) {
+            noticedErrors.push(err("empty-block", [pos(node.pos)]));
+          }
+          // good-block or bad-block
+          else {
+            tr(node.kids[0]);
+          }
+        },
+        'check-block': function(node) {
+          if(node.kids.length === 0) {
+            noticedErrors.push(err("empty-block", [pos(node.pos)]));
+          }
+          else {
+            tr(node.kids[0]);
+          }
+        },
+        'good-check-block': function(node) {
+          node.kids.forEach(tr);
+        },
+        'bad-check-block': function(node) {
+          noticedErrors.push(err("bad-check-block-stmt", [pos(node.pos)]));
+          node.kids.forEach(tr);
+        },
+        'check-stmt': function(node) {
+          tr(node.kids[0])
+        },
+        'good-block': function(node) {
+          node.kids.forEach(tr);
+        },
+        'bad-block': function(node) {
+          noticedErrors.push(err("bad-block-stmt", [pos(node.pos)]));
+          node.kids.forEach(tr);
+        },
+        'block-prelude': function(node) {
+          tr(node.kids[0]);
         },
         'stmt': function(node) {
           // (stmt s)
-          return tr(node.kids[0]);
+          tr(node.kids[0]);
         },
         'data-with': function(node) {
           if (node.kids.length === 0) {
@@ -114,60 +142,48 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             return tr(node.kids[1]);
           }
         },
-        'variant-constructor': function(node) {
-          // (variant-constructor NAME variant-members)
-          return {
-            pos: pos(node.pos),
-            name: symbol(node.kids[0]),
-            args: tr(node.kids[1])
-          }
-        },
         'data-variant': function(node) {
-          if (node.kids[1].value !== undefined) {
+          if (node.kids.length === 4) {
+            // (data-variant PIPE NAME args with)
+            return RUNTIME.getField(ast, 's-variant')
+              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+          } else {
             // (data-variant PIPE NAME with)
             return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
-          } else {
-            // (data-variant PIPE variant-constructor with)
-            var constr = tr(node.kids[1])
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
           }
         },
         'first-data-variant': function(node) {
-          if (node.kids[0].value !== undefined) {
+          if (node.kids.length === 3) {
+            // (first-data-variant NAME args with)
+            return RUNTIME.getField(ast, 's-variant')
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
+          } else {
             // (first-data-variant NAME with)
             return RUNTIME.getField(ast, 's-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
-          } else {
-            // (first-data-variant variant-constructor with)
-            var constr = tr(node.kids[0])
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
           }
         },
         'datatype-variant': function(node) {
-          if (node.kids[1].value !== undefined) {
+          if (node.kids.length === 4) {
+            // (datatype-variant PIPE NAME args constructor)
+            return RUNTIME.getField(ast, 's-datatype-variant')
+              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+          } else {
             // (datatype-variant PIPE NAME constructor)
             return RUNTIME.getField(ast, 's-datatype-singleton-variant')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
-          } else {
-            // (datatype-variant PIPE variant-constructor constructor)
-            var constr = tr(node.kids[1])
-            return RUNTIME.getField(ast, 's-datatype-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
           }
         },
         'first-datatype-variant': function(node) {
-          if (node.kids[0].value !== undefined) {
-            // (datatype-variant NAME constructor)
-            return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
-          } else {
-            // (datatype-variant variant-constructor constructor)
-            var constr = tr(node.kids[0])
+          if (kids.length === 4) {
+            // (first-datatype-variant NAME args constructor)
             return RUNTIME.getField(ast, 's-datatype-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]));
+          } else {
+            // (first-datatype-variant NAME constructor)
+            return RUNTIME.getField(ast, 's-datatype-singleton-variant')
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[0]));
           }
         },
         'data-sharing': function(node) {
@@ -256,7 +272,13 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
         },
         'fun-expr': function(node) {
-          // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
+          // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check end)
+          if (node.kids[2].name === "maybe-colon" && node.kids[2].kids.length === 0) {
+            noticedErrors.push(err("fun-missing-colon", [pos(node.kids[2].pos)]));
+          }
+          if (node.kids[6].name === "end" && node.kids[6].kids.length === 0) {
+            noticedErrors.push(err("fun-missing-end", [pos(node.kids[6].pos)]));
+          }
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1].kids[1]),
                  tr(node.kids[1].kids[0]),
@@ -294,6 +316,9 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         'check-expr': function(node) {
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
+            if (node.kids[2].kids.length === 0) {
+              noticedErrors.push(err("missing-end", [pos(node.kids[2].pos)]));
+            }
             return RUNTIME.getField(ast, 's-check')
               .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
@@ -442,6 +467,9 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         },
         'list-arg-elt': function(node) {
           // (list-arg-elt arg COMMA)
+          if(node.kids.length === 1) {
+            noticedErrors.push(err("args-missing-comma", [pos(node.pos)]));
+          }
           return tr(node.kids[0]);
         },
         'variant-member': function(node) {
@@ -567,6 +595,9 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           }
         },
         'app-arg-elt': function(node) {
+          if(node.kids.length === 1) {
+            noticedErrors.push(err("app-args-missing-comma", [pos(node.pos)]));
+          }
           // (app-arg-elt e COMMA)
           return tr(node.kids[0]);
         },
@@ -702,8 +733,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           }
         },
         'if-pipe-expr': function(node) {
-          if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
-            // (if-pipe-expr IFCOLON branch ... BAR OTHERWISECOLON else END)
+          if (node.kids[node.kids.length - 1].kids.length === 0) {
+            noticedErrors.push(err("missing-end", [pos(node.kids[node.kids.length - 1])]));
+          }
+          if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
+            // (if-pipe-expr IFCOLON branch ... BAR ELSECOLON else END)
             return RUNTIME.getField(ast, 's-if-pipe-else')
               .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
                    tr(node.kids[node.kids.length - 2]));
@@ -890,7 +924,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           return tr(node.kids[0]);
         }
       };
-      return tr(node);
+      tr(node);
+      return makeList(noticedErrors);
     }
 
     const opLookup = {
@@ -911,68 +946,50 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       "satisfies": RUNTIME.makeString("opsatisfies"),
     }
 
-    function parseDataRaw(dialect, data, fileName) {
-      const toks = dialects.dialects[dialect].Tokenizer;
-      const grammar = dialects.dialects[dialect].Grammar;
+    function detectErrorsRaw(dialect, data, fileName) {
+      const toks = dialects.dialects[dialect].UnTokenizer;
+      const grammar = dialects.dialects[dialect].UnGrammar;
       toks.tokenizeFrom(data);
       // while (toks.hasNext())
       //   console.log(toks.next().toString(true));
       var parsed = grammar.parse(toks);
       //console.log("Result:");
       var countParses = grammar.countAllParses(parsed);
+      console.log("There were " + countParses + " parses");
       if (countParses == 0) {
         var nextTok = toks.curTok; 
-        console.error("There were " + countParses + " potential parses.\n" +
+        console.error("Couldn't parse it even with the ungrammar.  There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
+        console.log(nextTok);
         RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
       }
       //console.log("There were " + countParses + " potential parses");
       if (countParses === 1) {
         var ast = grammar.constructUniqueParse(parsed);
         //          console.log(ast.toString());
-        return translate(ast, fileName);
+        return makeList([translate(ast, fileName)])
       } else {
+        var errors = [];
         var asts = grammar.constructAllParses(parsed);
-        throw "Non-unique parse";
-        for (var i = 0; i < asts.length; i++) {
-          //console.log("Parse " + i + ": " + asts[i].toString());
-          //            console.log(("" + asts[i]) === ("" + asts2[i]));
-        }
-        return translate(ast, fileName);
+        return F.makeList(asts.map(function(a) {
+          return translate(a, fileName);
+        }));
       }
     }
     
-    function parseDataDialect(dialect, data, fileName) {
-      F.checkArity(3, arguments, "parse-dialect");
-      RUNTIME.checkString(dialect);
-      RUNTIME.checkString(data);
-      RUNTIME.checkString(fileName);
-      return parseDataRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
-    }
-    function parsePyret(data, fileName) {
-      F.checkArity(2, arguments, "surface-parse");
-      RUNTIME.checkString(data);
-      RUNTIME.checkString(fileName);
-      return parseDataRaw("Pyret", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
-    }
-    function parseBootstrap(data, fileName) {
-      F.checkArity(2, arguments, "parse-bootstrap");
-      RUNTIME.checkString(data);
-      RUNTIME.checkString(fileName);
-      return parseDataRaw("Bootstrap", RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+    function detectErrors(dialect, data, fileName) {
+      RUNTIME.checkIf(dialect, RUNTIME.isString);
+      RUNTIME.checkIf(data, RUNTIME.isString);
+      RUNTIME.checkIf(fileName, RUNTIME.isString);
+      return detectErrorsRaw(RUNTIME.unwrap(dialect), RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
-        'parse-dialect': RUNTIME.makeFunction(parseDataDialect),
-        'surface-parse': RUNTIME.makeFunction(parsePyret), // TODO: Rename this eventually
-        'parse-bootstrap': RUNTIME.makeFunction(parseBootstrap)
+        'detect-parse-errors': RUNTIME.makeFunction(detectErrors),
       }),
       answer: NAMESPACE.get("nothing")
     });
   });
 });
-
-
-

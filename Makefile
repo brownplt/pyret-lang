@@ -266,6 +266,17 @@ pyret-test: build/phase1/phase1.built $(TEST_JS)
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
+TEST_BS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
+
+tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr phase1
+	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+
+.PHONY : bootstrap-test
+bootstrap-test: phase1 $(TEST_BS)
+	node build/phase1/main-wrapper.js \
+    --module-load-dir tests/pyret \
+    -check-all tests/pyret/main-bootstrap.arr
+
 .PHONY : compiler-test
 compiler-test: build/phase1/phase1.built
 	node build/phase1/main-wrapper.js \
