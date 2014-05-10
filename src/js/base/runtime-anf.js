@@ -1578,6 +1578,18 @@ function createMethodDict() {
       return run(f, thisRuntime.namespace, {}, then);
     }
 
+
+    function printPyretStack(stack) {
+      var stackStr = stack.map(function(val) {
+        if (val instanceof Array && val.length == 7) {
+          return (val[0] + ": line " + val[1] + ", column " + val[2]);
+        } else if (val) {
+          return JSON.stringify(val);
+        }
+      });
+      return "  " + stackStr.join("\n  ");
+    }
+
     function breakAll() {
       RUN_ACTIVE = false;
       var threadsToBreak = activeThreads;
@@ -2173,6 +2185,7 @@ function createMethodDict() {
         'runThunk': runThunk,
         'safeCall': safeCall,
         'safeTail': safeTail,
+        'printPyretStack': printPyretStack,
 
         'GAS': INITIAL_GAS,
 

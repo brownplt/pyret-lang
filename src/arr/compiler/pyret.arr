@@ -81,7 +81,7 @@ fun main(args):
               when check-mode: print(exec-result.render-check-results()) end
             else:
               print(exec-result.render-error-message())
-              raise("There were test errors")
+              raise("There were execution errors")
             end
           | err(errors) =>
             print-error("Compilation errors:")

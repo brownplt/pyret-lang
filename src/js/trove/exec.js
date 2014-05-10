@@ -81,7 +81,10 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                 callingRt.pauseStack(function(restarter) {
                   execRt.runThunk(function() {
                     if(execRt.isPyretVal(r.exn.exn)) {
-                      return (execRt.getField(r.exn.exn, "tostring").app() + JSON.stringify(r.exn.pyretStack));
+                      return execRt.string_append(
+                        execRt.getField(r.exn.exn, "tostring").app(),
+                        execRt.makeString("\n" +
+                                          execRt.printPyretStack(r.exn.pyretStack)));
                     } else {
                       return String(r.exn);
                     }

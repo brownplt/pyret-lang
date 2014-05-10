@@ -5,16 +5,6 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr"], function(r, RT, py
     stderr: function(str) { process.stderr.write(str); }
   });
   rt.setParam("command-line-arguments", process.argv.slice(1));
-  function printStack(stack) {
-    stackStr = stack.map(function(val) {
-      if (val instanceof Array && val.length == 7) {
-        return (val[0] + ": line " + val[1] + ", column " + val[2]);
-      } else {
-        return JSON.stringify(val);
-      }
-    });
-    return "  " + stackStr.join("\n  ");
-  }
   rt.run(pyret, rt.namespace, {sync: true}, function(result) {
      if(rt.isSuccessResult(result)) {
         process.exit(0);
@@ -22,7 +12,7 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr"], function(r, RT, py
         var exnStack = result.exn.stack; result.exn.stack = undefined;
         var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
         console.error('Pyret terminated with an error:\n' + String(result).substring(0, 500) + "\nStack:\n" 
-                      + String(exnStack) + "\nPyret stack:\n" + printStack(pyretStack));
+                      + String(exnStack) + "\nPyret stack:\n" + rt.printPyretStack(pyretStack));
         process.exit(1);
      }
   });
