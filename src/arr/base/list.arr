@@ -435,12 +435,34 @@ end
 
 fun all(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  is-none(find(fun(v): not f(v) end, lst))
+  fun help(l):
+    if is-empty(l): true
+    else: f(l.first) and help(l.rest)
+    end
+  end
+  help(lst)
 where:
  all(fun(n): n > 1 end, link(1,link(2,link(3,empty)))) is false
  all(fun(n): n <= 3 end, link(1,link(2,link(3,empty)))) is true
  all(fun(x): true end, empty) is true
  all(fun(x): false end, empty) is true
+end
+
+fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
+  doc: "Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2.
+        Returns true when either list is empty"
+  fun help(l1, l2):
+    if is-empty(l1) or is-empty(l2): true
+    else: f(l1.first, l2.first) and help(l2.rest, l2.rest)
+    end
+  end
+  help(lst1, lst2)
+where:
+ all2(fun(n, m): n > m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is true
+ all2(fun(n, m): (n + m) == 3 end, link(1,link(2,link(3,empty))), link(2,link(1,link(0,empty)))) is true
+ all2(fun(n, m): n < m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is false
+ all2(fun(_, _): true end, empty, empty) is true
+ all2(fun(_, _): false end, empty, empty) is true
 end
 
 
