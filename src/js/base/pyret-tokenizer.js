@@ -189,6 +189,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
+    {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
     
     {name: "DOT", val: period},
     {name: "BANG", val: bang},

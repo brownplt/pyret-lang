@@ -539,6 +539,16 @@ fun desugar-expr(expr :: A.Expr):
             )
         end,
         desugar-expr(gid(l, "_empty")))
+    | s-construct(l, modifier, constructor, elts) =>
+      cases(A.ConstructModifier) modifier:
+        | s-construct-normal =>
+          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "make")),
+            [desugar-expr(A.s-list(l, elts.map(desugar-expr)))])
+        | s-construct-lazy =>
+          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "lazy-make")),
+            [desugar-expr(A.s-list(l,
+                  elts.map(fun(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end)))])
+      end
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, _, _, _) => A.s-str(l, "Checks should have been desugared")

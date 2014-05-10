@@ -505,7 +505,16 @@ data Expr:
     label(self): "s-list" end,
     tosource(self):
       PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
-        self.values.map(fun(v): v.tosource() end))
+        self.values.map(_.tosource()))
+    end
+  | s-construct(l :: Loc, modifier :: ConstructModifier, constructor :: Expr, values :: List<Expr>) with:
+    label(self): "s-construct" end,
+    tosource(self):
+      PP.surround(INDENT, 0, PP.lbrack,
+        PP.group(PP.separate(PP.break(1), [self.modifier.tosource(), self.constructor.tosource()]))
+          + str-colonspace
+          + PP.separate(PP.commabreak, self.values.map(_.tosource())),
+        PP.rbrack)
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
@@ -678,6 +687,20 @@ sharing:
   end
 end
 
+data ConstructModifier:
+  | s-construct-normal with:
+    label(self): "s-construct-normal" end,
+    tosource(self): PP.mt-doc end
+  | s-construct-lazy with:
+    label(self): "s-construct-lazy" end,
+    tosource(self): PP.str("lazy") end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
+end
+    
+
 data Bind:
   | s-bind(l :: Loc, shadows :: Bool, id :: Name, ann :: Ann) with:
     tosource(self):
@@ -745,9 +768,19 @@ sharing:
 end
 
 data VariantMemberType:
-  | s-normal with: tosource(self): PP.str("") end
-  | s-cyclic with: tosource(self): PP.str("cyclic ") end
-  | s-mutable with: tosource(self): PP.str("mutable ") end
+  | s-normal with:
+    label(self): "s-normal" end,
+    tosource(self): PP.mt-doc end
+  | s-cyclic with:
+    label(self): "s-cyclic" end,
+    tosource(self): PP.str("cyclic ") end    
+  | s-mutable with:
+    label(self): "s-mutable" end,
+    tosource(self): PP.str("mutable ") end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 data VariantMember:
@@ -1372,6 +1405,12 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-list(_, values2) => length-andmap(equiv-ast, values1, values2)
         | else => false
       end
+    | s-construct(_, mod1, constr1, values1) =>
+      cases(Expr) ast2:
+        | s-construct(_, mod2, constr2, values2) =>
+          (mod1 == mod2) and equiv-ast(constr1, constr2) and length-andmap(equiv-ast, values1, values2)
+        | else => false
+      end
     | s-op(_, op1, left1, right1) =>
       cases(Expr) ast2:
         | s-op(_, op2, left2, right2) =>
@@ -1823,6 +1862,9 @@ default-map-visitor = {
   s-list(self, l :: Loc, values :: List<Expr>):
     s-list(l, values.map(_.visit(self)))
   end,
+  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+    s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
@@ -2231,6 +2273,9 @@ default-iter-visitor = {
   s-list(self, l :: Loc, values :: List<Expr>):
     list.all(_.visit(self), values)
   end,
+  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+    constructor.visit(self) and list.all(_.visit(self), values)
+  end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and list.all(_.visit(self), args)
   end,
@@ -2624,6 +2669,9 @@ dummy-loc-visitor = {
   end,
   s-list(self, l :: Loc, values :: List<Expr>):
     s-list(dummy-loc, values.map(_.visit(self)))
+  end,
+  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+    s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))

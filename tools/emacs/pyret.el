@@ -88,7 +88,7 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords
    '("fun" "method" "var" "when" "import" "provide" "check"
-     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
+     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "lazy"
      "and" "or" "not" "is" "raises" "satisfies" "mutable" "cyclic"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-colon
