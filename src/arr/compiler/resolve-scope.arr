@@ -553,7 +553,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
       new-check = self.{env: env-and-atoms.env}.option(_check)
-      A.s-lam(l, params, new-args, ann, doc, new-body, new-check)
+      A.s-lam(l, params, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
@@ -567,7 +567,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
       new-check = self.{env: env-and-atoms.env}.option(_check)
-      A.s-method(l, new-args, ann, doc, new-body, new-check)
+      A.s-method(l, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method-field(self, l, name, args, ann, doc, body, _check):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
@@ -581,21 +581,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
       new-check = self.{env: env-and-atoms.env}.option(_check)
-      A.s-method-field(l, name, new-args, ann, doc, new-body, new-check)
+      A.s-method-field(l, name, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>
           if self.env.has-key(s):
-            cases (ScopeBinding) self.env.get(s):
-              | var-bind(loc, atom, _) => A.s-assign(l, atom, expr.visit(self))
-              | else => raise("Assignment to non-var-binding " + torepr(l))
-            end
+            bind = self.env.get(s)
+            A.s-assign(l, bind.atom, expr.visit(self))
+            # This used to examine bind in more detail, and raise an error if it wasn't a var-bind
+            # but that's better suited for a later pass
           else:
-            raise("Assignment to global " + torepr(l))
+            A.s-assign(l, id, expr.visit(self)) # TODO: Should this be a s-global after all?
           end
         | s-underscore(_) =>
-          A.s-assign(l, id, expr)
+          A.s-assign(l, id, expr.visit(self))
         | else => raise("Wasn't expecting a non-s-name in resolve-names for assignment: " + torepr(id))
       end
     end,

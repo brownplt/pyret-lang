@@ -994,8 +994,7 @@ data Pair:
 end
 
 fun length-andmap(pred, l1, l2):
-  (l1.length() == l2.length()) and
-    for list.all(p from map2(pair, l1, l2)): pred(p.l, p.r);
+  (l1.length() == l2.length()) and list.all2(pred, l1, l2)
 end
 
 
@@ -1708,7 +1707,7 @@ default-map-visitor = {
   end,
 
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    s-fun(l, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -1762,10 +1761,10 @@ default-map-visitor = {
   end,
 
   s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(l, type, val.visit(self), branches.map(_.visit(self)))
+    s-cases(l, type.visit(self), val.visit(self), branches.map(_.visit(self)))
   end,
   s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(l, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+    s-cases-else(l, type.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -1798,7 +1797,7 @@ default-map-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-lam(l, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-lam(l, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-method(
       self,
@@ -1809,7 +1808,7 @@ default-map-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-method(l, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-method(l, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     s-extend(l, super.visit(self), fields.map(_.visit(self)))
@@ -1922,20 +1921,20 @@ default-map-visitor = {
       ann :: Ann,
       body :: Expr
     ):
-    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Bool):
     s-check(l, name, body.visit(self), keyword-check)
   end,
 
   s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    s-data-field(l, name, value.visit(self))
+    s-data-field(l, name.visit(self), value.visit(self))
   end,
   s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-mutable-field(l, name, ann, value.visit(self))
+    s-mutable-field(l, name.visit(self), ann.visit(self), value.visit(self))
   end,
   s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-once-field(l, name, ann, value.visit(self))
+    s-once-field(l, name.visit(self), ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,
@@ -1949,9 +1948,9 @@ default-map-visitor = {
     ):
     s-method-field(
         l,
-        name,
+        name.visit(self),
         args.map(_.visit(self)),
-        ann,
+        ann.visit(self),
         doc,
         body.visit(self),
         self.option(_check)
@@ -2104,7 +2103,7 @@ default-iter-visitor = {
   end,
   
   s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    expr.visit(self) and list.all(_.visit(self))
+    expr.visit(self) and list.all(_.visit(self), params)
   end,
   
   s-block(self, l, stmts):
@@ -2116,7 +2115,7 @@ default-iter-visitor = {
   end,
   
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    list.all(_.visit(self), args) and body.visit(self) and self.option(_check)
+    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -2327,13 +2326,13 @@ default-iter-visitor = {
   end,
   
   s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    value.visit(self)
+    name.visit(self) and value.visit(self)
   end,
   s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    ann.visit(self) and value.visit(self)
+    name.visit(self) and ann.visit(self) and value.visit(self)
   end,
   s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    ann.visit(self) and value.visit(self)
+    name.visit(self) and ann.visit(self) and value.visit(self)
   end,
   s-method-field(
       self,
@@ -2345,7 +2344,11 @@ default-iter-visitor = {
       body :: Expr,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    name.visit(self)
+    and list.all(_.visit(self), args)
+    and ann.visit(self)
+    and body.visit(self)
+    and self.option(_check)
   end,
   
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
@@ -2510,7 +2513,7 @@ dummy-loc-visitor = {
   end,
 
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    s-fun(dummy-loc, name, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-fun(dummy-loc, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -2600,7 +2603,7 @@ dummy-loc-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-lam(dummy-loc, params, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-lam(dummy-loc, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-method(
       self,
@@ -2611,7 +2614,7 @@ dummy-loc-visitor = {
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-method(dummy-loc, args.map(_.visit(self)), ann, doc, body.visit(self), self.option(_check))
+    s-method(dummy-loc, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
     s-extend(dummy-loc, super.visit(self), fields.map(_.visit(self)))
@@ -2753,7 +2756,7 @@ dummy-loc-visitor = {
         dummy-loc,
         name,
         args.map(_.visit(self)),
-        ann,
+        ann.visit(self),
         doc,
         body.visit(self),
         self.option(_check)

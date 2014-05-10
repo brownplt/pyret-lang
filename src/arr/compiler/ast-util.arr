@@ -198,7 +198,7 @@ fun <a> default-env-map-visitor(
       end
       new-body = body.visit(self.{env: args-env})
       new-check = self.{env: args-env}.option(_check)
-      A.s-lam(l, params, new-args, ann, doc, new-body, new-check)
+      A.s-lam(l, params, new-args, ann.visit(self.{env: args-env}), doc, new-body, new-check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
@@ -207,7 +207,7 @@ fun <a> default-env-map-visitor(
       end
       new-body = body.visit(self.{env: args-env})
       new-check = self.{env: args-env}.option(_check)
-      A.s-method(l, new-args, ann, doc, new-body, new-check)
+      A.s-method(l, new-args, ann.visit(self.{env: args-env}), doc, new-body, new-check)
     end
   }
 end
@@ -263,6 +263,7 @@ fun <a> default-env-iter-visitor(
         bind-handlers.s-bind(a, acc)
       end
       list.all(_.visit(self), args) and
+        ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
     end,
@@ -271,6 +272,7 @@ fun <a> default-env-iter-visitor(
         bind-handlers.s-bind(a, acc)
       end
       list.all(_.visit(self), args) and
+        ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
     end
@@ -371,7 +373,7 @@ fun bad-assignments(initial-env, ast):
         | none => nothing
         | some(b) =>
           when not b.mut:
-            add-error(CS.bad-assignment(tostring(id), loc, b.loc))
+            add-error(CS.bad-assignment(id.toname(), loc, b.loc))
           end
       end
       value.visit(self)
@@ -403,7 +405,7 @@ fun check-unbound(initial-env, ast):
       end,
       s-assign(self, loc, id, value):
         when is-none(bind-exp(A.s-id(loc, id), self.env)):
-          add-error(CS.unbound-var(A.s-assign(loc, id, value)), loc)
+          add-error(CS.unbound-var(id.toname(), loc))
         end
         value.visit(self)
       end
