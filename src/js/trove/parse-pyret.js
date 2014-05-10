@@ -637,7 +637,20 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           } else {
             // (list-expr LBRACK list-fields RBRACK)
             return RUNTIME.getField(ast, 's-list')
-              .app(pos(node.pos), makeList(node.kids.slice(1, node.kids.length - 1).map(tr)));
+              .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+          }
+        },
+        'construct-expr': function(node) {
+          return RUNTIME.getField(ast, 's-construct')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))
+        },
+        'construct-modifier': function(node) {
+          if (node.kids.length === 0) {
+            return RUNTIME.getField(ast, 's-construct-normal');
+          } else if (node.kids.length === 1) {
+            if (node.kids[0].name === "LAZY") {
+              return RUNTIME.getField(ast, 's-construct-lazy');
+            }
           }
         },
         'app-expr': function(node) {

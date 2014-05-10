@@ -89,7 +89,7 @@
 (defconst pyret-keywords
    '("fun" "method" "var" "when" "import" "provide" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
-     "and" "or" "is" "raises" "satisfies" "mutable" "cyclic"
+     "and" "or" "is" "raises" "satisfies" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))

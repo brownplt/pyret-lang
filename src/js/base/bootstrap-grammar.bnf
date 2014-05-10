@@ -98,6 +98,7 @@ expr: paren-expr | id-expr | prim-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
+    | construct-expr
 bad-expr: UNTERMINATED-STRING | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
@@ -138,6 +139,10 @@ list-field: field COMMA
 field: key COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
 key: NAME | LBRACK binop-expr RBRACK
+
+construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
+construct-modifier: | LAZY
+list-elt: binop-expr COMMA
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK
