@@ -80,7 +80,7 @@ fun main(args):
             if (exec-result.success): print(exec-result.render-check-results())
             else:
               print(exec-result.render-error-message())
-              raise("There were test errors")
+              raise("There were execution errors")
             end
           | err(errors) =>
             print-error("Compilation errors:")
