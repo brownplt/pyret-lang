@@ -37,8 +37,8 @@ data SExp:
   | leaf(val :: String) with: tosource(self): PP.str(self.val) end
   | sexp(name :: String, kids :: List<SExp>) with:
     tosource(self):
-      kids = break-if-needed(self.kids)
-      PP.parens(PP.nest(2, PP.str(self.name) + PP.break(1) + kids))
+      kids = break-if-needed(leaf(self.name) ^ link(self.kids))
+      PP.parens(PP.nest(2, kids))
     end
   | comment(msg :: String) with: tosource(self): PP.str(";; " + self.msg) + PP.hardline end
   | toplevel(kids :: List<SExp>) with:

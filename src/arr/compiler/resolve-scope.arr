@@ -546,6 +546,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         atom-env = make-atom-for(a, acc.env, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
+      shadow env-and-atoms = for fold(acc from env-and-atoms, a from params):
+        atom-env = make-atom-for(A.s-bind(l, false, A.s-name(l, a), A.a-any), acc.env, let-bind)
+        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(self.{env: env-and-atoms.env}))
