@@ -349,6 +349,14 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
             container.append(dom);
           });
         }
+        function drawNoBranchesMatched(loc, type) {
+          var dom = $("<div>").addClass("compile-error");
+          dom.append($("<p>").text("No branches matched in this `" + type + "` expression"));
+          dom.append($("<br>"));
+          dom.append(drawSrcloc(loc));
+          hoverLocs(dom, [loc]);
+          container.append(dom);
+        }
         function drawUserBreak() {
           container.append($("<div>").addClass("compile-error").text("Program stopped by user"));
         }
@@ -362,6 +370,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
               "non-boolean-op": drawNonBooleanOp,
               "non-function-app": drawNonFunctionApp,
               "user-break": drawUserBreak,
+              "no-branches-matched": drawNoBranchesMatched,
               "else": drawRuntimeErrorToString(e)
             });
         }

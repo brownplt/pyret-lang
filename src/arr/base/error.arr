@@ -5,6 +5,10 @@ data RuntimeError:
     tostring(self):
       self.message
     end
+  | no-branches-matched(loc, expression :: String) with:
+    tostring(self):
+      "No branches matched in this `" + self.expression + "` expression"
+    end
   | internal-error(message, info-args) with:
     tostring(self):
       "Internal error: " + self.message + "; relevant arguments: " + torepr(self.info-args)

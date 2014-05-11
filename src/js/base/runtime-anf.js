@@ -2347,6 +2347,8 @@ function createMethodDict() {
     thisRuntime["ffi"] = ffi;
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app
+    thisRuntime["throwMessageException"] = ffi.throwMessageException;
+    thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
     thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 

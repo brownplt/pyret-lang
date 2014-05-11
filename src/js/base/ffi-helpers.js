@@ -142,7 +142,10 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         runtime.checkPyretVal(val);
         raise(err("non-boolean-op")(locFromObj(locAsObj), position, type, val));
       }
-
+      function throwNoBranchesMatched(locAsObj, type) {
+        runtime.checkString(type);
+        raise(err("no-branches-matched")(locFromObj(locAsObj), type));
+      }
       function throwNonFunApp(locArray, funVal, args) {
         runtime.checkPyretVal(funVal);
         var argList = makeList(args);
@@ -175,6 +178,7 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         throwArityErrorC: throwArityErrorC,
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
+        throwNoBranchesMatched: throwNoBranchesMatched,
         throwNonFunApp: throwNonFunApp,
         throwModuleLoadFailureL: throwModuleLoadFailureL,
         
