@@ -408,7 +408,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun make-atom-for(bind, env, type):
     cases(A.Name) bind.id:
       | s-name(l, s) =>
-        when env.has-key(s) and (not(bind.shadows)):
+        when env.has-key(s) and not(bind.shadows):
           old-loc = env.get(s).loc
           shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
         end
