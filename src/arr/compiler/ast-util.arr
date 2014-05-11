@@ -21,22 +21,24 @@ end
 
 fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), []) end
 
-fun append-nothing-if-necessary(prog :: A.Program):
+fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
     | s-program(l1, _provide, headers, body) =>
-      new-body = cases(A.Expr) body:
+      cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
-            | empty => A.s-block(l2, [A.s-id(l2, A.s-name(l2, "nothing"))])
+            | empty =>
+              some(A.s-program(l1, _provide, headers, A.s-block(l2, [A.s-id(l2, A.s-name(l2, "nothing"))])))
             | link(_, _) =>
               last-stmt = stmts.last()
-              if ok-last(last-stmt): A.s-block(l2, stmts)
-              else: A.s-block(l2, stmts + [A.s-id(l2, A.s-name(l2, "nothing"))])
+              if ok-last(last-stmt): none
+              else:
+                some(A.s-program(l1, _provide, headers,
+                    A.s-block(l2, stmts + [A.s-id(l2, A.s-name(l2, "nothing"))])))
               end
           end
-        | else => body
+        | else => none
       end
-      A.s-program(l1, _provide, headers, new-body)
   end
 end
 

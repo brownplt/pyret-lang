@@ -4,10 +4,12 @@ import cmdline as C
 import parse-pyret as P
 import "compiler/desugar.arr" as D
 import "compiler/desugar-check.arr" as DC
+import ast as A
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/resolve-scope.arr" as R
 import "compiler/ast-util.arr" as U
+import "compiler/ast-anf.arr" as AN
 import "compiler/anf.arr" as N
 import "compiler/ast-split.arr" as AS
 import "compiler/js-of-pyret.arr" as JS
@@ -16,7 +18,9 @@ import file as F
 
 options = {
   width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
-  dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use")
+  dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use"),
+  standard-builtins: C.flag(C.once, "Use standard buildins instead of minimal builtins"),
+  check-mode: C.flag(C.once, "Compile code with check-mode enabled")
 }
 
 parsed-options = C.parse-cmdline(options)
@@ -25,6 +29,8 @@ cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
     print-width = opts.get("width")
     dialect = opts.get("dialect")
+    libs = if opts.has-key("standard-builtins"): CS.standard-builtins else: CS.minimal-builtins end
+    check-mode = opts.has-key("check-mode")
     print("Success")
     cases (List) rest:
       | empty => print("Require a file name")
@@ -32,52 +38,33 @@ cases (C.ParsedArguments) parsed-options:
         print("File is " + file)
         file-contents = F.file-to-string(file)
         print("")
-        print("Read file:")
-        print(file-contents)
-        parsed = P.parse-dialect(dialect, file-contents, file)
-        print("")
-        print("Parsed:")
-        each(print, parsed.tosource().pretty(print-width))
 
-        scoped = R.desugar-scope(DC.desugar-check(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
-        print("")
-        print("Scoped:")
-        each(print, scoped.tosource().pretty(print-width))
-        
-        desugared = D.desugar(R.resolve-names(scoped, CS.minimal-builtins).ast, CS.minimal-builtins)
-        print("")
-        print("Desugared:")
-        each(print, desugared.tosource().pretty(print-width))
+        comp = CM.compile-js(CM.start, dialect, file-contents, file, libs,
+          {check-mode: check-mode, collect-all: true, ignore-unbound: true}).tolist()
 
-        cleaned = desugared.visit(U.merge-nested-blocks)
-        .visit(U.flatten-single-blocks)
-        .visit(U.link-list-visitor(CS.minimal-builtins))
-
-        anfed = N.anf-program(cleaned)
-        print("")
-        print("ANFed:")
-        each(print, anfed.tosource().pretty(print-width))
-
-        unsafecomp = JS.make-unsafe-compiled-pyret(cleaned, CS.standard-builtins)
-        print("")
-        print("Non-stacksafe generated JS:")
-        print(unsafecomp.pyret-to-js-pretty())
-        
-        split = AS.ast-split(anfed.body)
-        print("")
-        print("Split:")
-        each(print, split.tosource().pretty(print-width))
-
-        comp = CM.compile-js(dialect, file-contents, file, CS.standard-builtins, {check-mode: false})
-        cases(CM.CompileResult) comp:
-          | ok(c) =>
-            print("")
-            print("Generated JS:")
-            print(c.pyret-to-js-pretty())
-          | err(problems) =>
-            print("")
-            print("Compilation failed:")
-            each(print, problems.map(tostring))
+        for each(phase from comp):
+          print(">>>>>>>>>>>>>>>>>>")
+          print(phase.name + ":")
+          if A.Program(phase.result): each(print, phase.result.tosource().pretty(print-width))
+          else if AN.AProg(phase.result): each(print, phase.result.tosource().pretty(print-width))
+          else if AS.SplitResult(phase.result): each(print, phase.result.tosource().pretty(print-width))
+          else if JS.CompiledCodePrinter(phase.result): print(phase.result.pyret-to-js-pretty())
+          else if R.NameResolution(phase.result): each(print, phase.result.ast.tosource().pretty(print-width))
+          else if CS.CompileResult(phase.result):
+            cases(CS.CompileResult) phase.result:
+              | ok(c) =>
+                if A.Program(c): each(print, c.tosource().pretty(print-width))
+                else if JS.CompiledCodePrinter(c): print(c.pyret-to-js-pretty())
+                else:
+                  print("Unknown CompileResult result type")
+                  print(torepr(c))
+                end
+              | err(problems) => each(print, problems.map(tostring))
+            end
+          else:
+            print("Unknown phase result type")
+            print(torepr(phase.result))
+          end
         end
     end
   | arg-error(m, _) =>
