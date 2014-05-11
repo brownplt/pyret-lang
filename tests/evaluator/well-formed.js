@@ -32,9 +32,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("mixed operators should be malformed", function(done) {
-        P.checkCompileErrorMsg("true and not false", "Cannot have nested bare `not`");
         P.checkCompileErrorMsg("true and false or true", "Cannot mix binary operators of different types");
-        P.checkCompileErrorMsg("true and false and not true and false", "Cannot have nested bare `not`");
         P.checkCompileErrorMsg("1 + 2 - 3", "Cannot mix binary operators of different types");
         P.checkCompileErrorMsg("1 + 2 + 3 * 4", "Cannot mix binary operators of different types");
         P.checkCompileErrorMsg("1 / 2 + 3 * 4 - 5", "Cannot mix binary operators of different types");
