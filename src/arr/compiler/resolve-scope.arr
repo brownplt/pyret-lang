@@ -9,6 +9,10 @@ import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 import "compiler/gensym.arr" as G
 
+data NameResolution:
+  | resolved(ast :: A.Program, shadowed :: List<C.CompileError>)
+end
+
 fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
 
 fun mk-id(loc, base):
@@ -591,9 +595,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
     end
   }
-  {
-    ast: p.visit(names-visitor),
-    shadowed: shadowing-instances
-  }
+  resolved(p.visit(names-visitor), shadowing-instances)
 end
 

@@ -38,3 +38,14 @@ fun make-unsafe-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
   ccp(compiled)
 end
 
+fun trace-make-compiled-pyret(trace, phase, program-ast, env):
+  var ret = trace
+  anfed = N.anf-program(program-ast)
+  ret := phase("ANFed", anfed, ret)
+  non-split = anfed.visit(AV.non-splitting-compiler(env))
+  ret := phase("Non-stacksafe generated JS", ccp(non-split), ret)
+  split = AS.ast-split(anfed.body)
+  ret := phase("Split", split, ret)
+  compiled = anfed.visit(AV.splitting-compiler(env))
+  phase("Generated JS", ccp(compiled), ret)
+end

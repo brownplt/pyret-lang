@@ -36,16 +36,20 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
       runtime.run(function(_, namespace) {
           return runtime.safeCall(function() {
               return gf(comp, "compile-js-ast").app(
+                  gf(comp, "start"),
                   ast,
                   s(name),
                   compileEnv,
                   runtime.makeObject({
                     "check-mode": runtime.pyretTrue,
-                    "allow-shadowed": runtime.pyretFalse
+                    "allow-shadowed": runtime.pyretFalse,
+                    "collect-all": runtime.pyretFalse,
+                    "ignore-unbound": runtime.pyretFalse
                   })
                 );
             },
-            function(compiled) {
+            function(compPhase) {
+              var compiled = gf(compPhase, "result");
               return runtime.safeTail(function() {
                   if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
                     return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());

@@ -65,15 +65,18 @@ fun main(args):
       if not is-empty(rest):
         program-name = rest.first
         result = CM.compile-js(
+          CM.start,
           r.get("dialect"),
           F.file-to-string(program-name),
           program-name,
           libs,
           {
             check-mode : check-mode,
-            allow-shadowed : allow-shadowed
+            allow-shadowed : allow-shadowed,
+            collect-all: false,
+            ignore-unbound: false
           }
-          )
+          ).result
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
@@ -101,15 +104,18 @@ fun main(args):
             )
         else if r.has-key("compile-module-js"):
           CM.compile-js(
+            CM.start,
             r.get("dialect"),
             F.file-to-string(r.get("compile-module-js")),
             r.get("compile-module-js"),
             libs,
             {
               check-mode : check-mode,
-              allow-shadowed : allow-shadowed
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false
             }
-            )
+            ).result
         else:
           print(C.usage-info(options).join-str("\n"))
           raise("Unknown command line options")
