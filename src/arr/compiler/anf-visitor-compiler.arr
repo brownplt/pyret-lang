@@ -66,6 +66,10 @@ js-id-of = block:
   end
 end
 
+fun compiler-name(id):
+  G.make-name("$" + id)
+end
+
 fun obj-of-loc(l):
   j-list(false, [
     j-id("M"),
@@ -126,7 +130,7 @@ fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
 end
 
 fun compile-tail-app(compiler, l, f, args):
-  z = js-id-of(G.make-name("z"))
+  z = js-id-of(compiler-name("z"))
   compiled-f = f.visit(compiler)
   compiled-args = args.map(_.visit(compiler))
   body =
@@ -154,11 +158,11 @@ fun compile-split-app(
     name :: A.Name,
     helper-args :: List<A.AVal>):
   when is-var: raise("Can't handle splitting on a var yet");
-  e = js-id-of(G.make-name("e"))
-  z = js-id-of(G.make-name("z"))
-  ss = js-id-of(G.make-name("ss"))
-  ret = js-id-of(G.make-name("ret"))
-  f-app = js-id-of(G.make-name("f"))
+  e = js-id-of(compiler-name("e"))
+  z = js-id-of(compiler-name("z"))
+  ss = js-id-of(compiler-name("ss"))
+  ret = js-id-of(compiler-name("ret"))
+  f-app = js-id-of(compiler-name("f"))
   compiled-f = f.visit(compiler)
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
@@ -329,7 +333,7 @@ compiler-visitor = {
 
   a-data-expr(self, l, name, variants, shared):
     fun brand-name(base):
-      G.make-name("$brand-" + base)
+      compiler-name("brand-" + base)
     end
 
     shared-fields = shared.map(_.visit(self))
@@ -379,9 +383,9 @@ compiler-visitor = {
 
     fun compile-variant(v :: N.AVariant):
       vname = v.name
-      variant-base-id = js-id-of(G.make-name(vname + "-base"))
+      variant-base-id = js-id-of(compiler-name(vname + "-base"))
       variant-brand = brand-name(vname)
-      variant-brand-obj-id = js-id-of(G.make-name(vname + "-brands"))
+      variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
       variant-brands = j-obj([
           j-field(base-brand, j-true),
           j-field(variant-brand, j-true)
@@ -472,9 +476,9 @@ fun compile-program(self, l, headers, split, env):
         | a-import-file(_, file, _) => file
       end
     end)
-  module-id = G.make-name(l.source)
+  module-id = compiler-name(l.source)
   module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = ids.map(fun(f): G.make-name(f) end)
+  input-ids = ids.map(fun(f): compiler-name(f) end)
   fun wrap-modules(modules, body):
     mod-input-ids = modules.map(fun(f): j-id(f.input-id) end)
     mod-ids = modules.map(_.id)
