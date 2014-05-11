@@ -25,11 +25,6 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
       rt.checkBoolean(r);
       return rt.makeBoolean(l || r);
     }
-    var bool_not = function(l) {
-      rt.ffi.checkArity(1, arguments, "not");
-      rt.checkBoolean(l);
-      return rt.makeBoolean(!l);
-    }
 
     var add = function(l, r) {
       rt.ffi.checkArity(2, arguments, "add");
@@ -93,7 +88,7 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
 
       'both': makeFunction(bool_and),
       'either': makeFunction(bool_or),
-      'not': makeFunction(bool_not),
+      'not': rt.namespace.get("not"),
 
       'max': rt.namespace.get("num-max"),
       'min': rt.namespace.get("num-min"),

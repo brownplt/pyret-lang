@@ -39,7 +39,7 @@ end
 
 
 fun ensure-empty-block(loc, type, block :: A.is-s-block):
-  if not PARAM-current-where-everywhere:
+  if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:
       wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(type), loc)
@@ -135,12 +135,6 @@ end
 fun opname(op): string-substring(op, 2, string-length(op)) end
 fun reachable-ops(self, l, op, ast):
   cases(A.Expr) ast:
-    | s-not(l2, _) =>
-      wf-error2("Cannot have nested bare `not` with a `"
-          + opname(op)
-          + "` operator.  Include parentheses around it.",
-        l, l2)
-      true
     | s-op(l2, op2, left2, right2) =>
       if (op == op2):
         reachable-ops(self, l, op, left2)
@@ -217,7 +211,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ret and wrap-visit-check(self, _check)
     end,
     s-check-test(self, l, op, left, right):
-      when (not in-check-block):
+      when not(in-check-block):
         if  (op == "opis"):
           wf-error("Cannot use `is` outside of a `check` or `where` block", l)
         else:

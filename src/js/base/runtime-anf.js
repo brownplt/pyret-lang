@@ -1580,6 +1580,7 @@ function createMethodDict() {
 
 
     function printPyretStack(stack) {
+      if (stack === undefined) return "  undefined";
       var stackStr = stack.map(function(val) {
         if (val instanceof Array && val.length == 7) {
           return (val[0] + ": line " + val[1] + ", column " + val[2]);
@@ -1927,6 +1928,12 @@ function createMethodDict() {
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
+    var bool_not = function(l) {
+      checkArity(1, arguments, "not");
+      thisRuntime.checkBoolean(l);
+      return thisRuntime.makeBoolean(!l);
+    }
+
     var num_equals = function(l, r) {
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
@@ -2178,7 +2185,9 @@ function createMethodDict() {
           'string-toupper': makeFunction(string_toupper),
           'string-tolower': makeFunction(string_tolower),
           'string-explode': makeFunction(string_explode),
-          'string-index-of': makeFunction(string_indexOf)
+          'string-index-of': makeFunction(string_indexOf),
+
+          'not': makeFunction(bool_not)
 
         }),
         'run': run,

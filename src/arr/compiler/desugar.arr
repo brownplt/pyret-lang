@@ -414,13 +414,6 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
-    | s-not(l, test) =>
-      not-oper = mk-id(l, "not-oper-")
-      check-bool(l, not-oper, desugar-expr(test),
-        A.s-if-else(l,
-          [A.s-if-branch(l, not-oper.id-e, A.s-block(l, [A.s-bool(l, false)]))],
-          A.s-block(l, [A.s-bool(l, true)])),
-        bool-exn(test.l, "not", not-oper.id-e))
     | s-when(l, test, body) =>
       test-id = mk-id(l, "when-")
       check-bool(l, test-id, desugar-expr(test),

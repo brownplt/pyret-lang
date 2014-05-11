@@ -41,23 +41,23 @@ data CompileError:
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is assigned at " + tostring(self.loc)
-        + ", but its definition at " + self.prev-loc.format(not self.loc.same-file(self.prev-loc))
+        + ", but its definition at " + self.prev-loc.format(not(self.loc.same-file(self.prev-loc)))
         + " is not assignable.  (Only names declared with var are assignable.)"
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     tostring(self):
       self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
-        + " and an identifier (at " + self.id-loc.format(not self.var-loc.same-file(self.id-loc)) + ")"
+        + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")"
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
-        + ", but is already declared at " + self.old-loc.format(not self.new-loc.same-file(self.old-loc))
+        + ", but is already declared at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
-        + " and at " + self.old-loc.format(not self.new-loc.same-file(self.old-loc))
+        + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
 end
 
@@ -78,6 +78,7 @@ runtime-builtins = list.map(builtin-id, [
   "raise",
   "nothing",
   "builtins",
+  "not",
   "is-nothing",
   "is-number",
   "is-string",

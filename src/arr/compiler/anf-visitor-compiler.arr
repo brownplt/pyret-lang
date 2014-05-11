@@ -54,7 +54,7 @@ Loc = SL.Srcloc
 js-id-of = block:
   var js-ids = D.string-dict()
   fun(id :: String):
-    when not is-string(id): raise("js-id-of got non-string: " + torepr(id));
+    when not(is-string(id)): raise("js-id-of got non-string: " + torepr(id));
     if js-ids.has-key(id):
       js-ids.get(id)
     else:

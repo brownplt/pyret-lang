@@ -49,7 +49,6 @@ str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
 str-method = PP.str("method")
 str-mutable = PP.str("mutable")
-str-not = PP.str("not")
 str-period = PP.str(".")
 str-bang = PP.str("!")
 str-pipespace = PP.str("| ")
@@ -114,7 +113,7 @@ end
 fun MakeName(start):
   var count = start
   fun atom(base):
-    when not is-string(base):
+    when not(is-string(base)):
       raise("Got a non-string in make-atom: " + torepr(base))
     end
     count := 1 + count
@@ -453,9 +452,6 @@ data Expr:
     end
   | s-check-test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
-  | s-not(l :: Loc, expr :: Expr) with:
-    label(self): "s-not" end,
-    tosource(self): PP.nest(INDENT, PP.flow([str-not, self.expr.tosource()])) end
   | s-paren(l :: Loc, expr :: Expr) with:
     label(self): "s-paren" end,
     tosource(self): PP.parens(self.expr.tosource()) end
@@ -1449,11 +1445,6 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-ast(_else1, _else2)
         | else => false
       end
-    | s-not(_, expr1) => 
-      cases(Expr) ast2:
-        | s-not(_, expr2) => equiv-ast(expr1, expr2)
-        | else => false
-      end
     | s-paren(_, expr1) =>
       cases(Expr) ast2:
         | s-paren(_, expr2) => equiv-ast(expr1, expr2)
@@ -1777,10 +1768,6 @@ default-map-visitor = {
 
   s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     s-check-test(l, op, left.visit(self), right.visit(self))
-  end,
-
-  s-not(self, l :: Loc, expr :: Expr):
-    s-not(l, expr.visit(self))
   end,
 
   s-paren(self, l :: Loc, expr :: Expr):
@@ -2187,10 +2174,6 @@ default-iter-visitor = {
     left.visit(self) and right.visit(self)
   end,
   
-  s-not(self, l :: Loc, expr :: Expr):
-    expr.visit(self)
-  end,
-  
   s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
@@ -2583,10 +2566,6 @@ dummy-loc-visitor = {
 
   s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     s-check-test(dummy-loc, op, left.visit(self), right.visit(self))
-  end,
-
-  s-not(self, l :: Loc, expr :: Expr):
-    s-not(dummy-loc, expr.visit(self))
   end,
 
   s-paren(self, l :: Loc, expr :: Expr):

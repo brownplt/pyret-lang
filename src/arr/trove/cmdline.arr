@@ -337,18 +337,18 @@ arguments do not satisfy the requirements of the Params dictionary.'
         filled-missing-defaults = for list.fold(acc from parsed, key from opts-dict.keys()):
           cases(Param) opts-dict.get(key):
             | next-val-default(_, default, _, repeated, _) =>
-              if (not acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
+              if (not(acc.has-key(key))) and ((repeated == once) or (repeated == many)): acc.set(key, default)
               else: acc
               end
             | equals-val-default(_, default, _, repeated, _) =>
-              if (not acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
+              if (not(acc.has-key(key))) and ((repeated == once) or (repeated == many)): acc.set(key, default)
               else: acc
               end
             | else => acc
           end              
         end
         missing-args = for list.filter(key from required):
-          not filled-missing-defaults.has-key(key)
+          not(filled-missing-defaults.has-key(key))
         end
         if is-empty(missing-args): success(filled-missing-defaults, other)
         else:

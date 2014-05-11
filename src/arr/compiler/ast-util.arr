@@ -8,7 +8,7 @@ import string-dict as SD
 import either as E
 
 fun ok-last(stmt):
-  not (
+  not(
     A.is-s-let(stmt) or
     A.is-s-var(stmt) or
     A.is-s-fun(stmt) or
@@ -127,7 +127,7 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   cases(Option<Binding>) bind-exp(e, env):
     | none => b-unknown
     | some(b) =>
-      when not Binding(b):
+      when not(Binding(b)):
         print-error("b isn't a binding for expr " + torepr(e))
         print-error(b)
       end
@@ -204,8 +204,8 @@ fun <a> default-env-map-visitor(
     end,
     s-method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
-      args-env = for list.fold(acc from self.env, a from new-args):
-        bind-handlers.s-bind(a, acc)
+      args-env = for list.fold(acc from self.env, arg from new-args):
+        bind-handlers.s-bind(arg, acc)
       end
       new-body = body.visit(self.{env: args-env})
       new-check = self.{env: args-env}.option(_check)
@@ -261,8 +261,8 @@ fun <a> default-env-iter-visitor(
       continue-binds and body.visit(new-visitor)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, a from args):
-        bind-handlers.s-bind(a, acc)
+      args-env = for list.fold(acc from self.env, arg from args):
+        bind-handlers.s-bind(arg, acc)
       end
       list.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
@@ -270,8 +270,8 @@ fun <a> default-env-iter-visitor(
         self.{env: args-env}.option(_check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, a from args):
-        bind-handlers.s-bind(a, acc)
+      args-env = for list.fold(acc from self.env, arg from args):
+        bind-handlers.s-bind(arg, acc)
       end
       list.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
@@ -374,7 +374,7 @@ fun bad-assignments(initial-env, ast):
       cases(Option<Binding>) bind-exp(A.s-id(loc, id), self.env):
         | none => nothing
         | some(b) =>
-          when not b.mut:
+          when not(b.mut):
             add-error(CS.bad-assignment(id.toname(), loc, b.loc))
           end
       end

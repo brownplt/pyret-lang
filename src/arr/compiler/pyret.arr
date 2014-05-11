@@ -54,7 +54,7 @@ fun main(args):
   
   cases(C.ParsedArguments) params-parsed:
     | success(r, rest) => 
-      check-mode = not (r.has-key("no-check-mode") or r.has-key("library"))
+      check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-builtins
@@ -62,7 +62,7 @@ fun main(args):
         else: CS.standard-builtins end
       module-dir = r.get("module-load-dir")
       check-all = r.has-key("check-all")
-      if not is-empty(rest):
+      if not(is-empty(rest)):
         program-name = rest.first
         result = CM.compile-js(
           CM.start,

@@ -314,9 +314,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2])); // Op comes first
           }
         },
-        'binop-clause': function(node) {
-          return tr(node.kids[0]);
-        },
         'binop-expr': function(node) {
           if (node.kids.length === 1) {
             // (binop-expr e)
@@ -361,11 +358,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         'expr': function(node) {
           // (expr e)
           return tr(node.kids[0]);
-        },
-        'not-expr': function(node) {
-          // (not-expr NOT e)
-          return RUNTIME.getField(ast, 's-not')
-            .app(pos(node.pos), tr(node.kids[1]));
         },
         'binop-expr-paren': function(node) {
           if (node.kids[0].name === "paren-nospace-expr") {

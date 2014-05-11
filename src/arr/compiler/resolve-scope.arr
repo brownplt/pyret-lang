@@ -131,7 +131,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           cases(List) rest-stmts:
             | empty => [wrapper(f)]
             | link(_, _) =>
-              if not (is-link(let-binds) or is-link(letrec-binds)):
+              if not(is-link(let-binds) or is-link(letrec-binds)):
                 link(f, desugar-scope-block(rest-stmts, [], []))
               else:
                 [wrapper(A.s-block(f.l,
@@ -408,7 +408,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun make-atom-for(bind, env, type):
     cases(A.Name) bind.id:
       | s-name(l, s) =>
-        when env.has-key(s) and (not bind.shadows):
+        when env.has-key(s) and (not(bind.shadows)):
           old-loc = env.get(s).loc
           shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
         end

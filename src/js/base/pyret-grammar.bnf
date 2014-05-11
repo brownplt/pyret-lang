@@ -74,10 +74,7 @@ graph-expr: GRAPH let-expr* end
 
 when-expr: WHEN binop-expr COLON block end
 
-binop-expr: binop-clause (binop binop-clause)*
-binop-clause: not-expr | expr
-
-not-expr: NOT expr
+binop-expr: expr (binop expr)*
 
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
      | NEQ  | LT  | GT | AND | OR
