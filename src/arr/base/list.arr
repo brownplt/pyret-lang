@@ -43,21 +43,17 @@ data List:
     end,
 
     partition(self, f):
-      doc: "Takes a predicate and returns an object with two fields:
-            the 'is-true' field contains the list of items in this list for which the predicate holds,
-            and the 'is-false' field contains the list of items in this list for which the predicate fails"
+      doc: "Takes a predicate and returns an object with two fields: the 'is-true' field contains the list of items in this list for which the predicate holds, and the 'is-false' field contains the list of items in this list for which the predicate fails"
       { is-true: empty, is-false: empty }
     end,
 
     foldr(self, f, base):
-      doc: "Takes a function and an initial value, and folds the function over this list from the right,
-            starting with the base value"
+      doc: "Takes a function and an initial value, and folds the function over this list from the right, starting with the base value"
       base
     end,
 
     foldl(self, f, base):
-      doc: "Takes a function and an initial value, and folds the function over this list from the left,
-            starting with the base value"
+      doc: "Takes a function and an initial value, and folds the function over this list from the left, starting with the base value"
       base
     end,
 
@@ -90,21 +86,17 @@ data List:
     _torepr(self): "[]" end,
 
     sort-by(self, cmp, eq):
-      doc: "Takes a comparator to check for elements that are strictly greater
-            or less than one another, and an equality procedure for elements that are
-            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
+      doc: "Takes a comparator to check for elements that are strictly greater or less than one another, and an equality procedure for elements that are equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
       self
     end,
 
     sort(self):
-      doc: "Returns a new list whose contents are the smae as those in this list,
-            sorted by the default ordering and equality"
+      doc: "Returns a new list whose contents are the smae as those in this list, sorted by the default ordering and equality"
       self
     end,
 
     join-str(self, str):
-      doc: "Returns a string containing the tostring() forms of the elements of this list,
-            joined by the provided separator string"
+      doc: "Returns a string containing the tostring() forms of the elements of this list, joined by the provided separator string"
       ""
     end
 
@@ -134,9 +126,7 @@ data List:
     end,
 
     partition(self, f):
-      doc: "Takes a predicate and returns an object with two fields:
-            the 'is-true' field contains the list of items in this list for which the predicate holds,
-            and the 'is-false' field contains the list of items in this list for which the predicate fails"
+      doc: "Takes a predicate and returns an object with two fields: the 'is-true' field contains the list of items in this list for which the predicate holds, and the 'is-false' field contains the list of items in this list for which the predicate fails"
       partition(f, self)
     end,
 
@@ -151,14 +141,12 @@ data List:
     end,
 
     foldr(self, f, base):
-      doc: "Takes a function and an initial value, and folds the function over this list from the right,
-            starting with the initial value"
+      doc: "Takes a function and an initial value, and folds the function over this list from the right, starting with the initial value"
       f(self.first, self.rest.foldr(f, base))
     end,
 
     foldl(self, f, base):
-      doc: "Takes a function and an initial value, and folds the function over this list from the left,
-            starting with the initial value"
+      doc: "Takes a function and an initial value, and folds the function over this list from the left, starting with the initial value"
       self.rest.foldl(f, f(self.first, base))
     end,
 
@@ -205,9 +193,7 @@ data List:
     end,
 
     sort-by(self, cmp, eq):
-      doc: "Takes a comparator to check for elements that are strictly greater
-            or less than one another, and an equality procedure for elements that are
-            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
+      doc: "Takes a comparator to check for elements that are strictly greater or less than one another, and an equality procedure for elements that are equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."
       pivot = self.first
       
       # builds up three lists, split according to cmp and eq
@@ -230,14 +216,12 @@ data List:
     end,
     
     sort(self):
-      doc: "Returns a new list whose contents are the smae as those in this list,
-            sorted by the default ordering and equality"
+      doc: "Returns a new list whose contents are the same as those in this list, sorted by the default ordering and equality"
       self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
     end,
 
     join-str(self, str):
-      doc: "Returns a string containing the tostring() forms of the elements of this list,
-            joined by the provided separator string"
+      doc: "Returns a string containing the tostring() forms of the elements of this list, joined by the provided separator string"
       if is-link(self.rest):
          tostring(self.first) + str + self.rest.join-str(str)
       else:
@@ -288,8 +272,7 @@ fun get-help(lst, n :: Number):
   end
 end
 fun set-help(lst, n :: Number, v):
-  doc: "Returns a new list with the same values as the given list but with the nth element set to the given value,
-        or raises an error if n is out of range"
+  doc: "Returns a new list with the same values as the given list but with the nth element set to the given value, or raises an error if n is out of range"
   fun help(l, cur):
     if is-empty(l): raise("set: n too large " + tostring(n))
     else if cur == 0: v ^ link(l.rest)
@@ -374,8 +357,7 @@ fun partition(f, lst :: List):
 end
 
 fun find(f :: (Any -> Bool), lst :: List) -> Option:
-  doc: "Returns some(elem) where elem is the first elem in lst for which
-        f(elem) returns true, or none otherwise"
+  doc: "Returns some(elem) where elem is the first elem in lst for which f(elem) returns true, or none otherwise"
   if is-empty(lst):
     none
   else:
@@ -449,8 +431,7 @@ where:
 end
 
 fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
-  doc: "Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2.
-        Returns true when either list is empty"
+  doc: "Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2. Returns true when either list is empty"
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2): true
     else: f(l1.first, l2.first) and help(l2.rest, l2.rest)
@@ -655,8 +636,7 @@ fun fold-while(f, base, lst):
 end
 
 fun fold(f, base, lst :: List):
-  doc: "Takes a function, an initial value and a list, and folds the function over the list from the left,
-        starting with the initial value"
+  doc: "Takes a function, an initial value and a list, and folds the function over the list from the left, starting with the initial value"
   if is-empty(lst):
     base
   else:
@@ -665,8 +645,7 @@ fun fold(f, base, lst :: List):
 end
 
 fun fold2(f, base, l1 :: List, l2 :: List):
-  doc: "Takes a function, an initial value and two lists, and folds the function over the lists in parallel
-        from the left, starting with the initial value and ending when either list is empty"
+  doc: "Takes a function, an initial value and two lists, and folds the function over the lists in parallel from the left, starting with the initial value and ending when either list is empty"
   if is-empty(l1) or is-empty(l2):
     base
   else:
@@ -675,8 +654,7 @@ fun fold2(f, base, l1 :: List, l2 :: List):
 end
 
 fun fold3(f, base, l1 :: List, l2 :: List, l3 :: List):
-  doc: "Takes a function, an initial value and three lists, and folds the function over the lists in parallel
-        from the left, starting with the initial value and ending when any list is empty"
+  doc: "Takes a function, an initial value and three lists, and folds the function over the lists in parallel from the left, starting with the initial value and ending when any list is empty"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     base
   else:
@@ -685,8 +663,7 @@ fun fold3(f, base, l1 :: List, l2 :: List, l3 :: List):
 end
 
 fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
-  doc: "Takes a function, an initial value and three four, and folds the function over the lists in parallel
-        from the left, starting with the initial value and ending when any list is empty"
+  doc: "Takes a function, an initial value and four lists, and folds the function over the lists in parallel from the left, starting with the initial value and ending when any list is empty"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     base
   else:
@@ -695,8 +672,7 @@ fun fold4(f, base, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
 end
 
 fun fold_n(f, num :: Number, base, lst :: List):
-  doc: "Takes a function, an initial value and a list, and folds the function over the list from the left,
-        starting with the initial value and passing along the index (starting with the given num)"
+  doc: "Takes a function, an initial value and a list, and folds the function over the list from the left, starting with the initial value and passing along the index (starting with the given num)"
   fun help(n, acc, partial-list):
     if is-empty(partial-list):
       acc

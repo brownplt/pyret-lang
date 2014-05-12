@@ -108,12 +108,7 @@ where:
     
     count-in("var x = 1 + 1 \n x := f()") is 4 + 1 + 1 + 3
     count-in("x") is 2
-    count-in("
-                fun x(n):
-                    f(n)
-                    print(n)
-                end"
-            ) is 10 
+    count-in("fun x(n): f(n) print(n) end") is 10 
     count-in("{}.{a : 1 + 1, b : f()}") is 1 + 1 + 1 + 4 + 2
     count-in("{}!{a : 1 + 1, b : f()}") is 1 + 1 + 1 + 4 + 2
     count-in("{}!{a : 1 + 1, b : fun(x): x;}") is 1 + 1 + 1 + 4 + 3

@@ -436,10 +436,9 @@ where:
   # temporary, until we implement (or replace) raises
   # j-null.tosource().pretty(3) raises "String doesn't fit"
 
-  j-raw-holes("try { ~a } catch(e) { ~a
-}", [j-raw("x + y"), j-id("z")], 100000).tosource().pretty(80) is
-    ["try { x + y } catch(e) { z
-}"]
+  j-raw-holes("try { ~a } catch(e) { ~a }",
+    [j-raw("x + y"), j-id("z")], 100000).tosource().pretty(80) is
+    ["try { x + y } catch(e) { z }"]
 
   j-if(j-true, j-block([j-return(j-false)]), j-block([j-return(j-num(5))]))
     .tosource().pretty(80) is
