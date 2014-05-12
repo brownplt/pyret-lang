@@ -2000,6 +2000,10 @@ function createMethodDict() {
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
+    var num_sqr = function(n) { 
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.sqr(n));
+    }
     var num_ceiling = function(n) { 
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n));
@@ -2162,6 +2166,7 @@ function createMethodDict() {
           'num-modulo': makeFunction(num_modulo),
           'num-truncate': makeFunction(num_truncate),
           'num-sqrt': makeFunction(num_sqrt),
+          'num-sqr': makeFunction(num_sqr),
           'num-ceiling': makeFunction(num_ceiling),
           'num-floor': makeFunction(num_floor),
           'num-log': makeFunction(num_log),

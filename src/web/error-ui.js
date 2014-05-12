@@ -383,10 +383,19 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           hoverLocs(dom, [loc]);
           container.append(dom);
         }
+        function drawParseErrorEOF(loc) {
+          var dom = $("<div>").addClass("compile-error");
+          dom.append($("<p>").text("Parse error at the end of the file, at ").append(drawSrcloc(loc)))
+            .append($("<br>"))
+            .append($("<p>").text("Is the program incomplete?"));
+          hoverLocs(dom, [loc]);
+          container.append(dom);
+        }
 
         function drawPyretParseError() {
           cases(get(error, "ParseError"), "ParseError", e.exn, {
               "parse-error-next-token": drawParseErrorNextToken,
+              "parse-error-eof": drawParseErrorEOF,
               "else": drawRuntimeErrorToString(e)
             });
         }

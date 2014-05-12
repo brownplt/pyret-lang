@@ -70,4 +70,8 @@ data ParseError:
     tostring(self):
       "parse error around " + self.loc.format(true) + ", next token was " + self.next-token
     end
+  | parse-error-eof(loc :: Loc) with:
+    tostring(self):
+      "parse error at end of file at " + self.loc.format(true)
+    end
 end
