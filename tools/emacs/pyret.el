@@ -130,6 +130,8 @@
   (defconst pyret-keywords-colon-regex (regexp-opt pyret-keywords-colon))
   (defconst pyret-font-lock-keywords-1
     (list
+     `("\\(```[^`]\\(?:\\\\[`\\\\]\\|[^`\\\\]\\|`[^`]\\|``[^`]\\)*```\\)" 
+       (1 '(face font-lock-string-face font-lock-multiline t) t))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-colon-regex
@@ -213,10 +215,9 @@
     (modify-syntax-entry ?} "){" st)
     (modify-syntax-entry ?. "." st)
     (modify-syntax-entry ?\; "." st)
-    (modify-syntax-entry ?| "." st)
+    (modify-syntax-entry ?` "\"" st)
     st)
   "Syntax table for pyret-mode")
-
 
 
 ;; Eleven (!) kinds of indentation:

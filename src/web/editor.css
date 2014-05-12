@@ -26,6 +26,7 @@
 .cm-s-default .cm-keyword { color: #636; }
 .cm-s-default .cm-number { color: #164; }
 .cm-s-default .cm-string { color: #164; }
+.cm-s-default .cm-unterminated-string { color: #164; text-decoration: underline; }
 .cm-s-default .cm-type { color: #339; }
 .cptteach-fixed { line-height: 1.5; background: #ddd; }
 
