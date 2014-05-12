@@ -132,7 +132,9 @@ end
 # options : Dictionary of Params
 # returns Dictionary where names are same as names of options, values are parsed values (if present)
 fun parse-args(options, args :: List<String>) -> ParsedArguments:
-  doc: "Takes a dictionary of Param definitions, and a list of string arguments, and returns either the parsed argument results, or an error if the provided arguments do not satisfy the requirements of the Params dictionary."
+  doc: ```Takes a dictionary of Param definitions, and a list of string arguments, 
+  and returns either the parsed argument results, or an error if the provided 
+  arguments do not satisfy the requirements of the Params dictionary.```
   opts-dict = D.to-dict(options)
   options-and-aliases =
     for list.fold(acc from {options: opts-dict, aliases: D.immutable-string-dict()}, key from opts-dict.keys()):

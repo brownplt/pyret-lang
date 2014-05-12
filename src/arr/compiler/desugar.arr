@@ -66,7 +66,22 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
 end
 
 fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
-  doc: "Desugar non-scope and non-check based constructs. Preconditions on program: - well-formed - contains no s-let, s-var, s-data, s-check, or s-check-test - contains no s-provide in headers - all where blocks are none - contains no s-name (e.g. call resolve-names first) Postconditions on program: - in addition to preconditions, contains no s-for, s-if, s-op, s-method-field, s-cases, s-left-app, s-not, s-when, s-if-pipe, s-list s-paren - contains no s-underscore in expression position (but it may appear in binding positions as in s-let-bind, s-letrec-bind)"
+  doc: ```
+        Desugar non-scope and non-check based constructs.
+        Preconditions on program:
+          - well-formed
+          - contains no s-let, s-var, s-data, s-check, or s-check-test
+          - contains no s-provide in headers
+          - all where blocks are none
+          - contains no s-name (e.g. call resolve-names first)
+        Postconditions on program:
+          - in addition to preconditions,
+            contains no s-for, s-if, s-op, s-method-field,
+                        s-cases, s-left-app, s-not, s-when, s-if-pipe, s-list
+                        s-paren
+          - contains no s-underscore in expression position (but it may
+            appear in binding positions as in s-let-bind, s-letrec-bind)
+        ```
   cases(A.Program) program:
     | s-program(l, _provide, imports, body) =>
       A.s-program(l, _provide, imports, desugar-expr(body))

@@ -276,7 +276,16 @@ end
 
 
 fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
-  doc: "Remove x = e, var x = e, and fun f(): e end and turn them into explicit let and letrec expressions. Do this recursively through the whole program. Preconditions on prog: - well-formed Postconditions on prog: - contains no s-provide in headers - contains no s-let, s-var, s-data"
+  doc: ```
+        Remove x = e, var x = e, and fun f(): e end
+        and turn them into explicit let and letrec expressions.
+        Do this recursively through the whole program.
+        Preconditions on prog:
+          - well-formed
+        Postconditions on prog:
+          - contains no s-provide in headers
+          - contains no s-let, s-var, s-data
+        ```
   cases(A.Program) prog:
     | s-program(l, _provide-raw, imports-raw, body) =>
       imports-and-lets = resolve-imports(imports-raw)
@@ -390,7 +399,13 @@ where:
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
-  doc: "Turn all s-names into s-atom or s-global Preconditions on p: - Contains no s-let, s-var, s-data (e.g. call desugar-scope first) Postconditions on p: - Contains no s-name in names"
+  doc: ```
+        Turn all s-names into s-atom or s-global
+        Preconditions on p:
+          - Contains no s-let, s-var, s-data (e.g. call desugar-scope first)
+        Postconditions on p:
+          - Contains no s-name in names
+        ```
   var shadowing-instances = []
   bindings = SD.string-dict()
 
