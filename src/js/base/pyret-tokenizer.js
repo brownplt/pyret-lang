@@ -142,6 +142,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
                "|\\\\[\\\\nrt\"\']" + 
                "|[^\'])*\'", STICKY_REGEXP);
 
+  const unterminated_string = new RegExp("^[\"\'](.|[\r\n])*", STICKY_REGEXP);
+
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
   const Tokens = [
     {name: "PAREN?", val: parenparen, parenIsForExp: true},
@@ -239,6 +241,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "NAME", val: name},
 
+    {name: "UNTERMINATED-STRING", val: unterminated_string},
     {name: "UNKNOWN", val: anychar},
   ];
 

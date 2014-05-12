@@ -126,7 +126,7 @@ $(function() {
       $("#toggleDialect").text("Switch to " + (dialect === "Pyret" ? "Bootstrap" : "Pyret"));
       var replNS = dialects.dialects[dialect].makeNamespace(runtime);
       var replEnv = dialects.dialects[dialect].compileEnv;
-      var repl = replLib.create(runtime, replNS, replEnv, {name: "definitions", dialect: dialect});
+      var repl = replLib.create(runtime, replNS, replEnv, {name: "Untitled definitions", dialect: dialect});
 
       // NOTE(joe): This forces the loading of all the built-in compiler libs
       repl.restartInteractions("");
