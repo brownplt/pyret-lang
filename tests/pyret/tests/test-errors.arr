@@ -53,22 +53,22 @@ check:
   e6 = get-err(fun(): "a" + 5;)
   e6 satisfies E.is-generic-type-mismatch
   e6.val is 5
-  e6.type is "String"
+  e6.typ is "String"
 
   e7 = get-err(fun(): 5 + "a";)
   e7 satisfies E.is-generic-type-mismatch
   e7.val is "a"
-  e7.type is "Number"
+  e7.typ is "Number"
 
 #    e4 = get-err(fun(): string-append(5, "a") end)
 #    e4 satisfies E.is-type-mismatch
 #    e4.val is 5
-#    e4.type is "String"
+#    e4.typ is "String"
 
 #    e5 = get-err(fun(): num-sqrt("b") end)
 #    e5 satisfies E.is-type-mismatch
 #    e5.val is "b"
-#    e5.type is "Number"
+#    e5.typ is "Number"
 
   e8 = get-err(fun(): letrec x-unbound = x-unbound(): 5 end end)
   e8 satisfies E.is-uninitialized-id

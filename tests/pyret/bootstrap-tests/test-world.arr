@@ -37,7 +37,7 @@ check "to-draw":
 end
 
 check "on-mouse":
-  mouse = fun(v, x, y, type): v + 1 end
+  mouse = fun(v, x, y, kind): v + 1 end
 
   on-mouse(mouse) satisfies W.is-world-config
   on-mouse("not-mouse-function") raises "Function"
