@@ -123,6 +123,7 @@ runtime-builtins = list.map(builtin-id, [
   "num-modulo",
   "num-truncate",
   "num-sqrt",
+  "num-sqr",
   "num-ceiling",
   "num-floor",
   "num-log",
@@ -131,7 +132,28 @@ runtime-builtins = list.map(builtin-id, [
   "num-is-integer",
   "num-is-fixnum",
   "num-expt",
-  "num-tostring"
+  "num-tostring",
+  "max",
+  "min",
+  "abs",
+  "sin",
+  "cos",
+  "tan",
+  "asin",
+  "acos",
+  "atan",
+  "modulo",
+  "truncate",
+  "sqrt",
+  "sqr",
+  "ceiling",
+  "floor",
+  "log",
+  "exp",
+  "exact",
+  "is-integer",
+  "is-fixnum",
+  "expt"
 ])
 
 no-builtins = compile-env([])

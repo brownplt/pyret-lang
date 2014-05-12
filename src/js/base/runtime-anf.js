@@ -2000,6 +2000,10 @@ function createMethodDict() {
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
+    var num_sqr = function(n) { 
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.sqr(n));
+    }
     var num_ceiling = function(n) { 
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n));
@@ -2162,6 +2166,7 @@ function createMethodDict() {
           'num-modulo': makeFunction(num_modulo),
           'num-truncate': makeFunction(num_truncate),
           'num-sqrt': makeFunction(num_sqrt),
+          'num-sqr': makeFunction(num_sqr),
           'num-ceiling': makeFunction(num_ceiling),
           'num-floor': makeFunction(num_floor),
           'num-log': makeFunction(num_log),
@@ -2171,6 +2176,27 @@ function createMethodDict() {
           'num-is-fixnum': makeFunction(num_is_fixnum),
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
+          'max': makeFunction(num_max),
+          'min': makeFunction(num_min),
+          'abs': makeFunction(num_abs),
+          'sin': makeFunction(num_sin),
+          'cos': makeFunction(num_cos),
+          'tan': makeFunction(num_tan),
+          'asin': makeFunction(num_asin),
+          'acos': makeFunction(num_acos),
+          'atan': makeFunction(num_atan),
+          'modulo': makeFunction(num_modulo),
+          'truncate': makeFunction(num_truncate),
+          'sqrt': makeFunction(num_sqrt),
+          'sqr': makeFunction(num_sqr),
+          'ceiling': makeFunction(num_ceiling),
+          'floor': makeFunction(num_floor),
+          'log': makeFunction(num_log),
+          'exp': makeFunction(num_exp),
+          'exact': makeFunction(num_exact),
+          'is-integer': makeFunction(num_is_integer),
+          'is-fixnum': makeFunction(num_is_fixnum),
+          'expt': makeFunction(num_expt),
 
           'strings-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
