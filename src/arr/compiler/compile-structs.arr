@@ -23,7 +23,12 @@ data CompileError:
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
   | reserved-name(loc :: Loc, id :: String) with:
-    tostring(self): "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
+    tostring(self):
+      "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
+  | zero-fraction(loc, numerator) with:
+    tostring(self):
+      "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
+    end
   | unbound-id(id :: A.Expr) with:
     tostring(self):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"

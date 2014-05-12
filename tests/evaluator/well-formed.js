@@ -259,7 +259,16 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
       });
+      it("fraction literals", function(done) {
+        var err = "fraction literal with zero denominator"
+        P.checkCompileErrorMsg("1/0", err);
+        P.checkCompileErrorMsg("100/0", err);
+        P.checkCompileErrorMsg("0/0", err);
+        P.checkCompileErrorMsg("0/00000", err);
+        P.wait(done);
+      });
     });
+
   }
   return { performTest: performTest };
 });

@@ -318,6 +318,12 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ensure-unique-cases(branches)
       typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
     end,
+    s-frac(self, l, num, den):
+      when den == 0:
+        add-error(C.zero-fraction(l, num))
+      end
+      true
+    end,
     s-id(self, l, id):
       when (reserved-names.member(tostring(id))):
         reserved-name(l, tostring(id))
