@@ -918,7 +918,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
         console.log(nextTok);
-        RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
+        if (toks.hasNext())
+          RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
+        else
+          RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
       }
       //console.log("There were " + countParses + " potential parses");
       if (countParses === 1) {

@@ -155,6 +155,9 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
       function throwParseErrorNextToken(loc, nextToken) {
         raise(err("parse-error-next-token")(loc, nextToken));
       }
+      function throwParseErrorEOF(loc) {
+        raise(err("parse-error-eof")(loc));
+      }
 
       function throwModuleLoadFailureL(names) {
         raise(makeModuleLoadFailureL(names));
@@ -183,6 +186,7 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         throwModuleLoadFailureL: throwModuleLoadFailureL,
         
         throwParseErrorNextToken: throwParseErrorNextToken,
+        throwParseErrorEOF: throwParseErrorEOF,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
