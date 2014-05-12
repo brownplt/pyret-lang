@@ -11,7 +11,7 @@ dummy-loc = loc("dummy location", -1, -1, -1, -1, -1, -1)
 
 INDENT = 2
 
-break-one = PP.break(1)
+break-one = PP.sbreak(1)
 str-any = PP.str("Any")
 str-arrow = PP.str("->")
 str-arrowspace = PP.str("-> ")
@@ -229,9 +229,9 @@ data ImportType:
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
     tosource(self): PP.str(torepr(self.file)) end
-  | s-const-import(l :: Loc, module :: String) with:
+  | s-const-import(l :: Loc, mod :: String) with:
     label(self): "s-const-import" end,
-    tosource(self): PP.str(self.module) end
+    tosource(self): PP.str(self.mod) end
 sharing:
   visit(self, visitor):
     self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
@@ -482,14 +482,14 @@ data Expr:
       funlam-tosource(str-method,
         nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
-  | s-extend(l :: Loc, super :: Expr, fields :: List<Member>) with:
+  | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-extend" end,
     tosource(self):
-      PP.group(self.super.tosource() + str-period
+      PP.group(self.supe.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
-  | s-update(l :: Loc, super :: Expr, fields :: List<Member>) with:
+  | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
@@ -523,7 +523,7 @@ data Expr:
   | s-left-app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-left-app" end,
     tosource(self):
-      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.break(0) + str-period + self._fun.tosource())
+      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.sbreak(0) + str-period + self._fun.tosource())
           + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
   | s-id(l :: Loc, id :: Name) with:
@@ -1797,11 +1797,11 @@ default-map-visitor = {
     ):
     s-method(l, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
-  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s-extend(l, super.visit(self), fields.map(_.visit(self)))
+  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    s-extend(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s-update(l, super.visit(self), fields.map(_.visit(self)))
+  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    s-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
@@ -2201,11 +2201,11 @@ default-iter-visitor = {
       ):
     list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    super.visit(self) and list.all(_.visit(self), fields)
+  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    supe.visit(self) and list.all(_.visit(self), fields)
   end,
-  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    super.visit(self) and list.all(_.visit(self), fields)
+  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    supe.visit(self) and list.all(_.visit(self), fields)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     list.all(_.visit(self), fields)
@@ -2595,11 +2595,11 @@ dummy-loc-visitor = {
     ):
     s-method(dummy-loc, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
-  s-extend(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s-extend(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    s-extend(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-update(self, l :: Loc, super :: Expr, fields :: List<Member>):
-    s-update(dummy-loc, super.visit(self), fields.map(_.visit(self)))
+  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+    s-update(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(dummy-loc, fields.map(_.visit(self)))

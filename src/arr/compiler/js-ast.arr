@@ -7,7 +7,7 @@ import format as F
 format = F.format
 
 INDENT = 2
-break-one = PP.break(1)
+break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
 fun string-printer():
@@ -54,7 +54,7 @@ data JStmt:
     tosource(self):
       PP.group(
         PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
-            PP.str(" =") + PP.break(1) + self.rhs.tosource())) + PP.str(";"))
+            PP.str(" =") + PP.sbreak(1) + self.rhs.tosource())) + PP.str(";"))
     end
   | j-if1(cond :: JExpr, consq :: JBlock) with:
     print-ugly-source(self, printer):

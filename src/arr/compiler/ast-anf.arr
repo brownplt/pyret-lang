@@ -7,7 +7,7 @@ import srcloc as SL
 
 INDENT = 2
 
-break-one = PP.break(1)
+break-one = PP.sbreak(1)
 str-method = PP.str(" method")
 str-letrec = PP.str("letrec ")
 str-period = PP.str(".")

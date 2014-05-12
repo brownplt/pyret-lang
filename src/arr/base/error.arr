@@ -23,15 +23,15 @@ data RuntimeError:
     end
   | non-boolean-condition(loc, typ, value) with:
     tostring(self):
-      "Error: expected a Boolean for the condition of a " + self.type + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
+      "Error: expected a Boolean for the condition of a " + self.typ + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
     end
   | non-boolean-op(loc, position, typ, value) with:
     tostring(self):
-      "Error: expected a Boolean for the " + self.position + " argument to " + self.type + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
+      "Error: expected a Boolean for the " + self.position + " argument to " + self.typ + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
     end
-  | generic-type-mismatch(val, type :: String) with:
+  | generic-type-mismatch(val, typ :: String) with:
     tostring(self):
-      "Error: expected " + self.type + ", but got " + torepr(self.val)
+      "Error: expected " + self.typ + ", but got " + torepr(self.val)
     end
   | outside-numeric-range(val, low, high) with:
     tostring(self):

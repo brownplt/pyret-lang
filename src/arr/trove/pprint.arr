@@ -8,7 +8,7 @@ provide {
   number: number,
   hardline: hardline,
   blank: blank,
-  break: break,
+  sbreak: sbreak,
   concat: concat,
   nest: nest,
   if-flat: if-flat,
@@ -206,8 +206,8 @@ rbrack = str("]")
 langle = str("<")
 rangle = str(">")
 comma = str(",")
-fun break(n): if-flat(blank(n), hardline) end
-commabreak = comma + break(1)
+fun sbreak(n): if-flat(blank(n), hardline) end
+commabreak = comma + sbreak(1)
 
 fun flow-map(sep, f, items):
   for list.fold(acc from mt-doc, shadow item from items):
@@ -216,7 +216,7 @@ fun flow-map(sep, f, items):
     end
   end
 end
-fun flow(items): flow-map(break(1), fun(x): x end, items) end
+fun flow(items): flow-map(sbreak(1), fun(x): x end, items) end
 fun vert(items): flow-map(hardline, fun(x): x end, items) end
 fun parens(d): group(lparen + d + rparen) end
 fun braces(d): group(lbrace + d + rbrace) end
@@ -227,7 +227,7 @@ fun dquote(s): group(str-dquote + s + str-dquote) end
 fun squote(s): group(str-squote + s + str-squote) end
 
 fun hang(i, d): align(nest(i, d)) end
-fun prefix(n, b, x, y): group(x + nest(n, break(b) + y)) end
+fun prefix(n, b, x, y): group(x + nest(n, sbreak(b) + y)) end
 fun infix(n :: Number, b :: Number, op :: PPrintDoc, x :: PPrintDoc, y :: PPrintDoc):
   prefix(n, b, (x + blank(b) + op), y)
 end
@@ -235,13 +235,13 @@ fun infix-break(n :: Number, b :: Number, op :: PPrintDoc, x :: PPrintDoc, y :: 
   prefix(n, b, x, (op + blank(b) + y))
 end
 fun surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrintDoc, close :: PPrintDoc):
-  if is-mt-doc(close): group(open + nest(n, break(b) + contents))
-  else: group(open + nest(n, break(b) + contents) + break(b) + close)
+  if is-mt-doc(close): group(open + nest(n, sbreak(b) + contents))
+  else: group(open + nest(n, sbreak(b) + contents) + sbreak(b) + close)
   end
 end
 fun soft-surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrintDoc, close :: PPrintDoc):
-  if is-mt-doc(close): group(open + nest(n, group(break(b) + contents)))
-  else: group(open + nest(n, group(break(b) + contents)) + group(break(b) + close))
+  if is-mt-doc(close): group(open + nest(n, group(sbreak(b) + contents)))
+  else: group(open + nest(n, group(sbreak(b) + contents)) + group(sbreak(b) + close))
   end
 end
 
@@ -260,7 +260,7 @@ fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrin
 end
 
 fun label-align-surround(label, open, sep, contents, close):
-  group(label + align(open + align(separate(sep, contents)) + group(break(0) + close)))
+  group(label + align(open + align(separate(sep, contents)) + group(sbreak(0) + close)))
 end
 
 check:
@@ -275,7 +275,7 @@ check:
   fun opt-break(x, y):
     if is-empty(x): y
     else if is-empty(y): x
-    else: x + (break(1) + y)
+    else: x + (sbreak(1) + y)
     end
   end
   fun binop(left, op, right):

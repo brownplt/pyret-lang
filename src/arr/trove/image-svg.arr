@@ -40,15 +40,15 @@ end
 data Attr:
   | simple(name :: String, val :: String) with:
     tostring(self): self.name + '="' + self.val + '"' end,
-    topretty(self): PP.group(PP.str(self.name) + PP.str("=") + PP.break(0) + PP.dquote(PP.str(self.val))) end
+    topretty(self): PP.group(PP.str(self.name) + PP.str("=") + PP.sbreak(0) + PP.dquote(PP.str(self.val))) end
   | mixed(name :: String, vals :: List<Attr>) with:
     tostring(self): self.name + '="' + self.vals.map(fun(v): v.name + ":" + v.val end).join-str(":") + '"' end,
     topretty(self):
       if is-empty(self.vals): PP.mt-doc
       else:
         PP.str(self.name) + PP.str('="') 
-          + PP.flow-map(PP.str(";") + PP.break(1),
-          fun(v): PP.group(PP.str(v.name) + PP.str(":") + PP.break(1) + PP.str(v.val)) end,
+          + PP.flow-map(PP.str(";") + PP.sbreak(1),
+          fun(v): PP.group(PP.str(v.name) + PP.str(":") + PP.sbreak(1) + PP.str(v.val)) end,
           self.vals)
           + PP.str(';"')
       end
@@ -73,7 +73,7 @@ data XML:
         end
       close-tag = PP.str("</" + self.name + ">")
       PP.surround-separate(INDENT, 1, empty-tag, 
-          open-tag, PP.break(1), close-tag, self.kids.map(_.topretty()))
+          open-tag, PP.sbreak(1), close-tag, self.kids.map(_.topretty()))
     end
   | xtext(str :: String) with:
     tostring(self): self.str end,
