@@ -231,12 +231,12 @@ data ALettable:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
     end
-  | a-update(l :: Loc, super :: AVal, fields :: List<AField>) with:
+  | a-update(l :: Loc, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-update" end,
     tosource(self):
       PP.str("update")
     end
-  | a-extend(l :: Loc, super :: AVal, fields :: List<AField>) with:
+  | a-extend(l :: Loc, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-extend" end,
     tosource(self):
       PP.str("extend")
@@ -364,10 +364,10 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
-    | a-update(_, super, fields) =>
-      a-update(_, super^strip-loc-val(), fields.map(strip-loc-field))
-    | a-extend(_, super, fields) =>
-      a-extend(_, super^strip-loc-val(), fields.map(strip-loc-field))
+    | a-update(_, supe, fields) =>
+      a-update(_, supe^strip-loc-val(), fields.map(strip-loc-field))
+    | a-extend(_, supe, fields) =>
+      a-extend(_, supe^strip-loc-val(), fields.map(strip-loc-field))
     | a-dot(_, obj, field) =>
       a-dot(dummy-loc, obj^strip-loc-val(), field)
     | a-colon(_, obj, field) =>
@@ -456,11 +456,11 @@ default-map-visitor = {
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
   end,
-  a-update(self, l :: Loc, super :: AVal, fields :: List<AField>):
-    a-update(l, super.visit(self), fields.map(_.visit(self)))
+  a-update(self, l :: Loc, supe :: AVal, fields :: List<AField>):
+    a-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  a-extend(self, l :: Loc, super :: AVal, fields :: List<AField>):
-    a-extend(l, super.visit(self), fields.map(_.visit(self)))
+  a-extend(self, l :: Loc, supe :: AVal, fields :: List<AField>):
+    a-extend(l, supe.visit(self), fields.map(_.visit(self)))
   end,
   a-dot(self, l :: Loc, obj :: AVal, field :: String):
     a-dot(l, obj.visit(self), field)
@@ -577,9 +577,9 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)
       end
-    | a-update(_, super, fields) =>
-      from-super = freevars-v-acc(super, seen-so-far)
-      for fold(acc from from-super, f from fields):
+    | a-update(_, supe, fields) =>
+      from-supe = freevars-v-acc(supe, seen-so-far)
+      for fold(acc from from-supe, f from fields):
         freevars-v-acc(f.value, acc)
       end
     | a-data-expr(_, _, variants, shared) =>
@@ -589,9 +589,9 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
       for fold(acc from from-variants, s from shared):
         freevars-v-acc(s.value, acc)
       end
-    | a-extend(_, super, fields) =>
-      from-super = freevars-v-acc(super, seen-so-far)
-      for fold(acc from from-super, f from fields):
+    | a-extend(_, supe, fields) =>
+      from-supe = freevars-v-acc(supe, seen-so-far)
+      for fold(acc from from-supe, f from fields):
         freevars-v-acc(f.value, acc)
       end
     | a-dot(_, obj, _) => freevars-v-acc(obj, seen-so-far)

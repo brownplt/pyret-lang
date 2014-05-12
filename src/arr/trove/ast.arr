@@ -397,7 +397,7 @@ data Expr:
       _else = str-elsecolon + PP.nest(INDENT, break-one + self._else.tosource())
       PP.group(branches + break-one + _else + break-one + str-end)
     end
-  | s-cases(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
+  | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
     label(self): "s-cases" end,
     tosource(self):
       header = str-cases + PP.parens(self.type.tosource()) + break-one
@@ -406,7 +406,7 @@ data Expr:
         PP.group(header), break-one, str-end,
         self.branches.map(fun(b): PP.group(b.tosource()) end))
     end
-  | s-cases-else(l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
+  | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
     label(self): "s-cases-else" end,
     tosource(self):
       header = str-cases + PP.parens(self.type.tosource()) + break-one
@@ -1751,11 +1751,11 @@ default-map-visitor = {
     s-cases-branch(l, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(l, type.visit(self), val.visit(self), branches.map(_.visit(self)))
+  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s-cases(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)))
   end,
-  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(l, type.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -2155,11 +2155,11 @@ default-iter-visitor = {
     list.all(_.visit(self), args) and body.visit(self)
   end,
   
-  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
   end,
-  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -2549,11 +2549,11 @@ dummy-loc-visitor = {
     s-cases-branch(dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s-cases(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(dummy-loc, type, val.visit(self), branches.map(_.visit(self)))
+  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    s-cases(dummy-loc, typ, val.visit(self), branches.map(_.visit(self)))
   end,
-  s-cases-else(self, l :: Loc, type :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(dummy-loc, type, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    s-cases-else(dummy-loc, typ, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):

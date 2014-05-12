@@ -69,10 +69,17 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
     function checkCompileErrorMsg(str, exnMsg) {
       function findInArray(arr) {
         for (var i = 0; i < arr.length; i++) {
-          var actMsg = runtime.getField(arr[i], "msg");
-          if (runtime.isString(actMsg)) {
-            if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
+          if(runtime.hasField(arr[i], "msg")) {
+            var actMsg = runtime.getField(arr[i], "msg");
+            if (runtime.isString(actMsg)) {
+              if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
+                return true;
+            }
+          } else {
+            var str = runtime.unwrap(runtime.toReprJS(arr[i], "tostring"));
+            if (str.indexOf(exnMsg) !== -1) {
               return true;
+            }
           }
         }
         return false;

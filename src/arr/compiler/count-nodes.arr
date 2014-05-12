@@ -83,11 +83,11 @@ fun count-nodes(ast):
         1 + branch-count + count-nodes(_else)
     | s-try(_, body, bind, _except) => 1 + count-nodes(body) + count-nodes(_except) 
     | s-get-bang(l, obj, field) => 1 + count-nodes(obj)
-    | s-update(l, super, fields) => 
+    | s-update(l, supe, fields) => 
         field-count = for fold(total from 0, field from fields):
             total + count-nodes(field.value)
         end
-        1 + field-count + count-nodes(super)
+        1 + field-count + count-nodes(supe)
     | else => raise("ELSE")
     end
 where:

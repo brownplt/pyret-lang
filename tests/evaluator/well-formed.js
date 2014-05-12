@@ -68,9 +68,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun: var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
-        // NOTE(dbp 2013-08-09): The more "obvious" occurence of these two get
-        // caught by typechecking / parsing.
-        P.checkCompileErrorMsg("where = 1 fun(): where end", "Cannot use `where` as an identifier");
         P.checkCompileErrorMsg("fun: 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("fun: 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
 
@@ -209,6 +206,56 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  | link(_, _) => 2\n" +
                                "end",
                                "Duplicate case for link");
+
+
+        P.wait(done);
+      });
+      it("reserved words", function(done) {
+        var reservedNames = [
+          "function",
+          "break",
+          "return",
+          "do",
+          "yield",
+          "throw",
+          "continue",
+          "while",
+          "class",
+          "interface",
+          "type",
+          "generator",
+          "alias",
+          "extends",
+          "implements",
+          "module",
+          "package",
+          "namespace",
+          "use",
+          "public",
+          "private",
+          "protected",
+          "static",
+          "const",
+          "enum",
+          "super",
+          "export",
+          "new",
+          "try",
+          "finally",
+          "debug",
+          "spy",
+          "switch",
+          "this",
+          "match",
+          "case",
+          "with"
+        ];
+        for(var i = 0; i < reservedNames.length; i++) {
+          var err = "cannot use " + reservedNames[i] + " as an identifier";
+          P.checkCompileErrorMsg(reservedNames[i], err);
+          P.checkCompileErrorMsg(reservedNames[i] + " = 5", err);
+          P.checkCompileErrorMsg("fun f(" + reservedNames[i] + "): 5 end", err);
+        }
 
         P.wait(done);
       });

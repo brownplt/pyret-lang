@@ -405,7 +405,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   var shadowing-instances = []
   bindings = SD.string-dict()
 
-  fun make-atom-for(bind, env, type):
+  fun make-atom-for(bind, env, typ):
     cases(A.Name) bind.id:
       | s-name(l, s) =>
         when env.has-key(s) and not(bind.shadows):
@@ -413,12 +413,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
         end
         atom = names.make-atom(s)
-        binding = type(l, atom, none)
+        binding = typ(l, atom, none)
         bindings.set(atom.key(), binding)
         { atom: atom, env: env.set(s, binding) }
       | s-underscore(l) =>
         atom = names.make-atom("$underscore")
-        bindings.set(atom.key(), type(l, atom, none))
+        bindings.set(atom.key(), typ(l, atom, none))
         { atom: atom, env: env }
       | else => raise("Unexpected atom type: " + torepr(bind))
     end

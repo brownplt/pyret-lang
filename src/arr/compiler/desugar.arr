@@ -27,8 +27,8 @@ fun check-bool(l, id, e, then, err):
       [A.s-if-branch(l, A.s-prim-app(l, "isBoolean", [id.id-e]), then)],
       err))
 end
-fun no-branches-exn(l, type):
-  A.s-prim-app(l, "throwNoBranchesMatched", [A.build-loc(l), A.s-str(l, type)])
+fun no-branches-exn(l, typ):
+  A.s-prim-app(l, "throwNoBranchesMatched", [A.build-loc(l), A.s-str(l, typ)])
 end
 fun make-message-exception(l, msg):
   make-message-exception-e(l, A.s-str(l, msg))
@@ -36,11 +36,11 @@ end
 fun make-message-exception-e(l, msg-e):
   A.s-prim-app(l, "throwMessageException", [msg-e])
 end
-fun bool-exn(l, type, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [A.build-loc(l), A.s-str(l, type), val])
+fun bool-exn(l, typ, val):
+  A.s-prim-app(l, "throwNonBooleanCondition", [A.build-loc(l), A.s-str(l, typ), val])
 end
-fun bool-op-exn(l, position, type, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [A.build-loc(l), A.s-str(l, position), A.s-str(l, type), val])
+fun bool-op-exn(l, position, typ, val):
+  A.s-prim-app(l, "throwNonBooleanOp", [A.build-loc(l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
 
@@ -432,11 +432,11 @@ fun desugar-expr(expr :: A.Expr):
       desugar-if(l, branches, A.s-block(l, [no-branches-exn(l, "ask")]))
     | s-if-pipe-else(l, branches, _else) =>
       desugar-if(l, branches, _else)
-    | s-cases(l, type, val, branches) =>
-      desugar-cases(l, type, desugar-expr(val), branches.map(desugar-case-branch),
+    | s-cases(l, typ, val, branches) =>
+      desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
         A.s-block(l, [no-branches-exn(l, "cases")]))
-    | s-cases-else(l, type, val, branches, _else) =>
-      desugar-cases(l, type, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
+    | s-cases-else(l, typ, val, branches, _else) =>
+      desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-colon(l, obj, field) => ds-curry-nullary(A.s-colon, l, obj, field)

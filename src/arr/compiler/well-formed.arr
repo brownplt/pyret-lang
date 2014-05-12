@@ -12,21 +12,62 @@ var errors = []
 var in-check-block = false
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
 
+reserved-names = [
+  "function",
+  "break",
+  "return",
+  "do",
+  "yield",
+  "throw",
+  "continue",
+  "while",
+  "class",
+  "interface",
+  "type",
+  "generator",
+  "alias",
+  "extends",
+  "implements",
+  "module",
+  "package",
+  "namespace",
+  "use",
+  "public",
+  "private",
+  "protected",
+  "static",
+  "const",
+  "enum",
+  "super",
+  "export",
+  "new",
+  "try",
+  "finally",
+  "debug",
+  "spy",
+  "switch",
+  "this",
+  "match",
+  "case",
+  "with"
+]
 
-fun wf-error(msg, loc):
-  e = C.wf-err(msg, loc)
-  errors := e ^ link(errors)
+
+fun add-error(err):
+  errors := err ^ link(errors)
   nothing
+end
+fun wf-error(msg, loc):
+  add-error(C.wf-err(msg, loc))
 end
 fun wf-error2(msg, loc1, loc2):
-  e = C.wf-err-split(msg, [loc1, loc2])
-  errors := e ^ link(errors)
-  nothing
+  add-error(C.wf-err-split(msg, [loc1, loc2]))
 end
 fun duplicate-id(id, loc1, loc2):
-  e = C.duplicate-id(id, loc1, loc2)
-  errors := e ^ link(errors)
-  nothing
+  add-error(C.duplicate-id(id, loc1, loc2))
+end
+fun reserved-name(loc, id):
+  add-error(C.reserved-name(loc, id))
 end
 
 fun wrap-visit-check(self, target):
@@ -38,11 +79,11 @@ fun wrap-visit-check(self, target):
 end
 
 
-fun ensure-empty-block(loc, type, block :: A.is-s-block):
+fun ensure-empty-block(loc, typ, block :: A.is-s-block):
   if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:
-      wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(type), loc)
+      wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(typ), loc)
     end
   else:
     nothing
@@ -186,6 +227,12 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
       list.all(_.visit(self), with-members)
     end,
+    s-bind(self, l, shadows, name, ann):
+      when (reserved-names.member(tostring(name))):
+        reserved-name(l, tostring(name))
+      end
+      true
+    end,
     s-variant(self, l, constr-loc, name, binds, with-members):
       ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
       list.all(_.visit(self), binds) and list.all(_.visit(self), with-members)
@@ -263,17 +310,17 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       end
       list.all(_.visit(self), branches)
     end,
-    s-cases(self, l, type, val, branches):
+    s-cases(self, l, typ, val, branches):
       ensure-unique-cases(branches)
-      type.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+      typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
     end,
-    s-cases-else(self, l, type, val, branches, _else):
+    s-cases-else(self, l, typ, val, branches, _else):
       ensure-unique-cases(branches)
-      type.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+      typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
     end,
     s-id(self, l, id):
-      when (tostring(id) == "check") or (tostring(id) == "where"):
-        wf-error("Cannot use `" + tostring(id) + "` as an identifier", l)
+      when (reserved-names.member(tostring(id))):
+        reserved-name(l, tostring(id))
       end
       true
     end

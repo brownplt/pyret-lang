@@ -90,7 +90,7 @@ fun anf-import(i :: A.Import):
     | s-import(l, f, name) =>
       cases(A.ImportType) f:
         | s-file-import(_, fname) => N.a-import-file(l, fname, name)
-        | s-const-import(_, module) => N.a-import-builtin(l, module, name)
+        | s-const-import(_, mod) => N.a-import-builtin(l, mod, name)
       end
   end
 end
@@ -154,8 +154,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-data-expr(l, data-name, params, mixins, variants, shared, _check) =>
       fun anf-member(member :: A.VariantMember):
         cases(A.VariantMember) member:
-          | s-variant-member(l2, type, b) =>
-            a-type = cases(A.VariantMemberType) type:
+          | s-variant-member(l2, typ, b) =>
+            a-type = cases(A.VariantMemberType) typ:
               | s-normal => N.a-normal
               | s-cyclic => N.a-cyclic
               | s-mutable => N.a-mutable
