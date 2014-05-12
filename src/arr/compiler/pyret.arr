@@ -81,7 +81,13 @@ fun main(args):
           | ok(comp-object) =>
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
             if (exec-result.success):
-              when check-mode: print(exec-result.render-check-results()) end
+              when check-mode:
+                results-str = exec-result.render-check-results()
+                print(exec-result.render-check-results())
+                when not(string-contains(results-str, "Looks shipshape")):
+                  raise("There were test errors")
+                end
+              end
             else:
               print(exec-result.render-error-message())
               raise("There were execution errors")

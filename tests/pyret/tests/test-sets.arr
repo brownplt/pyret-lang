@@ -38,7 +38,7 @@ fun check-random-removes(n :: Number, set-constructor) -> Bool:
   end
   orig = range(0, n)
   expect = for filter(elt from orig):
-    not nums.member(elt)
+    not(nums.member(elt))
   end
   for fold(s from set-constructor(orig), rem-elt from nums):
     s.remove(rem-elt)
