@@ -79,17 +79,19 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
+            print("Executing")
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
             if (exec-result.success):
               when check-mode:
                 results-str = exec-result.render-check-results()
-                print(exec-result.render-check-results())
+                print(results-str)
                 when not(string-contains(results-str, "Looks shipshape")) and
                   not(string-contains(results-str, "The program didn't define any tests")):
                   raise("There were test errors")
                 end
               end
             else:
+              print("Exec failed")
               print(exec-result.render-error-message())
               raise("There were execution errors")
             end
