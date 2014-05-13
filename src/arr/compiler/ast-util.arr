@@ -115,7 +115,7 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
       if env.has-key(name.key()): some(env.get(name.key()))
       else: none
       end
-    | s-id-letrec(_, name) =>
+    | s-id-letrec(_, name, _) =>
       if env.has-key(name.key()): some(env.get(name.key()))
       else: none
       end
@@ -401,8 +401,8 @@ fun check-unbound(initial-env, ast):
         handle-id(A.s-id-var(loc, id), self.env)
         true
       end,
-      s-id-letrec(self, loc, id):
-        handle-id(A.s-id-letrec(loc, id), self.env)
+      s-id-letrec(self, loc, id, safe):
+        handle-id(A.s-id-letrec(loc, id, safe), self.env)
         true
       end,
       s-assign(self, loc, id, value):
@@ -419,4 +419,27 @@ where:
   unbound1.length() is 1
 
 end
+
+letrec-visitor = A.default-map-visitor.{
+  env: SD.immutable-string-dict(),
+  s-letrec(self, l, binds, body):
+    bind-envs = for map(i from range(0, binds.length())):
+      for fold2(acc from self.env, b from binds, j from range(0, binds.length())):
+        if i > j:
+          acc.set(b.b.id.key(), true)
+        else:
+          acc.set(b.b.id.key(), false)
+        end
+      end
+    end
+    new-binds = for map2(b from binds, bind-env from bind-envs):
+      b.visit(self.{ env: bind-env })
+    end
+    new-body = body.visit(self.{ env: bind-envs.last() })
+    A.s-letrec(l, new-binds, new-body)
+  end,
+  s-id-letrec(self, l, id, _):
+    A.s-id-letrec(l, id, self.env.get(id.key()))
+  end
+}
 

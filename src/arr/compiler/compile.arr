@@ -53,6 +53,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
+                     .visit(U.letrec-visitor)
       when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
       any-errors = named-shadow-errors + U.check-unbound(libs, cleaned) + U.bad-assignments(libs, cleaned)
       if is-empty(any-errors):

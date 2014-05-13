@@ -532,7 +532,7 @@ data Expr:
   | s-id-var(l :: Loc, id :: Name) with:
     label(self): "s-id-var" end,
     tosource(self): PP.str("!") + self.id.tosource() end
-  | s-id-letrec(l :: Loc, id :: Name) with:
+  | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     label(self): "s-id-letrec" end,
     tosource(self): PP.str("~") + self.id.tosource() end
   | s-undefined(l :: Loc) with:
@@ -1592,9 +1592,10 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-id-var(_, id2) => equiv-name(id1, id2)
         | else => false
       end
-    | s-id-letrec(_, id1) =>
+    | s-id-letrec(_, id1, safe1) =>
       cases(Expr) ast2:
-        | s-id-letrec(_, id2) => equiv-name(id1, id2)
+        | s-id-letrec(_, id2, safe2) =>
+          equiv-name(id1, id2) and (safe1 == safe2)
         | else => false
       end
     | s-let-expr(_, let-binds1, body1) =>
@@ -1827,8 +1828,8 @@ default-map-visitor = {
   s-id-var(self, l :: Loc, id :: Name):
     s-id-var(l, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: Name):
-    s-id-letrec(l, id.visit(self))
+  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+    s-id-letrec(l, id.visit(self), safe)
   end,
   s-undefined(self, l :: Loc):
     s-undefined(self)
@@ -2231,7 +2232,7 @@ default-iter-visitor = {
   s-id-var(self, l :: Loc, id :: Name):
     id.visit(self)
   end,
-  s-id-letrec(self, l :: Loc, id :: Name):
+  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     id.visit(self)
   end,
   s-undefined(self, l :: Loc):
@@ -2625,8 +2626,8 @@ dummy-loc-visitor = {
   s-id-var(self, l :: Loc, id :: Name):
     s-id-var(dummy-loc, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: Name):
-    s-id-letrec(dummy-loc, id.visit(self))
+  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+    s-id-letrec(dummy-loc, id.visit(self), safe)
   end,
   s-undefined(self, l :: Loc):
     s-undefined(self)
