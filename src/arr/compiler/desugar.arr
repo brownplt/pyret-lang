@@ -77,7 +77,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
         Postconditions on program:
           - in addition to preconditions,
             contains no s-for, s-if, s-op, s-method-field,
-                        s-cases, s-left-app, s-not, s-when, s-if-pipe, s-list
+                        s-cases, s-not, s-when, s-if-pipe, s-list
                         s-paren
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
@@ -366,8 +366,6 @@ fun desugar-expr(expr :: A.Expr):
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-left-app(l, e, f, args) =>
-      ds-curry(l, f, ([e] + args).map(desugar-expr))
     | s-new-left-app(l, arg, f) =>
       ds-curry(l, f, [desugar-expr(arg)])
     | s-lam(l, params, args, ann, doc, body, _check) =>
@@ -564,8 +562,8 @@ where:
 
   if-else = "if true: 5 else: 6 end"
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
-  p(if-else) $ pretty is if-else
-  p(ask-otherwise) $ pretty is ask-otherwise
+  p(if-else) ^ pretty is if-else
+  p(ask-otherwise) ^ pretty is ask-otherwise
   
   prog2 = p("[1,2,1 + 2]")
   ds(prog2)

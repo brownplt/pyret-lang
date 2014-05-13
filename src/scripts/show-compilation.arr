@@ -68,6 +68,6 @@ cases (C.ParsedArguments) parsed-options:
         end
     end
   | arg-error(m, _) =>
-    each(print,  ("Error: " + m) $ link(_, C.usage-info(options)))
+    each(print,  ("Error: " + m) ^ link(_, C.usage-info(options)))
 end
 print("Finished")

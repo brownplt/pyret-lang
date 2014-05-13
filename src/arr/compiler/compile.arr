@@ -19,7 +19,7 @@ sharing:
   tolist(self):
     fun help(the-phase, acc):
       if is-start(the-phase): acc
-      else: help(the-phase.prev, {name : the-phase.name, result : the-phase.result} $ link(_, acc))
+      else: help(the-phase.prev, {name : the-phase.name, result : the-phase.result} ^ link(_, acc))
       end
     end
     help(self, empty)

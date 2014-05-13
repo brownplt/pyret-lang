@@ -777,11 +777,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           return RUNTIME.getField(ast, 's-update')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
-        'left-app-expr': function(node) {
-          // (left-app-expr e CARET f args)
-          return RUNTIME.getField(ast, 's-left-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
-        },
         'paren-expr': function(node) {
           // (paren-expr LPAREN e RPAREN)
           return RUNTIME.getField(ast, 's-paren')

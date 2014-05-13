@@ -18,19 +18,19 @@ fun sindeg(angle): (angle * (PI / 180)).sin() end
 fun tohex(num, minwidth):
   fun help(n, hexits):
     if (n == 0):
-      if hexits.length() < minwidth: help(n, "0" $ link(_, hexits))
+      if hexits.length() < minwidth: help(n, "0" ^ link(_, hexits))
       else: hexits.join-str("")
       end
     else:
       hexit = n.modulo(16)
       next = (n - hexit) / 16
-      if (hexit < 10): help(next, tostring(hexit) $ link(_, hexits))
-      else if hexit == 10: help(next, "A" $ link(_, hexits))
-      else if hexit == 11: help(next, "B" $ link(_, hexits))
-      else if hexit == 12: help(next, "C" $ link(_, hexits))
-      else if hexit == 13: help(next, "D" $ link(_, hexits))
-      else if hexit == 14: help(next, "E" $ link(_, hexits))
-      else:                help(next, "F" $ link(_, hexits))
+      if (hexit < 10): help(next, tostring(hexit) ^ link(_, hexits))
+      else if hexit == 10: help(next, "A" ^ link(_, hexits))
+      else if hexit == 11: help(next, "B" ^ link(_, hexits))
+      else if hexit == 12: help(next, "C" ^ link(_, hexits))
+      else if hexit == 13: help(next, "D" ^ link(_, hexits))
+      else if hexit == 14: help(next, "E" ^ link(_, hexits))
+      else:                help(next, "F" ^ link(_, hexits))
       end
     end
   end
@@ -63,13 +63,13 @@ data XML:
         cases(List) attrs:
           | empty => PP.group(PP.langle + PP.str(self.name) + PP.str(" />"))
           | else => PP.group(PP.langle + PP.nest(2 * INDENT,
-                PP.flow(PP.str(self.name) $ link(_, attrs)) + PP.str("/>")))
+                PP.flow(PP.str(self.name) ^ link(_, attrs)) + PP.str("/>")))
         end
       open-tag =
         cases(List) attrs:
           | empty => PP.group(PP.langle + PP.str(self.name) + PP.str(">"))
           | else => PP.group(PP.langle + PP.nest(2 * INDENT,
-                PP.flow(PP.str(self.name) $ link(_, attrs)) + PP.str(">")))
+                PP.flow(PP.str(self.name) ^ link(_, attrs)) + PP.str(">")))
         end
       close-tag = PP.str("</" + self.name + ">")
       PP.surround-separate(INDENT, 1, empty-tag, 

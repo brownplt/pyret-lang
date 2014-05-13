@@ -24,7 +24,6 @@ str-brackets = PP.str("[]")
 str-cases = PP.str("cases")
 str-caret = PP.str("^")
 str-checkcolon = PP.str("check:")
-str-dollar = PP.str("$")
 str-examplescolon = PP.str("examples:")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
@@ -522,12 +521,6 @@ data Expr:
   | s-prim-val(l :: Loc, name :: String) with:
     label(self): "s-prim-val" end,
     tosource(self): PP.str(self.name) end
-  | s-left-app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
-    label(self): "s-left-app" end,
-    tosource(self):
-      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.sbreak(0) + str-caret + self._fun.tosource())
-          + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
-    end
   | s-id(l :: Loc, id :: Name) with:
     label(self): "s-id" end,
     tosource(self): self.id.tosource() end
@@ -593,7 +586,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank $ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -625,7 +618,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank $ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -968,7 +961,7 @@ fun binding-ids(stmt) -> List<Name>:
     | s-fun(l, name, _, _, _, _, _, _) => [s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
-      s-name(l, name) $ link(_, flatten(variants.map(variant-ids)))
+      s-name(l, name) ^ link(_, flatten(variants.map(variant-ids)))
     | else => []
   end
 end
@@ -1486,14 +1479,6 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-prim-val(_, name2) => name1 == name2
         | else => false
       end
-    | s-left-app(_, obj1, fun1, args1) =>
-      cases(Expr) ast2:
-        | s-left-app(_, obj2, fun2, args2) =>
-          equiv-ast(obj1, obj2) and
-            equiv-ast(fun1, fun2) and
-            length-andmap(equiv-ast, args1, args2)
-        | else => false
-      end
     | s-assign(_, id1, value1) =>
       cases(Expr) ast2:
         | s-assign(_, id2, value2) =>
@@ -1819,9 +1804,6 @@ default-map-visitor = {
   end,
   s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(l, name)
-  end,
-  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
-    s-left-app(l, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
   s-id(self, l :: Loc, id :: Name):
     s-id(l, id.visit(self))
@@ -2224,9 +2206,6 @@ default-iter-visitor = {
   s-prim-val(self, l :: Loc, name :: String):
     true
   end,
-  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
-    obj.visit(self) and _fun.visit(self) and list.all(_.visit(self), args)
-  end,
   s-id(self, l :: Loc, id :: Name):
     id.visit(self)
   end,
@@ -2617,9 +2596,6 @@ dummy-loc-visitor = {
   end,
   s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(dummy-loc, name)
-  end,
-  s-left-app(self, l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>):
-    s-left-app(dummy-loc, obj.visit(self), _fun.visit(self), args.map(_.visit(self)))
   end,
   s-id(self, l :: Loc, id :: Name):
     s-id(dummy-loc, id.visit(self))

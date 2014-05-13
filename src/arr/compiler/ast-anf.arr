@@ -315,7 +315,7 @@ end
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
     | a-program(_, imports, body) =>
-      a-program(dummy-loc, imports.map(strip-loc-header), body $ strip-loc-expr)
+      a-program(dummy-loc, imports.map(strip-loc-header), body ^ strip-loc-expr)
   end
 end
 

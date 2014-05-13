@@ -368,7 +368,7 @@ end
 
 fun bad-assignments(initial-env, ast):
   var errors = [] # THE MUTABLE LIST OF ERRORS
-  fun add-error(err): errors := err $ link(_, errors) end
+  fun add-error(err): errors := err ^ link(_, errors) end
   ast.visit(binding-env-iter-visitor(initial-env).{
     s-assign(self, loc, id, value):
       cases(Option<Binding>) bind-exp(A.s-id(loc, id), self.env):
@@ -399,7 +399,7 @@ inline-lams = A.default-map-visitor.{
 
 fun check-unbound(initial-env, ast):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
-  fun add-error(err): errors := err $ link(_, errors) end
+  fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(this-id, env):
     when is-none(bind-exp(this-id, env)):
       add-error(CS.unbound-id(this-id))
