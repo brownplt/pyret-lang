@@ -96,7 +96,7 @@ fun mk-id(loc, base):
   { id: a, id-b: mk-bind(loc, a), id-e: A.s-id(loc, a) }
 end
 
-fun make-torepr(l, vname, fields):
+fun make-torepr(l, vname, fields, is-singleton):
   self = mk-id(l, "self")
   fun str(s): A.s-str(l, s) end
   fun call-torepr(val):
@@ -113,9 +113,13 @@ fun make-torepr(l, vname, fields):
           call-torepr(f)
         )
   end
-  A.s-method(l, [self.id-b], A.a-blank, "",
-    concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
-    none)
+  if is-singleton:
+    A.s-method(l, [self.id-b], A.a-blank, "", str(vname), none)
+  else:
+    A.s-method(l, [self.id-b], A.a-blank, "",
+      concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
+      none)
+  end
 end
 
 fun make-match(l, case-name, fields):
@@ -392,15 +396,15 @@ fun desugar-expr(expr :: A.Expr):
       A.s-letrec(l, new-binds, desugar-expr(body))
     | s-data-expr(l, name, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
-        fun make-methods(l2, vname, members):
+        fun make-methods(l2, vname, members, is-singleton):
           [
             A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, members)),
-            A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members))
+            A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members, is-singleton))
           ]
         end
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
-            methods = make-methods(l2, vname, members)
+            methods = make-methods(l2, vname, members, false)
             A.s-variant(
               l2,
               constr-loc,
@@ -408,7 +412,7 @@ fun desugar-expr(expr :: A.Expr):
               members.map(desugar-variant-member),
               (methods + with-members).map(desugar-member))
           | s-singleton-variant(l2, vname, with-members) =>
-            methods = make-methods(l2, vname, [])
+            methods = make-methods(l2, vname, [], true)
             A.s-singleton-variant(
               l2,
               vname,
