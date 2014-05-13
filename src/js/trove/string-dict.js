@@ -11,7 +11,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       StringDict.prototype.get = function(s) { return this.d[" " + s]; }
       StringDict.prototype.set = function(s, val) { this.d[" " + s] = val; }
       StringDict.prototype.getNames = function() { 
-        return Object.keys(this.d).map(function(k) {return k.slice(1);}); 
+        return Object.keys(this.d).map(function(k) {return k.slice(1);});
       }
       StringDict.prototype.hasBinding = function(s) {
         var result = Object.prototype.hasOwnProperty.call(this.d, " " + s);

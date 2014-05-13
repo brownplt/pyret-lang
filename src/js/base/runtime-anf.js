@@ -696,6 +696,47 @@ function createMethodDict() {
         return new PObject(dict, brands);
     }
 
+    /**The representation of an array
+       A PArray is simply a JavaScript array
+    */
+    function isArray(val) {
+      return val instanceof Array;
+    }
+    function makeArray(arr) {
+      return arr;
+    }
+
+    PObject.prototype.updateDict = function(dict, keepBrands) {
+      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
+      return newObj;
+    }
+
+    /**Clones the object
+      @return {!PObject} With same dict
+    */
+    PObject.prototype.brand = function(b) { 
+        var newObj = makeObject(this.dict); 
+        return brandClone(newObj, this, b);
+    };
+
+    /**Tests whether an object is a PObject
+        @param {Object} obj the item to test
+        @return {!boolean} true if object is a PObject
+    */
+    function isObject(obj) { return obj instanceof PObject; }
+
+    /**Makes a PObject using the given dict
+
+      @param {!Object.<string, !PBase>} dict
+      @return {!PObject} with given dict
+    */
+    function makeObject(dict) {
+       return new PObject(dict, noBrands); 
+    }
+
+    function makeBrandedObject(dict, brands) {
+        return new PObject(dict, brands);
+    }
     
     /************************
           Type Checking
@@ -720,7 +761,7 @@ function createMethodDict() {
     }
 
     function isPyretVal(val) {
-      if (typeof val === "string" || typeof val === "boolean") {
+      if (typeof val === "string" || typeof val === "boolean" || val instanceof Array) {
         return true;
       }
       else if (jsnums.isSchemeNumber(val)) {
@@ -753,6 +794,7 @@ function createMethodDict() {
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
+    var checkArray = makeCheckType(isArray, "Array");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
     var checkFunction = makeCheckType(isFunction, "Function");
@@ -1835,6 +1877,61 @@ function createMethodDict() {
       }
     };
 
+    var checkArrayIndex = function(methodName, arr, ix) {
+      var throwErr = function(reason) {
+        ffi.throwInvalidArrayIndex(methodName, arr, ix, reason);
+      };
+      if(ix >= arr.length) {
+        throwErr("index too large; array length was " + arr.length);
+      }
+      if(ix < 0) {
+        throwErr("negative index");
+      }
+      if(!(num_is_integer(ix))) {
+        throwErr("non-integer index");
+      }
+    }
+
+    var raw_array_of = function(val, len) {
+      thisRuntime.checkArity(2, arguments);
+      thisRuntime.checkNumber(len);
+      var arr = new Array(len);
+      var i = 0;
+      while(i < len) {
+        arr[i++] = val;
+      }
+      return arr;
+    }
+
+    var raw_array_get = function(arr, ix) {
+      thisRuntime.checkArity(2, arguments);
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkNumber(ix);
+      checkArrayIndex("raw-array-get", arr, ix);
+      return arr[ix];
+    };
+
+    var raw_array_set = function(arr, ix, newVal) {
+      thisRuntime.checkArity(3, arguments);
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkNumber(ix);
+      checkArrayIndex("raw-array-set", arr, ix);
+      arr[ix] = newVal;
+      return arr;
+    };
+
+    var raw_array_length = function(arr) {
+      thisRuntime.checkArity(1, arguments);
+      thisRuntime.checkArray(arr);
+      return makeNumber(arr.length);
+    };
+
+    var raw_array_to_list = function(arr) {
+      thisRuntime.checkArity(1, arguments);
+      thisRuntime.checkArray(arr);
+      return ffi.makeList(arr);
+    };
+
     var string_substring = function(s, min, max) {
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(min);
@@ -2138,6 +2235,7 @@ function createMethodDict() {
           'is-string': mkPred(isString),
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
+          'is-raw-array': mkPred(isArray),
 
           'run-task': makeFunction(execThunk),
 
@@ -2191,6 +2289,12 @@ function createMethodDict() {
           'string-tolower': makeFunction(string_tolower),
           'string-explode': makeFunction(string_explode),
           'string-index-of': makeFunction(string_indexOf),
+
+          'raw-array-of': makeFunction(raw_array_of),
+          'raw-array-get': makeFunction(raw_array_get),
+          'raw-array-set': makeFunction(raw_array_set),
+          'raw-array-length': makeFunction(raw_array_length),
+          'raw-array-to-list': makeFunction(raw_array_to_list),
 
           'not': makeFunction(bool_not)
 
@@ -2251,6 +2355,7 @@ function createMethodDict() {
         'makeMethod'   : makeMethod,
         'makeMethodFromFun' : makeMethodFromFun,
         'makeObject'   : makeObject,
+        'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
         'makeOpaque'   : makeOpaque,
 
@@ -2298,6 +2403,13 @@ function createMethodDict() {
         'string_explode': string_explode,
         'string_indexOf': string_indexOf,
 
+        'raw_array_of': raw_array_of,
+        'raw_array_get': raw_array_get,
+        'raw_array_set': raw_array_set,
+        'raw_array_length': raw_array_length,
+        'raw_array_to_list': raw_array_to_list,
+
+
         'not': bool_not,
 
         'equiv': sameJSPy,
@@ -2324,8 +2436,10 @@ function createMethodDict() {
         'checkObject' : checkObject,
         'checkFunction' : checkFunction,
         'checkMethod' : checkMethod,
+        'checkArray' : checkArray,
         'checkOpaque' : checkOpaque,
         'checkPyretVal' : checkPyretVal,
+        'checkArity': checkArity,
         'makeCheckType' : makeCheckType,
         'checkIf'      : checkIf,
         'confirm'      : confirm,

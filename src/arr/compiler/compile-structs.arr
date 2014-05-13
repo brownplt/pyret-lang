@@ -92,6 +92,7 @@ runtime-builtins = list.map(builtin-id, [
   "is-boolean",
   "is-object",
   "is-function",
+  "is-raw-array",
   "gensym",
   "random",
   "run-task",
@@ -139,7 +140,12 @@ runtime-builtins = list.map(builtin-id, [
   "num-is-integer",
   "num-is-fixnum",
   "num-expt",
-  "num-tostring"
+  "num-tostring",
+  "raw-array-get",
+  "raw-array-set",
+  "raw-array-of",
+  "raw-array-length",
+  "raw-array-to-list"
 ])
 
 no-builtins = compile-env([])
@@ -311,6 +317,12 @@ standard-builtins = compile-env(
     runtime-builtins + [
       builtin-id("_link"),
       builtin-id("_empty"),
+      module-bindings("arrays", [
+          "array",
+          "build-array",
+          "array-from-list",
+          "is-array"
+        ]),
       module-bindings("list", [
           "List",
           "is-empty",

@@ -62,6 +62,10 @@ data RuntimeError:
     tostring(self):
       "Error: The following modules failed to load: " + torepr(self.names)
     end
+  | invalid-array-index(method-name :: String, array :: Array, index :: Number, reason :: String) with:
+    tostring(self):
+      "Error: Bad array index " + tostring(self.index) + " in " + self.method-name + ": " + self.reason
+    end
   | user-break
 end
 

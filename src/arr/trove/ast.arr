@@ -508,7 +508,7 @@ data Expr:
     label(self): "s-construct" end,
     tosource(self):
       PP.surround(INDENT, 0, PP.lbrack,
-        PP.group(PP.separate(PP.break(1), [self.modifier.tosource(), self.constructor.tosource()]))
+        PP.group(PP.separate(PP.sbreak(1), [self.modifier.tosource(), self.constructor.tosource()]))
           + str-colonspace
           + PP.separate(PP.commabreak, self.values.map(_.tosource())),
         PP.rbrack)

@@ -36,11 +36,7 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         });
       }
 
-      var checkArity = function(expected, args, source) {
-        if (expected !== args.length) {
-          throw runtime.ffi.throwArityErrorC([source], expected, args);
-        }
-      }
+      var checkArity = runtime.checkArity;
 
 
       function err(str) { return gf(ERR, str).app; }
@@ -88,6 +84,14 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         }
         runtime.checkString(typeName);
         raise(err("generic-type-mismatch")(val, typeName));
+      }
+
+      function throwInvalidArrayIndex(methodName, array, index, reason) {
+        runtime.checkString(methodName);
+        runtime.checkArray(array);
+        runtime.checkNumber(index);
+        runtime.checkString(reason);
+        raise(err("invalid-array-index")(methodName, array, index, reason));
       }
 
       function throwPlusError(left, right) {
@@ -174,6 +178,7 @@ define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
         throwTypeMismatch: throwTypeMismatch,
+        throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
