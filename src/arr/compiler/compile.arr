@@ -53,6 +53,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       cleaned = desugared.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
+                     .visit(U.letrec-visitor)
       when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
       inlined = cleaned.visit(U.inline-lams)
       when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end

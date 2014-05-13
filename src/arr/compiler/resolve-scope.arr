@@ -441,7 +441,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         if env.has-key(s):
           cases (ScopeBinding) env.get(s):
             | let-bind(_, atom, _) => A.s-id(l, atom)
-            | letrec-bind(_, atom, _) => A.s-id-letrec(l, atom)
+            | letrec-bind(_, atom, _) => A.s-id-letrec(l, atom, false)
             | var-bind(_, atom, _) => A.s-id-var(l, atom)
             | global-bind(_, atom, _) => A.s-id(l, atom)
           end
@@ -612,7 +612,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
     end,
     s-id(self, l, id): handle-id(self.env, l, id) end,
-    s-id-letrec(self, l, id): handle-id(self.env, l, id) end,
+    s-id-letrec(self, l, id, _): handle-id(self.env, l, id) end,
     s-id-var(self, l, id): handle-id(self.env, l, id) end,
     s-variant-member(self, l, typ, bind):
       new-bind = cases(A.Bind) bind:
