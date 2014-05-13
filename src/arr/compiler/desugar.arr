@@ -366,8 +366,6 @@ fun desugar-expr(expr :: A.Expr):
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-new-left-app(l, arg, f) =>
-      ds-curry(l, f, [desugar-expr(arg)])
     | s-lam(l, params, args, ann, doc, body, _check) =>
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-method(l, args, ann, doc, body, _check) =>

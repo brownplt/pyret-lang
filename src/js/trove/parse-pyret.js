@@ -606,16 +606,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           // (list-ty-param NAME COMMA)
           return symbol(node.kids[0]);
         },
-        'left-app-fun-expr': function(node) {
-          if (node.kids.length === 1) {
-            // (left-app-fun-expr id)
-            return tr(node.kids[0]);
-          } else {
-            // (left-app-fun-expr id PERIOD name)
-            return RUNTIME.getField(ast, 's-dot')
-              .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
-          }
-        },
         'for-bind': function(node) {
           // (for-bind name FROM e)
           return RUNTIME.getField(ast, 's-for-bind')
