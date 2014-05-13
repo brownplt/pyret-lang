@@ -208,7 +208,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "COLONCOLON", val: coloncolon},
     {name: "COLON", val: colon},
     {name: "CARET", val: caret},
-    {name: "DOLLAR", val: dollar},
+    {name: "CARET", val: dollar},
     {name: "BAR", val: bar},
 
     {name: "RATIONAL", val: rational},

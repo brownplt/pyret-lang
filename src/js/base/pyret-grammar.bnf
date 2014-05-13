@@ -77,12 +77,12 @@ when-expr: WHEN binop-expr COLON block end
 binop-expr: expr (binop expr)*
 
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
-     | NEQ  | LT  | GT | AND | OR | DOLLAR
+     | NEQ  | LT  | GT | AND | OR | CARET
 
 check-op: IS | RAISES | SATISFIES
 
 expr: paren-expr | id-expr | prim-expr
-    | lambda-expr | method-expr | app-expr | left-app-expr
+    | lambda-expr | method-expr | app-expr
     | obj-expr | list-expr
     | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
     | get-bang-expr | update-expr
@@ -115,9 +115,6 @@ app-expr: expr app-args
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] RPAREN
 app-arg-elt: binop-expr COMMA
-
-left-app-expr: expr CARET left-app-fun-expr app-args
-left-app-fun-expr: id-expr | id-expr DOT NAME
 
 inst-expr: expr (LANGLE|LT) inst-elt* ann (RANGLE|GT)
 inst-elt: ann COMMA

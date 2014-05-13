@@ -471,7 +471,7 @@ fun desugar-expr(expr :: A.Expr):
           end
           collect-ors = collect-op("opor", _)
           collect-ands = collect-op("opand", _)
-          collect-carets = collect-op("op$", _)
+          collect-carets = collect-op("op^", _)
           if op == "op==":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               fun(e1, e2):
@@ -516,7 +516,7 @@ fun desugar-expr(expr :: A.Expr):
             end
             operands = collect-ands(expr)
             helper(operands)
-          else if op == "op$":
+          else if op == "op^":
             operands = collect-carets(expr)
             for fold(acc from desugar-expr(operands.first), f from operands.rest):
               A.s-app(f.l, desugar-expr(f), [acc])
