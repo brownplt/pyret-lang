@@ -1,4 +1,12 @@
+import error as E
+
 check:
+  fun get-err(thunk):
+    cases(Either) run-task(thunk):
+      | left(v) => raise("no error")
+      | right(v) => v
+    end
+  end
   letrec f = fun(n):
     if n < 1: 1
     else: n * f(n - 1)
@@ -23,5 +31,18 @@ check:
     odd(6) is false
     even(3) is false
   end
-  
+
+  e8 = get-err(fun(): letrec x-unbound = x-unbound(): 5 end end)
+  e8 satisfies E.is-uninitialized-id
+  e8.name is "x-unbound"
+ 
+  e9 = get-err(fun(): letrec x = y-unbound, y-unbound = 10: x end end)
+  e9 satisfies E.is-uninitialized-id
+  e9.name is "y-unbound"
+
+  fun app(f): f() end
+  e29 = get-err(fun(): letrec x-appd = app(fun(): x-appd end): x-appd end end)
+  e29 satisfies E.is-uninitialized-id
+  e29.name is "x-appd"
+
 end

@@ -56,9 +56,7 @@ define(["require", "q", "js/ffi-helpers"], function(rjs, Q) {
     var deferred = Q.defer();
     safeEval(src, { define: function(deps, body) {
         define(name, deps, body);
-        var loadSuccess = false;
         function success(val) {
-          loadSuccess = true;
           deferred.resolve(val);
         }
         // Since requirejs seems to not call our errback, use its global

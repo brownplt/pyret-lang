@@ -70,16 +70,6 @@ check:
 #    e5.val is "b"
 #    e5.typ is "Number"
 
-  e8 = get-err(fun(): letrec x-unbound = x-unbound(): 5 end end)
-  e8 satisfies E.is-uninitialized-id
-  e8.name is "x-unbound"
-  e8.loc satisfies S.is-srcloc
- 
-  e9 = get-err(fun(): letrec x = y-unbound, y-unbound = 10: x end end)
-  e9 satisfies E.is-uninitialized-id
-  e9.name is "y-unbound"
-  e9.loc satisfies S.is-srcloc
-
   e10 = get-err(fun(): 5() end)
   e10 satisfies E.is-non-function-app
   e10.non-fun-val is 5

@@ -101,45 +101,36 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
         }
       }
 
-      loader.goodIdea(RUNTIME, name, str);
-
-      /* pauseStack clears the stack of this runtime, and closes over it
-         in the restarter continuation, passing it in here.  Calling
-         restarter(value) will restart RUNTIME's current stack as if value was
-         the returned value from this function call (the call to exec()) */
-
       RUNTIME.pauseStack(function(restarter) {
-
-          /* This require instantiates the new (anonymous) module we're
-             evaluating.  The instantiated module is a function that takes a
-             runtime and a namespace and starts the eval'd program: it is
-             a suitable argument to run() */
-
-          require([name], function(a) {
-
-              /* run() starts the anonymous module's evaluation on a new stack
-                 (created by newRuntime).  Once the evaluated program finishes
-                 (if it ever does), the continuation is called with r as either
-                 a Success or Failure Result from newRuntime. */
-
-              newRuntime.run(a, newNamespace, {sync: true}, function(r) {
-
-                  /* makeResult handles turning values from the new runtime into values that
-                     the calling runtime understands (since they don't share
-                     the same instantiation of all the Pyret constructors like PObject, or the
-                     same brands */
-
-                  var wrappedResult = makeResult(newRuntime, RUNTIME, r);
-
-                  /* This restarts the calling stack with the new value, which
-                     used constructors from the calling runtime.  From the point of view of the
-                     caller, wrappedResult is the return value of the call to exec() */
-                  restarter.resume(wrappedResult);
-                });
-            });
+        var loaded = loader.goodIdea(RUNTIME, name, str);
+        loaded.fail(function(err) {
+          restarter.resume(makeResult(newRuntime, RUNTIME, newRuntime.makeFailureResult(err)));
         });
-    }
 
+        loaded.then(function(moduleVal) {
+
+          /* run() starts the anonymous module's evaluation on a new stack
+             (created by newRuntime).  Once the evaluated program finishes
+             (if it ever does), the continuation is called with r as either
+             a Success or Failure Result from newRuntime. */
+
+          newRuntime.run(moduleVal, newNamespace, {sync: true}, function(r) {
+
+              /* makeResult handles turning values from the new runtime into values that
+                 the calling runtime understands (since they don't share
+                 the same instantiation of all the Pyret constructors like PObject, or the
+                 same brands */
+
+              var wrappedResult = makeResult(newRuntime, RUNTIME, r);
+
+              /* This restarts the calling stack with the new value, which
+                 used constructors from the calling runtime.  From the point of view of the
+                 caller, wrappedResult is the return value of the call to exec() */
+              restarter.resume(wrappedResult);
+          });
+        });
+      });
+    }
     return RUNTIME.makeObject({
       provide: RUNTIME.makeObject({
         exec: RUNTIME.makeFunction(execWithDir)
