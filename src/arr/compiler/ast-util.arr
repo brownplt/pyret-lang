@@ -434,17 +434,7 @@ where:
 end
 
 fun value-delays-exec-of(name, expr):
-  var seen-before-delayed = false
-  expr.visit(A.default-iter-visitor.{
-    # Lambdas and methods delay execution
-    s-lam(_, _, _, _, _, _, _, _): false end,
-    s-method(_, _, _, _, _, _, _): false end,
-    s-id-letrec(_, _, this-name, _):
-      when name == this-name: seen-before-delayed := true;
-      false
-    end
-  })
-  not(seen-before-delayed)
+  A.is-s-lam(expr) or A.is-s-method(expr)
 end
 
 letrec-visitor = A.default-map-visitor.{
