@@ -366,8 +366,10 @@ fun desugar-expr(expr :: A.Expr):
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-left-app(l, o, f, args) =>
-      ds-curry(l, f, ([o] + args).map(desugar-expr))
+    | s-left-app(l, e, f, args) =>
+      ds-curry(l, f, ([e] + args).map(desugar-expr))
+    | s-new-left-app(l, arg, f) =>
+      ds-curry(l, f, [desugar-expr(arg)])
     | s-lam(l, params, args, ann, doc, body, _check) =>
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-method(l, args, ann, doc, body, _check) =>
@@ -469,20 +471,17 @@ fun desugar-expr(expr :: A.Expr):
           end
           collect-ors = collect-op("opor", _)
           collect-ands = collect-op("opand", _)
+          collect-carets = collect-op("op$", _)
           if op == "op==":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-                fun(e1, e2):
-                  A.s-prim-app(l, "equiv", [e1, e2])
-                end)
+              fun(e1, e2):
+                A.s-prim-app(l, "equiv", [e1, e2])
+              end)
           else if op == "op<>":
-            A.s-if-else(l,
-              [A.s-if-branch(l,
-                ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-                    fun(e1, e2):
-                      A.s-prim-app(l, "equiv", [e1, e2])
-                    end),
-                  A.s-bool(l, false))],
-              A.s-bool(l, true))
+            ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
+              fun(e1, e2):
+                A.s-prim-app(l, "not", [A.s-prim-app(l, "equiv", [e1, e2])])
+              end)
           else if op == "opor":
             fun helper(operands):
               or-oper = mk-id(l, "or-oper-")
@@ -517,6 +516,11 @@ fun desugar-expr(expr :: A.Expr):
             end
             operands = collect-ands(expr)
             helper(operands)
+          else if op == "op$":
+            operands = collect-carets(expr)
+            for fold(acc from desugar-expr(operands.first), f from operands.rest):
+              A.s-app(f.l, desugar-expr(f), [acc])
+            end
           else:
             raise("No implementation for " + op)
           end

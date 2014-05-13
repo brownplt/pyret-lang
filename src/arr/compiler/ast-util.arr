@@ -384,6 +384,19 @@ fun bad-assignments(initial-env, ast):
   errors
 end
 
+inline-lams = A.default-map-visitor.{
+  s-app(self, loc, f, exps):
+    cases(A.Expr) f:
+      | s-lam(l, _, args, _, _, body, _) =>
+        let-binds = for list.map2(arg from args, exp from exps):
+          A.s-let-bind(arg.l, arg, exp.visit(self))
+        end
+        A.s-let-expr(l, let-binds, body)
+      | else => A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
+    end
+  end
+}
+
 fun check-unbound(initial-env, ast):
   var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(errors) end

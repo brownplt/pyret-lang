@@ -77,7 +77,7 @@ when-expr: WHEN binop-expr COLON block end
 binop-expr: expr (binop expr)*
 
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
-     | NEQ  | LT  | GT | AND | OR
+     | NEQ  | LT  | GT | AND | OR | DOLLAR
 
 check-op: IS | RAISES | SATISFIES
 

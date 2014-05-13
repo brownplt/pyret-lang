@@ -54,7 +54,9 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
       when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-      any-errors = named-shadow-errors + U.check-unbound(libs, cleaned) + U.bad-assignments(libs, cleaned)
+      inlined = cleaned.visit(U.inline-lams)
+      when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
+      any-errors = named-shadow-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
       if is-empty(any-errors):
         if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
         else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)

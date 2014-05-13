@@ -22,7 +22,9 @@ str-letrec = PP.str("letrec")
 str-block = PP.str("block:")
 str-brackets = PP.str("[]")
 str-cases = PP.str("cases")
+str-caret = PP.str("^")
 str-checkcolon = PP.str("check:")
+str-dollar = PP.str("$")
 str-examplescolon = PP.str("examples:")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
@@ -523,7 +525,7 @@ data Expr:
   | s-left-app(l :: Loc, obj :: Expr, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-left-app" end,
     tosource(self):
-      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.sbreak(0) + str-period + self._fun.tosource())
+      PP.group(self.obj.tosource() + PP.nest(INDENT, PP.sbreak(0) + str-caret + self._fun.tosource())
           + PP.parens(PP.separate(PP.commabreak, self.args.map(_.tosource()))))
     end
   | s-id(l :: Loc, id :: Name) with:

@@ -105,6 +105,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const coloncolon = new RegExp("^::", STICKY_REGEXP);
   const colon = new RegExp("^:", STICKY_REGEXP);
   const caret = new RegExp("^\\^", STICKY_REGEXP);
+  const dollar = new RegExp("^\\$", STICKY_REGEXP);
   const equals = new RegExp("^=", STICKY_REGEXP);
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
@@ -207,6 +208,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "COLONCOLON", val: coloncolon},
     {name: "COLON", val: colon},
     {name: "CARET", val: caret},
+    {name: "DOLLAR", val: dollar},
     {name: "BAR", val: bar},
 
     {name: "RATIONAL", val: rational},

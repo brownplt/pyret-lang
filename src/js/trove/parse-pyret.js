@@ -895,6 +895,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       "-": RUNTIME.makeString("op-"),
       "*": RUNTIME.makeString("op*"),
       "/": RUNTIME.makeString("op/"),
+      "$": RUNTIME.makeString("op$"),
       "<=": RUNTIME.makeString("op<="),
       "<": RUNTIME.makeString("op<"),
       ">=": RUNTIME.makeString("op>="),
