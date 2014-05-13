@@ -284,8 +284,8 @@ check:
   end
   fun ifthen(c, t, f):
     group(
-      group(nest(2, opt-break(str("if"), c))) ^ opt-break(
-        group(nest(2, opt-break(str("then"), t))) ^ opt-break(
+      group(nest(2, opt-break(str("if"), c))) $ opt-break(_, 
+        group(nest(2, opt-break(str("then"), t))) $ opt-break(_, 
           group(nest(2, opt-break(str("else"), f))))))
   end
   ifthenelse = ifthen(binop("a", "==", "b"), binop("a", "<<", "2"), binop("a", "+", "b"))

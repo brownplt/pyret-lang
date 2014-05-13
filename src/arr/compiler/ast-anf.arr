@@ -315,7 +315,7 @@ end
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
     | a-program(_, imports, body) =>
-      a-program(dummy-loc, imports.map(strip-loc-header), body^strip-loc-expr())
+      a-program(dummy-loc, imports.map(strip-loc-header), body $ strip-loc-expr)
   end
 end
 
@@ -329,24 +329,24 @@ end
 fun strip-loc-expr(expr :: AExpr):
   cases(AExpr) expr:
     | a-let(_, bind, val, body) =>
-      a-let(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
+      a-let(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-var(_, bind, val, body) =>
-      a-var(dummy-loc, bind^strip-loc-bind(), val^strip-loc-lettable(), body^strip-loc-expr())
+      a-var(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-seq(_, e1, e2) =>
-      a-seq(dummy-loc, e1^strip-loc-lettable(), e2^strip-loc-expr())
+      a-seq(dummy-loc, strip-loc-lettable(e1), strip-loc-expr(e2))
     | a-if(_, c, t, e) =>
-      a-if(dummy-loc, c^strip-loc-val(), t^strip-loc-expr(), e^strip-loc-expr())
+      a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-split-app(_, is-var, f, args, helper, helper-args) =>
       a-split-app(
           dummy-loc,
           is-var,
-          f^strip-loc-val(),
+          strip-loc-val(f),
           args.map(strip-loc-val),
           helper,
           helper-args.map(strip-loc-val)
         )
     | a-lettable(e) =>
-      a-lettable(e^strip-loc-lettable())
+      a-lettable(strip-loc-lettable(e))
   end
 end
 
@@ -358,34 +358,34 @@ end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
-    | a-assign(_, id, value) => a-assign(dummy-loc, id, value^strip-loc-val())
+    | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
     | a-app(_, f, args) =>
-      a-app(dummy-loc, f^strip-loc-val(), args.map(strip-loc-val))
+      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
-      a-update(_, supe^strip-loc-val(), fields.map(strip-loc-field))
+      a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
     | a-extend(_, supe, fields) =>
-      a-extend(_, supe^strip-loc-val(), fields.map(strip-loc-field))
+      a-extend(_, strip-loc-val(supe), fields.map(strip-loc-field))
     | a-dot(_, obj, field) =>
-      a-dot(dummy-loc, obj^strip-loc-val(), field)
+      a-dot(dummy-loc, strip-loc-val(obj), field)
     | a-colon(_, obj, field) =>
-      a-colon(dummy-loc, obj^strip-loc-val(), field)
+      a-colon(dummy-loc, strip-loc-val(obj), field)
     | a-get-bang(_, obj, field) =>
-      a-get-bang(dummy-loc, obj^strip-loc-val(), field)
+      a-get-bang(dummy-loc, strip-loc-val(obj), field)
     | a-lam(_, args, body) =>
-      a-lam(dummy-loc, args, body^strip-loc-expr())
+      a-lam(dummy-loc, args, strip-loc-expr(body))
     | a-method(_, args, body) =>
-      a-method(dummy-loc, args, body^strip-loc-expr())
+      a-method(dummy-loc, args, strip-loc-expr(body))
     | a-val(v) =>
-      a-val(v^strip-loc-val())
+      a-val(strip-loc-val(v))
   end
 end
 
 fun strip-loc-field(field :: AField):
   cases(AField) field:
-    | a-field(_, name, value) => a-field(dummy-loc, name, value^strip-loc-val())
+    | a-field(_, name, value) => a-field(dummy-loc, name, strip-loc-val(value))
   end
 end
 

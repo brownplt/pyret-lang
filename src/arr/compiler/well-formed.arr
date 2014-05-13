@@ -54,7 +54,7 @@ reserved-names = [
 
 
 fun add-error(err):
-  errors := err ^ link(errors)
+  errors := err $ link(_, errors)
   nothing
 end
 fun wf-error(msg, loc):

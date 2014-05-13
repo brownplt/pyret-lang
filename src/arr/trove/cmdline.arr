@@ -126,7 +126,7 @@ fun usage-info(options-raw) -> List<String>:
           end
       end
     end
-  format("Usage: ~a [options] where:", [file-name]) ^ link(option-info)
+  format("Usage: ~a [options] where:", [file-name]) $ link(_, option-info)
 end
 
 # options : Dictionary of Params

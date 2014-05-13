@@ -564,8 +564,8 @@ where:
 
   if-else = "if true: 5 else: 6 end"
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
-  p(if-else)^pretty() is if-else
-  p(ask-otherwise)^pretty() is ask-otherwise
+  p(if-else) $ pretty is if-else
+  p(ask-otherwise) $ pretty is ask-otherwise
   
   prog2 = p("[1,2,1 + 2]")
   ds(prog2)
@@ -583,7 +583,7 @@ where:
     satisfies equiv(p("map(fun(elt): _plus(elt, 1) end, l)"))
   
   # Some kind of bizarre parse error here
-  # prog4 = p("(((5 + 1)) == 6) or o^f()")
+  # prog4 = p("(((5 + 1)) == 6) or o^f")
   #  ds(prog4) satisfies
   #    equiv(p("builtins.equiv(5._plus(1), 6)._or(fun(): f(o) end)"))
   

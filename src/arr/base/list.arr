@@ -123,12 +123,12 @@ data List:
 
     map(self, f):
       doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      f(self.first)^link(self.rest.map(f))
+      f(self.first) $ link(_, self.rest.map(f))
     end,
 
     filter(self, f):
       doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
-      if f(self.first): self.first^link(self.rest.filter(f))
+      if f(self.first): self.first $ link(_, self.rest.filter(f))
       else:             self.rest.filter(f)
       end
     end,
@@ -164,7 +164,7 @@ data List:
 
     append(self, other):
       doc: "Takes a list and returns the result of appending the given list to this list"
-      self.first^link(self.rest.append(other))
+      self.first $ link(_, self.rest.append(other))
     end,
 
     last(self):
@@ -218,9 +218,9 @@ data List:
       var are-eq = empty
       var are-gt = empty
       self.each(fun(e):
-          if cmp(e, pivot):     are-lt := e^link(are-lt)
-          else if eq(e, pivot): are-eq := e^link(are-eq)
-          else:                 are-gt := e^link(are-gt)
+          if cmp(e, pivot):     are-lt := e $ link(_, are-lt)
+          else if eq(e, pivot): are-eq := e $ link(_, are-eq)
+          else:                 are-gt := e $ link(_, are-gt)
           end
         end)
       less =    are-lt.sort-by(cmp, eq)
@@ -292,8 +292,8 @@ fun set-help(lst, n :: Number, v):
         set to the given value, or raises an error if n is out of range```
   fun help(l, cur):
     if is-empty(l): raise("set: n too large " + tostring(n))
-    else if cur == 0: v ^ link(l.rest)
-    else: l.first ^ link(help(l.rest, cur - 1))
+    else if cur == 0: v $ link(_, l.rest)
+    else: l.first $ link(_, help(l.rest, cur - 1))
     end
   end
   if n < 0: raise("set: invalid argument: " + tostring(n))
@@ -304,7 +304,7 @@ fun reverse-help(lst, acc):
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   cases(List) lst:
     | empty => acc
-    | link(first, rest) => reverse-help(rest, first^link(acc))
+    | link(first, rest) => reverse-help(rest, first $ link(_, acc))
   end
 end
 
@@ -347,7 +347,7 @@ fun filter(f, lst :: List):
     empty
   else:
     if f(lst.first):
-      lst.first^link(filter(f, lst.rest))
+      lst.first $ link(_, filter(f, lst.rest))
     else:
       filter(f, lst.rest)
     end
@@ -363,9 +363,9 @@ fun partition(f, lst :: List):
     else:
       help(inner-lst.rest)
       if f(inner-lst.first):
-        is-true := inner-lst.first^link(is-true)
+        is-true := inner-lst.first $ link(_, is-true)
       else:
-        is-false := inner-lst.first^link(is-false)
+        is-false := inner-lst.first $ link(_, is-false)
       end
     end
   end
@@ -408,7 +408,7 @@ fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
         | empty => raise("Index too large")
         | link(fst, rst) =>
           help(ind - 1, rst)
-          prefix := fst^link(prefix)
+          prefix := fst $ link(_, prefix)
       end
     end
   end
@@ -471,7 +471,7 @@ fun map(f, lst :: List):
   if is-empty(lst):
     empty
   else:
-    f(lst.first)^link(map(f, lst.rest))
+    f(lst.first) $ link(_, map(f, lst.rest))
   end
 end
 
@@ -480,7 +480,7 @@ fun map2(f, l1 :: List, l2 :: List):
   if is-empty(l1) or is-empty(l2):
     empty
   else:
-    f(l1.first, l2.first)^link(map2(f, l1.rest, l2.rest))
+    f(l1.first, l2.first) $ link(_, map2(f, l1.rest, l2.rest))
   end
 end
 
@@ -489,7 +489,7 @@ fun map3(f, l1 :: List, l2 :: List, l3 :: List):
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
-    f(l1.first, l2.first, l3.first)^link(map3(f, l1.rest, l2.rest, l3.rest))
+    f(l1.first, l2.first, l3.first) $ link(_, map3(f, l1.rest, l2.rest, l3.rest))
   end
 end
 
@@ -498,7 +498,7 @@ fun map4(f, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
-    f(l1.first, l2.first, l3.first, l4.first)^link(map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
+    f(l1.first, l2.first, l3.first, l4.first) $ link(_, map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
   end
 end
 
@@ -507,7 +507,7 @@ fun map_n(f, n :: Number, lst :: List):
   if is-empty(lst):
     empty
   else:
-    f(n, lst.first)^link(map_n(f, n + 1, lst.rest))
+    f(n, lst.first) $ link(_, map_n(f, n + 1, lst.rest))
   end
 end
 
@@ -516,7 +516,7 @@ fun map2_n(f, n :: Number, l1 :: List, l2 :: List):
   if is-empty(l1) or is-empty(l2):
     empty
   else:
-    f(n, l1.first, l2.first)^link(map2_n(f, n + 1, l1.rest, l2.rest))
+    f(n, l1.first, l2.first) $ link(_, map2_n(f, n + 1, l1.rest, l2.rest))
   end
 end
 
@@ -525,7 +525,7 @@ fun map3_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List):
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
-    f(n, l1.first, l2.first, l3.first)^link(map3_n(f, n + 1, l1.rest, l2.rest, l3.rest))
+    f(n, l1.first, l2.first, l3.first) $ link(_, map3_n(f, n + 1, l1.rest, l2.rest, l3.rest))
   end
 end
 
@@ -534,7 +534,7 @@ fun map4_n(f, n :: Number, l1 :: List, l2 :: List, l3 :: List, l4 :: List):
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
-    f(n, l1.first, l2.first, l3.first, l4.first)^link(map4(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
+    f(n, l1.first, l2.first, l3.first, l4.first) $ link(_, map4(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
   end
 end
 

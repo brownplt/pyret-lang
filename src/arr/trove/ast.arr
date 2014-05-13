@@ -593,7 +593,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank $ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -625,7 +625,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank^list.link(self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank $ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -968,7 +968,7 @@ fun binding-ids(stmt) -> List<Name>:
     | s-fun(l, name, _, _, _, _, _, _) => [s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
-      s-name(l, name) ^ link(flatten(variants.map(variant-ids)))
+      s-name(l, name) $ link(_, flatten(variants.map(variant-ids)))
     | else => []
   end
 end
