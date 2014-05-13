@@ -180,7 +180,7 @@ fun compile-split-app(
     j-block([
 #          rt-method("log", [j-str("Catching, "), obj-of-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
       j-var("from", obj-of-loc(l)),
-      j-if(rt-method("isCont", [j-id(e)]),
+      j-if1(rt-method("isCont", [j-id(e)]),
         j-block([
             j-var(ss,
               j-obj([
@@ -196,17 +196,14 @@ fun compile-split-app(
                 #+ helper-ids.map(fun(a): j-field(a, j-id(a)) end)
                 )),
             j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(ss))),
+                j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(ss)))
             #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [j-id(ss)])),
-            j-throw(j-id(e))]),
-        j-block([
-            j-if(rt-method("isPyretException", [j-id(e)]),
-                j-block([
-                    j-expr(add-stack-frame(e, j-id("from"))),
-                    j-throw(j-id(e))
-                  ]),
-                j-block([j-throw(j-id(e))]))
-          ]))])
+            ])),
+      j-if1(rt-method("isPyretException", [j-id(e)]),
+          j-block([
+              j-expr(add-stack-frame(e, j-id("from")))
+            ])),
+      j-throw(j-id(e))])
   j-block([
       j-var(z, undefined),
       j-var(f-app, j-fun(["_"], j-block([j-return(app(l, compiled-f, compiled-args))]))),
