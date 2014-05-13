@@ -433,22 +433,41 @@ where:
 
 end
 
+fun value-delays-exec-of(name, expr):
+  var seen-before-delayed = false
+  expr.visit(A.default-iter-visitor.{
+    # Lambdas and methods delay execution
+    s-lam(_, _, _, _, _, _, _, _): false end,
+    s-method(_, _, _, _, _, _, _): false end,
+    s-id-letrec(_, _, this-name, _):
+      when name == this-name: seen-before-delayed := true;
+      false
+    end
+  })
+  not(seen-before-delayed)
+end
+
 letrec-visitor = A.default-map-visitor.{
   env: SD.immutable-string-dict(),
   s-letrec(self, l, binds, body):
-    bind-envs = for map(i from range(0, binds.length())):
-      for fold2(acc from self.env, b from binds, j from range(0, binds.length())):
-        if i > j:
-          acc.set(b.b.id.key(), true)
+    bind-envs = for map2(b1 from binds, i from range(0, binds.length())):
+      rhs-is-delayed = value-delays-exec-of(b1.b.id, b1.value)
+      for fold2(acc from self.env, b2 from binds, j from range(0, binds.length())):
+        key = b2.b.id.key()
+        if i < j:
+          acc.set(key, false)
+        else if i == j:
+          acc.set(key, rhs-is-delayed)
         else:
-          acc.set(b.b.id.key(), false)
+          acc.set(key, true)
         end
       end
     end
     new-binds = for map2(b from binds, bind-env from bind-envs):
       b.visit(self.{ env: bind-env })
     end
-    new-body = body.visit(self.{ env: bind-envs.last() })
+    body-env = bind-envs.last().set(binds.last().b.id.key(), true)
+    new-body = body.visit(self.{ env: body-env })
     A.s-letrec(l, new-binds, new-body)
   end,
   s-id-letrec(self, l, id, _):
