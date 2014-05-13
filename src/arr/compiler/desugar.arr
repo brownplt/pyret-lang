@@ -109,7 +109,7 @@ fun make-torepr(l, vname, fields, is-singleton):
     | empty => str("")
     | link(f, r) =>
       r.foldl(
-          fun(val, acc): concat(acc, concat(str(","), call-torepr(val))) end,
+          fun(val, acc): concat(acc, concat(str(", "), call-torepr(val))) end,
           call-torepr(f)
         )
   end

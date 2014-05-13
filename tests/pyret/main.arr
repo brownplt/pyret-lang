@@ -6,3 +6,5 @@ import "./tests/test-sets.arr" as _
 import "./tests/test-binops.arr" as _
 import "./tests/test-letrec.arr" as _
 import "./tests/test-torepr.arr" as _
+import "./tests/test-array.arr" as _
+
