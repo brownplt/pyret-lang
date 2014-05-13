@@ -2298,6 +2298,8 @@ function createMethodDict() {
         'string_explode': string_explode,
         'string_indexOf': string_indexOf,
 
+        'not': bool_not,
+
         'equiv': sameJSPy,
         'raise': raiseJSJS,
 
