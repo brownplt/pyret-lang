@@ -124,7 +124,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-bool(l, b) => k.apply(l, N.a-val(N.a-bool(l, b)))
     | s-id(l, id) => k.apply(l, N.a-val(N.a-id(l, id)))
     | s-id-var(l, id) => k.apply(l, N.a-val(N.a-id-var(l, id)))
-    | s-id-letrec(l, id) => k.apply(l, N.a-val(N.a-id-letrec(l, id)))
+    | s-id-letrec(l, id, safe) =>
+      k.apply(l, N.a-val(N.a-id-letrec(l, id, safe)))
 
     | s-let-expr(l, binds, body) =>
       cases(List) binds:

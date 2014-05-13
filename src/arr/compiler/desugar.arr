@@ -523,7 +523,7 @@ fun desugar-expr(expr :: A.Expr):
       end
     | s-id(l, x) => expr
     | s-id-var(l, x) => expr
-    | s-id-letrec(l, x) => expr
+    | s-id-letrec(_, _, _) => expr
     | s-num(_, _) => expr
     | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr

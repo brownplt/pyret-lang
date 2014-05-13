@@ -320,12 +320,16 @@ compiler-visitor = {
   a-id-var(self, l :: Loc, id :: String):
     j-dot(j-id(js-id-of(id.tostring())), "$var")
   end,
-  a-id-letrec(self, l :: Loc, id :: String):
+  a-id-letrec(self, l :: Loc, id :: String, safe :: Boolean):
     s = id.tostring()
-    j-ternary(
-      j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, undefined),
-      raise-id-exn(obj-of-loc(l), id.toname()),
-      j-dot(j-id(js-id-of(s)), "$var"))
+    if safe:
+      j-dot(j-id(js-id-of(s)), "$var")
+    else:
+      j-ternary(
+        j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, undefined),
+        raise-id-exn(obj-of-loc(l), id.toname()),
+        j-dot(j-id(js-id-of(s)), "$var"))
+    end
   end,
 
   a-data-expr(self, l, name, variants, shared):

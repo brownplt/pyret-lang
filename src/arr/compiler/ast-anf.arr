@@ -303,7 +303,7 @@ data AVal:
   | a-id-var(l :: Loc, id :: Name) with:
     label(self): "a-id-var" end,
     tosource(self): PP.str("!" + self.id.tostring()) end
-  | a-id-letrec(l :: Loc, id :: Name) with:
+  | a-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     label(self): "a-id-letrec" end,
     tosource(self): PP.str("~" + self.id.tostring()) end
 sharing:
@@ -397,7 +397,7 @@ fun strip-loc-val(val :: AVal):
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
-    | a-id-letrec(_, id) => a-id-letrec(dummy-loc, id)
+    | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
   end
 end
 
@@ -504,8 +504,8 @@ default-map-visitor = {
   a-id-var(self, l :: Loc, id :: Name):
     a-id-var(l, id)
   end,
-  a-id-letrec(self, l :: Loc, id :: Name):
-    a-id-letrec(l, id)
+  a-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+    a-id-letrec(l, id, safe)
   end
 }
 
@@ -610,7 +610,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AVal) v:
     | a-id(_, id) => seen-so-far.add(id)
     | a-id-var(_, id) => seen-so-far.add(id)
-    | a-id-letrec(_, id) => seen-so-far.add(id)
+    | a-id-letrec(_, id, _) => seen-so-far.add(id)
     | else => seen-so-far
   end
 end
