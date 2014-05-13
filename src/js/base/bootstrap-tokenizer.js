@@ -44,6 +44,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
     if (tok_type === "STRING") s = fixEscapes(s);
+    else if (tok_type === "LONG_STRING") tok_type = "STRING";
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
   }
   Tokenizer.prototype.postProcessMatch = function(tok, match) {
@@ -125,24 +126,29 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
+  const tquot_str =
+    new RegExp("^```(?:" +
+               "\\\\[01234567]{1,3}" +
+               "|\\\\x[0-9a-fA-F]{1,2}" + 
+               "|\\\\u[0-9a-fA-f]{1,4}" + 
+               "|\\\\[\\\\nrt\"\']" + 
+               "|[^`])*```", STICKY_REGEXP); // NOTE: Allow unescaped newlines
   const dquot_str = 
     new RegExp("^\"(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" + 
                "|\\\\u[0-9a-fA-f]{1,4}" + 
-               "|\\\\[\r\n]{1,2}" + 
                "|\\\\[\\\\nrt\"\']" + 
-               "|[^\"])*\"", STICKY_REGEXP);
+               "|[^\"\n\r])*\"", STICKY_REGEXP);
   const squot_str = 
     new RegExp("^\'(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" + 
                "|\\\\u[0-9a-fA-f]{1,4}" + 
-               "|\\\\[\r\n]{1,2}" + 
                "|\\\\[\\\\nrt\"\']" + 
-               "|[^\'])*\'", STICKY_REGEXP);
+               "|[^\'\n\r])*\'", STICKY_REGEXP);
 
-  const unterminated_string = new RegExp("^[\"\'](.|[\r\n])*", STICKY_REGEXP);
+  const unterminated_string = new RegExp("^[\"\'].*", STICKY_REGEXP);
 
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
   const Tokens = [
@@ -208,6 +214,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
+    {name: "LONG_STRING", val: tquot_str}, 
     {name: "STRING", val: dquot_str}, 
     {name: "STRING", val: squot_str},
 

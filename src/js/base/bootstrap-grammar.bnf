@@ -22,7 +22,9 @@ stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
     | graph-expr | contract-stmt
 
-let-expr: [VAL] toplevel-binding EQUALS binop-expr
+let-expr: toplevel-binding EQUALS binop-expr
+# NEW IN BOOTSTRAP
+let-expr: VAL toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
 toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
@@ -42,10 +44,15 @@ args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
 list-arg-elt: binding COMMA
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
-where-clause: [WHERE|EXAMPLESCOLON block]
+where-clause: [WHERE block]
+# NEW IN BOOTSTRAP
+where-clause: EXAMPLESCOLON block
 
-check-expr: (CHECK|EXAMPLES) STRING COLON block end
-   | (CHECKCOLON|EXAMPLESCOLON) block end
+check-expr: CHECK STRING COLON block end
+check-expr: CHECKCOLON block end
+# NEW IN BOOTSTRAP
+check-expr: EXAMPLES STRING COLON block end
+check-expr: EXAMPLESCOLON block end
 check-test: binop-expr check-op binop-expr | binop-expr
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
@@ -91,6 +98,7 @@ expr: paren-expr | id-expr | prim-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
+bad-expr: UNTERMINATED-STRING | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application

@@ -124,12 +124,14 @@ check-visitor = A.default-map-visitor.{
 }
 
 fun desugar-check(prog):
-  doc: "Desugars all check blocks to be calls to the current checker
+  doc: ```
+        Desugars all check blocks to be calls to the current checker
         Preconditions on prog:
           - well-formed
         Postconditions on prog:
           - contains no s-check or s-check-test statements
-          - all where blocks on s-lam, s-fun, s-data, s-method are none"
+          - all where blocks on s-lam, s-fun, s-data, s-method are none
+        ```
   prog.visit(check-visitor)
 end
 

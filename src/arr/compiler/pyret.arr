@@ -84,7 +84,8 @@ fun main(args):
               when check-mode:
                 results-str = exec-result.render-check-results()
                 print(exec-result.render-check-results())
-                when not(string-contains(results-str, "Looks shipshape")):
+                when not(string-contains(results-str, "Looks shipshape")) and
+                  not(string-contains(results-str, "The program didn't define any tests")):
                   raise("There were test errors")
                 end
               end

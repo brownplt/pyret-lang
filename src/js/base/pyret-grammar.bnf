@@ -91,6 +91,7 @@ expr: paren-expr | id-expr | prim-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
+bad-expr: UNTERMINATED-STRING | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application

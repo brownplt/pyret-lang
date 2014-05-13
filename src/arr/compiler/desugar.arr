@@ -66,7 +66,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
 end
 
 fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
-  doc: "Desugar non-scope and non-check based constructs.
+  doc: ```
+        Desugar non-scope and non-check based constructs.
         Preconditions on program:
           - well-formed
           - contains no s-let, s-var, s-data, s-check, or s-check-test
@@ -79,7 +80,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
                         s-cases, s-left-app, s-not, s-when, s-if-pipe, s-list
                         s-paren
           - contains no s-underscore in expression position (but it may
-            appear in binding positions as in s-let-bind, s-letrec-bind)"
+            appear in binding positions as in s-let-bind, s-letrec-bind)
+        ```
   cases(A.Program) program:
     | s-program(l, _provide, imports, body) =>
       A.s-program(l, _provide, imports, desugar-expr(body))

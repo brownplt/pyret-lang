@@ -42,7 +42,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
       }
-      function string(tok) { return RUNTIME.makeString(tok.value.slice(1, tok.value.length - 1)); }
+      function string(tok) { 
+        if (tok.value.substring(0, 3) === "```")
+          return RUNTIME.makeString(tok.value.slice(3, -3).trim());
+        else
+          return RUNTIME.makeString(tok.value.slice(1, -1));
+      }
       function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
@@ -918,10 +923,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + nextTok.pos.toString(true));
         console.log(nextTok);
-        if (toks.hasNext())
-          RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
-        else
+        if (toks.isEOF(nextTok))
           RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
+        else
+          RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
       }
       //console.log("There were " + countParses + " potential parses");
       if (countParses === 1) {
