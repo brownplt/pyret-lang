@@ -92,6 +92,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("return ")
       self.expr.print-ugly-source(printer)
+      printer(";")
     end,
     tosource(self):
       PP.str("return ") + self.expr.tosource() + PP.str(";")
