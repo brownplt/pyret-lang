@@ -323,7 +323,8 @@ standard-builtins = compile-env(
           "array-from-list",
           "is-array"
         ]),
-      module-bindings("list", [
+      module-bindings("lists", [
+          "list",
           "List",
           "is-empty",
           "is-link",
@@ -357,14 +358,14 @@ standard-builtins = compile-env(
           "fold3",
           "fold4",
           "index"
-          ]),
+        ]),
       module-bindings("option", [
           "Option",
           "is-none",
           "is-some",
           "none",
           "some"
-          ]),
+        ]),
       module-bindings("error", []),
       module-bindings("sets", [
           "set",
