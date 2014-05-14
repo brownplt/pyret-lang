@@ -53,12 +53,12 @@ data AImport:
   | a-import-file(l :: Loc, file :: String, name :: Name) with:
     label(self): "a-import-file" end,
     tosource(self):
-      PP.flow([str-import, PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
+      PP.flow([list: (str-import), PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
     end
   | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
     label(self): "a-import-builtin" end,
     tosource(self):
-      PP.flow([str-import, PP.str(self.lib), str-as, self.name.tosource()])
+      PP.flow([list: (str-import), PP.str(self.lib), str-as, self.name.tosource()])
     end
 sharing:
   visit(self, visitor):
@@ -552,12 +552,12 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-e(expr :: AExpr) -> Set<Name>:
-  freevars-e-acc(expr, set([]))
+  freevars-e-acc(expr, set([list: ]))
 where:
   d = dummy-loc
   freevars-e(
       a-let(d, a-bind(d, "x", A.a-blank), a-val(a-num(d, 4)),
-        a-lettable(a-val(a-id(d, "y"))))).to-list() is ["y"]
+        a-lettable(a-val(a-id(d, "y"))))).to-list() is [list: "y"]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
@@ -614,7 +614,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-l(e :: ALettable) -> Set<Name>:
-  freevars-l-acc(e, set([]))
+  freevars-l-acc(e, set([list: ]))
 end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
@@ -631,11 +631,11 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-v(v :: AVal) -> Set<Name>:
-  freevars-v-acc(v, set([]))
+  freevars-v-acc(v, set([list: ]))
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from set([]), s from ss):
+  for fold(unioned from set([list: ]), s from ss):
     unioned.union(s)
   end
 end

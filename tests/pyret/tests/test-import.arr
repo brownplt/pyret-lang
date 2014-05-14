@@ -4,7 +4,7 @@ import string-dict as S
 
 check "Should import only what is exported":
   keys = S.to-dict(E).keys()
-  set(["f", "x"]).to-list() is set(["x", "f"]).to-list()
+  set([list: "f", "x"]).to-list() is set([list: "x", "f"]).to-list()
   set(keys).to-list() is set(link("x", link("f", empty))).to-list()
 end
 

@@ -20,11 +20,11 @@ fun run-tests():
     e1.val2 is "a"
 
     o = {
-        arr: [1,2,3],
+        arr: [list: 1,2,3],
         _plus(self, other): for list.map2(a1 from self.arr, a2 from other.arr): a1 + a2;;
       }
-    o2 = { arr: [3,4,5] }
-    (o + o2).arr is [4,6,8]
+    o2 = { arr: [list: 3,4,5] }
+    (o + o2).arr is [list: 4,6,8]
 
   end
 end

@@ -20,13 +20,13 @@ data ANFCont:
       cases(N.ALettable) expr:
         | a-val(v) =>
           name = mk-id(l, "cont_tail_app")
-          N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [v]),
+          N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [list: (v)]),
             N.a-lettable(N.a-val(name.id-e)))
         | else =>
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, e-name.id-b, expr,
-            N.a-lettable(N.a-app(l, N.a-id(l, self.name), [e-name.id-e])))
+            N.a-lettable(N.a-app(l, N.a-id(l, self.name), [list: (e-name.id-e)])))
       end
     end
 end
@@ -69,10 +69,10 @@ fun anf-name-rec(
     k :: (List<N.AVal> -> N.AExpr)
   ) -> N.AExpr:
   cases(List) exprs:
-    | empty => k([])
+    | empty => k([list: ])
     | link(f, r) =>
       anf-name(f, name-hint, fun(v):
-          anf-name-rec(r, name-hint, fun(vs): k([v] + vs);)
+          anf-name-rec(r, name-hint, fun(vs): k([list: (v)] + vs);)
         end)
   end
 end
@@ -150,7 +150,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       assigns = for map(b from binds):
         A.s-assign(b.l, b.b.id, b.value)
       end
-      anf(A.s-let-expr(l, let-binds, A.s-block(l, assigns + [body])), k)
+      anf(A.s-let-expr(l, let-binds, A.s-block(l, assigns + [list: (body)])), k)
 
     | s-data-expr(l, data-name, params, mixins, variants, shared, _check) =>
       fun anf-member(member :: A.VariantMember):
@@ -190,9 +190,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       fun anf-variants(vs :: List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
         cases(List) vs:
-          | empty => ks([])
+          | empty => ks([list: ])
           | link(f, r) =>
-            anf-variant(f, fun(v): anf-variants(r, fun(rest-vs): ks([v] + rest-vs););)
+            anf-variant(f, fun(v): anf-variants(r, fun(rest-vs): ks([list: (v)] + rest-vs););)
         end
       end
       exprs = shared.map(_.value)
@@ -216,7 +216,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | k-cont(_) =>
           helper = mk-id(l, "if_helper")
           arg = mk-id(l, "if_helper_arg")
-          N.a-let(l, helper.id-b, N.a-lam(l, [arg.id-b], k.apply(l, N.a-val(arg.id-e))),
+          N.a-let(l, helper.id-b, N.a-lam(l, [list: (arg.id-b)], k.apply(l, N.a-val(arg.id-e))),
             for fold(acc from anf(_else, k-id(helper.id)), branch from branches.reverse()):
               anf-name(branch.test, "anf_if",
                 fun(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)

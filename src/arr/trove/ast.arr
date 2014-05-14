@@ -20,7 +20,7 @@ str-blank = PP.str("")
 str-let = PP.str("let")
 str-letrec = PP.str("letrec")
 str-block = PP.str("block:")
-str-brackets = PP.str("[]")
+str-brackets = PP.str("[list: ]")
 str-cases = PP.str("cases")
 str-caret = PP.str("^")
 str-checkcolon = PP.str("check:")
@@ -192,12 +192,12 @@ data Import:
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s-import" end,
     tosource(self):
-      PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
+      PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     label(self): "s-import-fields" end,
     tosource(self):
-      PP.flow([str-import,
+      PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
           str-from, self.file.tosource()])
     end
@@ -433,7 +433,7 @@ data Expr:
         if is-s-op(exp) and (exp.op == self.op):
           collect-same-operands(exp.left) + collect-same-operands(exp.right)
         else:
-          [exp]
+          [list: exp]
         end
       end
       operands = collect-same-operands(self.left) + collect-same-operands(self.right)
@@ -514,7 +514,7 @@ data Expr:
     label(self): "s-construct" end,
     tosource(self):
       PP.surround(INDENT, 0, PP.lbrack,
-        PP.group(PP.separate(PP.sbreak(1), [self.modifier.tosource(), self.constructor.tosource()]))
+        PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
           + str-colonspace
           + PP.separate(PP.commabreak, self.values.map(_.tosource())),
         PP.rbrack)
@@ -932,7 +932,7 @@ data Ann:
     label(self): "a-arrow" end,
     tosource(self):
       ann = PP.separate(str-space,
-        [PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()])
+        [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
       if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
       else: ann
       end
@@ -982,7 +982,7 @@ end
 fun make-checker-name(name): "is-" + name;
 
 fun flatten(list-of-lists :: List):
-  for fold(biglist from [], piece from list-of-lists):
+  for fold(biglist from [list: ], piece from list-of-lists):
     biglist + piece
   end
 end
@@ -990,18 +990,18 @@ end
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s-variant(_, l2, name, _, _) => [s-name(l2, name), s-name(l2, make-checker-name(name))]
-      | s-singleton-variant(l, name, _) => [s-name(l, name), s-name(l, make-checker-name(name))]
+      | s-variant(_, l2, name, _, _) => [list: s-name(l2, name), s-name(l2, make-checker-name(name))]
+      | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
   cases(Expr) stmt:
-    | s-let(_, b, _, _) => [b.id]
-    | s-var(_, b, _) => [b.id]
-    | s-fun(l, name, _, _, _, _, _, _) => [s-name(l, name)]
+    | s-let(_, b, _, _) => [list: b.id]
+    | s-var(_, b, _) => [list: b.id]
+    | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, name) ^ link(_, flatten(variants.map(variant-ids)))
-    | else => []
+    | else => [list: ]
   end
 end
 
@@ -1162,7 +1162,7 @@ fun equiv-ast-variant(v1 :: Variant, v2 :: Variant):
     | else => raise("nyi variant")
   end
   #(match (cons v1 v2)
-  #  [(cons
+  #  [list: (cons
   #    (s-singleton-variant _ name1 with-members1)
   #    (s-singleton-variant _ name2 with-members2))
   #   (and
@@ -1172,26 +1172,26 @@ end
 
 fun equiv-ast-datatype-variant(v1 :: DatatypeVariant, v2 :: DatatypeVariant):
   raise("nyi datatype-variant")
-  #  [(cons
+  #  [list: (cons
   #    (s-datatype-variant _ name1 binds1 constructor1)
   #    (s-datatype-variant _ name2 binds2 constructor2))
   #   (and
   #    (symbol=? name1 name2)
   #    (length-andmap equiv-ast-variant-member binds1 binds2)
   #    (equiv-ast-constructor constructor1 constructor2))]
-  # [(cons
+  # [list: (cons
   #   (s-datatype-singleton-variant _ name1 constructor1)
   #   (s-datatype-singleton-variant _ name2 constructor2))
   #  (and
   #    (symbol=? name1 name2)
   #    (equiv-ast-constructor constructor1 constructor2))]
-  #  [_ #f]))
+  #  [list: _ #f]))
 end
 
 fun equiv-ast-constructor(c1 :: Constructor, c2 :: Constructor):
   raise("nyi constructor")
   #(match (cons c1 c2)
-  #  [(cons (s-datatype-constructor _ self1 body1)
+  #  [list: (cons (s-datatype-constructor _ self1 body1)
   #         (s-datatype-constructor _ self2 body2))
   #   (and
   #    (symbol=? self1 self2)
@@ -1205,37 +1205,37 @@ fun equiv-ast-ann(a1, a2):
     | else =>
       raise("nyi equiv-ast-ann")
   end
-  #  [(cons (a-name _ id1) (a-name _ id2)) (equal? id1 id2)]
-  #  [(cons (a-pred _ a1 pred1) (a-pred _ a2 pred2))
+  #  [list: (cons (a-name _ id1) (a-name _ id2)) (equal? id1 id2)]
+  #  [list: (cons (a-pred _ a1 pred1) (a-pred _ a2 pred2))
   #   (and
   #    (equiv-ast-ann a1 a2)
   #    (equiv-ast pred1 pred2))]
-  #  [(cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
+  #  [list: (cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
-  #  [(cons (a-method _ args1 ret1) (a-method _ args2 ret2))
+  #  [list: (cons (a-method _ args1 ret1) (a-method _ args2 ret2))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
 #
-#      [(cons (a-field _ name1 ann1) (a-field _ name2 ann2))
+#      [list: (cons (a-field _ name1 ann1) (a-field _ name2 ann2))
 #       (and
 #        (equal? name1 name2)
 #        (equiv-ast-ann ann1 ann2))]
 #
-#      [(cons (a-record _ fields1) (a-record _ fields2))
+#      [list: (cons (a-record _ fields1) (a-record _ fields2))
 #       (length-andmap equiv-ast-ann fields1 fields2)]
-#      [(cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
+#      [list: (cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
 #       (and
 #        (equiv-ast-ann ann1 ann2)
 #        (length-andmap equiv-ast-ann parameters1 parameters2))]
-#      [(cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
+#      [list: (cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
 #       (and
 #        (equiv-ast-ann obj1 obj2)
 #        (equal? field1 field2))]
 #      ;; How to catch NYI things?  I wish for some sort of tag-match predicate on pairs
-#      [_ #f]))
+#      [list: _ #f]))
 end
 
 fun equiv-ast-fun(
@@ -1364,8 +1364,8 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       cases(Expr) ast2:
         | s-method(_, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
-              "meth", [], ar1, an1, d1, b1, c1,
-              "meth", [], ar2, an2, d2, b2, c2
+              "meth", [list: ], ar1, an1, d1, b1, c1,
+              "meth", [list: ], ar2, an2, d2, b2, c2
             )
         | else => false
       end
@@ -2868,7 +2868,7 @@ dummy-loc-visitor = {
 fun build-loc(l):
   cases(S.Srcloc) l:
     | srcloc(source, start-line, start-column, start-char, end-line, end-column, end-char) =>
-      s-obj(l, [
+      s-obj(l, [list: 
           s-data-field(l, s-str(l, "source"), s-str(l, source)),
           s-data-field(l, s-str(l, "start-line"), s-num(l, start-line)),
           s-data-field(l, s-str(l, "start-column"), s-num(l, start-column)),

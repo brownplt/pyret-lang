@@ -16,7 +16,7 @@ right = E.right
 
 fun parse-dialects(arg-index, name, val):
   if (val == "Pyret") or (val == "Bootstrap"): left(val)
-  else: right(format("~a expected a dialect, got ~a", [name, torepr(val)]))
+  else: right(format("~a expected a dialect, got ~a", [list: name, torepr(val)]))
   end
 end
 

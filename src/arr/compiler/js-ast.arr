@@ -210,7 +210,7 @@ data JExpr:
       printer(" ")
       self.right.print-ugly-source(printer)
     end,
-    tosource(self): PP.flow([self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
+    tosource(self): PP.flow([list: self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
   | j-fun(args :: List<String>, body :: JBlock) with:
     print-ugly-source(self, printer):
       printer("function(")
@@ -416,35 +416,35 @@ sharing:
   end
 
 where:
-  j-fun(["a","b"], j-block([j-app(j-id("a"), [j-id("b")])])).tosource().pretty(80) is
-    ["function(a, b) { a(b) }"]
+  j-fun([list: "a","b"], j-block([list: j-app(j-id("a"), [list: j-id("b")])])).tosource().pretty(80) is
+    [list: "function(a, b) { a(b) }"]
 
-  j-fun(["RUNTIME", "NAMESPACE"], j-block([
-      j-var("print", j-method(j-id("NAMESPACE"), "get", [j-str("print")])),
-      j-var("brand", j-method(j-id("NAMESPACE"), "get", [j-str("brand")]))
+  j-fun([list: "RUNTIME", "NAMESPACE"], j-block([list: 
+      j-var("print", j-method(j-id("NAMESPACE"), "get", [list: j-str("print")])),
+      j-var("brand", j-method(j-id("NAMESPACE"), "get", [list: j-str("brand")]))
     ])).tosource().pretty(80)
     is
-    [
+    [list: 
       "function(RUNTIME, NAMESPACE) {",
       "  var print = NAMESPACE.get(\"print\");",
       "  var brand = NAMESPACE.get(\"brand\");",
       "}"
     ]
 
-  j-null.tosource().pretty(5) is ["null"]
+  j-null.tosource().pretty(5) is [list: "null"]
 
   # temporary, until we implement (or replace) raises
   # j-null.tosource().pretty(3) raises "String doesn't fit"
 
   j-raw-holes("try { ~a } catch(e) { ~a }",
-    [j-raw("x + y"), j-id("z")], 100000).tosource().pretty(80) is
-    ["try { x + y } catch(e) { z }"]
+    [list: j-raw("x + y"), j-id("z")], 100000).tosource().pretty(80) is
+    [list: "try { x + y } catch(e) { z }"]
 
-  j-if(j-true, j-block([j-return(j-false)]), j-block([j-return(j-num(5))]))
+  j-if(j-true, j-block([list: j-return(j-false)]), j-block([list: j-return(j-num(5))]))
     .tosource().pretty(80) is
-    ["if(true) { return false; } else { return 5; }"]
+    [list: "if(true) { return false; } else { return 5; }"]
 
-  j-bracket(j-true, j-false).tosource().pretty(20) is ["true[false]"]
+  j-bracket(j-true, j-false).tosource().pretty(20) is [list: "true[list: false]"]
 
 end
 

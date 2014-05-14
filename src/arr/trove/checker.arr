@@ -34,15 +34,15 @@ fun real-loc(l):
 end
 
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
-  var block-results = []
+  var block-results = [list: ]
   fun add-block-result(cbr :: CheckBlockResult):
-    block-results := [cbr] + block-results
+    block-results := [list: cbr] + block-results
   end
-  var current-results = [] 
+  var current-results = [list: ] 
   fun add-result(t :: TestResult):
-    current-results := [t] + current-results
+    current-results := [list: t] + current-results
   end
-  fun reset-results(): current-results := [];
+  fun reset-results(): current-results := [list: ];
   {
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):

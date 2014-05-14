@@ -8,11 +8,11 @@ import "compiler/compile-structs.arr" as C
 import format as F
 
 # TODO: Make this a mutable field when we have them...
-var errors = []
+var errors = [list: ]
 var in-check-block = false
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
 
-reserved-names = [
+reserved-names = [list: 
   "function",
   "break",
   "return",
@@ -61,7 +61,7 @@ fun wf-error(msg, loc):
   add-error(C.wf-err(msg, loc))
 end
 fun wf-error2(msg, loc1, loc2):
-  add-error(C.wf-err-split(msg, [loc1, loc2]))
+  add-error(C.wf-err-split(msg, [list: loc1, loc2]))
 end
 fun duplicate-id(id, loc1, loc2):
   add-error(C.duplicate-id(id, loc1, loc2))
@@ -192,8 +192,8 @@ fun reachable-ops(self, l, op, ast):
 end
 
 fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
-  var cur-shared = []
-  errors := []
+  var cur-shared = [list: ]
+  errors := [list: ]
   well-formed-visitor = A.default-iter-visitor.{
     s-program(self, l, _provide, imports, body):
       ok-body = cases(A.Expr) body:

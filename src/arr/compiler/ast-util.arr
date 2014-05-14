@@ -19,7 +19,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), []) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
@@ -28,13 +28,13 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, headers, A.s-block(l2, [A.s-id(l2, A.s-name(l2, "nothing"))])))
+              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
                 some(A.s-program(l1, _provide, headers,
-                    A.s-block(l2, stmts + [A.s-id(l2, A.s-name(l2, "nothing"))])))
+                    A.s-block(l2, stmts + [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
               end
           end
         | else => none
@@ -58,10 +58,10 @@ end
 
 merge-nested-blocks = A.default-map-visitor.{
     s-block(self, l, stmts):
-      merged-stmts = for fold(new-stmts from [], s from stmts):
+      merged-stmts = for fold(new-stmts from [list: ], s from stmts):
         cases(A.Expr) s.visit(self):
           | s-block(l2, stmts2) => stmts2.reverse() + new-stmts
-          | else => [s] + new-stmts
+          | else => [list: (s)] + new-stmts
         end
       end
       A.s-block(l, merged-stmts.reverse())
@@ -172,7 +172,7 @@ fun <a> default-env-map-visitor(
       A.s-program(l, visit-provide, visit-imports, visit-body)
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
+      bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
         new-bind = b.visit(self.{env : acc.e})
         this-env = bind-handlers.s-let-bind(new-bind, acc.e)
         {
@@ -324,7 +324,7 @@ fun link-list-visitor(initial-env):
             cases(BindingInfo) bind-or-unknown(lnk, self.env):
               | b-prim(n) =>
                 if n == "list:link":
-                  A.s-app(l2, lnk, [_args.first,
+                  A.s-app(l2, lnk, [list: (_args.first),
                       (A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
                 else if n == "list:empty":
                   args.first.visit(self)
@@ -367,7 +367,7 @@ fun link-list-visitor(initial-env):
 end
 
 fun bad-assignments(initial-env, ast):
-  var errors = [] # THE MUTABLE LIST OF ERRORS
+  var errors = [list: ] # THE MUTABLE LIST OF ERRORS
   fun add-error(err): errors := err ^ link(_, errors) end
   ast.visit(binding-env-iter-visitor(initial-env).{
     s-assign(self, loc, id, value):
@@ -398,7 +398,7 @@ inline-lams = A.default-map-visitor.{
 }
 
 fun check-unbound(initial-env, ast):
-  var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
+  var errors = [list: ] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(this-id, env):
     when is-none(bind-exp(this-id, env)):
