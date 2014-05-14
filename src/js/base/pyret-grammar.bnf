@@ -84,7 +84,7 @@ check-op: IS | RAISES | SATISFIES
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
     | obj-expr | list-expr
-    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
+    | dot-expr | bracket-expr
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr
@@ -145,9 +145,6 @@ dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK
 
 get-bang-expr: expr BANG NAME
-
-colon-expr: expr COLON NAME
-colon-bracket-expr: expr COLON LBRACK binop-expr RBRACK
 
 extend-expr: expr DOT LBRACE fields RBRACE
 update-expr: expr BANG LBRACE fields RBRACE
