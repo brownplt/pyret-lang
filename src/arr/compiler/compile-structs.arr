@@ -73,7 +73,7 @@ data CompileBinding:
   | module-bindings(name :: String, bindings :: List<String>)
 end
 
-runtime-builtins = list.map(builtin-id, [
+runtime-builtins = lists.map(builtin-id, [list: 
   "test-print",
   "print",
   "display",
@@ -148,13 +148,14 @@ runtime-builtins = list.map(builtin-id, [
   "raw-array-to-list"
 ])
 
-no-builtins = compile-env([])
+no-builtins = compile-env([list: ])
 
 minimal-builtins = compile-env(runtime-builtins)
 
 bootstrap-builtins = compile-env(
-  [module-bindings("list", [
+  [list: module-bindings("lists", [list: 
       "List",
+      "list",
       "is-empty",
       "is-link",
       "empty",
@@ -188,7 +189,7 @@ bootstrap-builtins = compile-env(
       "fold4",
       "index"
   ])] +
-  runtime-builtins + list.map(builtin-id, [
+  runtime-builtins + lists.map(builtin-id, [list: 
   
 
   "_link",
@@ -314,16 +315,17 @@ bootstrap-builtins = compile-env(
 )
 
 standard-builtins = compile-env(
-    runtime-builtins + [
+    runtime-builtins + [list: 
       builtin-id("_link"),
       builtin-id("_empty"),
-      module-bindings("arrays", [
+      module-bindings("arrays", [list: 
           "array",
           "build-array",
           "array-from-list",
           "is-array"
         ]),
-      module-bindings("list", [
+      module-bindings("lists", [list: 
+          "list",
           "List",
           "is-empty",
           "is-link",
@@ -357,16 +359,16 @@ standard-builtins = compile-env(
           "fold3",
           "fold4",
           "index"
-          ]),
-      module-bindings("option", [
+        ]),
+      module-bindings("option", [list: 
           "Option",
           "is-none",
           "is-some",
           "none",
           "some"
-          ]),
-      module-bindings("error", []),
-      module-bindings("sets", [
+        ]),
+      module-bindings("error", [list: ]),
+      module-bindings("sets", [list: 
           "set",
           "tree-set",
           "list-set"

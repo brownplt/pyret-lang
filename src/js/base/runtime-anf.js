@@ -2471,7 +2471,7 @@ function createMethodDict() {
     };
 
 
-    var list = getField(require("trove/list")(thisRuntime, thisRuntime.namespace), "provide");
+    var list = getField(require("trove/lists")(thisRuntime, thisRuntime.namespace), "provide");
     var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     thisRuntime["ffi"] = ffi;

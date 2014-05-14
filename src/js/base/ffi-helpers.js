@@ -1,4 +1,4 @@
-define(["js/runtime-util", "trove/list", "trove/option", "trove/either", "trove/error", "trove/srcloc"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
     return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib], function(L, O, E, ERR, S) {

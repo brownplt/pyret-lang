@@ -15,7 +15,7 @@ check-stmts-visitor = A.default-map-visitor.{
   s-check-test(self, l, op, left, right):
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [
+        [list: 
           A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           left,
           right,
@@ -26,9 +26,9 @@ check-stmts-visitor = A.default-map-visitor.{
     else if op == "opsatisfies": check-op("check-satisfies")
     else if op == "opraises":
       A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-        [
+        [list: 
           A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
-          A.s-lam(l, [], [], A.a-blank, "", left, none),
+          A.s-lam(l, [list: ], [list: ], A.a-blank, "", left, none),
           right,
           A.build-loc(l)
         ])
@@ -63,15 +63,15 @@ fun get-checks(stmts):
       | else => lst
     end
   end
-  stmts.foldr(add-check, [])
+  stmts.foldr(add-check, [list: ])
 end
 
 fun create-check-block(l, checks):
   fun create-checker(c):
     cases(CheckInfo) c:
       | check-info(l2, name, body) =>
-        check-fun = make-lam(l2, [], body)
-        A.s-obj(l2, [
+        check-fun = make-lam(l2, [list: ], body)
+        A.s-obj(l2, [list: 
             A.s-data-field(l2, A.s-str(l2, "name"), A.s-str(l2, name)),
             A.s-data-field(l2, A.s-str(l2, "run"), check-fun),
             A.s-data-field(l2, A.s-str(l2, "location"), A.build-loc(l2))
@@ -79,8 +79,8 @@ fun create-check-block(l, checks):
     end
   end
   checkers = checks.map(create-checker)
-  A.s-block(l, [
-      A.s-app(l, A.s-dot(l, U.checkers(l), "run-checks"), [
+  A.s-block(l, [list: 
+      A.s-app(l, A.s-dot(l, U.checkers(l), "run-checks"), [list: 
           A.s-str(l, l.source),
           A.s-list(l, checkers)
         ])
@@ -88,7 +88,7 @@ fun create-check-block(l, checks):
 end
 
 fun make-lam(l, args, body):
-  A.s-lam(l, [], args.map(fun(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
+  A.s-lam(l, [list: ], args.map(fun(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
 end
 
 no-checks-visitor = A.default-map-visitor.{
@@ -110,7 +110,7 @@ check-visitor = A.default-map-visitor.{
       A.s-block(
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
-            [
+            [list: 
               A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr, false),
               do-checks,
               A.s-id(l, id-result)

@@ -14,8 +14,8 @@ check:
     end
   }
 
-  [every-other: 1, 2, 3, 4] is link(1, link(3, empty))
-  [every-other: ] is []
+  [list: every-other: 1, 2, 3, 4] is link(1, link(3, empty))
+  [list: every-other: ] is [list: ]
 
   
   dictkv = {
@@ -37,17 +37,17 @@ check:
     end
   }
 
-  d1 = [dictkv:
-    [kv: "a", 10],
-    [kv: "b", 42],
-    [kv: "c", [dictkv: [kv: "d", 6]]]
+  d1 = [list: dictkv:
+    [list: kv: "a", 10],
+    [list: kv: "b", 42],
+    [list: kv: "c", [list: dictkv: [list: kv: "d", 6]]]
   ]
 
   d1.get("a") is 10
   d1.get("b") is 42
   d1.get("c").get("d") is 6
 
-  [kv: "a", 1, 2] raises "Bad key-value"
+  [list: kv: "a", 1, 2] raises "Bad key-value"
 
   dict-list = {
     make: fun(arr):
@@ -62,16 +62,16 @@ check:
     end
   }
 
-  d2 = [dict-list:
+  d2 = [list: dict-list:
     "a", 10,
     "b", 42,
-    "c", [dict-list: "d", 6]
+    "c", [list: dict-list: "d", 6]
   ]
 
   d2.get("a") is 10
   d2.get("b") is 42
   d2.get("c").get("d") is 6
 
-  [dict-list: "a"] raises "Odd number"
+  [list: dict-list: "a"] raises "Odd number"
 
 end

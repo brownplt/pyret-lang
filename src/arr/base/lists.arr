@@ -81,10 +81,6 @@ data List:
       self
     end,
 
-    _equals(self, other):
-      is-empty(other)
-    end,
-
     tostring(self): "[]" end,
 
     _torepr(self): "[]" end,
@@ -179,18 +175,9 @@ data List:
       reverse-help(self, empty)
     end,
 
-    _equals(self, other):
-      if is-link(other):
-        others-equal = (self:first == other:first)
-        others-equal and (self:rest == other:rest)
-      else:
-        false
-      end
-    end,
-
     tostring(self):
       "[" +
-        for raw-fold(combined from tostring(self:first), elt from self:rest):
+        for raw-fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
         end
       + "]"
@@ -198,7 +185,7 @@ data List:
 
     _torepr(self):
       "[" +
-        for raw-fold(combined from torepr(self:first), elt from self:rest):
+        for raw-fold(combined from torepr(self.first), elt from self.rest):
           combined + ", " + torepr(elt)
         end
       + "]"
@@ -313,7 +300,7 @@ fun raw-fold(f, base, lst :: List):
   if is-empty(lst):
     base
   else:
-    raw-fold(f, f(base, lst:first), lst.rest)
+    raw-fold(f, f(base, lst.first), lst.rest)
   end
 end
 
@@ -708,3 +695,9 @@ fun fold_n(f, num :: Number, base, lst :: List):
 end
 
 index = get-help
+
+list = {
+  make: fun(arr):
+    raw-array-to-list(arr)
+  end
+}

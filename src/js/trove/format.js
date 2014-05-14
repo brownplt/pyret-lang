@@ -1,5 +1,5 @@
 
-define(["js/runtime-util", "trove/list", "js/ffi-helpers"], function(util, L, ffiLib) {
+define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, ffiLib) {
 
   return util.memoModule("format", function(RUNTIME, NAMESPACE) {
     var F = ffiLib(RUNTIME, NAMESPACE);

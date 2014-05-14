@@ -19,7 +19,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), []) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
@@ -28,13 +28,13 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, headers, A.s-block(l2, [A.s-id(l2, A.s-name(l2, "nothing"))])))
+              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
                 some(A.s-program(l1, _provide, headers,
-                    A.s-block(l2, stmts + [A.s-id(l2, A.s-name(l2, "nothing"))])))
+                    A.s-block(l2, stmts + [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
               end
           end
         | else => none
@@ -58,10 +58,10 @@ end
 
 merge-nested-blocks = A.default-map-visitor.{
     s-block(self, l, stmts):
-      merged-stmts = for fold(new-stmts from [], s from stmts):
+      merged-stmts = for fold(new-stmts from [list: ], s from stmts):
         cases(A.Expr) s.visit(self):
           | s-block(l2, stmts2) => stmts2.reverse() + new-stmts
-          | else => [s] + new-stmts
+          | else => [list: (s)] + new-stmts
         end
       end
       A.s-block(l, merged-stmts.reverse())
@@ -136,10 +136,10 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
 end
 
 fun binding-env-from-env(initial-env):
-  for list.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
+  for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
     cases(C.CompileBinding) binding:
       | module-bindings(name, ids) =>
-        mod = for list.fold(m from SD.immutable-string-dict(), b from ids):
+        mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
         acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
@@ -172,7 +172,7 @@ fun <a> default-env-map-visitor(
       A.s-program(l, visit-provide, visit-imports, visit-body)
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
+      bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
         new-bind = b.visit(self.{env : acc.e})
         this-env = bind-handlers.s-let-bind(new-bind, acc.e)
         {
@@ -195,7 +195,7 @@ fun <a> default-env-map-visitor(
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
-      args-env = for list.fold(acc from self.env, new-arg from args):
+      args-env = for lists.fold(acc from self.env, new-arg from args):
         bind-handlers.s-bind(new-arg, acc)
       end
       new-body = body.visit(self.{env: args-env})
@@ -204,7 +204,7 @@ fun <a> default-env-map-visitor(
     end,
     s-method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
-      args-env = for list.fold(acc from self.env, arg from new-args):
+      args-env = for lists.fold(acc from self.env, arg from new-args):
         bind-handlers.s-bind(arg, acc)
       end
       new-body = body.visit(self.{env: args-env})
@@ -233,13 +233,13 @@ fun <a> default-env-iter-visitor(
           bind-handlers.s-header(i, acc)
         end
         new-visitor = self.{ env: imported-env }
-        list.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
+        lists.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
       else:
         false
       end
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for list.fold-while(acc from { e: self.env, bs: true }, b from binds):
+      bound-env = for lists.fold-while(acc from { e: self.env, bs: true }, b from binds):
         this-env = bind-handlers.s-let-bind(b, acc.e)
         new-bind = b.visit(self.{env : acc.e})
         if new-bind:
@@ -251,29 +251,29 @@ fun <a> default-env-iter-visitor(
       bound-env.bs and body.visit(self.{env: bound-env.e})
     end,
     s-letrec(self, l, binds, body):
-      bind-env = for list.fold(acc from self.env, b from binds):
+      bind-env = for lists.fold(acc from self.env, b from binds):
         bind-handlers.s-letrec-bind(b, acc)
       end
       new-visitor = self.{env: bind-env}
-      continue-binds = for list.fold-while(acc from true, b from binds):
+      continue-binds = for lists.fold-while(acc from true, b from binds):
         if b.visit(new-visitor): E.left(true) else: E.right(false) end
       end
       continue-binds and body.visit(new-visitor)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      list.all(_.visit(self), args) and
+      lists.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      list.all(_.visit(self), args) and
+      lists.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
@@ -324,7 +324,7 @@ fun link-list-visitor(initial-env):
             cases(BindingInfo) bind-or-unknown(lnk, self.env):
               | b-prim(n) =>
                 if n == "list:link":
-                  A.s-app(l2, lnk, [_args.first,
+                  A.s-app(l2, lnk, [list: (_args.first),
                       (A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
                 else if n == "list:empty":
                   args.first.visit(self)
@@ -367,7 +367,7 @@ fun link-list-visitor(initial-env):
 end
 
 fun bad-assignments(initial-env, ast):
-  var errors = [] # THE MUTABLE LIST OF ERRORS
+  var errors = [list: ] # THE MUTABLE LIST OF ERRORS
   fun add-error(err): errors := err ^ link(_, errors) end
   ast.visit(binding-env-iter-visitor(initial-env).{
     s-assign(self, loc, id, value):
@@ -388,7 +388,7 @@ inline-lams = A.default-map-visitor.{
   s-app(self, loc, f, exps):
     cases(A.Expr) f:
       | s-lam(l, _, args, _, _, body, _) =>
-        let-binds = for list.map2(arg from args, exp from exps):
+        let-binds = for lists.map2(arg from args, exp from exps):
           A.s-let-bind(arg.l, arg, exp.visit(self))
         end
         A.s-let-expr(l, let-binds, body)
@@ -398,7 +398,7 @@ inline-lams = A.default-map-visitor.{
 }
 
 fun check-unbound(initial-env, ast):
-  var errors = [] # THE MUTABLE LIST OF UNBOUND IDS
+  var errors = [list: ] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(this-id, env):
     when is-none(bind-exp(this-id, env)):

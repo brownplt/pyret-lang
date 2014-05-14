@@ -8,11 +8,11 @@ import "compiler/compile-structs.arr" as C
 import format as F
 
 # TODO: Make this a mutable field when we have them...
-var errors = []
+var errors = [list: ]
 var in-check-block = false
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
 
-reserved-names = [
+reserved-names = [list: 
   "function",
   "break",
   "return",
@@ -61,7 +61,7 @@ fun wf-error(msg, loc):
   add-error(C.wf-err(msg, loc))
 end
 fun wf-error2(msg, loc1, loc2):
-  add-error(C.wf-err-split(msg, [loc1, loc2]))
+  add-error(C.wf-err-split(msg, [list: loc1, loc2]))
 end
 fun duplicate-id(id, loc1, loc2):
   add-error(C.duplicate-id(id, loc1, loc2))
@@ -96,7 +96,7 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
     | link(f, rest) =>
       cases(A.CasesBranch) f:
         | s-cases-branch(l, name, args, body) =>
-          cases(Option) list.find(fun(b): b.name == name end, rest):
+          cases(Option) lists.find(fun(b): b.name == name end, rest):
             | some(found) => wf-error2("Duplicate case for " + name, found.l, l)
             | none => ensure-unique-cases(rest)
           end
@@ -112,7 +112,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
         | s-bind(l, shadows, id, ann) =>
           if A.is-s-underscore(id): nothing
           else:
-            cases(Option) list.find(fun(b): b.id == id end, rest):
+            cases(Option) lists.find(fun(b): b.id == id end, rest):
               | some(found) => wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
               | none => ensure-unique-ids(rest)
             end
@@ -133,7 +133,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           if A.is-s-underscore(id): nothing
           else if shadows: nothing
           else:
-            cases(Option) list.find(fun(b): b.id == id end, rest):
+            cases(Option) lists.find(fun(b): b.id == id end, rest):
               | some(found) => duplicate-id(tostring(id), l, found.l)
               | none => ensure-unique-bindings(rest)
             end
@@ -147,7 +147,7 @@ fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Varian
   cases(List) variants:
     | empty => nothing
     | link(f, rest) =>
-      cases(Option) list.find(fun(b): b.name == f.name end, rest):
+      cases(Option) lists.find(fun(b): b.name == f.name end, rest):
         | some(found) => wf-error2("Found duplicate id " + f.name + " in list of bindings", f.l, found.l)
         | none => ensure-unique-variant-ids(rest)
       end
@@ -192,15 +192,15 @@ fun reachable-ops(self, l, op, ast):
 end
 
 fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
-  var cur-shared = []
-  errors := []
+  var cur-shared = [list: ]
+  errors := [list: ]
   well-formed-visitor = A.default-iter-visitor.{
     s-program(self, l, _provide, imports, body):
       ok-body = cases(A.Expr) body:
-        | s-block(l2, stmts) => list.all(_.visit(self), stmts)
+        | s-block(l2, stmts) => lists.all(_.visit(self), stmts)
         | else => body.visit(self)
       end
-      ok-body and (_provide.visit(self)) and (list.all(_.visit(self), imports))
+      ok-body and (_provide.visit(self)) and (lists.all(_.visit(self), imports))
     end,
     s-op(self, l, op, left, right):
       reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
@@ -210,7 +210,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
       end
       ensure-unique-ids(args)
-      list.all(_.visit(self), args) and body.visit(self)
+      lists.all(_.visit(self), args) and body.visit(self)
     end,
     s-block(self, l, stmts):
       if is-empty(stmts):
@@ -220,12 +220,12 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         wf-last-stmt(stmts.last())
         bind-stmts = stmts.filter(fun(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
         ensure-unique-bindings(bind-stmts.reverse())
-        list.all(_.visit(self), stmts)
+        lists.all(_.visit(self), stmts)
       end
     end,
     s-singleton-variant(self, l, name, with-members):
       ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
-      list.all(_.visit(self), with-members)
+      lists.all(_.visit(self), with-members)
     end,
     s-bind(self, l, shadows, name, ann):
       when (reserved-names.member(tostring(name))):
@@ -235,25 +235,25 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
     end,
     s-variant(self, l, constr-loc, name, binds, with-members):
       ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
-      list.all(_.visit(self), binds) and list.all(_.visit(self), with-members)
+      lists.all(_.visit(self), binds) and lists.all(_.visit(self), with-members)
     end,
     s-data(self, l, name, params, mixins, variants, shares, _check):
       ensure-unique-variant-ids(variants)
       the-cur-shared = cur-shared
       cur-shared := fields-to-binds(shares)
-      ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shares)
+      ret = lists.all(_.visit(self), mixins) and lists.all(_.visit(self), variants) and lists.all(_.visit(self), shares)
       cur-shared := the-cur-shared
       ret and wrap-visit-check(self, _check)
     end,
     s-datatype-variant(self, l, name, binds, constructor):
       ensure-unique-ids(fields-to-binds(binds))
-      list.all(_.visit(self), binds) and constructor.visit(self)
+      lists.all(_.visit(self), binds) and constructor.visit(self)
     end,
     s-data-expr(self, l, name, params, mixins, variants, shared, _check):
       ensure-unique-variant-ids(variants)
       the-cur-shared = cur-shared
       cur-shared := fields-to-binds(shared)
-      ret = list.all(_.visit(self), mixins) and list.all(_.visit(self), variants) and list.all(_.visit(self), shared)
+      ret = lists.all(_.visit(self), mixins) and lists.all(_.visit(self), variants) and lists.all(_.visit(self), shared)
       cur-shared := the-cur-shared
       ret and wrap-visit-check(self, _check)
     end,
@@ -276,7 +276,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         | none => nothing
         | some(chk) => ensure-empty-block(l, "methods", chk)
       end
-      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
       when args.length() == 0:
@@ -287,7 +287,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         | none => nothing
         | some(chk) => ensure-empty-block(l, "methods", chk)
       end
-      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
       ensure-unique-ids(args)
@@ -295,11 +295,11 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         | none => nothing
         | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
       end
-      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
     s-fun(self, s, name, params, args, ann, doc, body, _check):
       ensure-unique-ids(args)
-      list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
     end,
     s-check(self, l, name, body, keyword-check):
       wrap-visit-check(self, some(body))
@@ -308,15 +308,15 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
       when branches.length() == 1:
         wf-error("Cannot have an `if` with a single branch", l)
       end
-      list.all(_.visit(self), branches)
+      lists.all(_.visit(self), branches)
     end,
     s-cases(self, l, typ, val, branches):
       ensure-unique-cases(branches)
-      typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+      typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
     end,
     s-cases-else(self, l, typ, val, branches, _else):
       ensure-unique-cases(branches)
-      typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+      typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
     end,
     s-frac(self, l, num, den):
       when den == 0:

@@ -20,7 +20,7 @@ str-blank = PP.str("")
 str-let = PP.str("let")
 str-letrec = PP.str("letrec")
 str-block = PP.str("block:")
-str-brackets = PP.str("[]")
+str-brackets = PP.str("[list: ]")
 str-cases = PP.str("cases")
 str-caret = PP.str("^")
 str-checkcolon = PP.str("check:")
@@ -192,12 +192,12 @@ data Import:
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s-import" end,
     tosource(self):
-      PP.flow([str-import, self.file.tosource(), str-as, self.name.tosource()])
+      PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     label(self): "s-import-fields" end,
     tosource(self):
-      PP.flow([str-import,
+      PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
           str-from, self.file.tosource()])
     end
@@ -433,7 +433,7 @@ data Expr:
         if is-s-op(exp) and (exp.op == self.op):
           collect-same-operands(exp.left) + collect-same-operands(exp.right)
         else:
-          [exp]
+          [list: exp]
         end
       end
       operands = collect-same-operands(self.left) + collect-same-operands(self.right)
@@ -444,7 +444,7 @@ data Expr:
             | empty => first.tosource()
             | link(second, rest2) =>
               op = break-one + PP.str(string-substring(self.op, 2, string-length(self.op))) + break-one
-              nested = for list.fold(acc from second.tosource(), operand from rest2):
+              nested = for lists.fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
               PP.group(first.tosource() + op + PP.nest(INDENT, nested))
@@ -514,7 +514,7 @@ data Expr:
     label(self): "s-construct" end,
     tosource(self):
       PP.surround(INDENT, 0, PP.lbrack,
-        PP.group(PP.separate(PP.sbreak(1), [self.modifier.tosource(), self.constructor.tosource()]))
+        PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
           + str-colonspace
           + PP.separate(PP.commabreak, self.values.map(_.tosource())),
         PP.rbrack)
@@ -601,7 +601,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -633,7 +633,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -808,7 +808,7 @@ data Variant:
         self.members.map(fun(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(fun(m): m.tosource() end)
-      if list.is-empty(withs): header-nowith
+      if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -822,7 +822,7 @@ data Variant:
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(fun(m): m.tosource() end)
-      if list.is-empty(withs): header-nowith
+      if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -932,7 +932,7 @@ data Ann:
     label(self): "a-arrow" end,
     tosource(self):
       ann = PP.separate(str-space,
-        [PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [str-arrow, self.ret.tosource()])
+        [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
       if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
       else: ann
       end
@@ -982,7 +982,7 @@ end
 fun make-checker-name(name): "is-" + name;
 
 fun flatten(list-of-lists :: List):
-  for fold(biglist from [], piece from list-of-lists):
+  for fold(biglist from [list: ], piece from list-of-lists):
     biglist + piece
   end
 end
@@ -990,18 +990,18 @@ end
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:
-      | s-variant(_, l2, name, _, _) => [s-name(l2, name), s-name(l2, make-checker-name(name))]
-      | s-singleton-variant(l, name, _) => [s-name(l, name), s-name(l, make-checker-name(name))]
+      | s-variant(_, l2, name, _, _) => [list: s-name(l2, name), s-name(l2, make-checker-name(name))]
+      | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
   cases(Expr) stmt:
-    | s-let(_, b, _, _) => [b.id]
-    | s-var(_, b, _) => [b.id]
-    | s-fun(l, name, _, _, _, _, _, _) => [s-name(l, name)]
+    | s-let(_, b, _, _) => [list: b.id]
+    | s-var(_, b, _) => [list: b.id]
+    | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, name) ^ link(_, flatten(variants.map(variant-ids)))
-    | else => []
+    | else => [list: ]
   end
 end
 
@@ -1024,7 +1024,7 @@ data Pair:
 end
 
 fun length-andmap(pred, l1, l2):
-  (l1.length() == l2.length()) and list.all2(pred, l1, l2)
+  (l1.length() == l2.length()) and lists.all2(pred, l1, l2)
 end
 
 
@@ -1162,7 +1162,7 @@ fun equiv-ast-variant(v1 :: Variant, v2 :: Variant):
     | else => raise("nyi variant")
   end
   #(match (cons v1 v2)
-  #  [(cons
+  #  [list: (cons
   #    (s-singleton-variant _ name1 with-members1)
   #    (s-singleton-variant _ name2 with-members2))
   #   (and
@@ -1172,26 +1172,26 @@ end
 
 fun equiv-ast-datatype-variant(v1 :: DatatypeVariant, v2 :: DatatypeVariant):
   raise("nyi datatype-variant")
-  #  [(cons
+  #  [list: (cons
   #    (s-datatype-variant _ name1 binds1 constructor1)
   #    (s-datatype-variant _ name2 binds2 constructor2))
   #   (and
   #    (symbol=? name1 name2)
   #    (length-andmap equiv-ast-variant-member binds1 binds2)
   #    (equiv-ast-constructor constructor1 constructor2))]
-  # [(cons
+  # [list: (cons
   #   (s-datatype-singleton-variant _ name1 constructor1)
   #   (s-datatype-singleton-variant _ name2 constructor2))
   #  (and
   #    (symbol=? name1 name2)
   #    (equiv-ast-constructor constructor1 constructor2))]
-  #  [_ #f]))
+  #  [list: _ #f]))
 end
 
 fun equiv-ast-constructor(c1 :: Constructor, c2 :: Constructor):
   raise("nyi constructor")
   #(match (cons c1 c2)
-  #  [(cons (s-datatype-constructor _ self1 body1)
+  #  [list: (cons (s-datatype-constructor _ self1 body1)
   #         (s-datatype-constructor _ self2 body2))
   #   (and
   #    (symbol=? self1 self2)
@@ -1205,37 +1205,37 @@ fun equiv-ast-ann(a1, a2):
     | else =>
       raise("nyi equiv-ast-ann")
   end
-  #  [(cons (a-name _ id1) (a-name _ id2)) (equal? id1 id2)]
-  #  [(cons (a-pred _ a1 pred1) (a-pred _ a2 pred2))
+  #  [list: (cons (a-name _ id1) (a-name _ id2)) (equal? id1 id2)]
+  #  [list: (cons (a-pred _ a1 pred1) (a-pred _ a2 pred2))
   #   (and
   #    (equiv-ast-ann a1 a2)
   #    (equiv-ast pred1 pred2))]
-  #  [(cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
+  #  [list: (cons (a-arrow _ args1 ret1 _) (a-arrow _ args2 ret2 _))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
-  #  [(cons (a-method _ args1 ret1) (a-method _ args2 ret2))
+  #  [list: (cons (a-method _ args1 ret1) (a-method _ args2 ret2))
   #   (and
   #    (length-andmap equiv-ast-ann args1 args2)
   #    (equiv-ast-ann ret1 ret2))]
 #
-#      [(cons (a-field _ name1 ann1) (a-field _ name2 ann2))
+#      [list: (cons (a-field _ name1 ann1) (a-field _ name2 ann2))
 #       (and
 #        (equal? name1 name2)
 #        (equiv-ast-ann ann1 ann2))]
 #
-#      [(cons (a-record _ fields1) (a-record _ fields2))
+#      [list: (cons (a-record _ fields1) (a-record _ fields2))
 #       (length-andmap equiv-ast-ann fields1 fields2)]
-#      [(cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
+#      [list: (cons (a-app _ ann1 parameters1) (a-app _ ann2 parameters2))
 #       (and
 #        (equiv-ast-ann ann1 ann2)
 #        (length-andmap equiv-ast-ann parameters1 parameters2))]
-#      [(cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
+#      [list: (cons (a-dot _ obj1 field1) (a-dot _ obj2 field2))
 #       (and
 #        (equiv-ast-ann obj1 obj2)
 #        (equal? field1 field2))]
 #      ;; How to catch NYI things?  I wish for some sort of tag-match predicate on pairs
-#      [_ #f]))
+#      [list: _ #f]))
 end
 
 fun equiv-ast-fun(
@@ -1364,8 +1364,8 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
       cases(Expr) ast2:
         | s-method(_, ar2, an2, d2, b2, c2) =>
           equiv-ast-fun(
-              "meth", [], ar1, an1, d1, b1, c1,
-              "meth", [], ar2, an2, d2, b2, c2
+              "meth", [list: ], ar1, an1, d1, b1, c1,
+              "meth", [list: ], ar2, an2, d2, b2, c2
             )
         | else => false
       end
@@ -2084,14 +2084,14 @@ default-iter-visitor = {
   end,
   
   s-program(self, l, _provide, imports, body):
-    _provide.visit(self) and list.all(_.visit(self), imports) and body.visit(self)
+    _provide.visit(self) and lists.all(_.visit(self), imports) and body.visit(self)
   end,
   
   s-import(self, l, import-type, name):
     name.visit(self)
   end,
   s-import-fields(self, l, fields, import-type):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   s-provide(self, l, expr):
     expr.visit(self)
@@ -2115,7 +2115,7 @@ default-iter-visitor = {
   end,
   
   s-let-expr(self, l, binds, body):
-    list.all(_.visit(self), binds) and body.visit(self)
+    lists.all(_.visit(self), binds) and body.visit(self)
   end,
   
   s-letrec-bind(self, l, bind, expr):
@@ -2123,7 +2123,7 @@ default-iter-visitor = {
   end,
   
   s-letrec(self, l, binds, body):
-    list.all(_.visit(self), binds) and body.visit(self)
+    lists.all(_.visit(self), binds) and body.visit(self)
   end,
   
   s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
@@ -2131,11 +2131,11 @@ default-iter-visitor = {
   end,
   
   s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    expr.visit(self) and list.all(_.visit(self), params)
+    expr.visit(self) and lists.all(_.visit(self), params)
   end,
   
   s-block(self, l, stmts):
-    list.all(_.visit(self), stmts)
+    lists.all(_.visit(self), stmts)
   end,
   
   s-user-block(self, l :: Loc, body :: Expr):
@@ -2143,7 +2143,7 @@ default-iter-visitor = {
   end,
   
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -2155,7 +2155,7 @@ default-iter-visitor = {
   end,
   
   s-graph(self, l :: Loc, bindings :: List<is-s-let>):
-    list.all(_.visit(self), bindings)
+    lists.all(_.visit(self), bindings)
   end,
   
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -2179,28 +2179,28 @@ default-iter-visitor = {
   end,
   
   s-if(self, l :: Loc, branches :: List<IfBranch>):
-    list.all(_.visit(self), branches)
+    lists.all(_.visit(self), branches)
   end,
   s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    list.all(_.visit(self), branches) and _else.visit(self)
+    lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    list.all(_.visit(self), branches)
+    lists.all(_.visit(self), branches)
   end,
   s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    list.all(_.visit(self), branches) and _else.visit(self)
+    lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-cases-branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
-    list.all(_.visit(self), args) and body.visit(self)
+    lists.all(_.visit(self), args) and body.visit(self)
   end,
   
   s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -2229,7 +2229,7 @@ default-iter-visitor = {
       body :: Expr,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-method(
       self,
@@ -2240,31 +2240,31 @@ default-iter-visitor = {
       body :: Expr,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and list.all(_.visit(self), fields)
+    supe.visit(self) and lists.all(_.visit(self), fields)
   end,
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and list.all(_.visit(self), fields)
+    supe.visit(self) and lists.all(_.visit(self), fields)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   s-list(self, l :: Loc, values :: List<Expr>):
-    list.all(_.visit(self), values)
+    lists.all(_.visit(self), values)
   end,
   s-array(self, l :: Loc, values :: List<Expr>):
-    list.all(_.visit(self), values)
+    lists.all(_.visit(self), values)
   end,
   s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
-    constructor.visit(self) and list.all(_.visit(self), values)
+    constructor.visit(self) and lists.all(_.visit(self), values)
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    _fun.visit(self) and list.all(_.visit(self), args)
+    _fun.visit(self) and lists.all(_.visit(self), args)
   end,
   s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    list.all(_.visit(self), args)
+    lists.all(_.visit(self), args)
   end,
   s-prim-val(self, l :: Loc, name :: String):
     true
@@ -2318,9 +2318,9 @@ default-iter-visitor = {
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), mixins) 
-    and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared-members)
+    lists.all(_.visit(self), mixins) 
+    and lists.all(_.visit(self), variants)
+    and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   s-data-expr(
@@ -2333,9 +2333,9 @@ default-iter-visitor = {
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), mixins)
-    and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared-members)
+    lists.all(_.visit(self), mixins)
+    and lists.all(_.visit(self), variants)
+    and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   s-for(
@@ -2346,7 +2346,7 @@ default-iter-visitor = {
       ann :: Ann,
       body :: Expr
       ):
-    iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
   s-check(self, l :: Loc, name :: String, body :: Expr, keyword-check :: Bool):
     body.visit(self)
@@ -2372,7 +2372,7 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     name.visit(self)
-    and list.all(_.visit(self), args)
+    and lists.all(_.visit(self), args)
     and ann.visit(self)
     and body.visit(self)
     and self.option(_check)
@@ -2392,7 +2392,7 @@ default-iter-visitor = {
       members :: List<VariantMember>,
       with-members :: List<Member>
       ):
-    list.all(_.visit(self), members) and list.all(_.visit(self), with-members)
+    lists.all(_.visit(self), members) and lists.all(_.visit(self), with-members)
   end,
   s-singleton-variant(
       self,
@@ -2400,7 +2400,7 @@ default-iter-visitor = {
       name :: String,
       with-members :: List<Member>
       ):
-    list.all(_.visit(self), with-members)
+    lists.all(_.visit(self), with-members)
   end,
   s-datatype-variant(
       self,
@@ -2409,7 +2409,7 @@ default-iter-visitor = {
       members :: List<VariantMember>,
       constructor :: Constructor
       ):
-    list.all(_.visit(self), members) and constructor.visit(self)
+    lists.all(_.visit(self), members) and constructor.visit(self)
   end,
   s-datatype-singleton-variant(
       self,
@@ -2437,16 +2437,16 @@ default-iter-visitor = {
     true
   end,
   a-arrow(self, l, args, ret, _):
-    list.all(_.visit(self), args) and ret.visit(self)
+    lists.all(_.visit(self), args) and ret.visit(self)
   end,
   a-method(self, l, args, ret):
-    list.all(_.visit(self), args) and ret.visit(self)
+    lists.all(_.visit(self), args) and ret.visit(self)
   end,
   a-record(self, l, fields):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   a-app(self, l, ann, args):
-    ann.visit(self) and list.all(_.visit(self), args)
+    ann.visit(self) and lists.all(_.visit(self), args)
   end,
   a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
@@ -2868,7 +2868,7 @@ dummy-loc-visitor = {
 fun build-loc(l):
   cases(S.Srcloc) l:
     | srcloc(source, start-line, start-column, start-char, end-line, end-column, end-char) =>
-      s-obj(l, [
+      s-obj(l, [list: 
           s-data-field(l, s-str(l, "source"), s-str(l, source)),
           s-data-field(l, s-str(l, "start-line"), s-num(l, start-line)),
           s-data-field(l, s-str(l, "start-column"), s-num(l, start-column)),

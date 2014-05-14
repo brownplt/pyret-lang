@@ -243,8 +243,8 @@ where:
   #the-let = prog5.stmts.first
   #the-let satisfies A.is-s-let-expr
   #the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
-  #the-let.binds.take(3).map(_.value) satisfies list.all(fun(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
-  #the-let.binds.drop(3).map(_.value) satisfies list.all(fun(e): A.is-s-dot(e) and (e.field == "test");, _)
+  #the-let.binds.take(3).map(_.value) satisfies lists.all(fun(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
+  #the-let.binds.drop(3).map(_.value) satisfies lists.all(fun(e): A.is-s-dot(e) and (e.field == "test");, _)
   #the-letrec = the-let.body
   #the-letrec satisfies A.is-s-letrec
   #the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
