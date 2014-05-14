@@ -70,7 +70,7 @@ fun create-check-block(l, checks):
   fun create-checker(c):
     cases(CheckInfo) c:
       | check-info(l2, name, body) =>
-        check-fun = lam(l2, [], body)
+        check-fun = make-lam(l2, [], body)
         A.s-obj(l2, [
             A.s-data-field(l2, A.s-str(l2, "name"), A.s-str(l2, name)),
             A.s-data-field(l2, A.s-str(l2, "run"), check-fun),
@@ -87,7 +87,7 @@ fun create-check-block(l, checks):
     ])
 end
 
-fun lam(l, args, body):
+fun make-lam(l, args, body):
   A.s-lam(l, [], args.map(fun(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
 end
 

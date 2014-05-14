@@ -61,23 +61,23 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end\n" + 
                                "10",
                                "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun: x = 5 end", "Cannot end a block in a let-binding");
-        P.checkCompileErrorMsg("fun: var x = 5 end", "Cannot end a block in a var-binding");
-        P.checkCompileErrorMsg("fun: fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun: x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun: var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun(): x = 5 end", "Cannot end a block in a let-binding");
+        P.checkCompileErrorMsg("fun(): var x = 5 end", "Cannot end a block in a var-binding");
+        P.checkCompileErrorMsg("fun(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun(): x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun(): var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
-        P.checkCompileErrorMsg("fun: 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("fun: 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("fun(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("fun(): 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
 
-        P.checkCompileErrorMsg("fun:\n" + 
+        P.checkCompileErrorMsg("fun():\n" + 
                                "  data D:\n" + 
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
                                "Cannot end a block with a data definition");
-        P.checkCompileErrorMsg("fun:\n" + 
+        P.checkCompileErrorMsg("fun():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
                                "  fun f(): nothing end\n" + 
@@ -86,7 +86,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  end\n" + 
                                "end",
                                "Cannot end a block with a data definition");
-        P.checkCompileErrorMsg("fun:\n" + 
+        P.checkCompileErrorMsg("fun():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
                                "  fun f(): nothing end\n" + 

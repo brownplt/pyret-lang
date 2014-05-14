@@ -752,17 +752,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'lambda-expr': function(node) {
-          if (node.kids.length === 9) {
-            // (lambda-expr FUN ty-params args return-ann COLON doc body check END)
-            return RUNTIME.getField(ast, 's-lam')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                   tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
-          } else {
-            // (lambda-expr FUN ty-params return-ann COLON doc body check END)
-            return RUNTIME.getField(ast, 's-lam')
-              .app(pos(node.pos), tr(node.kids[1]), makeList([]), tr(node.kids[2]),
-                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
-          }
+          // (lambda-expr LAM ty-params args return-ann COLON doc body check END)
+          return RUNTIME.getField(ast, 's-lam')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+                 tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
         },
         'method-expr': function(node) {
           // (method-expr METHOD args return-ann COLON doc body check END)

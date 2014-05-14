@@ -87,14 +87,14 @@
 
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords
-   '("fun" "method" "var" "when" "import" "provide" "check"
+   '("fun" "lam" "method" "var" "when" "import" "provide" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
      "and" "or" "is" "raises" "satisfies" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
 (defconst pyret-paragraph-starters
-  '("|" "fun" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
+  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
 
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
@@ -266,6 +266,7 @@
        (not (pyret-in-string))))
       
 (defsubst pyret-FUN () (pyret-keyword "fun"))
+(defsubst pyret-LAM () (pyret-keyword "lam"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
 (defsubst pyret-LET () (pyret-keyword "let"))
@@ -508,7 +509,7 @@
             (push 'needsomething opens)
             (push 'wantcolonorequal opens)
             (forward-char 3))
-           ((pyret-FUN)
+           ((or (pyret-FUN) (pyret-LAM))
             (incf (pyret-indent-fun defered-opened))
             (push 'fun opens)
             (push 'wantcolon opens)
