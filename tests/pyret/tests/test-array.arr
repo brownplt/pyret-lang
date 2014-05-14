@@ -1,6 +1,8 @@
 #lang pyret
 
 
+fun negate(f): fun(x): not(f(x));;
+
 identical = (_ == _)
 
 check:
@@ -23,8 +25,6 @@ check:
 end
 
 check:
-  fun negate(f): fun(x): not(f(x));;
-
   a1 = [array: 1, 2, 3]
   a1.length() is 3
 
@@ -129,6 +129,17 @@ check:
   f([]) raises "Array"
   f([array: ]).to-list() is []
   f([array: ]) satisfies is-array
+end
+
+check:
+  a1 = raw-array-of(3, 3)
+  a2 = raw-array-of(3, 3)
+  a1 is a2
+  a2 is a1
+
+  raw-array-set(a1, 0, "f")
+  a1 satisfies negate(identical(_, a2))
+  a2 satisfies negate(identical(_, a1))
 end
 
 check:

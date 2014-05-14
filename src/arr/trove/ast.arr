@@ -498,6 +498,12 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
+  | s-array(l :: Loc, values :: List<Expr>) with:
+    label(self): "s-array" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
+        link("raw-array: ", self.values.map(_.tosource())))
+    end
   | s-list(l :: Loc, values :: List<Expr>) with:
     label(self): "s-list" end,
     tosource(self):
@@ -1395,6 +1401,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-list(_, values2) => length-andmap(equiv-ast, values1, values2)
         | else => false
       end
+    | s-array(_, values1) =>
+      cases(Expr) ast2:
+        | s-array(_, values2) => length-andmap(equiv-ast, values1, values2)
+        | else => false
+      end
     | s-construct(_, mod1, constr1, values1) =>
       cases(Expr) ast2:
         | s-construct(_, mod2, constr2, values2) =>
@@ -1833,6 +1844,9 @@ default-map-visitor = {
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
+  s-array(self, l :: Loc, values :: array<Expr>):
+    s-array(l, values.map(_.visit(self)))
+  end,
   s-list(self, l :: Loc, values :: List<Expr>):
     s-list(l, values.map(_.visit(self)))
   end,
@@ -2240,6 +2254,9 @@ default-iter-visitor = {
   s-list(self, l :: Loc, values :: List<Expr>):
     list.all(_.visit(self), values)
   end,
+  s-array(self, l :: Loc, values :: List<Expr>):
+    list.all(_.visit(self), values)
+  end,
   s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and list.all(_.visit(self), values)
   end,
@@ -2630,6 +2647,9 @@ dummy-loc-visitor = {
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(dummy-loc, fields.map(_.visit(self)))
+  end,
+  s-array(self, l :: Loc, values :: List<Expr>):
+    s-array(dummy-loc, values.map(_.visit(self)))
   end,
   s-list(self, l :: Loc, values :: List<Expr>):
     s-list(dummy-loc, values.map(_.visit(self)))

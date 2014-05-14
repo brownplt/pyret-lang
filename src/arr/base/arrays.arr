@@ -2,7 +2,7 @@
 
 provide {
   array: {
-    make: array-from-list
+    make: make
   },
   build-array: build-array,
   array-from-list: array-from-list,

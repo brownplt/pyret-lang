@@ -233,6 +233,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-method(l, args, ret, doc, body, _) =>
       k.apply(l, N.a-method(l, args.map(fun(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
 
+    | s-array(l, values) =>
+      anf-name-rec(values, "anf_array_val", fun(vs):
+        k.apply(l, N.a-val(N.a-array(l, vs)))
+      end)
+
     | s-app(l, f, args) =>
       anf-name(f, "anf_fun", fun(v):
           anf-name-rec(args, "anf_arg", fun(vs):

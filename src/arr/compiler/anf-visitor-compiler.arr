@@ -297,19 +297,21 @@ compiler-visitor = {
   a-field(self, l :: Loc, name :: String, value :: N.AVal):
     j-field(name, value.visit(self))
   end,
+  a-array(self, l, values):
+    j-list(false, values.map(_.visit(self)))
+  end,
   a-num(self, l :: Loc, n :: Number):
     if num-is-fixnum(n):
-      rt-method("makeNumber", [j-num(n)])
+      j-parens(j-num(n))
     else:
       rt-method("makeNumberFromString", [j-str(tostring(n))])
     end
   end,
   a-str(self, l :: Loc, s :: String):
-    rt-method("makeString", [j-str(s)])
+    j-parens(j-str(s))
   end,
   a-bool(self, l :: Loc, b :: Bool):
-    str = if b: "pyretTrue" else: "pyretFalse";
-    rt-field(str)
+    j-parens(if b: j-true else: j-false end)
   end,
   a-undefined(self, l :: Loc):
     undefined

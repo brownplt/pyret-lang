@@ -1189,6 +1189,15 @@ function createMethodDict() {
         else if (isOpaque(left) && isOpaque(right) && left.equals(left.val, right.val)) {
           continue;
         }
+        else if (isArray(left) && isArray(right)) {
+          if (left.length !== right.length) { return false; }
+          for (var i = 0; i < left.length; i++) {
+            toCompare.push({
+              left: left[i],
+              right: right[i]
+            });
+          }
+        }
         else if (isObject(left) && isObject(right)) {
           var dictLeft = left.dict;
           var dictRight = right.dict;
@@ -1893,7 +1902,7 @@ function createMethodDict() {
     }
 
     var raw_array_of = function(val, len) {
-      thisRuntime.checkArity(2, arguments);
+      thisRuntime.checkArity(2, arguments, "raw-array-of");
       thisRuntime.checkNumber(len);
       var arr = new Array(len);
       var i = 0;
@@ -1904,7 +1913,7 @@ function createMethodDict() {
     }
 
     var raw_array_get = function(arr, ix) {
-      thisRuntime.checkArity(2, arguments);
+      thisRuntime.checkArity(2, arguments, "raw-array-get");
       thisRuntime.checkArray(arr);
       thisRuntime.checkNumber(ix);
       checkArrayIndex("raw-array-get", arr, ix);
@@ -1912,7 +1921,7 @@ function createMethodDict() {
     };
 
     var raw_array_set = function(arr, ix, newVal) {
-      thisRuntime.checkArity(3, arguments);
+      thisRuntime.checkArity(3, arguments, "raw-array-set");
       thisRuntime.checkArray(arr);
       thisRuntime.checkNumber(ix);
       checkArrayIndex("raw-array-set", arr, ix);
@@ -1921,13 +1930,13 @@ function createMethodDict() {
     };
 
     var raw_array_length = function(arr) {
-      thisRuntime.checkArity(1, arguments);
+      thisRuntime.checkArity(1, arguments, "raw-array-length");
       thisRuntime.checkArray(arr);
       return makeNumber(arr.length);
     };
 
     var raw_array_to_list = function(arr) {
-      thisRuntime.checkArity(1, arguments);
+      thisRuntime.checkArity(1, arguments, "raw-array-to-list");
       thisRuntime.checkArray(arr);
       return ffi.makeList(arr);
     };

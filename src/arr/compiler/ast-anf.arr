@@ -12,6 +12,7 @@ str-method = PP.str(" method")
 str-letrec = PP.str("letrec ")
 str-period = PP.str(".")
 str-bang = PP.str("!")
+str-brackets = PP.str("[]")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(":")
@@ -293,6 +294,12 @@ data AVal:
   | a-bool(l :: Loc, b :: Bool) with:
     label(self): "a-bool" end,
     tosource(self): PP.str(tostring(self.b)) end
+  | a-array(l :: Loc, values :: List<AVal>) with:
+    label(self): "a-array" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
+        link("raw-array: ", self.values.map(_.tosource())))
+    end
   # used for letrec
   | a-undefined(l :: Loc) with:
     label(self): "a-undefined" end,
@@ -394,6 +401,7 @@ fun strip-loc-val(val :: AVal):
     | a-num(_, n) => a-num(dummy-loc, n)
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
+    | a-array(_, vs) => a-array(dummy-loc, vs)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
@@ -488,6 +496,9 @@ default-map-visitor = {
   end,
   a-num(self, l :: Loc, n :: Number):
     a-num(l, n)
+  end,
+  a-array(self, l :: Loc, vals :: List<AVal>):
+    a-array(l, vals.map(_.visit(self)))
   end,
   a-str(self, l :: Loc, s :: String):
     a-str(l, s)
@@ -608,6 +619,10 @@ end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AVal) v:
+    | a-array(_, vs) =>
+      for fold(acc from seen-so-far, shadow v from vs):
+        freevars-v-acc(v, acc)
+      end
     | a-id(_, id) => seen-so-far.add(id)
     | a-id-var(_, id) => seen-so-far.add(id)
     | a-id-letrec(_, id, _) => seen-so-far.add(id)
