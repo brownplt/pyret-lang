@@ -121,7 +121,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           expect(e.length).toEqual(1);
           return true;
         });
-        P.checkCompileError("for each(elt from []): end", function(e) {
+        P.checkCompileError("for each(elt from [list: ]): end", function(e) {
           expect(e.length).toEqual(1);
           return true;
         });
@@ -166,27 +166,27 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("malformed cases", function(done) {
-        P.checkCompileErrorMsg("cases(List) []:\n" +
+        P.checkCompileErrorMsg("cases(List) [list: ]:\n" +
                                "  | empty => 1\n" +
                                "  | empty => 2\n" +
                                "end",
                                "Duplicate case for empty");
 
-        P.checkCompileErrorMsg("cases(List) []:\n" +
+        P.checkCompileErrorMsg("cases(List) [list: ]:\n" +
                                "  | empty => 1\n" +
                                "  | link(f, r) => 2\n" +
                                "  | empty => 2\n" +
                                "end",
                                "Duplicate case for empty");
 
-        P.checkCompileErrorMsg("cases(List) []:\n" +
+        P.checkCompileErrorMsg("cases(List) [list: ]:\n" +
                                "  | empty => 1\n" +
                                "  | empty => 2\n" +
                                "  | else => 3\n" +
                                "end",
                                "Duplicate case for empty");
 
-        P.checkCompileErrorMsg("cases(List) []:\n" +
+        P.checkCompileErrorMsg("cases(List) [list: ]:\n" +
                                "  | link(f, r) => 2\n" +
                                "  | bogus => 'bogus'\n" +
                                "  | bogus2 => 'bogus'\n" +
@@ -197,7 +197,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end",
                                "Duplicate case for empty");
 
-        P.checkCompileErrorMsg("cases(List) []:\n" +
+        P.checkCompileErrorMsg("cases(List) [list: ]:\n" +
                                "  | empty => 2\n" +
                                "  | bogus => 'bogus'\n" +
                                "  | bogus2 => 'bogus'\n" +

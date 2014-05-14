@@ -76,7 +76,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 " end\n" +
 " fun asRGB(obj): obj.asRGB() end\n" +
 " fun getR(obj): obj.r end\n" +
-" [rgb(100,100,100), red, green].map(asRGB).map(getR) == [100, 256, 0]\n",
+" [list: rgb(100,100,100), red, green].map(asRGB).map(getR) == [list: 100, 256, 0]\n",
           rt.pyretTrue);
 
         P.wait(done);
