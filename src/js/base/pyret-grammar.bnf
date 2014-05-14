@@ -83,7 +83,7 @@ check-op: IS | RAISES | SATISFIES
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
-    | obj-expr | list-expr
+    | obj-expr
     | dot-expr | bracket-expr
     | get-bang-expr | update-expr
     | extend-expr
@@ -108,7 +108,7 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: (LAM|FUN) ty-params args return-ann COLON doc-string block where-clause end
+lambda-expr: LAM ty-params args return-ann COLON doc-string block where-clause end
 
 method-expr: METHOD args return-ann COLON doc-string block where-clause end
 
@@ -134,12 +134,9 @@ field: key COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
 key: NAME | LBRACK binop-expr RBRACK
 
-list-elt: binop-expr COMMA
-list-expr: LBRACK [list-elt* binop-expr] RBRACK
-
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
 construct-modifier: | LAZY
-
+list-elt: binop-expr COMMA
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK

@@ -28,13 +28,13 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
+              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
                 some(A.s-program(l1, _provide, headers,
-                    A.s-block(l2, stmts + [list: (A.s-id(l2, A.s-name(l2, "nothing")))])))
+                    A.s-block(l2, stmts + [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
               end
           end
         | else => none
@@ -61,7 +61,7 @@ merge-nested-blocks = A.default-map-visitor.{
       merged-stmts = for fold(new-stmts from [list: ], s from stmts):
         cases(A.Expr) s.visit(self):
           | s-block(l2, stmts2) => stmts2.reverse() + new-stmts
-          | else => [list: (s)] + new-stmts
+          | else => [list: s] + new-stmts
         end
       end
       A.s-block(l, merged-stmts.reverse())
@@ -324,8 +324,8 @@ fun link-list-visitor(initial-env):
             cases(BindingInfo) bind-or-unknown(lnk, self.env):
               | b-prim(n) =>
                 if n == "list:link":
-                  A.s-app(l2, lnk, [list: (_args.first),
-                      (A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args)).visit(self)]) 
+                  A.s-app(l2, lnk, [list: _args.first,
+                      A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args).visit(self)]) 
                 else if n == "list:empty":
                   args.first.visit(self)
                 else:

@@ -77,8 +77,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
         Postconditions on program:
           - in addition to preconditions,
             contains no s-for, s-if, s-op, s-method-field,
-                        s-cases, s-not, s-when, s-if-pipe, s-list
-                        s-paren
+                        s-cases, s-not, s-when, s-if-pipe, s-paren
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
@@ -443,7 +442,6 @@ fun desugar-expr(expr :: A.Expr):
       desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
-    | s-colon(l, obj, field) => ds-curry-nullary(A.s-colon, l, obj, field)
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body) => 
       values = bindings.map(_.value).map(desugar-expr)
@@ -533,15 +531,6 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
-    | s-list(l, elts) =>
-      elts.foldr(lam(elt, list-expr):
-          A.s-prim-app(
-              l,
-              "_link",
-              [list: desugar-expr(elt), list-expr]
-            )
-        end,
-        desugar-expr(gid(l, "_empty")))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>

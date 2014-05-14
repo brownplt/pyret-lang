@@ -26,7 +26,7 @@ sharing:
   _plus(self, other :: ConcatList):
     concat-append(self, other)
   end,
-  to-list(self): self.to-list-acc([]) end
+  to-list(self): self.to-list-acc([list: ]) end
 end
 
 
@@ -50,7 +50,7 @@ end
 data SplitResult:
   | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<Name>) with:
     tosource(self):
-      PP.vert(self.helpers.map(_.tosource()) + [self.body.tosource()])
+      PP.vert(self.helpers.map(_.tosource()) + [list: self.body.tosource()])
     end
 end
 
@@ -72,7 +72,7 @@ data SplitResultInt:
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from set([]), s from ss):
+  for fold(unioned from set([list: ]), s from ss):
     unioned.union(s)
   end
 end
@@ -192,24 +192,24 @@ check:
   d = N.dummy-loc
   n = A.global-names.make-atom
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
-  split-strip(e1) is split-result-int-e(concat-empty, e1, set([]))
+  split-strip(e1) is split-result-int-e(concat-empty, e1, set([list: ]))
 
   x = n("x")
   e2 = N.a-let(d, N.a-bind(d, x, A.a-blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
   e2-split = split-strip(e2)
-  e2-split.helpers.to-list() is []
+  e2-split.helpers.to-list() is [list: ]
   e2-split.body is e2
-  e2-split.freevars is set([])
+  e2-split.freevars is set([list: ])
 
   v = n("v")
   f = n("f")
-  e3 = N.a-let(d, N.a-bind(d, v, A.a-blank), N.a-app(d, N.a-id(d, f), [N.a-num(d, 5)]),
+  e3 = N.a-let(d, N.a-bind(d, v, A.a-blank), N.a-app(d, N.a-id(d, f), [list: N.a-num(d, 5)]),
     N.a-lettable(N.a-val(N.a-id(d, v))))
   e3-split = split-strip(e3)
   e3-split.helpers.to-list().length() is 1
   e3-split.helpers.to-list().first.body is
     N.a-lettable(N.a-val(N.a-id(d, v)))
   e3-split.body is
-    N.a-split-app(d, false, N.a-id(d, f), [N.a-num(d, 5)], e3-split.helpers.to-list().first.name, [N.a-id(d, v)])
+    N.a-split-app(d, false, N.a-id(d, f), [list: N.a-num(d, 5)], e3-split.helpers.to-list().first.name, [list: N.a-id(d, v)])
 end
 

@@ -629,17 +629,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         'list-elt': function(node) {
           return tr(node.kids[0]);
         },
-        'list-expr': function(node) {
-          if (node.kids.length === 2) {
-            // (list-expr LBRACK RBRACK)
-            return RUNTIME.getField(ast, 's-list')
-              .app(pos(node.pos), makeList([]));
-          } else {
-            // (list-expr LBRACK list-fields RBRACK)
-            return RUNTIME.getField(ast, 's-list')
-              .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
-          }
-        },
         'construct-expr': function(node) {
           return RUNTIME.getField(ast, 's-construct')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))
@@ -676,16 +665,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         'bracket-expr': function(node) {
           // (bracket-expr obj PERIOD LBRACK field RBRACK)
           return RUNTIME.getField(ast, 's-bracket')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
-        },
-        'colon-expr': function(node) {
-          // (colon-expr obj COLON field)
-          return RUNTIME.getField(ast, 's-colon')
-            .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
-        },
-        'colon-bracket-expr': function(node) {
-          // (colon-bracket-expr obj COLON LBRACK field RBRACK)
-          return RUNTIME.getField(ast, 's-colon-bracket')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'cases-expr': function(node) {

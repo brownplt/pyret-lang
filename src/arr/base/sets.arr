@@ -169,7 +169,7 @@ data Set:
     
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
-      list-set(self.elems.filter(fun (x): x <> elem end))
+      list-set(self.elems.filter(lam(x): x <> elem end))
     end,
     
     to-list(self) -> List:

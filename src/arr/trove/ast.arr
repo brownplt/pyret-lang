@@ -504,12 +504,6 @@ data Expr:
       PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
         link("raw-array: ", self.values.map(_.tosource())))
     end
-  | s-list(l :: Loc, values :: List<Expr>) with:
-    label(self): "s-list" end,
-    tosource(self):
-      PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
-        self.values.map(_.tosource()))
-    end
   | s-construct(l :: Loc, modifier :: ConstructModifier, constructor :: Expr, values :: List<Expr>) with:
     label(self): "s-construct" end,
     tosource(self):
@@ -569,14 +563,6 @@ data Expr:
   | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
     label(self): "s-bracket" end,
     tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
-        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
-    end
-  | s-colon(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s-colon" end,
-    tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
-  | s-colon-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
-    label(self): "s-colon-bracket" end,
-    tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s-data(
@@ -1396,11 +1382,6 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
         | s-contract(_, name2, ann2) => equiv-name(name1, name2) and equiv-ast-ann(ann1, ann2)
         | else => false
       end          
-    | s-list(_, values1) =>
-      cases(Expr) ast2:
-        | s-list(_, values2) => length-andmap(equiv-ast, values1, values2)
-        | else => false
-      end
     | s-array(_, values1) =>
       cases(Expr) ast2:
         | s-array(_, values2) => length-andmap(equiv-ast, values1, values2)
@@ -1536,12 +1517,6 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-ast(value1, value2)
         | else => false
       end
-    | s-colon(_, obj1, field1) =>
-      cases(Expr) ast2:
-        | s-colon(_, obj2, field2) =>
-          equiv-ast(obj1, obj2) and (field1 == field2)
-        | else => false
-      end
     | s-dot(_, obj1, field1) =>
       cases(Expr) ast2:
         | s-dot(_, obj2, field2) =>
@@ -1557,12 +1532,6 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
     | s-bracket(_, obj1, field1) =>
       cases(Expr) ast2:
         | s-bracket(_, obj2, field2) =>
-          equiv-ast(obj1, obj2) and equiv-ast(field1, field2)
-        | else => false
-      end
-    | s-colon-bracket(_, obj1, field1) =>
-      cases(Expr) ast2:
-        | s-colon-bracket(_, obj2, field2) =>
           equiv-ast(obj1, obj2) and equiv-ast(field1, field2)
         | else => false
       end
@@ -1847,10 +1816,7 @@ default-map-visitor = {
   s-array(self, l :: Loc, values :: array<Expr>):
     s-array(l, values.map(_.visit(self)))
   end,
-  s-list(self, l :: Loc, values :: List<Expr>):
-    s-list(l, values.map(_.visit(self)))
-  end,
-  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
@@ -1894,12 +1860,6 @@ default-map-visitor = {
   end,
   s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     s-bracket(l, obj.visit(self), field.visit(self))
-  end,
-  s-colon(self, l :: Loc, obj :: Expr, field :: String):
-    s-colon(l, obj.visit(self), field)
-  end,
-  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-colon-bracket(l, obj.visit(self), field.visit(self))
   end,
   s-data(
       self,
@@ -2251,13 +2211,10 @@ default-iter-visitor = {
   s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
   end,
-  s-list(self, l :: Loc, values :: List<Expr>):
-    lists.all(_.visit(self), values)
-  end,
   s-array(self, l :: Loc, values :: List<Expr>):
     lists.all(_.visit(self), values)
   end,
-  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
@@ -2300,12 +2257,6 @@ default-iter-visitor = {
     obj.visit(self)
   end,
   s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    obj.visit(self) and field.visit(self)
-  end,
-  s-colon(self, l :: Loc, obj :: Expr, field :: String):
-    obj.visit(self)
-  end,
-  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     obj.visit(self) and field.visit(self)
   end,
   s-data(
@@ -2651,10 +2602,7 @@ dummy-loc-visitor = {
   s-array(self, l :: Loc, values :: List<Expr>):
     s-array(dummy-loc, values.map(_.visit(self)))
   end,
-  s-list(self, l :: Loc, values :: List<Expr>):
-    s-list(dummy-loc, values.map(_.visit(self)))
-  end,
-  s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
+  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
@@ -2698,12 +2646,6 @@ dummy-loc-visitor = {
   end,
   s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     s-bracket(dummy-loc, obj.visit(self), field.visit(self))
-  end,
-  s-colon(self, l :: Loc, obj :: Expr, field :: String):
-    s-colon(dummy-loc, obj.visit(self), field)
-  end,
-  s-colon-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-colon-bracket(dummy-loc, obj.visit(self), field.visit(self))
   end,
   s-data(
       self,

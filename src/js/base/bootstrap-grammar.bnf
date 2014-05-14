@@ -91,7 +91,7 @@ check-op: IS | RAISES | SATISFIES
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
     | obj-expr
-    | dot-expr | bracket-expr | colon-expr | colon-bracket-expr
+    | dot-expr | bracket-expr
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr
@@ -99,6 +99,7 @@ expr: paren-expr | id-expr | prim-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
     | construct-expr
+
 bad-expr: UNTERMINATED-STRING | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
@@ -114,7 +115,7 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: (LAM|FUN) ty-params [args] return-ann COLON doc-string block where-clause end
+lambda-expr: LAM ty-params args return-ann COLON doc-string block where-clause end
 
 method-expr: METHOD args return-ann COLON doc-string block where-clause end
 
@@ -148,9 +149,6 @@ dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK
 
 get-bang-expr: expr BANG NAME
-
-colon-expr: expr COLON NAME
-colon-bracket-expr: expr COLON LBRACK binop-expr RBRACK
 
 extend-expr: expr DOT LBRACE fields RBRACE
 update-expr: expr BANG LBRACE fields RBRACE

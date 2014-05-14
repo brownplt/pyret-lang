@@ -53,12 +53,12 @@ data AImport:
   | a-import-file(l :: Loc, file :: String, name :: Name) with:
     label(self): "a-import-file" end,
     tosource(self):
-      PP.flow([list: (str-import), PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
+      PP.flow([list: str-import, PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
     end
   | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
     label(self): "a-import-builtin" end,
     tosource(self):
-      PP.flow([list: (str-import), PP.str(self.lib), str-as, self.name.tosource()])
+      PP.flow([list: str-import, PP.str(self.lib), str-as, self.name.tosource()])
     end
 sharing:
   visit(self, visitor):

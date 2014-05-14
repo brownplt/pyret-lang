@@ -40,7 +40,7 @@ fun resolve-imports(imports :: List<A.Import>):
       | s-const-import(_, _) => imp
     end
   end
-  ret = for fold(acc from {imports: [], lets: []}, i from imports):
+  ret = for fold(acc from {imports: [list: ], lets: [list: ]}, i from imports):
     cases(A.Import) i:
       | s-import(l, imp, name) =>
         new-i = A.s-import(l, resolve-import-type(imp), name)
@@ -72,11 +72,11 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       end
       fun handle-let-bind(l, new-bind):
         new-binds = link(new-bind, let-binds)
-        resolved-inner = desugar-scope-block(rest-stmts, new-binds, [])
+        resolved-inner = desugar-scope-block(rest-stmts, new-binds, [list: ])
         if is-empty(letrec-binds):
           resolved-inner
         else:
-          [wrap-letrecs(A.s-block(l, resolved-inner))]
+          [list: wrap-letrecs(A.s-block(l, resolved-inner))]
         end
       end
       wrapper = 
@@ -95,11 +95,11 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
               A.s-lam(l, params, args, ann, doc, body, _check)
             ), letrec-binds)
-          resolved-inner = desugar-scope-block(rest-stmts, [], new-letrecs)
+          resolved-inner = desugar-scope-block(rest-stmts, [list: ], new-letrecs)
           if is-empty(let-binds):
             resolved-inner
           else:
-            [wrap-lets(A.s-block(l, resolved-inner))]
+            [list: wrap-lets(A.s-block(l, resolved-inner))]
           end
         | s-data(l, name, params, mixins, variants, shared, _check) =>
           fun b(loc, id): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
@@ -107,7 +107,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
             vname = v.name
             checker-name = A.make-checker-name(vname)
             get-part = A.s-dot(v.l, data-blob-id, _)
-            [
+            [list:
               A.s-letrec-bind(v.l, b(v.l, vname), get-part(vname)),
               A.s-letrec-bind(v.l, b(v.l, checker-name), get-part(checker-name))
             ]
@@ -116,26 +116,26 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           data-expr = A.s-data-expr(l, name, params, mixins, variants, shared, _check)
           bind-data = A.s-letrec-bind(l, b(l, blob-id), data-expr)
           bind-data-pred = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id(l, A.s-name(l, blob-id)), name))
-          all-binds = for fold(acc from [bind-data-pred, bind-data], v from variants):
+          all-binds = for fold(acc from [list: bind-data-pred, bind-data], v from variants):
             variant-binds(A.s-id(l, A.s-name(l, blob-id)), v) + acc
           end
 
           if is-empty(letrec-binds):
-            [wrapper(A.s-block(l, desugar-scope-block(rest-stmts, [], all-binds)))]
+            [list: wrapper(A.s-block(l, desugar-scope-block(rest-stmts, [list: ], all-binds)))]
           else:
-            desugar-scope-block(rest-stmts, [], all-binds + letrec-binds)
+            desugar-scope-block(rest-stmts, [list: ], all-binds + letrec-binds)
           end
         | s-contract(l, name, ann) =>
           desugar-scope-block(rest-stmts, let-binds, letrec-binds)
         | else =>
           cases(List) rest-stmts:
-            | empty => [wrapper(f)]
+            | empty => [list: wrapper(f)]
             | link(_, _) =>
               if not(is-link(let-binds) or is-link(letrec-binds)):
-                link(f, desugar-scope-block(rest-stmts, [], []))
+                link(f, desugar-scope-block(rest-stmts, [list: ], [list: ]))
               else:
-                [wrapper(A.s-block(f.l,
-                  link(f, desugar-scope-block(rest-stmts, [], []))))]
+                [list: wrapper(A.s-block(f.l,
+                  link(f, desugar-scope-block(rest-stmts, [list: ], [list: ]))))]
               end
           end
       end
@@ -145,24 +145,24 @@ where:
   d = A.dummy-loc
   b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
   id = lam(s): A.s-id(d, A.s-name(d, s));
-  bk = lam(e): A.s-block(d, [e]) end
+  bk = lam(e): A.s-block(d, [list: e]) end
   bs = lam(str):
-    A.s-block(d, desugar-scope-block(p(str).stmts, [], []))
+    A.s-block(d, desugar-scope-block(p(str).stmts, [list: ], [list: ]))
   end
   n = none
-  thunk = lam(e): A.s-lam(d, [], [], A.a-blank, "", bk(e), n) end
+  thunk = lam(e): A.s-lam(d, [list: ], [list: ], A.a-blank, "", bk(e), n) end
 
 
-  compare1 = A.s-let-expr(d, [A.s-let-bind(d, b("x"), A.s-num(d, 15)),
+  compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
                                       A.s-let-bind(d, b("y"), A.s-num(d, 10))],
                         id("y"))
-  desugar-scope-block(p("x = 15 y = 10 y").stmts, [], []).first
+  desugar-scope-block(p("x = 15 y = 10 y").stmts, [list: ], [list: ]).first
     satisfies 
       A.equiv-ast(_, compare1)
 
-  desugar-scope-block(p("x = 55 var y = 10 y").stmts, [], []).first
+  desugar-scope-block(p("x = 55 var y = 10 y").stmts, [list: ], [list: ]).first
     satisfies 
-      A.equiv-ast(_, A.s-let-expr(d, [A.s-let-bind(d, b("x"), A.s-num(d, 55)),
+      A.equiv-ast(_, A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
                                       A.s-var-bind(d, b("y"), A.s-num(d, 10))],
                         id("y")))
 
@@ -170,10 +170,10 @@ where:
     satisfies 
       A.equiv-ast(_,
                   A.s-block(d,
-                    [ A.s-let-expr(d, [A.s-let-bind(d, b("x"), A.s-num(d, 7))],
-                        A.s-block(d, [
-                            A.s-app(d, id("print"), [A.s-num(d, 2)]),
-                            A.s-let-expr(d, [A.s-var-bind(d, b("y"), A.s-num(d, 10))],
+                    [list: A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
+                        A.s-block(d, [list:
+                            A.s-app(d, id("print"), [list:A.s-num(d, 2)]),
+                            A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10))],
                               id("y"))
                           ]))]))
 
@@ -182,14 +182,14 @@ where:
     satisfies
       A.equiv-ast(_,
         A.s-block(d,
-          [ A.s-letrec(d, [
+          [list: A.s-letrec(d, [list:
               A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
               A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
             ],
-            A.s-app(d, id("f"), []))
+            A.s-app(d, id("f"), [list: ]))
           ]))
 
-  p-s = lam(e): A.s-app(d, id("print"), [e]);
+  p-s = lam(e): A.s-app(d, id("print"), [list: e]);
   pretty = lam(e): e.tosource().pretty(80).join-str("\n");
 
   prog2 = bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)")
@@ -197,18 +197,18 @@ where:
     satisfies
       A.equiv-ast(_,
           A.s-block(d,
-            [ p-s(A.s-num(d, 1)),
-              A.s-letrec(d, [
+            [list: p-s(A.s-num(d, 1)),
+              A.s-letrec(d, [list:
                   A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
                   A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5))),
                   A.s-letrec-bind(d, b("h"), thunk(A.s-num(d, 6)))
                 ],
-                A.s-block(d, [
-                    A.s-let-expr(d, [A.s-let-bind(d, b("x"), A.s-num(d, 3))], p-s(id("x")))
+                A.s-block(d, [list:
+                    A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 3))], p-s(id("x")))
                   ]))]))
 
-  desugar-scope-block([prog2], [], []).first satisfies A.equiv-ast(_, prog2)
-  for each2(p1 from desugar-scope-block(prog2.stmts, [], []), p2 from prog2.stmts):
+  desugar-scope-block([list: prog2], [list: ], [list: ]).first satisfies A.equiv-ast(_, prog2)
+  for each2(p1 from desugar-scope-block(prog2.stmts, [list: ], [list: ]), p2 from prog2.stmts):
     p1 satisfies A.equiv-ast(_, p2)
   end
 
@@ -216,7 +216,7 @@ where:
   prog3 satisfies
     A.equiv-ast(_,
       A.s-block(d,
-          [
+          [list:
             p-s(id("x")),
             A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
             p-s(id("x"))
@@ -227,15 +227,15 @@ where:
   prog4 = bs("var x = 10 fun f(): 4 end f()")
   prog4 satisfies
     A.equiv-ast(_,
-      A.s-block(d, [
-        A.s-let-expr(d, [
+      A.s-block(d, [list:
+        A.s-let-expr(d, [list:
               A.s-var-bind(d, b("x"), A.s-num(d, 10))
             ],
-            A.s-block(d, [
-                A.s-letrec(d, [
+            A.s-block(d, [list:
+                A.s-letrec(d, [list:
                     A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4)))
                   ],
-                  A.s-app(d, id("f"), []))
+                  A.s-app(d, id("f"), [list: ]))
               ]))]))
 
   #prog5 = bs("data List: empty | link(f, r) end empty")
@@ -253,14 +253,14 @@ end
 
 desugar-scope-visitor = A.default-map-visitor.{
   s-block(self, l, stmts):
-    A.s-block(l, desugar-scope-block(stmts.map(_.visit(self)), [], []))
+    A.s-block(l, desugar-scope-block(stmts.map(_.visit(self)), [list: ], [list: ]))
   end
 }
 
 fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
   cases(C.CompileEnvironment) env:
     | compile-env(compile-bindings) =>
-      let-binds = for fold(lst from [], b from compile-bindings):
+      let-binds = for fold(lst from [list: ], b from compile-bindings):
           cases(C.CompileBinding) b:
             | module-bindings(mname, bindings) =>
               lst + 
@@ -270,7 +270,7 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
             | else => lst
           end
         end
-      A.s-block(l, let-binds + [expr])
+      A.s-block(l, let-binds + [list: expr])
   end
 end
 
@@ -293,25 +293,25 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
       extra-lets = imports-and-lets.lets
       str = A.s-str(l, _)
       prov = cases(A.Provide) resolve-provide(_provide-raw, body):
-        | s-provide-none(_) => A.s-obj(l, [])
+        | s-provide-none(_) => A.s-obj(l, [list: ])
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
           A.s-block(l2, extra-lets + stmts)
-        | else => A.s-block(l, extra-lets + [body])
+        | else => A.s-block(l, extra-lets + [list: body])
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
           last = stmts.last()
-          new-stmts = stmts.take(stmts.length() - 1) + [A.s-obj(l2, [
+          new-stmts = stmts.take(stmts.length() - 1) + [list: A.s-obj(l2, [list:
               A.s-data-field(l2, str("answer"), last),
               A.s-data-field(l2, str("provide"), prov),
               A.s-data-field(
                   l2,
                   str("checks"),
-                  A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), [])
+                  A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), [list: ])
                 )
             ])]
           A.s-block(l2, new-stmts)
@@ -332,17 +332,17 @@ where:
   checks = A.s-data-field(
                   d,
                   A.s-str(d, "checks"),
-                  A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [])
+                  A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
                 )
   str = A.s-str(d, _)
   ds = desugar-scope(_, C.minimal-builtins)
-  compare1 = A.s-program(d, A.s-provide-none(d), [],
-      A.s-block(d, [
-        A.s-block(d, [
-          A.s-let-expr(d, [
+  compare1 = A.s-program(d, A.s-provide-none(d), [list: ],
+      A.s-block(d, [list:
+        A.s-block(d, [list:
+          A.s-let-expr(d, [list:
               A.s-let-bind(d, b("x"), A.s-num(d, 10))
             ],
-            A.s-obj(d, [
+            A.s-obj(d, [list:
                 A.s-data-field(d, str("answer"), id("nothing")),
                 A.s-data-field(d, str("provide"), id("x")),
                 checks
@@ -354,16 +354,16 @@ where:
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) satisfies
     A.equiv-ast-prog(_, compare1)
 
-  compare2 = A.s-program(d, A.s-provide-none(d), [
+  compare2 = A.s-program(d, A.s-provide-none(d), [list:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
-      A.s-block(d, [
-        A.s-block(d, [
-          A.s-let-expr(d, [
+      A.s-block(d, [list:
+        A.s-block(d, [list:
+          A.s-let-expr(d, [list: 
               A.s-let-bind(d, b("x"), A.s-num(d, 10))
             ],
-            A.s-obj(d, [
-                A.s-data-field(d, str("answer"), A.s-app(d, id("F"), [id("x")])),
+            A.s-obj(d, [list: 
+                A.s-data-field(d, str("answer"), A.s-app(d, id("F"), [list: id("x")])),
                 A.s-data-field(d, str("provide"), id("x")),
                 checks
               ]))
@@ -393,7 +393,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     end
   end
 where:
-  scope-env-from-env(C.compile-env([
+  scope-env-from-env(C.compile-env([list:
       C.builtin-id("x")
     ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
@@ -406,7 +406,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         Postconditions on p:
           - Contains no s-name in names
         ```
-  var shadowing-instances = []
+  var shadowing-instances = [list: ]
   bindings = SD.string-dict()
 
   fun make-atom-for(bind, env, typ):
@@ -464,7 +464,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     s-program(self, l, _provide, imports, body):
-      imports-and-env = for fold(acc from { e: self.env, imps: [] }, i from imports):
+      imports-and-env = for fold(acc from { e: self.env, imps: [list: ] }, i from imports):
         cases(A.Import) i:
           | s-import(l2, file, name) =>
             atom-env = make-atom-for(A.s-bind(l2, false, name, A.a-blank), acc.e, let-bind)
@@ -478,7 +478,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-program(l, _provide, imports-and-env.imps.reverse(), visit-body)
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, bs : [] }, b from binds):
+      bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
         cases(A.LetBind) b:
           | s-let-bind(l2, bind, expr) =>
             atom-env = make-atom-for(bind, acc.e, let-bind)
@@ -505,7 +505,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-let-expr(l, visit-binds, visit-body)
     end,
     s-letrec(self, l, binds, body):
-      bind-env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, b from binds):
+      bind-env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, b from binds):
         atom-env = make-atom-for(b.b, acc.env, letrec-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
@@ -523,7 +523,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-letrec(l, visit-binds, visit-body)
     end,
     s-for(self, l, iter, binds, ann, body):
-      env-and-binds = for fold(acc from { env: self.env, fbs: [] }, fb from binds):
+      env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):
         cases(ForBind) fb:
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind, acc.env, let-bind)
@@ -537,7 +537,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
     end,
     s-cases-branch(self, l, name, args, body):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
         atom-env = make-atom-for(a, acc.env, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
@@ -550,7 +550,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-cases-branch(l, name, new-args, new-body)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
         atom-env = make-atom-for(a, acc.env, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
@@ -568,7 +568,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-lam(l, params, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
         atom-env = make-atom-for(a, acc.env, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
@@ -582,7 +582,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-method(l, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method-field(self, l, name, args, ann, doc, body, _check):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [] }, a from args):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
         atom-env = make-atom-for(a, acc.env, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end

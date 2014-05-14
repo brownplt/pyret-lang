@@ -58,8 +58,6 @@ fun count-nodes(ast):
         end
         1 + arg-count + count-nodes(f)
     | s-bracket(_, obj, f) => 1 + count-nodes(obj)
-    | s-colon-bracket(_, obj, f) => 1 + count-nodes(obj)
-    | s-colon-bracket-k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
     | s-bracket-k(_, conts, obj, f) => 1 + count-nodes(obj) + count-nodes(conts)
     | s-update-k(_, conts, obj, fields) => 1 + count-nodes(obj) + count-nodes(conts)
     | s-id(_, id) => 1
