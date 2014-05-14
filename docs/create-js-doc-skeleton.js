@@ -85,12 +85,12 @@ R(["js/runtime-anf", "fs"], function(RT, fs) {
   }
   R([modName], function(moduleLib) {
     if (moduleLib instanceof Function) {
-      try {
+      rt.runThunk(function() {
         rt.loadModules(rt.namespace, [moduleLib], processPyretModule);
-      } catch(e) {
+      }, function(result) {
         //var module = moduleLib(rt, rt.namespace);
         //processRawModule(module);
-      }
+      });
     } else {
       //processRawModule(moduleLib);
     }

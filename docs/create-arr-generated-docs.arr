@@ -29,7 +29,7 @@ fun break-if-needed(items):
   for fold(acc from PP.mt-doc, item from items.reverse()):
     if is-comment(item): item.tosource() + acc
     else if PP.is-mt-doc(acc): item.tosource()
-    else: item.tosource() + PP.break(1) + acc
+    else: item.tosource() + PP.sbreak(1) + acc
     end
   end
 end
@@ -37,7 +37,7 @@ data SExp:
   | leaf(val :: String) with: tosource(self): PP.str(self.val) end
   | sexp(name :: String, kids :: List<SExp>) with:
     tosource(self):
-      kids = break-if-needed(leaf(self.name) ^ link(self.kids))
+      kids = break-if-needed(leaf(self.name) ^ link(_, self.kids))
       PP.parens(PP.nest(2, kids))
     end
   | comment(msg :: String) with: tosource(self): PP.str(";; " + self.msg) + PP.hardline end
@@ -50,8 +50,8 @@ data SExp:
 end
 
 fun spair(name, val):
-  if SExp(val): sexp(name, [val])
-  else: sexp(name, [leaf(tostring(val))])
+  if SExp(val): sexp(name, [list: val])
+  else: sexp(name, [list: leaf(tostring(val))])
   end
 end
 
@@ -92,7 +92,7 @@ fun trim-path(path):
 end
 
 data CrossRef:
-  | crossref(module :: String, field :: String)
+  | crossref(modname :: String, field :: String)
 end
 
 fun process-fields(fields, bindings):
@@ -115,9 +115,9 @@ fun process-fields(fields, bindings):
           # print("Further processing on " + v.tosource().pretty(80).first)
           cases(A.Expr) v:
             | s-import(_, _, _) => v
-            | s-id(_, id) => help(item^link(seen), id)
-            | s-id-letrec(_, id) => help(item^link(seen), id)
-            | s-id-var(_, id) => help(item^link(seen), id)
+            | s-id(_, id) => help(item^link(_, seen), id)
+            | s-id-letrec(_, id, _) => help(item^link(_, seen), id)
+            | s-id-var(_, id) => help(item^link(_, seen), id)
             | s-block(_, stmts) => help(seen, stmts.last())
             | s-user-block(_, body) => help(seen, body)
             | s-let-expr(_, _, body) => help(seen, body)
@@ -129,7 +129,7 @@ fun process-fields(fields, bindings):
               cases(A.Expr) help-obj:
                 | s-import(_, file, _) => crossref(file.tosource().pretty(1000).first, field)
                 | s-obj(_, obj-fields) =>
-                  cases(Option) obj-fields.find(fun(f): A.is-s-str(f.name) and (f.name.s == field) end):
+                  cases(Option) obj-fields.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
                     | none => v
                     | some(new-v) => help(seen, new-v)
                   end
@@ -138,22 +138,22 @@ fun process-fields(fields, bindings):
                     # print("Found " + field + " as a data-expr itself")
                     help-obj
                   else:
-                    cases(Option) variants.find(fun(f): f.name == field end):
+                    cases(Option) variants.find(lam(f): f.name == field end):
                       | some(new-v) => new-v
                       | none =>
-                        cases(Option) variants.find(fun(f): A.make-checker-name(f.name) == field end):
+                        cases(Option) variants.find(lam(f): A.make-checker-name(f.name) == field end):
                           | some(new-v) =>
                             a-an =
                               if string-index-of("aeiou", string-substring(new-v.name, 0, 1)) >= 0: "an "
                               else: "a "
                               end
                             A.s-lam(new-v.l, empty,
-                              [A.s-bind(new-v.l, false, A.s-name(new-v.l, "val"), A.a-any)],
+                              [list: A.s-bind(new-v.l, false, A.s-name(new-v.l, "val"), A.a-any)],
                               A.a-name(new-v.l, "Bool"),
                               "Checks whether the provided argument is in fact " + a-an + new-v.name,
                               A.s-undefined(new-v.l), none)
                           | none =>
-                            cases(Option) shared-members.find(fun(f): A.is-s-str(f.name) and (f.name.s == field) end):
+                            cases(Option) shared-members.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
                               | some(new-v) => new-v
                               | none => v
                             end
@@ -166,15 +166,15 @@ fun process-fields(fields, bindings):
           end
       end
     end
-    help([], value)
+    help([list: ], value)
   end
   fun method-spec(meth):
     sexp("method-spec",
-      [ spair("name", meth.name.tosource().pretty(1000).first),
+      [list: spair("name", meth.name.tosource().pretty(1000).first),
         spair("arity", tostring(meth.args.length())),
-        spair("args", slist(meth.args.map(fun(b): leaf(torepr(b.id.toname())) end)))
+        spair("args", slist(meth.args.map(lam(b): leaf(torepr(b.id.toname())) end)))
       ]
-        + (if meth.doc == "": [] else: [spair("doc", torepr(meth.doc))] end))
+        + (if meth.doc == "": [list: ] else: [list: spair("doc", torepr(meth.doc))] end))
   end
   for map(field from fields):
     cases(A.Member) field:
@@ -182,37 +182,37 @@ fun process-fields(fields, bindings):
         # print("***** Trying to lookup " + value.tosource().pretty(80).join-str("\n"))
         e = lookup-value(value)
         cases(A.Expr) e: # Not guaranteed to be an Expr!
-          | crossref(module, as-name) =>
-            sexp("re-export", [
+          | crossref(modname, as-name) =>
+            sexp("re-export", [list: 
                 spair("name", torepr(name.s)),
-                sexp("cross-ref", [leaf(torepr(module)), leaf(torepr(as-name))])
+                sexp("cross-ref", [list: leaf(torepr(modname)), leaf(torepr(as-name))])
               ])
           | s-lam(_, params, args, ann, doc, _, _check) =>
             sexp("fun-spec",
-              [ spair("name", torepr(name.s)),
+              [list: spair("name", torepr(name.s)),
                 spair("arity", tostring(args.length())),
-                spair("args", slist(args.map(fun(b): leaf(torepr(b.id.toname())) end)))
+                spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end)))
               ]
-                + (if doc == "": [] else: [spair("doc", torepr(doc))] end))
+                + (if doc == "": [list: ] else: [list: spair("doc", torepr(doc))] end))
           | s-id(_, id) =>
             spair("unknown-item", spair("name", torepr(name.s)))
           | s-variant(_, _, variant-name, members, with-members) =>
             sexp("constr-spec",
-              [ spair("name", torepr(variant-name)),
-                spair("members", slist(members.map(fun(m): leaf(torepr(m.bind.id.toname())) end))),
+              [list: spair("name", torepr(variant-name)),
+                spair("members", slist(members.map(lam(m): leaf(torepr(m.bind.id.toname())) end))),
                 spair("with-members", slist(with-members.map(method-spec))) ])
           | s-singleton-variant(_,  variant-name, with-members) =>
             sexp("singleton-spec",
-              [ spair("name", torepr(variant-name)),
+              [list: spair("name", torepr(variant-name)),
                 spair("with-members", slist(with-members.map(method-spec))) ])
           | s-data-expr(_, data-name, _, _, variants, shared, _) =>
             sexp("data-spec",
-              [ spair("name", torepr(data-name)),
-                spair("variants", slist(variants.map(fun(m): leaf(torepr(m.name)) end))),
+              [list: spair("name", torepr(data-name)),
+                spair("variants", slist(variants.map(lam(m): leaf(torepr(m.name)) end))),
                 spair("shared", slist(shared.map(method-spec))) ])
           | else =>
             sexp("unknown-item",
-              spair("name", torepr(name.s)) ^ link(e.tosource().pretty(70).map(comment)))
+              spair("name", torepr(name.s)) ^ link(_, e.tosource().pretty(70).map(comment)))
         end
     end
   end
@@ -227,7 +227,7 @@ cases (C.ParsedArguments) parsed-options:
       | link(file, _) =>
         file-contents = F.file-to-string(file)
         parsed = P.parse-dialect(dialect, file-contents, file)
-        scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed)), CS.minimal-builtins)
+        scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).orelse(parsed)), CS.minimal-builtins)
         named-and-bound = R.resolve-names(scoped, CS.minimal-builtins)
         named = named-and-bound.ast
         bindings = named-and-bound.bindings
@@ -235,15 +235,15 @@ cases (C.ParsedArguments) parsed-options:
         result = find-result(body)
         cases(A.Expr) result:
           | s-obj(_, res) =>
-            provides = res.find(fun(f): A.is-s-data-field(f) and A.is-s-str(f.name) and (f.name.s == "provide") end)
+            provides = res.find(lam(f): A.is-s-data-field(f) and A.is-s-str(f.name) and (f.name.s == "provide") end)
             cases(Option) provides:
               | none => print("Got a result object with no provides fields")
               | some(p) =>
                 cases(A.Expr) find-result(p.value):
                   | s-obj(_, fields) =>
                     output = toplevel(
-                      [ sexp("module",
-                          [ leaf(torepr(trim-path(file))),
+                      [list: sexp("module",
+                          [list: leaf(torepr(trim-path(file))),
                             spair("path", torepr(string-replace(file, "\\", "/")))
                           ]
                             + process-fields(fields, bindings)) ])
@@ -257,5 +257,5 @@ cases (C.ParsedArguments) parsed-options:
         end
     end
   | arg-error(m, _) =>
-    each(print,  ("Error: " + m) ^ link(C.usage-info(options)))
+    each(print,  ("Error: " + m) ^ link(_, C.usage-info(options)))
 end

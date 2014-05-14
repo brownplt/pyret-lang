@@ -401,7 +401,7 @@ data Expr:
   | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
     label(self): "s-cases" end,
     tosource(self):
-      header = str-cases + PP.parens(self.type.tosource()) + break-one
+      header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
       PP.surround-separate(INDENT, 1, header + str-space + str-end,
         PP.group(header), break-one, str-end,
@@ -410,7 +410,7 @@ data Expr:
   | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
     label(self): "s-cases-else" end,
     tosource(self):
-      header = str-cases + PP.parens(self.type.tosource()) + break-one
+      header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
