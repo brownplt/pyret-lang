@@ -4,6 +4,7 @@ provide *
 import file as F
 import ast as A
 import parse-pyret as PP
+import parse-errors as PE
 import "compiler/js-of-pyret.arr" as P
 import "compiler/compile-structs.arr" as C
 import "compiler/well-formed.arr" as W
@@ -12,9 +13,9 @@ import "compiler/resolve-scope.arr" as R
 import "compiler/desugar.arr" as D
 import "compiler/desugar-check.arr" as CH
 
-data CompilationPhase<T>:
+data CompilationPhase:
   | start
-  | phase(name :: String, result :: T, prev :: CompilationPhase)
+  | phase(name :: String, result :: Any, prev :: CompilationPhase)
 sharing:
   tolist(self):
     fun help(the-phase, acc):
