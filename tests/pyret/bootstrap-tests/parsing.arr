@@ -20,13 +20,13 @@ check:
     ]
 
   errs3 = pe(
-"fun f(x)
+```fun f(x)
   5
 
 fun g():
   10
 end
-15")
+15```)
   print(errs3)
   errs3 is [list:
       E.fun-missing-colon(l(1, 9, 9, 1, 9, 9)),
@@ -34,14 +34,14 @@ end
     ]
 
   errs4 = pe(
-"fun f(x)
+```fun f(x)
   print(x)
   1
 
 fun g():
   10
 end
-15")
+15```)
   print(errs4)
 end
 
