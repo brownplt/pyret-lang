@@ -81,9 +81,9 @@ data List:
       self
     end,
 
-    tostring(self): "[]" end,
+    tostring(self): "[list: ]" end,
 
-    _torepr(self): "[]" end,
+    _torepr(self): "[list: ]" end,
 
     sort-by(self, cmp, eq):
       doc: ```Takes a comparator to check for elements that are strictly greater
@@ -176,7 +176,7 @@ data List:
     end,
 
     tostring(self):
-      "[" +
+      "[list: " +
         for raw-fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
         end
@@ -184,7 +184,7 @@ data List:
     end,
 
     _torepr(self):
-      "[" +
+      "[list: " +
         for raw-fold(combined from torepr(self.first), elt from self.rest):
           combined + ", " + torepr(elt)
         end

@@ -8,7 +8,7 @@ provide {
   array-from-list: array-from-list,
   is-array: is-array
 } end
-import list as lists
+import lists as lists
 
 array-brand = brander()
 do-brand = array-brand.brand
@@ -24,6 +24,9 @@ fun make(arr):
     to-list(_): raw-array-to-list(arr) end,
     _torepr(self):
       "[array: " + self.to-list().map(torepr).join-str(", ") + "]"
+    end,
+    tostring(self):
+      "[array: " + self.to-list().map(tostring).join-str(", ") + "]"
     end
   })
 end
