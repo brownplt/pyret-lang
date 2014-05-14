@@ -7,15 +7,15 @@ provide {
   tree-set: list-to-tree-set,
 } end
 
-import list as list
+import lists as lists
 import error as error
 import option as option
 
-List = list.List
-empty = list.empty
-link = list.link
-is-empty = list.is-empty
-fold = list.fold
+List = lists.List
+empty = lists.empty
+link = lists.link
+is-empty = lists.is-empty
+fold = lists.fold
 
 # SETS
 
@@ -277,7 +277,7 @@ end
 
 fun list-to-set(lst :: List, base-set :: Set) -> Set:
   doc: "Convert a list into a set."
-  for list.fold(s from base-set, elem from lst):
+  for lists.fold(s from base-set, elem from lst):
     s.add(elem)
   end
 end
@@ -293,7 +293,7 @@ fun list-to-tree-set(lst :: List) -> Set:
 end
 
 fun list-to-tree(lst :: List):
-  for list.fold(tree from leaf, elt from lst):
+  for lists.fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
 end

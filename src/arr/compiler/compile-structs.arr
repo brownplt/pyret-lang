@@ -73,7 +73,7 @@ data CompileBinding:
   | module-bindings(name :: String, bindings :: List<String>)
 end
 
-runtime-builtins = list.map(builtin-id, [
+runtime-builtins = lists.map(builtin-id, [
   "test-print",
   "print",
   "display",
@@ -153,8 +153,9 @@ no-builtins = compile-env([])
 minimal-builtins = compile-env(runtime-builtins)
 
 bootstrap-builtins = compile-env(
-  [module-bindings("list", [
+  [module-bindings("lists", [
       "List",
+      "list",
       "is-empty",
       "is-link",
       "empty",
@@ -188,7 +189,7 @@ bootstrap-builtins = compile-env(
       "fold4",
       "index"
   ])] +
-  runtime-builtins + list.map(builtin-id, [
+  runtime-builtins + lists.map(builtin-id, [
   
 
   "_link",

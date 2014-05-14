@@ -136,10 +136,10 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
 end
 
 fun binding-env-from-env(initial-env):
-  for list.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
+  for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
     cases(C.CompileBinding) binding:
       | module-bindings(name, ids) =>
-        mod = for list.fold(m from SD.immutable-string-dict(), b from ids):
+        mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
         acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
@@ -195,7 +195,7 @@ fun <a> default-env-map-visitor(
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
-      args-env = for list.fold(acc from self.env, new-arg from args):
+      args-env = for lists.fold(acc from self.env, new-arg from args):
         bind-handlers.s-bind(new-arg, acc)
       end
       new-body = body.visit(self.{env: args-env})
@@ -204,7 +204,7 @@ fun <a> default-env-map-visitor(
     end,
     s-method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
-      args-env = for list.fold(acc from self.env, arg from new-args):
+      args-env = for lists.fold(acc from self.env, arg from new-args):
         bind-handlers.s-bind(arg, acc)
       end
       new-body = body.visit(self.{env: args-env})
@@ -233,13 +233,13 @@ fun <a> default-env-iter-visitor(
           bind-handlers.s-header(i, acc)
         end
         new-visitor = self.{ env: imported-env }
-        list.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
+        lists.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
       else:
         false
       end
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for list.fold-while(acc from { e: self.env, bs: true }, b from binds):
+      bound-env = for lists.fold-while(acc from { e: self.env, bs: true }, b from binds):
         this-env = bind-handlers.s-let-bind(b, acc.e)
         new-bind = b.visit(self.{env : acc.e})
         if new-bind:
@@ -251,29 +251,29 @@ fun <a> default-env-iter-visitor(
       bound-env.bs and body.visit(self.{env: bound-env.e})
     end,
     s-letrec(self, l, binds, body):
-      bind-env = for list.fold(acc from self.env, b from binds):
+      bind-env = for lists.fold(acc from self.env, b from binds):
         bind-handlers.s-letrec-bind(b, acc)
       end
       new-visitor = self.{env: bind-env}
-      continue-binds = for list.fold-while(acc from true, b from binds):
+      continue-binds = for lists.fold-while(acc from true, b from binds):
         if b.visit(new-visitor): E.left(true) else: E.right(false) end
       end
       continue-binds and body.visit(new-visitor)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      list.all(_.visit(self), args) and
+      lists.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
-      args-env = for list.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      list.all(_.visit(self), args) and
+      lists.all(_.visit(self), args) and
         ann.visit(self.{env: args-env}) and
         body.visit(self.{env: args-env}) and
         self.{env: args-env}.option(_check)
@@ -388,7 +388,7 @@ inline-lams = A.default-map-visitor.{
   s-app(self, loc, f, exps):
     cases(A.Expr) f:
       | s-lam(l, _, args, _, _, body, _) =>
-        let-binds = for list.map2(arg from args, exp from exps):
+        let-binds = for lists.map2(arg from args, exp from exps):
           A.s-let-bind(arg.l, arg, exp.visit(self))
         end
         A.s-let-expr(l, let-binds, body)

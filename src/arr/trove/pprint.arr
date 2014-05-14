@@ -130,8 +130,8 @@ fun format(width, doc :: PPrintDoc):
     output := [[string-repeat(" ", i)]] + output
   end
   fun gen-output():
-    for list.fold(lines from [], line from output):
-      l = for list.fold(acc from "", piece from line):
+    for lists.fold(lines from [], line from output):
+      l = for lists.fold(acc from "", piece from line):
         piece + acc
       end
       [l] + lines
@@ -210,7 +210,7 @@ fun sbreak(n): if-flat(blank(n), hardline) end
 commabreak = comma + sbreak(1)
 
 fun flow-map(sep, f, items):
-  for list.fold(acc from mt-doc, shadow item from items):
+  for lists.fold(acc from mt-doc, shadow item from items):
     if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
@@ -245,16 +245,16 @@ fun soft-surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrin
   end
 end
 
-fun separate(sep :: PPrintDoc, docs :: list.List):
-  for list.fold(acc from mt-doc, d from docs):
+fun separate(sep :: PPrintDoc, docs :: lists.List):
+  for lists.fold(acc from mt-doc, d from docs):
     if is-mt-doc(d): acc
     else if is-mt-doc(acc): d
     else: acc + sep + d
     end
   end
 end
-fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrintDoc, sep :: PPrintDoc, close :: PPrintDoc, docs :: list.List):
-  if list.is-empty(docs): void
+fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrintDoc, sep :: PPrintDoc, close :: PPrintDoc, docs :: lists.List):
+  if lists.is-empty(docs): void
   else: surround(n, b, open, separate(sep, docs), close)
   end
 end

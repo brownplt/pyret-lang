@@ -100,7 +100,7 @@ end
 fun usage-info(options-raw) -> List<String>:
   options = D.to-dict(options-raw)
   option-info = 
-    for list.map(key from options.keys()):
+    for lists.map(key from options.keys()):
       cases(Param) options.get(key):
         | flag(repeated, desc) =>
           format("  -~a: ~a (~a)", [key, desc, repeated])
@@ -137,7 +137,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
   arguments do not satisfy the requirements of the Params dictionary.```
   opts-dict = D.to-dict(options)
   options-and-aliases =
-    for list.fold(acc from {options: opts-dict, aliases: D.immutable-string-dict()}, key from opts-dict.keys()):
+    for lists.fold(acc from {options: opts-dict, aliases: D.immutable-string-dict()}, key from opts-dict.keys()):
       if is-arg-error(acc): acc
       else:
         cur-option = opts-dict.get(key)
@@ -198,7 +198,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         | else => results
       end
     end
-    required = for list.filter(key from opts-dict.keys()):
+    required = for lists.filter(key from opts-dict.keys()):
       repeated = opts-dict.get(key).repeated
       (repeated == required-once) or (repeated == required-many)
     end
@@ -334,7 +334,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
     parsed-results = process(success(D.immutable-string-dict(), []), 1, args)
     cases(ParsedArguments) parsed-results:
       | success(parsed, other) =>
-        filled-missing-defaults = for list.fold(acc from parsed, key from opts-dict.keys()):
+        filled-missing-defaults = for lists.fold(acc from parsed, key from opts-dict.keys()):
           cases(Param) opts-dict.get(key):
             | next-val-default(_, default, _, repeated, _) =>
               if not(acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
@@ -347,7 +347,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
             | else => acc
           end              
         end
-        missing-args = for list.filter(key from required):
+        missing-args = for lists.filter(key from required):
           not(filled-missing-defaults.has-key(key))
         end
         if is-empty(missing-args): success(filled-missing-defaults, other)
@@ -368,7 +368,7 @@ end
 
 
 fun dict(l):
-  for fold(d from D.immutable-string-dict(), i from list.range(0, l.length() / 2)):
+  for fold(d from D.immutable-string-dict(), i from lists.range(0, l.length() / 2)):
     d.set(l.get(2 * i), l.get((2 * i) + 1))
   end
 end

@@ -217,10 +217,10 @@ data Image:
         [])
     end,
     bounds(self):
-      min = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
+      min = for lists.fold(acc from self.points.first, shadow pt from self.points.rest):
         acc.min(pt)
       end
-      max = for list.fold(acc from self.points.first, shadow pt from self.points.rest):
+      max = for lists.fold(acc from self.points.first, shadow pt from self.points.rest):
         acc.max(pt)
       end
       rg(min, max)
@@ -228,7 +228,7 @@ data Image:
   | istar(side-length :: Number%(nonneg), mode :: Mode, color :: Color) with:
     as-svg(self):
       radius = self.side-length / ((2 * (1 - cosdeg(72))).sqrt())
-      points = for list.map(i from range(0, 5)):
+      points = for lists.map(i from range(0, 5)):
         theta = 144 * i
         pt(radius * cosdeg(theta + 90), radius * sindeg(theta + 90))
       end
@@ -236,7 +236,7 @@ data Image:
     end,
     bounds(self):
       radius = self.side-length / ((2 * (1 - cosdeg(72))).sqrt())
-      points = for list.map(i from range(0, 5)):
+      points = for lists.map(i from range(0, 5)):
         theta = 144 * i
         pt(radius * cosdeg(theta), radius * sindeg(theta))
       end
@@ -246,7 +246,7 @@ data Image:
     as-svg(self):
       third-point-y = 0 - (self.side-length * sindeg(60))
       points =
-        for list.map(p from [pt(0,0), pt(self.side-length, 0), pt(self.side-length / 2, third-point-y)]):
+        for lists.map(p from [pt(0,0), pt(self.side-length, 0), pt(self.side-length / 2, third-point-y)]):
           p.translate((0 - self.side-length) / 2, (0 - third-point-y) / 2)
         end
       ipolygon(points, self.mode, self.color).as-svg()
@@ -254,7 +254,7 @@ data Image:
     bounds(self):
       third-point-y = self.side-length * sindeg(60)
       points =
-        for list.map(p from [pt(0,0), pt(self.side-length, 0), pt(self.side-length / 2, third-point-y)]):
+        for lists.map(p from [pt(0,0), pt(self.side-length, 0), pt(self.side-length / 2, third-point-y)]):
           p.translate((0 - self.side-length) / 2, (0 - third-point-y) / 2)
         end
       ipolygon(points, self.mode, self.color).bounds()
@@ -266,7 +266,7 @@ data Image:
       x-width = 2 * cosdeg(other-angles)
       third-point-y = 0 - sindeg(other-angles)
       points =
-        for list.map(p from [pt(0,0), pt(x-width, 0), pt(x-width / 2, third-point-y)]):
+        for lists.map(p from [pt(0,0), pt(x-width, 0), pt(x-width / 2, third-point-y)]):
           p.translate((0 - x-width) / 2, (0 - third-point-y) / 2)
         end
       ipolygon(points, self.mode, self.color).as-svg()
@@ -276,7 +276,7 @@ data Image:
       x-width = 2 * cosdeg(other-angles)
       third-point-y = sindeg(other-angles)
       points =
-        for list.map(p from [pt(0,0), pt(x-width, 0), pt(x-width / 2, third-point-y)]):
+        for lists.map(p from [pt(0,0), pt(x-width, 0), pt(x-width / 2, third-point-y)]):
           p.translate((0 - x-width) / 2, (0 - third-point-y) / 2)
         end
       ipolygon(points, self.mode, self.color).bounds()
@@ -371,7 +371,7 @@ fun overlay(images): # overlay centers all its images
   if (images.length() < 2): raise("Not enough images to overlay")
   else:
     rev-images = images.reverse()
-    for list.fold(scene from rev-images.first.center-origin(), image from rev-images.rest):
+    for lists.fold(scene from rev-images.first.center-origin(), image from rev-images.rest):
       iplace-image(image.center-origin(), 0, 0, union, scene)
     end
   end

@@ -444,7 +444,7 @@ data Expr:
             | empty => first.tosource()
             | link(second, rest2) =>
               op = break-one + PP.str(string-substring(self.op, 2, string-length(self.op))) + break-one
-              nested = for list.fold(acc from second.tosource(), operand from rest2):
+              nested = for lists.fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
               PP.group(first.tosource() + op + PP.nest(INDENT, nested))
@@ -601,7 +601,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -633,7 +633,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ list.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -808,7 +808,7 @@ data Variant:
         self.members.map(fun(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(fun(m): m.tosource() end)
-      if list.is-empty(withs): header-nowith
+      if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -822,7 +822,7 @@ data Variant:
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(fun(m): m.tosource() end)
-      if list.is-empty(withs): header-nowith
+      if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -1024,7 +1024,7 @@ data Pair:
 end
 
 fun length-andmap(pred, l1, l2):
-  (l1.length() == l2.length()) and list.all2(pred, l1, l2)
+  (l1.length() == l2.length()) and lists.all2(pred, l1, l2)
 end
 
 
@@ -2084,14 +2084,14 @@ default-iter-visitor = {
   end,
   
   s-program(self, l, _provide, imports, body):
-    _provide.visit(self) and list.all(_.visit(self), imports) and body.visit(self)
+    _provide.visit(self) and lists.all(_.visit(self), imports) and body.visit(self)
   end,
   
   s-import(self, l, import-type, name):
     name.visit(self)
   end,
   s-import-fields(self, l, fields, import-type):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   s-provide(self, l, expr):
     expr.visit(self)
@@ -2115,7 +2115,7 @@ default-iter-visitor = {
   end,
   
   s-let-expr(self, l, binds, body):
-    list.all(_.visit(self), binds) and body.visit(self)
+    lists.all(_.visit(self), binds) and body.visit(self)
   end,
   
   s-letrec-bind(self, l, bind, expr):
@@ -2123,7 +2123,7 @@ default-iter-visitor = {
   end,
   
   s-letrec(self, l, binds, body):
-    list.all(_.visit(self), binds) and body.visit(self)
+    lists.all(_.visit(self), binds) and body.visit(self)
   end,
   
   s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
@@ -2131,11 +2131,11 @@ default-iter-visitor = {
   end,
   
   s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    expr.visit(self) and list.all(_.visit(self), params)
+    expr.visit(self) and lists.all(_.visit(self), params)
   end,
   
   s-block(self, l, stmts):
-    list.all(_.visit(self), stmts)
+    lists.all(_.visit(self), stmts)
   end,
   
   s-user-block(self, l :: Loc, body :: Expr):
@@ -2143,7 +2143,7 @@ default-iter-visitor = {
   end,
   
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -2155,7 +2155,7 @@ default-iter-visitor = {
   end,
   
   s-graph(self, l :: Loc, bindings :: List<is-s-let>):
-    list.all(_.visit(self), bindings)
+    lists.all(_.visit(self), bindings)
   end,
   
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -2179,28 +2179,28 @@ default-iter-visitor = {
   end,
   
   s-if(self, l :: Loc, branches :: List<IfBranch>):
-    list.all(_.visit(self), branches)
+    lists.all(_.visit(self), branches)
   end,
   s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    list.all(_.visit(self), branches) and _else.visit(self)
+    lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    list.all(_.visit(self), branches)
+    lists.all(_.visit(self), branches)
   end,
   s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    list.all(_.visit(self), branches) and _else.visit(self)
+    lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-cases-branch(self, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
-    list.all(_.visit(self), args) and body.visit(self)
+    lists.all(_.visit(self), args) and body.visit(self)
   end,
   
   s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    typ.visit(self) and val.visit(self) and list.all(_.visit(self), branches) and _else.visit(self)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -2229,7 +2229,7 @@ default-iter-visitor = {
       body :: Expr,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-method(
       self,
@@ -2240,31 +2240,31 @@ default-iter-visitor = {
       body :: Expr,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and list.all(_.visit(self), fields)
+    supe.visit(self) and lists.all(_.visit(self), fields)
   end,
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and list.all(_.visit(self), fields)
+    supe.visit(self) and lists.all(_.visit(self), fields)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   s-list(self, l :: Loc, values :: List<Expr>):
-    list.all(_.visit(self), values)
+    lists.all(_.visit(self), values)
   end,
   s-array(self, l :: Loc, values :: List<Expr>):
-    list.all(_.visit(self), values)
+    lists.all(_.visit(self), values)
   end,
   s-construct(self, l :: Loc, mod :: ArrayModifier, constructor :: Expr, values :: List<Expr>):
-    constructor.visit(self) and list.all(_.visit(self), values)
+    constructor.visit(self) and lists.all(_.visit(self), values)
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    _fun.visit(self) and list.all(_.visit(self), args)
+    _fun.visit(self) and lists.all(_.visit(self), args)
   end,
   s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    list.all(_.visit(self), args)
+    lists.all(_.visit(self), args)
   end,
   s-prim-val(self, l :: Loc, name :: String):
     true
@@ -2318,9 +2318,9 @@ default-iter-visitor = {
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), mixins) 
-    and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared-members)
+    lists.all(_.visit(self), mixins) 
+    and lists.all(_.visit(self), variants)
+    and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   s-data-expr(
@@ -2333,9 +2333,9 @@ default-iter-visitor = {
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
-    list.all(_.visit(self), mixins)
-    and list.all(_.visit(self), variants)
-    and list.all(_.visit(self), shared-members)
+    lists.all(_.visit(self), mixins)
+    and lists.all(_.visit(self), variants)
+    and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   s-for(
@@ -2346,7 +2346,7 @@ default-iter-visitor = {
       ann :: Ann,
       body :: Expr
       ):
-    iterator.visit(self) and list.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
   s-check(self, l :: Loc, name :: String, body :: Expr, keyword-check :: Bool):
     body.visit(self)
@@ -2372,7 +2372,7 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     name.visit(self)
-    and list.all(_.visit(self), args)
+    and lists.all(_.visit(self), args)
     and ann.visit(self)
     and body.visit(self)
     and self.option(_check)
@@ -2392,7 +2392,7 @@ default-iter-visitor = {
       members :: List<VariantMember>,
       with-members :: List<Member>
       ):
-    list.all(_.visit(self), members) and list.all(_.visit(self), with-members)
+    lists.all(_.visit(self), members) and lists.all(_.visit(self), with-members)
   end,
   s-singleton-variant(
       self,
@@ -2400,7 +2400,7 @@ default-iter-visitor = {
       name :: String,
       with-members :: List<Member>
       ):
-    list.all(_.visit(self), with-members)
+    lists.all(_.visit(self), with-members)
   end,
   s-datatype-variant(
       self,
@@ -2409,7 +2409,7 @@ default-iter-visitor = {
       members :: List<VariantMember>,
       constructor :: Constructor
       ):
-    list.all(_.visit(self), members) and constructor.visit(self)
+    lists.all(_.visit(self), members) and constructor.visit(self)
   end,
   s-datatype-singleton-variant(
       self,
@@ -2437,16 +2437,16 @@ default-iter-visitor = {
     true
   end,
   a-arrow(self, l, args, ret, _):
-    list.all(_.visit(self), args) and ret.visit(self)
+    lists.all(_.visit(self), args) and ret.visit(self)
   end,
   a-method(self, l, args, ret):
-    list.all(_.visit(self), args) and ret.visit(self)
+    lists.all(_.visit(self), args) and ret.visit(self)
   end,
   a-record(self, l, fields):
-    list.all(_.visit(self), fields)
+    lists.all(_.visit(self), fields)
   end,
   a-app(self, l, ann, args):
-    ann.visit(self) and list.all(_.visit(self), args)
+    ann.visit(self) and lists.all(_.visit(self), args)
   end,
   a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
