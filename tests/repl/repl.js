@@ -49,7 +49,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           return aRepl.run("y");
         }).then(function(replResult) {
           expect(replResult).toPassPredicate(rt.isFailureResult);
-          return aRepl.run("y = fun(): x + 1 end");
+          return aRepl.run("y = lam(): x + 1 end");
         }).then(function(replResult) {
           expect(replResult).toPassPredicate(rt.isSuccessResult);
           return aRepl.run("y()");
@@ -192,7 +192,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
           setTimeout(function() {
               aRepl.stop();
             }, 1000);
-          return aRepl.run("run-task(fun(): fact(100000) 'done' end)");
+          return aRepl.run("run-task(lam(): fact(100000) 'done' end)");
         }).then(function(result) {
           expect(result).toPassPredicate(rt.isFailureResult);
           expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);

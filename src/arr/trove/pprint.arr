@@ -188,13 +188,13 @@ end
 
 shadow mt-doc = mt-doc(0, false)
 shadow hardline = hardline(0, true)
-shadow align = fun(d): align(d, d.flat-width, d.has-hardline) end
-shadow group = fun(d): group(d, d.flat-width, d.has-hardline) end
-shadow if-flat = fun(flat, vert): if-flat(flat, vert, flat.flat-width, flat.has-hardline) end
-shadow nest = fun(n, d): nest(n, d, d.flat-width, d.has-hardline) end
-shadow concat = fun(fst, snd): fst + snd end
-shadow blank = fun(n): blank(n, n, false) end
-shadow str = fun(s): str(s, string-length(s), false) end
+shadow align = lam(d): align(d, d.flat-width, d.has-hardline) end
+shadow group = lam(d): group(d, d.flat-width, d.has-hardline) end
+shadow if-flat = lam(flat, vert): if-flat(flat, vert, flat.flat-width, flat.has-hardline) end
+shadow nest = lam(n, d): nest(n, d, d.flat-width, d.has-hardline) end
+shadow concat = lam(fst, snd): fst + snd end
+shadow blank = lam(n): blank(n, n, false) end
+shadow str = lam(s): str(s, string-length(s), false) end
 
 fun number(n :: Number): str(tostring(n)) end
 lparen = str("(")
@@ -216,8 +216,8 @@ fun flow-map(sep, f, items):
     end
   end
 end
-fun flow(items): flow-map(sbreak(1), fun(x): x end, items) end
-fun vert(items): flow-map(hardline, fun(x): x end, items) end
+fun flow(items): flow-map(sbreak(1), lam(x): x end, items) end
+fun vert(items): flow-map(hardline, lam(x): x end, items) end
 fun parens(d): group(lparen + d + rparen) end
 fun braces(d): group(lbrace + d + rbrace) end
 fun brackets(d): group(lbrack + d + rbrack) end

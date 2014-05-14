@@ -82,7 +82,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       wrapper = 
         if is-link(let-binds): wrap-lets
         else if is-link(letrec-binds): wrap-letrecs
-        else: fun(e): e;
+        else: lam(e): e;
         end
       cases(A.Expr) f:
         | s-let(l, bind, expr, _) =>
@@ -141,16 +141,16 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
       end
   end
 where:
-  p = fun(str): PP.surface-parse(str, "test").block;
+  p = lam(str): PP.surface-parse(str, "test").block;
   d = A.dummy-loc
-  b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
-  id = fun(s): A.s-id(d, A.s-name(d, s));
-  bk = fun(e): A.s-block(d, [e]) end
-  bs = fun(str):
+  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
+  id = lam(s): A.s-id(d, A.s-name(d, s));
+  bk = lam(e): A.s-block(d, [e]) end
+  bs = lam(str):
     A.s-block(d, desugar-scope-block(p(str).stmts, [], []))
   end
   n = none
-  thunk = fun(e): A.s-lam(d, [], [], A.a-blank, "", bk(e), n) end
+  thunk = lam(e): A.s-lam(d, [], [], A.a-blank, "", bk(e), n) end
 
 
   compare1 = A.s-let-expr(d, [A.s-let-bind(d, b("x"), A.s-num(d, 15)),
@@ -189,8 +189,8 @@ where:
             A.s-app(d, id("f"), []))
           ]))
 
-  p-s = fun(e): A.s-app(d, id("print"), [e]);
-  pretty = fun(e): e.tosource().pretty(80).join-str("\n");
+  p-s = lam(e): A.s-app(d, id("print"), [e]);
+  pretty = lam(e): e.tosource().pretty(80).join-str("\n");
 
   prog2 = bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)")
   prog2
@@ -243,8 +243,8 @@ where:
   #the-let = prog5.stmts.first
   #the-let satisfies A.is-s-let-expr
   #the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
-  #the-let.binds.take(3).map(_.value) satisfies lists.all(fun(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
-  #the-let.binds.drop(3).map(_.value) satisfies lists.all(fun(e): A.is-s-dot(e) and (e.field == "test");, _)
+  #the-let.binds.take(3).map(_.value) satisfies lists.all(lam(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
+  #the-let.binds.drop(3).map(_.value) satisfies lists.all(lam(e): A.is-s-dot(e) and (e.field == "test");, _)
   #the-letrec = the-let.body
   #the-letrec satisfies A.is-s-letrec
   #the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
@@ -327,8 +327,8 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   
 where:
   d = A.dummy-loc
-  b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
-  id = fun(s): A.s-id(d, A.s-name(d, s));
+  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
+  id = lam(s): A.s-id(d, A.s-name(d, s));
   checks = A.s-data-field(
                   d,
                   A.s-str(d, "checks"),

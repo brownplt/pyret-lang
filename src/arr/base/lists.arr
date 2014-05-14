@@ -204,7 +204,7 @@ data List:
       var are-lt = empty
       var are-eq = empty
       var are-gt = empty
-      self.each(fun(e):
+      self.each(lam(e):
           if cmp(e, pivot):     are-lt := e ^ link(_, are-lt)
           else if eq(e, pivot): are-eq := e ^ link(_, are-eq)
           else:                 are-gt := e ^ link(_, are-gt)
@@ -219,7 +219,7 @@ data List:
     sort(self):
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
-      self.sort-by(fun(e1,e2): e1 < e2 end, fun(e1,e2): e1 == e2 end)
+      self.sort-by(lam(e1,e2): e1 < e2 end, lam(e1,e2): e1 == e2 end)
     end,
 
     join-str(self, str):
@@ -373,12 +373,12 @@ fun find(f :: (Any -> Bool), lst :: List) -> Option:
     end
   end
 where:
- find(fun(elt): elt > 1 end, link(1,link(2,link(3,empty)))) is some(2)
- find(fun(elt): true end, link("find-me",empty)) is some("find-me")
- find(fun(elt): elt > 4 end, link(1,link(2,link(3)))) is none
- find(fun(elt): true end, empty) is none
- find(fun(elt): false end, empty) is none
- find(fun(elt): false end, link(1,empty)) is none
+ find(lam(elt): elt > 1 end, link(1,link(2,link(3,empty)))) is some(2)
+ find(lam(elt): true end, link("find-me",empty)) is some("find-me")
+ find(lam(elt): elt > 4 end, link(1,link(2,link(3)))) is none
+ find(lam(elt): true end, empty) is none
+ find(lam(elt): false end, empty) is none
+ find(lam(elt): false end, link(1,empty)) is none
 end
 
 fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
@@ -414,10 +414,10 @@ fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 where:
- any(fun(n): n > 1 end, link(1,link(2,link(3,empty)))) is true
- any(fun(n): n > 3 end, link(1,link(2,link(3,empty)))) is false
- any(fun(x): true end, empty) is false
- any(fun(x): false end, empty) is false
+ any(lam(n): n > 1 end, link(1,link(2,link(3,empty)))) is true
+ any(lam(n): n > 3 end, link(1,link(2,link(3,empty)))) is false
+ any(lam(x): true end, empty) is false
+ any(lam(x): false end, empty) is false
 end
 
 fun all(f :: (Any -> Bool), lst :: List) -> Bool:
@@ -429,10 +429,10 @@ fun all(f :: (Any -> Bool), lst :: List) -> Bool:
   end
   help(lst)
 where:
- all(fun(n): n > 1 end, link(1,link(2,link(3,empty)))) is false
- all(fun(n): n <= 3 end, link(1,link(2,link(3,empty)))) is true
- all(fun(x): true end, empty) is true
- all(fun(x): false end, empty) is true
+ all(lam(n): n > 1 end, link(1,link(2,link(3,empty)))) is false
+ all(lam(n): n <= 3 end, link(1,link(2,link(3,empty)))) is true
+ all(lam(x): true end, empty) is true
+ all(lam(x): false end, empty) is true
 end
 
 fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
@@ -445,11 +445,11 @@ fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
   end
   help(lst1, lst2)
 where:
- all2(fun(n, m): n > m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is true
- all2(fun(n, m): (n + m) == 3 end, link(1,link(2,link(3,empty))), link(2,link(1,link(0,empty)))) is true
- all2(fun(n, m): n < m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is false
- all2(fun(_, _): true end, empty, empty) is true
- all2(fun(_, _): false end, empty, empty) is true
+ all2(lam(n, m): n > m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is true
+ all2(lam(n, m): (n + m) == 3 end, link(1,link(2,link(3,empty))), link(2,link(1,link(0,empty)))) is true
+ all2(lam(n, m): n < m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is false
+ all2(lam(_, _): true end, empty, empty) is true
+ all2(lam(_, _): false end, empty, empty) is true
 end
 
 
@@ -697,7 +697,7 @@ end
 index = get-help
 
 list = {
-  make: fun(arr):
+  make: lam(arr):
     raw-array-to-list(arr)
   end
 }

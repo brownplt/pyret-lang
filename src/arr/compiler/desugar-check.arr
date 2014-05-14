@@ -88,7 +88,7 @@ fun create-check-block(l, checks):
 end
 
 fun make-lam(l, args, body):
-  A.s-lam(l, [list: ], args.map(fun(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
+  A.s-lam(l, [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
 end
 
 no-checks-visitor = A.default-map-visitor.{

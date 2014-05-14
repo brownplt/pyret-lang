@@ -14,7 +14,7 @@ fun run-tests():
     "a" + "b" is "ab"
     4 + 5 is 9
     
-    e1 = get-err(fun(): {} + "a";)
+    e1 = get-err(lam(): {} + "a";)
     e1 satisfies E.is-plus-error
     e1.val1 is {}
     e1.val2 is "a"

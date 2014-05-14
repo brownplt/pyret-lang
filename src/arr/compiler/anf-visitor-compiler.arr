@@ -53,7 +53,7 @@ Loc = SL.Srcloc
 
 js-id-of = block:
   var js-ids = D.string-dict()
-  fun(id :: String):
+  lam(id :: String):
     when not(is-string(id)): raise("js-id-of got non-string: " + torepr(id));
     if js-ids.has-key(id):
       js-ids.get(id)
@@ -190,10 +190,10 @@ fun compile-split-app(
                     j-return(j-app(j-id(helper-name(name)),
                         link(
                             j-id(js-id-of(helper-args.first.id.tostring())),
-                            helper-ids.map(fun(a): j-id(a);)
-                            #helper-ids.map(fun(a): j-dot(j-id("this"), a) end)
+                            helper-ids.map(lam(a): j-id(a);)
+                            #helper-ids.map(lam(a): j-dot(j-id("this"), a) end)
                             )))])))]
-                #+ helper-ids.map(fun(a): j-field(a, j-id(a)) end)
+                #+ helper-ids.map(lam(a): j-field(a, j-id(a)) end)
                 )),
             j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                 j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(ss)))
@@ -274,7 +274,7 @@ compiler-visitor = {
   end,
   
   a-obj(self, l :: Loc, fields :: List<N.AField>):
-    rt-method("makeObject", [list: j-obj(fields.map(fun(f): j-field(f.name, f.value.visit(self));))])
+    rt-method("makeObject", [list: j-obj(fields.map(lam(f): j-field(f.name, f.value.visit(self));))])
   end,
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     j-method(obj.visit(self), "extendWith", [list: j-obj(fields.map(_.visit(self)))])
@@ -362,7 +362,7 @@ compiler-visitor = {
     end
 
     fun make-variant-constructor(l2, base-id, brands-id, vname, members):
-      member-names = members.map(fun(m): m.bind.id.toname();)
+      member-names = members.map(lam(m): m.bind.id.toname();)
       j-field(
           vname,
           rt-method("makeFunction", [list: 
@@ -478,17 +478,17 @@ fun compile-program(self, l, headers, split, env):
     j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
   end
   ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
-  filenames = headers.map(fun(h):
+  filenames = headers.map(lam(h):
       cases(N.AHeader) h:
         | a-import-builtin(_, name, _) => "trove/" + name
         | a-import-file(_, file, _) => file
       end
     end)
   module-id = compiler-name(l.source)
-  module-ref = fun(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = ids.map(fun(f): compiler-name(f) end)
+  module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
+  input-ids = ids.map(lam(f): compiler-name(f) end)
   fun wrap-modules(modules, body):
-    mod-input-ids = modules.map(fun(f): j-id(f.input-id) end)
+    mod-input-ids = modules.map(lam(f): j-id(f.input-id) end)
     mod-ids = modules.map(_.id)
     j-return(rt-method("loadModules",
         [list: j-id("NAMESPACE"), j-list(false, mod-input-ids),

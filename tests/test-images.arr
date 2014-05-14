@@ -2,7 +2,7 @@ import image as I
 import image-structs as IS
 
 check:
-  fun negate(f): fun(x): not(f(x)) end end
+  fun negate(f): lam(x): not(f(x)) end end
 
   "red" satisfies I.is-image-color
   "blue" satisfies I.is-image-color

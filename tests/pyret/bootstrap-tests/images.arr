@@ -1,7 +1,7 @@
 import image-structs as IS
 
 examples:
-  fun negate(f): fun(x): not(f(x)) end end
+  fun negate(f): lam(x): not(f(x)) end end
 
   "red" satisfies is-image-color
   "blue" satisfies is-image-color
@@ -70,7 +70,7 @@ examples:
   text("my string", "nan", "blue") raises "Positive Integer"
   text(5, 12, 42) raises "String"
   
-  f = fun(v): 5 end
+  f = lam(v): 5 end
   
   circle(f, "solid", "red") raises "Number"
   circle(50, 50, "red") satisfies is-image

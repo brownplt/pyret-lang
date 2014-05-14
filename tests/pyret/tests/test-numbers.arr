@@ -3,8 +3,8 @@
 provide *
 
 check:
-  fun negate(f): fun(x): not(f(x)) end end
-  fun around(n, delta): fun(other): num-abs(other - n) < delta;;
+  fun negate(f): lam(x): not(f(x)) end end
+  fun around(n, delta): lam(other): num-abs(other - n) < delta;;
 
   num-max(1, 3) is 3
   num-max("not-a-num", 3) raises ""

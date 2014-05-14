@@ -32,7 +32,7 @@ data ANFCont:
 end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, k-cont(fun(x):
+  anf(e, k-cont(lam(x):
         cases(N.ALettable) x:
             # tail call
           | a-app(l, f, args) =>
@@ -53,7 +53,7 @@ fun anf-bind(b):
 end
 
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
-  anf(expr, k-cont(fun(lettable):
+  anf(expr, k-cont(lam(lettable):
         cases(N.ALettable) lettable:
           | a-val(v) => k(v)
           | else =>
@@ -71,8 +71,8 @@ fun anf-name-rec(
   cases(List) exprs:
     | empty => k([list: ])
     | link(f, r) =>
-      anf-name(f, name-hint, fun(v):
-          anf-name-rec(r, name-hint, fun(vs): k([list: (v)] + vs);)
+      anf-name(f, name-hint, lam(v):
+          anf-name-rec(r, name-hint, lam(vs): k([list: (v)] + vs);)
         end)
   end
 end
@@ -105,7 +105,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
           anf(f, k)
         else:
           cases(A.Expr) f:
-            | else => anf(f, k-cont(fun(lettable):
+            | else => anf(f, k-cont(lam(lettable):
                     N.a-seq(f.l, lettable, anf-block-help(r))
                   end))
           end
@@ -132,11 +132,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | empty => anf(body, k)
         | link(f, r) =>
           cases(A.LetBind) f:
-            | s-var-bind(l2, b, val) => anf(val, k-cont(fun(lettable):
+            | s-var-bind(l2, b, val) => anf(val, k-cont(lam(lettable):
                     N.a-var(l2, N.a-bind(l2, b.id, b.ann), lettable,
                       anf(A.s-let-expr(l, r, body), k))
                   end))
-            | s-let-bind(l2, b, val) => anf(val, k-cont(fun(lettable):
+            | s-let-bind(l2, b, val) => anf(val, k-cont(lam(lettable):
                     N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
                       anf(A.s-let-expr(l, r, body), k))
                   end))
@@ -172,7 +172,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
             with-exprs = with-members.map(_.value)
-            anf-name-rec(with-exprs, "anf_variant_member", fun(ts):
+            anf-name-rec(with-exprs, "anf_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name.s, t)
                   end
@@ -180,7 +180,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               end)
           | s-singleton-variant(l2, vname, with-members) =>
             with-exprs = with-members.map(_.value)
-            anf-name-rec(with-exprs, "anf_singleton_variant_member", fun(ts):
+            anf-name-rec(with-exprs, "anf_singleton_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name.s, t)
                   end
@@ -192,16 +192,16 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         cases(List) vs:
           | empty => ks([list: ])
           | link(f, r) =>
-            anf-variant(f, fun(v): anf-variants(r, fun(rest-vs): ks([list: (v)] + rest-vs););)
+            anf-variant(f, lam(v): anf-variants(r, lam(rest-vs): ks([list: (v)] + rest-vs););)
         end
       end
       exprs = shared.map(_.value)
 
-      anf-name-rec(exprs, "anf_shared", fun(ts):
+      anf-name-rec(exprs, "anf_shared", lam(ts):
           new-shared = for map2(f from shared, t from ts):
               N.a-field(f.l, f.name.s, t)
             end
-          anf-variants(variants, fun(new-variants):
+          anf-variants(variants, lam(new-variants):
               k.apply(l, N.a-data-expr(l, data-name, new-variants, new-shared))
             end)
         end)
@@ -211,7 +211,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | k-id(_) =>
           for fold(acc from anf(_else, k), branch from branches.reverse()):
             anf-name(branch.test, "anf_if",
-              fun(test): N.a-if(l, test, anf(branch.body, k), acc) end)
+              lam(test): N.a-if(l, test, anf(branch.body, k), acc) end)
           end
         | k-cont(_) =>
           helper = mk-id(l, "if_helper")
@@ -219,7 +219,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           N.a-let(l, helper.id-b, N.a-lam(l, [list: (arg.id-b)], k.apply(l, N.a-val(arg.id-e))),
             for fold(acc from anf(_else, k-id(helper.id)), branch from branches.reverse()):
               anf-name(branch.test, "anf_if",
-                fun(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
+                lam(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
             end)
       end
     | s-try(l, body, id, _except) =>
@@ -229,57 +229,57 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      k.apply(l, N.a-lam(l, args.map(fun(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
+      k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
     | s-method(l, args, ret, doc, body, _) =>
-      k.apply(l, N.a-method(l, args.map(fun(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
+      k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
 
     | s-array(l, values) =>
-      anf-name-rec(values, "anf_array_val", fun(vs):
+      anf-name-rec(values, "anf_array_val", lam(vs):
         k.apply(l, N.a-val(N.a-array(l, vs)))
       end)
 
     | s-app(l, f, args) =>
-      anf-name(f, "anf_fun", fun(v):
-          anf-name-rec(args, "anf_arg", fun(vs):
+      anf-name(f, "anf_fun", lam(v):
+          anf-name-rec(args, "anf_arg", lam(vs):
               k.apply(l, N.a-app(l, v, vs))
             end)
         end)
 
     | s-prim-app(l, f, args) =>
-      anf-name-rec(args, "anf_arg", fun(vs):
+      anf-name-rec(args, "anf_arg", lam(vs):
           k.apply(l, N.a-prim-app(l, f, vs))
         end)
 
     | s-dot(l, obj, field) =>
-      anf-name(obj, "anf_bracket", fun(t-obj): k.apply(l, N.a-dot(l, t-obj, field)) end)
+      anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, field)) end)
 
     | s-colon(l, obj, field) =>
-      anf-name(obj, "anf_colon", fun(t-obj): k.apply(l, N.a-colon(l, t-obj, field)) end)
+      anf-name(obj, "anf_colon", lam(t-obj): k.apply(l, N.a-colon(l, t-obj, field)) end)
 
     | s-bracket(l, obj, field) =>
       fname = cases(A.Expr) field:
           | s-str(_, s) => s
           | else => raise("Non-string field: " + torepr(field))
         end
-      anf-name(obj, "anf_bracket", fun(t-obj): k.apply(l, N.a-dot(l, t-obj, fname)) end)
+      anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, fname)) end)
 
     | s-colon-bracket(l, obj, field) =>
       fname = cases(A.Expr) field:
           | s-str(_, s) => s
           | else => raise("Non-string field: " + torepr(field))
         end
-      anf-name(obj, "anf_colon", fun(t-obj): k.apply(l, N.a-colon(l, t-obj, fname)) end)
+      anf-name(obj, "anf_colon", lam(t-obj): k.apply(l, N.a-colon(l, t-obj, fname)) end)
 
     | s-get-bang(l, obj, field) =>
-      anf-name(obj, "anf_get_bang", fun(t): k.apply(l, N.a-get-bang(l, t, field)) end)
+      anf-name(obj, "anf_get_bang", lam(t): k.apply(l, N.a-get-bang(l, t, field)) end)
 
     | s-assign(l, id, value) =>
-      anf-name(value, "anf_assign", fun(v): k.apply(l, N.a-assign(l, id, v)) end)
+      anf-name(value, "anf_assign", lam(v): k.apply(l, N.a-assign(l, id, v)) end)
 
     | s-obj(l, fields) =>
       exprs = fields.map(_.value)
 
-      anf-name-rec(exprs, "anf_obj", fun(ts):
+      anf-name-rec(exprs, "anf_obj", lam(ts):
           new-fields = for map2(f from fields, t from ts):
               N.a-field(f.l, f.name.s, t)
             end
@@ -289,8 +289,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-extend(l, obj, fields) =>
       exprs = fields.map(_.value)
 
-      anf-name(obj, "anf_extend", fun(o):
-          anf-name-rec(exprs, "anf_extend", fun(ts):
+      anf-name(obj, "anf_extend", lam(o):
+          anf-name-rec(exprs, "anf_extend", lam(ts):
               new-fields = for map2(f from fields, t from ts):
                   N.a-field(f.l, f.name.s, t)
                 end

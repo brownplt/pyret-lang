@@ -115,7 +115,7 @@ where:
             ) is 10 
     count-in("{}.{a : 1 + 1, b : f()}") is 1 + 1 + 1 + 4 + 2
     count-in("{}!{a : 1 + 1, b : f()}") is 1 + 1 + 1 + 4 + 2
-    count-in("{}!{a : 1 + 1, b : fun(x): x;}") is 1 + 1 + 1 + 4 + 3
+    count-in("{}!{a : 1 + 1, b : lam(x): x;}") is 1 + 1 + 1 + 4 + 3
 end
 
 #moorings ast should be an s-program, so we'll grab the block from it

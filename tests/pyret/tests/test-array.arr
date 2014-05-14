@@ -1,7 +1,7 @@
 #lang pyret
 
 
-fun negate(f): fun(x): not(f(x));;
+fun negate(f): lam(x): not(f(x));;
 
 identical = (_ == _)
 
@@ -11,12 +11,12 @@ check:
   a1.get(-1) raises "negative"
   a1.get(1 / 2) raises "integer"
 
-  non-nums = [list: true, false, "not-a-num", {}, [list: ], fun(): 5 end, method(self): 10 end]
+  non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, method(self): 10 end]
   for each(n from non-nums): a1.get(n) raises "Number";
 end
 
 check:
-  a1 = build-array(fun(i): i * i end, 6)
+  a1 = build-array(lam(i): i * i end, 6)
   a1.to-list() is [list: 0, 1, 4, 9, 16, 25]
   a2 = for build-array(i from 7):
     (i * i) - i

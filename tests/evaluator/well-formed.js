@@ -61,23 +61,23 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end\n" + 
                                "10",
                                "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun(): x = 5 end", "Cannot end a block in a let-binding");
-        P.checkCompileErrorMsg("fun(): var x = 5 end", "Cannot end a block in a var-binding");
-        P.checkCompileErrorMsg("fun(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun(): x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("fun(): var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
+        P.checkCompileErrorMsg("lam(): var x = 5 end", "Cannot end a block in a var-binding");
+        P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
-        P.checkCompileErrorMsg("fun(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("fun(): 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
 
-        P.checkCompileErrorMsg("fun():\n" + 
+        P.checkCompileErrorMsg("lam():\n" + 
                                "  data D:\n" + 
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
                                "Cannot end a block with a data definition");
-        P.checkCompileErrorMsg("fun():\n" + 
+        P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
                                "  fun f(): nothing end\n" + 
@@ -86,7 +86,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  end\n" + 
                                "end",
                                "Cannot end a block with a data definition");
-        P.checkCompileErrorMsg("fun():\n" + 
+        P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
                                "  fun f(): nothing end\n" + 
@@ -110,14 +110,14 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end",
                                "Cannot have an `if` with a single branch");
 
-        P.checkCompileErrorMsg("fun(): true where: 5 end", wf_check("anonymous functions"));
+        P.checkCompileErrorMsg("lam(): true where: 5 end", wf_check("anonymous functions"));
         P.checkCompileErrorMsg("method(self): nothing where: 5 end", wf_check("methods"));
         P.checkCompileErrorMsg("{m(self): nothing where: 5 end}", wf_check("methods"));
 
         P.wait(done)
       });
       it("should notice empty blocks", function(done) {
-        P.checkCompileError("fun(): end", function(e) {
+        P.checkCompileError("lam(): end", function(e) {
           expect(e.length).toEqual(1);
           return true;
         });

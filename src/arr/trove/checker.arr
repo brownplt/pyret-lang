@@ -80,7 +80,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
     end,
     check-raises-str(self, code, thunk, str, loc):
-      self.check-raises(code, thunk, str, fun(exn, s): string-contains(torepr(exn), s) end, loc)
+      self.check-raises(code, thunk, str, lam(exn, s): string-contains(torepr(exn), s) end, loc)
     end,
     summary(self):
       results-summary(block-results)

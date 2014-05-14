@@ -54,7 +54,7 @@ xfg("false", "true") +
 
       it("should introduce new scopes", function(done) {
         var check = "x = 5\n" +
-                    "f = fun(): x end\n" +
+                    "f = lam(): x end\n" +
                     "when true:\n" +
                       "shadow x = 10\n" +
                       "x\n" +

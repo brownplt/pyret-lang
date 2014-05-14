@@ -107,7 +107,7 @@ sharing:
   _greaterthan(self, other): self.key() > other.key() end,
   _greaterequal(self, other): self.key() >= other.key() end,
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -145,7 +145,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     end
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
-      args.map(fun(a): a.tosource() end)))
+      args.map(lam(a): a.tosource() end)))
   ftype = funtype + typarams
   fname =
     if is-nothing(name): ftype
@@ -184,7 +184,7 @@ data Program:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -203,7 +203,7 @@ data Import:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -222,7 +222,7 @@ data Provide:
     tosource(self): PP.mt-doc end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -235,7 +235,7 @@ data ImportType:
     tosource(self): PP.str(self.mod) end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -244,7 +244,7 @@ data Hint:
     tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -259,7 +259,7 @@ data LetBind:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -270,7 +270,7 @@ data LetrecBind:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -294,7 +294,7 @@ data Expr:
   | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
     label(self): "s-hint-exp" end,
     tosource(self):
-      PP.flow-map(PP.hardline, fun(h): str-comment + h.tosource() end, self.hints) + PP.hardline
+      PP.flow-map(PP.hardline, lam(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
   | s-instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
@@ -374,12 +374,12 @@ data Expr:
     tosource(self):
       PP.surround-separate(INDENT, 1, str-askcolon + str-space + str-end,
         PP.group(str-askcolon), break-one, str-end,
-        self.branches.map(fun(b): PP.group(b.tosource()) end))
+        self.branches.map(lam(b): PP.group(b.tosource()) end))
     end
   | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
     label(self): "s-if-pipe-else" end,
     tosource(self):
-      body = PP.separate(break-one, self.branches.map(fun(b): PP.group(b.tosource()) end))
+      body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-pipespace + str-otherwisecolon + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(str-askcolon), body, str-end)
     end
@@ -387,14 +387,14 @@ data Expr:
     label(self): "s-if" end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
-        self.branches.map(fun(b): b.tosource() end))
+        self.branches.map(lam(b): b.tosource() end))
       PP.group(branches + break-one + str-end)
     end
   | s-if-else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
     label(self): "s-if-else" end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
-        self.branches.map(fun(b): b.tosource() end))
+        self.branches.map(lam(b): b.tosource() end))
       _else = str-elsecolon + PP.nest(INDENT, break-one + self._else.tosource())
       PP.group(branches + break-one + _else + break-one + str-end)
     end
@@ -405,14 +405,14 @@ data Expr:
         + self.val.tosource() + str-colon
       PP.surround-separate(INDENT, 1, header + str-space + str-end,
         PP.group(header), break-one, str-end,
-        self.branches.map(fun(b): PP.group(b.tosource()) end))
+        self.branches.map(lam(b): PP.group(b.tosource()) end))
     end
   | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
     label(self): "s-cases-else" end,
     tosource(self):
       header = str-cases + PP.parens(self.type.tosource()) + break-one
         + self.val.tosource() + str-colon
-      body = PP.separate(break-one, self.branches.map(fun(b): PP.group(b.tosource()) end))
+      body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
@@ -599,11 +599,11 @@ data Expr:
         self.params.map(PP.str))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
-        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
+        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
-        PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
+        PP.separate(PP.commabreak, self.shared-members.map(lam(s): s.tosource() end)))
       _check = cases(Option) self._check:
         | none => PP.mt-doc
         | some(chk) => optional-section(str-where, chk.tosource())
@@ -631,11 +631,11 @@ data Expr:
         self.params.map(PP.str))
       header = str-data-expr + PP.str(self.name) + tys + str-colon
       _deriving =
-        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(fun(m): m.tosource() end))
+        PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ lists.link(_, self.variants.map(fun(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ lists.link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
-        PP.separate(PP.commabreak, self.shared-members.map(fun(s): s.tosource() end)))
+        PP.separate(PP.commabreak, self.shared-members.map(lam(s): s.tosource() end)))
       _check = cases(Option) self._check:
         | none => PP.mt-doc
         | some(chk) => optional-section(str-where, chk.tosource())
@@ -655,7 +655,7 @@ data Expr:
       header = PP.group(str-for
           + self.iterator.tosource()
           + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
-          self.bindings.map(fun(b): b.tosource() end))
+          self.bindings.map(lam(b): b.tosource() end))
           + PP.group(PP.nest(2 * INDENT,
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
@@ -680,7 +680,7 @@ data Expr:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -693,7 +693,7 @@ data ConstructModifier:
     tosource(self): PP.str("lazy") end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
     
@@ -715,7 +715,7 @@ data Bind:
     label(self): "s_bind" end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -748,7 +748,7 @@ data Member:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -760,7 +760,7 @@ data ForBind:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -776,7 +776,7 @@ data VariantMemberType:
     tosource(self): PP.str("mutable ") end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -788,7 +788,7 @@ data VariantMember:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -805,9 +805,9 @@ data Variant:
       header-nowith =
         PP.str(self.name)
         + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
-        self.members.map(fun(b): b.tosource() end))
+        self.members.map(lam(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with-members.map(fun(m): m.tosource() end)
+      withs = self.with-members.map(lam(m): m.tosource() end)
       if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
@@ -821,14 +821,14 @@ data Variant:
     tosource(self):
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
-      withs = self.with-members.map(fun(m): m.tosource() end)
+      withs = self.with-members.map(lam(m): m.tosource() end)
       if lists.is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -854,7 +854,7 @@ data DatatypeVariant:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -870,7 +870,7 @@ data Constructor:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -884,7 +884,7 @@ data IfBranch:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -898,7 +898,7 @@ data IfPipeBranch:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -909,12 +909,12 @@ data CasesBranch:
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
-            self.args.map(fun(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
+            self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
         self.body.tosource())
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -961,7 +961,7 @@ data Ann:
     tosource(self): self.obj.tosource() + PP.str("." + self.field) end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -975,7 +975,7 @@ data AField:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 

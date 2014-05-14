@@ -109,7 +109,7 @@ fun make-torepr(l, vname, fields, is-singleton):
     | empty => str("")
     | link(f, r) =>
       r.foldl(
-          fun(val, acc): concat(acc, concat(str(", "), call-torepr(val))) end,
+          lam(val, acc): concat(acc, concat(str(", "), call-torepr(val))) end,
           call-torepr(f)
         )
   end
@@ -306,7 +306,7 @@ fun ds-curry(l, f, args):
 where:
   d = A.dummy-loc
   n = A.s-global
-  id = fun(s): A.s-id(d, A.s-global(s));
+  id = lam(s): A.s-id(d, A.s-global(s));
   under = A.s-id(d, A.s-underscore(d))
   ds-ed = ds-curry(
       d,
@@ -453,7 +453,7 @@ fun desugar-expr(expr :: A.Expr):
       cases(Option) get-arith-op(op):
         | some(field) =>
           ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-            fun(e1, e2):
+            lam(e1, e2):
               A.s-app(l, gid(l, field), [list: e1, e2])
             end)
         | none =>
@@ -474,12 +474,12 @@ fun desugar-expr(expr :: A.Expr):
           collect-carets = collect-op("op^", _)
           if op == "op==":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-              fun(e1, e2):
+              lam(e1, e2):
                 A.s-prim-app(l, "equiv", [list: e1, e2])
               end)
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-              fun(e1, e2):
+              lam(e1, e2):
                 A.s-prim-app(l, "not", [list: A.s-prim-app(l, "equiv", [list: e1, e2])])
               end)
           else if op == "opor":
@@ -534,7 +534,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-list(l, elts) =>
-      elts.foldr(fun(elt, list-expr):
+      elts.foldr(lam(elt, list-expr):
           A.s-prim-app(
               l,
               "_link",
@@ -550,7 +550,7 @@ fun desugar-expr(expr :: A.Expr):
         | s-construct-lazy =>
           A.s-app(l, desugar-expr(A.s-dot(l, constructor, "lazy-make")),
             [list: A.s-array(l,
-                  elts.map(fun(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
+                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(joe): see preconditions; desugar-checks should have already happened
@@ -564,13 +564,13 @@ where:
     s-global(self, s): A.s-name(d, s) end,
     s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = fun(str): PP.surface-parse(str, "test").block;
-  ds = fun(prog): desugar-expr(prog).visit(unglobal) end
-  id = fun(s): A.s-id(d, A.s-name(d, s));
+  p = lam(str): PP.surface-parse(str, "test").block;
+  ds = lam(prog): desugar-expr(prog).visit(unglobal) end
+  id = lam(s): A.s-id(d, A.s-name(d, s));
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
-  equiv = fun(e): A.equiv-ast(_, e) end
-  pretty = fun(prog): prog.tosource().pretty(80).join-str("\n") end
+  equiv = lam(e): A.equiv-ast(_, e) end
+  pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
@@ -586,12 +586,12 @@ where:
   
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3)
-    satisfies equiv(p("map(fun(elt): _plus(elt, 1) end, l)"))
+    satisfies equiv(p("map(lam(elt): _plus(elt, 1) end, l)"))
   
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
   #  ds(prog4) satisfies
-  #    equiv(p("builtins.equiv(5._plus(1), 6)._or(fun(): f(o) end)"))
+  #    equiv(p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)"))
   
   # ds(p("(5)")) satisfies equiv(ds(p("5")))
   
@@ -599,8 +599,8 @@ where:
   # dsed5 = ds(prog5)
   # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
   # compare = (cases-name + " = l " +
-  #   cases-name + "._match({empty: fun(): 5._plus(4) end, link: fun(f, r): 10 end},
-  #   fun(): raise('no cases matched') end)")
+  #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
+  #   lam(): raise('no cases matched') end)")
   # dsed5 satisfies equiv(ds(p(compare)))
   
 end

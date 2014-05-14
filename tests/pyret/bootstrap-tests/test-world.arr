@@ -4,7 +4,7 @@ import world as W
 # functions, not the event behavior of world itself
 
 check "on-tick":
-  inc = fun(v): v + 1 end
+  inc = lam(v): v + 1 end
 
   on-tick(inc) satisfies W.is-world-config
   on-tick(inc, 5) raises "arity"
@@ -19,7 +19,7 @@ check "on-tick":
 end
 
 check "on-key":
-  key = fun(v, k): v + 1 end
+  key = lam(v, k): v + 1 end
 
   on-key(key) satisfies W.is-world-config
   on-key("not-key-function") raises "Function"
@@ -28,7 +28,7 @@ check "on-key":
 end
 
 check "to-draw":
-  draw = fun(v): v end
+  draw = lam(v): v end
 
   to-draw(draw) satisfies W.is-world-config
   to-draw("a") raises "Function"
@@ -37,7 +37,7 @@ check "to-draw":
 end
 
 check "on-mouse":
-  mouse = fun(v, x, y, kind): v + 1 end
+  mouse = lam(v, x, y, kind): v + 1 end
 
   on-mouse(mouse) satisfies W.is-world-config
   on-mouse("not-mouse-function") raises "Function"
@@ -46,7 +46,7 @@ check "on-mouse":
 end
 
 check "stop-when":
-  stop = fun(v): v > 1 end
+  stop = lam(v): v > 1 end
 
   stop-when(stop) satisfies W.is-world-config
   stop-when("not-mouse-function") raises "Function"

@@ -13,8 +13,8 @@ blank-one = PP.blank(1)
 fun string-printer():
   var str = ""
   {
-    append: fun(s): str := str + s end,
-    get: fun(): str end
+    append: lam(s): str := str + s end,
+    get: lam(): str end
   }
 end
 
@@ -241,7 +241,7 @@ data JExpr:
     tosource(self):
       PP.group(self.func.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
   | j-method(obj :: JExpr, meth :: String, args :: List<JExpr>) with:
     print-ugly-source(self, printer):
@@ -261,7 +261,7 @@ data JExpr:
     tosource(self):
       PP.group(PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.meth))
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
   | j-ternary(test :: JExpr, consq :: JExpr, altern :: JExpr) with:
     print-ugly-source(self, printer):
@@ -358,7 +358,7 @@ data JExpr:
     end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(lam(f): f.tosource() end))
     end
   | j-id(id :: String) with:
     print-ugly-source(self, printer):

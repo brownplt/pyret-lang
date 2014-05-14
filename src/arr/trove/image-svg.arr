@@ -42,13 +42,13 @@ data Attr:
     tostring(self): self.name + '="' + self.val + '"' end,
     topretty(self): PP.group(PP.str(self.name) + PP.str("=") + PP.sbreak(0) + PP.dquote(PP.str(self.val))) end
   | mixed(name :: String, vals :: List<Attr>) with:
-    tostring(self): self.name + '="' + self.vals.map(fun(v): v.name + ":" + v.val end).join-str(":") + '"' end,
+    tostring(self): self.name + '="' + self.vals.map(lam(v): v.name + ":" + v.val end).join-str(":") + '"' end,
     topretty(self):
       if is-empty(self.vals): PP.mt-doc
       else:
         PP.str(self.name) + PP.str('="') 
           + PP.flow-map(PP.str(";") + PP.sbreak(1),
-          fun(v): PP.group(PP.str(v.name) + PP.str(":") + PP.sbreak(1) + PP.str(v.val)) end,
+          lam(v): PP.group(PP.str(v.name) + PP.str(":") + PP.sbreak(1) + PP.str(v.val)) end,
           self.vals)
           + PP.str(';"')
       end

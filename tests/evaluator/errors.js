@@ -19,7 +19,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
     describe("run-task", function() {
       it("should work for normal computation", function(done) {
         var prog =
-"cases(Either) run-task(fun(): 5 end):\n" +
+"cases(Either) run-task(lam(): 5 end):\n" +
 "    | left(v) => v\n" +
 "    | right(exn) => 'fail'\n" +
 "end";
@@ -30,7 +30,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       }, 10000);
       it("should work for exceptional computation", function(done) {
         var prog =
-"cases(Either) run-task(fun(): raise('ahoy') end):\n" +
+"cases(Either) run-task(lam(): raise('ahoy') end):\n" +
 "    | left(v) => 'fail'\n" +
 "    | right(exn) => exn\n" +
 "end";
@@ -42,7 +42,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("should work when nested", function(done) {
         var prog =
 "fun f(n):\n" +
-"  cases(Either) run-task(fun(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
+"  cases(Either) run-task(lam(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
 "      | left(v) => v\n" +
 "      | right(exn) => n + exn\n" +
 "  end\n" +
@@ -65,7 +65,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
     describe("compiler", function() {
       it("should signal an error when the compile fails", function(done) {
-        P.checkCompileError("fun(): x = 5 y = 10 end", function(e) {
+        P.checkCompileError("lam(): x = 5 y = 10 end", function(e) {
             expect(e.length).toEqual(1);
             return true;
           });
@@ -86,7 +86,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
     describe("shadowing", function() {
       it("should notice shadowed builtins", function(done) {
-        P.checkCompileError("fun(x): x = 5 x end", function(e) {
+        P.checkCompileError("lam(x): x = 5 x end", function(e) {
           expect(e.length).toEqual(1);
           return true;
         });

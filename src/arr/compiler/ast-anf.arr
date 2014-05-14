@@ -38,14 +38,14 @@ data AProg:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
-        PP.flow-map(PP.hardline, fun(i): i.tosource() end, self.imports)
+        PP.flow-map(PP.hardline, lam(i): i.tosource() end, self.imports)
           + PP.hardline
           + self.body.tosource()
         )
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -62,7 +62,7 @@ data AImport:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -97,7 +97,7 @@ data AExpr:
     tosource(self):
       PP.group(self.f.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
   | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
@@ -107,12 +107,12 @@ data AExpr:
             PP.str("split ")
               + PP.group(self.helper-args.first.tosource() + PP.str(" <== ") + self.f.tosource()
                 + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end))))))) +
+                PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end))))))) +
         break-one +
         PP.group(PP.nest(INDENT, PP.str("and then") + break-one
               + self.helper.tosource()
               + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.helper-args.map(fun(f): f.tosource() end)))))))
+                PP.separate(PP.commabreak, self.helper-args.map(lam(f): f.tosource() end)))))))
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,
@@ -131,7 +131,7 @@ data AExpr:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -145,7 +145,7 @@ data ABind:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -168,7 +168,7 @@ data AVariant:
     tosource(self): PP.str("a-variant") end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -196,7 +196,7 @@ data AVariantMember:
     end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -217,20 +217,20 @@ data ALettable:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
   | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
     label(self): "a-prim-app" end,
     tosource(self):
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(fun(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(fun(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(lam(f): f.tosource() end))
     end
   | a-update(l :: Loc, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-update" end,
@@ -262,14 +262,14 @@ data ALettable:
     tosource(self): self.v.tosource() end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 fun fun-method-pretty(typ, args, body):
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
-      args.map(fun(a): a.tosource() end)))
+      args.map(lam(a): a.tosource() end)))
   header = PP.group(typ + arg-list + str-colon)
   PP.surround(INDENT, 1, header, body.tosource(), str-end)
 end
@@ -280,7 +280,7 @@ data AField:
     tosource(self): PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource()) end,
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -315,7 +315,7 @@ data AVal:
     tosource(self): PP.str("~" + self.id.tostring()) end
 sharing:
   visit(self, visitor):
-    self._match(visitor, fun(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 

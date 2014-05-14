@@ -114,7 +114,7 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: FUN ty-params [args] return-ann COLON doc-string block where-clause end
+lambda-expr: (LAM|FUN) ty-params [args] return-ann COLON doc-string block where-clause end
 
 method-expr: METHOD args return-ann COLON doc-string block where-clause end
 

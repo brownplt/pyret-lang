@@ -96,7 +96,7 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
     | link(f, rest) =>
       cases(A.CasesBranch) f:
         | s-cases-branch(l, name, args, body) =>
-          cases(Option) lists.find(fun(b): b.name == name end, rest):
+          cases(Option) lists.find(lam(b): b.name == name end, rest):
             | some(found) => wf-error2("Duplicate case for " + name, found.l, l)
             | none => ensure-unique-cases(rest)
           end
@@ -112,7 +112,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
         | s-bind(l, shadows, id, ann) =>
           if A.is-s-underscore(id): nothing
           else:
-            cases(Option) lists.find(fun(b): b.id == id end, rest):
+            cases(Option) lists.find(lam(b): b.id == id end, rest):
               | some(found) => wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
               | none => ensure-unique-ids(rest)
             end
@@ -133,7 +133,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           if A.is-s-underscore(id): nothing
           else if shadows: nothing
           else:
-            cases(Option) lists.find(fun(b): b.id == id end, rest):
+            cases(Option) lists.find(lam(b): b.id == id end, rest):
               | some(found) => duplicate-id(tostring(id), l, found.l)
               | none => ensure-unique-bindings(rest)
             end
@@ -147,7 +147,7 @@ fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Varian
   cases(List) variants:
     | empty => nothing
     | link(f, rest) =>
-      cases(Option) lists.find(fun(b): b.name == f.name end, rest):
+      cases(Option) lists.find(lam(b): b.name == f.name end, rest):
         | some(found) => wf-error2("Found duplicate id " + f.name + " in list of bindings", f.l, found.l)
         | none => ensure-unique-variant-ids(rest)
       end
@@ -218,7 +218,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
         true
       else:
         wf-last-stmt(stmts.last())
-        bind-stmts = stmts.filter(fun(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
+        bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
         ensure-unique-bindings(bind-stmts.reverse())
         lists.all(_.visit(self), stmts)
       end

@@ -2,7 +2,7 @@ import string-dict as SD
 
 check:
   every-other = {
-    make: fun(arr):
+    make: lam(arr):
       var l = empty
       len = raw-array-length(arr)
       for each(i from range(0, len)):
@@ -19,7 +19,7 @@ check:
 
   
   dictkv = {
-    make: fun(arr):
+    make: lam(arr):
       d = SD.string-dict()
       for each(i from range(0, raw-array-length(arr))):
         elt = raw-array-get(arr, i)
@@ -29,7 +29,7 @@ check:
     end
   }
   kv = {
-    make: fun(arr):
+    make: lam(arr):
       when raw-array-length(arr) <> 2:
         raise("Bad key-value pair")
       end
@@ -50,7 +50,7 @@ check:
   [kv: "a", 1, 2] raises "Bad key-value"
 
   dict-list = {
-    make: fun(arr):
+    make: lam(arr):
       len = raw-array-length(arr)
       when num-modulo(len, 2) <> 0: raise("Odd number of arguments to dict-list") end
       d = SD.string-dict()
