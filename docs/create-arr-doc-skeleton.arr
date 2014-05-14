@@ -93,7 +93,7 @@ end
 
 fun trim-path(path):
   var ret = path
-  var prefixes = S.to-dict({
+  prefixes = S.to-dict({
       trove: "",
       js: "js/",
       base: "",
@@ -113,7 +113,20 @@ fun trim-path(path):
   end
   ret
 end
-
+fun relative-dir(path):
+  prefixes = S.to-dict({
+      trove: "../../",
+      js: "../../",
+      base: "../../",
+      compiler: "../../../"
+    })
+  for fold(acc from "", prefix from prefixes.keys()):
+    if string-index-of(path, prefix + "/") >= 0: prefixes.get(prefix)
+    else: acc
+    end
+  end
+end
+    
 data CrossRef:
   | crossref(modname :: String, field :: String) with:
     tosource(self): PP.str(torepr(self)) end
@@ -441,12 +454,12 @@ fun process-module(file, fields, bindings):
     some(
       ( if fields.ignored-vals.keys().length() > 0:
           [list:  at-comment("Ignored type testers"),
-            at-exp("ignore", some([list: sexp("list", fields.ignored-vals.keys().map(leaf))]), none)]
+            at-exp("ignore", some([list: sexp("list", fields.ignored-vals.keys().map(lam(i):leaf(torepr(i))end))]), none)]
         else: [list: ]
         end) +
       ( if fields.unknown-vals.keys().length() > 0:
           [list:  at-comment("Unknown: PLEASE DOCUMENT"),
-            at-exp("ignore", some([list: sexp("list", fields.unknown-vals.keys().map(leaf))]), none)]
+            at-exp("ignore", some([list: sexp("list", fields.unknown-vals.keys().map(lam(i):leaf(torepr(i))end))]), none)]
         else: [list: ]
         end)
         + [list: at-exp("section", none, some([list: leaf("Re-exported values")]))]
@@ -482,7 +495,7 @@ cases (C.ParsedArguments) parsed-options:
                   | s-obj(_, fields) =>
                     output = toplevel([list: 
                         hashlang("scribble/base"),
-                        at-app("require", [list: leaf(torepr("../scribble-api.rkt"))]),
+                        at-app("require", [list: leaf(torepr(relative-dir(file) + "scribble-api.rkt"))]),
                         process-module(file, process-fields(trim-path(file), fields, bindings), bindings)
                       ])
                     nothing

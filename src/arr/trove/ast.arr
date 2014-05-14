@@ -507,11 +507,13 @@ data Expr:
   | s-construct(l :: Loc, modifier :: ConstructModifier, constructor :: Expr, values :: List<Expr>) with:
     label(self): "s-construct" end,
     tosource(self):
-      PP.surround(INDENT, 0, PP.lbrack,
-        PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
-          + str-colonspace
-          + PP.separate(PP.commabreak, self.values.map(_.tosource())),
-        PP.rbrack)
+      prefix = PP.lbrack
+        + PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
+        + str-colonspace
+      if is-empty(self.values): prefix + PP.rbrack
+      else:
+        PP.surround(INDENT, 0, prefix, PP.separate(PP.commabreak, self.values.map(_.tosource())), PP.rbrack)
+      end
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,

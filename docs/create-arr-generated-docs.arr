@@ -70,7 +70,7 @@ end
 
 fun trim-path(path):
   var ret = path
-  var prefixes = S.to-dict({
+  prefixes = S.to-dict({
       trove: "",
       js: "js/",
       base: "",
