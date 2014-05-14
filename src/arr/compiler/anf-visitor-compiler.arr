@@ -246,7 +246,12 @@ compiler-visitor = {
     compile-split-app(self, l, is-var, f, args, name, helper-args)
   end,
   a-seq(self, l, e1, e2):
-    j-block(link(e1.visit(self), e2.visit(self).stmts))
+    e1-visit = e1.visit(self)
+    if J.JStmt(e1-visit):
+      j-block(link(e1-visit, e2.visit(self).stmts))
+    else:
+      j-block(link(j-expr(e1-visit), e2.visit(self).stmts))
+    end
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     compiled-consq = consq.visit(self)
