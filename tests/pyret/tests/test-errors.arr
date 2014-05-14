@@ -40,16 +40,6 @@ check:
   e3.non-obj is true 
   e3.loc satisfies S.is-srcloc
 
-  e4 = get-err(fun(): true:x;)
-  e4 satisfies E.is-lookup-non-object
-  e4.field is "x"
-  e4.non-obj is true 
-
-  e5 = get-err(fun(): {}:x;)
-  e5 satisfies E.is-field-not-found
-  e5.field is "x"
-  e5.obj is {}
-
   e6 = get-err(fun(): "a" + 5;)
   e6 satisfies E.is-generic-type-mismatch
   e6.val is 5

@@ -581,12 +581,8 @@ where:
   ds(prog2)
     satisfies equiv(
     A.s-block(d,
-      [list:  A.s-prim-app(d, "_link",
-          [list:  one,
-            A.s-prim-app(d, "_link",
-              [list:  two,
-                A.s-prim-app(d, "_link",
-                  [list: A.s-app(d, id("_plus"), [list: one, two]), id("_empty")])])])]))
+      [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+          [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])]))
   
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3)

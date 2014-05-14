@@ -6,7 +6,7 @@ fun negate(f): fun(x): not(f(x));;
 identical = (_ == _)
 
 check:
-  a1 = [list: array: 1, 2, 3]
+  a1 = [array: 1, 2, 3]
 
   a1.get(-1) raises "negative"
   a1.get(1 / 2) raises "integer"
@@ -25,13 +25,13 @@ check:
 end
 
 check:
-  a1 = [list: array: 1, 2, 3]
+  a1 = [array: 1, 2, 3]
   a1.length() is 3
 
   a1 is a1
   a1 satisfies identical(_, a1)
 
-  a2 = [list: array: 1, 2, 3]
+  a2 = [array: 1, 2, 3]
   a2.length() is 3
 
   a1 satisfies _ <> a2
@@ -40,7 +40,7 @@ check:
   a1 satisfies negate(identical(_, a2))
   a2 satisfies negate(identical(_, a1))
 
-  a3 = [list: array: 4, "a", 6]
+  a3 = [array: 4, "a", 6]
   a3.length() is 3
 
   a1.to-list() satisfies _ <> a3.to-list()
@@ -50,7 +50,7 @@ end
 
 check:
 
-  a1 = [list: array: 1, 2, 3]
+  a1 = [array: 1, 2, 3]
 
   a1 satisfies is-array
 
@@ -93,7 +93,7 @@ check:
 end
 
 check:
-  a = [list: array: ]
+  a = [array: ]
   a.length() is 0
   a.get(0) raises "too large"
   a.get(1) raises "too large"
@@ -108,7 +108,7 @@ check:
 
   raw-array-length(a1) is 5
   raw-array-get(a1, 5) raises "too large"
-  a2 = [list: array: "init","init","init","init","init"]
+  a2 = [array: "init","init","init","init","init"]
 
   raw-array-to-list(a1) is a2.to-list()
   raw-array-set(a1, 0, "update")
@@ -119,16 +119,16 @@ check:
 end
 
 check:
-  torepr([list: array: 1,2,"3"]) is '[list: array: 1, 2, "3"]'
-  torepr([list: array: ]) is '[list: array: ]'
-#  torepr(raw-array-of(3, 3)) is '[list: array: 3, 3, 3]'
+  torepr([array: 1,2,"3"]) is '[array: 1, 2, "3"]'
+  torepr([array: ]) is '[array: ]'
+#  torepr(raw-array-of(3, 3)) is '[array: 3, 3, 3]'
 end
 
 check:
   fun f(v :: Array<Number>): when not(is-array(v)): raise("not an Array"); v;
   f([list: ]) raises "Array"
-  f([list: array: ]).to-list() is [list: ]
-  f([list: array: ]) satisfies is-array
+  f([array: ]).to-list() is [list: ]
+  f([array: ]) satisfies is-array
 end
 
 check:
@@ -147,8 +147,8 @@ check:
     | single
     | multi(a, b)
   end
-  a = [list: array: (single), multi(1, "2")]
-  torepr(a) is "[list: array: single, multi(1, \"2\")]"
+  a = [array: single, multi(1, "2")]
+  torepr(a) is "[array: single, multi(1, \"2\")]"
   a.set(0, a.get(1)).to-list() is [list: multi(1, "2"), multi(1, "2")]
   a.get(0) satisfies identical(_, a.get(1))
   a.length() is 2
