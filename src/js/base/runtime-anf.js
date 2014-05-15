@@ -1941,6 +1941,41 @@ function createMethodDict() {
       return ffi.makeList(arr);
     };
 
+    var raw_array_fold = function(f, init, arr, start) {
+      thisRuntime.checkArity(4, arguments, "raw-array-fold");
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkPyretVal(init);
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkNumber(start);
+      var currentIndex = -1;
+      var currentAcc = init;
+      var length = arr.length;
+      function foldHelp() {
+        while(++currentIndex < length) {
+          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+        }
+        return currentAcc;
+      }
+      try {
+        return foldHelp();
+      } catch(e) {
+        if(isCont(e)) {
+          var stacklet = {
+            from: ["raw-array-fold"],
+            go: function(ret) {
+              currentAcc = ret;
+              return foldHelp();
+            }
+          };
+          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+        }
+        if (thisRuntime.isPyretException(e)) {
+          e.pyretStack.push(["raw-array-fold"]); 
+        }
+        throw e;
+      }
+    };
+
     var string_substring = function(s, min, max) {
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(min);
@@ -2304,6 +2339,7 @@ function createMethodDict() {
           'raw-array-set': makeFunction(raw_array_set),
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
+          'raw-array-fold': makeFunction(raw_array_fold),
 
           'not': makeFunction(bool_not)
 

@@ -154,3 +154,33 @@ check:
   a.length() is 2
 end
 
+check:
+#  myarr = [array: 1, 2, 3, 4, 5]
+#  answer = for arrays.array-fold(acc from 0, elt from myarr, ix from 0):
+#    acc + elt
+#  end
+#  answer is 15
+
+  bigarr = raw-array-of(2, 1000)
+  answer2 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
+    acc + elt
+  end
+  answer2 is 2 * 1000
+
+  answer3 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
+    for raw-array-fold(acc2 from acc, elt2 from bigarr, ix2 from 0):
+      acc2 + elt2
+    end
+  end
+  answer3 is 2 * 1000 * 1000
+
+  bigarr2 = raw-array-of(3, 1000)
+  answer4 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
+    acc + (elt * for raw-array-fold(acc2 from 0, elt2 from bigarr2, ix2 from 0):
+      acc2 + elt2
+    end)
+  end
+  answer4 is  3 * 1000 * 2 * 1000
+
+end
+
