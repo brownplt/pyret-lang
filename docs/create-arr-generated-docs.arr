@@ -224,7 +224,7 @@ cases (C.ParsedArguments) parsed-options:
     dialect = opts.get("dialect")
     cases (List) rest:
       | empty => print("Require a file name")
-      | link(file, _) =>
+      | link(file, more) =>
         file-contents = F.file-to-string(file)
         parsed = P.parse-dialect(dialect, file-contents, file)
         scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).orelse(parsed)), CS.minimal-builtins)
@@ -247,8 +247,12 @@ cases (C.ParsedArguments) parsed-options:
                             spair("path", torepr(string-replace(file, "\\", "/")))
                           ]
                             + process-fields(fields, bindings)) ])
-                    nothing
-                    output.tosource().pretty(80).each(print)
+                    outputdoc = output.tosource().pretty(80)
+                    cases(List) more:
+                      | empty => outputdoc.each(print)
+                      | link(outfile, _) =>
+                        F.output-file(outfile, false).display(outputdoc.join-str("\n"))
+                    end
                   | else => nothing
                 end
             end

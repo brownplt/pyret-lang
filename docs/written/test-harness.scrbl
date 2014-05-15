@@ -6,6 +6,7 @@
 @para{This should link to @secref[(tag-name "<global>" "Bool")] and @secref[(tag-name "option" "Option")]}
 @include-section["trove/globals.scrbl"]
 @include-section["trove/lists.js.rkt"]
+@include-section["trove/srcloc.js.rkt"]
 @include-section["trove/option.js.rkt"]
 @include-section["trove/either.js.rkt"]
 @include-section["trove/pprint.js.rkt"]

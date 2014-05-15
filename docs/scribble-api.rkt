@@ -80,8 +80,8 @@
 ;; print a warning message, optionally with name of issuing function
 (define (warning funname msg)
   (if funname
-      (printf "WARNING in ~a: ~s~n" funname msg)
-      (printf "WARNING: ~s~n" msg)))
+      (eprintf "WARNING in ~a: ~s~n" funname msg)
+      (eprintf "WARNING: ~s~n" msg)))
 
 (define (init-doc-checker read-docs)
   (map (lambda (mod)
@@ -97,26 +97,29 @@
     (if mod
         (if (dict-has-key? (second mod) name)
             (if (dict-ref (second mod) name)
-                (error 'set-documented! (format "~s is already documented in module ~s" name modname))
+                (warning 'set-documented! (format "~s is already documented in module ~s" name modname))
                 (dict-set! (second mod) name #t))
-            (error 'set-documented! (format "Unknown identifier ~s in module ~s" name modname)))
-        (error 'set-documented! (format "Unknown module ~s" modname)))))
+            (warning 'set-documented! (format "Unknown identifier ~s in module ~s" name modname)))
+        (warning 'set-documented! (format "Unknown module ~s" modname)))))
 
 (define (report-undocumented modname)
   (let ([mod (assoc modname curr-doc-checks)])
     (if mod
         (dict-for-each (second mod) (lambda (key val)
                                       (unless val
-                                        (printf "WARNING: undocumented export ~s from module ~s~n"
+                                        (warning "Undocumented export ~s from module ~s~n"
                                                 key modname))))
-        (error 'report-undocumented (format "Unknown module ~s" modname)))))
+        (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
 (define (load-gen-docs)
-  (let ([all-docs (directory-list GEN-BASE)])
+  (let ([all-docs (filter (lambda(f) 
+                            (let ([str (path->string f)])
+                              (not (string=? (substring str (- (string-length str) 4)) ".bak")))
+                            ) (directory-list GEN-BASE))])
     (let ([read-docs
            (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
       (set! curr-doc-checks (init-doc-checker read-docs))
-      (printf "Modules are ~s~n" (map first curr-doc-checks))
+      ;(printf "Modules are ~s~n" (map first curr-doc-checks))
       read-docs)))
 
 ;;;;;;;;;;; Functions to extract information from generated documentation ;;;;;;;;;;;;;;
@@ -126,15 +129,15 @@
 (define (find-module mname)
   (let ([m (findf (lambda (mspec) (equal? (mod-name mspec) mname)) ALL-GEN-DOCS)])
     (unless m
-      (error 'find-module (format "WARNING: module not found ~a~n" mname)))
+      (error 'find-module (format "Module not found ~a~n" mname)))
     m))
 
 ;; finds definition in defn spec list that has given value for designated field
 ;; by-field is symbol, indefns is list<specs>
 (define (find-defn by-field for-val indefns)
   (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
-    #;(unless d
-      (error 'find-defn (format "WARNING: no definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
+    (unless d
+      (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
     d))
 
 ;; defn-spec is '(fun-spec <assoc>)
@@ -386,14 +389,14 @@
                                       (para #:style dl-style
                                             (map (lambda (name type descr)
                                                    (cond [(and name type descr)
-                                                          (list (dt name " :: " type)
+                                                          (list ((tt dt name " :: " type))
                                                                 (dd descr))]
                                                          [(and name type)
-                                                          (list (dt name " :: " type)
+                                                          (list (dt (tt name " :: " type))
                                                                 (dd ""))]
                                                          [(and name descr)
-                                                          (list (dt name) (dd descr))]
-                                                         [else (list (dt name) (dd ""))]))
+                                                          (list (dt (tt name)) (dd descr))]
+                                                         [else (list (dt (tt name)) (dd ""))]))
                                                  argnames input-types input-descr))
                                       )
                                      (if doc (list doc) (list)))))
