@@ -31,6 +31,7 @@
          singleton-spec
          with-members
          shared
+         a-id
          a-arrow
          a-record
          a-field
@@ -166,20 +167,20 @@
 ;   we aren't generating links to unknown targets  
 ; TODO: fix path to html file in "file" definition
 (define (xref modname itemname)
-  (traverse-element
-   (lambda (get set!)
-     (traverse-element
-      (lambda (get set!)
-        (let* ([xref-table (get 'doc-xrefs '())]
-               [entry (assoc itemname xref-table)])
-          #;(unless (string=? modname "<global>")
-              (printf "Checking modname ~s and item ~s~n" modname itemname)
-              (unless (and entry (string=? (second entry) modname))
-                (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
-          (let* ([file (path->string 
-                        (build-path (current-directory) 
-                                    (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
-            (hyperlink file itemname))))))))
+  (let [(cur-mod (curr-module-name))]
+    (traverse-element
+     (lambda (get set!)
+       (traverse-element
+        (lambda (get set!)
+          (let* ([xref-table (get 'doc-xrefs '())]
+                 [entry (assoc itemname xref-table)])
+            (when (string=? modname cur-mod)
+                (unless (and entry (string=? (second entry) modname))
+                  (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
+            (let* ([file (path->string 
+                          (build-path (current-directory) 
+                                      (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
+              (hyperlink file itemname)))))))))
 
 ; drops an "a name" anchor for cross-referencing
 (define (drop-anchor name)
@@ -231,16 +232,24 @@
 ;; render re-exports
 @(define (re-export name from . contents)
    (set-documented! (curr-module-name) name)
-   (list @para{"No re-export yet"}))
+   (list "For " (elem #:style (span-style "code") name) ", see " from))
 
 @(define (from where)
-   @para{"No from yet"})
+   (list where))
 
 
 @(define (data-spec name . members)
-   (printf "Documenting ~s in ~s~n" name (curr-module-name))
    (set-documented! (curr-module-name) name)
-   (list @section[name] members))
+   (let ([processing-module (curr-module-name)])
+     (interleave-parbreaks/all
+      (list (drop-anchor name)
+            (section name)
+            (traverse-block ; use this to build xrefs on an early pass through docs
+             (lambda (get set!)
+               (set! 'doc-xrefs (cons (list name processing-module)
+                                      (get 'doc-xrefs '())))
+               (nested #:style (div-style "data-defn")
+                             "Nothing yet")))))))
 @(define (method-spec name #:contract (contract #f) . body)
    (list @section[name] body))
 @(define (member-spec name #:contract (contract #f) . body)
@@ -255,8 +264,11 @@
    members)
 @(define (members . mems)
    mems)
-@(define (a-arrow . args)
-   args)
+@(define (a-id name . args)
+   (list
+    (if (cons? args) (first args) name)))
+@(define (a-arrow . typs)
+   (append (list "(") (add-between typs ", " #:before-last " -> ") (list ")")))
 @(define (a-record . fields)
    fields)
 @(define (a-field name type . desc)
@@ -275,11 +287,9 @@
                    . contents
                    )
    (let ([spec (find-doc (curr-module-name) name)])
-     (let* ([inputs (if (list? contract) (take contract (sub1 (length contract))) "OOPS1")]
-            [output (if (list? contract) (last contract) "OOPS2")]
-            [input-types (map (lambda (i) (if (pair? i) (first i) i)) inputs)]
-            [input-descr (map (lambda (i) (if (pair? i) (second i) #f)) inputs)]
-            [argnames (or args (get-defn-field 'args spec))]
+     (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
+            [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
+            [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
             [doc (or alt-docstrings (get-defn-field 'doc spec))]
             [arity (get-defn-field 'arity spec)]
             )
@@ -310,8 +320,7 @@
                                      (interleave-parbreaks/all
                                       (append
                                        (list
-                                        (nested #:style (pre-style "code") name " :: " input-types " -> " output)
-                                        (para "Returns " output)
+                                        (nested #:style (pre-style "code") name " :: " contract)
                                         (para #:style dl-style
                                               (map (lambda (name type descr)
                                                      (cond [(and name type descr)
