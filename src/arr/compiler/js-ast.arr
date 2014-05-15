@@ -445,7 +445,7 @@ where:
     .tosource().pretty(80) is
     [list: "if(true) { return false; } else { return 5; }"]
 
-  j-bracket(j-true, j-false).tosource().pretty(20) is [list: "true[list: false]"]
+  j-bracket(j-true, j-false).tosource().pretty(20) is [list: "true[false]"]
 
 end
 
