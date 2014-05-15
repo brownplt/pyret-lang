@@ -231,10 +231,12 @@ fun process-fields(module-name, fields, bindings):
       | s-lam(_, _, _, _, _, _, _) =>
         if (string-index-of(field, "\"is-") == 0):
           ignored-vals := ignored-vals.set(field, value)
+          cross-refs := cross-refs.set(field,
+            crossref(module-name, string-substring(field, 3, string-length(field))))
         else:
           fun-vals := fun-vals.set(field, value)
+          cross-refs := cross-refs.set(field, crossref(module-name, field))
         end
-        cross-refs := cross-refs.set(field, crossref(module-name, field))
       | s-variant(_, _, _, _, _) =>
         cross-refs := cross-refs.set(field, crossref(module-name, field))
       | s-singleton-variant(_, _, _) =>
@@ -379,6 +381,7 @@ fun process-var-member(mem, file, fields, bindings):
   end
 end
 
+fun tag-name(args): leaf(torepr(args.join-str("_"))) end
 
 fun process-module(file, fields, bindings):
   # print("Binding keys are " + torepr(bindings.keys()))
@@ -450,7 +453,8 @@ fun process-module(file, fields, bindings):
           spair("name", name) ^ link(_, e.tosource().pretty(70).map(at-comment)))
     end
   end
-  at-exp("docmodule", some([list: leaf(torepr(trim-path(file)))]),
+  trimmed-name = trim-path(file)
+  at-exp("docmodule", some([list: leaf(torepr(trimmed-name))]),
     some(
       ( if fields.ignored-vals.keys().length() > 0:
           [list:  at-comment("Ignored type testers"),
@@ -462,11 +466,14 @@ fun process-module(file, fields, bindings):
             at-exp("ignore", some([list: sexp("list", fields.unknown-vals.keys().map(lam(i):leaf(torepr(i))end))]), none)]
         else: [list: ]
         end)
-        + [list: at-exp("section", none, some([list: leaf("Re-exported values")]))]
+        + [list: at-exp("section", some([list: hash-key("tag", tag-name([list: trimmed-name, "ReExports"]))]),
+          some([list: leaf("Re-exported values")]))]
         + fields.imports.keys().map(lam(k): process-item(k, fields.imports.get(k)) end)
-        + [list: at-exp("section", none, some([list: leaf("Data types")]))]
+        + [list: at-exp("section", some([list: hash-key("tag", tag-name([list: trimmed-name, "DataTypes"]))]),
+          some([list: leaf("Data types")]))]
         + fields.data-vals.keys().map(lam(k): process-item(k, fields.data-vals.get(k)) end)
-        + [list: at-exp("section", none, some([list: leaf("Functions")]))]
+        + [list: at-exp("section", some([list: hash-key("tag", tag-name([list: trimmed-name, "Functions"]))]),
+          some([list: leaf("Functions")]))]
         + fields.fun-vals.keys().map(lam(k): process-item(k, fields.fun-vals.get(k)) end)))
 end
 

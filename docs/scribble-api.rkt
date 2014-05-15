@@ -37,6 +37,8 @@
          a-arrow
          a-record
          a-field
+         a-app
+         a-dot
          members
          member-spec
          lod
@@ -72,7 +74,7 @@
 
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
-(define GEN-BASE (build-path 'up 'up "generated" "trove")) ;; THIS NEEDS HELP!
+(define GEN-BASE (build-path 'up "generated" "trove")) ;; THIS NEEDS HELP!
 (define curr-doc-checks #f)
 
 ;; print a warning message, optionally with name of issuing function
@@ -114,6 +116,7 @@
     (let ([read-docs
            (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
       (set! curr-doc-checks (init-doc-checker read-docs))
+      (printf "Modules are ~s~n" (map first curr-doc-checks))
       read-docs)))
 
 ;;;;;;;;;;; Functions to extract information from generated documentation ;;;;;;;;;;;;;;
@@ -130,7 +133,7 @@
 ;; by-field is symbol, indefns is list<specs>
 (define (find-defn by-field for-val indefns)
   (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
-    (unless d
+    #;(unless d
       (error 'find-defn (format "WARNING: no definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
     d))
 
@@ -171,21 +174,22 @@
 ; Uses the xref table for error checking that
 ;   we aren't generating links to unknown targets  
 ; TODO: fix path to html file in "file" definition
-(define (xref modname itemname)
-  (let [(cur-mod (curr-module-name))]
-    (traverse-element
-     (lambda (get set!)
-       (traverse-element
-        (lambda (get set!)
-          (let* ([xref-table (get 'doc-xrefs '())]
-                 [entry (assoc itemname xref-table)])
-            (when (string=? modname cur-mod)
-                (unless (and entry (string=? (second entry) modname))
-                  (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
-            (let* ([file (path->string 
-                          (build-path (current-directory) 
-                                      (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
-              (hyperlink file itemname)))))))))
+(define (xref modname itemname . subitems)
+  (apply tag-name (cons modname (cons itemname subitems))))
+;  (let [(cur-mod (curr-module-name))]
+;    (traverse-element
+;     (lambda (get set!)
+;       (traverse-element
+;        (lambda (get set!)
+;          (let* ([xref-table (get 'doc-xrefs '())]
+;                 [entry (assoc itemname xref-table)])
+;            (when (string=? modname cur-mod)
+;                (unless (and entry (string=? (second entry) modname))
+;                  (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
+;            (let* ([file (path->string 
+;                          (build-path (current-directory) 
+;                                      (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
+;              (hyperlink file itemname)))))))))
 
 ; drops an "a name" anchor for cross-referencing
 (define (drop-anchor name)
@@ -226,7 +230,7 @@
                              #:friendly-title (friendly-title #f) 
                              . defs)
    (interleave-parbreaks/all
-    (list (title #:tag-prefix name (or friendly-title name))
+    (list (title #:tag (tag-name name) (or friendly-title name))
           (para "Usage:")
           (nested #:style (pre-style "code") "import " name " as ...")
           (interleave-parbreaks/all defs))))
@@ -241,7 +245,7 @@
    (list "For " (elem #:style (span-style "code") name) ", see " from))
 
 @(define (from where)
-   (list where))
+   (secref where))
 
 @(define (tag-name . args)
    (apply string-append (add-between args "_")))
@@ -254,7 +258,7 @@
         (parameterize ([curr-data-spec (find-doc (curr-module-name) name)])
          (let ([contents (data-spec-internal name args ...)])
            contents)))]))
-@(define (data-spec-internal name . members)
+@(define (data-spec-internal name #:params (params #f) . members)
    (set-documented! (curr-module-name) name)
    (let ([processing-module (curr-module-name)])
      (interleave-parbreaks/all
@@ -267,14 +271,17 @@
                @para{}))
             (interleave-parbreaks/all members)))))
 @(define (method-spec name
+                      #:params (params #f) 
                       #:contract (contract #f)
                       #:args (args #f) 
                       #:alt-docstrings (alt-docstrings #f) . body)
    (let* ([methods (get-defn-field (curr-method-location) (curr-var-spec))]
           [var-name (get-defn-field 'name (curr-var-spec))]
           [spec (find-defn 'name name methods)])
-     (list (subsubsub*section #:tag (tag-name (curr-module-name) var-name name) name) 
-           (render-fun-helper spec name contract args alt-docstrings body))))
+     (render-fun-helper 
+      spec name 
+      (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
+      contract args alt-docstrings body)))
 @(define (member-spec name #:contract (contract #f) . body)
    (list "TODO" ));(subsubsub*section name) body))
 
@@ -287,9 +294,12 @@
                        [curr-method-location 'with-members])
           (let ([contents (singleton-spec-internal name args ...)])
             contents)))]))
-@(define (singleton-spec-internal name . body)
-   (set-documented! (curr-module-name) name)
-   (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))
+@(define (singleton-spec-internal name #:private (private #f) . body)
+   (if private
+       (list (subsubsection name) body)
+       (begin
+         (when (not private) (set-documented! (curr-module-name) name))
+         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
 
 @(define-syntax (constr-spec stx)
    (syntax-case stx ()
@@ -299,18 +309,25 @@
                        [curr-method-location 'with-members])
           (let ([contents (constr-spec-internal name args ...)])
             contents)))]))
-@(define (constr-spec-internal name . body)
-   (set-documented! (curr-module-name) name)
-   (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))
+@(define (constr-spec-internal name #:params (params #f) #:private (private #f) . body)
+   (if private
+       (list (subsubsection name) body)
+       (begin
+         (when (not private) (set-documented! (curr-module-name) name))
+         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
 
 @(define (with-members . members)
    members)
 @(define (members . mems)
    mems)
 @(define (a-id name . args)
-   (if (cons? args) (first args) name))
+   (if (cons? args) (seclink (first args) name) name))
 @(define (a-compound typ . args)
-   (if (cons? args) (first args) typ))
+   (if (cons? args) (seclink (first args) typ) typ))
+@(define (a-app base . typs)
+   (append (list base "<") (add-between typs ", ") (list ">")))
+@(define (a-dot base field)
+   (list base "." field))
 @(define (a-arrow . typs)
    (append (list "(") (add-between typs ", " #:before-last " -> ") (list ")")))
 @(define (a-record . fields)
@@ -321,18 +338,18 @@
    vars)
 @(define-syntax (shared stx)
    (syntax-case stx ()
-     [(_ name args ...)
+     [(_ args ...)
       (syntax/loc stx
         (parameterize ([curr-var-spec (curr-data-spec)]
                        [curr-method-location 'shared])
-          (let ([contents (shared-internal name args ...)])
+          (let ([contents (shared-internal args ...)])
             contents)))]))
 @(define (shared-internal . shares)
    shares)
   
 
 ;; render documentation for a function
-@(define (render-fun-helper spec name contract args alt-docstrings contents)
+@(define (render-fun-helper spec name anchor contract args alt-docstrings contents)
    (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
@@ -352,7 +369,8 @@
      ;  wasn't getting bound properly -- don't know why
      (let ([processing-module (curr-module-name)])
        (interleave-parbreaks/all
-        (list (drop-anchor name)
+        (list ;;(drop-anchor name)
+              anchor     
               (traverse-block ; use this to build xrefs on an early pass through docs
                (lambda (get set!)
                  (set! 'doc-xrefs (cons (list name processing-module)
@@ -393,7 +411,9 @@
                    )
    (let ([ans
           (render-fun-helper 
-           (find-doc (curr-module-name) name) name contract args alt-docstrings contents)])
+           (find-doc (curr-module-name) name) name 
+           (target-element #f (list name) (list 'part (tag-name (curr-module-name) name)))
+           contract args alt-docstrings contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)
      ans))
