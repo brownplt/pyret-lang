@@ -3,8 +3,12 @@
 provide {
   Set: Set,
   set: list-to-tree-set,
-  list-set: list-to-list-set,
-  tree-set: list-to-tree-set,
+  list-set: {
+    make: arr-to-list-set
+  },
+  tree-set: {
+    make: arr-to-tree-set
+  }
 } end
 
 import lists as lists
@@ -296,5 +300,18 @@ fun list-to-tree(lst :: List):
   for lists.fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
+end
+
+fun arr-to-list-set(arr :: Array) -> Set:
+  for raw-array-fold(ls from list-set(empty), elt from arr, _ from 0):
+    ls.add(elt) 
+  end
+end
+
+fun arr-to-tree-set(arr :: Array) -> Set:
+  tree = for raw-array-fold(t from leaf, elt from arr, _ from 0):
+    t.insert(elt)
+  end
+  tree-set(tree)
 end
 
