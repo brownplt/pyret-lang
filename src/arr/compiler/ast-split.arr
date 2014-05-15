@@ -72,7 +72,7 @@ data SplitResultInt:
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from set([list: ]), s from ss):
+  for fold(unioned from sets.empty-tree-set, s from ss):
     unioned.union(s)
   end
 end
@@ -192,14 +192,14 @@ check:
   d = N.dummy-loc
   n = A.global-names.make-atom
   e1 = N.a-lettable(N.a-val(N.a-num(d, 5)))
-  split-strip(e1) is split-result-int-e(concat-empty, e1, set([list: ]))
+  split-strip(e1) is split-result-int-e(concat-empty, e1, sets.empty-tree-set)
 
   x = n("x")
   e2 = N.a-let(d, N.a-bind(d, x, A.a-blank), N.a-val(N.a-num(d, 5)), N.a-lettable(N.a-val(N.a-id(d, x))))
   e2-split = split-strip(e2)
   e2-split.helpers.to-list() is [list: ]
   e2-split.body is e2
-  e2-split.freevars is set([list: ])
+  e2-split.freevars is sets.empty-tree-set
 
   v = n("v")
   f = n("f")

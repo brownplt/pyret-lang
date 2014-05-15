@@ -8,7 +8,9 @@ provide {
   },
   tree-set: {
     make: arr-to-tree-set
-  }
+  },
+  empty-list-set: list-set(empty),
+  empty-tree-set: tree-set(leaf)
 } end
 
 import lists as lists

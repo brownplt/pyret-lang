@@ -552,7 +552,7 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-e(expr :: AExpr) -> Set<Name>:
-  freevars-e-acc(expr, set([list: ]))
+  freevars-e-acc(expr, sets.empty-tree-set)
 where:
   d = dummy-loc
   freevars-e(
@@ -614,7 +614,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-l(e :: ALettable) -> Set<Name>:
-  freevars-l-acc(e, set([list: ]))
+  freevars-l-acc(e, sets.empty-tree-set)
 end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
@@ -631,11 +631,11 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
 end
 
 fun freevars-v(v :: AVal) -> Set<Name>:
-  freevars-v-acc(v, set([list: ]))
+  freevars-v-acc(v, sets.empty-tree-set)
 end
 
 fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from set([list: ]), s from ss):
+  for fold(unioned from sets.empty-tree-set, s from ss):
     unioned.union(s)
   end
 end
