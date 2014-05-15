@@ -1149,19 +1149,20 @@ define([
       var offsetX = 0 - Math.min(0, thirdX); // angleA could be obtuse
 
       this.width = Math.max(sideC, thirdX) + offsetX;
-      this.height = thirdY;
+      this.height = Math.abs(thirdY);
       
       var vertices = [];
       // if angle < 180 start at the top of the canvas, otherwise start at the bottom
-      if(angleA < 180){
+      if(thirdY > 0){
         vertices.push({x: offsetX + 0, y: 0});
         vertices.push({x: offsetX + sideC, y: 0});
         vertices.push({x: offsetX + thirdX, y: thirdY});
       } else {
-        vertices.push({x: offsetX + 0, y: thirdY});
-        vertices.push({x: offsetX + sideC, y: thirdY});
+        vertices.push({x: offsetX + 0, y: -thirdY});
+        vertices.push({x: offsetX + sideC, y: -thirdY});
         vertices.push({x: offsetX + thirdX, y: 0});
       }
+        console.log(vertices);
       this.vertices = vertices;
       
       this.style = style;

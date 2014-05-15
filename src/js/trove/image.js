@@ -542,7 +542,7 @@ define([
           var color = checkColor(maybeColor);
           return makeImage(
             // Angle makes triangle point up
-            image.makeTriangleImage(jsnums.toFixnum(side), jsnums.toFixnum(60+180), jsnums.toFixnum(side),
+            image.makeTriangleImage(jsnums.toFixnum(side), jsnums.toFixnum(360-60), jsnums.toFixnum(side),
                                     String(mode), color));
         }),
 
