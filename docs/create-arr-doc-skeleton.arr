@@ -272,20 +272,20 @@ fun process-ann(ann, file, fields, bindings):
     | a-name(l, name) =>
       cases(A.Name) name:
         | s-global(_) =>
-          sexp("list", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
+          sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
         | else =>
           if fields.cross-refs.has-key(name.toname()):
             cases(CrossRef) fields.cross-refs.get(name.toname()):
               | crossref(modname, as-name) =>
-                sexp("list", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
             end
           else if bindings.has-key(name.key()):# and (bindings.get(name.toname()) == name.toname()):
             val = lookup-value(name, bindings)
             cases(Any) val:
               | crossref(modname, as-name) =>
-                sexp("list", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
               | s-data-expr(_, data-name, _, _, _, _, _) =>
-                sexp("list", [list: leaf(torepr(name.toname())), xref(trim-path(file), data-name)])
+                sexp("a-id", [list: leaf(torepr(name.toname())), xref(trim-path(file), data-name)])
               | else =>
                 if (val == name):
                   leaf(torepr(name.toname()))
@@ -299,7 +299,7 @@ fun process-ann(ann, file, fields, bindings):
           else if fields.data-vals.has-key(name.toname()):
             cases(Any) fields.data-vals.get(name.toname()):
               | crossref(modname, as-name) =>
-                sexp("list", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
               | else =>
                 print("Found " + torepr(fields.data-vals.get(name.toname())))
                 leaf(torepr(name.toname()))
@@ -316,7 +316,7 @@ fun process-ann(ann, file, fields, bindings):
     | a-dot(l, obj, field) =>
       bound-as-import = lookup-value(obj, bindings)
       if A.is-s-import(bound-as-import):
-        sexp("list", [list: sexp("a-dot", [list: leaf(torepr(obj.toname())), leaf(torepr(field))]),
+        sexp("a-compound", [list: sexp("a-dot", [list: leaf(torepr(obj.toname())), leaf(torepr(field))]),
             xref(bound-as-import.file.tosource().pretty(1000).first, field)])
       else:
         sexp("a-dot", [list: process-ann(obj, file, fields, bindings), leaf(torepr(field))])
