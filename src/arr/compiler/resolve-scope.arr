@@ -46,7 +46,7 @@ fun resolve-imports(imports :: List<A.Import>):
         new-i = A.s-import(l, resolve-import-type(imp), name)
         acc.{imports: link(new-i, acc.imports)}
       | s-import-fields(l, fields, imp) =>
-        imp-str = if A.is-s-const-import(imp): imp.module else: "mod-import" end
+        imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
         imp-name = A.s-name(imp.l, G.make-name(imp-str))
         new-i = A.s-import(l, resolve-import-type(imp), imp-name)
         new-lets = for map(f from fields.reverse()):
