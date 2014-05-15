@@ -23,6 +23,19 @@
 
 (provide docmodule
          function
+         re-export from
+         data-spec
+         method-spec
+         variants
+         constr-spec
+         singleton-spec
+         with-members
+         shared
+         a-arrow
+         a-record
+         a-field
+         members
+         member-spec
          lod
          ignore
          ignoremodule
@@ -53,7 +66,7 @@
 
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
-(define GEN-BASE (build-path 'up "generated" "trove"))
+(define GEN-BASE (build-path 'up 'up "generated" "trove")) ;; THIS NEEDS HELP!
 (define curr-doc-checks #f)
 
 ;; print a warning message, optionally with name of issuing function
@@ -155,15 +168,18 @@
 (define (xref modname itemname)
   (traverse-element
    (lambda (get set!)
-     (lambda (get set!)
-       (let* ([xref-table (get 'doc-xrefs '())]
-              [entry (assoc itemname xref-table)])
-         (unless (and entry (equal? (second entry) modname))
-           (error 'xref "No xref info for ~a in ~a~n" itemname modname))
-         (let* ([file (path->string 
-                       (build-path (current-directory) 
-                                   (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
-           (hyperlink file itemname)))))))
+     (traverse-element
+      (lambda (get set!)
+        (let* ([xref-table (get 'doc-xrefs '())]
+               [entry (assoc itemname xref-table)])
+          #;(unless (string=? modname "<global>")
+              (printf "Checking modname ~s and item ~s~n" modname itemname)
+              (unless (and entry (string=? (second entry) modname))
+                (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
+          (let* ([file (path->string 
+                        (build-path (current-directory) 
+                                    (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
+            (hyperlink file itemname))))))))
 
 ; drops an "a name" anchor for cross-referencing
 (define (drop-anchor name)
@@ -212,6 +228,45 @@
    (let ([render-for "bs"])
      (second (assoc render-for assocLst))))
 
+;; render re-exports
+@(define (re-export name from . contents)
+   (set-documented! (curr-module-name) name)
+   (list @para{"No re-export yet"}))
+
+@(define (from where)
+   @para{"No from yet"})
+
+
+@(define (data-spec name . members)
+   (printf "Documenting ~s in ~s~n" name (curr-module-name))
+   (set-documented! (curr-module-name) name)
+   (list @section[name] members))
+@(define (method-spec name #:contract (contract #f) . body)
+   (list @section[name] body))
+@(define (member-spec name #:contract (contract #f) . body)
+   (list @subsection[name] body))
+@(define (singleton-spec name . body)
+   (set-documented! (curr-module-name) name)
+   (list @section[name] body))
+@(define (constr-spec name . body)
+   (set-documented! (curr-module-name) name)
+   (list @section[name] name))
+@(define (with-members . members)
+   members)
+@(define (members . mems)
+   mems)
+@(define (a-arrow . args)
+   args)
+@(define (a-record . fields)
+   fields)
+@(define (a-field name type . desc)
+   desc)
+@(define (variants . vars)
+   vars)
+@(define (shared . shares)
+   shares)
+  
+
 ;; render documentation for a function
 @(define (function name 
                    #:contract (contract #f)
@@ -220,8 +275,8 @@
                    . contents
                    )
    (let ([spec (find-doc (curr-module-name) name)])
-     (let* ([inputs (if (list? contract) (take contract (sub1 (length contract))) "OOPS")]
-            [output (if (list? contract) (last contract) "OOPS")]
+     (let* ([inputs (if (list? contract) (take contract (sub1 (length contract))) "OOPS1")]
+            [output (if (list? contract) (last contract) "OOPS2")]
             [input-types (map (lambda (i) (if (pair? i) (first i) i)) inputs)]
             [input-descr (map (lambda (i) (if (pair? i) (second i) #f)) inputs)]
             [argnames (or args (get-defn-field 'args spec))]
