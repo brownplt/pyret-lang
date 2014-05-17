@@ -15,39 +15,39 @@ data WorldState:
   | waiting-for-input(grid :: List<List<Number>>)
 end
 
-fun row-left(a-row):
+fun row-shift(a-row):
   cases(List) a-row:
     | link(first, rest) =>
       cases(List) rest:
         | link(second, rest2) =>
           if first == 0:
-            row-left([list: second] + rest2) + [list: 0]
+            row-shift([list: second] + rest2) + [list: 0]
           else if second == 0:
-            row-left([list: first] + rest2) + [list: 0]
+            row-shift([list: first] + rest2) + [list: 0]
           else if first == second:
-            [list: first + second] + row-left(rest2) + [list: 0]
+            [list: first + second] + row-shift(rest2) + [list: 0]
           else:
-            [list: first] + row-left(rest)
+            [list: first] + row-shift(rest)
           end
         | empty => [list: first]
       end
     | empty => [list: ]
   end
 where:
-  row-left([list: 0, 0, 0, 0]) is [list: 0, 0, 0, 0]
-  row-left([list: 0, 2, 0, 0]) is [list: 2, 0, 0, 0]
-  row-left([list: 0, 2, 0, 2]) is [list: 4, 0, 0, 0]
-  row-left([list: 0, 0, 0, 2]) is [list: 2, 0, 0, 0]
-  row-left([list: 2, 2, 0, 0]) is [list: 4, 0, 0, 0]
-  row-left([list: 2, 2, 4, 4]) is [list: 4, 8, 0, 0]
-  row-left([list: 2, 4, 4, 8]) is [list: 2, 8, 8, 0]
-  row-left([list: 2, 4, 6, 8]) is [list: 2, 4, 6, 8]
-  row-left([list: 2, 2, 2, 2]) is [list: 4, 4, 0, 0]
-  row-left([list: 2, 4, 4, 2]) is [list: 2, 8, 2, 0]
+  row-shift([list: 0, 0, 0, 0]) is [list: 0, 0, 0, 0]
+  row-shift([list: 0, 2, 0, 0]) is [list: 2, 0, 0, 0]
+  row-shift([list: 0, 2, 0, 2]) is [list: 4, 0, 0, 0]
+  row-shift([list: 0, 0, 0, 2]) is [list: 2, 0, 0, 0]
+  row-shift([list: 2, 2, 0, 0]) is [list: 4, 0, 0, 0]
+  row-shift([list: 2, 2, 4, 4]) is [list: 4, 8, 0, 0]
+  row-shift([list: 2, 4, 4, 8]) is [list: 2, 8, 8, 0]
+  row-shift([list: 2, 4, 6, 8]) is [list: 2, 4, 6, 8]
+  row-shift([list: 2, 2, 2, 2]) is [list: 4, 4, 0, 0]
+  row-shift([list: 2, 4, 4, 2]) is [list: 2, 8, 2, 0]
 end
 
 
-fun row-left2(
+fun row-moves(
     row-number :: Number,
     target-value :: Number,
     target-index :: Number,
@@ -57,7 +57,7 @@ fun row-left2(
   cases(List) a-row:
     | link(first, rest) =>
       if first == 0:
-        row-left2(
+        row-moves(
           row-number,
           target-value,
           target-index,
@@ -65,7 +65,7 @@ fun row-left2(
           rest
           )
       else if first == target-value:
-        rest-of-row = row-left2(
+        rest-of-row = row-moves(
           row-number,
             -1,
           target-index + 1,
@@ -74,7 +74,7 @@ fun row-left2(
           )
         link(row-move(row-number, current-index, target-index), rest-of-row)
       else if target-value == -1:
-        rest-of-row = row-left2(
+        rest-of-row = row-moves(
           row-number,
           first,
           target-index,
@@ -83,7 +83,7 @@ fun row-left2(
           )
         link(row-move(row-number, current-index, target-index), rest-of-row)
       else:
-        rest-of-row = row-left2(
+        rest-of-row = row-moves(
           row-number,
           first,
           target-index + 1,
@@ -95,7 +95,7 @@ fun row-left2(
     | empty => empty
   end
 where:
-  r = row-left2(0, -1, 0, 0, _)
+  r = row-moves(0, -1, 0, 0, _)
   r([list: 0, 0, 0, 0]) is empty
   r([list: 0, 2, 0, 0]) is [list: row-move(0, 1, 0)]
   r([list: 0, 2, 0, 2]) is [list: row-move(0, 1, 0), row-move(0, 3, 0)]
@@ -108,11 +108,11 @@ where:
   r([list: 2, 4, 4, 2]) is [list: row-move(0, 0, 0), row-move(0, 1, 1), row-move(0, 2, 1), row-move(0, 3, 2)]
 end
 
-get-moves = row-left2(_, -1, 0, 0, _)
+get-moves = row-moves(_, -1, 0, 0, _)
 
 fun grid-left(a-grid):
   for map(row from a-grid):
-    row-left(row)
+    row-shift(row)
   end
 where:
   grid-left([list: 
@@ -264,7 +264,7 @@ fun draw-move(ticks, grid, move, background):
   I.place-image(square-img, xyv.x, xyv.y, background)
 end
 
-fun to-draw2(a-world):
+fun to-draw(a-world):
   cases(WorldState) a-world:
     | animating(ticks, orig-grid, grid, moves) =>
       board-side = SQUARE-WIDTH * grid.length()
@@ -273,11 +273,11 @@ fun to-draw2(a-world):
           m from moves):
         draw-move(ticks, orig-grid, m, i)
       end
-    | waiting-for-input(grid) => to-draw(grid) 
+    | waiting-for-input(grid) => draw-grid(grid) 
   end
 end
 
-fun to-draw(a-grid):
+fun draw-grid(a-grid):
   l = a-grid.length()
   board-side = SQUARE-WIDTH * l
   for fold2(
@@ -407,7 +407,7 @@ end
 fun start():
   W.big-bang(waiting-for-input(big-start-grid), [list:
       W.on-key(on-key),
-      W.to-draw(to-draw2),
+      W.to-draw(to-draw),
       W.on-tick-n(on-tick, 1/60)
     ])
 end
