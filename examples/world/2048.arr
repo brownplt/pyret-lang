@@ -1,7 +1,19 @@
-
 import image as I
 import world as W
 
+TICKS-PER-ANIMATION = 20
+SQUARE-WIDTH = 50
+SQUARE-MIDDLE = (SQUARE-WIDTH / 2)
+
+data Move:
+  | row-move(row-number, start-col, end-col)
+  | col-move(col-number, start-row, end-row)
+end
+
+data WorldState:
+  | animating(tick :: Number, original-grid :: List<List<Number>>, target-grid :: List<List<Number>>, moves :: List<Move>)
+  | waiting-for-input(grid :: List<List<Number>>)
+end
 
 fun row-left(a-row):
   cases(List) a-row:
@@ -9,47 +21,111 @@ fun row-left(a-row):
       cases(List) rest:
         | link(second, rest2) =>
           if first == 0:
-            row-left([second] + rest2) + [0]
+            row-left([list: second] + rest2) + [list: 0]
           else if second == 0:
-            row-left([first] + rest2) + [0]
+            row-left([list: first] + rest2) + [list: 0]
           else if first == second:
-            [first + second] + row-left(rest2) + [0]
+            [list: first + second] + row-left(rest2) + [list: 0]
           else:
-            [first] + row-left(rest)
+            [list: first] + row-left(rest)
           end
-        | empty => [first]
+        | empty => [list: first]
       end
-    | empty => []
+    | empty => [list: ]
   end
 where:
-  row-left([0, 0, 0, 0]) is [0, 0, 0, 0]
-  row-left([0, 2, 0, 0]) is [2, 0, 0, 0]
-  row-left([0, 2, 0, 2]) is [4, 0, 0, 0]
-  row-left([0, 0, 0, 2]) is [2, 0, 0, 0]
-  row-left([2, 2, 0, 0]) is [4, 0, 0, 0]
-  row-left([2, 2, 4, 4]) is [4, 8, 0, 0]
-  row-left([2, 4, 4, 8]) is [2, 8, 8, 0]
-  row-left([2, 4, 6, 8]) is [2, 4, 6, 8]
-  row-left([2, 2, 2, 2]) is [4, 4, 0, 0]
-  row-left([2, 4, 4, 2]) is [2, 8, 2, 0]
+  row-left([list: 0, 0, 0, 0]) is [list: 0, 0, 0, 0]
+  row-left([list: 0, 2, 0, 0]) is [list: 2, 0, 0, 0]
+  row-left([list: 0, 2, 0, 2]) is [list: 4, 0, 0, 0]
+  row-left([list: 0, 0, 0, 2]) is [list: 2, 0, 0, 0]
+  row-left([list: 2, 2, 0, 0]) is [list: 4, 0, 0, 0]
+  row-left([list: 2, 2, 4, 4]) is [list: 4, 8, 0, 0]
+  row-left([list: 2, 4, 4, 8]) is [list: 2, 8, 8, 0]
+  row-left([list: 2, 4, 6, 8]) is [list: 2, 4, 6, 8]
+  row-left([list: 2, 2, 2, 2]) is [list: 4, 4, 0, 0]
+  row-left([list: 2, 4, 4, 2]) is [list: 2, 8, 2, 0]
 end
+
+
+fun row-left2(
+    row-number :: Number,
+    target-value :: Number,
+    target-index :: Number,
+    current-index :: Number,
+    a-row :: List<Number>
+    ) -> List<Move>:
+  cases(List) a-row:
+    | link(first, rest) =>
+      if first == 0:
+        row-left2(
+          row-number,
+          target-value,
+          target-index,
+          current-index + 1,
+          rest
+          )
+      else if first == target-value:
+        rest-of-row = row-left2(
+          row-number,
+            -1,
+          target-index + 1,
+          current-index + 1,
+          rest
+          )
+        link(row-move(row-number, current-index, target-index), rest-of-row)
+      else if target-value == -1:
+        rest-of-row = row-left2(
+          row-number,
+          first,
+          target-index,
+          current-index + 1,
+          rest
+          )
+        link(row-move(row-number, current-index, target-index), rest-of-row)
+      else:
+        rest-of-row = row-left2(
+          row-number,
+          first,
+          target-index + 1,
+          current-index + 1,
+          rest
+          )
+        link(row-move(row-number, current-index, target-index + 1), rest-of-row)
+      end
+    | empty => empty
+  end
+where:
+  r = row-left2(0, -1, 0, 0, _)
+  r([list: 0, 0, 0, 0]) is empty
+  r([list: 0, 2, 0, 0]) is [list: row-move(0, 1, 0)]
+  r([list: 0, 2, 0, 2]) is [list: row-move(0, 1, 0), row-move(0, 3, 0)]
+  r([list: 0, 0, 0, 2]) is [list: row-move(0, 3, 0)]
+  r([list: 2, 2, 0, 0]) is [list: row-move(0, 0, 0), row-move(0, 1, 0)]
+  r([list: 2, 2, 4, 4]) is [list: row-move(0, 0, 0), row-move(0, 1, 0), row-move(0, 2, 1), row-move(0, 3, 1)]
+  r([list: 2, 4, 4, 8]) is [list: row-move(0, 0, 0), row-move(0, 1, 1), row-move(0, 2, 1), row-move(0, 3, 2)]
+  r([list: 2, 4, 6, 8]) is [list: row-move(0, 0, 0), row-move(0, 1, 1), row-move(0, 2, 2), row-move(0, 3, 3)]
+  r([list: 2, 2, 2, 2]) is [list: row-move(0, 0, 0), row-move(0, 1, 0), row-move(0, 2, 1), row-move(0, 3, 1)]
+  r([list: 2, 4, 4, 2]) is [list: row-move(0, 0, 0), row-move(0, 1, 1), row-move(0, 2, 1), row-move(0, 3, 2)]
+end
+
+get-moves = row-left2(_, -1, 0, 0, _)
 
 fun grid-left(a-grid):
   for map(row from a-grid):
     row-left(row)
   end
 where:
-  grid-left([
-      [2, 4, 6, 8],
-      [2, 2, 0, 0],
-      [0, 0, 2, 2],
-      [4, 4, 4, 4]
+  grid-left([list: 
+      [list: 2, 4, 6, 8],
+      [list: 2, 2, 0, 0],
+      [list: 0, 0, 2, 2],
+      [list: 4, 4, 4, 4]
     ]) is
-  [
-    [2, 4, 6, 8],
-    [4, 0, 0, 0],
-    [4, 0, 0, 0],
-    [8, 8, 0, 0]
+  [list: 
+    [list: 2, 4, 6, 8],
+    [list: 4, 0, 0, 0],
+    [list: 4, 0, 0, 0],
+    [list: 8, 8, 0, 0]
   ]   
 end
   
@@ -60,35 +136,98 @@ fun flip(a-grid):
 end
 
 fun rotate(a-grid):
-  new-grid-init = for map(row from a-grid): [] end
+  new-grid-init = for map(row from a-grid): [list: ] end
   for fold(new-grid from new-grid-init, row from a-grid):
     for map2(new-grid-row from new-grid, elt from row):
-      [elt] + new-grid-row
+      [list: elt] + new-grid-row
     end
   end
 where:
-  rotate([[1, 2], [3, 4]]) is [[3, 1], [4, 2]]
+  rotate([list: [list: 1, 2], [list: 3, 4]]) is [list: [list: 3, 1], [list: 4, 2]]
+end
+
+fun rotate-move(move, len):
+  cases(Move) move:
+    | row-move(rn, s, e) =>
+      col-move(len - rn, s, e)
+    | col-move(rn, s, e) =>
+      row-move(rn, len - s, len - e)
+  end
+where:
+  fun cycle(m, len2):
+    r = rotate-move(_, len2)
+    r(r(r(r(m))))
+  end
+  rotate-move(row-move(0, 1, 0), 3) is col-move(3, 1, 0)
+  rotate-move(row-move(2, 3, 2), 3) is col-move(1, 3, 2)
+  
+  cycle-tests = [list:
+    row-move(0, 1, 0),
+    row-move(3, 2, 1),
+    row-move(2, 2, 2),
+    col-move(0, 0, 0),
+    col-move(1, 2, 3),
+    col-move(1, 3, 2)
+  ]
+  for each(c from cycle-tests):
+    cycle(c, 3) is c
+  end
 end
 
 fun grid-right(a-grid):
   flip(grid-left(flip(a-grid)))
 where:
-  grid-right([[2, 2], [4, 0]]) is [[0, 4], [0, 4]]
+  grid-right([list: [list: 2, 2], [list: 4, 0]]) is [list: [list: 0, 4], [list: 0, 4]]
 end
 
 fun grid-down(a-grid):
   rotate(rotate(rotate(grid-left(rotate(a-grid)))))
 where:
-  grid-down([[2, 2], [2, 2]]) is [[0, 0], [4, 4]]
+  grid-down([list: [list: 2, 2], [list: 2, 2]]) is [list: [list: 0, 0], [list: 4, 4]]
 end
 
 fun grid-up(a-grid):
   rotate(grid-left(rotate(rotate(rotate(a-grid)))))
 where:
-  grid-up([[2, 2], [2, 2]]) is [[4, 4], [0, 0]]
+  grid-up([list: [list: 2, 2], [list: 2, 2]]) is [list: [list: 4, 4], [list: 0, 0]]
 end
 
-square-width = 50
+fun moves-left(a-grid):
+  for lists.fold_n(n from 0, acc from [list:], row from a-grid):
+    acc + get-moves(n, row)
+  end
+end
+
+fun moves-down(a-grid):
+  moves-grid = rotate(a-grid)
+  l = a-grid.length() - 1
+  fun triple-rotate-move(m): rotate-move(rotate-move(rotate-move(m, l), l), l); 
+  for lists.fold_n(n from 0, acc from [list:], row from moves-grid):
+    acc + get-moves(n, row).map(triple-rotate-move)
+  end
+end
+
+fun moves-right(a-grid):
+  moves-grid = rotate(rotate(a-grid))
+  l = a-grid.length() - 1
+  fun double-rotate-move(m): rotate-move(rotate-move(m, l), l); 
+  for lists.fold_n(n from 0, acc from [list:], row from moves-grid):
+    acc + get-moves(n, row).map(double-rotate-move)
+  end
+end
+
+fun moves-up(a-grid):
+  moves-grid = rotate(rotate(rotate(a-grid)))
+  l = a-grid.length() - 1
+  for lists.fold_n(n from 0, acc from [list:], row from moves-grid):
+    acc + get-moves(n, row).map(rotate-move(_, l))
+  end
+end
+
+fun get-value(grid, row, col):
+  grid.get(row).get(col)
+end
+
 
 fun color-of-num(n):
   if n == 0: "white"
@@ -99,56 +238,178 @@ fun color-of-num(n):
   end
 end
 
+
+fun draw-move(ticks, grid, move, background):
+  fun row-xy(r, s, e):
+    y-pos = (r * SQUARE-WIDTH) + SQUARE-MIDDLE
+    progress = (ticks / TICKS-PER-ANIMATION)
+    offset = ((e - s) * SQUARE-WIDTH) * progress
+    x-pos = offset + ((s * SQUARE-WIDTH) + SQUARE-MIDDLE)
+    { x: x-pos, y: y-pos }
+  end
+  xyv = cases(Move) move:
+    | row-move(r, s, e) =>
+      rp = row-xy(r, s, e)
+      { x: rp.x, y: rp.y, v: get-value(grid, r, s) }
+    | col-move(c, s, e) =>
+      rp = row-xy(c, s, e)
+      { x: rp.y, y: rp.x, v: get-value(grid, s, c) }
+  end
+  text-img = I.text(tostring(xyv.v), 12, "black")
+  square-img = I.place-image(
+    text-img,
+    SQUARE-MIDDLE,
+    SQUARE-MIDDLE,
+    I.square(SQUARE-WIDTH, "solid", color-of-num(xyv.v)))
+  I.place-image(square-img, xyv.x, xyv.y, background)
+end
+
+fun to-draw2(a-world):
+  cases(WorldState) a-world:
+    | animating(ticks, orig-grid, grid, moves) =>
+      board-side = SQUARE-WIDTH * grid.length()
+      for fold(
+          i from I.square(board-side, "solid", "white"),
+          m from moves):
+        draw-move(ticks, orig-grid, m, i)
+      end
+    | waiting-for-input(grid) => to-draw(grid) 
+  end
+end
+
 fun to-draw(a-grid):
   l = a-grid.length()
-  board-side = square-width * l
-  square-middle = square-width / 2
+  board-side = SQUARE-WIDTH * l
   for fold2(
       i from I.square(board-side, "solid", "black"),
       row from a-grid,
       x from range(0, l)
       ):
     for fold2(shadow i from i, elt from row, y from range(0, l)):
-      text-img = I.text(tostring(elt), 12, "black")
+      str = if elt == 0: "" else: tostring(elt);
+      text-img = I.text(str, 12, "black") 
       square-img = I.place-image(
         text-img,
-        square-middle,
-        square-middle,
-        I.square(square-width, "solid", color-of-num(elt)))
+        SQUARE-MIDDLE,
+        SQUARE-MIDDLE,
+        I.square(SQUARE-WIDTH, "solid", color-of-num(elt)))
       I.place-image(
         square-img,
-        (y * square-width) + square-middle,
-        (x * square-width) + square-middle,
+        (y * SQUARE-WIDTH) + SQUARE-MIDDLE,
+        (x * SQUARE-WIDTH) + SQUARE-MIDDLE,
         i)
     end
   end
 end
 
-fun on-key(a-grid, key):
-  new-grid =
-    if W.is-key-equal(key, "up"): grid-up(a-grid)
-    else if W.is-key-equal(key, "down"): grid-down(a-grid)
-    else if W.is-key-equal(key, "left"): grid-left(a-grid)
-    else if W.is-key-equal(key, "right"): grid-right(a-grid)
-    else: a-grid
-    end
-  new-grid
+fun on-key(a-world, key):
+  cases(WorldState) a-world:
+    | waiting-for-input(a-grid) =>
+      if W.is-key-equal(key, "up"):
+        animating(0, a-grid, grid-up(a-grid), moves-up(a-grid))
+      else if W.is-key-equal(key, "down"):
+        animating(0, a-grid, grid-down(a-grid), moves-down(a-grid))
+      else if W.is-key-equal(key, "left"):
+        animating(0, a-grid, grid-left(a-grid), moves-left(a-grid))
+      else if W.is-key-equal(key, "right"):
+        animating(0, a-grid, grid-right(a-grid), moves-right(a-grid))
+      else:
+        a-world
+      end
+    | animating(_, _, _, _) => a-world
+  end
 where:
-  grid = [[2, 2], [4, 4]]
-  on-key(grid, "left") is grid-left(grid)
-  on-key(grid, "right") is grid-right(grid)
-  on-key(grid, "up") is grid-up(grid)
-  on-key(grid, "down") is grid-down(grid)
+  grid = [list: [list: 2, 2], [list: 4, 4]]
+  on-key(waiting-for-input(grid), "left").target-grid is grid-left(grid)
+  on-key(waiting-for-input(grid), "right").target-grid is grid-right(grid)
+  on-key(waiting-for-input(grid), "up").target-grid is grid-up(grid)
+  on-key(waiting-for-input(grid), "down").target-grid is grid-down(grid)
 end
 
-big-start-grid = for map(i from range(0, 24)):
-  [2, 2, 4, 0, 2, 2, 4, 0, 2, 2, 4, 0, 2, 2, 4, 0, 2, 2, 4, 0, 2, 2, 4, 0]
+big-start-grid = for map(i from range(0, 4)):
+  [list: 2, 2, 4, 0]
 end
 
-W.big-bang(big-start-grid, [
-    W.on-key(on-key),
-    W.to-draw(to-draw),
-    W.on-tick(fun(v): "keepalive" v end)
-  ])
+fun something-moved(moves):
+  fun moved(move):
+    cases(Move) move:
+      | row-move(_, s, e) => s <> e
+      | col-move(_, s, e) => s <> e
+    end
+  end
+  (moves^filter(moved, _)).length() > 0
+end
+
+fun find-zeroes(grid):
+  for lists.fold_n(r from 0, lst from [list: ], row from grid):
+    for lists.fold_n(c from 0, shadow lst from lst, elt from row):
+      if elt == 0: link({r: r, c: c}, lst)
+      else: lst
+      end
+    end
+  end
+end
+
+fun insert-at-zero-index(grid, value, ix, curr-index):
+  fun insert-at-zero-index-single(row, shadow curr-index):
+    cases(List) row:
+      | empty => { l: empty, ix: curr-index }
+      | link(v, rest) =>
+        if curr-index == ix:
+          { l: link(value, rest), ix: curr-index + 1 }
+        else:
+          new-index = if v == 0: curr-index + 1 else: curr-index;
+          rest-comp = insert-at-zero-index-single(rest, new-index)
+          {
+            l: link(v, rest-comp.l),
+            ix: rest-comp.ix
+          }
+        end
+    end
+  end
+  cases(List) grid:
+    | empty => raise("Index too large for insert")
+    | link(row, rest) =>
+      new-row = insert-at-zero-index-single(row, curr-index)
+      if new-row.ix >= ix:
+        link(new-row.l, rest)
+      else:
+        link(row, insert-at-zero-index(rest, value, ix, new-row.ix))
+      end
+  end
+end
+
+fun add-if-necessary(grid, moves):
+  if not(something-moved(moves)): grid
+  else:
+    zero-coords = find-zeroes(grid)
+    zero-to-replace = zero-coords.get(random(zero-coords.length()))
+    v = if random(2) == 0: 2 else: 4;
+    r = zero-to-replace.r
+    c = zero-to-replace.c
+    grid.set(r, grid.get(r).set(c, v))
+  end
+end
+
+fun on-tick(a-world):
+  cases(WorldState) a-world:
+    | animating(ticks, orig-grid, grid, moves) =>
+      if (ticks > TICKS-PER-ANIMATION) or
+        (not(something-moved(moves))):
+        waiting-for-input(add-if-necessary(grid, moves))
+      else:
+        animating(ticks + 1, orig-grid, grid, moves)
+      end
+    | waiting-for-input(_) => a-world
+  end
+end
+
+fun start():
+  W.big-bang(waiting-for-input(big-start-grid), [list:
+      W.on-key(on-key),
+      W.to-draw(to-draw2),
+      W.on-tick-n(on-tick, 1/60)
+    ])
+end
 
 
