@@ -350,35 +350,6 @@ fun find-zeroes(grid):
   end
 end
 
-fun insert-at-zero-index(grid, value, ix, curr-index):
-  fun insert-at-zero-index-single(row, shadow curr-index):
-    cases(List) row:
-      | empty => { l: empty, ix: curr-index }
-      | link(v, rest) =>
-        if curr-index == ix:
-          { l: link(value, rest), ix: curr-index + 1 }
-        else:
-          new-index = if v == 0: curr-index + 1 else: curr-index;
-          rest-comp = insert-at-zero-index-single(rest, new-index)
-          {
-            l: link(v, rest-comp.l),
-            ix: rest-comp.ix
-          }
-        end
-    end
-  end
-  cases(List) grid:
-    | empty => raise("Index too large for insert")
-    | link(row, rest) =>
-      new-row = insert-at-zero-index-single(row, curr-index)
-      if new-row.ix >= ix:
-        link(new-row.l, rest)
-      else:
-        link(row, insert-at-zero-index(rest, value, ix, new-row.ix))
-      end
-  end
-end
-
 fun add-if-necessary(grid, moves):
   if not(something-moved(moves)): grid
   else:
