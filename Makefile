@@ -26,11 +26,11 @@ COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)
 	src/js/js-numbers.js
 TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
 
-PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
-PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
-PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(SRC_JS) $(ROOT_LIBS) $(LIBS_JS) $(COPY_JS) $(TROVE_JS))
+PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
 DOCS_DEPS = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
 DOCS_SKEL_DEPS = $(patsubst src/%,$(DOCS)/written/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
