@@ -1,8 +1,10 @@
 import image as I
 import world as W
+import image-structs as IS
 
-TICKS-PER-ANIMATION = 20
-SQUARE-WIDTH = 50
+TICKS-PER-ANIMATION = 10
+SQUARE-WIDTH = 110
+SQUARE-BORDER = 15
 SQUARE-MIDDLE = (SQUARE-WIDTH / 2)
 
 data Move:
@@ -230,21 +232,38 @@ end
 
 
 fun color-of-num(n):
-  if n == 0: "white"
-  else if n == 2: "blue"
-  else if n == 4: "green"
-  else if n == 8: "red"
+  if n == 0: IS.color(187, 173, 169, 1)
+  else if n == 2: IS.color(238, 228, 218, 1)
+  else if n == 4: IS.color(237, 224, 203, 1)
+  else if n == 8: IS.color(242, 177, 121, 1)
+  else if n == 16: IS.color(245, 149, 99, 1)
+  else if n == 32: IS.color(246, 124, 95, 1)
+  else if n == 64: IS.color(246, 94, 59, 1)
+  else if n == 128: IS.color(237, 207, 114, 1)
+  else if n == 256: IS.color(237, 204, 97, 1)
+  else if n == 512: IS.color(249, 200, 80, 1)
+  else if n == 1024: IS.color(249, 197, 63, 1)
+  else if n == 2048: IS.color(249, 194, 46, 1)
   else: "yellow"
   end
 end
 
+fun draw-square(value):
+  str = if value == 0: "" else: tostring(value);
+  text-img = I.text(str, 24, "black") 
+  I.place-image(
+    text-img,
+    SQUARE-MIDDLE,
+    SQUARE-MIDDLE,
+    I.square(SQUARE-WIDTH, "solid", color-of-num(value)))
+end
 
 fun draw-move(ticks, grid, move, background):
   fun row-xy(r, s, e):
-    y-pos = (r * SQUARE-WIDTH) + SQUARE-MIDDLE
+    y-pos = (r * SQUARE-WIDTH) + SQUARE-MIDDLE + ((r + 1) * SQUARE-BORDER)
     progress = (ticks / TICKS-PER-ANIMATION)
     offset = ((e - s) * SQUARE-WIDTH) * progress
-    x-pos = offset + ((s * SQUARE-WIDTH) + SQUARE-MIDDLE)
+    x-pos = offset + ((s * SQUARE-WIDTH) + SQUARE-MIDDLE) + ((s + 1) * SQUARE-BORDER)
     { x: x-pos, y: y-pos }
   end
   xyv = cases(Move) move:
@@ -255,21 +274,21 @@ fun draw-move(ticks, grid, move, background):
       rp = row-xy(c, s, e)
       { x: rp.y, y: rp.x, v: get-value(grid, s, c) }
   end
-  text-img = I.text(tostring(xyv.v), 12, "black")
-  square-img = I.place-image(
-    text-img,
-    SQUARE-MIDDLE,
-    SQUARE-MIDDLE,
-    I.square(SQUARE-WIDTH, "solid", color-of-num(xyv.v)))
+  square-img = draw-square(xyv.v)
   I.place-image(square-img, xyv.x, xyv.y, background)
 end
 
 fun to-draw(a-world):
   cases(WorldState) a-world:
     | animating(ticks, orig-grid, grid, moves) =>
+      zero-grid = for map(row from orig-grid):
+        for map(_ from row):
+          0
+        end
+      end
       board-side = SQUARE-WIDTH * grid.length()
       for fold(
-          i from I.square(board-side, "solid", "white"),
+          i from draw-grid(zero-grid),
           m from moves):
         draw-move(ticks, orig-grid, m, i)
       end
@@ -281,22 +300,16 @@ fun draw-grid(a-grid):
   l = a-grid.length()
   board-side = SQUARE-WIDTH * l
   for fold2(
-      i from I.square(board-side, "solid", "black"),
+      i from I.square(board-side + (SQUARE-BORDER * (l + 1)), "solid", IS.color(119, 110, 101, 1)),
       row from a-grid,
       x from range(0, l)
       ):
     for fold2(shadow i from i, elt from row, y from range(0, l)):
-      str = if elt == 0: "" else: tostring(elt);
-      text-img = I.text(str, 12, "black") 
-      square-img = I.place-image(
-        text-img,
-        SQUARE-MIDDLE,
-        SQUARE-MIDDLE,
-        I.square(SQUARE-WIDTH, "solid", color-of-num(elt)))
+      square-img = draw-square(elt)
       I.place-image(
         square-img,
-        (y * SQUARE-WIDTH) + SQUARE-MIDDLE,
-        (x * SQUARE-WIDTH) + SQUARE-MIDDLE,
+        (y * SQUARE-WIDTH) + ((y + 1) * SQUARE-BORDER) + SQUARE-MIDDLE,
+        (x * SQUARE-WIDTH) + ((x + 1) * SQUARE-BORDER) + SQUARE-MIDDLE,
         i)
     end
   end
