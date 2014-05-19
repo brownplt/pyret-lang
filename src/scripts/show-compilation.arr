@@ -48,13 +48,13 @@ cases (C.ParsedArguments) parsed-options:
           if A.Program(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if AN.AProg(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if AS.SplitResult(phase.result): each(print, phase.result.tosource().pretty(print-width))
-          else if JS.CompiledCodePrinter(phase.result): print(phase.result.pyret-to-js-pretty())
+          else if JS.CompiledCodePrinter(phase.result): print(phase.result.pyret-to-js-pretty(print-width))
           else if R.NameResolution(phase.result): each(print, phase.result.ast.tosource().pretty(print-width))
           else if CS.CompileResult(phase.result):
             cases(CS.CompileResult) phase.result:
               | ok(c) =>
                 if A.Program(c): each(print, c.tosource().pretty(print-width))
-                else if JS.CompiledCodePrinter(c): print(c.pyret-to-js-pretty())
+                else if JS.CompiledCodePrinter(c): print(c.pyret-to-js-pretty(print-width))
                 else:
                   print("Unknown CompileResult result type")
                   print(torepr(c))

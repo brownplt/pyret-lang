@@ -15,8 +15,8 @@ data CompiledCodePrinter:
     pyret-to-js-standalone(self) -> String:
       raise("Cannot generate standalone JS")
     end,
-    pyret-to-js-pretty(self) -> String:
-      self.compiled.tosource().pretty(80).join-str("\n")
+    pyret-to-js-pretty(self, width) -> String:
+      self.compiled.tosource().pretty(width).join-str("\n")
     end,
     pyret-to-js-runnable(self) -> String:
       self.compiled.to-ugly-source()
