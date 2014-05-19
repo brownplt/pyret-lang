@@ -770,7 +770,8 @@ function createMethodDict() {
       else if (isObject(val) ||
                isFunction(val) ||
                isMethod(val) ||
-               isOpaque(val)) {
+               isOpaque(val) ||
+               isNothing(val)) {
         return true
       }
     }
@@ -899,6 +900,9 @@ function createMethodDict() {
               } else {
                 top.done.push(String(/**@type {!PString}*/ (next)));
               }
+            } else if (isNothing(next)) {
+              top.todo.pop();
+              top.done.push("nothing");
             } else if (isObject(next)) {
               if (next.dict[method]) {
                 // If this call fails
