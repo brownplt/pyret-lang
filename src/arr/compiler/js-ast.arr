@@ -126,6 +126,65 @@ data JStmt:
     tosource(self):
       self.expr.tosource() + PP.str(";")
     end
+  | j-break with:
+    print-ugly-source(self, printer): printer("break;\n") end,
+    tosource(self): PP.str("break;") end
+  | j-continue with:
+    print-ugly-source(self, printer): printer("continue;\n") end,
+    tosource(self): PP.str("continue;") end
+  | j-switch(exp :: JExpr, branches :: List<JCase>) with:
+    print-ugly-source(self, printer):
+      printer("switch(")
+      self.exp.print-ugly-source(printer)
+      printer(") {\n")
+      self.branches.each(_.print-ugly-source(printer))
+      printer("}\n")
+    end,
+    tosource(self):
+      PP.surround(0, 1, PP.group(PP.str("switch") + PP.parens(self.exp.tosource()) + PP.sbreak(1) + PP.lbrace),
+        PP.flow-map(PP.hardline, _.tosource(), self.branches), PP.rbrace)
+    end
+  | j-while(cond :: JExpr, body :: JStmt) with:
+    print-ugly-source(self, printer):
+      printer("while(")
+      self.cond.print-ugly-source(printer)
+      printer(") {\n")
+      self.body.print-ugly-source(printer)
+      printer("}\n")
+    end,
+    tosource(self):
+      PP.surround(INDENT, 1, PP.group(PP.str("while") + PP.parens(self.cond.tosource()) + PP.sbreak(1) + PP.lbrace),
+        self.body.tosource(), PP.rbrace)
+    end
+sharing:
+  to-ugly-source(self):
+    strprint = string-printer()
+    self.print-ugly-source(strprint.append)
+    strprint.get()
+  end
+end
+
+data JCase:
+  | j-case(exp :: JExpr, body :: JStmt) with:
+    print-ugly-source(self, printer):
+      printer("case ")
+      self.exp.print-ugly-source(printer)
+      printer(": ")
+      self.body.print-ugly-source(printer)
+    end,
+    tosource(self):
+      PP.group(PP.nest(INDENT,
+          PP.group(PP.nest(INDENT, PP.str("case ") + self.exp.tosource() + PP.str(":"))) + PP.sbreak(1)
+            + self.body.tosource()))
+    end
+  | j-default(body :: JStmt) with:
+    print-ugly-source(self, printer):
+      printer("default: ")
+      self.body.print-ugly-source(printer)
+    end,
+    tosource(self):
+      PP.group(PP.nest(INDENT, PP.str("default:"), self.body.tosource()))
+    end
 sharing:
   to-ugly-source(self):
     strprint = string-printer()
@@ -241,7 +300,7 @@ data JExpr:
     tosource(self):
       PP.group(self.func.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | j-method(obj :: JExpr, meth :: String, args :: List<JExpr>) with:
     print-ugly-source(self, printer):
@@ -261,7 +320,7 @@ data JExpr:
     tosource(self):
       PP.group(PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.meth))
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | j-ternary(test :: JExpr, consq :: JExpr, altern :: JExpr) with:
     print-ugly-source(self, printer):
@@ -274,8 +333,8 @@ data JExpr:
     tosource(self):
       PP.parens(
         self.test.tosource()
-          + PP.nest(INDENT, break-one + PP.str("?") + blank-one + PP.nest(INDENT, self.consq.tosource()))
-          + PP.nest(INDENT, break-one + PP.str(":") + blank-one + PP.nest(INDENT, self.altern.tosource())))
+          + PP.nest(INDENT, break-one + PP.str("?") + blank-one + PP.group(PP.nest(INDENT, self.consq.tosource())))
+          + PP.nest(INDENT, break-one + PP.str(":") + blank-one + PP.group(PP.nest(INDENT, self.altern.tosource()))))
     end
   | j-assign(name :: String, rhs :: JExpr) with:
     print-ugly-source(self, printer):
@@ -358,7 +417,7 @@ data JExpr:
     end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(lam(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | j-id(id :: String) with:
     print-ugly-source(self, printer):
@@ -409,6 +468,9 @@ data JExpr:
       fillstrs = filldocs.map(_.pretty(self.width-tolerance)).map(_.join-str(" "))
       PP.str(format(self.raw-js, fillstrs))
     end
+  | j-label(label :: JLabel) with:
+    print-ugly-source(self, printer): printer(tostring(self.label.get())) end,
+    tosource(self): PP.number(self.label.get()) end
 sharing:
   to-ugly-source(self):
     strprint = string-printer()
@@ -447,6 +509,23 @@ where:
 
   j-bracket(j-true, j-false).tosource().pretty(20) is [list: "true[false]"]
 
+end
+
+fun make-label-sequence(init):
+  var next = init
+  lam():
+    var value = nothing
+    j-label({
+        get: lam():
+            if value == nothing:
+              value := next
+              next := next + 1
+              value
+            else:
+              value
+            end
+        end})
+  end
 end
 
 data JField:
