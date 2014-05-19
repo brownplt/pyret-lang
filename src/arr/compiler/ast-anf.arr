@@ -34,7 +34,7 @@ dummy-loc = SL.builtin("dummy-location")
 Loc = SL.Srcloc
 
 data AProg:
-  | a-program(l :: Loc, imports :: List<AHeader>, body :: AExpr) with:
+  | a-program(l :: Loc, imports :: List<AImport>, body :: AExpr) with:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
