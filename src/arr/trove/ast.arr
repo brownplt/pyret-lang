@@ -700,7 +700,12 @@ data Bind:
         end
       end
     end,
-    label(self): "s_bind" end
+    label(self): "s_bind" end,
+    _lessthan(self, other):
+      if (self.l.before(other.l)): true
+      else: self.id.key() < other.id.key()
+      end
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
