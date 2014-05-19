@@ -45,7 +45,7 @@ other-args = all-cmdline-params.rest
 data ParseParam:
   | read-number with:
     parse(_, arg-index :: Number, param-name :: String, s :: String) -> Number:
-      n = s.tonumber()
+      n = string-tonumber(s)
       if is-nothing(n):
         right(format("~a expected a numeric argument, got ~a", [list: param-name, torepr(s)]))
       else: left(n)
