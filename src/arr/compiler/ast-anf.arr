@@ -97,7 +97,7 @@ data AExpr:
     tosource(self):
       PP.group(self.f.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
@@ -107,12 +107,12 @@ data AExpr:
             PP.str("split ")
               + PP.group(self.helper-args.first.tosource() + PP.str(" <== ") + self.f.tosource()
                 + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end))))))) +
+                PP.separate(PP.commabreak, self.args.map(_.tosource()))))))) +
         break-one +
         PP.group(PP.nest(INDENT, PP.str("and then") + break-one
               + self.helper.tosource()
               + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.helper-args.map(lam(f): f.tosource() end)))))))
+                PP.separate(PP.commabreak, self.helper-args.map(_.tosource())))))))
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,
@@ -141,6 +141,11 @@ data ABind:
     tosource(self):
       if A.is-a-blank(self.ann): self.id.tosource()
       else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+      end
+    end,
+    _lessthan(self, other):
+      if (self.l.before(other.l)): true
+      else: self.id.key() < other.id.key()
       end
     end
 sharing:
@@ -217,20 +222,20 @@ data ALettable:
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
     label(self): "a-prim-app" end,
     tosource(self):
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(lam(f): f.tosource() end))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | a-update(l :: Loc, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-update" end,
