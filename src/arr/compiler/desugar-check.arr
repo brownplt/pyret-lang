@@ -19,7 +19,7 @@ check-stmts-visitor = A.default-map-visitor.{
           A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           left,
           right,
-          A.build-loc(l)
+          A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
         ])
     end
     if op == "opis": check-op("check-is")
@@ -30,7 +30,7 @@ check-stmts-visitor = A.default-map-visitor.{
           A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
           A.s-lam(l, [list: ], [list: ], A.a-blank, "", left, none),
           right,
-          A.build-loc(l)
+          A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
         ])
     else:
       raise("Check test operator " + op + " not yet implemented at " + torepr(l))
@@ -74,7 +74,7 @@ fun create-check-block(l, checks):
         A.s-obj(l2, [list: 
             A.s-data-field(l2, A.s-str(l2, "name"), A.s-str(l2, name)),
             A.s-data-field(l2, A.s-str(l2, "run"), check-fun),
-            A.s-data-field(l2, A.s-str(l2, "location"), A.build-loc(l2))
+            A.s-data-field(l2, A.s-str(l2, "location"), A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)]))
           ])
     end
   end

@@ -123,32 +123,20 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwArityError(loc, arity, argsPyret);
       }
 
-      function locFromObj(obj) {
-        if (!runtime.hasField(obj, "source")) { return runtime.makeSrcloc(["builtin"]); }
-        return runtime.makeSrcloc([
-          gf(obj, "source"),
-          gf(obj, "start-line"),
-          gf(obj, "start-column"),
-          gf(obj, "start-char"),
-          gf(obj, "end-line"),
-          gf(obj, "end-column"),
-          gf(obj, "end-char")
-        ]);
-      }
-      function throwNonBooleanCondition(locAsObj, type, val) {
+      function throwNonBooleanCondition(locArray, type, val) {
         runtime.checkString(type);
         runtime.checkPyretVal(val);
-        raise(err("non-boolean-condition")(locFromObj(locAsObj), type, val));
+        raise(err("non-boolean-condition")(runtime.makeSrcloc(locArray), type, val));
       }
-      function throwNonBooleanOp(locAsObj, position, type, val) {
+      function throwNonBooleanOp(locArray, position, type, val) {
         runtime.checkString(position);
         runtime.checkString(type);
         runtime.checkPyretVal(val);
-        raise(err("non-boolean-op")(locFromObj(locAsObj), position, type, val));
+        raise(err("non-boolean-op")(runtime.makeSrcloc(locArray), position, type, val));
       }
-      function throwNoBranchesMatched(locAsObj, type) {
+      function throwNoBranchesMatched(locArray, type) {
         runtime.checkString(type);
-        raise(err("no-branches-matched")(locFromObj(locAsObj), type));
+        raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
       }
       function throwNonFunApp(locArray, funVal, args) {
         runtime.checkPyretVal(funVal);

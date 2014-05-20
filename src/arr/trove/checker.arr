@@ -29,10 +29,6 @@ data TestResult:
     end
 end
 
-fun real-loc(l):
-  SL.srcloc(l.source, l.start-line, l.start-column, l.start-char, l.end-line, l.end-column, l.end-char)
-end
-
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
   var block-results = [list: ]
   fun add-block-result(cbr :: CheckBlockResult):
@@ -49,33 +45,33 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         for each(c from checks):
           reset-results()
           c.run()
-          add-block-result(check-block-result(c.name, real-loc(c.location), current-results))
+          add-block-result(check-block-result(c.name, c.location, current-results))
         end
       end
     end,
     check-is(self, code, left, right, loc):
       if left == right:
-        add-result(success(real-loc(loc), code))
+        add-result(success(loc, code))
       else:
-        add-result(failure-not-equal(real-loc(loc), code, left, right))
+        add-result(failure-not-equal(loc, code, left, right))
       end
     end,
     check-satisfies(self, code, left, pred, loc):
       if pred(left):
-        add-result(success(real-loc(loc), code))
+        add-result(success(loc, code))
       else:
-        add-result(failure-not-satisfied(real-loc(loc), code, left, pred))
+        add-result(failure-not-satisfied(loc, code, left, pred))
       end
     end,
     check-raises(self, code, thunk, expected, comparator, loc):
       result = run-task(thunk)
       cases(Either) result:
-        | left(v) => add-result(failure-no-exn(real-loc(loc), code, expected))
+        | left(v) => add-result(failure-no-exn(loc, code, expected))
         | right(v) =>
           if comparator(v, expected):
-            add-result(success(real-loc(loc), code))
+            add-result(success(loc, code))
           else:
-            add-result(failure-wrong-exn(real-loc(loc), code, expected, v))
+            add-result(failure-wrong-exn(loc, code, expected, v))
           end
       end
     end,
