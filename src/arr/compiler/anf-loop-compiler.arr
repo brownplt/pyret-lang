@@ -357,22 +357,56 @@ fun compile-fun-body(step, compiler, body):
   helper-labels = D.string-dict()
   var switch-cases = concat-empty
   make-label = make-label-sequence(0)
-  fun add-case(label, c):
+  fun add-case-before(label, c):
     switch-cases := concat-cons(j-case(label, c), switch-cases)
+  end
+  fun add-case-after(label, c):
+    switch-cases := concat-snoc(switch-cases, j-case(label, c))
   end
   ret-label = make-label()
   ans = js-id-of(compiler-name("ans"))
-  visited-body = body.visit(compiler.{add-case: add-case, make-label: make-label,
-      cur-target: ret-label, cur-step: step, cur-ans: ans})
+  visited-body = body.visit(compiler.{add-case-before: add-case-before, add-case-after: add-case-after,
+      make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans})
   checker-label = make-label()
   checker = j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
     j-block([list: j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
         j-throw(rt-method("makeCont", [list: j-id(js-id-of(compiler.cur-bind.id.tostring()))]))]))
   entry-label = make-label()
-  switch-cases := concat-snoc(switch-cases, j-case(ret-label, j-block([list: j-return(j-id(ans))])))
-  j-case(checker-label, j-block(checker ^ link(_, goto-case(step, entry-label))))
-  ^ link(_, j-case(entry-label, j-block([list: visited-body]))
-    ^ link(_, switch-cases.to-list()))
+  add-case-after(ret-label, j-block([list: j-return(j-id(ans))]))
+  add-case-before(entry-label, j-block([list: visited-body]))
+  add-case-before(checker-label, j-block(checker ^ link(_, goto-case(step, entry-label))))
+  e = js-id-of(compiler-name("e"))
+  [list:
+    j-try-catch(
+      j-while(j-true,
+        j-switch(j-id(step), switch-cases.to-list())),
+      e,
+      j-block([list:
+          j-if1(rt-method("isCont", [list: j-id(e)]),
+            j-block([list: 
+                # j-var(ss,
+                #   j-obj([list: 
+                #       j-field("from", j-id("from")),
+                #       j-field("go", j-fun([list: js-id-of(helper-args.first.id.tostring())],
+                #           j-block([list: 
+                #               j-return(j-app(j-id(helper-name(name)),
+                #                   link(
+                #                     j-id(js-id-of(helper-args.first.id.tostring())),
+                #                     helper-ids.map(lam(a): j-id(a);)
+                #                     #helper-ids.map(lam(a): j-dot(j-id("this"), a) end)
+                #                     )))])))]
+                #     #+ helper-ids.map(lam(a): j-field(a, j-id(a)) end)
+                #     )),
+                j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
+                    j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(js-id-of(compiler-name("TBD")))))
+                #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [list: j-id(ss)])),
+              ])),
+          j-if1(rt-method("isPyretException", [list: j-id(e)]),
+            j-block([list: 
+                j-expr(add-stack-frame(e, j-id("from")))
+              ])),
+          j-throw(j-id(e))]))
+  ]
 end
 
 compiler-visitor = {
@@ -407,12 +441,19 @@ compiler-visitor = {
     step = self.cur-step
     compiled-f = f.visit(self)
     compiled-args = args.map(_.visit(self))
-    helper-label = self.make-label()
-    helper = self.helpers.get(name.key())
-    visited-helper = helper.body.visit(self)
-    self.add-case(helper-label, j-block([list:
-          j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
-          visited-helper]))
+    helper-label =
+      if (self.comp-helpers.has-key(name.key())):
+        self.comp-helpers.get(name.key())
+      else:
+        lbl = self.make-label()
+        self.comp-helpers.set(name.key(), lbl)
+        helper = self.helpers.get(name.key())
+        visited-helper = helper.body.visit(self)
+        self.add-case-after(lbl, j-block([list:
+              j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
+              visited-helper]))
+        lbl
+      end
     j-block([list:
         j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
         j-expr(j-assign(step,  helper-label)),
@@ -433,8 +474,8 @@ compiler-visitor = {
 
     consq-label = self.make-label()
     alt-label = self.make-label()
-    self.add-case(consq-label, compiled-consq)
-    self.add-case(alt-label, compiled-alt)
+    self.add-case-after(consq-label, compiled-consq)
+    self.add-case-after(alt-label, compiled-alt)
     
     j-block([list: 
         j-if(rt-method("isPyretTrue", [list: cond.visit(self)]),
@@ -473,13 +514,12 @@ compiler-visitor = {
     bound-vars = body.visit(local-bound-vars-visitor)
     new-step = js-id-of(compiler-name("step"))
     rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
-          arity-check(l, [list: j-switch(j-id(new-step),
-                compile-fun-body(new-step, self, body))], args.length()))])
+          arity-check(l, compile-fun-body(new-step, self, body), args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
     bound-vars = body.visit(local-bound-vars-visitor)
     new-step = js-id-of(compiler-name("step"))
-    compiled-body = [list: j-switch(j-id(new-step), compile-fun-body(new-step, self, body))]
+    compiled-body = compile-fun-body(new-step, self, body)
     rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
       j-block([list: 
         j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body, args.length() - 1)))])),
@@ -702,7 +742,7 @@ fun compile-program(self, l, headers, split, env):
   step = js-id-of(compiler-name("step"))
   toplevel-name = js-id-of(compiler-name("toplevel"))
   visited-body = compile-fun-body(step, self.{cur-bind: N.a-bind(l, A.s-name(l, toplevel-name), A.a-blank)}, split.body)
-  toplevel-fun = j-fun([list: ], j-block([list: j-switch(j-id(step), visited-body)]))
+  toplevel-fun = j-fun([list: ], j-block(visited-body))
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
             j-return(j-fun([list: "R", "NAMESPACE"],
                 j-block([list: 
@@ -723,7 +763,7 @@ fun splitting-compiler(env):
       for each(h from split.helpers):
         helpers-dict.set(h.name.key(), h)
       end
-      compile-program(self.{helpers: helpers-dict}, l, headers, split, env)
+      compile-program(self.{helpers: helpers-dict, comp-helpers: D.string-dict()}, l, headers, split, env)
     end
   }
 end

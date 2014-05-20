@@ -69,10 +69,10 @@ fun anf-name-rec(
     k :: (List<N.AVal> -> N.AExpr)
   ) -> N.AExpr:
   cases(List) exprs:
-    | empty => k([list: ])
+    | empty => k(empty)
     | link(f, r) =>
       anf-name(f, name-hint, lam(v):
-          anf-name-rec(r, name-hint, lam(vs): k([list: v] + vs);)
+          anf-name-rec(r, name-hint, lam(vs): k(link(v, vs));)
         end)
   end
 end
