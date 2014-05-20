@@ -49,6 +49,31 @@ throw-uninitialized = j-id("U")
 source-name = j-id("M")
 undefined = j-id("D")
 
+data ConcatList<a>:
+  | concat-empty with:
+    to-list-acc(self, rest): rest end,
+    map(self, f): self end
+  | concat-singleton(element) with:
+    to-list-acc(self, rest): link(self.element, rest) end,
+    map(self, f): concat-singleton(f(self.element)) end
+  | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
+    to-list-acc(self, rest :: List):
+      self.left.to-list-acc(self.right.to-list-acc(rest))
+    end,
+    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end
+  | concat-cons(first :: a, rest :: ConcatList<a>) with:
+    to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
+    map(self, f): concat-cons(f(self.first), self.rest.map(f)) end
+  | concat-snoc(head :: ConcatList<a>, last :: a) with:
+    to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
+    map(self, f): concat-snoc(self.head.map(f), f(self.last)) end
+sharing:
+  _plus(self, other :: ConcatList):
+    concat-append(self, other)
+  end,
+  to-list(self): self.to-list-acc([list: ]) end
+end
+
 Loc = SL.Srcloc
 
 js-id-of = block:
@@ -109,7 +134,7 @@ fun rt-method(name, args): j-method(j-id("R"), name, args);
 fun app(l, f, args):
   j-ternary(rt-method("isFunction", [list: f]),
     j-method(f, "app", args),
-    j-method(rt-field("ffi"), "throwNonFunApp", [list: obj-of-loc(l), f, j-list(false, args)]))
+    j-method(rt-field("ffi"), "throwNonFunApp", [list: l, f, j-list(false, args)]))
 end
 
 fun thunk-app(block):
@@ -135,13 +160,13 @@ fun compile-tail-app(compiler, l, f, args):
   compiled-args = args.map(_.visit(compiler))
   body =
     j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([list: j-expr(j-assign(z, app(l, compiled-f, compiled-args)))]),
+      j-block([list: j-expr(j-assign(z, app(compiler.get-loc(l), compiled-f, compiled-args)))]),
       j-block([list: 
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
           j-throw(rt-method("makeCont", 
               [list: j-obj([list: j-field("go",
-                      j-fun([list: js-id-of("ignored")], j-block([list: j-return(app(l, compiled-f, compiled-args))]))),
-                      j-field("from", obj-of-loc(l))])]))]))
+                      j-fun([list: js-id-of("ignored")], j-block([list: j-return(app(compiler.get-loc(l), compiled-f, compiled-args))]))),
+                      j-field("from", compiler.get-loc(l))])]))]))
   j-block([list: 
       body,
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -170,21 +195,20 @@ fun compile-split-app(
     j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
       j-block([list: j-expr(j-assign(z, j-app(j-id(f-app), [list: ])))]),
       j-block([list: 
-#              rt-method("log", [list: j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), obj-of-loc(l), j-str(e)]),
+#              rt-method("log", [list: j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), compiler.get-loc(l), j-str(e)]),
           j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
           j-throw(rt-method("makeCont", 
               [list: j-obj([list: j-field("go", j-id(f-app)),
-                      j-field("from", obj-of-loc(l))])]))]))
+                      j-field("from", compiler.get-loc(l))])]))]))
   helper-ids = helper-args.rest.map(_.id).map(_.tostring()).map(js-id-of)
   catch =
     j-block([list: 
-#          rt-method("log", [list: j-str("Catching, "), obj-of-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
-      j-var("from", obj-of-loc(l)),
+#          rt-method("log", [list: j-str("Catching, "), compiler.get-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
       j-if1(rt-method("isCont", [list: j-id(e)]),
         j-block([list: 
             j-var(ss,
               j-obj([list: 
-                j-field("from", j-id("from")),
+                j-field("from", compiler.get-loc(l)),
                 j-field("go", j-fun([list: js-id-of(helper-args.first.id.tostring())],
                   j-block([list: 
                     j-return(j-app(j-id(helper-name(name)),
@@ -201,12 +225,12 @@ fun compile-split-app(
             ])),
       j-if1(rt-method("isPyretException", [list: j-id(e)]),
           j-block([list: 
-              j-expr(add-stack-frame(e, j-id("from")))
+              j-expr(add-stack-frame(e, compiler.get-loc(l)))
             ])),
       j-throw(j-id(e))])
   j-block([list: 
       j-var(z, undefined),
-      j-var(f-app, j-fun([list: "_"], j-block([list: j-return(app(l, compiled-f, compiled-args))]))),
+      j-var(f-app, j-fun([list: "_"], j-block([list: j-return(app(compiler.get-loc(l), compiled-f, compiled-args))]))),
       j-try-catch(body, e, catch),
       j-var(ret, j-app(j-id(helper-name(name)), [list: j-id(z)] + compiled-helper-args.rest)),
       j-expr(j-unop(rt-field("GAS"), j-incr)),
@@ -215,11 +239,11 @@ fun compile-split-app(
 end
 
 
-fun arity-check(loc, body-stmts, arity):
+fun arity-check(loc-expr, body-stmts, arity):
   j-block(
     link(
       j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-method(rt-field("ffi"), "throwArityErrorC", [list: obj-of-loc(loc), j-num(arity), j-id("arguments")])),
+        j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")])),
       body-stmts))
 end
 
@@ -267,7 +291,7 @@ compiler-visitor = {
     j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self))
   end,
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
-    app(l, f.visit(self), args.map(_.visit(self)))
+    app(self.get-loc(l), f.visit(self), args.map(_.visit(self)))
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     rt-method(f, args.map(_.visit(self)))
@@ -280,21 +304,24 @@ compiler-visitor = {
     j-method(obj.visit(self), "extendWith", [list: j-obj(fields.map(_.visit(self)))])
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    get-field(obj.visit(self), j-str(field), obj-of-loc(l))
+    get-field(obj.visit(self), j-str(field), self.get-loc(l))
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [list: obj.visit(self), j-str(field)])
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, body.visit(self).stmts, args.length()))])
+    rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
+          arity-check(self.get-loc(l), body.visit(self).stmts, args.length()))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
     compiled-body-stmts = body.visit(self).stmts
     rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
       j-block([list: 
-        j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length() - 1)))])),
+        j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(
+                    self.get-loc(l), compiled-body-stmts, args.length() - 1)))])),
       #undefined])
-      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), arity-check(l, compiled-body-stmts, args.length()))])
+      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
+          arity-check(self.get-loc(l), compiled-body-stmts, args.length()))])
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
@@ -304,6 +331,9 @@ compiler-visitor = {
   end,
   a-array(self, l, values):
     j-list(false, values.map(_.visit(self)))
+  end,
+  a-srcloc(self, l, loc):
+    self.get-loc(loc)
   end,
   a-num(self, l :: Loc, n :: Number):
     if num-is-fixnum(n):
@@ -334,7 +364,7 @@ compiler-visitor = {
     else:
       j-ternary(
         j-binop(j-dot(j-id(js-id-of(s)), "$var"), j-eq, undefined),
-        raise-id-exn(obj-of-loc(l), id.toname()),
+        raise-id-exn(self.get-loc(l), id.toname()),
         j-dot(j-id(js-id-of(s)), "$var"))
     end
   end,
@@ -369,7 +399,7 @@ compiler-visitor = {
             j-fun(
               member-names.map(js-id-of),
               arity-check(
-                l2,
+                self.get-loc(l2),
                 [list: 
                   j-var("dict", rt-method("create", [list: j-id(base-id)]))
                 ] +
@@ -506,15 +536,35 @@ fun compile-program(self, l, headers, split, env):
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }
   end
+  var locations = concat-empty
+  var loc-count = 0
+  var loc-cache = D.string-dict()
+  locs = "L"
+  fun get-loc(shadow l :: Loc):
+    as-str = torepr(l)
+    if loc-cache.has-key(as-str):
+      loc-cache.get(as-str)
+    else:
+      ans = j-bracket(j-id(locs), j-num(loc-count))
+      loc-cache.set(as-str, ans)
+      loc-count := loc-count + 1
+      locations := concat-snoc(locations, obj-of-loc(l))
+      ans
+    end
+  end
+  visited-helpers = split.helpers.map(compile-helper(self.{get-loc: get-loc}, _))
+  visited-body = split.body.visit(self.{get-loc: get-loc})
+  define-locations = j-var(locs, j-list(true, locations.to-list()))
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
             j-return(j-fun([list: "R", "NAMESPACE"],
                 j-block([list: 
                     j-if(module-ref(module-id),
                       j-block([list: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
+                              [list: define-locations] + 
                               namespace-binds +
-                              split.helpers.map(compile-helper(self, _)) +
-                              [list: wrap-modules(module-specs, split.body.visit(self))]))])))]))])
+                              visited-helpers +
+                              [list: wrap-modules(module-specs, visited-body)]))])))]))])
 end
 
 fun splitting-compiler(env):

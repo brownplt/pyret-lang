@@ -126,7 +126,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-id-var(l, id) => k.apply(l, N.a-val(N.a-id-var(l, id)))
     | s-id-letrec(l, id, safe) =>
       k.apply(l, N.a-val(N.a-id-letrec(l, id, safe)))
-
+    | s-srcloc(l, loc) => k.apply(l, N.a-val(N.a-srcloc(l, loc)))
     | s-let-expr(l, binds, body) =>
       cases(List) binds:
         | empty => anf(body, k)

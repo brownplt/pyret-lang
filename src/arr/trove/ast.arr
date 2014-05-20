@@ -544,6 +544,9 @@ data Expr:
   | s-undefined(l :: Loc) with:
     label(self): "s-undefined" end,
     tosource(self): PP.str("undefined") end
+  | s-srcloc(l :: Loc, loc :: Loc) with:
+    label(self): "s-srcloc" end,
+    tosource(self): PP.str(torepr(self.loc)) end
   | s-num(l :: Loc, n :: Number) with:
     label(self): "s-num" end,
     tosource(self): PP.number(self.n) end
@@ -1573,6 +1576,11 @@ fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
             equiv-opt(c1, c2)
         | else => false
       end
+    | s-srcloc(_, l1) =>
+      cases(Expr) ast2:
+        | s-srcloc(_, l2) => l1 == l2
+        | else => false
+      end
     | s-num(_, n1) =>
       cases(Expr) ast2:
         | s-num(_, n2) => n1 == n2
@@ -1846,6 +1854,9 @@ default-map-visitor = {
   end,
   s-undefined(self, l :: Loc):
     s-undefined(self)
+  end,
+  s-srcloc(self, l, shadow loc):
+    s-srcloc(l, loc)
   end,
   s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
@@ -2245,6 +2256,9 @@ default-iter-visitor = {
   s-undefined(self, l :: Loc):
     true
   end,
+  s-srcloc(self, l, shadow loc):
+    true
+  end,
   s-num(self, l :: Loc, n :: Number):
     true
   end,
@@ -2633,6 +2647,9 @@ dummy-loc-visitor = {
   s-undefined(self, l :: Loc):
     s-undefined(self)
   end,
+  s-srcloc(self, l, shadow loc):
+    s-srcloc(dummy-loc, loc)
+  end,
   s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
@@ -2813,18 +2830,3 @@ dummy-loc-visitor = {
     a-field(dummy-loc, name.visit(self), ann.visit(self))
   end
 }
-
-fun build-loc(l):
-  cases(S.Srcloc) l:
-    | srcloc(source, start-line, start-column, start-char, end-line, end-column, end-char) =>
-      s-obj(l, [list: 
-          s-data-field(l, s-str(l, "source"), s-str(l, source)),
-          s-data-field(l, s-str(l, "start-line"), s-num(l, start-line)),
-          s-data-field(l, s-str(l, "start-column"), s-num(l, start-column)),
-          s-data-field(l, s-str(l, "start-char"), s-num(l, start-char)),
-          s-data-field(l, s-str(l, "end-line"), s-num(l, end-line)),
-          s-data-field(l, s-str(l, "end-column"), s-num(l, end-column)),
-          s-data-field(l, s-str(l, "end-char"), s-num(l, end-char))
-        ])
-  end
-end

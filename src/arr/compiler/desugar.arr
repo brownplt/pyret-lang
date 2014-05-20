@@ -28,7 +28,7 @@ fun check-bool(l, id, e, then, err):
       err))
 end
 fun no-branches-exn(l, typ):
-  A.s-prim-app(l, "throwNoBranchesMatched", [list: A.build-loc(l), A.s-str(l, typ)])
+  A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
 end
 fun make-message-exception(l, msg):
   make-message-exception-e(l, A.s-str(l, msg))
@@ -37,10 +37,10 @@ fun make-message-exception-e(l, msg-e):
   A.s-prim-app(l, "throwMessageException", [list: msg-e])
 end
 fun bool-exn(l, typ, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.build-loc(l), A.s-str(l, typ), val])
+  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
 end
 fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.build-loc(l), A.s-str(l, position), A.s-str(l, typ), val])
+  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
 
@@ -526,6 +526,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-id(l, x) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
+    | s-srcloc(_, _) => expr
     | s-num(_, _) => expr
     | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr

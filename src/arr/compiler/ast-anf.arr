@@ -290,6 +290,9 @@ sharing:
 end
 
 data AVal:
+  | a-srcloc(l :: Loc, loc :: Loc) with:
+    label(self): "a-srcloc" end,
+    tosource(self): PP.str(torepr(self.loc)) end
   | a-num(l :: Loc, n :: Number) with:
     label(self): "a-num" end,
     tosource(self): PP.number(self.n) end
@@ -403,6 +406,7 @@ end
 
 fun strip-loc-val(val :: AVal):
   cases(AVal) val:
+    | a-srcloc(_, l) => a-srcloc(dummy-loc, l)
     | a-num(_, n) => a-num(dummy-loc, n)
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
@@ -498,6 +502,9 @@ default-map-visitor = {
   end,
   a-field(self, l :: Loc, name :: String, value :: AVal):
     a-field(l, name, value.visit(self))
+  end,
+  a-srcloc(self, l, loc):
+    a-srcloc(l, loc)
   end,
   a-num(self, l :: Loc, n :: Number):
     a-num(l, n)
