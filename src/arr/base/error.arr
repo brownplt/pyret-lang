@@ -49,7 +49,7 @@ data RuntimeError:
     tostring(self):
       "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())
     end
-  | non-function-app(loc, non-fun-val, args) with:
+  | non-function-app(loc, non-fun-val) with:
     tostring(self):
       "Error: Expected a function at " + self.loc.format(true) + ", but got " + torepr(self.non-fun-val)
     end

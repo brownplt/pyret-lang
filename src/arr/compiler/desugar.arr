@@ -23,6 +23,7 @@ fun gid(l, id): A.s-id(l, g(id));
 
 fun check-bool(l, id, e, then, err):
   A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, e)],
+    # A.s-check-type(l, id.id-e, A.s-prim-type("isBoolean"), err, then))
     A.s-if-else(l,
       [list: A.s-if-branch(l, A.s-prim-app(l, "isBoolean", [list: id.id-e]), then)],
       err))

@@ -134,7 +134,7 @@ fun rt-method(name, args): j-method(j-id("R"), name, args);
 fun app(l, f, args):
   j-ternary(rt-method("isFunction", [list: f]),
     j-method(f, "app", args),
-    j-method(rt-field("ffi"), "throwNonFunApp", [list: l, f, j-list(false, args)]))
+    j-method(rt-field("ffi"), "throwNonFunApp", [list: l, f]))
 end
 
 fun thunk-app(block):
@@ -284,7 +284,7 @@ compiler-visitor = {
         j-if(rt-method("isPyretTrue", [list: cond.visit(self)]), compiled-consq, compiled-alt)
       ])
   end,
-  a-lettable(self, e :: N.ALettable):
+  a-lettable(self, l :: Loc, e :: N.ALettable):
     j-block([list: j-return(e.visit(self))])
   end,
   a-assign(self, l :: Loc, id :: String, value :: N.AVal):

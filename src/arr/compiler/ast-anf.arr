@@ -124,7 +124,7 @@ data AExpr:
           + PP.nest(INDENT, break-one + self.e.tosource())
           + break-one + str-end)
     end
-  | a-lettable(e :: ALettable) with:
+  | a-lettable(l :: Loc, e :: ALettable) with:
     label(self): "a-lettable" end,
     tosource(self):
       self.e.tosource()
@@ -217,10 +217,10 @@ data ALettable:
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
+  | a-app(l :: Loc, func :: AVal, args :: List<AVal>) with:
     label(self): "a-app" end,
     tosource(self):
-      PP.group(self._fun.tosource()
+      PP.group(self.func.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
@@ -360,8 +360,8 @@ fun strip-loc-expr(expr :: AExpr):
           helper,
           helper-args.map(strip-loc-val)
         )
-    | a-lettable(e) =>
-      a-lettable(strip-loc-lettable(e))
+    | a-lettable(_, e) =>
+      a-lettable(dummy-loc, strip-loc-lettable(e))
   end
 end
 
@@ -449,8 +449,8 @@ default-map-visitor = {
   a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
     a-variant-member(l, member-type, bind.visit(self))
   end,
-  a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
+  a-tail-app(self, l :: Loc, func :: AVal, args :: List<AVal>):
+    a-tail-app(l, func.visit(self), args.map(_.visit(self)))
   end,
   a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
     a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
@@ -458,14 +458,14 @@ default-map-visitor = {
   a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
   end,
-  a-lettable(self, e :: ALettable):
-    a-lettable(e.visit(self))
+  a-lettable(self, l :: Loc, e :: ALettable):
+    a-lettable(l, e.visit(self))
   end,
   a-assign(self, l :: Loc, id :: Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-app(l, _fun.visit(self), args.map(_.visit(self)))
+  a-app(self, l :: Loc, func :: AVal, args :: List<AVal>):
+    a-app(l, func.visit(self), args.map(_.visit(self)))
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
     a-prim-app(l, f, args.map(_.visit(self)))
@@ -557,7 +557,7 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
         freevars-v-acc(arg, acc)
       end
       with-helper-args.remove(name)
-    | a-lettable(e) => freevars-l-acc(e, seen-so-far)
+    | a-lettable(_, e) => freevars-l-acc(e, seen-so-far)
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
   end
@@ -651,4 +651,3 @@ fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
     unioned.union(s)
   end
 end
-

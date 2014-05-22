@@ -21,12 +21,12 @@ data ANFCont:
         | a-val(v) =>
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [list: v]),
-            N.a-lettable(N.a-val(name.id-e)))
+            N.a-lettable(l, N.a-val(name.id-e)))
         | else =>
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, e-name.id-b, expr,
-            N.a-lettable(N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e])))
+            N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e])))
       end
     end
 end
@@ -37,8 +37,8 @@ fun anf-term(e :: A.Expr) -> N.AExpr:
             # tail call
           | a-app(l, f, args) =>
             name = mk-id(l, "anf_tail_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(N.a-val(name.id-e)))
-          | else => N.a-lettable(x)
+            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(name.id-e)))
+          | else => N.a-lettable(e.l, x)
         end
       end)
     )
@@ -207,6 +207,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-if-else(l, branches, _else) =>
+      # ans = mk-id(l, "if_helper_arg")
+      # kont = k-cont(lam(v): N.a-lettable(l, N.a-assign(l, ans.id, v)) end)
+      # N.a-seq(l,
+      #   for fold(acc from anf(_else, kont), branch from branches.reverse()):
+      #     anf-name(branch.test, "anf_if",
+      #       lam(test): N.a-if(l, test, anf(branch.body, kont), acc) end)
+      #   end,
+      #   k.apply(l, ans.id-e))
       cases(ANFCont) k:
         | k-id(_) =>
           for fold(acc from anf(_else, k), branch from branches.reverse()):
@@ -222,6 +230,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 lam(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
             end)
       end
+    # | s-check-type(l, exp, typ, err, then) =>
+    #   anf(exp, k-cont(lam(exp-e):
+    #         N.a-if(l, N.a-prim-app(l, typ.typ, [list: exp-e]),
+    #           anf(then, k),
+    #           anf(err, k-cont(lam(v): N.a-lettable(l, v) end)))
+    #       end))
     | s-try(l, body, id, _except) =>
       N.a-try(l, anf-term(body), id, anf-term(_except))
 
