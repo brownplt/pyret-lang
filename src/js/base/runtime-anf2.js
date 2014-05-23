@@ -944,32 +944,50 @@ function createMethodDict() {
         }
         return stack[0].done[0];
       }
-      try {
-        return toReprHelp();
-      } catch(e) {
-        if (thisRuntime.isCont(e)) {
-          var stacklet = {
-            from: ["runtime torepr"], near: "toRepr",
-            go: function(ret) {
+      function toReprFun($ar) {
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            $step = $ar.step;
+            $ans = $ar.ans;
+            console.log("Resuming toReprFun with ans = " + JSON.stringify($ans));
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              $step = 1;
+              return toReprHelp();
+            case 1:
               if (stack.length === 0) {
                 ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
               top.todo.pop();
-              top.done.push(thisRuntime.unwrap(ret));
-              return makeString(toReprHelp());
+              top.done.push(thisRuntime.unwrap($ans));
+              $step = 0;
+              break;
             }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-          throw e;
-        } else {
-          if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push(["runtime torepr"]); 
           }
-          throw e;
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr"],
+              toReprFun,
+              $step,
+              undefined, // This answer will be filled in with the nested answer of toReprHelp
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["runtime torepr"]);
+          }
+          throw $e;
         }
       }
+      return toReprFun();
     }
+      
     /**
       Creates the js string representation for the value
       @param {!PBase} val
@@ -2013,24 +2031,28 @@ function createMethodDict() {
         }
         return currentAcc;
       }
-      try {
-        return foldHelp();
-      } catch(e) {
-        if(isCont(e)) {
-          var stacklet = {
-            from: ["raw-array-fold"],
-            go: function(ret) {
-              currentAcc = ret;
-              return foldHelp();
-            }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+      function foldFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            currentAcc = $ar.ans;
+          }
+          return foldHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              undefined, // answer will be filled in by stack unwinder
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-fold"]);
+          }
+          throw $e;
         }
-        if (thisRuntime.isPyretException(e)) {
-          e.pyretStack.push(["raw-array-fold"]); 
-        }
-        throw e;
       }
+      return foldFun();
     };
 
     var string_substring = function(s, min, max) {
