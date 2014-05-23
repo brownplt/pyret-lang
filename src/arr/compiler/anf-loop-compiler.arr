@@ -47,6 +47,7 @@ j-null = J.j-null
 j-parens = J.j-parens
 j-switch = J.j-switch
 j-case = J.j-case
+j-default = J.j-default
 j-label = J.j-label
 j-break = J.j-break
 j-while = J.j-while
@@ -152,15 +153,6 @@ fun obj-of-loc(l):
     j-num(l.end-column),
     j-num(l.end-char)
   ])
-#  j-obj([list: 
-#      j-field("src", j-str(l.source)),
-#      j-field("start-line", j-num(l.start-line)),
-#      j-field("start-column", j-num(l.start-column)),
-#      j-field("start-char", j-num(l.start-char)),
-#      j-field("end-line", j-num(l.end-line)),
-#      j-field("end-column", j-num(l.end-column)),
-#      j-field("end-char", j-num(l.end-char))
-#    ])
 end
 
 fun get-field(obj, field, loc):
@@ -197,86 +189,10 @@ end
 
 fun helper-name(s :: String): "$H" + js-id-of(s.tostring());
 
-fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
-  cases(S.Helper) h:
-    | helper(name, args, body) =>
-      j-var(helper-name(name), j-fun(args.map(_.tostring()).map(js-id-of), body.visit(compiler)))
-  end
-end
-
 fun arity-check(loc-expr, arity):
   j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
     j-expr(j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")])))
 end
-
-
-fun compile-split-app(
-    compiler,
-    l :: Loc,
-    is-var :: Boolean,
-    f :: N.AVal,
-    args :: List<A.Name>,
-    name :: A.Name,
-    helper-args :: List<A.AVal>):
-  when is-var: raise("Can't handle splitting on a var yet");
-  e = js-id-of(compiler-name("e"))
-  z = js-id-of(compiler-name("z"))
-  ss = js-id-of(compiler-name("ss"))
-  ret = js-id-of(compiler-name("ret"))
-  f-app = js-id-of(compiler-name("f"))
-  compiled-f = f.visit(compiler)
-  compiled-args = args.map(_.visit(compiler))
-  compiled-helper-args = helper-args.map(_.visit(compiler))
-  body =
-    j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([list: j-expr(j-assign(z, j-app(j-id(f-app), [list: ])))]),
-      j-block([list: 
-#              rt-method("log", [list: j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), compiler.get-loc(l), j-str(e)]),
-          j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
-          j-throw(rt-method("makeCont", 
-              [list: j-obj([list: j-field("go", j-id(f-app)),
-                      j-field("from", compiler.get-loc(l))])]))]))
-  helper-ids = helper-args.rest.map(_.id).map(_.tostring()).map(js-id-of)
-  catch =
-    j-block([list: 
-#          rt-method("log", [list: j-str("Catching, "), compiler.get-loc(l), j-str(e), rt-field("EXN_STACKHEIGHT")]),
-      j-if1(rt-method("isCont", [list: j-id(e)]),
-        j-block([list: 
-            j-var(ss,
-              j-obj([list: 
-                j-field("from", compiler.get-loc(l)),
-                j-field("go", j-fun([list: js-id-of(helper-args.first.id.tostring())],
-                  j-block([list: 
-                    j-return(j-app(j-id(helper-name(name)),
-                        link(
-                            j-id(js-id-of(helper-args.first.id.tostring())),
-                            helper-ids.map(lam(a): j-id(a);)
-                            #helper-ids.map(lam(a): j-dot(j-id("this"), a) end)
-                            )))])))]
-                #+ helper-ids.map(lam(a): j-field(a, j-id(a)) end)
-                )),
-            j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), j-id(ss)))
-            #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [list: j-id(ss)])),
-            ])),
-      j-if1(rt-method("isPyretException", [list: j-id(e)]),
-          j-block([list: 
-              j-expr(add-stack-frame(e, compiler.get-loc(l)))
-            ])),
-      j-throw(j-id(e))])
-  j-block([list: 
-      j-var(z, undefined),
-      j-var(f-app, j-fun([list: "_"],
-          j-block([list:
-              check-fun(compiler.get-loc(l), compiled-f),
-              j-return(app(compiler.get-loc(l), compiled-f, compiled-args))]))),
-      j-try-catch(body, e, catch),
-      j-var(ret, j-app(j-id(helper-name(name)), [list: j-id(z)] + compiled-helper-args.rest)),
-      j-expr(j-unop(rt-field("GAS"), j-incr)),
-      j-return(j-id(ret))
-    ])
-end
-
 
 local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
@@ -327,151 +243,93 @@ fun goto-case(step, label):
   [list: j-expr(j-assign(step, label)), j-break]
 end
 
-split-apps-visitor = {
-  a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
-    body.visit(self)
-  end,
-  a-import-file(self, l :: Loc, file :: String, name :: Name): sets.empty-tree-set end,
-  a-import-builtin(self, l :: Loc, lib :: String, name :: Name): sets.empty-tree-set end,
-  a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
-    e.visit(self).union(body.visit(self))
-  end,
-  a-var(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
-    e.visit(self).union(body.visit(self))
-  end,
-  a-seq(self, l :: Loc, e1 :: ALettable, e2 :: AExpr):
-    e1.visit(self).union(e2.visit(self))
-  end,
-  a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
-    sets.empty-tree-set
-  end,
-  a-variant(self, l :: Loc, constr-loc :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
-    sets.empty-tree-set
-  end,
-  a-singleton-variant(self, l :: Loc, name :: String, with-members :: List<AField>): sets.empty-tree-set end,
-  a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind): sets.empty-tree-set end,
-  a-tail-app(self, l :: Loc, func :: AVal, args :: List<AVal>):
-    [tree-set: func.id]
-  end,
-  a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
-    [tree-set: f]
-  end,
-  a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
-    t.visit(self).union(e.visit(self))
-  end,
-  a-lettable(self, l :: Loc, e :: ALettable): sets.empty-tree-set end,
-  a-assign(self, l :: Loc, id :: Name, value :: AVal): sets.empty-tree-set end,
-  a-app(self, l :: Loc, func :: AVal, args :: List<AVal>): sets.empty-tree-set end,
-  a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>): sets.empty-tree-set end,
-  a-obj(self, l :: Loc, fields :: List<AField>): sets.empty-tree-set end,
-  a-update(self, l :: Loc, supe :: AVal, fields :: List<AField>): sets.empty-tree-set end,
-  a-extend(self, l :: Loc, supe :: AVal, fields :: List<AField>): sets.empty-tree-set end,
-  a-dot(self, l :: Loc, obj :: AVal, field :: String): sets.empty-tree-set end,
-  a-colon(self, l :: Loc, obj :: AVal, field :: String): sets.empty-tree-set end,
-  a-get-bang(self, l :: Loc, obj :: AVal, field :: String): sets.empty-tree-set end,
-  a-lam(self, l :: Loc, args :: List<ABind>, body :: AExpr): sets.empty-tree-set end,
-  a-method(self, l :: Loc, args :: List<ABind>, body :: AExpr): sets.empty-tree-set end,
-  a-val(self, v :: AVal): sets.empty-tree-set end,
-  a-bind(self, l :: Loc, id :: Name, ann :: A.Ann): sets.empty-tree-set end,
-  a-field(self, l :: Loc, name :: String, value :: AVal): sets.empty-tree-set end,
-  a-num(self, l :: Loc, n :: Number): sets.empty-tree-set end,
-  a-array(self, l :: Loc, vals :: List<AVal>): sets.empty-tree-set end,
-  a-str(self, l :: Loc, s :: String): sets.empty-tree-set end,
-  a-bool(self, l :: Loc, b :: Bool): sets.empty-tree-set end,
-  a-undefined(self, l :: Loc): sets.empty-tree-set end,
-  a-id(self, l :: Loc, id :: Name): sets.empty-tree-set end,
-  a-id-var(self, l :: Loc, id :: Name): sets.empty-tree-set end,
-  a-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean): sets.empty-tree-set end
-}
-
-
-fun compile-fun-body(l, step, compiler, args, arity, body):
+fun compile-fun-body(l, step, compiler, args, arity, body) -> J.JBlock:
   helper-labels = D.string-dict()
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = js-id-of(compiler-name("ans"))
   visited-body = body.visit(compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans})
-  checker-label = make-label()
   checker =
     j-block([list:
-        arity-check(compiler.get-loc(l), arity),
-        j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
-          j-block([list: j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
-              j-throw(rt-method("makeCont", [list: j-id(js-id-of(compiler.cur-bind.id.tostring()))]))]))])
+        arity-check(compiler.get-loc(l), arity)])
   entry-label = make-label()
   switch-cases =
     concat-empty
-  ^ concat-snoc(_, j-case(checker-label, j-block(checker ^ link(_, goto-case(step, entry-label)))))
   ^ concat-snoc(_, j-case(entry-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
   ^ concat-snoc(_, j-case(ret-label, j-block([list: j-return(j-id(ans))])))
-  switch-cases.each(lam(c): c.exp.label.get() end) # Initialize their numbers...
+  ^ concat-snoc(_, j-default(j-block([list:
+          j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
+              j-str(" in " + js-id-of(compiler.cur-bind.id.tostring()))))])))
+  # Initialize the case numbers, for more legible output...
+  switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
   vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from switch-cases):
       base.union(case-expr.visit(local-bound-vars-visitor))
     end).to-list()
-  act-record = j-obj([list:
-      j-field("fun", j-id(js-id-of(compiler.cur-bind.id.tostring()))),
-      j-field("step", j-id(step)),
-      j-field("args", j-list(false, args.map(lam(a): j-id(js-id-of(tostring(a.id))) end))),
-      j-field("vars", j-list(false, vars.map(lam(v): j-id(v) end)))
+  act-record = rt-method("makeActivationRecord", [list:
+      compiler.get-loc(l),
+      j-id(js-id-of(compiler.cur-bind.id.tostring())),
+      j-id(step),
+      j-id(ans),
+      j-list(false, args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)),
+      j-list(false, vars.map(lam(v): j-id(v) end))
     ])  
   e = js-id-of(compiler-name("e"))
   first-arg = js-id-of(tostring(args.first.id))
   ar = js-id-of(compiler-name("ar"))
   j-block([list:
-      j-if1(rt-method("isActivationRecord", [list: j-id(first-arg)]),
-        j-block(
-          [list:
-            j-expr(j-assign(ar, j-id(first-arg))),
-            j-expr(j-assign(step, j-dot(j-id(ar), "step")))] +
-          for map_n(i from 0, arg from args):
-            j-expr(j-assign(js-id-of(tostring(arg.id)), j-bracket(j-dot(j-id(ar), "args"), j-num(i))))
-          end +
-          for map_n(i from 0, v from vars):
-            j-expr(j-assign(v, j-bracket(j-dot(j-id(ar), "vars"), j-num(i))))
-          end)),
+      j-var(step, j-num(0)),
+      j-var(ans, undefined),
       j-try-catch(
-        j-while(j-true,
-          j-switch(j-id(step), switch-cases.to-list())),
+        j-block([list:
+            j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+              j-block(
+                [list:
+                  j-expr(j-var(ar, j-id(first-arg))),
+                  j-expr(j-assign(step, j-dot(j-id(ar), "step"))),
+                  j-expr(j-assign(ans, j-dot(j-id(ar), "ans")))
+                ] +
+                for map_n(i from 0, arg from args):
+                  j-expr(j-assign(js-id-of(tostring(arg.id)), j-bracket(j-dot(j-id(ar), "args"), j-num(i))))
+                end +
+                for map_n(i from 0, v from vars):
+                  j-expr(j-assign(v, j-bracket(j-dot(j-id(ar), "vars"), j-num(i))))
+                end),
+              checker),
+            j-while(j-true,
+              j-block([list:
+                  j-expr(j-app(j-id("console.log"), [list: j-str("In " + js-id-of(compiler.cur-bind.id.tostring()) + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(ans)])),
+                  j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+                    j-block([list: j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+                        j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + compiler.cur-bind.id.tostring())])),
+                        j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+                        j-throw(rt-method("makeCont", empty))])),
+                  j-switch(j-id(step), switch-cases.to-list())]))]),
         e,
         j-block([list:
             j-if1(rt-method("isCont", [list: j-id(e)]),
               j-block([list: 
-                  # j-var(ss,
-                  #   j-obj([list: 
-                  #       j-field("from", j-id("from")),
-                  #       j-field("go", j-fun([list: js-id-of(helper-args.first.id.tostring())],
-                  #           j-block([list: 
-                  #               j-return(j-app(j-id(helper-name(name)),
-                  #                   link(
-                  #                     j-id(js-id-of(helper-args.first.id.tostring())),
-                  #                     helper-ids.map(lam(a): j-id(a);)
-                  #                     #helper-ids.map(lam(a): j-dot(j-id("this"), a) end)
-                  #                     )))])))]
-                  #     #+ helper-ids.map(lam(a): j-field(a, j-id(a)) end)
-                  #     )),
                   j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                       j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
-                  #j-expr(j-method(j-dot(j-id(e), "stack"), "push", [list: j-id(ss)])),
                 ])),
             j-if1(rt-method("isPyretException", [list: j-id(e)]),
               j-block([list: 
                   j-expr(add-stack-frame(e, compiler.get-loc(l)))
                 ])),
             j-throw(j-id(e))]))
-    ])
+  ])
 end
 
 data CaseResults:
-  | c-exp(exp :: J.Expr)
+  | c-exp(exp :: J.JExpr)
   | c-field(field :: J.JField)
   | c-block(block :: J.JBlock, new-cases :: ConcatList<J.JCase>)
 end
 
 compiler-visitor = {
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    compiled-body = body.visit(self)
     compiled-e = e.visit(self.{cur-bind: b})
+    compiled-body = body.visit(self)
     c-block(
       j-block(
         link(
@@ -500,8 +358,9 @@ compiler-visitor = {
     c-block(
       j-block([list:
           check-fun(self.get-loc(l), compiled-f),
-          j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
+          # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  self.cur-target)),
+          j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
           j-break]),
       concat-empty)
   end,
@@ -523,10 +382,10 @@ compiler-visitor = {
           e2 = stmts.rest.first
           e3 = stmts.rest.rest.first
           if J.is-j-expr(e1) and J.is-j-assign(e1.expr)
-            and (e1.expr.name == ans) and J.is-j-id(e1.expr.rhs)
-            and (e1.expr.rhs.id == js-id-of(helper.args.first.tostring()))
+            and (e1.expr.name == step)
             and J.is-j-expr(e2) and J.is-j-assign(e2.expr)
-            and (e2.expr.name == step)
+            and (e2.expr.name == ans) and J.is-j-id(e2.expr.rhs)
+            and (e2.expr.rhs.id == js-id-of(helper.args.first.tostring()))
             and J.is-j-break(e3):
             self.cur-target
           else:
@@ -553,11 +412,11 @@ compiler-visitor = {
     c-block(
       j-block([list:
           check-fun(self.get-loc(l), compiled-f),
-          j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
+          # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  helper-label)),
+          j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
           j-break]),
       new-cases)
-    # compile-split-app(self, l, is-var, f, args, name, helper-args)
   end,
   a-seq(self, l, e1, e2):
     e1-visit = e1.visit(self).exp
@@ -589,12 +448,26 @@ compiler-visitor = {
       new-cases)
   end,
   a-lettable(self, l :: Loc, e :: N.ALettable):
-    c-block(
-      j-block([list:
-          j-expr(j-assign(self.cur-ans, e.visit(self).exp)),
-          j-expr(j-assign(self.cur-step, self.cur-target)),
-          j-break]), # N.B. This was a return statement before...
-      concat-empty)
+    if N.is-a-lam(e) or N.is-a-method(e):
+      # Functions are always recursive, because they need to resume themselves
+      # so let-bind them to a temp variable
+      temp = compiler-name("temp")
+      new-bind = N.a-bind(l, A.s-name(l, temp), A.a-blank)
+      c-block(
+        j-block([list:
+            j-expr(j-assign(self.cur-step, self.cur-target)),
+            j-expr(j-var(js-id-of(temp), e.visit(self.{cur-bind: new-bind}).exp)),
+            j-expr(j-assign(self.cur-ans, j-id(js-id-of(temp)))),
+            j-break]),
+        concat-empty)
+    else:
+      c-block(
+        j-block([list:
+            j-expr(j-assign(self.cur-step, self.cur-target)),
+            j-expr(j-assign(self.cur-ans, e.visit(self).exp)),
+            j-break]),
+        concat-empty)
+    end
   end,
   a-assign(self, l :: Loc, id :: String, value :: N.AVal):
     c-exp(j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self).exp))
@@ -619,7 +492,6 @@ compiler-visitor = {
     c-exp(rt-method("getColonField", [list: obj.visit(self).exp, j-str(field)]))
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    # bound-vars = body.visit(local-bound-vars-visitor)
     new-step = js-id-of(compiler-name("step"))
     effective-args =
       if args.length() > 0: args
@@ -630,21 +502,19 @@ compiler-visitor = {
             compile-fun-body(l, new-step, self, effective-args, args.length(), body))])) # NOTE: args may be empty
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    # bound-vars = body.visit(local-bound-vars-visitor)
     new-step = js-id-of(compiler-name("step"))
     compiled-body = compile-fun-body(l, new-step, self, args, args.length() - 1, body)
     c-exp(
       rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
             j-block([list: 
                 j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), compiled-body))])),
-          #undefined])
           j-fun(args.map(_.id).map(_.tostring()).map(js-id-of), compiled-body)]))
   end,
   a-val(self, v :: N.AVal):
     c-exp(v.visit(self).exp)
   end,
   a-field(self, l :: Loc, name :: String, value :: N.AVal):
-    c-exp(j-field(name, value.visit(self).exp))
+    c-field(j-field(name, value.visit(self).exp))
   end,
   a-array(self, l, values):
     c-exp(j-list(false, values.map(lam(v): v.visit(self).exp end)))
@@ -716,10 +586,11 @@ compiler-visitor = {
           rt-method("makeFunction", [list: 
             j-fun(
               member-names.map(js-id-of),
-              [list: 
-                arity-check(self.get-loc(l2), member-names.length()),
-                j-var("dict", rt-method("create", [list: j-id(base-id)]))
-              ] +
+              j-block(
+                [list: 
+                  arity-check(self.get-loc(l2), member-names.length()),
+                  j-var("dict", rt-method("create", [list: j-id(base-id)]))
+                ] +
                 for map2(n from member-names, m from members):
                   cases(N.AMemberType) m.member-type:
                     | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
@@ -730,7 +601,7 @@ compiler-visitor = {
                 [list: 
                   j-return(rt-method("makeBrandedObject", [list: j-id("dict"), j-id(brands-id)]))
                 ]
-              )
+              ))
           ])
         )
     end
@@ -842,13 +713,16 @@ fun compile-program(self, l, headers, split, env):
             j-block([list:
                 j-var(body-name, body-fun),
                 j-return(rt-method(
-                    "safeCall", [list: 
+                    "safeCall",
+                    [list: 
                       j-id(body-name),
                       j-fun([list: "moduleVal"],
                         j-block([list: 
                             j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
                             j-return(j-id("moduleVal"))
-                    ]))]))]))]))
+                          ])),
+                      j-str(body-name)
+                ]))]))]))
   end
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }
@@ -872,7 +746,7 @@ fun compile-program(self, l, headers, split, env):
   end
 
   step = js-id-of(compiler-name("step"))
-  toplevel-name = js-id-of(compiler-name("toplevel"))
+  toplevel-name = compiler-name("toplevel")
   resumer = N.a-bind(l, A.s-name(l, "resumer"), A.a-blank)
   visited-body = compile-fun-body(l, step, self.{get-loc: get-loc, cur-bind: N.a-bind(l, A.s-name(l, toplevel-name), A.a-blank)}, [list: resumer], 0, split.body)
   toplevel-fun = j-fun([list: js-id-of(tostring(resumer.id))], visited-body)
@@ -885,8 +759,7 @@ fun compile-program(self, l, headers, split, env):
                       j-block(mk-abbrevs(l) +
                         [list: define-locations] + 
                         namespace-binds +
-                        # split.helpers.map(compile-helper(self, _)) +
-                        [list: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
+                        [list: wrap-modules(module-specs, js-id-of(toplevel-name), toplevel-fun)]))])))]))])
 end
 
 fun splitting-compiler(env):

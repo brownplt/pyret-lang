@@ -39,7 +39,7 @@ fun make-unsafe-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
   ccp(compiled)
 end
 
-fun trace-make-compiled-pyret(trace, phase, program-ast, env):
+fun trace-make-compiled-pyret(trace, phase, program-ast, env, use-loop):
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
@@ -48,7 +48,11 @@ fun trace-make-compiled-pyret(trace, phase, program-ast, env):
   split = AS.ast-split(anfed.body)
   ret := phase("Split", split, ret)
   with-loops = anfed.visit(AL.splitting-compiler(env))
-  ret := phase("LOOP COMPILER", ccp(with-loops), ret)
-  compiled = anfed.visit(AV.splitting-compiler(env))
-  phase("Generated JS", ccp(compiled), ret)
+  if (use-loop):
+    phase("LOOP COMPILER", C.ok(ccp(with-loops)), ret)
+  else:
+    ret := phase("LOOP COMPILER", ccp(with-loops), ret)
+    compiled = anfed.visit(AV.splitting-compiler(env))
+    phase("Generated JS", ccp(compiled), ret)
+  end
 end

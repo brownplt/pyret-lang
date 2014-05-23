@@ -138,10 +138,9 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         runtime.checkString(type);
         raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
       }
-      function throwNonFunApp(locArray, funVal, args) {
+      function throwNonFunApp(locArray, funVal) {
         runtime.checkPyretVal(funVal);
-        var argList = makeList(args);
-        raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal, argList));
+        raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
       }
 
       function throwParseErrorNextToken(loc, nextToken) {

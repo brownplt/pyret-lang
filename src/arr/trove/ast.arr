@@ -274,7 +274,19 @@ sharing:
   end
 end
 
+data TypeTest:
+  | s-prim-type(typ :: String) with:
+    tosource(self): PP.str(self.typ) end
+end
+
 data Expr:
+  # | s-check-type(l :: Loc, exp :: Expr, typ :: TypeTest, err :: Expr, consq :: Expr) with:
+  #   label(self): "s-check-type" end,
+  #   tosource(self):
+  #     PP.str("assert") + PP.sbreak(1) + self.exp.tosource() + PP.sbreak(1) + PP.str("has type") + PP.sbreak(1)
+  #       + self.typ.tosource() + PP.sbreak(1) + PP.str("or else") + PP.sbreak(1) + self.err.tosource()
+  #       + PP.sbreak(1) + PP.str("and then") + PP.sbreak(1) + self.consq.tosource()
+  #   end
   | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
     label(self): "s-let" end,
     tosource(self):
@@ -515,17 +527,17 @@ data Expr:
         PP.surround(INDENT, 0, prefix, PP.separate(PP.commabreak, self.values.map(_.tosource())), PP.rbrack)
       end
     end
-  | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
+  | s-app(l :: Loc, func :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
     tosource(self):
-      PP.group(self._fun.tosource()
+      PP.group(self.func.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
-  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
+  | s-prim-app(l :: Loc, func :: String, args :: List<Expr>) with:
     label(self): "s-prim-app" end,
     tosource(self):
-      PP.group(PP.str(self._fun)
+      PP.group(PP.str(self.func)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
@@ -1333,6 +1345,12 @@ end
 
 fun equiv-ast(ast1 :: Expr, ast2 :: Expr):
   cases (Expr) ast1:
+    # | s-check-type(_, exp1, typ1, err1, consq1) =>
+    #   cases(Expr) ast2:
+    #     | s-check-type(_, exp2, typ2, err2, consq2) =>
+    #       equiv-ast(exp1, exp2) and (typ1 == typ2) and equiv-ast(err1, err2) and equiv-ast(consq1, consq2)
+    #     | else => false
+    #   end
     | s-block(_, stmts1) =>
       cases(Expr) ast2:
         | s-block(_, stmts2) => length-andmap(equiv-ast, stmts1, stmts2)
@@ -1691,6 +1709,10 @@ default-map-visitor = {
     s-let-bind(l, bind.visit(self), expr.visit(self))
   end,
 
+  # s-check-type(self, l, exp, typ, err, consq):
+  #   s-check-type(l, exp.visit(self), typ, err.visit(self), consq.visit(self))
+  # end,
+  
   s-let-expr(self, l, binds, body):
     s-let-expr(l, binds.map(_.visit(self)), body.visit(self))
   end,
@@ -1834,11 +1856,11 @@ default-map-visitor = {
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    s-app(l, _fun.visit(self), args.map(_.visit(self)))
+  s-app(self, l :: Loc, func :: Expr, args :: List<Expr>):
+    s-app(l, func.visit(self), args.map(_.visit(self)))
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(l, _fun, args.map(_.visit(self)))
+  s-prim-app(self, l :: Loc, func :: String, args :: List<Expr>):
+    s-prim-app(l, func, args.map(_.visit(self)))
   end,
   s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(l, name)
@@ -2091,6 +2113,10 @@ default-iter-visitor = {
   s-let-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
+
+  # s-check-type(self, l, exp, typ, err, consq):
+  #   exp.visit(self) and err.visit(self) and consq.visit(self)
+  # end,
   
   s-let-expr(self, l, binds, body):
     lists.all(_.visit(self), binds) and body.visit(self)
@@ -2235,10 +2261,10 @@ default-iter-visitor = {
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    _fun.visit(self) and lists.all(_.visit(self), args)
+  s-app(self, l :: Loc, func :: Expr, args :: List<Expr>):
+    func.visit(self) and lists.all(_.visit(self), args)
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  s-prim-app(self, l :: Loc, func :: String, args :: List<Expr>):
     lists.all(_.visit(self), args)
   end,
   s-prim-val(self, l :: Loc, name :: String):
@@ -2483,6 +2509,10 @@ dummy-loc-visitor = {
     s-let-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
+  # s-check-type(self, l, exp, typ, err, consq):
+  #   s-check-type(dummy-loc, exp.visit(self), typ, err.visit(self), consq.visit(self))
+  # end,
+  
   s-let-expr(self, l, binds, body):
     s-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
   end,
@@ -2626,11 +2656,11 @@ dummy-loc-visitor = {
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
+  s-app(self, l :: Loc, func :: Expr, args :: List<Expr>):
+    s-app(dummy-loc, func.visit(self), args.map(_.visit(self)))
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)))
+  s-prim-app(self, l :: Loc, func :: String, args :: List<Expr>):
+    s-prim-app(dummy-loc, func, args.map(_.visit(self)))
   end,
   s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(dummy-loc, name)

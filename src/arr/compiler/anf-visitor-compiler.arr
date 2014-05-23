@@ -192,14 +192,15 @@ fun compile-split-app(
   compiled-args = args.map(_.visit(compiler))
   compiled-helper-args = helper-args.map(_.visit(compiler))
   body =
-    j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
-      j-block([list: j-expr(j-assign(z, j-app(j-id(f-app), [list: ])))]),
-      j-block([list: 
-#              rt-method("log", [list: j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), compiler.get-loc(l), j-str(e)]),
-          j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
-          j-throw(rt-method("makeCont", 
-              [list: j-obj([list: j-field("go", j-id(f-app)),
-                      j-field("from", compiler.get-loc(l))])]))]))
+    j-block([list:
+        j-if(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-gt, j-num(0)),
+          j-block([list: j-expr(j-assign(z, j-app(j-id(f-app), [list: ])))]),
+          j-block([list: 
+              #              rt-method("log", [list: j-str("Starting, "), rt-field("EXN_STACKHEIGHT"), compiler.get-loc(l), j-str(e)]),
+              j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+              j-throw(rt-method("makeCont", 
+                  [list: j-obj([list: j-field("go", j-id(f-app)),
+                        j-field("from", compiler.get-loc(l))])]))]))])
   helper-ids = helper-args.rest.map(_.id).map(_.tostring()).map(js-id-of)
   catch =
     j-block([list: 
@@ -531,7 +532,9 @@ fun compile-program(self, l, headers, split, env):
                         j-block([list: 
                             j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
                             j-return(j-id("moduleVal"))
-                    ]))]))]))]))
+                          ])),
+                      j-str("Whole program")
+                ]))]))]))
   end
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }
