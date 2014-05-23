@@ -1626,7 +1626,7 @@ function createMethodDict() {
             // console.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
           }
         } catch(e) {
-          if(isCont(e)) {
+          if(thisRuntime.isCont(e)) {
             // console.log("BOUNCING");
             BOUNCES++;
             thisRuntime.GAS = initialGas;
@@ -1642,7 +1642,7 @@ function createMethodDict() {
               if(e.resumer) { e.resumer(e.pause); }
               return;
             }
-            else if(isCont(e)) {
+            else if(thisRuntime.isCont(e)) {
               val = theOneTrueStack[theOneTrueStackHeight - 1].ans;
               if(sync) {
                 loop = true;
@@ -1694,9 +1694,9 @@ function createMethodDict() {
     this.vars = vars;
   }  
   ActivationRecord.prototype.toString = function() { 
-    return "{from: " + from + ", fun: " + fun + ", step: " + step
-      + ", ans: " + JSON.stringify(ans) + ", args: " + JSON.stringify(args)
-      + ", vars: " + JSON.stringify(vars) + "}";
+    return "{from: " + this.from + ", fun: " + this.fun + ", step: " + this.step
+      + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
+      + ", vars: " + JSON.stringify(this.vars) + "}";
   }
   function makeActivationRecord(from, fun, step, ans, args, vars) {
     return new ActivationRecord(from, fun, step, ans, args, vars);

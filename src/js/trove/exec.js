@@ -121,7 +121,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
              a Success or Failure Result from newRuntime. */
                   console.log("Here 2");
           console.log("Module has loaded, GAS = ", newRuntime.GAS);
-          newRuntime.run(moduleVal, newNamespace, {sync: true, initialGas: 20}, function(r) {
+          newRuntime.run(moduleVal, newNamespace, {sync: true, initialGas: 1000}, function(r) {
             console.log("Got a result!");
             console.log("New success?" + newRuntime.isSuccessResult(r));
             console.log("New failure?" + newRuntime.isFailureResult(r));

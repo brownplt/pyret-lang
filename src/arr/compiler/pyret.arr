@@ -114,7 +114,7 @@ fun main(args):
             }
             )
         else if r.has-key("compile-module-js"):
-          CM.compile-js(
+          CM.compile-js2(
             CM.start,
             r.get("dialect"),
             F.file-to-string(r.get("compile-module-js")),

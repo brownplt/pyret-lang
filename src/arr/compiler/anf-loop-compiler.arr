@@ -257,7 +257,9 @@ fun compile-fun-body(l, step, fun-name, compiler, args, arity, body) -> J.JBlock
     concat-empty
   ^ concat-snoc(_, j-case(entry-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
-  ^ concat-snoc(_, j-case(ret-label, j-block([list: j-return(j-id(ans))])))
+  ^ concat-snoc(_, j-case(ret-label, j-block([list:
+          j-expr(j-unop(rt-field("GAS"), j-incr)),
+          j-return(j-id(ans))])))
   ^ concat-snoc(_, j-default(j-block([list:
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
               j-str(" in " + fun-name)))])))
@@ -296,14 +298,14 @@ fun compile-fun-body(l, step, fun-name, compiler, args, arity, body) -> J.JBlock
                   j-expr(j-assign(v, j-bracket(j-dot(j-id(ar), "vars"), j-num(i))))
                 end),
               checker),
+            j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+              j-block([list: j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
+                  # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
+                  # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+                  j-throw(rt-method("makeCont", empty))])),
             j-while(j-true,
               j-block([list:
-                  j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(ans)])),
-                  j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
-                    j-block([list: j-expr(j-dot-assign(j-id("R"), "EXN_STACKHEIGHT", j-num(0))),
-                        j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
-                        j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
-                        j-throw(rt-method("makeCont", empty))])),
+                  # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(ans)])),
                   j-switch(j-id(step), switch-cases.to-list())]))]),
         e,
         j-block([list:
@@ -495,7 +497,7 @@ compiler-visitor = {
     # NOTE: args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-args =
       if args.length() > 0: args
-      else: [list: N.a-bind(l, A.s-name(l, "resumer"), A.a-blank)]
+      else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
     c-exp(
       j-id(temp),
@@ -505,17 +507,17 @@ compiler-visitor = {
                 compile-fun-body(l, new-step, temp, self, effective-args, args.length(), body))]))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    step-method = js-id-of(compiler-name("step"))
-    temp-method = compiler-name("temp_method")
-    compiled-body-method = compile-fun-body(l, step-method, temp-method, self, args, args.length() - 1, body)
-    method-var = j-var(temp-method,
-      j-fun(args.map(lam(a): js-id-of(a.id.tostring()) end), compiled-body-method))
+    # step-method = js-id-of(compiler-name("step"))
+    # temp-method = compiler-name("temp_method")
+    # compiled-body-method = compile-fun-body(l, step-method, temp-method, self, args, args.length() - 1, body)
+    # method-var = j-var(temp-method,
+    #   j-fun(args.map(lam(a): js-id-of(a.id.tostring()) end), compiled-body-method))
     step-curry = js-id-of(compiler-name("step"))
     temp-curry = js-id-of(compiler-name("temp_curry"))
     # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-curry-args =
       if args.length() > 1: args.rest
-      else: [list: N.a-bind(l, A.s-name(l, "resumer"), A.a-blank)]
+      else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
     compiled-body-curry =
       compile-fun-body(l, step-curry, temp-curry, self, effective-curry-args, args.length() - 1, body)
@@ -525,8 +527,8 @@ compiler-visitor = {
     c-exp(
       rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
             j-block([list: curry-var, j-return(j-id(temp-curry))])),
-          j-id(temp-method)]),
-      [list: method-var])
+          j-obj([list: j-field("length", j-num(args.length()))])]),
+      empty)
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
@@ -772,7 +774,7 @@ fun compile-program(self, l, headers, split, env):
 
   step = js-id-of(compiler-name("step"))
   toplevel-name = js-id-of(compiler-name("toplevel"))
-  resumer = N.a-bind(l, A.s-name(l, "resumer"), A.a-blank)
+  resumer = N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)
   visited-body = compile-fun-body(l, step, toplevel-name, self.{get-loc: get-loc}, [list: resumer], 0, split.body)
   toplevel-fun = j-fun([list: js-id-of(tostring(resumer.id))], visited-body)
   define-locations = j-var(locs, j-list(true, locations.to-list()))
