@@ -47,7 +47,8 @@ define(["trove/image-lib", "./check-ui", "./error-ui", "./output-ui", "trove/wor
       extraKeys: {
         "Shift-Enter": function(cm) { runFun(cm.getValue(), {check: true, "type-env": !options.simpleEditor }); },
         "Shift-Ctrl-Enter": function(cm) { runFun(cm.getValue(), {check: false, "type-env": !options.simpleEditor}); },
-        "Tab": "indentAuto"
+        "Tab": "indentAuto",
+        "Ctrl-;": "toggleComment"
       },
       indentUnit: 2,
       tabSize: 2,
