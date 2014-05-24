@@ -944,32 +944,50 @@ function createMethodDict() {
         }
         return stack[0].done[0];
       }
-      try {
-        return toReprHelp();
-      } catch(e) {
-        if (thisRuntime.isCont(e)) {
-          var stacklet = {
-            from: ["runtime torepr"], near: "toRepr",
-            go: function(ret) {
+      function toReprFun($ar) {
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            $step = $ar.step;
+            $ans = $ar.ans;
+//            console.log("Resuming toReprFun with ans = " + JSON.stringify($ans));
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              $step = 1;
+              return toReprHelp();
+            case 1:
               if (stack.length === 0) {
                 ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
               top.todo.pop();
-              top.done.push(thisRuntime.unwrap(ret));
-              return makeString(toReprHelp());
+              top.done.push(thisRuntime.unwrap($ans));
+              $step = 0;
+              break;
             }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-          throw e;
-        } else {
-          if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push(["runtime torepr"]); 
           }
-          throw e;
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr"],
+              toReprFun,
+              $step,
+              undefined, // This answer will be filled in with the nested answer of toReprHelp
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["runtime torepr"]);
+          }
+          throw $e;
         }
       }
+      return toReprFun();
     }
+      
     /**
       Creates the js string representation for the value
       @param {!PBase} val
@@ -1361,8 +1379,8 @@ function createMethodDict() {
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
     function makeFailureResult(e) { 
-      console.log("OLD RUNTIME FAILURE!!!!!!!!!!!!!!!!!!");
-      try { nonexistent.bad; } catch(exn) { console.log("In mFR: stack = " + exn.stack); }
+      //console.log("NEW RUNTIME FAILURE!!!!!!!!!!!!!!!!!!");
+      //try { nonexistent.bad; } catch(exn) { console.log("In mFR: stack = " + exn.stack); }
       return new FailureResult(e); 
     }
 
@@ -1370,11 +1388,11 @@ function createMethodDict() {
       Represents a continuation
       @constructor
     */
-    function Cont(stack, bottom) {
+
+    function Cont(stack) {
       this.stack = stack;
-      this.bottom = bottom;
     }
-    function makeCont(bottom) { return new Cont([], bottom); }
+    function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
 
     function Pause(stack, pause, resumer) {
@@ -1387,256 +1405,305 @@ function createMethodDict() {
     Pause.prototype = Object.create(Cont.prototype);
 
     function safeTail(fun) {
-      var result;
-      if (thisRuntime.GAS-- > 0) {
-        result = fun();
-      }
-      else {
-        thisRuntime.EXN_STACKHEIGHT = 0;
-        throw thisRuntime.makeCont({
-            go: function(ignored) {
-              return fun();
-            }
-          });
-      }
-      thisRuntime.GAS++;
-      return result;
+      return fun();
     }
 
     function safeCall(fun, after, stackFrame) {
-      var result;
+      var $ans = undefined;
+      var $step = 0;
+      if (thisRuntime.isActivationRecord(fun)) {
+        var $ar = fun;
+        $step = $ar.step;
+        $ans = $ar.ans;
+        fun = $ar.args[0];
+        after = $ar.args[1];
+        stackFrame = $ar.args[2];
+        $fun_ans = $ar.vars[0];
+      }
       try {
-        if (thisRuntime.GAS-- > 0) {
-          result = fun();
+        while(true) {
+          // console.log("In safeCall2, step ", $step, ", GAS = ", thisRuntime.GAS);
+          if (--thisRuntime.GAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            throw thisRuntime.makeCont();
+          }
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = fun();
+            break;
+          case 1:
+            var $fun_ans = $ans;
+            $step = 2;
+            $ans = after($fun_ans);
+            break;
+          case 2: return $ans;
+          }
         }
-        else {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont({
-              go: function(ignored) {
-                return fun();
-              }
-            });
+      } catch($e) {
+        if (thisRuntime.isCont($e)) {
+          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(
+              "safeCall2 for " + stackFrame,
+              safeCall,
+              $step,
+              $ans,
+              [ fun, after, stackFrame ],
+              [ $fun_ans ]
+            );
         }
+        if (thisRuntime.isPyretException($e)) {
+          $e.pyretStack.push(stackFrame);
+        }
+        throw $e;
       }
-      catch(e) {
-        if (isCont(e)) {
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = {
-              go: function(retval) {
-                return after(retval);
-              },
-              from: stackFrame
-            };
-          throw e;
-        }
-        else if (isPyretException(e)) {
-          e.pyretStack.push(stackFrame);
-          throw e;
-        }
-        else {
-          throw e;
-        }
-      }
-      return after(result);
     }
+
 
 
     var RUN_ACTIVE = false;
     var currentThreadId = 0;
     var activeThreads = {};
       
-    /**@type {function(function(Object, Object) : !PBase, Object, function(Object))}*/
-    function run(program, namespace, options, onDone) {
-      
-      if(RUN_ACTIVE) {
-        onDone(makeFailureResult(ffi.makeMessageException("Internal: run called while already running")));
+
+  function run(program, namespace, options, onDone) {
+    // console.log("In run2");
+    if(RUN_ACTIVE) {
+      onDone(makeFailureResult(ffi.makeMessageException("Internal: run called while already running")));
+      return;
+    }
+    RUN_ACTIVE = true;
+    var start;
+    function startTimer() {
+      if (typeof window !== "undefined" && window.performance) {
+        start = window.performance.now();
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        start = process.hrtime();
+      }
+    }
+    function endTimer() {
+      if (typeof window !== "undefined" && window.performance) {
+        return window.performance.now() - start; 
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        return process.hrtime(start);
+      }
+    }
+    function getStats() {
+      return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+    }
+    function finishFailure(exn) {
+      RUN_ACTIVE = false;
+      delete activeThreads[thisThread.id];
+      onDone(makeFailureResult(exn, getStats()));
+    }
+    function finishSuccess(answer) {
+      RUN_ACTIVE = false;
+      delete activeThreads[thisThread.id];
+      onDone(new SuccessResult(answer, getStats()));
+    }
+
+    startTimer();
+    var that = this;
+    var theOneTrueStackTop = ["top-of-stack"]
+    var kickoff = makeActivationRecord(
+      "<top of stack>",
+      makeFunction(function topOfStack(ignored) {
+        return program(thisRuntime, namespace);
+      }),
+      0,
+      {},
+      [],
+      []
+    );
+    var theOneTrueStack = [kickoff];
+    var theOneTrueStart = {};
+    var val = theOneTrueStart;
+    var theOneTrueStackHeight = 1;
+    var BOUNCES = 0;
+    var TOS = 0;
+
+    var sync = options.sync || false;
+    var initialGas = options.initialGas || INITIAL_GAS;
+
+    var threadIsCurrentlyPaused = false;
+    var threadIsDead = false;
+    currentThreadId += 1;
+    // Special case of the first thread to run in between breaks.
+    // This is the only thread notified of the break, others just die
+    // silently.
+    if(Object.keys(activeThreads).length === 0) {
+      var breakFun = function() {
+        threadIsCurrentlyPaused = true;
+        threadIsDead = true;
+        finishFailure(new PyretFailException(ffi.userBreak));
+      };
+    }
+    else {
+      var breakFun = function() {
+        threadIsCurrentlyPaused = true;
+        threadIsDead = true;
+      };
+    }
+
+    var thisThread = {
+      handlers: {
+        resume: function(restartVal) {
+          if(!threadIsCurrentlyPaused) { throw new Error("Stack already running"); }
+          if(threadIsDead) { throw new Error("Failed to resume; thread has been killed"); }
+          threadIsCurrentlyPaused = false;
+          val = restartVal;
+          // console.log("Resuming, with val = " + JSON.stringify(val, null, "  "));
+          TOS++;
+          RUN_ACTIVE = true;
+          setTimeout(iter, 0);
+        },
+        break: breakFun,
+        error: function(errVal) {
+          threadIsCurrentlyPaused = true;
+          threadIsDead = true;
+          finishFailure(new PyretFailException(errVal));
+        }
+      },
+      pause: function() {
+        threadIsCurrentlyPaused = true;
+      },
+      id: currentThreadId
+    };
+    activeThreads[currentThreadId] = thisThread;
+
+    // iter :: () -> Undefined
+    // This function should not return anything meaningful, as state
+    // and fallthrough are carefully managed.
+    function iter() {
+      // console.log("In run2::iter, GAS is ", thisRuntime.GAS);
+      // If the thread is dead, return has already been processed
+      if (threadIsDead) {
         return;
       }
-      RUN_ACTIVE = true;
-      var start;
-      function startTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          start = window.performance.now();
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          start = process.hrtime();
-        }
-      }
-      function endTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          return window.performance.now() - start; 
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          return process.hrtime(start);
-        }
-      }
-      function getStats() {
-        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
-      }
-      function finishFailure(exn) {
-        RUN_ACTIVE = false;
-        delete activeThreads[thisThread.id];
-        onDone(makeFailureResult(exn, getStats()));
-      }
-      function finishSuccess(answer) {
-        RUN_ACTIVE = false;
-        delete activeThreads[thisThread.id];
-        onDone(new SuccessResult(answer, getStats()));
-      }
-
-      startTimer();
-      var that = this;
-      var theOneTrueStackTop = ["top-of-stack"]
-      var kickoff = {
-          go: function(ignored) {
-            return program(thisRuntime, namespace);
-          },
-          from: theOneTrueStackTop
-        };
-      var theOneTrueStack = [kickoff];
-      var theOneTrueStart = {};
-      var val = theOneTrueStart;
-      var theOneTrueStackHeight = 1;
-      var BOUNCES = 0;
-      var TOS = 0;
-
-      var sync = options.sync || false;
-      var initialGas = options.initialGas || INITIAL_GAS;
-
-      var threadIsCurrentlyPaused = false;
-      var threadIsDead = false;
-      currentThreadId += 1;
-      // Special case of the first thread to run in between breaks.
-      // This is the only thread notified of the break, others just die
-      // silently.
-      if(Object.keys(activeThreads).length === 0) {
-        var breakFun = function() {
-          threadIsCurrentlyPaused = true;
-          threadIsDead = true;
-          finishFailure(new PyretFailException(ffi.userBreak));
-        };
-      }
-      else {
-        var breakFun = function() {
-          threadIsCurrentlyPaused = true;
-          threadIsDead = true;
-        };
-      }
-
-      var thisThread = {
-        handlers: {
-          resume: function(restartVal) {
-            if(!threadIsCurrentlyPaused) { throw new Error("Stack already running"); }
-            if(threadIsDead) { throw new Error("Failed to resume; thread has been killed"); }
-            threadIsCurrentlyPaused = false;
-            val = restartVal;
-            TOS++;
-            RUN_ACTIVE = true;
-            setTimeout(iter, 0);
-          },
-          break: breakFun,
-          error: function(errVal) {
-            threadIsCurrentlyPaused = true;
-            threadIsDead = true;
-            finishFailure(new PyretFailException(errVal));
+      // If the thread is paused, something is wrong; only resume() should
+      // be used to re-enter
+      if (threadIsCurrentlyPaused) { throw new Error("iter entered during stopped execution"); }
+      var loop = true;
+      while (loop) {
+        loop = false;
+        try {
+          if (manualPause !== null) {
+            var thePause = manualPause;
+            manualPause = null;
+            pauseStack(function(restarter) {
+              thePause.setHandlers({
+                resume: function() { restarter.resume(val); },
+                break: restarter.break,
+                error: restarter.error
+              });
+            });
           }
-        },
-        pause: function() {
-          threadIsCurrentlyPaused = true;
-        },
-        id: currentThreadId
-      };
-      activeThreads[currentThreadId] = thisThread;
-
-      // iter :: () -> Undefined
-      // This function should not return anything meaningful, as state
-      // and fallthrough are carefully managed.
-      function iter() {
-        // If the thread is dead, return has already been processed
-        if (threadIsDead) {
-          return;
-        }
-        // If the thread is paused, something is wrong; only resume() should
-        // be used to re-enter
-        if (threadIsCurrentlyPaused) { throw new Error("iter entered during stopped execution"); }
-        var loop = true;
-        while (loop) {
-          loop = false;
-          try {
-            if (manualPause !== null) {
-              var thePause = manualPause;
-              manualPause = null;
-              pauseStack(function(restarter) {
-                  thePause.setHandlers({
-                      resume: function() { restarter.resume(val); },
-                      break: restarter.break,
-                      error: restarter.error
-                    });
-                });
+          var frameCount = 0;
+          while(theOneTrueStackHeight > 0) {
+            if(!sync && frameCount++ > 100) {
+              TOS++;
+              // console.log("Setting timeout to resume iter");
+              setTimeout(iter, 0);
+              return;
             }
-            var frameCount = 0;
-            while(theOneTrueStackHeight > 0) {
-              if(!sync && frameCount++ > 100) {
+            var next = theOneTrueStack[--theOneTrueStackHeight];
+            // console.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
+            theOneTrueStack[theOneTrueStackHeight] = undefined;
+            // console.log("theOneTrueStack = ", theOneTrueStack);
+            // console.log("Setting ans to " + JSON.stringify(val, null, "  "));
+            next.ans = val;
+            // console.log("GAS = ", thisRuntime.GAS);
+            if (isFunction(next.fun))
+              val = next.fun.app(next);
+            else if (next.fun instanceof Function)
+              val = next.fun(next);
+            else if (!(next instanceof ActivationRecord)) {
+              console.log("Our next stack frame doesn't look right!");
+              console.log(JSON.stringify(next));
+              console.log(theOneTrueStack);
+              throw false;
+            }
+            // console.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
+          }
+        } catch(e) {
+          if(thisRuntime.isCont(e)) {
+            // console.log("BOUNCING");
+            BOUNCES++;
+            thisRuntime.GAS = initialGas;
+            for(var i = e.stack.length - 1; i >= 0; i--) {
+              theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
+            }
+            // console.log("The new stack height is ", theOneTrueStackHeight);
+            // console.log("theOneTrueStack = ", theOneTrueStack);
+
+            if(isPause(e)) {
+              thisThread.pause();
+              e.pause.setHandlers(thisThread.handlers);
+              if(e.resumer) { e.resumer(e.pause); }
+              return;
+            }
+            else if(thisRuntime.isCont(e)) {
+              val = theOneTrueStack[theOneTrueStackHeight - 1].ans;
+              if(sync) {
+                loop = true;
+                // DON'T return; we synchronously loop back to the outer while loop
+                continue;
+              }
+              else {
                 TOS++;
                 setTimeout(iter, 0);
                 return;
               }
-              var next = theOneTrueStack[--theOneTrueStackHeight];
-              theOneTrueStack[theOneTrueStackHeight] = undefined;
-              val = next.go(val);
-            }
-          } catch(e) {
-            if(isCont(e)) {
-              BOUNCES++;
-              thisRuntime.GAS = initialGas;
-              for(var i = e.stack.length - 1; i >= 0; i--) {
-                theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
-              }
-
-              if(isPause(e)) {
-                thisThread.pause();
-                e.pause.setHandlers(thisThread.handlers);
-                if(e.resumer) { e.resumer(e.pause); }
-                return;
-              }
-              else if(isCont(e)) {
-                theOneTrueStack[theOneTrueStackHeight++] = e.bottom;
-                val = theOneTrueStart;
-                if(sync) {
-                  loop = true;
-                  // DON'T return; we synchronously loop back to the outer while loop
-                  continue;
-                }
-                else {
-                  TOS++;
-                  setTimeout(iter, 0);
-                  return;
-                }
-              }
-            }
-
-            else if(isPyretException(e)) {
-              while(theOneTrueStackHeight > 0) {
-                var next = theOneTrueStack[--theOneTrueStackHeight];
-                theOneTrueStack[theOneTrueStackHeight] = "sentinel";
-                e.pyretStack.push(next.from);
-              }
-              finishFailure(e);
-              return;
-            } else {
-              finishFailure(e);
-              return;
             }
           }
+
+          else if(isPyretException(e)) {
+            while(theOneTrueStackHeight > 0) {
+              var next = theOneTrueStack[--theOneTrueStackHeight];
+              theOneTrueStack[theOneTrueStackHeight] = "sentinel";
+              e.pyretStack.push(next.from);
+            }
+            finishFailure(e);
+            return;
+          } else {
+            console.log("Wait, what?");
+            console.log(e);
+            finishFailure(e);
+            return;
+          }
         }
-        finishSuccess(val);
-        return;
       }
-      thisRuntime.GAS = initialGas;
-      iter();
+      finishSuccess(val);
+      return;
     }
+    thisRuntime.GAS = initialGas;
+    iter();
+  }
 
     function runThunk(f, then) {
       return run(f, thisRuntime.namespace, {}, then);
     }
 
+
+  function ActivationRecord(from, fun, step, ans, args, vars) {
+    this.from = from;
+    this.fun = fun; 
+    this.step = step;
+    this.ans = ans;
+    this.args = args;
+    this.vars = vars;
+  }  
+  ActivationRecord.prototype.toString = function() { 
+    return "{from: " + this.from + ", fun: " + this.fun + ", step: " + this.step
+      + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
+      + ", vars: " + JSON.stringify(this.vars) + "}";
+  }
+  function makeActivationRecord(from, fun, step, ans, args, vars) {
+    return new ActivationRecord(from, fun, step, ans, args, vars);
+  }
+  function isActivationRecord(obj) {
+    return obj instanceof ActivationRecord;
+  }
 
     function printPyretStack(stack) {
       if (stack === undefined) return "  undefined";
@@ -1964,24 +2031,28 @@ function createMethodDict() {
         }
         return currentAcc;
       }
-      try {
-        return foldHelp();
-      } catch(e) {
-        if(isCont(e)) {
-          var stacklet = {
-            from: ["raw-array-fold"],
-            go: function(ret) {
-              currentAcc = ret;
-              return foldHelp();
-            }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+      function foldFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            currentAcc = $ar.ans;
+          }
+          return foldHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              undefined, // answer will be filled in by stack unwinder
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-fold"]);
+          }
+          throw $e;
         }
-        if (thisRuntime.isPyretException(e)) {
-          e.pyretStack.push(["raw-array-fold"]); 
-        }
-        throw e;
       }
+      return foldFun();
     };
 
     var string_substring = function(s, min, max) {
@@ -2358,6 +2429,9 @@ function createMethodDict() {
         'safeCall': safeCall,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,
+
+        'isActivationRecord'   : isActivationRecord,
+        'makeActivationRecord' : makeActivationRecord,
 
         'GAS': INITIAL_GAS,
 

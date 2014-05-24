@@ -64,13 +64,11 @@ check:
   e10 satisfies E.is-non-function-app
   e10.non-fun-val is 5
   e10.loc satisfies S.is-srcloc
-  e10.args is [list: ]
 
   e11 = get-err(lam(): 5(6, 7 + 8) end)
   e11 satisfies E.is-non-function-app
   e11.non-fun-val is 5
   e11.loc satisfies S.is-srcloc
-  e11.args is [list: 6, 15]
 
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
   e12 satisfies E.is-arity-mismatch
