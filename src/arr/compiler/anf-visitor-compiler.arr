@@ -319,9 +319,7 @@ compiler-visitor = {
       j-block([list: 
         j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(
                     self.get-loc(l), compiled-body-stmts, args.length() - 1)))])),
-      #undefined])
-      j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
-          arity-check(self.get-loc(l), compiled-body-stmts, args.length()))])
+      j-obj([list: j-field("length", j-num(args.length()))])])
   end,
   a-val(self, v :: N.AVal):
     v.visit(self)
