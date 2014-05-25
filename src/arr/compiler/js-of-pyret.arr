@@ -32,11 +32,11 @@ fun make-compiled-pyret(program-ast, env) -> CompiledCodePrinter:
   ccp(compiled)
 end
 
-fun trace-make-compiled-pyret(trace, phase, program-ast, env, use-loop):
+fun trace-make-compiled-pyret(trace, phase, program-ast, env):
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
   split = AS.ast-split(anfed.body)
   ret := phase("Split", split, ret)
-  phase("Generated JS", anfed.visit(AL.splitting-compiler(env)))
+  phase("Generated JS", ccp(anfed.visit(AL.splitting-compiler(env))), ret)
 end
