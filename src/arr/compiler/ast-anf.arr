@@ -569,7 +569,7 @@ where:
   d = dummy-loc
   freevars-e(
       a-let(d, a-bind(d, "x", A.a-blank), a-val(a-num(d, 4)),
-        a-lettable(a-val(a-id(d, "y"))))).to-list() is [list: "y"]
+        a-lettable(d, a-val(a-id(d, "y"))))).to-list() is [list: "y"]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:

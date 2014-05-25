@@ -1,4 +1,4 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2", "trove/checker", "js/dialects-lib"], function(loader, ffi, runtimeLib, runtime2Lib, checkerLib, dialectsLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib) {
 
   if(requirejs.isBrowser) {
     var rjs = requirejs;
@@ -32,7 +32,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
       var name = RUNTIME.unwrap(NAMESPACE.get("gensym").app(RUNTIME.makeString("module")));
       rjs.config({ baseUrl: loaddir });
 
-      var newRuntime = runtime2Lib.makeRuntime({ 
+      var newRuntime = runtimeLib.makeRuntime({ 
         stdout: function(str) { process.stdout.write(str); },
         stderr: function(str) { process.stderr.write(str); },
       });
@@ -47,7 +47,6 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
 
       function makeResult(execRt, callingRt, r) {
         if(execRt.isSuccessResult(r)) {
-          console.log("Got a success result");
           var pyretResult = r.result;
           return callingRt.makeObject({
               "success": callingRt.makeBoolean(true),
@@ -55,9 +54,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
                 var toCall = execRt.getField(checker, "render-check-results");
                 var checks = execRt.getField(pyretResult, "checks");
                 callingRt.pauseStack(function(restarter) {
-                  console.log("Here 1");
                     execRt.run(function(rt, ns) {
-                      console.log("Here 3");
                         return toCall.app(checks);
                       }, execRt.namespace, {sync: true},
                       function(printedCheckResult) {
@@ -77,13 +74,10 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
             });
         }
         else if(execRt.isFailureResult(r)) {
-          console.log("Got a failing result");
-          console.log(JSON.stringify(r));
           return callingRt.makeObject({
               "success": callingRt.makeBoolean(false),
               "failure": r.exn.exn,
               "render-error-message": callingRt.makeFunction(function() {
-                console.log("Failing, trying to render error message");
                 callingRt.pauseStack(function(restarter) {
                   execRt.runThunk(function() {
                     if(execRt.isPyretVal(r.exn.exn)) {
@@ -119,14 +113,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "js/runtime-anf2
              (created by newRuntime).  Once the evaluated program finishes
              (if it ever does), the continuation is called with r as either
              a Success or Failure Result from newRuntime. */
-                  console.log("Here 2");
-          console.log("Module has loaded, GAS = ", newRuntime.GAS);
           newRuntime.run(moduleVal, newNamespace, {sync: true, initialGas: 1000}, function(r) {
-            console.log("Got a result!");
-            console.log("New success?" + newRuntime.isSuccessResult(r));
-            console.log("New failure?" + newRuntime.isFailureResult(r));
-            console.log("Old success?" + RUNTIME.isSuccessResult(r));
-            console.log("Old failure?" + RUNTIME.isFailureResult(r));
               /* makeResult handles turning values from the new runtime into values that
                  the calling runtime understands (since they don't share
                  the same instantiation of all the Pyret constructors like PObject, or the

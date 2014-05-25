@@ -60,11 +60,11 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
       any-errors = named-shadow-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
       if is-empty(any-errors):
-        if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs, options.use-loop)
+        if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
         else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
         end
       else:
-        if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, cleaned, libs, options.use-loop)
+        if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
         else: phase("Result", C.err(any-errors), ret)
         end
       end
@@ -77,15 +77,7 @@ fun compile-js(trace, dialect, code, name, libs, options)
   var ret = trace
   ast = PP.parse-dialect(dialect, code, name)
   when options.collect-all: ret := phase("Parsed (" + dialect + " dialect)", ast, ret) end
-  compile-js-ast(ret, ast, name, libs, options.{use-loop: false})
-end
-
-fun compile-js2(trace, dialect, code, name, libs, options)
-  -> CompilationPhase<C.CompileResult<P.CompiledCodePrinter, Any>>:
-  var ret = trace
-  ast = PP.parse-dialect(dialect, code, name)
-  when options.collect-all: ret := phase("Parsed (" + dialect + " dialect)", ast, ret) end
-  compile-js-ast(ret, ast, name, libs, options.{collect-all: true, use-loop: true})
+  compile-js-ast(ret, ast, name, libs, options)
 end
 
 

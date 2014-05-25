@@ -951,7 +951,6 @@ function createMethodDict() {
           if (thisRuntime.isActivationRecord($ar)) {
             $step = $ar.step;
             $ans = $ar.ans;
-//            console.log("Resuming toReprFun with ans = " + JSON.stringify($ans));
           }
           while(true) {
             switch($step) {
@@ -1379,8 +1378,6 @@ function createMethodDict() {
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
     function makeFailureResult(e) { 
-      //console.log("NEW RUNTIME FAILURE!!!!!!!!!!!!!!!!!!");
-      //try { nonexistent.bad; } catch(exn) { console.log("In mFR: stack = " + exn.stack); }
       return new FailureResult(e); 
     }
 
@@ -1422,7 +1419,6 @@ function createMethodDict() {
       }
       try {
         while(true) {
-          // console.log("In safeCall2, step ", $step, ", GAS = ", thisRuntime.GAS);
           if (--thisRuntime.GAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             throw thisRuntime.makeCont();
@@ -1666,8 +1662,6 @@ function createMethodDict() {
             finishFailure(e);
             return;
           } else {
-            console.log("Wait, what?");
-            console.log(e);
             finishFailure(e);
             return;
           }

@@ -64,7 +64,7 @@ fun main(args):
       check-all = r.has-key("check-all")
       if not(is-empty(rest)):
         program-name = rest.first
-        result = CM.compile-js2(
+        result = CM.compile-js(
           CM.start,
           r.get("dialect"),
           F.file-to-string(program-name),
@@ -79,10 +79,7 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
-            print("About to exec...")
-            print(comp-object.pyret-to-js-pretty(100))
             exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
-            print(torepr(exec-result))
             if (exec-result.success):
               when check-mode:
                 results-str = exec-result.render-check-results()
@@ -114,7 +111,7 @@ fun main(args):
             }
             )
         else if r.has-key("compile-module-js"):
-          CM.compile-js2(
+          CM.compile-js(
             CM.start,
             r.get("dialect"),
             F.file-to-string(r.get("compile-module-js")),
