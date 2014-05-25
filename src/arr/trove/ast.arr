@@ -194,6 +194,11 @@ data Import:
     tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
+  | s-import-types(l :: Loc, file :: ImportType, name :: Name, types :: Name) with:
+    label(self): "s-import-types" end,
+    tosource(self):
+      PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource(), PP.comma, self.types.tosource()])
+    end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     label(self): "s-import-fields" end,
     tosource(self):
@@ -1275,6 +1280,12 @@ fun equiv-ast-import(i1 :: Import, i2 :: Import):
         | s-import(_, f2, n2) => equiv-import-type(f1, f2) and equiv-name(n1, n2)
         | else => false
       end
+    | s-import-types(_, f1, n1, t1) =>
+      cases(Import) i2:
+        | s-import-types(_, f2, n2, t2) =>
+          equiv-import-type(f1, f2) and equiv-name(n1, n2) and equiv-name(t1, t2)
+        | else => false
+      end
     | s-import-fields(_, fields1, f1) =>
       cases(Import) i2:
         | s-import-fields(_, fields2, f2) =>
@@ -1661,6 +1672,9 @@ default-map-visitor = {
 
   s-import(self, l, import-type, name):
     s-import(l, import-type, name.visit(self))
+  end,
+  s-import-types(self, l, import-type, name, types):
+    s-import-types(l, import-type, name.visit(self), types.visit(self))
   end,
   s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
@@ -2063,6 +2077,9 @@ default-iter-visitor = {
   s-import(self, l, import-type, name):
     name.visit(self)
   end,
+  s-import-types(self, l, import-type, name, types):
+    name.visit(self) and types.visit(self)
+  end,
   s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
@@ -2453,6 +2470,9 @@ dummy-loc-visitor = {
 
   s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type, name.visit(self))
+  end,
+  s-import-types(self, l, import-type, name, types):
+    s-import-types(dummy-loc, import-type, name.visit(self), types.visit(self))
   end,
   s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type)
