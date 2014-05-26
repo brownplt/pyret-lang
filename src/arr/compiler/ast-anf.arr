@@ -344,8 +344,8 @@ data AVal:
   | a-array(l :: Loc, values :: List<AVal>) with:
     label(self): "a-array" end,
     tosource(self):
-      PP.surround-separate(INDENT, 0, str-brackets, PP.lbrack, PP.commabreak, PP.rbrack,
-        link("raw-array: ", self.values.map(_.tosource())))
+      PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
+        self.values.map(_.tosource()))
     end
   # used for letrec
   | a-undefined(l :: Loc) with:
