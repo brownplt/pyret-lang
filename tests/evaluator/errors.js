@@ -95,6 +95,35 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           return true;
         });
         P.checkEvalsTo("shadow string-contains = 5\nstring-contains", rt.makeNumber(5));
+        var prog1 =
+"fun foo(x):\n" + 
+"  x * 2\n" +
+"where:\n" +
+"  fun foo(x): x == 10 end\n" + // x is not shadowing here
+"  check-foo(foo(5)) is true\n" +
+"end\n" +
+"foo(5)";
+        P.checkEvalsTo(prog1, rt.makeNumber(10));
+        var prog2 =
+"fun foo(x):\n" + 
+"  x * 2\n" +
+"where:\n" +
+"  fun foo(x): x == 10 end\n" + // Shadowing error (foo) here
+"  true is true\n" +
+"end";
+        P.checkCompileError(prog2, function(e) {
+          expect(e.length).toEqual(2); // Shows up twice because the where clause is copied during desugaring
+          return true;
+        });
+        var prog3 =
+"fun foo(x):\n" + 
+"  fun foo(x): 'oops' end\n" + // Shadowing error (foo and x) here
+"  x * 2\n" +
+"end";
+        P.checkCompileError(prog3, function(e) {
+          expect(e.length).toEqual(2);
+          return true;
+        });
         P.wait(done);
       });
     });
