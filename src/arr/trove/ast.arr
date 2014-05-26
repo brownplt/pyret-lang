@@ -1683,7 +1683,13 @@ default-map-visitor = {
   end,
 
   s-import(self, l, import-type, name):
-    s-import(l, import-type, name.visit(self))
+    s-import(l, import-type.visit(self), name.visit(self))
+  end,
+  s-file-import(self, l, file):
+    s-file-import(l, file)
+  end,
+  s-const-import(self, l, mod):
+    s-const-import(l, mod)
   end,
   s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
@@ -2088,7 +2094,13 @@ default-iter-visitor = {
   end,
   
   s-import(self, l, import-type, name):
-    name.visit(self)
+    import-type.visit(self) and name.visit(self)
+  end,
+  s-file-import(self, l, file):
+    true
+  end,
+  s-const-import(self, l, mod):
+    true
   end,
   s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
@@ -2483,7 +2495,13 @@ dummy-loc-visitor = {
   end,
 
   s-import(self, l, import-type, name):
-    s-import(dummy-loc, import-type, name.visit(self))
+    s-import(dummy-loc, import-type.visit(self), name.visit(self))
+  end,
+  s-const-import(self, l, mod):
+    s-const-import(dummy-loc, mod)
+  end,
+  s-file-import(self, l, file):
+    s-file-import(dummy-loc, file)
   end,
   s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type)
@@ -2492,10 +2510,10 @@ dummy-loc-visitor = {
     s-provide(dummy-loc, expr.visit(self))
   end,
   s-provide-all(self, l):
-    s-provide-all(l)
+    s-provide-all(dummy-loc)
   end,
   s-provide-none(self, l):
-    s-provide-none(l)
+    s-provide-none(dummy-loc)
   end,
 
   s-bind(self, l, shadows, name, ann):
@@ -2596,10 +2614,10 @@ dummy-loc-visitor = {
   end,
 
   s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(dummy-loc, typ, val.visit(self), branches.map(_.visit(self)))
+    s-cases(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)))
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(dummy-loc, typ, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+    s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
   s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
@@ -2749,20 +2767,20 @@ dummy-loc-visitor = {
       ann :: Ann,
       body :: Expr
     ):
-    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann, body.visit(self))
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Bool):
     s-check(dummy-loc, name, body.visit(self), keyword-check)
   end,
 
   s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    s-data-field(dummy-loc, name, value.visit(self))
+    s-data-field(dummy-loc, name.visit(self), value.visit(self))
   end,
   s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-mutable-field(dummy-loc, name, ann, value.visit(self))
+    s-mutable-field(dummy-loc, name.visit(self), ann.visit(self), value.visit(self))
   end,
   s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-once-field(dummy-loc, name, ann, value.visit(self))
+    s-once-field(dummy-loc, name.visit(self), ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,
