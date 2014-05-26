@@ -49,16 +49,23 @@ sharing:
   end
 end
 
+data AImportType:
+  | a-import-builtin(l :: Loc, lib :: String) with:
+    tosource(self): PP.str(self.file) end
+  | a-import-file(l :: Loc, file :: String) with:
+    tosource(self): PP.dquote(PP.str(self.file)) end
+end
+
 data AImport:
-  | a-import-file(l :: Loc, file :: String, name :: Name) with:
-    label(self): "a-import-file" end,
+  | a-import(l :: Loc, import-type :: AImportType, name :: Name) with:
+    label(self): "a-import" end,
     tosource(self):
-      PP.flow([list: str-import, PP.dquote(PP.str(self.file)), str-as, self.name.tosource()])
+      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource()])
     end
-  | a-import-builtin(l :: Loc, lib :: String, name :: Name) with:
-    label(self): "a-import-builtin" end,
+  | a-import-types(l :: Loc, import-type :: AImportType, name :: Name, types :: Name) with:
+    label(self): "a-import-types" end,
     tosource(self):
-      PP.flow([list: str-import, PP.str(self.lib), str-as, self.name.tosource()])
+      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.comman, self.types.tosource()])
     end
 sharing:
   visit(self, visitor):

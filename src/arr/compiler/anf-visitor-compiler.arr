@@ -506,10 +506,12 @@ fun compile-program(self, l, headers, split, env):
     j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
   end
   ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
+  type-imports = headers.filter(A.is-a-import-types)
+  type-ids = type-imports.map(_.types).map(_.tostring()).map(js-id-of)
   filenames = headers.map(lam(h):
-      cases(N.AHeader) h:
-        | a-import-builtin(_, name, _) => "trove/" + name
-        | a-import-file(_, file, _) => file
+      cases(N.AHeader) h.import-type:
+        | a-import-builtin(_, name) => "trove/" + name
+        | a-import-file(_, file) => file
       end
     end)
   module-id = compiler-name(l.source)
@@ -517,11 +519,18 @@ fun compile-program(self, l, headers, split, env):
   input-ids = ids.map(lam(f): compiler-name(f) end)
   fun wrap-modules(modules, body):
     mod-input-ids = modules.map(lam(f): j-id(f.input-id) end)
-    mod-ids = modules.map(_.id)
+    mod-val-ids = modules.map(_.id)
     j-return(rt-method("loadModules",
         [list: j-id("NAMESPACE"), j-list(false, mod-input-ids),
-          j-fun(mod-ids,
-            j-block([list: 
+          j-fun(mod-input-ids,
+            j-block(
+              for map2(m from mod-val-ids, in from mod-input-ids):
+                j-var(m, j-dot(j-id(in), "values"))
+              end +
+              for map2(mt from type-ids, in from mod-input-ids):
+                j-var(mt, j-dot(j-id(in), "types"))
+              end +
+              [list: 
                 j-return(rt-method(
                     "safeCall", [list: 
                       j-fun([list: ], j-block([list: body])),

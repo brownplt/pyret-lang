@@ -2241,7 +2241,17 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        function(m) { return withModule(getField(m, "provide")); });
+        function(m) {
+          if (hasField.app(m, "provide-plus-types")) {
+            return withModule(getField(m, "provide-plus-types"));
+          }
+          else {
+            return withModule(runtime.makeObject({
+              "values": getField(m, "provide"),
+              "types": runtime.makeObject({})
+            }));
+          }
+        });
     }
     function loadModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
