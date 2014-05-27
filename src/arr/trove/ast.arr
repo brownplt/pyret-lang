@@ -18,6 +18,7 @@ str-arrowspace = PP.str("-> ")
 str-as = PP.str("as")
 str-blank = PP.str("")
 str-let = PP.str("let")
+str-type-let = PP.str("type-let")
 str-letrec = PP.str("letrec")
 str-block = PP.str("block:")
 str-brackets = PP.str("[list: ]")
@@ -64,6 +65,10 @@ str-thickarrow = PP.str("=>")
 str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
+str-newtype = PP.str("type ")
+str-type = PP.str("type ")
+str-bless = PP.str("bless ")
+str-confirm = PP.str("confirm ")
 str-val = PP.str("val ")
 str-when = PP.str("when")
 str-where = PP.str("where:")
@@ -279,7 +284,35 @@ sharing:
   end
 end
 
+data TypeLetBind:
+  | s-type-bind(l :: Loc, name :: Name, ann :: Ann) with:
+    label(self): "s-type-bind" end,
+    tosource(self):
+      PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
+    end
+  | s-newtype-bind(l :: Loc, name :: Name, namet :: Name) with:
+    label(self): "s-newtype-bind" end,
+    tosource(self):
+      PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
+          + break-one + str-as
+          + break-one + self.namet.tosource()))
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
 data Expr:
+  | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
+    label(self): "s-type-let" end,
+    tosource(self):
+      header = PP.surround-separate(2 * INDENT, 1, str-type-let, str-type-let + PP.str(" "), PP.commabreak, PP.mt-doc,
+          self.binds.map(_.tosource()))
+          + str-colon
+      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
+    end
   | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
     label(self): "s-let" end,
     tosource(self):
@@ -333,6 +366,19 @@ data Expr:
     tosource(self):
       funlam-tosource(str-fun,
         self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
+    end
+  | s-type(l :: Loc, name :: Name, ann :: Ann) with:
+    label(self): "s-type" end,
+    tosource(self):
+      PP.group(PP.nest(INDENT,
+          str-type + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
+    end
+  | s-newtype(l :: Loc, name :: Name, namet :: Name) with:
+    label(self): "s-newtype" end,
+    tosource(self):
+      PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
+          + break-one + str-as
+          + break-one + self.namet.tosource()))
     end
   | s-var(l :: Loc, name :: Bind, value :: Expr) with:
     label(self): "s-var" end,
@@ -519,6 +565,16 @@ data Expr:
       else:
         PP.surround(INDENT, 0, prefix, PP.separate(PP.commabreak, self.values.map(_.tosource())), PP.rbrack)
       end
+    end
+  | s-confirm(l :: Loc, expr :: Expr, typ :: Name) with:
+    label(self): "s-confirm" end,
+    tosource(self):
+      PP.flow([list: str-confirm, self.expr.tosource(), str-as, self.typ.tosource()])
+    end
+  | s-bless(l :: Loc, expr :: Expr, typ :: Name) with:
+    label(self): "s-bless" end,
+    tosource(self):
+      PP.flow([list: str-bless, self.expr.tosource(), str-as, self.typ.tosource()])
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
@@ -1073,6 +1129,18 @@ default-map-visitor = {
     s-let-bind(l, bind.visit(self), expr.visit(self))
   end,
 
+  s-type-bind(self, l, name, ann):
+    s-type-bind(l, name.visit(self), ann.visit(self))
+  end,
+
+  s-newtype-bind(self, l, name, namet):
+    s-newtype-bind(l, name.visit(self), namet.visit(self))
+  end,
+
+  s-type-let-expr(self, l, binds, body):
+    s-type-let-expr(l, binds.map(_.visit(self)), body.visit(self))
+  end,
+
   s-let-expr(self, l, binds, body):
     s-let-expr(l, binds.map(_.visit(self)), body.visit(self))
   end,
@@ -1103,6 +1171,14 @@ default-map-visitor = {
 
   s-fun(self, l, name, params, args, ann, doc, body, _check):
     s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+  end,
+
+  s-type(self, l :: Loc, name :: Name, ann :: Ann):
+    s-type(l, name.visit(self), ann.visit(self))
+  end,
+
+  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+    s-newtype(l, name.visit(self), namet.visit(self))
   end,
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -1212,6 +1288,12 @@ default-map-visitor = {
   end,
   s-array(self, l :: Loc, values :: array<Expr>):
     s-array(l, values.map(_.visit(self)))
+  end,
+  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
+    s-bless(l, expr.visit(self), typ.visit(self))
+  end,
+  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
+    s-confirm(l, expr.visit(self), typ.visit(self))
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
@@ -1477,6 +1559,18 @@ default-iter-visitor = {
     bind.visit(self) and expr.visit(self)
   end,
   
+  s-type-bind(self, l, name, ann):
+    name.visit(self) and ann.visit(self)
+  end,
+
+  s-newtype-bind(self, l, name, namet):
+    name.visit(self) and namet.visit(self)
+  end,
+
+  s-type-let-expr(self, l, binds, body):
+    lists.all(_.visit(self), binds) and body.visit(self)
+  end,
+
   s-let-expr(self, l, binds, body):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
@@ -1508,7 +1602,15 @@ default-iter-visitor = {
   s-fun(self, l, name, params, args, ann, doc, body, _check):
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
+
+  s-type(self, l :: Loc, name :: Name, ann :: Ann):
+    name.visit(self) and ann.visit(self)
+  end,
   
+  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+    name.visit(self) and namet.visit(self)
+  end,
+
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
@@ -1616,6 +1718,12 @@ default-iter-visitor = {
   end,
   s-array(self, l :: Loc, values :: List<Expr>):
     lists.all(_.visit(self), values)
+  end,
+  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
+    expr.visit(self) and typ.visit(self)
+  end,
+  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
+    expr.visit(self) and typ.visit(self)
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
@@ -1871,6 +1979,18 @@ dummy-loc-visitor = {
     s-let-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
+  s-type-bind(self, l, name, ann):
+    s-type-bind(dummy-loc, name, ann)
+  end,
+
+  s-newtype-bind(self, l, name, namet):
+    s-newtype-bind(l, name.visit(self), namet.visit(self))
+  end,
+
+  s-type-let-expr(self, l, binds, body):
+    s-type-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  end,
+
   s-let-expr(self, l, binds, body):
     s-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
   end,
@@ -1901,6 +2021,14 @@ dummy-loc-visitor = {
 
   s-fun(self, l, name, params, args, ann, doc, body, _check):
     s-fun(dummy-loc, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+  end,
+
+  s-type(self, l :: Loc, name :: Name, ann :: Ann):
+    s-type(dummy-loc, name.visit(self), ann.visit(self))
+  end,
+
+  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+    s-newtype(dummy-loc, name.visit(self), namet.visit(self))
   end,
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
@@ -2010,6 +2138,12 @@ dummy-loc-visitor = {
   end,
   s-array(self, l :: Loc, values :: List<Expr>):
     s-array(dummy-loc, values.map(_.visit(self)))
+  end,
+  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
+    s-bless(dummy-loc, expr.visit(self), typ.visit(self))
+  end,
+  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
+    s-confirm(dummy-loc, expr.visit(self), typ.visit(self))
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))

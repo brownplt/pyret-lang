@@ -195,6 +195,14 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           return RUNTIME.getField(ast, 's-datatype-constructor')
             .app(pos(node.pos), symbol(node.kids[2]), tr(node.kids[5]));
         },
+        'type-expr': function(node) {
+          return RUNTIME.getField(ast, 's-type')
+            .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+        },
+        'newtype-expr': function(node) {
+          return RUNTIME.getField(ast, 's-newtype')
+            .app(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+        },
         'var-expr': function(node) {
           // (var-expr VAR bind EQUALS e)
           return RUNTIME.getField(ast, 's-var')
@@ -210,6 +218,26 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             return RUNTIME.getField(ast, 's-let')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), RUNTIME.makeBoolean(true));
           }
+        },
+        'newtype-bind': function(node) {
+          return RUNTIME.getField(ast, 's-newtype-bind')
+            .app(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+        },
+        'type-bind': function(node) {
+          return RUNTIME.getField(ast, 's-type-bind')
+            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+        },
+        'type-let-bind': function(node) {
+          return tr(node.kids[0]);
+        },
+        'type-let-bind-elt': function(node) {
+          return tr(node.kids[0]);
+        },
+        'type-let-expr': function(node) {
+          return RUNTIME.getField(ast, 's-type-let-expr')
+            .app(pos(node.pos),
+                 makeList(node.kids.slice(1, -3).map(tr)),
+                 tr(node.kids[node.kids.length - 2]));
         },
         'multi-let-expr': function(node) {
           // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
@@ -634,6 +662,14 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         },
         'list-elt': function(node) {
           return tr(node.kids[0]);
+        },
+        'bless-expr': function(node) {
+          return RUNTIME.getField(ast, 's-bless')
+            .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
+        },
+        'confirm-expr': function(node) {
+          return RUNTIME.getField(ast, 's-confirm')
+            .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
         },
         'construct-expr': function(node) {
           return RUNTIME.getField(ast, 's-construct')
