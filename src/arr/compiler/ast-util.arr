@@ -52,8 +52,8 @@ flatten-single-blocks = A.default-map-visitor.{
 
 check:
   d = A.dummy-loc
-  PP.surface-parse("x", "test").block.visit(flatten-single-blocks) satisfies
-    A.equiv-ast(_, A.s-id(d, A.s-name(d, "x")))
+  PP.surface-parse("x", "test").block.visit(flatten-single-blocks).visit(A.dummy-loc-visitor)
+    is A.s-id(d, A.s-name(d, "x"))
 end
 
 merge-nested-blocks = A.default-map-visitor.{
