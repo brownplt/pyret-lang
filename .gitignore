@@ -5,6 +5,7 @@
 *.err
 *.bak
 docs/written/*.html
+docs/written/*/compiled
 docs/written/scribble*
 docs/compiled/
 docs/generated/
