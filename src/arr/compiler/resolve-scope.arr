@@ -308,8 +308,8 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           new-stmts = stmts.take(stmts.length() - 1) + [list: A.s-obj(l2, [list:
               A.s-data-field(l2, str("answer"), last),
               A.s-data-field(l2, str("provide-plus-types"), A.s-obj(l2, [list:
-                  A.s-data-field(l2, "values", prov),
-                  A.s-data-field(l2, "types", A.s-obj(l2, [list: ]))
+                  A.s-data-field(l2, str("values"), prov),
+                  A.s-data-field(l2, str("types"), A.s-obj(l2, [list: ]))
                 ])),
               A.s-data-field(
                   l2,

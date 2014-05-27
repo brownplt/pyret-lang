@@ -2253,7 +2253,7 @@ function createMethodDict() {
           }
         });
     }
-    function loadModules(namespace, modules, withModules) {
+    function loadModulesNew(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
         if(toLoad.length > 0) {
           var nextMod = toLoad.pop();
@@ -2270,6 +2270,14 @@ function createMethodDict() {
       }
       var modulesCopy = modules.slice(0, modules.length);
       return loadModulesInt(modulesCopy, []);
+    }
+    function loadModules(namespace, modules, withModules) {
+      return loadModulesNew(namespace, modules, function(/* varargs */) {
+        var ms = Array.prototype.slice.call(arguments);
+        return safeTail(function() {
+          return withModules.apply(null, ms.map(function(m) { return getField(m, "values"); }));
+        });
+      });
     }
 
     //Export the runtime
@@ -2511,6 +2519,7 @@ function createMethodDict() {
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
+        'loadModulesNew' : loadModulesNew,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;

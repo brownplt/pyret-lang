@@ -506,7 +506,7 @@ fun compile-program(self, l, headers, split, env):
     j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
   end
   ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
-  type-imports = headers.filter(A.is-a-import-types)
+  type-imports = headers.filter(N.is-a-import-types)
   type-ids = type-imports.map(_.types).map(_.tostring()).map(js-id-of)
   filenames = headers.map(lam(h):
       cases(N.AHeader) h.import-type:
@@ -518,17 +518,18 @@ fun compile-program(self, l, headers, split, env):
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(lam(f): compiler-name(f) end)
   fun wrap-modules(modules, body):
-    mod-input-ids = modules.map(lam(f): j-id(f.input-id) end)
+    mod-input-names = modules.map(_.input-id)
+    mod-input-ids = mod-input-names.map(j-id)
     mod-val-ids = modules.map(_.id)
-    j-return(rt-method("loadModules",
+    j-return(rt-method("loadModulesNew",
         [list: j-id("NAMESPACE"), j-list(false, mod-input-ids),
-          j-fun(mod-input-ids,
+          j-fun(mod-input-names,
             j-block(
               for map2(m from mod-val-ids, in from mod-input-ids):
-                j-var(m, j-dot(j-id(in), "values"))
+                j-var(m, rt-method("getField", [list: in, j-str("values")]))
               end +
               for map2(mt from type-ids, in from mod-input-ids):
-                j-var(mt, j-dot(j-id(in), "types"))
+                j-var(mt, rt-method("getField", [list: in, j-str("types")]))
               end +
               [list: 
                 j-return(rt-method(
