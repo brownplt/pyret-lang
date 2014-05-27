@@ -239,7 +239,7 @@ fun keyer(v, k):
 end
 fun stopper(v): greater(v, 100) end
 
-big-bang(1, [
+big-bang(1, [list:
     on-tick(ticker),
     to-draw(drawer),
     on-key(keyer),
