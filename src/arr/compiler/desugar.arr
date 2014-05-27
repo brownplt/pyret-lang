@@ -210,14 +210,14 @@ where:
     )
   id = prog.binds.first.b
     
-  prog satisfies A.equiv-ast(_, A.s-let-expr(d, [list: 
-          A.s-let-bind(d, id, A.s-num(d, 1))
-        ],
-        A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
-          A.s-obj(d, [list: 
-              A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
-            ]),
-          A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)])))
+  prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list: 
+      A.s-let-bind(d, id, A.s-num(d, 1))
+    ],
+    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
+        A.s-obj(d, [list: 
+            A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
+          ]),
+        A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)]))
 
 end
 
@@ -331,7 +331,7 @@ where:
         id("y")
       ]
     )
-  ds-ed3 satisfies A.equiv-ast(_, A.s-app(d, id("f"), [list: id("x"), id("y")]))
+  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
     
   ds-ed4 = ds-curry(
       d,
@@ -554,12 +554,11 @@ where:
     s-global(self, s): A.s-name(d, s) end,
     s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block;
-  ds = lam(prog): desugar-expr(prog).visit(unglobal) end
+  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor);
+  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s));
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
-  equiv = lam(e): A.equiv-ast(_, e) end
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"
@@ -569,21 +568,18 @@ where:
   
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
-    satisfies equiv(
-    A.s-block(d,
-      [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
-          [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])]))
-  
+    is A.s-block(d,
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+        [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])])
+
   prog3 = p("for map(elt from l): elt + 1 end")
-  ds(prog3)
-    satisfies equiv(p("map(lam(elt): _plus(elt, 1) end, l)"))
+  ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
   
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
-  #  ds(prog4) satisfies
-  #    equiv(p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)"))
+  #  ds(prog4) is p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)")
   
-  # ds(p("(5)")) satisfies equiv(ds(p("5")))
+  # ds(p("(5)")) is ds(p("5"))
   
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
@@ -591,7 +587,7 @@ where:
   # compare = (cases-name + " = l " +
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")
-  # dsed5 satisfies equiv(ds(p(compare)))
+  # dsed5 is ds(p(compare))
   
 end
 
