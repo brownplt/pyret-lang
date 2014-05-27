@@ -24,6 +24,7 @@
 (provide docmodule
          function
          re-export from
+         pyret pyret-block
          tag-name
          data-spec
          method-spec
@@ -171,6 +172,9 @@
 (define dl-style (make-style "dl" (list (make-alt-tag "dl"))))
 (define dt-style (make-style "dt" (list (make-alt-tag "dt"))))
 (define dd-style (make-style "dd" (list (make-alt-tag "dd"))))
+
+(define (pyret-block . body) (para #:style (pre-style "pyret") body))
+(define pyret tt)
 
 ;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
