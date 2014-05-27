@@ -1,0 +1,1 @@
+("6.0" ("422b161c4b8139630f66623b4be36ad71bf42005" . "ecdbe3a076c02e6f1152e72cf1b5d6951ce7e2e3") (collects #"racket" #"runtime-config.rkt") (collects #"scribble" #"base" #"lang.rkt") #"/home/cody/research/pyret-lang/docs/written/trove/../../scribble-api.rkt" (collects #"scribble" #"base" #"lang" #"reader.rkt"))
