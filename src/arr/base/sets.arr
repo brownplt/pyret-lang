@@ -158,6 +158,24 @@ end
 
 data Set:
   | list-set(elems :: List) with:
+    tostring(self):
+      "[list-set: " +
+      self.elems.foldl(lam(elem, acc):
+          if acc == "": tostring(elem)
+          else: tostring(elem) + ", " + acc
+          end
+        end, "") +
+      "]"
+    end,
+    _torepr(self):
+      "[list-set: " + 
+      self.elems.foldl(lam(elem, acc):
+          if acc == "": torepr(elem)
+          else: torepr(elem) + ", " + acc
+          end
+        end, "") +
+      "]"
+    end,
     
     member(self, elem :: Any) -> Bool:
       doc: 'Check to see if an element is in a set.'
@@ -214,6 +232,24 @@ data Set:
     
     
   | tree-set(elems :: AVLTree) with:
+    tostring(self):
+      "[tree-set: " +
+      self.elems.fold(lam(acc, elem):
+          if acc == "": tostring(elem)
+          else: acc + ", " + tostring(elem)
+          end
+        end, "") +
+      "]"
+    end,
+    _torepr(self):
+      "[tree-set: " + 
+      self.elems.fold(lam(acc, elem):
+          if acc == "": torepr(elem)
+          else: acc + ", " + torepr(elem)
+          end
+        end, "") +
+      "]"
+    end,
     
     member(self, elem :: Any) -> Bool:
       doc: 'Check to see if an element is in a set.'
