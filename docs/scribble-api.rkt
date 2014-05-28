@@ -282,7 +282,7 @@
                       #:contract (contract #f)
                       #:args (args #f)
                       #:alt-docstrings (alt-docstrings #f)
-                      #:examples (examples #f)
+                      #:examples (examples '())
                       . body)
    (let* ([methods (get-defn-field (curr-method-location) (curr-var-spec))]
           [var-name (get-defn-field 'name (curr-var-spec))]
@@ -409,16 +409,16 @@
                            (nested #:style (div-style "description") contents)
                            (nested #:style (div-style "examples")
                                    (para (bold "Examples:"))
-                                   (if examples
-                                       (pyret-block examples)
-                                       "empty for now"))))))))))
+                                   (if (andmap whitespace? examples)
+                                       "empty for now"
+				       (pyret-block examples)))))))))))
      ))
 
 @(define (function name
                    #:contract (contract #f)
                    #:args (args #f)
                    #:alt-docstrings (alt-docstrings #f)
-                   #:examples (examples #f)
+                   #:examples (examples '())
                    . contents
                    )
    (let ([ans
