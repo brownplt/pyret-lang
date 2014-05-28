@@ -35,6 +35,7 @@ fun break-if-needed(items):
   end
 end
 data SExp:
+  | quote(e :: SExp) with: tosource(self): PP.str("'") + self.e.tosource() end
   | hashlang(str :: String) with: tosource(self): PP.str("#lang " + self.str) end
   | at-app(name :: String, kids :: List<SExp>) with:
     tosource(self):
@@ -126,7 +127,7 @@ fun relative-dir(path):
     end
   end
 end
-    
+
 data CrossRef:
   | crossref(modname :: String, field :: String) with:
     tosource(self): PP.str(torepr(self)) end
@@ -332,6 +333,14 @@ fun process-ann(ann, file, fields, bindings):
   end
 end
 
+fun process-checks(_check):
+  cases (Option) _check:
+    | none    => [list: ]
+    | some(v) => [list: hash-key("examples",
+          quote(at-exp("", none, some(de-atomize(v).tosource().pretty(80).map(at-comment)))))]
+  end
+end
+
 fun process-member(mem, typ, file, fields, bindings):
   cases(A.Member) mem:
     | s-data-field(_, name, value) =>
@@ -360,9 +369,9 @@ fun process-member(mem, typ, file, fields, bindings):
               sexp("a-arrow",
                 [list: process-ann(A.a-name(A.dummy-loc, typ), file, fields, bindings)] +
                 args.rest.map(lam(a): process-ann(a.ann, file, fields, bindings) end) +
-                [list: process-ann(ret-ann, file, fields, bindings)]))
-          ]),
-        _check.andthen(lam(v): some(de-atomize(v).tosource().pretty(80).map(at-comment)) end))
+                [list: process-ann(ret-ann, file, fields, bindings)]))] +
+          process-checks(_check)),
+        none)
   end
 end
 fun process-var-member(mem, file, fields, bindings):
@@ -403,16 +412,15 @@ fun process-module(file, fields, bindings):
           acc.set(param, param)
         end
         at-exp("function", some(
-            [list:
-              leaf(torepr(name)) ] +
+            [list: leaf(torepr(name)) ] +
             ( if is-empty(params): [list: ]
               else: [list:  hash-key("params", sexp("list", params.map(lam(p): leaf(torepr(p)) end))) ]
               end) +
             [list:  hash-key("contract",
                 sexp("a-arrow", args.map(lam(a): process-ann(a.ann, file, fields, new-bindings) end) +
-                  [list: process-ann(ret-ann, file, fields, new-bindings)]))
-            ]),
-          _check.andthen(lam(v): some(de-atomize(v).tosource().pretty(80).map(at-comment)) end))
+                  [list: process-ann(ret-ann, file, fields, new-bindings)]))] +
+            process-checks(_check)),
+          none)
       | s-id(_, id) =>
         spair("unknown-item", spair("name", name))
       | s-data-expr(_, data-name, params, _, variants, shared, _) =>
@@ -424,20 +432,20 @@ fun process-module(file, fields, bindings):
             ( if is-empty(params): [list: ]
               else: [list:  hash-key("params", sexp("list", params.map(lam(p): leaf(torepr(p)) end))) ]
               end)),
-          some([list: 
+          some([list:
               at-exp("variants", none, some(variants.map(lam(v):
                       cases(A.Variant) v:
                         | s-variant(_, _, variant-name, members, with-members) =>
                           at-exp("constr-spec",
                             some([list: leaf(torepr(variant-name))]),
-                            some([list: 
+                            some([list:
                                 at-exp("members", none, some(members.map(process-var-member(_, file, fields, new-bindings)))),
                                 at-exp("with-members", none, some(with-members.map(process-member(_, A.s-name(A.dummy-loc, name), file, fields, new-bindings))))
                               ]))
                         | s-singleton-variant(_, variant-name, with-members) =>
                           at-exp("singleton-spec",
                             some([list: leaf(torepr(variant-name))]),
-                            some([list: 
+                            some([list:
                                 at-exp("with-members", none, some(with-members.map(process-member(_, A.s-name(A.dummy-loc, name), file, fields, new-bindings))))
                               ]))
                       end
@@ -500,7 +508,7 @@ cases (C.ParsedArguments) parsed-options:
               | some(p) =>
                 cases(A.Expr) find-result(p.value):
                   | s-obj(_, fields) =>
-                    output = toplevel([list: 
+                    output = toplevel([list:
                         hashlang("scribble/base"),
                         at-app("require", [list: leaf(torepr(relative-dir(file) + "scribble-api.rkt"))]),
                         process-module(file, process-fields(trim-path(file), fields, bindings), bindings)

@@ -4,11 +4,15 @@
 *.out
 *.err
 *.bak
+
+# docs
 docs/written/*.html
 docs/written/*/compiled
 docs/written/scribble*
+docs/written/*.css
 docs/compiled/
 docs/generated/
+
 build/phase1
 build/phase2
 build/phase3

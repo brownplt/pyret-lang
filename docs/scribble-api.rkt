@@ -61,7 +61,7 @@
 
 ; Each module specification has the form
 ;   (module name path (spec-type (field val) ...) ...)
-; where 
+; where
 ;  - spec-type is one of path, fun-spec, unknown-item, data-spec, constr-spec
 ;  - each spec-type has a field called name
 
@@ -88,8 +88,8 @@
   (map (lambda (mod)
          (list (mod-name mod)
                (make-hash
-                (map (lambda (spec) 
-                       (cons (get-defn-field 'name spec) #f)) 
+                (map (lambda (spec)
+                       (cons (get-defn-field 'name spec) #f))
                      (drop mod 3)))))
        read-docs))
 
@@ -113,7 +113,7 @@
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
 (define (load-gen-docs)
-  (let ([all-docs (filter (lambda(f) 
+  (let ([all-docs (filter (lambda(f)
                             (let ([str (path->string f)])
                               (not (string=? (substring str (- (string-length str) 4)) ".bak")))
                             ) (directory-list GEN-BASE))])
@@ -179,7 +179,7 @@
 ;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Uses the xref table for error checking that
-;   we aren't generating links to unknown targets  
+;   we aren't generating links to unknown targets
 ; TODO: fix path to html file in "file" definition
 (define (xref modname itemname . subitems)
   (apply tag-name (cons modname (cons itemname subitems))))
@@ -193,8 +193,8 @@
 ;            (when (string=? modname cur-mod)
 ;                (unless (and entry (string=? (second entry) modname))
 ;                  (error 'xref "No xref info for ~a in ~a~nxref-table = ~s~n" itemname modname xref-table)))
-;            (let* ([file (path->string 
-;                          (build-path (current-directory) 
+;            (let* ([file (path->string
+;                          (build-path (current-directory)
 ;                                      (string-append modname ".html#" itemname)))]) ; fix here if change anchor format
 ;              (hyperlink file itemname)))))))))
 
@@ -209,13 +209,13 @@
 (define (ignore specnames)
   (for-each (lambda (n) (set-documented! (curr-module-name) n))
             specnames))
-  
+
 ; generates dt for use in dl-style itemizations
-(define (dt . args) 
+(define (dt . args)
   (elem #:style dt-style args))
 
 ; generates dd for use in dl-style itemizations
-(define (dd . args) 
+(define (dd . args)
   (elem #:style dd-style args))
 
 ;; docmodule is a macro so that we can parameterize the
@@ -233,15 +233,15 @@
 
 ;; render documentation for all definitions in a module
 ;; this function does the actual work after syntax expansion
-@(define (docmodule-internal name 
-                             #:friendly-title (friendly-title #f) 
+@(define (docmodule-internal name
+                             #:friendly-title (friendly-title #f)
                              . defs)
    (interleave-parbreaks/all
     (list (title #:tag (tag-name name) (or friendly-title name))
           (para "Usage:")
           (nested #:style (pre-style "code") "import " name " as ...")
           (interleave-parbreaks/all defs))))
-   
+
 @(define (lod . assocLst)
    (let ([render-for "bs"])
      (second (assoc render-for assocLst))))
@@ -278,17 +278,19 @@
                @para{}))
             (interleave-parbreaks/all members)))))
 @(define (method-spec name
-                      #:params (params #f) 
+                      #:params (params #f)
                       #:contract (contract #f)
-                      #:args (args #f) 
-                      #:alt-docstrings (alt-docstrings #f) . body)
+                      #:args (args #f)
+                      #:alt-docstrings (alt-docstrings #f)
+                      #:examples (examples '())
+                      . body)
    (let* ([methods (get-defn-field (curr-method-location) (curr-var-spec))]
           [var-name (get-defn-field 'name (curr-var-spec))]
           [spec (find-defn 'name name methods)])
-     (render-fun-helper 
-      spec name 
+     (render-fun-helper
+      spec name
       (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
-      contract args alt-docstrings body)))
+      contract args alt-docstrings examples body)))
 @(define (member-spec name #:contract (contract #f) . body)
    (list "TODO" ));(subsubsub*section name) body))
 
@@ -353,10 +355,10 @@
             contents)))]))
 @(define (shared-internal . shares)
    shares)
-  
+
 
 ;; render documentation for a function
-@(define (render-fun-helper spec name anchor contract args alt-docstrings contents)
+@(define (render-fun-helper spec name anchor contract args alt-docstrings examples contents)
    (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
@@ -370,14 +372,14 @@
        (error 'function (format "Argument names not provided for name ~s" name)))
      ; if contract, check arity against generated
      (unless (or (not arity) (eq? arity (length argnames)))
-       (error 'function (format "Provided argument names do not match expected arity ~a" arity))) 
-     ;; render the scribble 
+       (error 'function (format "Provided argument names do not match expected arity ~a" arity)))
+     ;; render the scribble
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
      (let ([processing-module (curr-module-name)])
        (interleave-parbreaks/all
         (list ;;(drop-anchor name)
-              anchor     
+              anchor
               (traverse-block ; use this to build xrefs on an early pass through docs
                (lambda (get set!)
                  (set! 'doc-xrefs (cons (list name processing-module)
@@ -405,22 +407,25 @@
                                       )
                                      (if doc (list doc) (list)))))
                            (nested #:style (div-style "description") contents)
-                           (nested #:style (div-style "examples") 
+                           (nested #:style (div-style "examples")
                                    (para (bold "Examples:"))
-                                   "empty for now")))))))))
+                                   (if (andmap whitespace? examples)
+                                       "empty for now"
+				       (pyret-block examples)))))))))))
      ))
 
-@(define (function name 
+@(define (function name
                    #:contract (contract #f)
                    #:args (args #f)
                    #:alt-docstrings (alt-docstrings #f)
+                   #:examples (examples '())
                    . contents
                    )
    (let ([ans
-          (render-fun-helper 
-           (find-doc (curr-module-name) name) name 
+          (render-fun-helper
+           (find-doc (curr-module-name) name) name
            (target-element #f (list name) (list 'part (tag-name (curr-module-name) name)))
-           contract args alt-docstrings contents)])
+           contract args alt-docstrings examples contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)
      ans))

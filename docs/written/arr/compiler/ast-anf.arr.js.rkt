@@ -1546,17 +1546,19 @@
       (a-app
         (a-id "Set" (xref "<global>" "Set"))
         (a-id "Name" (xref "<global>" "Name"))))
-  ]{
-    @; let  d = dummy-loc:
-    @;   freevars-e(a-let(d,
-    @;       a-bind(d, "x", A.a-blank),
-    @;       a-val(a-num(d, 4)),
-    @;       a-lettable(a-val(a-id(d, "y")))))
-    @;     .to-list() is
-    @;     [list: "y"]
-    @; end
-    
-  }
+    #:examples
+    '@{
+      @; let  d = dummy-loc:
+      @;   freevars-e(a-let(d,
+      @;       a-bind(d, "x", A.a-blank),
+      @;       a-val(a-num(d, 4)),
+      @;       a-lettable(a-val(a-id(d, "y")))))
+      @;     .to-list() is
+      @;     [list: "y"]
+      @; end
+      
+    }
+  ]
   @function[
     "freevars-variant-acc"
     #:contract

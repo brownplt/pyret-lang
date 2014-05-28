@@ -169,13 +169,18 @@
   @function["binding-env-iter-visitor" #:contract (a-arrow "Any" "Any")]
   @function["link-list-visitor" #:contract (a-arrow "Any" "Any")]
   @function["bad-assignments" #:contract (a-arrow "Any" "Any" "Any")]
-  @function["check-unbound" #:contract (a-arrow "Any" "Any" "Any")]{
-    @; let 
-    @;     p = PP.surface-parse(_, "test"),
-    @;     unbound1 = check-unbound(CS.no-builtins, p("x")):
-    @;   unbound1.length() is 1
-    @; end
-    
-  }
+  @function[
+    "check-unbound"
+    #:contract (a-arrow "Any" "Any" "Any")
+    #:examples
+    '@{
+      @; let 
+      @;     p = PP.surface-parse(_, "test"),
+      @;     unbound1 = check-unbound(CS.no-builtins, p("x")):
+      @;   unbound1.length() is 1
+      @; end
+      
+    }
+  ]
   @function["value-delays-exec-of" #:contract (a-arrow "Any" "Any" "Any")]
 }
