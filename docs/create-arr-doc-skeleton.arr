@@ -35,6 +35,7 @@ fun break-if-needed(items):
   end
 end
 data SExp:
+  | quote(e :: SExp) with: tosource(self): PP.str("'") + self.e.tosource() end
   | hashlang(str :: String) with: tosource(self): PP.str("#lang " + self.str) end
   | at-app(name :: String, kids :: List<SExp>) with:
     tosource(self):
@@ -335,7 +336,8 @@ end
 fun process-checks(_check):
   cases (Option) _check:
     | none    => [list: ]
-    | some(v) => [list: hash-key("examples", at-exp("", none, some(de-atomize(v).tosource().pretty(80).map(at-comment))))]
+    | some(v) => [list: hash-key("examples",
+          quote(at-exp("", none, some(de-atomize(v).tosource().pretty(80).map(at-comment)))))]
   end
 end
 
