@@ -332,6 +332,13 @@ fun process-ann(ann, file, fields, bindings):
   end
 end
 
+fun process-checks(_check):
+  cases (Option) _check:
+    | none    => [list: ]
+    | some(v) => [list: hash-key("examples", at-exp("", none, some(de-atomize(v).tosource().pretty(80).map(at-comment))))]
+  end
+end
+
 fun process-member(mem, typ, file, fields, bindings):
   cases(A.Member) mem:
     | s-data-field(_, name, value) =>
@@ -360,9 +367,9 @@ fun process-member(mem, typ, file, fields, bindings):
               sexp("a-arrow",
                 [list: process-ann(A.a-name(A.dummy-loc, typ), file, fields, bindings)] +
                 args.rest.map(lam(a): process-ann(a.ann, file, fields, bindings) end) +
-                [list: process-ann(ret-ann, file, fields, bindings)]))
-          ]),
-        _check.andthen(lam(v): some(de-atomize(v).tosource().pretty(80).map(at-comment)) end))
+                [list: process-ann(ret-ann, file, fields, bindings)]))] +
+          process-checks(_check)),
+        none)
   end
 end
 fun process-var-member(mem, file, fields, bindings):
@@ -403,16 +410,15 @@ fun process-module(file, fields, bindings):
           acc.set(param, param)
         end
         at-exp("function", some(
-            [list:
-              leaf(torepr(name)) ] +
+            [list: leaf(torepr(name)) ] +
             ( if is-empty(params): [list: ]
               else: [list:  hash-key("params", sexp("list", params.map(lam(p): leaf(torepr(p)) end))) ]
               end) +
             [list:  hash-key("contract",
                 sexp("a-arrow", args.map(lam(a): process-ann(a.ann, file, fields, new-bindings) end) +
-                  [list: process-ann(ret-ann, file, fields, new-bindings)]))
-            ]),
-          _check.andthen(lam(v): some(de-atomize(v).tosource().pretty(80).map(at-comment)) end))
+                  [list: process-ann(ret-ann, file, fields, new-bindings)]))] +
+            process-checks(_check)),
+          none)
       | s-id(_, id) =>
         spair("unknown-item", spair("name", name))
       | s-data-expr(_, data-name, params, _, variants, shared, _) =>
