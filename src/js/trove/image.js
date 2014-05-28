@@ -169,7 +169,7 @@ define([
           restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
         };
         rawImage.onerror = function(e) {
-          restarter.error(runtime.makeMessageException("unable to load " + url + ": " + e.message));
+          restarter.error(runtime.ffi.makeMessageException("unable to load " + url + ": " + e.message));
         };
         rawImage.src = String(url);
       });
