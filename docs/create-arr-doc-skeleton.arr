@@ -126,7 +126,7 @@ fun relative-dir(path):
     end
   end
 end
-    
+
 data CrossRef:
   | crossref(modname :: String, field :: String) with:
     tosource(self): PP.str(torepr(self)) end
@@ -424,20 +424,20 @@ fun process-module(file, fields, bindings):
             ( if is-empty(params): [list: ]
               else: [list:  hash-key("params", sexp("list", params.map(lam(p): leaf(torepr(p)) end))) ]
               end)),
-          some([list: 
+          some([list:
               at-exp("variants", none, some(variants.map(lam(v):
                       cases(A.Variant) v:
                         | s-variant(_, _, variant-name, members, with-members) =>
                           at-exp("constr-spec",
                             some([list: leaf(torepr(variant-name))]),
-                            some([list: 
+                            some([list:
                                 at-exp("members", none, some(members.map(process-var-member(_, file, fields, new-bindings)))),
                                 at-exp("with-members", none, some(with-members.map(process-member(_, A.s-name(A.dummy-loc, name), file, fields, new-bindings))))
                               ]))
                         | s-singleton-variant(_, variant-name, with-members) =>
                           at-exp("singleton-spec",
                             some([list: leaf(torepr(variant-name))]),
-                            some([list: 
+                            some([list:
                                 at-exp("with-members", none, some(with-members.map(process-member(_, A.s-name(A.dummy-loc, name), file, fields, new-bindings))))
                               ]))
                       end
@@ -500,7 +500,7 @@ cases (C.ParsedArguments) parsed-options:
               | some(p) =>
                 cases(A.Expr) find-result(p.value):
                   | s-obj(_, fields) =>
-                    output = toplevel([list: 
+                    output = toplevel([list:
                         hashlang("scribble/base"),
                         at-app("require", [list: leaf(torepr(relative-dir(file) + "scribble-api.rkt"))]),
                         process-module(file, process-fields(trim-path(file), fields, bindings), bindings)
