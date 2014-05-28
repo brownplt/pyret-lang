@@ -93,7 +93,7 @@ define([
     var checkBoolean = p(runtime.isBoolean, "Boolean");
 
     var checkNatural = p(function(val) {
-        return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 1);
+        return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
       }, "Natural Number");
 
     var checkPositiveInteger = p(function(val) {
@@ -148,7 +148,7 @@ define([
     var checkArity = ffi.checkArity;
 
     var checkListofColor = p(function(val) {
-      return ffi.makeList(ffi.toArray(val).map(p(isColor)));
+      return ffi.makeList(ffi.toArray(val).map(checkColor));
     }, "List<Color>");
 
     var throwMessage = ffi.throwMessageException;
@@ -293,7 +293,7 @@ define([
           var dy = checkReal(maybeDy);
           var img2 = checkImage(maybeImg2);
           return makeImage(
-            image.makeOverlayImage(img2, img1, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
+            image.makeOverlayImage(img2, img1, -jsnums.toFixnum(dx), -jsnums.toFixnum(dy)));
         }),
 
         "underlay-align": f(function(maybePlaceX, maybePlaceY, maybeImg1, maybeImg2) {
@@ -388,7 +388,7 @@ define([
           if (image.isScene(background)) {
             return makeImage(background.add(img, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
-            var newScene = makeSceneImage(background.getWidth(),
+            var newScene = image.makeSceneImage(background.getWidth(),
                                           background.getHeight(),
                                           [], 
                                           false);
