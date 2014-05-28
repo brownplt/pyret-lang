@@ -169,7 +169,7 @@ define([
           restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
         };
         rawImage.onerror = function(e) {
-          restarter.error(runtime.makeMessageException("unable to load " + url + ": " + e.message));
+          restarter.error(runtime.ffi.makeMessageException("unable to load " + url + ": " + e.message));
         };
         rawImage.src = String(url);
       });
@@ -349,7 +349,7 @@ define([
           var y = checkReal(maybeY);
           var background = checkImageOrScene(maybeBackground);
           if (image.isScene(background)) {
-            return makeImage(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
+            return makeImage(background.add(picture, jsnums.toFixnum(x), background.getHeight() - jsnums.toFixnum(y)));
           } else {
             var newScene = image.makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
@@ -522,7 +522,7 @@ define([
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           return makeImage(
-            image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), String(mode), color));
+            image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), jsnums.toFixnum(1), String(mode), color));
         }),
 
         "ellipse": f(function(maybeWidth, maybeHeight, maybeMode, maybeColor) {
