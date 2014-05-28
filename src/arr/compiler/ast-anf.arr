@@ -17,6 +17,7 @@ str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(":")
 str-end = PP.str("end")
+str-type-let = PP.str("type-let ")
 str-let = PP.str("let ")
 str-var = PP.str("var ")
 str-if = PP.str("if ")
@@ -73,7 +74,26 @@ sharing:
   end
 end
 
+data ATypeBind:
+  | a-type-bind(l :: Loc, name :: A.Name, ann :: A.Ann)
+  | a-newtype-bind(l :: Loc, name :: A.Name, namet :: A.Name)
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data AExpr:
+  | a-type-let(l :: Loc, bind :: ATypeBind, body :: AExpr) with:
+    label(self): "a-type-let" end,
+    tosource(self):
+      PP.soft-surround(INDENT, 1,
+        str-type-let +
+        PP.group(PP.nest(INDENT,
+            self.bind.tosource())) + str-colon,
+        self.body.tosource(),
+        str-end)
+    end
   | a-let(l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr) with:
     label(self): "a-let" end,
     tosource(self):
@@ -345,6 +365,8 @@ end
 
 fun strip-loc-expr(expr :: AExpr):
   cases(AExpr) expr:
+    | a-type-let(_, bind, body) =>
+      a-type-let(dummy-loc, bind, body)
     | a-let(_, bind, val, body) =>
       a-let(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-var(_, bind, val, body) =>
@@ -429,6 +451,15 @@ default-map-visitor = {
   end,
   a-import-builtin(self, l :: Loc, lib :: String, name :: Name):
     a-import-builtin(l, lib, name)
+  end,
+  a-type-bind(self, l, name, ann):
+    a-type-bind(l, name, ann)
+  end,
+  a-newtype-bind(self, l, name, nameb):
+    a-newtype-bind(l, name, nameb)
+  end,
+  a-type-let(self, l, bind, body):
+    a-type-let(l, bind.visit(self), body.visit(self))
   end,
   a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-let(l, bind.visit(self), e.visit(self), body.visit(self))
@@ -547,7 +578,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
     | a-any => seen-so-far
     | a-name(l, name) => seen-so-far.add(name)
     | a-dot(l, left, right) => seen-so-far.add(left)
-    | a-arrow(l, args, ret) => lst-a(link(ret, args))
+    | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))
     | a-record(l, fields) => lst-a(fields.map(_.ann))
     | a-app(l, a, args) => lst-a(link(a, args))
@@ -556,6 +587,14 @@ end
 
 fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AExpr) expr:
+    | a-type-let(_, b, body) =>
+      body-ids = freevars-e-acc(body, seen-so-far)
+      cases(ATypeBind) b:
+        | a-type-bind(_, name, ann) =>
+          freevars-ann-acc(ann, body-ids.remove(name))
+        | a-newtype-bind(_, name, nameb) =>
+          body-ids.remove(name).remove(nameb)
+      end
     | a-let(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id)))

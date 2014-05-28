@@ -250,11 +250,23 @@ end
 fun compile-ann(ann):
   cases(A.Ann) ann:
     | a-name(_, n) => j-id(js-id-of(n.tostring()))
-    | else => j-id(js-id-of("Any"))
+    | a-arrow(_, _, _, _) => rt-field("Function")
+    | else => rt-field("Any")
   end
 end
 
 compiler-visitor = {
+  a-type-let(self, l, bind, body):
+    cases(N.ATypeBind) bind:
+      | a-type-bind(l2, name, ann) =>
+        j-block(
+          [list: j-var(js-id-of(name.tostring()), compile-ann(ann))] +
+          body.visit(self).stmts
+        )
+      | a-newtype-bind(l2, name, nameb) =>
+        raise("NYI: newtype-bind")
+    end
+  end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     var-stmts = 

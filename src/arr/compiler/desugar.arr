@@ -375,6 +375,14 @@ fun desugar-expr(expr :: A.Expr):
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-let(l, name, value, keyword-val) =>
       A.s-let(l, name, desugar-expr(value), keyword-val)
+    | s-type-let-expr(l, binds, body) =>
+      fun desugar-type-bind(tb):
+        cases(A.TypeLetBind) tb:
+          | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
+          | s-newtype-bind(l2, name, nameb) => tb
+        end
+      end
+      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
     | s-let-expr(l, binds, body) =>
       new-binds = for map(bind from binds):
         cases(A.LetBind) bind:

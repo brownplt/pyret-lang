@@ -75,6 +75,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("y = 5 x :: y = 5", "not defined as a type");
         P.wait(done);
       });
+
       it("should work for flat contracts", function(done) {
         P.checkError("x :: String = 5", isFail);
         P.checkError("x :: Number = 'foo'", isFail);
@@ -87,9 +88,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
 
-      xit("should bind types", function(done) {
-        P.checkError("type-let N = Number: x :: N = 'foo' end", isFail);
-        P.checkError("type-let S = String, N = Number: x :: S -> N = 'foo' end", isFail);
+      it("should bind types", function(done) {
+        P.checkError("type-let N = Number: x :: N = 'foo' x end", isFail);
+        P.checkError("type-let S = String, N = Number: x :: (S -> N) = 'foo' x end", isFail);
+
+        P.checkEvalsTo("type-let N = Number: x :: N = 5 x end", 5);
         P.wait(done);
       });
     })

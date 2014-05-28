@@ -168,7 +168,8 @@ fun <a, c> default-env-map-visitor(
         s-letrec-bind :: (A.LetrecBind, a -> a),
         s-let-bind :: (A.LetBind, a -> a),
         s-bind :: (A.Bind, a -> a),
-        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c })
+        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
+        s-type-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c })
       }
     ):
   A.default-map-visitor.{
@@ -186,6 +187,16 @@ fun <a, c> default-env-map-visitor(
       end
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
       A.s-program(l, visit-provide, visit-imports, visit-body)
+    end,
+    s-type-let-expr(self, l, binds, body):
+      new-envs = { val-env: self.env, type-env: self.type-env }
+      bound-env = for lists.fold(acc from new-envs.{ bs: [list: ] }, b from binds):
+        updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
+        visit-envs = self.{ env: updated.val-env, type-env: updated.type-env }
+        new-bind = b.visit(visit-envs)
+        updated.{ bs: link(new-bind, acc.bs) }
+      end
+      A.s-type-let-expr(l, bound-env.bs, body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env }))
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
@@ -238,7 +249,8 @@ fun <a, c> default-env-iter-visitor(
         s-letrec-bind :: (A.LetrecBind, a -> a),
         s-let-bind :: (A.LetBind, a -> a),
         s-bind :: (A.Bind, a -> a),
-        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c })
+        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
+        s-type-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c })
       }
     ):
   A.default-iter-visitor.{
@@ -256,6 +268,20 @@ fun <a, c> default-env-iter-visitor(
       else:
         false
       end
+    end,
+    s-type-let-expr(self, l, binds, body):
+      new-envs = { val-env: self.env, type-env: self.type-env }
+      bound-env = for lists.fold-while(acc from new-envs.{ bs: true }, b from binds):
+        updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
+        visit-envs = self.{ env: updated.val-env, type-env: updated.type-env }
+        new-bind = b.visit(visit-envs)
+        if new-bind:
+          E.left(updated.{ bs: true })
+        else:
+          E.right(updated.{ bs: false})
+        end
+      end
+      bound-env.bs and body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env })
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for lists.fold-while(acc from { e: self.env, bs: true }, b from binds):
@@ -306,6 +332,20 @@ binding-handlers = {
       val-env: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown)),
       type-env: type-env.set(imp.name.key(), e-bind(imp.l, false, b-typ))
     }
+  end,
+  s-type-let-bind(_, tlb, env, type-env):
+    cases(A.TypeLetBind) tlb:
+      | s-type-bind(l, name, ann) =>
+        {
+          val-env: env,
+          type-env: type-env.set(name.key(), e-bind(l, false, b-typ))
+        }
+      | s-newtype-bind(l, tname, bname) =>
+        {
+          val-env: env.set(bname.key(), e-bind(l, false, b-unknown)),
+          type-env: type-env.set(tname.key(), e-bind(l, false, b-typ))
+        }
+    end
   end,
   s-let-bind(_, lb, env):
     cases(A.LetBind) lb:

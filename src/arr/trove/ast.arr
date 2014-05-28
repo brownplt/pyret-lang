@@ -112,7 +112,7 @@ sharing:
   _greaterthan(self, other): self.key() > other.key() end,
   _greaterequal(self, other): self.key() >= other.key() end,
   visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(): raise("No visitor field for " + tostring(self)) end)
   end
 end
 

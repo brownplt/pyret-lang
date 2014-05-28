@@ -134,6 +134,18 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-id-letrec(l, id, safe) =>
       k.apply(l, N.a-val(N.a-id-letrec(l, id, safe)))
     | s-srcloc(l, loc) => k.apply(l, N.a-val(N.a-srcloc(l, loc)))
+    | s-type-let-expr(l, binds, body) =>
+      cases(List) binds:
+        | empty => anf(body, k)
+        | link(f, r) =>
+          new-bind = cases(A.TypeLetBind) f:
+            | s-type-bind(l2, name, ann) =>
+              N.a-type-bind(l2, name, ann)
+            | s-newtype-bind(l2, name, namet) =>
+              N.a-newtype-bind(l2, name, namet)
+          end
+          N.a-type-let(l, new-bind, anf(A.s-type-let-expr(l, r, body), k))
+      end
     | s-let-expr(l, binds, body) =>
       cases(List) binds:
         | empty => anf(body, k)

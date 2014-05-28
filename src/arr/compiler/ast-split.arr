@@ -141,6 +141,18 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
           N.a-if(l, cond, consq-split.body, alt-split.body),
           N.freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
+    | a-type-let(l, bind, body) =>
+      body-split = ast-split-expr(body)
+      freevars = cases(N.ATypeBind) bind:
+        | a-newtype-bind(l2, name, nameb) => body-split.freevars.remove(name).remove(nameb)
+        | a-type-bind(l2, name, ann) =>
+          N.freevars-ann-acc(ann, body-split.freevars.remove(name))
+      end
+      split-result-int-e(
+          body-split.helpers,
+          N.a-type-let(l, bind, body-split.body),
+          freevars
+        )
     | a-lettable(e) =>
       cases(N.ALettable) e:
         | a-app(l, f, args) =>
