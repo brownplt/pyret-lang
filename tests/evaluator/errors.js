@@ -99,7 +99,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "fun foo(x):\n" + 
 "  x * 2\n" +
 "where:\n" +
-"  fun foo(x): x == 10 end\n" + // x is not shadowing here
+"  fun check-foo(x): x == 10 end\n" + // x is not shadowing here
 "  check-foo(foo(5)) is true\n" +
 "end\n" +
 "foo(5)";
@@ -112,7 +112,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "  true is true\n" +
 "end";
         P.checkCompileError(prog2, function(e) {
-          expect(e.length).toEqual(2); // Shows up twice because the where clause is copied during desugaring
+          expect(e.length).toEqual(1);
           return true;
         });
         var prog3 =
