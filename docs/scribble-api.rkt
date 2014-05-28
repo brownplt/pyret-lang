@@ -277,14 +277,16 @@
                       #:params (params #f)
                       #:contract (contract #f)
                       #:args (args #f)
-                      #:alt-docstrings (alt-docstrings #f) . body)
+                      #:alt-docstrings (alt-docstrings #f)
+                      #:examples (examples #f)
+                      . body)
    (let* ([methods (get-defn-field (curr-method-location) (curr-var-spec))]
           [var-name (get-defn-field 'name (curr-var-spec))]
           [spec (find-defn 'name name methods)])
      (render-fun-helper
       spec name
       (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
-      contract args alt-docstrings body)))
+      contract args alt-docstrings examples body)))
 @(define (member-spec name #:contract (contract #f) . body)
    (list "TODO" ));(subsubsub*section name) body))
 
@@ -352,7 +354,7 @@
 
 
 ;; render documentation for a function
-@(define (render-fun-helper spec name anchor contract args alt-docstrings contents)
+@(define (render-fun-helper spec name anchor contract args alt-docstrings examples contents)
    (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
@@ -403,20 +405,23 @@
                            (nested #:style (div-style "description") contents)
                            (nested #:style (div-style "examples")
                                    (para (bold "Examples:"))
-                                   "empty for now")))))))))
+                                   (if examples
+                                       (pyret-block examples)
+                                       "empty for now"))))))))))
      ))
 
 @(define (function name
                    #:contract (contract #f)
                    #:args (args #f)
                    #:alt-docstrings (alt-docstrings #f)
+                   #:examples (examples #f)
                    . contents
                    )
    (let ([ans
           (render-fun-helper
            (find-doc (curr-module-name) name) name
            (target-element #f (list name) (list 'part (tag-name (curr-module-name) name)))
-           contract args alt-docstrings contents)])
+           contract args alt-docstrings examples contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)
      ans))
