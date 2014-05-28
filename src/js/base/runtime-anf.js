@@ -811,6 +811,11 @@ function createMethodDict() {
       return thisRuntime.unwrap(val);
     }
 
+    var NumberC = makePrimitiveAnnotation("Number", isNumber);
+    var StringC = makePrimitiveAnnotation("String", isString);
+    var BooleanC = makePrimitiveAnnotation("Boolean", isBoolean);
+    var AnyC = makePrimitiveAnnotation("Any", function() { return true; });
+
 
     /************************
        Builtin Functions
@@ -1314,6 +1319,33 @@ function createMethodDict() {
     function mkPred(jsPred) {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
     }
+
+    function checkAnn(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      if(ffi.isOk(result)) { return val; }
+      console.error(result);
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function PPrimAnn(name, pred) {
+      this.name = name;
+      this.pred = pred;
+    }
+    PPrimAnn.prototype.check = function(compilerLoc, val) {
+        if(this.pred(val)) { return ffi.contractOk; }
+        else {
+          return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, this.name));
+        }
+      }
+
+    function makePrimitiveAnnotation(name, jsPred) {
+      return new PPrimAnn(name, jsPred);
+    }
+
+
 
     /********************
 
@@ -2303,6 +2335,11 @@ function createMethodDict() {
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
 
+          'Number': NumberC,
+          'String': StringC,
+          'Boolean': BooleanC,
+          'Any': AnyC,
+
           'run-task': makeFunction(execThunk),
 
           'gensym': gensym,
@@ -2373,6 +2410,9 @@ function createMethodDict() {
         'printPyretStack': printPyretStack,
 
         'GAS': INITIAL_GAS,
+
+        'checkAnn': checkAnn,
+
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,

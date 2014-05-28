@@ -222,7 +222,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "while",
           "class",
           "interface",
-          "type",
           "generator",
           "alias",
           "extends",

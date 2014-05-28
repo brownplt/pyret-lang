@@ -88,12 +88,12 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         rest-split = ast-split-expr(body)
-        fvs = rest-split.freevars.remove(b.id)
+        fvs = N.freevars-ann-acc(b.ann, rest-split.freevars.remove(b.id))
         h = helper(names.make-atom(b.id.toname()), link(b.id, fvs.to-list()), rest-split.body)
         split-result-int-e(
             concat-singleton(h) + rest-split.helpers,
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),
-            fvs.remove(b.id).union(unions(args.map(N.freevars-v))).union(N.freevars-v(f))
+            fvs.union(unions(args.map(N.freevars-v))).union(N.freevars-v(f))
           )
       | else =>
         e-split = ast-split-lettable(e)
@@ -105,7 +105,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
             else:
               N.a-let(l, b, e-split.body, rest-split.body)
             end,
-            rest-split.freevars.remove(b.id).union(e-split.freevars)
+            N.freevars-ann-acc(b.ann, rest-split.freevars.remove(b.id).union(e-split.freevars))
           )
     end
   end
@@ -160,14 +160,14 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
       split-result-int-l(
           body-split.helpers,
           N.a-lam(l, args, body-split.body),
-          body-split.freevars.difference(set(args.map(_.id)))
+          N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id))))
         )
     | a-method(l, args, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
           N.a-method(l, args, body-split.body),
-          body-split.freevars.difference(set(args.map(_.id)))
+          N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id))))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))

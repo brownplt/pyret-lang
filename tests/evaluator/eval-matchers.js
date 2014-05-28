@@ -60,7 +60,12 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
           expect(result).toBeFailure(runtime);
           if (runtime.isFailureResult(result)) {
             var exn = result.exn;
-            expect(exn).toPassPredicate(exnPred);
+            try {
+              expect(exn).toPassPredicate(exnPred);
+            } catch(e) {
+              console.error("Error while running predicate on program for errors: ", s, e);
+              after();
+            }
           }
           after();
         });

@@ -1,7 +1,7 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib], function(L, O, E, ERR, S) {
+    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib], function(L, O, E, ERR, S, C) {
 
       function makeList(arr) {
         var lst = runtime.getField(L, "empty");
@@ -40,6 +40,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
 
 
       function err(str) { return gf(ERR, str).app; }
+      function contract(str) { return gf(C, str).app; }
       function errPred(str) {
         return function(val) {
           return runtime.unwrap(gf(ERR, str).app(val));
@@ -160,6 +161,21 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return err("module-load-failure")(namesList);
       }
 
+      function makeTypeMismatch(val, name) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(val);
+        return contract("type-mismatch")(val, name);
+      }
+
+      function isOk(val) {
+        return contract("is-ok")(val);
+      }
+
+      function isFail(val) {
+        return contract("is-fail")(val);
+      }
+
+
       return {
         throwPlusError: throwPlusError,
         throwInternalError: throwInternalError,
@@ -180,6 +196,12 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
+
+        makeTypeMismatch: makeTypeMismatch,
+        contractOk: gf(C, "ok"),
+        contractFail: contract("fail"),
+        isOk: isOk,
+        isFail: isFail,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,

@@ -247,15 +247,45 @@ fun arity-check(loc-expr, body-stmts, arity):
       body-stmts))
 end
 
+fun compile-ann(ann):
+  cases(A.Ann) ann:
+    | a-name(_, n) => j-id(js-id-of(n.tostring()))
+    | else => j-id(js-id-of("Any"))
+  end
+end
+
 compiler-visitor = {
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
+    var-stmts = 
+      if b.ann == A.a-blank:
+        [list: j-var(js-id-of(b.id.tostring()), e.visit(self))]
+      else:
+        [list:
+          j-var(js-id-of("ann"), compile-ann(b.ann)),
+          j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: self.get-loc(l), j-id(js-id-of("ann")), e.visit(self)]))
+        ]
+      end
     j-block(
-        link(
-            j-var(js-id-of(b.id.tostring()), e.visit(self)),
-            compiled-body.stmts
-          )
-      )
+      var-stmts +
+      compiled-body.stmts)
+      
+#     ann-id = js-id-of("ann")
+#     existing-ann = j-var(ann-id, rt-method("getAnnIfCached", [list: M, "$ann_" + b.id.tostring()]))
+#     
+#     j-if1(not(j-id(ann-id)),
+#       ann-id = rt-method("makeAndSaveAnn", [list: b.ann])
+#       )
+#     j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: ann-id, e.visit(self)]))
+
+#       ])
+#     j-var(js-id-of(make-name("ann")),
+#       if ann exists and ann is not refinement:
+#         use ann
+#       elseboth:
+#         makeAnn
+#       end
+#   end
   end,
   a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)

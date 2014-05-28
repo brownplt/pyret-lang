@@ -9,7 +9,7 @@ data PyretDialect:
 end
 
 data CompileEnvironment:
-  | compile-env(bindings :: List<CompileBinding>)
+  | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
 end
 
 data CompileResult<C>:
@@ -36,6 +36,10 @@ data CompileError:
   | unbound-var(id :: String, loc :: Loc) with:
     tostring(self):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
+    end
+  | unbound-type-id(id :: A.Ann) with:
+    tostring(self):
+      "Identifier " + tostring(self.id.id) + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
     end
   | pointless-var(loc :: Loc) with:
     tostring(self):
@@ -67,6 +71,28 @@ data CompileError:
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
 end
+
+data CompileTypeBinding:
+  | type-id(id :: String)
+  | type-module-bindings(name :: String, bindings :: List<String>)
+end
+
+runtime-types = lists.map(type-id, [list:
+  "Number",
+  "String",
+  "Function",
+  "Boolean",
+  "Object",
+  "Method"
+])
+
+standard-types = runtime-types +
+  [list:
+    type-module-bindings("lists", [list: "List" ]),
+    type-module-bindings("error", [list: "Error" ]),
+    type-module-bindings("srcloc", [list: "Srcloc" ])
+    #...
+    ]
 
 data CompileBinding:
   | builtin-id(id :: String)
@@ -149,9 +175,9 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-fold"
 ])
 
-no-builtins = compile-env([list: ])
+no-builtins = compile-env([list: ], [list: ])
 
-minimal-builtins = compile-env(runtime-builtins)
+minimal-builtins = compile-env(runtime-builtins, runtime-types)
 
 bootstrap-builtins = compile-env(
   [list: module-bindings("lists", [list: 
@@ -312,7 +338,8 @@ bootstrap-builtins = compile-env(
   "on-key",
   "stop-when",
   "is-key-equal"
-  ])
+  ]),
+  [list:]
 )
 
 standard-builtins = compile-env(
@@ -374,5 +401,7 @@ standard-builtins = compile-env(
           "tree-set",
           "list-set"
         ])
-    ])
+    ],
+    standard-types
+    )
 

@@ -98,7 +98,7 @@ fun anf-import(i :: A.Import):
         | s-file-import(_, fname) => N.a-import-file(l, fname)
         | s-const-import(_, mod) => N.a-import-builtin(l, mod)
       end
-      N.a-import-type(l, itype, name, types)
+      N.a-import-types(l, itype, name, types)
   end
 end
 

@@ -534,14 +534,34 @@ default-map-visitor = {
   end
 }
 
+fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
+  for fold(acc from seen-so-far, a from anns):
+    freevars-ann-acc(a, acc)
+  end
+end
+
+fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
+  lst-a = freevars-list-acc(_, seen-so-far)
+  cases(A.Ann) ann:
+    | a-blank => seen-so-far
+    | a-any => seen-so-far
+    | a-name(l, name) => seen-so-far.add(name)
+    | a-dot(l, left, right) => seen-so-far.add(left)
+    | a-arrow(l, args, ret) => lst-a(link(ret, args))
+    | a-method(l, args, ret) => lst-a(link(ret, args))
+    | a-record(l, fields) => lst-a(fields.map(_.ann))
+    | a-app(l, a, args) => lst-a(link(a, args))
+  end
+end
+
 fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(AExpr) expr:
     | a-let(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      freevars-l-acc(e, from-body.remove(b.id))
+      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id)))
     | a-var(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      freevars-l-acc(e, from-body.remove(b.id))
+      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id)))
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
       freevars-l-acc(e1, from-e2)
@@ -575,8 +595,15 @@ where:
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
-  for fold(acc from seen-so-far, member from v.with-members):
-    freevars-v-acc(member, acc)
+  from-members = cases(AVariant) v:
+    | a-variant(_, _, _, members, _) =>
+      for fold(acc from seen-so-far, m from members):
+        freevars-ann-acc(m.bind.ann, acc)
+      end
+    | a-singleton-variant(_, _, _) => seen-so-far
+  end
+  for fold(acc from from-members, m from v.with-members):
+    freevars-v-acc(m, acc)
   end
 end
 
@@ -594,10 +621,16 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
       end
     | a-lam(_, args, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      from-body.difference(set(args.map(_.id)))
+      from-args = for fold(acc from seen-so-far, a from args):
+        freevars-ann-acc(a.ann, acc)
+      end
+      from-body.difference(set(args.map(_.id))).union(from-args)
     | a-method(_, args, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      from-body.difference(set(args.map(_.id)))
+      from-args = for fold(acc from seen-so-far, a from args):
+        freevars-ann-acc(a.ann, acc)
+      end
+      from-body.difference(set(args.map(_.id))).union(from-args)
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)
