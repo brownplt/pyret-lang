@@ -55,12 +55,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               restarter.resume(finalWorldValue);
             },
             function(err) {
-              if(runtime.isPyretException(err)) {
-                restarter.error(err.exn);
-              }
-              else {
-                restarter.error(err);
-              }
+              restarter.error(err);
             });
         });
     };
