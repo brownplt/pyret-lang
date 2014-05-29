@@ -297,6 +297,16 @@ fun contract-checks(args, ret, body, visitor):
 end
 
 compiler-visitor = {
+  a-module(self, l, answer, provides, types, checks):
+    rt-method("makeObject", [list:
+        j-obj([list:
+            j-field("answer", answer.visit(self)),
+            j-field("provide-plus-types",
+              rt-method("makeObject", [list: j-obj([list:
+                      j-field("values", provides.visit(self)),
+                      j-field("types", j-obj(empty))])])), # TODO
+            j-field("checks", checks.visit(self))])])
+  end,
   a-type-let(self, l, bind, body):
     cases(N.ATypeBind) bind:
       | a-type-bind(l2, name, ann) =>
@@ -432,13 +442,13 @@ compiler-visitor = {
   a-undefined(self, l :: Loc):
     undefined
   end,
-  a-id(self, l :: Loc, id :: String):
+  a-id(self, l :: Loc, id :: A.Name):
     j-id(js-id-of(id.tostring()))
   end,
-  a-id-var(self, l :: Loc, id :: String):
+  a-id-var(self, l :: Loc, id :: A.Name):
     j-dot(j-id(js-id-of(id.tostring())), "$var")
   end,
-  a-id-letrec(self, l :: Loc, id :: String, safe :: Boolean):
+  a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = id.tostring()
     if safe:
       j-dot(j-id(js-id-of(s)), "$var")
@@ -585,6 +595,7 @@ end
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
+  print("We think the free ids are " + tostring(free-ids))
   namespace-binds = for map(n from free-ids.to-list()):
     j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
   end

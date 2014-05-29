@@ -236,6 +236,16 @@ end
 
 
 data ALettable:
+  | a-module(l :: Loc, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
+    label(self): "a-module" end,
+    tosource(self):
+      PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
+            PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
+            PP.infix(INDENT, 1, str-colon, PP.str("Types"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
+    end    
   | a-data-expr(l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>) with:
     label(self): "a-data-expr" end,
     tosource(self):
@@ -398,12 +408,15 @@ end
 
 fun strip-loc-bind(bind :: ABind):
   cases(ABind) bind:
-    | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann)
+    | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann.visit(A.dummy-loc-visitor))
   end
 end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
+    | a-module(_, answer, provides, types, checks) =>
+      a-module(dummy-loc, strip-loc-val(answer), strip-loc-val(provides),
+        types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
     | a-app(_, f, args) =>
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
@@ -450,6 +463,9 @@ fun strip-loc-val(val :: AVal):
 end
 
 default-map-visitor = {
+  a-module(self, l :: Loc, answer :: AVal, provides :: AVal, types :: List<A.AField>, checks :: AVal):
+    a-module(l, answer.visit(self), provides.visit(self), types, checks.visit(self))
+  end,
   a-program(self, l :: Loc, imports :: List<AHeader>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
   end,
@@ -661,6 +677,11 @@ end
 
 fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
   cases(ALettable) e:
+    | a-module(_, ans, provs, types, checks) =>
+      freevars-v-acc(ans,
+        freevars-v-acc(provs,
+          freevars-list-acc(types.map(_.ann),
+            freevars-v-acc(checks, seen-so-far))))
     | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
     | a-app(_, f, args) =>
       from-f = freevars-v-acc(f, seen-so-far)
@@ -727,7 +748,12 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
     | a-id(_, id) => seen-so-far.add(id)
     | a-id-var(_, id) => seen-so-far.add(id)
     | a-id-letrec(_, id, _) => seen-so-far.add(id)
-    | else => seen-so-far
+    | a-srcloc(_, _) => seen-so-far
+    | a-num(_, _) => seen-so-far
+    | a-str(_, _) => seen-so-far
+    | a-bool(_, _) => seen-so-far
+    | a-undefined(_) => seen-so-far
+    | else => raise("Unknown AVal in freevars-v " + torepr(v))
   end
 end
 

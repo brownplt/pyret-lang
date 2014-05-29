@@ -315,19 +315,8 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           A.s-block(l2, extra-lets + desugar-toplevel-types(stmts))
         | else => A.s-block(l, extra-lets + desugar-toplevel-types([list: body]))
       end
-      fun transform-toplevel-last(shadow l, last):
-          A.s-obj(l, [list:
-              A.s-data-field(l, str("answer"), last),
-              A.s-data-field(l, str("provide-plus-types"), A.s-obj(l, [list:
-                  A.s-data-field(l, str("values"), prov),
-                  A.s-data-field(l, str("types"), A.s-obj(l, [list: ]))
-                ])),
-              A.s-data-field(
-                  l,
-                  str("checks"),
-                  A.s-app(l, A.s-dot(l, U.checkers(l), "results"), [list: ])
-                )
-            ])
+      fun transform-toplevel-last(l2, last):
+        A.s-module(l2, last, prov, empty, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
@@ -343,7 +332,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
             | else =>
               A.s-block(l2, stmts.take(stmts.length() - 1) + [list: transform-toplevel-last(l2, last)])
           end
-        | else => with-imports
+        | else => raise("Impossible")
       end
       wrapped = wrap-env-imports(l, with-provides, compile-env)
       full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):

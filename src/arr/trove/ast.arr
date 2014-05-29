@@ -305,6 +305,16 @@ end
 
 
 data Expr:
+  | s-module(l :: Loc, answer :: Expr, provides :: Expr, types :: List<AField>, checks :: Expr) with:
+    label(self): "s-module" end,
+    tosource(self):
+      PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
+            PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
+    end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
     label(self): "s-type-let" end,
     tosource(self):
@@ -1095,6 +1105,10 @@ default-map-visitor = {
   s-atom(self, base, serial):
     s-atom(base, serial)
   end,
+
+  s-module(self, l, answer, provides, types, checks):
+    s-module(l, answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  end,
   
   s-program(self, l, _provide, imports, body):
     s-program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
@@ -1528,6 +1542,10 @@ default-iter-visitor = {
     true
   end,
   
+  s-module(self, l, answer, provides, types, checks):
+    answer.visit(self) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  end,
+  
   s-program(self, l, _provide, imports, body):
     _provide.visit(self) and lists.all(_.visit(self), imports) and body.visit(self)
   end,
@@ -1948,6 +1966,11 @@ dummy-loc-visitor = {
   end,
   s-atom(self, base, serial):
     s-atom(base, serial)
+  end,
+  
+  s-module(self, l, answer, provides, types, checks):
+    s-module(dummy-loc,
+      answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
   s-program(self, l, _provide, imports, body):

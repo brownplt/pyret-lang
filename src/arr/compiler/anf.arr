@@ -124,6 +124,14 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
+    | s-module(l, answer, provides, types, checks) =>
+      anf-name(answer, "answer", lam(ans):
+          anf-name(provides, "provides", lam(provs):
+              anf-name(checks, "checks", lam(chks):
+                  k.apply(l, N.a-module(l, ans, provs, types, chks))
+                end)
+            end)
+        end)
     | s-num(l, n) => k.apply(l, N.a-val(N.a-num(l, n)))
     | s-frac(l, num, den) => k.apply(l, N.a-val(N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k.apply(l, N.a-val(N.a-str(l, s)))

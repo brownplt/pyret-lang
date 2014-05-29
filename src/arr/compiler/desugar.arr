@@ -43,7 +43,9 @@ fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
-
+fun desugar-afield(f :: A.AField) -> A.AField:
+  A.a-field(f.l, f.name, desugar-ann(f.ann))
+end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
@@ -57,9 +59,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-app(l, base, args) =>
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
-      A.a-record(l, for map(f from fields):
-        A.a-field(l, f.name, desugar-ann(f.ann))
-      end)
+      A.a-record(l, fields.map(desugar-afield))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -361,6 +361,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
+    | s-module(l, answer, provides, types, checks) =>
+      A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
