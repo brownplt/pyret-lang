@@ -374,6 +374,8 @@ fun dict(l):
 end
 
 
+data RGB: red | green | blue end
+
 check:
   fun error-text(msg): lam(val):
       cases(ParsedArguments) val:
@@ -479,7 +481,6 @@ check:
   parse-args(many-required-next-num, [list: "--foo", "-4"]) is success(dict([list: "foo", [list: -4]]), [list: ])
   parse-args(many-required-next-num, [list: "--foo", "-4", "-4"]) is success(dict([list: "foo", [list: -4], "4", [list: true]]), [list: ])
 
-  data RGB: red | green | blue end
   custom-parser = read-custom("red|green|blue", lam(arg-index, name, val):
       if val == "red": left(red)
       else if val == "green": left(green)

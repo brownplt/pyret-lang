@@ -29,6 +29,7 @@ str-spaceequal = PP.str(" =")
 str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
+str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
 
@@ -66,7 +67,7 @@ data AImport:
   | a-import-types(l :: Loc, import-type :: AImportType, name :: Name, types :: Name) with:
     label(self): "a-import-types" end,
     tosource(self):
-      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.comman, self.types.tosource()])
+      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.commabreak, self.types.tosource()])
     end
 sharing:
   visit(self, visitor):
@@ -75,8 +76,14 @@ sharing:
 end
 
 data ATypeBind:
-  | a-type-bind(l :: Loc, name :: A.Name, ann :: A.Ann)
-  | a-newtype-bind(l :: Loc, name :: A.Name, namet :: A.Name)
+  | a-type-bind(l :: Loc, name :: A.Name, ann :: A.Ann) with:
+    label(self): "a-type-bind" end,
+    tosource(self): PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource()) end
+  | a-newtype-bind(l :: Loc, name :: A.Name, namet :: A.Name) with:
+    label(self): "a-newtype-bind" end,
+    tosource(self):
+      PP.group(str-newtype + self.name.tosource() + break-one + str-as + break-one + self.namet.tosource())
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

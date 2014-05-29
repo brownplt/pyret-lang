@@ -8,8 +8,9 @@ import "compiler/compile-structs.arr" as C
 import format as F
 
 # TODO: Make this a mutable field when we have them...
-var errors = [list: ]
+var errors = empty
 var in-check-block = false
+var cur-shared = empty
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
 
 reserved-names = [list: 
@@ -191,149 +192,422 @@ fun reachable-ops(self, l, op, ast):
   end
 end
 
-fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
-  var cur-shared = [list: ]
-  errors := [list: ]
-  well-formed-visitor = A.default-iter-visitor.{
-    s-program(self, l, _provide, imports, body):
-      ok-body = cases(A.Expr) body:
-        | s-block(l2, stmts) => lists.all(_.visit(self), stmts)
-        | else => body.visit(self)
-      end
-      ok-body and (_provide.visit(self)) and (lists.all(_.visit(self), imports))
-    end,
-    s-op(self, l, op, left, right):
-      reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
-    end,
-    s-cases-branch(self, l, name, args, body):
-      when (name == "_"):
-        wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
-      end
-      ensure-unique-ids(args)
-      lists.all(_.visit(self), args) and body.visit(self)
-    end,
-    s-block(self, l, stmts):
-      if is-empty(stmts):
-        wf-error("Empty block", l)
-        true
-      else:
-        wf-last-stmt(stmts.last())
-        bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
-        ensure-unique-bindings(bind-stmts.reverse())
-        lists.all(_.visit(self), stmts)
-      end
-    end,
-    s-singleton-variant(self, l, name, with-members):
-      ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
-      lists.all(_.visit(self), with-members)
-    end,
-    s-bind(self, l, shadows, name, ann):
-      when (reserved-names.member(tostring(name))):
-        reserved-name(l, tostring(name))
-      end
-      true
-    end,
-    s-variant(self, l, constr-loc, name, binds, with-members):
-      ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
-      lists.all(_.visit(self), binds) and lists.all(_.visit(self), with-members)
-    end,
-    s-data(self, l, name, params, mixins, variants, shares, _check):
-      ensure-unique-variant-ids(variants)
-      the-cur-shared = cur-shared
-      cur-shared := fields-to-binds(shares)
-      ret = lists.all(_.visit(self), mixins) and lists.all(_.visit(self), variants) and lists.all(_.visit(self), shares)
-      cur-shared := the-cur-shared
-      ret and wrap-visit-check(self, _check)
-    end,
-    s-datatype-variant(self, l, name, binds, constructor):
-      ensure-unique-ids(fields-to-binds(binds))
-      lists.all(_.visit(self), binds) and constructor.visit(self)
-    end,
-    s-data-expr(self, l, name, params, mixins, variants, shared, _check):
-      ensure-unique-variant-ids(variants)
-      the-cur-shared = cur-shared
-      cur-shared := fields-to-binds(shared)
-      ret = lists.all(_.visit(self), mixins) and lists.all(_.visit(self), variants) and lists.all(_.visit(self), shared)
-      cur-shared := the-cur-shared
-      ret and wrap-visit-check(self, _check)
-    end,
-    s-check-test(self, l, op, left, right):
-      when not(in-check-block):
-        if  (op == "opis"):
-          wf-error("Cannot use `is` outside of a `check` or `where` block", l)
-        else:
-          wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
-        end
-      end
-      left.visit(self) and right.visit(self)
-    end,
-    s-method-field(self, l, name, args, ann, doc, body, _check):
-      when args.length() == 0:
-        wf-error("Cannot have a method with zero arguments", l)
-      end
-      ensure-unique-ids(args)
-      cases(Option) _check:
-        | none => nothing
-        | some(chk) => ensure-empty-block(l, "methods", chk)
-      end
-      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-    end,
-    s-method(self, l, args, ann, doc, body, _check):
-      when args.length() == 0:
-        wf-error("Cannot have a method with zero arguments", l)
-      end
-      ensure-unique-ids(args)
-      cases(Option) _check:
-        | none => nothing
-        | some(chk) => ensure-empty-block(l, "methods", chk)
-      end
-      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-    end,
-    s-lam(self, l, params, args, ann, doc, body, _check):
-      ensure-unique-ids(args)
-      cases(Option) _check:
-        | none => nothing
-        | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
-      end
-      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-    end,
-    s-fun(self, s, name, params, args, ann, doc, body, _check):
-      ensure-unique-ids(args)
-      lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
-    end,
-    s-check(self, l, name, body, keyword-check):
-      wrap-visit-check(self, some(body))
-    end,
-    s-if(self, l, branches):
-      when branches.length() == 1:
-        wf-error("Cannot have an `if` with a single branch", l)
-      end
-      lists.all(_.visit(self), branches)
-    end,
-    s-cases(self, l, typ, val, branches):
-      ensure-unique-cases(branches)
-      typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
-    end,
-    s-cases-else(self, l, typ, val, branches, _else):
-      ensure-unique-cases(branches)
-      typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
-    end,
-    s-frac(self, l, num, den):
-      when den == 0:
-        add-error(C.zero-fraction(l, num))
-      end
-      true
-    end,
-    s-id(self, l, id):
-      when (reserved-names.member(tostring(id))):
-        reserved-name(l, tostring(id))
-      end
-      true
-    end
-  }
 
-  in-check-block := false
-  if ast.visit(well-formed-visitor) and (errors.length() == 0): C.ok(ast)
-  else: C.err(errors)
+
+
+
+well-formed-visitor = A.default-iter-visitor.{
+  s-program(self, l, _provide, imports, body):
+    raise("Impossible")
+  end,
+  s-data(self, l, name, params, mixins, variants, shares, _check):
+    wf-error("Cannot define a data expression except at the top level of a file", l)
+    false
+  end,
+  s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
+    wf-error("Cannot define a data expression except at the top level of a file", l)
+    false
+  end,
+  s-type(self, l, name, ann):
+    wf-error("Cannot define a type alias except at the top level of a file", l)
+    false
+  end,
+  s-newtype(self, l, name, namet):
+    wf-error("Cannot define a newtype except at the top level of a file", l)
+    false
+  end,
+  s-type-let-expr(self, l, binds, body):
+    wf-error("Cannot define newtypes or type aliases except at the top level of a file", l)
+    false
+  end,
+  s-op(self, l, op, left, right):
+    reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
+  end,
+  s-cases-branch(self, l, name, args, body):
+    when (name == "_"):
+      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
+    end
+    ensure-unique-ids(args)
+    lists.all(_.visit(self), args) and body.visit(self)
+  end,
+  s-block(self, l, stmts):
+    if is-empty(stmts):
+      wf-error("Empty block", l)
+      true
+    else:
+      wf-last-stmt(stmts.last())
+      bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
+      ensure-unique-bindings(bind-stmts.reverse())
+      lists.all(_.visit(self), stmts)
+    end
+  end,
+  s-bind(self, l, shadows, name, ann):
+    when (reserved-names.member(tostring(name))):
+      reserved-name(l, tostring(name))
+    end
+    true
+  end,
+  s-check-test(self, l, op, left, right):
+    when not(in-check-block):
+      if  (op == "opis"):
+        wf-error("Cannot use `is` outside of a `check` or `where` block", l)
+      else:
+        wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
+      end
+    end
+    left.visit(self) and right.visit(self)
+  end,
+  s-method-field(self, l, name, args, ann, doc, body, _check):
+    when args.length() == 0:
+      wf-error("Cannot have a method with zero arguments", l)
+    end
+    ensure-unique-ids(args)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "methods", chk)
+    end
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+  end,
+  s-method(self, l, args, ann, doc, body, _check):
+    when args.length() == 0:
+      wf-error("Cannot have a method with zero arguments", l)
+    end
+    ensure-unique-ids(args)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "methods", chk)
+    end
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+  end,
+  s-lam(self, l, params, args, ann, doc, body, _check):
+    ensure-unique-ids(args)
+    cases(Option) _check:
+      | none => nothing
+      | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
+    end
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+  end,
+  s-fun(self, s, name, params, args, ann, doc, body, _check):
+    ensure-unique-ids(args)
+    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+  end,
+  s-check(self, l, name, body, keyword-check):
+    wrap-visit-check(self, some(body))
+  end,
+  s-if(self, l, branches):
+    when branches.length() == 1:
+      wf-error("Cannot have an `if` with a single branch", l)
+    end
+    lists.all(_.visit(self), branches)
+  end,
+  s-cases(self, l, typ, val, branches):
+    ensure-unique-cases(branches)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
+  end,
+  s-cases-else(self, l, typ, val, branches, _else):
+    ensure-unique-cases(branches)
+    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
+  end,
+  s-frac(self, l, num, den):
+    when den == 0:
+      add-error(C.zero-fraction(l, num))
+    end
+    true
+  end,
+  s-id(self, l, id):
+    when (reserved-names.member(tostring(id))):
+      reserved-name(l, tostring(id))
+    end
+    true
   end
+}
+top-level-visitor = A.default-iter-visitor.{
+  s-program(self, l, _provide, imports, body):
+    ok-body = cases(A.Expr) body:
+      | s-block(l2, stmts) => lists.all(_.visit(self), stmts)
+      | else => body.visit(self)
+    end
+    ok-body and (_provide.visit(self)) and (lists.all(_.visit(self), imports))
+  end,
+  s-type(self, l, name, ann):
+    ann.visit(well-formed-visitor)
+  end,
+  s-newtype(self, l, name, namet):
+    true
+  end,
+  s-type-let-expr(self, l, binds, body):
+    lists.all(_.visit(self), binds) and body.visit(well-formed-visitor)
+  end,
+  s-type-bind(self, l, name, ann):
+    ann.visit(well-formed-visitor)
+  end,
+  s-newtype-bind(self, l, name, namet):
+    true
+  end,
+  s-variant(self, l, constr-loc, name, binds, with-members):
+    ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
+    lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
+  end,
+  s-singleton-variant(self, l, name, with-members):
+    ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
+    lists.all(_.visit(well-formed-visitor), with-members)
+  end,
+  s-data(self, l, name, params, mixins, variants, shares, _check):
+    ensure-unique-variant-ids(variants)
+    the-cur-shared = cur-shared
+    cur-shared := fields-to-binds(shares)
+    ret = lists.all(_.visit(well-formed-visitor), mixins)
+    and lists.all(_.visit(well-formed-visitor), variants)
+    and lists.all(_.visit(well-formed-visitor), shares)
+    cur-shared := the-cur-shared
+    ret and wrap-visit-check(well-formed-visitor, _check)
+  end,
+  s-datatype-variant(self, l, name, binds, constructor):
+    ensure-unique-ids(fields-to-binds(binds))
+    lists.all(_.visit(well-formed-visitor), binds) and constructor.visit(well-formed-visitor)
+  end,
+  s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
+    ensure-unique-variant-ids(variants)
+    the-cur-shared = cur-shared
+    cur-shared := fields-to-binds(shared)
+    ret = lists.all(_.visit(well-formed-visitor), mixins)
+    and lists.all(_.visit(well-formed-visitor), variants)
+    and lists.all(_.visit(well-formed-visitor), shared)
+    cur-shared := the-cur-shared
+    ret and wrap-visit-check(well-formed-visitor, _check)
+  end,
+
+
+  # Everything else delegates to the non-toplevel visitor
+  s-import(_, l, import-type, name):
+    well-formed-visitor.s-import(l, import-type, name)
+  end,
+  s-import-types(_, l, import-type, name, types):
+    well-formed-visitor.s-import-types(l, import-type, name, types)
+  end,
+  s-import-fields(_, l, fields, import-type):
+    well-formed-visitor.s-import-fields(l, fields, import-type)
+  end,
+  s-provide(_, l, expr):
+    well-formed-visitor.s-provide(l, expr)
+  end,
+  s-bind(_, l, shadows, name, ann):
+    well-formed-visitor.s-bind(l, shadows, name, ann)
+  end,
+  s-var-bind(_, l, bind, expr):
+    well-formed-visitor.s-var-bind(l, bind, expr)
+  end,
+  s-let-bind(_, l, bind, expr):
+    well-formed-visitor.s-let-bind(l, bind, expr)
+  end,
+  s-let-expr(_, l, binds, body):
+    well-formed-visitor.s-let-expr(l, binds, body)
+  end,
+  s-letrec-bind(_, l, bind, expr):
+    well-formed-visitor.s-letrec-bind(l, bind, expr)
+  end,
+  s-letrec(_, l, binds, body):
+    well-formed-visitor.s-letrec(l, binds, body)
+  end,
+  s-hint-exp(_, l :: Loc, hints :: List<Hint>, exp :: Expr):
+    well-formed-visitor.s-hint-exp(l, hints, exp)
+  end,
+  s-instantiate(_, l :: Loc, expr :: Expr, params :: List<Ann>):
+    well-formed-visitor.s-instantiate(l, expr, params)
+  end,
+  s-block(_, l, stmts):
+    well-formed-visitor.s-block(l, stmts)
+  end,
+  s-user-block(_, l :: Loc, body :: Expr):
+    well-formed-visitor.s-user-block(l, body)
+  end,
+  s-fun(_, l, name, params, args, ann, doc, body, _check):
+    well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check)
+  end,
+  s-type(_, l :: Loc, name :: Name, ann :: Ann):
+    well-formed-visitor.s-type(l, name, ann)
+  end,
+  s-newtype(_, l :: Loc, name :: Name, namet :: Name):
+    well-formed-visitor.s-newtype(l, name, namet)
+  end,
+  s-var(_, l :: Loc, name :: Bind, value :: Expr):
+    well-formed-visitor.s-var(l, name, value)
+  end,
+  s-let(_, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Bool):
+    well-formed-visitor.s-let(l, name, value, keyword-val)
+  end,
+  s-graph(_, l :: Loc, bindings :: List<is-s-let>):
+    well-formed-visitor.s-graph(l, bindings)
+  end,
+  s-when(_, l :: Loc, test :: Expr, block :: Expr):
+    well-formed-visitor.s-when(l, test, block)
+  end,
+  s-contract(_, l :: Loc, name :: Name, ann :: Ann):
+    well-formed-visitor.s-contract(l, name, ann)
+  end,
+  s-assign(_, l :: Loc, id :: Name, value :: Expr):
+    well-formed-visitor.s-assign(l, id, value)
+  end,
+  s-if-branch(_, l :: Loc, test :: Expr, body :: Expr):
+    well-formed-visitor.s-if-branch(l, test, body)
+  end,
+  s-if-pipe-branch(_, l :: Loc, test :: Expr, body :: Expr):
+    well-formed-visitor.s-if-pipe-branch(l, test, body)
+  end,
+  s-if(_, l :: Loc, branches :: List<IfBranch>):
+    well-formed-visitor.s-if(l, branches)
+  end,
+  s-if-else(_, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+    well-formed-visitor.s-if-else(l, branches, _else)
+  end,
+  s-if-pipe(_, l :: Loc, branches :: List<IfPipeBranch>):
+    well-formed-visitor.s-if-pipe(l, branches)
+  end,
+  s-if-pipe-else(_, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+    well-formed-visitor.s-if-pipe-else(l, branches, _else)
+  end,
+  s-cases-branch(_, l :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+    well-formed-visitor.s-cases-branch(l, name, args, body)
+  end,
+  s-cases(_, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
+    well-formed-visitor.s-cases(l, typ, val, branches)
+  end,
+  s-cases-else(_, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+    well-formed-visitor.s-cases-else(l, typ, val, branches, _else)
+  end,
+  s-try(_, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
+    well-formed-visitor.s-try(l, body, id, _except)
+  end,
+  s-op(_, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    well-formed-visitor.s-op(l, op, left, right)
+  end,
+  s-check-test(_, l :: Loc, op :: String, left :: Expr, right :: Expr):
+    well-formed-visitor.s-check-test(l, op, left, right)
+  end,
+  s-paren(_, l :: Loc, expr :: Expr):
+    well-formed-visitor.s-paren(l, expr)
+  end,
+  s-lam(_, l :: Loc, params :: List<String>, args :: List<Bind>, ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>):
+    well-formed-visitor.s-lam(l, params, args, ann, doc, body, _check)
+  end,
+  s-method(_, l :: Loc, args :: List<Bind>, ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>):
+    well-formed-visitor.s-method(l, args, ann, doc, body, _check)
+  end,
+  s-extend(_, l :: Loc, supe :: Expr, fields :: List<Member>):
+    well-formed-visitor.s-extend(l, supe, fields)
+  end,
+  s-update(_, l :: Loc, supe :: Expr, fields :: List<Member>):
+    well-formed-visitor.s-update(l, supe, fields)
+  end,
+  s-obj(_, l :: Loc, fields :: List<Member>):
+    well-formed-visitor.s-obj(l, fields)
+  end,
+  s-array(_, l :: Loc, values :: List<Expr>):
+    well-formed-visitor.s-array(l, values)
+  end,
+  s-bless(_, l :: Loc, expr :: Expr, typ :: Name):
+    well-formed-visitor.s-bless(l, expr, typ)
+  end,
+  s-confirm(_, l :: Loc, expr :: Expr, typ :: Name):
+    well-formed-visitor.s-confirm(l, expr, typ)
+  end,
+  s-construct(_, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
+    well-formed-visitor.s-construct(l, mod, constructor, values)
+  end,
+  s-app(_, l :: Loc, _fun :: Expr, args :: List<Expr>):
+    well-formed-visitor.s-app(l, _fun, args)
+  end,
+  s-prim-app(_, l :: Loc, _fun :: String, args :: List<Expr>):
+    well-formed-visitor.s-prim-app(l, _fun, args)
+  end,
+  s-frac(_, l :: Loc, num, den):
+    well-formed-visitor.s-frac(l, num, den)
+  end,
+  s-id(_, l :: Loc, id :: Name):
+    well-formed-visitor.s-id(l, id)
+  end,
+  s-id-var(_, l :: Loc, id :: Name):
+    well-formed-visitor.s-id-var(l, id)
+  end,
+  s-id-letrec(_, l :: Loc, id :: Name, safe :: Boolean):
+    well-formed-visitor.s-id-letrec(l, id, safe)
+  end,
+  s-dot(_, l :: Loc, obj :: Expr, field :: String):
+    well-formed-visitor.s-dot(l, obj, field)
+  end,
+  s-get-bang(_, l :: Loc, obj :: Expr, field :: String):
+    well-formed-visitor.s-get-bang(l, obj, field)
+  end,
+  s-bracket(_, l :: Loc, obj :: Expr, field :: Expr):
+    well-formed-visitor.s-bracket(l, obj, field)
+  end,
+  s-for(_, l :: Loc, iterator :: Expr, bindings :: List<ForBind>, ann :: Ann, body :: Expr):
+    well-formed-visitor.s-for(l, iterator, bindings, ann, body)
+  end,
+  s-check(_, l :: Loc, name :: String, body :: Expr, keyword-check :: Bool):
+    well-formed-visitor.s-check(l, name, body, keyword-check)
+  end,
+  s-data-field(_, l :: Loc, name :: Expr, value :: Expr):
+    well-formed-visitor.s-data-field(l, name, value)
+  end,
+  s-mutable-field(_, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    well-formed-visitor.s-mutable-field(l, name, ann, value)
+  end,
+  s-once-field(_, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
+    well-formed-visitor.s-once-field(l, name, ann, value)
+  end,
+  s-method-field(_, l :: Loc, name :: Expr, args :: List<Bind>, ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>):
+    well-formed-visitor.s-method-field(l, name, args, ann, doc, body, _check)
+  end,
+  s-for-bind(_, l :: Loc, bind :: Bind, value :: Expr):
+    well-formed-visitor.s-for-bind(l, bind, value)
+  end,
+  s-variant-member(_, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+    well-formed-visitor.s-variant-member(l, member-type, bind)
+  end,
+  s-variant(_, l :: Loc, constr-loc :: Loc, name :: String, members :: List<VariantMember>, with-members :: List<Member>):
+    well-formed-visitor.s-variant(l, constr-loc, name, members, with-members)
+  end,
+  s-datatype-singleton-variant(_, l :: Loc, name :: String, constructor :: Constructor):
+    well-formed-visitor.s-datatype-singleton-variant(l, name, constructor)
+  end,
+  s-datatype-constructor(_, l :: Loc, well-formed-visitor-arg :: String, body :: Expr):
+    well-formed-visitor.s-datatype-constructor(l, well-formed-visitor-arg, body)
+  end,
+  a-arrow(_, l, args, ret, use-parens):
+    well-formed-visitor.a-arrow(l, args, ret, use-parens)
+  end,
+  a-method(_, l, args, ret):
+    well-formed-visitor.a-method(l, args, ret)
+  end,
+  a-record(_, l, fields):
+    well-formed-visitor.a-record(l, fields)
+  end,
+  a-app(_, l, ann, args):
+    well-formed-visitor.a-app(l, ann, args)
+  end,
+  a-pred(_, l, ann, exp):
+    well-formed-visitor.a-pred(l, ann, exp)
+  end,
+  a-dot(_, l, obj, field):
+    well-formed-visitor.a-dot(l, obj, field)
+  end,
+  a-field(_, l, name, ann):
+    well-formed-visitor.a-field(l, name, ann)
+  end
+}
+
+fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
+  cur-shared := empty
+  errors := empty
+  in-check-block := false
+  ans =
+    if ast.visit(top-level-visitor) and (errors.length() == 0): C.ok(ast)
+    else: C.err(errors)
+    end
+  # cleanup
+  cur-shared := empty
+  errors := empty
+  in-check-block := false
+  ans
 end

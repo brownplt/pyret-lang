@@ -375,6 +375,8 @@ fun desugar-expr(expr :: A.Expr):
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-let(l, name, value, keyword-val) =>
       A.s-let(l, name, desugar-expr(value), keyword-val)
+    | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
+    | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body) =>
       fun desugar-type-bind(tb):
         cases(A.TypeLetBind) tb:
@@ -401,7 +403,7 @@ fun desugar-expr(expr :: A.Expr):
           end
         end
       A.s-letrec(l, new-binds, desugar-expr(body))
-    | s-data-expr(l, name, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
           [list: 
@@ -426,7 +428,7 @@ fun desugar-expr(expr :: A.Expr):
               (methods + with-members).map(desugar-member))
         end
       end
-      A.s-data-expr(l, name, params, mixins.map(desugar-expr), variants.map(extend-variant),
+      A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
       test-id = mk-id(l, "when-")

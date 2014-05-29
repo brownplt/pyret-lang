@@ -58,8 +58,40 @@ fun resolve-imports(imports :: List<A.Import>):
   { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
 end
 
+fun desugar-toplevel-types(stmts) -> List<A.Expr>:
+  doc: ```
+  Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
+  to the top, turning them into a type-let-expression, and generate newtypes for all
+  data expressions.
+  ```
+  when not(List(stmts)): raise("Expected list of statements, got " + torepr(stmts)) end
+  var rev-type-binds = empty
+  var rev-stmts = empty
+  for lists.each(s from stmts):
+    cases(A.Expr) s:
+      | s-type(l, name, ann) =>
+        rev-type-binds := link(A.s-type-bind(l, name, ann), rev-type-binds)
+      | s-newtype(l, name, namet) =>
+        rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
+      | s-data(l, name, params, mixins, variants, shared, _check) =>
+        namet = G.make-name(name + "T")
+        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), A.s-name(l, namet)), rev-type-binds)
+        rev-stmts := link(A.s-data-expr(l, name, A.s-name(l, namet), params, mixins, variants, shared, _check), rev-stmts)
+      | else =>
+        rev-stmts := link(s, rev-stmts)
+    end
+  end
+  if is-empty(rev-type-binds):
+    stmts
+  else:
+    type-binds = rev-type-binds.reverse()
+    new-stmts = rev-stmts.reverse()
+    [list: A.s-type-let-expr(type-binds.first.l, type-binds, A.s-block(new-stmts.first.l, new-stmts))]
+  end
+end
 
-fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
+
+fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<A.Expr>:
   doc: "Treating stmts as a block, resolve scope."
   cases(List) stmts:
     | empty => empty
@@ -101,8 +133,8 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
           else:
             [list: wrap-lets(A.s-block(l, resolved-inner))]
           end
-        | s-data(l, name, params, mixins, variants, shared, _check) =>
-          fun b(loc, id): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
+        | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
+          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
           fun variant-binds(data-blob-id, v):
             vname = v.name
             checker-name = A.make-checker-name(vname)
@@ -113,7 +145,7 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds) -> List<Expr>:
             ]
           end
           blob-id = G.make-name(name)
-          data-expr = A.s-data-expr(l, name, params, mixins, variants, shared, _check)
+          data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check)
           bind-data = A.s-letrec-bind(l, b(l, blob-id), data-expr)
           bind-data-pred = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id(l, A.s-name(l, blob-id)), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data], v from variants):
@@ -256,7 +288,6 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
   end
 end
 
-
 fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   doc: ```
         Remove x = e, var x = e, and fun f(): e end
@@ -281,25 +312,37 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
       end
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
-          A.s-block(l2, extra-lets + stmts)
-        | else => A.s-block(l, extra-lets + [list: body])
+          A.s-block(l2, extra-lets + desugar-toplevel-types(stmts))
+        | else => A.s-block(l, extra-lets + desugar-toplevel-types([list: body]))
+      end
+      fun transform-toplevel-last(shadow l, last):
+          A.s-obj(l, [list:
+              A.s-data-field(l, str("answer"), last),
+              A.s-data-field(l, str("provide-plus-types"), A.s-obj(l, [list:
+                  A.s-data-field(l, str("values"), prov),
+                  A.s-data-field(l, str("types"), A.s-obj(l, [list: ]))
+                ])),
+              A.s-data-field(
+                  l,
+                  str("checks"),
+                  A.s-app(l, A.s-dot(l, U.checkers(l), "results"), [list: ])
+                )
+            ])
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
           last = stmts.last()
-          new-stmts = stmts.take(stmts.length() - 1) + [list: A.s-obj(l2, [list:
-              A.s-data-field(l2, str("answer"), last),
-              A.s-data-field(l2, str("provide-plus-types"), A.s-obj(l2, [list:
-                  A.s-data-field(l2, str("values"), prov),
-                  A.s-data-field(l2, str("types"), A.s-obj(l2, [list: ]))
-                ])),
-              A.s-data-field(
-                  l2,
-                  str("checks"),
-                  A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), [list: ])
-                )
-            ])]
-          A.s-block(l2, new-stmts)
+          cases(A.Expr) last:
+            | s-type-let-expr(l3, binds, body2) =>
+              inner-last = body2.stmts.last()
+              A.s-block(l2,
+                stmts.take(stmts.length() - 1) + [list:
+                  A.s-type-let-expr(l3, binds,
+                    A.s-block(body2.l, body2.stmts.take(body2.stmts.length() - 1)
+                        + [list: transform-toplevel-last(l3, inner-last)]))])
+            | else =>
+              A.s-block(l2, stmts.take(stmts.length() - 1) + [list: transform-toplevel-last(l2, last)])
+          end
         | else => with-imports
       end
       wrapped = wrap-env-imports(l, with-provides, compile-env)
@@ -500,7 +543,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             { e: acc.e, te: atom-env.env, bs: link(new-bind, acc.bs) }
           | s-newtype-bind(l2, name, tname) =>
             atom-env-t = make-atom-for(name, false, acc.te, type-bindings, let-type-bind)
-            atom-env = make-atom-for(tname, false, acc.e, binds, let-bind)
+            atom-env = make-atom-for(tname, false, acc.e, bindings, let-bind)
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
             update-binding-expr(atom-env.atom, none)
             update-type-binding-ann(atom-env-t.atom, none)

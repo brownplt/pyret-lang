@@ -171,7 +171,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       anf(A.s-let-expr(l, let-binds, A.s-block(l, assigns + [list: body])), k)
 
-    | s-data-expr(l, data-name, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, data-name, data-name-t, params, mixins, variants, shared, _check) =>
       fun anf-member(member :: A.VariantMember):
         cases(A.VariantMember) member:
           | s-variant-member(l2, typ, b) =>
@@ -221,7 +221,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               N.a-field(f.l, f.name.s, t)
             end
           anf-variants(variants, lam(new-variants):
-              k.apply(l, N.a-data-expr(l, data-name, new-variants, new-shared))
+              k.apply(l, N.a-data-expr(l, data-name, new-variants, new-shared)) # TODO: data-name-t
             end)
         end)
 

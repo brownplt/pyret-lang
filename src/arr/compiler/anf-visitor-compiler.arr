@@ -276,7 +276,7 @@ compiler-visitor = {
           body.visit(self).stmts
         )
       | a-newtype-bind(l2, name, nameb) =>
-        raise("NYI: newtype-bind")
+        body.visit(self) # TODO: NEED TO IMPLEMENT THIS
     end
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
