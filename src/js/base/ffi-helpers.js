@@ -161,6 +161,23 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return err("module-load-failure")(namesList);
       }
 
+      function makeRecordFieldsFail(value, failures) {
+        runtime.checkPyretVal(value);
+        return contract("record-fields-fail")(value, failures);
+      }
+
+      function makeFieldFailure(loc, field, reason) {
+        checkSrcloc(loc);
+        runtime.checkString(field);
+        return contract("field-failure")(loc, field, reason);
+      }
+
+      function makeMissingField(loc, field) {
+        checkSrcloc(loc);
+        runtime.checkString(field);
+        return contract("missing-field")(loc, field);
+      }
+
       function makeTypeMismatch(val, name) {
         runtime.checkString(name);
         runtime.checkPyretVal(val);
@@ -203,6 +220,9 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
 
+        makeRecordFieldsFail: makeRecordFieldsFail,
+        makeFieldFailure: makeFieldFailure,
+        makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
         makePredicateFailure: makePredicateFailure,
         contractOk: gf(C, "ok"),

@@ -585,7 +585,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n
-        | s-id-letrec(_, n) => n
+        | s-id-letrec(_, n, _) => n
       end
       freevars-ann-acc(a, seen-so-far.add(name))
   end

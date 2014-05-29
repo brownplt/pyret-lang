@@ -12,7 +12,14 @@ data ContractResult:
 end
 
 data FieldFailure:
-  | field-failure(loc, field, reason)
+  | field-failure(loc, field, reason) with:
+    tostring(self):
+      "At " + self.loc.format(true) + ", field " + self.field + " failed because\n" + tostring(self.reason)
+    end
+  | missing-field(loc, field) with:
+    tostring(self):
+      "Missing field " + self.field + " in required at " + self.loc.format(true)
+    end
 end
 
 data FailureReason:
@@ -22,10 +29,13 @@ data FailureReason:
     end
   | predicate-failure(val, pred-name) with:
     tostring(self):
-      "Predicate " + self.pred-name + ", failed on value " + torepr(self.val)
+      "Predicate " + self.pred-name + " failed on value " + torepr(self.val)
     end
 #  | datatype-mismatch(loc, datatype-loc, val, type :: String)
-  | record-fields-fail(val, field-failures :: List<FieldFailure>)
-  | missing-field-fail(loc, val, fields :: List<String>)
+  | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
+    tostring(self):
+      "Record annotation failed on value\n" + torepr(self.val) + "\n\nBecause: " +
+        self.field-failures.map(tostring).join-str("\n\n")
+    end
 end
 
