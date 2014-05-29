@@ -82,8 +82,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program:
-    | s-program(l, _provide, imports, body) =>
-      A.s-program(l, _provide, imports, desugar-expr(body))
+    | s-program(l, _provide, provide-types, imports, body) =>
+      A.s-program(l, _provide, provide-types, imports, desugar-expr(body))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end

@@ -25,17 +25,17 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 
 fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
-    | s-program(l1, _provide, headers, body) =>
+    | s-program(l1, _provide, provide-types, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
+              some(A.s-program(l1, _provide, provide-types, imports, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
-                some(A.s-program(l1, _provide, headers,
+                some(A.s-program(l1, _provide, provide-types, imports,
                     A.s-block(l2, stmts + [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
               end
           end
@@ -178,8 +178,9 @@ fun <a, c> default-env-map-visitor(
     env: initial-env,
     type-env: initial-type-env,
 
-    s-program(self, l, _provide, imports, body):
+    s-program(self, l, _provide, provide-types, imports, body):
       visit-provide = _provide.visit(self)
+      visit-provide-types = provide-types.visit(self)
       visit-imports = for map(i from imports):
         i.visit(self)
       end
@@ -188,7 +189,7 @@ fun <a, c> default-env-map-visitor(
         bind-handlers.s-header(i, acc.val-env, acc.type-env)
       end
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
-      A.s-program(l, visit-provide, visit-imports, visit-body)
+      A.s-program(l, visit-provide, visit-provide-types, visit-imports, visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
       new-envs = { val-env: self.env, type-env: self.type-env }
@@ -259,8 +260,8 @@ fun <a, c> default-env-iter-visitor(
     env: initial-env,
     type-env: initial-type-env,
 
-    s-program(self, l, _provide, imports, body):
-      if _provide.visit(self):
+    s-program(self, l, _provide, provide-types, imports, body):
+      if _provide.visit(self) and provide-types.visit(self):
         new-envs = { val-env: self.env, type-env: self.type-env }
         imported-envs = for fold(acc from new-envs, i from imports):
           bind-handlers.s-header(i, acc.val-env, acc.type-env)

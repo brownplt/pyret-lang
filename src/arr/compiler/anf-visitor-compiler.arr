@@ -595,7 +595,6 @@ end
 fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
-  print("We think the free ids are " + tostring(free-ids))
   namespace-binds = for map(n from free-ids.to-list()):
     j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
   end

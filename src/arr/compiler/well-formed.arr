@@ -197,7 +197,7 @@ end
 
 
 well-formed-visitor = A.default-iter-visitor.{
-  s-program(self, l, _provide, imports, body):
+  s-program(self, l, _provide, provide-types, imports, body):
     raise("Impossible")
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
@@ -323,12 +323,12 @@ well-formed-visitor = A.default-iter-visitor.{
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  s-program(self, l, _provide, imports, body):
+  s-program(self, l, _provide, provide-types, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => lists.all(_.visit(self), stmts)
       | else => body.visit(self)
     end
-    ok-body and (_provide.visit(self)) and (lists.all(_.visit(self), imports))
+    ok-body and (_provide.visit(self)) and provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
   s-type(self, l, name, ann):
     ann.visit(well-formed-visitor)
@@ -391,6 +391,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-provide(_, l, expr):
     well-formed-visitor.s-provide(l, expr)
+  end,
+  s-provide-types(_, l, anns):
+    well-formed-visitor.s-provide-types(l, anns)
   end,
   s-bind(_, l, shadows, name, ann):
     well-formed-visitor.s-bind(l, shadows, name, ann)

@@ -51,19 +51,30 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
       function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
-          if (node.kids[0].kids.length > 0 && node.kids[0].kids[0].name === "provide-stmt") {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   tr(node.kids[0].kids[0]),
-                   makeList(node.kids[0].kids.slice(1).map(tr)),
-                   tr(node.kids[1]));
+          var prelude = tr(node.kids[0]);
+          var body = tr(node.kids[1]);
+          return RUNTIME.getField(ast, 's-program')
+            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+        },
+        'prelude': function(node) {
+          var provide;
+          var provideTypes;
+          var kids = node.kids.slice(0);
+          if (kids.length > 0 && kids[0].name === "provide-stmt") {
+            provide = tr(kids.shift());
           } else {
-            return RUNTIME.getField(ast, 's-program')
-              .app(pos(node.pos), 
-                   RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos)),
-                   makeList(node.kids[0].kids.map(tr)),
-                   tr(node.kids[1]));
+            provide = RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos));
           }
+          if (kids.length > 0 && kids[0].name === "provide-types-stmt") {
+            provideTypes = tr(kids.shift());
+          } else {
+            provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
+          }
+          return {
+            provide : provide,
+            provideTypes : provideTypes,
+            imports : makeList(kids.map(tr))
+          };
         },
         'provide-stmt': function(node) {
           if (node.kids.length === 2) {

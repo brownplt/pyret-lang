@@ -16,8 +16,8 @@ end
 fun make-provide-all(p :: A.Program):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
-    | s-program(l, _, imports, body) =>
-      A.s-program(l, A.s-provide-all(l), imports, body)
+    | s-program(l, _, _, imports, body) =>
+      A.s-program(l, A.s-provide-all(l), A.s-provide-types-all(l), imports, body)
   end
 end
 

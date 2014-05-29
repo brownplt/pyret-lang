@@ -300,7 +300,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           - contains no s-let, s-var, s-data
         ```
   cases(A.Program) prog:
-    | s-program(l, _provide-raw, imports-raw, body) =>
+    | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
       imports-and-lets = resolve-imports(imports-raw)
       imports = imports-and-lets.imports
       extra-lets = imports-and-lets.lets
@@ -310,6 +310,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
+      # TODO: Need to resolve provide-types here
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
           A.s-block(l2, extra-lets + desugar-toplevel-types(stmts))
@@ -339,7 +340,8 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           A.s-import(l, A.s-const-import(l, k), A.s-name(l, k))
         end
 
-      A.s-program(l, A.s-provide-none(l), full-imports, wrapped.visit(desugar-scope-visitor))
+      A.s-program(l, A.s-provide-none(l), A.s-provide-types-none(l),
+        full-imports, wrapped.visit(desugar-scope-visitor))
   end
   
 where:
@@ -353,7 +355,7 @@ where:
                 )
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.minimal-builtins).visit(A.dummy-loc-visitor) end
-  compare1 = A.s-program(d, A.s-provide-none(d), [list: ],
+  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
       A.s-block(d, [list:
         A.s-block(d, [list:
           A.s-let-expr(d, [list:
@@ -370,7 +372,7 @@ where:
   # had append-nothing-if-necessary called
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
 
-  compare2 = A.s-program(d, A.s-provide-none(d), [list:
+  compare2 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
       A.s-block(d, [list:
@@ -506,7 +508,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
-    s-program(self, l, _provide, imports, body):
+    s-program(self, l, _provide, provide-types, imports, body):
       imports-and-env = for fold(acc from { e: self.env, te: self.type-env, imps: [list: ] }, i from imports):
         cases(A.Import) i:
           | s-import(l2, file, name) =>
@@ -520,7 +522,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
-      A.s-program(l, _provide, imports-and-env.imps.reverse(), visit-body)
+      A.s-program(l, _provide, provide-types, imports-and-env.imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):

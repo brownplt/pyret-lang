@@ -55,7 +55,9 @@ str-period = PP.str(".")
 str-bang = PP.str("!")
 str-pipespace = PP.str("| ")
 str-provide = PP.str("provide")
+str-provide-types = PP.str("provide-types")
 str-provide-star = PP.str("provide *")
+str-provide-types-star = PP.str("provide-types *")
 str-sharing = PP.str("sharing:")
 str-space = PP.str(" ")
 str-spacecolonequal = PP.str(" :=")
@@ -178,14 +180,17 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
 end
 
 data Program:
-  | s-program(l :: Loc, _provide :: Provide, imports :: List<Import>, block :: Expr) with:
+  | s-program(l :: Loc, _provide :: Provide, provide-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
     label(self): "s-program" end,
     tosource(self):
       PP.group(
-        PP.flow-map(PP.hardline, _.tosource(), self.imports)
-          + PP.hardline
-          + self.block.tosource()
-        )
+        PP.vert(
+          [list:
+            self._provide.tosource(),
+            self.provide-types.tosource()]
+            + self.imports.map(_.tosource)
+            + [list: self.block.tosource()]
+          ))
     end
 sharing:
   visit(self, visitor):
@@ -236,6 +241,27 @@ sharing:
   end
 end
 
+data ProvideTypes:
+  | s-provide-types(l :: Loc, ann :: List<AField>) with:
+    label(self): "a-provide-type" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, str-provide-types + break-one + PP.lbrace + PP.rbrace,
+        str-provide-types + break-one + PP.lbrace, PP.commabreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end
+  | s-provide-types-all(l :: Loc) with:
+    label(self): "s-provide-types-all" end,
+    tosource(self): str-provide-types-star end
+  | s-provide-types-none(l :: Loc) with:
+    label(self): "s-provide-types-none" end,
+    tosource(self): PP.mt-doc end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+  
+  
 data ImportType:
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
@@ -1077,7 +1103,7 @@ end
 
 fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
-    | s-program(_, _, _, b) => block-ids(b)
+    | s-program(_, _, _, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end
 end
@@ -1110,8 +1136,8 @@ default-map-visitor = {
     s-module(l, answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
-  s-program(self, l, _provide, imports, body):
-    s-program(l, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
+  s-program(self, l, _provide, provide-types, imports, body):
+    s-program(l, _provide.visit(self), provide-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s-import(self, l, import-type, name):
@@ -1131,6 +1157,15 @@ default-map-visitor = {
   end,
   s-provide-none(self, l):
     s-provide-none(l)
+  end,
+  s-provide-types(self, l, anns):
+    s-provide(l, anns.map(_.visit(self)))
+  end,
+  s-provide-types-all(self, l):
+    s-provide-types-all(l)
+  end,
+  s-provide-types-none(self, l):
+    s-provide-types-none(l)
   end,
 
   s-bind(self, l, shadows, name, ann):
@@ -1546,8 +1581,11 @@ default-iter-visitor = {
     answer.visit(self) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
   
-  s-program(self, l, _provide, imports, body):
-    _provide.visit(self) and lists.all(_.visit(self), imports) and body.visit(self)
+  s-program(self, l, _provide, provide-types, imports, body):
+    _provide.visit(self)
+    and lists.all(_.visit(self), provide-types)
+    and lists.all(_.visit(self), imports)
+    and body.visit(self)
   end,
   
   s-import(self, l, import-type, name):
@@ -1566,6 +1604,15 @@ default-iter-visitor = {
     true
   end,
   s-provide-none(self, l):
+    true
+  end,
+  s-provide-types(self, l, anns):
+    lists.all(_.visit(self), anns)
+  end,
+  s-provide-types-all(self, l):
+    true
+  end,
+  s-provide-types-none(self, l):
     true
   end,
   
@@ -1973,8 +2020,8 @@ dummy-loc-visitor = {
       answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
-  s-program(self, l, _provide, imports, body):
-    s-program(dummy-loc, _provide.visit(self), imports.map(_.visit(self)), body.visit(self))
+  s-program(self, l, _provide, provide-types, imports, body):
+    s-program(dummy-loc, _provide.visit(self), provide-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   s-import(self, l, import-type, name):
@@ -1994,6 +2041,15 @@ dummy-loc-visitor = {
   end,
   s-provide-none(self, l):
     s-provide-none(l)
+  end,
+  s-provide-types(self, l, anns):
+    s-provide(dummy-loc, anns.map(_.visit(self)))
+  end,
+  s-provide-types-all(self, l):
+    s-provide-types-all(l)
+  end,
+  s-provide-types-none(self, l):
+    s-provide-types-none(l)
   end,
 
   s-bind(self, l, shadows, name, ann):
