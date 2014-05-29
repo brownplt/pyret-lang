@@ -48,9 +48,16 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("newtype (Number -> String)")).toBe(false);
     });
 
+    it("should parse provide-types", function() {
+      expect(parse("provide-types { List :: List }")).not.toBe(false);
+      expect(parse("provide-types { List :: List, x :: (Number -> String) }")).not.toBe(false);
+    });
+
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
+      expect(parse("provide-types { List :: List } end")).toBe(false);
     })
+
   });
 });
 
