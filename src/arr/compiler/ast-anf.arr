@@ -582,6 +582,12 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
     | a-method(l, args, ret) => lst-a(link(ret, args))
     | a-record(l, fields) => lst-a(fields.map(_.ann))
     | a-app(l, a, args) => lst-a(link(a, args))
+    | a-pred(l, a, pred) =>
+      name = cases(A.Expr) pred:
+        | s-id(_, n) => n
+        | s-id-letrec(_, n) => n
+      end
+      freevars-ann-acc(a, seen-so-far.add(name))
   end
 end
 

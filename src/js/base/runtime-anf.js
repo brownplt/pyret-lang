@@ -1333,18 +1333,55 @@ function createMethodDict() {
     function PPrimAnn(name, pred) {
       this.name = name;
       this.pred = pred;
+      this.refinement = false;
     }
     PPrimAnn.prototype.check = function(compilerLoc, val) {
-        if(this.pred(val)) { return ffi.contractOk; }
-        else {
-          return ffi.contractFail(
-            makeSrcloc(compilerLoc),
-            ffi.makeTypeMismatch(val, this.name));
-        }
+      if(this.pred(val)) { return ffi.contractOk; }
+      else {
+        return ffi.contractFail(
+          makeSrcloc(compilerLoc),
+          ffi.makeTypeMismatch(val, this.name));
       }
+    }
 
     function makePrimitiveAnnotation(name, jsPred) {
       return new PPrimAnn(name, jsPred);
+    }
+
+    function PPredAnn(ann, pred, predname) {
+      this.ann = ann;
+      this.pred = pred;
+      this.predname = predname;
+      this.refinement = true;
+    }
+    function makePredAnn(ann, pred, predname) {
+      checkFunction(pred);
+      checkString(predname);
+      return new PPredAnn(ann, pred, predname);
+    }
+    PPredAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      return safeCall(function() {
+        return that.ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) {
+          return safeCall(function() {
+            return that.pred.app(val);
+          }, function(result) {
+            if(isPyretTrue(result)) {
+              return ffi.contractOk;
+            }
+            else {
+              return ffi.contractFail(
+                makeSrcloc(compilerLoc),
+                ffi.makePredicateFailure(val, that.predname));
+            }
+          })
+        }
+        else {
+          return result;
+        }
+      });
     }
 
 
@@ -2414,6 +2451,7 @@ function createMethodDict() {
         'GAS': INITIAL_GAS,
 
         'checkAnn': checkAnn,
+        'makePredAnn': makePredAnn,
 
         'Number': NumberC,
         'String': StringC,

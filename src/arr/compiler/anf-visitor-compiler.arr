@@ -247,10 +247,22 @@ fun arity-check(loc-expr, body-stmts, arity):
       body-stmts))
 end
 
-fun compile-ann(ann):
+fun compile-ann(ann, visitor):
   cases(A.Ann) ann:
     | a-name(_, n) => j-id(js-id-of(n.tostring()))
     | a-arrow(_, _, _, _) => rt-field("Function")
+    | a-method(_, _, _) => rt-field("Method")
+    | a-app(l, base, _) => compile-ann(base, visitor)
+    | a-pred(l, base, exp) =>
+      name = cases(A.AExpr) exp:
+        | s-id(_, id) => id.toname()
+        | s-id-letrec(_, id) => id.toname()
+      end
+      expr-to-compile = cases(A.Expr) exp:
+        | s-id(l2, id) => N.a-id(l2, id)
+        | s-id-letrec(l2, id) => N.a-id-letrec(l2, id)
+      end
+      rt-method("makePredAnn", [list: compile-ann(base, visitor), expr-to-compile.visit(visitor), j-str(name)])
     | else => rt-field("Any")
   end
 end
@@ -260,7 +272,7 @@ compiler-visitor = {
     cases(N.ATypeBind) bind:
       | a-type-bind(l2, name, ann) =>
         j-block(
-          [list: j-var(js-id-of(name.tostring()), compile-ann(ann))] +
+          [list: j-var(js-id-of(name.tostring()), compile-ann(ann, self))] +
           body.visit(self).stmts
         )
       | a-newtype-bind(l2, name, nameb) =>
@@ -274,7 +286,7 @@ compiler-visitor = {
         [list: j-var(js-id-of(b.id.tostring()), e.visit(self))]
       else:
         [list:
-          j-var(js-id-of("ann"), compile-ann(b.ann)),
+          j-var(js-id-of("ann"), compile-ann(b.ann, self)),
           j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: self.get-loc(l), j-id(js-id-of("ann")), e.visit(self)]))
         ]
       end

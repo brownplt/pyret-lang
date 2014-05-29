@@ -29,6 +29,10 @@ fun is-contract-error-str(result):
   string-contains(result.render-error-message(), "Contract Error")
 end
 
+fun is-refinement-error-str(result):
+  string-contains(result.render-error-message(), "Predicate")
+end
+
 fun is-unbound-contract(result):
   unbound-contracts = result.problems.filter(CS.is-unbound-type-id)
   unbound-contracts.length() > 0
@@ -53,6 +57,35 @@ check "should work for flat contracts":
     end
   end
 end
+
+check "should work for refinements":
+  contract-errors = [list:
+    "is-odd = lam(n): num-modulo(n, 2) == 1 end x :: Number%(is-odd) = 6",
+    "is-zero-length = lam(s): string-length(s) == 0 end s :: String%(is-zero-length) = 'foo'"
+  ]
+  for each(program from contract-errors):
+    result = run-str(program)
+    result.success is false
+    when result.success == true:
+      "Should be error" is program
+    end
+    when result.success == false:
+      result satisfies is-contract-error-str
+    end
+  end
+  non-errors = [list:
+    "is-odd = lam(n): num-modulo(n, 2) == 1 end x :: Number%(is-odd) = 5",
+    "is-zero-length = lam(s): string-length(s) == 0 end s :: String%(is-zero-length) = ''"
+  ]
+  for each(program from non-errors):
+    result = run-str(program)
+    result.success is true
+    when result.success == false:
+      "Should succeed" is program
+    end
+  end
+end
+
 
 check "should notice unbound contracts":
   contract-errors = [list:

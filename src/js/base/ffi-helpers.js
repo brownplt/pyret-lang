@@ -167,6 +167,12 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("type-mismatch")(val, name);
       }
 
+      function makePredicateFailure(val, name) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(val);
+        return contract("predicate-failure")(val, name);
+      }
+
       function isOk(val) {
         return contract("is-ok")(val);
       }
@@ -198,6 +204,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwParseErrorEOF: throwParseErrorEOF,
 
         makeTypeMismatch: makeTypeMismatch,
+        makePredicateFailure: makePredicateFailure,
         contractOk: gf(C, "ok"),
         contractFail: contract("fail"),
         isOk: isOk,
