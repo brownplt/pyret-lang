@@ -86,7 +86,7 @@ fun desugar-toplevel-types(stmts) -> List<A.Expr>:
   else:
     type-binds = rev-type-binds.reverse()
     new-stmts = rev-stmts.reverse()
-    [list: A.s-type-let-expr(type-binds.first.l, type-binds, A.s-block(new-stmts.first.l, new-stmts))]
+    [list: A.s-type-let-expr(type-binds.first.l, type-binds, A.s-block(type-binds.first.l, new-stmts))]
   end
 end
 

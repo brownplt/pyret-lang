@@ -189,3 +189,13 @@ check "should bind types":
     end
   end
 end
+
+check "should work for lambda-bound annotations":
+  run-str("fun f(x :: Number): x end f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x) -> Number: x end f('foo')") satisfies is-contract-error-str
+end
+
+check "should work for standalone binding constructs":
+  run-str("type N = Number x :: N = 'foo'") satisfies is-contract-error-str
+  run-str("newtype List as ListT").success is true
+end

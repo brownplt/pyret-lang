@@ -239,14 +239,6 @@ fun compile-split-app(
 end
 
 
-fun arity-check(loc-expr, body-stmts, arity):
-  j-block(
-    link(
-      j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")])),
-      body-stmts))
-end
-
 fun compile-ann(ann, visitor):
   cases(A.Ann) ann:
     | a-name(_, n) => j-id(js-id-of(n.tostring()))
@@ -274,8 +266,34 @@ fun compile-ann(ann, visitor):
         | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
       rt-method("makePredAnn", [list: compile-ann(base, visitor), expr-to-compile.visit(visitor), j-str(name)])
-    | else => rt-field("Any")
+    | a-blank => rt-field("Any")
+    | a-any => rt-field("Any")
+    | a-dot => rt-field("Any")
   end
+end
+
+fun arity-check(loc-expr, body-stmts, arity):
+  j-block(
+    link(
+      j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
+        j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")])),
+      body-stmts))
+end
+
+fun contract-checks(args, ret, body, visitor):
+  check-stmts = for fold(stmts from [list:], a from args):
+    if A.is-a-blank(a.ann):
+      stmts
+    else:
+      ann-name = js-id-of(compiler-name("ann"))
+      stmts +
+        [list:
+          j-var(ann-name, compile-ann(a.ann, visitor)),
+          j-assign(js-id-of(a.id.tostring()), rt-method("checkAnn", [list: visitor.get-loc(a.l), j-id(ann-name), j-id(js-id-of(a.id.tostring()))]))
+        ]
+    end
+  end
+  check-stmts + body.visit(visitor).stmts
 end
 
 compiler-visitor = {
@@ -374,12 +392,12 @@ compiler-visitor = {
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [list: obj.visit(self), j-str(field)])
   end,
-  a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
+  a-lam(self, l :: Loc, args :: List<N.ABind>, ret, body :: N.AExpr):
     rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
-          arity-check(self.get-loc(l), body.visit(self).stmts, args.length()))])
+          arity-check(self.get-loc(l), contract-checks(args, ret, body, self), args.length()))])
   end,
-  a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
-    compiled-body-stmts = body.visit(self).stmts
+  a-method(self, l :: Loc, args :: List<N.ABind>, ret, body :: N.AExpr):
+    compiled-body-stmts = contract-checks(args, ret, body, self)
     rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
       j-block([list: 
         j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(

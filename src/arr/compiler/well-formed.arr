@@ -321,6 +321,7 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end
 }
+
 top-level-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, imports, body):
     ok-body = cases(A.Expr) body:
@@ -423,12 +424,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-fun(_, l, name, params, args, ann, doc, body, _check):
     well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check)
-  end,
-  s-type(_, l :: Loc, name :: Name, ann :: Ann):
-    well-formed-visitor.s-type(l, name, ann)
-  end,
-  s-newtype(_, l :: Loc, name :: Name, namet :: Name):
-    well-formed-visitor.s-newtype(l, name, namet)
   end,
   s-var(_, l :: Loc, name :: Bind, value :: Expr):
     well-formed-visitor.s-var(l, name, value)

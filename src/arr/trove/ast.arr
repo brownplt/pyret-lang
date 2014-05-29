@@ -371,7 +371,7 @@ data Expr:
     label(self): "s-type" end,
     tosource(self):
       PP.group(PP.nest(INDENT,
-          str-type + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
+          str-type + self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype(l :: Loc, name :: Name, namet :: Name) with:
     label(self): "s-newtype" end,

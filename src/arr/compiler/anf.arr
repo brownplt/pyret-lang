@@ -235,7 +235,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | k-cont(_) =>
           helper = mk-id(l, "if_helper")
           arg = mk-id(l, "if_helper_arg")
-          N.a-let(l, helper.id-b, N.a-lam(l, [list: arg.id-b], k.apply(l, N.a-val(arg.id-e))),
+          N.a-let(l, helper.id-b, N.a-lam(l, [list: arg.id-b], A.a-blank, k.apply(l, N.a-val(arg.id-e))),
             for fold(acc from anf(_else, k-id(helper.id)), branch from branches.reverse()):
               anf-name(branch.test, "anf_if",
                 lam(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
@@ -248,9 +248,17 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
+      name = mk-id(l, "ann-check-temp")
+      k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
+                  anf-term(A.s-let-expr(l,
+                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                    A.s-id(l, name.id)))))
     | s-method(l, args, ret, doc, body, _) =>
-      k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), anf-term(body)))
+      name = mk-id(l, "ann-check-temp")
+      k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
+                  anf-term(A.s-let-expr(l,
+                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                    A.s-id(l, name.id)))))
 
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):

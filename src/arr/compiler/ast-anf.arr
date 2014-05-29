@@ -285,10 +285,10 @@ data ALettable:
   | a-get-bang(l :: Loc, obj :: AVal, field :: String) with:
     label(self): "a-get-bang" end,
     tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | a-lam(l :: Loc, args :: List<ABind>, body :: AExpr) with:
+  | a-lam(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     label(self): "a-lam" end,
     tosource(self): fun-method-pretty(PP.str("lam"), self.args, self.body) end
-  | a-method(l :: Loc, args :: List<ABind>, body :: AExpr) with:
+  | a-method(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     label(self): "a-method" end,
     tosource(self): fun-method-pretty(PP.str("method"), self.args, self.body) end
   | a-val(v :: AVal) with:
@@ -420,10 +420,10 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-colon(dummy-loc, strip-loc-val(obj), field)
     | a-get-bang(_, obj, field) =>
       a-get-bang(dummy-loc, strip-loc-val(obj), field)
-    | a-lam(_, args, body) =>
-      a-lam(dummy-loc, args, strip-loc-expr(body))
-    | a-method(_, args, body) =>
-      a-method(dummy-loc, args, strip-loc-expr(body))
+    | a-lam(_, args, ret, body) =>
+      a-lam(dummy-loc, args, ret, strip-loc-expr(body))
+    | a-method(_, args, ret, body) =>
+      a-method(dummy-loc, args, ret, strip-loc-expr(body))
     | a-val(v) =>
       a-val(strip-loc-val(v))
   end
@@ -528,11 +528,11 @@ default-map-visitor = {
   a-get-bang(self, l :: Loc, obj :: AVal, field :: String):
     a-get-bang(l, obj.visit(self), field)
   end,
-  a-lam(self, l :: Loc, args :: List<ABind>, body :: AExpr):
-    a-lam(l, args.map(_.visit(self)), body.visit(self))
+  a-lam(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+    a-lam(l, args.map(_.visit(self)), ret, body.visit(self))
   end,
-  a-method(self, l :: Loc, args :: List<ABind>, body :: AExpr):
-    a-method(l, args.map(_.visit(self)), body.visit(self))
+  a-method(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+    a-method(l, args.map(_.visit(self)), ret, body.visit(self))
   end,
   a-val(self, v :: AVal):
     a-val(v.visit(self))
@@ -671,18 +671,20 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
       for fold(acc from seen-so-far, arg from args):
         freevars-v-acc(arg, acc)
       end
-    | a-lam(_, args, body) =>
+    | a-lam(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      from-args = for fold(acc from seen-so-far, a from args):
+      without-args = from-body.difference(set(args.map(_.id)))
+      from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end
-      from-body.difference(set(args.map(_.id))).union(from-args)
-    | a-method(_, args, body) =>
+      freevars-ann-acc(ret, from-args)
+    | a-method(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      from-args = for fold(acc from seen-so-far, a from args):
+      without-args = from-body.difference(set(args.map(_.id)))
+      from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end
-      from-body.difference(set(args.map(_.id))).union(from-args)
+      freevars-ann-acc(ret, from-args)
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)

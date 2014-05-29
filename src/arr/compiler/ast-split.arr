@@ -167,19 +167,19 @@ end
 
 fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
   cases(N.ALettable) e:
-    | a-lam(l, args, body) =>
+    | a-lam(l, args, ret, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
-          N.a-lam(l, args, body-split.body),
-          N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id))))
+          N.a-lam(l, args, ret, body-split.body),
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id)))))
         )
-    | a-method(l, args, body) =>
+    | a-method(l, args, ret, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
           N.a-method(l, args, body-split.body),
-          N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id))))
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id)))))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))
