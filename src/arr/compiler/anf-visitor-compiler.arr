@@ -253,14 +253,25 @@ fun compile-ann(ann, visitor):
     | a-arrow(_, _, _, _) => rt-field("Function")
     | a-method(_, _, _) => rt-field("Method")
     | a-app(l, base, _) => compile-ann(base, visitor)
+    | a-record(l, fields) =>
+      names = j-list(false, fields.map(_.name).map(j-str))
+      locs = j-list(false, fields.map(_.l).map(visitor.get-loc))
+      anns = for map(f from fields):
+        j-field(f.name, compile-ann(f.ann, visitor))
+      end
+      rt-method("makeRecordAnn", [list:
+          names,
+          locs,
+          j-obj(anns)
+        ])
     | a-pred(l, base, exp) =>
       name = cases(A.AExpr) exp:
         | s-id(_, id) => id.toname()
-        | s-id-letrec(_, id) => id.toname()
+        | s-id-letrec(_, id, _) => id.toname()
       end
       expr-to-compile = cases(A.Expr) exp:
         | s-id(l2, id) => N.a-id(l2, id)
-        | s-id-letrec(l2, id) => N.a-id-letrec(l2, id)
+        | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
       rt-method("makePredAnn", [list: compile-ann(base, visitor), expr-to-compile.visit(visitor), j-str(name)])
     | else => rt-field("Any")

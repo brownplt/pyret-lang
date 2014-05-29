@@ -1384,7 +1384,86 @@ function createMethodDict() {
       });
     }
 
+    function PRecordAnn(fields, locs, anns) {
+      this.fields = fields;
+      this.locs = locs;
+      this.anns = anns;
+      var hasRefinement = false;
+      for (var i = 0; i < fields.length; i++) {
+        hasRefinement = hasRefinement || anns[fields[i]].refinement;
+      }
+      this.refinement = hasRefinement;
+    }
+    function makeRecordAnn(fields, locs, anns) {
+      return new PRecordAnn(fields, locs, anns);
+    }
+    PRecordAnn.prototype.createMissingFieldsError = function(compilerLoc, val) {
+      var that = this;
+      var missingFields = [];
+      for(var i = 0; i < that.fields.length; i++) {
+        if(!hasField.app(val, that.fields[i])) {
+          var reason = ffi.makeMissingField(
+            makeSrcloc(that.locs[i]),
+            that.fields[i]
+          );
+          missingFields.push(reason);
+        }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeRecordFieldsFail(val, ffi.makeList(missingFields))
+      );
+    };
+    PRecordAnn.prototype.createRecordFailureError = function(compilerLoc, val, field, result) {
+      var that = this;
+      var loc;
+      for(var i = 0; i < that.fields.length; i++) {
+        if(that.fields[i] === field) { loc = that.locs[i]; }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeRecordFieldsFail(val, ffi.makeList([
+            ffi.makeFieldFailure(
+              makeSrcloc(loc),
+              field,
+              getField(result, "reason")
+            )
+          ]))
+      );
+    };
+    PRecordAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      if(!isObject(val)) {
+        return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, "Object")
+          );
+      }
+      for(var i = 0; i < that.fields.length; i++) {
+        if(!hasField.app(val, that.fields[i])) {
+          return that.createMissingFieldsError(compilerLoc, val);
+        }
+      }
 
+      function deepCheckFields(remainingFields) {
+        var thisField;
+        return safeCall(function() {
+          thisField = remainingFields.pop();
+          var thisChecker = that.anns[thisField];
+          console.log(thisChecker);
+          return thisChecker.check(that.locs[that.locs.length - remainingFields.ength], getColonField(val, thisField));
+        }, function(result) {
+          if(ffi.isOk(result)) {
+            if(remainingFields.length === 0) { return ffi.contractOk; }
+            else { return deepCheckFields(remainingFields); }
+          }
+          else if(ffi.isFail(result)) {
+            return that.createRecordFailureError(compilerLoc, val, thisField, result);
+          }
+        });
+      }
+      return deepCheckFields(that.fields.slice());
+    }
 
     /********************
 
@@ -2452,6 +2531,7 @@ function createMethodDict() {
 
         'checkAnn': checkAnn,
         'makePredAnn': makePredAnn,
+        'makeRecordAnn': makeRecordAnn,
 
         'Number': NumberC,
         'String': StringC,
