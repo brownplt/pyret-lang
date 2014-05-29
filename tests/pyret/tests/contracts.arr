@@ -195,7 +195,14 @@ check "should work for lambda-bound annotations":
   run-str("fun f(x) -> Number: x end f('foo')") satisfies is-contract-error-str
 end
 
+check "should work for method-bound annotations":
+  run-str("o = { m(self, x :: Number): x end } o.m('foo')") satisfies is-contract-error-str
+  run-str("o = { m(self, x) -> Number: x end } o.m('foo')") satisfies is-contract-error-str
+end
+
+
 check "should work for standalone binding constructs":
   run-str("type N = Number x :: N = 'foo'") satisfies is-contract-error-str
   run-str("newtype List as ListT").success is true
 end
+

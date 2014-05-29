@@ -178,7 +178,7 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
-          N.a-method(l, args, body-split.body),
+          N.a-method(l, args, ret, body-split.body),
           N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id)))))
         )
     | else =>
