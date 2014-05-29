@@ -15,7 +15,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], fun
         eval.evalParsedPyret(runtime, toEval.ast, { sync: false, name: toEval.name, namespace: namespace, compileEnv: replCompileEnv }, 
           function(result) {
             if(runtime.isSuccessResult(result)) {
-              var provided = get(result.result, "provide");
+              var provided = get(get(result.result, "provide-plus-types"), "values");
               runtime.getFields(provided).forEach(function(f) {
                   namespace = namespace.set(f, get(provided, f));
                   replCompileEnv = get(replSupport, "add-global-binding").app(replCompileEnv, runtime.makeString(f));

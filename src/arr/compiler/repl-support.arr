@@ -8,8 +8,8 @@ import ast as A
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   cases(C.CompileEnvironment) env:
-    | compile-env(bindings) =>
-      C.compile-env(link(C.builtin-id(name), bindings))
+    | compile-env(bindings, type-bindings) =>
+      C.compile-env(link(C.builtin-id(name), bindings), type-bindings)
   end
 end
 

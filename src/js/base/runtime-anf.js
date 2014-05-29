@@ -1324,9 +1324,17 @@ function createMethodDict() {
 
     function checkAnn(compilerLoc, ann, val) {
       var result = ann.check(compilerLoc, val);
-      if(ffi.isFail(result)) { raiseJSJS(result); }
       if(ffi.isOk(result)) { return val; }
-      console.error(result);
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function checkAnnArg(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isOk(result)) { return val; }
+      if(ffi.isFail(result)) {
+        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+      }
       throw "Internal error: got invalid result from annotation check";
     }
 
@@ -2530,6 +2538,7 @@ function createMethodDict() {
         'GAS': INITIAL_GAS,
 
         'checkAnn': checkAnn,
+        'checkAnnArg': checkAnnArg,
         'makePredAnn': makePredAnn,
         'makeRecordAnn': makeRecordAnn,
 

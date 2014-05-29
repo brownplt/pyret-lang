@@ -9,6 +9,11 @@ data ContractResult:
       "Contract Error at " + self.loc.format(true) + "\n"
         + tostring(self.reason)
     end
+  | fail-arg(loc, reason :: FailureReason) with:
+    tostring(self):
+      "Contract Error at " + self.loc.format(true) + "\n"
+        + tostring(self.reason)
+    end
 end
 
 data FieldFailure:
@@ -31,7 +36,6 @@ data FailureReason:
     tostring(self):
       "Predicate " + self.pred-name + " failed on value " + torepr(self.val)
     end
-#  | datatype-mismatch(loc, datatype-loc, val, type :: String)
   | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
     tostring(self):
       "Record annotation failed on value\n" + torepr(self.val) + "\n\nBecause: " +

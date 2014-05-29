@@ -289,7 +289,7 @@ fun contract-checks(args, ret, body, visitor):
       stmts +
         [list:
           j-var(ann-name, compile-ann(a.ann, visitor)),
-          j-assign(js-id-of(a.id.tostring()), rt-method("checkAnn", [list: visitor.get-loc(a.l), j-id(ann-name), j-id(js-id-of(a.id.tostring()))]))
+          j-assign(js-id-of(a.id.tostring()), rt-method("checkAnnArg", [list: visitor.get-loc(a.l), j-id(ann-name), j-id(js-id-of(a.id.tostring()))]))
         ]
     end
   end
@@ -326,7 +326,7 @@ compiler-visitor = {
       else:
         [list:
           j-var(js-id-of("ann"), compile-ann(b.ann, self)),
-          j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: self.get-loc(l), j-id(js-id-of("ann")), e.visit(self)]))
+          j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: self.get-loc(b.ann.l), j-id(js-id-of("ann")), e.visit(self)]))
         ]
       end
     j-block(

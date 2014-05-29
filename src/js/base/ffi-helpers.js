@@ -198,6 +198,10 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("is-fail")(val);
       }
 
+      function isFailArg(val) {
+        return contract("is-fail-arg")(val);
+      }
+
 
       return {
         throwPlusError: throwPlusError,
@@ -227,8 +231,10 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         makePredicateFailure: makePredicateFailure,
         contractOk: gf(C, "ok"),
         contractFail: contract("fail"),
+        contractFailArg: contract("fail-arg"),
         isOk: isOk,
         isFail: isFail,
+        isFailArg: isFailArg,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
