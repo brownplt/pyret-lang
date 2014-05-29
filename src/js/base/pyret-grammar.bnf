@@ -193,6 +193,6 @@ arrow-ann-elt: ann COMMA
 app-ann: (name-ann|dot-ann) (LANGLE|LT) app-ann-elt* ann (RANGLE|GT)
 app-ann-elt: ann COMMA
 
-pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN
+pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 
 dot-ann : NAME DOT NAME
