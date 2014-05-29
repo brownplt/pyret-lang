@@ -814,6 +814,7 @@ function createMethodDict() {
     var NumberC = makePrimitiveAnnotation("Number", isNumber);
     var StringC = makePrimitiveAnnotation("String", isString);
     var BooleanC = makePrimitiveAnnotation("Boolean", isBoolean);
+    var RawArrayC = makePrimitiveAnnotation("RawArray", isArray);
     var FunctionC = makePrimitiveAnnotation("Function", isFunction);
     var AnyC = makePrimitiveAnnotation("Any", function() { return true; });
 
@@ -2417,6 +2418,7 @@ function createMethodDict() {
         'Number': NumberC,
         'String': StringC,
         'Boolean': BooleanC,
+        'RawArray': RawArrayC,
         'Any': AnyC,
         'Function': FunctionC,
 
