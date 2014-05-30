@@ -253,6 +253,11 @@
   @function[
     "is-empty"
     #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
+    #:examples
+    '@{
+      is-empty([list: ]) is true
+      is-empty([list: 1]) is false
+    }
     #:alt-docstrings '()
   ]{
 
@@ -261,6 +266,11 @@
   @function[
     "is-link"
     #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
+    #:examples
+    '@{
+      is-link([list: ]) is false
+      is-link([list: 1]) is true
+    }
     #:alt-docstrings '()
   ]{
 
@@ -269,21 +279,39 @@
   @function[
     "get-help"
     #:contract (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any")
+    #:examples
+    '@{
+      get-help([list: 1, 2, 3], 0) is 1
+      get-help([list: ], 0) raises ""
+    }
   ]
   @function[
     "set-help"
     #:contract
     (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any" "Any")
+    #:examples
+    '@{
+      set-help([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
+      set-help([list: 1, 2, 3], 5, 5) raises ""
+    }
   ]
-  @function["reverse-help" #:contract (a-arrow "Any" "Any" "Any")]
+  @function[
+    "reverse-help"
+    #:contract (a-arrow "Any" "Any" "Any")
+    #:examples
+    '@{
+      reverse-help([list: ], [list: ]) is [list: ]
+      reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
+    }
+  ]
   @function[
     "raw-fold"
     #:contract (a-arrow "Any" "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
-      raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
       raw-fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
       raw-fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
+      raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
     }
     #:alt-docstrings '()
   ]{
@@ -298,7 +326,16 @@
     application is the result of the last application of @pyret{f}. If the list is empty,
     base is returned.
   }
-  @function["range" #:contract (a-arrow "Any" "Any" "Any")]
+  @function[
+    "range"
+    #:contract (a-arrow "Any" "Any" "Any")
+    #:examples
+    '@{
+      range(0,0) is [list: ]
+      range(0,1) is [list: 0]
+      range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+    }
+  ]
   @function[
     "repeat"
     #:contract
@@ -317,6 +354,7 @@
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
+      filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
       filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
     }
   ]
@@ -338,11 +376,11 @@
       (a-id "Option" (xref "option" "Option")))
     #:examples
     '@{
-      find(fun(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
-      find(fun(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
-      find(fun(elt): true end, empty) is none
-      find(fun(elt): false end, ["miss-me"]) is none
-      find(fun(elt): false end, empty) is none
+      find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
+      find(lam(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
+      find(lam(elt): true end, empty) is none
+      find(lam(elt): false end, [list: "miss-me"]) is none
+      find(lam(elt): false end, empty) is none
     }
     #:alt-docstrings '()
   ]
@@ -357,11 +395,11 @@
         (a-field "suffix" (a-id "List" (xref "lists" "List")))))
     #:examples
     '@{
-      let  one-four = link(1, link(2, link(3, link(4, empty)))):
-        split-at(0, one-four) is { "prefix": empty, "suffix": one-four }
-        split-at(4, one-four) is { "prefix": one-four, "suffix": empty }
+      let one-four = [list: 1, 2, 3, 4]:
+        split-at(0, one-four) is { prefix: empty, suffix: one-four }
+        split-at(4, one-four) is { prefix: one-four, suffix: empty }
         split-at(2, one-four) is
-          { "prefix": link(1, link(2, empty)), "suffix": link(3, link(4, empty)) }
+          { prefix: [list: 1, 2], suffix: [list: 3, 4] }
         split-at(-1, one-four) raises "Invalid index"
         split-at(5, one-four) raises "Index too large"
       end
@@ -376,10 +414,10 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      any(fun(n): n > 1 end, link(1, link(2, link(3, empty)))) is true
-      any(fun(n): n > 3 end, link(1, link(2, link(3, empty)))) is false
-      any(fun(x): true end, empty) is false
-      any(fun(x): false end, empty) is false
+      any(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is true
+      any(lam(n): n > 3 end, link(1, link(2, link(3, empty)))) is false
+      any(lam(x): true end, empty) is false
+      any(lam(x): false end, empty) is false
     }
   ]
   @function[
@@ -391,10 +429,10 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all(fun(n): n > 1 end, link(1, link(2, link(3, empty)))) is false
-      all(fun(n): n <= 3 end, link(1, link(2, link(3, empty)))) is true
-      all(fun(x): true end, empty) is true
-      all(fun(x): false end, empty) is true
+      all(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is false
+      all(lam(n): n <= 3 end, link(1, link(2, link(3, empty)))) is true
+      all(lam(x): true end, empty) is true
+      all(lam(x): false end, empty) is true
     }
   ]
   @function[
@@ -407,25 +445,29 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all2(fun(n, m): n > m end,
+      all2(lam(n, m): n > m end,
         link(1, link(2, link(3, empty))),
         link(0, link(1, link(2, empty)))) is
         true
-      all2(fun(n, m): (n + m) == 3 end,
+      all2(lam(n, m): (n + m) == 3 end,
         link(1, link(2, link(3, empty))),
         link(2, link(1, link(0, empty)))) is
         true
-      all2(fun(n, m): n < m end,
+      all2(lam(n, m): n < m end,
         link(1, link(2, link(3, empty))),
         link(0, link(1, link(2, empty)))) is
         false
-      all2(fun($underscore, $underscore): true end, empty, empty) is true
-      all2(fun($underscore, $underscore): false end, empty, empty) is true
+      all2(lam(_, _): true end, empty, empty) is true
+      all2(lam(_, _): false end, empty, empty) is true
     }
   ]
   @function[
     "map"
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map2"
@@ -435,6 +477,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map3"
@@ -445,6 +491,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map4"
@@ -456,6 +506,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map_n"
@@ -475,6 +529,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map3_n"
@@ -486,6 +544,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "map4_n"
@@ -498,10 +560,18 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each"
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each2"
@@ -511,6 +581,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each3"
@@ -521,6 +595,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each4"
@@ -532,6 +610,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each_n"
@@ -541,6 +623,10 @@
       (a-id "Number" (xref "<global>" "Number"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each2_n"
@@ -562,6 +648,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "each4_n"
@@ -574,6 +664,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function["fold-while" #:contract (a-arrow "Any" "Any" "Any" "Any")]
   @function[
@@ -589,6 +683,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "fold3"
@@ -600,6 +698,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "fold4"
@@ -612,6 +714,10 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "fold_n"
@@ -622,9 +728,17 @@
       "Any"
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+
+    }
   ]
   @function[
     "index"
     #:contract (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any")
+    #:examples
+    '@{
+
+    }
   ]
 }

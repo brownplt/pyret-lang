@@ -196,7 +196,7 @@ data List:
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
       pivot = self.first
-      
+
       # builds up three lists, split according to cmp and eq
       # Note: We use each, which is tail-recursive, but which causes the three
       # list parts to grow in reverse order.  This isn't a problem, since we're
@@ -215,7 +215,7 @@ data List:
       greater = are-gt.sort-by(cmp, eq)
       less.append(equal.append(greater))
     end,
-    
+
     sort(self):
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -251,7 +251,7 @@ sharing:
     doc: "Returns all but the first n elements of this list"
     split-at(n, self).suffix
   end,
-  
+
   get(self, n):
     doc: "Returns the nth element of this list, or raises an error if n is out of range"
     get-help(self, n)
@@ -273,7 +273,11 @@ fun get-help(lst, n :: Number):
   if n < 0: raise("get: invalid argument: " + tostring(n))
   else: help(lst, n)
   end
+where:
+  get-help([list: 1, 2, 3], 0) is 1
+  get-help([list: ], 0) raises ""
 end
+
 fun set-help(lst, n :: Number, v):
   doc: ```Returns a new list with the same values as the given list but with the nth element
         set to the given value, or raises an error if n is out of range```
@@ -286,13 +290,20 @@ fun set-help(lst, n :: Number, v):
   if n < 0: raise("set: invalid argument: " + tostring(n))
   else: help(lst, n)
   end
+where:
+  set-help([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
+  set-help([list: 1, 2, 3], 5, 5) raises ""
 end
+
 fun reverse-help(lst, acc):
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   cases(List) lst:
     | empty => acc
     | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
   end
+where:
+  reverse-help([list: ], [list: ]) is [list: ]
+  reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
 end
 
 fun raw-fold(f, base, lst :: List):
@@ -302,6 +313,10 @@ fun raw-fold(f, base, lst :: List):
   else:
     raw-fold(f, f(base, lst.first), lst.rest)
   end
+where:
+  raw-fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
+  raw-fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
+  raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun range(start, stop):
@@ -314,6 +329,10 @@ fun range(start, stop):
                                  + tostring(stop)
                                  + ")")
   end
+where:
+  range(0,0) is [list: ]
+  range(0,1) is [list: 0]
+  range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
 end
 
 fun repeat(n :: Number, e :: Any) -> List:
@@ -324,7 +343,8 @@ fun repeat(n :: Number, e :: Any) -> List:
   end
 where:
   repeat(0, 10) is empty
-  repeat(3, -1) is link(-1, link(-1, link(-1, empty)))
+  repeat(3, -1) is [list: -1, -1, -1]
+
   repeat(1, "foo") is link("foo", empty)
 end
 
@@ -339,6 +359,9 @@ fun filter(f, lst :: List):
       filter(f, lst.rest)
     end
   end
+where:
+  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
+  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
 end
 
 fun partition(f, lst :: List):
@@ -358,6 +381,9 @@ fun partition(f, lst :: List):
   end
   help(lst)
   { is-true: is-true, is-false: is-false }
+where:
+  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
+  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
 end
 
 fun find(f :: (Any -> Bool), lst :: List) -> Option:
@@ -373,12 +399,12 @@ fun find(f :: (Any -> Bool), lst :: List) -> Option:
     end
   end
 where:
- find(lam(elt): elt > 1 end, link(1,link(2,link(3,empty)))) is some(2)
- find(lam(elt): true end, link("find-me",empty)) is some("find-me")
- find(lam(elt): elt > 4 end, link(1,link(2,link(3)))) is none
- find(lam(elt): true end, empty) is none
- find(lam(elt): false end, empty) is none
- find(lam(elt): false end, link(1,empty)) is none
+  find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
+  find(lam(elt): elt > 4 end, [list: 1, 2, 3]) is none
+  find(lam(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
+  find(lam(elt): true end, empty) is none
+  find(lam(elt): false end, [list: "miss-me"]) is none
+  find(lam(elt): false end, empty) is none
 end
 
 fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
@@ -403,6 +429,7 @@ fun split-at(n :: Number, lst :: List) -> { prefix: List, suffix: List }:
   { prefix: prefix, suffix: suffix }
 where:
   one-four = link(1, link(2, link(3, link(4, empty))))
+
   split-at(0, one-four) is { prefix: empty, suffix: one-four }
   split-at(4, one-four) is { prefix: one-four, suffix: empty }
   split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
@@ -414,10 +441,10 @@ fun any(f :: (Any -> Bool), lst :: List) -> Bool:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 where:
- any(lam(n): n > 1 end, link(1,link(2,link(3,empty)))) is true
- any(lam(n): n > 3 end, link(1,link(2,link(3,empty)))) is false
- any(lam(x): true end, empty) is false
- any(lam(x): false end, empty) is false
+  any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
+  any(lam(n): n > 3 end, [list: 1, 2, 3]) is false
+  any(lam(x): true  end, empty) is false
+  any(lam(x): false end, empty) is false
 end
 
 fun all(f :: (Any -> Bool), lst :: List) -> Bool:
@@ -429,10 +456,10 @@ fun all(f :: (Any -> Bool), lst :: List) -> Bool:
   end
   help(lst)
 where:
- all(lam(n): n > 1 end, link(1,link(2,link(3,empty)))) is false
- all(lam(n): n <= 3 end, link(1,link(2,link(3,empty)))) is true
- all(lam(x): true end, empty) is true
- all(lam(x): false end, empty) is true
+  all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
+  all(lam(n): n <= 3 end, [list: 1, 2, 3]) is true
+  all(lam(x): true  end, empty) is true
+  all(lam(x): false end, empty) is true
 end
 
 fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
@@ -445,11 +472,11 @@ fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
   end
   help(lst1, lst2)
 where:
- all2(lam(n, m): n > m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is true
- all2(lam(n, m): (n + m) == 3 end, link(1,link(2,link(3,empty))), link(2,link(1,link(0,empty)))) is true
- all2(lam(n, m): n < m end, link(1,link(2,link(3,empty))), link(0,link(1,link(2,empty)))) is false
- all2(lam(_, _): true end, empty, empty) is true
- all2(lam(_, _): false end, empty, empty) is true
+  all2(lam(n, m): n > m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is true
+  all2(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
+  all2(lam(n, m): n < m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is false
+  all2(lam(_, _): true  end, empty, empty) is true
+  all2(lam(_, _): false end, empty, empty) is true
 end
 
 
@@ -460,6 +487,10 @@ fun map(f, lst :: List):
   else:
     f(lst.first) ^ link(_, map(f, lst.rest))
   end
+where:
+  map(lam(_): raise("shipwrecked!");, [list: ]) is [list: ]
+  map(lam(_): 2;, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
+  map(lam(x): x + 1;, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
 end
 
 fun map2(f, l1 :: List, l2 :: List):
@@ -469,6 +500,9 @@ fun map2(f, l1 :: List, l2 :: List):
   else:
     f(l1.first, l2.first) ^ link(_, map2(f, l1.rest, l2.rest))
   end
+where:
+  map(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
+  map(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
@@ -496,6 +530,8 @@ fun map_n(f, n :: Number, lst :: List):
   else:
     f(n, lst.first) ^ link(_, map_n(f, n + 1, lst.rest))
   end
+where:
+  map_n(lam(n, e): n;, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 fun map2_n(f, n :: Number, l1 :: List, l2 :: List):

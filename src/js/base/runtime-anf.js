@@ -1548,7 +1548,6 @@ function createMethodDict() {
           if(threadIsDead) { throw new Error("Failed to resume; thread has been killed"); }
           threadIsCurrentlyPaused = false;
           val = restartVal;
-          // console.log("Resuming, with val = " + JSON.stringify(val, null, "  "));
           TOS++;
           RUN_ACTIVE = true;
           setTimeout(iter, 0);
@@ -1557,7 +1556,13 @@ function createMethodDict() {
         error: function(errVal) {
           threadIsCurrentlyPaused = true;
           threadIsDead = true;
-          finishFailure(new PyretFailException(errVal));
+          var exn;
+          if(isPyretException(errVal)) {
+            exn = errVal;
+          } else {
+            exn = new PyretFailException(errVal); 
+          }
+          finishFailure(exn);
         }
       },
       pause: function() {
