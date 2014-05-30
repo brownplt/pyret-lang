@@ -5,6 +5,13 @@
 
 A scripting language.
 
+*Note: We're going to finalize a number of the links on this page on June 1,
+2014, so some of the information here is out of date or provisional*
+
+To learn about the language, visit [pyret.org](http://pyret.org).
+
+To see the documentation, visit [pyret.org/docs/](http://pyret.org/docs/).
+
 The use of vocabulary from
 http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
 commenting and reporting issues.
@@ -24,8 +31,9 @@ When yer ready to brave the sea, visit [the tour](http://pyret.org/tour/).
 Running Pyret
 -------------
 
-If you just want to run Pyret, visit [code.pyret.org](https://code.pyret.org)
-and work from there.  If you're interested in Pyre development, read on:
+If you just want to run Pyret, visit [the online
+environment]() and work from there.  If you're interested
+in Pyret development, read on:
 
 The easiest way to *run* a Pyret program from the command-line is:
 
