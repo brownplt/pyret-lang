@@ -299,7 +299,6 @@ end
 
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
-    print("The anns are: " + torepr(types))
     types-obj-fields = for map(ann from types):
       j-field(ann.name, compile-ann(ann.ann, self))
     end
