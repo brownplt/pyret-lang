@@ -1082,6 +1082,7 @@ fun binding-type-ids(stmt) -> List<Name>:
     | s-newtype(l, name, _) => [list: name]
     | s-type(l, name, _) => [list: name]
     | s-data(l, name, _, _, _, _, _) => [list: s-name(l, name)]
+    | else => empty
   end
 end
 

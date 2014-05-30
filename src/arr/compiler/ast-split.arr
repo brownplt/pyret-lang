@@ -43,7 +43,7 @@ end
 fun freevars-helper(h :: Helper):
   cases(Helper) h:
     | helper(name, args, body) =>
-      N.freevars-e(body).difference(set(args))
+      N.freevars-e(body).difference(sets.list-to-tree-set(args))
   end
 end
 
@@ -172,14 +172,14 @@ fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
       split-result-int-l(
           body-split.helpers,
           N.a-lam(l, args, ret, body-split.body),
-          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id)))))
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(sets.list-to-tree-set(args.map(_.id)))))
         )
     | a-method(l, args, ret, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
           N.a-method(l, args, ret, body-split.body),
-          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(set(args.map(_.id)))))
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(sets.list-to-tree-set(args.map(_.id)))))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))

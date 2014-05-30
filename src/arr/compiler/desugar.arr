@@ -16,7 +16,7 @@ data Pair:
   | pair(left, right)
 end
 
-mt-d-env = d-env(set([list: ]), set([list: ]), set([list: ]))
+mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));

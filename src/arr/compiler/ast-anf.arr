@@ -694,14 +694,14 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
       end
     | a-lam(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      without-args = from-body.difference(set(args.map(_.id)))
+      without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end
       freevars-ann-acc(ret, from-args)
     | a-method(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      without-args = from-body.difference(set(args.map(_.id)))
+      without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end

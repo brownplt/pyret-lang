@@ -2,7 +2,9 @@
 
 provide {
   Set: Set,
-  set: list-to-tree-set,
+  set: {
+    make: arr-to-list-set
+  },
   list-set: {
     make: arr-to-list-set
   },
@@ -10,7 +12,9 @@ provide {
     make: arr-to-tree-set
   },
   empty-list-set: list-set(empty),
-  empty-tree-set: tree-set(leaf)
+  empty-tree-set: tree-set(leaf),
+  list-to-list-set: list-to-list-set,
+  list-to-tree-set: list-to-tree-set
 } end
 
 import lists as lists

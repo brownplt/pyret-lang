@@ -37,7 +37,7 @@ fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
       type-fields = for map(id from ids):
         A.a-field(l, tostring(id), A.s-name(l, id))
       end
-      A.s-provide-types(type-fields)
+      A.s-provide-types(l, type-fields)
     | else => p
   end
 end
