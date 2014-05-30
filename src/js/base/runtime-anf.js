@@ -1471,7 +1471,6 @@ function createMethodDict() {
         return safeCall(function() {
           thisField = remainingFields.pop();
           var thisChecker = that.anns[thisField];
-          console.log(thisChecker);
           return thisChecker.check(that.locs[that.locs.length - remainingFields.ength], getColonField(val, thisField));
         }, function(result) {
           if(ffi.isOk(result)) {

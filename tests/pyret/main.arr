@@ -8,4 +8,5 @@ import "./tests/test-letrec.arr" as _
 import "./tests/test-torepr.arr" as _
 import "./tests/test-array.arr" as _
 import "./tests/test-constructors.arr" as _
+import "./tests/test-contracts.arr" as _
 

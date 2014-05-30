@@ -203,6 +203,6 @@ end
 
 check "should work for standalone binding constructs":
   run-str("type N = Number x :: N = 'foo'") satisfies is-contract-error-str
-  run-str("newtype List as ListT").success is true
+  run-str("newtype Lyst as LystT").success is true
 end
 
