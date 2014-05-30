@@ -10,7 +10,7 @@ import "compiler/ast-util.arr" as U
 import "compiler/gensym.arr" as G
 
 data NameResolution:
-  | resolved(ast :: A.Program, shadowed :: List<C.CompileError>, bindings :: SD.StringDict)
+  | resolved(ast :: A.Program, errors :: List<C.CompileError>, bindings :: SD.StringDict)
 end
 
 fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
@@ -427,6 +427,7 @@ end
 data TypeBinding:
   | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
   | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
@@ -461,7 +462,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         Postconditions on p:
           - Contains no s-name in names
         ```
-  var shadowing-instances = [list: ]
+  var name-errors = [list: ]
   bindings = SD.string-dict()
   type-bindings = SD.string-dict()
 
@@ -470,7 +471,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
           old-loc = env.get(s).loc
-          shadowing-instances := link(C.shadow-id(s, l, old-loc), shadowing-instances)
+          name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
         end
         atom = names.make-atom(s)
         binding = typ(l, atom, none)
@@ -490,6 +491,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           type-bindings.set(atom.key(), let-type-bind(l, atom, ann))
         | global-type-bind(l, _, _) =>
           type-bindings.set(atom.key(), global-type-bind(l, atom, ann))
+        | type-var-bind(l, _, _) =>
+          type-bindings.set(atom.key(), type-var-bind(l, atom, ann))
       end
     else:
       print("No binding for " + torepr(atom))
@@ -520,13 +523,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
-  fun handle-ann(type-env, id):
+  fun handle-ann(l, type-env, id):
     cases(A.Name) id:
       | s-name(_, s) =>
-        if type-env.has-key(s): type-env.get(s).atom
-        else: names.s-global(s)
+        if type-env.has-key(s):
+          cases(TypeBinding) type-env.get(s):
+            | global-type-bind(_, name, _) => A.a-name(l, name)
+            | let-type-bind(_, name, _) => A.a-name(l, name)
+            | type-var-bind(_, name, _) => A.a-blank # TODO: Turn this into a A.a-type-var(l, name) instead
+          end
+        else: A.a-name(l, names.s-global(s))
         end
-      | else => id
+      | else => A.a-name(l, id)
     end
   end
   names-visitor = A.default-map-visitor.{
@@ -642,7 +650,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-types = for fold(acc from { env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, let-type-bind)
+        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       with-params = self.{type-env: new-types.env}
@@ -652,7 +660,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
       new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, let-type-bind)
+        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       with-params = self.{type-env: new-types.env}
@@ -734,15 +742,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     a-blank(self): A.a-blank end,
     a-any(self): A.a-any end,
-    a-name(self, l, id): A.a-name(l, handle-ann(self.type-env, id)) end,
+    a-name(self, l, id): handle-ann(l, self.type-env, id) end,
     a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
     a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
     a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
     a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
     a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
-    a-dot(self, l, obj, field): A.a-dot(l, handle-ann(self.type-env, obj), field) end,
+    a-dot(self, l, obj, field):
+      obj-ann = handle-ann(l, self.type-env, obj)
+      cases(A.Ann) obj-ann:
+        | a-name(_, name) => A.a-dot(l, name, field)
+        | else =>
+          name-errors := link(C.unexpected-type-var(l, obj), name-errors)
+          A.a-blank
+      end
+    end,
     a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
   }
-  resolved(p.visit(names-visitor), shadowing-instances, bindings)
+  resolved(p.visit(names-visitor), name-errors, bindings)
 end
 

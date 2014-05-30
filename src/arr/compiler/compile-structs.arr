@@ -42,6 +42,10 @@ data CompileError:
     tostring(self):
       "Identifier " + tostring(self.id.id) + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
     end
+  | unexpected-type-var(loc :: SL.Location, name :: A.Name) with:
+    tostring(self):
+      "Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable"
+    end
   | pointless-var(loc :: SL.Location) with:
     tostring(self):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"

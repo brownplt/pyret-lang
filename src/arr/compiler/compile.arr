@@ -48,7 +48,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       named-result = R.resolve-names(scoped, libs)
       when options.collect-all: ret := phase("Resolved names", named-result, ret) end
       named-ast = named-result.ast
-      named-shadow-errors = named-result.shadowed
+      named-errors = named-result.errors
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
       cleaned = desugared.visit(U.merge-nested-blocks)
@@ -58,7 +58,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
       inlined = cleaned.visit(U.inline-lams)
       when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-      any-errors = named-shadow-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
+      any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
       if is-empty(any-errors):
         if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
         else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
