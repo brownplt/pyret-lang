@@ -281,14 +281,23 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLoc(val, field, loc) {
-    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+    if(val === undefined) { 
+      if (ffi === undefined) {
+        throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+      } else {
+        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+    }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
         //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
         //reentrant errors (see commit 24ff13d9e9)
+      if (ffi === undefined) {
+        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
+      } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
+      }
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -1115,7 +1124,11 @@ function createMethodDict() {
     function makeSrcloc(arr) {
       if (typeof arr === "object" && arr.length === 1) {
         checkString(arr[0]);
-        return getField(srcloc, "builtin").app(arr[0])
+        if (srcloc === undefined) {
+          return makeString(JSON.stringify(arr));
+        } else {
+          return getField(srcloc, "builtin").app(arr[0])
+        }
       }
       else if (typeof arr === "object" && arr.length === 7) {
         return getField(srcloc, "srcloc").app(
@@ -2427,7 +2440,7 @@ function createMethodDict() {
           else {
             return withModule(runtime.makeObject({
               "values": getField(m, "provide"),
-              "types": runtime.makeObject({})
+              "types": {}
             }));
           }
         });
