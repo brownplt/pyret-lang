@@ -36,7 +36,7 @@ fun make-arraynge(n):
   end
 end
 
-fun check-random-adds(n :: Number, set-constructor) -> Bool:
+fun check-random-adds(n :: Number, set-constructor) -> Boolean:
   nums = raw-build-array(n, lam(n2): random(n2 * n2) end)
   expect = for raw-array-fold(s from [list: ], elt from nums, _ from 0):
     if s.member(elt): s else: link(elt, s) end
@@ -44,7 +44,7 @@ fun check-random-adds(n :: Number, set-constructor) -> Bool:
   set-constructor.make(nums).to-list().sort() == expect
 end
 
-fun check-random-removes(n :: Number, set-constructor) -> Bool:
+fun check-random-removes(n :: Number, set-constructor) -> Boolean:
   nums = raw-build-array(n, lam(n2): random(2 * n2) end)
   orig = make-arraynge(n)
   nums-list = raw-array-to-list(nums)
