@@ -53,7 +53,7 @@ data ParseParam:
     end,
     parse-string(self): "<number>" end
   | read-bool with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Bool:
+    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Boolean:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:

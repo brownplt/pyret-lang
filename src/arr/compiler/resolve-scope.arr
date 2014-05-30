@@ -33,7 +33,9 @@ end
 fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
   cases(A.ProvideTypes) p:
     | s-provide-types-all(l) =>
+      print("Providing all types")
       ids = A.block-type-ids(b)
+      print("ids were: " + torepr(ids))
       type-fields = for map(id from ids):
         A.a-field(l, tostring(id), A.s-name(l, id))
       end
@@ -332,11 +334,14 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
-      provt = cases(A.Provide) resolve-type-provide(provide-types-raw, body):
+      print("The provide stmt is: " + torepr(provide-types-raw))
+      provides = resolve-type-provide(provide-types-raw, body)
+      provt = cases(A.Provide) provides:
         | s-provide-types-none(_) => [list: ]
         | s-provide-types(_, anns) => anns
-        | else => raise("Should have been resolve-typed away")
+        | else => raise("Should have been resolve-typed away" + torepr(provides))
       end
+      print("Provt is: " + torepr(provt))
       # TODO: Need to resolve provide-types here
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>

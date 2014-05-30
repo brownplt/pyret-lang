@@ -90,8 +90,10 @@ runtime-types = lists.map(type-id, [list:
 standard-types = runtime-types +
   [list:
     type-module-bindings("lists", [list: "List" ]),
+    type-module-bindings("option", [list: "Option" ]),
     type-module-bindings("error", [list: "Error" ]),
-    type-module-bindings("arrays", [list: "Array" ])
+    type-module-bindings("arrays", [list: "Array" ]),
+    type-module-bindings("sets", [list: "Set"])
     #...
     ]
 
