@@ -414,10 +414,10 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      any(fun(n): n > 1 end, link(1, link(2, link(3, empty)))) is true
-      any(fun(n): n > 3 end, link(1, link(2, link(3, empty)))) is false
-      any(fun(x): true end, empty) is false
-      any(fun(x): false end, empty) is false
+      any(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is true
+      any(lam(n): n > 3 end, link(1, link(2, link(3, empty)))) is false
+      any(lam(x): true end, empty) is false
+      any(lam(x): false end, empty) is false
     }
   ]
   @function[
@@ -429,10 +429,10 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all(fun(n): n > 1 end, link(1, link(2, link(3, empty)))) is false
-      all(fun(n): n <= 3 end, link(1, link(2, link(3, empty)))) is true
-      all(fun(x): true end, empty) is true
-      all(fun(x): false end, empty) is true
+      all(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is false
+      all(lam(n): n <= 3 end, link(1, link(2, link(3, empty)))) is true
+      all(lam(x): true end, empty) is true
+      all(lam(x): false end, empty) is true
     }
   ]
   @function[
@@ -445,20 +445,20 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all2(fun(n, m): n > m end,
+      all2(lam(n, m): n > m end,
         link(1, link(2, link(3, empty))),
         link(0, link(1, link(2, empty)))) is
         true
-      all2(fun(n, m): (n + m) == 3 end,
+      all2(lam(n, m): (n + m) == 3 end,
         link(1, link(2, link(3, empty))),
         link(2, link(1, link(0, empty)))) is
         true
-      all2(fun(n, m): n < m end,
+      all2(lam(n, m): n < m end,
         link(1, link(2, link(3, empty))),
         link(0, link(1, link(2, empty)))) is
         false
-      all2(fun($underscore, $underscore): true end, empty, empty) is true
-      all2(fun($underscore, $underscore): false end, empty, empty) is true
+      all2(lam(_, _): true end, empty, empty) is true
+      all2(lam(_, _): false end, empty, empty) is true
     }
   ]
   @function[
