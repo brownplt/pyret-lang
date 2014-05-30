@@ -333,7 +333,7 @@ binding-handlers = {
   s-header(_, imp, env, type-env):
     {
       val-env: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown)),
-      type-env: type-env.set(imp.name.key(), e-bind(imp.l, false, b-typ))
+      type-env: type-env.set(imp.types.key(), e-bind(imp.l, false, b-typ))
     }
   end,
   s-type-let-bind(_, tlb, env, type-env):

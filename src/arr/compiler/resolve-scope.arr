@@ -30,6 +30,18 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr):
   end
 end
 
+fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
+  cases(A.ProvideTypes) p:
+    | s-provide-types-all(l) =>
+      ids = A.block-type-ids(b)
+      type-fields = for map(id from ids):
+        A.a-field(l, tostring(id), A.s-name(l, id))
+      end
+      A.s-provide-types(type-fields)
+    | else => p
+  end
+end
+
 fun resolve-imports(imports :: List<A.Import>):
   fun resolve-import-type(imp :: A.ImportType):
     cases(A.ImportType) imp:
@@ -284,7 +296,17 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
             | else => lst
           end
         end
-      A.s-block(l, let-binds + [list: expr])
+      type-binds = for fold(lst from [list: ], t from type-env):
+        cases(C.CompileTypeBinding) t:
+          | type-id(id) => lst
+          | type-module-bindings(name, bindings) =>
+            lst +
+              for map(tname from bindings):
+                A.s-type-bind(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
+              end
+        end
+      end
+      A.s-type-let-expr(l, type-binds, A.s-block(l, let-binds + [list: expr]))
   end
 end
 
@@ -310,6 +332,11 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
+      provt = cases(A.Provide) resolve-type-provide(provide-types-raw, body):
+        | s-provide-types-none(_) => [list: ]
+        | s-provide-types(_, anns) => anns
+        | else => raise("Should have been resolve-typed away")
+      end
       # TODO: Need to resolve provide-types here
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
@@ -317,7 +344,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | else => A.s-block(l, extra-lets + desugar-toplevel-types([list: body]))
       end
       fun transform-toplevel-last(l2, last):
-        A.s-module(l2, last, prov, empty, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
+        A.s-module(l2, last, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>

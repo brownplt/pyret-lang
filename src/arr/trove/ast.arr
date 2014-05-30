@@ -1077,6 +1077,21 @@ fun flatten(list-of-lists :: List):
   end
 end
 
+fun binding-type-ids(stmt) -> List<Name>:
+  cases(Expr) stmt:
+    | s-newtype(l, name, _) => [list: name]
+    | s-type(l, name, _) => [list: name]
+    | s-data(l, name, _, _, _, _, _) => [list: s-name(l, name)]
+  end
+end
+
+fun block-type-ids(b :: is-s-block) -> List<Name>:
+  cases(Expr) b:
+    | s-block(_, stmts) => flatten(stmts.map(binding-type-ids))
+    | else => raise("Non-block given to block-ids")
+  end
+end
+
 fun binding-ids(stmt) -> List<Name>:
   fun variant-ids(variant):
     cases(Variant) variant:

@@ -266,9 +266,9 @@ fun compile-ann(ann, visitor):
         | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
       rt-method("makePredAnn", [list: compile-ann(base, visitor), expr-to-compile.visit(visitor), j-str(name)])
+    | a-dot(l, m, field) => j-dot(j-id(js-id-of(m.tostring())), field)
     | a-blank => rt-field("Any")
     | a-any => rt-field("Any")
-    | a-dot => rt-field("Any")
   end
 end
 
@@ -298,13 +298,17 @@ end
 
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
+    types-obj-fields = for map(ann from types):
+      j-field(ann.name, compile-ann(ann.ann, self))
+    end
     rt-method("makeObject", [list:
         j-obj([list:
             j-field("answer", answer.visit(self)),
             j-field("provide-plus-types",
               rt-method("makeObject", [list: j-obj([list:
                       j-field("values", provides.visit(self)),
-                      j-field("types", j-obj(empty))])])), # TODO
+                      j-field("types", j-obj(types-obj-fields))
+                    ])])),
             j-field("checks", checks.visit(self))])])
   end,
   a-type-let(self, l, bind, body):

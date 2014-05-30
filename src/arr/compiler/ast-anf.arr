@@ -671,7 +671,7 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
     | a-singleton-variant(_, _, _) => seen-so-far
   end
   for fold(acc from from-members, m from v.with-members):
-    freevars-v-acc(m, acc)
+    freevars-v-acc(m.value, acc)
   end
 end
 

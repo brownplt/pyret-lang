@@ -91,7 +91,6 @@ standard-types = runtime-types +
   [list:
     type-module-bindings("lists", [list: "List" ]),
     type-module-bindings("error", [list: "Error" ]),
-    type-module-bindings("srcloc", [list: "Srcloc" ]),
     type-module-bindings("arrays", [list: "Array" ])
     #...
     ]
