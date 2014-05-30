@@ -1,0 +1,300 @@
+<html>
+<head>
+<script src="require.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="codemirror.js"></script>
+<script src="pyret.js"></script>
+<link rel="stylesheet" href="codemirror.css"></link>
+
+<style>
+  body {
+    overflow-x : scroll;
+  }
+  #wrapper {
+    height: 100%;
+  	background: url(pyret-banner.png) no-repeat right bottom / 10%;
+  }
+  #toolbar {
+    width: 100%;
+    height: 4em;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #tools {
+    display: inline-block;
+    float: right;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #status {
+    display: inline-block;
+    float: left;
+  }
+  #editorcontainer {
+    width : 45%;
+    height : 100%;
+    float : left;
+  }
+  #outputcontainer {
+    width: 45%;
+    height : 100%;
+    float : left;
+    padding-left: 5%;
+  }
+  .CodeMirror {
+    border : 1px solid #eee;
+    height : auto;
+    line-height : 1.5;
+  }
+  .CodeMirror-scroll {
+    overflow-y : hidden;
+    overflow-x : auto;
+  }
+  .output {
+    background-color: white;
+  }
+  .error {
+    background-color: white;
+    color: red;
+  }
+  .info {
+    text-align: right;
+    font-size: smaller;
+    font-family: serif;
+    background-color: white;
+    color: #666;
+  }
+</style>
+
+
+</head>
+
+
+<body>
+
+<div id="wrapper">
+
+  <div id="toolbar">
+    <span id="status">
+    Ready
+    </span>
+    <div id="tools">
+
+      <label>
+      Safe stack:
+      </label>
+      <input type="checkbox" id="safeStack" checked>
+      </input>
+
+      <label>
+      Async:
+      </label>
+      <input type="checkbox" id="syncorno">
+      </input>
+
+      <label>
+      Gas:
+      </label>
+      <input type="text" id="gas" value=8000>
+      </input>
+
+      <button id="runthepyret">
+      Run
+      </button>
+
+      <button id="stopthepyret">
+      Stop
+      </button>
+
+      <button id="pausethepyret">
+      Pause
+      </button>
+
+      <button id="cleartheoutput">
+      Clear
+      </button>
+
+    </div>
+  </div>
+
+<div id="editor">
+  <div id="editorcontainer">
+    <textarea id="thepyret">
+    </textarea>
+  </div>
+
+  <div id="outputcontainer">
+
+    <div id="theoutput">
+
+    </div>
+  </div>
+</div>
+</body>
+
+<script>
+require.config({
+  waitSeconds: 15000,
+  paths: {
+    "arr/compiler/web-compile.arr": "web-compile"
+  }
+});
+$(function() {
+  require(["arr/compiler/web-compile.arr", "js/secure-loader"], function(wc, loader) {
+    require([
+      "js/runtime-anf",
+      "arr/compiler/compile-structs.arr"
+    ], function(rt, cs) {
+
+      function setStatus(str) {
+        $("#status").text(str);
+      }
+      var editor = CodeMirror.fromTextArea($("#thepyret")[0],
+        {
+          viewportMargin: Infinity,
+          lineNumbers: true,
+          matchBrackets: true,
+          tabSize: 2,
+          indentUnit: 2,
+          extraKeys: { "Tab": "indentAuto" }
+        });
+      editor.setValue(
+"fun fact(n):\n  if n < 1: 1\n  else: n * fact(n - 1)\n  end\nend\n" +
+"fact(10000)"
+      );
+
+      var oldDefine = define;
+      var profileCounter = 0;
+      
+      var gas = Number($("#gas").val());
+      var myRT = rt.makeRuntime({
+        initialGas: gas,
+        stdout: function(s) {
+          console.log(s);
+          $("#theoutput").append($("<pre>").addClass("output").text(s));
+        }, 
+        stderr: function(s) {
+          console.error(s);
+          $("#theoutput").append($("<pre>").addClass("error").text(s));
+        } 
+      });
+      function getExports(lib) {
+        return myRT.getField(lib(myRT, myRT.namespace), "provide");
+      }
+      function s(str) { return myRT.makeString(str); }
+      function gf(obj, fld) { return myRT.getField(obj, fld); }
+      var myCS = getExports(cs);
+      var myWC = getExports(wc);
+
+      var compileStart;
+      var compileTime;
+      var runStart;
+      var runTime;
+      function run(src, onDone) {
+        myRT.run(function(runtime, namespace) {
+            var name = "anon" + Math.floor(Math.random() * 10000000);
+            myRT.safeCall(function() {
+                setStatus("Compiling...");
+                compileStart = window.performance.now();
+                console.profile("compileProfile");
+                return gf(myWC, "compile-js").app(
+                  s(src),
+                  s(name),
+                  gf(myCS, "standard-builtins"),
+                  myRT.makeBoolean($("#safeStack").prop("checked"))
+                )
+              },
+              function(myCR) {
+                  var jscode = myRT.unwrap(gf(gf(myCR, "code"), "pyret-to-js-runnable").app());
+                  console.profileEnd();
+                  compileTime = window.performance.now() - compileStart;
+
+                  console.log("About to run");
+                  setStatus("Running...");
+                  loader.goodIdea(name, jscode); 
+                  setTimeout(function() {
+                      require([name], function(a) {
+                          console.profile("execute");
+                          runStart = window.performance.now();
+                          var sync = !$("#syncorno").prop("checked");
+                          var gas = Number($("#gas").val());
+                          myRT.run(a, myRT.namespace, {sync: sync, initialGas: gas},
+                                   function(r) {
+                                     runTime = window.performance.now() - runStart;
+                                     console.profileEnd();
+                                     onDone(r);
+                                   });
+
+                      });
+                    }, 0);
+                }
+              );
+          },
+          false,
+          myRT.namespace,
+          function(result) {
+            if(myRT.isFailureResult(result)) {
+              console.log("Failure: " + result);
+              displayError("These compile errors will improve :-)");
+            }
+          });
+     }
+
+     function displayError(failure) {
+        $("#theoutput").append($("<pre>").addClass("error").text(failure));
+     }
+
+      $("#runthepyret").click(function() {
+        run(editor.getValue(), function(result) {
+            setStatus("Ready");
+            console.log(result);
+            $("#theoutput").append($("<pre>").addClass("output").text("Compile: " + Math.floor(compileTime) + "ms; Run: " + Math.floor(runTime) + "ms; Bounces: " + result.stats.bounces + "; Yields: " + result.stats.tos).addClass("info"));
+            if (myRT.isSuccessResult(result)) {
+              var answer = gf(result.result, "answer");
+              myRT.run(function() { return myRT.toReprJS(answer); }, myRT.namespace, {}, function(r) {
+                console.log("Got a result: ", r.result);
+                return $("#theoutput").append($("<pre>").addClass("output").text(r.result));
+              })
+            }
+            else {
+              displayError(String(result.exn));
+            }
+          });
+      });
+
+      function pause() {
+        myRT.schedulePause(function(restarter) {
+            $("#pausethepyret").text("Resume");
+            $("#pausethepyret").off("click");
+            setStatus("Paused...");
+            $("#pausethepyret").click(function() {
+              $("#pausethepyret").text("Pause");
+              $("#pausethepyret").off("click");
+              $("#pausethepyret").click(pause);
+              setStatus("Running...");
+              restarter();
+            });
+          });
+      }
+      $("#pausethepyret").click(pause);
+
+      $("#stopthepyret").click(function() {
+        myRT.schedulePause(function(restarter) { });
+        displayError("Stopped by user.");
+        setStatus("Ready");
+      });
+
+      $("#cleartheoutput").click(function() {
+        $("#theoutput").empty();
+      });
+    });
+  });
+});
+</script>
+
+<script>
+</script>
+
+</html>

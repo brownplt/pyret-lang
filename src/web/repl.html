@@ -1,0 +1,162 @@
+<!doctype HTML>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Patch ┄ Bootstrap</title>
+  <link rel="stylesheet" href="reset.css"></link>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+  <script src="../../lib/CodeMirror/lib/codemirror.js"></script>
+  <script src="../../lib/CodeMirror/addon/edit/matchbrackets.js"></script>
+  <script src="../../lib/CodeMirror/mode/pyret/pyret.js"></script>
+  <script src="../../node_modules/requirejs/require.js"></script>
+  <script src="editor.js"></script>
+  <script src="draw.js"></script>
+<!--  <script type="text/javascript"
+          src="https://caja.appspot.com/caja.js"></script> -->
+  <link rel="stylesheet" href="../../lib/CodeMirror/lib/codemirror.css"></link>
+  <link rel="stylesheet" href="editor.css"></link>
+</head>
+<body>
+<div id="header">
+  <div id="docs"><a href="doc.txt" target="_blank">Documentation</a></div>
+  <div id="programs"><a>My Programs</a></div>
+  <div id="logout"><a>Logout</a></div>
+</div>
+<div id="toolbar">
+  <div id="program-name-container">
+    <label for="program-name">Project Name:</label>
+    <input id="program-name" type="text"></input>
+  </div>
+  <button id="saveButton" class="blueButton">Save</button>
+  <button id="shareButton" class="blueButton">Share</button>
+  <button id="breakButton" class="blueButton rhs">Stop</button>
+  <button id="runButton" class="blueButton rhs">Run</button>
+  <button id="toggleDialect" class="blueButton rhs"
+  style="margin-right: 5em">Switch to Pyret</button>
+</div>
+<div id="loader"><p>Raising the masts...</p></div>
+<div id="main">
+<div id="REPL" class="replContainer"></div>
+</div>
+<div id="footer"></div>
+</body>
+
+<script>
+LOG = true;
+function ct_log(/* varargs */) {
+  if (window.console && LOG) {
+    console.log.apply(console, arguments);
+  }
+}
+function ct_error(/* varargs */) {
+  if (window.console && LOG) {
+    console.error.apply(console, arguments);
+  }
+}
+$(function() {
+  var texts = [
+      "Raising the masts...",
+      "Securing the oarlocks...",
+      "Hoisting the anchor...",
+      "Swabbing the decks...",
+      "Debarnacling the keel...",
+      "Checking the cargo manifest...",
+      "Assembling the crew...",
+      "Inspecting the turnbuckles...",
+      "Furling the rollers...",
+      "Lashing the jib-boom..."
+    ];
+  $("#loader p").text(texts[Math.floor(Math.random() * texts.length)]);
+  setInterval(function() {
+    $("#loader p").text(texts[Math.floor(Math.random() * texts.length)]);
+  }, 1300);
+  requirejs.config({
+    paths: {
+      "js": "../../build/phase1/js",
+      "compiler": "../../build/phase1/arr/compiler",
+      "arr": "../../build/phase1/arr/",
+      "trove": "../../build/phase1/trove",
+      "q": "../../node_modules/q/q",
+      "fs": "fsstub"
+    },
+    waitSeconds: 0
+  });
+  require(["js/repl-lib", "./repl-ui", "js/runtime-anf", "js/dialects-lib"], function(replLib, replUI, rtLib, dialectLib) {
+    $("#loader").hide();
+    var replContainer = $("<div>").addClass("repl");
+    $("#REPL").append(replContainer);
+    var runtime = rtLib.makeRuntime({stdout: function(str) { console.log(str); } });
+    var dialects = dialectLib(runtime, runtime.namespace);
+    var editor = undefined;
+    var codeContainer = $("<div>").addClass("replMain");
+    $("#main").prepend(codeContainer);
+    var replWidget = undefined;
+    var lskey = "patch_saved_program";
+    $(document).on("keydown", function(e) {
+      if(e.ctrlKey) {
+        if(e.keyCode === 68) { // "Ctrl-d"
+          if (editor !== undefined) {
+            editor.focus();
+            e.stopImmediatePropagation();
+          }
+        } else if(e.keyCode === 73) { // "Ctrl-i"
+          if (replWidget !== undefined) {
+            replWidget.focus();
+            e.stopImmediatePropagation();
+          }
+        }
+      }
+    });
+    function save() {
+      if (editor !== undefined) {
+        window.localStorage.setItem(lskey, editor.cm.getValue());
+      }
+    }
+    $("#saveButton").click(save);
+    setInterval(save, 3000);
+    $("#toggleDialect").click(function(e) {
+      var dialect = window.location.hash.slice(1) || "Bootstrap";
+      dialect = (dialect === "Pyret") ? "Bootstrap" : "Pyret";
+      window.location.hash = dialect;
+    });
+    function onHashChange() {
+      var dialect = window.location.hash.slice(1) || "Bootstrap"; // TODO: CHANGE THIS AS NEEDED
+      $("#toggleDialect").text("Switch to " + (dialect === "Pyret" ? "Bootstrap" : "Pyret"));
+      var replNS = dialects.dialects[dialect].makeNamespace(runtime);
+      var replEnv = dialects.dialects[dialect].compileEnv;
+      var repl = replLib.create(runtime, replNS, replEnv, {name: "Untitled definitions", dialect: dialect});
+
+      // NOTE(joe): This forces the loading of all the built-in compiler libs
+      repl.restartInteractions("");
+
+      replContainer.empty();
+      replWidget = replUI.makeRepl(replContainer, repl, runtime, {
+          breakButton: $("#breakButton")
+        });
+      window.RUN_CODE = function(src, uiOpts, replOpts) {
+        replWidget.runCode(src, uiOpts, replOpts);
+      };
+      codeContainer.empty(); 
+      editor = replUI.makeEditor(codeContainer, {
+          runButton: $("#runButton"),
+          simpleEditor: false,
+          initial: "print('Ahoy, world!')",
+          run: RUN_CODE,
+          initialGas: 500
+        });
+      if(window.localStorage.hasOwnProperty(lskey)) {
+        editor.cm.setValue(window.localStorage.getItem(lskey));
+      }
+      editor.focus();
+    }
+    if ("onhashchange" in window) {
+      window.onhashchange = onHashChange;
+    }
+    onHashChange();
+  });
+});
+</script>
+</html>
+

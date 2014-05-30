@@ -1,8 +1,15 @@
 #lang pyret/whalesong
 
-# NOTE(joe): This runs in the web interface; animate() does not work offline
+import image as I
+import world as W
 
-_dimension = 300
+place-image = I.place-image
+circle = I.circle
+rectangle = I.rectangle
+
+sqr = num-expt(_, 2)
+
+_dimension = 500
 _width = _dimension
 _height = _dimension
 
@@ -13,7 +20,7 @@ _numberofbirds = 3
 
 _positionspread = 10 * _dimension
 _speedspread = 5
-_maxspeed = 10
+_maxspeed = 10.0
 _border = _dimension / 50
 _leaderborder = _border
 _borderspeedchange = 0.2
@@ -75,7 +82,7 @@ fun ticker(w):
   leaderbirdvx := leaderbirdvx + uniform(0, _leaderbirdrandomspeedchange)
   leaderbirdvy := leaderbirdvy + uniform(0, _leaderbirdrandomspeedchange)
 
-  speed = (leaderbirdvx.sqr() + leaderbirdvy.sqr()).sqrt()
+  speed = (leaderbirdvx^num-expt(2) + leaderbirdvy^num-expt(2))^num-sqrt()
   
   when speed > (_leadermaxspeed):
     leaderbirdvx := leaderbirdvx * (_leadermaxspeed / speed)
@@ -101,7 +108,7 @@ fun ticker(w):
     end
     
     when x > (_width - _border):
-      vx := vx + _borderspeedchange
+      vx := vx - _borderspeedchange
     end
     
     when y > (_height - _border):
@@ -121,7 +128,7 @@ fun ticker(w):
       when j <> i:
         dx = b2.first - x
         dy = b2.rest.first - y
-        dist = (dx.sqr() + dy.sqr()).sqrt()
+        dist = (dx^sqr() + dy^sqr())^num-sqrt()
         when dist < _mindist:
           vx := vx - (dx * 0.2)
           vy := vy - (dy * 0.2)
@@ -137,6 +144,7 @@ fun ticker(w):
     
     birdlist.map(do_avg)
     
+    
     when 0 <> avcount:
       avx = avxtotal / avcount
       avy = avytotal / avcount
@@ -147,7 +155,7 @@ fun ticker(w):
     fun bounce(barrier):
       dx = barrier.first - x
       dy = barrier.rest.first - y
-      dist = (dx.sqr() + dy.sqr()).sqrt()
+      dist = (dx^sqr() + dy^sqr())^num-sqrt()
       when dist < (_barrierradius + 15):
         vx := vx - (dx * 0.1)
         vx := vy * 0.6
@@ -157,11 +165,13 @@ fun ticker(w):
     end
     _barriers.map(bounce)
     
-    new-speed = (vx.sqr() + vy.sqr()).sqrt()
+    
+    new-speed = (vx^sqr() + vy^sqr())^num-sqrt()
     when new-speed > _maxspeed:
       vx := vx * (_maxspeed / new-speed)
       vy := vy * (_maxspeed / new-speed)
     end
+    
     
     i := i + 1
     [
@@ -193,7 +203,7 @@ with-barriers =
       img)
   end
 
-fun drawer(w, view):
+fun drawer(w):
   with-boids =
     for list.fold(img from with-barriers, boid from w.birdlist):
       place-image(
@@ -210,7 +220,8 @@ fun drawer(w, view):
     with-boids)
 end
 
-animate(world0, {
-    on-tick: ticker,
-    to-draw: drawer
-})
+W.big-bang(world0, [
+    W.on-tick(ticker),
+    W.to-draw(drawer)
+  ])
+

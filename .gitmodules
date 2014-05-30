@@ -1,9 +1,6 @@
-[submodule "lib/ragg"]
-	path = lib/ragg
-	url = https://github.com/dyoo/ragg
 [submodule "examples/pyret-lang-private"]
 	path = examples/pyret-lang-private
 	url = git@github.com:brownplt/pyret-lang-private
-[submodule "lib/whalesong"]
-	path = lib/whalesong
-	url = https://github.com/jpolitz/whalesong
+[submodule "lib/CodeMirror"]
+	path = lib/CodeMirror
+	url = https://github.com/jpolitz/CodeMirror
