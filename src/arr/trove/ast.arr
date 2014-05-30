@@ -44,6 +44,7 @@ str-except = PP.str("except")
 str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
+str-lam = PP.str("lam")
 str-graph = PP.str("graph:")
 str-if = PP.str("if ")
 str-askcolon = PP.str("ask:")
@@ -467,7 +468,7 @@ data Expr:
     ) with:
     label(self): "s-lam" end,
     tosource(self):
-      funlam-tosource(str-fun,
+      funlam-tosource(str-lam,
         nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s-method(
