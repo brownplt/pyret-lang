@@ -21,19 +21,19 @@ It'll build the Pyret compiler, run the tests, and hoist the anchor.
 When yer ready to brave the sea, visit [the tour](http://pyret.org/tour/).
 
 
-Notes for new-world
--------------------
+Running Pyret
+-------------
 
-This branch is a brand-new implementation of Pyret, so some things are
-different (in yet-to-be-documented ways) from the master branch.
+If you just want to run Pyret, visit [code.pyret.org](https://code.pyret.org)
+and work from there.  If you're interested in Pyre development, read on:
 
-The easiest way to *run* a Pyret program in this branch is:
+The easiest way to *run* a Pyret program from the command-line is:
 
     $ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
 
-Where X is a number from 0-3.
+Where X is a number from 0-3, indicating a phase (described below).
 
-You can also see our prototype REPL by opening the file
+You can also see a simple REPL by opening the file
 
     ./src/web/repl.html
 
