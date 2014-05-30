@@ -3,6 +3,7 @@
 provide *
 
 import ast as A
+import srcloc as SL
 import "compiler/ast-anf.arr" as N
 
 names = A.global-names
@@ -14,9 +15,9 @@ end
 
 data ANFCont:
   | k-cont(k :: (N.ALettable -> N.AExpr)) with:
-    apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
-  | k-id(name :: Name) with:
-    apply(self, l :: Loc, expr :: N.ALettable):
+    apply(self, l :: SL.Location, expr :: N.ALettable): self.k(expr) end
+  | k-id(name :: A.Name) with:
+    apply(self, l :: SL.Location, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(v) =>
           name = mk-id(l, "cont_tail_app")
@@ -64,7 +65,7 @@ fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N
 end
 
 fun anf-name-rec(
-    exprs :: List<A.Expr>,
+    exprs :: lists.List<A.Expr>,
     name-hint :: String,
     k :: (List<N.AVal> -> N.AExpr)
   ) -> N.AExpr:
@@ -102,7 +103,7 @@ fun anf-import(i :: A.Import):
   end
 end
 
-fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
+fun anf-block(es-init :: lists.List<A.Expr>, k :: ANFCont):
   fun anf-block-help(es):
     cases (List<A.Expr>) es:
       | empty => raise("Empty block")
@@ -215,7 +216,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               end)
         end
       end
-      fun anf-variants(vs :: List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
+      fun anf-variants(vs :: lists.List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
         cases(List) vs:
           | empty => ks([list: ])
           | link(f, r) =>

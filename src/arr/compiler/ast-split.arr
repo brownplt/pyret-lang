@@ -31,7 +31,7 @@ end
 
 
 data Helper:
-  | helper(name :: Name, args :: List<Name>, body :: N.AExpr) with:
+  | helper(name :: A.Name, args :: List<A.Name>, body :: N.AExpr) with:
     tosource(self):
       arg-list = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen,
           PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
@@ -48,7 +48,7 @@ fun freevars-helper(h :: Helper):
 end
 
 data SplitResult:
-  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<Name>) with:
+  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<A.Name>) with:
     tosource(self):
       PP.vert(self.helpers.map(_.tosource()) + [list: self.body.tosource()])
     end
@@ -165,7 +165,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
   end
 end
 
-fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
+fun ast-split-lettable(e :: N.ALettable) -> SplitResultInt%(is-split-result-int-l):
   cases(N.ALettable) e:
     | a-lam(l, args, ret, body) =>
       body-split = ast-split-expr(body)

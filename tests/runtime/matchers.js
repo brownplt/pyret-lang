@@ -52,7 +52,13 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toBeFailure : function(rt) {
                 this.message = function() {
-                  return ["Custom expectation: " + this.actual + " to be failure."];
+                  if (rt.isSuccessResult(this.actual)) {
+                    return ["Custom expectation: Expected a failure, but successfully evaluated to " + 
+                            rt.toReprJS(this.actual.result)];
+                  } else {
+                    return ["Custom expectation: Expected a failure, but got neither success nor failure: " + 
+                            JSON.stringify(this.actual)];
+                  }
                 };
                 return rt.isFailureResult(this.actual);
             },

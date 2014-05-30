@@ -1,6 +1,7 @@
 #lang pyret 0.5
 
 provide *
+import lists as L
 
 data ContractResult:
   | ok
@@ -36,7 +37,7 @@ data FailureReason:
     tostring(self):
       "Predicate " + self.pred-name + " failed on value " + torepr(self.val)
     end
-  | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
+  | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
     tostring(self):
       "Record annotation failed on value\n" + torepr(self.val) + "\n\nBecause: " +
         self.field-failures.map(tostring).join-str("\n\n")

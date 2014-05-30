@@ -35,7 +35,7 @@ fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
     | s-provide-types-all(l) =>
       ids = A.block-type-ids(b)
       type-fields = for map(id from ids):
-        if id.type == "data":
+        if id.bind-type == "data":
           A.a-field(l, id.name.toname(), A.a-pred(l, A.a-any, A.s-id(l, id.name)))
         else:
           A.a-field(l, id.name.toname(), A.a-name(l, id.name))
@@ -532,7 +532,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
-    s-program(self, l, _provide, provide-types, imports, body):
+    s-program(self, l, _provide, _provide-types, imports, body):
       imports-and-env = for fold(acc from { e: self.env, te: self.type-env, imps: [list: ] }, i from imports):
         cases(A.Import) i:
           | s-import(l2, file, name) =>
@@ -546,7 +546,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
-      A.s-program(l, _provide, provide-types, imports-and-env.imps.reverse(), visit-body)
+      A.s-program(l, _provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
@@ -640,23 +640,35 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-body = body.visit(self.{env: env-and-atoms.env})
       A.s-cases-branch(l, name, new-args, new-body)
     end,
-    s-lam(self, l, params, args, ann, doc, body, _check):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind)
+    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+      new-types = for fold(acc from { env: self.type-env, atoms: empty }, param from params):
+        atom-env = make-atom-for(param, false, acc.env, type-bindings, let-type-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
-      shadow env-and-atoms = for fold(acc from env-and-atoms, a from params):
-        atom-env = make-atom-for(A.s-name(l, a), false, acc.env, bindings, let-bind)
+      with-params = self.{type-env: new-types.env}
+      A.s-data-expr(l, name, namet.visit(with-params), new-types.atoms.reverse(),
+        mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
+        shared-members.map(_.visit(with-params)), with-params.option(_check))
+    end,
+    s-lam(self, l, params, args, ann, doc, body, _check):
+      new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
+        atom-env = make-atom-for(param, false, acc.env, type-bindings, let-type-bind)
+        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      end
+      with-params = self.{type-env: new-types.env}
+      env-and-atoms = for fold(acc from { env: with-params.env, atoms: [list: ] }, a from args):
+        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(self.{env: env-and-atoms.env}))
+          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(with-params))
         end
       end
-      new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.option(_check)
-      A.s-lam(l, params, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
+      with-params-and-args = with-params.{env: env-and-atoms.env}
+      new-body = body.visit(with-params-and-args)
+      new-check = with-params.option(_check) # Maybe should be self?  Are any type params visible here?
+      A.s-lam(l, new-types.atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):

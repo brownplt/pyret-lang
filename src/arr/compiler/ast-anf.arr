@@ -36,7 +36,7 @@ dummy-loc = SL.builtin("dummy-location")
 Loc = SL.Srcloc
 
 data AProg:
-  | a-program(l :: Loc, imports :: List<AHeader>, body :: AExpr) with:
+  | a-program(l :: SL.Location, imports :: List<AImport>, body :: AExpr) with:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
@@ -52,19 +52,19 @@ sharing:
 end
 
 data AImportType:
-  | a-import-builtin(l :: Loc, lib :: String) with:
+  | a-import-builtin(l :: SL.Location, lib :: String) with:
     tosource(self): PP.str(self.file) end
-  | a-import-file(l :: Loc, file :: String) with:
+  | a-import-file(l :: SL.Location, file :: String) with:
     tosource(self): PP.dquote(PP.str(self.file)) end
 end
 
 data AImport:
-  | a-import(l :: Loc, import-type :: AImportType, name :: Name) with:
+  | a-import(l :: SL.Location, import-type :: AImportType, name :: A.Name) with:
     label(self): "a-import" end,
     tosource(self):
       PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource()])
     end
-  | a-import-types(l :: Loc, import-type :: AImportType, name :: Name, types :: Name) with:
+  | a-import-types(l :: SL.Location, import-type :: AImportType, name :: A.Name, types :: A.Name) with:
     label(self): "a-import-types" end,
     tosource(self):
       PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.commabreak, self.types.tosource()])
@@ -76,10 +76,10 @@ sharing:
 end
 
 data ATypeBind:
-  | a-type-bind(l :: Loc, name :: A.Name, ann :: A.Ann) with:
+  | a-type-bind(l :: SL.Location, name :: A.Name, ann :: A.Ann) with:
     label(self): "a-type-bind" end,
     tosource(self): PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource()) end
-  | a-newtype-bind(l :: Loc, name :: A.Name, namet :: A.Name) with:
+  | a-newtype-bind(l :: SL.Location, name :: A.Name, namet :: A.Name) with:
     label(self): "a-newtype-bind" end,
     tosource(self):
       PP.group(str-newtype + self.name.tosource() + break-one + str-as + break-one + self.namet.tosource())
@@ -91,7 +91,7 @@ sharing:
 end
 
 data AExpr:
-  | a-type-let(l :: Loc, bind :: ATypeBind, body :: AExpr) with:
+  | a-type-let(l :: SL.Location, bind :: ATypeBind, body :: AExpr) with:
     label(self): "a-type-let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
@@ -101,7 +101,7 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
-  | a-let(l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr) with:
+  | a-let(l :: SL.Location, bind :: ABind, e :: ALettable, body :: AExpr) with:
     label(self): "a-let" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
@@ -111,7 +111,7 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
-  | a-var(l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr) with:
+  | a-var(l :: SL.Location, bind :: ABind, e :: ALettable, body :: AExpr) with:
     label(self): "a-var" end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
@@ -121,19 +121,19 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
-  | a-seq(l :: Loc, e1 :: ALettable, e2 :: AExpr) with:
+  | a-seq(l :: SL.Location, e1 :: ALettable, e2 :: AExpr) with:
     label(self): "a-seq" end,
     tosource(self):
       self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
-  | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
+  | a-tail-app(l :: SL.Location, f :: AVal, args :: List<AVal>) with:
     label(self): "a-tail-app" end,
     tosource(self):
       PP.group(self.f.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: Name, helper-args :: List<AVal>) with:
+  | a-split-app(l :: SL.Location, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: A.Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
       PP.group(
@@ -148,7 +148,7 @@ data AExpr:
               + PP.parens(PP.nest(INDENT,
                 PP.separate(PP.commabreak, self.helper-args.map(lam(f): f.tosource() end)))))))
     end
-  | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
+  | a-if(l :: SL.Location, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,
     tosource(self):
       PP.group(
@@ -170,7 +170,7 @@ sharing:
 end
 
 data ABind:
-  | a-bind(l :: Loc, id :: Name, ann :: A.Ann) with:
+  | a-bind(l :: SL.Location, id :: A.Name, ann :: A.Ann) with:
     label(self): "a-bind" end,
     tosource(self):
       if A.is-a-blank(self.ann): self.id.tosource()
@@ -185,8 +185,8 @@ end
 
 data AVariant:
   | a-variant(
-      l :: Loc,
-      constr-loc :: Loc,
+      l :: SL.Location,
+      constr-loc :: SL.Location,
       name :: String,
       members :: List<AVariantMember>,
       with-members :: List<AField>
@@ -194,7 +194,7 @@ data AVariant:
     label(self): "a-variant" end,
     tosource(self): PP.str("a-variant") end
   | a-singleton-variant(
-      l :: Loc,
+      l :: SL.Location,
       name :: String,
       with-members :: List<AField>
     ) with:
@@ -220,7 +220,7 @@ end
 
 data AVariantMember:
   | a-variant-member(
-      l :: Loc,
+      l :: SL.Location,
       member-type :: AMemberType,
       bind :: ABind
     ) with:
@@ -236,7 +236,7 @@ end
 
 
 data ALettable:
-  | a-module(l :: Loc, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
+  | a-module(l :: SL.Location, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
     label(self): "a-module" end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
@@ -246,59 +246,59 @@ data ALettable:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end    
-  | a-data-expr(l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>) with:
+  | a-data-expr(l :: SL.Location, name :: String, variants :: List<AVariant>, shared :: List<AField>) with:
     label(self): "a-data-expr" end,
     tosource(self):
       PP.str("data-expr")
     end
-  | a-assign(l :: Loc, id :: Name, value :: AVal) with:
+  | a-assign(l :: SL.Location, id :: A.Name, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
+  | a-app(l :: SL.Location, _fun :: AVal, args :: List<AVal>) with:
     label(self): "a-app" end,
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
+  | a-prim-app(l :: SL.Location, f :: String, args :: List<AVal>) with:
     label(self): "a-prim-app" end,
     tosource(self):
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-obj(l :: Loc, fields :: List<AField>) with:
+  | a-obj(l :: SL.Location, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(lam(f): f.tosource() end))
     end
-  | a-update(l :: Loc, supe :: AVal, fields :: List<AField>) with:
+  | a-update(l :: SL.Location, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-update" end,
     tosource(self):
       PP.str("update")
     end
-  | a-extend(l :: Loc, supe :: AVal, fields :: List<AField>) with:
+  | a-extend(l :: SL.Location, supe :: AVal, fields :: List<AField>) with:
     label(self): "a-extend" end,
     tosource(self):
       PP.str("extend")
     end
-  | a-dot(l :: Loc, obj :: AVal, field :: String) with:
+  | a-dot(l :: SL.Location, obj :: AVal, field :: String) with:
     label(self): "a-dot" end,
     tosource(self): PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
-  | a-colon(l :: Loc, obj :: AVal, field :: String) with:
+  | a-colon(l :: SL.Location, obj :: AVal, field :: String) with:
     label(self): "a-colon" end,
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
-  | a-get-bang(l :: Loc, obj :: AVal, field :: String) with:
+  | a-get-bang(l :: SL.Location, obj :: AVal, field :: String) with:
     label(self): "a-get-bang" end,
     tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | a-lam(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
+  | a-lam(l :: SL.Location, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     label(self): "a-lam" end,
     tosource(self): fun-method-pretty(PP.str("lam"), self.args, self.body) end
-  | a-method(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
+  | a-method(l :: SL.Location, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     label(self): "a-method" end,
     tosource(self): fun-method-pretty(PP.str("method"), self.args, self.body) end
   | a-val(v :: AVal) with:
@@ -319,7 +319,7 @@ fun fun-method-pretty(typ, args, body):
 end
 
 data AField:
-  | a-field(l :: Loc, name :: String, value :: AVal) with:
+  | a-field(l :: SL.Location, name :: String, value :: AVal) with:
     label(self): "a-field" end,
     tosource(self): PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource()) end,
 sharing:
@@ -329,35 +329,35 @@ sharing:
 end
 
 data AVal:
-  | a-srcloc(l :: Loc, loc :: Loc) with:
+  | a-srcloc(l :: SL.Location, loc :: SL.Location) with:
     label(self): "a-srcloc" end,
     tosource(self): PP.str(torepr(self.loc)) end
-  | a-num(l :: Loc, n :: Number) with:
+  | a-num(l :: SL.Location, n :: Number) with:
     label(self): "a-num" end,
     tosource(self): PP.number(self.n) end
-  | a-str(l :: Loc, s :: String) with:
+  | a-str(l :: SL.Location, s :: String) with:
     label(self): "a-str" end,
     tosource(self): PP.squote(PP.str(self.s)) end
-  | a-bool(l :: Loc, b :: Bool) with:
+  | a-bool(l :: SL.Location, b :: Boolean) with:
     label(self): "a-bool" end,
     tosource(self): PP.str(tostring(self.b)) end
-  | a-array(l :: Loc, values :: List<AVal>) with:
+  | a-array(l :: SL.Location, values :: List<AVal>) with:
     label(self): "a-array" end,
     tosource(self):
       PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
         self.values.map(_.tosource()))
     end
   # used for letrec
-  | a-undefined(l :: Loc) with:
+  | a-undefined(l :: SL.Location) with:
     label(self): "a-undefined" end,
     tosource(self): PP.str("UNDEFINED") end
-  | a-id(l :: Loc, id :: Name) with:
+  | a-id(l :: SL.Location, id :: A.Name) with:
     label(self): "a-id" end,
     tosource(self): PP.str(self.id.tostring()) end
-  | a-id-var(l :: Loc, id :: Name) with:
+  | a-id-var(l :: SL.Location, id :: A.Name) with:
     label(self): "a-id-var" end,
     tosource(self): PP.str("!" + self.id.tostring()) end
-  | a-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
+  | a-id-letrec(l :: SL.Location, id :: A.Name, safe :: Boolean) with:
     label(self): "a-id-letrec" end,
     tosource(self): PP.str("~" + self.id.tostring()) end
 sharing:
@@ -369,12 +369,22 @@ end
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
     | a-program(_, imports, body) =>
-      a-program(dummy-loc, imports.map(strip-loc-header), body ^ strip-loc-expr)
+      a-program(dummy-loc, imports.map(strip-loc-import), body ^ strip-loc-expr)
   end
 end
 
-fun strip-loc-header(h :: AHeader):
-  cases(AHeader) h:
+fun strip-loc-import(i :: AImport):
+  cases(AImport) i:
+    | a-import(_, import-type, name) =>
+      a-import(dummy-loc, strip-loc-import-type(import-type), name.visit(A.dummy-loc-visitor))
+    | a-import-types(_, import-type, name, types) =>
+      a-import-types(dummy-loc, strip-loc-import-type(import-type),
+        name.visit(A.dummy-loc-visitor), types.visit(A.dummy-loc-visitor))
+  end
+end
+
+fun strip-loc-import-type(i :: AImportType):
+  cases(AImportType) i:
     | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
     | a-import-file(_, file, id) => a-import-builtin(dummy-loc, file, id)
   end
@@ -463,16 +473,22 @@ fun strip-loc-val(val :: AVal):
 end
 
 default-map-visitor = {
-  a-module(self, l :: Loc, answer :: AVal, provides :: AVal, types :: List<A.AField>, checks :: AVal):
+  a-module(self, l :: SL.Location, answer :: AVal, provides :: AVal, types :: List<A.AField>, checks :: AVal):
     a-module(l, answer.visit(self), provides.visit(self), types, checks.visit(self))
   end,
-  a-program(self, l :: Loc, imports :: List<AHeader>, body :: AExpr):
+  a-program(self, l :: SL.Location, imports :: List<AImport>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
   end,
-  a-import-file(self, l :: Loc, file :: String, name :: Name):
+  a-import(self, l :: SL.Location, import-type :: AImportType, name :: A.Name):
+    a-import(l, import-type.visit(self), name.visit(self))
+  end,
+  a-import-types(self, l :: SL.Location, import-type :: AImportType, name :: A.NAme, types :: A.Name):
+    a-import-types(l, import-type.visit(self), name.visit(self), types.visit(self))
+  end,
+  a-import-file(self, l :: SL.Location, file :: String, name :: A.Name):
     a-import-file(l, file, name)
   end,
-  a-import-builtin(self, l :: Loc, lib :: String, name :: Name):
+  a-import-builtin(self, l :: SL.Location, lib :: String, name :: A.Name):
     a-import-builtin(l, lib, name)
   end,
   a-type-bind(self, l, name, ann):
@@ -484,106 +500,106 @@ default-map-visitor = {
   a-type-let(self, l, bind, body):
     a-type-let(l, bind.visit(self), body.visit(self))
   end,
-  a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
+  a-let(self, l :: SL.Location, bind :: ABind, e :: ALettable, body :: AExpr):
     a-let(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
-  a-var(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
+  a-var(self, l :: SL.Location, bind :: ABind, e :: ALettable, body :: AExpr):
     a-var(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
-  a-seq(self, l :: Loc, e1 :: ALettable, e2 :: AExpr):
+  a-seq(self, l :: SL.Location, e1 :: ALettable, e2 :: AExpr):
     a-seq(l, e1.visit(self), e2.visit(self))
   end,
-  a-data-expr(self, l :: Loc, name :: String, variants :: List<AVariant>, shared :: List<AField>):
+  a-data-expr(self, l :: SL.Location, name :: String, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
   end,
-  a-variant(self, l :: Loc, constr-loc :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
+  a-variant(self, l :: SL.Location, constr-loc :: SL.Location, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
     a-variant(l, constr-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
-  a-singleton-variant(self, l :: Loc, name :: String, with-members :: List<AField>):
+  a-singleton-variant(self, l :: SL.Location, name :: String, with-members :: List<AField>):
     a-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
+  a-variant-member(self, l :: SL.Location, member-type :: AMemberType, bind :: ABind):
     a-variant-member(l, member-type, bind.visit(self))
   end,
-  a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
+  a-tail-app(self, l :: SL.Location, _fun :: AVal, args :: List<AVal>):
     a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
+  a-split-app(self, l :: SL.Location, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
     a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
-  a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
+  a-if(self, l :: SL.Location, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
   end,
   a-lettable(self, e :: ALettable):
     a-lettable(e.visit(self))
   end,
-  a-assign(self, l :: Loc, id :: Name, value :: AVal):
+  a-assign(self, l :: SL.Location, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
+  a-app(self, l :: SL.Location, _fun :: AVal, args :: List<AVal>):
     a-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
+  a-prim-app(self, l :: SL.Location, f :: String, args :: List<AVal>):
     a-prim-app(l, f, args.map(_.visit(self)))
   end,
-  a-obj(self, l :: Loc, fields :: List<AField>):
+  a-obj(self, l :: SL.Location, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
   end,
-  a-update(self, l :: Loc, supe :: AVal, fields :: List<AField>):
+  a-update(self, l :: SL.Location, supe :: AVal, fields :: List<AField>):
     a-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  a-extend(self, l :: Loc, supe :: AVal, fields :: List<AField>):
+  a-extend(self, l :: SL.Location, supe :: AVal, fields :: List<AField>):
     a-extend(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  a-dot(self, l :: Loc, obj :: AVal, field :: String):
+  a-dot(self, l :: SL.Location, obj :: AVal, field :: String):
     a-dot(l, obj.visit(self), field)
   end,
-  a-colon(self, l :: Loc, obj :: AVal, field :: String):
+  a-colon(self, l :: SL.Location, obj :: AVal, field :: String):
     a-colon(l, obj.visit(self), field)
   end,
-  a-get-bang(self, l :: Loc, obj :: AVal, field :: String):
+  a-get-bang(self, l :: SL.Location, obj :: AVal, field :: String):
     a-get-bang(l, obj.visit(self), field)
   end,
-  a-lam(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+  a-lam(self, l :: SL.Location, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
     a-lam(l, args.map(_.visit(self)), ret, body.visit(self))
   end,
-  a-method(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+  a-method(self, l :: SL.Location, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
     a-method(l, args.map(_.visit(self)), ret, body.visit(self))
   end,
   a-val(self, v :: AVal):
     a-val(v.visit(self))
   end,
-  a-bind(self, l :: Loc, id :: Name, ann :: A.Ann):
+  a-bind(self, l :: SL.Location, id :: A.Name, ann :: A.Ann):
     a-bind(l, id, ann)
   end,
-  a-field(self, l :: Loc, name :: String, value :: AVal):
+  a-field(self, l :: SL.Location, name :: String, value :: AVal):
     a-field(l, name, value.visit(self))
   end,
   a-srcloc(self, l, loc):
     a-srcloc(l, loc)
   end,
-  a-num(self, l :: Loc, n :: Number):
+  a-num(self, l :: SL.Location, n :: Number):
     a-num(l, n)
   end,
-  a-array(self, l :: Loc, vals :: List<AVal>):
+  a-array(self, l :: SL.Location, vals :: List<AVal>):
     a-array(l, vals.map(_.visit(self)))
   end,
-  a-str(self, l :: Loc, s :: String):
+  a-str(self, l :: SL.Location, s :: String):
     a-str(l, s)
   end,
-  a-bool(self, l :: Loc, b :: Bool):
+  a-bool(self, l :: SL.Location, b :: Boolean):
     a-bool(l, b)
   end,
-  a-undefined(self, l :: Loc):
+  a-undefined(self, l :: SL.Location):
     a-undefined(l)
   end,
-  a-id(self, l :: Loc, id :: Name):
+  a-id(self, l :: SL.Location, id :: A.Name):
     a-id(l, id)
   end,
-  a-id-var(self, l :: Loc, id :: Name):
+  a-id-var(self, l :: SL.Location, id :: A.Name):
     a-id-var(l, id)
   end,
-  a-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+  a-id-letrec(self, l :: SL.Location, id :: A.Name, safe :: Boolean):
     a-id-letrec(l, id, safe)
   end
 }
@@ -594,7 +610,7 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
-fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
+fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   lst-a = freevars-list-acc(_, seen-so-far)
   cases(A.Ann) ann:
     | a-blank => seen-so-far
@@ -614,7 +630,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<Name>) -> Set<Name>:
   end
 end
 
-fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
+fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   cases(AExpr) expr:
     | a-type-let(_, b, body) =>
       body-ids = freevars-e-acc(body, seen-so-far)
@@ -653,7 +669,7 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<Name>) -> Set<Name>:
   end
 end
 
-fun freevars-e(expr :: AExpr) -> Set<Name>:
+fun freevars-e(expr :: AExpr) -> Set<A.Name>:
   freevars-e-acc(expr, sets.empty-tree-set)
 where:
   d = dummy-loc
@@ -662,7 +678,7 @@ where:
         a-lettable(a-val(a-id(d, "y"))))).to-list() is [list: "y"]
 end
 
-fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
+fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   from-members = cases(AVariant) v:
     | a-variant(_, _, _, members, _) =>
       for fold(acc from seen-so-far, m from members):
@@ -675,7 +691,7 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<Name>) -> Set<Name>:
   end
 end
 
-fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
+fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   cases(ALettable) e:
     | a-module(_, ans, provs, types, checks) =>
       freevars-v-acc(ans,
@@ -735,11 +751,11 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<Name>) -> Set<Name>:
   end
 end
 
-fun freevars-l(e :: ALettable) -> Set<Name>:
+fun freevars-l(e :: ALettable) -> Set<A.Name>:
   freevars-l-acc(e, sets.empty-tree-set)
 end
 
-fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
+fun freevars-v-acc(v :: AVal, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   cases(AVal) v:
     | a-array(_, vs) =>
       for fold(acc from seen-so-far, shadow v from vs):
@@ -757,7 +773,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<Name>) -> Set<Name>:
   end
 end
 
-fun freevars-v(v :: AVal) -> Set<Name>:
+fun freevars-v(v :: AVal) -> Set<A.Name>:
   freevars-v-acc(v, sets.empty-tree-set)
 end
 

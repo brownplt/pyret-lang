@@ -2,12 +2,12 @@
 
 import pprint as PP
 
-fun between(lo :: Number, mid :: Number, hi :: Number) -> Bool:
+fun between(lo :: Number, mid :: Number, hi :: Number) -> Boolean:
   (lo <= mid) and (mid <= hi)
 end
 
-fun positive(n :: Number) -> Bool: n > 0 end
-fun nonneg(n :: Number) -> Bool: n >= 0 end
+fun positive(n :: Number) -> Boolean: n > 0 end
+fun nonneg(n :: Number) -> Boolean: n >= 0 end
 
 INDENT = 2
 
@@ -326,7 +326,7 @@ sharing:
           "translate(" + ((0 - b.tl.x).tostring-fixed(5)) + "," + ((0 - b.tl.y).tostring-fixed(5)) + ")")],
       [list: self.as-svg()])
   end,
-  save-image(self, filename :: String) -> Bool: false end,
+  save-image(self, filename :: String) -> Boolean: false end,
   image-width(self) -> Number:
     b = self.bounds()
     b.br.x - b.tl.x

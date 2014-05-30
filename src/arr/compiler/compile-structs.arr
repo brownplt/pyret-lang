@@ -2,6 +2,7 @@
 
 provide *
 import ast as A
+import srcloc as SL
 
 data PyretDialect:
   | Pyret
@@ -22,7 +23,7 @@ data CompileError:
     tostring(self): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
-  | reserved-name(loc :: Loc, id :: String) with:
+  | reserved-name(loc :: SL.Location, id :: String) with:
     tostring(self):
       "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
   | zero-fraction(loc, numerator) with:
@@ -33,7 +34,7 @@ data CompileError:
     tostring(self):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
     end
-  | unbound-var(id :: String, loc :: Loc) with:
+  | unbound-var(id :: String, loc :: SL.Location) with:
     tostring(self):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
     end
@@ -41,31 +42,31 @@ data CompileError:
     tostring(self):
       "Identifier " + tostring(self.id.id) + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
     end
-  | pointless-var(loc :: Loc) with:
+  | pointless-var(loc :: SL.Location) with:
     tostring(self):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
-  | pointless-shadow(loc :: Loc) with:
+  | pointless-shadow(loc :: SL.Location) with:
     tostring(self):
       "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
     end
-  | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
+  | bad-assignment(id :: String, loc :: SL.Location, prev-loc :: SL.Location) with:
     tostring(self):
       "Identifier " + self.id + " is assigned at " + tostring(self.loc)
         + ", but its definition at " + self.prev-loc.format(not(self.loc.same-file(self.prev-loc)))
         + " is not assignable.  (Only names declared with var are assignable.)"
     end
-  | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
+  | mixed-id-var(id :: String, var-loc :: SL.Location, id-loc :: SL.Location) with:
     tostring(self):
       self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
         + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")"
     end
-  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+  | shadow-id(id :: String, new-loc :: SL.Location, old-loc :: SL.Location) with:
     tostring(self):
       "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
         + ", but is already declared at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
-  | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+  | duplicate-id(id :: String, new-loc :: SL.Location, old-loc :: SL.Location) with:
     tostring(self):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
@@ -84,6 +85,7 @@ runtime-types = lists.map(type-id, [list:
   "Boolean",
   "Object",
   "Method",
+  "Nothing",
   "RawArray"
 ])
 

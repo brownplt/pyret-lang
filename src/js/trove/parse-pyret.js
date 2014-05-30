@@ -88,8 +88,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           }
         },
         'provide-types-stmt': function(node) {
-          // TODO(joe): detect provide-types *
-          console.log(node.kids);
           if (node.kids[1].name === "STAR") {
             return RUNTIME.getField(ast, 's-provide-types-all').app(pos(node.pos));
           } else {
@@ -657,12 +655,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             return makeList([]);
           } else {
             // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-            return makeList(node.kids.slice(1, -2).map(tr).concat([symbol(node.kids[node.kids.length - 2])]));
+            return makeList(node.kids.slice(1, -2).map(tr).concat([name(node.kids[node.kids.length - 2])]));
           }
         },
         'list-ty-param': function(node) {
           // (list-ty-param NAME COMMA)
-          return symbol(node.kids[0]);
+          return name(node.kids[0]);
         },
         'for-bind': function(node) {
           // (for-bind name FROM e)

@@ -816,6 +816,9 @@ function createMethodDict() {
     var BooleanC = makePrimitiveAnnotation("Boolean", isBoolean);
     var RawArrayC = makePrimitiveAnnotation("RawArray", isArray);
     var FunctionC = makePrimitiveAnnotation("Function", isFunction);
+    var MethodC = makePrimitiveAnnotation("Method", isMethod);
+    var NothingC = makePrimitiveAnnotation("Nothing", isNothing);
+    var ObjectC = makePrimitiveAnnotation("Nothing", isObject);
     var AnyC = makePrimitiveAnnotation("Any", function() { return true; });
 
 
@@ -2482,6 +2485,10 @@ function createMethodDict() {
           'Number': NumberC,
           'String': StringC,
           'Boolean': BooleanC,
+          'Nothing': NothingC,
+          'Function': FunctionC,
+          'Method': MethodC,
+          'Object': ObjectC,
           'Any': AnyC,
 
           'run-task': makeFunction(execThunk),
@@ -2567,6 +2574,9 @@ function createMethodDict() {
         'RawArray': RawArrayC,
         'Any': AnyC,
         'Function': FunctionC,
+        'Method': MethodC,
+        'Object': ObjectC,
+        'Nothing': NothingC,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,

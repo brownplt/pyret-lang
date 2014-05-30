@@ -149,7 +149,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
   typarams =
     if is-nothing(params): PP.mt-doc
     else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        params.map(PP.str))
+        params.map(_.tosource()))
     end
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
@@ -392,7 +392,7 @@ data Expr:
   | s-fun(
       l :: S.Location,
       name :: String,
-      params :: List<String>, # Type parameters
+      params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -546,7 +546,7 @@ data Expr:
     tosource(self): PP.parens(self.expr.tosource()) end
   | s-lam(
       l :: S.Location,
-      params :: List<String>, # Type parameters
+      params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -671,7 +671,7 @@ data Expr:
   | s-data(
       l :: S.Location,
       name :: String,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -685,7 +685,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(PP.str))
+        self.params.map(_.tosource()))
       header = str-data + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
@@ -704,7 +704,7 @@ data Expr:
       l :: S.Location,
       name :: String,
       namet :: Name,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -718,7 +718,7 @@ data Expr:
         end
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-        self.params.map(PP.str))
+        self.params.map(_.tosource()))
       header = str-data-expr + PP.str(self.name) + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
@@ -1079,9 +1079,9 @@ end
 
 fun binding-type-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
-    | s-newtype(l, name, _) => [list: {type: "normal", name: name}]
-    | s-type(l, name, _) => [list: {type: "normal", name: name}]
-    | s-data(l, name, _, _, _, _, _) => [list: {type: "data", name: s-name(l, name)}]
+    | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
+    | s-type(l, name, _) => [list: {bind-type: "normal", name: name}]
+    | s-data(l, name, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
     | else => empty
   end
 end
@@ -1330,14 +1330,14 @@ default-map-visitor = {
   s-lam(
       self,
       l :: S.Location,
-      params :: List<String>,
+      params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-lam(l, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-lam(l, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-method(
       self,
@@ -1420,7 +1420,7 @@ default-map-visitor = {
       self,
       l :: S.Location,
       name :: String,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -1429,7 +1429,7 @@ default-map-visitor = {
     s-data(
         l,
         name,
-        params,
+        params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
@@ -1441,7 +1441,7 @@ default-map-visitor = {
       l :: S.Location,
       name :: String,
       namet :: Name,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -1451,7 +1451,7 @@ default-map-visitor = {
         l,
         name,
         namet.visit(self),
-        params,
+        params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
@@ -1697,7 +1697,8 @@ default-iter-visitor = {
   end,
   
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.app(_.visit(self), params)
+    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
   s-type(self, l :: S.Location, name :: Name, ann :: Ann):
@@ -1784,14 +1785,15 @@ default-iter-visitor = {
   s-lam(
       self,
       l :: S.Location,
-      params :: List<String>,
+      params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
       ):
-    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), params)
+    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-method(
       self,
@@ -1874,13 +1876,14 @@ default-iter-visitor = {
       self,
       l :: S.Location,
       name :: String,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
-    lists.all(_.visit(self), mixins) 
+    lists.all(_.visit(self), params)
+    and lists.all(_.visit(self), mixins) 
     and lists.all(_.visit(self), variants)
     and lists.all(_.visit(self), shared-members)
     and self.option(_check)
@@ -1890,13 +1893,14 @@ default-iter-visitor = {
       l :: S.Location,
       name :: String,
       namet :: Name,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ):
     namet.visit(self)
+    and lists.all(_.visit(self), params)
     and lists.all(_.visit(self), mixins)
     and lists.all(_.visit(self), variants)
     and lists.all(_.visit(self), shared-members)
@@ -2139,7 +2143,7 @@ dummy-loc-visitor = {
   end,
 
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    s-fun(dummy-loc, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
 
   s-type(self, l :: S.Location, name :: Name, ann :: Ann):
@@ -2226,14 +2230,14 @@ dummy-loc-visitor = {
   s-lam(
       self,
       l :: S.Location,
-      params :: List<String>,
+      params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-lam(dummy-loc, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-lam(dummy-loc, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-method(
       self,
@@ -2316,7 +2320,7 @@ dummy-loc-visitor = {
       self,
       l :: S.Location,
       name :: String,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -2325,7 +2329,7 @@ dummy-loc-visitor = {
     s-data(
         dummy-loc,
         name,
-        params,
+        params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
@@ -2337,7 +2341,7 @@ dummy-loc-visitor = {
       l :: S.Location,
       name :: String,
       namet :: String,
-      params :: List<String>, # type params
+      params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
@@ -2347,7 +2351,7 @@ dummy-loc-visitor = {
         dummy-loc,
         name,
         namet.visit(self),
-        params,
+        params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
