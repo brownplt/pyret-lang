@@ -15,7 +15,7 @@ import-stmt: IMPORT NAME (COMMA NAME)* FROM (import-name | import-string)
 import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR
-provide-types-stmt: PROVIDE-TYPES record-ann
+provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 
 block: stmt*
 

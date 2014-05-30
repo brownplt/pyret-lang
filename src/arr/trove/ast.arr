@@ -1079,9 +1079,9 @@ end
 
 fun binding-type-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
-    | s-newtype(l, name, _) => [list: name]
-    | s-type(l, name, _) => [list: name]
-    | s-data(l, name, _, _, _, _, _) => [list: s-name(l, name)]
+    | s-newtype(l, name, _) => [list: {type: "normal", name: name}]
+    | s-type(l, name, _) => [list: {type: "normal", name: name}]
+    | s-data(l, name, _, _, _, _, _) => [list: {type: "data", name: s-name(l, name)}]
     | else => empty
   end
 end
