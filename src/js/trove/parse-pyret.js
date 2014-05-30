@@ -87,6 +87,19 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               .app(pos(node.pos), tr(node.kids[1]))
           }
         },
+        'provide-types-stmt': function(node) {
+          if (node.kids.length === 2) {
+            // (provide-stmt PROVIDE STAR)
+            return RUNTIME.getField(ast, 's-provide-types-all')
+              .app(pos(node.pos));
+          } else {
+            // will produce record-ann
+            var rec = tr(node.kids[1]);
+            // Get the fields out of it
+            return RUNTIME.getField(ast, 's-provide-types')
+              .app(pos(node.pos), RUNTIME.getField(rec, 'fields'));
+          }
+        },
         'import-stmt': function(node) {
           if (node.kids[node.kids.length - 2].name === "AS") {
             if (node.kids.length == 4) {

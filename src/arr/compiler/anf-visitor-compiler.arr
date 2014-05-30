@@ -266,7 +266,8 @@ fun compile-ann(ann, visitor):
         | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
       rt-method("makePredAnn", [list: compile-ann(base, visitor), expr-to-compile.visit(visitor), j-str(name)])
-    | a-dot(l, m, field) => j-dot(j-id(js-id-of(m.tostring())), field)
+    | a-dot(l, m, field) =>
+      rt-method("getDotAnn", [list: visitor.get-loc(l), j-str(m.toname()), j-id(js-id-of(m.tostring())), j-str(field)])
     | a-blank => rt-field("Any")
     | a-any => rt-field("Any")
   end

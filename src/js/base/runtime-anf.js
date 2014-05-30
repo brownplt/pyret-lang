@@ -1338,6 +1338,19 @@ function createMethodDict() {
       throw "Internal error: got invalid result from annotation check";
     }
 
+    function getDotAnn(loc, name, ann, field) {
+      checkString(name);
+      checkString(field);
+      if(name.hasOwnProperty(field)) {
+        return name[field];
+      }
+      return AnyC;
+      /*
+      raiseJSJS(ffi.contractFail(makeSrcloc(loc),
+              ffi.makeDotAnnNotPresent(name, field)))
+              */
+    }
+
     function PPrimAnn(name, pred) {
       this.name = name;
       this.pred = pred;
@@ -2545,6 +2558,7 @@ function createMethodDict() {
 
         'checkAnn': checkAnn,
         'checkAnnArg': checkAnnArg,
+        'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
         'makeRecordAnn': makeRecordAnn,
 

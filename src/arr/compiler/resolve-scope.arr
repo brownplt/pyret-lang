@@ -375,26 +375,20 @@ where:
   d = A.dummy-loc
   b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
   id = lam(s): A.s-id(d, A.s-name(d, s));
-  checks = A.s-data-field(
-                  d,
-                  A.s-str(d, "checks"),
-                  A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
-                )
+  checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.minimal-builtins).visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
-      A.s-block(d, [list:
+      A.s-type-let-expr(d, [list:],
         A.s-block(d, [list:
-          A.s-let-expr(d, [list:
-              A.s-let-bind(d, b("x"), A.s-num(d, 10))
-            ],
-            A.s-obj(d, [list:
-                A.s-data-field(d, str("answer"), id("nothing")),
-                A.s-data-field(d, str("provide"), id("x")),
-                checks
-              ]))
+          A.s-block(d, [list:
+            A.s-let-expr(d, [list:
+                A.s-let-bind(d, b("x"), A.s-num(d, 10))
+              ],
+              A.s-module(d, id("nothing"), id("x"), [list:], checks))
+          ])
         ])
-      ]))
+      ))
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
@@ -402,18 +396,16 @@ where:
   compare2 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
-      A.s-block(d, [list:
+      A.s-type-let-expr(d, [list:],
         A.s-block(d, [list:
-          A.s-let-expr(d, [list: 
-              A.s-let-bind(d, b("x"), A.s-num(d, 10))
-            ],
-            A.s-obj(d, [list: 
-                A.s-data-field(d, str("answer"), A.s-app(d, id("F"), [list: id("x")])),
-                A.s-data-field(d, str("provide"), id("x")),
-                checks
-              ]))
+          A.s-block(d, [list:
+            A.s-let-expr(d, [list: 
+                A.s-let-bind(d, b("x"), A.s-num(d, 10))
+              ],
+              A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
+          ])
         ])
-      ]))
+      ))
   ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) is compare2
 end
 
@@ -443,7 +435,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
 where:
   scope-env-from-env(C.compile-env([list:
       C.builtin-id("x")
-    ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
+    ], [list: ])).get("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):

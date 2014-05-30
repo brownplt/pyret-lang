@@ -190,6 +190,12 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("predicate-failure")(val, name);
       }
 
+      function makeDotAnnNotPresent(name, field) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(field);
+        return contract("dot-ann-not-present")(name, field);
+      }
+
       function isOk(val) {
         return contract("is-ok")(val);
       }
@@ -229,6 +235,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
         makePredicateFailure: makePredicateFailure,
+        makeDotAnnNotPresent: makeDotAnnNotPresent,
         contractOk: gf(C, "ok"),
         contractFail: contract("fail"),
         contractFailArg: contract("fail-arg"),

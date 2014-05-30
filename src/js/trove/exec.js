@@ -86,7 +86,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                         execRt.makeString("\n" +
                                           execRt.printPyretStack(r.exn.pyretStack)));
                     } else {
-                      return String(r.exn);
+                      return String(r.exn, r.exn.stack);
                     }
                   }, function(v) {
                     if(execRt.isSuccessResult(v)) {

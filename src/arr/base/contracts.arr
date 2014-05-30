@@ -41,5 +41,9 @@ data FailureReason:
       "Record annotation failed on value\n" + torepr(self.val) + "\n\nBecause: " +
         self.field-failures.map(tostring).join-str("\n\n")
     end
+  | dot-ann-not-present(name, field) with:
+    tostring(self):
+      "Couldn't find the annotation field " + self.field + " on " + self.name
+    end
 end
 

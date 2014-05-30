@@ -7,7 +7,7 @@ import srcloc as S
 Loc = S.Srcloc
 loc = S.srcloc
 
-dummy-loc = loc("dummy location", -1, -1, -1, -1, -1, -1)
+dummy-loc = S.builtin("dummy location")
 
 INDENT = 2
 
@@ -2053,20 +2053,20 @@ dummy-loc-visitor = {
     s-program(dummy-loc, _provide.visit(self), provide-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
+  s-file-import(self, l :: Loc, file :: String):
+    s-file-import(dummy-loc, file)
+  end,
+  s-const-import(self, l :: Loc, mod :: String):
+    s-const-import(dummy-loc, mod)
+  end,
   s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
   end,
-  s-const-import(self, l, mod):
-    s-const-import(dummy-loc, mod)
-  end,
-  s-file-import(self, l, file):
-    s-file-import(dummy-loc, file)
-  end,
   s-import-types(self, l, import-type, name, types):
-    s-import-types(dummy-loc, import-type, name.visit(self), types.visit(self))
+    s-import-types(dummy-loc, import-type.visit(self), name.visit(self), types.visit(self))
   end,
   s-import-fields(self, l, fields, import-type):
-    s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type)
+    s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
   end,
   s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))
@@ -2081,10 +2081,10 @@ dummy-loc-visitor = {
     s-provide(dummy-loc, anns.map(_.visit(self)))
   end,
   s-provide-types-all(self, l):
-    s-provide-types-all(l)
+    s-provide-types-all(dummy-loc)
   end,
   s-provide-types-none(self, l):
-    s-provide-types-none(l)
+    s-provide-types-none(dummy-loc)
   end,
 
   s-bind(self, l, shadows, name, ann):
