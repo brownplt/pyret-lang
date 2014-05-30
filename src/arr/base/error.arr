@@ -1,6 +1,6 @@
 provide *
-import arrays as A
-import lists as L
+# import arrays as A
+# import lists as L
 
 data RuntimeError:
   | message-exception(message :: String) with:
@@ -60,11 +60,11 @@ data RuntimeError:
     tostring(self):
       "Error: The identifier " + self.name + " was used at " + self.loc.format(true) + " before it was defined."
     end
-  | module-load-failure(names :: L.List<String>) with:
+  | module-load-failure(names) with: # names is List<String>
     tostring(self):
       "Error: The following modules failed to load: " + torepr(self.names)
     end
-  | invalid-array-index(method-name :: String, array :: A.Array, index :: Number, reason :: String) with:
+  | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     tostring(self):
       "Error: Bad array index " + tostring(self.index) + " in " + self.method-name + ": " + self.reason
     end
