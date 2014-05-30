@@ -93,7 +93,7 @@ define([
     var checkBoolean = p(runtime.isBoolean, "Boolean");
 
     var checkNatural = p(function(val) {
-        return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 1);
+        return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
       }, "Natural Number");
 
     var checkPositiveInteger = p(function(val) {
@@ -148,7 +148,7 @@ define([
     var checkArity = ffi.checkArity;
 
     var checkListofColor = p(function(val) {
-      return ffi.makeList(ffi.toArray(val).map(p(isColor)));
+      return ffi.makeList(ffi.toArray(val).map(checkColor));
     }, "List<Color>");
 
     var throwMessage = ffi.throwMessageException;
@@ -157,6 +157,20 @@ define([
       return runtime.makeOpaque(i, image.imageEquals);
     }
 
+    // Useful trigonometric functions based on htdp teachpack
+
+    // excess : compute the Euclidean excess
+    //  Note: If the excess is 0, then C is 90 deg.
+    //        If the excess is negative, then C is obtuse.
+    //        If the excess is positive, then C is acuse.
+    function excess(sideA, sideB, sideC) {
+       return sideA*sideA + sideB*sideB - sideC*sideC;
+    }
+
+    // return c^2 = a^2 + b^2 - 2ab cos(C)
+    function cosRel(sideA, sideB, angleC) {
+        return (sideA*sideA) + (sideB*sideB) - (2*sideA*sideB*Math.cos(angleC * Math.PI/180));
+    }
 
     //////////////////////////////////////////////////////////////////////
     var f = runtime.makeFunction;
@@ -169,7 +183,7 @@ define([
           restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
         };
         rawImage.onerror = function(e) {
-          restarter.error(runtime.makeMessageException("unable to load " + url + ": " + e.message));
+          restarter.error(runtime.ffi.makeMessageException("unable to load " + url + ": " + e.message));
         };
         rawImage.src = String(url);
       });
@@ -293,7 +307,7 @@ define([
           var dy = checkReal(maybeDy);
           var img2 = checkImage(maybeImg2);
           return makeImage(
-            image.makeOverlayImage(img2, img1, jsnums.toFixnum(dx), jsnums.toFixnum(dy)));
+            image.makeOverlayImage(img2, img1, -jsnums.toFixnum(dx), -jsnums.toFixnum(dy)));
         }),
 
         "underlay-align": f(function(maybePlaceX, maybePlaceY, maybeImg1, maybeImg2) {
@@ -349,7 +363,7 @@ define([
           var y = checkReal(maybeY);
           var background = checkImageOrScene(maybeBackground);
           if (image.isScene(background)) {
-            return makeImage(background.add(picture, jsnums.toFixnum(x), jsnums.toFixnum(y)));
+            return makeImage(background.add(picture, jsnums.toFixnum(x), background.getHeight() - jsnums.toFixnum(y)));
           } else {
             var newScene = image.makeSceneImage(background.getWidth(), background.getHeight(), [], false);
             newScene = newScene.add(background, background.getWidth()/2, background.getHeight()/2);
@@ -388,7 +402,7 @@ define([
           if (image.isScene(background)) {
             return makeImage(background.add(img, jsnums.toFixnum(x), jsnums.toFixnum(y)));
           } else {
-            var newScene = makeSceneImage(background.getWidth(),
+            var newScene = image.makeSceneImage(background.getWidth(),
                                           background.getHeight(),
                                           [], 
                                           false);
@@ -522,7 +536,7 @@ define([
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
           return makeImage(
-            image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), String(mode), color));
+            image.makePolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), jsnums.toFixnum(1), String(mode), color));
         }),
 
         "ellipse": f(function(maybeWidth, maybeHeight, maybeMode, maybeColor) {
@@ -546,155 +560,157 @@ define([
                                     String(mode), color));
         }),
 
-        "triangle-sas": f(function(maybeBase, maybeAngleC, maybeSideB, maybeMode, maybeColor) {
+        "triangle-sas": f(function(maybeSideA, maybeAngleB, maybeSideC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-sas");
-          var base = checkNonNegativeReal(maybeBase);
-          var angleC = checkAngle(maybeAngleC);
-          var sideB = checkNonNegativeReal(maybeSideB);
+          var sideA = checkNonNegativeReal(maybeSideA);
+          var angleB = checkAngle(maybeAngleB);
+          var sideC = checkNonNegativeReal(maybeSideC);
           
-          var sideA2 = (base * base) + (sideB * sideB) - (2 * base * sideB * Math.cos(angleC * Math.PI/180));
+          var sideB2 = cosRel(sideA, sideC, angleB);
+          var sideB  = Math.sqrt(sideB2);
           
-          if (sideA2 <= 0) {
+          if (sideB2 <= 0) {
             throwMessage("The given side, angle and side will not form a triangle: " 
-                         + base + ", " + angleC + ", " + sideB);
+                         + sideA + ", " + angleB + ", " + sideC);
           } else {
-            var sideA = Math.sqrt(sideA2);
-            if (less(base + sideB, sideA) ||
-                less(sideA + sideB, base) ||
-                less(base + sideA, sideB)) {
+            if (less(sideA + sideC, sideB) ||
+                less(sideB + sideC, sideA) ||
+                less(sideA + sideB, sideC)) {
               throwMessage("The given side, angle and side will not form a triangle: " 
-                           + base + ", " + angleC + ", " + sideB);
+                           + sideA + ", " + angleB + ", " + sideC);
             }
           }
+
+          var angleA = Math.acos(excess(sideB, sideC, sideA) / (2 * sideB * sideC)) * (180 / Math.PI);
+
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-sss": f(function(maybeBase, maybeSideB, maybeSideC, maybeMode, maybeColor) {
+        "triangle-sss": f(function(maybeSideA, maybeSideB, maybeSideC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-sss");
-          var base = checkNonNegativeReal(maybeBase);
+          var sideA = checkNonNegativeReal(maybeSideA);
           var sideB = checkNonNegativeReal(maybeSideB);
           var sideC = checkNonNegativeReal(maybeSideC);
-          if (less(base + sideB, sideC) ||
-              less(sideC + sideB, base) ||
-              less(base + sideC, sideB)) {
+          if (less(sideA + sideB, sideC) ||
+              less(sideC + sideB, sideA) ||
+              less(sideA + sideC, sideB)) {
             throwMessage("The given sides will not form a triangle: " 
-                         + base + ", " + sideB + ", " + sideC);
+                         + sideA + ", " + sideB + ", " + sideC);
           }
+
+          var angleA = Math.acos(excess(sideB, sideC, sideA) / (2 * sideB * sideC)) * (180 / Math.PI);
+
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
-          var angleC = (Math.acos((base*base + sideB*sideB - sideC*sideC) / (2*base*sideB)))*180/Math.PI;
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-ass": f(function(maybeAngle, maybeBase, maybeSideB, maybeMode, maybeColor) {
+        "triangle-ass": f(function(maybeAngleA, maybeSideB, maybeSideC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-ass");
-          var angle = checkAngle(maybeAngle);
-          var base = checkNonNegativeReal(maybeBase);
+          var angleA = checkAngle(maybeAngleA);
           var sideB = checkNonNegativeReal(maybeSideB);
-          if (less(180, angle)) {
+          var sideC = checkNonNegativeReal(maybeSideC);
+          if (less(180, angleA)) {
             throwMessage("The given angle, side and side will not form a triangle: " 
-                         + angle + ", " + base + ", " + sideB);
+                         + angleA + ", " + sideB + ", " + sideC);
           }
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angle), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-ssa": f(function(maybeBase, maybeSideB, maybeAngleA, maybeMode, maybeColor) {
+        "triangle-ssa": f(function(maybeSideA, maybeSideB, maybeAngleC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-ssa");
-          var base = checkNonNegativeReal(maybeBase);
-          var sideB = checkNonNegativeReal(maybeSideB);
-          var angleA = checkAngle(maybeAngleA);
-          if (less(180, angleA)) {
+          var sideA  = checkNonNegativeReal(maybeSideA);
+          var sideB  = checkNonNegativeReal(maybeSideB);
+          var angleC = checkAngle(maybeAngleC);
+          if (less(180, angleC)) {
             throwMessage("The given side, side and angle will not form a triangle: " 
-                         + base + ", " + sideB + ", " + angleA);
+                         + sideA + ", " + sideB + ", " + angleC);
           }
-          var angleB = Math.asin(Math.sin(angleA*Math.PI/180)*sideB/base)*180/Math.PI;
-          var angleC = (180 - angleA - angleB);
-          var sideA2 = (base * base) + (sideB * sideB) - (2 * base * sideB * Math.cos(angleC * Math.PI/180));
+          var sideC2 = cosRel(sideA, sideB, angleC);
+          var sideC  = Math.sqrt(sideC2);
           
-          if (sideA2 <= 0) {
+          if (sideC2 <= 0) {
             throwMessage("The given side, side and angle will not form a triangle: " 
-                         + base + ", " + sideB + ", " + angleA);
+                         + sideA + ", " + sideB + ", " + angleC);
           } else {
-            var sideA = Math.sqrt(sideA2);
-            if (less(base + sideB, sideA) ||
-                less(sideA + sideB, base) ||
-                less(base + sideA, sideB)) {
+            if (less(sideA + sideB, sideC) ||
+                less(sideC + sideB, sideA) ||
+                less(sideA + sideC, sideB)) {
               throwMessage("The given side, side and angle will not form a triangle: " 
-                           + base + ", " + sideB + ", " + angleA);
+                           + sideA + ", " + sideB + ", " + angleC);
             }
           }
+
+          var angleA = Math.acos(excess(sideB, sideC, sideA) / (2 * sideB * sideC)) * (180 / Math.PI);
+
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-aas": f(function(maybeAngleA, maybeAngleB, maybeBase, maybeMode, maybeColor) {
+        "triangle-aas": f(function(maybeAngleA, maybeAngleB, maybeSideC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-aas");
           var angleA = checkAngle(maybeAngleA);
           var angleB = checkAngle(maybeAngleB);
-          var base = checkNonNegativeReal(maybeBase);
+          var sideC = checkNonNegativeReal(maybeSideC);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
           var angleC = (180 - angleA - angleB);
           if (less(angleC, 0)) {
             throwMessage("The given angle, angle and side will not form a triangle: " 
-                         + angleA + ", " + angleB + ", " + base);
+                         + angleA + ", " + angleB + ", " + sideC);
           }
-          var sideB = (base * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
+          var hypotenuse = sideC / (Math.sin(angleC*Math.PI/180))
+          var sideB = hypotenuse * Math.sin(angleB*Math.PI/180);
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-asa": f(function(maybeAngleA, maybeSideC, maybeAngleB, maybeMode, maybeColor) {
+        "triangle-asa": f(function(maybeAngleA, maybeSideB, maybeAngleC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-asa");
           var angleA = checkAngle(maybeAngleA);
-          var sideC = checkNonNegativeReal(maybeSideC);
-          var angleB = checkAngle(maybeAngleB);
+          var sideB = checkNonNegativeReal(maybeSideB);
+          var angleC = checkAngle(maybeAngleC);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
-          var angleC = (180 - angleA - angleB);
-          if (less(angleC, 0)) {
+          var angleB = (180 - angleA - angleC);
+          if (less(angleB, 0)) {
             throwMessage("The given angle, side and angle will not form a triangle: " 
-                         + angleA + ", " + sideC + ", " + angleB);
+                         + angleA + ", " + sideB + ", " + angleC);
           }
-          var base = (sideC * Math.sin(angleA*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
-          var sideB = (sideC * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleC*Math.PI/180));
+          var base = (sideB * Math.sin(angleA*Math.PI/180)) / (Math.sin(angleB*Math.PI/180));
+          var sideC = (sideB * Math.sin(angleC*Math.PI/180)) / (Math.sin(angleB*Math.PI/180));
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
-        "triangle-saa": f(function(maybeBase, maybeAngleC, maybeAngleA, maybeMode, maybeColor) {
+        "triangle-saa": f(function(maybeSideA, maybeAngleB, maybeAngleC, maybeMode, maybeColor) {
           checkArity(5, arguments, "triangle-saa");
-          var base = checkNonNegativeReal(maybeBase);
+          var sideA = checkNonNegativeReal(maybeSideA);
+          var angleB = checkAngle(maybeAngleB);
           var angleC = checkAngle(maybeAngleC);
-          var angleA = checkAngle(maybeAngleA);
           var mode = checkMode(maybeMode);
           var color = checkColor(maybeColor);
-          if (colorDb.get(color)) { color = colorDb.get(color); }
-          var angleB = (180 - angleA - angleC);
-          var sideB = (base * Math.sin(angleB*Math.PI/180)) / (Math.sin(angleA*Math.PI/180));
+          var angleA = (180 - angleC - angleB);
+          var hypotenuse = sideA / (Math.sin(angleA*Math.PI/180));
+          var sideC = hypotenuse * Math.sin(angleC*Math.PI/180);
+          var sideB = hypotenuse * Math.sin(angleB*Math.PI/180);
           return makeImage(
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleC), jsnums.toFixnum(sideB), 
+            image.makeTriangleImage(jsnums.toFixnum(sideC), jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), 
                                     String(mode), color));
         }),
 
@@ -706,7 +722,7 @@ define([
           var color = checkColor(maybeColor);
           return makeImage(
             // add 180 to make the triangle point up
-            image.makeTriangleImage(jsnums.toFixnum(side1), jsnums.toFixnum(90+180), jsnums.toFixnum(side2),
+            image.makeTriangleImage(jsnums.toFixnum(side1), jsnums.toFixnum(360-90), jsnums.toFixnum(side2),
                                    String(mode), color));
         }),
 
@@ -720,7 +736,7 @@ define([
           var base = 2*side*Math.sin((angleC*Math.PI/180)/2);
           return makeImage(
             // add 180 to make the triangle point up
-            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(angleAB+180), jsnums.toFixnum(side), 
+            image.makeTriangleImage(jsnums.toFixnum(base), jsnums.toFixnum(360-angleAB), jsnums.toFixnum(side), 
                                     String(mode), color));
         }),
 

@@ -658,7 +658,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.{env: env-and-atoms.env}.option(_check)
+      new-check = self.option(_check)
       A.s-lam(l, params, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
@@ -672,7 +672,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.{env: env-and-atoms.env}.option(_check)
+      new-check = self.option(_check)
       A.s-method(l, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method-field(self, l, name, args, ann, doc, body, _check):
@@ -686,7 +686,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.{env: env-and-atoms.env}.option(_check)
+      new-check = self.option(_check)
       A.s-method-field(l, name, new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-assign(self, l, id, expr):

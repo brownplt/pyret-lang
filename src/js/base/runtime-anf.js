@@ -1689,7 +1689,13 @@ function createMethodDict() {
           error: function(errVal) {
             threadIsCurrentlyPaused = true;
             threadIsDead = true;
-            finishFailure(new PyretFailException(errVal));
+            var exn;
+            if(isPyretException(errVal)) {
+              exn = errVal;
+            } else {
+              exn = new PyretFailException(errVal); 
+            }
+            finishFailure(exn);
           }
         },
         pause: function() {
