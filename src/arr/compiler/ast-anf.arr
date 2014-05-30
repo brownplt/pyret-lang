@@ -53,7 +53,7 @@ end
 
 data AImportType:
   | a-import-builtin(l :: SL.Location, lib :: String) with:
-    tosource(self): PP.str(self.file) end
+    tosource(self): PP.str(self.lib) end
   | a-import-file(l :: SL.Location, file :: String) with:
     tosource(self): PP.dquote(PP.str(self.file)) end
 end

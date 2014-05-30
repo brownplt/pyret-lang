@@ -189,7 +189,7 @@ data Program:
           [list:
             self._provide.tosource(),
             self.provided-types.tosource()]
-            + self.imports.map(_.tosource)
+            + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
           ))
     end
