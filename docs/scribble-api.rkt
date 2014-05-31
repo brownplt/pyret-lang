@@ -106,10 +106,12 @@
 (define (report-undocumented modname)
   (let ([mod (assoc modname curr-doc-checks)])
     (if mod
-        (dict-for-each (second mod) (lambda (key val)
-                                      (unless val
-                                        (warning "Undocumented export ~s from module ~s~n"
-                                                key modname))))
+        (dict-for-each
+         (second mod)
+         (lambda (key val)
+           (unless val (warning 'report-undocumented
+                                (format "Undocumented export ~s from module ~s~n"
+                                        key modname)))))
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
 (define (load-gen-docs)
@@ -411,7 +413,7 @@
                                    (para (bold "Examples:"))
                                    (if (andmap whitespace? examples)
                                        "empty for now"
-				       (pyret-block examples)))))))))))
+                                       (pyret-block examples)))))))))))
      ))
 
 @(define (function name
