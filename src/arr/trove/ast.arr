@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import pprint as PP
 import srcloc as S
 

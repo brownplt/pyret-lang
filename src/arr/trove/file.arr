@@ -6,6 +6,7 @@ provide {
   file-exists: file-exists,
   file-to-string: file-to-string
 } end
+provide-types *
 
 import filelib as F
 

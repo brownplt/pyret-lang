@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import srcloc as SL
 
 

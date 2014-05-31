@@ -1,7 +1,6 @@
 #lang pyret/library
 
 provide {
-  Set: Set,
   set: {
     make: arr-to-list-set
   },
@@ -16,6 +15,7 @@ provide {
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set
 } end
+provide-types *
 
 import lists as lists
 import error as error
@@ -357,4 +357,5 @@ fun arr-to-tree-set(arr :: arrays.Array) -> Set:
   end
   tree-set(tree)
 end
+
 

@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import srcloc as SL
 import ast as A
 import parse-pyret as PP

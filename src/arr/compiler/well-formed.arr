@@ -3,6 +3,8 @@
 provide {
   check-well-formed: check-well-formed
 } end
+provide-types *
+
 import ast as A
 import srcloc as SL
 import "compiler/compile-structs.arr" as C

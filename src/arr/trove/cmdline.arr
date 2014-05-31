@@ -28,6 +28,7 @@ provide {
   is-success: is-success,
   is-arg-error: is-arg-error
 } end
+provide-types *
 
 import cmdline-lib as CL
 import format as F

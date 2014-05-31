@@ -1,6 +1,7 @@
 #lang pyret/library
 
 provide *
+provide-types *
 import option as O
 import either as E
 

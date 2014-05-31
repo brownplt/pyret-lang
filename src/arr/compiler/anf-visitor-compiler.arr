@@ -1,6 +1,8 @@
 #lang pyret
 
 provide *
+provide-types *
+
 import ast as A
 import "compiler/ast-anf.arr" as N
 import "compiler/ast-split.arr" as S

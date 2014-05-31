@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import file as F
 import ast as A
 import parse-pyret as PP

@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import "compiler/compile-structs.arr" as C
 import ast as A
 import "compiler/anf.arr" as N

@@ -1,4 +1,5 @@
 provide *
+provide-types *
 # import arrays as A
 # import lists as L
 
