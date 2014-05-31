@@ -479,16 +479,16 @@ compiler-visitor = {
     end
 
     shared-fields = shared.map(_.visit(self))
-    base-brand = brand-name(name)
+    external-brand = j-id(js-id-of(namet.tostring()))
 
-    fun make-brand-predicate(b :: String, pred-name :: String):
+    fun make-brand-predicate(b :: J.JExpr, pred-name :: String):
       j-field(
           pred-name,
           rt-method("makeFunction", [list: 
               j-fun(
                   [list: "val"],
                   j-block([list: 
-                    j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id("val"), j-str(b)])]))
+                    j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id("val"), b])]))
                   ])
                 )
             ])
@@ -531,7 +531,6 @@ compiler-visitor = {
       variant-brands = j-obj([list: 
           j-field(variant-brand, j-true)
         ])
-      external-brand = j-id(js-id-of(namet.tostring()))
       stmts = [list: 
           j-var(variant-base-id, j-obj(shared-fields + v.with-members.map(_.visit(self)))),
           j-var(variant-brand-obj-id, variant-brands),
@@ -540,7 +539,7 @@ compiler-visitor = {
             j-dot(external-brand, "_brand"),
             j-true)
         ]
-      predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
+      predicate = make-brand-predicate(j-str(variant-brand), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -567,7 +566,7 @@ compiler-visitor = {
       [list: piece.constructor] + [list: piece.predicate] + acc
     end.reverse()
 
-    data-predicate = make-brand-predicate(base-brand, name)
+    data-predicate = make-brand-predicate(external-brand, name)
 
     data-object = rt-method("makeObject", [list: j-obj([list: data-predicate] + obj-fields)])
 
