@@ -13,7 +13,7 @@ define([
 
   return function(runtime, namespace) {
     var gf = runtime.getField;
-    runtime.loadModulesNew(namespace, [imageLib], function(imageImp) {
+    return runtime.loadModulesNew(namespace, [imageLib], function(imageImp) {
       var image = gf(imageImp, "values");
       var ffi = ffiLib(runtime, namespace);
       var color = gf(image, "color");

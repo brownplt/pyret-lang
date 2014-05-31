@@ -348,7 +348,7 @@ bootstrap-builtins = compile-env(
   "stop-when",
   "is-key-equal"
   ]),
-  [list:]
+  runtime-types
 )
 
 standard-builtins = compile-env(

@@ -2501,6 +2501,7 @@ function createMethodDict() {
           'Boolean': BooleanC,
           'Nothing': NothingC,
           'Function': FunctionC,
+          'RawArray': RawArrayC,
           'Method': MethodC,
           'Object': ObjectC,
           'Any': AnyC,

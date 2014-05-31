@@ -152,7 +152,16 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
       'string-toupper': rt.namespace.get("string-toupper"),
       'string-tolower': rt.namespace.get("string-tolower"),
       'string-explode': rt.namespace.get("string-explode"),
-      'string-index-of': rt.namespace.get("string-index-of")
+      'string-index-of': rt.namespace.get("string-index-of"),
+
+      'Number': rt.namespace.get("Number"),
+      'String': rt.namespace.get("String"),
+      'Function': rt.namespace.get("Function"),
+      'Boolean': rt.namespace.get("Boolean"),
+      'Object': rt.namespace.get("Object"),
+      'Method': rt.namespace.get("Method"),
+      'Nothing': rt.namespace.get("Nothing"),
+      'RawArray': rt.namespace.get("RawArray")
 
     });
     var imageFields = {};
