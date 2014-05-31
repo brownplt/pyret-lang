@@ -324,7 +324,7 @@ compiler-visitor = {
         j-block(
           [list:
             j-var(brander-id, rt-method("namedBrander", [list: j-str(nameb.toname())])),
-            j-var(js-id-of(name.tostring()), rt-method("makeBranderAnn", [list: j-id(brander-id)]))
+            j-var(js-id-of(name.tostring()), rt-method("makeBranderAnn", [list: j-id(brander-id), j-str(nameb.toname())]))
           ] +
           body.visit(self).stmts)
     end
