@@ -118,9 +118,12 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
         | s-bind(l, shadows, id, ann) =>
           if A.is-s-underscore(id): nothing
           else:
-            cases(Option) lists.find(lam(b): b.id == id end, rest):
+            elt = lists.find(lam(b): b.id == id end, rest)
+            cases(Option) elt:
               | some(found) => wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
               | none => ensure-unique-ids(rest)
+              | else => 
+                print("Elt was: " + torepr(elt))
             end
           end
       end

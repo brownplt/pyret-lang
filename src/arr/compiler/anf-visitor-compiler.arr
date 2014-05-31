@@ -284,19 +284,22 @@ fun arity-check(loc-expr, body-stmts, arity):
 end
 
 fun contract-checks(args, ret, body, visitor):
-  check-stmts = for fold(stmts from [list:], a from args):
-    if A.is-a-blank(a.ann):
-      stmts
-    else:
-      ann-name = js-id-of(compiler-name("ann"))
-      stmts +
-        [list:
-          j-var(ann-name, compile-ann(a.ann, visitor)),
-          j-assign(js-id-of(a.id.tostring()), rt-method("checkAnnArg", [list: visitor.get-loc(a.l), j-id(ann-name), j-id(js-id-of(a.id.tostring()))]))
-        ]
-    end
+  body-visited = body.visit(visitor)
+  cont = j-fun([list:], body-visited)
+  nonblanks = for filter(a from args): not(A.is-a-blank(a)) end
+  if is-empty(nonblanks):
+    body-visited.stmts
+  else:
+    anns = for map(a from nonblanks): compile-ann(a.ann, visitor) end
+    locs = for map(a from nonblanks): visitor.get-loc(a.l) end
+    vals = for map(a from nonblanks): j-id(js-id-of(a.id.tostring())) end
+    [list: j-return(rt-method("checkAnnArgs", [list: # FILL
+      j-list(false, anns),
+      j-list(false, vals),
+      j-list(false, locs),
+      cont
+    ]))]
   end
-  check-stmts + body.visit(visitor).stmts
 end
 
 compiler-visitor = {
@@ -333,18 +336,22 @@ compiler-visitor = {
   end,
   a-let(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
-    var-stmts = 
-      if b.ann == A.a-blank:
-        [list: j-var(js-id-of(b.id.tostring()), e.visit(self))]
-      else:
-        [list:
-          j-var(js-id-of("ann"), compile-ann(b.ann, self)),
-          j-var(js-id-of(b.id.tostring()), rt-method("checkAnn", [list: self.get-loc(b.ann.l), j-id(js-id-of("ann")), e.visit(self)]))
-        ]
-      end
-    j-block(
-      var-stmts +
-      compiled-body.stmts)
+    if A.is-a-blank(b.ann):
+      j-block(
+        [list: j-var(js-id-of(b.id.tostring()), e.visit(self))] +
+        compiled-body.stmts)
+    else:
+      cont = j-fun([list:], body.visit(self))
+      j-block([list:
+        j-var(js-id-of(b.id.tostring()), e.visit(self)),
+        j-return(rt-method("checkAnn", [list: # FILL
+          self.get-loc(b.l),
+          compile-ann(b.ann, self),
+          j-id(js-id-of(b.id.tostring())),
+          cont
+        ]))
+      ])
+    end
       
 #     ann-id = js-id-of("ann")
 #     existing-ann = j-var(ann-id, rt-method("getAnnIfCached", [list: M, "$ann_" + b.id.tostring()]))

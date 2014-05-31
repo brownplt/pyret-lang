@@ -1345,28 +1345,67 @@ function createMethodDict() {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
     }
 
-    function checkAnn(compilerLoc, ann, val) {
-      var result = ann.check(compilerLoc, val);
-      if(ffi.isOk(result)) { return val; }
-      if(ffi.isFail(result)) { raiseJSJS(result); }
-      throw "Internal error: got invalid result from annotation check";
+    function checkAnn(compilerLoc, ann, val, after) {
+      if(after) { return after(val); }
+      else { return val; }
+      return safeCall(function() {
+        return ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) { return after(val); }
+        if(ffi.isFail(result)) { raiseJSJS(result); }
+        throw "Internal error: got invalid result from annotation check";
+      });
     }
 
     function checkAnnArg(compilerLoc, ann, val) {
-      var result = ann.check(compilerLoc, val);
-      if(ffi.isOk(result)) { return val; }
-      if(ffi.isFail(result)) {
-        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+      return val;
+      return safeCall(function() {
+        return ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) { return val; }
+        if(ffi.isFail(result)) {
+          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+        }
+        throw "Internal error: got invalid result from annotation check";
+      });
+    }
+
+    function checkAnnArgs(anns, args, locs, after) {
+      return after();
+      var currentCheck = -1;
+      var length = args.length;
+      function foldHelp() {
+        while(++currentIndex < length) {
+          checkAnnArg(locs[i], anns[i], args[i]);
+        }
+        after();
       }
-      throw "Internal error: got invalid result from annotation check";
+      try {
+        return foldHelp();
+      } catch(e) {
+        if(isCont(e)) {
+          var stacklet = {
+            from: ["checkAnnArgs"],
+            go: function(ret) {
+              return foldHelp();
+            }
+          };
+          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+        }
+        if (thisRuntime.isPyretException(e)) {
+          e.pyretStack.push(["checkAnnArgs"]); 
+        }
+        throw e;
+      }
     }
 
     function getDotAnn(loc, name, ann, field) {
       checkString(name);
       checkString(field);
-/*      if(ann.hasOwnProperty(field)) {
+      if(ann.hasOwnProperty(field)) {
         return ann[field];
-      }*/
+      }
+      //console.error("Couldn't find: ", field, name, loc.join(","));
       return AnyC;
       /*
       raiseJSJS(ffi.contractFail(makeSrcloc(loc),
@@ -1380,12 +1419,17 @@ function createMethodDict() {
       this.refinement = false;
     }
     PPrimAnn.prototype.check = function(compilerLoc, val) {
-      if(this.pred(val)) { return ffi.contractOk; }
-      else {
-        return ffi.contractFail(
-          makeSrcloc(compilerLoc),
-          ffi.makeTypeMismatch(val, this.name));
-      }
+      var that = this;
+      return safeCall(function() {
+        return that.pred(val);
+      }, function(passed) {
+        if(passed) { return ffi.contractOk; }
+        else {
+          return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, that.name));
+        }
+      });
     }
 
     function makePrimitiveAnnotation(name, jsPred) {
@@ -2593,6 +2637,7 @@ function createMethodDict() {
 
         'checkAnn': checkAnn,
         'checkAnnArg': checkAnnArg,
+        'checkAnnArgs': checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
         'makeBranderAnn': makeBranderAnn,

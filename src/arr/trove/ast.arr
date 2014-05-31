@@ -4,6 +4,7 @@ provide *
 provide-types *
 import pprint as PP
 import srcloc as S
+import contracts as C
 
 Loc = S.Srcloc
 loc = S.srcloc
@@ -1358,7 +1359,7 @@ default-map-visitor = {
   s-obj(self, l :: S.Location, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
-  s-array(self, l :: S.Location, values :: Array<Expr>):
+  s-array(self, l :: S.Location, values :: List<Expr>):
     s-array(l, values.map(_.visit(self)))
   end,
   s-bless(self, l :: S.Location, expr :: Expr, typ :: Name):
