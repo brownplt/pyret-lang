@@ -841,18 +841,14 @@ function createMethodDict() {
     }
 
     var brandCounter = 0;
-    function mkBrandName() {
-      var thisBrandStr = "$brand" + String(++brandCounter);
+    function mkBrandName(name) {
+      if(typeof name === "undefined") { name = ""; }
+      var thisBrandStr = "$brand" + name + String(++brandCounter);
       return thisBrandStr;
     }
-    /**@type {PFunction} */
-    var brander = makeFunction(
-    /**
-      @return {!PBase}
-    */
-    function() {
-      var thisBrandStr = mkBrandName();
-      return makeObject({
+    var namedBrander = function(name) {
+      var thisBrandStr = mkBrandName(name);
+      var brander = makeObject({
           'test': makeFunction(function(obj) {
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
@@ -860,6 +856,16 @@ function createMethodDict() {
               return obj.brand(thisBrandStr);
             })
         });
+      brander._brand = thisBrandStr;
+      return brander;
+    }
+    /**@type {PFunction} */
+    var brander = makeFunction(
+    /**
+      @return {!PBase}
+    */
+    function() {
+      return namedBrander("brander");
     }
     );
 
@@ -1419,6 +1425,12 @@ function createMethodDict() {
         else {
           return result;
         }
+      });
+    }
+
+    function makeBranderAnn(brander, name) {
+      return makePrimitiveAnnotation(name, function(val) {
+        return isObject(val) && hasBrand(val, brander._brand);
       });
     }
 
@@ -2577,10 +2589,13 @@ function createMethodDict() {
 
         'GAS': INITIAL_GAS,
 
+        'namedBrander': namedBrander,
+
         'checkAnn': checkAnn,
         'checkAnnArg': checkAnnArg,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
+        'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
 
         'Number': NumberC,

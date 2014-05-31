@@ -230,7 +230,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               N.a-field(f.l, f.name.s, t)
             end
           anf-variants(variants, lam(new-variants):
-              k.apply(l, N.a-data-expr(l, data-name, new-variants, new-shared)) # TODO: data-name-t
+              k.apply(l, N.a-data-expr(l, data-name, data-name-t, new-variants, new-shared))
             end)
         end)
 

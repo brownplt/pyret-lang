@@ -246,7 +246,7 @@ data ALettable:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end    
-  | a-data-expr(l :: SL.Location, name :: String, variants :: List<AVariant>, shared :: List<AField>) with:
+  | a-data-expr(l :: SL.Location, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>) with:
     label(self): "a-data-expr" end,
     tosource(self):
       PP.str("data-expr")
@@ -509,8 +509,8 @@ default-map-visitor = {
   a-seq(self, l :: SL.Location, e1 :: ALettable, e2 :: AExpr):
     a-seq(l, e1.visit(self), e2.visit(self))
   end,
-  a-data-expr(self, l :: SL.Location, name :: String, variants :: List<AVariant>, shared :: List<AField>):
-    a-data-expr(l, name, variants.map(_.visit(self)), shared.map(_.visit(self)))
+  a-data-expr(self, l :: SL.Location, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
+    a-data-expr(l, name, namet, variants.map(_.visit(self)), shared.map(_.visit(self)))
   end,
   a-variant(self, l :: SL.Location, constr-loc :: SL.Location, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):
     a-variant(l, constr-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
@@ -731,13 +731,14 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
       for fold(acc from from-supe, f from fields):
         freevars-v-acc(f.value, acc)
       end
-    | a-data-expr(_, _, variants, shared) =>
+    | a-data-expr(_, _, namet, variants, shared) =>
       from-variants = for fold(acc from seen-so-far, v from variants):
         freevars-variant-acc(v, acc)
       end
-      for fold(acc from from-variants, s from shared):
+      from-shared = for fold(acc from from-variants, s from shared):
         freevars-v-acc(s.value, acc)
       end
+      from-shared.add(namet)
     | a-extend(_, supe, fields) =>
       from-supe = freevars-v-acc(supe, seen-so-far)
       for fold(acc from from-supe, f from fields):

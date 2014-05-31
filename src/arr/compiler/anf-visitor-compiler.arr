@@ -320,10 +320,13 @@ compiler-visitor = {
           body.visit(self).stmts
         )
       | a-newtype-bind(l2, name, nameb) =>
+        brander-id = js-id-of(nameb.tostring())
         j-block(
-          link(j-var(js-id-of(name.tostring()), compile-ann(A.a-blank, self)),
-            body.visit(self).stmts))
-          # TODO: need to do something with the nameb
+          [list:
+            j-var(brander-id, rt-method("namedBrander", [list: j-str(nameb.toname())])),
+            j-var(js-id-of(name.tostring()), rt-method("makeBranderAnn", [list: j-id(brander-id)]))
+          ] +
+          body.visit(self).stmts)
     end
   end,
   a-let(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
@@ -468,7 +471,7 @@ compiler-visitor = {
     end
   end,
 
-  a-data-expr(self, l, name, variants, shared):
+  a-data-expr(self, l, name, namet, variants, shared):
     fun brand-name(base):
       compiler-name("brand-" + base)
     end
@@ -524,12 +527,16 @@ compiler-visitor = {
       variant-brand = brand-name(vname)
       variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
       variant-brands = j-obj([list: 
-          j-field(base-brand, j-true),
           j-field(variant-brand, j-true)
         ])
+      external-brand = j-id(js-id-of(namet.tostring()))
       stmts = [list: 
           j-var(variant-base-id, j-obj(shared-fields + v.with-members.map(_.visit(self)))),
-          j-var(variant-brand-obj-id, variant-brands)
+          j-var(variant-brand-obj-id, variant-brands),
+          j-bracket-assign(
+            j-id(variant-brand-obj-id),
+            j-dot(external-brand, "_brand"),
+            j-true)
         ]
       predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
 

@@ -206,3 +206,8 @@ check "should work for standalone binding constructs":
   run-str("newtype Lyst as LystT").success is true
 end
 
+check "should work for data":
+  run-str("data D: | var1 end x :: D = 5") satisfies is-contract-error-str
+  run-str("data D: | var1 end x :: D = var1").success is true
+end
+
