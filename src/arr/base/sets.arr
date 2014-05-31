@@ -345,13 +345,13 @@ fun list-to-tree(lst :: lists.List):
   end
 end
 
-fun arr-to-list-set(arr :: arrays.Array) -> Set:
+fun arr-to-list-set(arr :: RawArray) -> Set:
   for raw-array-fold(ls from list-set(empty), elt from arr, _ from 0):
     ls.add(elt) 
   end
 end
 
-fun arr-to-tree-set(arr :: arrays.Array) -> Set:
+fun arr-to-tree-set(arr :: RawArray) -> Set:
   tree = for raw-array-fold(t from leaf, elt from arr, _ from 0):
     t.insert(elt)
   end

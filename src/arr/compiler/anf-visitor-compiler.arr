@@ -566,7 +566,7 @@ compiler-visitor = {
       [list: piece.constructor] + [list: piece.predicate] + acc
     end.reverse()
 
-    data-predicate = make-brand-predicate(external-brand, name)
+    data-predicate = make-brand-predicate(j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [list: j-obj([list: data-predicate] + obj-fields)])
 

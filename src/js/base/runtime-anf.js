@@ -1364,9 +1364,9 @@ function createMethodDict() {
     function getDotAnn(loc, name, ann, field) {
       checkString(name);
       checkString(field);
-      if(name.hasOwnProperty(field)) {
-        return name[field];
-      }
+/*      if(ann.hasOwnProperty(field)) {
+        return ann[field];
+      }*/
       return AnyC;
       /*
       raiseJSJS(ffi.contractFail(makeSrcloc(loc),
