@@ -131,8 +131,8 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   cases(Option<Binding>) bind-exp(e, env):
     | none => b-unknown
     | some(b) =>
-      when not(Binding(b)):
-        print-error("b isn't a binding for expr " + torepr(e))
+      when not(is-e-bind(b)):
+        print-error("b isn't a binding for expr " + string-substring(torepr(e), 0, 100))
         print-error(b)
       end
       b.info

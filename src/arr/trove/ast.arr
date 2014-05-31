@@ -137,9 +137,7 @@ fun MakeName(start):
     is-s-name: is-s-name,
     is-s-global: is-s-global,
     is-s-atom: is-s-atom,
-    Name: Name
   }
-
 end
 
 global-names = MakeName(0)
@@ -719,7 +717,7 @@ data Expr:
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(_.tosource()))
-      header = str-data-expr + PP.str(self.name) + tys + str-colon
+      header = str-data-expr + PP.str(self.name) + PP.comma + self.namet.tosource() + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
@@ -1106,7 +1104,7 @@ fun binding-ids(stmt) -> List<Name>:
     | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
-      s-name(l, name) ^ link(_, flatten(variants.map(variant-ids)))
+      s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
     | else => [list: ]
   end
 end

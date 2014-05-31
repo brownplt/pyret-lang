@@ -75,7 +75,9 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
 
       function listToArr(lst) {
         var arr = [];
-        if(!(RUNTIME.unwrap(RUNTIME.getField(list, "List").app(lst)))) {
+        var isLink = RUNTIME.unwrap(RUNTIME.getField(list, "is-link").app(lst));
+        var isEmpty = RUNTIME.unwrap(RUNTIME.getField(list, "is-empty").app(lst));
+        if(!(isLink || isEmpty)) {
           throw new Error("Expected list in listToArr, but got something else");
         }
         while(!(RUNTIME.unwrap(RUNTIME.getField(list, "is-empty").app(lst)))) {

@@ -96,6 +96,11 @@ data Param:
       parser :: ParseParam, default :: Any, short-name :: Option<String>, repeated :: ParamRepeat, desc :: String)
 end
 
+fun is-Param_(l):
+  is-flag(l) or is-equals-val(l) or is-equals-val-default(l) or
+    is-next-val(l) or is-next-val-default(l)
+end
+
 # options : Dictionary of Params
 fun usage-info(options-raw) -> List<String>:
   options = D.to-dict(options-raw)
@@ -312,7 +317,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                 else:
                   nothing
                 end
-              if Param(lookup):
+              if is-Param_(lookup):
                 cases(Param) lookup:
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
