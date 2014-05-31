@@ -20,6 +20,11 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], fun
                   namespace = namespace.set(f, get(provided, f));
                   replCompileEnv = get(replSupport, "add-global-binding").app(replCompileEnv, runtime.makeString(f));
                 });
+              var providedTypes = get(get(result.result, "provide-plus-types"), "types");
+              Object.keys(providedTypes).forEach(function(f) {
+                namespace = namespace.set(f, providedTypes[f]);
+                replCompileEnv = get(replSupport, "add-global-type-binding").app(replCompileEnv, runtime.makeString(f));
+              });
             }
             toEval.onRun(result);
           });

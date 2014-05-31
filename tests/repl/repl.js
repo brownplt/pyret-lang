@@ -174,6 +174,19 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
 
       });
 
+      it("should bind type names", function(done) {
+        aRepl.restartInteractions("data D: | var1 end")
+          .then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            return aRepl.run("x :: D = var1")
+          }).then(function(replResult) {
+            expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+            done();
+          }).catch(function(err) {
+            console.error("Failed in testing typename binding: ", err); 
+          });
+      });
+
       it("should allow stopping", function(done) {
         aRepl.restartInteractions("fun fact(n): if n < 1: 1 else: n * fact(n - 1);;").then(function(replResult) {
           setTimeout(function() {
