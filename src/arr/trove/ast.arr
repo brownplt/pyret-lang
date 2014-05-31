@@ -1916,7 +1916,7 @@ default-iter-visitor = {
       ):
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s-check(self, l :: S.Location, name :: String, body :: Expr, keyword-check :: Boolean):
+  s-check(self, l :: S.Location, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
   end,
   

@@ -145,7 +145,7 @@ fun thunk-app-stmt(stmt):
   thunk-app(j-block([list: stmt]))
 end
 
-fun helper-name(s :: String): "$H" + js-id-of(s.tostring());
+fun helper-name(s :: A.Name): "$H" + js-id-of(s.tostring());
 
 fun compile-helper(compiler, h :: S.Helper) -> J.JStmt:
   cases(S.Helper) h:
@@ -320,7 +320,10 @@ compiler-visitor = {
           body.visit(self).stmts
         )
       | a-newtype-bind(l2, name, nameb) =>
-        body.visit(self) # TODO: NEED TO IMPLEMENT THIS
+        j-block(
+          link(j-var(js-id-of(name.tostring()), compile-ann(A.a-blank, self)),
+            body.visit(self).stmts))
+          # TODO: need to do something with the nameb
     end
   end,
   a-let(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
@@ -364,7 +367,7 @@ compiler-visitor = {
   a-tail-app(self, l :: SL.Location, f :: N.AVal, args :: List<N.AVal>):
     compile-tail-app(self, l, f, args)
   end,
-  a-split-app(self, l :: SL.Location, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: String, helper-args :: List<N.AVal>):
+  a-split-app(self, l :: SL.Location, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: A.Name, helper-args :: List<N.AVal>):
     compile-split-app(self, l, is-var, f, args, name, helper-args)
   end,
   a-seq(self, l, e1, e2):
@@ -385,7 +388,7 @@ compiler-visitor = {
   a-lettable(self, e :: N.ALettable):
     j-block([list: j-return(e.visit(self))])
   end,
-  a-assign(self, l :: SL.Location, id :: String, value :: N.AVal):
+  a-assign(self, l :: SL.Location, id :: A.Name, value :: N.AVal):
     j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self))
   end,
   a-app(self, l :: SL.Location, f :: N.AVal, args :: List<N.AVal>):

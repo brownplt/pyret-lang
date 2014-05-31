@@ -824,7 +824,8 @@ function createMethodDict() {
     var StringC = makePrimitiveAnnotation("String", isString);
     var BooleanC = makePrimitiveAnnotation("Boolean", isBoolean);
     var RawArrayC = makePrimitiveAnnotation("RawArray", isArray);
-    var FunctionC = makePrimitiveAnnotation("Function", isFunction);
+    var FunctionC = makePrimitiveAnnotation("Function",
+      function(v) { return isFunction(v) || isMethod(v) });
     var MethodC = makePrimitiveAnnotation("Method", isMethod);
     var NothingC = makePrimitiveAnnotation("Nothing", isNothing);
     var ObjectC = makePrimitiveAnnotation("Nothing", isObject);
@@ -2747,8 +2748,14 @@ function createMethodDict() {
     };
 
 
-    var list = getField(require("trove/lists")(thisRuntime, thisRuntime.namespace), "provide");
-    var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
+    var list;
+    var srcloc;
+    loadModulesNew(thisRuntime.namespace,
+      [require("trove/lists"), require("trove/srcloc")],
+      function(listsLib, srclocLib) {
+        list = getField(listsLib, "values");
+        srcloc = getField(srclocLib, "values");
+      });
     var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
     thisRuntime["ffi"] = ffi;
 

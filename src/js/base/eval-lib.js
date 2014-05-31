@@ -21,9 +21,6 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
   }
 
   function compilePyret(runtime, ast, options, ondone) {
-    function getExports(lib) {
-      return runtime.getField(lib(runtime, runtime.namespace), "provide");
-    }
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
@@ -81,15 +78,17 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
   }
 
   function parsePyret(runtime, src, options, ondone) {
-    var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
-    var dialects = dialectsLib(runtime, runtime.namespace);
-    if (!options.name) { options.name = randomName(); }
-    return runtime.runThunk(function() {
-      return runtime.getField(pp, "parse-dialect").app(
-                runtime.makeString(options.dialect || dialects.defaultDialect), 
-                runtime.makeString(src), 
-                runtime.makeString(options.name));
-    }, ondone);
+    return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
+      var pp = runtime.getField(parseLib, "values");
+      var dialects = dialectsLib(runtime, runtime.namespace);
+      if (!options.name) { options.name = randomName(); }
+      return runtime.runThunk(function() {
+        return runtime.getField(pp, "parse-dialect").app(
+                  runtime.makeString(options.dialect || dialects.defaultDialect), 
+                  runtime.makeString(src), 
+                  runtime.makeString(options.name));
+      }, ondone);
+    });
   }
 
   function evalPyret(runtime, src, options, ondone) {
@@ -106,9 +105,6 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
     if (!options.name) { options.name = randomName(); }
     var modname = randomName();
     var namespace = options.namespace || runtime.namespace;
-    function getExports(lib) {
-      return runtime.getField(lib(runtime, runtime.namespace), "provide");
-    }
     runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
       var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
       runtime.setParam("current-checker", currentChecker);

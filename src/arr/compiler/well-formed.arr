@@ -573,7 +573,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-for(_, l :: SL.Location, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
     well-formed-visitor.s-for(l, iterator, bindings, ann, body)
   end,
-  s-check(_, l :: SL.Location, name :: String, body :: A.Expr, keyword-check :: Boolean):
+  s-check(_, l :: SL.Location, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
     well-formed-visitor.s-check(l, name, body, keyword-check)
   end,
   s-data-field(_, l :: SL.Location, name :: A.Expr, value :: A.Expr):
