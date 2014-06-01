@@ -1356,6 +1356,25 @@ function createMethodDict() {
       });
     }
 
+    function _checkAnn(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isOk(result)) { return val; }
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function safeCheckAnnArg(compilerLoc, ann, val) {
+      return safeCall(function() {
+        return ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) { return val; }
+        if(ffi.isFail(result)) {
+          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+        }
+        throw "Internal error: got invalid result from annotation check";
+      });
+    }
+
     function checkAnnArg(compilerLoc, ann, val) {
       return safeCall(function() {
         return ann.check(compilerLoc, val);
@@ -1382,41 +1401,13 @@ function createMethodDict() {
         if(i >= args.length) { return after(); }
         else {
           return safeCall(function() {
-            return checkAnnArg(locs[i], anns[i], args[i]);
+            return safeCheckAnnArg(locs[i], anns[i], args[i]);
           }, function() {
             return checkI(i + 1);
           });
         }
       }
       return checkI(0);
-    }
-
-    function loopy() {
-      var currentCheck = -1;
-      var length = args.length;
-      
-      function foldHelp() {
-        while(++currentCheck < length) {
-        }
-        return after();
-      }
-      try {
-        return foldHelp();
-      } catch(e) {
-        if(isCont(e)) {
-          var stacklet = {
-            from: ["checkAnnArgs"],
-            go: function(_) {
-              return foldHelp();
-            }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-        }
-        if (thisRuntime.isPyretException(e)) {
-          e.pyretStack.push(["checkAnnArgs"]); 
-        }
-        throw e;
-      }
     }
 
     function getDotAnn(loc, name, ann, field) {
@@ -2834,12 +2825,10 @@ function createMethodDict() {
         'hasParam' : hasParam
     };
 
-/*
     var ffi = {
       contractOk: true,
       isOk: function() { return true; }
     }
-    */
 
 
     var list;
