@@ -1346,8 +1346,6 @@ function createMethodDict() {
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
-      if(after) { return after(val); }
-      else { return val; }
       return safeCall(function() {
         return ann.check(compilerLoc, val);
       }, function(result) {
@@ -1358,7 +1356,6 @@ function createMethodDict() {
     }
 
     function checkAnnArg(compilerLoc, ann, val) {
-      return val;
       return safeCall(function() {
         return ann.check(compilerLoc, val);
       }, function(result) {
@@ -1370,15 +1367,36 @@ function createMethodDict() {
       });
     }
 
+    function checkAnnArgs1(anns, args, locs, after) {
+      return safeCall(function() {
+        checkAnnArg(locs[0], anns[0], args[0]);
+      }, function(result) {
+        return after()
+      });
+    }
+
     function checkAnnArgs(anns, args, locs, after) {
-      return after();
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          return safeCall(function() {
+            return checkAnnArg(locs[i], anns[i], args[i]);
+          }, function() {
+            return checkI(i + 1);
+          });
+        }
+      }
+      return checkI(0);
+    }
+
+    function loopy() {
       var currentCheck = -1;
       var length = args.length;
+      
       function foldHelp() {
-        while(++currentIndex < length) {
-          checkAnnArg(locs[i], anns[i], args[i]);
+        while(++currentCheck < length) {
         }
-        after();
+        return after();
       }
       try {
         return foldHelp();
@@ -1386,7 +1404,7 @@ function createMethodDict() {
         if(isCont(e)) {
           var stacklet = {
             from: ["checkAnnArgs"],
-            go: function(ret) {
+            go: function(_) {
               return foldHelp();
             }
           };

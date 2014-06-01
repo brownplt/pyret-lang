@@ -285,11 +285,11 @@ end
 
 fun contract-checks(args, ret, body, visitor):
   body-visited = body.visit(visitor)
-  cont = j-fun([list:], body-visited)
-  nonblanks = for filter(a from args): not(A.is-a-blank(a)) end
+  nonblanks = for filter(a from args): not(A.is-a-blank(a.ann)) end
   if is-empty(nonblanks):
     body-visited.stmts
   else:
+    cont = j-fun([list:], body-visited)
     anns = for map(a from nonblanks): compile-ann(a.ann, visitor) end
     locs = for map(a from nonblanks): visitor.get-loc(a.l) end
     vals = for map(a from nonblanks): j-id(js-id-of(a.id.tostring())) end
@@ -341,7 +341,7 @@ compiler-visitor = {
         [list: j-var(js-id-of(b.id.tostring()), e.visit(self))] +
         compiled-body.stmts)
     else:
-      cont = j-fun([list:], body.visit(self))
+      cont = j-fun([list:], compiled-body)
       j-block([list:
         j-var(js-id-of(b.id.tostring()), e.visit(self)),
         j-return(rt-method("checkAnn", [list: # FILL
