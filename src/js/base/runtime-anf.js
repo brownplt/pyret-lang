@@ -2222,29 +2222,29 @@ function createMethodDict() {
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
-        while(++currentIndex < length) {
-          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+        try {
+          while(++currentIndex < length) {
+            currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          }
+          return currentAcc;
+        } catch(e) {
+          if(isCont(e)) {
+            var stacklet = {
+              from: ["raw-array-fold"],
+              go: function(ret) {
+                currentAcc = ret;
+                return foldHelp();
+              }
+            };
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+          }
+          if (thisRuntime.isPyretException(e)) {
+            e.pyretStack.push(["raw-array-fold"]); 
+          }
+          throw e;
         }
-        return currentAcc;
       }
-      try {
-        return foldHelp();
-      } catch(e) {
-        if(isCont(e)) {
-          var stacklet = {
-            from: ["raw-array-fold"],
-            go: function(ret) {
-              currentAcc = ret;
-              return foldHelp();
-            }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-        }
-        if (thisRuntime.isPyretException(e)) {
-          e.pyretStack.push(["raw-array-fold"]); 
-        }
-        throw e;
-      }
+      return foldHelp();
     };
 
     var string_substring = function(s, min, max) {
