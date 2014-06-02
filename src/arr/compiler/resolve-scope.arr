@@ -37,7 +37,7 @@ fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
       ids = A.block-type-ids(b)
       type-fields = for map(id from ids):
         if id.bind-type == "data":
-          A.a-field(l, id.name.toname(), A.a-pred(l, A.a-any, A.s-id(l, id.name)))
+          A.a-field(l, id.name.toname(), A.a-name(l, id.name))
         else:
           A.a-field(l, id.name.toname(), A.a-name(l, id.name))
         end

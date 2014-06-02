@@ -101,8 +101,9 @@ end
 fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
   cases(A.Expr) e:
     | s-dot(l, o, name) =>
-      cases(Option<BindingInfo>) bind-exp(o, env):
-        | some(b) =>
+      cases(Option<Binding>) bind-exp(o, env):
+        | some(eb) =>
+          b = eb.info
           cases(BindingInfo) b:
             | b-dict(dict) =>
               if dict.has-key(name.key()): some(e-bind(A.dummy-loc, false, dict.get(name.key())))

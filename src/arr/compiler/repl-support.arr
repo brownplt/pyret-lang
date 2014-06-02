@@ -13,7 +13,7 @@ fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   end
 end
 
-fun add-global-type-binding(env :: C.CompileTypeBinding, name :: String):
+fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
   cases(C.CompileEnvironment) env:
     | compile-env(bindings, type-bindings) =>
       C.compile-env(bindings, link(C.type-id(name), type-bindings))

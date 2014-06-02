@@ -150,18 +150,20 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
 
       it("should bind type names", function(done) {
         aRepl.then(function() {
+          var rt = aRepl.runtime;
           aRepl.restartInteractions("data D: | var1 end")
             .then(function(replResult) {
-              expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+              expect(getVal(rt, replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
               return aRepl.run("x :: D = var1")
             }).then(function(replResult) {
-              expect(getVal(replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+              expect(getVal(rt, replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
               done();
             }).catch(function(err) {
               console.error("Failed in testing typename binding: ", err); 
+              fail();
             });
         });
-      });
+      }, 15000);
 
       it("should allow recursive references in the same block", function(done) {
         aRepl.then(function(aRepl) {

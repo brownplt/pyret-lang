@@ -283,15 +283,14 @@ fun arity-check(loc-expr, body-stmts, arity):
       body-stmts))
 end
 
-fun contract-checks(args, ret, body, visitor):
-  body-visited = body.visit(visitor)
-  nonblanks = for filter(a from args): not(A.is-a-blank(a.ann)) end
+fun contract-checks(args, ret, stmts, visitor):
+  nonblanks = for filter(a from args): not(A.is-a-blank(a.ann)) and not(A.is-a-any(a.ann)) end
   if is-empty(nonblanks):
-    body-visited.stmts
+    stmts
   else:
-    cont = j-fun([list:], body-visited)
+    cont = j-fun([list:], j-block(stmts))
     anns = for map(a from nonblanks): compile-ann(a.ann, visitor) end
-    locs = for map(a from nonblanks): visitor.get-loc(a.l) end
+    locs = for map(a from nonblanks): visitor.get-loc(a.ann.l) end
     vals = for map(a from nonblanks): j-id(js-id-of(a.id.tostring())) end
     [list: j-return(rt-method("checkAnnArgs", [list: # FILL
       j-list(false, anns),
@@ -336,7 +335,7 @@ compiler-visitor = {
   end,
   a-let(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
-    if A.is-a-blank(b.ann):
+    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
       j-block(
         [list: j-var(js-id-of(b.id.tostring()), e.visit(self))] +
         compiled-body.stmts)
@@ -345,7 +344,7 @@ compiler-visitor = {
       j-block([list:
         j-var(js-id-of(b.id.tostring()), e.visit(self)),
         j-return(rt-method("checkAnn", [list: # FILL
-          self.get-loc(b.l),
+          self.get-loc(b.ann.l),
           compile-ann(b.ann, self),
           j-id(js-id-of(b.id.tostring())),
           cont
@@ -424,10 +423,10 @@ compiler-visitor = {
   end,
   a-lam(self, l :: SL.Location, args :: List<N.ABind>, ret, body :: N.AExpr):
     rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
-          arity-check(self.get-loc(l), contract-checks(args, ret, body, self), args.length()))])
+          arity-check(self.get-loc(l), contract-checks(args, ret, body.visit(self).stmts, self), args.length()))])
   end,
   a-method(self, l :: SL.Location, args :: List<N.ABind>, ret, body :: N.AExpr):
-    compiled-body-stmts = contract-checks(args, ret, body, self)
+    compiled-body-stmts = contract-checks(args, ret, body.visit(self).stmts, self)
     rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
       j-block([list: 
         j-return(j-fun(args.rest.map(_.id).map(_.tostring()).map(js-id-of), arity-check(
@@ -504,28 +503,35 @@ compiler-visitor = {
 
     fun make-variant-constructor(l2, base-id, brands-id, vname, members):
       member-names = members.map(lam(m): m.bind.id.toname();)
+      member-ids = members.map(lam(m): m.bind.id.tostring();)
       j-field(
           vname,
           rt-method("makeFunction", [list: 
             j-fun(
-              member-names.map(js-id-of),
+              member-ids.map(js-id-of),
               arity-check(
                 self.get-loc(l2),
-                [list: 
-                  j-var("dict", rt-method("create", [list: j-id(base-id)]))
-                ] +
-                for map2(n from member-names, m from members):
-                  cases(N.AMemberType) m.member-type:
-                    | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
-                    | a-cyclic => raise("Cannot handle cyclic fields yet")
-                    | a-mutable => raise("Cannot handle mutable fields yet")
-                  end
-                end +
-                [list: 
-                  j-return(rt-method("makeBrandedObject", [list: j-id("dict"), j-id(brands-id)]))
-                ],
-                member-names.length())
+                contract-checks(
+                  members.map(_.bind),
+                  A.a-blank,
+                  [list: 
+                    j-var("dict", rt-method("create", [list: j-id(base-id)]))
+                  ] +
+                  for map3(n from member-names, m from members, id from member-ids):
+                    cases(N.AMemberType) m.member-type:
+                      | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id)))
+                      | a-cyclic => raise("Cannot handle cyclic fields yet")
+                      | a-mutable => raise("Cannot handle mutable fields yet")
+                    end
+                  end +
+                  [list: 
+                    j-return(rt-method("makeBrandedObject", [list: j-id("dict"), j-id(brands-id)]))
+                  ],
+                  self
+                ),
+                member-names.length()
               )
+            )
           ])
         )
     end
@@ -599,8 +605,12 @@ check:
   false4 = N.a-if(d, N.a-bool(d, false), N.a-num(d, 3), N.a-num(d, 4))
   false4.visit(remove-useless-if-visitor) is N.a-num(d, 4)
 
-  N.a-if(d, N.a-id(d, "x"), true1, false4).visit(remove-useless-if-visitor) is
-    N.a-if(d, N.a-id(d, "x"), N.a-num(d, 1), N.a-num(d, 4))
+
+  n = A.global-names.make-atom
+
+  x = n("x")
+  N.a-if(d, N.a-id(d, x), true1, false4).visit(remove-useless-if-visitor) is
+    N.a-if(d, N.a-id(d, x), N.a-num(d, 1), N.a-num(d, 4))
 
 end
 

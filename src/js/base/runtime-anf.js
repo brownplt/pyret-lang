@@ -1368,7 +1368,7 @@ function createMethodDict() {
       });
     }
 
-    function checkAnnArg(compilerLoc, ann, val) {
+    function _checkAnnArg(compilerLoc, ann, val) {
       var result = ann.check(compilerLoc, val);
       if(ffi.isOk(result)) { return val; }
       if(ffi.isFail(result)) {
@@ -1636,10 +1636,9 @@ function createMethodDict() {
     function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
     Cont.prototype.toString = function() {
-      console.log("tostring a cont");
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ? 
-        stack.map(function(s) { return s.from.join(","); }).join("\n") : "<no stack trace>";
+        stack.map(function(s) { return s && s.from ? s.from.join(",") : "<blank frame>"; }).join("\n") : "<no stack trace>";
       return stackStr;
     }
 
@@ -2834,6 +2833,13 @@ function createMethodDict() {
         'setParam' : setParam,
         'hasParam' : hasParam
     };
+
+/*
+    var ffi = {
+      contractOk: true,
+      isOk: function() { return true; }
+    }
+    */
 
 
     var list;
