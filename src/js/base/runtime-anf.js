@@ -2507,19 +2507,9 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        function(m) {
-          if (hasField.app(m, "provide-plus-types")) {
-            return withModule(getField(m, "provide-plus-types"));
-          }
-          else {
-            return withModule(runtime.makeObject({
-              "values": getField(m, "provide"),
-              "types": {}
-            }));
-          }
-        });
+        withModule);
     }
-    function loadModulesNew(namespace, modules, withModules) {
+    function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
         if(toLoad.length > 0) {
           var nextMod = toLoad.pop();
@@ -2536,6 +2526,24 @@ function createMethodDict() {
       }
       var modulesCopy = modules.slice(0, modules.length);
       return loadModulesInt(modulesCopy, []);
+    }
+    function loadModulesNew(namespace, modules, withModules) {
+      return loadJSModules(namespace, modules, function(/* args */) {
+        var ms = Array.prototype.slice.call(arguments);
+        function wrapMod(m) {
+          if (hasField.app(m, "provide-plus-types")) {
+            return getField(m, "provide-plus-types");
+          }
+          else {
+            return thisRuntime.makeObject({
+              "values": getField(m, "provide"),
+              "types": {}
+            });
+          }
+        };
+        var wrappedMods = ms.map(wrapMod);
+        return withModules.apply(null, wrappedMods);
+      });
     }
     function loadModules(namespace, modules, withModules) {
       return loadModulesNew(namespace, modules, function(/* varargs */) {
@@ -2816,6 +2824,7 @@ function createMethodDict() {
         'loadModule' : loadModule,
         'loadModules' : loadModules,
         'loadModulesNew' : loadModulesNew,
+        'loadJSModules' : loadJSModules,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;

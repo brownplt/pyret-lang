@@ -1,4 +1,4 @@
-define(["require", "q", "js/ffi-helpers"], function(rjs, Q) {
+define(["require", "q"], function(rjs, Q) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {

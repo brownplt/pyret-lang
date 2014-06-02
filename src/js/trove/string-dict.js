@@ -1,7 +1,7 @@
 
 define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Namespace, ffi) {
   return util.memoModule("string-dict", function(RUNTIME, NAMESPACE) {
-      var F = ffi(RUNTIME, NAMESPACE);
+    return RUNTIME.loadJSModules(NAMESPACE, [ffi], function(F) {
       var unwrap = RUNTIME.unwrap;
       var ImmutableStringDict = Namespace.Namespace;
 
@@ -102,6 +102,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }),
           answer: NAMESPACE.get("nothing")
         });
-    })
+    });
+  });
 });
 
