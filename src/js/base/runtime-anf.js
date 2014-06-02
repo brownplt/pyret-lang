@@ -909,92 +909,92 @@ function createMethodDict() {
     function toReprLoop(val, method) {
       var stack = [{todo: [val], done: []}];
       function toReprHelp() {
-        while (stack.length > 0 && stack[0].todo.length > 0) {
-          var top = stack[stack.length - 1];
-          if (top.todo.length > 0) {
-            var next = top.todo[top.todo.length - 1];
-            if (isNumber(next)) {
-              top.todo.pop();
-              top.done.push(String(/**@type {!PNumber}*/ (next)));
-            } else if (isBoolean(next)) {
-              top.todo.pop();
-              top.done.push(String(/**@type {!PBoolean}*/ (next)));
-            } else if (isString(next)) {
-              top.todo.pop();
-              if (method === "_torepr") {
-                top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
-              } else {
-                top.done.push(String(/**@type {!PString}*/ (next)));
-              }
-            } else if (isNothing(next)) {
-              top.todo.pop();
-              top.done.push("nothing");
-            } else if (isObject(next)) {
-              if (next.dict[method]) {
-                // If this call fails
-                var s = getField(next, method).app();
-                // the continuation stacklet will get the result value, and do the next two steps manually
+        try {
+          while (stack.length > 0 && stack[0].todo.length > 0) {
+            var top = stack[stack.length - 1];
+            if (top.todo.length > 0) {
+              var next = top.todo[top.todo.length - 1];
+              if (isNumber(next)) {
                 top.todo.pop();
-                top.done.push(thisRuntime.unwrap(s));
-              } else { // Push the fields of this nested object onto the work stack
-                var keys = [];
-                var vals = [];
-                for (var field in next.dict) {
-                  keys.push(field); // NOTE: this is reversed order from the values,
-                  vals.unshift(next.dict[field]); // because processing will reverse them back
+                top.done.push(String(/**@type {!PNumber}*/ (next)));
+              } else if (isBoolean(next)) {
+                top.todo.pop();
+                top.done.push(String(/**@type {!PBoolean}*/ (next)));
+              } else if (isString(next)) {
+                top.todo.pop();
+                if (method === "_torepr") {
+                  top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
+                } else {
+                  top.done.push(String(/**@type {!PString}*/ (next)));
                 }
-                stack.push({todo: vals, done: [], keys: keys});
+              } else if (isNothing(next)) {
+                top.todo.pop();
+                top.done.push("nothing");
+              } else if (isObject(next)) {
+                if (next.dict[method]) {
+                  // If this call fails
+                  var s = getField(next, method).app();
+                  // the continuation stacklet will get the result value, and do the next two steps manually
+                  top.todo.pop();
+                  top.done.push(thisRuntime.unwrap(s));
+                } else { // Push the fields of this nested object onto the work stack
+                  var keys = [];
+                  var vals = [];
+                  for (var field in next.dict) {
+                    keys.push(field); // NOTE: this is reversed order from the values,
+                    vals.unshift(next.dict[field]); // because processing will reverse them back
+                  }
+                  stack.push({todo: vals, done: [], keys: keys});
+                }
+              } else if (isFunction(next)) {
+                top.todo.pop();
+                top.done.push("<function>");
+              } else if (isMethod(next)) {
+                top.todo.pop();
+                top.done.push("<method>");
+              } else {
+                top.todo.pop();
+                top.done.push(String(next));
               }
-            } else if (isFunction(next)) {
-              top.todo.pop();
-              top.done.push("<function>");
-            } else if (isMethod(next)) {
-              top.todo.pop();
-              top.done.push("<method>");
-            } else {
-              top.todo.pop();
-              top.done.push(String(next));
+            } else { // All fields of a nested object have been stringified; collapse
+              stack.pop();
+              var prev = stack[stack.length - 1];
+              prev.todo.pop();
+              var s = "{";
+              for (var i = 0; i < top.keys.length; i++) {
+                if (i > 0) { s += ", "; }
+                s += top.keys[i] + ": " + top.done[i];
+              }
+              s += "}";
+              prev.done.push(s);
             }
-          } else { // All fields of a nested object have been stringified; collapse
-            stack.pop();
-            var prev = stack[stack.length - 1];
-            prev.todo.pop();
-            var s = "{";
-            for (var i = 0; i < top.keys.length; i++) {
-              if (i > 0) { s += ", "; }
-              s += top.keys[i] + ": " + top.done[i];
+          }
+          return stack[0].done[0];
+        } catch(e) {
+          if (thisRuntime.isCont(e)) {
+            var stacklet = {
+              from: ["runtime torepr"], near: "toRepr",
+              go: function(ret) {
+                if (stack.length === 0) {
+                  ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
+                }
+                var top = stack[stack.length - 1];
+                top.todo.pop();
+                top.done.push(thisRuntime.unwrap(ret));
+                return makeString(toReprHelp());
+              }
+            };
+            e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
+            throw e;
+          } else {
+            if (thisRuntime.isPyretException(e)) {
+              e.pyretStack.push(["runtime torepr"]); 
             }
-            s += "}";
-            prev.done.push(s);
+            throw e;
           }
         }
-        return stack[0].done[0];
       }
-      try {
-        return toReprHelp();
-      } catch(e) {
-        if (thisRuntime.isCont(e)) {
-          var stacklet = {
-            from: ["runtime torepr"], near: "toRepr",
-            go: function(ret) {
-              if (stack.length === 0) {
-                ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
-              }
-              var top = stack[stack.length - 1];
-              top.todo.pop();
-              top.done.push(thisRuntime.unwrap(ret));
-              return makeString(toReprHelp());
-            }
-          };
-          e.stack[thisRuntime.EXN_STACKHEIGHT++] = stacklet;
-          throw e;
-        } else {
-          if (thisRuntime.isPyretException(e)) {
-            e.pyretStack.push(["runtime torepr"]); 
-          }
-          throw e;
-        }
-      }
+      return toReprHelp();
     }
     /**
       Creates the js string representation for the value
@@ -1346,6 +1346,7 @@ function createMethodDict() {
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
+      if (typeof after === 'undefined') { after = function(v) { return v; }; }
       return safeCall(function() {
         return ann.check(compilerLoc, val);
       }, function(result) {
@@ -1367,12 +1368,13 @@ function createMethodDict() {
       });
     }
 
-    function checkAnnArgs1(anns, args, locs, after) {
-      return safeCall(function() {
-        checkAnnArg(locs[0], anns[0], args[0]);
-      }, function(result) {
-        return after()
-      });
+    function checkAnnArg(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isOk(result)) { return val; }
+      if(ffi.isFail(result)) {
+        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+      }
+      throw "Internal error: got invalid result from annotation check";
     }
 
     function checkAnnArgs(anns, args, locs, after) {
@@ -1633,6 +1635,13 @@ function createMethodDict() {
     }
     function makeCont(bottom) { return new Cont([], bottom); }
     function isCont(v) { return v instanceof Cont; }
+    Cont.prototype.toString = function() {
+      console.log("tostring a cont");
+      var stack = this.stack;
+      var stackStr = stack && stack.length > 0 ? 
+        stack.map(function(s) { return s.from.join(","); }).join("\n") : "<no stack trace>";
+      return stackStr;
+    }
 
     function Pause(stack, pause, resumer) {
       this.stack = stack;

@@ -77,17 +77,26 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
           if(runtime.hasField(arr[i], "msg")) {
             var actMsg = runtime.getField(arr[i], "msg");
             if (runtime.isString(actMsg)) {
+              expect(actMsg).toContain(exnMsg);
               if (runtime.unwrap(actMsg).indexOf(exnMsg) !== -1)
                 return true;
             }
+            return false;
           } else {
-            var str = runtime.unwrap(runtime.toReprJS(arr[i], "tostring"));
-            if (str.indexOf(exnMsg) !== -1) {
+            // NOTE(joe): only works when runing sync.
+            var answer = runtime.runThunk(function() {
+              return runtime.unwrap(runtime.toReprJS(arr[i], "tostring"));
+            }, function(result) {
+              if(result.result.indexOf(exnMsg) === -1) {
+                console.error(result.result + " did not contain " + exnMsg);
+              }
+              expect(result.result).toContain(exnMsg);
               return true;
-            }
+            });
+            return true;
           }
         }
-        return false;
+        return true;
       }
       return checkCompileError(str, findInArray);
     }

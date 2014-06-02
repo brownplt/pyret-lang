@@ -1,4 +1,4 @@
-define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
+define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) {
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace, initialCompileEnv, options) {
@@ -95,7 +95,8 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], fun
         restartInteractions: restartInteractions,
         run: run,
         pause: pause,
-        stop: stop
+        stop: stop,
+        runtime: runtime
       }
     });
   }
