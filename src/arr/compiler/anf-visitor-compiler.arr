@@ -12,6 +12,8 @@ import "compiler/compile-structs.arr" as CS
 import string-dict as D
 import srcloc as SL
 
+type Loc = SL.Srcloc
+
 j-fun = J.j-fun
 j-var = J.j-var
 j-id = J.j-id
@@ -75,8 +77,6 @@ sharing:
   end,
   to-list(self): self.to-list-acc([list: ]) end
 end
-
-Loc = SL.Srcloc
 
 js-id-of = block:
   var js-ids = D.string-dict()
@@ -178,7 +178,7 @@ end
 
 fun compile-split-app(
     compiler,
-    l :: SL.Location,
+    l :: Loc,
     is-var :: Boolean,
     f :: N.AVal,
     args :: List<A.Name>,
@@ -335,7 +335,7 @@ compiler-visitor = {
           body.visit(self).stmts)
     end
   end,
-  a-let(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
+  a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
       j-block(
@@ -371,16 +371,16 @@ compiler-visitor = {
 #       end
 #   end
   end,
-  a-var(self, l :: SL.Location, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
+  a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     j-block(link(
               j-var(js-id-of(b.id.tostring()), j-obj([list: j-field("$var", e.visit(self)), j-field("$name", j-str(b.id.toname()))])),
               compiled-body.stmts))
   end,
-  a-tail-app(self, l :: SL.Location, f :: N.AVal, args :: List<N.AVal>):
+  a-tail-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     compile-tail-app(self, l, f, args)
   end,
-  a-split-app(self, l :: SL.Location, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: A.Name, helper-args :: List<N.AVal>):
+  a-split-app(self, l :: Loc, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: A.Name, helper-args :: List<N.AVal>):
     compile-split-app(self, l, is-var, f, args, name, helper-args)
   end,
   a-seq(self, l, e1, e2):
@@ -391,7 +391,7 @@ compiler-visitor = {
       j-block(link(j-expr(e1-visit), e2.visit(self).stmts))
     end
   end,
-  a-if(self, l :: SL.Location, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
+  a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     compiled-consq = consq.visit(self)
     compiled-alt = alt.visit(self)
     j-block([list: 
@@ -401,33 +401,33 @@ compiler-visitor = {
   a-lettable(self, e :: N.ALettable):
     j-block([list: j-return(e.visit(self))])
   end,
-  a-assign(self, l :: SL.Location, id :: A.Name, value :: N.AVal):
+  a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     j-dot-assign(j-id(js-id-of(id.tostring())), "$var", value.visit(self))
   end,
-  a-app(self, l :: SL.Location, f :: N.AVal, args :: List<N.AVal>):
+  a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     app(self.get-loc(l), f.visit(self), args.map(_.visit(self)))
   end,
-  a-prim-app(self, l :: SL.Location, f :: String, args :: List<N.AVal>):
+  a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     rt-method(f, args.map(_.visit(self)))
   end,
   
-  a-obj(self, l :: SL.Location, fields :: List<N.AField>):
+  a-obj(self, l :: Loc, fields :: List<N.AField>):
     rt-method("makeObject", [list: j-obj(fields.map(lam(f): j-field(f.name, f.value.visit(self));))])
   end,
-  a-extend(self, l :: SL.Location, obj :: N.AVal, fields :: List<N.AField>):
+  a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     j-method(obj.visit(self), "extendWith", [list: j-obj(fields.map(_.visit(self)))])
   end,
-  a-dot(self, l :: SL.Location, obj :: N.AVal, field :: String):
+  a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     get-field(obj.visit(self), j-str(field), self.get-loc(l))
   end,
-  a-colon(self, l :: SL.Location, obj :: N.AVal, field :: String):
+  a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     rt-method("getColonField", [list: obj.visit(self), j-str(field)])
   end,
-  a-lam(self, l :: SL.Location, args :: List<N.ABind>, ret, body :: N.AExpr):
+  a-lam(self, l :: Loc, args :: List<N.ABind>, ret, body :: N.AExpr):
     rt-method("makeFunction", [list: j-fun(args.map(_.id).map(_.tostring()).map(js-id-of),
           arity-check(self.get-loc(l), contract-checks(args, ret, body.visit(self).stmts, self), args.length()))])
   end,
-  a-method(self, l :: SL.Location, args :: List<N.ABind>, ret, body :: N.AExpr):
+  a-method(self, l :: Loc, args :: List<N.ABind>, ret, body :: N.AExpr):
     compiled-body-stmts = contract-checks(args, ret, body.visit(self).stmts, self)
     rt-method("makeMethod", [list: j-fun([list: js-id-of(args.first.id.tostring())],
       j-block([list: 
@@ -438,7 +438,7 @@ compiler-visitor = {
   a-val(self, v :: N.AVal):
     v.visit(self)
   end,
-  a-field(self, l :: SL.Location, name :: String, value :: N.AVal):
+  a-field(self, l :: Loc, name :: String, value :: N.AVal):
     j-field(name, value.visit(self))
   end,
   a-array(self, l, values):
@@ -447,29 +447,29 @@ compiler-visitor = {
   a-srcloc(self, l, loc):
     self.get-loc(loc)
   end,
-  a-num(self, l :: SL.Location, n :: Number):
+  a-num(self, l :: Loc, n :: Number):
     if num-is-fixnum(n):
       j-parens(j-num(n))
     else:
       rt-method("makeNumberFromString", [list: j-str(tostring(n))])
     end
   end,
-  a-str(self, l :: SL.Location, s :: String):
+  a-str(self, l :: Loc, s :: String):
     j-parens(j-str(s))
   end,
-  a-bool(self, l :: SL.Location, b :: Boolean):
+  a-bool(self, l :: Loc, b :: Boolean):
     j-parens(if b: j-true else: j-false end)
   end,
-  a-undefined(self, l :: SL.Location):
+  a-undefined(self, l :: Loc):
     undefined
   end,
-  a-id(self, l :: SL.Location, id :: A.Name):
+  a-id(self, l :: Loc, id :: A.Name):
     j-id(js-id-of(id.tostring()))
   end,
-  a-id-var(self, l :: SL.Location, id :: A.Name):
+  a-id-var(self, l :: Loc, id :: A.Name):
     j-dot(j-id(js-id-of(id.tostring())), "$var")
   end,
-  a-id-letrec(self, l :: SL.Location, id :: A.Name, safe :: Boolean):
+  a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = id.tostring()
     if safe:
       j-dot(j-id(js-id-of(s)), "$var")
@@ -677,7 +677,7 @@ fun compile-program(self, l, headers, split, env):
   var loc-count = 0
   var loc-cache = D.string-dict()
   locs = "L"
-  fun get-loc(shadow l :: SL.Location):
+  fun get-loc(shadow l :: Loc):
     as-str = torepr(l)
     if loc-cache.has-key(as-str):
       loc-cache.get(as-str)

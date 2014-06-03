@@ -9,6 +9,8 @@ import "compiler/compile-structs.arr" as CS
 import string-dict as SD
 import either as E
 
+type Loc = SL.Srcloc
+
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
@@ -95,7 +97,7 @@ data BindingInfo:
 end
 
 data Binding:
-  | e-bind(loc :: SL.Location, mut :: Boolean, info :: BindingInfo)
+  | e-bind(loc :: Loc, mut :: Boolean, info :: BindingInfo)
 end
 
 fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
@@ -175,7 +177,7 @@ fun <a, c> default-env-map-visitor(
         s-bind :: (A.Bind, a -> a),
         s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
         s-type-let-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c }),
-        s-param-bind :: (SL.Location, A.Name, c -> c)
+        s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
   A.default-map-visitor.{
@@ -272,7 +274,7 @@ fun <a, c> default-env-iter-visitor(
         s-bind :: (A.Bind, a -> a),
         s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
         s-type-let-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c }),
-        s-param-bind :: (SL.Location, A.Name, c -> c)
+        s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
   A.default-iter-visitor.{

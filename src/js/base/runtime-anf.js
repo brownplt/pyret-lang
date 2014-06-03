@@ -820,16 +820,16 @@ function createMethodDict() {
       return thisRuntime.unwrap(val);
     }
 
-    var NumberC = makePrimitiveAnnotation("Number", isNumber);
-    var StringC = makePrimitiveAnnotation("String", isString);
-    var BooleanC = makePrimitiveAnnotation("Boolean", isBoolean);
-    var RawArrayC = makePrimitiveAnnotation("RawArray", isArray);
-    var FunctionC = makePrimitiveAnnotation("Function",
+    var NumberC = makePrimitiveAnn("Number", isNumber);
+    var StringC = makePrimitiveAnn("String", isString);
+    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
+    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
+    var FunctionC = makePrimitiveAnn("Function",
       function(v) { return isFunction(v) || isMethod(v) });
-    var MethodC = makePrimitiveAnnotation("Method", isMethod);
-    var NothingC = makePrimitiveAnnotation("Nothing", isNothing);
-    var ObjectC = makePrimitiveAnnotation("Nothing", isObject);
-    var AnyC = makePrimitiveAnnotation("Any", function() { return true; });
+    var MethodC = makePrimitiveAnn("Method", isMethod);
+    var NothingC = makePrimitiveAnn("Nothing", isNothing);
+    var ObjectC = makePrimitiveAnn("Nothing", isObject);
+    var AnyC = makePrimitiveAnn("Any", function() { return true; });
 
 
     /************************
@@ -1138,15 +1138,9 @@ function createMethodDict() {
         }
       }
       else if (typeof arr === "object" && arr.length === 7) {
-        try {
-          return getField(srcloc, "srcloc").app(
-              arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
-            );
-        }
-        catch(e) {
-          console.error("Stack error in makeSrcloc?!", arr, e);
-          throw e;
-        }
+        return getField(srcloc, "srcloc").app(
+            arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
+          );
       }
     }
 
@@ -1429,7 +1423,6 @@ function createMethodDict() {
       if(ann.hasOwnProperty(field)) {
         return ann[field];
       }
-      //console.error("Couldn't find: ", field, name, loc.join(","));
       return AnyC;
       /*
       raiseJSJS(ffi.contractFail(makeSrcloc(loc),
@@ -1465,7 +1458,7 @@ function createMethodDict() {
       }
     }
 
-    function makePrimitiveAnnotation(name, jsPred) {
+    function makePrimitiveAnn(name, jsPred) {
       return new PPrimAnn(name, jsPred);
     }
 
@@ -1506,7 +1499,7 @@ function createMethodDict() {
     }
 
     function makeBranderAnn(brander, name) {
-      return makePrimitiveAnnotation(name, function(val) {
+      return makePrimitiveAnn(name, function(val) {
         return isObject(val) && hasBrand(val, brander._brand);
       });
     }
@@ -1726,7 +1719,6 @@ function createMethodDict() {
     function run(program, namespace, options, onDone) {
       
       if(RUN_ACTIVE) {
-        console.log(new Error().stack);
         onDone(new FailureResult(ffi.makeMessageException("Internal: run called while already running")));
         return;
       }
@@ -2231,11 +2223,7 @@ function createMethodDict() {
     var raw_array_to_list = function(arr) {
       thisRuntime.checkArity(1, arguments, "raw-array-to-list");
       thisRuntime.checkArray(arr);
-      try {
-        return ffi.makeList(arr);
-      } catch(e) {
-        console.log("MakeList is now not stack-safe: what is the world coming to?!", arr);
-      }
+      return ffi.makeList(arr);
     };
 
     var raw_array_fold = function(f, init, arr, start) {
@@ -2563,9 +2551,6 @@ function createMethodDict() {
             return getField(m, "provide-plus-types");
           }
           else {
-            if(!hasField.app(m, "provide")) {
-              console.error(m);
-            }
             return thisRuntime.makeObject({
               "values": getField(m, "provide"),
               "types": {}
@@ -2696,6 +2681,7 @@ function createMethodDict() {
         'checkAnnArgs': checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
+        'makePrimitiveAnn': makePrimitiveAnn,
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
 

@@ -7,6 +7,8 @@ import ast as A
 import srcloc as SL
 import "compiler/ast-anf.arr" as N
 
+type Loc = SL.Srcloc
+
 names = A.global-names
 
 fun mk-id(loc, base):
@@ -16,9 +18,9 @@ end
 
 data ANFCont:
   | k-cont(k :: (N.ALettable -> N.AExpr)) with:
-    apply(self, l :: SL.Location, expr :: N.ALettable): self.k(expr) end
+    apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
   | k-id(name :: A.Name) with:
-    apply(self, l :: SL.Location, expr :: N.ALettable):
+    apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(v) =>
           name = mk-id(l, "cont_tail_app")

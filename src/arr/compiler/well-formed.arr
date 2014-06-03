@@ -10,6 +10,8 @@ import srcloc as SL
 import "compiler/compile-structs.arr" as C
 import format as F
 
+type Loc = SL.Srcloc
+
 # TODO: Make this a mutable field when we have them...
 var errors = empty
 var in-check-block = false
@@ -449,163 +451,163 @@ top-level-visitor = A.default-iter-visitor.{
   s-letrec(_, l, binds, body):
     well-formed-visitor.s-letrec(l, binds, body)
   end,
-  s-hint-exp(_, l :: SL.Location, hints :: List<A.Hint>, exp :: A.Expr):
+  s-hint-exp(_, l :: Loc, hints :: List<A.Hint>, exp :: A.Expr):
     well-formed-visitor.s-hint-exp(l, hints, exp)
   end,
-  s-instantiate(_, l :: SL.Location, expr :: A.Expr, params :: List<A.Ann>):
+  s-instantiate(_, l :: Loc, expr :: A.Expr, params :: List<A.Ann>):
     well-formed-visitor.s-instantiate(l, expr, params)
   end,
   s-block(_, l, stmts):
     well-formed-visitor.s-block(l, stmts)
   end,
-  s-user-block(_, l :: SL.Location, body :: A.Expr):
+  s-user-block(_, l :: Loc, body :: A.Expr):
     well-formed-visitor.s-user-block(l, body)
   end,
   s-fun(_, l, name, params, args, ann, doc, body, _check):
     well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check)
   end,
-  s-var(_, l :: SL.Location, name :: A.Bind, value :: A.Expr):
+  s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-var(l, name, value)
   end,
-  s-let(_, l :: SL.Location, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
+  s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
   end,
-  s-graph(_, l :: SL.Location, bindings :: List<A.Expr%(is-s-let)>): # PROBLEM HERE
+  s-graph(_, l :: Loc, bindings :: List<A.Expr%(is-s-let)>): # PROBLEM HERE
     well-formed-visitor.s-graph(l, bindings)
   end,
-  s-when(_, l :: SL.Location, test :: A.Expr, block :: A.Expr):
+  s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr):
     well-formed-visitor.s-when(l, test, block)
   end,
-  s-contract(_, l :: SL.Location, name :: A.Name, ann :: A.Ann):
+  s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
     well-formed-visitor.s-contract(l, name, ann)
   end,
-  s-assign(_, l :: SL.Location, id :: A.Name, value :: A.Expr):
+  s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
     well-formed-visitor.s-assign(l, id, value)
   end,
-  s-if-branch(_, l :: SL.Location, test :: A.Expr, body :: A.Expr):
+  s-if-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
     well-formed-visitor.s-if-branch(l, test, body)
   end,
-  s-if-pipe-branch(_, l :: SL.Location, test :: A.Expr, body :: A.Expr):
+  s-if-pipe-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
     well-formed-visitor.s-if-pipe-branch(l, test, body)
   end,
-  s-if(_, l :: SL.Location, branches :: List<A.IfBranch>):
+  s-if(_, l :: Loc, branches :: List<A.IfBranch>):
     well-formed-visitor.s-if(l, branches)
   end,
-  s-if-else(_, l :: SL.Location, branches :: List<A.IfBranch>, _else :: A.Expr):
+  s-if-else(_, l :: Loc, branches :: List<A.IfBranch>, _else :: A.Expr):
     well-formed-visitor.s-if-else(l, branches, _else)
   end,
-  s-if-pipe(_, l :: SL.Location, branches :: List<A.IfPipeBranch>):
+  s-if-pipe(_, l :: Loc, branches :: List<A.IfPipeBranch>):
     well-formed-visitor.s-if-pipe(l, branches)
   end,
-  s-if-pipe-else(_, l :: SL.Location, branches :: List<A.IfPipeBranch>, _else :: A.Expr):
+  s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr):
     well-formed-visitor.s-if-pipe-else(l, branches, _else)
   end,
-  s-cases-branch(_, l :: SL.Location, name :: String, args :: List<A.Bind>, body :: A.Expr):
+  s-cases-branch(_, l :: Loc, name :: String, args :: List<A.Bind>, body :: A.Expr):
     well-formed-visitor.s-cases-branch(l, name, args, body)
   end,
-  s-cases(_, l :: SL.Location, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>):
+  s-cases(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>):
     well-formed-visitor.s-cases(l, typ, val, branches)
   end,
-  s-cases-else(_, l :: SL.Location, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr):
+  s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else)
   end,
-  s-try(_, l :: SL.Location, body :: A.Expr, id :: A.Bind, _except :: A.Expr):
+  s-try(_, l :: Loc, body :: A.Expr, id :: A.Bind, _except :: A.Expr):
     well-formed-visitor.s-try(l, body, id, _except)
   end,
-  s-op(_, l :: SL.Location, op :: String, left :: A.Expr, right :: A.Expr):
+  s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,
-  s-check-test(_, l :: SL.Location, op :: String, left :: A.Expr, right :: A.Expr):
+  s-check-test(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-check-test(l, op, left, right)
   end,
-  s-paren(_, l :: SL.Location, expr :: A.Expr):
+  s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
   end,
-  s-lam(_, l :: SL.Location, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+  s-lam(_, l :: Loc, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-lam(l, params, args, ann, doc, body, _check)
   end,
-  s-method(_, l :: SL.Location, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+  s-method(_, l :: Loc, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method(l, args, ann, doc, body, _check)
   end,
-  s-extend(_, l :: SL.Location, supe :: A.Expr, fields :: List<A.Member>):
+  s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-extend(l, supe, fields)
   end,
-  s-update(_, l :: SL.Location, supe :: A.Expr, fields :: List<A.Member>):
+  s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-update(l, supe, fields)
   end,
-  s-obj(_, l :: SL.Location, fields :: List<A.Member>):
+  s-obj(_, l :: Loc, fields :: List<A.Member>):
     well-formed-visitor.s-obj(l, fields)
   end,
-  s-array(_, l :: SL.Location, values :: List<A.Expr>):
+  s-array(_, l :: Loc, values :: List<A.Expr>):
     well-formed-visitor.s-array(l, values)
   end,
-  s-bless(_, l :: SL.Location, expr :: A.Expr, typ :: A.Name):
+  s-bless(_, l :: Loc, expr :: A.Expr, typ :: A.Name):
     well-formed-visitor.s-bless(l, expr, typ)
   end,
-  s-confirm(_, l :: SL.Location, expr :: A.Expr, typ :: A.Name):
+  s-confirm(_, l :: Loc, expr :: A.Expr, typ :: A.Name):
     well-formed-visitor.s-confirm(l, expr, typ)
   end,
-  s-construct(_, l :: SL.Location, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
+  s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
     well-formed-visitor.s-construct(l, mod, constructor, values)
   end,
-  s-app(_, l :: SL.Location, _fun :: A.Expr, args :: List<A.Expr>):
+  s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
     well-formed-visitor.s-app(l, _fun, args)
   end,
-  s-prim-app(_, l :: SL.Location, _fun :: String, args :: List<A.Expr>):
+  s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
     well-formed-visitor.s-prim-app(l, _fun, args)
   end,
-  s-frac(_, l :: SL.Location, num, den):
+  s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
   end,
-  s-id(_, l :: SL.Location, id :: A.Name):
+  s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)
   end,
-  s-id-var(_, l :: SL.Location, id :: A.Name):
+  s-id-var(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id-var(l, id)
   end,
-  s-id-letrec(_, l :: SL.Location, id :: A.Name, safe :: Boolean):
+  s-id-letrec(_, l :: Loc, id :: A.Name, safe :: Boolean):
     well-formed-visitor.s-id-letrec(l, id, safe)
   end,
-  s-dot(_, l :: SL.Location, obj :: A.Expr, field :: String):
+  s-dot(_, l :: Loc, obj :: A.Expr, field :: String):
     well-formed-visitor.s-dot(l, obj, field)
   end,
-  s-get-bang(_, l :: SL.Location, obj :: A.Expr, field :: String):
+  s-get-bang(_, l :: Loc, obj :: A.Expr, field :: String):
     well-formed-visitor.s-get-bang(l, obj, field)
   end,
-  s-bracket(_, l :: SL.Location, obj :: A.Expr, field :: A.Expr):
+  s-bracket(_, l :: Loc, obj :: A.Expr, field :: A.Expr):
     well-formed-visitor.s-bracket(l, obj, field)
   end,
-  s-for(_, l :: SL.Location, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
+  s-for(_, l :: Loc, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
     well-formed-visitor.s-for(l, iterator, bindings, ann, body)
   end,
-  s-check(_, l :: SL.Location, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
+  s-check(_, l :: Loc, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
     well-formed-visitor.s-check(l, name, body, keyword-check)
   end,
-  s-data-field(_, l :: SL.Location, name :: A.Expr, value :: A.Expr):
+  s-data-field(_, l :: Loc, name :: A.Expr, value :: A.Expr):
     well-formed-visitor.s-data-field(l, name, value)
   end,
-  s-mutable-field(_, l :: SL.Location, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
+  s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  s-once-field(_, l :: SL.Location, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
+  s-once-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-once-field(l, name, ann, value)
   end,
-  s-method-field(_, l :: SL.Location, name :: A.Expr, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+  s-method-field(_, l :: Loc, name :: A.Expr, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method-field(l, name, args, ann, doc, body, _check)
   end,
-  s-for-bind(_, l :: SL.Location, bind :: A.Bind, value :: A.Expr):
+  s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)
   end,
-  s-variant-member(_, l :: SL.Location, member-type :: A.VariantMemberType, bind :: A.Bind):
+  s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
   end,
-  s-variant(_, l :: SL.Location, constr-loc :: SL.Location, name :: String, members :: List<A.VariantMember>, with-members :: List<A.Member>):
+  s-variant(_, l :: Loc, constr-loc :: Loc, name :: String, members :: List<A.VariantMember>, with-members :: List<A.Member>):
     well-formed-visitor.s-variant(l, constr-loc, name, members, with-members)
   end,
-  s-datatype-singleton-variant(_, l :: SL.Location, name :: String, constructor :: A.Constructor):
+  s-datatype-singleton-variant(_, l :: Loc, name :: String, constructor :: A.Constructor):
     well-formed-visitor.s-datatype-singleton-variant(l, name, constructor)
   end,
-  s-datatype-constructor(_, l :: SL.Location, well-formed-visitor-arg :: String, body :: A.Expr):
+  s-datatype-constructor(_, l :: Loc, well-formed-visitor-arg :: String, body :: A.Expr):
     well-formed-visitor.s-datatype-constructor(l, well-formed-visitor-arg, body)
   end,
   a-arrow(_, l, args, ret, use-parens):
