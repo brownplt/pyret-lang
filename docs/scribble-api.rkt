@@ -19,6 +19,7 @@
          racket/list
          racket/dict
          racket/path
+         racket/runtime-path
          "scribble-helpers.rkt"
          )
 
@@ -77,11 +78,9 @@
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
 ;; Maybe something like this could be put in the Racket standard library?
-(define-syntax (cur-file-path stx)
-  (syntax-case stx ()
-    [(_) #'(syntax-source #'here)]))
+(define-runtime-path HERE ".")
 
-(define GEN-BASE (build-path (path-only (cur-file-path)) "generated" "trove"))
+(define GEN-BASE (build-path (path-only HERE) "generated" "trove"))
 (define curr-doc-checks #f)
 
 ;; print a warning message, optionally with name of issuing function
