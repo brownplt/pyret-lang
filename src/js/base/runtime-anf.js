@@ -1423,11 +1423,8 @@ function createMethodDict() {
       if(ann.hasOwnProperty(field)) {
         return ann[field];
       }
-      return AnyC;
-      /*
       raiseJSJS(ffi.contractFail(makeSrcloc(loc),
               ffi.makeDotAnnNotPresent(name, field)))
-              */
     }
 
     function PPrimAnn(name, pred) {

@@ -87,7 +87,8 @@ fun wrap-visit-check(self, target):
 end
 
 
-fun ensure-empty-block(loc, typ, block :: A.is-s-block):
+is-s-block = A.is-s-block
+fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:

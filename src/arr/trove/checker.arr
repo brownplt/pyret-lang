@@ -4,26 +4,27 @@ provide *
 provide-types *
 import srcloc as SL
 
+type Loc = SL.Srcloc
 
 data CheckBlockResult:
-  | check-block-result(name :: String, loc :: SL.Location, test-results :: List<TestResult>)
+  | check-block-result(name :: String, loc :: Loc, test-results :: List<TestResult>)
 end
 
 data TestResult:
-  | success(loc :: SL.Location, code :: String)
-  | failure-not-equal(loc :: SL.Location, code :: String, left, right) with:
+  | success(loc :: Loc, code :: String)
+  | failure-not-equal(loc :: Loc, code :: String, left, right) with:
     reason(self):
       "Values not equal:\n" + torepr(self.left) + "\n" + torepr(self.right)
     end
-  | failure-not-satisfied(loc :: SL.Location, code :: String, val, pred) with:
+  | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
     reason(self):
       "Predicate failed for value: " + torepr(self.val)
     end
-  | failure-wrong-exn(loc :: SL.Location, code :: String, exn-expected, actual-exn) with:
+  | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
     reason(self):
       "Got unexpected exception " + torepr(self.actual-exn) + ", when expecting " + torepr(self.exn-expected)
     end
-  | failure-no-exn(loc :: SL.Location, code :: String, exn-expected) with:
+  | failure-no-exn(loc :: Loc, code :: String, exn-expected) with:
     reason(self):
       "No exception raised, expected " + torepr(self.exn-expected)
     end
