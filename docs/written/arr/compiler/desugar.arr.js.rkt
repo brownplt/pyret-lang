@@ -165,7 +165,7 @@
       @; let 
       @;     d = A.dummy-loc,
       @;     n = A.s-global,
-      @;     id = fun(s): A.s-id(d, A.s-global(s)) end,
+      @;     id = lam(s): A.s-id(d, A.s-global(s)) end,
       @;     under = A.s-id(d, A.s-underscore(d)),
       @;     ds-ed = ds-curry(d, id("f"), [list: under, id("x")]):
       @;   ds-ed satisfies A.is-s-lam
@@ -213,13 +213,13 @@
       @;         s-global(self, s): A.s-name(d, s) end,
       @;         s-atom(self, base, serial): A.s-name(d, base) end
       @;       },
-      @;     p = fun(str): PP.surface-parse(str, "test").block end,
-      @;     ds = fun(prog): desugar-expr(prog).visit(unglobal) end,
-      @;     id = fun(s): A.s-id(d, A.s-name(d, s)) end,
+      @;     p = lam(str): PP.surface-parse(str, "test").block end,
+      @;     ds = lam(prog): desugar-expr(prog).visit(unglobal) end,
+      @;     id = lam(s): A.s-id(d, A.s-name(d, s)) end,
       @;     one = A.s-num(d, 1),
       @;     two = A.s-num(d, 2),
-      @;     equiv = fun(e): A.equiv-ast(_, e) end,
-      @;     pretty = fun(prog): prog.tosource().pretty(80).join-str("\n") end,
+      @;     equiv = lam(e): A.equiv-ast(_, e) end,
+      @;     pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end,
       @;     if-else = "if true: 5 else: 6 end",
       @;     ask-otherwise = "ask: | true then: 5 | otherwise: 6 end":
       @;   p(if-else) ^ pretty is if-else

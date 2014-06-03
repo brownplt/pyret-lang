@@ -39,6 +39,7 @@
       "str-for"
       "str-from"
       "str-fun"
+      "str-lam"
       "str-graph"
       "str-if"
       "str-askcolon"

@@ -13,6 +13,14 @@
         }
         @with-members{
           @method-spec[
+            "tostring"
+            #:contract (a-arrow (a-id "Set" (xref "sets" "Set")) "Any")
+          ]
+          @method-spec[
+            "_torepr"
+            #:contract (a-arrow (a-id "Set" (xref "sets" "Set")) "Any")
+          ]
+          @method-spec[
             "member"
             #:contract
             (a-arrow
@@ -77,6 +85,14 @@
           ]
         }
         @with-members{
+          @method-spec[
+            "tostring"
+            #:contract (a-arrow (a-id "Set" (xref "sets" "Set")) "Any")
+          ]
+          @method-spec[
+            "_torepr"
+            #:contract (a-arrow (a-id "Set" (xref "sets" "Set")) "Any")
+          ]
           @method-spec[
             "member"
             #:contract

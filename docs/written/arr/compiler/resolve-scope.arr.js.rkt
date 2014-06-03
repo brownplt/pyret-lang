@@ -145,17 +145,17 @@
     #:examples
     '@{
       @; let 
-      @;     p = fun(str): PP.surface-parse(str, "test").block end,
+      @;     p = lam(str): PP.surface-parse(str, "test").block end,
       @;     d = A.dummy-loc,
-      @;     b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end,
-      @;     id = fun(s): A.s-id(d, A.s-name(d, s)) end,
-      @;     bk = fun(e): A.s-block(d, [list: e]) end,
+      @;     b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end,
+      @;     id = lam(s): A.s-id(d, A.s-name(d, s)) end,
+      @;     bk = lam(e): A.s-block(d, [list: e]) end,
       @;     bs =
-      @;       fun(str):
+      @;       lam(str):
       @;         A.s-block(d, desugar-scope-block(p(str).stmts, [list: ], [list: ]))
       @;       end,
       @;     n = none,
-      @;     thunk = fun(e): A.s-lam(d, [list: ], [list: ], A.a-blank, "", bk(e), n) end,
+      @;     thunk = lam(e): A.s-lam(d, [list: ], [list: ], A.a-blank, "", bk(e), n) end,
       @;     compare1 =
       @;       A.s-let-expr(d,
       @;         [list: 
@@ -200,8 +200,8 @@
       @;               A.s-app(d, id("f"), [list: ]))
       @;           ]))
       @;     let 
-      @;         p-s = fun(e): A.s-app(d, id("print"), [list: e]) end,
-      @;         pretty = fun(e): e.tosource().pretty(80).join-str("\n") end,
+      @;         p-s = lam(e): A.s-app(d, id("print"), [list: e]) end,
+      @;         pretty = lam(e): e.tosource().pretty(80).join-str("\n") end,
       @;         prog2 =
       @;           bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)"):
       @;       prog2 satisfies
@@ -287,8 +287,8 @@
     '@{
       @; let 
       @;     d = A.dummy-loc,
-      @;     b = fun(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end,
-      @;     id = fun(s): A.s-id(d, A.s-name(d, s)) end,
+      @;     b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end,
+      @;     id = lam(s): A.s-id(d, A.s-name(d, s)) end,
       @;     checks =
       @;       A.s-data-field(d,
       @;         A.s-str(d, "checks"),
