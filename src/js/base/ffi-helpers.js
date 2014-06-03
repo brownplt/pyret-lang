@@ -208,7 +208,6 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("is-fail-arg")(val);
       }
 
-
       return {
         throwPlusError: throwPlusError,
         throwInternalError: throwInternalError,

@@ -1138,9 +1138,15 @@ function createMethodDict() {
         }
       }
       else if (typeof arr === "object" && arr.length === 7) {
-        return getField(srcloc, "srcloc").app(
-            arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
-          )
+        try {
+          return getField(srcloc, "srcloc").app(
+              arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
+            );
+        }
+        catch(e) {
+          console.error("Stack error in makeSrcloc?!", arr, e);
+          throw e;
+        }
       }
     }
 
@@ -1345,15 +1351,23 @@ function createMethodDict() {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
     }
 
+    function returnOrRaise(result, val, after) {
+      if(ffi.isOk(result)) { return after(val); }
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
     function checkAnn(compilerLoc, ann, val, after) {
-      if (typeof after === 'undefined') { after = function(v) { return v; }; }
-      return safeCall(function() {
-        return ann.check(compilerLoc, val);
-      }, function(result) {
-        if(ffi.isOk(result)) { return after(val); }
-        if(ffi.isFail(result)) { raiseJSJS(result); }
-        throw "Internal error: got invalid result from annotation check";
-      });
+      if(!ann.refinement) {
+        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+      }
+      else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, val);
+        }, function(result) {
+          return returnOrRaise(result, val, after);
+        });
+      }
     }
 
     function _checkAnn(compilerLoc, ann, val) {
@@ -1363,16 +1377,17 @@ function createMethodDict() {
       throw "Internal error: got invalid result from annotation check";
     }
 
-    function safeCheckAnnArg(compilerLoc, ann, val) {
-      return safeCall(function() {
-        return ann.check(compilerLoc, val);
-      }, function(result) {
-        if(ffi.isOk(result)) { return val; }
-        if(ffi.isFail(result)) {
-          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
-        }
-        throw "Internal error: got invalid result from annotation check";
-      });
+    function safeCheckAnnArg(compilerLoc, ann, val, after) {
+      if(!ann.refinement) {
+        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+      }
+      else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, val);
+        }, function(result) {
+          return returnOrRaise(result, val, after);
+        });
+      };
     }
 
     function checkAnnArg(compilerLoc, ann, val) {
@@ -1400,9 +1415,7 @@ function createMethodDict() {
       function checkI(i) {
         if(i >= args.length) { return after(); }
         else {
-          return safeCall(function() {
-            return safeCheckAnnArg(locs[i], anns[i], args[i]);
-          }, function() {
+          return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
             return checkI(i + 1);
           });
         }
@@ -1429,18 +1442,27 @@ function createMethodDict() {
       this.pred = pred;
       this.refinement = false;
     }
+    PPrimAnn.prototype.checkOrFail = function(passed, val, loc) {
+      var that = this;
+      if(passed) { return ffi.contractOk; }
+      else {
+        return ffi.contractFail(
+          makeSrcloc(loc),
+          ffi.makeTypeMismatch(val, that.name));
+      }
+    }
     PPrimAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
-      return safeCall(function() {
-        return that.pred(val);
-      }, function(passed) {
-        if(passed) { return ffi.contractOk; }
-        else {
-          return ffi.contractFail(
-            makeSrcloc(compilerLoc),
-            ffi.makeTypeMismatch(val, that.name));
-        }
-      });
+      if(!this.refinement) {
+        return this.checkOrFail(this.pred(val), val, compilerLoc);
+      }
+      else {
+        return safeCall(function() {
+          return that.pred(val);
+        }, function(passed) {
+          return that.checkOrFail(passed, val, compilerLoc);
+        });
+      }
     }
 
     function makePrimitiveAnnotation(name, jsPred) {
@@ -1704,6 +1726,7 @@ function createMethodDict() {
     function run(program, namespace, options, onDone) {
       
       if(RUN_ACTIVE) {
+        console.log(new Error().stack);
         onDone(new FailureResult(ffi.makeMessageException("Internal: run called while already running")));
         return;
       }
@@ -2208,7 +2231,11 @@ function createMethodDict() {
     var raw_array_to_list = function(arr) {
       thisRuntime.checkArity(1, arguments, "raw-array-to-list");
       thisRuntime.checkArray(arr);
-      return ffi.makeList(arr);
+      try {
+        return ffi.makeList(arr);
+      } catch(e) {
+        console.log("MakeList is now not stack-safe: what is the world coming to?!", arr);
+      }
     };
 
     var raw_array_fold = function(f, init, arr, start) {
@@ -2504,6 +2531,7 @@ function createMethodDict() {
     }
 
     function loadModule(module, runtime, namespace, withModule) {
+      var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
@@ -2535,6 +2563,9 @@ function createMethodDict() {
             return getField(m, "provide-plus-types");
           }
           else {
+            if(!hasField.app(m, "provide")) {
+              console.error(m);
+            }
             return thisRuntime.makeObject({
               "values": getField(m, "provide"),
               "types": {}
@@ -2842,14 +2873,17 @@ function createMethodDict() {
 
     var list;
     var srcloc;
+    var ffi;
     loadModulesNew(thisRuntime.namespace,
       [require("trove/lists"), require("trove/srcloc")],
       function(listsLib, srclocLib) {
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });
-    var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-    thisRuntime["ffi"] = ffi;
+    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
+      ffi = f;
+      thisRuntime["ffi"] = ffi;
+    });
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app
     thisRuntime["throwMessageException"] = ffi.throwMessageException;

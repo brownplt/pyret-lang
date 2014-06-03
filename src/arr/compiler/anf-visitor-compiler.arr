@@ -279,7 +279,9 @@ fun arity-check(loc-expr, body-stmts, arity):
   j-block(
     link(
       j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-        j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")])),
+        j-block([list:
+          j-throw(j-method(rt-field("ffi"), "throwArityErrorC", [list: loc-expr, j-num(arity), j-id("arguments")]))
+        ])),
       body-stmts))
 end
 
