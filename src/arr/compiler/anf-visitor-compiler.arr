@@ -601,18 +601,19 @@ remove-useless-if-visitor = N.default-map-visitor.{
 
 check:
   d = N.dummy-loc
-  true1 = N.a-if(d, N.a-bool(d, true), N.a-num(d, 1), N.a-num(d, 2))
-  true1.visit(remove-useless-if-visitor) is N.a-num(d, 1)
+  e = lam(v): N.a-lettable(N.a-val(v));
+  true1 = N.a-if(d, N.a-bool(d, true), e(N.a-num(d, 1)), e(N.a-num(d, 2)))
+  true1.visit(remove-useless-if-visitor) is e(N.a-num(d, 1))
 
-  false4 = N.a-if(d, N.a-bool(d, false), N.a-num(d, 3), N.a-num(d, 4))
-  false4.visit(remove-useless-if-visitor) is N.a-num(d, 4)
+  false4 = N.a-if(d, N.a-bool(d, false), e(N.a-num(d, 3)), e(N.a-num(d, 4)))
+  false4.visit(remove-useless-if-visitor) is e(N.a-num(d, 4))
 
 
   n = A.global-names.make-atom
 
   x = n("x")
   N.a-if(d, N.a-id(d, x), true1, false4).visit(remove-useless-if-visitor) is
-    N.a-if(d, N.a-id(d, x), N.a-num(d, 1), N.a-num(d, 4))
+    N.a-if(d, N.a-id(d, x), e(N.a-num(d, 1)), e(N.a-num(d, 4)))
 
 end
 

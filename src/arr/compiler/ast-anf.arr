@@ -674,9 +674,12 @@ fun freevars-e(expr :: AExpr) -> Set<A.Name>:
   freevars-e-acc(expr, sets.empty-tree-set)
 where:
   d = dummy-loc
+  n = A.global-names.make-atom
+  x = n("x")
+  y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, "x", A.a-blank), a-val(a-num(d, 4)),
-        a-lettable(a-val(a-id(d, "y"))))).to-list() is [list: "y"]
+      a-let(d, a-bind(d, x, A.a-blank), a-val(a-num(d, 4)),
+        a-lettable(a-val(a-id(d, y))))).to-list() is [list: y]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
