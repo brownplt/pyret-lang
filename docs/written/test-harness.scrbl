@@ -11,3 +11,5 @@
 @include-section["trove/either.js.rkt"]
 @include-section["trove/pprint.js.rkt"]
 @include-section["trove/ast.js.rkt"]
+@include-section["trove/image-structs.js.rkt"]
+@include-section["trove/image.js.rkt"]

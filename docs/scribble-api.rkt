@@ -402,7 +402,7 @@
                                       (para #:style dl-style
                                             (map (lambda (name type descr)
                                                    (cond [(and name type descr)
-                                                          (list ((tt dt name " :: " type))
+                                                          (list (dt (tt name " :: " type))
                                                                 (dd descr))]
                                                          [(and name type)
                                                           (list (dt (tt name " :: " type))
