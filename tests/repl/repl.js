@@ -149,7 +149,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       });
 
       it("should bind type names", function(done) {
-        aRepl.then(function() {
+        aRepl.then(function(aRepl) {
           var rt = aRepl.runtime;
           aRepl.restartInteractions("data D: | var1 end")
             .then(function(replResult) {
