@@ -16,6 +16,7 @@ docs/generated/
 build/phase1
 build/phase2
 build/phase3
+build/release
 deps/closure-compiler
 node_modules/
 *#

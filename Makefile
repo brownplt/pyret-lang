@@ -12,6 +12,7 @@ PHASE1 = build/phase1
 PHASE2 = build/phase2
 PHASE3 = build/phase3
 WEB = build/web
+RELEASE_DIR = build/release
 DOCS = docs
 
 # CUSTOMIZE THESE IF NECESSARY
@@ -20,8 +21,6 @@ ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
-VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{print "v" $$1 "-" $$2 "r" $$3}')
-RELEASE_DIR = /tmp/$(VERSION)
 S3 = s3
 
 COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
@@ -56,6 +55,7 @@ else
 	MKDIR = mkdir -p $1
 	RMDIR = rm -rf $1
 	RM = rm -f $1
+	VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{print "v" $$1 "-" $$2 "r" $$3}')
 endif
 
 WEB_DEPS = \
@@ -325,7 +325,7 @@ clean:
 	$(call RMDIR,$(PHASE1))
 	$(call RMDIR,$(PHASE2))
 	$(call RMDIR,$(PHASE3))
-	if [ -d $(RELEASE_DIR) ]; then $(call RMDIR,$(RELEASE_DIR)); fi
+	$(call RMDIR,$(RELEASE_DIR))
 
 
 # Written this way because cmd.exe complains about && in command lines
@@ -335,18 +335,20 @@ no-diff-standalone: standalone2 standalone3
 	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
 
 
-$(RELEASE_DIR):
-	mkdir $(RELEASE_DIR)
+$(RELEASE_DIR)/phase1:
+	$(call MKDIR,$(RELEASE_DIR)/phase1)
 
-$(RELEASE_DIR)/phase1: $(RELEASE_DIR)
-	mkdir $(RELEASE_DIR)/phase1
-
-release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR) $(RELEASE_DIR)/phase1
+ifdef VERSION
+release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR)/phase1
 	gzip -c $(PYRET_COMP) > $(RELEASE_DIR)/pyret.js
-	cd $(PHASE1) && \
-	find * -type d -print0 | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}' && \
-	find * -type f -print0 | parallel --gnu -0 sh -c "gzip -c '{}' > '$(RELEASE_DIR)/phase1/{}'"
-
+	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
+	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
 release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
+else
+release-gzip:
+	$(error Cannot release from this platform)
+release:
+	$(error Cannot release from this platform)
+endif
