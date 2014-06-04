@@ -345,7 +345,6 @@ fun repeat(n :: Number, e :: Any) -> List:
 where:
   repeat(0, 10) is empty
   repeat(3, -1) is [list: -1, -1, -1]
-
   repeat(1, "foo") is link("foo", empty)
 end
 
@@ -383,8 +382,9 @@ fun partition(f, lst :: List):
   help(lst)
   { is-true: is-true, is-false: is-false }
 where:
-  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
+  partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
+  partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
+  partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
 fun find(f :: (Any -> Boolean), lst :: List) -> O.Option:
@@ -502,8 +502,8 @@ fun map2(f, l1 :: List, l2 :: List):
     f(l1.first, l2.first) ^ link(_, map2(f, l1.rest, l2.rest))
   end
 where:
-  map(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
-  map(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
+  map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
+  map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
@@ -667,7 +667,9 @@ fun each4_n(f, num :: Number, lst1 :: List, lst2 :: List, lst3 :: List, lst4 :: 
 end
 
 fun fold-while(f, base, lst):
-  doc: "Takes a function that takes two arguments and returns an Either, and also a base value, and folds over the given list from the left as long as the function returns a left() value, and returns either the final value or the right() value"
+  doc: ```Takes a function that takes two arguments and returns an Either, and also a base value, and folds
+        over the given list from the left as long as the function returns a left() value, and returns either
+        the final value or the right() value```
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
