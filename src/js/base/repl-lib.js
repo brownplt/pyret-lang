@@ -1,4 +1,4 @@
-define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], function(Q, eval, rs, dialectsLib) {
+define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) {
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace, initialCompileEnv, options) {
@@ -15,11 +15,16 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], fun
         eval.evalParsedPyret(runtime, toEval.ast, { sync: false, name: toEval.name, namespace: namespace, compileEnv: replCompileEnv }, 
           function(result) {
             if(runtime.isSuccessResult(result)) {
-              var provided = get(result.result, "provide");
+              var provided = get(get(result.result, "provide-plus-types"), "values");
               runtime.getFields(provided).forEach(function(f) {
                   namespace = namespace.set(f, get(provided, f));
                   replCompileEnv = get(replSupport, "add-global-binding").app(replCompileEnv, runtime.makeString(f));
                 });
+              var providedTypes = get(get(result.result, "provide-plus-types"), "types");
+              Object.keys(providedTypes).forEach(function(f) {
+                namespace = namespace.set(f, providedTypes[f]);
+                replCompileEnv = get(replSupport, "add-global-type-binding").app(replCompileEnv, runtime.makeString(f));
+              });
             }
             toEval.onRun(result);
           });
@@ -90,7 +95,8 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr", "js/dialects-lib"], fun
         restartInteractions: restartInteractions,
         run: run,
         pause: pause,
-        stop: stop
+        stop: stop,
+        runtime: runtime
       }
     });
   }

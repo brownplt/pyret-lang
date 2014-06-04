@@ -7,7 +7,9 @@ define([], function() {
     var modname = gensym(name);
     return function(RUNTIME, NAMESPACE) {
       
-      if(RUNTIME.modules[modname]) { return RUNTIME.modules[modname]; }
+      if(RUNTIME.modules[modname]) {
+        return RUNTIME.modules[modname];
+      }
       else {
         RUNTIME.modules[modname] = moduleFun(RUNTIME, NAMESPACE);
         return RUNTIME.modules[modname];

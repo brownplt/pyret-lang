@@ -28,6 +28,7 @@ provide {
   is-success: is-success,
   is-arg-error: is-arg-error
 } end
+provide-types *
 
 import cmdline-lib as CL
 import format as F
@@ -53,7 +54,7 @@ data ParseParam:
     end,
     parse-string(self): "<number>" end
   | read-bool with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Bool:
+    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Boolean:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:
@@ -94,6 +95,11 @@ data Param:
   | next-val(parser :: ParseParam, repeated :: ParamRepeat, desc :: String)
   | next-val-default(
       parser :: ParseParam, default :: Any, short-name :: Option<String>, repeated :: ParamRepeat, desc :: String)
+end
+
+fun is-Param_(l):
+  is-flag(l) or is-equals-val(l) or is-equals-val-default(l) or
+    is-next-val(l) or is-next-val-default(l)
 end
 
 # options : Dictionary of Params
@@ -312,7 +318,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                 else:
                   nothing
                 end
-              if Param(lookup):
+              if is-Param_(lookup):
                 cases(Param) lookup:
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
@@ -373,6 +379,8 @@ fun dict(l):
   end
 end
 
+
+data RGB: red | green | blue end
 
 check:
   fun error-text(msg): lam(val):
@@ -479,7 +487,6 @@ check:
   parse-args(many-required-next-num, [list: "--foo", "-4"]) is success(dict([list: "foo", [list: -4]]), [list: ])
   parse-args(many-required-next-num, [list: "--foo", "-4", "-4"]) is success(dict([list: "foo", [list: -4], "4", [list: true]]), [list: ])
 
-  data RGB: red | green | blue end
   custom-parser = read-custom("red|green|blue", lam(arg-index, name, val):
       if val == "red": left(red)
       else if val == "green": left(green)

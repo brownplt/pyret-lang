@@ -63,6 +63,40 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
     });
 
+    describe("contracts", function() {
+      var isFail = function(err) { return err.exn && rt.ffi.isFail(err.exn); }
+      it("should fail if the contract is not bound", function(done) {
+        P.checkCompileErrorMsg("x :: NotAType = 5", "not defined as a type");
+        P.checkCompileErrorMsg("x :: (Number -> Fail) = 5", "not defined as a type");
+        P.checkCompileErrorMsg("x :: (Number -> { x:: Fail }) = 5", "not defined as a type");
+        P.checkCompileErrorMsg("x :: Numba % (is-even) = 5", "is-even");
+        P.checkCompileErrorMsg("x :: lisst.List = 10", "not defined as a type");
+
+        P.checkCompileErrorMsg("y = 5 x :: y = 5", "not defined as a type");
+        P.wait(done);
+      });
+
+      it("should work for flat contracts", function(done) {
+        P.checkError("x :: String = 5", isFail);
+        P.checkError("x :: Number = 'foo'", isFail);
+        P.wait(done);
+      });
+
+      xit("should work for arrow contracts, by checking function-ness", function(done) {
+        P.checkError("x :: (String -> Number) = 5", isFail);
+        P.checkError("x :: (String, Number -> Number) = { x: 'not-an-arrow' }", isFail);
+        P.wait(done);
+      });
+
+      it("should bind types", function(done) {
+        P.checkError("type-let N = Number: x :: N = 'foo' x end", isFail);
+        P.checkError("type-let S = String, N = Number: x :: (S -> N) = 'foo' x end", isFail);
+
+        P.checkEvalsTo("type-let N = Number: x :: N = 5 x end", 5);
+        P.wait(done);
+      });
+    })
+
     describe("compiler", function() {
       it("should signal an error when the compile fails", function(done) {
         P.checkCompileError("lam(): x = 5 y = 10 end", function(e) {

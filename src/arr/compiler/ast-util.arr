@@ -1,11 +1,15 @@
 #lang pyret
 
 provide *
+provide-types *
+import srcloc as SL
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as CS
 import string-dict as SD
 import either as E
+
+type Loc = SL.Srcloc
 
 fun ok-last(stmt):
   not(
@@ -15,7 +19,9 @@ fun ok-last(stmt):
     A.is-s-data(stmt) or
     A.is-s-graph(stmt) or
     A.is-s-contract(stmt) or
-    A.is-s-check(stmt)
+    A.is-s-check(stmt) or
+    A.is-s-type(stmt) or
+    A.is-s-newtype(stmt)
   )
 end
 
@@ -23,17 +29,17 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 
 fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
-    | s-program(l1, _provide, headers, body) =>
+    | s-program(l1, _provide, _provide-types, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, headers, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
+              some(A.s-program(l1, _provide, _provide-types, imports, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
-                some(A.s-program(l1, _provide, headers,
+                some(A.s-program(l1, _provide, _provide-types, imports,
                     A.s-block(l2, stmts + [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
               end
           end
@@ -52,8 +58,8 @@ flatten-single-blocks = A.default-map-visitor.{
 
 check:
   d = A.dummy-loc
-  PP.surface-parse("x", "test").block.visit(flatten-single-blocks) satisfies
-    A.equiv-ast(_, A.s-id(d, A.s-name(d, "x")))
+  PP.surface-parse("x", "test").block.visit(flatten-single-blocks).visit(A.dummy-loc-visitor)
+    is A.s-id(d, A.s-name(d, "x"))
 end
 
 merge-nested-blocks = A.default-map-visitor.{
@@ -86,18 +92,20 @@ data BindingInfo:
   | b-dict(dict :: SD.StringDict) # Some module supplied by the initial environment
   | b-exp(exp :: A.Expr) # This name is bound to some expression that we can't interpret yet
   | b-dot(base :: BindingInfo, name :: String) # A field lookup off some binding that isn't a b-dict
+  | b-typ # A type
   | b-unknown # Any unknown value
 end
 
 data Binding:
-  | e-bind(loc :: Loc, mut :: Bool, info :: BindingInfo)
+  | e-bind(loc :: Loc, mut :: Boolean, info :: BindingInfo)
 end
 
 fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
   cases(A.Expr) e:
     | s-dot(l, o, name) =>
-      cases(Option<BindingInfo>) bind-exp(o, env):
-        | some(b) =>
+      cases(Option<Binding>) bind-exp(o, env):
+        | some(eb) =>
+          b = eb.info
           cases(BindingInfo) b:
             | b-dict(dict) =>
               if dict.has-key(name.key()): some(e-bind(A.dummy-loc, false, dict.get(name.key())))
@@ -127,14 +135,26 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   cases(Option<Binding>) bind-exp(e, env):
     | none => b-unknown
     | some(b) =>
-      when not(Binding(b)):
-        print-error("b isn't a binding for expr " + torepr(e))
+      when not(is-e-bind(b)):
+        print-error("b isn't a binding for expr " + string-substring(torepr(e), 0, 100))
         print-error(b)
       end
       b.info
   end
 end
 
+fun binding-type-env-from-env(initial-env):
+  for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.types):
+    cases(C.CompileBinding) binding:
+      | type-module-bindings(name, ids) =>
+        mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
+          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
+        end
+        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
+      | type-id(name) => acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
+    end
+  end
+end
 fun binding-env-from-env(initial-env):
   for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
     cases(C.CompileBinding) binding:
@@ -148,28 +168,44 @@ fun binding-env-from-env(initial-env):
   end
 end
 
-fun <a> default-env-map-visitor(
+fun <a, c> default-env-map-visitor(
     initial-env :: a,
+    initial-type-env :: c,
     bind-handlers :: {
         s-letrec-bind :: (A.LetrecBind, a -> a),
         s-let-bind :: (A.LetBind, a -> a),
         s-bind :: (A.Bind, a -> a),
-        s-header :: (A.Header, a -> a)
+        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
+        s-type-let-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c }),
+        s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
   A.default-map-visitor.{
     env: initial-env,
+    type-env: initial-type-env,
 
-    s-program(self, l, _provide, imports, body):
+    s-program(self, l, _provide, _provide-types, imports, body):
       visit-provide = _provide.visit(self)
+      visit-provide-types = _provide-types.visit(self)
       visit-imports = for map(i from imports):
         i.visit(self)
       end
-      imported-env = for fold(acc from self.env, i from visit-imports):
-        bind-handlers.s-header(i, acc)
+      new-envs = { val-env: self.env, type-env: self.type-env }
+      imported-envs = for fold(acc from new-envs, i from visit-imports):
+        bind-handlers.s-header(i, acc.val-env, acc.type-env)
       end
-      visit-body = body.visit(self.{env: imported-env})
-      A.s-program(l, visit-provide, visit-imports, visit-body)
+      visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
+      A.s-program(l, visit-provide, visit-provide-types, visit-imports, visit-body)
+    end,
+    s-type-let-expr(self, l, binds, body):
+      new-envs = { val-env: self.env, type-env: self.type-env }
+      bound-env = for lists.fold(acc from new-envs.{ bs: [list: ] }, b from binds):
+        updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
+        visit-envs = self.{ env: updated.val-env, type-env: updated.type-env }
+        new-bind = b.visit(visit-envs)
+        updated.{ bs: link(new-bind, acc.bs) }
+      end
+      A.s-type-let-expr(l, bound-env.bs, body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env }))
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
@@ -194,13 +230,27 @@ fun <a> default-env-map-visitor(
       A.s-letrec(l, visit-binds, visit-body)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, new-arg from args):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      new-args = args.map(_.visit(with-params))
+      args-env = for lists.fold(acc from with-params.env, new-arg from args):
         bind-handlers.s-bind(new-arg, acc)
       end
-      new-body = body.visit(self.{env: args-env})
-      new-check = self.{env: args-env}.option(_check)
-      A.s-lam(l, params, new-args, ann.visit(self.{env: args-env}), doc, new-body, new-check)
+      with-args = with-params.{env: args-env}
+      new-body = body.visit(with-args)
+      new-check = with-args.option(_check)
+      A.s-lam(l, params, new-args, ann.visit(with-args), doc, new-body, new-check)
+    end,
+    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      A.s-data-expr(l, name, namet.visit(with-params), params,
+        mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
+        shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
     s-method(self, l, args, ann, doc, body, _check):
       new-args = args.map(_.visit(self))
@@ -215,28 +265,47 @@ fun <a> default-env-map-visitor(
 end
 
 
-fun <a> default-env-iter-visitor(
+fun <a, c> default-env-iter-visitor(
     initial-env :: a,
+    initial-type-env :: c,
     bind-handlers :: {
         s-letrec-bind :: (A.LetrecBind, a -> a),
         s-let-bind :: (A.LetBind, a -> a),
         s-bind :: (A.Bind, a -> a),
-        s-header :: (A.Header, a -> a)
+        s-header :: (A.Header, a, c -> { val-env :: a, type-env :: c }),
+        s-type-let-bind :: (A.TypeLetBind, a, c -> { val-env :: a, type-env :: c }),
+        s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
   A.default-iter-visitor.{
     env: initial-env,
+    type-env: initial-type-env,
 
-    s-program(self, l, _provide, imports, body):
-      if _provide.visit(self):
-        imported-env = for fold(acc from self.env, i from imports):
-          bind-handlers.s-header(i, acc)
+    s-program(self, l, _provide, _provide-types, imports, body):
+      if _provide.visit(self) and _provide-types.visit(self):
+        new-envs = { val-env: self.env, type-env: self.type-env }
+        imported-envs = for fold(acc from new-envs, i from imports):
+          bind-handlers.s-header(i, acc.val-env, acc.type-env)
         end
-        new-visitor = self.{ env: imported-env }
+        new-visitor = self.{ env: imported-envs.val-env, type-env: imported-envs.type-env }
         lists.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
       else:
         false
       end
+    end,
+    s-type-let-expr(self, l, binds, body):
+      new-envs = { val-env: self.env, type-env: self.type-env }
+      bound-env = for lists.fold-while(acc from new-envs.{ bs: true }, b from binds):
+        updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
+        visit-envs = self.{ env: updated.val-env, type-env: updated.type-env }
+        new-bind = b.visit(visit-envs)
+        if new-bind:
+          E.left(updated.{ bs: true })
+        else:
+          E.right(updated.{ bs: false})
+        end
+      end
+      bound-env.bs and body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env })
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for lists.fold-while(acc from { e: self.env, bs: true }, b from binds):
@@ -261,13 +330,30 @@ fun <a> default-env-iter-visitor(
       continue-binds and body.visit(new-visitor)
     end,
     s-lam(self, l, params, args, ann, doc, body, _check):
-      args-env = for lists.fold(acc from self.env, arg from args):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      visit-args = lists.all(_.visit(with-params), args)
+      args-env = for lists.fold(acc from with-params.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      lists.all(_.visit(self), args) and
-        ann.visit(self.{env: args-env}) and
-        body.visit(self.{env: args-env}) and
-        self.{env: args-env}.option(_check)
+      with-args = with-params.{env: args-env}
+      visit-args and
+        ann.visit(with-args) and
+        body.visit(with-args) and
+        with-args.option(_check)
+    end,
+    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      namet.visit(with-params)
+      and lists.all(_.visit(with-params), mixins)
+      and lists.all(_.visit(with-params), variants)
+      and lists.all(_.visit(with-params), shared-members)
+      and with-params.option(_check)
     end,
     s-method(self, l, args, ann, doc, body, _check):
       args-env = for lists.fold(acc from self.env, arg from args):
@@ -282,13 +368,27 @@ fun <a> default-env-iter-visitor(
 end
 
 binding-handlers = {
-  s-header(_, imp, env):
-    cases(A.ImportType) imp.file:
-      | s-const-import(_, modname) =>
-        if env.has-key(modname): env.set(imp.name, env.get(modname.key()))
-        else: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
-        end
-      | else => env.set(imp.name.key(), e-bind(imp.l, false, b-unknown))
+  s-header(_, imp, env, type-env):
+    {
+      val-env: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown)),
+      type-env: type-env.set(imp.types.key(), e-bind(imp.l, false, b-typ))
+    }
+  end,
+  s-param-bind(_, l, param, type-env):
+    type-env.set(param.key(), e-bind(l, false, b-typ))
+  end,
+  s-type-let-bind(_, tlb, env, type-env):
+    cases(A.TypeLetBind) tlb:
+      | s-type-bind(l, name, ann) =>
+        {
+          val-env: env,
+          type-env: type-env.set(name.key(), e-bind(l, false, b-typ))
+        }
+      | s-newtype-bind(l, tname, bname) =>
+        {
+          val-env: env.set(bname.key(), e-bind(l, false, b-unknown)),
+          type-env: type-env.set(tname.key(), e-bind(l, false, b-typ))
+        }
     end
   end,
   s-let-bind(_, lb, env):
@@ -308,10 +408,10 @@ binding-handlers = {
   end
 }
 fun binding-env-map-visitor(initial-env):
-  default-env-map-visitor(binding-env-from-env(initial-env), binding-handlers)
+  default-env-map-visitor(binding-env-from-env(initial-env), binding-type-env-from-env(initial-env), binding-handlers)
 end
 fun binding-env-iter-visitor(initial-env):
-  default-env-iter-visitor(binding-env-from-env(initial-env), binding-handlers)
+  default-env-iter-visitor(binding-env-from-env(initial-env), binding-type-env-from-env(initial-env), binding-handlers)
 end
 
 fun link-list-visitor(initial-env):
@@ -405,6 +505,11 @@ fun check-unbound(initial-env, ast):
       add-error(CS.unbound-id(this-id))
     end
   end
+  fun handle-type-id(ann, env):
+    when not(env.has-key(ann.id.key())):
+      add-error(CS.unbound-type-id(ann))
+    end
+  end
   ast.visit(binding-env-iter-visitor(initial-env).{
       s-id(self, loc, id):
         handle-id(A.s-id(loc, id), self.env)
@@ -423,6 +528,14 @@ fun check-unbound(initial-env, ast):
           add-error(CS.unbound-var(id.toname(), loc))
         end
         value.visit(self)
+      end,
+      a-name(self, loc, id):
+        handle-type-id(A.a-name(loc, id), self.type-env)
+        true
+      end,
+      a-dot(self, loc, name, field):
+        handle-type-id(A.a-name(loc, name), self.type-env)
+        true
       end
     })
   errors

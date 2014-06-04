@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import "compiler/compile-structs.arr" as C
 import ast as A
 import "compiler/anf.arr" as N
@@ -9,6 +10,7 @@ import "compiler/anf-visitor-compiler.arr" as AV
 import "compiler/desugar-check.arr" as CH
 import "compiler/desugar.arr" as D
 import "compiler/ast-util.arr" as AU
+import "compiler/js-ast.arr" as J
 
 data CompiledCodePrinter:
   | ccp(compiled :: J.JExpr) with:

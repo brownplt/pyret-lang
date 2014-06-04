@@ -289,6 +289,10 @@ evaluator-test: $(PHASE1)/phase1.built
 repl-test: $(PHASE1)/phase1.built
 	cd tests/repl/ && node test.js require-test-runner/
 
+.PHONY : parse-test
+parse-test: $(PHASE1)/phase1.built
+	cd tests/parse/ && node test.js require-test-runner/
+
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 

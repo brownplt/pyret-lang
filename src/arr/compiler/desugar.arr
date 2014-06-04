@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as C
@@ -16,7 +17,7 @@ data Pair:
   | pair(left, right)
 end
 
-mt-d-env = d-env(set([list: ]), set([list: ]), set([list: ]))
+mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
@@ -43,7 +44,9 @@ fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
-
+fun desugar-afield(f :: A.AField) -> A.AField:
+  A.a-field(f.l, f.name, desugar-ann(f.ann))
+end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
@@ -57,9 +60,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-app(l, base, args) =>
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
-      A.a-record(l, for map(f from fields):
-        A.a-field(l, f.name, desugar-ann(f.ann))
-      end)
+      A.a-record(l, fields.map(desugar-afield))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -82,8 +83,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program:
-    | s-program(l, _provide, imports, body) =>
-      A.s-program(l, _provide, imports, desugar-expr(body))
+    | s-program(l, _provide, provided-types, imports, body) =>
+      A.s-program(l, _provide, provided-types, imports, desugar-expr(body))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
@@ -210,14 +211,14 @@ where:
     )
   id = prog.binds.first.b
     
-  prog satisfies A.equiv-ast(_, A.s-let-expr(d, [list: 
-          A.s-let-bind(d, id, A.s-num(d, 1))
-        ],
-        A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
-          A.s-obj(d, [list: 
-              A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
-            ]),
-          A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)])))
+  prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list: 
+      A.s-let-bind(d, id, A.s-num(d, 1))
+    ],
+    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
+        A.s-obj(d, [list: 
+            A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
+          ]),
+        A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)]))
 
 end
 
@@ -331,7 +332,7 @@ where:
         id("y")
       ]
     )
-  ds-ed3 satisfies A.equiv-ast(_, A.s-app(d, id("f"), [list: id("x"), id("y")]))
+  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
     
   ds-ed4 = ds-curry(
       d,
@@ -361,6 +362,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
+    | s-module(l, answer, provides, types, checks) =>
+      A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
@@ -375,6 +378,16 @@ fun desugar-expr(expr :: A.Expr):
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-let(l, name, value, keyword-val) =>
       A.s-let(l, name, desugar-expr(value), keyword-val)
+    | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
+    | s-newtype(l, name, namet) => expr
+    | s-type-let-expr(l, binds, body) =>
+      fun desugar-type-bind(tb):
+        cases(A.TypeLetBind) tb:
+          | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
+          | s-newtype-bind(l2, name, nameb) => tb
+        end
+      end
+      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
     | s-let-expr(l, binds, body) =>
       new-binds = for map(bind from binds):
         cases(A.LetBind) bind:
@@ -393,7 +406,7 @@ fun desugar-expr(expr :: A.Expr):
           end
         end
       A.s-letrec(l, new-binds, desugar-expr(body))
-    | s-data-expr(l, name, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
           do-match =
@@ -423,7 +436,7 @@ fun desugar-expr(expr :: A.Expr):
               (methods + with-members).map(desugar-member))
         end
       end
-      A.s-data-expr(l, name, params, mixins.map(desugar-expr), variants.map(extend-variant),
+      A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
       test-id = mk-id(l, "when-")
@@ -559,12 +572,11 @@ where:
     s-global(self, s): A.s-name(d, s) end,
     s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block;
-  ds = lam(prog): desugar-expr(prog).visit(unglobal) end
+  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor);
+  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s));
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
-  equiv = lam(e): A.equiv-ast(_, e) end
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"
@@ -574,21 +586,18 @@ where:
   
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
-    satisfies equiv(
-    A.s-block(d,
-      [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
-          [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])]))
-  
+    is A.s-block(d,
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+        [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])])
+
   prog3 = p("for map(elt from l): elt + 1 end")
-  ds(prog3)
-    satisfies equiv(p("map(lam(elt): _plus(elt, 1) end, l)"))
+  ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
   
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
-  #  ds(prog4) satisfies
-  #    equiv(p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)"))
+  #  ds(prog4) is p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)")
   
-  # ds(p("(5)")) satisfies equiv(ds(p("5")))
+  # ds(p("(5)")) is ds(p("5"))
   
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
@@ -596,7 +605,7 @@ where:
   # compare = (cases-name + " = l " +
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")
-  # dsed5 satisfies equiv(ds(p(compare)))
+  # dsed5 is ds(p(compare))
   
 end
 

@@ -6,30 +6,32 @@ function(util,
          BT, BG, BUT, BUG, BN) {
   return util.memoModule("dialects-lib", function(RUNTIME, NAMESPACE) {
     function get(obj, fld) { return RUNTIME.getField(obj, fld); }
-    var pcs = get(PCS(RUNTIME, NAMESPACE), "provide");
-    var dialects = {
-      "Pyret": { 
-        Tokenizer: PT.Tokenizer, 
-        Grammar: PG.PyretGrammar,
-        UnTokenizer: PT.Tokenizer, 
-        UnGrammar: PG.PyretGrammar,
-        makeNamespace: function(rt) { return rt.namespace; },
-        compileEnv: get(pcs, "standard-builtins")
-      },
-      "Bootstrap": { 
-        Tokenizer: BT.Tokenizer, 
-        UnTokenizer: BUT.Tokenizer,
-        Grammar: BG.BootstrapGrammar, 
-        UnGrammar: BUG.BootstrapGrammar,
-        makeNamespace: BN.create,
-        compileEnv: get(pcs, "bootstrap-builtins")
+    return RUNTIME.loadModulesNew(NAMESPACE, [PCS], function(PCSLib) {
+      var pcs = get(PCSLib, "values");
+      var dialects = {
+        "Pyret": { 
+          Tokenizer: PT.Tokenizer, 
+          Grammar: PG.PyretGrammar,
+          UnTokenizer: PT.Tokenizer, 
+          UnGrammar: PG.PyretGrammar,
+          makeNamespace: function(rt) { return rt.namespace; },
+          compileEnv: get(pcs, "standard-builtins")
+        },
+        "Bootstrap": { 
+          Tokenizer: BT.Tokenizer, 
+          UnTokenizer: BUT.Tokenizer,
+          Grammar: BG.BootstrapGrammar, 
+          UnGrammar: BUG.BootstrapGrammar,
+          makeNamespace: BN.create,
+          compileEnv: get(pcs, "bootstrap-builtins")
+        }
       }
-    }
 
-    return {
-      dialects: dialects,
-      defaultDialect: "Pyret"
-    };
+      return {
+        dialects: dialects,
+        defaultDialect: "Pyret"
+      };
+    });
   });
 });
 

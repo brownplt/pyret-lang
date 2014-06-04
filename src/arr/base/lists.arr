@@ -1,6 +1,7 @@
 #lang pyret/library
 
 provide *
+provide-types *
 import option as O
 import either as E
 
@@ -32,12 +33,12 @@ data List:
       empty
     end,
 
-    filter(self, f :: (Any -> Bool)) -> List:
+    filter(self, f :: (Any -> Boolean)) -> List:
       doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
       empty
     end,
 
-    find(self, f :: (Any -> Bool)) -> Option:
+    find(self, f :: (Any -> Boolean)) -> O.Option:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
@@ -386,7 +387,7 @@ where:
   filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
 end
 
-fun find(f :: (Any -> Bool), lst :: List) -> Option:
+fun find(f :: (Any -> Boolean), lst :: List) -> O.Option:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -437,7 +438,7 @@ where:
   split-at(5, one-four) raises "Index too large"
 end
 
-fun any(f :: (Any -> Bool), lst :: List) -> Bool:
+fun any(f :: (Any -> Boolean), lst :: List) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 where:
@@ -447,7 +448,7 @@ where:
   any(lam(x): false end, empty) is false
 end
 
-fun all(f :: (Any -> Bool), lst :: List) -> Bool:
+fun all(f :: (Any -> Boolean), lst :: List) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
   fun help(l):
     if is-empty(l): true
@@ -462,7 +463,7 @@ where:
   all(lam(x): false end, empty) is true
 end
 
-fun all2(f :: (Any, Any -> Bool), lst1 :: List, lst2 :: List) -> Bool:
+fun all2(f :: (Any, Any -> Boolean), lst1 :: List, lst2 :: List) -> Boolean:
   doc: ```Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2.
         Returns true when either list is empty```
   fun help(l1, l2):
@@ -670,7 +671,7 @@ fun fold-while(f, base, lst):
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
-      cases(Either) f(base, elt):
+      cases(E.Either) f(base, elt):
         | left(v) => fold-while(f, v, r)
         | right(v) => v
       end

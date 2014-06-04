@@ -142,11 +142,11 @@ check:
   a2 satisfies negate(identical(_, a1))
 end
 
+data D:
+  | single
+  | multi(a, b)
+end
 check:
-  data D:
-    | single
-    | multi(a, b)
-  end
   a = [array: single, multi(1, "2")]
   torepr(a) is "[array: single, multi(1, \"2\")]"
   a.set(0, a.get(1)).to-list() is [list: multi(1, "2"), multi(1, "2")]

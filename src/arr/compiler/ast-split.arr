@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import "compiler/ast-anf.arr" as N
 import ast as A
 import pprint as PP
@@ -31,7 +32,7 @@ end
 
 
 data Helper:
-  | helper(name :: Name, args :: List<Name>, body :: N.AExpr) with:
+  | helper(name :: A.Name, args :: List<A.Name>, body :: N.AExpr) with:
     tosource(self):
       arg-list = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen,
           PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
@@ -43,12 +44,12 @@ end
 fun freevars-helper(h :: Helper):
   cases(Helper) h:
     | helper(name, args, body) =>
-      N.freevars-e(body).difference(set(args))
+      N.freevars-e(body).difference(sets.list-to-tree-set(args))
   end
 end
 
 data SplitResult:
-  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<Name>) with:
+  | split-result(helpers :: List<Helper>, body :: N.AExpr, freevars :: Set<A.Name>) with:
     tosource(self):
       PP.vert(self.helpers.map(_.tosource()) + [list: self.body.tosource()])
     end
@@ -88,12 +89,12 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         rest-split = ast-split-expr(body)
-        fvs = rest-split.freevars.remove(b.id)
+        fvs = N.freevars-ann-acc(b.ann, rest-split.freevars.remove(b.id))
         h = helper(names.make-atom(b.id.toname()), link(b.id, fvs.to-list()), rest-split.body)
         split-result-int-e(
             concat-singleton(h) + rest-split.helpers,
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),
-            fvs.remove(b.id).union(unions(args.map(N.freevars-v))).union(N.freevars-v(f))
+            fvs.union(unions(args.map(N.freevars-v))).union(N.freevars-v(f))
           )
       | else =>
         e-split = ast-split-lettable(e)
@@ -105,7 +106,7 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
             else:
               N.a-let(l, b, e-split.body, rest-split.body)
             end,
-            rest-split.freevars.remove(b.id).union(e-split.freevars)
+            N.freevars-ann-acc(b.ann, rest-split.freevars.remove(b.id).union(e-split.freevars))
           )
     end
   end
@@ -141,6 +142,18 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
           N.a-if(l, cond, consq-split.body, alt-split.body),
           N.freevars-v(cond).union(consq-split.freevars).union(alt-split.freevars)
         )
+    | a-type-let(l, bind, body) =>
+      body-split = ast-split-expr(body)
+      freevars = cases(N.ATypeBind) bind:
+        | a-newtype-bind(l2, name, nameb) => body-split.freevars.remove(name).remove(nameb)
+        | a-type-bind(l2, name, ann) =>
+          N.freevars-ann-acc(ann, body-split.freevars.remove(name))
+      end
+      split-result-int-e(
+          body-split.helpers,
+          N.a-type-let(l, bind, body-split.body),
+          freevars
+        )
     | a-lettable(e) =>
       cases(N.ALettable) e:
         | a-app(l, f, args) =>
@@ -153,21 +166,21 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
   end
 end
 
-fun ast-split-lettable(e :: N.ALettable) -> is-split-result-int-l:
+fun ast-split-lettable(e :: N.ALettable) -> SplitResultInt%(is-split-result-int-l):
   cases(N.ALettable) e:
-    | a-lam(l, args, body) =>
+    | a-lam(l, args, ret, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
-          N.a-lam(l, args, body-split.body),
-          body-split.freevars.difference(set(args.map(_.id)))
+          N.a-lam(l, args, ret, body-split.body),
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(sets.list-to-tree-set(args.map(_.id)))))
         )
-    | a-method(l, args, body) =>
+    | a-method(l, args, ret, body) =>
       body-split = ast-split-expr(body)
       split-result-int-l(
           body-split.helpers,
-          N.a-method(l, args, body-split.body),
-          body-split.freevars.difference(set(args.map(_.id)))
+          N.a-method(l, args, ret, body-split.body),
+          N.freevars-ann-acc(ret, N.freevars-list-acc(args.map(_.ann), body-split.freevars.difference(sets.list-to-tree-set(args.map(_.id)))))
         )
     | else =>
       split-result-int-l(concat-empty, e, N.freevars-l(e))

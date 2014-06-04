@@ -1,4 +1,7 @@
 provide *
+provide-types *
+# import arrays as A
+# import lists as L
 
 data RuntimeError:
   | message-exception(message :: String) with:
@@ -58,11 +61,11 @@ data RuntimeError:
     tostring(self):
       "Error: The identifier " + self.name + " was used at " + self.loc.format(true) + " before it was defined."
     end
-  | module-load-failure(names :: List<String>) with:
+  | module-load-failure(names) with: # names is List<String>
     tostring(self):
       "Error: The following modules failed to load: " + torepr(self.names)
     end
-  | invalid-array-index(method-name :: String, array :: Array, index :: Number, reason :: String) with:
+  | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     tostring(self):
       "Error: Bad array index " + tostring(self.index) + " in " + self.method-name + ": " + self.reason
     end
@@ -70,33 +73,33 @@ data RuntimeError:
 end
 
 data ParseError:
-  | parse-error-next-token(loc :: Loc, next-token :: String) with:
+  | parse-error-next-token(loc, next-token :: String) with:
     tostring(self):
       "parse error around " + self.loc.format(true) + ", next token was " + self.next-token
     end
-  | parse-error-eof(loc :: Loc) with:
+  | parse-error-eof(loc) with:
     tostring(self):
       "parse error at end of file at " + self.loc.format(true)
     end
-  | empty-block(loc :: Loc) with:
+  | empty-block(loc) with:
     tostring(self):
       "Empty block at " + self.loc.format(true)
     end
-  | bad-block-stmt(loc :: Loc) with:
+  | bad-block-stmt(loc) with:
     tostring(self):
       "Expected a val binding or an expression, but got something else " + self.loc.format(true)
     end
-  | bad-check-block-stmt(loc :: Loc) with:
+  | bad-check-block-stmt(loc) with:
     tostring(self):
       "Expected a val binding or an expression, but got something else " + self.loc.format(true)
     end
-  | fun-missing-colon(loc :: Loc) with:
+  | fun-missing-colon(loc) with:
     tostring(self): "fun-missing-colon: " + self.loc.format(true) end
-  | fun-missing-end(loc :: Loc) with:
+  | fun-missing-end(loc) with:
     tostring(self): "fun-missing-end: " + self.loc.format(true) end
-  | args-missing-comma(loc :: Loc) with:
+  | args-missing-comma(loc) with:
     tostring(self): "args-missing-comma: " + self.loc.format(true) end
-  | app-args-missing-comma(loc :: Loc) with:
+  | app-args-missing-comma(loc) with:
     tostring(self): "app-args-missing-comma: " + self.loc.format(true) end
   | missing-end(loc)
   | missing-comma(loc)

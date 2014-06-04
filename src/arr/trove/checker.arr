@@ -1,9 +1,10 @@
 #lang pyret
 
 provide *
+provide-types *
 import srcloc as SL
 
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 data CheckBlockResult:
   | check-block-result(name :: String, loc :: Loc, test-results :: List<TestResult>)

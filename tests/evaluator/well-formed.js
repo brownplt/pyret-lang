@@ -76,7 +76,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a data definition");
+                               "top level");
         P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
@@ -85,7 +85,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a data definition");
+                               "top level");
         P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
@@ -222,7 +222,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "while",
           "class",
           "interface",
-          "type",
           "generator",
           "alias",
           "extends",
@@ -255,6 +254,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           P.checkCompileErrorMsg(reservedNames[i], err);
           P.checkCompileErrorMsg(reservedNames[i] + " = 5", err);
           P.checkCompileErrorMsg("fun f(" + reservedNames[i] + "): 5 end", err);
+          P.checkCompileErrorMsg("fun " + reservedNames[i] + "(): 5 end", err);
+          if (reservedNames[i] !== "type") {
+            P.checkCompileErrorMsg("{ " + reservedNames[i] + " : 42 }", err);
+            P.checkCompileErrorMsg("{ " + reservedNames[i] + "(self): 42 end }", err);
+          }
         }
 
         P.wait(done);

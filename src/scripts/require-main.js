@@ -15,24 +15,27 @@ R([process.argv[2], "js/runtime-anf", "trove/checker"], function(mainModule, RT,
     stderr: function(str) { process.stderr.write(str); }
   });
   
-  var checker = rt.getField(checkerLib(rt, rt.namespace), "provide");
-  rt.setParam("current-checker", rt.getField(checker, "make-check-context").app(rt.makeString(process.argv[2])));
-  rt.setParam("command-line-arguments", process.argv.slice(2));
-  rt.run(mainModule, rt.namespace, {sync: true}, function(result) {
-    if(rt.isSuccessResult(result)) {
-      //        console.log(result);
-      //        console.log(rt.getField(result.result, "answer"));
-      process.exit(0);
-    } else if (rt.isFailureResult(result)) {
-      console.error('Pyret terminated with an error');
-      if (result && result.exn && result.exn.exn && result.exn.exn.s && result.exn.stack && result.exn.pyretStack) {
-        console.error(result.exn.exn.s)
-        console.error(result.exn.stack);
-        console.error(result.exn.pyretStack);
-      } else {
-        console.error(result);
+  rt.loadModulesNew([checker], function(checker) {
+    var checker = rt.getField(checker, "values");
+    rt.setParam("current-checker", rt.getField(checker, "make-check-context").app(rt.makeString(process.argv[2])));
+    rt.setParam("command-line-arguments", process.argv.slice(2));
+    rt.run(mainModule, rt.namespace, {sync: true}, function(result) {
+      if(rt.isSuccessResult(result)) {
+        //        console.log(result);
+        //        console.log(rt.getField(result.result, "answer"));
+        process.exit(0);
+      } else if (rt.isFailureResult(result)) {
+        console.error('Pyret terminated with an error');
+        if (result && result.exn && result.exn.exn && result.exn.exn.s && result.exn.stack && result.exn.pyretStack) {
+          console.error(result.exn.exn.s)
+          console.error(result.exn.stack);
+          console.error(result.exn.pyretStack);
+        } else {
+          console.error(result);
+        }
+        process.exit(1);
       }
-      process.exit(1);
-    }
-  });
+    });
+
+  })
 });

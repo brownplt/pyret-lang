@@ -1,7 +1,7 @@
 
 define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Namespace, ffi) {
   return util.memoModule("string-dict", function(RUNTIME, NAMESPACE) {
-      var F = ffi(RUNTIME, NAMESPACE);
+    return RUNTIME.loadJSModules(NAMESPACE, [ffi], function(F) {
       var unwrap = RUNTIME.unwrap;
       var ImmutableStringDict = Namespace.Namespace;
 
@@ -81,27 +81,43 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       return RUNTIME.makeObject({
-          provide: RUNTIME.makeObject({
-            'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
-            'to-dict': RUNTIME.makeFunction(function(dict) {
-                F.checkArity(1, arguments, "to-dict");
-                RUNTIME.checkObject(dict);
-                var fields = RUNTIME.getFields(dict);
-                var ns = new ImmutableStringDict(Object.create({}));
-                fields.forEach(function(f) { ns = ns.set(f, RUNTIME.getField(dict, f)); });
-                return stringDictObj(ns);
+          "provide-plus-types": RUNTIME.makeObject({
+            types: {
+              StringDict: RUNTIME.makePrimitiveAnn("StringDict", function(val) {
+                if (!RUNTIME.isObject(val) || !RUNTIME.hasField(val, "the-dict")) {
+                  return false;
+                }
+                if (!RUNTIME.isOpaque(RUNTIME.getField(val, "the-dict"))) {
+                  return false;
+                }
+                var theDict = RUNTIME.getField(val, "the-dict");
+                return (theDict.val instanceof ImmutableStringDict) ||
+                        (theDict.val instanceof StringDict);
               }),
-            'immutable-string-dict': RUNTIME.makeFunction(function() {
-                F.checkArity(0, arguments, "immutable-string-dict");
-                return stringDictObj(new ImmutableStringDict(Object.create(null)));
-              }),
-            'string-dict': RUNTIME.makeFunction(function() {
-                F.checkArity(0, arguments, "string-dict");
-                return stringDictObj(new StringDict(Object.create(null)));
-              }),
+            },
+            values: RUNTIME.makeObject({
+              'StringDict': RUNTIME.makeFunction(function() { throw RUNTIME.makeMessageException("Cannot check StringDict yet") } ),
+              'to-dict': RUNTIME.makeFunction(function(dict) {
+                  F.checkArity(1, arguments, "to-dict");
+                  RUNTIME.checkObject(dict);
+                  var fields = RUNTIME.getFields(dict);
+                  var ns = new ImmutableStringDict(Object.create({}));
+                  fields.forEach(function(f) { ns = ns.set(f, RUNTIME.getField(dict, f)); });
+                  return stringDictObj(ns);
+                }),
+              'immutable-string-dict': RUNTIME.makeFunction(function() {
+                  F.checkArity(0, arguments, "immutable-string-dict");
+                  return stringDictObj(new ImmutableStringDict(Object.create(null)));
+                }),
+              'string-dict': RUNTIME.makeFunction(function() {
+                  F.checkArity(0, arguments, "string-dict");
+                  return stringDictObj(new StringDict(Object.create(null)));
+                })
+             })
           }),
           answer: NAMESPACE.get("nothing")
         });
-    })
+    });
+  });
 });
 

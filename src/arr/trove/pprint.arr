@@ -42,18 +42,19 @@ provide {
   comma: comma,
   commabreak: commabreak
 } end
+provide-types *
 
 data PPrintDoc:
-  | mt-doc(flat-width :: Number, has-hardline :: Bool)
-  | str(s :: String, flat-width :: Number, has-hardline :: Bool)
-  | hardline(flat-width :: Number, has-hardline :: Bool)
-  | blank(n :: Number, flat-width :: Number, has-hardline :: Bool)
-  | concat(fst :: PPrintDoc, snd :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
-  | nest(indent :: Number, d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
-  | if-flat(flat :: PPrintDoc, vert :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
-  | align(d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
-  | align-spaces(n :: Number, flat-width :: Number, has-hardline :: Bool)
-  | group(d :: PPrintDoc, flat-width :: Number, has-hardline :: Bool)
+  | mt-doc(flat-width :: Number, has-hardline :: Boolean)
+  | str(s :: String, flat-width :: Number, has-hardline :: Boolean)
+  | hardline(flat-width :: Number, has-hardline :: Boolean)
+  | blank(n :: Number, flat-width :: Number, has-hardline :: Boolean)
+  | concat(fst :: PPrintDoc, snd :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
+  | nest(indent :: Number, d :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
+  | if-flat(flat :: PPrintDoc, vert :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
+  | align(d :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
+  | align-spaces(n :: Number, flat-width :: Number, has-hardline :: Boolean)
+  | group(d :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
 sharing:
   _plus(self, other):
     if is-mt-doc(self): other
@@ -88,7 +89,7 @@ data Item:
   | item(indent :: Number, is-flat :: Boolean, d :: PPrintDoc)
 end
 # Not needed at the moment...
-# fun fits(width :: Number, items :: List<Item>) -> Bool:
+# fun fits(width :: Number, items :: List<Item>) -> Boolean:
 #   if width < 0: false
 #   else if is-empty(items): true
 #   else: 
