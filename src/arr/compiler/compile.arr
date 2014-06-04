@@ -11,6 +11,7 @@ import "compiler/well-formed.arr" as W
 import "compiler/ast-util.arr" as U
 import "compiler/resolve-scope.arr" as R
 import "compiler/desugar.arr" as D
+import "compiler/type-check.arr" as T
 import "compiler/desugar-check.arr" as CH
 
 data CompilationPhase:
@@ -51,7 +52,9 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       named-errors = named-result.errors
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
-      cleaned = desugared.visit(U.merge-nested-blocks)
+      type-checked = T.type-check(desugared)
+      when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
+      cleaned = type-checked.visit(U.merge-nested-blocks)
                      .visit(U.flatten-single-blocks)
                      .visit(U.link-list-visitor(libs))
                      .visit(U.letrec-visitor)
