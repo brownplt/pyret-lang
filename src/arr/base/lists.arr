@@ -573,6 +573,20 @@ fun each(f, lst :: List):
     end
   end
   help(lst)
+where:
+  one-four = link(1, link(2, link(3, link(4, empty))))
+
+  let var counter = 0:
+    each(lam(n): counter := counter + n end, one-four)
+    counter is 1 + 2 + 3 + 4
+    counter is 10
+  end
+
+  let var counter = 1:
+    each(lam(n): counter := counter * n end, one-four)
+    counter is 1 * 2 * 3 * 4
+    counter is 24
+  end
 end
 
 fun each2(f, lst1 :: List, lst2 :: List):
@@ -688,6 +702,10 @@ fun fold(f, base, lst :: List):
   else:
     fold(f, f(base, lst.first), lst.rest)
   end
+where:
+  fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
+  fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
+  fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun fold2(f, base, l1 :: List, l2 :: List):
