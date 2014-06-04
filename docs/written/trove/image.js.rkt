@@ -66,7 +66,7 @@
     Adds a line to the image @pyret["img"], starting from the point (x1,y1)
     and going to the point (x2,y2). Unlike @secref[(tag-name "image" "scene-line")],
     if the line passes outside of @pyret["img"], the image gets larger to
-    accomodate the line.
+    accommodate the line.
   }
   @function[
     "text"
@@ -354,7 +354,7 @@
                          '("step" "") 
                          '("mode" "") 
                          '("color" ""))]{
-    Constructs an image of an abitrary regular star polygon. The polygon
+    Constructs an image of an arbitrary regular star polygon. The polygon
     is enclosed by a regular polygon with @pyret["side-count"] sides each
     @pyret["side-length"] long. The polygon is actually constructed by going
     from vertex to vertex around the regular polygon, but connecting every
