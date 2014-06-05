@@ -145,13 +145,13 @@ end
 
 fun binding-type-env-from-env(initial-env):
   for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.types):
-    cases(C.CompileBinding) binding:
+    cases(C.CompileTypeBinding) binding:
       | type-module-bindings(name, ids) =>
         mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
         end
         acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | type-id(name) => acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
+      | type-id(name) => acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
     end
   end
 end

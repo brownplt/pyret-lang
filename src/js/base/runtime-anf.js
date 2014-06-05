@@ -2590,6 +2590,18 @@ function createMethodDict() {
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
 
+          // NOTE(joe): the $type$ sadness is because we only have one dynamic
+          // namespace
+          '$type$Number': NumberC,
+          '$type$String': StringC,
+          '$type$Boolean': BooleanC,
+          '$type$Nothing': NothingC,
+          '$type$Function': FunctionC,
+          '$type$RawArray': RawArrayC,
+          '$type$Method': MethodC,
+          '$type$Object': ObjectC,
+          '$type$Any': AnyC,
+
           'Number': NumberC,
           'String': StringC,
           'Boolean': BooleanC,

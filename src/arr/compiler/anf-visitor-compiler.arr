@@ -14,6 +14,11 @@ import srcloc as SL
 
 type Loc = SL.Srcloc
 
+fun type-name(str):
+  "$type$" + str
+end
+
+
 j-fun = J.j-fun
 j-var = J.j-var
 j-id = J.j-id
@@ -632,7 +637,12 @@ fun compile-program(self, l, headers, split, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
   free-ids = S.freevars-split-result(split).difference(sets.list-to-tree-set(headers.map(_.name))).difference(sets.list-to-tree-set(headers.map(_.types)))
   namespace-binds = for map(n from free-ids.to-list()):
-    j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
+    bind-name = 
+      cases(A.Name) n:
+        | s-global(s) => n.toname()
+        | s-type-global(s) => type-name(n.toname())
+      end
+    j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(bind-name)]))
   end
   ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
   type-imports = headers.filter(N.is-a-import-types)

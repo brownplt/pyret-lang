@@ -148,6 +148,23 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
         });
       });
 
+      it("should have builtin modules available at the repl", function(done) {
+        aRepl.then(function(aRepl) {
+          var rt = aRepl.runtime;
+          aRepl.restartInteractions("")
+            .then(function(replResult) {
+              expect(getVal(rt, replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+              return aRepl.run("x :: lists.List = empty")
+            }).then(function(replResult) {
+              expect(getVal(rt, replResult)).toBeSameAs(rt, rt.namespace.get("nothing"));
+              done();
+            }).catch(function(err) {
+              console.error("Failed in testing builtin-modules binding: ", err, err.exn.dict.reason);
+              fail();
+            });
+        });
+      });
+
       it("should bind type names", function(done) {
         aRepl.then(function(aRepl) {
           var rt = aRepl.runtime;

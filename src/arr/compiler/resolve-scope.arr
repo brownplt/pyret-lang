@@ -471,7 +471,7 @@ fun type-env-from-env(initial :: C.CompileEnvironment):
     cases(C.CompileBinding) b:
       | type-module-bindings(name, ids) => acc
       | type-id(name) =>
-        acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-global(name), none))
+        acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
     end
   end
 end
@@ -554,7 +554,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             | let-type-bind(_, name, _) => A.a-name(l, name)
             | type-var-bind(_, name, _) => A.a-blank # TODO: Turn this into a A.a-type-var(l, name) instead
           end
-        else: A.a-name(l, names.s-global(s))
+        else: A.a-name(l, names.s-type-global(s))
         end
       | else => A.a-name(l, id)
     end

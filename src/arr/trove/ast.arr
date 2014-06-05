@@ -103,6 +103,14 @@ data Name:
     toname(self): self.s end,
     key(self): "global#" + self.s end
 
+  | s-type-global(s :: String) with:
+    to-compiled-source(self): PP.str(self.to-compiled()) end,
+    to-compiled(self): "$type$" + self.s end,
+    tosource(self): PP.str(self.s) end,
+    tostring(self): "$type$" + self.s end,
+    toname(self): self.s end,
+    key(self): "tglobal#" + self.s end
+
   | s-atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
@@ -133,6 +141,7 @@ fun MakeName(start):
     s-underscore: s-underscore,
     s-name: s-name,
     s-global: s-global,
+    s-type-global: s-type-global,
     make-atom: atom,
     is-s-underscore: is-s-underscore,
     is-s-name: is-s-name,
@@ -1140,6 +1149,10 @@ default-map-visitor = {
     s-name(l, s)
   end,
 
+  s-type-global(self, s):
+    s-type-global(s)
+  end,
+
   s-global(self, s):
     s-global(s)
   end,
@@ -1595,6 +1608,9 @@ default-iter-visitor = {
   s-global(self, s):
     true
   end,
+  s-type-global(self, s):
+    true
+  end,
   s-atom(self, base, serial):
     true
   end,
@@ -2042,6 +2058,9 @@ dummy-loc-visitor = {
   end,
   s-global(self, s):
     s-global(s)
+  end,
+  s-type-global(self, s):
+    s-type-global(s)
   end,
   s-atom(self, base, serial):
     s-atom(base, serial)

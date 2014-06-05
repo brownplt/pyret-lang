@@ -41,9 +41,9 @@ data CompileError:
     tostring(self):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
     end
-  | unbound-type-id(id :: A.Ann) with:
+  | unbound-type-id(ann :: A.Ann) with:
     tostring(self):
-      "Identifier " + tostring(self.id.id) + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
+      "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     tostring(self):
@@ -192,7 +192,6 @@ minimal-builtins = compile-env(runtime-builtins, runtime-types)
 
 bootstrap-builtins = compile-env(
   [list: module-bindings("lists", [list: 
-      "List",
       "list",
       "is-empty",
       "is-link",
