@@ -1057,6 +1057,9 @@ data Ann:
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     label(self): "a-dot" end,
     tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
+  | a-proven(proved :: Ann, residual :: Ann) with:
+    label(self): "a-proven" end,
+    tosource(self): self.residual.tosource() end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
