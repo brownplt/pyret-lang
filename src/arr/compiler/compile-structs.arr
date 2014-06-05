@@ -364,7 +364,6 @@ standard-builtins = compile-env(
         ]),
       module-bindings("lists", [list: 
           "list",
-          "List",
           "is-empty",
           "is-link",
           "empty",
