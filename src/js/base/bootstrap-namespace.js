@@ -1,7 +1,7 @@
 define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function(Namespace, imageLib, worldLib, jsnums) {
 
   function makeBootstrapNamespace(rt) {
-    return rt.loadModules(rt.namespace, [image, world], function(image, world) {
+    return rt.loadModules(rt.namespace, [imageLib, worldLib], function(image, world) {
       var get = rt.getField;
 
       var makeFunction = rt.makeFunction;
