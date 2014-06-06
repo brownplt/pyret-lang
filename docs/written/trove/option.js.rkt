@@ -8,12 +8,12 @@
       @singleton-spec["none"]{
         @with-members{
           @method-spec[
-            "orelse"
+            "or-else"
             #:contract
             (a-arrow (a-id "Option" (xref "option" "Option")) "Any" "Any")
           ]
           @method-spec[
-            "andthen"
+            "and-then"
             #:contract
             (a-arrow (a-id "Option" (xref "option" "Option")) "Any" "Any")
           ]
@@ -23,12 +23,12 @@
         @members{@member-spec["value" #:contract "Any"]}
         @with-members{
           @method-spec[
-            "orelse"
+            "or-else"
             #:contract
             (a-arrow (a-id "Option" (xref "option" "Option")) "Any" "Any")
           ]
           @method-spec[
-            "andthen"
+            "and-then"
             #:contract
             (a-arrow (a-id "Option" (xref "option" "Option")) "Any" "Any")
           ]

@@ -9,7 +9,7 @@ data Option:
       doc: "Return the default provided value"
       v
     end,
-    andthen(self, _):
+    and-then(self, _):
       doc: "Return none"
       self
     end
@@ -18,14 +18,14 @@ data Option:
       doc: "Return self.value, rather than the default"
       self.value
     end,
-    andthen(self, f):
+    and-then(self, f):
       doc: "Returns the function applied to self.value"
       f(self.value)
     end
 where:
   none.orelse(1) is 1
-  none.andthen(lam(x): x + 2 end) is none
+  none.and-then(lam(x): x + 2 end) is none
 
   some(5).orelse(0) is 5
-  some(5).andthen(lam(x): some(x + 2) end) is some(7)
+  some(5).and-then(lam(x): some(x + 2) end) is some(7)
 end
