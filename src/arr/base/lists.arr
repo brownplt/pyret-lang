@@ -44,7 +44,7 @@ data List:
     end,
 
     partition(self, f):
-      doc: ```Takes a predicate and returns an object with two fields:
+      doc: ```Takes a predicate and returns an object wgith two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
       { is-true: empty, is-false: empty }
@@ -178,7 +178,7 @@ data List:
 
     tostring(self):
       "[list: " +
-        for raw-fold(combined from tostring(self.first), elt from self.rest):
+        for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
         end
       + "]"
@@ -186,7 +186,7 @@ data List:
 
     _torepr(self):
       "[list: " +
-        for raw-fold(combined from torepr(self.first), elt from self.rest):
+        for fold(combined from torepr(self.first), elt from self.rest):
           combined + ", " + torepr(elt)
         end
       + "]"
@@ -235,11 +235,16 @@ data List:
 
 
 sharing:
+  _plus(self :: List, other :: List):
+    self.append(other)
+  end,
+
   push(self, elt):
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
+  where:
+    [list: 1].push(0) is [list: 0, 1]
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
   split-at(self, n):
     doc: "Splits this list into two lists, one containing the first n elements, and the other containing the rest"
     split-at(n, self)
@@ -247,19 +252,29 @@ sharing:
   take(self, n):
     doc: "Returns the first n elements of this list"
     split-at(n, self).prefix
+  where:
+    [list: 1, 2, 3, 4, 5, 6].take(3) is [list: 1, 2, 3]
   end,
   drop(self, n):
     doc: "Returns all but the first n elements of this list"
     split-at(n, self).suffix
+  where:
+    [list: 1, 2, 3, 4, 5, 6].drop(3) is [list: 4, 5, 6]
   end,
 
   get(self, n):
     doc: "Returns the nth element of this list, or raises an error if n is out of range"
     get-help(self, n)
+  where:
+    [list: 1, 2, 3].get(0) is 1
+    [list: ].get(0) raises ""
   end,
   set(self, n, e):
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set-help(self, n, e)
+  where:
+    [list: 1, 2, 3].set(0, 5) is [list: 5, 2, 3]
+    [list: ].set(0, 5) raises ""
   end
 end
 
@@ -305,19 +320,6 @@ fun reverse-help(lst, acc):
 where:
   reverse-help([list: ], [list: ]) is [list: ]
   reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
-end
-
-fun raw-fold(f, base, lst :: List):
-  doc: "Helper method for folding from the left over the raw field values of the list"
-  if is-empty(lst):
-    base
-  else:
-    raw-fold(f, f(base, lst.first), lst.rest)
-  end
-where:
-  raw-fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
-  raw-fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
-  raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun range(start, stop):
@@ -468,7 +470,7 @@ fun all2(f :: (Any, Any -> Boolean), lst1 :: List, lst2 :: List) -> Boolean:
         Returns true when either list is empty```
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2): true
-    else: f(l1.first, l2.first) and help(l2.rest, l2.rest)
+    else: f(l1.first, l2.first) and help(l1.rest, l2.rest)
     end
   end
   help(lst1, lst2)
@@ -532,7 +534,7 @@ fun map_n(f, n :: Number, lst :: List):
     f(n, lst.first) ^ link(_, map_n(f, n + 1, lst.rest))
   end
 where:
-  map_n(lam(n, e): n;, [list: "captain", "first mate"]) is [list: 0, 1]
+  map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 fun map2_n(f, n :: Number, l1 :: List, l2 :: List):
@@ -750,15 +752,15 @@ fun fold_n(f, num :: Number, base, lst :: List):
   end
   help(num, base, lst)
 where:
-  lists.fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
-  lists.fold_n(lam(n, acc, cur):
+  fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
+  fold_n(lam(n, acc, cur):
                   tostring(n) + " " + cur + ", " + acc
                end,
-               99, "and so forth...", repeat(5, "jugs o' grog in the hold"))
-    is ```99 jugs o' grog in the hold, 98 jugs o' grog on the all,
-        97 jugs o' grog in the hold, 96 jugs o' grog in the hold,
-        96 jugs o' grog in the hold, and so forth...```
-  lists.fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
+               95, "and so forth...", repeat(5, "jugs o' grog in the hold"))
+    is "99 jugs o' grog in the hold, 98 jugs o' grog in the hold, "
+    + "97 jugs o' grog in the hold, 96 jugs o' grog in the hold, "
+    + "95 jugs o' grog in the hold, and so forth..."
+  fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
                0, true, [list: false, true, false])
     is true
 end

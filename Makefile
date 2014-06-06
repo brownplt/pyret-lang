@@ -55,7 +55,7 @@ PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_
 PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
 DOCS_DEPS = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
-DOCS_SKEL_DEPS = $(patsubst src/%,$(DOCS)/written/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
+DOCS_SKEL_DEPS = $(patsubst src/%,$(DOCS)/skeleton/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
 
 PHASE1_DIRS := $(sort $(dir $(PHASE1_ALL_DEPS)))
 PHASE2_DIRS := $(sort $(dir $(PHASE2_ALL_DEPS)))
@@ -234,11 +234,11 @@ $(DOCS)/generated/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-
 
 docs-skel: $(DOCS_SKEL_DEPS)
 $(DOCS_SKEL_DEPS): | $(PHASE1)/phase1.built docs-trove
-$(DOCS)/written/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-doc-skeleton.arr
+$(DOCS)/skeleton/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-doc-skeleton.arr
 	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.arr
+$(DOCS)/skeleton/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.arr
 	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
+$(DOCS)/skeleton/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
 	node build/phase1/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
 
 

@@ -60,7 +60,9 @@ fun find-result(expr):
     | s-obj(_, _) => expr
     | s-block(_, stmts) => find-result(stmts.last())
     | s-let-expr(_, _, body) => find-result(body)
+    | s-type-let-expr(_, _, body) => find-result(body)
     | s-letrec(_, _, body) => find-result(body)
+    | s-module(_, _, _, _, _) => expr
     | else =>
       print("Got an expression we didn't expect:")
       print(torepr(expr))
@@ -133,7 +135,7 @@ fun process-fields(fields, bindings):
                     | none => v
                     | some(new-v) => help(seen, new-v)
                   end
-                | s-data-expr(_, name, _, _, variants, shared-members, _) =>
+                | s-data-expr(_, name, _, _, _, variants, shared-members, _) =>
                   if (name == field):
                     # print("Found " + field + " as a data-expr itself")
                     help-obj
@@ -149,7 +151,7 @@ fun process-fields(fields, bindings):
                               end
                             A.s-lam(new-v.l, empty,
                               [list: A.s-bind(new-v.l, false, A.s-name(new-v.l, "val"), A.a-any)],
-                              A.a-name(new-v.l, "Bool"),
+                              A.a-name(new-v.l, A.s-name(new-v.l, "Bool")),
                               "Checks whether the provided argument is in fact " + a-an + new-v.name,
                               A.s-undefined(new-v.l), none)
                           | none =>
@@ -205,7 +207,7 @@ fun process-fields(fields, bindings):
             sexp("singleton-spec",
               [list: spair("name", torepr(variant-name)),
                 spair("with-members", slist(with-members.map(method-spec))) ])
-          | s-data-expr(_, data-name, _, _, variants, shared, _) =>
+          | s-data-expr(_, data-name, _, _, _, variants, shared, _) =>
             sexp("data-spec",
               [list: spair("name", torepr(data-name)),
                 spair("variants", slist(variants.map(lam(m): leaf(torepr(m.name)) end))),
@@ -234,27 +236,22 @@ cases (C.ParsedArguments) parsed-options:
         body = named.block
         result = find-result(body)
         cases(A.Expr) result:
-          | s-obj(_, res) =>
-            provides = res.find(lam(f): A.is-s-data-field(f) and A.is-s-str(f.name) and (f.name.s == "provide") end)
-            cases(Option) provides:
-              | none => print("Got a result object with no provides fields")
-              | some(p) =>
-                cases(A.Expr) find-result(p.value):
-                  | s-obj(_, fields) =>
-                    output = toplevel(
-                      [list: sexp("module",
-                          [list: leaf(torepr(trim-path(file))),
-                            spair("path", torepr(string-replace(file, "\\", "/")))
-                          ]
-                            + process-fields(fields, bindings)) ])
-                    outputdoc = output.tosource().pretty(80)
-                    cases(List) more:
-                      | empty => outputdoc.each(print)
-                      | link(outfile, _) =>
-                        F.output-file(outfile, false).display(outputdoc.join-str("\n"))
-                    end
-                  | else => nothing
+          | s-module(_, _, provides, provides-types, _) =>
+            cases(A.Expr) provides:
+              | s-obj(_, fields) =>
+                output = toplevel(
+                  [list: sexp("module",
+                      [list: leaf(torepr(trim-path(file))),
+                        spair("path", torepr(string-replace(file, "\\", "/")))
+                      ]
+                        + process-fields(fields, bindings)) ])
+                outputdoc = output.tosource().pretty(80)
+                cases(List) more:
+                  | empty => outputdoc.each(print)
+                  | link(outfile, _) =>
+                    F.output-file(outfile, false).display(outputdoc.join-str("\n"))
                 end
+              | else => nothing
             end
           | else => print("Got a result we didn't expect")
             print(torepr(result))

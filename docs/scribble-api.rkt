@@ -299,8 +299,8 @@
       (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
       contract args alt-docstrings examples body)))
 @(define (member-spec name #:contract (contract #f) . body)
-   (list "TODO" ));(subsubsub*section name) body))
-
+    (list (dt (if contract (tt name " :: " contract) (tt name)))
+          (dd body)))
 
 @(define-syntax (singleton-spec stx)
    (syntax-case stx ()
@@ -333,9 +333,9 @@
          (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
 
 @(define (with-members . members)
-   members)
+   (list "Methods" members))
 @(define (members . mems)
-   mems)
+   (list "Fields" (para #:style dl-style mems)))
 @(define (a-id name . args)
    (if (cons? args) (seclink (first args) name) name))
 @(define (a-compound typ . args)
@@ -361,7 +361,7 @@
           (let ([contents (shared-internal args ...)])
             contents)))]))
 @(define (shared-internal . shares)
-   shares)
+   (list "Shared Methods" shares))
 
 
 ;; render documentation for a function
