@@ -78,9 +78,9 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
         });
         return deferred.promise;
       }
-      function run(code) {
+      function run(code, name) {
         var deferred = Q.defer();
-        var name = "latest interactions";
+        if (typeof name === "undefined") { name = "interactions "; }
         eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runtime.runThunk(function() {
