@@ -2071,7 +2071,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_minus").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _minus was not a number, or did not have a _minus method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "-", "_minus");
       }
     };
 
@@ -2084,7 +2084,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_times").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _times was not a number, or did not have a _times method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "*", "_times");
       }
     };
 
@@ -2100,7 +2100,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_divide").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _divide was not a number, or did not have a _divide method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "/", "_divide");
       }
     };
 
@@ -2116,7 +2116,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_lessthan").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _lessthan was not a number, or did not have a _lessthan method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "<", "_lessthan");
       }
     };
 
@@ -2132,7 +2132,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_greaterthan").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _greaterthan was not a number, or did not have a _greaterthan method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, ">", "_greaterthan");
       }
     };
 
@@ -2148,7 +2148,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_lessequal").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _lessequal was not a number, or did not have a _lessequal method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "<=", "_lessequal");
       }
     };
 
@@ -2164,7 +2164,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_greaterequal").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _greaterequal was not a number, or did not have a _greaterequal method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, ">=", "_greaterequal");
       }
     };
 

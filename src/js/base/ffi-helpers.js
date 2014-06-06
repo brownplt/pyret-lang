@@ -101,6 +101,14 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         raise(err("plus-error")(left, right));
       }
 
+      function throwNumericBinopError(left, right, opname, methodname) {
+        runtime.checkPyretVal(left);
+        runtime.checkPyretVal(right);
+        runtime.checkString(opname);
+        runtime.checkString(methodname);
+        raise(err("numeric-binop-error")(left, right, opname, methodname));
+      }
+
       function throwUninitializedId(loc, name) {
         checkSrcloc(loc);
         runtime.checkString(name);
@@ -210,6 +218,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
 
       return {
         throwPlusError: throwPlusError,
+        throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
@@ -225,7 +234,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwNoBranchesMatched: throwNoBranchesMatched,
         throwNonFunApp: throwNonFunApp,
         throwModuleLoadFailureL: throwModuleLoadFailureL,
-        
+
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
 
