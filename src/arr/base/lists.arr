@@ -235,11 +235,16 @@ data List:
 
 
 sharing:
+  _plus(self :: List, other :: List):
+    self.append(other)
+  end,
+
   push(self, elt):
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
+  where:
+    [list: 1].push(0) is [list: 0, 1]
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
   split-at(self, n):
     doc: "Splits this list into two lists, one containing the first n elements, and the other containing the rest"
     split-at(n, self)
@@ -247,19 +252,29 @@ sharing:
   take(self, n):
     doc: "Returns the first n elements of this list"
     split-at(n, self).prefix
+  where:
+    [list: 1, 2, 3, 4, 5, 6].take(3) is [list: 1, 2, 3]
   end,
   drop(self, n):
     doc: "Returns all but the first n elements of this list"
     split-at(n, self).suffix
+  where:
+    [list: 1, 2, 3, 4, 5, 6].drop(3) is [list: 4, 5, 6]
   end,
 
   get(self, n):
     doc: "Returns the nth element of this list, or raises an error if n is out of range"
     get-help(self, n)
+  where:
+    [list: 1, 2, 3].get(0) is 1
+    [list: ].get(0) raises ""
   end,
   set(self, n, e):
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set-help(self, n, e)
+  where:
+    [list: 1, 2, 3].set(0, 5) is [list: 5, 2, 3]
+    [list: ].set(0, 5) raises ""
   end
 end
 
