@@ -703,9 +703,9 @@ fun fold(f, base, lst :: List):
     fold(f, f(base, lst.first), lst.rest)
   end
 where:
-  fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
-  fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
-  fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
+  fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
+  fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
+  fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun fold2(f, base, l1 :: List, l2 :: List):
@@ -749,6 +749,18 @@ fun fold_n(f, num :: Number, base, lst :: List):
     end
   end
   help(num, base, lst)
+where:
+  lists.fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
+  lists.fold_n(lam(n, acc, cur):
+                  tostring(n) + " " + cur + ", " + acc
+               end,
+               99, "and so forth...", repeat(5, "jugs o' grog in the hold"))
+    is ```99 jugs o' grog in the hold, 98 jugs o' grog on the all,
+        97 jugs o' grog in the hold, 96 jugs o' grog in the hold,
+        96 jugs o' grog in the hold, and so forth...```
+  lists.fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
+               0, true, [list: false, true, false])
+    is true
 end
 
 index = get-help
