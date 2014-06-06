@@ -21,6 +21,27 @@ ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/
 LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
+# You can download the script to work with s3 here:
+# 
+#     http://aws.amazon.com/code/Amazon-S3/1710
+#
+# On Debian, you need the following packages:
+#
+#  - libterm-shellui-perl
+#  - liblog-log4perl-perl
+#  - libnet-amazon-s3-perl
+#  - libnet-amazon-perl
+#  - libnet-amazon-s3-tools-perl
+#  - parallel
+#
+# You will then need to place your AWS id and secret in ~/.aws, in the
+# following format:
+#
+#     id = <your aws id>
+#     secret = <your aws secret>
+#
+# Make sure that the s3 script is in your PATH, or modify the value
+# below.
 S3 = s3
 
 COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
@@ -343,6 +364,7 @@ release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR)/phase1
 	gzip -c $(PYRET_COMP) > $(RELEASE_DIR)/pyret.js
 	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
 	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
+# If you need information on using the s3 script, run `s3 --man'
 release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
