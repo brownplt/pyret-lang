@@ -12,6 +12,8 @@ docs/written/scribble*
 docs/written/*.css
 docs/compiled/
 docs/generated/
+docs/skeleton/
+docs/test-harness/
 
 build/phase1
 build/phase2

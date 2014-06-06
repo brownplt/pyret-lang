@@ -84,7 +84,9 @@ fun find-result(expr):
     | s-obj(_, _) => expr
     | s-block(_, stmts) => find-result(stmts.last())
     | s-let-expr(_, _, body) => find-result(body)
+    | s-type-let-expr(_, _, body) => find-result(body)
     | s-letrec(_, _, body) => find-result(body)
+    | s-module(_, _, _, _, _) => expr
     | else =>
       print("Got an expression we didn't expect:")
       print(torepr(expr))
@@ -166,7 +168,7 @@ fun lookup-value(value, bindings):
                   | none => v
                   | some(new-v) => help(seen, new-v)
                 end
-              | s-data-expr(_, name, _, _, variants, shared-members, _) =>
+              | s-data-expr(_, name, _, _, _, variants, shared-members, _) =>
                 if (name == field):
                   help-obj
                 else:
@@ -242,7 +244,7 @@ fun process-fields(module-name, fields, bindings):
         cross-refs := cross-refs.set(field, crossref(module-name, field))
       | s-singleton-variant(_, _, _) =>
         cross-refs := cross-refs.set(field, crossref(module-name, field))
-      | s-data-expr(_, _, _, _, _, _, _) =>
+      | s-data-expr(_, _, _, _, _, _, _, _) =>
         data-vals := data-vals.set(field, value)
         cross-refs := cross-refs.set(field, crossref(module-name, field))
       | else =>
@@ -287,7 +289,7 @@ fun process-ann(ann, file, fields, bindings):
             cases(Any) val:
               | crossref(modname, as-name) =>
                 sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
-              | s-data-expr(_, data-name, _, _, _, _, _) =>
+              | s-data-expr(_, data-name, _, _, _, _, _, _) =>
                 sexp("a-id", [list: leaf(torepr(name.toname())), xref(trim-path(file), data-name)])
               | else =>
                 if (val == name):
@@ -409,7 +411,7 @@ fun process-module(file, fields, bindings):
             ]))
       | s-lam(_, params, args, ret-ann, doc, _, _check) =>
         new-bindings = for fold(acc from bindings, param from params):
-          acc.set(param, param)
+          acc.set(param.tostring(), param.tostring()) # TODO: Fix this
         end
         at-exp("function", some(
             [list: leaf(torepr(name)) ] +
@@ -423,9 +425,9 @@ fun process-module(file, fields, bindings):
           none)
       | s-id(_, id) =>
         spair("unknown-item", spair("name", name))
-      | s-data-expr(_, data-name, params, _, variants, shared, _) =>
+      | s-data-expr(_, data-name, _, params, _, variants, shared, _) =>
         new-bindings = for fold(acc from bindings, param from params):
-          acc.set(param, param)
+          acc.set(param.tostring(), param.tostring()) # TODO: Fix this
         end
         at-exp("data-spec",
           some([list:  leaf(torepr(data-name)) ] +
@@ -501,26 +503,21 @@ cases (C.ParsedArguments) parsed-options:
         body = named.block
         result = find-result(body)
         cases(A.Expr) result:
-          | s-obj(_, res) =>
-            provides = res.find(lam(f): A.is-s-data-field(f) and A.is-s-str(f.name) and (f.name.s == "provide") end)
-            cases(Option) provides:
-              | none => print("Got a result object with no provides fields")
-              | some(p) =>
-                cases(A.Expr) find-result(p.value):
-                  | s-obj(_, fields) =>
-                    output = toplevel([list:
-                        hashlang("scribble/base"),
-                        at-app("require", [list: leaf(torepr(relative-dir(file) + "scribble-api.rkt"))]),
-                        process-module(file, process-fields(trim-path(file), fields, bindings), bindings)
-                      ])
-                    outputdoc = output.tosource().pretty(80)
-                    cases(List) more:
-                      | empty => outputdoc.each(print)
-                      | link(outfile, _) =>
-                        F.output-file(outfile, false).display(outputdoc.join-str("\n"))
-                    end
-                  | else => nothing
+          | s-module(_, _, provides, provides-types, _) =>
+            cases(A.Expr) provides:
+              | s-obj(_, fields) =>
+                output = toplevel([list:
+                    hashlang("scribble/base"),
+                    at-app("require", [list: leaf(torepr(relative-dir(file) + "scribble-api.rkt"))]),
+                    process-module(file, process-fields(trim-path(file), fields, bindings), bindings)
+                  ])
+                outputdoc = output.tosource().pretty(80)
+                cases(List) more:
+                  | empty => outputdoc.each(print)
+                  | link(outfile, _) =>
+                    F.output-file(outfile, false).display(outputdoc.join-str("\n"))
                 end
+              | else => nothing
             end
           | else => print("Got a result we didn't expect")
             print(torepr(result))
