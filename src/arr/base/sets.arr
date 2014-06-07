@@ -43,14 +43,19 @@ data AVLTree:
     fold(self, f, base): base end
     
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
-    height(self) -> Number: self.h end,
+    height(self) -> Number:
+      doc: "Returns the depth of the tree"
+      self.h
+    end,
     contains(self, val :: Any) -> Boolean:
+      doc: "Returns true of the tree contains val, otherwise returns false"
       if val == self.value: true
       else if val < self.value: self.left.contains(val)
       else: self.right.contains(val)
       end
     end,
     insert(self, val :: Any) -> AVLTree:
+      doc: "Returns a new tree containing val but otherwise equal"
       if val == self.value: mkbranch(val, self.left, self.right)
       else if val < self.value:
         rebalance(mkbranch(self.value, self.left.insert(val), self.right))
@@ -59,6 +64,7 @@ data AVLTree:
       end
     end,
     remove(self, val :: Any) -> AVLTree:
+      doc: "Returns a new tree without val but otherwise equal"
       if val == self.value: remove-root(self)
       else if val < self.value:
         rebalance(mkbranch(self.value, self.left.remove(val), self.right))
@@ -66,12 +72,28 @@ data AVLTree:
         rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
       end
     end,
-    preorder(self) -> lists.List: link(self.value, self.left.preorder() + self.right.preorder()) end,
-    inorder(self) -> lists.List: self.left.inorder() + link(self.value, self.right.inorder()) end,
-    postorder(self) -> lists.List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end,
-    fold(self, f, base): self.right.fold(f, self.left.fold(f, f(base, self.value))) end
+    preorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a preorder traversal"
+      link(self.value, self.left.preorder() + self.right.preorder())
+    end,
+    inorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a inorder traversal"
+      self.left.inorder() + link(self.value, self.right.inorder())
+    end,
+    postorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a postorder traversal"
+      self.left.postorder() + self.right.postorder() + link(self.value, empty)
+    end,
+    fold(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list```
+      self.right.fold(f, self.left.fold(f, f(base, self.value)))
+    end
 sharing:
-  to-list(self) -> lists.List: self.inorder() end,
+  to-list(self) -> lists.List:
+    doc: "Returns a list of all elements from a inorder traversal"
+    self.inorder()
+  end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
   end
