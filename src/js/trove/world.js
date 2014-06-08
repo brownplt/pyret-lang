@@ -8,7 +8,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
 
       // An Opaque is a Pyret concept for a value wrapping a hidden
       // implementation.  Check that a value is one of these, and internally is
-      // a WorlConfigOption
+      // a WorldConfigOption
       var isOpaqueWorldConfigOption = function(v) {
         return runtime.isOpaque(v) && isWorldConfigOption(v.val);
       }
