@@ -122,7 +122,11 @@
 (define (load-gen-docs)
   (let ([all-docs (filter (lambda(f)
                             (let ([str (path->string f)])
-                              (not (string=? (substring str (- (string-length str) 4)) ".bak")))
+                              (and
+                                (not (string=? (substring str (- (string-length str) 4)) ".bak"))
+                                (not (string=? (substring str (- (string-length str) 1)) "~"))
+                                (not (string=? (substring str 0 1) "."))
+                                ))
                             ) (directory-list GEN-BASE))])
     (let ([read-docs
            (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
@@ -277,7 +281,8 @@
    (let ([processing-module (curr-module-name)])
      (interleave-parbreaks/all
       (list (drop-anchor name)
-            (subsection  #:tag (tag-name (curr-module-name) name) name)
+            (subsection name)
+            (nested #:style (div-style "data-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
             (traverse-block ; use this to build xrefs on an early pass through docs
              (lambda (get set!)
                (set! 'doc-xrefs (cons (list name processing-module)
@@ -379,7 +384,7 @@
        (error 'function (format "Argument names not provided for name ~s" name)))
      ; if contract, check arity against generated
      (unless (or (not arity) (eq? arity (length argnames)))
-       (error 'function (format "Provided argument names do not match expected arity ~a" arity)))
+       (error 'function (format "Provided argument names do not match expected arity ~a ~a" arity name)))
      ;; render the scribble
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
@@ -414,11 +419,11 @@
                                       )
                                      (if doc (list doc) (list)))))
                            (nested #:style (div-style "description") contents)
-                           (nested #:style (div-style "examples")
-                                   (para (bold "Examples:"))
-                                   (if (andmap whitespace? examples)
-                                       "empty for now"
-                                       (pyret-block examples)))))))))))
+                           (if (andmap whitespace? examples)
+                             (nested #:style (div-style "examples") "")
+                             (nested #:style (div-style "examples")
+                                     (para (bold "Examples:"))
+                                     (pyret-block examples)))))))))))
      ))
 
 @(define (function name
@@ -431,7 +436,7 @@
    (let ([ans
           (render-fun-helper
            (find-doc (curr-module-name) name) name
-           (target-element #f (list name) (list 'part (tag-name (curr-module-name) name)))
+           (nested #:style (div-style "function-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
            contract args alt-docstrings examples contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)
