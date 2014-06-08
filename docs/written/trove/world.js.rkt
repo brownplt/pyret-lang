@@ -3,9 +3,7 @@
           "../abbrevs.rkt")
 @(define WC (a-id "WorldConfig" (xref "world" "WorldConfig")))
 @docmodule["world"]{
-  The Pyret world library is based on the universe teachpack in HtDP, and
-  borrows much of the language for documentation. You can find documentation
-  for the teachpack here:
+  The Pyret world library is based on the universe teachpack in HtDP, and borrows much of the language for documentation. You can find documentation for the teachpack here:
 
   @url["http://docs.racket-lang.org/teachpack/2htdpuniverse.html"]
 
