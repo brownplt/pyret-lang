@@ -1,10 +1,6 @@
 #lang scribble/base
-@(require "../../scribble-api.rkt")
+@(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@(define N (a-id "Number" (xref "<global>" "Number")))
-@(define B (a-id "Boolean" (xref "<global>" "Boolean")))
-@(define S (a-id "String" (xref "<global>" "String")))
-@(define L (a-id "List" (xref "lists" "List")))
 @docmodule["<global>"]{
   @section[#:tag "globals_DataTypes"]{Built-in Types}
    @data-spec["Boolean"]{
@@ -42,6 +38,21 @@
    @data-spec["Function"]{
      @para{
        The type of all function values
+     }
+   }
+   @data-spec["Method"]{
+     @para{
+       The type of all method values
+     }
+   }
+   @data-spec["RawArray"]{
+     @para{
+       The type of raw arrays: can be parameterized by type (as in @tt{RawArray<String>})
+     }
+   }
+   @data-spec["Object"]{
+     @para{
+       The type of all objects
      }
    }
 
@@ -188,10 +199,29 @@
   @function["string-tolower" #:contract (a-arrow S S)]{
 
   }
-  @function["string-explode" #:contract (a-arrow S L)]{
+  @function["string-explode" #:contract (a-arrow S (L-of S))]{
 
   }
   @function["string-index-of" #:contract (a-arrow S S N)]{
+
+  }
+
+  @function["raw-array-of" #:contract (a-arrow "a" N (RA-of "a"))]{
+
+  }
+  @function["raw-array-get" #:contract (a-arrow (RA-of "a") N "a")]{
+
+  }
+  @function["raw-array-set" #:contract (a-arrow (RA-of "a") N "a" (RA-of "a"))]{
+
+  }
+  @function["raw-array-length" #:contract (a-arrow (RA-of "a") N)]{
+
+  }
+  @function["raw-array-to-list" #:contract (a-arrow (RA-of "a") (L-of "a"))]{
+
+  }
+  @function["raw-array-fold" #:contract (a-arrow (a-arrow "b" "a" N) "b" (RA-of "a") N "b")]{
 
   }
 }

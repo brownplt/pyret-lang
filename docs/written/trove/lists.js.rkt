@@ -1,41 +1,8 @@
 #lang scribble/base
-@(require "../../scribble-api.rkt")
+@(require "../../scribble-api.rkt" "../abbrevs.rkt")
 @docmodule["lists"]{
   @; Unknown: PLEASE DOCUMENT
   @ignore[(list "list")]
-  @section[#:tag "lists_ReExports"]{Re-exported values}
-  @re-export["none" (from (xref "option" "none"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["option" "none"]}
-  }
-  @re-export["is-none" (from (xref "option" "is-none"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["option" "is-none"]}
-  }
-  @re-export["some" (from (xref "option" "some"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["option" "some"]}
-  }
-  @re-export["is-some" (from (xref "option" "is-some"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["option" "is-some"]}
-  }
-  @re-export["Option" (from (xref "option" "Option"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["option" "Option"]}
-  }
-  @re-export["left" (from (xref "either" "left"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["either" "left"]}
-  }
-  @re-export["right" (from (xref "either" "right"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["either" "right"]}
-  }
-  @re-export["Either" (from (xref "either" "Either"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["either" "Either"]}
-  }
   @section[#:tag "lists_DataTypes"]{Data types}
   @data-spec["List"]{
     @variants{
@@ -44,45 +11,32 @@
           @method-spec[
             "length"
             #:contract
-            (a-arrow
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Number" (xref "<global>" "Number")))
+            (a-arrow (L-of "a") N)
           ]{Returns the length of the list. Always zero for an empty.}
           @method-spec[
             "each"
             #:contract
-            (a-arrow
-              (a-id "List" (xref "lists" "List"))
-              (a-arrow "Any" (a-id "Nothing" (xref "<global>" "Nothing")))
-              (a-id "Nothing" (xref "<global>" "Nothing")))
+            (a-arrow (L-of "a") (a-arrow "a" No) No)
           ]
           @method-spec[
             "map"
             #:contract
-            (a-arrow
-              (a-id "List" (xref "lists" "List"))
-              (a-arrow "Any" "Any")
-              (a-id "List" (xref "lists" "List")))
+            (a-arrow (L-of "a") (a-arrow "a" "b") (L-of "a"))
           ]
           @method-spec[
             "filter"
             #:contract
-            (a-arrow
-              (a-id "List" (xref "lists" "List"))
-              (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-              (a-id "List" (xref "lists" "List")))
+            (a-arrow (L-of "a") (a-arrow "a" B) (L-of "a"))
           ]
           @method-spec[
             "find"
             #:contract
-            (a-arrow
-              (a-id "List" (xref "lists" "List"))
-              (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-              (a-id "Option" (xref "option" "Option")))
+            (a-arrow (L-of "a") (a-arrow "a" B) (O-of "a"))
           ]
           @method-spec[
             "partition"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            #:contract
+            (a-arrow (L-of "a") (a-arrow "a" B) (a-record (a-field "is-true" (L-of "a")) (a-field "is-false" (L-of "a"))))
           ]
           @method-spec[
             "foldr"
@@ -304,28 +258,6 @@
       reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
     }
   ]
-  @function[
-    "raw-fold"
-    #:contract (a-arrow "Any" "Any" (a-id "List" (xref "lists" "List")) "Any")
-    #:examples
-    '@{
-      raw-fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
-      raw-fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
-      raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
-    }
-    #:alt-docstrings '()
-  ]{
-
-    @pyret{raw-fold} applies a procedure, @pyret{f}, to combine or "fold" the elements of
-    a list into a single value.
-
-    @pyret{f} takes two arguments. The first is the result thus far, the second is the
-    current element of this list. @pyret{f} is initially invoked with base, and the first
-    item of each list, as there is no result thus far. Each element from left to right is
-    then successively fed to @pyret{f}, and the result of the whole @pyret{raw-fold}
-    application is the result of the last application of @pyret{f}. If the list is empty,
-    base is returned.
-  }
   @function[
     "range"
     #:contract (a-arrow "Any" "Any" "Any")

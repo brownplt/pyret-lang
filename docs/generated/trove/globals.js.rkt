@@ -21,6 +21,18 @@
     (name "Function")
     (variants)
     (shared))
+  (data-spec
+    (name "RawArray")
+    (variants)
+    (shared))
+  (data-spec
+    (name "Method")
+    (variants)
+    (shared))
+  (data-spec
+    (name "Object")
+    (variants)
+    (shared))
   (fun-spec
     (name "is-boolean")
     (arity 1)
@@ -233,5 +245,36 @@
     (name "string-index-of")
     (arity 2)
     (args ("original-string" "string-to-find"))
+    (doc ""))
+
+  (fun-spec
+    (name "raw-array-of")
+    (arity 2)
+    (args ("value" "count"))
+    (doc ""))
+  (fun-spec
+    (name "raw-array-get")
+    (arity 2)
+    (args ("array" "index"))
+    (doc ""))
+  (fun-spec
+    (name "raw-array-set")
+    (arity 3)
+    (args ("array" "index" "new-value"))
+    (doc ""))
+  (fun-spec
+    (name "raw-array-length")
+    (arity 1)
+    (args ("array"))
+    (doc ""))
+  (fun-spec
+    (name "raw-array-to-list")
+    (arity 1)
+    (args ("array"))
+    (doc ""))
+  (fun-spec
+    (name "raw-array-fold")
+    (arity 4)
+    (args ("f" "init" "array" "start-index"))
     (doc ""))
 )
