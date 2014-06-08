@@ -36,6 +36,13 @@ fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
   end
 end
 
+bad-imports = [list: "exec"]
+fun make-safe-imports(imps):
+  imps.filter(lam(i):
+    not(A.is-s-const-import(i.file) and bad-imports.member(i.file.mod))
+  end)
+end
+
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
@@ -46,12 +53,13 @@ fun make-provide-for-repl(p :: A.Program):
         A.a-field(l, name.toname(), A.a-name(l, name))
       end
       ids = A.toplevel-ids(p)
-      ids-plus-import-names = imports.map(_.name) + ids
+      safe-imports = make-safe-imports(imports)
+      ids-plus-import-names = safe-imports.map(_.name) + ids
       repl-provide = for map(id from ids-plus-import-names):
         df(id)
       end
       type-ids = A.block-type-ids(body)
-      type-ids-plus-import-names = imports.map(_.name) + type-ids.map(_.name)
+      type-ids-plus-import-names = safe-imports.map(_.name) + type-ids.map(_.name)
       repl-type-provide = for map(id from type-ids-plus-import-names):
         af(id)
       end
@@ -59,7 +67,7 @@ fun make-provide-for-repl(p :: A.Program):
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          imports,
+          safe-imports,
           body)
   end
 end
@@ -74,8 +82,9 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
       fun af(name):
         A.a-field(l, name.toname(), A.a-name(l, name))
       end
+      safe-imports = make-safe-imports(imports)
       ids = A.toplevel-ids(p)
-      ids-plus-import-names = imports.map(_.name) + ids
+      ids-plus-import-names = safe-imports.map(_.name) + ids
       repl-provide = for map(id from ids-plus-import-names):
         df(id)
       end
@@ -91,7 +100,7 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
         end
       end
       type-ids = A.block-type-ids(body)
-      type-ids-plus-import-names = imports.map(_.name) + type-ids.map(_.name)
+      type-ids-plus-import-names = safe-imports.map(_.name) + type-ids.map(_.name)
       repl-type-provide = for map(id from type-ids-plus-import-names):
         af(id)
       end
@@ -110,7 +119,7 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
           A.s-provide-types(l, env-type-provide),
-          imports,
+          safe-imports,
           body)
   end
 end
