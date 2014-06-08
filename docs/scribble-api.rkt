@@ -41,6 +41,7 @@
          a-record
          a-field
          a-app
+         a-pred
          a-dot
          members
          member-spec
@@ -347,6 +348,8 @@
    (if (cons? args) (seclink (first args) typ) typ))
 @(define (a-app base . typs)
    (append (list base "<") (add-between typs ", ") (list ">")))
+@(define (a-pred base refinement)
+   (list base "%(" refinement ")"))
 @(define (a-dot base field)
    (list base "." field))
 @(define (a-arrow . typs)
