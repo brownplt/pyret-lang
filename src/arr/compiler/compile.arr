@@ -33,7 +33,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
   when options.collect-all:
     when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
   end
-  wf = W.check-well-formed(ast-ended.orelse(ast))
+  wf = W.check-well-formed(ast-ended.or-else(ast))
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
   cases(C.CompileResult) wf:

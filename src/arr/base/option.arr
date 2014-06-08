@@ -5,7 +5,7 @@ provide-types *
 
 data Option:
   | none with:
-    orelse(self, v :: Any):
+    or-else(self, v :: Any):
       doc: "Return the default provided value"
       v
     end,
@@ -14,7 +14,7 @@ data Option:
       self
     end
   | some(value) with:
-    orelse(self, v :: Any):
+    or-else(self, v :: Any):
       doc: "Return self.value, rather than the default"
       self.value
     end,
@@ -23,9 +23,9 @@ data Option:
       f(self.value)
     end
 where:
-  none.orelse(1) is 1
+  none.or-else(1) is 1
   none.and-then(lam(x): x + 2 end) is none
 
-  some(5).orelse(0) is 5
+  some(5).or-else(0) is 5
   some(5).and-then(lam(x): some(x + 2) end) is some(7)
 end
