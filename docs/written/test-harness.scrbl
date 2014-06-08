@@ -3,7 +3,7 @@
 
 @title{Pyret Documentation}
 @include-section["trove/globals.scrbl"]
-@; @include-section["trove/lists.js.rkt"]
+@include-section["trove/lists.js.rkt"]
 @include-section["trove/srcloc.js.rkt"]
 @include-section["trove/option.js.rkt"]
 @include-section["trove/either.js.rkt"]
