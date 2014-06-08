@@ -1,6 +1,7 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt"
           scribble/manual)
+@(define Image (a-id "Image" (xref "image" "Image")))
 @docmodule["image"]{
   The Pyret images library is based on the images teachpack in HtDP, and borrows much of the language for documentation. You can find documentation for the teachpack here:
 
@@ -15,8 +16,7 @@
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("radius" "") 
                          '("mode" "") 
                          '("color" ""))]{
@@ -29,8 +29,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("width" "") 
                          '("height" "") 
                          '("mode" "") 
@@ -43,8 +42,7 @@
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("x" "") 
                          '("y" "") 
                          '("color" ""))]{
@@ -53,15 +51,13 @@
   }
   @function[
     "add-line"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("img" "") 
                          '("x1" "") 
                          '("y1" "") 
@@ -78,8 +74,7 @@
             #:contract (a-arrow (a-id "String" (xref "<global>" "String"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("string" "Text to draw.") 
                          '("size" "Font size in pixels.") 
                          '("color" "Color of text."))]{
@@ -96,8 +91,7 @@
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Bool" (xref "<global>" "Bool"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("string" "Text to draw") 
                          '("size" "Font size in pixels.") 
                          '("color" "Color of text.") 
@@ -121,8 +115,7 @@
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("mode" "") 
                          '("color" ""))]{
@@ -135,8 +128,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length1" "") 
                          '("side-length2" "") 
                          '("mode" "") 
@@ -151,8 +143,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("angle-c" "") 
                          '("mode" "") 
@@ -169,8 +160,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-a" "") 
                          '("side-b" "") 
                          '("side-c" "") 
@@ -186,8 +176,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("angle-a" "") '("side-b" "") '("side-c" "") '("mode" "") '("color" ""))]{
     Constructs an image of a triangle using the given angle and two sides. This
     function corresponds to @racket[(triangle/ass ...)] in HtDP.
@@ -199,8 +188,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-a" "") 
                          '("angle-b" "") 
                          '("side-c" "") 
@@ -216,8 +204,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-a" "") 
                          '("side-b" "") 
                          '("angle-c" "") 
@@ -233,8 +220,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("angle-a" "") 
                          '("angle-b" "") 
                          '("side-c" "") 
@@ -250,8 +236,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("angle-a" "") 
                          '("side-b" "") 
                          '("angle-c" "") 
@@ -267,8 +252,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-a" "") 
                          '("angle-b" "") 
                          '("angle-c" "") 
@@ -282,8 +266,7 @@
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("mode" "") 
                          '("color" ""))]{
@@ -295,8 +278,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("width" "") 
                          '("height" "") 
                          '("mode" "") 
@@ -310,8 +292,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("angle" "") 
                          '("mode" "") 
@@ -326,8 +307,7 @@
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("mode" "") 
                          '("color" ""))]{
@@ -341,8 +321,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("point-count" "") '("outer" "") '("inner" "") '("mode" "") '("color" ""))]{
     Constructs a star with @pyret["point-count"] points. The outer points will
     lie a distance of @pyret["outer"] from the center of the star, while the
@@ -355,8 +334,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("point-count" "") 
                          '("outer" "") 
                          '("inner" "") 
@@ -371,8 +349,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("side-length" "") 
                          '("point-count" "") 
                          '("step" "") 
@@ -391,8 +368,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "Color"  (xref "image-structs" "Color"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image)
             #:args (list '("length" "") 
                          '("count" "") 
                          '("mode" "") 
@@ -402,12 +378,9 @@
   @section{Overlaying Images}
   @function[
     "overlay"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image
+                                Image)
             #:args (list '("img1" "") 
                          '("img2" ""))]{
     Constructs a new image where @pyret["img1"] overlays @pyret["img2"]. 
@@ -416,12 +389,9 @@
     "overlay-align"
             #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
                                 (a-id "is-x-place" (xref "image" "is-x-place"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image
+                                Image)
             #:args (list '("place-x" "") 
                          '("place-y" "") 
                          '("img1" "") 
@@ -432,14 +402,11 @@
   }
   @function[
     "overlay-xy"
-            #:contract (a-arrow (a-pred "Any"
-                                       (a-id "is-image"  (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("img1" "") 
                          '("dx" "") 
                          '("dy" "") 
@@ -451,12 +418,9 @@
   }
   @function[
     "underlay"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image
+                                Image)
             #:args (list '("img1" "") 
                          '("img2" ""))]{
     Constructs a new image by placing @pyret["img1"] under @pyret["img2"].
@@ -465,12 +429,9 @@
     "underlay-align"
             #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
                                 (a-id "is-y-place" (xref "image" "is-y-place"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image
+                                Image)
             #:args (list '("place-x" "") 
                          '("place-y" "") 
                          '("img1" "") 
@@ -481,14 +442,11 @@
   }
   @function[
     "underlay-xy"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("img1" "") 
                          '("dx" "") 
                          '("dy" "") 
@@ -500,12 +458,9 @@
   }
   @function[
     "beside"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image
+                                Image)
             #:args (list '("img1" "") 
                          '("img2" ""))]{
     Constructs an image by placing @pyret["img1"] to the left of
@@ -514,12 +469,9 @@
   @function[
     "beside-align"
             #:contract (a-arrow (a-id "is-y-place" (xref "image" "is-y-place"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image
+                                Image)
             #:args (list '("place-y" "") 
                          '("img1" "") 
                          '("img2" ""))]{
@@ -529,24 +481,18 @@
   }
   @function[
     "above"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image
+                                Image)
             #:args (list '("img1" "") '("img2" ""))]{
     Constructs an image by placing @pyret["img1"] above @pyret["img2"].
   }
   @function[
     "above-align"
             #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image"))))
+                                Image
+                                Image
+                                Image)
             #:args (list '("place-x" "") 
                          '("img1" "") 
                          '("img2" ""))]{
@@ -565,8 +511,7 @@
   }
   @function[
     "put-image"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Scene"  (xref "image" "Scene"))
@@ -582,8 +527,7 @@
   }
   @function[
     "place-image"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Scene"  (xref "image" "Scene"))
@@ -599,8 +543,7 @@
   }
   @function[
     "place-image-align"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image"  (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "is-x-place" (xref "image" "is-x-place"))
@@ -641,10 +584,8 @@
   @function[
     "rotate"
             #:contract (a-arrow (a-id "Number"  (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("angle" "") 
                          '("img" ""))]{
     Rotates @pyret["img"] counter-clockwise by @pyret["angle"] degrees.
@@ -652,10 +593,8 @@
   @function[
     "scale"
             #:contract (a-arrow (a-id "Number"  (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("factor" "") 
                          '("img" ""))]{
     Scales @pyret["img"] by @pyret["factor"].
@@ -664,10 +603,8 @@
     "scale-xy"
             #:contract (a-arrow (a-id "Number"  (xref "<global>" "Number"))
                                 (a-id "Number"  (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("x-factor" "") 
                          '("y-factor" "") 
                          '("img" ""))]{
@@ -676,19 +613,15 @@
   }
   @function[
     "flip-horizontal"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image)
             #:args (list '("img" ""))]{
     Flips @pyret["img"] left to right.
   }
   @function[
     "flip-vertical"
-            #:contract (a-arrow (a-pred "Any" 
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image)
             #:args (list '("img" ""))]{
     Flips @pyret["img"] top to bottom.
   }
@@ -698,10 +631,8 @@
                                 (a-id "Number"  (xref "<global>" "Number"))
                                 (a-id "Number"  (xref "<global>" "Number"))
                                 (a-id "Number"  (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image
+                                Image)
             #:args (list '("x" "") 
                          '("y" "") 
                          '("width" "") 
@@ -712,10 +643,8 @@
   }
   @function[
     "frame"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+            #:contract (a-arrow Image
+                                Image)
             #:args (list '("img" ""))]{
     Construct an image similar to @pyret["img"], but with a black, single
     pixel frame draw around the bounding box of the image.
@@ -724,31 +653,27 @@
   @function[
     "open-image-url"
             #:contract (a-arrow (a-id "String" (xref "<global>" "String"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image)
             #:args (list '("url" ""))]{
     Loads the image specified by @pyret["url"].
   }
   @function[
     "image-url"
             #:contract (a-arrow (a-id "String" (xref "<global>" "String"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image)
             #:args (list '("url" ""))]{
     Loads the image specified by @pyret["url"].
   }
   @function[
     "bitmap-url"
             #:contract (a-arrow (a-id "String" (xref "<global>" "String"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image)
             #:args (list '("url" ""))]{
     Loads the image specified by @pyret["url"].
   }
   @function[
     "image-to-color-list"
-            #:contract (a-arrow (a-pred "Any" 
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-app (a-id "List" (xref "lists" "List"))
                                        (a-id "Color" (xref "image-structs" "Color"))))
             #:args (list '("image" ""))]{
@@ -764,8 +689,7 @@
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image)
             #:args (list '("list" "") 
                          '("width" "") 
                          '("height" "") 
@@ -781,8 +705,7 @@
                                        (a-id "Color" (xref "image-structs" "Color")))
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image"))))
+                                Image)
             #:args (list '("list" "") 
                          '("width" "") 
                          '("height" ""))]{
@@ -793,24 +716,21 @@
   @section{Image Properties}
   @function[
     "image-width"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number")))
             #:args (list '("img" ""))]{
     Returns the width of @pyret["img"].
   }
   @function[
     "image-height"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number")))
             #:args (list '("img" ""))]{
     Returns the height of @pyret["img"].
   }
   @function[
     "image-baseline"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number")))
             #:args (list '("img" ""))]{
     Returns the distance from the top of @pyret["img"] to its baseline. The
@@ -885,10 +805,8 @@
   @section{Image Equality}
   @function[
     "images-equal"
-            #:contract (a-arrow (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
-                                (a-pred "Any"
-                                        (a-id "is-image" (xref "image" "is-image")))
+            #:contract (a-arrow Image
+                                Image
                                 (a-id "Bool" (xref "<global>" "Bool")))
             #:args (list '("image1" "") 
                          '("image2" ""))]{
