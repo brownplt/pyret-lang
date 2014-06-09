@@ -608,13 +608,13 @@
     #:alt-docstrings '()
   ]{
 
-    @pyret{raw-fold} applies a procedure, @pyret{f}, to combine or "fold" the elements of
+    @pyret{fold} applies a procedure, @pyret{f}, to combine or "fold" the elements of
     a list into a single value.
 
     @pyret{f} takes two arguments. The first is the result thus far, the second is the
     current element of this list. @pyret{f} is initially invoked with base, and the first
     item of each list, as there is no result thus far. Each element from left to right is
-    then successively fed to @pyret{f}, and the result of the whole @pyret{raw-fold}
+    then successively fed to @pyret{f}, and the result of the whole @pyret{fold}
     application is the result of the last application of @pyret{f}. If the list is empty,
     base is returned.
   }
