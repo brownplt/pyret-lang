@@ -57,7 +57,8 @@ reserved-names = [list:
   "this",
   "match",
   "case",
-  "with"
+  "with",
+  "__proto__"
 ]
 
 
