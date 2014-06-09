@@ -38,8 +38,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
               })
           }));
 
-        same("{__proto__:5}", rt.makeObject({ "__proto__": rt.makeNumber(5) }));
-
         P.wait(done);
       });
 

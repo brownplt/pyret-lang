@@ -160,7 +160,14 @@
   }
   @section[#:tag "sets_Functions"]{Functions}
   @function[
-    "set"
+    "list-to-list-set"
+    #:contract
+    (a-arrow
+      (a-id "List" (xref "lists" "List"))
+      (a-id "Set" (xref "sets" "Set")))
+  ]
+  @function[
+    "list-to-tree-set"
     #:contract
     (a-arrow
       (a-id "List" (xref "lists" "List"))
