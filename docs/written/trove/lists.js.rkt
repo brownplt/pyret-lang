@@ -263,9 +263,9 @@
     #:contract (a-arrow "Any" "Any" "Any")
     #:examples
     '@{
-      range(0,0) is [list: ]
-      range(0,1) is [list: 0]
-      range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+      range(0, 0) is [list: ]
+      range(0, 1) is [list: 0]
+      range(-5, 5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
     }
   ]
   @function[
@@ -279,6 +279,7 @@
     '@{
       repeat(0, 10) is empty
       repeat(3, -1) is [list: -1, -1, -1]
+      repeat(1, "foo") is link("foo", empty)
     }
   ]
   @function[
@@ -286,8 +287,8 @@
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
-      filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-      filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
+      filter(lam(e): e > 5 end, [list: -1, 1]) is [list: ]
+      filter(lam(e): e > 0 end, [list: -1, 1]) is [list: 1]
     }
   ]
   @function[
@@ -295,8 +296,12 @@
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
-      partition(lam(e): e > 0;, [list: -1, 1])
-        is { is-true: [list: 1], is-false : [list: -1] }
+      partition(lam(e): e > 0 end, [list: -1, 1]) is
+        { "is-true": [list: 1], "is-false": [list: -1] }
+      partition(lam(e): e > 5 end, [list: -1, 1]) is
+        { "is-true": [list: ], "is-false": [list: -1, 1] }
+      partition(lam(e): e < 5 end, [list: -1, 1]) is
+        { "is-true": [list: -1, 1], "is-false": [list: ] }
     }
   ]
   @function[
@@ -309,6 +314,7 @@
     #:examples
     '@{
       find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
+      find(lam(elt): elt > 4 end, [list: 1, 2, 3]) is none
       find(lam(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
       find(lam(elt): true end, empty) is none
       find(lam(elt): false end, [list: "miss-me"]) is none
@@ -346,8 +352,8 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      any(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is true
-      any(lam(n): n > 3 end, link(1, link(2, link(3, empty)))) is false
+      any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
+      any(lam(n): n > 3 end, [list: 1, 2, 3]) is false
       any(lam(x): true end, empty) is false
       any(lam(x): false end, empty) is false
     }
@@ -361,8 +367,8 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all(lam(n): n > 1 end, link(1, link(2, link(3, empty)))) is false
-      all(lam(n): n <= 3 end, link(1, link(2, link(3, empty)))) is true
+      all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
+      all(lam(n): n <= 3 end, [list: 1, 2, 3]) is true
       all(lam(x): true end, empty) is true
       all(lam(x): false end, empty) is true
     }
@@ -377,18 +383,9 @@
       (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
-      all2(lam(n, m): n > m end,
-        link(1, link(2, link(3, empty))),
-        link(0, link(1, link(2, empty)))) is
-        true
-      all2(lam(n, m): (n + m) == 3 end,
-        link(1, link(2, link(3, empty))),
-        link(2, link(1, link(0, empty)))) is
-        true
-      all2(lam(n, m): n < m end,
-        link(1, link(2, link(3, empty))),
-        link(0, link(1, link(2, empty)))) is
-        false
+      all2(lam(n, m): n > m end, [list: 1, 2, 3], [list: 0, 1, 2]) is true
+      all2(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
+      all2(lam(n, m): n < m end, [list: 1, 2, 3], [list: 0, 1, 2]) is false
       all2(lam(_, _): true end, empty, empty) is true
       all2(lam(_, _): false end, empty, empty) is true
     }
@@ -398,7 +395,9 @@
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
-
+      map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
+      map(lam(_): 2 end, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
+      map(lam(x): x + 1 end, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
     }
   ]
   @function[
@@ -411,7 +410,12 @@
       "Any")
     #:examples
     '@{
-
+      map2(lam(_, _): raise("shipwrecked!") end,
+        [list: ],
+        [list: ]) is
+        [list: ]
+      map2(lam(x, y): x or y end, [list: true, false], [list: false, false]) is
+        [list: true, false]
     }
   ]
   @function[
@@ -423,10 +427,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "map4"
@@ -438,10 +438,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "map_n"
@@ -451,6 +447,10 @@
       (a-id "Number" (xref "<global>" "Number"))
       (a-id "List" (xref "lists" "List"))
       "Any")
+    #:examples
+    '@{
+      map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
+    }
   ]
   @function[
     "map2_n"
@@ -461,10 +461,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "map3_n"
@@ -476,10 +472,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "map4_n"
@@ -492,17 +484,24 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "each"
     #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
-
+      let one-four = [list: 1, 2, 3, 4]:
+        let  var counter = 0:
+          each(lam(n): counter := counter + n end, one-four)
+          counter is 1 + 2 + 3 + 4
+          counter is 10
+        end
+        let  var counter = 1:
+          each(lam(n): counter := counter * n end, one-four)
+          counter is 1 * 2 * 3 * 4
+          counter is 24
+        end
+      end
     }
   ]
   @function[
@@ -513,10 +512,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "each3"
@@ -527,10 +522,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "each4"
@@ -542,10 +533,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "each_n"
@@ -580,10 +567,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "each4_n"
@@ -596,15 +579,17 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function["fold-while" #:contract (a-arrow "Any" "Any" "Any" "Any")]
   @function[
     "fold"
     #:contract (a-arrow "Any" "Any" (a-id "List" (xref "lists" "List")) "Any")
+    #:examples
+    '@{
+      fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
+      fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
+      fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+    }
     #:alt-docstrings '()
   ]{
 
@@ -627,10 +612,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "fold3"
@@ -642,10 +623,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "fold4"
@@ -658,10 +635,6 @@
       (a-id "List" (xref "lists" "List"))
       (a-id "List" (xref "lists" "List"))
       "Any")
-    #:examples
-    '@{
-
-    }
   ]
   @function[
     "fold_n"
@@ -674,15 +647,26 @@
       "Any")
     #:examples
     '@{
-
+      fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is
+        1 * 2 * 3 * 4
+      fold_n(lam(n, acc, cur): tostring(n) + " " + cur + ", " + acc end,
+        95,
+        "and so forth...",
+        repeat(5, "jugs o' grog in the hold")) is
+        "99 jugs o' grog in the hold, 98 jugs o' grog in the hold, "
+        +
+        "97 jugs o' grog in the hold, 96 jugs o' grog in the hold, "
+          +
+          "95 jugs o' grog in the hold, and so forth..."
+      fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
+        0,
+        true,
+        [list: false, true, false]) is
+        true
     }
   ]
   @function[
     "index"
     #:contract (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any")
-    #:examples
-    '@{
-
-    }
   ]
 }
