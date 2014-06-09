@@ -166,7 +166,7 @@
 
 ;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define css-js-additions (list "foo.css"))
+(define css-js-additions (list "style.css"))
 
 (define (div-style name)
   (make-style name (cons (make-alt-tag "div") css-js-additions)))

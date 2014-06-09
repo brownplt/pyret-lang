@@ -40,10 +40,10 @@
   @section[#:tag "option_Functions"]{Functions}
   @function[
     "is-none"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
+    #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))
   ]
   @function[
     "is-some"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
+    #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))
   ]
 }
