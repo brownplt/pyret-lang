@@ -47,8 +47,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
       it("multiple statements on a line", function(done) {
         P.checkCompileErrorMsg("fun f(x): f x end", "Found two expressions on the same line");
-        P.checkCompileErrorMsg("fun f(x): f (x) end\n10", "Found two expressions on the same line");
-        P.checkEvalsTo("fun f(x): f\n (x) end", rt.makeNumber(10));
+        P.checkCompileErrorMsg("fun f(x): f (x) end", "Found two expressions on the same line");
+        P.checkEvalsTo("fun f(x): f\n (x) end\n10", rt.makeNumber(10));
         P.wait(done);
       });
       it("malformed blocks", function(done) {
