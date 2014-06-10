@@ -10,6 +10,14 @@
   Differences in function names and their corresponding Racket equivalent
   are noted where appropriate.
 
+  @section[#:tag "image_DataTypes"]{Data Types}
+  @data-spec["Image"]{
+    There are no accessible constructors available.
+  }
+  @data-spec["Scene"]{
+    There are no accessible constructors available.
+  }
+
   @section{Basic Images}
   @function[
     "circle"

@@ -14,6 +14,7 @@ docs/compiled/
 docs/generated/
 docs/skeleton/
 docs/test-harness/
+docs/written/test-harness/
 docs/*.arr.js
 
 build/phase1

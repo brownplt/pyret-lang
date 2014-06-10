@@ -7,6 +7,11 @@
 
   @url["http://docs.racket-lang.org/teachpack/2htdpuniverse.html"]
 
+  @section[#:tag "image_DataTypes"]{Data Types}
+  @data-spec["WorldConfig"]{
+    There are no accessible constructors available.
+  }
+
   @section{Functions}
   @function["big-bang"
             #:contract (a-arrow "a"
