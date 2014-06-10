@@ -11,11 +11,6 @@ PHASE0           = build/phase0
 PHASE1           = build/phase1
 PHASE2           = build/phase2
 PHASE3           = build/phase3
-
-PHASE1_PREV      = $(PHASE0)
-PHASE2_PREV      = $(PHASE1)
-PHASE3_PREV      = $(PHASE2)
-
 WEB              = build/web
 RELEASE_DIR      = build/release
 DOCS             = docs
@@ -99,15 +94,25 @@ WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 # laying (and lying) around to confuse future make
 .DELETE_ON_ERROR:
 
-define MAIN_TARGETS
-.PHONY : phase$(1)
-phase$(1): $$(PHASE$(1))/phase$(1).built
+# MAIN TARGET
+.PHONY : phase1
+phase1: $(PHASE1)/phase1.built
 
-$$(PHASE$(1))/phase$(1).built: $$(PYRET_COMP) $$(PHASE$(1)_ALL_DEPS) $$(patsubst src/%,$$(PHASE$(1))/%,$$(PARSERS)) $$(PHASE$(1))/pyret-start.js $$(PHASE$(1))/main-wrapper.js
-	touch $$(PHASE$(1))/phase$(1).built
-endef
+$(PHASE1)/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
+	touch $(PHASE1)/phase1.built
 
-$(foreach phase_number,1 2 3,$(eval $(call MAIN_TARGETS,$(phase_number))))
+.PHONY : phase2
+phase2: $(PHASE2)/phase2.built
+
+$(PHASE2)/phase2.built: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
+	touch $(PHASE2)/phase2.built
+
+.PHONY : phase3
+phase3: $(PHASE3)/phase3.built
+
+$(PHASE3)/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
+	touch $(PHASE3)/phase3.built
+
 
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
@@ -115,12 +120,14 @@ $(PHASE2_ALL_DEPS): | $(PHASE2) phase1
 
 $(PHASE3_ALL_DEPS): | $(PHASE3) phase2
 
-define STANDALONE
 .PHONY : standalone1
-standalone1: phase$(1) $$(PHASE$(1))/pyret.js
-endef
+standalone1: phase1 $(PHASE1)/pyret.js
 
-$(foreach phase_number,1 2 3,$(eval $(call STANDALONE,$(phase_number))))
+.PHONY : standalone2
+standalone2: phase2 $(PHASE2)/pyret.js
+
+.PHONY : standalone3
+standalone3: phase3 $(PHASE3)/pyret.js
 
 .PHONY : web
 web: $(WEB_TARGETS) $(WEB)/web-compile.js
@@ -140,28 +147,66 @@ $(WEB)/web-compile.js: $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS
 	cd $(PHASE2) && \
 	node ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
 
-define MORE_RULES
-$$(PHASE$(1)):
-	@$$(call MKDIR,$$(PHASE$(1)_DIRS))
+$(PHASE1):
+	@$(call MKDIR,$(PHASE1_DIRS))
 
-$$(PHASE$(1))/pyret.js: $$(PHASE$(1)_ALL_DEPS) $$(PHASE$(1))/pyret-start.js
-	cd $$(PHASE$(1)) && \
+$(PHASE2):
+	@$(call MKDIR,$(PHASE2_DIRS))
+
+$(PHASE3):
+	@$(call MKDIR,$(PHASE3_DIRS))
+
+$(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
+	cd $(PHASE1) && \
 		node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
 
-$$(PHASE$(1))/pyret-start.js: src/scripts/pyret-start.js
-	cp $$< $$@
 
-$$(PHASE$(1))/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
-	cp $$< $$@
+$(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
+	cd $(PHASE2) && \
+		node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
 
-$$(PHASE$(1))/main-wrapper.js: src/scripts/main-wrapper.js
-	cp $$< $$@
+$(PHASE3)/pyret.js: $(PHASE3_ALL_DEPS) $(PHASE3)/pyret-start.js
+	cd $(PHASE3) && \
+		node ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
 
-$$(PHASE$(1))/$$(JS)/%-parser.js: src/$$(JSBASE)/%-grammar.bnf src/$$(JSBASE)/%-tokenizer.js $$(wildcard lib/jglr/*.js)
-	node lib/jglr/parser-generator.js src/$$(JSBASE)/$$*-grammar.bnf $$(PHASE$(1))/$$(JS)/$$*-grammar.js
-	node $$(PHASE$(1))/$$(JS)/$$*-grammar.js $$(PHASE$(1))/$$(JS)/$$*-parser.js
-endef
-$(foreach phase_number,1 2 3,$(eval $(call MORE_RULES,$(phase_number))))
+$(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
+	cp $< $@
+
+$(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
+	cp $< $@
+
+$(PHASE3)/pyret-start.js: src/scripts/pyret-start.js
+	cp $< $@
+
+$(PHASE1)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
+$(PHASE2)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
+$(PHASE3)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+	cp $< $@
+
+$(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
+	cp $< $@
+
+$(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
+	cp $< $@
+
+$(PHASE3)/main-wrapper.js: src/scripts/main-wrapper.js
+	cp $< $@
+
+$(PHASE1)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE1)/$(JS)/$*-grammar.js
+	node $(PHASE1)/$(JS)/$*-grammar.js $(PHASE1)/$(JS)/$*-parser.js
+
+$(PHASE2)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE2)/$(JS)/$*-grammar.js
+	node $(PHASE2)/$(JS)/$*-grammar.js $(PHASE2)/$(JS)/$*-parser.js
+
+$(PHASE3)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	node lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE3)/$(JS)/$*-grammar.js
+	node $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
 
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
@@ -199,25 +244,48 @@ $(DOCS)/skeleton/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton
 $(DOCS)/skeleton/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
 	node $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
 
+
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
 $(PHASE3)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
-define MAIN_IMPLICITS
-$$(PHASE$(1))/trove/%.js : src/$$(JSTROVE)/%.js
-	cp $$< $$@
+$(PHASE1)/trove/%.js : src/$(JSTROVE)/%.js
+	cp $< $@
 
-$$(PHASE$(1))/$$(COMPILER)/%.arr.js : src/$$(COMPILER)/%.arr $$(PYRET_COMP)
-	node $$(PHASE$(1)_PREV)/main-wrapper.js --compile-module-js $$< > $$@
+$(PHASE2)/trove/%.js : src/$(JSTROVE)/%.js
+	cp $< $@
 
-$$(PHASE$(1))/trove/%.js: src/$$(BASE)/%.arr $$(PYRET_COMP)
-	node $$(PHASE$(1)_PREV)/main-wrapper.js --compile-module-js $$< -library > $$@
+$(PHASE3)/trove/%.js : src/$(JSTROVE)/%.js
+	cp $< $@
 
-$$(PHASE$(1))/trove/%.js: src/$$(TROVE)/%.arr $$(PYRET_COMP)
-endef
-$(foreach phase_number,1 2 3,$(eval $(call MAIN_IMPLICITS,$(phase_number))))
+$(PHASE1)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PYRET_COMP)
+	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
+
+$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE1_ALL_DEPS)
+	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+
+$(PHASE3)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE2_ALL_DEPS)
+	node $(PHASE2)/main-wrapper.js --compile-module-js $< > $@
+
+$(PHASE1)/trove/%.js: src/$(BASE)/%.arr $(PYRET_COMP)
+	node $(PHASE0)/main-wrapper.js --compile-module-js $< -library > $@
+
+$(PHASE2)/trove/%.js: src/$(BASE)/%.arr $(PHASE1_ALL_DEPS)
+	node $(PHASE1)/main-wrapper.js --compile-module-js $< -library > $@
+
+$(PHASE3)/trove/%.js: src/$(BASE)/%.arr $(PHASE2_ALL_DEPS)
+	node $(PHASE2)/main-wrapper.js --compile-module-js $< -library > $@
+
+$(PHASE1)/trove/%.js: src/$(TROVE)/%.arr $(PYRET_COMP)
+	node $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
+
+$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr $(PHASE1_ALL_DEPS)
+	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+
+$(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
+	node $(PHASE2)/main-wrapper.js --compile-module-js $< > $@
 
 .PHONY : install
 install:
