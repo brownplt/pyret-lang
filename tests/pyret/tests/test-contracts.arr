@@ -118,7 +118,7 @@ check "should work for records":
     { p: "x :: { x :: Number } = { x : 'foo' }", f: [list: "x"] },
     { p: "x :: { r :: { y :: String } } = { r: { y: 5 } }", f: [list: "y", "r"] },
     { p: "x :: { r :: Number } = { r: { y: 5 } }", f: [list: "r"] },
-    { p: "type-let R = { x :: Number }: x :: R = { r: lam(v): v end } x end",
+    { p: "type-let R = { x :: Number }: x :: R = { r: lam(v): v end }\n x end",
       f: [list: "x"] },
     { p: "x :: { y :: Number } = {}", f: [list: "y"] },
     { p: "x :: { x :: Number, y :: Number } = { x: 'foo' }", f: [list: "y"] },
@@ -175,8 +175,8 @@ end
 
 check "should bind types":
   contract-errors = [list:
-    "type-let N = Number: x :: N = 'foo' x end",
-    "type-let S = String, N = Number: x :: (S -> N) = 'foo' x end"
+    "type-let N = Number: x :: N = 'foo'\n x end",
+    "type-let S = String, N = Number: x :: (S -> N) = 'foo'\n x end"
   ]
   for each(program from contract-errors):
     result = run-str(program)
@@ -191,13 +191,13 @@ check "should bind types":
 end
 
 check "should work for lambda-bound annotations":
-  run-str("fun f(x :: Number): x end f('foo')") satisfies is-contract-error-str
-  run-str("fun f(x) -> Number: x end f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x :: Number): x end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x) -> Number: x end\n f('foo')") satisfies is-contract-error-str
 end
 
 check "should work for method-bound annotations":
-  run-str("o = { m(self, x :: Number): x end } o.m('foo')") satisfies is-contract-error-str
-  run-str("o = { m(self, x) -> Number: x end } o.m('foo')") satisfies is-contract-error-str
+  run-str("o = { m(self, x :: Number): x end }\n o.m('foo')") satisfies is-contract-error-str
+  run-str("o = { m(self, x) -> Number: x end }\n o.m('foo')") satisfies is-contract-error-str
 end
 
 

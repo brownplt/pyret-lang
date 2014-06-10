@@ -89,17 +89,17 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       });
 
       it("should bind types", function(done) {
-        P.checkError("type-let N = Number: x :: N = 'foo' x end", isFail);
-        P.checkError("type-let S = String, N = Number: x :: (S -> N) = 'foo' x end", isFail);
+        P.checkError("type-let N = Number: x :: N = 'foo'\n x end", isFail);
+        P.checkError("type-let S = String, N = Number: x :: (S -> N) = 'foo'\n x end", isFail);
 
-        P.checkEvalsTo("type-let N = Number: x :: N = 5 x end", 5);
+        P.checkEvalsTo("type-let N = Number: x :: N = 5\n x end", 5);
         P.wait(done);
       });
     })
 
     describe("compiler", function() {
       it("should signal an error when the compile fails", function(done) {
-        P.checkCompileError("lam(): x = 5 y = 10 end", function(e) {
+        P.checkCompileError("lam(): x = 5\n y = 10 end", function(e) {
             expect(e.length).toEqual(1);
             return true;
           });
@@ -120,7 +120,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
     describe("shadowing", function() {
       it("should notice shadowed builtins", function(done) {
-        P.checkCompileError("lam(x): x = 5 x end", function(e) {
+        P.checkCompileError("lam(x): x = 5\n x end", function(e) {
           expect(e.length).toEqual(1);
           return true;
         });

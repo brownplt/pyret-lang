@@ -45,6 +45,12 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
       });
+      it("multiple statements on a line", function(done) {
+        P.checkCompileErrorMsg("fun f(x): f x end", "Found two expressions on the same line");
+        P.checkCompileErrorMsg("fun f(x): f (x) end\n10", "Found two expressions on the same line");
+        P.checkEvalsTo("fun f(x): f\n (x) end", rt.makeNumber(10));
+        P.wait(done);
+      });
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 
@@ -64,8 +70,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
         P.checkCompileErrorMsg("lam(): var x = 5 end", "Cannot end a block in a var-binding");
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("lam(): x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("lam(): var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): x = 5\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): var x = 5\n y = 4\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
         P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
