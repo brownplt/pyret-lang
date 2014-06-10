@@ -19,6 +19,7 @@ list"], and we'll be happy to help.  }
 @include-section["trove/globals.scrbl"]
 
 @include-section["trove/lists.js.rkt"]
+@include-section["trove/sets.js.rkt"]
 @include-section["trove/option.js.rkt"]
 @include-section["trove/either.js.rkt"]
 

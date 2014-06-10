@@ -1,25 +1,25 @@
-PYRET_COMP = build/phase0/pyret.js
-CLOSURE = java -jar deps/closure-compiler/compiler.jar
-JS = js
-JSBASE = $(JS)/base
-JSTROVE = $(JS)/trove
-BASE = arr/base
-TROVE = arr/trove
-COMPILER = arr/compiler
+PYRET_COMP       = build/phase0/pyret.js
+CLOSURE          = java -jar deps/closure-compiler/compiler.jar
+JS               = js
+JSBASE           = $(JS)/base
+JSTROVE          = $(JS)/trove
+BASE             = arr/base
+TROVE            = arr/trove
+COMPILER         = arr/compiler
 
-PHASE0 = build/phase0
-PHASE1 = build/phase1
-PHASE2 = build/phase2
-PHASE3 = build/phase3
-WEB = build/web
-RELEASE_DIR = build/release
-DOCS = docs
+PHASE0           = build/phase0
+PHASE1           = build/phase1
+PHASE2           = build/phase2
+PHASE3           = build/phase3
+WEB              = build/web
+RELEASE_DIR      = build/release
+DOCS             = docs
 
 # CUSTOMIZE THESE IF NECESSARY
-SRC_JS := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
-ROOT_LIBS = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
-LIBS_JS := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
-PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
+SRC_JS          := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
+ROOT_LIBS        = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
+LIBS_JS         := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
+PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
 # You can download the script to work with s3 here:
 # 
@@ -37,16 +37,16 @@ PARSERS := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard sr
 # You will then need to place your AWS id and secret in ~/.aws, in the
 # following format:
 #
-#     id = <your aws id>
+#     id     = <your aws id>
 #     secret = <your aws secret>
 #
 # Make sure that the s3 script is in your PATH, or modify the value
 # below.
-S3 = s3
+S3               = s3
 
-COPY_JS = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
+COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
-TROVE_JS = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
+TROVE_JS         = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
 
 PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
@@ -54,13 +54,13 @@ PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_
 
 PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
 
-DOCS_DEPS = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
-DOCS_SKEL_DEPS = $(patsubst src/%,$(DOCS)/skeleton/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
+DOCS_DEPS        = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
+DOCS_SKEL_DEPS   = $(patsubst src/%,$(DOCS)/skeleton/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
 
-PHASE1_DIRS := $(sort $(dir $(PHASE1_ALL_DEPS)))
-PHASE2_DIRS := $(sort $(dir $(PHASE2_ALL_DEPS)))
-PHASE3_DIRS := $(sort $(dir $(PHASE3_ALL_DEPS)))
-DOCS_DIRS := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
+PHASE1_DIRS     := $(sort $(dir $(PHASE1_ALL_DEPS)))
+PHASE2_DIRS     := $(sort $(dir $(PHASE2_ALL_DEPS)))
+PHASE3_DIRS     := $(sort $(dir $(PHASE3_ALL_DEPS)))
+DOCS_DIRS       := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
