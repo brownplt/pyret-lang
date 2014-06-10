@@ -253,11 +253,13 @@
 ;; this function does the actual work after syntax expansion
 @(define (docmodule-internal name
                              #:friendly-title (friendly-title #f)
+                             #:noimport (noimport #f)
                              . defs)
    (interleave-parbreaks/all
     (list (title #:tag (tag-name name) (or friendly-title name))
-          (para "Usage:")
-          (nested #:style (pre-style "code") "import " name " as ...")
+          (if noimport ""
+                       (list (para "Usage:")
+                             (nested #:style (pre-style "code") "import " name " as ...")))
           (interleave-parbreaks/all defs))))
 
 @(define (lod . assocLst)

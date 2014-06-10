@@ -1,7 +1,7 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@docmodule["<global>"]{
+@docmodule["<global>" #:noimport #t]{
   @section[#:tag "globals_DataTypes"]{Built-in Types}
    @data-spec["Boolean"]{
      @nested{
