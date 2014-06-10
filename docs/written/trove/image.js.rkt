@@ -12,10 +12,20 @@
 
   @section[#:tag "image_DataTypes"]{Data Types}
   @data-spec["Image"]{
-    There are no accessible constructors available.
+    @para{
+        This datatype is abstract, and its implementation details (such as
+        it constructors) are not exposed directly; use one of the functions
+        described below to construct an @secref[(tag-name "image" "Image")]
+        instead.
+    }
   }
   @data-spec["Scene"]{
-    There are no accessible constructors available.
+    @para{
+        This datatype is abstract, and its implementation details (such as
+        it constructors) are not exposed directly; use one of the functions
+        described below to construct a @secref[(tag-name "image" "Scene")]
+        instead.
+    }
   }
 
   @section{Basic Images}

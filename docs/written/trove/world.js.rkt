@@ -9,7 +9,12 @@
 
   @section[#:tag "image_DataTypes"]{Data Types}
   @data-spec["WorldConfig"]{
-    There are no accessible constructors available.
+    @para{
+        This datatype is abstract, and its implementation details (such
+        as it constructors) are not exposed directly; use one of the
+        functions described below to construct a @secref[(tag-name "world"
+        "WorldConfig")] instead.
+    }
   }
 
   @section{Functions}
