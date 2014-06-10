@@ -44,7 +44,7 @@ data List:
     end,
 
     partition(self, f):
-      doc: ```Takes a predicate and returns an object wgith two fields:
+      doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
       { is-true: empty, is-false: empty }

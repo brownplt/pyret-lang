@@ -1,6 +1,118 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt")
 @docmodule["ast"]{
+  @; Ignored type testers
+  @ignore[
+    (list
+      "is-s-underscore"
+      "is-s-name"
+      "is-s-global"
+      "is-s-type-global"
+      "is-s-atom"
+      "is-s-program"
+      "is-s-import"
+      "is-s-import-types"
+      "is-s-import-fields"
+      "is-s-provide"
+      "is-s-provide-all"
+      "is-s-provide-none"
+      "is-s-provide-types"
+      "is-s-provide-types-all"
+      "is-s-provide-types-none"
+      "is-s-file-import"
+      "is-s-const-import"
+      "is-h-use-loc"
+      "is-s-let-bind"
+      "is-s-var-bind"
+      "is-s-letrec-bind"
+      "is-s-type-bind"
+      "is-s-newtype-bind"
+      "is-s-module"
+      "is-s-type-let-expr"
+      "is-s-let-expr"
+      "is-s-letrec"
+      "is-s-hint-exp"
+      "is-s-instantiate"
+      "is-s-block"
+      "is-s-user-block"
+      "is-s-fun"
+      "is-s-type"
+      "is-s-newtype"
+      "is-s-var"
+      "is-s-let"
+      "is-s-graph"
+      "is-s-contract"
+      "is-s-when"
+      "is-s-assign"
+      "is-s-if-pipe"
+      "is-s-if-pipe-else"
+      "is-s-if"
+      "is-s-if-else"
+      "is-s-cases"
+      "is-s-cases-else"
+      "is-s-try"
+      "is-s-op"
+      "is-s-check-test"
+      "is-s-paren"
+      "is-s-lam"
+      "is-s-method"
+      "is-s-extend"
+      "is-s-update"
+      "is-s-obj"
+      "is-s-array"
+      "is-s-construct"
+      "is-s-confirm"
+      "is-s-bless"
+      "is-s-app"
+      "is-s-prim-app"
+      "is-s-prim-val"
+      "is-s-id"
+      "is-s-id-var"
+      "is-s-id-letrec"
+      "is-s-undefined"
+      "is-s-srcloc"
+      "is-s-num"
+      "is-s-frac"
+      "is-s-bool"
+      "is-s-str"
+      "is-s-dot"
+      "is-s-get-bang"
+      "is-s-bracket"
+      "is-s-data"
+      "is-s-data-expr"
+      "is-s-for"
+      "is-s-check"
+      "is-s-construct-normal"
+      "is-s-construct-lazy"
+      "is-s-bind"
+      "is-s-data-field"
+      "is-s-mutable-field"
+      "is-s-once-field"
+      "is-s-method-field"
+      "is-s-for-bind"
+      "is-s-normal"
+      "is-s-cyclic"
+      "is-s-mutable"
+      "is-s-variant-member"
+      "is-s-variant"
+      "is-s-singleton-variant"
+      "is-s-datatype-variant"
+      "is-s-datatype-singleton-variant"
+      "is-s-datatype-constructor"
+      "is-s-if-branch"
+      "is-s-if-pipe-branch"
+      "is-s-cases-branch"
+      "is-a-blank"
+      "is-a-any"
+      "is-a-name"
+      "is-a-arrow"
+      "is-a-method"
+      "is-a-record"
+      "is-a-app"
+      "is-a-pred"
+      "is-a-dot"
+      "is-a-field")
+  ]
   @; Unknown: PLEASE DOCUMENT
   @ignore[
     (list
@@ -13,6 +125,7 @@
       "str-as"
       "str-blank"
       "str-let"
+      "str-type-let"
       "str-letrec"
       "str-block"
       "str-brackets"
@@ -50,7 +163,9 @@
       "str-bang"
       "str-pipespace"
       "str-provide"
+      "str-provide-types"
       "str-provide-star"
+      "str-provide-types-star"
       "str-sharing"
       "str-space"
       "str-spacecolonequal"
@@ -60,6 +175,10 @@
       "str-try"
       "str-use-loc"
       "str-var"
+      "str-newtype"
+      "str-type"
+      "str-bless"
+      "str-confirm"
       "str-val"
       "str-when"
       "str-where"
@@ -69,153 +188,181 @@
       "default-iter-visitor"
       "dummy-loc-visitor")
   ]
-  @section[#:tag "ast_ReExports"]{Re-exported values}
-  @re-export["Loc" (from (xref "srcloc" "Srcloc"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["srcloc" "Srcloc"]}
-  }
-  @re-export["loc" (from (xref "srcloc" "srcloc"))]{
-    @; N.B. need para here to keep xref inline with text
-    @para{See @xref["srcloc" "srcloc"]}
-  }
   @section[#:tag "ast_DataTypes"]{Data types}
   @data-spec["Name"]{
     @variants{
       @constr-spec["s-underscore"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"]}
         @with-members{
           @method-spec[
             "to-compiled-source"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "to-compiled"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "toname"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "key"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
         }
       }
       @constr-spec["s-name"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "s"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["s"]}
         @with-members{
           @method-spec[
             "to-compiled-source"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "to-compiled"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "toname"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "key"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
         }
       }
       @constr-spec["s-global"]{
-        @members{
-          @member-spec[
-            "s"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["s"]}
         @with-members{
           @method-spec[
             "to-compiled-source"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "to-compiled"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "toname"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "key"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-type-global"]{
+        @members{@member-spec["s"]}
+        @with-members{
+          @method-spec[
+            "to-compiled-source"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+          @method-spec[
+            "to-compiled"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+          @method-spec[
+            "tostring"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+          @method-spec[
+            "toname"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
+          ]
+          @method-spec[
+            "key"
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
         }
       }
       @constr-spec["s-atom"]{
-        @members{
-          @member-spec[
-            "base"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "serial"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-        }
+        @members{@member-spec["base"] @member-spec["serial"]}
         @with-members{
           @method-spec[
             "to-compiled-source"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "to-compiled"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "toname"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
           @method-spec[
             "key"
-            #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any")
+            ;; N.B. Pyret contract: (Name -> Any)
+            
           ]
         }
       }
@@ -223,52 +370,52 @@
     @shared{
       @method-spec[
         "_lessthan"
-        #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any" "Any")
+        ;; N.B. Pyret contract: (Name, Any -> Any)
+        
       ]
       @method-spec[
         "_lessequal"
-        #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any" "Any")
+        ;; N.B. Pyret contract: (Name, Any -> Any)
+        
       ]
       @method-spec[
         "_greaterthan"
-        #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any" "Any")
+        ;; N.B. Pyret contract: (Name, Any -> Any)
+        
       ]
       @method-spec[
         "_greaterequal"
-        #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any" "Any")
+        ;; N.B. Pyret contract: (Name, Any -> Any)
+        
       ]
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Name" (xref "ast" "Name")) "Any" "Any")
+        ;; N.B. Pyret contract: (Name, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Program"]{
     @variants{
       @constr-spec["s-program"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "_provide"
-            #:contract (a-id "Provide" (xref "ast" "Provide"))
-          ]
-          @member-spec[
-            "imports"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Import" (xref "ast" "Import")))
-          ]
-          @member-spec["block" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["_provide"]
+          @member-spec["provided-types"]
+          @member-spec["imports"]
+          @member-spec["block"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Program" (xref "ast" "Program")) "Any")
+            ;; N.B. Pyret contract: (Program -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Program" (xref "ast" "Program")) "Any")
+            ;; N.B. Pyret contract: (Program -> Any)
+            
           ]
         }
       }
@@ -276,55 +423,61 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Program" (xref "ast" "Program")) "Any" "Any")
+        ;; N.B. Pyret contract: (Program, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Import"]{
     @variants{
       @constr-spec["s-import"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "file"
-            #:contract (a-id "ImportType" (xref "ast" "ImportType"))
+        @members{@member-spec["l"] @member-spec["file"] @member-spec["name"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Import -> Any)
+            
           ]
-          @member-spec["name" #:contract (a-id "Name" (xref "ast" "Name"))]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Import -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-import-types"]{
+        @members{
+          @member-spec["l"]
+          @member-spec["file"]
+          @member-spec["name"]
+          @member-spec["types"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Import" (xref "ast" "Import")) "Any")
+            ;; N.B. Pyret contract: (Import -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Import" (xref "ast" "Import")) "Any")
+            ;; N.B. Pyret contract: (Import -> Any)
+            
           ]
         }
       }
       @constr-spec["s-import-fields"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Name" (xref "ast" "Name")))
-          ]
-          @member-spec[
-            "file"
-            #:contract (a-id "ImportType" (xref "ast" "ImportType"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["fields"] @member-spec["file"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Import" (xref "ast" "Import")) "Any")
+            ;; N.B. Pyret contract: (Import -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Import" (xref "ast" "Import")) "Any")
+            ;; N.B. Pyret contract: (Import -> Any)
+            
           ]
         }
       }
@@ -332,55 +485,56 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Import" (xref "ast" "Import")) "Any" "Any")
+        ;; N.B. Pyret contract: (Import, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Provide"]{
     @variants{
       @constr-spec["s-provide"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["block" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["block"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
         }
       }
       @constr-spec["s-provide-all"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
         }
       }
       @constr-spec["s-provide-none"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any")
+            ;; N.B. Pyret contract: (Provide -> Any)
+            
           ]
         }
       }
@@ -388,51 +542,98 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Provide" (xref "ast" "Provide")) "Any" "Any")
+        ;; N.B. Pyret contract: (Provide, Any -> Any)
+        
       ]
     }
   }
-  @data-spec["ImportType"]{
+  
+  @data-spec["ProvideTypes"]{
     @variants{
-      @constr-spec["s-file-import"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "file"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+      @constr-spec["s-provide-types"]{
+        @members{@member-spec["l"] @member-spec["ann"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "ImportType" (xref "ast" "ImportType")) "Any")
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "ImportType" (xref "ast" "ImportType")) "Any")
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-provide-types-all"]{
+        @members{@member-spec["l"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-provide-types-none"]{
+        @members{@member-spec["l"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (ProvideTypes -> Any)
+            
+          ]
+        }
+      }
+    }
+    @shared{
+      @method-spec[
+        "visit"
+        ;; N.B. Pyret contract: (ProvideTypes, Any -> Any)
+        
+      ]
+    }
+  }
+  
+  @data-spec["ImportType"]{
+    @variants{
+      @constr-spec["s-file-import"]{
+        @members{@member-spec["l"] @member-spec["file"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (ImportType -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (ImportType -> Any)
+            
           ]
         }
       }
       @constr-spec["s-const-import"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "mod"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["mod"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "ImportType" (xref "ast" "ImportType")) "Any")
+            ;; N.B. Pyret contract: (ImportType -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "ImportType" (xref "ast" "ImportType")) "Any")
+            ;; N.B. Pyret contract: (ImportType -> Any)
+            
           ]
         }
       }
@@ -440,21 +641,21 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "ImportType" (xref "ast" "ImportType")) "Any" "Any")
+        ;; N.B. Pyret contract: (ImportType, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Hint"]{
     @variants{
       @constr-spec["h-use-loc"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"]}
         @with-members{
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Hint" (xref "ast" "Hint")) "Any")
+            ;; N.B. Pyret contract: (Hint -> Any)
+            
           ]
         }
       }
@@ -462,35 +663,31 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Hint" (xref "ast" "Hint")) "Any" "Any")
+        ;; N.B. Pyret contract: (Hint, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["LetBind"]{
     @variants{
       @constr-spec["s-let-bind"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["b" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["b"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "LetBind" (xref "ast" "LetBind")) "Any")
+            ;; N.B. Pyret contract: (LetBind -> Any)
+            
           ]
         }
       }
       @constr-spec["s-var-bind"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["b" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["b"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "LetBind" (xref "ast" "LetBind")) "Any")
+            ;; N.B. Pyret contract: (LetBind -> Any)
+            
           ]
         }
       }
@@ -498,23 +695,21 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "LetBind" (xref "ast" "LetBind")) "Any" "Any")
+        ;; N.B. Pyret contract: (LetBind, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["LetrecBind"]{
     @variants{
       @constr-spec["s-letrec-bind"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["b" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["b"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "LetrecBind" (xref "ast" "LetrecBind")) "Any")
+            ;; N.B. Pyret contract: (LetrecBind -> Any)
+            
           ]
         }
       }
@@ -522,1147 +717,970 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "LetrecBind" (xref "ast" "LetrecBind")) "Any" "Any")
+        ;; N.B. Pyret contract: (LetrecBind, Any -> Any)
+        
       ]
     }
   }
+  
+  @data-spec["TypeLetBind"]{
+    @variants{
+      @constr-spec["s-type-bind"]{
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["ann"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (TypeLetBind -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (TypeLetBind -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-newtype-bind"]{
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["namet"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (TypeLetBind -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (TypeLetBind -> Any)
+            
+          ]
+        }
+      }
+    }
+    @shared{
+      @method-spec[
+        "visit"
+        ;; N.B. Pyret contract: (TypeLetBind, Any -> Any)
+        
+      ]
+    }
+  }
+  
   @data-spec["Expr"]{
     @variants{
-      @constr-spec["s-let-expr"]{
+      @constr-spec["s-module"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "binds"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "LetBind" (xref "ast" "LetBind")))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["answer"]
+          @member-spec["provides"]
+          @member-spec["types"]
+          @member-spec["checks"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-type-let-expr"]{
+        @members{@member-spec["l"] @member-spec["binds"] @member-spec["body"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-let-expr"]{
+        @members{@member-spec["l"] @member-spec["binds"] @member-spec["body"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-letrec"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "binds"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "LetrecBind" (xref "ast" "LetrecBind")))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["binds"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-hint-exp"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "hints"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Hint" (xref "ast" "Hint")))
-          ]
-          @member-spec["exp" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["hints"] @member-spec["exp"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-instantiate"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["expr" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "params"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Ann" (xref "ast" "Ann")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["expr"] @member-spec["params"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-block"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "stmts"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["stmts"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-user-block"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-fun"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "params"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Bind" (xref "ast" "Bind")))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "doc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["params"]
+          @member-spec["args"]
+          @member-spec["ann"]
+          @member-spec["doc"]
+          @member-spec["body"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-type"]{
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["ann"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-newtype"]{
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["namet"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-var"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-let"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "keyword-val"
-            #:contract (a-id "Bool" (xref "<global>" "Bool"))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["value"]
+          @member-spec["keyword-val"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-graph"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "bindings"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "is-s-let" (xref "ast" "is-s-let")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["bindings"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-contract"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Name" (xref "ast" "Name"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-        }
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["ann"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-when"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["test" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["block" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["test"] @member-spec["block"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-assign"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["id"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-if-pipe"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["branches"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-if-pipe-else"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch")))
-          ]
-          @member-spec["_else" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["branches"]
+          @member-spec["_else"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-if"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "IfBranch" (xref "ast" "IfBranch")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["branches"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-if-else"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "IfBranch" (xref "ast" "IfBranch")))
-          ]
-          @member-spec["_else" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["branches"]
+          @member-spec["_else"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-cases"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["typ" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["val" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "CasesBranch" (xref "ast" "CasesBranch")))
-          ]
+          @member-spec["l"]
+          @member-spec["typ"]
+          @member-spec["val"]
+          @member-spec["branches"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-cases-else"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["typ" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["val" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "branches"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "CasesBranch" (xref "ast" "CasesBranch")))
-          ]
-          @member-spec["_else" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["typ"]
+          @member-spec["val"]
+          @member-spec["branches"]
+          @member-spec["_else"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-try"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["id" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["_except" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["body"]
+          @member-spec["id"]
+          @member-spec["_except"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-op"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "op"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["left" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["right" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["op"]
+          @member-spec["left"]
+          @member-spec["right"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-check-test"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "op"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["left" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["right" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["op"]
+          @member-spec["left"]
+          @member-spec["right"]
         }
         @with-members{
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-paren"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["expr" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["expr"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-lam"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "params"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Bind" (xref "ast" "Bind")))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "doc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["params"]
+          @member-spec["args"]
+          @member-spec["ann"]
+          @member-spec["doc"]
+          @member-spec["body"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-method"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Bind" (xref "ast" "Bind")))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "doc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["args"]
+          @member-spec["ann"]
+          @member-spec["doc"]
+          @member-spec["body"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-extend"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["supe" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["supe"] @member-spec["fields"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-update"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["supe" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["supe"] @member-spec["fields"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-obj"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["fields"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-array"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "values"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["values"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-construct"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "modifier"
-            #:contract
-            (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-          ]
-          @member-spec[
-            "constructor"
-            #:contract (a-id "Expr" (xref "ast" "Expr"))
-          ]
-          @member-spec[
-            "values"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["modifier"]
+          @member-spec["constructor"]
+          @member-spec["values"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-confirm"]{
+        @members{@member-spec["l"] @member-spec["expr"] @member-spec["typ"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+        }
+      }
+      @constr-spec["s-bless"]{
+        @members{@member-spec["l"] @member-spec["expr"] @member-spec["typ"]}
+        @with-members{
+          @method-spec[
+            "label"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
+          ]
+          @method-spec[
+            "tosource"
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-app"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["_fun" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["_fun"] @member-spec["args"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-prim-app"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "_fun"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["_fun"] @member-spec["args"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-prim-val"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["name"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-id"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-        }
+        @members{@member-spec["l"] @member-spec["id"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-id-var"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-        }
+        @members{@member-spec["l"] @member-spec["id"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-id-letrec"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-          @member-spec[
-            "safe"
-            #:contract (a-id "Boolean" (xref "<global>" "Boolean"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["id"] @member-spec["safe"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-undefined"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-srcloc"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["loc" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-        }
+        @members{@member-spec["l"] @member-spec["loc"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-num"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "n"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["n"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-frac"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "num"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "den"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["num"] @member-spec["den"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-bool"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["b" #:contract (a-id "Bool" (xref "<global>" "Bool"))]
-        }
+        @members{@member-spec["l"] @member-spec["b"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-str"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "s"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["s"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-dot"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["obj" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "field"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-get-bang"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["obj" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "field"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-bracket"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["obj" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["field" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-data"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "params"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "mixins"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-          @member-spec[
-            "variants"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Variant" (xref "ast" "Variant")))
-          ]
-          @member-spec[
-            "shared-members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["params"]
+          @member-spec["mixins"]
+          @member-spec["variants"]
+          @member-spec["shared-members"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-data-expr"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "params"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "mixins"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
-          @member-spec[
-            "variants"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Variant" (xref "ast" "Variant")))
-          ]
-          @member-spec[
-            "shared-members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["namet"]
+          @member-spec["params"]
+          @member-spec["mixins"]
+          @member-spec["variants"]
+          @member-spec["shared-members"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-for"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["iterator" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "bindings"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "ForBind" (xref "ast" "ForBind")))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["iterator"]
+          @member-spec["bindings"]
+          @member-spec["ann"]
+          @member-spec["body"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
       @constr-spec["s-check"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "keyword-check"
-            #:contract (a-id "Bool" (xref "<global>" "Bool"))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["body"]
+          @member-spec["keyword-check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any")
+            ;; N.B. Pyret contract: (Expr -> Any)
+            
           ]
         }
       }
@@ -1670,27 +1688,25 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Expr" (xref "ast" "Expr")) "Any" "Any")
+        ;; N.B. Pyret contract: (Expr, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["ConstructModifier"]{
     @variants{
       @singleton-spec["s-construct-normal"]{
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-              "Any")
+            ;; N.B. Pyret contract: (ConstructModifier -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-              "Any")
+            ;; N.B. Pyret contract: (ConstructModifier -> Any)
+            
           ]
         }
       }
@@ -1698,17 +1714,13 @@
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-              "Any")
+            ;; N.B. Pyret contract: (ConstructModifier -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-              "Any")
+            ;; N.B. Pyret contract: (ConstructModifier -> Any)
+            
           ]
         }
       }
@@ -1716,34 +1728,31 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow
-          (a-id "ConstructModifier" (xref "ast" "ConstructModifier"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (ConstructModifier, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Bind"]{
     @variants{
       @constr-spec["s-bind"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "shadows"
-            #:contract (a-id "Bool" (xref "<global>" "Bool"))
-          ]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
+          @member-spec["l"]
+          @member-spec["shadows"]
+          @member-spec["id"]
+          @member-spec["ann"]
         }
         @with-members{
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Bind" (xref "ast" "Bind")) "Any")
+            ;; N.B. Pyret contract: (Bind -> Any)
+            
           ]
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Bind" (xref "ast" "Bind")) "Any")
+            ;; N.B. Pyret contract: (Bind -> Any)
+            
           ]
         }
       }
@@ -1751,94 +1760,84 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Bind" (xref "ast" "Bind")) "Any" "Any")
+        ;; N.B. Pyret contract: (Bind, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Member"]{
     @variants{
       @constr-spec["s-data-field"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
         }
       }
       @constr-spec["s-mutable-field"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["ann"]
+          @member-spec["value"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
         }
       }
       @constr-spec["s-once-field"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["ann"]
+          @member-spec["value"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
         }
       }
       @constr-spec["s-method-field"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["name" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Bind" (xref "ast" "Bind")))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "doc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec[
-            "_check"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "Expr" (xref "ast" "Expr")))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["args"]
+          @member-spec["ann"]
+          @member-spec["doc"]
+          @member-spec["body"]
+          @member-spec["_check"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any")
+            ;; N.B. Pyret contract: (Member -> Any)
+            
           ]
         }
       }
@@ -1846,26 +1845,26 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Member" (xref "ast" "Member")) "Any" "Any")
+        ;; N.B. Pyret contract: (Member, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["ForBind"]{
     @variants{
       @constr-spec["s-for-bind"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["bind" #:contract (a-id "Bind" (xref "ast" "Bind"))]
-          @member-spec["value" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["bind"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "ForBind" (xref "ast" "ForBind")) "Any")
+            ;; N.B. Pyret contract: (ForBind -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "ForBind" (xref "ast" "ForBind")) "Any")
+            ;; N.B. Pyret contract: (ForBind -> Any)
+            
           ]
         }
       }
@@ -1873,27 +1872,25 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "ForBind" (xref "ast" "ForBind")) "Any" "Any")
+        ;; N.B. Pyret contract: (ForBind, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["VariantMemberType"]{
     @variants{
       @singleton-spec["s-normal"]{
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
         }
       }
@@ -1901,17 +1898,13 @@
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
         }
       }
@@ -1919,17 +1912,13 @@
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-              "Any")
+            ;; N.B. Pyret contract: (VariantMemberType -> Any)
+            
           ]
         }
       }
@@ -1937,36 +1926,30 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow
-          (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (VariantMemberType, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["VariantMember"]{
     @variants{
       @constr-spec["s-variant-member"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "member-type"
-            #:contract
-            (a-id "VariantMemberType" (xref "ast" "VariantMemberType"))
-          ]
-          @member-spec["bind" #:contract (a-id "Bind" (xref "ast" "Bind"))]
+          @member-spec["l"]
+          @member-spec["member-type"]
+          @member-spec["bind"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "VariantMember" (xref "ast" "VariantMember")) "Any")
+            ;; N.B. Pyret contract: (VariantMember -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "VariantMember" (xref "ast" "VariantMember")) "Any")
+            ;; N.B. Pyret contract: (VariantMember -> Any)
+            
           ]
         }
       }
@@ -1974,76 +1957,51 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow
-          (a-id "VariantMember" (xref "ast" "VariantMember"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (VariantMember, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Variant"]{
     @variants{
       @constr-spec["s-variant"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "constr-loc"
-            #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))
-          ]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "VariantMember" (xref "ast" "VariantMember")))
-          ]
-          @member-spec[
-            "with-members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
+          @member-spec["l"]
+          @member-spec["constr-loc"]
+          @member-spec["name"]
+          @member-spec["members"]
+          @member-spec["with-members"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Variant" (xref "ast" "Variant")) "Any")
+            ;; N.B. Pyret contract: (Variant -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Variant" (xref "ast" "Variant")) "Any")
+            ;; N.B. Pyret contract: (Variant -> Any)
+            
           ]
         }
       }
       @constr-spec["s-singleton-variant"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "with-members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Member" (xref "ast" "Member")))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["with-members"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Variant" (xref "ast" "Variant")) "Any")
+            ;; N.B. Pyret contract: (Variant -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Variant" (xref "ast" "Variant")) "Any")
+            ;; N.B. Pyret contract: (Variant -> Any)
+            
           ]
         }
       }
@@ -2051,74 +2009,50 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Variant" (xref "ast" "Variant")) "Any" "Any")
+        ;; N.B. Pyret contract: (Variant, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["DatatypeVariant"]{
     @variants{
       @constr-spec["s-datatype-variant"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "members"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "VariantMember" (xref "ast" "VariantMember")))
-          ]
-          @member-spec[
-            "constructor"
-            #:contract (a-id "Constructor" (xref "ast" "Constructor"))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["members"]
+          @member-spec["constructor"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-              "Any")
+            ;; N.B. Pyret contract: (DatatypeVariant -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-              "Any")
+            ;; N.B. Pyret contract: (DatatypeVariant -> Any)
+            
           ]
         }
       }
       @constr-spec["s-datatype-singleton-variant"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "constructor"
-            #:contract (a-id "Constructor" (xref "ast" "Constructor"))
-          ]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["constructor"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow
-              (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-              "Any")
+            ;; N.B. Pyret contract: (DatatypeVariant -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-              "Any")
+            ;; N.B. Pyret contract: (DatatypeVariant -> Any)
+            
           ]
         }
       }
@@ -2126,35 +2060,26 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow
-          (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (DatatypeVariant, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Constructor"]{
     @variants{
       @constr-spec["s-datatype-constructor"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "self"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["self"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "Constructor" (xref "ast" "Constructor")) "Any")
+            ;; N.B. Pyret contract: (Constructor -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "Constructor" (xref "ast" "Constructor")) "Any")
+            ;; N.B. Pyret contract: (Constructor -> Any)
+            
           ]
         }
       }
@@ -2162,27 +2087,26 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "Constructor" (xref "ast" "Constructor")) "Any" "Any")
+        ;; N.B. Pyret contract: (Constructor, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["IfBranch"]{
     @variants{
       @constr-spec["s-if-branch"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["test" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["test"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "IfBranch" (xref "ast" "IfBranch")) "Any")
+            ;; N.B. Pyret contract: (IfBranch -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "IfBranch" (xref "ast" "IfBranch")) "Any")
+            ;; N.B. Pyret contract: (IfBranch -> Any)
+            
           ]
         }
       }
@@ -2190,29 +2114,26 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "IfBranch" (xref "ast" "IfBranch")) "Any" "Any")
+        ;; N.B. Pyret contract: (IfBranch, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["IfPipeBranch"]{
     @variants{
       @constr-spec["s-if-pipe-branch"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["test" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["test"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch")) "Any")
+            ;; N.B. Pyret contract: (IfPipeBranch -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch")) "Any")
+            ;; N.B. Pyret contract: (IfPipeBranch -> Any)
+            
           ]
         }
       }
@@ -2220,39 +2141,31 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch")) "Any" "Any")
+        ;; N.B. Pyret contract: (IfPipeBranch, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["CasesBranch"]{
     @variants{
       @constr-spec["s-cases-branch"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Bind" (xref "ast" "Bind")))
-          ]
-          @member-spec["body" #:contract (a-id "Expr" (xref "ast" "Expr"))]
+          @member-spec["l"]
+          @member-spec["name"]
+          @member-spec["args"]
+          @member-spec["body"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract
-            (a-arrow (a-id "CasesBranch" (xref "ast" "CasesBranch")) "Any")
+            ;; N.B. Pyret contract: (CasesBranch -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow (a-id "CasesBranch" (xref "ast" "CasesBranch")) "Any")
+            ;; N.B. Pyret contract: (CasesBranch -> Any)
+            
           ]
         }
       }
@@ -2260,22 +2173,25 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract
-        (a-arrow (a-id "CasesBranch" (xref "ast" "CasesBranch")) "Any" "Any")
+        ;; N.B. Pyret contract: (CasesBranch, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["Ann"]{
     @variants{
       @singleton-spec["a-blank"]{
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
@@ -2283,159 +2199,123 @@
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-name"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["id" #:contract (a-id "Name" (xref "ast" "Name"))]
-        }
+        @members{@member-spec["l"] @member-spec["id"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-arrow"]{
         @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Ann" (xref "ast" "Ann")))
-          ]
-          @member-spec["ret" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "use-parens"
-            #:contract (a-id "Bool" (xref "<global>" "Bool"))
-          ]
+          @member-spec["l"]
+          @member-spec["args"]
+          @member-spec["ret"]
+          @member-spec["use-parens"]
         }
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-method"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Ann" (xref "ast" "Ann")))
-          ]
-          @member-spec["ret" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-        }
+        @members{@member-spec["l"] @member-spec["args"] @member-spec["ret"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-record"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "AField" (xref "ast" "AField")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["fields"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-app"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "Ann" (xref "ast" "Ann")))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["ann"] @member-spec["args"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-pred"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-          @member-spec["exp" #:contract (a-id "Expr" (xref "ast" "Expr"))]
-        }
+        @members{@member-spec["l"] @member-spec["ann"] @member-spec["exp"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
       @constr-spec["a-dot"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec["obj" #:contract (a-id "Name" (xref "ast" "Name"))]
-          @member-spec[
-            "field"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["l"] @member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any")
+            ;; N.B. Pyret contract: (Ann -> Any)
+            
           ]
         }
       }
@@ -2443,29 +2323,26 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "Ann" (xref "ast" "Ann")) "Any" "Any")
+        ;; N.B. Pyret contract: (Ann, Any -> Any)
+        
       ]
     }
   }
+  
   @data-spec["AField"]{
     @variants{
       @constr-spec["a-field"]{
-        @members{
-          @member-spec["l" #:contract (a-id "Loc" (xref "srcloc" "Srcloc"))]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec["ann" #:contract (a-id "Ann" (xref "ast" "Ann"))]
-        }
+        @members{@member-spec["l"] @member-spec["name"] @member-spec["ann"]}
         @with-members{
           @method-spec[
             "label"
-            #:contract (a-arrow (a-id "AField" (xref "ast" "AField")) "Any")
+            ;; N.B. Pyret contract: (AField -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract (a-arrow (a-id "AField" (xref "ast" "AField")) "Any")
+            ;; N.B. Pyret contract: (AField -> Any)
+            
           ]
         }
       }
@@ -2473,627 +2350,20 @@
     @shared{
       @method-spec[
         "visit"
-        #:contract (a-arrow (a-id "AField" (xref "ast" "AField")) "Any" "Any")
+        ;; N.B. Pyret contract: (AField, Any -> Any)
+        
       ]
     }
   }
-  @data-spec["Pair"]{
-    @variants{
-      @constr-spec["pair"]{
-        @members{
-          @member-spec["l" #:contract "Any"]
-          @member-spec["r" #:contract "Any"]
-        }
-        @with-members{}
-      }
-    }
-    @shared{}
-  }
+  
   @section[#:tag "ast_Functions"]{Functions}
-  @function[
-    "is-s-underscore"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-name"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-global"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-atom"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function["MakeName" #:contract (a-arrow "Any" "Any")]
-  @function[
-    "funlam-tosource"
-    #:contract
-    (a-arrow
-      "Any"
-      "Any"
-      "Any"
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "Bind" (xref "ast" "Bind")))
-      (a-id "Ann" (xref "ast" "Ann"))
-      (a-id "String" (xref "<global>" "String"))
-      (a-id "Expr" (xref "ast" "Expr"))
-      (a-app
-        (a-id "Option" (xref "option" "Option"))
-        (a-id "Expr" (xref "ast" "Expr")))
-      (a-compound (a-dot "PP" "PPrintDoc") (xref "pprint" "PPrintDoc")))
-  ]
-  @function[
-    "is-s-program"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-import"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-import-fields"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-provide"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-provide-all"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-provide-none"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-file-import"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-const-import"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-h-use-loc"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-let-bind"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-var-bind"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-letrec-bind"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-let-expr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-letrec"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-hint-exp"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-instantiate"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-block"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-user-block"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-fun"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-var"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-let"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-graph"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-contract"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-when"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-assign"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if-pipe"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if-pipe-else"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if-else"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-cases"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-cases-else"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-try"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-op"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-check-test"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-paren"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-lam"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-method"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-extend"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-update"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-obj"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-array"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-construct"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-app"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-prim-app"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-prim-val"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-id"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-id-var"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-id-letrec"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-undefined"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-srcloc"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-num"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-frac"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-bool"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-str"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-dot"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-get-bang"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-bracket"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-data"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-data-expr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-for"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-check"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-construct-normal"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-construct-lazy"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-bind"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-data-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-mutable-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-once-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-method-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-for-bind"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-normal"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-cyclic"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-mutable"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-variant-member"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-variant"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-singleton-variant"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-datatype-variant"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-datatype-singleton-variant"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-datatype-constructor"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if-branch"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-if-pipe-branch"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-s-cases-branch"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-blank"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-any"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-name"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-arrow"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-method"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-record"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-app"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-pred"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-dot"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-a-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function["make-checker-name" #:contract (a-arrow "Any" "Any")]
-  @function[
-    "flatten"
-    #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
-  ]
-  @function[
-    "binding-ids"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "Name" (xref "ast" "Name"))))
-  ]
-  @function[
-    "block-ids"
-    #:contract
-    (a-arrow
-      (a-id "is-s-block" (xref "ast" "is-s-block"))
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "Name" (xref "ast" "Name"))))
-  ]
-  @function[
-    "toplevel-ids"
-    #:contract
-    (a-arrow
-      (a-id "Program" (xref "ast" "Program"))
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "Name" (xref "ast" "Name"))))
-  ]
-  @function[
-    "is-pair"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function["length-andmap" #:contract (a-arrow "Any" "Any" "Any" "Any")]
-  @function[
-    "equiv-ast-prog"
-    #:contract
-    (a-arrow
-      (a-id "Program" (xref "ast" "Program"))
-      (a-id "Program" (xref "ast" "Program"))
-      "Any")
-  ]
-  @function[
-    "equiv-name"
-    #:contract
-    (a-arrow
-      (a-id "Name" (xref "ast" "Name"))
-      (a-id "Name" (xref "ast" "Name"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-member"
-    #:contract
-    (a-arrow
-      (a-id "Member" (xref "ast" "Member"))
-      (a-id "Member" (xref "ast" "Member"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-bind"
-    #:contract
-    (a-arrow
-      (a-id "Bind" (xref "ast" "Bind"))
-      (a-id "Bind" (xref "ast" "Bind"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-for-binding"
-    #:contract
-    (a-arrow
-      (a-id "ForBind" (xref "ast" "ForBind"))
-      (a-id "ForBind" (xref "ast" "ForBind"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-if-branch"
-    #:contract
-    (a-arrow
-      (a-id "IfBranch" (xref "ast" "IfBranch"))
-      (a-id "IfBranch" (xref "ast" "IfBranch"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-if-pipe-branch"
-    #:contract
-    (a-arrow
-      (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch"))
-      (a-id "IfPipeBranch" (xref "ast" "IfPipeBranch"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-cases-branch"
-    #:contract
-    (a-arrow
-      (a-id "CasesBranch" (xref "ast" "CasesBranch"))
-      (a-id "CasesBranch" (xref "ast" "CasesBranch"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-variant-member"
-    #:contract
-    (a-arrow
-      (a-id "VariantMember" (xref "ast" "VariantMember"))
-      (a-id "VariantMember" (xref "ast" "VariantMember"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-variant"
-    #:contract
-    (a-arrow
-      (a-id "Variant" (xref "ast" "Variant"))
-      (a-id "Variant" (xref "ast" "Variant"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-datatype-variant"
-    #:contract
-    (a-arrow
-      (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-      (a-id "DatatypeVariant" (xref "ast" "DatatypeVariant"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-constructor"
-    #:contract
-    (a-arrow
-      (a-id "Constructor" (xref "ast" "Constructor"))
-      (a-id "Constructor" (xref "ast" "Constructor"))
-      "Any")
-  ]
-  @function["equiv-ast-ann" #:contract (a-arrow "Any" "Any" "Any")]
-  @function[
-    "equiv-ast-fun"
-    #:contract
-    (a-arrow
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any"
-      "Any")
-  ]
-  @function[
-    "equiv-ast-provide"
-    #:contract
-    (a-arrow
-      (a-id "Provide" (xref "ast" "Provide"))
-      (a-id "Provide" (xref "ast" "Provide"))
-      "Any")
-  ]
-  @function["equiv-import-type" #:contract (a-arrow "Any" "Any" "Any")]
-  @function[
-    "equiv-ast-import"
-    #:contract
-    (a-arrow
-      (a-id "Import" (xref "ast" "Import"))
-      (a-id "Import" (xref "ast" "Import"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-let-bind"
-    #:contract
-    (a-arrow
-      (a-id "LetBind" (xref "ast" "LetBind"))
-      (a-id "LetBind" (xref "ast" "LetBind"))
-      "Any")
-  ]
-  @function[
-    "equiv-ast-letrec-bind"
-    #:contract
-    (a-arrow
-      (a-id "LetrecBind" (xref "ast" "LetrecBind"))
-      (a-id "LetrecBind" (xref "ast" "LetrecBind"))
-      "Any")
-  ]
-  @function[
-    "equiv-opt"
-    #:contract
-    (a-arrow
-      (a-app
-        (a-id "Option" (xref "option" "Option"))
-        (a-id "Expr" (xref "ast" "Expr")))
-      (a-app
-        (a-id "Option" (xref "option" "Option"))
-        (a-id "Expr" (xref "ast" "Expr")))
-      "Any")
-  ]
-  @function[
-    "equiv-ast"
-    #:contract
-    (a-arrow
-      (a-id "Expr" (xref "ast" "Expr"))
-      (a-id "Expr" (xref "ast" "Expr"))
-      "Any")
-  ]
+  @function["MakeName"]
+  @function["funlam-tosource"]
+  @function["make-checker-name"]
+  @function["flatten"]
+  @function["binding-type-ids"]
+  @function["block-type-ids"]
+  @function["binding-ids"]
+  @function["block-ids"]
+  @function["toplevel-ids"]
 }
