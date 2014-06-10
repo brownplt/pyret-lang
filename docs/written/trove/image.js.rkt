@@ -90,7 +90,7 @@
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "String" (xref "<global>" "String"))
                                 (a-id "String" (xref "<global>" "String"))
-                                (a-id "Bool" (xref "<global>" "Bool"))
+                                (a-id "Boolean" (xref "<global>" "Boolean"))
                                 Image)
             #:args (list '("string" "Text to draw") 
                          '("size" "Font size in pixels.") 
@@ -741,28 +741,28 @@
   @function[
     "is-image"
             #:contract (a-arrow "Any"
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-image" ""))]{
     Checks if @pyret["maybe-image"] is an image.
   }
   @function[
     "is-mode"
             #:contract (a-arrow "Any"
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-mode" ""))]{
     Checks if @pyret["maybe-mode"] is a mode.
   }
   @function[
     "is-image-color"
             #:contract (a-arrow "Any"
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-color" ""))]{
     Checks if @pyret["maybe-color"] can be used as a color. Strings, if names of colors (e.g. "red" or "green") can also be used, if they exist in the color database.
   }
   @function[
     "is-y-place"
             #:contract (a-arrow "Any"
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-y-place" ""))]{
     Checks if @pyret["maybe-y-place"] can be used as y-place in appropriate
     functions. Valid strings are @pyret["top"], @pyret["bottom"],
@@ -772,7 +772,7 @@
   @function[
     "is-x-place"
             #:contract (a-arrow (a-id "String" (xref "<global>" "String"))
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-x-place" ""))]{
     Checks if @pyret["maybe-x-place"] can be used as x-place in appropriate
     functions. Valid strings are @pyret["left"], @pyret["right"],
@@ -781,7 +781,7 @@
   @function[
     "is-angle"
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("maybe-angle" ""))]{
     Checks if @pyret["maybe-angle"] is an angle, namely a real number. All
     angles in the library are in degrees.
@@ -789,7 +789,7 @@
   @function[
     "is-side-count"
             #:contract (a-arrow "Any"
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("side-count" ""))]{
     Checks if @pyret["maybe-side-count"] is an integer greater than or equal
     to 3.
@@ -797,7 +797,7 @@
   @function[
     "is-step-count"
             #:contract (a-arrow (a-id "Number" (xref "<global>" "Number"))
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("step-count" ""))]{
     Checks if @pyret["maybe-step-count"] is an integer greater than or equal
     to 1.
@@ -807,7 +807,7 @@
     "images-equal"
             #:contract (a-arrow Image
                                 Image
-                                (a-id "Bool" (xref "<global>" "Bool")))
+                                (a-id "Boolean" (xref "<global>" "Boolean")))
             #:args (list '("image1" "") 
                          '("image2" ""))]{
     Compares two images for equality.

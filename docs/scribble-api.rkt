@@ -17,6 +17,7 @@
          scribble/html-properties
          (for-syntax racket/base racket/syntax)
          racket/list
+         racket/bool
          racket/dict
          racket/path
          racket/runtime-path
@@ -72,9 +73,11 @@
 (define mod-path third)
 (define mod-specs cdddr)
 (define spec-type first)
-(define spec-fields rest)
+(define (spec-fields l) (if (cons? l) (rest l) #f))
 (define field-name first)
 (define field-val second)
+
+
 
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
@@ -148,15 +151,18 @@
 ;; finds definition in defn spec list that has given value for designated field
 ;; by-field is symbol, indefns is list<specs>
 (define (find-defn by-field for-val indefns)
-  (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
-    (unless d
-      (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
-    d))
+  (if (or (empty? indefns) (not indefns))
+      #f
+      (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+        (unless d
+          (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
+        d)))
 
 ;; defn-spec is '(fun-spec <assoc>)
 (define (get-defn-field field defn-spec)
-  (let ([f (assoc field (spec-fields defn-spec))])
-    (if f (field-val f) #f)))
+  (if (or (empty? defn-spec) (not defn-spec)) #f
+      (let ([f (assoc field (spec-fields defn-spec))])
+        (if f (field-val f) #f))))
 
 ;; extracts the definition spec for the given function name
 ;; - will look in all modules to find the name
@@ -304,9 +310,12 @@
       spec name
       (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
       contract args alt-docstrings examples body)))
-@(define (member-spec name #:contract (contract #f) . body)
-    (list (dt (if contract (tt name " :: " contract) (tt name)))
-          (dd body)))
+@(define (member-spec name #:contract (contract-in #f) . body)
+   (let* ([members (get-defn-field 'members (curr-var-spec))]
+          [member (if (list? members) (assoc name members) #f)]
+          [contract (or contract-in (interp (get-defn-field 'contract member)))])
+     (list (dt (if contract (tt name " :: " contract) (tt name)))
+           (dd body))))
 
 @(define-syntax (singleton-spec stx)
    (syntax-case stx ()
@@ -321,7 +330,7 @@
        (list (subsubsection name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
+         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define-syntax (constr-spec stx)
    (syntax-case stx ()
@@ -336,12 +345,16 @@
        (list (subsubsection name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
+         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define (with-members . members)
-   (list "Methods" members))
+   (if (empty? members) 
+       empty
+       (list "Methods" members)))
 @(define (members . mems)
-   (list "Fields" (para #:style dl-style mems)))
+   (if (empty? mems)
+       empty
+       (list "Fields" (para #:style dl-style mems))))
 @(define (a-id name . args)
    (if (cons? args) (seclink (first args) name) name))
 @(define (a-compound typ . args)
@@ -369,12 +382,33 @@
           (let ([contents (shared-internal args ...)])
             contents)))]))
 @(define (shared-internal . shares)
-   (list "Shared Methods" shares))
+   (if (empty? shares)
+       empty
+       (list "Shared Methods" shares)))
+
+@(define (interp an-exp)
+   (cond
+     [(list? an-exp)
+      (let* ([f (first an-exp)]
+             [args (map interp (rest an-exp))])
+        (cond
+          [(symbol=? f 'a-record) (apply a-record args)]
+          [(symbol=? f 'a-id) (apply a-id args)]
+          [(symbol=? f 'a-compound) (apply a-compound args)]
+          [(symbol=? f 'a-arrow) (apply a-arrow args)]
+          [(symbol=? f 'a-field) (apply a-field args)]
+          [(symbol=? f 'a-app) (apply a-app args)]
+          [(symbol=? f 'a-pred) (apply a-pred args)]
+          [(symbol=? f 'a-dot) (apply a-dot args)]
+          [(symbol=? f 'xref) (apply xref args)]
+          [#t an-exp]))]
+     [#t an-exp]))
 
 
 ;; render documentation for a function
-@(define (render-fun-helper spec name anchor contract args alt-docstrings examples contents)
-   (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
+@(define (render-fun-helper spec name anchor contract-in args alt-docstrings examples contents)
+   (let* ([contract (or contract-in (interp (get-defn-field 'contract spec)))] 
+          [argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
           [doc (or alt-docstrings (get-defn-field 'doc spec))]

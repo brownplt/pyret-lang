@@ -1,6 +1,60 @@
 #lang scribble/base
 @(require "../../../scribble-api.rkt")
 @docmodule["\"compiler/js-ast.arr\""]{
+  @; Ignored type testers
+  @ignore[
+    (list
+      "is-j-block"
+      "is-j-var"
+      "is-j-if1"
+      "is-j-if"
+      "is-j-return"
+      "is-j-try-catch"
+      "is-j-throw"
+      "is-j-expr"
+      "is-j-plus"
+      "is-j-minus"
+      "is-j-times"
+      "is-j-divide"
+      "is-j-and"
+      "is-j-or"
+      "is-j-lt"
+      "is-j-leq"
+      "is-j-gt"
+      "is-j-geq"
+      "is-j-eq"
+      "is-j-equals"
+      "is-j-neq"
+      "is-j-nequals"
+      "is-j-incr"
+      "is-j-decr"
+      "is-j-postincr"
+      "is-j-postdecr"
+      "is-j-parens"
+      "is-j-unop"
+      "is-j-binop"
+      "is-j-fun"
+      "is-j-app"
+      "is-j-method"
+      "is-j-ternary"
+      "is-j-assign"
+      "is-j-bracket-assign"
+      "is-j-dot-assign"
+      "is-j-dot"
+      "is-j-bracket"
+      "is-j-list"
+      "is-j-obj"
+      "is-j-id"
+      "is-j-str"
+      "is-j-num"
+      "is-j-true"
+      "is-j-false"
+      "is-j-null"
+      "is-j-undefined"
+      "is-j-raw"
+      "is-j-raw-holes"
+      "is-j-field")
+  ]
   @; Unknown: PLEASE DOCUMENT
   @ignore[(list "INDENT" "break-one" "blank-one")]
   @section[#:tag "\"compiler/js-ast.arr\"_ReExports"]{Re-exported values}
@@ -12,30 +66,17 @@
   @data-spec["JBlock"]{
     @variants{
       @constr-spec["j-block"]{
-        @members{
-          @member-spec[
-            "stmts"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt")))
-          ]
-        }
+        @members{@member-spec["stmts"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JBlock, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-              "Any")
+            ;; N.B. Pyret contract: (JBlock -> Any)
+            
           ]
         }
       }
@@ -43,211 +84,116 @@
     @shared{
       @method-spec[
         "to-ugly-source"
-        #:contract
-        (a-arrow
-          (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          "Any")
+        ;; N.B. Pyret contract: (JBlock -> Any)
+        
       ]
     }
   }
+  
   @data-spec["JStmt"]{
     @variants{
       @constr-spec["j-var"]{
-        @members{
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "rhs"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["name"] @member-spec["rhs"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-if1"]{
-        @members{
-          @member-spec[
-            "cond"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "consq"
-            #:contract (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          ]
-        }
+        @members{@member-spec["cond"] @member-spec["consq"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-if"]{
-        @members{
-          @member-spec[
-            "cond"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "consq"
-            #:contract (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          ]
-          @member-spec[
-            "alt"
-            #:contract (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          ]
-        }
+        @members{@member-spec["cond"] @member-spec["consq"] @member-spec["alt"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-return"]{
-        @members{
-          @member-spec[
-            "expr"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["expr"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-try-catch"]{
-        @members{
-          @member-spec[
-            "body"
-            #:contract (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-          ]
-          @member-spec[
-            "exn"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "catch"
-            #:contract (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          ]
-        }
+        @members{@member-spec["body"] @member-spec["exn"] @member-spec["catch"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-throw"]{
-        @members{
-          @member-spec[
-            "exp"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["exp"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
       @constr-spec["j-expr"]{
-        @members{
-          @member-spec[
-            "expr"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["expr"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JStmt, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt"))
-              "Any")
+            ;; N.B. Pyret contract: (JStmt -> Any)
+            
           ]
         }
       }
@@ -255,21 +201,20 @@
     @shared{
       @method-spec[
         "to-ugly-source"
-        #:contract
-        (a-arrow (a-id "JStmt" (xref "\"compiler/js-ast.arr\"" "JStmt")) "Any")
+        ;; N.B. Pyret contract: (JStmt -> Any)
+        
       ]
     }
   }
+  
   @data-spec["JBinop"]{
     @variants{
       @singleton-spec["j-plus"]{
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -277,10 +222,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -288,10 +231,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -299,10 +240,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -310,10 +249,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -321,10 +258,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -332,10 +267,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -343,10 +276,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -354,10 +285,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -365,10 +294,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -376,10 +303,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -387,10 +312,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -398,10 +321,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -409,10 +330,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-              "Any")
+            ;; N.B. Pyret contract: (JBinop -> Any)
+            
           ]
         }
       }
@@ -420,31 +339,25 @@
     @shared{
       @method-spec[
         "print-ugly-source"
-        #:contract
-        (a-arrow
-          (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (JBinop, Any -> Any)
+        
       ]
       @method-spec[
         "tosource"
-        #:contract
-        (a-arrow
-          (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-          "Any")
+        ;; N.B. Pyret contract: (JBinop -> Any)
+        
       ]
     }
   }
+  
   @data-spec["JUnop"]{
     @variants{
       @singleton-spec["j-incr"]{
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-              "Any")
+            ;; N.B. Pyret contract: (JUnop -> Any)
+            
           ]
         }
       }
@@ -452,10 +365,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-              "Any")
+            ;; N.B. Pyret contract: (JUnop -> Any)
+            
           ]
         }
       }
@@ -463,10 +374,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-              "Any")
+            ;; N.B. Pyret contract: (JUnop -> Any)
+            
           ]
         }
       }
@@ -474,10 +383,8 @@
         @with-members{
           @method-spec[
             "to-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-              "Any")
+            ;; N.B. Pyret contract: (JUnop -> Any)
+            
           ]
         }
       }
@@ -485,526 +392,275 @@
     @shared{
       @method-spec[
         "print-ugly-source"
-        #:contract
-        (a-arrow
-          (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-          "Any"
-          "Any")
+        ;; N.B. Pyret contract: (JUnop, Any -> Any)
+        
       ]
       @method-spec[
         "tosource"
-        #:contract
-        (a-arrow (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop")) "Any")
+        ;; N.B. Pyret contract: (JUnop -> Any)
+        
       ]
     }
   }
+  
   @data-spec["JExpr"]{
     @variants{
       @constr-spec["j-parens"]{
-        @members{
-          @member-spec[
-            "exp"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["exp"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-unop"]{
-        @members{
-          @member-spec[
-            "exp"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "op"
-            #:contract (a-id "JUnop" (xref "\"compiler/js-ast.arr\"" "JUnop"))
-          ]
-        }
+        @members{@member-spec["exp"] @member-spec["op"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-binop"]{
-        @members{
-          @member-spec[
-            "left"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "op"
-            #:contract (a-id "JBinop" (xref "\"compiler/js-ast.arr\"" "JBinop"))
-          ]
-          @member-spec[
-            "right"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["left"] @member-spec["op"] @member-spec["right"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-fun"]{
-        @members{
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "body"
-            #:contract (a-id "JBlock" (xref "\"compiler/js-ast.arr\"" "JBlock"))
-          ]
-        }
+        @members{@member-spec["args"] @member-spec["body"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-app"]{
-        @members{
-          @member-spec[
-            "func"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr")))
-          ]
-        }
+        @members{@member-spec["func"] @member-spec["args"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-method"]{
-        @members{
-          @member-spec[
-            "obj"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "meth"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "args"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr")))
-          ]
-        }
+        @members{@member-spec["obj"] @member-spec["meth"] @member-spec["args"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-ternary"]{
         @members{
-          @member-spec[
-            "test"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "consq"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "altern"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
+          @member-spec["test"]
+          @member-spec["consq"]
+          @member-spec["altern"]
         }
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-assign"]{
-        @members{
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "rhs"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["name"] @member-spec["rhs"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-bracket-assign"]{
-        @members{
-          @member-spec[
-            "obj"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "field"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "rhs"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["obj"] @member-spec["field"] @member-spec["rhs"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-dot-assign"]{
-        @members{
-          @member-spec[
-            "obj"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "rhs"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["obj"] @member-spec["name"] @member-spec["rhs"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-dot"]{
-        @members{
-          @member-spec[
-            "obj"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "field"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-bracket"]{
-        @members{
-          @member-spec[
-            "obj"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-          @member-spec[
-            "field"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-list"]{
-        @members{
-          @member-spec[
-            "multi-line"
-            #:contract (a-id "Boolean" (xref "<global>" "Boolean"))
-          ]
-          @member-spec[
-            "elts"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr")))
-          ]
-        }
+        @members{@member-spec["multi-line"] @member-spec["elts"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-obj"]{
-        @members{
-          @member-spec[
-            "fields"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JField" (xref "\"compiler/js-ast.arr\"" "JField")))
-          ]
-        }
+        @members{@member-spec["fields"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-id"]{
-        @members{
-          @member-spec[
-            "id"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["id"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-str"]{
-        @members{
-          @member-spec[
-            "s"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["s"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-num"]{
-        @members{
-          @member-spec[
-            "n"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-        }
+        @members{@member-spec["n"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
@@ -1012,18 +668,13 @@
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
@@ -1031,18 +682,13 @@
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
@@ -1050,18 +696,13 @@
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
@@ -1069,76 +710,47 @@
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-raw"]{
-        @members{
-          @member-spec[
-            "raw-js"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["raw-js"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
       @constr-spec["j-raw-holes"]{
         @members{
-          @member-spec[
-            "raw-js"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "fills"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr")))
-          ]
-          @member-spec["width-tolerance" #:contract "Any"]
+          @member-spec["raw-js"]
+          @member-spec["fills"]
+          @member-spec["width-tolerance"]
         }
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JExpr, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-              "Any")
+            ;; N.B. Pyret contract: (JExpr -> Any)
+            
           ]
         }
       }
@@ -1146,39 +758,26 @@
     @shared{
       @method-spec[
         "to-ugly-source"
-        #:contract
-        (a-arrow (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr")) "Any")
+        ;; N.B. Pyret contract: (JExpr -> Any)
+        
       ]
     }
   }
+  
   @data-spec["JField"]{
     @variants{
       @constr-spec["j-field"]{
-        @members{
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "value"
-            #:contract (a-id "JExpr" (xref "\"compiler/js-ast.arr\"" "JExpr"))
-          ]
-        }
+        @members{@member-spec["name"] @member-spec["value"]}
         @with-members{
           @method-spec[
             "print-ugly-source"
-            #:contract
-            (a-arrow
-              (a-id "JField" (xref "\"compiler/js-ast.arr\"" "JField"))
-              "Any"
-              "Any")
+            ;; N.B. Pyret contract: (JField, Any -> Any)
+            
           ]
           @method-spec[
             "tosource"
-            #:contract
-            (a-arrow
-              (a-id "JField" (xref "\"compiler/js-ast.arr\"" "JField"))
-              "Any")
+            ;; N.B. Pyret contract: (JField -> Any)
+            
           ]
         }
       }
@@ -1186,213 +785,12 @@
     @shared{
       @method-spec[
         "to-ugly-source"
-        #:contract
-        (a-arrow
-          (a-id "JField" (xref "\"compiler/js-ast.arr\"" "JField"))
-          "Any")
+        ;; N.B. Pyret contract: (JField -> Any)
+        
       ]
     }
   }
+  
   @section[#:tag "\"compiler/js-ast.arr\"_Functions"]{Functions}
-  @function["string-printer" #:contract (a-arrow "Any")]
-  @function[
-    "is-j-block"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-var"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-if1"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-if"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-return"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-try-catch"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-throw"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-expr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-plus"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-minus"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-times"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-divide"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-and"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-or"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-lt"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-leq"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-gt"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-geq"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-eq"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-equals"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-neq"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-nequals"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-incr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-decr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-postincr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-postdecr"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-parens"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-unop"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-binop"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-fun"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-app"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-method"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-ternary"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-assign"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-bracket-assign"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-dot-assign"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-dot"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-bracket"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-list"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-obj"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-id"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-str"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-num"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-true"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-false"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-null"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-undefined"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-raw"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-raw-holes"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-j-field"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
+  @function["string-printer"]
 }
