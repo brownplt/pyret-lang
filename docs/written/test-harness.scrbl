@@ -13,6 +13,9 @@ feel free to post a message on the
 list"], and we'll be happy to help.  }
 
 @include-section["Pyret-Tutorial/lander.scrbl"]
+
+@include-section["lang/forms.scrbl"]
+
 @include-section["trove/globals.scrbl"]
 
 @include-section["trove/lists.js.rkt"]
