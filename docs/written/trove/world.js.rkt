@@ -7,6 +7,16 @@
 
   @url["http://docs.racket-lang.org/teachpack/2htdpuniverse.html"]
 
+  @section[#:tag "image_DataTypes"]{Data Types}
+  @data-spec["WorldConfig"]{
+    @para{
+        This datatype is abstract, and its implementation details (such
+        as it constructors) are not exposed directly; use one of the
+        functions described below to construct a @secref[(tag-name "world"
+        "WorldConfig")] instead.
+    }
+  }
+
   @section{Functions}
   @function["big-bang"
             #:contract (a-arrow "a"

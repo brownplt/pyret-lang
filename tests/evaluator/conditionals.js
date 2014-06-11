@@ -28,8 +28,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("should have any effects exactly once", function(done) {
         var xfg = function(fres, gres) {
 return "var x = ''\n" +
-"fun f(): x := x + 'f' " + fres + " end\n" +
-"fun g(): x := x + 'g' " + gres + " end\n"
+"fun f(): x := x + 'f'\n" + fres + " end\n" +
+"fun g(): x := x + 'g'\n" + gres + " end\n"
 
         };
 
@@ -86,7 +86,7 @@ xfg("false", "true") +
 
       it("should short-circuit at the right place in a sequence", function(done) {
         var xf = "var x = 0\n" +
-                 "fun f(): x := x + 1 true end\n";
+                 "fun f(): x := x + 1\n true end\n";
 
         same("true and true and false and raise('explosions')", rt.pyretFalse);
         same(xf +
@@ -132,7 +132,7 @@ xfg("false", "true") +
 
       it("should short-circuit at the right place in a sequence", function(done) {
         var xf = "var x = 0\n" +
-                 "fun f(): x := x + 1 false end\n";
+                 "fun f(): x := x + 1\n false end\n";
 
         same("false or false or true or raise('explosions')", rt.pyretTrue);
         same(xf +

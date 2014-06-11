@@ -11,7 +11,8 @@ import "compiler/ast-util.arr" as U
 import "compiler/gensym.arr" as G
 
 data NameResolution:
-  | resolved(ast :: A.Program, errors :: List<C.CompileError>, bindings :: SD.StringDict)
+  | resolved(ast :: A.Program, errors :: List<C.CompileError>,
+      bindings :: SD.StringDict, type-bindings :: SD.StringDict)
 end
 
 fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
@@ -570,7 +571,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             atom-env-t = make-atom-for(name, false, acc.te, type-bindings, let-type-bind)
             new-header = A.s-import-types(l2, file, atom-env.atom, atom-env-t.atom)
             update-binding-expr(atom-env.atom, some(new-header))
-            update-type-binding-ann(atom-env-t.atom, none)
+            update-type-binding-ann(atom-env-t.atom, some(new-header))
             { e: atom-env.env, te: atom-env-t.env, imps: link(new-header, acc.imps) }
           | else => acc
         end
@@ -782,6 +783,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
   }
-  resolved(p.visit(names-visitor), name-errors, bindings)
+  resolved(p.visit(names-visitor), name-errors, bindings, type-bindings)
 end
 

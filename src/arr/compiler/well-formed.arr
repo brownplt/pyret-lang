@@ -156,6 +156,23 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
 end
 
 
+fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
+  cases(List) stmts:
+    | empty => nothing
+    | link(first, rest) =>
+      cases(Loc) loc:
+        | builtin(_) => ensure-distinct-lines(first.l, rest)
+        | srcloc(_, _, _, _, end-line1, _, _) =>
+          cases(Loc) first.l:
+            | builtin(_) => ensure-distinct-lines(loc, rest) # No need to preserve builtin() locs
+            | srcloc(_, start-line2, _, _, _, _, _) =>
+              when end-line1 == start-line2: wf-error2("Found two expressions on the same line", loc, first.l) end
+              ensure-distinct-lines(first.l, rest)
+          end
+      end
+  end
+end
+
 fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Variant
   cases(List) variants:
     | empty => nothing
@@ -250,6 +267,7 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-last-stmt(stmts.last())
       bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
       ensure-unique-bindings(bind-stmts.reverse())
+      ensure-distinct-lines(A.dummy-loc, stmts)
       lists.all(_.visit(self), stmts)
     end
   end,

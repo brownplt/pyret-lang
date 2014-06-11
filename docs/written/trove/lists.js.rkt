@@ -1,8 +1,43 @@
 #lang scribble/base
-@(require "../../scribble-api.rkt" "../abbrevs.rkt")
+@(require "../../scribble-api.rkt")
 @docmodule["lists"]{
+  @; Ignored type testers
+  @ignore[(list "is-empty" "is-link")]
   @; Unknown: PLEASE DOCUMENT
   @ignore[(list "list")]
+  @section[#:tag "lists_ReExports"]{Re-exported values}
+  @re-export["none" (from (xref "option" "none"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["option" "none"]}
+  }
+  @re-export["is-none" (from (xref "option" "is-none"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["option" "is-none"]}
+  }
+  @re-export["some" (from (xref "option" "some"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["option" "some"]}
+  }
+  @re-export["is-some" (from (xref "option" "is-some"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["option" "is-some"]}
+  }
+  @re-export["Option" (from (xref "option" "Option"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["option" "Option"]}
+  }
+  @re-export["left" (from (xref "either" "left"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["either" "left"]}
+  }
+  @re-export["right" (from (xref "either" "right"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["either" "right"]}
+  }
+  @re-export["Either" (from (xref "either" "Either"))]{
+    @; N.B. need para here to keep xref inline with text
+    @para{See @xref["either" "Either"]}
+  }
   @section[#:tag "lists_DataTypes"]{Data types}
   @data-spec["List"]{
     @variants{
@@ -10,229 +45,224 @@
         @with-members{
           @method-spec[
             "length"
-            #:contract
-            (a-arrow (L-of "a") N)
+            ;; N.B. Pyret contract: (List -> Number)
+            
           ]{Returns the length of the list. Always zero for an empty.}
           @method-spec[
             "each"
-            #:contract
-            (a-arrow (L-of "a") (a-arrow "a" No) No)
+            ;; N.B. Pyret contract: (List, (Any -> Nothing) -> Nothing)
+            
           ]
           @method-spec[
             "map"
-            #:contract
-            (a-arrow (L-of "a") (a-arrow "a" "b") (L-of "a"))
+            ;; N.B. Pyret contract: (List, (Any -> Any) -> List64)
+            
           ]
           @method-spec[
             "filter"
-            #:contract
-            (a-arrow (L-of "a") (a-arrow "a" B) (L-of "a"))
+            ;; N.B. Pyret contract: (List, (Any -> Boolean) -> List64)
+            
           ]
           @method-spec[
             "find"
-            #:contract
-            (a-arrow (L-of "a") (a-arrow "a" B) (O-of "a"))
+            ;; N.B. Pyret contract: (List, (Any -> Boolean) -> O2.Option)
+            
           ]
           @method-spec[
             "partition"
-            #:contract
-            (a-arrow (L-of "a") (a-arrow "a" B) (a-record (a-field "is-true" (L-of "a")) (a-field "is-false" (L-of "a"))))
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "foldr"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "foldl"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "member"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "append"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "last"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "reverse"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "_torepr"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "sort-by"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "sort"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "join-str"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
         }
       }
       @constr-spec["link"]{
-        @members{
-          @member-spec["first" #:contract "Any"]
-          @member-spec["rest" #:contract (a-id "List" (xref "lists" "List"))]
-        }
+        @members{@member-spec["first"] @member-spec["rest"]}
         @with-members{
           @method-spec[
             "length"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]{Returns the length of the list. This is always greater than zero for a link.}
           @method-spec[
             "each"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "map"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "filter"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "partition"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "find"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "member"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "foldr"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "foldl"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "append"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
           @method-spec[
             "last"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "reverse"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "tostring"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "_torepr"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "sort-by"
-            #:contract
-            (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any, Any -> Any)
+            
           ]
           @method-spec[
             "sort"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
+            ;; N.B. Pyret contract: (List -> Any)
+            
           ]
           @method-spec[
             "join-str"
-            #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+            ;; N.B. Pyret contract: (List, Any -> Any)
+            
           ]
         }
       }
     }
     @shared{
       @method-spec[
-        "push"
-        #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+        "_plus"
+        ;; N.B. Pyret contract: (List, List64 -> Any)
+        
       ]
       @method-spec[
-        "_plus"
-        #:contract
-        (a-arrow
-          (a-id "List" (xref "lists" "List"))
-          (a-id "List" (xref "lists" "List"))
-          "Any")
+        "push"
+        ;; N.B. Pyret contract: (List, Any -> Any)
+        
       ]
       @method-spec[
         "split-at"
-        #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+        ;; N.B. Pyret contract: (List, Any -> Any)
+        
       ]
       @method-spec[
         "take"
-        #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+        ;; N.B. Pyret contract: (List, Any -> Any)
+        
       ]
       @method-spec[
         "drop"
-        #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+        ;; N.B. Pyret contract: (List, Any -> Any)
+        
       ]
       @method-spec[
         "get"
-        #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any")
+        ;; N.B. Pyret contract: (List, Any -> Any)
+        
       ]
       @method-spec[
         "set"
-        #:contract
-        (a-arrow (a-id "List" (xref "lists" "List")) "Any" "Any" "Any")
+        ;; N.B. Pyret contract: (List, Any, Any -> Any)
+        
       ]
     }
   }
+  
   @section[#:tag "lists_Functions"]{Functions}
   @function[
-    "is-empty"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-    #:examples
-    '@{
-      is-empty([list: ]) is true
-      is-empty([list: 1]) is false
-    }
-    #:alt-docstrings '()
-  ]{
-
-    Returns true if @pyret{val} is an empty list, otherwise false.
-  }
-  @function[
-    "is-link"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-    #:examples
-    '@{
-      is-link([list: ]) is false
-      is-link([list: 1]) is true
-    }
-    #:alt-docstrings '()
-  ]{
-
-    Returns true if @pyret{val} is a non-empty list, otherwise false.
-  }
-  @function[
     "get-help"
-    #:contract (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any")
     #:examples
     '@{
       get-help([list: 1, 2, 3], 0) is 1
@@ -241,8 +271,6 @@
   ]
   @function[
     "set-help"
-    #:contract
-    (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any" "Any")
     #:examples
     '@{
       set-help([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
@@ -251,7 +279,6 @@
   ]
   @function[
     "reverse-help"
-    #:contract (a-arrow "Any" "Any" "Any")
     #:examples
     '@{
       reverse-help([list: ], [list: ]) is [list: ]
@@ -260,7 +287,6 @@
   ]
   @function[
     "range"
-    #:contract (a-arrow "Any" "Any" "Any")
     #:examples
     '@{
       range(0, 0) is [list: ]
@@ -270,11 +296,6 @@
   ]
   @function[
     "repeat"
-    #:contract
-    (a-arrow
-      (a-id "Number" (xref "<global>" "Number"))
-      "Any"
-      (a-id "List" (xref "lists" "List")))
     #:examples
     '@{
       repeat(0, 10) is empty
@@ -284,7 +305,6 @@
   ]
   @function[
     "filter"
-    #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
       filter(lam(e): e > 5 end, [list: -1, 1]) is [list: ]
@@ -293,7 +313,6 @@
   ]
   @function[
     "partition"
-    #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
       partition(lam(e): e > 0 end, [list: -1, 1]) is
@@ -306,11 +325,6 @@
   ]
   @function[
     "find"
-    #:contract
-    (a-arrow
-      (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "Option" (xref "option" "Option")))
     #:examples
     '@{
       find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
@@ -324,13 +338,6 @@
   ]
   @function[
     "split-at"
-    #:contract
-    (a-arrow
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-record
-        (a-field "prefix" (a-id "List" (xref "lists" "List")))
-        (a-field "suffix" (a-id "List" (xref "lists" "List")))))
     #:examples
     '@{
       let one-four = [list: 1, 2, 3, 4]:
@@ -345,11 +352,6 @@
   ]
   @function[
     "any"
-    #:contract
-    (a-arrow
-      (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
       any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
@@ -360,11 +362,6 @@
   ]
   @function[
     "all"
-    #:contract
-    (a-arrow
-      (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
       all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
@@ -375,12 +372,6 @@
   ]
   @function[
     "all2"
-    #:contract
-    (a-arrow
-      (a-arrow "Any" "Any" (a-id "Bool" (xref "<global>" "Bool")))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "Bool" (xref "<global>" "Bool")))
     #:examples
     '@{
       all2(lam(n, m): n > m end, [list: 1, 2, 3], [list: 0, 1, 2]) is true
@@ -392,7 +383,6 @@
   ]
   @function[
     "map"
-    #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
       map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
@@ -402,12 +392,6 @@
   ]
   @function[
     "map2"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
     #:examples
     '@{
       map2(lam(_, _): raise("shipwrecked!") end,
@@ -418,76 +402,20 @@
         [list: true, false]
     }
   ]
-  @function[
-    "map3"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "map4"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
+  @function["map3"]
+  @function["map4"]
   @function[
     "map_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
     #:examples
     '@{
       map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
     }
   ]
-  @function[
-    "map2_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "map3_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "map4_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
+  @function["map2_n"]
+  @function["map3_n"]
+  @function["map4_n"]
   @function[
     "each"
-    #:contract (a-arrow "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
       let one-four = [list: 1, 2, 3, 4]:
@@ -504,86 +432,16 @@
       end
     }
   ]
-  @function[
-    "each2"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "each3"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "each4"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "each_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-    #:examples
-    '@{
-
-    }
-  ]
-  @function[
-    "each2_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "each3_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "each4_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function["fold-while" #:contract (a-arrow "Any" "Any" "Any" "Any")]
+  @function["each2"]
+  @function["each3"]
+  @function["each4"]
+  @function["each_n"]
+  @function["each2_n"]
+  @function["each3_n"]
+  @function["each4_n"]
+  @function["fold-while"]
   @function[
     "fold"
-    #:contract (a-arrow "Any" "Any" (a-id "List" (xref "lists" "List")) "Any")
     #:examples
     '@{
       fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
@@ -603,48 +461,11 @@
     application is the result of the last application of @pyret{f}. If the list is empty,
     base is returned.
   }
-  @function[
-    "fold2"
-    #:contract
-    (a-arrow
-      "Any"
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "fold3"
-    #:contract
-    (a-arrow
-      "Any"
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
-  @function[
-    "fold4"
-    #:contract
-    (a-arrow
-      "Any"
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      (a-id "List" (xref "lists" "List"))
-      "Any")
-  ]
+  @function["fold2"]
+  @function["fold3"]
+  @function["fold4"]
   @function[
     "fold_n"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-id "Number" (xref "<global>" "Number"))
-      "Any"
-      (a-id "List" (xref "lists" "List"))
-      "Any")
     #:examples
     '@{
       fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is
@@ -667,6 +488,11 @@
   ]
   @function[
     "index"
-    #:contract (a-arrow "Any" (a-id "Number" (xref "<global>" "Number")) "Any")
+    #:examples
+    '@{
+      @; get-help([list: 1, 2, 3], 0) is 1
+      @; get-help([list: ], 0) raises ""
+      
+    }
   ]
 }

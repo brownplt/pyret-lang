@@ -43,8 +43,18 @@ define(["../../../lib/jglr/jglr"], function(E) {
     this.parenIsForExp = true;
   }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
-    if (tok_type === "STRING") s = fixEscapes(s);
-    else if (tok_type === "LONG_STRING") tok_type = "STRING";
+    switch(tok_type) {
+    case "STRING": s = fixEscapes(s); break;
+    case "LONG_STRING": tok_type = "STRING"; break;
+    case "PARENSPACE":
+    case "PLUS": case "DASH": case "STAR": case "SLASH": case "LEQ": case "GEQ": 
+    case "EQUALEQUAL": case "LT": case "GT": 
+      // Trim off whitespace
+      pos = SrcLoc.make(pos.endRow, pos.endCol - 1, pos.endChar - 1, pos.endRow, pos.endCol, pos.endChar);
+      break;
+    default:
+      break;
+    }
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
   }
   Tokenizer.prototype.postProcessMatch = function(tok, match) {
@@ -109,16 +119,16 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
-  const opplus = new RegExp("^\\s+\\+\\s+", STICKY_REGEXP);
-  const opminus = new RegExp("^\\s+-\\s+", STICKY_REGEXP);
-  const optimes = new RegExp("^\\s+\\*\\s+", STICKY_REGEXP);
-  const opdiv = new RegExp("^\\s+/\\s+", STICKY_REGEXP);
-  const opleq = new RegExp("^\\s+<=\\s+", STICKY_REGEXP);
-  const opgeq = new RegExp("^\\s+>=\\s+", STICKY_REGEXP);
-  const opeq = new RegExp("^\\s+==\\s+", STICKY_REGEXP);
-  const opneq = new RegExp("^\\s+<>\\s+", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s*<\\s*", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s*>\\s*", STICKY_REGEXP);
+  const opplus = new RegExp("^\\s+\\+(?:\\s+)", STICKY_REGEXP);
+  const opminus = new RegExp("^\\s+-(?:\\s+)", STICKY_REGEXP);
+  const optimes = new RegExp("^\\s+\\*(?:\\s+)", STICKY_REGEXP);
+  const opdiv = new RegExp("^\\s+/(?:\\s+)", STICKY_REGEXP);
+  const opleq = new RegExp("^\\s+<=(?:\\s+)", STICKY_REGEXP);
+  const opgeq = new RegExp("^\\s+>=(?:\\s+)", STICKY_REGEXP);
+  const opeq = new RegExp("^\\s+==(?:\\s+)", STICKY_REGEXP);
+  const opneq = new RegExp("^\\s+<>(?:\\s+)", STICKY_REGEXP);
+  const oplt = new RegExp("^\\s*<(?:\\s*)", STICKY_REGEXP);
+  const opgt = new RegExp("^\\s*>(?:\\s*)", STICKY_REGEXP);
   const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);

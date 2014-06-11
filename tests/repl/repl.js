@@ -248,7 +248,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
             setTimeout(function() {
                 aRepl.stop();
               }, 1000);
-            return aRepl.run("run-task(lam(): fact(100000) 'done' end)");
+            return aRepl.run("run-task(lam(): fact(100000)\n 'done' end)");
           }).then(function(result) {
             expect(result).toPassPredicate(rt.isFailureResult);
             expect(result.exn.exn).toPassPredicate(rt.ffi.isUserBreak);

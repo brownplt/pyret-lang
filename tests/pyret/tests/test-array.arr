@@ -125,7 +125,10 @@ check:
 end
 
 check:
-  fun f(v :: Array<Number>): when not(is-array(v)): raise("not an Array"); v;
+  fun f(v :: Array<Number>):
+    when not(is-array(v)): raise("not an Array") end
+    v
+  end
   f([list: ]) raises "Array"
   f([array: ]).to-list() is [list: ]
   f([array: ]) satisfies is-array
