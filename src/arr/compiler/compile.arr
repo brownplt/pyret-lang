@@ -52,24 +52,28 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       named-errors = named-result.errors
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
-      type-checked = T.type-check(desugared)
+      type-checked = T.type-check(desugared, libs)
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-      cleaned = type-checked.visit(U.merge-nested-blocks)
-                     .visit(U.flatten-single-blocks)
-                     .visit(U.link-list-visitor(libs))
-                     .visit(U.letrec-visitor)
-      when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-      inlined = cleaned.visit(U.inline-lams)
-      when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-      any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
-      if is-empty(any-errors):
-        if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
-        else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
-        end
-      else:
-        if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
-        else: phase("Result", C.err(any-errors), ret)
-        end
+      cases(C.CompileResult) type-checked:
+        | ok(tc-ast) =>
+          cleaned = tc-ast.visit(U.merge-nested-blocks)
+                          .visit(U.flatten-single-blocks)
+                          .visit(U.link-list-visitor(libs))
+                          .visit(U.letrec-visitor)
+          when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
+          inlined = cleaned.visit(U.inline-lams)
+          when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
+          any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
+          if is-empty(any-errors):
+            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
+            else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
+            end
+          else:
+            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
+            else: phase("Result", C.err(any-errors), ret)
+            end
+          end
+        | err(_) => phase("Result", type-checked, ret)
       end
     | err(_) => phase("Result", wf, ret)
   end
