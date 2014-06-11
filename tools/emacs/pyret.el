@@ -87,10 +87,12 @@
 
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords
-   '("fun" "lam" "method" "var" "when" "import" "provide" "check"
+   '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
      "and" "or" "is" "raises" "satisfies" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
+(defconst pyret-keywords-hyphen
+  '("provide-types" "type-let"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
 (defconst pyret-paragraph-starters
@@ -127,6 +129,7 @@
 
 (defun pyret-recompute-lexical-regexes ()
   (defconst pyret-keywords-regex (regexp-opt pyret-keywords))
+  (defconst pyret-keywords-hyphen-regex (regexp-opt pyret-keywords-hyphen))
   (defconst pyret-keywords-colon-regex (regexp-opt pyret-keywords-colon))
   (defconst pyret-font-lock-keywords-1
     (list
@@ -137,6 +140,11 @@
          pyret-keywords-colon-regex
          "\\)\\(:\\)") 
        (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-hyphen-regex
+         "\\)")
+       (1 font-lock-builtin-face) (2 font-lock-keyword-face))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-regex "-" pyret-ident-regex
