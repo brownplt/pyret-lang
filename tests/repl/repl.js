@@ -91,6 +91,22 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
         });
       });
 
+      it("should not allow unbound ids, even in functions", function(done) {
+        aRepl.then(function(aRepl) {
+          var rt = aRepl.runtime;
+          aRepl.restartInteractions("");
+          aRepl.run("import lists as L")
+            .then(function(replResult) {
+              expect(replResult).toPassPredicate(rt.isSuccessResult);
+            });
+          aRepl.run("is-object(L)")
+            .then(function(replResult) {
+              expect(replResult).toPassPredicate(rt.isSuccessResult);
+              done();
+            });
+        });
+      });
+
       it("should include check results", function(done) {
         aRepl.then(function(aRepl) {
           var rt = aRepl.runtime;

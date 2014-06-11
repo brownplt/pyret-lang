@@ -57,15 +57,17 @@ ok-imports = [list:
   "format"
 ]
 fun make-safe-imports(imps):
-  imps.filter(lam(i):
+  imps.each(lam(i):
     cases(A.ImportType) i.file:
-      | s-file-import(l, f) => raise(E.module-load-failure([list: f]))
+      | s-file-import(l, f) =>
+        raise(E.module-load-failure([list: f]))
       | s-const-import(l, m) =>
         when not(ok-imports.member(i.file.mod)):
           raise(E.module-load-failure([list: m]))
         end
     end
   end)
+  imps
 end
 
 fun make-provide-for-repl(p :: A.Program):
