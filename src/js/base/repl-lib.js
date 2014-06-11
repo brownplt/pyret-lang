@@ -58,7 +58,9 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
               return get(replSupport, "make-provide-for-repl-main").app(astResult.result, initialCompileEnv);
             },
             function(result) {
-              if(!runtime.isSuccessResult(result)) { throw "Bad result in repl-lib"; }
+              if(!runtime.isSuccessResult(result)) {
+                deferred.resolve(result);
+              }
               else {
                 toRun.unshift({
                     isMain: true,
@@ -87,7 +89,9 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
               return get(replSupport, "make-provide-for-repl").app(astResult.result);
             },
             function(result) {
-              if(!runtime.isSuccessResult(result)) { throw "Bad result in repl-lib"; }
+              if(!runtime.isSuccessResult(result)) {
+                deferred.resolve(result);
+              }
               toRun.unshift({
                   isMain: false,
                   ast: result.result,

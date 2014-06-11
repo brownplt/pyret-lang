@@ -3,6 +3,7 @@
 provide *
 import "compiler/compile-structs.arr" as C
 import ast as A
+import error as E
 
 fun drop-module-bindings(env :: C.CompileEnvironment):
   fun negate(f): lam(x): not(f(x));;
@@ -36,10 +37,34 @@ fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
   end
 end
 
-bad-imports = [list: "exec"]
+ok-imports = [list:
+  "world",
+  "image",
+  "image-structs",
+  "string-dict",
+  "checkers",
+  "lists",
+  "error",
+  "option",
+  "either",
+  "sets",
+  "arrays",
+  "contracts",
+  "ast",
+  "parse-pyret",
+  "pprint",
+  "srcloc",
+  "format"
+]
 fun make-safe-imports(imps):
   imps.filter(lam(i):
-    not(A.is-s-const-import(i.file) and bad-imports.member(i.file.mod))
+    cases(A.ImportType) i.file:
+      | s-file-import(l, f) => raise(E.module-load-failure([list: f]))
+      | s-const-import(l, m) =>
+        when not(ok-imports.member(i.file.mod)):
+          raise(E.module-load-failure([list: m]))
+        end
+    end
   end)
 end
 
