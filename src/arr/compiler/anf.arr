@@ -259,6 +259,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-block(l, stmts) => anf-block(stmts, k)
     | s-user-block(l, body) => anf(body, k)
 
+    | s-check-expr(l, expr, ann) =>
+      name = mk-id(l, "ann-check-temp")
+      bindings = [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ann), expr)]
+      anf(A.s-let-expr(l, bindings, A.s-id(l, name.id)), k)
+
     | s-lam(l, params, args, ret, doc, body, _) =>
       name = mk-id(l, "ann-check-temp")
       k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,

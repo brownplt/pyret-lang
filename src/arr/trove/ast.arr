@@ -549,6 +549,11 @@ data Expr:
     end
   | s-check-test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
+  | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
+    label(self): "s-check-expr" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, self.expr.tosource(), self.ann.tosource())
+    end
   | s-paren(l :: Loc, expr :: Expr) with:
     label(self): "s-paren" end,
     tosource(self): PP.parens(self.expr.tosource()) end
@@ -1057,8 +1062,8 @@ data Ann:
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     label(self): "a-dot" end,
     tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
-  | a-proven(proved :: Ann, residual :: Ann) with:
-    label(self): "a-proven" end,
+  | a-checked(checked :: Ann, residual :: Ann) with:
+    label(self): "a-checked" end,
     tosource(self): self.residual.tosource() end
 sharing:
   visit(self, visitor):
