@@ -1,7 +1,12 @@
 #lang pyret
 
 provide *
+#provide-types *
 import ast as A
+import srcloc as SL
+
+#type Loc = SL.Srcloc
+Loc = SL.Srcloc
 
 data PyretDialect:
   | Pyret
@@ -9,7 +14,7 @@ data PyretDialect:
 end
 
 data CompileEnvironment:
-  | compile-env(bindings :: List<CompileBinding>)
+  | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
 end
 
 data CompileResult<C>:
@@ -36,6 +41,14 @@ data CompileError:
   | unbound-var(id :: String, loc :: Loc) with:
     tostring(self):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
+    end
+  | unbound-type-id(ann :: A.Ann) with:
+    tostring(self):
+      "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
+    end
+  | unexpected-type-var(loc :: Loc, name :: A.Name) with:
+    tostring(self):
+      "Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable"
     end
   | pointless-var(loc :: Loc) with:
     tostring(self):
@@ -67,6 +80,31 @@ data CompileError:
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
 end
+
+data CompileTypeBinding:
+  | type-id(id :: String)
+  | type-module-bindings(name :: String, bindings :: List<String>)
+end
+
+runtime-types = lists.map(type-id, [list:
+  "Number",
+  "String",
+  "Function",
+  "Boolean",
+  "Object",
+  "Method",
+  "Nothing",
+  "RawArray"
+])
+
+standard-types = runtime-types +
+  [list:
+    type-module-bindings("lists", [list: "List" ]),
+    type-module-bindings("option", [list: "Option" ]),
+    type-module-bindings("arrays", [list: "Array" ]),
+    type-module-bindings("sets", [list: "Set"])
+    #...
+    ]
 
 data CompileBinding:
   | builtin-id(id :: String)
@@ -149,13 +187,12 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-fold"
 ])
 
-no-builtins = compile-env([list: ])
+no-builtins = compile-env([list: ], [list: ])
 
-minimal-builtins = compile-env(runtime-builtins)
+minimal-builtins = compile-env(runtime-builtins, runtime-types)
 
 bootstrap-builtins = compile-env(
   [list: module-bindings("lists", [list: 
-      "List",
       "list",
       "is-empty",
       "is-link",
@@ -167,6 +204,7 @@ bootstrap-builtins = compile-env(
       "partition",
       "split-at",
       "any",
+      "all",
       "find",
       "map",
       "map2",
@@ -184,6 +222,7 @@ bootstrap-builtins = compile-env(
       "each2_n",
       "each3_n",
       "each4_n",
+      "fold-while",
       "fold",
       "fold2",
       "fold3",
@@ -312,7 +351,8 @@ bootstrap-builtins = compile-env(
   "on-key",
   "stop-when",
   "is-key-equal"
-  ])
+  ]),
+  runtime-types
 )
 
 standard-builtins = compile-env(
@@ -327,7 +367,6 @@ standard-builtins = compile-env(
         ]),
       module-bindings("lists", [list: 
           "list",
-          "List",
           "is-empty",
           "is-link",
           "empty",
@@ -374,5 +413,7 @@ standard-builtins = compile-env(
           "tree-set",
           "list-set"
         ])
-    ])
+    ],
+    standard-types
+    )
 

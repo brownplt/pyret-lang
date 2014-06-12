@@ -11,6 +11,13 @@ import "compiler/compile-structs.arr" as CS
 import string-dict as D
 import srcloc as SL
 
+#type Loc = SL.Srcloc
+Loc = SL.Srcloc
+
+fun type-name(str):
+  "$type$" + str
+end
+
 j-fun = J.j-fun
 j-var = J.j-var
 j-id = J.j-id
@@ -121,8 +128,6 @@ where:
 end
 fun concat-foldl(f, base, lst): lst.foldl(f, base) end
 fun concat-foldr(f, base, lst): lst.foldr(f, base) end
-
-Loc = SL.Srcloc
 
 js-id-of = block:
   var js-ids = D.string-dict()
@@ -329,6 +334,48 @@ data CaseResults:
 end
 
 compiler-visitor = {
+  a-module(self, l, answer, provides, types, checks):
+    types-obj-fields = for map(ann from types):
+      j-field(ann.name, rt-field("Any")) #compile-ann(ann.ann, self))
+    end
+    compiled-provides = provides.visit(self)
+    compiled-answer = answer.visit(self)
+    compiled-checks = checks.visit(self)
+    c-exp(
+      rt-method("makeObject", [list:
+          j-obj([list:
+              j-field("answer", compiled-answer.exp),
+              j-field("provide-plus-types",
+                rt-method("makeObject", [list: j-obj([list:
+                        j-field("values", compiled-provides.exp),
+                        j-field("types", j-obj(types-obj-fields))
+                    ])])),
+              j-field("checks", compiled-checks.exp)])]),
+      compiled-provides.other-stmts + compiled-answer.other-stmts + compiled-checks.other-stmts)
+  end,
+  a-type-let(self, l, bind, body):
+    cases(N.ATypeBind) bind:
+      | a-type-bind(l2, name, ann) =>
+        visited-body = body.visit(self)
+        c-block(
+          j-block(
+            [list: j-var(js-id-of(name.tostring()), rt-field("Any"))] + #compile-ann(ann, self))] +
+            visited-body.block.stmts
+            ),
+          visited-body.new-cases)
+      | a-newtype-bind(l2, name, nameb) =>
+        brander-id = js-id-of(nameb.tostring())
+        visited-body = body.visit(self)
+        c-block(
+          j-block(
+            [list:
+              j-var(brander-id, rt-method("namedBrander", [list: j-str(name.toname())])),
+              j-var(js-id-of(name.tostring()), rt-method("makeBranderAnn", [list: j-id(brander-id), j-str(name.toname())]))
+            ] +
+            visited-body.block.stmts),
+          visited-body.new-cases)
+    end
+  end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-e = e.visit(self)
     compiled-body = body.visit(self)
@@ -444,7 +491,7 @@ compiler-visitor = {
         ]),
       new-cases)
   end,
-  a-lettable(self, l :: Loc, e :: N.ALettable):
+  a-lettable(self, e :: N.ALettable): # Need to add back the location field
     visit-e = e.visit(self)
     c-block(
       j-block(
@@ -491,7 +538,7 @@ compiler-visitor = {
     visit-obj = obj.visit(self)
     c-exp(rt-method("getColonField", [list: visit-obj.exp, j-str(field)]), visit-obj.other-stmts)
   end,
-  a-lam(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
+  a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = js-id-of(compiler-name("step"))
     temp = js-id-of(compiler-name("temp_lam"))
     # NOTE: args may be empty, so we need at least one name ("resumer") for the stack convention
@@ -506,7 +553,7 @@ compiler-visitor = {
           rt-method("makeFunction", [list: j-fun(effective-args.map(_.id).map(_.tostring()).map(js-id-of),
                 compile-fun-body(l, new-step, temp, self, effective-args, args.length(), body))]))])
   end,
-  a-method(self, l :: Loc, args :: List<N.ABind>, body :: N.AExpr):
+  a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     # step-method = js-id-of(compiler-name("step"))
     # temp-method = compiler-name("temp_method")
     # compiled-body-method = compile-fun-body(l, step-method, temp-method, self, args, args.length() - 1, body)
@@ -555,7 +602,7 @@ compiler-visitor = {
   a-str(self, l :: Loc, s :: String):
     c-exp(j-parens(j-str(s)), empty)
   end,
-  a-bool(self, l :: Loc, b :: Bool):
+  a-bool(self, l :: Loc, b :: Boolean):
     c-exp(j-parens(if b: j-true else: j-false end), empty)
   end,
   a-undefined(self, l :: Loc):
@@ -581,7 +628,7 @@ compiler-visitor = {
     end
   end,
 
-  a-data-expr(self, l, name, variants, shared):
+  a-data-expr(self, l, name, namet, variants, shared):
     fun brand-name(base):
       compiler-name("brand-" + base)
     end
@@ -589,37 +636,39 @@ compiler-visitor = {
     visit-shared-fields = shared.map(_.visit(self))
     shared-fields = visit-shared-fields.map(_.field)
     shared-stmts = visit-shared-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
-    base-brand = brand-name(name)
+    external-brand = j-id(js-id-of(namet.tostring()))
 
-    fun make-brand-predicate(b :: String, pred-name :: String):
+    fun make-brand-predicate(loc :: Loc, b :: J.JExpr, pred-name :: String):
       j-field(
-          pred-name,
-          rt-method("makeFunction", [list: 
-              j-fun(
-                  [list: "val"],
-                  j-block([list: 
-                    j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id("val"), j-str(b)])]))
-                  ])
-                )
-            ])
+        pred-name,
+        rt-method("makeFunction", [list: 
+            j-fun(
+              [list: "val"],
+              j-block([list:
+                  arity-check(self.get-loc(loc), 1),
+                  j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id("val"), b])]))
+                ])
+              )
+          ])
         )
     end
 
     fun make-variant-constructor(l2, base-id, brands-id, vname, members):
       member-names = members.map(lam(m): m.bind.id.toname();)
+      member-ids = members.map(lam(m): m.bind.id.tostring();)
       j-field(
           vname,
           rt-method("makeFunction", [list: 
             j-fun(
-              member-names.map(js-id-of),
+              member-ids.map(js-id-of),
               j-block(
                 [list: 
                   arity-check(self.get-loc(l2), member-names.length()),
                   j-var("dict", rt-method("create", [list: j-id(base-id)]))
                 ] +
-                for map2(n from member-names, m from members):
+                for map3(n from member-names, m from members, id from member-ids):
                   cases(N.AMemberType) m.member-type:
-                    | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(n)))
+                    | a-normal => j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id)))
                     | a-cyclic => raise("Cannot handle cyclic fields yet")
                     | a-mutable => raise("Cannot handle mutable fields yet")
                   end
@@ -638,7 +687,6 @@ compiler-visitor = {
       variant-brand = brand-name(vname)
       variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
       variant-brands = j-obj([list: 
-          j-field(base-brand, j-true),
           j-field(variant-brand, j-true)
         ])
       visit-with-fields = v.with-members.map(_.visit(self))
@@ -646,10 +694,14 @@ compiler-visitor = {
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
           [list: 
-          j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field))),
-          j-var(variant-brand-obj-id, variant-brands)
+            j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field))),
+            j-var(variant-brand-obj-id, variant-brands),
+            j-bracket-assign(
+              j-id(variant-brand-obj-id),
+              j-dot(external-brand, "_brand"),
+              j-true)
         ])
-      predicate = make-brand-predicate(variant-brand, A.make-checker-name(vname))
+      predicate = make-brand-predicate(v.l, j-str(variant-brand), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -669,11 +721,14 @@ compiler-visitor = {
 
     variant-pieces = variants.map(compile-variant)
 
-    header-stmts = variant-pieces.foldr(lam(piece, acc): piece.stmts + acc end, empty)
-    obj-fields = variant-pieces.foldr(lam(piece, acc): link(piece.predicate, link(piece.constructor, acc)) end,
-      empty)
+    header-stmts = for fold(acc from [list: ], piece from variant-pieces):
+      piece.stmts.reverse() + acc
+    end.reverse()
+    obj-fields = for fold(acc from [list: ], piece from variant-pieces):
+      [list: piece.constructor] + [list: piece.predicate] + acc
+    end.reverse()
 
-    data-predicate = make-brand-predicate(base-brand, name)
+    data-predicate = make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [list: j-obj([list: data-predicate] + obj-fields)])
 
@@ -715,46 +770,60 @@ fun mk-abbrevs(l):
   ]
 end
 
-fun compile-program(self, l, headers, split, env):
+
+fun compile-program(self, l, imports, split, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
-  free-ids = S.freevars-split-result(split).difference(set(headers.map(_.name)))
+  free-ids = S.freevars-split-result(split).difference(sets.list-to-tree-set(imports.map(_.name))).difference(sets.list-to-tree-set(imports.map(_.types)))
   namespace-binds = for map(n from free-ids.to-list()):
-    j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(n.toname())]))
+    cases(A.Name) n:
+      | s-global(s) =>
+        bind-name = n.toname()
+        j-var(js-id-of(n.tostring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(bind-name)]))
+      | s-type-global(s) =>
+        bind-name = type-name(n.toname()) # IGNORED FOR NOW
+        j-var(js-id-of(n.tostring()), rt-field("Any"))
+    end
   end
-  ids = headers.map(_.name).map(_.tostring()).map(js-id-of)
-  filenames = headers.map(lam(h):
-      cases(N.AHeader) h:
-        | a-import-builtin(_, name, _) => "trove/" + name
-        | a-import-file(_, file, _) => file
+  ids = imports.map(_.name).map(_.tostring()).map(js-id-of)
+  type-imports = imports.filter(N.is-a-import-types)
+  type-ids = type-imports.map(_.types).map(_.tostring()).map(js-id-of)
+  filenames = imports.map(lam(i):
+      cases(N.AImportType) i.import-type:
+        | a-import-builtin(_, name) => "trove/" + name
+        | a-import-file(_, file) => file
       end
     end)
   module-id = compiler-name(l.source)
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
   input-ids = ids.map(lam(f): compiler-name(f) end)
   fun wrap-modules(modules, body-name, body-fun):
-    mod-input-ids = modules.map(lam(f): j-id(f.input-id) end)
-    mod-ids = modules.map(_.id)
-    j-return(rt-method("loadModules",
+    mod-input-names = modules.map(_.input-id)
+    mod-input-ids = mod-input-names.map(j-id)
+    mod-val-ids = modules.map(_.id)
+    j-return(rt-method("loadModulesNew",
         [list: j-id("NAMESPACE"), j-list(false, mod-input-ids),
-          j-fun(mod-ids,
-            j-block([list:
+          j-fun(mod-input-names,
+            j-block(
+              for map2(m from mod-val-ids, in from mod-input-ids):
+                j-var(m, rt-method("getField", [list: in, j-str("values")]))
+              end +
+              for map2(mt from type-ids, in from mod-input-ids):
+                j-var(mt, rt-method("getField", [list: in, j-str("types")]))
+              end +
+              [list: 
                 j-var(body-name, body-fun),
                 j-return(rt-method(
-                    "safeCall",
-                    [list: 
+                    "safeCall", [list: 
                       j-id(body-name),
                       j-fun([list: "moduleVal"],
                         j-block([list: 
                             j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal")),
                             j-return(j-id("moduleVal"))
-                          ])),
-                      j-str(body-name)
-                ]))]))]))
+                    ]))]))]))]))
   end
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }
   end
-
   var locations = concat-empty
   var loc-count = 0
   var loc-cache = D.string-dict()
@@ -791,24 +860,24 @@ end
 
 fun splitting-compiler(env):
   compiler-visitor.{
-    a-program(self, l, headers, body):
+    a-program(self, l, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       split = S.ast-split(simplified)
       helpers-dict = D.string-dict()
       for each(h from split.helpers):
         helpers-dict.set(h.name.key(), h)
       end
-      compile-program(self.{helpers: helpers-dict}, l, headers, split, env)
+      compile-program(self.{helpers: helpers-dict}, l, imports, split, env)
     end
   }
 end
 
 fun non-splitting-compiler(env):
   compiler-visitor.{
-    a-program(self, l, headers, body):
+    a-program(self, l, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       split = S.split-result([list: ], simplified, N.freevars-e(simplified))
-      compile-program(self, l, headers, split, env)
+      compile-program(self, l, imports, split, env)
     end
   }
 end

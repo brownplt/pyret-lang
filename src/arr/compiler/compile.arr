@@ -1,10 +1,10 @@
 #lang pyret
 
 provide *
+#provide-types *
 import file as F
 import ast as A
 import parse-pyret as PP
-import parse-errors as PE
 import "compiler/js-of-pyret.arr" as P
 import "compiler/compile-structs.arr" as C
 import "compiler/well-formed.arr" as W
@@ -33,7 +33,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
   when options.collect-all:
     when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
   end
-  wf = W.check-well-formed(ast-ended.orelse(ast))
+  wf = W.check-well-formed(ast-ended.or-else(ast))
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
   cases(C.CompileResult) wf:
@@ -48,7 +48,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       named-result = R.resolve-names(scoped, libs)
       when options.collect-all: ret := phase("Resolved names", named-result, ret) end
       named-ast = named-result.ast
-      named-shadow-errors = named-result.shadowed
+      named-errors = named-result.errors
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
       cleaned = desugared.visit(U.merge-nested-blocks)
@@ -58,7 +58,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
       inlined = cleaned.visit(U.inline-lams)
       when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-      any-errors = named-shadow-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
+      any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
       if is-empty(any-errors):
         if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
         else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
@@ -79,7 +79,6 @@ fun compile-js(trace, dialect, code, name, libs, options)
   when options.collect-all: ret := phase("Parsed (" + dialect + " dialect)", ast, ret) end
   compile-js-ast(ret, ast, name, libs, options)
 end
-
 
 fun compile-runnable-js(dialect, code, name, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
   compile-js(start, dialect, code, name, libs, options.{collect-all: false, ignore-unbound: false}).result.pyret-to-js-runnable()

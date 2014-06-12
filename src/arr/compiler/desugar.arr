@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+#provide-types *
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as C
@@ -16,14 +17,13 @@ data Pair:
   | pair(left, right)
 end
 
-mt-d-env = d-env(set([list: ]), set([list: ]), set([list: ]))
+mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
 fun check-bool(l, id, e, then, err):
   A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, e)],
-    # A.s-check-type(l, id.id-e, A.s-prim-type("isBoolean"), err, then))
     A.s-if-else(l,
       [list: A.s-if-branch(l, A.s-prim-app(l, "isBoolean", [list: id.id-e]), then)],
       err))
@@ -44,7 +44,9 @@ fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
-
+fun desugar-afield(f :: A.AField) -> A.AField:
+  A.a-field(f.l, f.name, desugar-ann(f.ann))
+end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
@@ -58,9 +60,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-app(l, base, args) =>
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
-      A.a-record(l, for map(f from fields):
-        A.a-field(l, f.name, desugar-ann(f.ann))
-      end)
+      A.a-record(l, fields.map(desugar-afield))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -83,8 +83,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program:
-    | s-program(l, _provide, imports, body) =>
-      A.s-program(l, _provide, imports, desugar-expr(body))
+    | s-program(l, _provide, provided-types, imports, body) =>
+      A.s-program(l, _provide, provided-types, imports, desugar-expr(body))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
@@ -362,6 +362,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
+    | s-module(l, answer, provides, types, checks) =>
+      A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
@@ -376,6 +378,16 @@ fun desugar-expr(expr :: A.Expr):
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-let(l, name, value, keyword-val) =>
       A.s-let(l, name, desugar-expr(value), keyword-val)
+    | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
+    | s-newtype(l, name, namet) => expr
+    | s-type-let-expr(l, binds, body) =>
+      fun desugar-type-bind(tb):
+        cases(A.TypeLetBind) tb:
+          | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
+          | s-newtype-bind(l2, name, nameb) => tb
+        end
+      end
+      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
     | s-let-expr(l, binds, body) =>
       new-binds = for map(bind from binds):
         cases(A.LetBind) bind:
@@ -394,7 +406,7 @@ fun desugar-expr(expr :: A.Expr):
           end
         end
       A.s-letrec(l, new-binds, desugar-expr(body))
-    | s-data-expr(l, name, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
           do-match =
@@ -424,7 +436,7 @@ fun desugar-expr(expr :: A.Expr):
               (methods + with-members).map(desugar-member))
         end
       end
-      A.s-data-expr(l, name, params, mixins.map(desugar-expr), variants.map(extend-variant),
+      A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
       test-id = mk-id(l, "when-")

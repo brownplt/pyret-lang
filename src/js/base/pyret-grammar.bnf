@@ -8,20 +8,24 @@ program: prelude block
 
 end: END | SEMI
 
-prelude: [provide-stmt] import-stmt*
+prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 
 import-stmt: IMPORT (import-name | import-string) AS NAME
 import-stmt: IMPORT NAME (COMMA NAME)* FROM (import-name | import-string)
 import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR
+provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 
 block: stmt*
 
-stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
+stmt: type-expr | newtype-expr
+    | let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
     | graph-expr | contract-stmt
 
+type-expr: TYPE NAME EQUALS ann
+newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
 toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
@@ -30,6 +34,16 @@ let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
 letrec-expr: LETREC letrec-binding* let-expr COLON block end
 letrec-binding: let-expr COMMA
+
+type-bind: NAME EQUALS ann
+newtype-bind: NEWTYPE NAME AS NAME
+
+type-let-bind: type-bind | newtype-bind
+type-let-bind-elt: type-let-bind COMMA
+type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind COLON block end
+
+bless-expr: BLESS binop-expr AS NAME
+confirm-expr: CONFIRM binop-expr AS NAME
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
@@ -91,6 +105,8 @@ expr: paren-expr | id-expr | prim-expr
     | for-expr | try-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
+    | type-let-expr
+    | bless-expr | confirm-expr
     | construct-expr
 
 bad-expr: UNTERMINATED-STRING | UNKNOWN
@@ -177,6 +193,6 @@ arrow-ann-elt: ann COMMA
 app-ann: (name-ann|dot-ann) (LANGLE|LT) app-ann-elt* ann (RANGLE|GT)
 app-ann-elt: ann COMMA
 
-pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN
+pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 
 dot-ann : NAME DOT NAME

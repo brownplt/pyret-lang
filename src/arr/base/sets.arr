@@ -1,8 +1,9 @@
 #lang pyret/library
 
 provide {
-  Set: Set,
-  set: list-to-tree-set,
+  set: {
+    make: arr-to-list-set
+  },
   list-set: {
     make: arr-to-list-set
   },
@@ -10,12 +11,16 @@ provide {
     make: arr-to-tree-set
   },
   empty-list-set: list-set(empty),
-  empty-tree-set: tree-set(leaf)
+  empty-tree-set: tree-set(leaf),
+  list-to-list-set: list-to-list-set,
+  list-to-tree-set: list-to-tree-set
 } end
+#provide-types *
 
 import lists as lists
 import error as error
 import option as option
+import arrays as arrays
 
 List = lists.List
 empty = lists.empty
@@ -29,23 +34,28 @@ fold = lists.fold
 data AVLTree:
   | leaf with:
     height(self) -> Number: 0 end,
-    contains(self, val :: Any) -> Bool: false end,
+    contains(self, val :: Any) -> Boolean: false end,
     insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
     remove(self, val :: Any) -> AVLTree: leaf end,
-    preorder(self) -> List: empty end,
-    inorder(self) -> List: empty end,
-    postorder(self) -> List: empty end,
+    preorder(self) -> lists.List: empty end,
+    inorder(self) -> lists.List: empty end,
+    postorder(self) -> lists.List: empty end,
     fold(self, f, base): base end
     
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
-    height(self) -> Number: self.h end,
-    contains(self, val :: Any) -> Bool:
+    height(self) -> Number:
+      doc: "Returns the depth of the tree"
+      self.h
+    end,
+    contains(self, val :: Any) -> Boolean:
+      doc: "Returns true of the tree contains val, otherwise returns false"
       if val == self.value: true
       else if val < self.value: self.left.contains(val)
       else: self.right.contains(val)
       end
     end,
     insert(self, val :: Any) -> AVLTree:
+      doc: "Returns a new tree containing val but otherwise equal"
       if val == self.value: mkbranch(val, self.left, self.right)
       else if val < self.value:
         rebalance(mkbranch(self.value, self.left.insert(val), self.right))
@@ -54,6 +64,7 @@ data AVLTree:
       end
     end,
     remove(self, val :: Any) -> AVLTree:
+      doc: "Returns a new tree without val but otherwise equal"
       if val == self.value: remove-root(self)
       else if val < self.value:
         rebalance(mkbranch(self.value, self.left.remove(val), self.right))
@@ -61,12 +72,28 @@ data AVLTree:
         rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
       end
     end,
-    preorder(self) -> List: link(self.value, self.left.preorder() + self.right.preorder()) end,
-    inorder(self) -> List: self.left.inorder() + link(self.value, self.right.inorder()) end,
-    postorder(self) -> List: self.left.postorder() + self.right.postorder() + link(self.value, empty) end,
-    fold(self, f, base): self.right.fold(f, self.left.fold(f, f(base, self.value))) end
+    preorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a preorder traversal"
+      link(self.value, self.left.preorder() + self.right.preorder())
+    end,
+    inorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a inorder traversal"
+      self.left.inorder() + link(self.value, self.right.inorder())
+    end,
+    postorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a postorder traversal"
+      self.left.postorder() + self.right.postorder() + link(self.value, empty)
+    end,
+    fold(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list```
+      self.right.fold(f, self.left.fold(f, f(base, self.value)))
+    end
 sharing:
-  to-list(self) -> List: self.inorder() end,
+  to-list(self) -> lists.List:
+    doc: "Returns a list of all elements from a inorder traversal"
+    self.inorder()
+  end,
   _equals(self, other):
     AVLTree(other) and (self.inorder() == other.inorder())
   end
@@ -157,7 +184,7 @@ fun swap-next-lowest(tree :: AVLTree):
 end
 
 data Set:
-  | list-set(elems :: List) with:
+  | list-set(elems :: lists.List) with:
     tostring(self):
       "[list-set: " +
       self.elems.foldl(lam(elem, acc):
@@ -177,7 +204,7 @@ data Set:
       "]"
     end,
     
-    member(self, elem :: Any) -> Bool:
+    member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.member(elem)
     end,
@@ -196,7 +223,7 @@ data Set:
       list-set(self.elems.filter(lam(x): x <> elem end))
     end,
     
-    to-list(self) -> List:
+    to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems
     end,
@@ -251,7 +278,7 @@ data Set:
       "]"
     end,
     
-    member(self, elem :: Any) -> Bool:
+    member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.contains(elem)
     end,
@@ -266,7 +293,7 @@ data Set:
       tree-set(self.elems.remove(elem))
     end,
     
-    to-list(self) -> List:
+    to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems.inorder()
     end,
@@ -317,39 +344,40 @@ sharing:
   
 end
 
-fun list-to-set(lst :: List, base-set :: Set) -> Set:
+fun list-to-set(lst :: lists.List, base-set :: Set) -> Set:
   doc: "Convert a list into a set."
   for lists.fold(s from base-set, elem from lst):
     s.add(elem)
   end
 end
 
-fun list-to-list-set(lst :: List) -> Set:
+fun list-to-list-set(lst :: lists.List) -> Set:
   doc: "Convert a list into a list-based set."
   list-to-set(lst, list-set(empty))
 end
 
-fun list-to-tree-set(lst :: List) -> Set:
+fun list-to-tree-set(lst :: lists.List) -> Set:
   doc: "Convert a list into a tree-based set."
   list-to-set(lst, tree-set(leaf))
 end
 
-fun list-to-tree(lst :: List):
+fun list-to-tree(lst :: lists.List):
   for lists.fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
 end
 
-fun arr-to-list-set(arr :: Array) -> Set:
+fun arr-to-list-set(arr :: RawArray) -> Set:
   for raw-array-fold(ls from list-set(empty), elt from arr, _ from 0):
     ls.add(elt) 
   end
 end
 
-fun arr-to-tree-set(arr :: Array) -> Set:
+fun arr-to-tree-set(arr :: RawArray) -> Set:
   tree = for raw-array-fold(t from leaf, elt from arr, _ from 0):
     t.insert(elt)
   end
   tree-set(tree)
 end
+
 

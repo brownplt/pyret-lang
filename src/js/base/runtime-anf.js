@@ -803,6 +803,18 @@ function createMethodDict() {
     var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
+
+    var NumberC = makePrimitiveAnn("Number", isNumber);
+    var StringC = makePrimitiveAnn("String", isString);
+    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
+    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
+    var FunctionC = makePrimitiveAnn("Function",
+      function(v) { return isFunction(v) || isMethod(v) });
+    var MethodC = makePrimitiveAnn("Method", isMethod);
+    var NothingC = makePrimitiveAnn("Nothing", isNothing);
+    var ObjectC = makePrimitiveAnn("Nothing", isObject);
+    var AnyC = makePrimitiveAnn("Any", function() { return true; });
+
     function confirm(val, test) {
       checkArity(2, arguments, "runtime");
       if(!test(val)) {
@@ -825,14 +837,9 @@ function createMethodDict() {
       var thisBrandStr = "$brand" + String(++brandCounter);
       return thisBrandStr;
     }
-    /**@type {PFunction} */
-    var brander = makeFunction(
-    /**
-      @return {!PBase}
-    */
-    function() {
-      var thisBrandStr = mkBrandName();
-      return makeObject({
+    var namedBrander = function(name) {
+      var thisBrandStr = mkBrandName(name);
+      var brander = makeObject({
           'test': makeFunction(function(obj) {
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
@@ -840,6 +847,16 @@ function createMethodDict() {
               return obj.brand(thisBrandStr);
             })
         });
+      brander._brand = thisBrandStr;
+      return brander;
+    }
+    /**@type {PFunction} */
+    var brander = makeFunction(
+    /**
+      @return {!PBase}
+    */
+    function() {
+      return namedBrander("brander");
     }
     );
 
@@ -1332,6 +1349,241 @@ function createMethodDict() {
       return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
     }
 
+    function returnOrRaise(result, val, after) {
+      if(ffi.isOk(result)) { return after(val); }
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function checkAnn(compilerLoc, ann, val, after) {
+      if(!ann.refinement) {
+        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+      }
+      else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, val);
+        }, function(result) {
+          return returnOrRaise(result, val, after);
+        });
+      }
+    }
+
+    function _checkAnn(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isOk(result)) { return val; }
+      if(ffi.isFail(result)) { raiseJSJS(result); }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function safeCheckAnnArg(compilerLoc, ann, val, after) {
+      if(!ann.refinement) {
+        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+      }
+      else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, val);
+        }, function(result) {
+          return returnOrRaise(result, val, after);
+        });
+      };
+    }
+
+    function checkAnnArg(compilerLoc, ann, val) {
+      return safeCall(function() {
+        return ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) { return val; }
+        if(ffi.isFail(result)) {
+          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+        }
+        throw "Internal error: got invalid result from annotation check";
+      });
+    }
+
+    function _checkAnnArg(compilerLoc, ann, val) {
+      var result = ann.check(compilerLoc, val);
+      if(ffi.isOk(result)) { return val; }
+      if(ffi.isFail(result)) {
+        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
+      }
+      throw "Internal error: got invalid result from annotation check";
+    }
+
+    function checkAnnArgs(anns, args, locs, after) {
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+            return checkI(i + 1);
+          });
+        }
+      }
+      return checkI(0);
+    }
+
+    function getDotAnn(loc, name, ann, field) {
+      checkString(name);
+      checkString(field);
+      if(ann.hasOwnProperty(field)) {
+        return ann[field];
+      }
+      raiseJSJS(ffi.contractFail(makeSrcloc(loc),
+              ffi.makeDotAnnNotPresent(name, field)))
+    }
+
+    function PPrimAnn(name, pred) {
+      this.name = name;
+      this.pred = pred;
+      this.refinement = false;
+    }
+    PPrimAnn.prototype.checkOrFail = function(passed, val, loc) {
+      var that = this;
+      if(passed) { return ffi.contractOk; }
+      else {
+        return ffi.contractFail(
+          makeSrcloc(loc),
+          ffi.makeTypeMismatch(val, that.name));
+      }
+    }
+    PPrimAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      if(!this.refinement) {
+        return this.checkOrFail(this.pred(val), val, compilerLoc);
+      }
+      else {
+        return safeCall(function() {
+          return that.pred(val);
+        }, function(passed) {
+          return that.checkOrFail(passed, val, compilerLoc);
+        });
+      }
+    }
+
+    function makePrimitiveAnn(name, jsPred) {
+      return new PPrimAnn(name, jsPred);
+    }
+
+    function PPredAnn(ann, pred, predname) {
+      this.ann = ann;
+      this.pred = pred;
+      this.predname = predname;
+      this.refinement = true;
+    }
+    function makePredAnn(ann, pred, predname) {
+      checkFunction(pred);
+      checkString(predname);
+      return new PPredAnn(ann, pred, predname);
+    }
+    PPredAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      return safeCall(function() {
+        return that.ann.check(compilerLoc, val);
+      }, function(result) {
+        if(ffi.isOk(result)) {
+          return safeCall(function() {
+            return that.pred.app(val);
+          }, function(result) {
+            if(isPyretTrue(result)) {
+              return ffi.contractOk;
+            }
+            else {
+              return ffi.contractFail(
+                makeSrcloc(compilerLoc),
+                ffi.makePredicateFailure(val, that.predname));
+            }
+          })
+        }
+        else {
+          return result;
+        }
+      });
+    }
+
+    function makeBranderAnn(brander, name) {
+      return makePrimitiveAnn(name, function(val) {
+        return isObject(val) && hasBrand(val, brander._brand);
+      });
+    }
+
+    function PRecordAnn(fields, locs, anns) {
+      this.fields = fields;
+      this.locs = locs;
+      this.anns = anns;
+      var hasRefinement = false;
+      for (var i = 0; i < fields.length; i++) {
+        hasRefinement = hasRefinement || anns[fields[i]].refinement;
+      }
+      this.refinement = hasRefinement;
+    }
+    function makeRecordAnn(fields, locs, anns) {
+      return new PRecordAnn(fields, locs, anns);
+    }
+    PRecordAnn.prototype.createMissingFieldsError = function(compilerLoc, val) {
+      var that = this;
+      var missingFields = [];
+      for(var i = 0; i < that.fields.length; i++) {
+        if(!hasField.app(val, that.fields[i])) {
+          var reason = ffi.makeMissingField(
+            makeSrcloc(that.locs[i]),
+            that.fields[i]
+          );
+          missingFields.push(reason);
+        }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeRecordFieldsFail(val, ffi.makeList(missingFields))
+      );
+    };
+    PRecordAnn.prototype.createRecordFailureError = function(compilerLoc, val, field, result) {
+      var that = this;
+      var loc;
+      for(var i = 0; i < that.fields.length; i++) {
+        if(that.fields[i] === field) { loc = that.locs[i]; }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeRecordFieldsFail(val, ffi.makeList([
+            ffi.makeFieldFailure(
+              makeSrcloc(loc),
+              field,
+              getField(result, "reason")
+            )
+          ]))
+      );
+    };
+    PRecordAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      if(!isObject(val)) {
+        return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, "Object")
+          );
+      }
+      for(var i = 0; i < that.fields.length; i++) {
+        if(!hasField.app(val, that.fields[i])) {
+          return that.createMissingFieldsError(compilerLoc, val);
+        }
+      }
+
+      function deepCheckFields(remainingFields) {
+        var thisField;
+        return safeCall(function() {
+          thisField = remainingFields.pop();
+          var thisChecker = that.anns[thisField];
+          return thisChecker.check(that.locs[that.locs.length - remainingFields.ength], getColonField(val, thisField));
+        }, function(result) {
+          if(ffi.isOk(result)) {
+            if(remainingFields.length === 0) { return ffi.contractOk; }
+            else { return deepCheckFields(remainingFields); }
+          }
+          else if(ffi.isFail(result)) {
+            return that.createRecordFailureError(compilerLoc, val, thisField, result);
+          }
+        });
+      }
+      return deepCheckFields(that.fields.slice());
+    }
     /********************
 
      *******************/
@@ -2312,13 +2564,13 @@ function createMethodDict() {
     }
 
     function loadModule(module, runtime, namespace, withModule) {
+      var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        function(m) { return withModule(getField(m, "provide")); },
-        "loadModule");
+        withModule);
     }
-    function loadModules(namespace, modules, withModules) {
+    function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
         if(toLoad.length > 0) {
           var nextMod = toLoad.pop();
@@ -2335,6 +2587,35 @@ function createMethodDict() {
       }
       var modulesCopy = modules.slice(0, modules.length);
       return loadModulesInt(modulesCopy, []);
+    }
+    function loadModulesNew(namespace, modules, withModules) {
+      return loadJSModules(namespace, modules, function(/* args */) {
+        var ms = Array.prototype.slice.call(arguments);
+        function wrapMod(m) {
+          if (hasField.app(m, "provide-plus-types")) {
+            return getField(m, "provide-plus-types");
+          }
+          else {
+            return thisRuntime.makeObject({
+              "provide": getField(m, "provide"), // TEMPORARY
+              "values": getField(m, "provide"),
+              "types": {}
+            });
+          }
+        };
+        var wrappedMods = ms.map(wrapMod);
+        return withModules.apply(null, wrappedMods);
+      });
+    }
+    function loadModules(namespace, modules, withModules) {
+      return loadModulesNew(namespace, modules, function(/* varargs */) {
+        var ms = Array.prototype.slice.call(arguments);
+        return safeTail(function() {
+          return withModules.apply(null, ms.map(function(m) { 
+            return getField(m, "values") || getField(m, "provide");  // TEMPORARY!
+          }));
+        });
+      });
     }
 
     //Export the runtime
@@ -2359,6 +2640,28 @@ function createMethodDict() {
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
+
+          // NOTE(joe): the $type$ sadness is because we only have one dynamic
+          // namespace
+          '$type$Number': NumberC,
+          '$type$String': StringC,
+          '$type$Boolean': BooleanC,
+          '$type$Nothing': NothingC,
+          '$type$Function': FunctionC,
+          '$type$RawArray': RawArrayC,
+          '$type$Method': MethodC,
+          '$type$Object': ObjectC,
+          '$type$Any': AnyC,
+
+          'Number': NumberC,
+          'String': StringC,
+          'Boolean': BooleanC,
+          'Nothing': NothingC,
+          'Function': FunctionC,
+          'RawArray': RawArrayC,
+          'Method': MethodC,
+          'Object': ObjectC,
+          'Any': AnyC,
 
           'run-task': makeFunction(execThunk),
 
@@ -2433,6 +2736,17 @@ function createMethodDict() {
         'makeActivationRecord' : makeActivationRecord,
 
         'GAS': INITIAL_GAS,
+
+        'namedBrander': namedBrander,
+
+        'checkAnn': checkAnn,
+        'checkAnnArg': checkAnnArg,
+        'checkAnnArgs': checkAnnArgs,
+        'getDotAnn': getDotAnn,
+        'makePredAnn': makePredAnn,
+        'makePrimitiveAnn': makePrimitiveAnn,
+        'makeBranderAnn': makeBranderAnn,
+        'makeRecordAnn': makeRecordAnn,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,
@@ -2579,6 +2893,8 @@ function createMethodDict() {
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
+        'loadModulesNew' : loadModulesNew,
+        'loadJSModules' : loadJSModules,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;
@@ -2589,10 +2905,19 @@ function createMethodDict() {
     };
 
 
-    var list = getField(require("trove/lists")(thisRuntime, thisRuntime.namespace), "provide");
-    var srcloc = getField(require("trove/srcloc")(thisRuntime, thisRuntime.namespace), "provide");
-    var ffi = require("js/ffi-helpers")(thisRuntime, thisRuntime.namespace);
-    thisRuntime["ffi"] = ffi;
+    var list;
+    var srcloc;
+    var ffi;
+    loadModulesNew(thisRuntime.namespace,
+      [require("trove/lists"), require("trove/srcloc")],
+      function(listsLib, srclocLib) {
+        list = getField(listsLib, "values");
+        srcloc = getField(srclocLib, "values");
+      });
+    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
+      ffi = f;
+      thisRuntime["ffi"] = ffi;
+    });
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
