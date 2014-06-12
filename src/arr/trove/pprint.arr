@@ -42,6 +42,7 @@ provide {
   comma: comma,
   commabreak: commabreak
 } end
+provide-types *
 
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)

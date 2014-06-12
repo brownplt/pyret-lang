@@ -45,6 +45,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
       });
+      it("multiple statements on a line", function(done) {
+        P.checkCompileErrorMsg("fun f(x): f x end", "Found two expressions on the same line");
+        P.checkCompileErrorMsg("fun f(x): f (x) end", "Found two expressions on the same line");
+        P.checkEvalsTo("fun f(x): f\n (x) end\n10", rt.makeNumber(10));
+        P.checkEvalsTo("fun f(x):\n  f\n  # a comment\n  (x)\nend\n10", rt.makeNumber(10));
+        P.wait(done);
+      });
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 
@@ -64,8 +71,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
         P.checkCompileErrorMsg("lam(): var x = 5 end", "Cannot end a block in a var-binding");
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("lam(): x = 5 fun f(): nothing end end", "Cannot end a block in a fun-binding");
-        P.checkCompileErrorMsg("lam(): var x = 5 y = 4 fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): x = 5\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("lam(): var x = 5\n y = 4\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
 
         P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
@@ -76,7 +83,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a data definition");
+                               "top level");
         P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
@@ -85,7 +92,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "    | var1()\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a data definition");
+                               "top level");
         P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
@@ -222,7 +229,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "while",
           "class",
           "interface",
-          "type",
           "generator",
           "alias",
           "extends",
@@ -255,6 +261,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           P.checkCompileErrorMsg(reservedNames[i], err);
           P.checkCompileErrorMsg(reservedNames[i] + " = 5", err);
           P.checkCompileErrorMsg("fun f(" + reservedNames[i] + "): 5 end", err);
+          P.checkCompileErrorMsg("fun " + reservedNames[i] + "(): 5 end", err);
+          if (reservedNames[i] !== "type") {
+            P.checkCompileErrorMsg("{ " + reservedNames[i] + " : 42 }", err);
+            P.checkCompileErrorMsg("{ " + reservedNames[i] + "(self): 42 end }", err);
+          }
         }
 
         P.wait(done);

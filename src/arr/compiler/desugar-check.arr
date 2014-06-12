@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import ast as A
 import srcloc as SL
 import "compiler/gensym.arr" as G

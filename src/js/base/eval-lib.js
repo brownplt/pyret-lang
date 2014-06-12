@@ -21,52 +21,57 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
   }
 
   function compilePyret(runtime, ast, options, ondone) {
-    function getExports(lib) {
-      return runtime.getField(lib(runtime, runtime.namespace), "provide");
-    }
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
-    var ffi = ffiHelpersLib(runtime, runtime.namespace);
-    var dialects = dialectsLib(runtime, runtime.namespace);
-    runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
-      var name = options.name || randomName();
-      var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
+    return runtime.safeCall(function() {
+      return ffiHelpersLib(runtime, runtime.namespace);
+    }, function(ffi) {
+      return runtime.safeCall(function() {
+        return dialectsLib(runtime, runtime.namespace);
+      },
+      function(dialects) {
+        runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
+          var name = options.name || randomName();
+          var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
 
-      runtime.run(function(_, namespace) {
-          return runtime.safeCall(function() {
-              return gf(comp, "compile-js-ast").app(
-                  gf(comp, "start"),
-                  ast,
-                  s(name),
-                  compileEnv,
-                  runtime.makeObject({
-                    "check-mode": runtime.pyretTrue,
-                    "allow-shadowed": runtime.pyretFalse,
-                    "collect-all": runtime.pyretFalse,
-                    "ignore-unbound": runtime.pyretFalse
-                  })
-                );
-            },
-            function(compPhase) {
-              var compiled = gf(compPhase, "result");
-              return runtime.safeTail(function() {
-                  if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                    return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
-                  }
-                  else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                    throw ffi.toArray(gf(compiled, "problems"));
-                  }
-                  else {
-                    throw new Error("Unknown result type while compiling: ", compiled);
-                  }
+          runtime.run(function(_, namespace) {
+              return runtime.safeCall(function() {
+                  return gf(comp, "compile-js-ast").app(
+                      gf(comp, "start"),
+                      ast,
+                      s(name),
+                      compileEnv,
+                      runtime.makeObject({
+                        "check-mode": runtime.pyretTrue,
+                        "allow-shadowed": runtime.pyretFalse,
+                        "collect-all": runtime.pyretFalse,
+                        "ignore-unbound": runtime.pyretFalse
+                      })
+                    );
+                },
+                function(compPhase) {
+                  var compiled = gf(compPhase, "result");
+                  return runtime.safeTail(function() {
+                      if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                        return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
+                      }
+                      else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                        throw ffi.toArray(gf(compiled, "problems"));
+                      }
+                      else {
+                        throw new Error("Unknown result type while compiling: ", compiled);
+                      }
+                    });
+
                 });
+              },
+              runtime.namespace,
+              { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
+              ondone)
+        });
 
-            });
-          },
-          runtime.namespace,
-          { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
-          ondone)
+      });
     });
   }
 
@@ -81,14 +86,19 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
   }
 
   function parsePyret(runtime, src, options, ondone) {
-    var pp = runtime.getField(parseLib(runtime, runtime.namespace), "provide");
-    var dialects = dialectsLib(runtime, runtime.namespace);
-    if (!options.name) { options.name = randomName(); }
     return runtime.runThunk(function() {
-      return runtime.getField(pp, "parse-dialect").app(
-                runtime.makeString(options.dialect || dialects.defaultDialect), 
-                runtime.makeString(src), 
-                runtime.makeString(options.name));
+      return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
+        var pp = runtime.getField(parseLib, "values");
+        return runtime.safeCall(function() {
+          return dialectsLib(runtime, runtime.namespace);
+        }, function(dialects) {
+          if (!options.name) { options.name = randomName(); }
+            return runtime.getField(pp, "parse-dialect").app(
+                      runtime.makeString(options.dialect || dialects.defaultDialect), 
+                      runtime.makeString(src), 
+                      runtime.makeString(options.name));
+        });
+      });
     }, ondone);
   }
 
@@ -106,9 +116,6 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
     if (!options.name) { options.name = randomName(); }
     var modname = randomName();
     var namespace = options.namespace || runtime.namespace;
-    function getExports(lib) {
-      return runtime.getField(lib(runtime, runtime.namespace), "provide");
-    }
     runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
       var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
       runtime.setParam("current-checker", currentChecker);

@@ -6,6 +6,7 @@ provide {
   file-exists: file-exists,
   file-to-string: file-to-string
 } end
+provide-types *
 
 import filelib as F
 
@@ -36,7 +37,7 @@ fun file-to-string(path):
 end
   
 
-fun output-file(path :: String, append :: Bool):
+fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
 

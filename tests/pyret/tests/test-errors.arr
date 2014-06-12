@@ -8,6 +8,12 @@ import world as W
 import string-dict as D
 import filelib as FL
 
+data Data:
+  | var1
+  | var2(x)
+end
+
+
 check:
   fun get-err(thunk):
     cases(Either) run-task(thunk):
@@ -188,6 +194,24 @@ check:
   e28.args.length() is 3
   e28.fun-loc satisfies S.is-builtin
   e28.fun-loc.module-name is "close-input-file"
+
+  data-pred-arity = get-err(lam(): is-Data(1, 2) end)
+  data-pred-arity satisfies E.is-arity-mismatch
+  data-pred-arity.expected-arity is 1
+  data-pred-arity.args.length() is 2
+  data-pred-arity.fun-loc satisfies S.is-srcloc
+
+  data-var1-arity = get-err(lam(): is-var1(1, 2) end)
+  data-var1-arity satisfies E.is-arity-mismatch
+  data-var1-arity.expected-arity is 1
+  data-var1-arity.args.length() is 2
+  data-var1-arity.fun-loc satisfies S.is-srcloc
+
+  data-var2-arity = get-err(lam(): is-var2(1, 2) end)
+  data-var2-arity satisfies E.is-arity-mismatch
+  data-var2-arity.expected-arity is 1
+  data-var2-arity.args.length() is 2
+  data-var2-arity.fun-loc satisfies S.is-srcloc
 
 end
 

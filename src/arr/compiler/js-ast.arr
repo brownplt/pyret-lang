@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 import pprint as PP
 import format as F
 
@@ -499,7 +500,7 @@ data JExpr:
       printer("undefined")
     end,
     tosource(self): PP.str("undefined") end
-  | j-label(label :: JLabel) with:
+  | j-label(label) with:
     label(self): "j-label" end,
     print-ugly-source(self, printer): printer(tostring(self.label.get())) end,
     tosource(self): PP.number(self.label.get()) end

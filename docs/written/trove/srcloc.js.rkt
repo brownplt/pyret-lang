@@ -1,82 +1,56 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt")
 @docmodule["srcloc"]{
-  @section[#:tag "srcloc_ReExports"]{Re-exported values}
+  @; Ignored type testers
+  @ignore[(list "is-builtin" "is-srcloc")]
   @section[#:tag "srcloc_DataTypes"]{Data types}
   @data-spec["Srcloc"]{
     @variants{
       @constr-spec["builtin"]{
-        @members{@member-spec["module-name" #:contract "Any"]}
+        @members{@member-spec["module-name"]}
         @with-members{
           @method-spec[
             "format"
-            #:contract
-            (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any" "Any")
+            ;; N.B. Pyret contract: (Srcloc, Any -> Any)
+            
           ]
           @method-spec[
             "same-file"
-            #:contract
-            (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any" "Any")
+            ;; N.B. Pyret contract: (Srcloc, Any -> Any)
+            
           ]
           @method-spec[
             "before"
-            #:contract
-            (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any" "Any")
+            ;; N.B. Pyret contract: (Srcloc, Any -> Any)
+            
           ]
         }
       }
       @constr-spec["srcloc"]{
         @members{
-          @member-spec[
-            "source"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "start-line"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "start-column"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "start-char"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "end-line"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "end-column"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
-          @member-spec[
-            "end-char"
-            #:contract (a-id "Number" (xref "<global>" "Number"))
-          ]
+          @member-spec["source"]
+          @member-spec["start-line"]
+          @member-spec["start-column"]
+          @member-spec["start-char"]
+          @member-spec["end-line"]
+          @member-spec["end-column"]
+          @member-spec["end-char"]
         }
         @with-members{
           @method-spec[
             "format"
-            #:contract
-            (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any" "Any")
+            ;; N.B. Pyret contract: (Srcloc, Any -> Any)
+            
           ]
           @method-spec[
             "same-file"
-            #:contract
-            (a-arrow
-              (a-id "Srcloc" (xref "srcloc" "Srcloc"))
-              (a-id "Srcloc" (xref "srcloc" "Srcloc"))
-              "Any")
+            ;; N.B. Pyret contract: (Srcloc, Srcloc60 -> Any)
+            
           ]
           @method-spec[
             "before"
-            #:contract
-            (a-arrow
-              (a-id "Srcloc" (xref "srcloc" "Srcloc"))
-              (a-id "Srcloc" (xref "srcloc" "Srcloc"))
-              "Any")
+            ;; N.B. Pyret contract: (Srcloc, Srcloc60 -> Any)
+            
           ]
         }
       }
@@ -84,26 +58,17 @@
     @shared{
       @method-spec[
         "tostring"
-        #:contract (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any")
+        ;; N.B. Pyret contract: (Srcloc -> Any)
+        
       ]
       @method-spec[
         "after"
-        #:contract
-        (a-arrow (a-id "Srcloc" (xref "srcloc" "Srcloc")) "Any" "Any")
+        ;; N.B. Pyret contract: (Srcloc, Any -> Any)
+        
       ]
     }
   }
+  
   @section[#:tag "srcloc_Functions"]{Functions}
-  @function[
-    "is-builtin"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-srcloc"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "old-srcloc"
-    #:contract (a-arrow "Any" "Any" "Any" "Any" "Any" "Any" "Any" "Any")
-  ]
+  @function["old-srcloc"]
 }

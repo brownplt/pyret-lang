@@ -17,7 +17,10 @@
          scribble/html-properties
          (for-syntax racket/base racket/syntax)
          racket/list
+         racket/bool
          racket/dict
+         racket/path
+         racket/runtime-path
          "scribble-helpers.rkt"
          )
 
@@ -39,6 +42,7 @@
          a-record
          a-field
          a-app
+         a-pred
          a-dot
          members
          member-spec
@@ -69,13 +73,18 @@
 (define mod-path third)
 (define mod-specs cdddr)
 (define spec-type first)
-(define spec-fields rest)
+(define (spec-fields l) (if (cons? l) (rest l) #f))
 (define field-name first)
 (define field-val second)
 
+
+
 ;;;;;;;;;; Functions to sanity check generated documentation ;;;;;;;;;;;;;;;;;;
 
-(define GEN-BASE (build-path 'up "generated" "trove")) ;; THIS NEEDS HELP!
+;; Maybe something like this could be put in the Racket standard library?
+(define-runtime-path HERE ".")
+
+(define GEN-BASE (build-path (path-only HERE) "generated" "trove"))
 (define curr-doc-checks #f)
 
 ;; print a warning message, optionally with name of issuing function
@@ -106,16 +115,22 @@
 (define (report-undocumented modname)
   (let ([mod (assoc modname curr-doc-checks)])
     (if mod
-        (dict-for-each (second mod) (lambda (key val)
-                                      (unless val
-                                        (warning "Undocumented export ~s from module ~s~n"
-                                                key modname))))
+        (dict-for-each
+         (second mod)
+         (lambda (key val)
+           (unless val (warning 'report-undocumented
+                                (format "Undocumented export ~s from module ~s~n"
+                                        key modname)))))
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
 (define (load-gen-docs)
   (let ([all-docs (filter (lambda(f)
                             (let ([str (path->string f)])
-                              (not (string=? (substring str (- (string-length str) 4)) ".bak")))
+                              (and
+                                (not (string=? (substring str (- (string-length str) 4)) ".bak"))
+                                (not (string=? (substring str (- (string-length str) 1)) "~"))
+                                (not (string=? (substring str 0 1) "."))
+                                ))
                             ) (directory-list GEN-BASE))])
     (let ([read-docs
            (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
@@ -136,15 +151,18 @@
 ;; finds definition in defn spec list that has given value for designated field
 ;; by-field is symbol, indefns is list<specs>
 (define (find-defn by-field for-val indefns)
-  (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
-    (unless d
-      (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
-    d))
+  (if (or (empty? indefns) (not indefns))
+      #f
+      (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+        (unless d
+          (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
+        d)))
 
 ;; defn-spec is '(fun-spec <assoc>)
 (define (get-defn-field field defn-spec)
-  (let ([f (assoc field (spec-fields defn-spec))])
-    (if f (field-val f) #f)))
+  (if (or (empty? defn-spec) (not defn-spec)) #f
+      (let ([f (assoc field (spec-fields defn-spec))])
+        (if f (field-val f) #f))))
 
 ;; extracts the definition spec for the given function name
 ;; - will look in all modules to find the name
@@ -154,7 +172,7 @@
 
 ;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define css-js-additions (list "foo.css"))
+(define css-js-additions (list "style.css"))
 
 (define (div-style name)
   (make-style name (cons (make-alt-tag "div") css-js-additions)))
@@ -235,11 +253,13 @@
 ;; this function does the actual work after syntax expansion
 @(define (docmodule-internal name
                              #:friendly-title (friendly-title #f)
+                             #:noimport (noimport #f)
                              . defs)
    (interleave-parbreaks/all
     (list (title #:tag (tag-name name) (or friendly-title name))
-          (para "Usage:")
-          (nested #:style (pre-style "code") "import " name " as ...")
+          (if noimport ""
+                       (list (para "Usage:")
+                             (nested #:style (pre-style "code") "import " name " as ...")))
           (interleave-parbreaks/all defs))))
 
 @(define (lod . assocLst)
@@ -270,7 +290,8 @@
    (let ([processing-module (curr-module-name)])
      (interleave-parbreaks/all
       (list (drop-anchor name)
-            (subsection  #:tag (tag-name (curr-module-name) name) name)
+            (subsection name)
+            (nested #:style (div-style "data-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
             (traverse-block ; use this to build xrefs on an early pass through docs
              (lambda (get set!)
                (set! 'doc-xrefs (cons (list name processing-module)
@@ -291,9 +312,12 @@
       spec name
       (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
       contract args alt-docstrings examples body)))
-@(define (member-spec name #:contract (contract #f) . body)
-   (list "TODO" ));(subsubsub*section name) body))
-
+@(define (member-spec name #:contract (contract-in #f) . body)
+   (let* ([members (get-defn-field 'members (curr-var-spec))]
+          [member (if (list? members) (assoc name members) #f)]
+          [contract (or contract-in (interp (get-defn-field 'contract member)))])
+     (list (dt (if contract (tt name " :: " contract) (tt name)))
+           (dd body))))
 
 @(define-syntax (singleton-spec stx)
    (syntax-case stx ()
@@ -308,7 +332,7 @@
        (list (subsubsection name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
+         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define-syntax (constr-spec stx)
    (syntax-case stx ()
@@ -323,26 +347,32 @@
        (list (subsubsection name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (tag-name (curr-module-name) name) name) body))))
+         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define (with-members . members)
-   members)
+   (if (empty? members) 
+       empty
+       (list "Methods" members)))
 @(define (members . mems)
-   mems)
+   (if (empty? mems)
+       empty
+       (list "Fields" (para #:style dl-style mems))))
 @(define (a-id name . args)
    (if (cons? args) (seclink (first args) name) name))
 @(define (a-compound typ . args)
    (if (cons? args) (seclink (first args) typ) typ))
 @(define (a-app base . typs)
    (append (list base "<") (add-between typs ", ") (list ">")))
+@(define (a-pred base refinement)
+   (list base "%(" refinement ")"))
 @(define (a-dot base field)
    (list base "." field))
 @(define (a-arrow . typs)
    (append (list "(") (add-between typs ", " #:before-last " -> ") (list ")")))
 @(define (a-record . fields)
-   fields)
+   (append (list "{") (add-between fields ", ") (list "}")))
 @(define (a-field name type . desc)
-   desc)
+   (append (list name ":") (list type)))
 @(define (variants . vars)
    vars)
 @(define-syntax (shared stx)
@@ -354,12 +384,33 @@
           (let ([contents (shared-internal args ...)])
             contents)))]))
 @(define (shared-internal . shares)
-   shares)
+   (if (empty? shares)
+       empty
+       (list "Shared Methods" shares)))
+
+@(define (interp an-exp)
+   (cond
+     [(list? an-exp)
+      (let* ([f (first an-exp)]
+             [args (map interp (rest an-exp))])
+        (cond
+          [(symbol=? f 'a-record) (apply a-record args)]
+          [(symbol=? f 'a-id) (apply a-id args)]
+          [(symbol=? f 'a-compound) (apply a-compound args)]
+          [(symbol=? f 'a-arrow) (apply a-arrow args)]
+          [(symbol=? f 'a-field) (apply a-field args)]
+          [(symbol=? f 'a-app) (apply a-app args)]
+          [(symbol=? f 'a-pred) (apply a-pred args)]
+          [(symbol=? f 'a-dot) (apply a-dot args)]
+          [(symbol=? f 'xref) (apply xref args)]
+          [#t an-exp]))]
+     [#t an-exp]))
 
 
 ;; render documentation for a function
-@(define (render-fun-helper spec name anchor contract args alt-docstrings examples contents)
-   (let* ([argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
+@(define (render-fun-helper spec name anchor contract-in args alt-docstrings examples contents)
+   (let* ([contract (or contract-in (interp (get-defn-field 'contract spec)))] 
+          [argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
           [doc (or alt-docstrings (get-defn-field 'doc spec))]
@@ -372,7 +423,7 @@
        (error 'function (format "Argument names not provided for name ~s" name)))
      ; if contract, check arity against generated
      (unless (or (not arity) (eq? arity (length argnames)))
-       (error 'function (format "Provided argument names do not match expected arity ~a" arity)))
+       (error 'function (format "Provided argument names do not match expected arity ~a ~a" arity name)))
      ;; render the scribble
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
@@ -395,7 +446,7 @@
                                       (para #:style dl-style
                                             (map (lambda (name type descr)
                                                    (cond [(and name type descr)
-                                                          (list ((tt dt name " :: " type))
+                                                          (list (dt (tt name " :: " type))
                                                                 (dd descr))]
                                                          [(and name type)
                                                           (list (dt (tt name " :: " type))
@@ -407,11 +458,11 @@
                                       )
                                      (if doc (list doc) (list)))))
                            (nested #:style (div-style "description") contents)
-                           (nested #:style (div-style "examples")
-                                   (para (bold "Examples:"))
-                                   (if (andmap whitespace? examples)
-                                       "empty for now"
-				       (pyret-block examples)))))))))))
+                           (if (andmap whitespace? examples)
+                             (nested #:style (div-style "examples") "")
+                             (nested #:style (div-style "examples")
+                                     (para (bold "Examples:"))
+                                     (pyret-block examples)))))))))))
      ))
 
 @(define (function name
@@ -424,7 +475,7 @@
    (let ([ans
           (render-fun-helper
            (find-doc (curr-module-name) name) name
-           (target-element #f (list name) (list 'part (tag-name (curr-module-name) name)))
+           (nested #:style (div-style "function-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
            contract args alt-docstrings examples contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)

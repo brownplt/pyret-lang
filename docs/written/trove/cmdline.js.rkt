@@ -1,6 +1,8 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt")
 @docmodule["cmdline"]{
+  @; Ignored type testers
+  @ignore[(list "is-success" "is-arg-error")]
   @; Unknown: PLEASE DOCUMENT
   @ignore[(list "file-name" "args")]
   @section[#:tag "cmdline_ReExports"]{Re-exported values}
@@ -19,18 +21,13 @@
         @with-members{
           @method-spec[
             "parse"
-            #:contract
-            (a-arrow
-              (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-              (a-id "Number" (xref "<global>" "Number"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "Number" (xref "<global>" "Number")))
+            ;; N.B. Pyret contract: (ParseParam, Number, String, String -> Number)
+            
           ]
           @method-spec[
             "parse-string"
-            #:contract
-            (a-arrow (a-id "ParseParam" (xref "cmdline" "ParseParam")) "Any")
+            ;; N.B. Pyret contract: (ParseParam -> Any)
+            
           ]
         }
       }
@@ -38,18 +35,13 @@
         @with-members{
           @method-spec[
             "parse"
-            #:contract
-            (a-arrow
-              (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-              (a-id "Number" (xref "<global>" "Number"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "Bool" (xref "<global>" "Bool")))
+            ;; N.B. Pyret contract: (ParseParam, Number, String, String -> Boolean)
+            
           ]
           @method-spec[
             "parse-string"
-            #:contract
-            (a-arrow (a-id "ParseParam" (xref "cmdline" "ParseParam")) "Any")
+            ;; N.B. Pyret contract: (ParseParam -> Any)
+            
           ]
         }
       }
@@ -57,47 +49,28 @@
         @with-members{
           @method-spec[
             "parse"
-            #:contract
-            (a-arrow
-              (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-              (a-id "Number" (xref "<global>" "Number"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "String" (xref "<global>" "String")))
+            ;; N.B. Pyret contract: (ParseParam, Number, String, String -> String)
+            
           ]
           @method-spec[
             "parse-string"
-            #:contract
-            (a-arrow (a-id "ParseParam" (xref "cmdline" "ParseParam")) "Any")
+            ;; N.B. Pyret contract: (ParseParam -> Any)
+            
           ]
         }
       }
       @constr-spec["read-custom"]{
-        @members{
-          @member-spec[
-            "name"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "parser"
-            #:contract (a-id "Function" (xref "<global>" "Function"))
-          ]
-        }
+        @members{@member-spec["name"] @member-spec["parser"]}
         @with-members{
           @method-spec[
             "parse"
-            #:contract
-            (a-arrow
-              (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-              (a-id "Number" (xref "<global>" "Number"))
-              (a-id "String" (xref "<global>" "String"))
-              (a-id "String" (xref "<global>" "String"))
-              "Any")
+            ;; N.B. Pyret contract: (ParseParam, Number, String, String -> Any)
+            
           ]
           @method-spec[
             "parse-string"
-            #:contract
-            (a-arrow (a-id "ParseParam" (xref "cmdline" "ParseParam")) "Any")
+            ;; N.B. Pyret contract: (ParseParam -> Any)
+            
           ]
         }
       }
@@ -110,8 +83,8 @@
         @with-members{
           @method-spec[
             "tostring"
-            #:contract
-            (a-arrow (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat")) "Any")
+            ;; N.B. Pyret contract: (ParamRepeat -> Any)
+            
           ]
         }
       }
@@ -119,8 +92,8 @@
         @with-members{
           @method-spec[
             "tostring"
-            #:contract
-            (a-arrow (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat")) "Any")
+            ;; N.B. Pyret contract: (ParamRepeat -> Any)
+            
           ]
         }
       }
@@ -128,8 +101,8 @@
         @with-members{
           @method-spec[
             "tostring"
-            #:contract
-            (a-arrow (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat")) "Any")
+            ;; N.B. Pyret contract: (ParamRepeat -> Any)
+            
           ]
         }
       }
@@ -137,8 +110,8 @@
         @with-members{
           @method-spec[
             "tostring"
-            #:contract
-            (a-arrow (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat")) "Any")
+            ;; N.B. Pyret contract: (ParamRepeat -> Any)
+            
           ]
         }
       }
@@ -148,99 +121,42 @@
   @data-spec["Param"]{
     @variants{
       @constr-spec["flag"]{
-        @members{
-          @member-spec[
-            "repeated"
-            #:contract (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat"))
-          ]
-          @member-spec[
-            "desc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-        }
+        @members{@member-spec["repeated"] @member-spec["desc"]}
         @with-members{}
       }
       @constr-spec["equals-val"]{
         @members{
-          @member-spec[
-            "parser"
-            #:contract (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-          ]
-          @member-spec[
-            "repeated"
-            #:contract (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat"))
-          ]
-          @member-spec[
-            "desc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
+          @member-spec["parser"]
+          @member-spec["repeated"]
+          @member-spec["desc"]
         }
         @with-members{}
       }
       @constr-spec["equals-val-default"]{
         @members{
-          @member-spec[
-            "parser"
-            #:contract (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-          ]
-          @member-spec["default" #:contract "Any"]
-          @member-spec[
-            "short-name"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "repeated"
-            #:contract (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat"))
-          ]
-          @member-spec[
-            "desc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
+          @member-spec["parser"]
+          @member-spec["default"]
+          @member-spec["short-name"]
+          @member-spec["repeated"]
+          @member-spec["desc"]
         }
         @with-members{}
       }
       @constr-spec["next-val"]{
         @members{
-          @member-spec[
-            "parser"
-            #:contract (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-          ]
-          @member-spec[
-            "repeated"
-            #:contract (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat"))
-          ]
-          @member-spec[
-            "desc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
+          @member-spec["parser"]
+          @member-spec["repeated"]
+          @member-spec["desc"]
         }
         @with-members{}
       }
       @constr-spec["next-val-default"]{
         @members{
-          @member-spec[
-            "parser"
-            #:contract (a-id "ParseParam" (xref "cmdline" "ParseParam"))
-          ]
-          @member-spec["default" #:contract "Any"]
-          @member-spec[
-            "short-name"
-            #:contract
-            (a-app
-              (a-id "Option" (xref "option" "Option"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-          @member-spec[
-            "repeated"
-            #:contract (a-id "ParamRepeat" (xref "cmdline" "ParamRepeat"))
-          ]
-          @member-spec[
-            "desc"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
+          @member-spec["parser"]
+          @member-spec["default"]
+          @member-spec["short-name"]
+          @member-spec["repeated"]
+          @member-spec["desc"]
         }
         @with-members{}
       }
@@ -250,68 +166,18 @@
   @data-spec["ParsedArguments"]{
     @variants{
       @constr-spec["success"]{
-        @members{
-          @member-spec[
-            "parsed"
-            #:contract
-            (a-compound
-              (a-dot "D" "StringDict")
-              (xref "string-dict" "StringDict"))
-          ]
-          @member-spec[
-            "unknown"
-            #:contract
-            (a-app
-              (a-id "List" (xref "lists" "List"))
-              (a-id "String" (xref "<global>" "String")))
-          ]
-        }
+        @members{@member-spec["parsed"] @member-spec["unknown"]}
         @with-members{}
       }
       @constr-spec["arg-error"]{
-        @members{
-          @member-spec[
-            "message"
-            #:contract (a-id "String" (xref "<global>" "String"))
-          ]
-          @member-spec[
-            "partial-results"
-            #:contract
-            (a-id "ParsedArguments" (xref "cmdline" "ParsedArguments"))
-          ]
-        }
+        @members{@member-spec["message"] @member-spec["partial-results"]}
         @with-members{}
       }
     }
     @shared{}
   }
   @section[#:tag "cmdline_Functions"]{Functions}
-  @function[
-    "parse-args"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "String" (xref "<global>" "String")))
-      (a-id "ParsedArguments" (xref "cmdline" "ParsedArguments")))
-  ]
-  @function["parse-cmdline" #:contract (a-arrow "Any" "Any")]
-  @function[
-    "usage-info"
-    #:contract
-    (a-arrow
-      "Any"
-      (a-app
-        (a-id "List" (xref "lists" "List"))
-        (a-id "String" (xref "<global>" "String"))))
-  ]
-  @function[
-    "is-success"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
-  @function[
-    "is-arg-error"
-    #:contract (a-arrow "Any" (a-id "Bool" (xref "<global>" "Bool")))
-  ]
+  @function["parse-args"]
+  @function["parse-cmdline"]
+  @function["usage-info"]
 }

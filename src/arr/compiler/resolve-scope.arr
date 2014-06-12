@@ -334,7 +334,6 @@ fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
         end
       end
       A.s-type-let-expr(l, type-binds, A.s-block(l, let-binds + [list: expr]))
-      #A.s-block(l, let-binds + [list: expr])
   end
 end
 

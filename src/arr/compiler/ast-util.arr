@@ -506,10 +506,9 @@ fun check-unbound(initial-env, ast):
     end
   end
   fun handle-type-id(ann, env):
-    nothing
-    # when not(env.has-key(ann.id.key())):
-    #   add-error(CS.unbound-type-id(ann))
-    # end
+    when not(env.has-key(ann.id.key())):
+      add-error(CS.unbound-type-id(ann))
+    end
   end
   ast.visit(binding-env-iter-visitor(initial-env).{
       s-id(self, loc, id):

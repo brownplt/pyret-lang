@@ -1,6 +1,7 @@
 #lang pyret/library
 
 provide *
+provide-types *
 import option as O
 import either as E
 
@@ -37,7 +38,7 @@ data List:
       empty
     end,
 
-    find(self, f :: (Any -> Boolean)) -> Option:
+    find(self, f :: (Any -> Boolean)) -> O.Option:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
@@ -177,7 +178,7 @@ data List:
 
     tostring(self):
       "[list: " +
-        for raw-fold(combined from tostring(self.first), elt from self.rest):
+        for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
         end
       + "]"
@@ -185,7 +186,7 @@ data List:
 
     _torepr(self):
       "[list: " +
-        for raw-fold(combined from torepr(self.first), elt from self.rest):
+        for fold(combined from torepr(self.first), elt from self.rest):
           combined + ", " + torepr(elt)
         end
       + "]"
@@ -234,11 +235,14 @@ data List:
 
 
 sharing:
+  _plus(self :: List, other :: List):
+    self.append(other)
+  end,
+
   push(self, elt):
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  _plus(self :: List, other :: List): self.append(other) end,
   split-at(self, n):
     doc: "Splits this list into two lists, one containing the first n elements, and the other containing the rest"
     split-at(n, self)
@@ -260,6 +264,18 @@ sharing:
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set-help(self, n, e)
   end
+where:
+  [list: 1].push(0) is [list: 0, 1]
+
+  [list: 1, 2, 3, 4, 5, 6].take(3) is [list: 1, 2, 3]
+
+  [list: 1, 2, 3, 4, 5, 6].drop(3) is [list: 4, 5, 6]
+
+  [list: 1, 2, 3].get(0) is 1
+  [list: ].get(0) raises ""
+
+  [list: 1, 2, 3].set(0, 5) is [list: 5, 2, 3]
+  [list: ].set(0, 5) raises ""
 end
 
 fun get-help(lst, n :: Number):
@@ -306,19 +322,6 @@ where:
   reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
 end
 
-fun raw-fold(f, base, lst :: List):
-  doc: "Helper method for folding from the left over the raw field values of the list"
-  if is-empty(lst):
-    base
-  else:
-    raw-fold(f, f(base, lst.first), lst.rest)
-  end
-where:
-  raw-fold(lam(x,y): x;, 1, [list: 1, 2, 3, 4]) is 1
-  raw-fold(lam(x,y): y;, 1, [list: 1, 2, 3, 4]) is 4
-  raw-fold(lam(x,y): x + y;, 0, [list: 1, 2, 3, 4]) is 10
-end
-
 fun range(start, stop):
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start < stop:       link(start, range(start + 1, stop))
@@ -344,7 +347,6 @@ fun repeat(n :: Number, e :: Any) -> List:
 where:
   repeat(0, 10) is empty
   repeat(3, -1) is [list: -1, -1, -1]
-
   repeat(1, "foo") is link("foo", empty)
 end
 
@@ -382,11 +384,12 @@ fun partition(f, lst :: List):
   help(lst)
   { is-true: is-true, is-false: is-false }
 where:
-  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
+  partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
+  partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
+  partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
-fun find(f :: (Any -> Boolean), lst :: List) -> Option:
+fun find(f :: (Any -> Boolean), lst :: List) -> O.Option:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -467,7 +470,7 @@ fun all2(f :: (Any, Any -> Boolean), lst1 :: List, lst2 :: List) -> Boolean:
         Returns true when either list is empty```
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2): true
-    else: f(l1.first, l2.first) and help(l2.rest, l2.rest)
+    else: f(l1.first, l2.first) and help(l1.rest, l2.rest)
     end
   end
   help(lst1, lst2)
@@ -501,8 +504,8 @@ fun map2(f, l1 :: List, l2 :: List):
     f(l1.first, l2.first) ^ link(_, map2(f, l1.rest, l2.rest))
   end
 where:
-  map(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
-  map(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
+  map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
+  map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
@@ -531,7 +534,7 @@ fun map_n(f, n :: Number, lst :: List):
     f(n, lst.first) ^ link(_, map_n(f, n + 1, lst.rest))
   end
 where:
-  map_n(lam(n, e): n;, [list: "captain", "first mate"]) is [list: 0, 1]
+  map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 fun map2_n(f, n :: Number, l1 :: List, l2 :: List):
@@ -572,6 +575,20 @@ fun each(f, lst :: List):
     end
   end
   help(lst)
+where:
+  one-four = link(1, link(2, link(3, link(4, empty))))
+
+  let var counter = 0:
+    each(lam(n): counter := counter + n end, one-four)
+    counter is 1 + 2 + 3 + 4
+    counter is 10
+  end
+
+  let var counter = 1:
+    each(lam(n): counter := counter * n end, one-four)
+    counter is 1 * 2 * 3 * 4
+    counter is 24
+  end
 end
 
 fun each2(f, lst1 :: List, lst2 :: List):
@@ -666,11 +683,13 @@ fun each4_n(f, num :: Number, lst1 :: List, lst2 :: List, lst3 :: List, lst4 :: 
 end
 
 fun fold-while(f, base, lst):
-  doc: "Takes a function that takes two arguments and returns an Either, and also a base value, and folds over the given list from the left as long as the function returns a left() value, and returns either the final value or the right() value"
+  doc: ```Takes a function that takes two arguments and returns an Either, and also a base value, and folds
+        over the given list from the left as long as the function returns a left() value, and returns either
+        the final value or the right() value```
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
-      cases(Either) f(base, elt):
+      cases(E.Either) f(base, elt):
         | left(v) => fold-while(f, v, r)
         | right(v) => v
       end
@@ -685,6 +704,10 @@ fun fold(f, base, lst :: List):
   else:
     fold(f, f(base, lst.first), lst.rest)
   end
+where:
+  fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
+  fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
+  fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun fold2(f, base, l1 :: List, l2 :: List):
@@ -728,6 +751,18 @@ fun fold_n(f, num :: Number, base, lst :: List):
     end
   end
   help(num, base, lst)
+where:
+  fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
+  fold_n(lam(n, acc, cur):
+                  tostring(n) + " " + cur + ", " + acc
+               end,
+               95, "and so forth...", repeat(5, "jugs o' grog in the hold"))
+    is "99 jugs o' grog in the hold, 98 jugs o' grog in the hold, "
+    + "97 jugs o' grog in the hold, 96 jugs o' grog in the hold, "
+    + "95 jugs o' grog in the hold, and so forth..."
+  fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
+               0, true, [list: false, true, false])
+    is true
 end
 
 index = get-help

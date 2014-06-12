@@ -1,7 +1,7 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib], function(L, O, E, ERR, S) {
+    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib], function(L, O, E, ERR, S, C) {
 
       function makeList(arr) {
         var lst = runtime.getField(L, "empty");
@@ -40,6 +40,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
 
 
       function err(str) { return gf(ERR, str).app; }
+      function contract(str) { return gf(C, str).app; }
       function errPred(str) {
         return function(val) {
           return runtime.unwrap(gf(ERR, str).app(val));
@@ -98,6 +99,14 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
         raise(err("plus-error")(left, right));
+      }
+
+      function throwNumericBinopError(left, right, opname, methodname) {
+        runtime.checkPyretVal(left);
+        runtime.checkPyretVal(right);
+        runtime.checkString(opname);
+        runtime.checkString(methodname);
+        raise(err("numeric-binop-error")(left, right, opname, methodname));
       }
 
       function throwUninitializedId(loc, name) {
@@ -159,8 +168,56 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return err("module-load-failure")(namesList);
       }
 
+      function makeRecordFieldsFail(value, failures) {
+        runtime.checkPyretVal(value);
+        return contract("record-fields-fail")(value, failures);
+      }
+
+      function makeFieldFailure(loc, field, reason) {
+        checkSrcloc(loc);
+        runtime.checkString(field);
+        return contract("field-failure")(loc, field, reason);
+      }
+
+      function makeMissingField(loc, field) {
+        checkSrcloc(loc);
+        runtime.checkString(field);
+        return contract("missing-field")(loc, field);
+      }
+
+      function makeTypeMismatch(val, name) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(val);
+        return contract("type-mismatch")(val, name);
+      }
+
+      function makePredicateFailure(val, name) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(val);
+        return contract("predicate-failure")(val, name);
+      }
+
+      function makeDotAnnNotPresent(name, field) {
+        runtime.checkString(name);
+        runtime.checkPyretVal(field);
+        return contract("dot-ann-not-present")(name, field);
+      }
+
+      function isOk(val) {
+        return contract("is-ok")(val);
+      }
+
+      function isFail(val) {
+        return contract("is-fail")(val);
+      }
+
+      function isFailArg(val) {
+        return contract("is-fail-arg")(val);
+      }
+
       return {
         throwPlusError: throwPlusError,
+        throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
@@ -176,9 +233,22 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwNoBranchesMatched: throwNoBranchesMatched,
         throwNonFunApp: throwNonFunApp,
         throwModuleLoadFailureL: throwModuleLoadFailureL,
-        
+
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
+
+        makeRecordFieldsFail: makeRecordFieldsFail,
+        makeFieldFailure: makeFieldFailure,
+        makeMissingField: makeMissingField,
+        makeTypeMismatch: makeTypeMismatch,
+        makePredicateFailure: makePredicateFailure,
+        makeDotAnnNotPresent: makeDotAnnNotPresent,
+        contractOk: gf(C, "ok"),
+        contractFail: contract("fail"),
+        contractFailArg: contract("fail-arg"),
+        isOk: isOk,
+        isFail: isFail,
+        isFailArg: isFailArg,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,

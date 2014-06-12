@@ -8,13 +8,14 @@ provide {
   array-from-list: array-from-list,
   is-array: is-array
 } end
+provide-types *
+
 import lists as lists
 
-array-brand = brander()
-do-brand = array-brand.brand
-check-brand = array-brand.test
-fun make(arr):
-  do-brand({
+newtype Array as ArrayT
+
+fun make(arr :: RawArray) -> Array:
+  ArrayT.brand({
     get(_, ix): raw-array-get(arr, ix) end,
     set(self, ix, val):
       raw-array-set(arr, ix, val)
@@ -31,7 +32,7 @@ fun make(arr):
   })
 end
 
-is-array = check-brand
+is-array = ArrayT.test
 
 fun <a> build-array(f :: (Number -> a), len :: Number):
   arr = raw-array-of(nothing, len)

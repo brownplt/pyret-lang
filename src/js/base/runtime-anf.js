@@ -281,14 +281,23 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLoc(val, field, loc) {
-    if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+    if(val === undefined) { 
+      if (ffi === undefined) {
+        throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+      } else {
+        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+    }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
         //TODO: Throw field not found error
         //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
         //reentrant errors (see commit 24ff13d9e9)
+      if (ffi === undefined) {
+        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
+      } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
+      }
     }
     /*else if(isMutable(fieldVal)){
         //TODO: Implement mutables then throw an error here
@@ -823,6 +832,17 @@ function createMethodDict() {
       return thisRuntime.unwrap(val);
     }
 
+    var NumberC = makePrimitiveAnn("Number", isNumber);
+    var StringC = makePrimitiveAnn("String", isString);
+    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
+    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
+    var FunctionC = makePrimitiveAnn("Function",
+      function(v) { return isFunction(v) || isMethod(v) });
+    var MethodC = makePrimitiveAnn("Method", isMethod);
+    var NothingC = makePrimitiveAnn("Nothing", isNothing);
+    var ObjectC = makePrimitiveAnn("Nothing", isObject);
+    var AnyC = makePrimitiveAnn("Any", function() { return true; });
+
 
     /************************
        Builtin Functions
@@ -833,8 +853,9 @@ function createMethodDict() {
     }
 
     var brandCounter = 0;
-    function mkBrandName() {
-      var thisBrandStr = "$brand" + String(++brandCounter);
+    function mkBrandName(name) {
+      if(typeof name === "undefined") { name = ""; }
+      var thisBrandStr = "$brand" + name + String(++brandCounter);
       return thisBrandStr;
     }
     var namedBrander = function(name) {
@@ -1139,12 +1160,16 @@ function createMethodDict() {
     function makeSrcloc(arr) {
       if (typeof arr === "object" && arr.length === 1) {
         checkString(arr[0]);
-        return getField(srcloc, "builtin").app(arr[0])
+        if (srcloc === undefined) {
+          return makeString(JSON.stringify(arr));
+        } else {
+          return getField(srcloc, "builtin").app(arr[0])
+        }
       }
       else if (typeof arr === "object" && arr.length === 7) {
         return getField(srcloc, "srcloc").app(
             arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
-          )
+          );
       }
     }
 
@@ -1584,6 +1609,7 @@ function createMethodDict() {
       }
       return deepCheckFields(that.fields.slice());
     }
+
     /********************
 
      *******************/
@@ -1643,6 +1669,12 @@ function createMethodDict() {
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
+    Cont.prototype.toString = function() {
+      var stack = this.stack;
+      var stackStr = stack && stack.length > 0 ? 
+        stack.map(function(s) { return s && s.from ? s.from.join(",") : "<blank frame>"; }).join("\n") : "<no stack trace>";
+      return stackStr;
+    }
 
     function Pause(stack, pause, resumer) {
       this.stack = stack;
@@ -2115,7 +2147,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_minus").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _minus was not a number, or did not have a _minus method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "-", "_minus");
       }
     };
 
@@ -2128,7 +2160,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_times").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _times was not a number, or did not have a _times method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "*", "_times");
       }
     };
 
@@ -2144,7 +2176,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_divide").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _divide was not a number, or did not have a _divide method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "/", "_divide");
       }
     };
 
@@ -2160,7 +2192,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_lessthan").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _lessthan was not a number, or did not have a _lessthan method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "<", "_lessthan");
       }
     };
 
@@ -2176,7 +2208,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_greaterthan").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _greaterthan was not a number, or did not have a _greaterthan method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, ">", "_greaterthan");
       }
     };
 
@@ -2192,7 +2224,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_lessequal").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _lessequal was not a number, or did not have a _lessequal method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, "<=", "_lessequal");
       }
     };
 
@@ -2208,7 +2240,7 @@ function createMethodDict() {
             return thisRuntime.getField(l, "_greaterequal").app(r);
           });
       } else {
-        throw makeMessageException("First argument to _greaterequal was not a number, or did not have a _greaterequal method: " + JSON.stringify(l));
+        ffi.throwNumericBinopError(l, r, ">=", "_greaterequal");
       }
     };
 
@@ -2748,6 +2780,16 @@ function createMethodDict() {
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
 
+        'Number': NumberC,
+        'String': StringC,
+        'Boolean': BooleanC,
+        'RawArray': RawArrayC,
+        'Any': AnyC,
+        'Function': FunctionC,
+        'Method': MethodC,
+        'Object': ObjectC,
+        'Nothing': NothingC,
+
         'makeCont'    : makeCont,
         'isCont'      : isCont,
         'makePause'   : makePause,
@@ -2903,6 +2945,11 @@ function createMethodDict() {
         'setParam' : setParam,
         'hasParam' : hasParam
     };
+
+    var ffi = {
+      contractOk: true,
+      isOk: function() { return true; }
+    }
 
 
     var list;

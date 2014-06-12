@@ -125,7 +125,10 @@ check:
 end
 
 check:
-  fun f(v :: Array<Number>): when not(is-array(v)): raise("not an Array"); v;
+  fun f(v :: Array<Number>):
+    when not(is-array(v)): raise("not an Array") end
+    v
+  end
   f([list: ]) raises "Array"
   f([array: ]).to-list() is [list: ]
   f([array: ]) satisfies is-array
@@ -142,11 +145,11 @@ check:
   a2 satisfies negate(identical(_, a1))
 end
 
+data D:
+  | single
+  | multi(a, b)
+end
 check:
-  data D:
-    | single
-    | multi(a, b)
-  end
   a = [array: single, multi(1, "2")]
   torepr(a) is "[array: single, multi(1, \"2\")]"
   a.set(0, a.get(1)).to-list() is [list: multi(1, "2"), multi(1, "2")]
