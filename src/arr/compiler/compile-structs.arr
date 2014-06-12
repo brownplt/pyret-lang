@@ -1,12 +1,11 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import ast as A
 import srcloc as SL
 
-#type Loc = SL.Srcloc
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 data PyretDialect:
   | Pyret

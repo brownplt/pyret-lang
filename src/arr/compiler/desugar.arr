@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as C

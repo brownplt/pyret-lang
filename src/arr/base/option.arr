@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 
 data Option:
   | none with:

@@ -1,7 +1,7 @@
 #lang pyret/library
 
 provide *
-#provide-types *
+provide-types *
 
 data Srcloc:
   | builtin(module-name) with:

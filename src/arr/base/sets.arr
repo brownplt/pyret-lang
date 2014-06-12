@@ -15,7 +15,7 @@ provide {
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set
 } end
-#provide-types *
+provide-types *
 
 import lists as lists
 import error as error

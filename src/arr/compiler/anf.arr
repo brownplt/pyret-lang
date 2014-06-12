@@ -1,14 +1,13 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 
 import ast as A
 import srcloc as SL
 import "compiler/ast-anf.arr" as N
 
-#type Loc = SL.Srcloc
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 names = A.global-names
 

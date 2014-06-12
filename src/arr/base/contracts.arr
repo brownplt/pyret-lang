@@ -1,7 +1,7 @@
 #lang pyret 0.5
 
 provide *
-#provide-types *
+provide-types *
 import lists as L
 
 data ContractResult:

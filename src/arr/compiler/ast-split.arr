@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import "compiler/ast-anf.arr" as N
 import ast as A
 import pprint as PP

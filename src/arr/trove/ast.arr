@@ -1,13 +1,12 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import pprint as PP
 import srcloc as S
 import contracts as C
 
-#type Loc = S.Srcloc
-Loc = S.Srcloc
+type Loc = S.Srcloc
 
 dummy-loc = S.builtin("dummy location")
 

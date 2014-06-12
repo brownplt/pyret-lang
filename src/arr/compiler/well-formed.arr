@@ -3,15 +3,14 @@
 provide {
   check-well-formed: check-well-formed
 } end
-#provide-types *
+provide-types *
 
 import ast as A
 import srcloc as SL
 import "compiler/compile-structs.arr" as C
 import format as F
 
-#type Loc = SL.Srcloc
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 # TODO: Make this a mutable field when we have them...
 var errors = empty

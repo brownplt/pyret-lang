@@ -1,12 +1,12 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import ast as A
 import pprint as PP
 import srcloc as SL
 
-#type Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 INDENT = 2
 
@@ -35,8 +35,6 @@ str-as = PP.str("as")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
-
-Loc = SL.Srcloc
 
 data AProg:
   | a-program(l :: Loc, imports :: List<AImport>, body :: AExpr) with:

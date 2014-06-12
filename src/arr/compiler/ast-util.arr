@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 import srcloc as SL
 import ast as A
 import parse-pyret as PP
@@ -9,8 +9,7 @@ import "compiler/compile-structs.arr" as CS
 import string-dict as SD
 import either as E
 
-#type Loc = SL.Srcloc
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 fun ok-last(stmt):
   not(

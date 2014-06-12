@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-#provide-types *
+provide-types *
 
 import ast as A
 import "compiler/ast-anf.arr" as N
@@ -12,8 +12,7 @@ import "compiler/compile-structs.arr" as CS
 import string-dict as D
 import srcloc as SL
 
-#type Loc = SL.Srcloc
-Loc = SL.Srcloc
+type Loc = SL.Srcloc
 
 fun type-name(str):
   "$type$" + str
