@@ -32,11 +32,11 @@ run-str = lam(str):
 end
 
 fun is-contract-error-str(result):
-  string-contains(result.render-error-message(), "Contract Error")
+  (result.success == false) and string-contains(result.render-error-message(), "Contract Error")
 end
 
 fun is-refinement-error-str(result):
-  string-contains(result.render-error-message(), "Predicate")
+  (result.success == false) and string-contains(result.render-error-message(), "Predicate")
 end
 
 fun is-field-error-str(msg, fields):

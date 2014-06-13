@@ -821,7 +821,7 @@ function createMethodDict() {
       function(v) { return isFunction(v) || isMethod(v) });
     var MethodC = makePrimitiveAnn("Method", isMethod);
     var NothingC = makePrimitiveAnn("Nothing", isNothing);
-    var ObjectC = makePrimitiveAnn("Nothing", isObject);
+    var ObjectC = makePrimitiveAnn("Object", isObject);
     var AnyC = makePrimitiveAnn("Any", function() { return true; });
 
     function confirm(val, test) {
@@ -831,17 +831,6 @@ function createMethodDict() {
       }
       return thisRuntime.unwrap(val);
     }
-
-    var NumberC = makePrimitiveAnn("Number", isNumber);
-    var StringC = makePrimitiveAnn("String", isString);
-    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
-    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
-    var FunctionC = makePrimitiveAnn("Function",
-      function(v) { return isFunction(v) || isMethod(v) });
-    var MethodC = makePrimitiveAnn("Method", isMethod);
-    var NothingC = makePrimitiveAnn("Nothing", isNothing);
-    var ObjectC = makePrimitiveAnn("Nothing", isObject);
-    var AnyC = makePrimitiveAnn("Any", function() { return true; });
 
 
     /************************
@@ -1394,10 +1383,20 @@ function createMethodDict() {
     }
 
     function _checkAnn(compilerLoc, ann, val) {
-      var result = ann.check(compilerLoc, val);
-      if(ffi.isOk(result)) { return val; }
-      if(ffi.isFail(result)) { raiseJSJS(result); }
-      throw "Internal error: got invalid result from annotation check";
+      if (!ann.refinement) {
+        var result = ann.check(compilerLoc, val);
+        if(ffi.isOk(result)) { return val; }
+        if(ffi.isFail(result)) { raiseJSJS(result); }
+        throw "Internal error: got invalid result from annotation check";
+      } else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, val);
+        }, function(result) {
+          if(ffi.isOk(result)) { return val; }
+          if(ffi.isFail(result)) { raiseJSJS(result); }
+          throw "Internal error: got invalid result from annotation check";
+        });
+      }
     }
 
     function safeCheckAnnArg(compilerLoc, ann, val, after) {
@@ -1410,7 +1409,7 @@ function createMethodDict() {
         }, function(result) {
           return returnOrRaise(result, val, after);
         });
-      };
+      }
     }
 
     function checkAnnArg(compilerLoc, ann, val) {
@@ -1437,6 +1436,17 @@ function createMethodDict() {
     function checkAnnArgs(anns, args, locs, after) {
       function checkI(i) {
         if(i >= args.length) { return after(); }
+        else {
+          return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+            return checkI(i + 1);
+          });
+        }
+      }
+      return checkI(0);
+    }
+    function _checkAnnArgs(anns, args, locs) {
+      function checkI(i) {
+        if(i >= args.length) { return nothing; }
         else {
           return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
             return checkI(i + 1);
@@ -2629,7 +2639,6 @@ function createMethodDict() {
           }
           else {
             return thisRuntime.makeObject({
-              "provide": getField(m, "provide"), // TEMPORARY
               "values": getField(m, "provide"),
               "types": {}
             });
@@ -2643,9 +2652,7 @@ function createMethodDict() {
       return loadModulesNew(namespace, modules, function(/* varargs */) {
         var ms = Array.prototype.slice.call(arguments);
         return safeTail(function() {
-          return withModules.apply(null, ms.map(function(m) { 
-            return getField(m, "values") || getField(m, "provide");  // TEMPORARY!
-          }));
+          return withModules.apply(null, ms.map(function(m) { return getField(m, "values"); }));
         });
       });
     }
@@ -2772,8 +2779,10 @@ function createMethodDict() {
         'namedBrander': namedBrander,
 
         'checkAnn': checkAnn,
+        '_checkAnn': _checkAnn,
         'checkAnnArg': checkAnnArg,
         'checkAnnArgs': checkAnnArgs,
+        '_checkAnnArgs': _checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
         'makePrimitiveAnn': makePrimitiveAnn,

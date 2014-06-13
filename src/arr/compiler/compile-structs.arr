@@ -43,7 +43,7 @@ data CompileError:
     end
   | unbound-type-id(ann :: A.Ann) with:
     tostring(self):
-      "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.id.l) + ", but is not defined as a type."
+      "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.ann.l) + ", but is not defined as a type."
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     tostring(self):

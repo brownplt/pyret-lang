@@ -27,7 +27,6 @@ data JBlock:
       when is-link(self.stmts):
         self.stmts.first.print-ugly-source(printer)
         for each(s from self.stmts.rest):
-          printer("\n")
           s.print-ugly-source(printer)
         end
       end
@@ -55,7 +54,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("var " + self.name + " = ")
       self.rhs.print-ugly-source(printer)
-      printer(";")
+      printer(";\n")
     end,
     tosource(self):
       PP.group(
@@ -69,7 +68,7 @@ data JStmt:
       self.cond.print-ugly-source(printer)
       printer(") {\n")
       self.consq.print-ugly-source(printer)
-      printer("\n}")
+      printer("}\n")
     end,
     tosource(self):
       PP.group(PP.str("if") + PP.parens(self.cond.tosource())) + PP.str(" ")
@@ -82,9 +81,9 @@ data JStmt:
       self.cond.print-ugly-source(printer)
       printer(") {\n")
       self.consq.print-ugly-source(printer)
-      printer("\n} else {\n")
+      printer("} else {\n")
       self.alt.print-ugly-source(printer)
-      printer("\n}")
+      printer("}\n")
     end,
     tosource(self):
       alt-doc = self.alt.tosource()
@@ -101,7 +100,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("return ")
       self.expr.print-ugly-source(printer)
-      printer(";")
+      printer(";\n")
     end,
     tosource(self):
       PP.str("return ") + self.expr.tosource() + PP.str(";")
@@ -111,9 +110,9 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("try {\n")
       self.body.print-ugly-source(printer)
-      printer("\n} catch(" + self.exn + ") {\n")
+      printer("} catch(" + self.exn + ") {\n")
       self.catch.print-ugly-source(printer)
-      printer("\n}")
+      printer("}\n")
     end,
     tosource(self):
       PP.surround(INDENT, 1, PP.str("try {"), self.body.tosource(), PP.rbrace)
@@ -124,7 +123,7 @@ data JStmt:
     print-ugly-source(self, printer):
       printer("throw ")
       self.exp.print-ugly-source(printer)
-      printer(";")
+      printer(";\n")
     end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("throw ") + self.exp.tosource())) + PP.str(";")
@@ -133,7 +132,7 @@ data JStmt:
     label(self): "j-expr" end,
     print-ugly-source(self, printer):
       self.expr.print-ugly-source(printer)
-      printer(";")
+      printer(";\n")
     end,
     tosource(self):
       self.expr.tosource() + PP.str(";")
@@ -184,7 +183,7 @@ sharing:
 end
 
 data JCase:
-  | j-case(exp :: JExpr, body :: JStmt) with:
+  | j-case(exp :: JExpr, body :: JBlock) with:
     label(self): "j-case" end,
     print-ugly-source(self, printer):
       printer("case ")
@@ -197,7 +196,7 @@ data JCase:
           PP.group(PP.nest(INDENT, PP.str("case ") + self.exp.tosource() + PP.str(":"))) + PP.sbreak(1)
             + self.body.tosource()))
     end
-  | j-default(body :: JStmt) with:
+  | j-default(body :: JBlock) with:
     label(self): "j-default" end,
     print-ugly-source(self, printer):
       printer("default: ")
@@ -306,7 +305,7 @@ data JExpr:
       printer(self.args.join-str(","))
       printer(") {\n")
       self.body.print-ugly-source(printer)
-      printer("\n}")
+      printer("}")
     end,
     tosource(self):
       arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))

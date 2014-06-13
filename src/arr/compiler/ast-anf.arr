@@ -338,7 +338,7 @@ data AVal:
     tosource(self): PP.number(self.n) end
   | a-str(l :: Loc, s :: String) with:
     label(self): "a-str" end,
-    tosource(self): PP.squote(PP.str(self.s)) end
+    tosource(self): PP.str(torepr(self.s)) end
   | a-bool(l :: Loc, b :: Boolean) with:
     label(self): "a-bool" end,
     tosource(self): PP.str(tostring(self.b)) end

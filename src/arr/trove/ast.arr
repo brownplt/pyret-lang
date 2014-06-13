@@ -1019,13 +1019,16 @@ end
 data Ann:
   | a-blank with:
     label(self): "a-blank" end,
-    tosource(self): str-any end
+    tosource(self): str-any end,
+    has-refinement(self): false end
   | a-any with:
     label(self): "a-any" end,
-    tosource(self): str-any end
+    tosource(self): str-any end,
+    has-refinement(self): false end
   | a-name(l :: Loc, id :: Name) with:
     label(self): "a-name" end,
-    tosource(self): self.id.tosource() end
+    tosource(self): self.id.tosource() end,
+    has-refinement(self): false end
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:
     label(self): "a-arrow" end,
     tosource(self):
@@ -1034,29 +1037,35 @@ data Ann:
       if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
       else: ann
       end
-    end
+    end,
+    has-refinement(self): false end
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a-method" end,
-    tosource(self): PP.str("NYI: A-method") end
+    tosource(self): PP.str("NYI: A-method") end,
+    has-refinement(self): false end
   | a-record(l :: Loc, fields :: List<AField>) with:
     label(self): "a-record" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
-    end
+    end,
+    has-refinement(self): lists.any(lam(f): f.ann.has-refinement() end, self.fields) end
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a-app" end,
     tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
-    end
+    end,
+    has-refinement(self): self.ann.has-refinement() end
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     label(self): "a-pred" end,
-    tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end
+    tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
+    has-refinement(self): true end
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     label(self): "a-dot" end,
-    tosource(self): self.obj.tosource() + PP.str("." + self.field) end
+    tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
+    has-refinement(self): false end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
