@@ -2,6 +2,12 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
 
   var defer = function(f) { setTimeout(f, 0); }
   function createRepl(runtime, namespace, initialCompileEnv, options) {
+    var setImmediate = function(f) { setTimeout(f, 0); };
+    var runImmediate = function(f, then) {
+      setImmediate(function() {
+        runtime.runThunk(f, then);
+      });
+    }
     var dialect = options.dialect || "Pyret";
     var mainName = options.name || "repl-main";
     return runtime.loadModules(namespace, [rs], function(replSupport) {
@@ -54,7 +60,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
         toRun = [];
         eval.parsePyret(runtime, code, { name: mainName, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
-            runtime.runThunk(function() {
+            runImmediate(function() {
               return get(replSupport, "make-provide-for-repl-main").app(astResult.result, initialCompileEnv);
             },
             function(result) {
@@ -71,12 +77,12 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
                     name: mainName,
                     onRun: makeResumer(deferred)
                   });
+                runIfFree();
               }
             });
           } else {
             deferred.resolve(astResult);
           }
-          runIfFree();
         });
         return deferred.promise;
       }
@@ -85,7 +91,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
         if (typeof name === "undefined") { name = "interactions "; }
         eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
-            runtime.runThunk(function() {
+            runImmediate(function() {
               return get(replSupport, "make-provide-for-repl").app(astResult.result);
             },
             function(result) {
@@ -98,11 +104,11 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
                   name: name,
                   onRun: makeResumer(deferred)
                 });
+              runIfFree();
              });
           } else {
             deferred.resolve(astResult);
           }
-          runIfFree();
         });
         return deferred.promise;
       }

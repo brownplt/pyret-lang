@@ -67,7 +67,7 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
                 });
               },
               runtime.namespace,
-              { sync: ('sync' in options) ? options.sync : true, initialGas: 500 },
+              { sync: ('sync' in options) ? options.sync : true },
               ondone)
         });
 
@@ -135,8 +135,7 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
               var compiledModule = loader.goodIdea(runtime, modname, result.result);
               compiledModule.then(function(mod) {
                 var sync = false;
-                var gas = options.gas || 500;
-                runtime.run(mod, namespace, {sync: sync, initialGas: gas}, ondone);
+                runtime.run(mod, namespace, {sync: sync}, ondone);
               });
               compiledModule.fail(function(err) {
                 ondone(runtime.makeFailureResult(err));
