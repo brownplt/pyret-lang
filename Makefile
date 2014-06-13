@@ -76,7 +76,7 @@ else
 	MKDIR = mkdir -p $1
 	RMDIR = rm -rf $1
 	RM = rm -f $1
-	VERSION = $(git describe --long --tags HEAD | awk -F '[/-]' '{ print $1 "r" $2 }')
+	VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{ print $$1 "r" $$2 }')
 endif
 
 WEB_DEPS = \
