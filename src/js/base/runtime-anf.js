@@ -1813,7 +1813,7 @@ function createMethodDict() {
     var TOS = 0;
 
     var sync = options.sync || false;
-    var initialGas = options.initialGas || INITIAL_GAS;
+    var initialGas = thisRuntime.INITIAL_GAS;
 
     var threadIsCurrentlyPaused = false;
     var threadIsDead = false;
@@ -2775,6 +2775,7 @@ function createMethodDict() {
         'makeActivationRecord' : makeActivationRecord,
 
         'GAS': INITIAL_GAS,
+        'INITIAL_GAS': INITIAL_GAS,
 
         'namedBrander': namedBrander,
 
