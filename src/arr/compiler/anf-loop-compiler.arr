@@ -655,11 +655,11 @@ compiler-visitor = {
       else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
     c-exp(
-      j-id(temp),
+      rt-method("makeFunction", [list: j-id(temp)]),
       [list:
         j-var(temp,
-          rt-method("makeFunction", [list: j-fun(effective-args.map(_.id).map(_.tostring()).map(js-id-of),
-                compile-fun-body(l, new-step, temp, self, effective-args, args.length(), body))]))])
+          j-fun(effective-args.map(_.id).map(_.tostring()).map(js-id-of),
+                compile-fun-body(l, new-step, temp, self, effective-args, args.length(), body)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     # step-method = js-id-of(compiler-name("step"))

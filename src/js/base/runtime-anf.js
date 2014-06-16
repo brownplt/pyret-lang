@@ -1001,7 +1001,6 @@ function createMethodDict() {
               ["runtime torepr"],
               toReprFun,
               $step,
-              undefined, // This answer will be filled in with the nested answer of toReprHelp
               [],
               []);
           }
@@ -1712,11 +1711,11 @@ function createMethodDict() {
         $fun_ans = $ar.vars[0];
       }
       try {
+        if (--thisRuntime.GAS <= 0) {
+          thisRuntime.EXN_STACKHEIGHT = 0;
+          throw thisRuntime.makeCont();
+        }
         while(true) {
-          if (--thisRuntime.GAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
-          }
           switch($step) {
           case 0:
             $step = 1;
@@ -1737,7 +1736,6 @@ function createMethodDict() {
               "safeCall2 for " + stackFrame,
               safeCall,
               $step,
-              $ans,
               [ fun, after, stackFrame ],
               [ $fun_ans ]
             );
@@ -1797,11 +1795,10 @@ function createMethodDict() {
     var theOneTrueStackTop = ["top-of-stack"]
     var kickoff = makeActivationRecord(
       "<top of stack>",
-      makeFunction(function topOfStack(ignored) {
+      function(ignored) {
         return program(thisRuntime, namespace);
-      }),
+      },
       0,
-      {},
       [],
       []
     );
@@ -1908,10 +1905,13 @@ function createMethodDict() {
             // console.log("Setting ans to " + JSON.stringify(val, null, "  "));
             next.ans = val;
             // console.log("GAS = ", thisRuntime.GAS);
-            if (isFunction(next.fun))
+            
+            if (isFunction(next.fun)) {
               val = next.fun.app(next);
-            else if (next.fun instanceof Function)
+            }
+            else if (next.fun instanceof Function) {
               val = next.fun(next);
+            }
             else if (!(next instanceof ActivationRecord)) {
               console.log("Our next stack frame doesn't look right!");
               console.log(JSON.stringify(next));
@@ -1938,7 +1938,6 @@ function createMethodDict() {
               return;
             }
             else if(thisRuntime.isCont(e)) {
-              val = theOneTrueStack[theOneTrueStackHeight - 1].ans;
               if(sync) {
                 loop = true;
                 // DON'T return; we synchronously loop back to the outer while loop
@@ -1978,6 +1977,7 @@ function createMethodDict() {
     }
 
 
+  var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
   function ActivationRecord(from, fun, step, ans, args, vars) {
     this.from = from;
     this.fun = fun; 
@@ -1991,8 +1991,13 @@ function createMethodDict() {
       + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
       + ", vars: " + JSON.stringify(this.vars) + "}";
   }
-  function makeActivationRecord(from, fun, step, ans, args, vars) {
-    return new ActivationRecord(from, fun, step, ans, args, vars);
+  function makeActivationRecord(from, fun, step, args, vars) {
+    if(arguments.length === 6) {
+      return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, arguments[4], arguments[5]);
+    }
+    else {
+      return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars);
+    }
   }
   function isActivationRecord(obj) {
     return obj instanceof ActivationRecord;
@@ -2336,7 +2341,6 @@ function createMethodDict() {
               ["raw-array-fold"],
               foldFun,
               0, // step doesn't matter here
-              undefined, // answer will be filled in by stack unwinder
               [], []);
           }
           if (thisRuntime.isPyretException($e)) {
