@@ -339,7 +339,6 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
       local-compiler.get-loc(l),
       j-id(fun-name),
       j-id(step),
-      j-id(local-compiler.cur-ans),
       j-list(false, args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)),
       j-list(false, vars.map(lam(v): j-id(v) end))
     ])  

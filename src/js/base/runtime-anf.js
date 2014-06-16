@@ -1906,10 +1906,7 @@ function createMethodDict() {
             next.ans = val;
             // console.log("GAS = ", thisRuntime.GAS);
             
-            if (isFunction(next.fun)) {
-              val = next.fun.app(next);
-            }
-            else if (next.fun instanceof Function) {
+            if (next.fun instanceof Function) {
               val = next.fun(next);
             }
             else if (!(next instanceof ActivationRecord)) {
