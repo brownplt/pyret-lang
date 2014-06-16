@@ -211,3 +211,28 @@ check "should work for data":
   run-str("data D: | var1 end x :: D = var1").success is true
 end
 
+
+check "should work with named refinements":
+  data-def = ```
+
+  fun true-of-n(n): if n == 0: true else: true-of-n(n - 1);;
+  fun false-of-n(n): if n == 0: false else: false-of-n(n - 1);;
+
+  type TrueNum = Number % (true-of-n)
+  type FalseNum = Number % (false-of-n)
+
+  data D:
+    | c(a :: TrueNum)
+    | c3(a1 :: TrueNum, a2 :: TrueNum, a3 :: TrueNum)
+    | d(b :: FalseNum)
+    | d2(a :: TrueNum, b :: FalseNum)
+  end
+
+  check:
+    [list: c(10000), c(10000)].first.a is 10000
+  end
+  ```
+  run-str(data-def).render-check-results() satisfies string-contains(_, "Looks shipshape")
+
+end
+

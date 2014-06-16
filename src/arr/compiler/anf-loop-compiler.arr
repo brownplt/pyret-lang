@@ -762,7 +762,6 @@ compiler-visitor = {
     end
 
     fun make-variant-constructor(l2, base-id, brands-id, vname, members):
-      any-refinements = lists.any(lam(m): m.bind.ann.has-refinement() end, members)
       member-names = members.map(lam(m): m.bind.id.toname();)
       member-ids = members.map(lam(m): m.bind.id.tostring();)
 
@@ -793,44 +792,27 @@ compiler-visitor = {
       compiled-locs = for map(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
       compiled-vals = for map(m from nonblank-anns): j-id(js-id-of(m.bind.id.tostring())) end
       
-      if any-refinements:
-        c-exp(
-          rt-method("makeFunction", [list:
-              j-fun(
-                member-ids.map(js-id-of),
-                j-block(
-                  [list:
-                    arity-check(self.get-loc(l2), member-names.length())
-                  ] +
-                  compiled-anns.others.reverse() +
-                  [list:
-                    j-return(rt-method("checkAnnArgs", [list:
-                          j-list(false, compiled-anns.anns.reverse()),
-                          j-list(false, compiled-vals),
-                          j-list(false, compiled-locs),
-                          j-fun(empty, j-block(constr-body))
-                        ]))
-                ]))]),
-          empty)
-      else:
-        c-exp(
-          rt-method("makeFunction", [list: 
-              j-fun(
-                member-ids.map(js-id-of),
-                j-block(
-                  [list: 
-                    arity-check(self.get-loc(l2), member-names.length()),
-                    j-expr(rt-method("_checkAnnArgs", [list:
-                          j-list(false, compiled-anns.anns.reverse()),
-                          j-list(false, compiled-vals),
-                          j-list(false, compiled-locs)
-                        ]))
-                  ] + constr-body
-                  ))
-            ]),
-          compiled-anns.others.reverse()
-          )
-      end
+      # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
+      # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
+      # a continuation and manages all of the stack safety of annotation checking itself.
+      c-exp(
+        rt-method("makeFunction", [list:
+            j-fun(
+              member-ids.map(js-id-of),
+              j-block(
+                [list:
+                  arity-check(self.get-loc(l2), member-names.length())
+                ] +
+                compiled-anns.others.reverse() +
+                [list:
+                  j-return(rt-method("checkAnnArgs", [list:
+                        j-list(false, compiled-anns.anns.reverse()),
+                        j-list(false, compiled-vals),
+                        j-list(false, compiled-locs),
+                        j-fun(empty, j-block(constr-body))
+                      ]))
+              ]))]),
+        empty)
     end
 
     fun compile-variant(v :: N.AVariant):
