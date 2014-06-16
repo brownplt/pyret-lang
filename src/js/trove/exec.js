@@ -121,7 +121,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                      (if it ever does), the continuation is called with r as either
                      a Success or Failure Result from newRuntime. */
 
-                  newRuntime.run(moduleVal, newNamespace, {sync: true, initialGas: 1000}, function(r) {
+                  newRuntime.run(moduleVal, newNamespace, {sync: true}, function(r) {
 
                       /* makeResult handles turning values from the new runtime into values that
                          the calling runtime understands (since they don't share

@@ -19,6 +19,7 @@ fun string-printer():
   }
 end
 
+type Label = { get :: ( -> Number) }
 
 data JBlock:
   | j-block(stmts :: List<JStmt>) with:
@@ -499,7 +500,7 @@ data JExpr:
       printer("undefined")
     end,
     tosource(self): PP.str("undefined") end
-  | j-label(label) with:
+  | j-label(label :: Label) with:
     label(self): "j-label" end,
     print-ugly-source(self, printer): printer(tostring(self.label.get())) end,
     tosource(self): PP.number(self.label.get()) end
@@ -539,7 +540,7 @@ where:
 
 end
 
-fun make-label-sequence(init):
+fun make-label-sequence(init :: Number) -> ( -> JExpr):
   var next = init
   lam():
     var value = nothing

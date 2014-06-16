@@ -1989,12 +1989,7 @@ function createMethodDict() {
       + ", vars: " + JSON.stringify(this.vars) + "}";
   }
   function makeActivationRecord(from, fun, step, args, vars) {
-    if(arguments.length === 6) {
-      return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, arguments[4], arguments[5]);
-    }
-    else {
-      return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars);
-    }
+    return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars);
   }
   function isActivationRecord(obj) {
     return obj instanceof ActivationRecord;

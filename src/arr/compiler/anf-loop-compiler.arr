@@ -305,10 +305,6 @@ local-bound-vars-visitor = {
 }
 
 
-fun goto-case(step, label):
-  [list: j-expr(j-assign(step, label)), j-break]
-end
-
 fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, args :: List<N.ABind>, arity :: Number, body :: N.AExpr) -> J.JBlock:
   make-label = make-label-sequence(0)
   ret-label = make-label()
@@ -594,7 +590,8 @@ compiler-visitor = {
     c-block(
       j-block([list: 
           j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
-            j-block(goto-case(self.cur-step, consq-label)), j-block(goto-case(self.cur-step, alt-label)))
+            j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
+            j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
         ]),
       new-cases)
   end,
@@ -868,7 +865,7 @@ compiler-visitor = {
 
     data-object = rt-method("makeObject", [list: j-obj([list: data-predicate] + obj-fields)])
 
-    c-exp(thunk-app(j-block(shared-stmts + header-stmts + [list: j-return(data-object)])), empty)
+    c-exp(data-object, shared-stmts + header-stmts)
   end
 }
 
