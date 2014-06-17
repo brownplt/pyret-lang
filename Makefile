@@ -91,6 +91,8 @@ WEB_DEPS = \
 
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
+-include config.mk
+
 # Make sure that if a compilation step fails, we don't leave an empty but timestamp-up-to-date file
 # laying (and lying) around to confuse future make
 .DELETE_ON_ERROR:
