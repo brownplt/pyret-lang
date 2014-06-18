@@ -7,7 +7,7 @@ data ConcatList<a>:
     map(self, f): self end,
     each(self, f): nothing end,
     foldl(self, f, base): base end,
-    foldr(self, f, base): base end
+    foldr(self, f, base): base end,
   | concat-singleton(element) with:
     to-list-acc(self, rest): link(self.element, rest) end,
     map(self, f): concat-singleton(f(self.element)) end,
@@ -16,7 +16,9 @@ data ConcatList<a>:
       nothing
     end,
     foldl(self, f, base): f(base, self.element) end,
-    foldr(self, f, base): f(self.element, base) end
+    foldr(self, f, base): f(self.element, base) end,
+    getFirst(self): self.element end,
+    getLast(self): self.element end
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
     to-list-acc(self, rest :: List):
       self.left.to-list-acc(self.right.to-list-acc(rest))
@@ -27,7 +29,9 @@ data ConcatList<a>:
       self.right.each(f)
     end,
     foldl(self, f, base): self.right.foldl(f, self.left.foldl(f, base)) end,
-    foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end
+    foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end,
+    getFirst(self): self.left.getFirst() end,
+    getLast(self): self.right.getLast() end
   | concat-cons(first :: a, rest :: ConcatList<a>) with:
     to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
     map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
@@ -36,7 +40,9 @@ data ConcatList<a>:
       self.rest.each(f)
     end,
     foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end
+    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
+    getFirst(self): self.first end,
+    getLast(self): self.rest.getLast() end
   | concat-snoc(head :: ConcatList<a>, last :: a) with:
     to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
     map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
@@ -46,7 +52,9 @@ data ConcatList<a>:
       nothing
     end,
     foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
-    foldr(self, f, base): self.head.foldr(f, f(self.last, base)) end
+    foldr(self, f, base): self.head.foldr(f, f(self.last, base)) end,
+    getFirst(self): self.head.getFirst() end,
+    getLast(self): self.last end
 sharing:
   _plus(self, other :: ConcatList):
     concat-append(self, other)

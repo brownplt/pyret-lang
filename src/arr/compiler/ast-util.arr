@@ -145,7 +145,7 @@ end
 
 fun binding-type-env-from-env(initial-env):
   for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.types):
-    cases(C.CompileTypeBinding) binding:
+    cases(CS.CompileTypeBinding) binding:
       | type-module-bindings(name, ids) =>
         mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
@@ -157,7 +157,7 @@ fun binding-type-env-from-env(initial-env):
 end
 fun binding-env-from-env(initial-env):
   for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
-    cases(C.CompileBinding) binding:
+    cases(CS.CompileBinding) binding:
       | module-bindings(name, ids) =>
         mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
@@ -242,6 +242,16 @@ fun <a, c> default-env-map-visitor(
       new-body = body.visit(with-args)
       new-check = with-args.option(_check)
       A.s-lam(l, params, new-args, ann.visit(with-args), doc, new-body, new-check)
+    end,
+    s-cases-else(self, l, typ, val, branches, _else):
+      A.s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+    end,
+    s-cases-branch(self, l, name, args, body):
+      new-args = args.map(_.visit(self))
+      args-env = for lists.fold(acc from self.env, arg from args):
+        bind-handlers.s-bind(arg, acc)
+      end
+      A.s-cases-branch(l, name, new-args, body.visit(self.{env: args-env}))
     end,
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
@@ -343,6 +353,20 @@ fun <a, c> default-env-iter-visitor(
         ann.visit(with-args) and
         body.visit(with-args) and
         with-args.option(_check)
+    end,
+    s-cases-else(self, l, typ, val, branches, _else):
+      typ.visit(self)
+      and val.visit(self)
+      and lists.all(_.visit(self), branches)
+      and _else.visit(self)
+    end,
+    s-cases-branch(self, l, name, args, body):
+      visit-args = lists.all(_.visit(self), args)
+      args-env = for lists.fold(acc from self.env, arg from args):
+        bind-handlers.s-bind(arg, acc)
+      end
+      visit-args
+      and body.visit(self.{env: args-env})
     end,
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):

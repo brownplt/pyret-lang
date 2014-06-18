@@ -646,7 +646,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     s-for(self, l, iter, binds, ann, body):
       env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):
-        cases(ForBind) fb:
+        cases(A.ForBind) fb:
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind)
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))

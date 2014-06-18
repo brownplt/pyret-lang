@@ -48,6 +48,10 @@ data RuntimeError:
     tostring(self):
       "Error: Invalid use of " + self.opname + ".  Either both arguments must be numbers, or the left operand must have a " + self.methodname + " method.  Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
     end
+  | cases-arity-mismatch(branch-loc, num-args, actual-fields) with:
+    tostring(self):
+      "Error: The cases branch at " + self.branch-loc.format(true) + " expects " + tostring(self.num-args) + " arguments, but the actual value has " + tostring(self.actual-fields.length()) + " fields"
+    end
   | arity-mismatch(fun-loc, expected-arity, args) with:
     tostring(self):
       "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())

@@ -16,6 +16,7 @@ str-letrec = PP.str("letrec ")
 str-period = PP.str(".")
 str-bang = PP.str("!")
 str-brackets = PP.str("[]")
+str-cases = PP.str("cases")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
 str-colonspace = PP.str(":")
@@ -25,7 +26,9 @@ str-let = PP.str("let ")
 str-var = PP.str("var ")
 str-if = PP.str("if ")
 str-elsecolon = PP.str("else:")
+str-elsebranch = PP.str("| else =>")
 str-try = PP.str("try:")
+str-thickarrow = PP.str("=>")
 str-except = PP.str("except")
 str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
@@ -203,6 +206,21 @@ sharing:
   end
 end
 
+data ACasesBranch:
+  | a-cases-branch(l :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
+    label(self): "a-cases-branch" end,
+    tosource(self):
+      PP.nest(INDENT,
+        PP.group(PP.str("| " + self.name)
+            + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
+            self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
+        self.body.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
 
 data ALettable:
   | a-module(l :: Loc, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
@@ -214,6 +232,15 @@ data ALettable:
             PP.infix(INDENT, 1, str-colon, PP.str("Types"), 
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
+    end
+  | a-cases(l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr) with:
+    label(self): "a-cases" end,
+    tosource(self):
+      header = str-cases + PP.parens(self.typ.tosource()) + break-one
+        + self.val.tosource() + str-colon
+      body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
+        + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
+      PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
     label(self): "a-if" end,
@@ -248,6 +275,12 @@ data ALettable:
       PP.group(PP.str(self.f) +
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+    end
+  | a-array(l :: Loc, values :: List<AVal>) with:
+    label(self): "a-array" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
+        self.values.map(_.tosource()))
     end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
@@ -320,12 +353,6 @@ data AVal:
   | a-bool(l :: Loc, b :: Boolean) with:
     label(self): "a-bool" end,
     tosource(self): PP.str(tostring(self.b)) end
-  | a-array(l :: Loc, values :: List<AVal>) with:
-    label(self): "a-array" end,
-    tosource(self):
-      PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
-        self.values.map(_.tosource()))
-    end
   # used for letrec
   | a-undefined(l :: Loc) with:
     label(self): "a-undefined" end,
@@ -402,6 +429,7 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
+    | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -434,7 +462,6 @@ fun strip-loc-val(val :: AVal):
     | a-num(_, n) => a-num(dummy-loc, n)
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
-    | a-array(_, vs) => a-array(dummy-loc, vs)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
@@ -478,6 +505,13 @@ default-map-visitor = {
   end,
   a-seq(self, l :: Loc, e1 :: ALettable, e2 :: AExpr):
     a-seq(l, e1.visit(self), e2.visit(self))
+  end,
+  a-cases(self, l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr):
+    # NOTE: Not visiting the annotation yet
+    a-cases(l, typ, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
+  end,
+  a-cases-branch(self, l :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
+    a-cases-branch(l, name, args.map(_.visit(self)), body.visit(self))
   end,
   a-data-expr(self, l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, namet, variants.map(_.visit(self)), shared.map(_.visit(self)))
@@ -642,6 +676,15 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Nam
   end
 end
 
+fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+  for fold(acc from seen-so-far, b from branches):
+    from-body = freevars-e-acc(b.body, acc)
+    without-args = from-body.difference(sets.list-to-tree-set(b.args.map(_.id)))
+    for fold(inner-acc from without-args, arg from b.args):
+      freevars-ann-acc(arg.ann, inner-acc)
+    end
+  end
+end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   cases(ALettable) e:
     | a-module(_, ans, provs, types, checks) =>
@@ -649,8 +692,17 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
         freevars-v-acc(provs,
           freevars-list-acc(types.map(_.ann),
             freevars-v-acc(checks, seen-so-far))))
+    | a-cases(_, typ, val, branches, _else) =>
+      freevars-ann-acc(typ,
+        freevars-v-acc(val,
+          freevars-branches-acc(branches,
+            freevars-e-acc(_else, seen-so-far))))
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
+    | a-array(_, vs) =>
+      for fold(acc from seen-so-far, shadow v from vs):
+        freevars-v-acc(v, acc)
+      end
     | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
     | a-app(_, f, args) =>
       from-f = freevars-v-acc(f, seen-so-far)
@@ -711,10 +763,6 @@ end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   cases(AVal) v:
-    | a-array(_, vs) =>
-      for fold(acc from seen-so-far, shadow v from vs):
-        freevars-v-acc(v, acc)
-      end
     | a-id(_, id) => seen-so-far.add(id)
     | a-id-var(_, id) => seen-so-far.add(id)
     | a-id-letrec(_, id, _) => seen-so-far.add(id)

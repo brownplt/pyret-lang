@@ -702,8 +702,16 @@ function createMethodDict() {
     }
 
     function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
+      return new PObject(dict, brands);
     }
+
+    function makeDataValue(dict, brands, $name, $fields) {
+      var ret = new PObject(dict, brands);
+      ret.$name = $name;
+      ret.$fields = $fields;
+      return ret;
+    }
+
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -715,37 +723,6 @@ function createMethodDict() {
       return arr;
     }
 
-    PObject.prototype.updateDict = function(dict, keepBrands) {
-      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
-      return newObj;
-    }
-
-    /**Clones the object
-      @return {!PObject} With same dict
-    */
-    PObject.prototype.brand = function(b) { 
-        var newObj = makeObject(this.dict); 
-        return brandClone(newObj, this, b);
-    };
-
-    /**Tests whether an object is a PObject
-        @param {Object} obj the item to test
-        @return {!boolean} true if object is a PObject
-    */
-    function isObject(obj) { return obj instanceof PObject; }
-
-    /**Makes a PObject using the given dict
-
-      @param {!Object.<string, !PBase>} dict
-      @return {!PObject} with given dict
-    */
-    function makeObject(dict) {
-       return new PObject(dict, noBrands); 
-    }
-
-    function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
-    }
     
     /************************
           Type Checking
@@ -2846,6 +2823,7 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
 
         'plus': plus,

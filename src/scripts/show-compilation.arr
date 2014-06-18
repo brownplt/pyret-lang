@@ -46,7 +46,6 @@ cases (C.ParsedArguments) parsed-options:
           print(phase.name + ":")
           if A.Program(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if AN.AProg(phase.result): each(print, phase.result.tosource().pretty(print-width))
-          else if AS.SplitResult(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if JS.CompiledCodePrinter(phase.result): print(phase.result.pyret-to-js-pretty(print-width))
           else if R.NameResolution(phase.result): each(print, phase.result.ast.tosource().pretty(print-width))
           else if CS.CompileResult(phase.result):

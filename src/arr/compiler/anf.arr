@@ -56,6 +56,13 @@ fun anf-bind(b):
   end
 end
 
+fun anf-cases-branch(branch):
+  cases(A.CasesBranch) branch:
+    | s-cases-branch(l, name, args, body) =>
+      N.a-cases-branch(l, name, args.map(anf-bind), anf-term(body))
+  end
+end
+
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
   anf(expr, k-cont(lam(lettable):
         cases(N.ALettable) lettable:
@@ -241,18 +248,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-if-else(l, branches, _else) =>
-      # if-result = mk-id(l, "if_result")
-      # assign-to-result = lam(r): N.a-lettable(N.a-assign(l, if-result.id, r)) end
-      # anf-else = anf-name(_else, "else_result", assign-to-result)
-      # anf-if = for fold(acc from anf-else, branch from branches.reverse()):
-      #   anf-name(branch.test, "anf_if",
-      #     lam(test):
-      #       N.a-lettable(N.a-if(l, test, anf-name(branch.body, "branch_result", assign-to-result), acc))
-      #     end)
-      # end
-      # print("anf-if is ")
-      # anf-if.tosource().pretty(80).each(print)
-      # N.a-seq(l, anf-if, k.apply(l, anf-if.e))
       fun anf-if-branches(shadow k, shadow branches):
         cases(List) branches:
           | empty => raise("Empty branches")
@@ -277,6 +272,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end
       end
       anf-if-branches(k, branches)
+    | s-cases-else(l, typ, val, branches, _else) =>
+      anf-name(val, "cases_val",
+        lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
     | s-try(l, body, id, _except) =>
       N.a-try(l, anf-term(body), id, anf-term(_except))
 
@@ -298,7 +296,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):
-        k.apply(l, N.a-val(N.a-array(l, vs)))
+        k.apply(l, N.a-array(l, vs))
       end)
 
     | s-app(l, f, args) =>

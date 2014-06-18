@@ -35,7 +35,7 @@ import format as F
 import string-dict as D
 import either as E
 format = F.format
-Either = E.Either
+type Either = E.Either
 left = E.left
 right = E.right
 

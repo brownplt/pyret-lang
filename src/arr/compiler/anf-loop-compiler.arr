@@ -74,6 +74,7 @@ source-name = j-id("M")
 undefined = j-id("D")
 
 
+
 js-id-of = block:
   var js-ids = D.string-dict()
   lam(id :: String):
@@ -87,6 +88,12 @@ js-id-of = block:
       safe-id
     end
   end
+end
+
+
+fun mk-id(base :: String):
+  t = A.global-names.make-atom(base)
+  { id: t, id-s: js-id-of(t.tostring()), id-j: j-id(js-id-of(t.tostring())) }
 end
 
 fun compiler-name(id):
@@ -105,7 +112,7 @@ fun obj-of-loc(l):
   ])
 end
 
-fun get-field(obj, field, loc):
+fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
   j-app(get-field-loc, [list: obj, field, loc])
 end
 
@@ -197,7 +204,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults:
   end
 end
 
-fun arity-check(loc-expr, arity):
+fun arity-check(loc-expr, arity :: Number):
   j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
     j-block([list:
         j-expr(j-method(rt-field("ffi"), "throwArityErrorC",
@@ -353,26 +360,34 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   { new-cases: new-cases, new-label: cur-target }
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, body):
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = args.map(lam(a): a.visit(compiler).exp end)
   var new-cases = concat-empty
-  visited-helper = body.visit(compiler)
+  opt-visited-helper = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   helper-label =
     block:
       lbl = compiler.make-label()
       new-cases :=
         cases(Option) opt-dest:
           | some(dest) =>
-            concat-cons(
-              j-case(lbl, j-block(
-                  j-var(js-id-of(dest.tostring()), j-id(ans))
-                  ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
-              visited-helper.new-cases)
+            cases(Option) opt-visited-helper:
+              | some(visited-helper) =>
+                concat-cons(
+                  j-case(lbl, j-block(
+                      j-var(js-id-of(dest.tostring()), j-id(ans))
+                      ^ link(_, visited-helper.block.stmts))),
+                  visited-helper.new-cases)
+              | none => raise("Impossible: compile-split-app can't have a dest without a body")
+            end
           | none =>
-            concat-cons(j-case(lbl, visited-helper.block), visited-helper.new-cases)
+            cases(Option) opt-visited-helper:
+              | some(visited-helper) =>
+                concat-cons(j-case(lbl, visited-helper.block), visited-helper.new-cases)
+              | none => concat-empty
+            end
         end
       lbl
     end
@@ -387,12 +402,12 @@ fun compile-split-app(l, compiler, opt-dest, f, args, body):
     new-cases)
 end
 
-fun compile-split-if(compiler, opt-dest, cond, consq, alt, body):
+fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   consq-label = compiler.make-label()
   alt-label = compiler.make-label()
   after-if-label = compiler.make-label()
   ans = compiler.cur-ans
-  compiled-body = body.visit(compiler)
+  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   compiler-after-if = compiler.{cur-target: after-if-label}
   compiled-consq = consq.visit(compiler-after-if)
   compiled-alt = alt.visit(compiler-after-if)
@@ -401,12 +416,20 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, body):
     + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
     + (cases(Option) opt-dest:
       | some(dest) =>
-        concat-cons(j-case(after-if-label,
-            j-block(
-              j-var(js-id-of(dest.tostring()), j-id(ans))
-              ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            concat-cons(j-case(after-if-label,
+                j-block(
+                  j-var(js-id-of(dest.tostring()), j-id(ans))
+                  ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+          | none => raise("Impossible: compile-split-if can't have a dest without a body")
+        end
       | none =>
-        concat-cons(j-case(after-if-label, compiled-body.block), compiled-body.new-cases)
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            concat-cons(j-case(after-if-label, compiled-body.block), compiled-body.new-cases)
+          | none => concat-empty
+        end
     end)
   c-block(
     j-block([list: 
@@ -416,7 +439,92 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, body):
       ]),
     new-cases)
 end
+fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
+  compiled-body = branch.body.visit(compiler)
+  branch-args = mk-id(branch.name)
+  bind-args = for map_n(i from 0, arg from branch.args):
+    j-var(js-id-of(arg.id.tostring()), j-bracket(branch-args.id-j, j-num(i)))
+  end
+  ann-cases = compile-anns(compiler, compiler.cur-step, branch.args, compiler.make-label())
+  l = compiler.get-loc(branch.l)
+  given-arity = j-num(branch.args.length())
+  expected-arity = j-dot(branch-args.id-j, "length")
+  checker = j-if1(j-binop(given-arity, j-neq, expected-arity),
+    j-block([list:
+        j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+            [list: l, given-arity, branch-args.id-j]))]))
 
+  if CL.is-concat-empty(ann-cases.new-cases):
+    c-block(
+      j-block(
+        (j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
+          ^ link(_, checker
+            ^ link(_, bind-args)))
+          + compiled-body.block.stmts),
+      compiled-body.new-cases)
+  else:
+    first-label = ann-cases.new-cases.getFirst().exp
+    c-block(
+      j-block(
+        (j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
+          ^ link(_, checker
+            ^ link(_, bind-args)))
+          + [list: j-expr(j-assign(compiler.cur-step, first-label)), j-break]),
+      ann-cases.new-cases
+      ^ concat-snoc(_, j-case(ann-cases.new-label, compiled-body.block))
+      ^ concat-append(_, compiled-body.new-cases))
+  end
+end
+  
+fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
+  compiled-val = val.visit(compiler).exp
+  after-cases-label = compiler.make-label()
+  compiler-after-cases = compiler.{cur-target: after-cases-label}
+  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
+  compiled-else = _else.visit(compiler-after-cases)
+  branch-labels = branches.map(lam(_): compiler.make-label() end)
+  else-label = compiler.make-label()
+  branch-cases = for fold2(acc from concat-empty, label from branch-labels, branch from compiled-branches):
+    acc
+    ^ concat-snoc(_, j-case(label, branch.block))
+    ^ concat-append(_, branch.new-cases)
+  end
+  branch-else-cases =
+    (branch-cases
+      ^ concat-snoc(_, j-case(else-label, compiled-else.block))
+      ^ concat-append(_, compiled-else.new-cases))
+  dispatch-table = j-obj(for map2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
+  dispatch = mk-id("cases_dispatch")
+  # NOTE: Ignoring typ for the moment!
+  new-cases =
+    branch-else-cases
+    + (cases(Option) opt-dest:
+      | some(dest) =>
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            concat-cons(j-case(after-cases-label,
+                j-block(
+                  j-var(js-id-of(dest.tostring()), j-id(compiler.cur-ans))
+                  ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+          | none => raise("Impossible: compile-split-cases can't have a dest without a body")
+        end
+      | none =>
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            concat-cons(j-case(after-cases-label, compiled-body.block), compiled-body.new-cases)
+          | none => concat-empty
+        end
+    end)
+  c-block(
+    j-block([list:
+        j-var(dispatch.id-s, dispatch-table),
+        j-expr(j-assign(compiler.cur-step,
+            j-binop(j-bracket(dispatch.id-j, j-dot(compiled-val, "$name")), J.j-or, else-label))),
+        j-break]),
+    new-cases)
+end
+  
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
@@ -471,9 +579,11 @@ compiler-visitor = {
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
-        compile-split-app(l2, self, some(b.id), f, args, body)
+        compile-split-app(l2, self, some(b.id), f, args, some(body))
       | a-if(l2, cond, then, els) =>
-        compile-split-if(self, some(b.id), cond, then, els, body)
+        compile-split-if(self, some(b.id), cond, then, els, some(body))
+      | a-cases(l2, typ, val, branches, _else) =>
+        compile-split-cases(self, some(b.id), typ, val, branches, _else, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -522,12 +632,13 @@ compiler-visitor = {
       compiled-body.new-cases)
   end,
   a-seq(self, l, e1, e2):
-    names = A.global-names
     cases(N.ALettable) e1:
       | a-app(l2, f, args) =>
-        compile-split-app(l2, self, none, f, args, e2)
+        compile-split-app(l2, self, none, f, args, some(e2))
       | a-if(l2, cond, consq, alt) =>
-        compile-split-if(self, none, cond, consq, alt, e2)
+        compile-split-if(self, none, cond, consq, alt, some(e2))
+      | a-cases(l2, typ, val, branches, _else) =>
+        compile-split-cases(self, none, typ, val, branches, _else, some(e2))
       | else =>
         e1-visit = e1.visit(self).exp
         e2-visit = e2.visit(self)
@@ -543,54 +654,19 @@ compiler-visitor = {
     end
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
-    compiled-consq = consq.visit(self)
-    compiled-alt = alt.visit(self)
-
-    consq-label = self.make-label()
-    alt-label = self.make-label()
-    new-cases =
-      concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
-      + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
-    c-block(
-      j-block([list: 
-          j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
-            j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
-            j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
-        ]),
-      new-cases)
+    raise("Impossible: a-if directly in compiler-visitor should never happen")
+  end,
+  a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr):
+    raise("Impossible: a-cases directly in compiler-visitor should never happen")
   end,
   a-lettable(self, e :: N.ALettable): # Need to add back the location field
     cases(N.ALettable) e:
       | a-app(l, f, args) =>
-        ans = self.cur-ans
-        step = self.cur-step
-        compiled-f = f.visit(self).exp
-        compiled-args = args.map(lam(a): a.visit(self).exp end)
-        c-block(
-          j-block([list:
-              check-fun(self.get-loc(l), compiled-f),
-              # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-              j-expr(j-assign(step,  self.cur-target)),
-              j-expr(j-assign(self.cur-apploc, self.get-loc(l))),
-              j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
-              j-break]),
-          concat-empty)
+        compile-split-app(l, self, none, f, args, none)
       | a-if(l, cond, consq, alt) =>
-        compiled-consq = consq.visit(self)
-        compiled-alt = alt.visit(self)
-
-        consq-label = self.make-label()
-        alt-label = self.make-label()
-        new-cases =
-          concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
-          + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
-        c-block(
-          j-block([list: 
-              j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
-                j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
-                j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
-            ]),
-          new-cases)
+        compile-split-if(self, none, cond, consq, alt, none)
+      | a-cases(l, typ, val, branches, _else) =>
+        compile-split-cases(self, none, typ, val, branches, _else, none)
       | else =>
          visit-e = e.visit(self)
          c-block(
@@ -608,11 +684,7 @@ compiler-visitor = {
     c-exp(j-dot-assign(j-id(js-id-of(id.tostring())), "$var", visit-value.exp), visit-value.other-stmts)
   end,
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
-    raise("Should never happen, right?")
-    visit-f = f.visit(self)
-    visit-args = args.map(_.visit(self))
-    other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, visit-f.other-stmts)
-    c-exp(app(self.get-loc(l), visit-f.exp, visit-args.map(_.exp)), other-stmts)
+    raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     visit-args = args.map(_.visit(self))
@@ -758,7 +830,7 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(l2, base-id, brands-id, vname, members):
+    fun make-variant-constructor(l2, base-id, brands-id, vname, members, refl-name, refl-fields):
       member-names = members.map(lam(m): m.bind.id.toname();)
       member-ids = members.map(lam(m): m.bind.id.tostring();)
 
@@ -773,7 +845,7 @@ compiler-visitor = {
         end
       end +
       [list: 
-        j-return(rt-method("makeBrandedObject", [list: j-id("dict"), j-id(brands-id)]))
+        j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-fields]))
       ]
 
       nonblank-anns = for filter(m from members):
@@ -821,6 +893,18 @@ compiler-visitor = {
           j-field(variant-brand, j-true)
         ])
       visit-with-fields = v.with-members.map(_.visit(self))
+
+      refl-name = j-str(vname)
+      refl-fields =
+        cases(N.AVariant) v:
+          | a-variant(_, _, _, members, _) =>
+            j-fun(empty, j-block([list: j-return(j-list(false,
+                      members.map(lam(m):
+                          get-field(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
+                        end)))]))
+          | a-singleton-variant(_, _, _) =>
+            j-fun(empty, j-block([list: j-return(j-list(false, empty))]))
+        end
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
@@ -838,7 +922,8 @@ compiler-visitor = {
         | a-variant(l2, constr-loc, _, members, with-members) =>
           constr-vname = js-id-of(vname)
           compiled-constr =
-            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members)
+            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members,
+              refl-name, refl-fields)
           {
             stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],
             constructor: j-field(vname, j-id(constr-vname)),
@@ -847,7 +932,7 @@ compiler-visitor = {
         | a-singleton-variant(_, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeBrandedObject", [list: j-id(variant-base-id), j-id(variant-brand-obj-id)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, refl-fields])),
             predicate: predicate
           }
       end
