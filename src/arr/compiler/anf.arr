@@ -68,7 +68,7 @@ fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N
 end
 
 fun anf-name-rec(
-    exprs :: lists.List<A.Expr>,
+    exprs :: List<A.Expr>,
     name-hint :: String,
     k :: (List<N.AVal> -> N.AExpr)
   ) -> N.AExpr:
@@ -106,7 +106,7 @@ fun anf-import(i :: A.Import):
   end
 end
 
-fun anf-block(es-init :: lists.List<A.Expr>, k :: ANFCont):
+fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
   fun anf-block-help(es):
     cases (List<A.Expr>) es:
       | empty => raise("Empty block")
@@ -219,7 +219,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               end)
         end
       end
-      fun anf-variants(vs :: lists.List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
+      fun anf-variants(vs :: List<A.Variant>, ks :: (List<N.AVariant> -> N.AExpr)):
         cases(List) vs:
           | empty => ks([list: ])
           | link(f, r) =>
@@ -238,21 +238,42 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-if-else(l, branches, _else) =>
-      cases(ANFCont) k:
-        | k-id(_) =>
-          for fold(acc from anf(_else, k), branch from branches.reverse()):
-            anf-name(branch.test, "anf_if",
-              lam(test): N.a-if(l, test, anf(branch.body, k), acc) end)
-          end
-        | k-cont(_) =>
-          helper = mk-id(l, "if_helper")
-          arg = mk-id(l, "if_helper_arg")
-          N.a-let(l, helper.id-b, N.a-lam(l, [list: arg.id-b], A.a-blank, k.apply(l, N.a-val(arg.id-e))),
-            for fold(acc from anf(_else, k-id(helper.id)), branch from branches.reverse()):
-              anf-name(branch.test, "anf_if",
-                lam(test): N.a-if(l, test, anf(branch.body, k-id(helper.id)), acc) end)
-            end)
+      # if-result = mk-id(l, "if_result")
+      # assign-to-result = lam(r): N.a-lettable(N.a-assign(l, if-result.id, r)) end
+      # anf-else = anf-name(_else, "else_result", assign-to-result)
+      # anf-if = for fold(acc from anf-else, branch from branches.reverse()):
+      #   anf-name(branch.test, "anf_if",
+      #     lam(test):
+      #       N.a-lettable(N.a-if(l, test, anf-name(branch.body, "branch_result", assign-to-result), acc))
+      #     end)
+      # end
+      # print("anf-if is ")
+      # anf-if.tosource().pretty(80).each(print)
+      # N.a-seq(l, anf-if, k.apply(l, anf-if.e))
+      fun anf-if-branches(shadow k, shadow branches):
+        cases(List) branches:
+          | empty => raise("Empty branches")
+          | link(f, r) =>
+            cases(List) r:
+              | empty =>
+                anf-name(
+                  f.test,
+                  "anf_if",
+                  lam(test): k.apply(l, N.a-if(l, test, anf-term(f.body), anf-term(_else))) end
+                  )
+              | link(f2, r2) =>
+                anf-name(
+                  f.test,
+                  "anf_if",
+                  lam(test):
+                    k.apply(l, N.a-if(l, test, anf-term(f.body),
+                        anf-if-branches(k-cont(lam(if-expr): N.a-lettable(if-expr) end), r)))
+                  end
+                  )
+            end
+        end
       end
+      anf-if-branches(k, branches)
     | s-try(l, body, id, _except) =>
       N.a-try(l, anf-term(body), id, anf-term(_except))
 
@@ -260,13 +281,13 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann-check-temp")
+      name = mk-id(l, "ann_check_temp")
       k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
                   anf-term(A.s-let-expr(l,
                     [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
                     A.s-id(l, name.id)))))
     | s-method(l, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann-check-temp")
+      name = mk-id(l, "ann_check_temp")
       k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
                   anf-term(A.s-let-expr(l,
                     [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],

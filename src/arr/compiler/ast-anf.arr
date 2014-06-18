@@ -127,6 +127,27 @@ data AExpr:
     tosource(self):
       self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
+  | a-tail-if(l :: Loc, cond :: AVal, consq :: AExpr, alt :: AExpr) with:
+    label(Self): "a-tail-if" end,
+    tosource(self):
+      PP.group(
+        PP.str("TAIL") + str-if + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
+          + PP.nest(INDENT, break-one + self.t.tosource())
+          + break-one + str-elsecolon
+          + PP.nest(INDENT, break-one + self.e.tosource())
+          + break-one + str-end)
+    end
+  | a-split-if-let(l :: Loc, dest :: A.Name, cond :: AVal, consq :: AExpr, alt :: AExpr, body :: AExpr) with:
+    label(Self): "a-tail-if" end,
+    tosource(self):
+      PP.group(
+        PP.str("split-if-let ") + self.dest.tosource() + PP.str(" = ")
+          + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
+          + PP.nest(INDENT, break-one + self.t.tosource())
+          + break-one + str-elsecolon
+          + PP.nest(INDENT, break-one + self.e.tosource())
+          + break-one + str-end + PP.str(" in ") + self.body.tosource())
+    end
   | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
     label(self): "a-tail-app" end,
     tosource(self):
@@ -134,7 +155,7 @@ data AExpr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-split-app(l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: A.Name, helper-args :: List<AVal>) with:
+  | a-split-app(l :: Loc, f :: AVal, args :: List<AVal>, helper :: A.Name, helper-args :: List<AVal>) with:
     label(self): "a-split-app" end,
     tosource(self):
       PP.group(
@@ -148,16 +169,6 @@ data AExpr:
               + self.helper.tosource()
               + PP.parens(PP.nest(INDENT,
                 PP.separate(PP.commabreak, self.helper-args.map(lam(f): f.tosource() end)))))))
-    end
-  | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
-    label(self): "a-if" end,
-    tosource(self):
-      PP.group(
-        str-if + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
-          + PP.nest(INDENT, break-one + self.t.tosource())
-          + break-one + str-elsecolon
-          + PP.nest(INDENT, break-one + self.e.tosource())
-          + break-one + str-end)
     end
   | a-lettable(e :: ALettable) with:
     label(self): "a-lettable" end,
@@ -246,7 +257,17 @@ data ALettable:
             PP.infix(INDENT, 1, str-colon, PP.str("Types"), 
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
-    end    
+    end
+  | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
+    label(self): "a-if" end,
+    tosource(self):
+      PP.group(
+        str-if + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
+          + PP.nest(INDENT, break-one + self.t.tosource())
+          + break-one + str-elsecolon
+          + PP.nest(INDENT, break-one + self.e.tosource())
+          + break-one + str-end)
+    end
   | a-data-expr(l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>) with:
     label(self): "a-data-expr" end,
     tosource(self):
@@ -401,12 +422,9 @@ fun strip-loc-expr(expr :: AExpr):
       a-var(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-seq(_, e1, e2) =>
       a-seq(dummy-loc, strip-loc-lettable(e1), strip-loc-expr(e2))
-    | a-if(_, c, t, e) =>
-      a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
-    | a-split-app(_, is-var, f, args, helper, helper-args) =>
+    | a-split-app(_, f, args, helper, helper-args) =>
       a-split-app(
           dummy-loc,
-          is-var,
           strip-loc-val(f),
           args.map(strip-loc-val),
           helper,
@@ -428,6 +446,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-module(_, answer, provides, types, checks) =>
       a-module(dummy-loc, strip-loc-val(answer), strip-loc-val(provides),
         types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
+    | a-if(_, c, t, e) =>
+      a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
     | a-app(_, f, args) =>
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
@@ -525,8 +545,8 @@ default-map-visitor = {
   a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
     a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  a-split-app(self, l :: Loc, is-var :: Boolean, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
-    a-split-app(l, is-var, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
+  a-split-app(self, l :: Loc, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
+    a-split-app(l, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
   a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
@@ -665,8 +685,6 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
       end
       with-helper-args.remove(name)
     | a-lettable(e) => freevars-l-acc(e, seen-so-far)
-    | a-if(_, c, t, a) =>
-      freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
   end
 end
 
@@ -702,6 +720,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
         freevars-v-acc(provs,
           freevars-list-acc(types.map(_.ann),
             freevars-v-acc(checks, seen-so-far))))
+    | a-if(_, c, t, a) =>
+      freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
     | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
     | a-app(_, f, args) =>
       from-f = freevars-v-acc(f, seen-so-far)

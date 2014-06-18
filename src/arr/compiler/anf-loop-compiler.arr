@@ -8,10 +8,20 @@ import "compiler/ast-split.arr" as S
 import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
+import "compiler/concat-lists.arr" as CL
 import string-dict as D
 import srcloc as SL
 
 type Loc = SL.Srcloc
+type ConcatList = CL.ConcatList
+
+concat-empty = CL.concat-empty
+concat-singleton = CL.concat-singleton
+concat-append = CL.concat-append
+concat-cons = CL.concat-cons
+concat-snoc = CL.concat-snoc
+concat-foldl = CL.concat-foldl
+concat-foldr = CL.concat-foldr
 
 fun type-name(str):
   "$type$" + str
@@ -64,69 +74,6 @@ throw-uninitialized = j-id("U")
 source-name = j-id("M")
 undefined = j-id("D")
 
-data ConcatList<a>:
-  | concat-empty with:
-    to-list-acc(self, rest): rest end,
-    map(self, f): self end,
-    each(self, f): nothing end,
-    foldl(self, f, base): base end,
-    foldr(self, f, base): base end
-  | concat-singleton(element) with:
-    to-list-acc(self, rest): link(self.element, rest) end,
-    map(self, f): concat-singleton(f(self.element)) end,
-    each(self, f):
-      f(self.element)
-      nothing
-    end,
-    foldl(self, f, base): f(base, self.element) end,
-    foldr(self, f, base): f(self.element, base) end
-  | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
-    to-list-acc(self, rest :: List):
-      self.left.to-list-acc(self.right.to-list-acc(rest))
-    end,
-    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end,
-    each(self, f):
-      self.left.each(f)
-      self.right.each(f)
-    end,
-    foldl(self, f, base): self.right.foldl(f, self.left.foldl(f, base)) end,
-    foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end
-  | concat-cons(first :: a, rest :: ConcatList<a>) with:
-    to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
-    map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
-    each(self, f):
-      f(self.first)
-      self.rest.each(f)
-    end,
-    foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end
-  | concat-snoc(head :: ConcatList<a>, last :: a) with:
-    to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
-    map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
-    each(self, f):
-      self.head.each(f)
-      f(self.last)
-      nothing
-    end,
-    foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
-    foldr(self, f, base): self.head.foldr(f, f(self.last, base)) end
-sharing:
-  _plus(self, other :: ConcatList):
-    concat-append(self, other)
-  end,
-  to-list(self): self.to-list-acc([list: ]) end
-where:
-  ce = concat-empty
-  co = concat-singleton
-  ca = concat-append
-  cc = concat-cons
-  cs = concat-snoc
-  l1 = ca(cs(cc(1, ce), 2), cc(3, cs(ce, 4)))
-  l1.foldl(lam(base, e): base + tostring(e * e) end, "B") is "B14916"
-  l1.foldr(lam(e, base): tostring(e * e) + base end, "B") is "14916B"
-end
-fun concat-foldl(f, base, lst): lst.foldl(f, base) end
-fun concat-foldr(f, base, lst): lst.foldr(f, base) end
 
 js-id-of = block:
   var js-ids = D.string-dict()
@@ -190,8 +137,6 @@ end
 fun thunk-app-stmt(stmt):
   thunk-app(j-block([list: stmt]))
 end
-
-fun helper-name(s :: String): "$H" + js-id-of(s.tostring());
 
 
 data CaseResults:
@@ -309,7 +254,8 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = js-id-of(compiler-name("ans"))
-  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans}
+  apploc = js-id-of(compiler-name("al"))
+  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
   visited-body = body.visit(local-compiler)
   checker =
     j-block([list:
@@ -332,7 +278,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
       base.union(case-expr.visit(local-bound-vars-visitor))
     end).to-list()
   act-record = rt-method("makeActivationRecord", [list:
-      local-compiler.get-loc(l),
+      j-id(apploc),
       j-id(fun-name),
       j-id(step),
       j-list(false, args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)),
@@ -344,6 +290,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   j-block([list:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
+      j-var(apploc, local-compiler.get-loc(l)),
       j-try-catch(
         j-block([list:
             j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
@@ -351,6 +298,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
                 [list:
                   j-var(ar, j-id(first-arg)),
                   j-expr(j-assign(step, j-dot(j-id(ar), "step"))),
+                  j-expr(j-assign(apploc, j-dot(j-id(ar), "from"))),
                   j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(ar), "ans")))
                 ] +
                 for map_n(i from 0, arg from args):
@@ -503,6 +451,48 @@ compiler-visitor = {
         ^ link(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
+  a-tail-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
+    compiled-consq = consq.visit(self)
+    compiled-alt = alt.visit(self)
+
+    consq-label = self.make-label()
+    alt-label = self.make-label()
+    new-cases =
+      concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
+      + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
+    c-block(
+      j-block([list: 
+          j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
+            j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
+            j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
+        ]),
+      new-cases)
+  end,    
+  a-split-if-let(self,
+      l :: Loc, dest :: A.Name, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr, body :: N.AExpr):
+    consq-label = self.make-label()
+    alt-label = self.make-label()
+    after-if-label = self.make-label()
+    ans = self.cur-ans
+    compiled-body = body.visit(self)
+    self-after-if = self.{cur-target: after-if-label}
+    compiled-consq = consq.visit(self-after-if)
+    compiled-alt = alt.visit(self-after-if)
+    new-cases =
+      concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
+      + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
+      + concat-cons(j-case(after-if-label,
+        j-block(
+          j-var(js-id-of(dest.tostring()), j-id(ans))
+          ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+    c-block(
+      j-block([list: 
+          j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
+            j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
+            j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
+        ]),
+      new-cases)
+  end,    
   a-tail-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     ans = self.cur-ans
     step = self.cur-step
@@ -513,11 +503,12 @@ compiler-visitor = {
           check-fun(self.get-loc(l), compiled-f),
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  self.cur-target)),
+          j-expr(j-assign(self.cur-apploc, self.get-loc(l))),
           j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
           j-break]),
       concat-empty)
   end,
-  a-split-app(self, l :: Loc, is-var :: Boolean, f :: N.AVal, args :: List<N.AVal>, name :: A.Name, helper-args :: List<N.AVal>):
+  a-split-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>, name :: A.Name, helper-args :: List<N.AVal>):
     ans = self.cur-ans
     step = self.cur-step
     compiled-f = f.visit(self).exp
@@ -541,18 +532,18 @@ compiler-visitor = {
         else:
           lbl = self.make-label()
           new-cases := concat-cons(
-            j-case(lbl, j-block([list:
-                  j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
-                  visited-helper.block])),
+            j-case(lbl, j-block(
+                j-var(helper.args.first.tostring()^js-id-of, j-id(ans))
+                ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
             visited-helper.new-cases)
           lbl
         end
       else:
         lbl = self.make-label()
         new-cases := concat-cons(
-          j-case(lbl, j-block([list:
-                j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
-                visited-helper.block])),
+          j-case(lbl, j-block(
+              j-var(helper.args.first.tostring()^js-id-of, j-id(ans))
+              ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
           visited-helper.new-cases)
         lbl
       end
@@ -561,6 +552,7 @@ compiler-visitor = {
           check-fun(self.get-loc(l), compiled-f),
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  helper-label)),
+          j-expr(j-assign(self.cur-apploc, self.get-loc(l))),
           j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
           j-break]),
       new-cases)
@@ -611,6 +603,7 @@ compiler-visitor = {
     c-exp(j-dot-assign(j-id(js-id-of(id.tostring())), "$var", visit-value.exp), visit-value.other-stmts)
   end,
   a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
+    raise("Should never happen, right?")
     visit-f = f.visit(self)
     visit-args = args.map(_.visit(self))
     other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, visit-f.other-stmts)
@@ -618,7 +611,10 @@ compiler-visitor = {
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     visit-args = args.map(_.visit(self))
-    other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, empty)
+    set-loc = [list:
+      j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
+    ]
+    other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, set-loc)
     c-exp(rt-method(f, visit-args.map(_.exp)), other-stmts)
   end,
   
@@ -873,7 +869,13 @@ remove-useless-if-visitor = N.default-map-visitor.{
   a-if(self, l, c, t, e):
     cases(N.AVal) c:
       | a-bool(_, test) =>
-        if test: t.visit(self) else: e.visit(self) end
+        if test:
+          visit-t = t.visit(self)
+          if N.is-a-lettable(visit-t): visit-t.e else: N.a-if(l, c.visit(self), visit-t, e.visit(self)) end
+        else:
+          visit-e = e.visit(self)
+          if N.is-a-lettable(visit-e): visit-e.e else: N.a-if(l, c.visit(self), t.visit(self), visit-e) end
+        end
       | else => N.a-if(l, c.visit(self), t.visit(self), e.visit(self))
     end
   end
@@ -884,14 +886,15 @@ check:
   true1 = N.a-if(d, N.a-bool(d, true),
     N.a-lettable(N.a-val(N.a-num(d, 1))),
     N.a-lettable(N.a-val(N.a-num(d, 2))))
-  true1.visit(remove-useless-if-visitor) is N.a-lettable(N.a-val(N.a-num(d, 1)))
+  true1.visit(remove-useless-if-visitor) is N.a-val(N.a-num(d, 1))
 
   false4 = N.a-if(d, N.a-bool(d, false),
     N.a-lettable(N.a-val(N.a-num(d, 3))),
     N.a-lettable(N.a-val(N.a-num(d, 4))))
-  false4.visit(remove-useless-if-visitor) is N.a-lettable(N.a-val(N.a-num(d, 4)))
+  false4.visit(remove-useless-if-visitor) is N.a-val(N.a-num(d, 4))
 
-  N.a-if(d, N.a-id(d, A.s-name(d, "x")), true1, false4).visit(remove-useless-if-visitor)
+  N.a-if(d, N.a-id(d, A.s-name(d, "x")), N.a-lettable(true1), N.a-lettable(false4)
+    ).visit(remove-useless-if-visitor)
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
     N.a-lettable(N.a-val(N.a-num(d, 1))),
     N.a-lettable(N.a-val(N.a-num(d, 4))))
@@ -979,8 +982,9 @@ fun compile-program(self, l, imports, split, env):
 
   step = js-id-of(compiler-name("step"))
   toplevel-name = js-id-of(compiler-name("toplevel"))
+  apploc = js-id-of(compiler-name("al"))
   resumer = N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)
-  visited-body = compile-fun-body(l, step, toplevel-name, self.{get-loc: get-loc}, [list: resumer], 0, split.body)
+  visited-body = compile-fun-body(l, step, toplevel-name, self.{get-loc: get-loc, cur-apploc: apploc}, [list: resumer], 0, split.body)
   toplevel-fun = j-fun([list: js-id-of(tostring(resumer.id))], visited-body)
   define-locations = j-var(locs, j-list(true, locations.to-list()))
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
