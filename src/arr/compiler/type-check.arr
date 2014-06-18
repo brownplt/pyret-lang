@@ -7,8 +7,15 @@ import string-dict as SD
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 
-data Pair:
-  | pair(left, right)
+data Pair<L,R>:
+  | pair(left :: L, right :: R)
+sharing:
+  on-left(self, f :: (L -> L)) -> Pair<L,R>:
+    pair(f(self.left), self.right)
+  end,
+  on-right(self, f :: (R -> R)) -> Pair<L,R>:
+    pair(self.left, f(self.right))
+  end
 end
 
 fun <I> identity(i :: I) -> I: i;
