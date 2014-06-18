@@ -40,6 +40,29 @@ sharing:
       | t-top => is-t-top(other)
       | t-bot => true
     end
+  end,
+  tostring(self) -> String:
+    cases(Type) self:
+      | t-name(l, module-name, id) =>
+        cases(Option<String>) module-name:
+          | none    => id
+          | some(m) => m + "." + id
+        end
+      | t-arrow(l, args, ret) =>
+        "(" + args.map(_.tostring()).join-str(", ") + " -> " + ret + ")"
+      | t-top =>
+        "Top"
+      | t-bot =>
+        "Bot"
+    end
+  end,
+  toloc(self) -> A.Loc:
+    cases(Type) self:
+      | t-name(l, module-name, id) => l
+      | t-arrow(l, args, ret) => l
+      | t-top => A.dummy-loc
+      | t-bot => A.dummy-loc
+    end
   end
 end
 
