@@ -43,9 +43,9 @@ sharing:
   end
 end
 
-t-number  = t-name(A.dummy-loc, none, "Number")
-t-string  = t-name(A.dummy-loc, none, "String")
-t-boolean = t-name(A.dummy-loc, none, "Boolean")
+t-number  = t-name(A.dummy-loc, none, "tglobal#Number")
+t-string  = t-name(A.dummy-loc, none, "tglobal#String")
+t-boolean = t-name(A.dummy-loc, none, "tglobal#Boolean")
 
 data TCInfo:
   | tc-info(typs       :: SD.StringDict,
@@ -108,7 +108,10 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
       handle-type-let-binds(binds, info)
       synthesis(body, info)
     | s-let-expr(l, binds, body) =>
-      raise("s-let-expr not yet handled")
+      for each(bind from binds):
+        synthesis-let-bind(bind, info)
+      end
+      synthesis(body, info)
     | s-letrec(l, binds, body) =>
       raise("s-letrec not yet handled")
     | s-hint-exp(l, hints, exp) =>
@@ -116,7 +119,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
     | s-instantiate(l, expr, params) =>
       raise("s-instantiate not yet handled")
     | s-block(l, stmts) =>
-      raise("s-block not yet handled")
+      for fold(base from t-top, stmt from stmts):
+        synthesis(stmt, info)
+      end
     | s-user-block(l, body) =>
       raise("s-user-block not yet handled")
     | s-fun(l, name,
@@ -200,11 +205,26 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      info.typs.get(id.s)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-id-var(l, id) =>
-      info.typs.get(id.s)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-id-letrec(l, id, safe) =>
-      info.typs.get(id.s)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
@@ -247,8 +267,8 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> Type:
       var typ = synthesis(value, info)
       expect-ann = b.ann
       when not(A.is-a-blank(expect-ann)):
-        expect-typ = to-type(expect-ann)
-        if typ.satifies-type(expect-typ):
+        expect-typ = to-type(expect-ann, info)
+        if typ.satisfies-type(expect-typ):
           typ := expect-typ
         else:
           raise(torepr(typ) + " does not satisfy the specified type: " + torepr(expect-typ))
@@ -295,7 +315,8 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> Boolean:
     | s-let-expr(l, binds, body) =>
       for each(bind from binds):
         synthesis-let-bind(bind, info)
-      end and checking(body, expect-typ, info)
+      end
+      checking(body, expect-typ, info)
     | s-letrec(l, binds, body) =>
       raise("s-letrec not yet handled")
     | s-hint-exp(l, hints, exp) =>
@@ -387,11 +408,26 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> Boolean:
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      info.typs.get(id.s).satisfies-type(expect-typ)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key).satisfies-type(expect-typ)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-id-var(l, id) =>
-      info.typs.get(id.s).satisfies-type(expect-typ)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key).satisfies-type(expect-typ)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-id-letrec(l, id, safe) =>
-      info.typs.get(id.s).satisfies-type(expect-typ)
+      id-key = id.key()
+      if info.typs.has-key(id-key):
+        info.typs.get(id-key).satisfies-type(expect-typ)
+      else:
+        raise("Identifier not found in environment! Tried to find: " + id-key)
+      end
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
@@ -427,10 +463,14 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> Boolean:
   end
 end
 
+
+default-typs = SD.string-dict()
+default-typs.set("global#nothing", t-name(A.dummy-loc, none, "tglobal#Nothing"))
+
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = tc-info(SD.string-dict(), SD.string-dict(), SD.string-dict())
+      info = tc-info(default-typs, SD.string-dict(), SD.string-dict())
       result = checking(body, t-top, info)
       if result:
         C.ok(program)
