@@ -50,7 +50,8 @@ t-boolean = t-name(A.dummy-loc, none, "tglobal#Boolean")
 data TCInfo:
   | tc-info(typs       :: SD.StringDict,
             aliases    :: SD.StringDict,
-            data-exprs :: SD.StringDict)
+            data-exprs :: SD.StringDict,
+            errors     :: { insert :: (C.CompileError -> List<C.CompileError>), get :: (-> List<C.CompileError>)})
 end
 
 fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Type:
@@ -88,6 +89,18 @@ fun to-type-or(ann :: A.Ann, alt :: Type, info :: TCInfo) -> Type:
   end
 end
 
+fun ensure-satisfies(typ :: Type, ann :: A.Ann, info :: TCInfo) -> Type:
+  if A.is-a-blank(ann):
+    typ
+  else:
+    expect-typ = to-type(ann, info)
+    if typ.satisfies-type(expect-typ):
+      expect-typ
+    else:
+      raise(torepr(typ) + " does not satisfy the specified type: " + torepr(expect-typ))
+    end
+  end
+end
 
 fun handle-type-let-binds(binds :: List<A.TypeLetBind>, info :: TCInfo):
   for each(bind from binds):
@@ -178,7 +191,13 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
           args, # Value parameters
           ann, # return type
           doc, body, _check) =>
-      raise("s-lam not yet handled")
+      arg-typs = for map(arg from args):
+                   arg-typ = to-type(arg.ann, info)
+                   info.typs.set(arg.id.key(), arg-typ)
+                   arg-typ
+                 end
+      ret-typ  = ensure-satisfies(synthesis(body, info), ann, info)
+      t-arrow(l, arg-typs, ret-typ)
     | s-method(l,
         args, # Value parameters
         ann, # return type
@@ -199,7 +218,16 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
     | s-bless(l, expr, typ) =>
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
-      raise("s-app not yet handled")
+      fun-typ = synthesis(_fun, info)
+      cases(Type) fun-typ:
+        | t-arrow(_, arg-typs, ret-typ) =>
+          for lists.map2(arg from args, arg-typ from arg-typs):
+            checking(arg, arg-typ, info)
+          end
+          ret-typ
+        | else =>
+          raise("Cannot apply a non-function! Found type: " + torepr(fun-typ))
+      end
     | s-prim-app(l, _fun, args) =>
       raise("s-prim-app not yet handled")
     | s-prim-val(l, name) =>
@@ -261,20 +289,16 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Type:
 
 end
 
+fun synthesis-binding(binding :: A.Bind, value :: A.Expr, info :: TCInfo) -> Type:
+  var typ = ensure-satisfies(synthesis(value, info), binding.ann, info)
+  info.typs.set(binding.id.key(), typ)
+  typ
+end
+
 fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> Type:
   cases(A.LetBind) binding:
     | s-let-bind(l, b, value) =>
-      var typ = synthesis(value, info)
-      expect-ann = b.ann
-      when not(A.is-a-blank(expect-ann)):
-        expect-typ = to-type(expect-ann, info)
-        if typ.satisfies-type(expect-typ):
-          typ := expect-typ
-        else:
-          raise(torepr(typ) + " does not satisfy the specified type: " + torepr(expect-typ))
-        end
-      end
-      info.typs.set(b.id.key(), typ)
+      synthesis-binding(b, value, info)
     | s-var-bind(l, b, value) =>
       raise("s-var-bind not yet handled")
   end
@@ -284,13 +308,13 @@ fun check-fun(body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ
   arg-typs = cases(Type) expect-typ:
                | t-arrow(_, expect-args, _) =>
                  for map2(arg from args, expect-arg from expect-args):
-                   arg-typ = to-type-or(arg, expect-arg, info)
+                   arg-typ = to-type-or(arg.ann, expect-arg, info)
                    info.typs.set(arg.id.key(), arg-typ)
                    arg-typ
                  end
                | else =>
                  for map(arg from args):
-                   arg-typ = to-type(arg, info)
+                   arg-typ = to-type(arg.ann, info)
                    info.typs.set(arg.id.key(), arg-typ)
                    arg-typ
                  end
@@ -318,7 +342,13 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> Boolean:
       end
       checking(body, expect-typ, info)
     | s-letrec(l, binds, body) =>
-      raise("s-letrec not yet handled")
+      for each(bind from binds):
+        info.typs.set(bind.b.id.key(), to-type(bind.b.ann, info))
+      end
+      for each(bind from binds):
+        synthesis-binding(bind.b, bind.value, info)
+      end
+      checking(body, expect-typ, info)
     | s-hint-exp(l, hints, exp) =>
       raise("s-hint-exp not yet handled")
     | s-instantiate(l, expr, params) =>
@@ -402,7 +432,16 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> Boolean:
     | s-bless(l, expr, typ) =>
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
-      raise("s-app not yet handled")
+      fun-typ = synthesis(_fun, info)
+      cases(Type) fun-typ:
+        | t-arrow(_, arg-typs, ret-typ) =>
+          for lists.map2(arg from args, arg-typ from arg-typs):
+            checking(arg, arg-typ, info)
+          end
+          ret-typ.satisfies-type(expect-typ)
+        | else =>
+          raise("Cannot apply a non-function! Found type: " + torepr(fun-typ))
+      end
     | s-prim-app(l, _fun, args) =>
       raise("s-prim-app not yet handled")
     | s-prim-val(l, name) =>
@@ -468,9 +507,22 @@ default-typs = SD.string-dict()
 default-typs.set("global#nothing", t-name(A.dummy-loc, none, "tglobal#Nothing"))
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
+  errors = lam():
+    var err-list = empty
+    {
+      insert: lam(err :: C.CompileError):
+        err-list := link(err, err-list)
+      end,
+      get: lam():
+        err-list
+      end
+    }
+  end()
+
+
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = tc-info(default-typs, SD.string-dict(), SD.string-dict())
+      info = tc-info(default-typs, SD.string-dict(), SD.string-dict(), errors)
       result = checking(body, t-top, info)
       if result:
         C.ok(program)
