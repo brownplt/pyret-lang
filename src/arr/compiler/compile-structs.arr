@@ -78,6 +78,11 @@ data CompileError:
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
+  | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
+    tostring(self):
+      "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
+        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name
+    end
 end
 
 data CompileTypeBinding:
