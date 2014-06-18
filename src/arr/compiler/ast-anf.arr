@@ -127,49 +127,6 @@ data AExpr:
     tosource(self):
       self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
-  | a-tail-if(l :: Loc, cond :: AVal, consq :: AExpr, alt :: AExpr) with:
-    label(Self): "a-tail-if" end,
-    tosource(self):
-      PP.group(
-        PP.str("TAIL") + str-if + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
-          + PP.nest(INDENT, break-one + self.t.tosource())
-          + break-one + str-elsecolon
-          + PP.nest(INDENT, break-one + self.e.tosource())
-          + break-one + str-end)
-    end
-  | a-split-if-let(l :: Loc, dest :: A.Name, cond :: AVal, consq :: AExpr, alt :: AExpr, body :: AExpr) with:
-    label(Self): "a-tail-if" end,
-    tosource(self):
-      PP.group(
-        PP.str("split-if-let ") + self.dest.tosource() + PP.str(" = ")
-          + PP.nest(2 * INDENT, self.c.tosource() + str-colon)
-          + PP.nest(INDENT, break-one + self.t.tosource())
-          + break-one + str-elsecolon
-          + PP.nest(INDENT, break-one + self.e.tosource())
-          + break-one + str-end + PP.str(" in ") + self.body.tosource())
-    end
-  | a-tail-app(l :: Loc, f :: AVal, args :: List<AVal>) with:
-    label(self): "a-tail-app" end,
-    tosource(self):
-      PP.group(self.f.tosource()
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
-    end
-  | a-split-app(l :: Loc, f :: AVal, args :: List<AVal>, helper :: A.Name, helper-args :: List<AVal>) with:
-    label(self): "a-split-app" end,
-    tosource(self):
-      PP.group(
-        PP.group(PP.nest(INDENT,
-            PP.str("split ")
-              + PP.group(self.helper-args.first.tosource() + PP.str(" <== ") + self.f.tosource()
-                + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end))))))) +
-        break-one +
-        PP.group(PP.nest(INDENT, PP.str("and then") + break-one
-              + self.helper.tosource()
-              + PP.parens(PP.nest(INDENT,
-                PP.separate(PP.commabreak, self.helper-args.map(lam(f): f.tosource() end)))))))
-    end
   | a-lettable(e :: ALettable) with:
     label(self): "a-lettable" end,
     tosource(self):
@@ -422,14 +379,6 @@ fun strip-loc-expr(expr :: AExpr):
       a-var(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-seq(_, e1, e2) =>
       a-seq(dummy-loc, strip-loc-lettable(e1), strip-loc-expr(e2))
-    | a-split-app(_, f, args, helper, helper-args) =>
-      a-split-app(
-          dummy-loc,
-          strip-loc-val(f),
-          args.map(strip-loc-val),
-          helper,
-          helper-args.map(strip-loc-val)
-        )
     | a-lettable(e) =>
       a-lettable(strip-loc-lettable(e))
   end
@@ -541,12 +490,6 @@ default-map-visitor = {
   end,
   a-variant-member(self, l :: Loc, member-type :: AMemberType, bind :: ABind):
     a-variant-member(l, member-type, bind.visit(self))
-  end,
-  a-tail-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-tail-app(l, _fun.visit(self), args.map(_.visit(self)))
-  end,
-  a-split-app(self, l :: Loc, f :: AVal, args :: List<AVal>, helper :: String, helper-args :: List<AVal>):
-    a-split-app(l, f.visit(self), args.map(_.visit(self)), helper, helper-args.map(_.visit(self)))
   end,
   a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
@@ -670,20 +613,6 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
       freevars-l-acc(e1, from-e2)
-    | a-tail-app(_, f, args) =>
-      from-f = freevars-v-acc(f, seen-so-far)
-      for fold(acc from from-f, arg from args):
-        freevars-v-acc(arg, acc)
-      end
-    | a-split-app(_, _, f, args, name, helper-args) =>
-      from-f = freevars-v-acc(f, seen-so-far)
-      with-args = for fold(acc from from-f, arg from args):
-        freevars-v-acc(arg, acc)
-      end
-      with-helper-args = for fold(acc from with-args, arg from helper-args):
-        freevars-v-acc(arg, acc)
-      end
-      with-helper-args.remove(name)
     | a-lettable(e) => freevars-l-acc(e, seen-so-far)
   end
 end
