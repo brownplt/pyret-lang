@@ -4,7 +4,6 @@ provide *
 import ast as A
 import sets as Sets
 import "compiler/ast-anf.arr" as N
-import "compiler/ast-split.arr" as S
 import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
@@ -354,6 +353,59 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   { new-cases: new-cases, new-label: cur-target }
 end
 
+fun compile-split-app(l, compiler, dest, f, args, body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-f = f.visit(compiler).exp
+  compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  var new-cases = concat-empty
+  visited-helper = body.visit(compiler)
+  helper-label =
+    block:
+      lbl = compiler.make-label()
+      new-cases := concat-cons(
+        j-case(lbl, j-block(
+            j-var(js-id-of(dest.tostring()), j-id(ans))
+            ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
+        visited-helper.new-cases)
+      lbl
+    end
+  c-block(
+    j-block([list:
+        check-fun(compiler.get-loc(l), compiled-f),
+        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+        j-expr(j-assign(step,  helper-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+        j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
+        j-break]),
+    new-cases)
+end
+
+fun compile-split-if(compiler, dest, cond, consq, alt, body):
+  consq-label = compiler.make-label()
+  alt-label = compiler.make-label()
+  after-if-label = compiler.make-label()
+  ans = compiler.cur-ans
+  compiled-body = body.visit(compiler)
+  compiler-after-if = compiler.{cur-target: after-if-label}
+  compiled-consq = consq.visit(compiler-after-if)
+  compiled-alt = alt.visit(compiler-after-if)
+  new-cases =
+    concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
+    + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
+    + concat-cons(j-case(after-if-label,
+      j-block(
+        j-var(js-id-of(dest.tostring()), j-id(ans))
+        ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+  c-block(
+    j-block([list: 
+        j-if(rt-method("isPyretTrue", [list: cond.visit(compiler).exp]),
+          j-block([list: j-expr(j-assign(compiler.cur-step, consq-label)), j-break]),
+          j-block([list: j-expr(j-assign(compiler.cur-step, alt-label)), j-break]))
+      ]),
+    new-cases)
+end
+
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
@@ -406,38 +458,45 @@ compiler-visitor = {
     end
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    compiled-e = e.visit(self)
-    compiled-body = body.visit(self)
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
-      c-block(
-        j-block(
-          compiled-e.other-stmts +
-          link(
-            j-var(js-id-of(b.id.tostring()), compiled-e.exp),
-            compiled-body.block.stmts
+    cases(N.ALettable) e:
+      | a-app(l2, f, args) =>
+        compile-split-app(l2, self, b.id, f, args, body)
+      | a-if(l2, cond, then, els) =>
+        compile-split-if(self, b.id, cond, then, els, body)
+      | else =>
+        compiled-e = e.visit(self)
+        compiled-body = body.visit(self)
+        if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+          c-block(
+            j-block(
+              compiled-e.other-stmts +
+              link(
+                j-var(js-id-of(b.id.tostring()), compiled-e.exp),
+                compiled-body.block.stmts
+                )
+              ),
+            compiled-body.new-cases
             )
-          ),
-        compiled-body.new-cases
-        )
-    else:
-      step = self.cur-step
-      after-ann = self.make-label()
-      after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
-      compiled-ann = compile-ann(b.ann, self)
-      c-block(
-        j-block(
-          compiled-e.other-stmts +
-          compiled-ann.other-stmts +
-          [list:
-            j-var(js-id-of(b.id.tostring()), compiled-e.exp),
-            j-expr(j-assign(step, after-ann)),
-            j-expr(rt-method("_checkAnn", [list:
-                  self.get-loc(b.ann.l),
-                  compiled-ann.exp,
-                  j-id(js-id-of(b.id.tostring()))])),
-            j-break
-          ]),
-        concat-cons(after-ann-case, compiled-body.new-cases))
+        else:
+          step = self.cur-step
+          after-ann = self.make-label()
+          after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
+          compiled-ann = compile-ann(b.ann, self)
+          c-block(
+            j-block(
+              compiled-e.other-stmts +
+              compiled-ann.other-stmts +
+              [list:
+                j-var(js-id-of(b.id.tostring()), compiled-e.exp),
+                j-expr(j-assign(step, after-ann)),
+                j-expr(rt-method("_checkAnn", [list:
+                      self.get-loc(b.ann.l),
+                      compiled-ann.exp,
+                      j-id(js-id-of(b.id.tostring()))])),
+                j-break
+              ]),
+            concat-cons(after-ann-case, compiled-body.new-cases))
+        end
     end
   end,
   a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
@@ -558,16 +617,24 @@ compiler-visitor = {
       new-cases)
   end,
   a-seq(self, l, e1, e2):
-    e1-visit = e1.visit(self).exp
-    e2-visit = e2.visit(self)
-    if J.JStmt(e1-visit):
-      c-block(
-        j-block(link(e1-visit, e2-visit.block.stmts)),
-        e2-visit.new-cases)
-    else:
-      c-block(
-        j-block(link(j-expr(e1-visit), e2-visit.block.stmts)),
-        e2-visit.new-cases)
+    names = A.global-names
+    cases(N.ALettable) e1:
+      | a-app(l2, f, args) =>
+        compile-split-app(l2, self, names.make-atom("app_seq"), f, args, e2)
+      | a-if(l2, cond, consq, alt) =>
+        compile-split-if(self, names.make-atom("if_seq"), cond, consq, alt, e2)
+      | else =>
+        e1-visit = e1.visit(self).exp
+        e2-visit = e2.visit(self)
+        if J.JStmt(e1-visit):
+          c-block(
+            j-block(link(e1-visit, e2-visit.block.stmts)),
+            e2-visit.new-cases)
+        else:
+          c-block(
+            j-block(link(j-expr(e1-visit), e2-visit.block.stmts)),
+            e2-visit.new-cases)
+        end
     end
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
@@ -588,15 +655,48 @@ compiler-visitor = {
       new-cases)
   end,
   a-lettable(self, e :: N.ALettable): # Need to add back the location field
-    visit-e = e.visit(self)
-    c-block(
-      j-block(
-        j-expr(j-assign(self.cur-step, self.cur-target))
-        ^ link(_, visit-e.other-stmts
-            + [list:
-            j-expr(j-assign(self.cur-ans, visit-e.exp)),
-            j-break])),
-      concat-empty)
+    cases(N.ALettable) e:
+      | a-app(l, f, args) =>
+        ans = self.cur-ans
+        step = self.cur-step
+        compiled-f = f.visit(self).exp
+        compiled-args = args.map(lam(a): a.visit(self).exp end)
+        c-block(
+          j-block([list:
+              check-fun(self.get-loc(l), compiled-f),
+              # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+              j-expr(j-assign(step,  self.cur-target)),
+              j-expr(j-assign(self.cur-apploc, self.get-loc(l))),
+              j-expr(j-assign(ans, app(self.get-loc(l), compiled-f, compiled-args))),
+              j-break]),
+          concat-empty)
+      | a-if(l, cond, consq, alt) =>
+        compiled-consq = consq.visit(self)
+        compiled-alt = alt.visit(self)
+
+        consq-label = self.make-label()
+        alt-label = self.make-label()
+        new-cases =
+          concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
+          + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
+        c-block(
+          j-block([list: 
+              j-if(rt-method("isPyretTrue", [list: cond.visit(self).exp]),
+                j-block([list: j-expr(j-assign(self.cur-step, consq-label)), j-break]),
+                j-block([list: j-expr(j-assign(self.cur-step, alt-label)), j-break]))
+            ]),
+          new-cases)
+      | else =>
+         visit-e = e.visit(self)
+         c-block(
+           j-block(
+             j-expr(j-assign(self.cur-step, self.cur-target))
+             ^ link(_, visit-e.other-stmts
+                 + [list:
+                 j-expr(j-assign(self.cur-ans, visit-e.exp)),
+                 j-break])),
+           concat-empty)
+    end
   end,
   a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
@@ -913,9 +1013,9 @@ fun mk-abbrevs(l):
 end
 
 
-fun compile-program(self, l, imports, split, env):
+fun compile-program(self, l, imports, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
-  free-ids = S.freevars-split-result(split).difference(sets.list-to-tree-set(imports.map(_.name))).difference(sets.list-to-tree-set(imports.map(_.types)))
+  free-ids = freevars.difference(sets.list-to-tree-set(imports.map(_.name))).difference(sets.list-to-tree-set(imports.map(_.types)))
   namespace-binds = for map(n from free-ids.to-list()):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
@@ -984,7 +1084,7 @@ fun compile-program(self, l, imports, split, env):
   toplevel-name = js-id-of(compiler-name("toplevel"))
   apploc = js-id-of(compiler-name("al"))
   resumer = N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)
-  visited-body = compile-fun-body(l, step, toplevel-name, self.{get-loc: get-loc, cur-apploc: apploc}, [list: resumer], 0, split.body)
+  visited-body = compile-fun-body(l, step, toplevel-name, self.{get-loc: get-loc, cur-apploc: apploc}, [list: resumer], 0, prog)
   toplevel-fun = j-fun([list: js-id-of(tostring(resumer.id))], visited-body)
   define-locations = j-var(locs, j-list(true, locations.to-list()))
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
@@ -998,27 +1098,14 @@ fun compile-program(self, l, imports, split, env):
                         [list: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
 end
 
-fun splitting-compiler(env):
-  compiler-visitor.{
-    a-program(self, l, imports, body):
-      simplified = body.visit(remove-useless-if-visitor)
-      split = S.ast-split(simplified)
-      helpers-dict = D.string-dict()
-      for each(h from split.helpers):
-        helpers-dict.set(h.name.key(), h)
-      end
-      compile-program(self.{helpers: helpers-dict}, l, imports, split, env)
-    end
-  }
-end
-
 fun non-splitting-compiler(env):
   compiler-visitor.{
     a-program(self, l, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
-      split = S.split-result([list: ], simplified, N.freevars-e(simplified))
-      compile-program(self, l, imports, split, env)
+      freevars = N.freevars-e(simplified)
+      compile-program(self, l, imports, simplified, freevars, env)
     end
   }
 end
 
+splitting-compiler = non-splitting-compiler

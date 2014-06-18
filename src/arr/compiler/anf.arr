@@ -163,9 +163,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | empty => anf(body, k)
         | link(f, r) =>
           cases(A.LetBind) f:
-            | s-var-bind(l2, b, val) => anf(val, k-cont(lam(lettable):
-                    N.a-var(l2, N.a-bind(l2, b.id, b.ann), lettable,
-                      anf(A.s-let-expr(l, r, body), k))
+            | s-var-bind(l2, b, val) =>
+              var-name = mk-id(l2, "var")
+              anf(val, k-cont(lam(lettable):
+                N.a-let(l2, var-name.id-b, lettable,
+                    N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(var-name.id-e),
+                      anf(A.s-let-expr(l, r, body), k)))
                   end))
             | s-let-bind(l2, b, val) => anf(val, k-cont(lam(lettable):
                     N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
