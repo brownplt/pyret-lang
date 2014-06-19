@@ -56,7 +56,7 @@ sharing:
           | some(m) => m + "." + id
         end
       | t-arrow(l, args, ret) =>
-        "(" + args.map(_.tostring()).join-str(", ") + " -> " + ret + ")"
+        "(" + args.map(_.tostring()).join-str(", ") + " -> " + ret.tostring() + ")"
       | t-top =>
         "Top"
       | t-bot =>
@@ -76,6 +76,47 @@ end
 t-number  = t-name(A.dummy-loc, none, "tglobal#Number")
 t-string  = t-name(A.dummy-loc, none, "tglobal#String")
 t-boolean = t-name(A.dummy-loc, none, "tglobal#Boolean")
+t-srcloc  = t-name(A.dummy-loc, none, "Loc")
+
+fun least-upper-bound(s :: Type, t :: Type) -> Type:
+  if s.satisfies-type(t):
+    t
+  else if t.satisfies-type(s):
+    s
+  else:
+    cases(Type) s:
+      | t-arrow(s-l, s-args, s-ret) =>
+        cases(Type) t:
+          | t-arrow(t-l, t-args, t-ret) =>
+            m-args = lists.map2(greatest-lower-bound, s-args, t-args)
+            j-typ  = least-upper-bound(s-ret, t-ret)
+            t-arrow(A.dummy-loc, m-args, j-typ)
+          | else => t-top
+        end
+      | else => t-top
+    end
+  end
+end
+
+fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
+  if s.satisfies-type(t):
+    s
+  else if t.satisfies-type(s):
+    t
+  else:
+    cases(Type) s:
+      | t-arrow(s-l, s-args, s-ret) =>
+        cases(Type) t:
+          | t-arrow(t-l, t-args, t-ret) =>
+            m-args = lists.map2(least-upper-bound, s-args, t-args)
+            j-typ  = greatest-lower-bound(s-ret, t-ret)
+            t-arrow(A.dummy-loc, m-args, j-typ)
+          | else => t-bot
+        end
+      | else => t-bot
+    end
+  end
+end
 
 data TCInfo:
   | tc-info(typs       :: SD.StringDict,
@@ -154,8 +195,14 @@ fun synthesis-fun(l :: A.Loc, body :: A.Expr, args :: List<A.Bind>, ret-ann :: A
   pair(new-fun, fun-typ)
 end
 
-fun lookup-id(id :: A.Name, info :: TCInfo) -> Type:
-  id-key = id.key()
+fun lookup-id(id, info :: TCInfo) -> Type:
+  id-key = if is-string(id):
+             id
+           else if A.is-Name(id):
+             id.key()
+           else:
+             raise("I don't know how to lookup your id! Received: " + torepr(id))
+           end
   if info.typs.has-key(id-key):
     info.typs.get(id-key)
   else:
@@ -222,7 +269,20 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-if(l, branches) =>
       raise("s-if not yet handled")
     | s-if-else(l, branches, _else) =>
-      raise("s-if-else not yet handled")
+      new-branches = for fold(base from pair(empty, t-bot), branch from branches):
+                       cases(A.IfBranch) branch:
+                         | s-if-branch(l2, test, body) =>
+                           new-test   = checking(test, t-boolean, info)
+                           new-body   = synthesis(body, info)
+                           new-branch = A.s-if-branch(l2, new-test, new-body.left)
+                           meet       = least-upper-bound(new-body.right, base.right)
+                           pair(link(new-branch, base.left), meet)
+                       end
+                     end
+      new-else     = synthesis(_else, info)
+      if-else-typ  = least-upper-bound(new-branches.right, new-else.right)
+      new-if-else  = A.s-if-else(l, new-branches.left, new-else.left)
+      pair(new-if-else, if-else-typ)
     | s-cases(l, typ, val, branches) =>
       raise("s-cases not yet handled")
     | s-cases-else(l, typ, val, branches, _else) =>
@@ -261,20 +321,16 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-bless(l, expr, typ) =>
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
-      new-fun = synthesis(_fun, info)
-      fun-typ = new-fun.right
-      cases(Type) fun-typ:
-        | t-arrow(_, arg-typs, ret-typ) =>
-          new-args = for lists.map2(arg from args, 
-                                    arg-typ from arg-typs):
-                       checking(arg, arg-typ, info)
-                     end
-          pair(A.s-app(l, new-fun.left, new-args), ret-typ)
-        | else =>
-          raise("Cannot apply a non-function! Found type: " + torepr(fun-typ))
-      end
+      new-fun   = synthesis(_fun, info)
+      arrow-typ = new-fun.right
+      new-args  = check-app(args, arrow-typ, info)
+      ast       = A.s-app(l, new-fun.left, new-args.left)
+      pair(ast, new-args.right)
     | s-prim-app(l, _fun, args) =>
-      raise("s-prim-app not yet handled")
+      arrow-typ = lookup-id(_fun, info)
+      new-args  = check-app(args, arrow-typ, info)
+      ast       = A.s-prim-app(l, _fun, new-args.left)
+      pair(ast, new-args.right)
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
@@ -319,7 +375,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
 
 end
 
-fun synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A.Expr -> A.Expr), info :: TCInfo) -> Pair<A.Expr, Type>:
+fun <B> synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A.Expr -> B), info :: TCInfo) -> Pair<B, Type>:
   new-value = synthesis(value, info)
                 .on-left(recreate(binding, _))
                 .on-right(ensure-satisfies(_, binding.ann, info))
@@ -358,9 +414,23 @@ fun check-fun(body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ
                  to-type(ret-ann, info)
              end
   arrow-typ = t-arrow(A.dummy-loc, arg-typs, ret-typ)
-  new-body  = checking(body, ret-typ, info) 
+  new-body  = checking(body, ret-typ, info)
   new-fun   = recreate(args, ret-ann, new-body)
   check-and-return(arrow-typ, expect-typ, new-fun, info)
+end
+
+fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> List<A.Expr>:
+  cases(Type) arrow-typ:
+    | t-arrow(_, arg-typs, ret-typ) =>
+      new-args = for lists.map2(arg from args, arg-typ from arg-typs):
+        checking(arg, arg-typ, info)
+      end
+      pair(new-args, ret-typ)
+    | t-bot =>
+      pair(args, t-bot)
+    | else =>
+      raise("Cannot apply a non-function! Found type: " + torepr(arrow-typ))
+  end
 end
 
 fun <V> check-and-return(typ :: Type, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
@@ -386,16 +456,22 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       new-body  = checking(body, expect-typ, info)
       A.s-let-expr(l, new-binds, new-body)
     | s-letrec(l, binds, body) =>
+      # TODO(cody): This needs to be thought out more...
       for each(bind from binds):
-        info.typs.set(bind.b.id.key(), to-type(bind.b.ann, info))
+        # Collect initial annotations. If we don't have any, make them t-bot
+        info.typs.set(bind.b.id.key(), to-type-or(bind.b.ann, t-bot, info))
       end
-      new-binds = for map(bind from binds):
-                    cases(A.LetrecBind) bind:
-                      | s-letrec-bind(l2, b, value) =>
-                        recreate = A.s-letrec-bind(l2, _, _)
-                        synthesis-binding(b, value, recreate, info).left
-                    end
-                  end
+      fun traverse(bindings :: List<A.LetrecBind>) -> List<A.LetrecBind>:
+        for map(bind from binds):
+          cases(A.LetrecBind) bind:
+            | s-letrec-bind(l2, b, value) =>
+              recreate = A.s-letrec-bind(l2, _, _)
+              synthesis-binding(b, value, recreate, info).left
+          end
+        end
+      end
+      tmp-binds = traverse(binds) # Traverse once to determine each one's correct type.
+      new-binds = traverse(tmp-binds) # Traverse again to check recursive references.
       new-body  = checking(body, expect-typ, info)
       A.s-letrec(l, new-binds, new-body)
     | s-hint-exp(l, hints, exp) =>
@@ -448,7 +524,16 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-if(l, branches) =>
       raise("s-if not yet handled")
     | s-if-else(l, branches, _else) =>
-      raise("s-if-else not yet handled")
+      new-branches = for map(branch from branches):
+                       cases(A.IfBranch) branch:
+                         | s-if-branch(l2, test, body) =>
+                           new-test   = checking(test, t-boolean, info)
+                           new-body   = checking(body, expect-typ, info)
+                           A.s-if-branch(l2, new-test, new-body)
+                       end
+                     end
+      new-else     = checking(_else, expect-typ, info)
+      A.s-if-else(l, new-branches, new-else)
     | s-cases(l, typ, val, branches) =>
       raise("s-cases not yet handled")
     | s-cases-else(l, typ, val, branches, _else) =>
@@ -487,20 +572,15 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-bless(l, expr, typ) =>
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
-      new-fun = synthesis(_fun, info)
-      fun-typ = new-fun.right
-      cases(Type) fun-typ:
-        | t-arrow(_, arg-typs, ret-typ) =>
-          new-args = for lists.map2(arg from args, arg-typ from arg-typs):
-            checking(arg, arg-typ, info)
-          end
-          ast = A.s-app(l, new-fun.left, new-args)
-          check-and-return(ret-typ, expect-typ, ast, info)
-        | else =>
-          raise("Cannot apply a non-function! Found type: " + torepr(fun-typ))
-      end
+      new-fun  = synthesis(_fun, info)
+      new-args = check-app(args, new-fun.right, info)
+      ast      = A.s-app(l, new-fun.left, new-args.left)
+      check-and-return(new-args.right, expect-typ, ast, info)
     | s-prim-app(l, _fun, args) =>
-      raise("s-prim-app not yet handled")
+      arrow-typ = lookup-id(_fun, info)
+      new-args  = check-app(args, arrow-typ, info)
+      ast       = A.s-prim-app(l, _fun, new-args.left)
+      check-and-return(new-args.right, expect-typ, ast, info)
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
@@ -512,7 +592,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
-      raise("s-srcloc not yet handled")
+      check-and-return(t-srcloc, expect-typ, e, info)
     | s-num(l, n) =>
       check-and-return(t-number, expect-typ, e, info)
     | s-frac(l, num, den) =>
@@ -547,6 +627,15 @@ end
 
 default-typs = SD.string-dict()
 default-typs.set("global#nothing", t-name(A.dummy-loc, none, "tglobal#Nothing"))
+default-typs.set("isBoolean", t-arrow(A.dummy-loc, [list: t-top], t-boolean))
+default-typs.set("throwNonBooleanCondition",
+                 t-arrow(A.dummy-loc, [list: t-srcloc,
+                                             t-string,
+                                             t-top], t-bot))
+default-typs.set("equiv", t-arrow(A.dummy-loc, [list: t-top, t-top], t-boolean))
+default-typs.set("global#_times", t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
+default-typs.set("global#_minus", t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
+
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   errors = lam():
