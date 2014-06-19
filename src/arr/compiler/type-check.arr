@@ -81,7 +81,8 @@ data TCInfo:
   | tc-info(typs       :: SD.StringDict,
             aliases    :: SD.StringDict,
             data-exprs :: SD.StringDict,
-            errors     :: { insert :: (C.CompileError -> List<C.CompileError>), get :: (-> List<C.CompileError>)})
+            errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
+                            get    :: (-> List<C.CompileError>)})
 end
 
 fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Type:
