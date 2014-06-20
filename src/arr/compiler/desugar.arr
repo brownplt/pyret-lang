@@ -137,7 +137,7 @@ fun make-match(l, case-name, fields):
       end
     end
   A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
-      A.s-if-else(l, [list: 
+      A.s-if-else(l, [list:
           A.s-if-branch(l,
               A.s-prim-app(
                   l,
@@ -180,7 +180,7 @@ end
 
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
-    | s-cases-branch(l2, name, args, body) =>  
+    | s-cases-branch(l2, name, args, body) =>
       desugar-member(
         A.s-data-field(
           l2,
@@ -193,7 +193,7 @@ fun desugar-cases(l, ann, val, branches, else-block):
   val-id = mk-id(l, "cases-val")
   cases-object = A.s-obj(l, branches)
   else-thunk = A.s-lam(l, [list: ], [list: ], A.a-blank, "", else-block, none)
-  A.s-let-expr(l, [list: 
+  A.s-let-expr(l, [list:
         A.s-let-bind(l, val-id.id-b, val)
       ],
       A.s-app(l, A.s-dot(l, val-id.id-e, "_match"), [list: cases-object, else-thunk])
@@ -202,20 +202,20 @@ where:
   d = A.dummy-loc
   prog = desugar-cases(
       d,
-      A.a-blank, 
+      A.a-blank,
       A.s-num(d, 1),
-      [list: 
+      [list:
         A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
       ],
       A.s-num(d, 4)
     )
   id = prog.binds.first.b
-    
-  prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list: 
+
+  prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list:
       A.s-let-bind(d, id, A.s-num(d, 1))
     ],
-    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
-        A.s-obj(d, [list: 
+    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list:
+        A.s-obj(d, [list:
             A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
           ]),
         A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)]))
@@ -229,7 +229,7 @@ fun desugar-variant-member(m):
   end
 end
 
-fun desugar-member(f): 
+fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, args, ann, doc, body, _check) =>
       A.s-data-field(l, desugar-expr(name), desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
@@ -327,22 +327,22 @@ where:
   ds-ed3 = ds-curry(
       d,
       id("f"),
-      [list: 
+      [list:
         id("x"),
         id("y")
       ]
     )
   ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
-    
+
   ds-ed4 = ds-curry(
       d,
       A.s-dot(d, under, "f"),
-      [list: 
+      [list:
         id("x")
       ])
   ds-ed4 satisfies A.is-s-lam
   ds-ed4.args.length() is 1
-        
+
 end
 
 fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
@@ -461,7 +461,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body) => 
+    | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
@@ -583,7 +583,7 @@ where:
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
   p(if-else) ^ pretty is if-else
   p(ask-otherwise) ^ pretty is ask-otherwise
-  
+
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
@@ -592,13 +592,13 @@ where:
 
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
-  
+
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
   #  ds(prog4) is p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)")
-  
+
   # ds(p("(5)")) is ds(p("5"))
-  
+
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
   # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
@@ -606,6 +606,5 @@ where:
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")
   # dsed5 is ds(p(compare))
-  
-end
 
+end
