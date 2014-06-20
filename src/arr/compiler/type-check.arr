@@ -258,8 +258,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       raise("s-graph not yet handled")
     | s-contract(l, name, ann) =>
       raise("s-contract not yet handled")
-    | s-when(l, test, block) =>
-      raise("s-when not yet handled")
     | s-assign(l, id, value) =>
       raise("s-assign not yet handled")
     | s-if-pipe(l, branches) =>
@@ -293,8 +291,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       raise("s-op not yet handled")
     | s-check-test(l, op, left, right) =>
       raise("s-check-test not yet handled")
-    | s-paren(l, expr) =>
-      raise("s-paren not yet handled")
     | s-lam(l,
           params, # Type parameters
           args, # Value parameters
@@ -367,10 +363,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
         params, # type params
         mixins, variants, shared-members, _check) =>
       raise("s-data-expr not yet handled")
-    | s-for(l, iterator, bindings, ann, body) =>
-      raise("s-for not yet handled")
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
+
+    | s-when(_, _, _)      => raise("s-when should have already been desugared")
+    | s-for(_, _, _, _, _) => raise("s-for should have already been desugared")
+    | s-paren(_, _)        => raise("s-paren should have already been desugared")
   end
 
 end
@@ -513,8 +511,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-graph not yet handled")
     | s-contract(l, name, ann) =>
       raise("s-contract not yet handled")
-    | s-when(l, test, block) =>
-      raise("s-when not yet handled")
     | s-assign(l, id, value) =>
       raise("s-assign not yet handled")
     | s-if-pipe(l, branches) =>
@@ -544,8 +540,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-op not yet handled")
     | s-check-test(l, op, left, right) =>
       raise("s-check-test not yet handled")
-    | s-paren(l, expr) =>
-      raise("s-paren not yet handled")
     | s-lam(l,
           params, # Type parameters
           args, # Value parameters
@@ -617,10 +611,12 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
         params, # type params
         mixins, variants, shared-members, _check) =>
       raise("s-data-expr not yet handled")
-    | s-for(l, iterator, bindings, ann, body) =>
-      raise("s-for not yet handled")
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
+
+    | s-when(_, _, _)      => raise("s-when should have already been desugared")
+    | s-for(_, _, _, _, _) => raise("s-for should have already been desugared")
+    | s-paren(_, _)        => raise("s-paren should have already been desugared")
   end
 end
 
