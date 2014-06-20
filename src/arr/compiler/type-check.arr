@@ -182,7 +182,10 @@ fun handle-type-let-binds(binds :: List<A.TypeLetBind>, info :: TCInfo):
 end
 
 
-fun synthesis-fun(l :: A.Loc, body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> Pair<A.Expr, Type>:
+fun synthesis-fun(
+  l :: A.Loc, body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann,
+  recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo)
+) -> Pair<A.Expr, Type>:
   arg-typs = args.foldr(lam(arg :: A.Bind, base :: List<Type>):
                           arg-typ = to-type(arg.ann, info)
                           info.typs.set(arg.id.key(), arg-typ)
