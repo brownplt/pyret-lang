@@ -76,15 +76,12 @@ fun resolve-imports(imports :: List<A.Import>):
   { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
 end
 
-fun desugar-toplevel-types(stmts) -> List<A.Expr>:
+fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
   doc: ```
        Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
        to the top, turning them into a type-let-expression, and generate newtypes for all
        data expressions.
        ```
-  when not(is-link(stmts) or is-empty(stmts)):
-    raise("Expected list of statements, got " + torepr(stmts))
-  end
   var rev-type-binds = empty
   var rev-stmts = empty
   for lists.each(s from stmts):
