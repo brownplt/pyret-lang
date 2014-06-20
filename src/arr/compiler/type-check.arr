@@ -243,11 +243,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       pair(A.s-block(l, new-stmts), typ)
     | s-user-block(l, body) =>
       raise("s-user-block not yet handled")
-    | s-fun(l, name,
-        params, # Type parameters
-        args, # Value parameters
-        ann, # return type
-        doc, body, _check) =>
       synthesis-fun(l, body, args, ann, A.s-fun(l, name, params, _, _, doc, _, _check), info)
     | s-type(l, name, ann) =>
       raise("s-type not yet handled")
@@ -369,9 +364,10 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
 
-    | s-when(_, _, _)      => raise("s-when should have already been desugared")
-    | s-for(_, _, _, _, _) => raise("s-for should have already been desugared")
-    | s-paren(_, _)        => raise("s-paren should have already been desugared")
+    | s-fun(_, _, _, _, _, _, _, _) => raise("s-fun should have already been desugared")
+    | s-when(_, _, _)               => raise("s-when should have already been desugared")
+    | s-for(_, _, _, _, _)          => raise("s-for should have already been desugared")
+    | s-paren(_, _)                 => raise("s-paren should have already been desugared")
   end
 
 end
@@ -493,12 +489,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       A.s-block(l, thunk())
     | s-user-block(l, body) =>
       raise("s-user-block not yet handled")
-    | s-fun(l, name,
-        params, # Type parameters
-        args, # Value parameters
-        ann, # return type
-        doc, body, _check) =>
-      check-fun(body, args, ann, expect-typ, A.s-fun(l, name, _, _, doc, _, _check), info)
     | s-type(l, name, ann) =>
       type-alias   = name.key()
       type-aliased = to-type(ann, info)
@@ -617,9 +607,11 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
 
-    | s-when(_, _, _)      => raise("s-when should have already been desugared")
-    | s-for(_, _, _, _, _) => raise("s-for should have already been desugared")
-    | s-paren(_, _)        => raise("s-paren should have already been desugared")
+
+    | s-fun(_, _, _, _, _, _, _, _) => raise("s-fun should have already been desugared")
+    | s-when(_, _, _)               => raise("s-when should have already been desugared")
+    | s-for(_, _, _, _, _)          => raise("s-for should have already been desugared")
+    | s-paren(_, _)                 => raise("s-paren should have already been desugared")
   end
 end
 
