@@ -71,7 +71,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
           - well-formed
-          - contains no s-let, s-var, s-data, s-check, or s-check-test
+          - contains no s-var, s-fun, s-data, s-check, or s-check-test
           - contains no s-provide in headers
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
