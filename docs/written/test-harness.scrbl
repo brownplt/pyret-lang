@@ -1,7 +1,7 @@
 #lang scribble/manual
 @(require "../scribble-api.rkt")
 
-@title{Pyret Documentation}
+@title[#:version "0.5"]{Pyret Documentation}
 
 @nested{ This document has detailed information on the Pyret grammar and the
 behavior of its expression forms and built-in libraries. It is unfortunately
