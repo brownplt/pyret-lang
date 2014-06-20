@@ -78,10 +78,10 @@ end
 
 fun desugar-toplevel-types(stmts) -> List<A.Expr>:
   doc: ```
-  Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
-  to the top, turning them into a type-let-expression, and generate newtypes for all
-  data expressions.
-  ```
+       Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
+       to the top, turning them into a type-let-expression, and generate newtypes for all
+       data expressions.
+       ```
   when not(is-link(stmts) or is-empty(stmts)):
     raise("Expected list of statements, got " + torepr(stmts))
   end
@@ -112,7 +112,10 @@ end
 
 
 fun desugar-scope-block(stmts, let-binds, letrec-binds, type-let-binds) -> List<A.Expr>:
-  doc: "Treating stmts as a block, resolve scope."
+  doc: ```
+       Treating stmts as a block, resolve scope.
+       There should be no blocks left after this stage of the compiler pipeline.
+       ```
   cases(List) stmts:
     | empty => empty
     | link(f, rest-stmts) =>
@@ -339,15 +342,15 @@ end
 
 fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   doc: ```
-        Remove x = e, var x = e, and fun f(): e end
-        and turn them into explicit let and letrec expressions.
-        Do this recursively through the whole program.
-        Preconditions on prog:
-          - well-formed
-        Postconditions on prog:
-          - contains no s-provide in headers
-          - contains no s-let, s-var, s-data
-        ```
+       Remove x = e, var x = e, and fun f(): e end
+       and turn them into explicit let and letrec expressions.
+       Do this recursively through the whole program.
+       Preconditions on prog:
+         - well-formed
+       Postconditions on prog:
+         - contains no s-provide in headers
+         - contains no s-let, s-var, s-data
+       ```
   cases(A.Program) prog:
     | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
       imports-and-lets = resolve-imports(imports-raw)
@@ -479,12 +482,14 @@ end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   doc: ```
-        Turn all s-names into s-atom or s-global
-        Preconditions on p:
-          - Contains no s-let, s-var, s-data (e.g. call desugar-scope first)
-        Postconditions on p:
-          - Contains no s-name in names
-        ```
+       Turn all s-names into s-atom or s-global
+       Requires:
+        1. desugar-scope
+       Preconditions on p:
+        -  Contains no s-block, s-let, s-var, s-data
+       Postconditions on p (in addition to preconditions):
+        -  Contains no s-name in names
+       ```
   var name-errors = [list: ]
   bindings = SD.string-dict()
   type-bindings = SD.string-dict()
