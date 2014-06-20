@@ -634,7 +634,7 @@ default-typs.set("global#_minus", t-arrow(A.dummy-loc, [list: t-number, t-number
 
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
-  errors = lam():
+  errors = block:
     var err-list = empty
     {
       insert: lam(err :: C.CompileError):
@@ -644,7 +644,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
         err-list
       end
     }
-  end()
+  end
 
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
