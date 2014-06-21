@@ -15,14 +15,14 @@ data NameResolution:
       bindings :: SD.StringDict, type-bindings :: SD.StringDict)
 end
 
-fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
+fun mk-bind(l, id) -> A.Expr: A.s-bind(l, false, id, A.a-blank);
 
-fun mk-id(loc, base):
+fun mk-id(loc, base) -> { id :: A.Expr, id-b :: A.Expr, id-e :: A.Expr }:
   t = A.s-name(loc, base)
   { id: t, id-b: mk-bind(loc, t), id-e: A.s-id(loc, t) }
 end
 
-fun resolve-provide(p :: A.Provide, b :: A.Expr):
+fun resolve-provide(p :: A.Provide, b :: A.Expr) -> A.Provide:
   cases(A.Provide) p:
     | s-provide-all(l) =>
       ids = A.block-ids(b)
@@ -32,7 +32,7 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr):
   end
 end
 
-fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr):
+fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr) -> A.ProvideTypes:
   cases(A.ProvideTypes) p:
     | s-provide-types-all(l) =>
       ids = A.block-type-ids(b)
