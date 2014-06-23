@@ -18,13 +18,16 @@ sharing:
   end
 end
 
-fun <I> identity(i :: I) -> I: i;
+data TypeVariable:
+  | t-variable(l :: A.Loc, id :: String, upper-bound :: Type) # bound = Top is effectively unbounded
+end
 
 data Type:
   | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
   | t-arrow(l :: A.Loc, args :: List<Type>, ret :: Type)
   | t-top
   | t-bot
+  | t-forall(l :: A.Loc, typs :: List<TypeVariable>, body :: Type)
 sharing:
   satisfies-type(self, other :: Type) -> Boolean:
     cases(Type) self:
