@@ -126,18 +126,20 @@ data TCInfo:
                             get    :: (-> List<C.CompileError>)})
 end
 
-fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Type:
+fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Option<Type>:
   cases(A.Ann) in-ann:
     | a-blank =>
       # TODO(cody): At some point, this will probably need to be some other
       # type, to accommodate gradual typing. For now, just make it t-top.
-      t-top
+      none
     | a-any =>
-      t-top
+      some(t-top)
     | a-name(l, id) =>
-      t-name(l, none, id.key())
+      some(t-name(l, none, id.key()))
     | a-arrow(l, args, ret, use-parens) =>
-      t-arrow(l, args.map(to-type(_, info)), to-type(ret, info))
+      arg-typs = args.map(to-type(_, info).or-else(t-bot))
+      ret-type = to-type(ret, info).or-else(t-top)
+      some(t-arrow(l, arg-typs, ret-type))
     | a-method(l, args, ret) =>
       raise("a-method not yet handled:" + torepr(in-ann))
     | a-record(l, fields) =>
@@ -147,26 +149,22 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Type:
     | a-pred(l, ann, exp) =>
       raise("a-pred not yet handled:" + torepr(in-ann))
     | a-dot(l, obj, field) =>
-      t-name(l, some(obj.key()), field)
+      some(t-name(l, some(obj.key()), field))
     | a-checked(checked, residual) =>
       raise("a-checked should not be appearing before type checking!")
   end
 end
 
-fun to-type-or(ann :: A.Ann, alt :: Type, info :: TCInfo) -> Type:
-  if A.is-a-blank(ann):
-    alt
-  else:
-    to-type(ann, info)
-  end
+fun to-type-std(in-ann :: A.Ann, info :: TCInfo) -> Type:
+  to-type(in-ann, info).or-else(t-top)
 end
 
 fun ensure-satisfies(typ :: Type, ann :: A.Ann, info :: TCInfo) -> Type:
-  if A.is-a-blank(ann):
-    typ
-  else:
-    expect-typ = to-type(ann, info)
-    check-and-return(typ, expect-typ, expect-typ, info)
+  cases(Option<Type>) to-type(ann, info):
+    | none =>
+      typ
+    | some(expect-typ) =>
+      check-and-return(typ, expect-typ, expect-typ, info)
   end
 end
 
@@ -174,7 +172,7 @@ fun handle-type-let-binds(binds :: List<A.TypeLetBind>, info :: TCInfo):
   for map(bind from binds):
     cases(A.TypeLetBind) bind:
       | s-type-bind(_, name, ann) =>
-        info.aliases.set(name.key(), to-type(ann, info))
+        info.aliases.set(name.key(), to-type-std(ann, info))
       | s-newtype-bind(_, name, namet) =>
         raise("newtype not yet handled!")
     end
@@ -187,7 +185,7 @@ fun synthesis-fun(
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo)
 ) -> Pair<A.Expr, Type>:
   arg-typs = args.foldr(lam(arg :: A.Bind, base :: List<Type>):
-                          arg-typ = to-type(arg.ann, info)
+                          arg-typ = to-type-std(arg.ann, info)
                           info.typs.set(arg.id.key(), arg-typ)
                           link(arg-typ, base)
                         end, empty)
@@ -243,7 +241,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       pair(A.s-block(l, new-stmts), typ)
     | s-user-block(l, body) =>
       raise("s-user-block not yet handled")
-      synthesis-fun(l, body, args, ann, A.s-fun(l, name, params, _, _, doc, _, _check), info)
     | s-type(l, name, ann) =>
       raise("s-type not yet handled")
     | s-newtype(l, name, namet) =>
@@ -393,22 +390,22 @@ fun check-fun(body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ
   arg-typs = cases(Type) expect-typ:
                | t-arrow(_, expect-args, _) =>
                  for map2(arg from args, expect-arg from expect-args):
-                   arg-typ = to-type-or(arg.ann, expect-arg, info)
+                   arg-typ = to-type(arg.ann, info).or-else(expect-arg)
                    info.typs.set(arg.id.key(), arg-typ)
                    arg-typ
                  end
                | else =>
                  for map(arg from args):
-                   arg-typ = to-type(arg.ann, info)
+                   arg-typ = to-type-std(arg.ann, info)
                    info.typs.set(arg.id.key(), arg-typ)
                    arg-typ
                  end
              end
   ret-typ  = cases(Type) expect-typ:
                | t-arrow(_, _, expect-ret) =>
-                 to-type-or(ret-ann, expect-ret, info)
+                 to-type(ret-ann, info).or-else(expect-ret)
                | else =>
-                 to-type(ret-ann, info)
+                 to-type-std(ret-ann, info)
              end
   arrow-typ = t-arrow(A.dummy-loc, arg-typs, ret-typ)
   new-body  = checking(body, ret-typ, info)
@@ -456,7 +453,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       # TODO(cody): This needs to be thought out more...
       for each(bind from binds):
         # Collect initial annotations. If we don't have any, make them t-bot
-        info.typs.set(bind.b.id.key(), to-type-or(bind.b.ann, t-bot, info))
+        info.typs.set(bind.b.id.key(), to-type(bind.b.ann, info).or-else(t-bot))
       end
       fun traverse(bindings :: List<A.LetrecBind>) -> List<A.LetrecBind>:
         for map(bind from binds):
@@ -491,7 +488,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-user-block not yet handled")
     | s-type(l, name, ann) =>
       type-alias   = name.key()
-      type-aliased = to-type(ann, info)
+      type-aliased = to-type-std(ann, info)
       info.aliases.set(type-alias, type-aliased)
       e
     | s-newtype(l, name, namet) =>
