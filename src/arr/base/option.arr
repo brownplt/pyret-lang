@@ -24,7 +24,7 @@ data Option:
     end
 where:
   none.or-else(1) is 1
-  none.and-then(lam(x): x + 2 end) is none
+  none.and-then(lam(x): some(x + 2) end) is none
 
   some(5).or-else(0) is 5
   some(5).and-then(lam(x): some(x + 2) end) is some(7)
