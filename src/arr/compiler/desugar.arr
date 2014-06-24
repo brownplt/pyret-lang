@@ -376,8 +376,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-method(l, args, ann, doc, body, _check) =>
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-let(l, name, value, keyword-val) =>
-      A.s-let(l, name, desugar-expr(value), keyword-val)
     | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body) =>
@@ -561,8 +559,12 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
+
+    # NOTE(john): see preconditions; desugar-scope should have already happened
+    | s-let(_, _, _, _)        => raise("s-let should have already been desugared")
+    | s-var(_, _, _)           => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _, _) => A.s-str(l, "Checks should have been desugared")
+    | s-check(l, _, _, _)      => A.s-str(l, "Checks should have been desugared")
     | s-check-test(l, _, _, _) => make-message-exception(l, "Checks should have been desugared")
     | else => raise("NYI (desugar): " + torepr(expr))
   end
