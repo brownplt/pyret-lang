@@ -628,8 +628,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'cases-branch': function(node) {
               if (node.kids.length === 4) {
                 // (cases-branch PIPE NAME THICKARROW body)
-                return RUNTIME.getField(ast, 's-cases-branch')
-                  .app(pos(node.pos), symbol(node.kids[1]), makeList([]), tr(node.kids[3]));
+                return RUNTIME.getField(ast, 's-singleton-cases-branch')
+                  .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[3]));
               } else {
                 // (cases-branch PIPE NAME args THICKARROW body)
                 return RUNTIME.getField(ast, 's-cases-branch')

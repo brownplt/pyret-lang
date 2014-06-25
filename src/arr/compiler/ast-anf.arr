@@ -212,9 +212,15 @@ data ACasesBranch:
     tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name)
-            + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
+            + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
         self.body.tosource())
+    end
+  | a-singleton-cases-branch(l :: Loc, name :: String, body :: AExpr) with:
+    label(self): "a-singleton-cases-branch" end,
+    tosource(self):
+      PP.nest(INDENT,
+        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
     end
 sharing:
   visit(self, visitor):
@@ -513,6 +519,9 @@ default-map-visitor = {
   a-cases-branch(self, l :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
     a-cases-branch(l, name, args.map(_.visit(self)), body.visit(self))
   end,
+  a-singleton-cases-branch(self, l :: Loc, name :: String, body :: AExpr):
+    a-singleton-cases-branch(l, name, body.visit(self))
+  end,
   a-data-expr(self, l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, namet, variants.map(_.visit(self)), shared.map(_.visit(self)))
   end,
@@ -678,10 +687,15 @@ end
 
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   for fold(acc from seen-so-far, b from branches):
-    from-body = freevars-e-acc(b.body, acc)
-    without-args = from-body.difference(sets.list-to-tree-set(b.args.map(_.id)))
-    for fold(inner-acc from without-args, arg from b.args):
-      freevars-ann-acc(arg.ann, inner-acc)
+    cases(ACasesBranch) b:
+      | a-cases-branch(_, _, args, body) =>
+        from-body = freevars-e-acc(body, acc)
+        without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
+        for fold(inner-acc from without-args, arg from args):
+          freevars-ann-acc(arg.ann, inner-acc)
+        end
+      | a-singleton-cases-branch(_, _, body) =>
+        freevars-e-acc(body, acc)
     end
   end
 end

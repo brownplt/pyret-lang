@@ -673,6 +673,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-body = body.visit(self.{env: env-and-atoms.env})
       A.s-cases-branch(l, name, new-args, new-body)
     end,
+    # s-singleton-cases-branch introduces no new bindings
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-types = for fold(acc from { env: self.type-env, atoms: empty }, param from params):
         atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind)

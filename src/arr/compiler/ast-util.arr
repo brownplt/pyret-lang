@@ -253,6 +253,9 @@ fun <a, c> default-env-map-visitor(
       end
       A.s-cases-branch(l, name, new-args, body.visit(self.{env: args-env}))
     end,
+    s-singleton-cases-branch(self, l, name, body):
+      A.s-singleton-cases-branch(l, name, body.visit(self))
+    end,
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
@@ -368,6 +371,7 @@ fun <a, c> default-env-iter-visitor(
       visit-args
       and body.visit(self.{env: args-env})
     end,
+    # s-singleton-cases-branch introduces no new bindings, so default visitor is fine
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)

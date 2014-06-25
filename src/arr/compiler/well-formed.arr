@@ -110,6 +110,11 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
             | some(found) => wf-error2("Duplicate case for " + name, found.l, l)
             | none => ensure-unique-cases(rest)
           end
+        | s-singleton-cases-branch(l, name, body) =>
+          cases(Option) lists.find(lam(b): b.name == name end, rest):
+            | some(found) => wf-error2("Duplicate case for " + name, found.l, l)
+            | none => ensure-unique-cases(rest)
+          end
       end
   end
 end
@@ -258,6 +263,12 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     ensure-unique-ids(args)
     lists.all(_.visit(self), args) and body.visit(self)
+  end,
+  s-singleton-cases-branch(self, l, name, body):
+    when (name == "_"):
+      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", l)
+    end
+    body.visit(self)
   end,
   s-block(self, l, stmts):
     if is-empty(stmts):
@@ -524,6 +535,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-cases-branch(_, l :: Loc, name :: String, args :: List<A.Bind>, body :: A.Expr):
     well-formed-visitor.s-cases-branch(l, name, args, body)
+  end,
+  s-singleton-cases-branch(_, l :: Loc, name :: String, body :: A.Expr):
+    well-formed-visitor.s-singleton-cases-branch(l, name, body)
   end,
   s-cases(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>):
     well-formed-visitor.s-cases(l, typ, val, branches)

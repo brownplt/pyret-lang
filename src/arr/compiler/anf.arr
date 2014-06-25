@@ -60,6 +60,8 @@ fun anf-cases-branch(branch):
   cases(A.CasesBranch) branch:
     | s-cases-branch(l, name, args, body) =>
       N.a-cases-branch(l, name, args.map(anf-bind), anf-term(body))
+    | s-singleton-cases-branch(l, name, body) =>
+      N.a-singleton-cases-branch(l, name, anf-term(body))
   end
 end
 

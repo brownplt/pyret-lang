@@ -146,6 +146,18 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwCasesArityError(loc, arity, fieldsPyret);
       }
 
+
+      function throwCasesSingletonError(branchLoc, shouldBeSingleton) {
+        checkSrcloc(branchLoc);
+        runtime.checkBoolean(shouldBeSingleton);
+        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton));
+      }
+
+      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton) {
+        var loc = runtime.makeSrcloc(branchLoc);
+        throwCasesSingletonError(loc, shouldBeSingleton);
+      }
+
       function throwNonBooleanCondition(locArray, type, val) {
         runtime.checkString(type);
         runtime.checkPyretVal(val);
@@ -244,6 +256,8 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwArityErrorC: throwArityErrorC,
         throwCasesArityError: throwCasesArityError,
         throwCasesArityErrorC: throwCasesArityErrorC,
+        throwCasesSingletonError: throwCasesSingletonError,
+        throwCasesSingletonErrorC: throwCasesSingletonErrorC,
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
         throwNoBranchesMatched: throwNoBranchesMatched,

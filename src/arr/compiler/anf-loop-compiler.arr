@@ -57,6 +57,7 @@ j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
 j-not = J.j-not
+j-instanceof = J.j-instanceof
 j-ternary = J.j-ternary
 j-null = J.j-null
 j-parens = J.j-parens
@@ -441,37 +442,51 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
 end
 fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
-  branch-args = mk-id(branch.name)
-  bind-args = for map_n(i from 0, arg from branch.args):
-    j-var(js-id-of(arg.id.tostring()), j-bracket(branch-args.id-j, j-num(i)))
-  end
-  ann-cases = compile-anns(compiler, compiler.cur-step, branch.args, compiler.make-label())
-  l = compiler.get-loc(branch.l)
-  given-arity = j-num(branch.args.length())
-  expected-arity = j-dot(branch-args.id-j, "length")
-  checker = j-if1(j-binop(given-arity, j-neq, expected-arity),
-    j-block([list:
-        j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-            [list: l, given-arity, branch-args.id-j]))]))
-
-  if CL.is-concat-empty(ann-cases.new-cases):
-    c-block(
-      j-block(
-        (j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
+  preamble-and-anns = cases(N.CasesBranch) branch:
+    | a-cases-branch(l, name, args, body) =>
+      branch-args = mk-id(name)
+      bind-args = for map_n(i from 0, arg from args):
+        j-var(js-id-of(arg.id.tostring()), j-bracket(branch-args.id-j, j-num(i)))
+      end
+      ann-cases = compile-anns(compiler, compiler.cur-step, args, compiler.make-label())
+      given-arity = j-num(args.length())
+      expected-arity = j-dot(branch-args.id-j, "length")
+      checker = j-if(j-binop(branch-args.id-j, j-instanceof, j-id("Array")),
+        j-block([list:
+            j-if1(j-binop(given-arity, j-neq, expected-arity),
+              j-block([list:
+                  j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                      [list: compiler.get-loc(l), given-arity, branch-args.id-j]))]))]),
+        j-block([list:
+            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                [list: compiler.get-loc(l), j-true]))]))
+      { preamble:
+          j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
           ^ link(_, checker
-            ^ link(_, bind-args)))
-          + compiled-body.block.stmts),
+            ^ link(_, bind-args)),
+        ann-cases: ann-cases }
+    | a-singleton-cases-branch(l, _, _) =>
+      checker =
+        j-if1(j-binop(j-app(j-dot(compiled-val, "$fields"), empty), j-neq, J.j-null),
+          j-block([list:
+              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                  [list: compiler.get-loc(l), j-false]))]))
+      { preamble:
+          checker
+          ^ link(_, empty),
+        ann-cases: { new-cases: concat-empty, new-label: compiler.make-label() } }
+  end
+
+  if CL.is-concat-empty(preamble-and-anns.ann-cases.new-cases):
+    c-block(
+      j-block(preamble-and-anns.preamble + compiled-body.block.stmts),
       compiled-body.new-cases)
   else:
-    first-label = ann-cases.new-cases.getFirst().exp
+    first-label = preamble-and-anns.ann-cases.new-cases.getFirst().exp
     c-block(
-      j-block(
-        (j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
-          ^ link(_, checker
-            ^ link(_, bind-args)))
-          + [list: j-expr(j-assign(compiler.cur-step, first-label)), j-break]),
-      ann-cases.new-cases
-      ^ concat-snoc(_, j-case(ann-cases.new-label, compiled-body.block))
+      j-block(preamble-and-anns.preamble + [list: j-expr(j-assign(compiler.cur-step, first-label)), j-break]),
+      preamble-and-anns.ann-cases.new-cases
+      ^ concat-snoc(_, j-case(preamble-and-anns.ann-cases.new-label, compiled-body.block))
       ^ concat-append(_, compiled-body.new-cases))
   end
 end
@@ -907,7 +922,7 @@ compiler-visitor = {
                           get-field(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
                         end)))]))
           | a-singleton-variant(_, _, _) =>
-            j-fun(empty, j-block([list: j-return(j-list(false, empty))]))
+            j-fun(empty, j-block([list: j-return(j-null)]))
         end
       
       stmts =
