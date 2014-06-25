@@ -405,7 +405,7 @@ end
 fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   consq-label = compiler.make-label()
   alt-label = compiler.make-label()
-  after-if-label = compiler.make-label()
+  after-if-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   ans = compiler.cur-ans
   opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   compiler-after-if = compiler.{cur-target: after-if-label}
@@ -478,7 +478,7 @@ end
   
 fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
   compiled-val = val.visit(compiler).exp
-  after-cases-label = compiler.make-label()
+  after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
   opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
@@ -519,6 +519,10 @@ fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List
   c-block(
     j-block([list:
         j-var(dispatch.id-s, dispatch-table),
+        # j-expr(j-app(j-dot(j-id("console"), "log"),
+        #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
+        #       j-str("val is "), compiled-val,
+        #       j-str("dispatch is "), dispatch.id-j])),
         j-expr(j-assign(compiler.cur-step,
             j-binop(j-bracket(dispatch.id-j, j-dot(compiled-val, "$name")), J.j-or, else-label))),
         j-break]),
@@ -1048,7 +1052,9 @@ fun compile-program(self, l, imports, prog, freevars, env):
                         j-block([list: 
                             j-expr(j-bracket-assign(rt-field("modules"), j-str(module-id), j-id("moduleVal"))),
                             j-return(j-id("moduleVal"))
-                    ]))]))]))]))
+                          ])),
+                      j-str("Evaluating " + body-name)
+                ]))]))]))
   end
   module-specs = for map2(id from ids, in-id from input-ids):
     { id: id, input-id: in-id }

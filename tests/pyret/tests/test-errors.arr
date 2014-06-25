@@ -1,6 +1,7 @@
 provide *
 
 import error as E
+import either as Eth
 import srcloc as S
 import format as F
 import parse-pyret as P
@@ -16,7 +17,7 @@ end
 
 check:
   fun get-err(thunk):
-    cases(Either) run-task(thunk):
+    cases(Eth.Either) run-task(thunk):
       | left(v) => raise("no error")
       | right(v) => v
     end

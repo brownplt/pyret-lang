@@ -123,7 +123,7 @@ fun make-torepr(l, vname, fields, is-singleton):
 end
 
 fun make-match(l, case-name, fields):
-  call-match-case = mk-id(l, "call-" + case-name)
+  call-match-case = mk-id(l, "call_" + case-name)
   self-id = mk-id(l, "self")
   cases-id = mk-id(l, "cases-funs")
   else-id = mk-id(l, "else-clause")
@@ -169,7 +169,7 @@ end
 
 fun desugar-if(l, branches, _else :: A.Expr):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    test-id = mk-id(l, "if-")
+    test-id = mk-id(l, "if_")
     check-bool(branch.l, test-id, desugar-expr(branch.test),
       A.s-if-else(l,
         [list: A.s-if-branch(branch.l, test-id.id-e, desugar-expr(branch.body))],
@@ -210,7 +210,7 @@ end
 fun ds-curry-args(l, args):
   params-and-args = for fold(acc from pair([list: ], [list: ]), arg from args):
       if is-underscore(arg):
-        arg-id = mk-id(l, "arg-")
+        arg-id = mk-id(l, "arg_")
         pair(link(arg-id.id-b, acc.left), link(arg-id.id-e, acc.right))
       else:
         pair(acc.left, link(arg, acc.right))
@@ -221,7 +221,7 @@ end
 
 fun ds-curry-nullary(rebuild-node, l, obj, m):
   if is-underscore(obj):
-    curried-obj = mk-id(l, "recv-")
+    curried-obj = mk-id(l, "recv_")
     A.s-lam(l, [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none)
   else:
     rebuild-node(l, desugar-expr(obj), m)
@@ -256,7 +256,7 @@ fun ds-curry(l, f, args):
   cases(A.Expr) f:
     | s-dot(l2, obj, m) =>
       if is-underscore(obj):
-        curried-obj = mk-id(l, "recv-")
+        curried-obj = mk-id(l, "recv_")
         params-and-args = ds-curry-args(l, args)
         params = params-and-args.left
         A.s-lam(l, [list: ], link(curried-obj.id-b, params), A.a-blank, "",
@@ -402,7 +402,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
-      test-id = mk-id(l, "when-")
+      test-id = mk-id(l, "when_")
       check-bool(l, test-id, desugar-expr(test),
         A.s-if-else(l,
           [list: A.s-if-branch(l, test-id.id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
@@ -465,7 +465,7 @@ fun desugar-expr(expr :: A.Expr):
               end)
           else if op == "opor":
             fun helper(operands):
-              or-oper = mk-id(l, "or-oper-")
+              or-oper = mk-id(l, "or_oper_")
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, or-oper, desugar-expr(operands.first), or-oper.id-e,
@@ -482,7 +482,7 @@ fun desugar-expr(expr :: A.Expr):
             helper(operands)
           else if op == "opand":
             fun helper(operands):
-              and-oper = mk-id(l, "and-oper-")
+              and-oper = mk-id(l, "and_oper_")
               cases(List) operands.rest:
                 | empty =>
                   check-bool(l, and-oper, desugar-expr(operands.first), and-oper.id-e,

@@ -10,7 +10,7 @@ data RuntimeError:
     end
   | no-branches-matched(loc, expression :: String) with:
     tostring(self):
-      "No branches matched in this `" + self.expression + "` expression"
+      "No branches matched in the `" + self.expression + "` expression at " + self.loc.format(true)
     end
   | internal-error(message, info-args) with:
     tostring(self):

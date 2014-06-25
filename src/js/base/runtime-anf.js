@@ -1354,7 +1354,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "checkAnn");
       }
     }
 
@@ -1371,7 +1372,8 @@ function createMethodDict() {
           if(ffi.isOk(result)) { return val; }
           if(ffi.isFail(result)) { raiseJSJS(result); }
           throw "Internal error: got invalid result from annotation check";
-        });
+        },
+        "_checkAnn");
       }
     }
 
@@ -1384,7 +1386,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "safeCheckAnnArg");
       }
     }
 
@@ -1397,7 +1400,8 @@ function createMethodDict() {
           raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
         }
         throw "Internal error: got invalid result from annotation check";
-      });
+      },
+      "checkAnnArg");
     }
 
     function _checkAnnArg(compilerLoc, ann, val) {
@@ -1466,7 +1470,8 @@ function createMethodDict() {
           return that.pred(val);
         }, function(passed) {
           return that.checkOrFail(passed, val, compilerLoc);
-        });
+        },
+        "PPrimAnn.check");
       }
     }
 
@@ -1502,12 +1507,14 @@ function createMethodDict() {
                 makeSrcloc(compilerLoc),
                 ffi.makePredicateFailure(val, that.predname));
             }
-          })
+          },
+          "PPredAnn.check (after the check)")
         }
         else {
           return result;
         }
-      });
+      },
+      "PPredAnn.check");
     }
 
     function makeBranderAnn(brander, name) {
@@ -1591,7 +1598,8 @@ function createMethodDict() {
           else if(ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
           }
-        });
+        },
+        "deepCheckFields");
       }
       return deepCheckFields(that.fields.slice());
     }
@@ -2096,7 +2104,7 @@ function createMethodDict() {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
 
     var DEBUGLOG = true;
     /**
@@ -2583,7 +2591,7 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        withModule);
+        withModule, "loadModule(" + modstring.substring(0, 70) + ")");
     }
     function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
