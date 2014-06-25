@@ -207,7 +207,7 @@ sharing:
 end
 
 data ACasesBranch:
-  | a-cases-branch(l :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
+  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
     label(self): "a-cases-branch" end,
     tosource(self):
       PP.nest(INDENT,
@@ -216,7 +216,7 @@ data ACasesBranch:
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
         self.body.tosource())
     end
-  | a-singleton-cases-branch(l :: Loc, name :: String, body :: AExpr) with:
+  | a-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr) with:
     label(self): "a-singleton-cases-branch" end,
     tosource(self):
       PP.nest(INDENT,
@@ -516,11 +516,11 @@ default-map-visitor = {
     # NOTE: Not visiting the annotation yet
     a-cases(l, typ, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
-  a-cases-branch(self, l :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
-    a-cases-branch(l, name, args.map(_.visit(self)), body.visit(self))
+  a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
+    a-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
-  a-singleton-cases-branch(self, l :: Loc, name :: String, body :: AExpr):
-    a-singleton-cases-branch(l, name, body.visit(self))
+  a-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr):
+    a-singleton-cases-branch(l, pat-loc, name, body.visit(self))
   end,
   a-data-expr(self, l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, namet, variants.map(_.visit(self)), shared.map(_.visit(self)))
@@ -688,13 +688,13 @@ end
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   for fold(acc from seen-so-far, b from branches):
     cases(ACasesBranch) b:
-      | a-cases-branch(_, _, args, body) =>
+      | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
         end
-      | a-singleton-cases-branch(_, _, body) =>
+      | a-singleton-cases-branch(_, _, _, body) =>
         freevars-e-acc(body, acc)
     end
   end

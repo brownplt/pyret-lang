@@ -660,7 +660,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
     end,
-    s-cases-branch(self, l, name, args, body):
+    s-cases-branch(self, l, pat-loc, name, args, body):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
         atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
@@ -671,7 +671,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})
-      A.s-cases-branch(l, name, new-args, new-body)
+      A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):

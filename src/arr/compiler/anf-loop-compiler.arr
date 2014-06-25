@@ -443,7 +443,7 @@ end
 fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
   preamble-and-anns = cases(N.CasesBranch) branch:
-    | a-cases-branch(l, name, args, body) =>
+    | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-args = mk-id(name)
       bind-args = for map_n(i from 0, arg from args):
         j-var(js-id-of(arg.id.tostring()), j-bracket(branch-args.id-j, j-num(i)))
@@ -456,21 +456,21 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
             j-if1(j-binop(given-arity, j-neq, expected-arity),
               j-block([list:
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [list: compiler.get-loc(l), given-arity, branch-args.id-j]))]))]),
+                      [list: compiler.get-loc(pat-loc), given-arity, branch-args.id-j]))]))]),
         j-block([list:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [list: compiler.get-loc(l), j-true]))]))
+                [list: compiler.get-loc(pat-loc), j-true]))]))
       { preamble:
           j-var(branch-args.id-s, j-app(j-dot(compiled-val, "$fields"), empty))
           ^ link(_, checker
             ^ link(_, bind-args)),
         ann-cases: ann-cases }
-    | a-singleton-cases-branch(l, _, _) =>
+    | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-app(j-dot(compiled-val, "$fields"), empty), j-neq, J.j-null),
           j-block([list:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [list: compiler.get-loc(l), j-false]))]))
+                  [list: compiler.get-loc(pat-loc), j-false]))]))
       { preamble:
           checker
           ^ link(_, empty),

@@ -180,10 +180,10 @@ end
 
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
-    | s-cases-branch(l2, name, args, body) =>
-      A.s-cases-branch(l2, name, args.map(desugar-bind), desugar-expr(body))
-    | s-singleton-cases-branch(l2, name, body) =>
-      A.s-singleton-cases-branch(l2, name, desugar-expr(body))
+    | s-cases-branch(l, pat-loc, name, args, body) =>
+      A.s-cases-branch(l, pat-loc, name, args.map(desugar-bind), desugar-expr(body))
+    | s-singleton-cases-branch(l, pat-loc, name, body) =>
+      A.s-singleton-cases-branch(l, pat-loc, name, desugar-expr(body))
   end
 end
 

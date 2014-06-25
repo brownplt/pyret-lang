@@ -246,15 +246,15 @@ fun <a, c> default-env-map-visitor(
     s-cases-else(self, l, typ, val, branches, _else):
       A.s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
     end,
-    s-cases-branch(self, l, name, args, body):
+    s-cases-branch(self, l, pat-loc, name, args, body):
       new-args = args.map(_.visit(self))
       args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      A.s-cases-branch(l, name, new-args, body.visit(self.{env: args-env}))
+      A.s-cases-branch(l, pat-loc, name, new-args, body.visit(self.{env: args-env}))
     end,
-    s-singleton-cases-branch(self, l, name, body):
-      A.s-singleton-cases-branch(l, name, body.visit(self))
+    s-singleton-cases-branch(self, l, pat-loc, name, body):
+      A.s-singleton-cases-branch(l, pat-loc, name, body.visit(self))
     end,
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
@@ -363,7 +363,7 @@ fun <a, c> default-env-iter-visitor(
       and lists.all(_.visit(self), branches)
       and _else.visit(self)
     end,
-    s-cases-branch(self, l, name, args, body):
+    s-cases-branch(self, l, pat-loc, name, args, body):
       visit-args = lists.all(_.visit(self), args)
       args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
