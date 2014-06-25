@@ -137,7 +137,7 @@ fun make-match(l, case-name, fields):
       end
     end
   A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
-      A.s-if-else(l, [list: 
+      A.s-if-else(l, [list:
           A.s-if-branch(l,
               A.s-prim-app(
                   l,
@@ -192,7 +192,7 @@ fun desugar-variant-member(m):
   end
 end
 
-fun desugar-member(f): 
+fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, args, ann, doc, body, _check) =>
       A.s-data-field(l, desugar-expr(name), desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
@@ -290,22 +290,22 @@ where:
   ds-ed3 = ds-curry(
       d,
       id("f"),
-      [list: 
+      [list:
         id("x"),
         id("y")
       ]
     )
   ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
-    
+
   ds-ed4 = ds-curry(
       d,
       A.s-dot(d, under, "f"),
-      [list: 
+      [list:
         id("x")
       ])
   ds-ed4 satisfies A.is-s-lam
   ds-ed4.args.length() is 1
-        
+
 end
 
 fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
@@ -339,8 +339,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-method(l, args, ann, doc, body, _check) =>
       A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-let(l, name, value, keyword-val) =>
-      A.s-let(l, name, desugar-expr(value), keyword-val)
     | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body) =>
@@ -426,7 +424,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body) => 
+    | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
@@ -526,8 +524,12 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
+
+    # NOTE(john): see preconditions; desugar-scope should have already happened
+    | s-let(_, _, _, _)        => raise("s-let should have already been desugared")
+    | s-var(_, _, _)           => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _, _) => A.s-str(l, "Checks should have been desugared")
+    | s-check(l, _, _, _)      => A.s-str(l, "Checks should have been desugared")
     | s-check-test(l, _, _, _) => make-message-exception(l, "Checks should have been desugared")
     | else => raise("NYI (desugar): " + torepr(expr))
   end
@@ -548,7 +550,7 @@ where:
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
   p(if-else) ^ pretty is if-else
   p(ask-otherwise) ^ pretty is ask-otherwise
-  
+
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
@@ -557,13 +559,13 @@ where:
 
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
-  
+
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
   #  ds(prog4) is p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)")
-  
+
   # ds(p("(5)")) is ds(p("5"))
-  
+
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
   # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
@@ -571,6 +573,5 @@ where:
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")
   # dsed5 is ds(p(compare))
-  
-end
 
+end

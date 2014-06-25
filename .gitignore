@@ -5,6 +5,8 @@
 *.err
 *.bak
 
+config.mk
+
 # docs
 docs/written/*.html
 docs/written/*/compiled

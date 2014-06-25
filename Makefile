@@ -91,6 +91,8 @@ WEB_DEPS = \
 
 WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
+-include config.mk
+
 # Make sure that if a compilation step fails, we don't leave an empty but timestamp-up-to-date file
 # laying (and lying) around to confuse future make
 .DELETE_ON_ERROR:
@@ -221,7 +223,7 @@ docs-trove: $(DOCS)/doc-utils.arr.js
 	@$(call MKDIR,$(DOCS_DIRS))
 
 $(DOCS)/%.arr.js : $(DOCS)/%.arr $(PHASE1_ALL_DEPS)
-	node $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 
 $(DOCS)/generated/trove/%.js.rkt : src/$(JSTROVE)/%.js docs/create-js-generated-docs.js
 	$(NODE) docs/create-js-generated-docs.js $(patsubst src/$(JSTROVE)/%,$(PHASE1)/trove/%,$<) > $@
@@ -316,7 +318,7 @@ repl-test: $(PHASE1)/phase1.built
 
 .PHONY : parse-test
 parse-test: $(PHASE1)/phase1.built
-	cd tests/parse/ && node test.js require-test-runner/
+	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
