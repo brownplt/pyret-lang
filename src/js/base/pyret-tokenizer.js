@@ -87,13 +87,11 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
-  const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", "%",
-                                    "<", ">", "and", "or", "is", "raises"]);
+
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
-  const opparen = new RegExp("^" + operator_regex_str + "(?=\\()", STICKY_REGEXP); // NOTE: likewise
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
   const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r|$)", STICKY_REGEXP)
@@ -127,8 +125,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opgeq = new RegExp("^\\s+>=(?:\\s+)", STICKY_REGEXP);
   const opeq = new RegExp("^\\s+==(?:\\s+)", STICKY_REGEXP);
   const opneq = new RegExp("^\\s+<>(?:\\s+)", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s*<(?:\\s*)", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s*>(?:\\s*)", STICKY_REGEXP);
+  const oplt = new RegExp("^\\s+<(?:\\s+)", STICKY_REGEXP);
+  const opgt = new RegExp("^\\s+>(?:\\s+)", STICKY_REGEXP);
   const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
   const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);
@@ -163,7 +161,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
   const Tokens = [
     {name: "PAREN?", val: parenparen, parenIsForExp: true},
-    {name: "PAREN?", val: opparen, parenIsForExp: true},
     {name: "PARENSPACE", val: spaceparen, parenIsForExp: true},
     {name: "LPAREN?", val: lparen, parenIsForExp: true},
 
@@ -253,8 +250,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LBRACE", val: lbrace},
     {name: "RBRACE", val: rbrace},
     {name: "RPAREN", val: rparen},
-    {name: "LANGLE", val: langle, parenIsForExp: true},
-    {name: "RANGLE", val: rangle, parenIsForExp: true},
+    {name: "LANGLE", val: langle},
+    {name: "RANGLE", val: rangle},
 
     {name: "EQUALS", val: equals},
 
