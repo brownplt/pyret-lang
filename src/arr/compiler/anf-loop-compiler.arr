@@ -325,7 +325,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
                 ])),
             j-if1(rt-method("isPyretException", [list: j-id(e)]),
               j-block([list: 
-                  j-expr(add-stack-frame(e, local-compiler.get-loc(l)))
+                  j-expr(add-stack-frame(e, j-id(apploc)))
                 ])),
             j-throw(j-id(e))]))
   ])
