@@ -127,11 +127,11 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp("^\\s+<>(?:\\s+)", STICKY_REGEXP);
   const oplt = new RegExp("^\\s+<(?:\\s+)", STICKY_REGEXP);
   const opgt = new RegExp("^\\s+>(?:\\s+)", STICKY_REGEXP);
-  const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opsatisfies = new RegExp("^satisfies(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
+  const opand = new RegExp("^\\s+and(?:\\s+)", STICKY_REGEXP);
+  const opor = new RegExp("^\\s+or(?:\\s+)", STICKY_REGEXP);
+  const opis = new RegExp("^\\s+is(?:\\s+)", STICKY_REGEXP);
+  const opsatisfies = new RegExp("^\\s+satisfies(?:\\s+)", STICKY_REGEXP);
+  const opraises = new RegExp("^\\s+raises(?:\\s+)", STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
