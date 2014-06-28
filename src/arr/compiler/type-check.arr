@@ -185,7 +185,7 @@ end
 
 fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann,
-  recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo)
+  recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> Pair<A.Expr, Type>:
   arg-typs = args.foldr(lam(arg :: A.Bind, base :: List<Type>):
                           arg-typ = to-type-std(arg.ann, info)
