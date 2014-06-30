@@ -87,6 +87,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
+  function op(str) { return "^\\s+" + str + "(?:\\s+)"; }
 
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
@@ -118,21 +119,21 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
 
-  const opplus = new RegExp("^\\s+\\+(?:\\s+)", STICKY_REGEXP);
-  const opminus = new RegExp("^\\s+-(?:\\s+)", STICKY_REGEXP);
-  const optimes = new RegExp("^\\s+\\*(?:\\s+)", STICKY_REGEXP);
-  const opdiv = new RegExp("^\\s+/(?:\\s+)", STICKY_REGEXP);
-  const opleq = new RegExp("^\\s+<=(?:\\s+)", STICKY_REGEXP);
-  const opgeq = new RegExp("^\\s+>=(?:\\s+)", STICKY_REGEXP);
-  const opeq = new RegExp("^\\s+==(?:\\s+)", STICKY_REGEXP);
-  const opneq = new RegExp("^\\s+<>(?:\\s+)", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s+<(?:\\s+)", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s+>(?:\\s+)", STICKY_REGEXP);
-  const opand = new RegExp("^\\s+and(?:\\s+)", STICKY_REGEXP);
-  const opor = new RegExp("^\\s+or(?:\\s+)", STICKY_REGEXP);
-  const opis = new RegExp("^\\s+is(?:\\s+)", STICKY_REGEXP);
-  const opsatisfies = new RegExp("^\\s+satisfies(?:\\s+)", STICKY_REGEXP);
-  const opraises = new RegExp("^\\s+raises(?:\\s+)", STICKY_REGEXP);
+  const opplus = new RegExp(op("\\+"), STICKY_REGEXP);
+  const opminus = new RegExp(op("-"), STICKY_REGEXP);
+  const optimes = new RegExp(op("\\*"), STICKY_REGEXP);
+  const opdiv = new RegExp(op("/"), STICKY_REGEXP);
+  const opleq = new RegExp(op("<="), STICKY_REGEXP);
+  const opgeq = new RegExp(op(">="), STICKY_REGEXP);
+  const opeq = new RegExp(op("=="), STICKY_REGEXP);
+  const opneq = new RegExp(op("<>"), STICKY_REGEXP);
+  const oplt = new RegExp(op("<"), STICKY_REGEXP);
+  const opgt = new RegExp(op(">"), STICKY_REGEXP);
+  const opand = new RegExp(op("and"), STICKY_REGEXP);
+  const opor = new RegExp(op("or"), STICKY_REGEXP);
+  const opis = new RegExp(op("is"), STICKY_REGEXP);
+  const opsatisfies = new RegExp(op("satisfies"), STICKY_REGEXP);
+  const opraises = new RegExp(op("raises"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
