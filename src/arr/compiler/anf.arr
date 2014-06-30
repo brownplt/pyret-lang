@@ -205,7 +205,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             with-exprs = with-members.map(_.value)
             anf-name-rec(with-exprs, "anf_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
-                    N.a-field(f.l, f.name.s, t)
+                    N.a-field(f.l, f.name, t)
                   end
                 kv(N.a-variant(l2, constr-loc, vname, members.map(anf-member), new-fields))
               end)
@@ -213,7 +213,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             with-exprs = with-members.map(_.value)
             anf-name-rec(with-exprs, "anf_singleton_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
-                    N.a-field(f.l, f.name.s, t)
+                    N.a-field(f.l, f.name, t)
                   end
                 kv(N.a-singleton-variant(l2, vname, new-fields))
               end)
@@ -230,7 +230,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
       anf-name-rec(exprs, "anf_shared", lam(ts):
           new-shared = for map2(f from shared, t from ts):
-              N.a-field(f.l, f.name.s, t)
+              N.a-field(f.l, f.name, t)
             end
           anf-variants(variants, lam(new-variants):
               k.apply(l, N.a-data-expr(l, data-name, data-name-t, new-variants, new-shared))
@@ -310,7 +310,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
       anf-name-rec(exprs, "anf_obj", lam(ts):
           new-fields = for map2(f from fields, t from ts):
-              N.a-field(f.l, f.name.s, t)
+              N.a-field(f.l, f.name, t)
             end
           k.apply(l, N.a-obj(l, new-fields))
         end)
@@ -321,7 +321,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(obj, "anf_extend", lam(o):
           anf-name-rec(exprs, "anf_extend", lam(ts):
               new-fields = for map2(f from fields, t from ts):
-                  N.a-field(f.l, f.name.s, t)
+                  N.a-field(f.l, f.name, t)
                 end
               k.apply(l, N.a-extend(l, o, new-fields))
             end)
