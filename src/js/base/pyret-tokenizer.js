@@ -117,6 +117,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
+
   const opplus = new RegExp("^\\s+\\+(?:\\s+)", STICKY_REGEXP);
   const opminus = new RegExp("^\\s+-(?:\\s+)", STICKY_REGEXP);
   const optimes = new RegExp("^\\s+\\*(?:\\s+)", STICKY_REGEXP);
@@ -240,11 +241,12 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "NEQ", val: opneq, parenIsForExp: true},
     {name: "LT", val: oplt, parenIsForExp: true},
     {name: "GT", val: opgt, parenIsForExp: true},
-    {name: "AND", val: opand},
-    {name: "OR", val: opor},
-    {name: "IS", val: opis},
-    {name: "SATISFIES", val: opsatisfies},
-    {name: "RAISES", val: opraises},
+    {name: "AND", val: opand, parenIsForExp: true},
+    {name: "OR", val: opor, parenIsForExp: true},
+    {name: "IS", val: opis, parenIsForExp: true},
+    {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
+    {name: "RAISES", val: opraises, parenIsForExp: true},
+
     {name: "LBRACK", val: lbrack},
     {name: "RBRACK", val: rbrack},
     {name: "LBRACE", val: lbrace},
