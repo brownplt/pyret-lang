@@ -148,7 +148,7 @@ fun lookup-value(value, bindings):
               | s-import-types(_, file, _, _) => crossref(file.tosource().pretty(1000).first, field)
               | s-import-fields(_, _, file) => crossref(file.tosource().pretty(1000).first, field)
               | s-obj(_, obj-fields) =>
-                cases(Option) obj-fields.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
+                cases(Option) obj-fields.find(lam(f): f.name == field end):
                   | none => v
                   | some(new-v) => help(seen, new-v)
                 end
@@ -172,7 +172,7 @@ fun lookup-value(value, bindings):
                             "Checks whether the provided argument is in fact " + a-an + new-v.name,
                             A.s-undefined(new-v.l), none)
                         | none =>
-                          cases(Option) shared-members.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
+                          cases(Option) shared-members.find(lam(f): f.name == field end):
                             | some(new-v) => new-v
                             | none => v
                           end
@@ -374,10 +374,7 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
   var looked-up-vals = S.immutable-string-dict()
   var looked-up-typs = S.immutable-string-dict()
   for each(field from fields):
-    field-name =
-      if A.is-s-str(field.name): field.name.s
-      else: field.name.tosource().pretty(1000).first
-      end
+    field-name = field.name
     value = lookup-value(field.value, bindings)
     # print("Binding " + torepr(field-name) + " to " + tosource(value).pretty(80).first)
     looked-up-vals := looked-up-vals.set(field-name, value)
