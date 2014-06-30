@@ -184,7 +184,7 @@ fun desugar-case-branch(c):
       desugar-member(
         A.s-data-field(
           l2,
-          A.s-str(l2, name),
+          name,
           A.s-lam(l2, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
   end
 end
@@ -204,8 +204,8 @@ where:
       d,
       A.a-blank, 
       A.s-num(d, 1),
-      [list: 
-        A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
+      [list:
+        A.s-data-field(d, "empty", A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
       ],
       A.s-num(d, 4)
     )
@@ -214,9 +214,9 @@ where:
   prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list: 
       A.s-let-bind(d, id, A.s-num(d, 1))
     ],
-    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list: 
-        A.s-obj(d, [list: 
-            A.s-data-field(d, A.s-str(d, "empty"), A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
+    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list:
+        A.s-obj(d, [list:
+            A.s-data-field(d, "empty", A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
           ]),
         A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)]))
 
@@ -232,9 +232,9 @@ end
 fun desugar-member(f): 
   cases(A.Member) f:
     | s-method-field(l, name, args, ann, doc, body, _check) =>
-      A.s-data-field(l, desugar-expr(name), desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
     | s-data-field(l, name, value) =>
-      A.s-data-field(l, desugar-expr(name), desugar-expr(value))
+      A.s-data-field(l, name, desugar-expr(value))
     | else =>
       raise("NYI(desugar-member): " + torepr(f))
   end
@@ -410,12 +410,12 @@ fun desugar-expr(expr :: A.Expr):
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
           do-match =
-            if lists.any(lam(s): s.name.s == "_match" end, shared): empty
-            else: [list: A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, members))]
+            if lists.any(lam(s): s.name == "_match" end, shared): empty
+            else: [list: A.s-data-field(l2, "_match", make-match(l2, vname, members))]
             end
           do-torepr =
-            if lists.any(lam(s): s.name.s == "_torepr" end, shared): empty
-            else: [list: A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members, is-singleton))]
+            if lists.any(lam(s): s.name == "_torepr" end, shared): empty
+            else: [list: A.s-data-field(l2, "_torepr", make-torepr(l2, vname, members, is-singleton))]
             end
           do-match + do-torepr
         end

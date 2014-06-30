@@ -26,7 +26,7 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr):
   cases(A.Provide) p:
     | s-provide-all(l) =>
       ids = A.block-ids(b)
-      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, A.s-str(l, tostring(id)), A.s-id(l, id)) end)
+      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, tostring(id), A.s-id(l, id)) end)
       A.s-provide(l, obj)
     | else => p
   end

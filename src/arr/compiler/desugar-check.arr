@@ -73,9 +73,9 @@ fun create-check-block(l, checks):
       | check-info(l2, name, body) =>
         check-fun = make-lam(l2, [list: ], body)
         A.s-obj(l2, [list: 
-            A.s-data-field(l2, A.s-str(l2, "name"), A.s-str(l2, name)),
-            A.s-data-field(l2, A.s-str(l2, "run"), check-fun),
-            A.s-data-field(l2, A.s-str(l2, "location"), A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)]))
+            A.s-data-field(l2, "name", A.s-str(l2, name)),
+            A.s-data-field(l2, "run", check-fun),
+            A.s-data-field(l2, "location", A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)]))
           ])
     end
   end
