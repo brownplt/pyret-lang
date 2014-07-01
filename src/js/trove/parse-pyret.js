@@ -530,12 +530,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'key': function(node) {
               if (node.kids[0].name === "NAME") {
                 // (key name)
-                return RUNTIME.getField(ast, 's-str')
-                  .app(pos(node.pos), symbol(node.kids[0]));
+                return symbol(node.kids[0]);
               } else {
                 // (key str)
-                return RUNTIME.getField(ast, 's-str')
-                  .app(pos(node.pos), string(node.kids[0]));
+                return string(node.kids[0]);
               }
             },
             'obj-field': function(node) {

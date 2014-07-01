@@ -67,7 +67,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
   split-fields = process-fields(trim-path(file), fields, types, bindings, type-bindings)
   fun method-spec(data-name, meth):
     sexp("method-spec",
-      [list: spair("name", meth.name.tosource().pretty(1000).first),
+      [list: spair("name", PP.str(meth.name).pretty(1000).first),
         spair("arity", tostring(meth.args.length())),
         spair("args", slist(meth.args.map(lam(b): leaf(torepr(b.id.toname())) end))),
         spair("contract",
@@ -87,12 +87,12 @@ fun process-module(file, fields, types, bindings, type-bindings):
         cases(A.Expr) e: # Not guaranteed to be an Expr!
           | crossref(modname, as-name) =>
             sexp("re-export", [list: 
-                spair("name", torepr(name.s)),
+                spair("name", torepr(name)),
                 sexp("cross-ref", [list: leaf(torepr(modname)), leaf(torepr(as-name))])
               ])
           | s-lam(l, params, args, ann, doc, _, _check) =>
             sexp("fun-spec",
-              [list: spair("name", torepr(name.s)),
+              [list: spair("name", torepr(name)),
                 spair("arity", tostring(args.length())),
                 spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
                 spair("contract",
@@ -101,7 +101,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
               ]
                 + (if doc == "": [list: ] else: [list: spair("doc", torepr(doc))] end))
           | s-id(_, id) =>
-            spair("unknown-item", spair("name", torepr(name.s)))
+            spair("unknown-item", spair("name", torepr(name)))
           | s-variant(_, _, variant-name, members, with-members) =>
             data-name = split-fields.constructors.get(variant-name)
             sexp("constr-spec",
@@ -119,7 +119,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
               [list: spair("name", torepr(variant-name)),
                 spair("with-members", slist(with-members.map(method-spec(data-name, _)))) ])
           | s-data-expr(_, data-name, _, _, _, variants, shared, _) =>
-            if A.is-s-str(name) and (string-index-of(name.s, "is-") == 0):
+            if string-index-of(name, "is-") == 0:
               DU.snothing
             else:
               sexp("data-spec",
@@ -129,7 +129,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
             end
           | else =>
             sexp("unknown-item",
-              spair("name", torepr(name.s)) ^ link(_, e.tosource().pretty(70).map(comment)))
+              spair("name", torepr(name)) ^ link(_, e.tosource().pretty(70).map(comment)))
         end
     end
   end

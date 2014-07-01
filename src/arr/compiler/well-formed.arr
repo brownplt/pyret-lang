@@ -204,7 +204,7 @@ end
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
-    A.s-bind(mem.l, false, A.s-name(mem.l, mem.name.s), A.a-blank)
+    A.s-bind(mem.l, false, A.s-name(mem.l, mem.name), A.a-blank)
   end
 end
 
@@ -299,8 +299,8 @@ well-formed-visitor = A.default-iter-visitor.{
     left.visit(self) and right.visit(self)
   end,
   s-method-field(self, l, name, args, ann, doc, body, _check):
-    when A.is-s-str(name) and reserved-names.member(name.s):
-      reserved-name(l, name.s)
+    when reserved-names.member(name):
+      reserved-name(l, name)
     end
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
@@ -313,22 +313,22 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-data-field(self, l, name, value):
-    when A.is-s-str(name) and reserved-names.member(name.s):
-      reserved-name(l, name.s)
+    when reserved-names.member(name):
+      reserved-name(l, name)
     end
-    name.visit(self) and value.visit(self)
+    value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
-    when A.is-s-str(name) and reserved-names.member(name.s):
-      reserved-name(l, name.s)
+    when reserved-names.member(name):
+      reserved-name(l, name)
     end
-    name.visit(self) and ann.visit(self) and value.visit(self)
+    ann.visit(self) and value.visit(self)
   end,
   s-once-field(self, l, name, ann, value):
-    when A.is-s-str(name) and reserved-names.member(name.s):
-      reserved-name(l, name.s)
+    when reserved-names.member(name):
+      reserved-name(l, name)
     end
-    name.visit(self) and ann.visit(self) and value.visit(self)
+    ann.visit(self) and value.visit(self)
   end,
   s-method(self, l, args, ann, doc, body, _check):
     when args.length() == 0:

@@ -197,9 +197,9 @@ end
 fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, args, ann, doc, body, _check) =>
-      A.s-data-field(l, desugar-expr(name), desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
     | s-data-field(l, name, value) =>
-      A.s-data-field(l, desugar-expr(name), desugar-expr(value))
+      A.s-data-field(l, name, desugar-expr(value))
     | else =>
       raise("NYI(desugar-member): " + torepr(f))
   end
@@ -373,12 +373,12 @@ fun desugar-expr(expr :: A.Expr):
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
           do-match =
-            if lists.any(lam(s): s.name.s == "_match" end, shared): empty
-            else: [list: A.s-data-field(l2, A.s-str(l2, "_match"), make-match(l2, vname, members))]
+            if lists.any(lam(s): s.name == "_match" end, shared): empty
+            else: [list: A.s-data-field(l2, "_match", make-match(l2, vname, members))]
             end
           do-torepr =
-            if lists.any(lam(s): s.name.s == "_torepr" end, shared): empty
-            else: [list: A.s-data-field(l2, A.s-str(l2, "_torepr"), make-torepr(l2, vname, members, is-singleton))]
+            if lists.any(lam(s): s.name == "_torepr" end, shared): empty
+            else: [list: A.s-data-field(l2, "_torepr", make-torepr(l2, vname, members, is-singleton))]
             end
           do-match + do-torepr
         end
