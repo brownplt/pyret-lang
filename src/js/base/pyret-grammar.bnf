@@ -148,7 +148,7 @@ fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
-key: NAME | LBRACK binop-expr RBRACK
+key: STRING | NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
 construct-modifier: | LAZY
