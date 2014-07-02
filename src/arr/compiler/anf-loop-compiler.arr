@@ -506,6 +506,60 @@ fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
   end
 end
 
+fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-obj = obj.visit(compiler).exp
+  compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  obj-id = mk-id("obj")
+
+  colon-field = rt-method("getColonField", [list: obj-id.id-j, j-str(methname)])
+  colon-field-id = mk-id("field")
+  check-method = rt-method("isMethod", [list: colon-field-id.id-j])
+  var new-cases = concat-empty
+  opt-visited-helper = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  helper-label =
+    block:
+      lbl = compiler.make-label()
+      new-cases :=
+        cases(Option) opt-dest:
+          | some(dest) =>
+            cases(Option) opt-visited-helper:
+              | some(visited-helper) =>
+                concat-cons(
+                  j-case(lbl, j-block(
+                      j-var(js-id-of(tostring(dest.id)), j-id(ans))
+                      ^ link(_, visited-helper.block.stmts))),
+                  visited-helper.new-cases)
+              | none => raise("Impossible: compile-split-app can't have a dest without a body")
+            end
+          | none =>
+            cases(Option) opt-visited-helper:
+              | some(visited-helper) =>
+                concat-cons(j-case(lbl, visited-helper.block), visited-helper.new-cases)
+              | none => concat-empty
+            end
+        end
+      lbl
+    end
+  c-block(
+    j-block([list:
+        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+        j-expr(j-assign(step,  helper-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+        j-var(obj-id.id-s, compiled-obj),
+        j-var(colon-field-id.id-s, colon-field),
+        j-if(check-method, j-block([list: 
+            j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"), link(obj-id.id-j, compiled-args))))
+          ]),
+          j-block([list:
+            check-fun(compiler.get-loc(l), colon-field-id.id-j),
+            j-expr(j-assign(ans, j-app(colon-field-id.id-j, compiled-args)))
+          ])),
+        j-break]),
+    new-cases)
+end
+
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
@@ -708,6 +762,8 @@ compiler-visitor = {
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         compile-split-app(l2, self, some(b), f, args, some(body))
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, some(b), obj, m, args, some(body))
       | a-if(l2, cond, then, els) =>
         compile-split-if(self, some(b), cond, then, els, some(body))
       | a-cases(l2, typ, val, branches, _else) =>
@@ -735,6 +791,8 @@ compiler-visitor = {
     cases(N.ALettable) e1:
       | a-app(l2, f, args) =>
         compile-split-app(l2, self, none, f, args, some(e2))
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, some(e2))
       | a-if(l2, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, some(e2))
       | a-cases(l2, typ, val, branches, _else) =>
@@ -764,6 +822,8 @@ compiler-visitor = {
     cases(N.ALettable) e:
       | a-app(l, f, args) =>
         compile-split-app(l, self, none, f, args, none)
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, none)
       | a-if(l, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, none)
       | a-cases(l, typ, val, branches, _else) =>
@@ -864,7 +924,9 @@ compiler-visitor = {
     c-exp(
       rt-method("makeMethod", [list: j-fun([list: js-id-of(tostring(args.first.id))],
             j-block([list: curry-var, j-return(j-id(temp-curry))])),
-          j-obj([list: j-field("length", j-num(args.length()))])]),
+          j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end),
+            compile-fun-body(l, step-curry, temp-curry, self, args, some(args.length()), body, true)
+          )]),
       empty)
   end,
   a-val(self, l :: Loc, v :: N.AVal):

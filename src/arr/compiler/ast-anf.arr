@@ -291,6 +291,13 @@ data ALettable:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
+  | a-method-app(l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>) with:
+    label(self): "a-app" end,
+    tosource(self):
+      PP.group(self.obj.tosource() + PP.str("METHOD")
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
+    end
   | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
     label(self): "a-prim-app" end,
     tosource(self):
@@ -458,6 +465,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
     | a-app(_, f, args) =>
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
+    | a-method-app(_, obj, meth, args) =>
+      a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
@@ -575,6 +584,9 @@ default-map-visitor = {
   a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
     a-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
+  a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
+    a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
+  end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
     a-prim-app(l, f, args.map(_.visit(self)))
   end,
@@ -661,6 +673,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-method(l, args, ret) => lst-a(link(ret, args))
     | a-record(l, fields) => lst-a(fields.map(_.ann))
     | a-app(l, a, args) => lst-a(link(a, args))
+    | a-method-app(l, a, _, args) => lst-a(link(a, args))
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n
@@ -755,6 +768,11 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-app(_, f, args) =>
       from-f = freevars-v-acc(f, seen-so-far)
       for fold(acc from from-f, arg from args):
+        freevars-v-acc(arg, acc)
+      end
+    | a-method-app(_, obj, _, args) =>
+      from-obj = freevars-v-acc(obj, seen-so-far)
+      for fold(acc from from-obj, arg from args):
         freevars-v-acc(arg, acc)
       end
     | a-prim-app(_, _, args) =>
