@@ -516,36 +516,12 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   colon-field = rt-method("getColonField", [list: obj-id.id-j, j-str(methname)])
   colon-field-id = mk-id("field")
   check-method = rt-method("isMethod", [list: colon-field-id.id-j])
-  var new-cases = concat-empty
-  opt-visited-helper = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
-  helper-label =
-    block:
-      lbl = compiler.make-label()
-      new-cases :=
-        cases(Option) opt-dest:
-          | some(dest) =>
-            cases(Option) opt-visited-helper:
-              | some(visited-helper) =>
-                concat-cons(
-                  j-case(lbl, j-block(
-                      j-var(js-id-of(tostring(dest.id)), j-id(ans))
-                      ^ link(_, visited-helper.block.stmts))),
-                  visited-helper.new-cases)
-              | none => raise("Impossible: compile-split-app can't have a dest without a body")
-            end
-          | none =>
-            cases(Option) opt-visited-helper:
-              | some(visited-helper) =>
-                concat-cons(j-case(lbl, visited-helper.block), visited-helper.new-cases)
-              | none => concat-empty
-            end
-        end
-      lbl
-    end
+  after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
   c-block(
     j-block([list:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-        j-expr(j-assign(step,  helper-label)),
+        j-expr(j-assign(step,  after-app-label)),
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
         j-var(obj-id.id-s, compiled-obj),
         j-var(colon-field-id.id-s, colon-field),
@@ -554,7 +530,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           ]),
           j-block([list:
             check-fun(compiler.get-loc(l), colon-field-id.id-j),
-            j-expr(j-assign(ans, j-app(colon-field-id.id-j, compiled-args)))
+            j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
           ])),
         j-break]),
     new-cases)
@@ -911,23 +887,26 @@ compiler-visitor = {
     #   j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-method))
     step-curry = js-id-of(compiler-name("step"))
     temp-curry = js-id-of(compiler-name("temp_curry"))
+    temp-full = js-id-of(compiler-name("temp_full"))
     # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-curry-args =
       if args.length() > 1: args.rest
       else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
-    compiled-body-curry =
-      compile-fun-body(l, step-curry, temp-curry, self, effective-curry-args, some(args.length() - 1), body, true)
+    compiled-body-curry = j-block([list: j-return(j-app(j-id(temp-full), args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)))])
     curry-var = j-var(temp-curry,
       j-fun(effective-curry-args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-curry))
     #### TODO!
+    full-var = 
+      j-var(temp-full,
+        j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end),
+          compile-fun-body(l, step-curry, temp-full, self, args, some(args.length()), body, true)
+        ))
     c-exp(
       rt-method("makeMethod", [list: j-fun([list: js-id-of(tostring(args.first.id))],
             j-block([list: curry-var, j-return(j-id(temp-curry))])),
-          j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end),
-            compile-fun-body(l, step-curry, temp-curry, self, args, some(args.length()), body, true)
-          )]),
-      empty)
+          j-id(temp-full)]),
+      [list: full-var])
   end,
   a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)

@@ -331,12 +331,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
     | s-app(l, f, args) =>
       cases(A.Expr) f:
-#        | s-dot(l2, obj, m) =>
-#          anf-name(obj, "anf_method_obj", lam(v):
-#            anf-name-rec(args, "anf_arg", lam(vs):
-#              k.apply(l, N.a-method-app(l, v, m, vs))
-#            end)
-#          end)
+        #| s-dot(l2, obj, m) =>
+        #  anf-name(obj, "anf_method_obj", lam(v):
+        #    anf-name-rec(args, "anf_arg", lam(vs):
+        #      k.apply(l, N.a-method-app(l, v, m, vs))
+        #    end)
+        #  end)
         | else =>
           anf-name(f, "anf_fun", lam(v):
               anf-name-rec(args, "anf_arg", lam(vs):
