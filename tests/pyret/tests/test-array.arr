@@ -85,7 +85,7 @@ check:
   raw-array-set(a1, 1, 5) satisfies identical(_, a1)
   raw-array-get(a1, 1) is 5
 
-  raw-array-set(a1, 1, 3)^raw-array-set(_, 2, 6) satisfies identical(_, a1)
+  raw-array-set(a1, 1, 3) ^ raw-array-set(_, 2, 6) satisfies identical(_, a1)
   raw-array-get(a1, 1) is 3
   raw-array-get(a1, 2) is 6
 

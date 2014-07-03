@@ -77,9 +77,9 @@ fun lookup-value(value, bindings):
       | none => value
       | some(v) =>
         cases(A.Expr) v:
-          | s-id(_, id) => help(item^link(_, seen), id)
-          | s-id-letrec(_, id, _) => help(item^link(_, seen), id)
-          | s-id-var(_, id) => help(item^link(_, seen), id)
+          | s-id(_, id) => help(item ^ link(_, seen), id)
+          | s-id-letrec(_, id, _) => help(item ^ link(_, seen), id)
+          | s-id-var(_, id) => help(item ^ link(_, seen), id)
           | s-block(_, stmts) => help(seen, stmts.last())
           | s-user-block(_, body) => help(seen, body)
           | s-let-expr(_, _, body) => help(seen, body)
@@ -172,7 +172,7 @@ fun process-member(mem, typ, file, fields, bindings):
             # Note: "real" contracts now show up in generated files
             comment("N.B. Pyret contract: " +
               A.a-arrow(A.dummy-loc,
-                A.a-name(A.dummy-loc, typ)^link(_, args.rest.map(_.ann)),
+                A.a-name(A.dummy-loc, typ) ^ link(_, args.rest.map(_.ann)),
                 ret-ann, true).tosource().pretty(1000).first)
             # hash-key("contract",
             #   sexp("a-arrow",
