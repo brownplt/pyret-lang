@@ -22,11 +22,10 @@ mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
-fun check-bool(l, id, e, then, err):
-  A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, e)],
-    A.s-if-else(l,
-      [list: A.s-if-branch(l, A.s-prim-app(l, "isBoolean", [list: id.id-e]), then)],
-      err))
+fun check-bool(l, id, e, cont):
+  A.s-let-expr(l,
+    [list: A.s-let-bind(l, id.id-b.{ann: A.a-name(A.dummy-loc,A.s-type-global("Boolean")) }, e)],
+    cont)
 end
 fun no-branches-exn(l, typ):
   A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
@@ -36,12 +35,6 @@ fun make-message-exception(l, msg):
 end
 fun make-message-exception-e(l, msg-e):
   A.s-prim-app(l, "throwMessageException", [list: msg-e])
-end
-fun bool-exn(l, typ, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
-end
-fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
@@ -173,8 +166,7 @@ fun desugar-if(l, branches, _else :: A.Expr):
     check-bool(branch.l, test-id, desugar-expr(branch.test),
       A.s-if-else(l,
         [list: A.s-if-branch(branch.l, test-id.id-e, desugar-expr(branch.body))],
-        acc),
-      bool-exn(branch.test.l, "if", test-id.id-e))
+        acc))
   end
 end
 
@@ -442,8 +434,7 @@ fun desugar-expr(expr :: A.Expr):
       check-bool(l, test-id, desugar-expr(test),
         A.s-if-else(l,
           [list: A.s-if-branch(l, test-id.id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-          A.s-block(l, [list: gid(l, "nothing")])),
-        bool-exn(test.l, "when", test-id.id-e))
+          A.s-block(l, [list: gid(l, "nothing")])))
     | s-if(l, branches) =>
       desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]))
     | s-if-else(l, branches, _else) =>
@@ -502,14 +493,12 @@ fun desugar-expr(expr :: A.Expr):
               or-oper = mk-id(l, "or-oper-")
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, or-oper, desugar-expr(operands.first), or-oper.id-e,
-                    bool-op-exn(operands.first.l, "second", "or", or-oper.id-e))
+                  check-bool(l, or-oper, desugar-expr(operands.first), or-oper.id-e)
                 | link(_, _) =>
                   check-bool(l, or-oper, desugar-expr(operands.first),
                     A.s-if-else(l,
                       [list: A.s-if-branch(l, or-oper.id-e, A.s-bool(l, true))],
-                      helper(operands.rest)),
-                    bool-op-exn(operands.first.l, "first", "or", or-oper.id-e))
+                      helper(operands.rest)))
               end
             end
             operands = collect-ors(expr)
@@ -519,14 +508,12 @@ fun desugar-expr(expr :: A.Expr):
               and-oper = mk-id(l, "and-oper-")
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, and-oper, desugar-expr(operands.first), and-oper.id-e,
-                    bool-op-exn(operands.first.l, "second", "and", and-oper.id-e))
+                  check-bool(l, and-oper, desugar-expr(operands.first), and-oper.id-e)
                 | link(_, _) =>
                   check-bool(l, and-oper, desugar-expr(operands.first),
                     A.s-if-else(l,
                       [list: A.s-if-branch(l, and-oper.id-e, helper(operands.rest))],
-                      A.s-bool(l, false)),
-                    bool-op-exn(operands.first.l, "first", "and", and-oper.id-e))
+                      A.s-bool(l, false)))
               end
             end
             operands = collect-ands(expr)
