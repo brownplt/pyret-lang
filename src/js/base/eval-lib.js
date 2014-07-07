@@ -64,18 +64,15 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
                       }
                     });
 
-                },
-                "compiling JS ast");
+                });
               },
               runtime.namespace,
               { sync: ('sync' in options) ? options.sync : true },
               ondone)
         });
-        
-      },
-      "loading dialects");
-    },
-    "loading ffi-helpers library");
+
+      });
+    });
   }
 
   function compileSrcPyret(runtime, src, options, ondone) {
@@ -100,8 +97,7 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
                       runtime.makeString(options.dialect || dialects.defaultDialect), 
                       runtime.makeString(src), 
                       runtime.makeString(options.name));
-        },
-        "loading dialects to parse Pyret");
+        });
       });
     }, ondone);
   }

@@ -148,7 +148,7 @@ fun lookup-value(value, bindings):
               | s-import-types(_, file, _, _) => crossref(file.tosource().pretty(1000).first, field)
               | s-import-fields(_, _, file) => crossref(file.tosource().pretty(1000).first, field)
               | s-obj(_, obj-fields) =>
-                cases(Option) obj-fields.find(lam(f): f.name == field end):
+                cases(Option) obj-fields.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
                   | none => v
                   | some(new-v) => help(seen, new-v)
                 end
@@ -172,7 +172,7 @@ fun lookup-value(value, bindings):
                             "Checks whether the provided argument is in fact " + a-an + new-v.name,
                             A.s-undefined(new-v.l), none)
                         | none =>
-                          cases(Option) shared-members.find(lam(f): f.name == field end):
+                          cases(Option) shared-members.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
                             | some(new-v) => new-v
                             | none => v
                           end
@@ -232,60 +232,52 @@ end
 fun process-ann(ann, file, fields, bindings, type-bindings):
   cases(A.Ann) ann:
     | a-name(l, name) =>
-      looked-up = lookup-ann(ann, type-bindings)
-      cases(E.Either<A.Ann, CrossRef>) looked-up:
-        | right(v) =>
-          cases(CrossRef) v:
-            | crossref(modname, as-name) =>
-              sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
-          end
-        | left(v) =>
-          cases(A.Ann) v:
-            | a-name(_, name2) =>
-              cases(A.Name) name2:
-                | s-global(_) =>
-                  sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
-                | s-type-global(_) =>
-                  sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
-                | else =>
-                  if fields.cross-refs.has-key(name.toname()):
-                    cases(CrossRef) fields.cross-refs.get(name.toname()):
-                      | crossref(modname, as-name) =>
-                        sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+      cases(Any) lookup-ann(ann, type-bindings).v:
+        | crossref(modname, as-name) =>
+          sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+        | a-name(_, name2) =>
+          cases(A.Name) name2:
+            | s-global(_) =>
+              sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
+            | s-type-global(_) =>
+              sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
+            | else =>
+              if fields.cross-refs.has-key(name.toname()):
+                cases(CrossRef) fields.cross-refs.get(name.toname()):
+                  | crossref(modname, as-name) =>
+                    sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                end
+              else if bindings.has-key(name.key()):# and (bindings.get(name.toname()) == name.toname()):
+                val = lookup-value(name, bindings)
+                cases(Any) val:
+                  | crossref(modname, as-name) =>
+                    sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                  | s-data-expr(_, data-name, _, _, _, _, _, _) =>
+                    sexp("a-id", [list: leaf(torepr(name.toname())), xref(trim-path(file), data-name)])
+                  | else =>
+                    if (val == name):
+                      leaf(torepr(name.toname()))
+                    else:
+                      print("We found " + torepr(val))
+                      leaf(torepr(name.toname()))
                     end
-                  else if bindings.has-key(name.key()):# and (bindings.get(name.toname()) == name.toname()):
-                    val = lookup-value(name, bindings)
-                    cases(Any) val:
-                      | crossref(modname, as-name) =>
-                        sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
-                      | s-data-expr(_, data-name, _, _, _, _, _, _) =>
-                        sexp("a-id", [list: leaf(torepr(name.toname())), xref(trim-path(file), data-name)])
-                      | else =>
-                        if (val == name):
-                          leaf(torepr(name.toname()))
-                        else:
-                          print("We found " + torepr(val))
-                          leaf(torepr(name.toname()))
-                        end
-                    end
-                  else if bindings.has-key(name.toname()):# and (bindings.get(name.toname()) == name.toname()):
+                end
+              else if bindings.has-key(name.toname()):# and (bindings.get(name.toname()) == name.toname()):
+                leaf(torepr(name.toname()))
+              else if fields.data-vals.has-key(name.toname()):
+                cases(Any) fields.data-vals.get(name.toname()):
+                  | crossref(modname, as-name) =>
+                    sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
+                  | else =>
+                    print("Found " + torepr(fields.data-vals.get(name.toname())))
                     leaf(torepr(name.toname()))
-                  else if fields.data-vals.has-key(name.toname()):
-                    cases(Any) fields.data-vals.get(name.toname()):
-                      | crossref(modname, as-name) =>
-                        sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
-                      | else =>
-                        print("Found " + torepr(fields.data-vals.get(name.toname())))
-                        leaf(torepr(name.toname()))
-                    end
-                  else:
-                    # print("Looking for " + torepr(name) + " in " + torepr(fields.cross-refs.keys()))
-                    # print("Looking for " + torepr(name) + " in " + torepr(bindings.keys()))
-                    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Got " + torepr(name) + " ==> " + torepr(lookup-ann(ann, type-bindings).v) + " at " + tostring(l) + " and no crossref for it")
-                    leaf(torepr(ann.tosource().pretty(1000).first))
-                  end
+                end
+              else:
+                # print("Looking for " + torepr(name) + " in " + torepr(fields.cross-refs.keys()))
+                # print("Looking for " + torepr(name) + " in " + torepr(bindings.keys()))
+                print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Got " + torepr(name) + " ==> " + torepr(lookup-ann(ann, type-bindings).v) + " at " + tostring(l) + " and no crossref for it")
+                leaf(torepr(ann.tosource().pretty(1000).first))
               end
-            | else => process-ann(v, file, fields, bindings, type-bindings)
           end
       end
     | a-app(l, base, args) =>
@@ -374,7 +366,10 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
   var looked-up-vals = S.immutable-string-dict()
   var looked-up-typs = S.immutable-string-dict()
   for each(field from fields):
-    field-name = field.name
+    field-name =
+      if A.is-s-str(field.name): field.name.s
+      else: field.name.tosource().pretty(1000).first
+      end
     value = lookup-value(field.value, bindings)
     # print("Binding " + torepr(field-name) + " to " + tosource(value).pretty(80).first)
     looked-up-vals := looked-up-vals.set(field-name, value)

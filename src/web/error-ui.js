@@ -278,7 +278,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
                 .append($("<br>"))
                 .append($("<p>").text("but got these " + args.length + " arguments: "))
                 .append($("<br>"))
-                .append(argDom);
+                .append(argDom)
               container.append(dom);
               hoverLocs(dom, [funLoc, probablyErrorLocation]);
             },
@@ -295,79 +295,6 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
             }
           });
         }
-
-        function drawCasesArityMismatch(branchLoc, numArgs, actualFields) {
-          args = ffi.toArray(actualFields);
-          var probablyErrorLocation = getLastUserLocation(e);
-          var dom = $("<div>").addClass("compile-error");
-          var argDom = $("<div>");
-          setTimeout(function() {
-            args.forEach(function(a) {
-              outputUI.renderPyretValue(argDom, runtime, a);
-            });
-          }, 0);
-          cases(get(srcloc, "Srcloc"), "Srcloc", branchLoc, {
-            "srcloc": function(/* skip args */) {
-              dom.append($("<p>").text("The branch at"))
-                .append($("<br>"))
-                .append(drawSrcloc(branchLoc))
-                .append($("<br>"))
-                .append($("<p>").text(" expected to get a value with " + numArgs + " fields"))
-                .append($("<br>"))
-                .append($("<p>").text("but got these " + args.length + " arguments: "))
-                .append($("<br>"))
-                .append(argDom);
-              container.append(dom);
-              hoverLocs(dom, [branchLoc]);
-            },
-            "builtin": function(name) {
-              dom.append($("<p>").text("The branch at "))
-                .append($("<br>"))
-                .append(drawSrcloc(probablyErrorLocation))
-                .append($("<br>"))
-                .append($("<p>").text(" expected to get a value with " + numArgs + " fields"))
-                .append($("<br>"))
-                .append($("<p>").text("but got these " + args.length + " arguments: "))
-                .append($("<br>"))
-                .append(argDom);
-              container.append(dom);
-              hoverLocs(dom, [probablyErrorLocation]);
-            }
-          });
-        }
-
-        function drawCasesSingletonMismatch(branchLoc, shouldBeSingleton) {
-          var probablyErrorLocation = getLastUserLocation(e);
-          var dom = $("<div>").addClass("compile-error");
-          var message;
-          if (shouldBeSingleton) {
-            message = "expected to receive parameters, but the value being examined is a singleton";
-          } else {
-            message = "expected the value being examined to be a singleton, but it actually has fields";
-          }
-          cases(get(srcloc, "Srcloc"), "Srcloc", branchLoc, {
-            "srcloc": function(/* skip args */) {
-              dom.append($("<p>").text("The branch at"))
-                .append($("<br>"))
-                .append(drawSrcloc(branchLoc))
-                .append($("<br>"))
-                .append($("<p>").text(message));
-              container.append(dom);
-              hoverLocs(dom, [branchLoc]);
-            },
-            "builtin": function(name) {
-              dom.append($("<p>").text("The branch at "))
-                .append($("<br>"))
-                .append(drawSrcloc(probablyErrorLocation))
-                .append($("<br>"))
-                .append($("<p>").text(message));
-              container.append(dom);
-              hoverLocs(dom, [probablyErrorLocation]);
-            }
-          });
-        }
-
-
         function drawMessageException(message) {
           var probablyErrorLocation = getLastUserLocation(e);
           var dom = $("<div>").addClass("compile-error");
@@ -438,8 +365,6 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
           cases(get(error, "RuntimeError"), "RuntimeError", e.exn, {
               "generic-type-mismatch": drawGenericTypeMismatch,
               "arity-mismatch": drawArityMismatch,
-              "cases-arity-mismatch": drawCasesArityMismatch,
-              "cases-singleton-mismatch": drawCasesSingletonMismatch,
               "message-exception": drawMessageException,
               "non-boolean-condition": drawNonBooleanCondition,
               "non-boolean-op": drawNonBooleanOp,

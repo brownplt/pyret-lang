@@ -9,16 +9,10 @@ import "compiler/ast-split.arr" as S
 import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
-import "compiler/concat-lists.arr" as CL
 import string-dict as D
 import srcloc as SL
 
 type Loc = SL.Srcloc
-
-type ConcatList = CL.ConcatList
-
-concat-empty = CL.concat-empty
-concat-snoc = CL.concat-snoc
 
 fun type-name(str):
   "$type$" + str
@@ -64,6 +58,30 @@ throw-uninitialized = j-id("U")
 source-name = j-id("M")
 undefined = j-id("D")
 
+data ConcatList<a>:
+  | concat-empty with:
+    to-list-acc(self, rest): rest end,
+    map(self, f): self end
+  | concat-singleton(element) with:
+    to-list-acc(self, rest): link(self.element, rest) end,
+    map(self, f): concat-singleton(f(self.element)) end
+  | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
+    to-list-acc(self, rest :: List):
+      self.left.to-list-acc(self.right.to-list-acc(rest))
+    end,
+    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end
+  | concat-cons(first :: a, rest :: ConcatList<a>) with:
+    to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
+    map(self, f): concat-cons(f(self.first), self.rest.map(f)) end
+  | concat-snoc(head :: ConcatList<a>, last :: a) with:
+    to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
+    map(self, f): concat-snoc(self.head.map(f), f(self.last)) end
+sharing:
+  _plus(self, other :: ConcatList):
+    concat-append(self, other)
+  end,
+  to-list(self): self.to-list-acc([list: ]) end
+end
 
 js-id-of = block:
   var js-ids = D.string-dict()

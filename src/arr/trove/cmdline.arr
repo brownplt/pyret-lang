@@ -35,7 +35,7 @@ import format as F
 import string-dict as D
 import either as E
 format = F.format
-type Either = E.Either
+Either = E.Either
 left = E.left
 right = E.right
 
@@ -451,7 +451,7 @@ check:
   many-optional-flag = {
     foo: flag(many, "Foo"),
     bar: next-val-default(read-number, 42, some("b"), many, "Bar"),
-    "4": flag(many, "Flag-4")
+    ["4"]: flag(many, "Flag-4")
   }
   parse-args(many-optional-flag, [list: "-foo", "-foo", "-foo"]) is success(dict([list: "foo", [list: true, true, true]]), [list: ])
   parse-args(many-optional-flag, [list: "-b", "-foo", "--bar", "3", "--bar", "-foo"])
@@ -481,7 +481,7 @@ check:
   many-required-next-num = {
     foo: next-val(read-number, required-many, "Foo"),
     bar: flag(many, "Bar"),
-    "4": flag(many, "Flag-4")
+    ["4"]: flag(many, "Flag-4")
   }
   parse-args(many-required-next-num, [list: "--foo", "-bar"]) satisfies error-text("Missing value for option foo; it must be of the form --foo <number>")
   parse-args(many-required-next-num, [list: "--foo", "-4"]) is success(dict([list: "foo", [list: -4]]), [list: ])

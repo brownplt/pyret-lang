@@ -1,7 +1,6 @@
 provide *
 
 import error as E
-import either as Eth
 import srcloc as S
 import format as F
 import parse-pyret as P
@@ -17,7 +16,7 @@ end
 
 check:
   fun get-err(thunk):
-    cases(Eth.Either) run-task(thunk):
+    cases(Either) run-task(thunk):
       | left(v) => raise("no error")
       | right(v) => v
     end
@@ -213,52 +212,6 @@ check:
   data-var2-arity.expected-arity is 1
   data-var2-arity.args.length() is 2
   data-var2-arity.fun-loc satisfies S.is-srcloc
-
-  data-cases-var1-arity1 = get-err(
-    lam():
-      cases(Data) var1:
-        | var1() => true
-        | var2(_) => false
-      end
-    end)
-  data-cases-var1-arity1 satisfies E.is-cases-singleton-mismatch
-  data-cases-var1-arity1.should-be-singleton is true
-  data-cases-var1-arity1.branch-loc satisfies S.is-srcloc
-
-  data-cases-var2-arity1 = get-err(
-    lam():
-      cases(Data) var2(5):
-        | var1 => true
-        | var2 => false
-      end
-    end)
-  data-cases-var2-arity1 satisfies E.is-cases-singleton-mismatch
-  data-cases-var2-arity1.should-be-singleton is false
-  data-cases-var2-arity1.branch-loc satisfies S.is-srcloc
-
-  data-cases-var2-arity2 = get-err(
-    lam():
-      cases(Data) var2(5):
-        | var1 => true
-        | var2(_, _) => false
-      end
-    end)
-  data-cases-var2-arity2 satisfies E.is-cases-arity-mismatch
-  data-cases-var2-arity2.num-args is 2
-  data-cases-var2-arity2.actual-fields.length() is 1
-  data-cases-var2-arity2.branch-loc satisfies S.is-srcloc
-
-  data-cases-var2-arity3 = get-err(
-    lam():
-      cases(Data) var2(5):
-        | var1 => true
-        | var2() => false
-      end
-    end)
-  data-cases-var2-arity3 satisfies E.is-cases-arity-mismatch
-  data-cases-var2-arity3.num-args is 0
-  data-cases-var2-arity3.actual-fields.length() is 1
-  data-cases-var2-arity3.branch-loc satisfies S.is-srcloc
 
 end
 

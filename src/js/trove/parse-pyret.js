@@ -528,12 +528,13 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return tr(node.kids[0]);
             },
             'key': function(node) {
-              if (node.kids[0].name === "NAME") {
-                // (key name)
-                return symbol(node.kids[0]);
+              if (node.kids.length === 3) {
+                // (key LBRACK e RBRACK)
+                return tr(node.kids[1]);
               } else {
-                // (key str)
-                return string(node.kids[0]);
+                // (key name)
+                return RUNTIME.getField(ast, 's-str')
+                  .app(pos(node.pos), symbol(node.kids[0]));
               }
             },
             'obj-field': function(node) {
@@ -627,13 +628,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'cases-branch': function(node) {
               if (node.kids.length === 4) {
                 // (cases-branch PIPE NAME THICKARROW body)
-                return RUNTIME.getField(ast, 's-singleton-cases-branch')
-                  .app(pos(node.pos), pos(node.kids[1].pos), symbol(node.kids[1]), tr(node.kids[3]));
+                return RUNTIME.getField(ast, 's-cases-branch')
+                  .app(pos(node.pos), symbol(node.kids[1]), makeList([]), tr(node.kids[3]));
               } else {
                 // (cases-branch PIPE NAME args THICKARROW body)
                 return RUNTIME.getField(ast, 's-cases-branch')
-                  .app(pos(node.pos), pos(node.kids[1].pos.combine(node.kids[2].pos)),
-                       symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
+                  .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
               }
             },
             'if-pipe-branch': function(node) {
@@ -1010,7 +1010,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           }),
           answer: NAMESPACE.get("nothing")
         });
-      }, "parse-pyret loading dialects");
+      });
     });
   });
 });

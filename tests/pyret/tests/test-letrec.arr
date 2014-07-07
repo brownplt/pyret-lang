@@ -1,9 +1,8 @@
-import either as Eth
 import error as E
 
 check:
   fun get-err(thunk):
-    cases(Eth.Either) run-task(thunk):
+    cases(Either) run-task(thunk):
       | left(v) => raise("no error")
       | right(v) => v
     end

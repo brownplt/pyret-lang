@@ -3,10 +3,8 @@
 provide *
 provide-types *
 import srcloc as SL
-import either as E
 
 type Loc = SL.Srcloc
-type Either = E.Either
 
 data CheckBlockResult:
   | check-block-result(name :: String, loc :: Loc, test-results :: List<TestResult>)

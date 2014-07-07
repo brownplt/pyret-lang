@@ -19,8 +19,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
     describe("run-task", function() {
       it("should work for normal computation", function(done) {
         var prog =
-"import either as E\n" +
-"cases(E.Either) run-task(lam(): 5 end):\n" +
+"cases(Either) run-task(lam(): 5 end):\n" +
 "    | left(v) => v\n" +
 "    | right(exn) => 'fail'\n" +
 "end";
@@ -31,8 +30,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       }, 10000);
       it("should work for exceptional computation", function(done) {
         var prog =
-"import either as E\n" +
-"cases(E.Either) run-task(lam(): raise('ahoy') end):\n" +
+"cases(Either) run-task(lam(): raise('ahoy') end):\n" +
 "    | left(v) => 'fail'\n" +
 "    | right(exn) => exn\n" +
 "end";
@@ -43,9 +41,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
       it("should work when nested", function(done) {
         var prog =
-"import either as E\n" +
 "fun f(n):\n" +
-"  cases(E.Either) run-task(lam(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
+"  cases(Either) run-task(lam(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
 "      | left(v) => v\n" +
 "      | right(exn) => n + exn\n" +
 "  end\n" +

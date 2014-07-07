@@ -702,16 +702,8 @@ function createMethodDict() {
     }
 
     function makeBrandedObject(dict, brands) {
-      return new PObject(dict, brands);
+        return new PObject(dict, brands);
     }
-
-    function makeDataValue(dict, brands, $name, $fields) {
-      var ret = new PObject(dict, brands);
-      ret.$name = $name;
-      ret.$fields = $fields;
-      return ret;
-    }
-
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -723,6 +715,37 @@ function createMethodDict() {
       return arr;
     }
 
+    PObject.prototype.updateDict = function(dict, keepBrands) {
+      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
+      return newObj;
+    }
+
+    /**Clones the object
+      @return {!PObject} With same dict
+    */
+    PObject.prototype.brand = function(b) { 
+        var newObj = makeObject(this.dict); 
+        return brandClone(newObj, this, b);
+    };
+
+    /**Tests whether an object is a PObject
+        @param {Object} obj the item to test
+        @return {!boolean} true if object is a PObject
+    */
+    function isObject(obj) { return obj instanceof PObject; }
+
+    /**Makes a PObject using the given dict
+
+      @param {!Object.<string, !PBase>} dict
+      @return {!PObject} with given dict
+    */
+    function makeObject(dict) {
+       return new PObject(dict, noBrands); 
+    }
+
+    function makeBrandedObject(dict, brands) {
+        return new PObject(dict, brands);
+    }
     
     /************************
           Type Checking
@@ -1354,8 +1377,7 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        },
-        "checkAnn");
+        });
       }
     }
 
@@ -1372,8 +1394,7 @@ function createMethodDict() {
           if(ffi.isOk(result)) { return val; }
           if(ffi.isFail(result)) { raiseJSJS(result); }
           throw "Internal error: got invalid result from annotation check";
-        },
-        "_checkAnn");
+        });
       }
     }
 
@@ -1386,8 +1407,7 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        },
-        "safeCheckAnnArg");
+        });
       }
     }
 
@@ -1400,8 +1420,7 @@ function createMethodDict() {
           raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
         }
         throw "Internal error: got invalid result from annotation check";
-      },
-      "checkAnnArg");
+      });
     }
 
     function _checkAnnArg(compilerLoc, ann, val) {
@@ -1470,8 +1489,7 @@ function createMethodDict() {
           return that.pred(val);
         }, function(passed) {
           return that.checkOrFail(passed, val, compilerLoc);
-        },
-        "PPrimAnn.check");
+        });
       }
     }
 
@@ -1507,14 +1525,12 @@ function createMethodDict() {
                 makeSrcloc(compilerLoc),
                 ffi.makePredicateFailure(val, that.predname));
             }
-          },
-          "PPredAnn.check (after the check)")
+          })
         }
         else {
           return result;
         }
-      },
-      "PPredAnn.check");
+      });
     }
 
     function makeBranderAnn(brander, name) {
@@ -1598,8 +1614,7 @@ function createMethodDict() {
           else if(ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
           }
-        },
-        "deepCheckFields");
+        });
       }
       return deepCheckFields(that.fields.slice());
     }
@@ -2104,7 +2119,7 @@ function createMethodDict() {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     var DEBUGLOG = true;
     /**
@@ -2371,12 +2386,6 @@ function createMethodDict() {
       thisRuntime.checkString(s);
       return thisRuntime.makeNumber(s.length);
     }
-    var string_isnumber = function(s) {
-      checkString(s);
-      var num = jsnums.fromString(s);
-      if(num) { return true; }
-      else { return false; }
-    }
     var string_tonumber = function(s) {
       thisRuntime.checkString(s);
       var num = jsnums.fromString(s);
@@ -2597,7 +2606,7 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        withModule, "loadModule(" + modstring.substring(0, 70) + ")");
+        withModule);
     }
     function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
@@ -2731,7 +2740,6 @@ function createMethodDict() {
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
-          'string-isnumber': makeFunction(string_isnumber),
           'string-tonumber': makeFunction(string_tonumber),
           'string-repeat': makeFunction(string_repeat),
           'string-substring': makeFunction(string_substring),
@@ -2838,7 +2846,6 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
-        'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
 
         'plus': plus,
@@ -2874,7 +2881,6 @@ function createMethodDict() {
         'string_contains': string_contains,
         'string_append': string_append,
         'string_length': string_length,
-        'string_isnumber': string_isnumber,
         'string_tonumber': string_tonumber,
         'string_repeat': string_repeat,
         'string_substring': string_substring,
