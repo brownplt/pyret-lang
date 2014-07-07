@@ -258,12 +258,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       raise("s-contract not yet handled")
     | s-assign(l, id, value) =>
       raise("s-assign not yet handled")
-    | s-if-pipe(l, branches) =>
-      raise("s-if-pipe not yet handled")
-    | s-if-pipe-else(l, branches, _else) =>
-      raise("s-if-pipe-else not yet handled")
-    | s-if(l, branches) =>
-      raise("s-if not yet handled")
     | s-if-else(l, branches, _else) =>
       new-branches = for fold(base from pair(empty, t-bot), branch from branches):
                        cases(A.IfBranch) branch:
@@ -364,6 +358,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
 
+    | s-if-pipe(_, _)               => raise("s-if-pipe should have already been desugared")
+    | s-if-pipe-else(_, _, _)       => raise("s-if-pipe-else should have already been desugared")
+    | s-if(_, _)                    => raise("s-if should have already been desugared")
     | s-fun(_, _, _, _, _, _, _, _) => raise("s-fun should have already been desugared")
     | s-when(_, _, _)               => raise("s-when should have already been desugared")
     | s-for(_, _, _, _, _)          => raise("s-for should have already been desugared")
@@ -506,12 +503,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-contract not yet handled")
     | s-assign(l, id, value) =>
       raise("s-assign not yet handled")
-    | s-if-pipe(l, branches) =>
-      raise("s-if-pipe not yet handled")
-    | s-if-pipe-else(l, branches, _else) =>
-      raise("s-if-pipe-else not yet handled")
-    | s-if(l, branches) =>
-      raise("s-if not yet handled")
     | s-if-else(l, branches, _else) =>
       new-branches = for map(branch from branches):
                        cases(A.IfBranch) branch:
@@ -607,7 +598,9 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-check(l, name, body, keyword-check) =>
       raise("s-check not yet handled")
 
-
+    | s-if-pipe(_, _)               => raise("s-if-pipe should have already been desugared")
+    | s-if-pipe-else(_, _, _)       => raise("s-if-pipe-else should have already been desugared")
+    | s-if(_, _)                    => raise("s-if should have already been desugared")
     | s-fun(_, _, _, _, _, _, _, _) => raise("s-fun should have already been desugared")
     | s-when(_, _, _)               => raise("s-when should have already been desugared")
     | s-for(_, _, _, _, _)          => raise("s-for should have already been desugared")
