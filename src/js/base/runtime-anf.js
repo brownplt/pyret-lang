@@ -2371,6 +2371,12 @@ function createMethodDict() {
       thisRuntime.checkString(s);
       return thisRuntime.makeNumber(s.length);
     }
+    var string_isnumber = function(s) {
+      checkString(s);
+      var num = jsnums.fromString(s);
+      if(num) { return true; }
+      else { return false; }
+    }
     var string_tonumber = function(s) {
       thisRuntime.checkString(s);
       var num = jsnums.fromString(s);
@@ -2725,6 +2731,7 @@ function createMethodDict() {
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
+          'string-isnumber': makeFunction(string_isnumber),
           'string-tonumber': makeFunction(string_tonumber),
           'string-repeat': makeFunction(string_repeat),
           'string-substring': makeFunction(string_substring),
@@ -2867,6 +2874,7 @@ function createMethodDict() {
         'string_contains': string_contains,
         'string_append': string_append,
         'string_length': string_length,
+        'string_isnumber': string_isnumber,
         'string_tonumber': string_tonumber,
         'string_repeat': string_repeat,
         'string_substring': string_substring,
