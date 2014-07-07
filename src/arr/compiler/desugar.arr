@@ -364,6 +364,7 @@ fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
     | s-module(l, answer, provides, types, checks) =>
       A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-instantiate(_, e, _) => e # type instantiations are erased for now
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
