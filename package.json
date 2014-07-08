@@ -9,13 +9,14 @@
     "test": "tests"
   },
   "dependencies": {
-    "jasmine-node": "~1.14.3",
+    "jasmine-node": "1.14.2",
     "sweet.js": "~0.4.2",
     "jquery": "~2.1.0",
     "ses": "~0.0.0",
     "requirejs": "~2.1.11",
     "q": "~1.0.1",
-    "lodash": "~2.4.1"
+    "lodash": "~2.4.1",
+    "s-expression": "~1.0.0"
   },
   "devDependencies": {},
   "scripts": {
