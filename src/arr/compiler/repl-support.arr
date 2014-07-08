@@ -52,6 +52,7 @@ ok-imports = [list:
   "contracts",
   "ast",
   "parse-pyret",
+  "s-exp",
   "pprint",
   "srcloc",
   "format"
