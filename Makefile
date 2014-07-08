@@ -293,10 +293,7 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 .PHONY : install
 install:
 	@$(call MKDIR,node_modules)
-	npm install jasmine-node
-	npm install requirejs
-	npm install q
-	npm install ses
+	npm install
 	git submodule init
 	git submodule update lib/CodeMirror
 
