@@ -27,9 +27,7 @@ check:
   p("-3.") is -3.0
   p("-abc3.3") is "-abc3.3"
 
-  # NOTE(joe): I wish this didn't pass
-  p("())") is [list:]
-
+  p("())") raises "Invalid"
   p("('a' 5)") raises "'quote'"
   p("(a") raises "Invalid"
   p(")") raises "Invalid"
