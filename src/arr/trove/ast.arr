@@ -823,17 +823,17 @@ sharing:
 end
 
 data Member:
-  | s-data-field(l :: Loc, name :: Expr, value :: Expr) with:
+  | s-data-field(l :: Loc, name :: String, value :: Expr) with:
     label(self): "s-data-field" end,
-    tosource(self): PP.nest(INDENT, self.name.tosource() + str-colonspace + self.value.tosource()) end,
-  | s-mutable-field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
+    tosource(self): PP.nest(INDENT, self.name + str-colonspace + self.value.tosource()) end,
+  | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
     label(self): "s-mutable-field" end,
-    tosource(self): PP.nest(INDENT, str-mutable + self.name.tosource() + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource()) end,
-  | s-once-field(l :: Loc, name :: Expr, ann :: Ann, value :: Expr) with:
+    tosource(self): PP.nest(INDENT, str-mutable + self.name + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource()) end,
+  | s-once-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
     label(self): "s-once-field" end
   | s-method-field(
       l :: Loc,
-      name :: Expr,
+      name :: String,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -842,10 +842,7 @@ data Member:
     ) with:
       label(self): "s-method-field" end,
     tosource(self):
-      name-part = cases(Expr) self.name:
-        | s-str(l, s) => PP.str(s)
-        | else => self.name.tosource()
-      end
+      name-part = PP.str(self.name)
       funlam-tosource(name-part,
         nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
     end
@@ -1492,19 +1489,19 @@ default-map-visitor = {
     s-check(l, name, body.visit(self), keyword-check)
   end,
 
-  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    s-data-field(l, name.visit(self), value.visit(self))
+  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+    s-data-field(l, name, value.visit(self))
   end,
-  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-mutable-field(l, name.visit(self), ann.visit(self), value.visit(self))
+  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    s-mutable-field(l, name, ann.visit(self), value.visit(self))
   end,
-  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-once-field(l, name.visit(self), ann.visit(self), value.visit(self))
+  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    s-once-field(l, name, ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,
       l :: Loc,
-      name :: Expr,
+      name :: String,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -1513,7 +1510,7 @@ default-map-visitor = {
     ):
     s-method-field(
         l,
-        name.visit(self),
+        name,
         args.map(_.visit(self)),
         ann.visit(self),
         doc,
@@ -1943,27 +1940,26 @@ default-iter-visitor = {
     body.visit(self)
   end,
   
-  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    name.visit(self) and value.visit(self)
+  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+    value.visit(self)
   end,
-  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    name.visit(self) and ann.visit(self) and value.visit(self)
+  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    ann.visit(self) and value.visit(self)
   end,
-  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    name.visit(self) and ann.visit(self) and value.visit(self)
+  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    ann.visit(self) and value.visit(self)
   end,
   s-method-field(
       self,
       l :: Loc,
-      name :: Expr,
+      name :: String,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
       ):
-    name.visit(self)
-    and lists.all(_.visit(self), args)
+    lists.all(_.visit(self), args)
     and ann.visit(self)
     and body.visit(self)
     and self.option(_check)
@@ -2398,19 +2394,19 @@ dummy-loc-visitor = {
     s-check(dummy-loc, name, body.visit(self), keyword-check)
   end,
 
-  s-data-field(self, l :: Loc, name :: Expr, value :: Expr):
-    s-data-field(dummy-loc, name.visit(self), value.visit(self))
+  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+    s-data-field(dummy-loc, name, value.visit(self))
   end,
-  s-mutable-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-mutable-field(dummy-loc, name.visit(self), ann.visit(self), value.visit(self))
+  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    s-mutable-field(dummy-loc, name, ann.visit(self), value.visit(self))
   end,
-  s-once-field(self, l :: Loc, name :: Expr, ann :: Ann, value :: Expr):
-    s-once-field(dummy-loc, name.visit(self), ann.visit(self), value.visit(self))
+  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+    s-once-field(dummy-loc, name, ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,
       l :: Loc,
-      name :: Expr,
+      name :: String,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,

@@ -8,6 +8,8 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import format as Format
 import either as E
+import "compiler/initialize-trove.arr" as IT
+
 format = Format.format
 Either = E.Either
 left = E.left

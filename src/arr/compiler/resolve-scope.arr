@@ -26,7 +26,7 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr) -> A.Provide:
   cases(A.Provide) p:
     | s-provide-all(l) =>
       ids = A.block-ids(b)
-      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, A.s-str(l, tostring(id)), A.s-id(l, id)) end)
+      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, tostring(id), A.s-id(l, id)) end)
       A.s-provide(l, obj)
     | else => p
   end
@@ -76,12 +76,15 @@ fun resolve-imports(imports :: List<A.Import>):
   { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
 end
 
-fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
+fun desugar-toplevel-types(stmts) -> List<A.Expr>:
   doc: ```
-       Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
-       to the top, turning them into a type-let-expression, and generate newtypes for all
-       data expressions.
-       ```
+  Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
+  to the top, turning them into a type-let-expression, and generate newtypes for all
+  data expressions.
+  ```
+  when not(is-link(stmts) or is-empty(stmts)):
+    raise("Expected list of statements, got " + torepr(stmts))
+  end
   var rev-type-binds = empty
   var rev-stmts = empty
   for lists.each(s from stmts):
@@ -109,10 +112,7 @@ end
 
 
 fun desugar-scope-block(stmts, let-binds, letrec-binds, type-let-binds) -> List<A.Expr>:
-  doc: ```
-       Treating stmts as a block, resolve scope.
-       There should be no blocks left after this stage of the compiler pipeline.
-       ```
+  doc: "Treating stmts as a block, resolve scope."
   cases(List) stmts:
     | empty => empty
     | link(f, rest-stmts) =>
@@ -339,15 +339,15 @@ end
 
 fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   doc: ```
-       Remove x = e, var x = e, and fun f(): e end
-       and turn them into explicit let and letrec expressions.
-       Do this recursively through the whole program.
-       Preconditions on prog:
-         - well-formed
-       Postconditions on prog:
-         - contains no s-provide in headers
-         - contains no s-let, s-var, s-data
-       ```
+        Remove x = e, var x = e, and fun f(): e end
+        and turn them into explicit let and letrec expressions.
+        Do this recursively through the whole program.
+        Preconditions on prog:
+          - well-formed
+        Postconditions on prog:
+          - contains no s-provide in headers
+          - contains no s-let, s-var, s-data
+        ```
   cases(A.Program) prog:
     | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
       imports-and-lets = resolve-imports(imports-raw)
@@ -479,14 +479,12 @@ end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   doc: ```
-       Turn all s-names into s-atom or s-global
-       Requires:
-        1. desugar-scope
-       Preconditions on p:
-        -  Contains no s-block, s-let, s-var, s-data
-       Postconditions on p (in addition to preconditions):
-        -  Contains no s-name in names
-       ```
+        Turn all s-names into s-atom or s-global
+        Preconditions on p:
+          - Contains no s-let, s-var, s-data (e.g. call desugar-scope first)
+        Postconditions on p:
+          - Contains no s-name in names
+        ```
   var name-errors = [list: ]
   bindings = SD.string-dict()
   type-bindings = SD.string-dict()

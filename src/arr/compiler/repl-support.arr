@@ -52,6 +52,7 @@ ok-imports = [list:
   "contracts",
   "ast",
   "parse-pyret",
+  "s-exp",
   "pprint",
   "srcloc",
   "format"
@@ -74,7 +75,7 @@ fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
       fun df(name):
-        A.s-data-field(l, A.s-str(l, name.toname()), A.s-id(l, name))
+        A.s-data-field(l, name.toname(), A.s-id(l, name))
       end
       fun af(name):
         A.a-field(l, name.toname(), A.a-name(l, name))
@@ -104,7 +105,7 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
       fun df(name):
-        A.s-data-field(l, A.s-str(l, name.toname()), A.s-id(l, name))
+        A.s-data-field(l, name.toname(), A.s-id(l, name))
       end
       fun af(name):
         A.a-field(l, name.toname(), A.a-name(l, name))

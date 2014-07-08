@@ -528,13 +528,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return tr(node.kids[0]);
             },
             'key': function(node) {
-              if (node.kids.length === 3) {
-                // (key LBRACK e RBRACK)
-                return tr(node.kids[1]);
-              } else {
+              if (node.kids[0].name === "NAME") {
                 // (key name)
-                return RUNTIME.getField(ast, 's-str')
-                  .app(pos(node.pos), symbol(node.kids[0]));
+                return symbol(node.kids[0]);
+              } else {
+                // (key str)
+                return string(node.kids[0]);
               }
             },
             'obj-field': function(node) {
