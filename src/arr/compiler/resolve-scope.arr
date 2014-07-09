@@ -619,7 +619,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(TypeBinding) type-env.get(s):
             | global-type-bind(_, name, _) => A.a-name(l, name)
             | let-type-bind(_, name, _) => A.a-name(l, name)
-            | type-var-bind(_, name, _) => A.a-blank # TODO: Turn this into a A.a-type-var(l, name) instead
+            | type-var-bind(_, name, _) => A.a-type-var(l, name) # TODO: Turn this into a A.a-type-var(l, name) instead
           end
         else: A.a-name(l, names.s-type-global(s))
         end

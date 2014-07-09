@@ -47,6 +47,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-blank => a
     | a-any => a
     | a-name(_, _) => a
+    | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
@@ -426,8 +427,7 @@ fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
     | s-module(l, answer, provides, types, checks) =>
       A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
-    | s-instantiate(l, inner-expr, params) =>
-      A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
+    | s-instantiate(l, inner-expr, params) => inner-expr # erased until TC lands
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
@@ -612,7 +612,6 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
-
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
     | s-var(_, _, _)              => raise("s-var should have already been desugared")
