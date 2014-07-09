@@ -36,7 +36,11 @@ check:
   p(num-tostring(num-expt(100, 100))) is
     s-num(num-expt(100, 100))
   p("-abc3.3") is s-sym("-abc3.3")
+  p("\"a'b\"") is s-str("a'b")
+  p("\"\"") is s-str("")
 
+  p("a\"") raises "Invalid"
+  p("\"a") raises "Invalid"
   p("())") raises "Invalid"
   p("('a' 5)") raises "'quote'"
   p("(a") raises "Invalid"
