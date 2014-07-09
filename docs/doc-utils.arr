@@ -287,6 +287,8 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
               end
             | else => process-ann(v, file, fields, bindings, type-bindings)
           end
+        | a-record(_, _) => leaf("Unexpected a-record: " + torepr(looked-up))
+        | else => raise("Expected a crossref or a name, but got " + torepr(looked-up))
       end
     | a-app(l, base, args) =>
       sexp("a-app", process-ann(base, file, fields, bindings, type-bindings) ^ link(_, args.map(process-ann(_, file, fields, bindings, type-bindings))))

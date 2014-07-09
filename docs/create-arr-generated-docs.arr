@@ -67,7 +67,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
   split-fields = process-fields(trim-path(file), fields, types, bindings, type-bindings)
   fun method-spec(data-name, meth):
     sexp("method-spec",
-      [list: spair("name", PP.str(meth.name).pretty(1000).first),
+      [list: spair("name", "\"" + PP.str(meth.name).pretty(1000).first + "\""),
         spair("arity", tostring(meth.args.length())),
         spair("args", slist(meth.args.map(lam(b): leaf(torepr(b.id.toname())) end))),
         spair("contract",

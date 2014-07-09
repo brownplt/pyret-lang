@@ -153,7 +153,8 @@
 (define (find-defn by-field for-val indefns)
   (if (or (empty? indefns) (not indefns))
       #f
-      (let ([d (findf (lambda (d) (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+      (let ([d (findf (lambda (d)
+        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
         (unless d
           (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
         d)))

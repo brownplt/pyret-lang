@@ -1,4 +1,4 @@
-define(["js/runtime-util", "s-expression", "trove/s-exp-data"], function(util, sexp, sexpStruct) {
+define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util, sexp, sexpStruct) {
   return util.memoModule("s-exp", function(RUNTIME, NAMESPACE) {
     var gf = RUNTIME.getField;
     return RUNTIME.loadModulesNew(NAMESPACE, [sexpStruct], function(sstruct) {

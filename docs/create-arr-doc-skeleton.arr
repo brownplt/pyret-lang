@@ -168,7 +168,7 @@ fun process-member(mem, typ, file, fields, bindings):
     | s-method-field(_, name, args, ret-ann, doc, body, _check) =>
       at-exp("method-spec", some(
           [list:
-            leaf(name.tosource().pretty(1000).first),
+            leaf("\"" + name.tosource().pretty(1000).first + "\""),
             # Note: "real" contracts now show up in generated files
             comment("N.B. Pyret contract: " +
               A.a-arrow(A.dummy-loc,
