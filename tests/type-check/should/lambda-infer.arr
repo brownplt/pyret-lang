@@ -1,4 +1,3 @@
-
 tru  = lam <A> (t :: A): lam <B> (f :: B): t;;
 fals = lam <A> (t :: A): lam <B> (f :: B): f;;
 test = lam <A> (cond :: (A -> (A -> A))): lam(consq :: A): lam(altern :: A): cond(consq)(altern);;;
