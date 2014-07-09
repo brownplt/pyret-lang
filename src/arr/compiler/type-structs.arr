@@ -90,7 +90,7 @@ sharing:
         cases(Type) other:
           | t-top => true
           | t-arrow(_, other-forall, other-args, other-ret) =>
-            for lists.fold2(res from true, this-arg from self.args, other-arg from other-args):
+            for fold2(res from true, this-arg from self.args, other-arg from other-args):
               res and other-arg.satisfies-type(this-arg)
             end and ret.satisfies-type(other-ret)
           | else => false

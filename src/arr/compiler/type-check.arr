@@ -6,6 +6,7 @@ import ast as A
 import string-dict as SD
 import "compiler/compile-structs.arr" as C
 import "compiler/type-structs.arr" as TS
+import "compiler/type-constraints.arr" as TC
 
 type Type            = TS.Type
 type Pair            = TS.Pair
@@ -26,6 +27,11 @@ is-t-var             = TS.is-t-var
 least-upper-bound    = TS.least-upper-bound
 greatest-lower-bound = TS.greatest-lower-bound
 
+type TypeConstraint  = TC.TypeConstraint
+type TypeConstraints = TC.TypeConstraints
+generate-constraints = TC.generate-constraints
+empty-type-constraints = TC.empty-type-constraints
+
 shadow fold2 = lam(f, base, l1, l2):
                  if l1.length() <> l2.length():
                    raise("Lists are not equal in length!")
@@ -41,6 +47,9 @@ shadow map2 = lam(f, l1, l2):
                    map2(f, l1, l2)
                  end
                end
+
+
+
 
 data TCInfo:
   | tc-info(typs       :: SD.StringDict,
@@ -344,10 +353,45 @@ end
 fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> Pair<List<A.Expr>, Type>:
   cases(Type) arrow-typ:
     | t-arrow(_, forall, arg-typs, ret-typ) =>
-      new-args = for map2(arg from args, arg-typ from arg-typs):
-                   checking(arg, arg-typ, info)
-                 end
-      pair(new-args, ret-typ)
+      if is-empty(forall):
+        new-args = for map2(arg from args, arg-typ from arg-typs):
+                     checking(arg, arg-typ, info)
+                   end
+        pair(new-args, ret-typ)
+      else:
+        unknowns-list = for map(x from forall):
+                          t-var(x.id)
+                        end
+        unknowns-set  = sets.list-to-tree-set(unknowns-list)
+        binds = SD.immutable-string-dict()
+        t-var-constraints = for fold2(current from empty-type-constraints,
+                                     unknown from unknowns-list, x from forall):
+                              generate-constraints(unknown, x.upper-bound, binds, [set: ], unknowns-set).meet(current)
+                            end
+        args-constraints  = for fold2(curr from empty-type-constraints,
+                                      arg from args, arg-typ from arg-typs):
+                              synthesis-arg = synthesis(arg, info)
+                              synthesis-typ = synthesis-arg.right
+                              result = generate-constraints(synthesis-typ, arg-typ, binds, [set: ], unknowns-set)
+                              curr.meet(result)
+                            end
+        constraints = t-var-constraints.meet(args-constraints)
+        substitutions = for map(unknown from unknowns-list):
+                          pair(unknown, constraints.substitute(unknown, ret-typ, binds))
+                        end
+        new-arg-typs  = for fold(curr from arg-typs, substitution from substitutions):
+                          for map(arg-typ from curr):
+                            arg-typ.substitute(substitution.left, substitution.right)
+                          end
+                        end
+        new-ret-typ   = for fold(curr from ret-typ, substitution from substitutions):
+                          curr.substitute(substitution.left, substitution.right)
+                        end
+        new-args      = for map2(arg from args, arg-typ from new-arg-typs):
+                          checking(arg, arg-typ, info)
+                        end
+        pair(new-args, new-ret-typ)
+      end
     | t-bot =>
       pair(args, t-bot)
     | else =>
