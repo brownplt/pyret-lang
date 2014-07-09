@@ -617,6 +617,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-blank => seen-so-far
     | a-any => seen-so-far
     | a-name(l, name) => seen-so-far.add(name)
+    | a-type-var(l, name) => seen-so-far
     | a-dot(l, left, right) => seen-so-far.add(left)
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))

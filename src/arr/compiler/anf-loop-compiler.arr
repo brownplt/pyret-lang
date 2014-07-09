@@ -203,6 +203,7 @@ end
 fun compile-ann(ann :: A.Ann, visitor) -> CaseResults:
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n.tostring())), empty)
+    | a-type-var(_, _) => c-exp(rt-field("Any"), empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), empty)
     | a-app(l, base, _) => compile-ann(base, visitor)

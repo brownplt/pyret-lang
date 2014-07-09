@@ -1028,6 +1028,9 @@ data Ann:
   | a-name(l :: Loc, id :: Name) with:
     label(self): "a-name" end,
     tosource(self): self.id.tosource() end,
+  | a-type-var(l :: Loc, id :: Name) with:
+    label(self): "a-type-var" end,
+    tosource(self): self.id.tosource() end,
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:
     label(self): "a-arrow" end,
     tosource(self):
@@ -1572,6 +1575,7 @@ default-map-visitor = {
   a-blank(self): a-blank end,
   a-any(self): a-any end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
+  a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
     a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
@@ -2021,6 +2025,9 @@ default-iter-visitor = {
     true
   end,
   a-name(self, l, id):
+    true
+  end,
+  a-type-var(self, l, id):
     true
   end,
   a-arrow(self, l, args, ret, _):
@@ -2477,6 +2484,7 @@ dummy-loc-visitor = {
   a-blank(self): a-blank end,
   a-any(self): a-any end,
   a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
+  a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
     a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
