@@ -111,8 +111,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const percent = new RegExp("^%", STICKY_REGEXP);
   const comma = new RegExp("^,", STICKY_REGEXP);
   const thinarrow = new RegExp("^->", STICKY_REGEXP);
-  const thickarrow = new RegExp("^=>", STICKY_REGEXP);
-  const coloncolon = new RegExp("^::", STICKY_REGEXP);
+  const thickarrow = new RegExp("^=>" + ws_after, STICKY_REGEXP);
+  const coloncolon = new RegExp("^::" + ws_after, STICKY_REGEXP);
   const colon = new RegExp("^:", STICKY_REGEXP);
   const equals = new RegExp("^=", STICKY_REGEXP);
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
@@ -220,12 +220,12 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},
-    {name: "COMMA", val: comma},
+    {name: "COMMA", val: comma, parenIsForExp: true},
     {name: "THINARROW", val: thinarrow},
-    {name: "THICKARROW", val: thickarrow},
-    {name: "COLONEQUALS", val: colonequals},
+    {name: "THICKARROW", val: thickarrow, parenIsForExp: true},
+    {name: "COLONEQUALS", val: colonequals, parenIsForExp: true},
     {name: "COLONCOLON", val: coloncolon},
-    {name: "COLON", val: colon},
+    {name: "COLON", val: colon, parenIsForExp: true},
     {name: "BAR", val: bar},
 
     {name: "RATIONAL", val: rational},
@@ -259,7 +259,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LANGLE", val: langle},
     {name: "RANGLE", val: rangle},
 
-    {name: "EQUALS", val: equals},
+    {name: "EQUALS", val: equals, parenIsForExp: true},
 
     {name: "COMMENT", val: comment},
     {name: "WS", val: ws, parenIsForExp: true},
