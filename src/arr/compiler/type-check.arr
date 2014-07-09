@@ -176,16 +176,10 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
         result.left
       end
       pair(A.s-block(l, new-stmts), typ)
-    | s-user-block(l, body) =>
-      raise("s-user-block not yet handled")
     | s-type(l, name, ann) =>
       raise("s-type not yet handled")
     | s-newtype(l, name, namet) =>
       raise("s-newtype not yet handled")
-    | s-var(l, name, value) =>
-      raise("s-var not yet handled")
-    | s-let(l, name, value, keyword-val) =>
-      raise("s-let not yet handled")
     | s-graph(l, bindings) =>
       raise("s-graph not yet handled")
     | s-contract(l, name, ann) =>
@@ -215,8 +209,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
       raise("s-try not yet handled")
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
-    | s-check-test(l, op, left, right) =>
-      raise("s-check-test not yet handled")
     | s-lam(l,
           params, # Type parameters
           args, # Value parameters
@@ -289,9 +281,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
         params, # type params
         mixins, variants, shared-members, _check) =>
       raise("s-data-expr not yet handled")
-    | s-check(l, name, body, keyword-check) =>
-      raise("s-check not yet handled")
 
+    | s-check(_, _, _, _)           => raise("s-check should have been desugared")
+    | s-check-test(_, _, _, _)      => raise("s-check-test should have been desugared")
+    | s-let(_, _, _, _)             => raise("s-let should have already been desugared")
+    | s-var(_, _, _)                => raise("s-var should have already been desugared")
+    | s-user-block(_, _)            => raise("s-user-block should have already been desugared")
     | s-if-pipe(_, _)               => raise("s-if-pipe should have already been desugared")
     | s-if-pipe-else(_, _, _)       => raise("s-if-pipe-else should have already been desugared")
     | s-if(_, _)                    => raise("s-if should have already been desugared")
@@ -456,8 +451,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       end
       thunk = stmts.foldr(gen, pair(just-empty, expect-typ)).left
       A.s-block(l, thunk())
-    | s-user-block(l, body) =>
-      raise("s-user-block not yet handled")
     | s-type(l, name, ann) =>
       type-alias   = name.key()
       type-aliased = to-type-std(ann, info)
@@ -465,10 +458,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       e
     | s-newtype(l, name, namet) =>
       raise("s-newtype not yet handled")
-    | s-var(l, name, value) =>
-      raise("s-var not yet handled")
-    | s-let(l, name, value, keyword-val) =>
-      raise("s-let not yet handled")
     | s-graph(l, bindings) =>
       raise("s-graph not yet handled")
     | s-contract(l, name, ann) =>
@@ -494,8 +483,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-try not yet handled")
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
-    | s-check-test(l, op, left, right) =>
-      raise("s-check-test not yet handled")
     | s-lam(l,
           params, # Type parameters
           args, # Value parameters
@@ -567,9 +554,12 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
         params, # type params
         mixins, variants, shared-members, _check) =>
       raise("s-data-expr not yet handled")
-    | s-check(l, name, body, keyword-check) =>
-      raise("s-check not yet handled")
 
+    | s-check(_, _, _, _)           => raise("s-check should have been desugared")
+    | s-check-test(l, _, _, _)      => raise("s-check-test should have been desugared")
+    | s-let(_, _, _, _)             => raise("s-let should have already been desugared")
+    | s-var(_, _, _)                => raise("s-var should have already been desugared")
+    | s-user-block(_, _)            => raise("s-user-block should have already been desugared")
     | s-if-pipe(_, _)               => raise("s-if-pipe should have already been desugared")
     | s-if-pipe-else(_, _, _)       => raise("s-if-pipe-else should have already been desugared")
     | s-if(_, _)                    => raise("s-if should have already been desugared")
