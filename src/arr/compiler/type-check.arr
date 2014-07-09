@@ -5,7 +5,22 @@ provide-types *
 import ast as A
 import string-dict as SD
 import "compiler/compile-structs.arr" as C
-import "compiler/ast-util.arr" as U
+
+shadow fold2 = lam(f, base, l1, l2):
+                 if l1.length() <> l2.length():
+                   raise("Lists are not equal in length!")
+                 else:
+                   fold2(f, base, l1, l2)
+                 end
+               end
+
+shadow map2 = lam(f, l1, l2):
+                 if l1.length() <> l2.length():
+                   raise("Lists are not equal in length!")
+                 else:
+                   map2(f, l1, l2)
+                 end
+               end
 
 data Pair<L,R>:
   | pair(left :: L, right :: R)
@@ -18,16 +33,46 @@ sharing:
   end
 end
 
+data Comparison:
+  | LessThan
+  | Equal
+  | GreaterThan
+end
+
+fun <T> list-compare(a :: List<T>, b :: List<T>) -> Comparison:
+  cases(List<T>) a:
+    | empty =>
+      if is-link(b):
+        LessThan
+      else:
+        Equal
+      end
+    | link(a-f, a-r) =>
+      cases(List<T>) b:
+        | empty =>
+          GreaterThan
+        | link(b-f, b-r) =>
+          if a-f < b-f:
+            LessThan
+          else if a-f == b-f:
+            list-compare(a-r, b-r)
+          else:
+            GreaterThan
+          end
+      end
+  end
+end
+
 data TypeVariable:
   | t-variable(l :: A.Loc, id :: String, upper-bound :: Type) # bound = Top is effectively unbounded
 end
 
 data Type:
   | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
-  | t-arrow(l :: A.Loc, args :: List<Type>, ret :: Type)
+  | t-var(id :: String)
+  | t-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type)
   | t-top
   | t-bot
-  | t-forall(l :: A.Loc, typs :: List<TypeVariable>, body :: Type)
 sharing:
   satisfies-type(self, other :: Type) -> Boolean:
     cases(Type) self:
@@ -38,10 +83,16 @@ sharing:
             (module-name == other-module) and (id == other-id)
           | else => false
         end
-      | t-arrow(_, args, ret) =>
+      | t-var(id) =>
         cases(Type) other:
           | t-top => true
-          | t-arrow(_, other-args, other-ret) =>
+          | t-var(other-id) => id == other-id
+          | else => false
+        end
+      | t-arrow(_, forall, args, ret) =>
+        cases(Type) other:
+          | t-top => true
+          | t-arrow(_, other-forall, other-args, other-ret) =>
             for lists.fold2(res from true, this-arg from self.args, other-arg from other-args):
               res and other-arg.satisfies-type(this-arg)
             end and ret.satisfies-type(other-ret)
@@ -58,7 +109,9 @@ sharing:
           | none    => id
           | some(m) => m + "." + id
         end
-      | t-arrow(l, args, ret) =>
+      | t-var(id) =>
+        id
+      | t-arrow(l, forall, args, ret) =>
         "(" + args.map(_.tostring()).join-str(", ") + " -> " + ret.tostring() + ")"
       | t-top =>
         "Top"
@@ -69,9 +122,87 @@ sharing:
   toloc(self) -> A.Loc:
     cases(Type) self:
       | t-name(l, module-name, id) => l
-      | t-arrow(l, args, ret) => l
+      | t-arrow(l, forall, args, ret) => l
+      | t-var(_) => A.dummy-loc
       | t-top => A.dummy-loc
       | t-bot => A.dummy-loc
+    end
+  end,
+  substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
+    if self == orig-typ:
+      new-typ
+    else:
+      cases(Type) self:
+        | t-arrow(l, forall, args, ret) =>
+          new-args = args.map(_.substitute(orig-typ, new-typ))
+          new-ret  = ret.substitute(orig-typ, new-typ)
+          t-arrow(l, forall, new-args, new-ret)
+        | else =>
+          self
+      end
+    end
+  end,
+  _lessthan(self, other :: Type) -> Boolean:
+    cases(Type) self:
+      | t-bot =>
+        true
+      | t-name(a-l, a-module-name, a-id) =>
+        cases(Type) other:
+          | t-bot =>
+            false
+          | t-name(b-l, b-module-name, b-id) =>
+            (a-l < b-l) or
+              ((a-l == b-l) and
+                ((a-module-name < b-module-name) or
+                  ((a-module-name == b-module-name) and (a-id < b-id))))
+          | t-var(_) =>
+            true
+          | t-arrow(_, _, _, _) =>
+            true
+          | t-top =>
+            true
+        end
+      | t-var(a-id) =>
+        cases(Type) other:
+          | t-bot =>
+            false
+          | t-name(_, _, _) =>
+            false
+          | t-var(b-id) =>
+            a-id < b-id
+          | t-arrow(_, _, _, _) =>
+            true
+          | t-top =>
+            true
+        end
+      | t-arrow(a-l, a-forall, a-args, a-ret) =>
+        cases(Type) other:
+          | t-bot =>
+            false
+          | t-name(_, _, _) =>
+            false
+          | t-var(id) =>
+            false
+          | t-arrow(b-l, b-forall, b-args, b-ret) =>
+            (a-l < b-l) or
+              ((a-l == b-l) and
+                cases(Comparison) list-compare(a-forall, b-forall):
+                  | LessThan =>
+                    true
+                  | Equal =>
+                    cases(Comparison) list-compare(a-args, b-args):
+                      | LessThan    => true
+                      | Equal       => a-ret < b-ret
+                      | GreaterThan => false
+                    end
+                  | GreaterThan =>
+                    false
+                end)
+          | t-top =>
+            true
+        end
+      | t-top =>
+        false
     end
   end
 end
@@ -88,12 +219,16 @@ fun least-upper-bound(s :: Type, t :: Type) -> Type:
     s
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-args, s-ret) =>
+      | t-arrow(s-l, s-forall, s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-args, t-ret) =>
-            m-args = lists.map2(greatest-lower-bound, s-args, t-args)
-            j-typ  = least-upper-bound(s-ret, t-ret)
-            t-arrow(A.dummy-loc, m-args, j-typ)
+          | t-arrow(t-l, t-forall, t-args, t-ret) =>
+            if s-forall == t-forall:
+              m-args = lists.map2(greatest-lower-bound, s-args, t-args)
+              j-typ  = least-upper-bound(s-ret, t-ret)
+              t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
+            else:
+              t-top
+            end
           | else => t-top
         end
       | else => t-top
@@ -108,18 +243,25 @@ fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
     t
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-args, s-ret) =>
+      | t-arrow(s-l, s-forall, s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-args, t-ret) =>
-            m-args = lists.map2(least-upper-bound, s-args, t-args)
-            j-typ  = greatest-lower-bound(s-ret, t-ret)
-            t-arrow(A.dummy-loc, m-args, j-typ)
+          | t-arrow(t-l, t-forall, t-args, t-ret) =>
+            if s-forall == t-forall:
+              m-args = lists.map2(least-upper-bound, s-args, t-args)
+              j-typ  = greatest-lower-bound(s-ret, t-ret)
+              t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
+            else:
+              t-bot
+            end
           | else => t-bot
         end
       | else => t-bot
     end
   end
 end
+
+
+
 
 data TCInfo:
   | tc-info(typs       :: SD.StringDict,
@@ -132,17 +274,18 @@ end
 fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Option<Type>:
   cases(A.Ann) in-ann:
     | a-blank =>
-      # TODO(cody): At some point, this will probably need to be some other
-      # type, to accommodate gradual typing. For now, just make it t-top.
       none
     | a-any =>
       some(t-top)
     | a-name(l, id) =>
       some(t-name(l, none, id.key()))
+    | a-type-var(l, id) =>
+      some(t-var(id.key()))
     | a-arrow(l, args, ret, use-parens) =>
-      arg-typs = args.map(to-type(_, info).or-else(t-bot))
-      ret-type = to-type(ret, info).or-else(t-top)
-      some(t-arrow(l, arg-typs, ret-type))
+      arg-typs = args.map(lam(x): to-type(x, info).or-else(t-bot) end)
+      ret-typ  = to-type(ret, info).or-else(t-top)
+      forall   = empty
+      some(t-arrow(l, forall, arg-typs, ret-typ))
     | a-method(l, args, ret) =>
       raise("a-method not yet handled:" + torepr(in-ann))
     | a-record(l, fields) =>
@@ -184,9 +327,12 @@ end
 
 
 fun synthesis-fun(
-  l :: A.Loc, body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann,
+  l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> Pair<A.Expr, Type>:
+  forall   = for map(param from params):
+               t-variable(A.dummy-loc, param.key(), t-top)
+             end
   arg-typs = args.foldr(lam(arg :: A.Bind, base :: List<Type>):
                           arg-typ = to-type-std(arg.ann, info)
                           info.typs.set(arg.id.key(), arg-typ)
@@ -195,7 +341,7 @@ fun synthesis-fun(
   new-body = synthesis(body, info)
   ret-typ  = ensure-satisfies(new-body.right, ret-ann, info)
   new-fun  = recreate(args, ret-ann, new-body.left)
-  fun-typ  = t-arrow(l, arg-typs, ret-typ)
+  fun-typ  = t-arrow(l, forall, arg-typs, ret-typ)
   pair(new-fun, fun-typ)
 end
 
@@ -288,12 +434,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
           args, # Value parameters
           ann, # return type
           doc, body, _check) =>
-      synthesis-fun(l, body, args, ann, A.s-lam(l, params, _, _, doc, _, _check), info)
+      synthesis-fun(l, body, params, args, ann, A.s-lam(l, params, _, _, doc, _, _check), info)
     | s-method(l,
         args, # Value parameters
         ann, # return type
         doc, body, _check) =>
-      synthesis-fun(l, body, args, ann, A.s-method(l, _, _, doc, _, _check), info)
+      synthesis-fun(l, body, empty, args, ann, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
       raise("s-extend not yet handled")
     | s-update(l, supe, fields) =>
@@ -386,9 +532,12 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> Pair<A.Expr, Typ
   end
 end
 
-fun check-fun(body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> A.Expr:
+fun check-fun(body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> A.Expr:
+  forall   = for map(param from params):
+               t-variable(A.dummy-loc, param.key(), t-top)
+             end
   arg-typs = cases(Type) expect-typ:
-               | t-arrow(_, expect-args, _) =>
+               | t-arrow(_, _, expect-args, _) =>
                  for map2(arg from args, expect-arg from expect-args):
                    arg-typ = to-type(arg.ann, info).or-else(expect-arg)
                    info.typs.set(arg.id.key(), arg-typ)
@@ -402,23 +551,23 @@ fun check-fun(body :: A.Expr, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ
                  end
              end
   ret-typ  = cases(Type) expect-typ:
-               | t-arrow(_, _, expect-ret) =>
+               | t-arrow(_, _, _, expect-ret) =>
                  to-type(ret-ann, info).or-else(expect-ret)
                | else =>
                  to-type-std(ret-ann, info)
              end
-  arrow-typ = t-arrow(A.dummy-loc, arg-typs, ret-typ)
+  arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
   new-body  = checking(body, ret-typ, info)
   new-fun   = recreate(args, ret-ann, new-body)
   check-and-return(arrow-typ, expect-typ, new-fun, info)
 end
 
-fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> List<A.Expr>:
+fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> Pair<List<A.Expr>, Type>:
   cases(Type) arrow-typ:
-    | t-arrow(_, arg-typs, ret-typ) =>
-      new-args = for lists.map2(arg from args, arg-typ from arg-typs):
-        checking(arg, arg-typ, info)
-      end
+    | t-arrow(_, forall, arg-typs, ret-typ) =>
+      new-args = for map2(arg from args, arg-typ from arg-typs):
+                   checking(arg, arg-typ, info)
+                 end
       pair(new-args, ret-typ)
     | t-bot =>
       pair(args, t-bot)
@@ -529,12 +678,12 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
           args, # Value parameters
           ann, # return type
           doc, body, _check) =>
-      check-fun(body, args, ann, expect-typ, A.s-lam(l, params, _, _, doc, _, _check), info)
+      check-fun(body, params, args, ann, expect-typ, A.s-lam(l, params, _, _, doc, _, _check), info)
     | s-method(l,
         args, # Value parameters
         ann, # return type
         doc, body, _check) =>
-      check-fun(body, args, ann, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
+      check-fun(body, empty, args, ann, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
       raise("s-extend not yet handled")
     | s-update(l, supe, fields) =>
@@ -611,14 +760,19 @@ end
 
 default-typs = SD.string-dict()
 default-typs.set("global#nothing", t-name(A.dummy-loc, none, "tglobal#Nothing"))
-default-typs.set("isBoolean", t-arrow(A.dummy-loc, [list: t-top], t-boolean))
+default-typs.set("isBoolean", t-arrow(A.dummy-loc, empty, [list: t-top], t-boolean))
 default-typs.set("throwNonBooleanCondition",
-                 t-arrow(A.dummy-loc, [list: t-srcloc,
-                                             t-string,
-                                             t-top], t-bot))
-default-typs.set("equiv", t-arrow(A.dummy-loc, [list: t-top, t-top], t-boolean))
-default-typs.set("global#_times", t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
-default-typs.set("global#_minus", t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
+                 t-arrow(A.dummy-loc, empty, [list: t-srcloc,
+                                                    t-string,
+                                                    t-top], t-bot))
+default-typs.set("throwNoBranchesMatched",
+                 t-arrow(A.dummy-loc, empty, [list: t-srcloc,
+                                                    t-string], t-bot))
+default-typs.set("equiv", t-arrow(A.dummy-loc, empty, [list: t-top, t-top], t-boolean))
+default-typs.set("global#_times", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set("global#_minus", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set("global#_divide", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set("global#_plus", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
 
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
