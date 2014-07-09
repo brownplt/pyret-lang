@@ -294,6 +294,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           k.apply(l, N.a-prim-app(l, f, vs))
         end)
 
+    | s-instantiate(_, body, _) =>
+      anf(body, k)
+
     | s-dot(l, obj, field) =>
       anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, field)) end)
 

@@ -83,6 +83,11 @@ data CompileError:
       "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
         + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name
     end
+  | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
+    tostring(self):
+      "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
+        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given)
+    end
 end
 
 data CompileTypeBinding:

@@ -4,11 +4,15 @@ provide *
 provide-types *
 import ast as A
 import string-dict as SD
+import srcloc as SL
 import "compiler/compile-structs.arr" as C
 import "compiler/type-structs.arr" as TS
 import "compiler/type-constraints.arr" as TC
 
+type Loc = SL.Srcloc
+
 type Type            = TS.Type
+type TypeVariable    = TS.TypeVariable
 type Pair            = TS.Pair
 pair                 = TS.pair
 t-name               = TS.t-name
@@ -148,6 +152,39 @@ fun lookup-id(id, info :: TCInfo) -> Type:
   end
 end
 
+fun remove-foralls(l :: Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type, replacements :: List<Type>, info :: TCInfo) -> Type:
+  n = for fold2(curr from pair(args, ret), variable from forall, typ from replacements):
+        to-replace  = t-var(variable.id)
+        replacement = typ
+        upper       = variable.upper-bound
+        new-args    = curr.left.map(_.substitute(to-replace, replacement))
+        new-ret     = curr.right.substitute(to-replace, replacement)
+        check-and-return(typ, upper, pair(new-args, new-ret), info)
+      end
+  t-arrow(l, empty, n.left, n.right)
+end
+
+fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, info :: TCInfo) -> Pair<A.Expr, Type>:
+  result    = synthesis(expr, info)
+  new-expr  = result.left
+  new-typ   = cases(Type) result.right:
+                | t-arrow(l2, forall, args, ret) =>
+                  new-typs = params.map(to-type-std(_, info))
+                  new-typs-length = new-typs.length()
+                  forall-length   = forall.length()
+                  if new-typs-length == forall-length:
+                    remove-foralls(l2, forall, args, ret, new-typs, info)
+                  else:
+                    info.errors.insert(C.bad-type-instantiation(forall-length, new-typs-length, l))
+                    t-top
+                  end
+                | else =>
+                  info.errors.insert(C.incorrect-type(result.right.tostring(), result.right.toloc(), "a function", l))
+                  t-top
+              end
+  pair(A.s-instantiate(l, new-expr, params), new-typ)
+end
+
 fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
   cases(A.Expr) e:
     | s-module(l, answer, provides, types, checks) =>
@@ -167,7 +204,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-hint-exp(l, hints, exp) =>
       raise("s-hint-exp not yet handled")
     | s-instantiate(l, expr, params) =>
-      raise("s-instantiate not yet handled")
+      synthesis-instantiation(l, expr, params, info)
     | s-block(l, stmts) =>
       var typ = t-top
       new-stmts = for map(stmt from stmts):
@@ -438,7 +475,8 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
     | s-hint-exp(l, hints, exp) =>
       raise("s-hint-exp not yet handled")
     | s-instantiate(l, expr, params) =>
-      raise("s-instantiate not yet handled")
+      result = synthesis-instantiation(l, expr, params, info)
+      check-and-return(result.right, expect-typ, result.left, info)
     | s-block(l, stmts) =>
       fun gen(curr-stmt, fun-typ):
         pair(lam():
