@@ -299,7 +299,10 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test bootstrap-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test
+
+.PHONY : test-all
+test-all: test bootstrap-test docs-test
 
 .PHONY : runtime-test
 runtime-test : $(PHASE1)/phase1.built
@@ -342,7 +345,11 @@ bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
 	$(NODE) $(PHASE1)/main-wrapper.js \
     --module-load-dir tests/pyret \
     --dialect Bootstrap \
-    -check-all tests/pyret/bootstrap-main.arr \
+    -check-all tests/pyret/bootstrap-main.arr
+
+.PHONY : docs-test
+docs-test: docs
+	cd docs/written && scribble --htmls test-harness.scrbl
 
 .PHONY : clean
 clean:
