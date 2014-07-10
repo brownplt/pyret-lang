@@ -2,6 +2,7 @@ provide *
 provide-types *
 
 import ast as A
+import string-dict as SD
 
 shadow fold2 = lam(f, base, l1, l2):
                  if l1.length() <> l2.length():
@@ -64,12 +65,28 @@ data TypeVariable:
   | t-variable(l :: A.Loc, id :: String, upper-bound :: Type) # bound = Top is effectively unbounded
 end
 
+data TypeMember:
+  | type-member(field-name :: String, typ :: Type)
+end
+
+data TypeVariant:
+  | type-variant(fields      :: List<TypeMember>,
+                 with-fields :: List<TypeMember>)
+end
+
+data DataType:
+  | t-datatype(params   :: List<TypeVariable>,
+               variants :: SD.StringDict<TypeVariant>,
+               fields   :: List<TypeMember>) # common (with-)fields, shared methods, etc
+end
+
 data Type:
   | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
   | t-var(id :: String)
   | t-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type)
   | t-top
   | t-bot
+#  | t-app(onto :: Type % (is-t-name), introduced :: List<Type>)
 sharing:
   satisfies-type(self, other :: Type) -> Boolean:
     cases(Type) self:
@@ -256,4 +273,3 @@ fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
     end
   end
 end
-
