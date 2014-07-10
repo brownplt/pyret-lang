@@ -45,6 +45,42 @@ example-n = t-name(A.dummy-loc, none, "Foo")
 example-o = t-top
 example-p = t-bot
 
+test-to-remove = [set: example-a]
+test-binds     = SD.immutable-string-dict().set(example-a.tostring(), t-top)
+example-a-promoted = t-top
+example-a-demoted  = t-bot
+example-b-promoted = example-b
+example-b-demoted  = example-b
+example-c-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted, example-a-demoted], example-b-promoted)
+example-c-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted, example-a-promoted], example-b-demoted)
+example-d-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted, example-b-demoted], example-a-promoted)
+example-d-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted, example-b-promoted], example-a-demoted)
+example-e-promoted = t-arrow(A.dummy-loc, [list:], [list: example-a-demoted], example-a-promoted)
+example-e-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-a-promoted], example-a-demoted)
+example-f-promoted = t-arrow(A.dummy-loc, [list:], [list: example-e-demoted], example-b-promoted)
+example-f-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-e-promoted], example-b-demoted)
+example-g-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-e-promoted)
+example-g-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-e-demoted)
+example-h-promoted = t-arrow(A.dummy-loc, [list:], [list: example-e-demoted], example-e-promoted)
+example-h-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-e-promoted], example-e-demoted)
+example-i-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-d-promoted)
+example-i-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-d-demoted)
+example-j-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-b-promoted)
+example-j-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-b-demoted)
+example-k-promoted = t-arrow(A.dummy-loc, [list:], [list: example-c-demoted], example-b-promoted)
+example-k-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-c-promoted], example-b-demoted)
+example-l-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-c-promoted)
+example-l-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-c-demoted)
+example-m-promoted = t-arrow(A.dummy-loc, [list:], [list: example-d-demoted], example-b-promoted)
+example-m-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-d-promoted], example-b-demoted)
+example-n-promoted = t-name(A.dummy-loc, none, "Foo")
+example-n-demoted  = t-name(A.dummy-loc, none, "Foo")
+example-o-promoted = t-top
+example-o-demoted  = t-top
+example-p-promoted = t-bot
+example-p-demoted  = t-bot
+
+
 fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
     + for map(key from dict.keys()):
@@ -152,13 +188,45 @@ fun move-down(_ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
 end
 
 fun least-supertype(typ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
-  result = eliminate-variables(typ, binds, to-remove, pair(t-top, move-up), pair(t-bot, move-down))
-  result
+  eliminate-variables(typ, binds, to-remove, pair(t-top, move-up), pair(t-bot, move-down))
+where:
+  least-supertype(example-a, test-binds, test-to-remove) is example-a-promoted
+  least-supertype(example-b, test-binds, test-to-remove) is example-b-promoted
+  least-supertype(example-c, test-binds, test-to-remove) is example-c-promoted
+  least-supertype(example-d, test-binds, test-to-remove) is example-d-promoted
+  least-supertype(example-e, test-binds, test-to-remove) is example-e-promoted
+  least-supertype(example-f, test-binds, test-to-remove) is example-f-promoted
+  least-supertype(example-g, test-binds, test-to-remove) is example-g-promoted
+  least-supertype(example-h, test-binds, test-to-remove) is example-h-promoted
+  least-supertype(example-i, test-binds, test-to-remove) is example-i-promoted
+  least-supertype(example-j, test-binds, test-to-remove) is example-j-promoted
+  least-supertype(example-k, test-binds, test-to-remove) is example-k-promoted
+  least-supertype(example-l, test-binds, test-to-remove) is example-l-promoted
+  least-supertype(example-m, test-binds, test-to-remove) is example-m-promoted
+  least-supertype(example-n, test-binds, test-to-remove) is example-n-promoted
+  least-supertype(example-o, test-binds, test-to-remove) is example-o-promoted
+  least-supertype(example-p, test-binds, test-to-remove) is example-p-promoted
 end
 
 fun greatest-subtype(typ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
-  result = eliminate-variables(typ, binds, to-remove, pair(t-bot, move-down), pair(t-top, move-up))
-  result
+  eliminate-variables(typ, binds, to-remove, pair(t-bot, move-down), pair(t-top, move-up))
+where:
+  greatest-subtype(example-a, test-binds, test-to-remove) is example-a-demoted
+  greatest-subtype(example-b, test-binds, test-to-remove) is example-b-demoted
+  greatest-subtype(example-c, test-binds, test-to-remove) is example-c-demoted
+  greatest-subtype(example-d, test-binds, test-to-remove) is example-d-demoted
+  greatest-subtype(example-e, test-binds, test-to-remove) is example-e-demoted
+  greatest-subtype(example-f, test-binds, test-to-remove) is example-f-demoted
+  greatest-subtype(example-g, test-binds, test-to-remove) is example-g-demoted
+  greatest-subtype(example-h, test-binds, test-to-remove) is example-h-demoted
+  greatest-subtype(example-i, test-binds, test-to-remove) is example-i-demoted
+  greatest-subtype(example-j, test-binds, test-to-remove) is example-j-demoted
+  greatest-subtype(example-k, test-binds, test-to-remove) is example-k-demoted
+  greatest-subtype(example-l, test-binds, test-to-remove) is example-l-demoted
+  greatest-subtype(example-m, test-binds, test-to-remove) is example-m-demoted
+  greatest-subtype(example-n, test-binds, test-to-remove) is example-n-demoted
+  greatest-subtype(example-o, test-binds, test-to-remove) is example-o-demoted
+  greatest-subtype(example-p, test-binds, test-to-remove) is example-p-demoted
 end
 
 data TypeConstraint:
