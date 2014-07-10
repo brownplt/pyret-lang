@@ -56,9 +56,9 @@ shadow map2 = lam(f, l1, l2):
 
 
 data TCInfo:
-  | tc-info(typs       :: SD.StringDict,
-            aliases    :: SD.StringDict,
-            data-exprs :: SD.StringDict,
+  | tc-info(typs       :: SD.StringDict<Type>,
+            aliases    :: SD.StringDict<Type>,
+            data-exprs :: SD.StringDict<DataType>,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
 end
