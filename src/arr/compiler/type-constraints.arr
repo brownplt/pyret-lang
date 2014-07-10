@@ -41,6 +41,9 @@ example-j = t-arrow(A.dummy-loc, [list:], [list: example-b], example-b)
 example-k = t-arrow(A.dummy-loc, [list:], [list: example-c], example-b)
 example-l = t-arrow(A.dummy-loc, [list:], [list: example-b], example-c)
 example-m = t-arrow(A.dummy-loc, [list:], [list: example-d], example-b)
+example-n = t-name(A.dummy-loc, none, "Foo")
+example-o = t-top
+example-p = t-bot
 
 fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
@@ -73,6 +76,23 @@ fun free-vars(t :: Type) -> Set<Type>:
     | t-bot =>
       [set: ]
   end
+where:
+  free-vars(example-a) satisfies [set: example-a]._equals
+  free-vars(example-b) satisfies [set: example-b]._equals
+  free-vars(example-c) satisfies [set: example-a, example-b]._equals
+  free-vars(example-d) satisfies [set: example-a, example-b]._equals
+  free-vars(example-e) satisfies [set: example-a]._equals
+  free-vars(example-f) satisfies [set: example-a, example-b]._equals
+  free-vars(example-g) satisfies [set: example-a, example-b]._equals
+  free-vars(example-h) satisfies [set: example-a]._equals
+  free-vars(example-i) satisfies [set: example-a, example-b]._equals
+  free-vars(example-j) satisfies [set: example-b]._equals
+  free-vars(example-k) satisfies [set: example-a, example-b]._equals
+  free-vars(example-l) satisfies [set: example-a, example-b]._equals
+  free-vars(example-m) satisfies [set: example-a, example-b]._equals
+  free-vars(example-n) satisfies [set: ]._equals
+  free-vars(example-o) satisfies [set: ]._equals
+  free-vars(example-p) satisfies [set: ]._equals
 end
 
 type Bindings      = SD.StringDict<Type>
@@ -220,6 +240,9 @@ where:
   is-constant(example-a, example-k) is false
   is-constant(example-a, example-l) is false
   is-constant(example-a, example-m) is false
+  is-constant(example-a, example-n) is true
+  is-constant(example-a, example-o) is true
+  is-constant(example-a, example-p) is true
 end
 
 fun is-covariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
@@ -257,6 +280,9 @@ where:
   is-covariant(example-a, example-k) is true
   is-covariant(example-a, example-l) is false
   is-covariant(example-a, example-m) is false
+  is-covariant(example-a, example-n) is false
+  is-covariant(example-a, example-o) is false
+  is-covariant(example-a, example-p) is false
 end
 
 fun is-contravariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
@@ -290,6 +316,9 @@ where:
   is-contravariant(example-a, example-k) is false
   is-contravariant(example-a, example-l) is true
   is-contravariant(example-a, example-m) is true
+  is-contravariant(example-a, example-n) is false
+  is-contravariant(example-a, example-o) is false
+  is-contravariant(example-a, example-p) is false
 end
 
 fun is-invariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
@@ -324,6 +353,9 @@ where:
   is-invariant(example-a, example-k) is false
   is-invariant(example-a, example-l) is false
   is-invariant(example-a, example-m) is false
+  is-invariant(example-a, example-n) is false
+  is-invariant(example-a, example-o) is false
+  is-invariant(example-a, example-p) is false
 end
 
 
