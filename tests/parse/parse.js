@@ -81,7 +81,7 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("fun<A > print(): end")).not.toBe(false);
     });
 
-    it("should not treat rparens after operators as application", function() {
+    it("should not treat (...) after operators as application", function() {
       expect(parse("(true) or (false)")).not.toBe(false);
       expect(parse("(true) < (false)")).not.toBe(false);
       expect(parse("(true) > (false)")).not.toBe(false);
@@ -94,32 +94,45 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     it("should not mind ; at EOL, and then another statement", function() {
       var a = "  fun<T> x(x :: T) -> T: x;";
       expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
+      expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
     });
 
-    it("should require space after :: and =>", function() {
+    it("should require whitespace after :: and =>", function() {
       expect(parse("cases (T) x: | Foo() =>(true) end")).toBe(false);
       expect(parse("cases (T) x: | Foo() => (true) end")).not.toBe(false);
+      expect(parse("cases (T) x: | Foo() =>\n(true) end")).not.toBe(false);
       expect(parse("block: dog ::Cat = really-huh end")).toBe(false);
       expect(parse("block: dog :: Cat = really-huh end")).not.toBe(false);
+      expect(parse("block: dog :: Cat =\nreally-huh end")).not.toBe(false);
     });
 
-    it("should trait rparens as grouping after ,", function() {
+    it("should trait (...) as grouping after ,", function() {
       expect(parse("[list: x,(x)]")).not.toBe(false);
+      expect(parse("[list: x , (x)]")).not.toBe(false);
+      expect(parse("[list: x ,\n(x)]")).not.toBe(false);
     });
-    it("should trait rparens as grouping after :", function() {
+    it("should trait (...) as grouping after :", function() {
       expect(parse("{ asdf:(asdf) }")).not.toBe(false);
+      expect(parse("{ asdf : (asdf) }")).not.toBe(false);
+      expect(parse("{ asdf :\n(asdf) }")).not.toBe(false);
     });
 
-    it("should trait rparens as grouping after =", function() {
+    it("should trait (...) as grouping after =", function() {
       expect(parse("block: x=(x) end")).not.toBe(false);
+      expect(parse("block: x = (x) end")).not.toBe(false);
+      expect(parse("block: x =\n(x) end")).not.toBe(false);
     });
 
-    it("should trait rparens as grouping after :=", function() {
+    it("should trait (...) as grouping after :=", function() {
       expect(parse("block: x:=(x) end")).not.toBe(false);
+      expect(parse("block: x := (x) end")).not.toBe(false);
+      expect(parse("block: x :=\n(x) end")).not.toBe(false);
     });
 
-    it("should trait rparens as grouping after ;", function() {
+    it("should trait (...) as grouping after ;", function() {
       expect(parse("block: lam(x): x;(x);")).not.toBe(false);
+      expect(parse("block: lam(x): x ; (x);")).not.toBe(false);
+      expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
     });
 
   });
