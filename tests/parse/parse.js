@@ -53,6 +53,27 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("provide-types { List :: List, x :: (Number -> String) }")).not.toBe(false);
     });
 
+    it("shouldn't parse expressions in provide-types", function() {
+      expect(parse("provide-types { List :: 5 + 5 }")).toBe(false);
+      expect(parse("provide-types { List :: List, x :: lam(x): x end }")).toBe(false);
+    });
+
+    it("shouldn't allow english ops as identifiers, no matter the whitespace", function() {
+      // NOTE(joe): See John Ericson's comment about changing the tokenizer
+      // at https://github.com/brownplt/pyret-lang/pull/220#issuecomment-48685416
+      // if this turns into a regression
+      expect(parse("or=false")).toBe(false);
+      expect(parse("and=false")).toBe(false);
+      expect(parse("or =false")).toBe(false);
+      expect(parse("and =false")).toBe(false);
+      expect(parse("or= false")).toBe(false);
+      expect(parse("and= false")).toBe(false);
+      expect(parse("or = false")).toBe(false);
+      expect(parse("and = false")).toBe(false);
+      expect(parse("or \n = \n  false")).toBe(false);
+      expect(parse("and \n = \n false")).toBe(false);
+    });
+
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
