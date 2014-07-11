@@ -251,7 +251,7 @@ sharing:
       | Equality(s) =>
         cases(TypeConstraint) other:
           | Equality(t) =>
-            if s._equals(t):
+            if s == t:
               some(self)
             else:
               undefined
@@ -438,14 +438,7 @@ fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
 end
 
 fun is-rigid(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  cases(Type) r:
-    | t-arrow(l, forall, args, ret) =>
-      for fold(base from false, arg from args):
-        base or is-invariant(x, arg)
-      end or is-invariant(x, ret)
-    | else =>
-      false
-  end
+  is-invariant(x, r) # This should be fine for now.
 end
 
 fun is-rigid-under(r :: Type, binds :: Bindings) -> Boolean:
@@ -514,7 +507,7 @@ sharing:
     else if is-rigid(x, r) and constraint.is-rigid(binds):
       constraint.min()
     else:
-      raise("Substitution is undefined!")
+      raise("Substitution is undefined! x = " + torepr(x) + ", r = " + torepr(r) + ", constraint = " + torepr(constraint))
     end
   end,
   tostring(self) -> String:
