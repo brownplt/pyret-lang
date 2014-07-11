@@ -62,16 +62,24 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       // NOTE(joe): See John Ericson's comment about changing the tokenizer
       // at https://github.com/brownplt/pyret-lang/pull/220#issuecomment-48685416
       // if this turns into a regression
-      expect(parse("or=false")).toBe(false);
-      expect(parse("and=false")).toBe(false);
-      expect(parse("or =false")).toBe(false);
-      expect(parse("and =false")).toBe(false);
-      expect(parse("or= false")).toBe(false);
-      expect(parse("and= false")).toBe(false);
-      expect(parse("or = false")).toBe(false);
-      expect(parse("and = false")).toBe(false);
-      expect(parse("or \n = \n  false")).toBe(false);
-      expect(parse("and \n = \n false")).toBe(false);
+
+      const wss = [" ", " \n", "\n ", " \n "];
+      const ops = ["or", "and", "is", "raises"];
+
+      for (var i = 0; i < wss.length; ++i) {
+        const op = ops[j];
+
+        expect(parse(op + "=" + "false")).toBe(false);
+
+        for (var j = 0; j < ops.length; ++j) {
+          const ws = wss[i];
+
+          expect(parse("(" + op + ws + op + ws + op + ")")).toBe(false);
+          expect(parse(op + ws + "="      + "false")).toBe(false);
+          expect(parse(op +      "=" + ws + "false")).toBe(false);
+          expect(parse(op + ws + "=" + ws + "false")).toBe(false);
+        }
+      }
     });
 
     it("should notice parse errors", function() {
@@ -155,14 +163,6 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block: lam(x): x ; (x);")).not.toBe(false);
       expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
     });
-
-    it("should not accept ops as identifiers", function() {
-      const kw_op = ["or", "and", "is", "raises"];
-      for (var i = 0; i < kw_op.length; ++i) {
-        const op = kw_op[i];
-        expect(parse("(" + op + " " + op + " " + op + ")")).toBe(false);
-      }
-    })
 
   });
 });
