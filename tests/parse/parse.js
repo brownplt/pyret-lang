@@ -56,8 +56,63 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
-    })
+    });
+
+    it("should parse angle brackets without whitespace as type instantiations", function() {
+      expect(parse("(map<A, B>)")).not.toBe(false);
+      expect(parse("map<A, B>(id)")).not.toBe(false);
+      expect(parse("(map < A, B > (id))")).toBe(false);
+      expect(parse("(map\n<\nA, B\n>\n(id))")).toBe(false);
+      expect(parse("map<A,\nB>(id)")).not.toBe(false);
+    });
+
+    it("should parse angle brackets with whitespace as gt/lt", function() {
+      expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
+      expect(parse("1<\n2 or false, B > (id)")).toBe(false);
+    });
+
+    it("should not care about whitespace and angle brackets in annotations", function() {
+      expect(parse("fun<A>print(): end")).not.toBe(false);
+      expect(parse("fun< A>print(): end")).not.toBe(false);
+      expect(parse("fun <A>print(): end")).not.toBe(false);
+      expect(parse("fun < A>print(): end")).not.toBe(false);
+      expect(parse("fun<A >print(): end")).not.toBe(false);
+      expect(parse("fun<A> print(): end")).not.toBe(false);
+      expect(parse("fun<A > print(): end")).not.toBe(false);
+    });
+
+    it("should not treat rparens after operators as application", function() {
+      expect(parse("(true) or (false)")).not.toBe(false);
+      expect(parse("(true) < (false)")).not.toBe(false);
+      expect(parse("(true) > (false)")).not.toBe(false);
+    });
+
+    it("should not mind ; at EOF", function() {
+      expect(parse("lam<T>(x :: T) -> T: x;")).not.toBe(false);
+    });
+
+    it("should require space after :: and =>", function() {
+      expect(parse("cases (T) x: | Foo() =>(true) end")).toBe(false);
+      expect(parse("cases (T) x: | Foo() => (true) end")).not.toBe(false);
+      expect(parse("block: dog ::Cat = really-huh end")).toBe(false);
+      expect(parse("block: dog :: Cat = really-huh end")).not.toBe(false);
+    });
+
+    it("should trait rparens as grouping after ,", function() {
+      expect(parse("[list: x,(x)]")).not.toBe(false);
+    });
+    it("should trait rparens as grouping after :", function() {
+      expect(parse("{ asdf:(asdf) }")).not.toBe(false);
+    });
+
+    it("should trait rparens as grouping after =", function() {
+      expect(parse("block: x=(x) end")).not.toBe(false);
+    });
+
+    it("should trait rparens as grouping after :=", function() {
+      expect(parse("block: x:=(x) end")).not.toBe(false);
+    });
+
 
   });
 });
-
