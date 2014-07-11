@@ -317,7 +317,7 @@ repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
 	cd tests/repl/ && $(NODE) test.js require-test-runner/
 
 .PHONY : parse-test
-parse-test: tests/parse/parse.js
+parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
