@@ -91,6 +91,11 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("lam<T>(x :: T) -> T: x;")).not.toBe(false);
     });
 
+    it("should not mind ; at EOL, and then another statement", function() {
+      var a = "  fun<T> x(x :: T) -> T: x;";
+      expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
+    });
+
     it("should require space after :: and =>", function() {
       expect(parse("cases (T) x: | Foo() =>(true) end")).toBe(false);
       expect(parse("cases (T) x: | Foo() => (true) end")).not.toBe(false);
@@ -113,6 +118,9 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block: x:=(x) end")).not.toBe(false);
     });
 
+    it("should trait rparens as grouping after ;", function() {
+      expect(parse("block: lam(x): x;(x);")).not.toBe(false);
+    });
 
   });
 });
