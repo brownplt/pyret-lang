@@ -13,6 +13,7 @@ type Loc = SL.Srcloc
 
 type Type            = TS.Type
 type TypeVariable    = TS.TypeVariable
+type DataType        = TS.DataType
 type Pair            = TS.Pair
 pair                 = TS.pair
 t-name               = TS.t-name
