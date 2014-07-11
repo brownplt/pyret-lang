@@ -1,9 +1,15 @@
 git:
   submodules: false
+before_install:
+  - wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
+  - chmod 770 setup.sh
+  - echo y >  setup_commands
+  - echo 1 >> setup_commands
+  - echo   >> setup_commands
 language: node_js
 node_js:
   - "0.10"
-install: make install
+install: sudo ./setup.sh < setup_commands && make install
 before_script: make
-script: make test
+script: make test-all
 

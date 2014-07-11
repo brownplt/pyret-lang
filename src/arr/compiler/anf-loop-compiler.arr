@@ -543,7 +543,7 @@ compiler-visitor = {
           lbl = self.make-label()
           new-cases := concat-cons(
             j-case(lbl, j-block([list:
-                  j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
+                  j-var(helper.args.first.tostring() ^ js-id-of, j-id(ans)),
                   visited-helper.block])),
             visited-helper.new-cases)
           lbl
@@ -552,7 +552,7 @@ compiler-visitor = {
         lbl = self.make-label()
         new-cases := concat-cons(
           j-case(lbl, j-block([list:
-                j-var(helper.args.first.tostring()^js-id-of, j-id(ans)),
+                j-var(helper.args.first.tostring() ^ js-id-of, j-id(ans)),
                 visited-helper.block])),
           visited-helper.new-cases)
         lbl

@@ -825,10 +825,16 @@ end
 data Member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) with:
     label(self): "s-data-field" end,
-    tosource(self): PP.nest(INDENT, self.name + str-colonspace + self.value.tosource()) end,
+    tosource(self):
+      name-part = PP.str(self.name)
+      PP.nest(INDENT, name-part + str-colonspace + self.value.tosource())
+    end,
   | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
     label(self): "s-mutable-field" end,
-    tosource(self): PP.nest(INDENT, str-mutable + self.name + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource()) end,
+    tosource(self):
+      name-part = PP.str(self.name)
+      PP.nest(INDENT, str-mutable + name-part + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource())
+    end,
   | s-once-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
     label(self): "s-once-field" end
   | s-method-field(

@@ -1,49 +1,80 @@
-define(["js/runtime-util", "fs", "js/ffi-helpers", "s-expression"], function(util, fs, ffiLib, sexp) {
+define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util, sexp, sexpStruct) {
   return util.memoModule("s-exp", function(RUNTIME, NAMESPACE) {
-    function readSexp(s) {
-      RUNTIME.checkString(s);
-      RUNTIME.checkArity(1, arguments);
-      // Wrap in quotes to satisfy parser for simple atoms like "a"
-      var jsVal = new sexp("(" + s + ")");
-      var str = RUNTIME.makeString;
-      function convert(v) {
-        if(Array.isArray(v)) {
-          if(v.length === 0) { return RUNTIME.ffi.makeList([]); }
-          if(v[0] === "quote") {
-            RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported" + s);
+    var gf = RUNTIME.getField;
+    return RUNTIME.loadModulesNew(NAMESPACE, [sexpStruct], function(sstruct) {
+      var vals = gf(sstruct, "values");
+      var typs = gf(sstruct, "types");
+      function readSexp(s) {
+        RUNTIME.checkString(s);
+        RUNTIME.checkArity(1, arguments);
+        // Wrap in quotes to satisfy parser for simple atoms like "a"
+        var jsVal = new sexp("(" + s + ")");
+        var sList = gf(vals, "s-list");
+        var sStr = gf(vals, "s-str");
+        var sNum = gf(vals, "s-num");
+        var sSym = gf(vals, "s-sym");
+        var list = function(l) { return sList.app(RUNTIME.ffi.makeList(l)); }
+        var str = function(s) { return sStr.app(RUNTIME.makeString(s)); }
+        var num = function(nstr) { return sNum.app(RUNTIME.makeNumberFromString(nstr)); }
+        var sym = function(x) { return sSym.app(RUNTIME.makeString(x)); }
+        function convert(v) {
+          if(Array.isArray(v)) {
+            if(v.length === 0) { return list([]); }
+            if(v[0] === "quote") {
+              RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported" + s);
+            }
+            return list(v.map(convert));
           }
-          return RUNTIME.ffi.makeList(v.map(convert));  
-        }
-        else if(RUNTIME.string_isnumber(v)) {
-          return RUNTIME.makeNumberFromString(v);
-        }
-        else if(typeof v === "string") {
-          if(v.indexOf("'") !== -1) {
-            RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported" + s);
+          else if(RUNTIME.string_isnumber(v)) {
+            return num(v);
           }
-          if(v.length > 0 && v[0] === "\"") {
-            return RUNTIME.ffi.makeList([str("string"), str(v.slice(1, v.length - 1))]);
+          else if(typeof v === "string") {
+            if(v.length > 1) {
+              var first = v[0];
+              var last = v[v.length - 1];
+              if (first === "\"" || last === "\"") {
+                if (!(first === "\"" && last === "\"")) {
+                  RUNTIME.ffi.throwMessageException("Invalid s-expression: String without matching double quotes " + v);
+
+                }
+                else {
+                  return str(v.slice(1, v.length - 1));
+                }
+              }
+            }
+            if(v.indexOf("'") !== -1) {
+              RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported " + v);
+            }
+            else {
+              return sym(v);
+            }
           }
           else {
-            return str(v);
+            RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
           }
+        }
+        if(Array.isArray(jsVal) && jsVal.length === 1) {
+          return convert(jsVal[0]);
         }
         else {
           RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
         }
       }
-      if(Array.isArray(jsVal) && jsVal.length === 1) {
-        return convert(jsVal[0]);
-      }
-      else {
-        RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
-      }
-    }
-    return RUNTIME.makeObject({
-      answer: RUNTIME.nothing,
-      provide: RUNTIME.makeObject({
-        "read-sexp": RUNTIME.makeFunction(readSexp)
-      })
+      return RUNTIME.makeObject({
+        answer: RUNTIME.nothing,
+        "provide-plus-types": RUNTIME.makeObject({
+          "values": RUNTIME.makeObject({
+            "s-list": gf(vals, "s-list"),
+            "s-num": gf(vals, "s-num"),
+            "s-str": gf(vals, "s-str"),
+            "s-sym": gf(vals, "s-sym"),
+            "read-s-exp": RUNTIME.makeFunction(readSexp)
+          }),
+          "types": {
+            "S-Exp": typs["S-Exp"]
+          }
+        })
+      });
     });
   });
 });

@@ -29,3 +29,6 @@ list"], and we'll be happy to help.  }
 
 @include-section["trove/srcloc.js.rkt"]
 @include-section["trove/pprint.js.rkt"]
+@include-section["trove/s-exp.js.rkt"]
+@include-section["trove/s-exp-structs.js.rkt"]
+
