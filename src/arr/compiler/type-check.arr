@@ -286,12 +286,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
     | s-app(l, _fun, args) =>
       new-fun   = synthesis(_fun, info)
       arrow-typ = new-fun.right
-      new-args  = check-app(args, arrow-typ, info)
+      new-args  = check-app(args, arrow-typ, t-top, info)
       ast       = A.s-app(l, new-fun.left, new-args.left)
       pair(ast, new-args.right)
     | s-prim-app(l, _fun, args) =>
       arrow-typ = lookup-id(_fun, info)
-      new-args  = check-app(args, arrow-typ, info)
+      new-args  = check-app(args, arrow-typ, t-top, info)
       ast       = A.s-prim-app(l, _fun, new-args.left)
       pair(ast, new-args.right)
     | s-prim-val(l, name) =>
@@ -348,9 +348,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> Pair<A.Expr, Type>:
 end
 
 fun <B> synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A.Expr -> B), info :: TCInfo) -> Pair<B, Type>:
-  new-value = synthesis(value, info)
-                .on-left(recreate(binding, _))
-                .on-right(ensure-satisfies(_, binding.ann, info))
+  new-value = cases(Option<Type>) to-type(binding.ann, info):
+                | none =>
+                  synthesis(value, info)
+                | some(t) =>
+                  pair(checking(value, t, info), t)
+              end.on-left(recreate(binding, _))
   info.typs.set(binding.id.key(), new-value.right)
   new-value
 end
@@ -394,7 +397,7 @@ fun check-fun(body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-
   check-and-return(arrow-typ, expect-typ, new-fun, info)
 end
 
-fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> Pair<List<A.Expr>, Type>:
+fun check-app(args :: List<A.Expr>, arrow-typ :: Type, expect-typ :: Type, info :: TCInfo) -> Pair<List<A.Expr>, Type>:
   cases(Type) arrow-typ:
     | t-arrow(_, forall, arg-typs, ret-typ) =>
       if is-empty(forall):
@@ -419,7 +422,8 @@ fun check-app(args :: List<A.Expr>, arrow-typ :: Type, info :: TCInfo) -> Pair<L
                               result = generate-constraints(synthesis-typ, arg-typ, binds, [set: ], unknowns-set)
                               curr.meet(result)
                             end
-        constraints = t-var-constraints.meet(args-constraints)
+        ret-constraints  = generate-constraints(ret-typ, expect-typ, binds, [set: ], unknowns-set)
+        constraints = t-var-constraints.meet(args-constraints.meet(ret-constraints))
         substitutions = for map(unknown from unknowns-list):
                           pair(unknown, constraints.substitute(unknown, ret-typ, binds))
                         end
@@ -560,12 +564,12 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> A.Expr:
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
       new-fun  = synthesis(_fun, info)
-      new-args = check-app(args, new-fun.right, info)
+      new-args = check-app(args, new-fun.right, expect-typ, info)
       ast      = A.s-app(l, new-fun.left, new-args.left)
       check-and-return(new-args.right, expect-typ, ast, info)
     | s-prim-app(l, _fun, args) =>
       arrow-typ = lookup-id(_fun, info)
-      new-args  = check-app(args, arrow-typ, info)
+      new-args  = check-app(args, arrow-typ, expect-typ, info)
       ast       = A.s-prim-app(l, _fun, new-args.left)
       check-and-return(new-args.right, expect-typ, ast, info)
     | s-prim-val(l, name) =>
