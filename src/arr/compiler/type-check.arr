@@ -9,33 +9,44 @@ import "compiler/compile-structs.arr" as C
 import "compiler/type-structs.arr" as TS
 import "compiler/type-constraints.arr" as TC
 
-type Loc = SL.Srcloc
+type Loc                  = SL.Srcloc
 
-type Type            = TS.Type
-type TypeVariable    = TS.TypeVariable
-type DataType        = TS.DataType
-type Pair            = TS.Pair
-pair                 = TS.pair
-t-name               = TS.t-name
-t-var                = TS.t-var
-t-arrow              = TS.t-arrow
-t-top                = TS.t-top
-t-bot                = TS.t-bot
-t-number             = TS.t-number
-t-string             = TS.t-string
-t-boolean            = TS.t-boolean
-t-srcloc             = TS.t-srcloc
-t-variable           = TS.t-variable
-is-t-top             = TS.is-t-top
-is-t-bot             = TS.is-t-bot
-is-t-var             = TS.is-t-var
-least-upper-bound    = TS.least-upper-bound
-greatest-lower-bound = TS.greatest-lower-bound
+type Type                 = TS.Type
+t-name                    = TS.t-name
+t-var                     = TS.t-var
+t-arrow                   = TS.t-arrow
+t-top                     = TS.t-top
+t-bot                     = TS.t-bot
+t-app                     = TS.t-app
 
-type TypeConstraint  = TC.TypeConstraint
-type TypeConstraints = TC.TypeConstraints
-generate-constraints = TC.generate-constraints
-empty-type-constraints = TC.empty-type-constraints
+type TypeVariable         = TS.TypeVariable
+t-variable                = TS.t-variable
+
+type TypeMember           = TS.TypeMember
+t-member                  = TS.t-member
+
+type TypeVariant          = TS.TypeVariant
+t-variant                 = TS.t-variant
+
+type DataType             = TS.DataType
+t-datatype                = TS.t-datatype
+
+type Pair                 = TS.Pair
+pair                      = TS.pair
+
+
+t-number                  = TS.t-number
+t-string                  = TS.t-string
+t-boolean                 = TS.t-boolean
+t-srcloc                  = TS.t-srcloc
+
+least-upper-bound         = TS.least-upper-bound
+greatest-lower-bound      = TS.greatest-lower-bound
+
+type TypeConstraint       = TC.TypeConstraint
+type TypeConstraints      = TC.TypeConstraints
+generate-constraints      = TC.generate-constraints
+empty-type-constraints    = TC.empty-type-constraints
 
 shadow fold2 = lam(f, base, l1, l2):
                  if l1.length() <> l2.length():

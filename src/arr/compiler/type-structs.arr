@@ -66,12 +66,12 @@ data TypeVariable:
 end
 
 data TypeMember:
-  | type-member(field-name :: String, typ :: Type)
+  | t-member(field-name :: String, typ :: Type)
 end
 
 data TypeVariant:
-  | type-variant(fields      :: List<TypeMember>,
-                 with-fields :: List<TypeMember>)
+  | t-variant(fields      :: List<TypeMember>,
+              with-fields :: List<TypeMember>)
 end
 
 data DataType:
