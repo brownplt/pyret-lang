@@ -313,11 +313,11 @@ evaluator-test: $(PHASE1)/phase1.built
 	cd tests/evaluator/ && $(NODE) test.js require-test-runner/
 
 .PHONY : repl-test
-repl-test: $(PHASE1)/phase1.built
+repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
 	cd tests/repl/ && $(NODE) test.js require-test-runner/
 
 .PHONY : parse-test
-parse-test: $(PHASE1)/phase1.built
+parse-test: tests/parse/parse.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
