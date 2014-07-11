@@ -169,6 +169,38 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
     });
 
+    it("should require whitespace after :: and =>", function() {
+      expect(parse("cases (T) x: | Foo() =>(true) end")).toBe(false);
+      expect(parse("cases (T) x: | Foo() => (true) end")).not.toBe(false);
+      expect(parse("cases (T) x: | Foo() =>\n(true) end")).not.toBe(false);
+      expect(parse("block: dog ::Cat = really-huh end")).toBe(false);
+      expect(parse("block: dog :: Cat = really-huh end")).not.toBe(false);
+      expect(parse("block: dog :: Cat =\nreally-huh end")).not.toBe(false);
+    });
+
+    it("should treat (...) as grouping after ,", function() {
+      expect(parse("[list: x,(x)]")).not.toBe(false);
+      expect(parse("[list: x , (x)]")).not.toBe(false);
+      expect(parse("[list: x ,\n(x)]")).not.toBe(false);
+    });
+    it("should treat (...) as grouping after :", function() {
+      expect(parse("{ asdf:(asdf) }")).not.toBe(false);
+      expect(parse("{ asdf : (asdf) }")).not.toBe(false);
+      expect(parse("{ asdf :\n(asdf) }")).not.toBe(false);
+    });
+
+    it("should treat (...) as grouping after =", function() {
+      expect(parse("block: x=(x) end")).not.toBe(false);
+      expect(parse("block: x = (x) end")).not.toBe(false);
+      expect(parse("block: x =\n(x) end")).not.toBe(false);
+    });
+
+    it("should treat (...) as grouping after :=", function() {
+      expect(parse("block: x:=(x) end")).not.toBe(false);
+      expect(parse("block: x := (x) end")).not.toBe(false);
+      expect(parse("block: x :=\n(x) end")).not.toBe(false);
+    });
+
     it("should treat (...) as grouping after ;", function() {
       expect(parse("block: lam(x): x;(x);")).not.toBe(false);
       expect(parse("block: lam(x): x ; (x);")).not.toBe(false);
