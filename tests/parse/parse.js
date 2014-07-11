@@ -135,5 +135,13 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
     });
 
+    it("should not accept ops as identifiers", function() {
+      const kw_op = ["or", "and", "is", "raises"];
+      for (var i = 0; i < kw_op.length; ++i) {
+        const op = kw_op[i];
+        expect(parse("(" + op + " " + op + " " + op + ")")).toBe(false);
+      }
+    })
+
   });
 });
