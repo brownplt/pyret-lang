@@ -75,6 +75,21 @@ data TCInfo:
                             get    :: (-> List<C.CompileError>)})
 end
 
+fun to-type-member(field :: A.Member):
+  nothing
+end
+
+fun to-type-variant(variant :: A.Variant):
+  nothing
+end
+
+fun to-datatype(params :: List<A.Name>, variants :: List<A.Variant>, fields :: List<A.Member>):
+  t-vars  = for map(param from params):
+              t-variable(param.l, param.key(), t-top)
+            end
+  t-datatype(t-vars, variants.map(to-type-variant), fields.map(to-type-member))
+end
+
 fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Option<Type>:
   cases(A.Ann) in-ann:
     | a-blank =>
@@ -626,7 +641,7 @@ end
 
 
 default-typs = SD.string-dict()
-default-typs.set("global#nothing", t-name(A.dummy-loc, none, "tglobal#Nothing"))
+default-typs.set(A.s-global("nothing").key(), t-name(A.dummy-loc, none, "tglobal#Nothing"))
 default-typs.set("isBoolean", t-arrow(A.dummy-loc, empty, [list: t-top], t-boolean))
 default-typs.set("throwNonBooleanCondition",
                  t-arrow(A.dummy-loc, empty, [list: t-srcloc,
@@ -636,10 +651,10 @@ default-typs.set("throwNoBranchesMatched",
                  t-arrow(A.dummy-loc, empty, [list: t-srcloc,
                                                     t-string], t-bot))
 default-typs.set("equiv", t-arrow(A.dummy-loc, empty, [list: t-top, t-top], t-boolean))
-default-typs.set("global#_times", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
-default-typs.set("global#_minus", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
-default-typs.set("global#_divide", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
-default-typs.set("global#_plus", t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_times").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
 
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:

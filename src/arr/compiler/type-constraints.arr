@@ -287,9 +287,10 @@ fun is-constant(x :: Type % (is-t-var), r :: Type) -> Boolean:
   else:
     cases(Type) r:
       | t-arrow(l, forall, args, ret) =>
-        for fold(base from true, arg from args):
-          base and is-constant(x, arg)
-        end and is-constant(x, ret)
+        args-okay = for fold(base from true, arg from args):
+                      base and is-constant(x, arg)
+                    end
+        args-okay and is-constant(x, ret)
       | else =>
         true
     end
@@ -320,16 +321,17 @@ fun is-covariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
     cases(Type) r:
       | t-arrow(l, forall, args, ret) =>
         var arg-is-contravariant = false
-        for fold(base from true, arg from args):
-          if is-constant(x, arg):
-            base
-          else if is-contravariant(x, arg):
-            arg-is-contravariant := true
-            base
-          else:
-            false
-          end
-        end and (is-covariant(x, ret) or (arg-is-contravariant and is-constant(x, ret)))
+        args-okay = for fold(base from true, arg from args):
+                      if is-constant(x, arg):
+                        base
+                      else if is-contravariant(x, arg):
+                        arg-is-contravariant := true
+                        base
+                      else:
+                        false
+                      end
+                    end
+        args-okay and (is-covariant(x, ret) or (arg-is-contravariant and is-constant(x, ret)))
       | else =>
         false
     end
@@ -357,16 +359,17 @@ fun is-contravariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
   cases(Type) r:
     | t-arrow(l, forall, args, ret) =>
       var arg-is-covariant = false
-      for fold(base from true, arg from args):
-        if is-constant(x, arg):
-          base
-        else if is-covariant(x, arg):
-          arg-is-covariant := true
-          base
-        else:
-          false
-        end
-      end and (is-contravariant(x, ret) or (arg-is-covariant and is-constant(x, ret)))
+      args-okay = for fold(base from true, arg from args):
+                    if is-constant(x, arg):
+                      base
+                    else if is-covariant(x, arg):
+                      arg-is-covariant := true
+                      base
+                    else:
+                      false
+                    end
+                  end
+      args-okay and (is-contravariant(x, ret) or (arg-is-covariant and is-constant(x, ret)))
     | else =>
       false
   end
@@ -430,10 +433,8 @@ end
 fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
   key = x.tostring()
   binds.has-key(key) and
-  block:
-    bound = binds.get(key)
-    is-t-bot(bound) or
-    is-bottom-variable(bound, binds)
+  let bound = binds.get(key):
+    is-t-bot(bound) or is-bottom-variable(bound, binds)
   end
 end
 
