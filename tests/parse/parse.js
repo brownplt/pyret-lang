@@ -76,10 +76,19 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
 
     it("shouldn't allow hyphens at the beginning or end of identifiers", function() {
       // issue #222
+      expect(parse("-")).toBe(false);
+      expect(parse("(- -)")).toBe(false);
+      expect(parse("--")).toBe(false);
+      expect(parse("(-- --)")).toBe(false);
       expect(parse("a- b")).toBe(false);
       expect(parse("a -b")).toBe(false);
       expect(parse("a- = b")).toBe(false);
       expect(parse("-a = b")).toBe(false);
+
+      expect(parse("a-a")).not.toBe(false);
+      expect(parse("a-a-a")).not.toBe(false);
+      expect(parse("a--aa")).not.toBe(false);
+      expect(parse("aa--a")).not.toBe(false);
     });
 
     it("should notice parse errors", function() {
