@@ -880,11 +880,6 @@ compiler-visitor = {
                 compile-fun-body(l, new-step, temp, self, effective-args, some(args.length()), body, true)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
-    # step-method = js-id-of(compiler-name("step"))
-    # temp-method = compiler-name("temp_method")
-    # compiled-body-method = compile-fun-body(l, step-method, temp-method, self, args, args.length() - 1, body)
-    # method-var = j-var(temp-method,
-    #   j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-method))
     step-curry = js-id-of(compiler-name("step"))
     temp-curry = js-id-of(compiler-name("temp_curry"))
     temp-full = js-id-of(compiler-name("temp_full"))
