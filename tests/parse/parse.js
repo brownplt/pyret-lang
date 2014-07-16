@@ -63,16 +63,16 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       // at https://github.com/brownplt/pyret-lang/pull/220#issuecomment-48685416
       // if this turns into a regression
 
-      const wss = [" ", " \n", "\n ", " \n "];
-      const ops = ["or", "and", "is", "satisfies", "raises"];
+      const wss = [" ", " \n", "\n ", " \n", " \n "];
+      const en_ops = ["or", "and", "is", "satisfies", "raises"];
 
-      for (var i = 0; i < wss.length; ++i) {
-        const op = ops[j];
+      for (var i = 0; i < en_ops.length; ++i) {
+        const op = en_ops[i];
 
         expect(parse(op + "=" + "false")).toBe(false);
 
-        for (var j = 0; j < ops.length; ++j) {
-          const ws = wss[i];
+        for (var j = 0; j < wss.length; ++j) {
+          const ws = wss[j];
 
           expect(parse("(" + op + ws + op + ws + op + ")")).toBe(false);
           expect(parse(op + ws + "="      + "false")).toBe(false);

@@ -130,11 +130,13 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
-  const opand = new RegExp(op("and"), STICKY_REGEXP);
-  const opor = new RegExp(op("or"), STICKY_REGEXP);
-  const opis = new RegExp(op("is"), STICKY_REGEXP);
-  const opsatisfies = new RegExp(op("satisfies"), STICKY_REGEXP);
-  const opraises = new RegExp(op("raises"), STICKY_REGEXP);
+
+  // English ops don't require whitespace. That way it is possible to catch them in ID position
+  const opand = new RegExp(kw("and"), STICKY_REGEXP);
+  const opor = new RegExp(kw("or"), STICKY_REGEXP);
+  const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
+  const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
