@@ -82,6 +82,32 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       }
     });
 
+    it("should allow English ops with all manner of surrounding whitespace and parens", function() {
+
+      const wss = [" ", " \n", "\n ", " \n", " \n "];
+      const en_ops = ["or", "and", "is", "satisfies", "raises"];
+
+      for (var i = 0; i < en_ops.length; ++i) {
+        const op = en_ops[i];
+
+        expect(parse("(false)" + op            )).toBe(false);
+        expect(parse(            op + "(false)")).toBe(false);
+
+        expect(parse("(false)" + op + "(false)")).not.toBe(false);
+
+        for (var j = 0; j < wss.length; ++j) {
+          const ws = wss[j];
+
+          expect(parse("(false)" + ws + op                 )).toBe(false);
+          expect(parse(                 op + ws + "(false)")).toBe(false);
+
+          expect(parse("(false)" + ws + op      + "(false)")).not.toBe(false);
+          expect(parse("(false)" +      op + ws + "(false)")).not.toBe(false);
+          expect(parse("(false)" + ws + op + ws + "(false)")).not.toBe(false);
+        }
+      }
+    });
+
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
