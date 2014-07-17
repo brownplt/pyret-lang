@@ -88,6 +88,14 @@ data CompileError:
       "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
         + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given)
     end
+  | incorrect-number-of-args(loc :: A.Loc) with:
+    tostring(self):
+      "Incorrect number of arguments given to function at line " + tostring(self.loc)
+    end
+  | apply-non-function(loc :: A.Loc) with:
+    tostring(self):
+      "You tried to apply something that is not a function at line " + tostring(self.loc)
+    end
 end
 
 data CompileTypeBinding:
