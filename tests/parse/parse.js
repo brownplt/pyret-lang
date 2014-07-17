@@ -74,6 +74,23 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("and \n = \n false")).toBe(false);
     });
 
+    it("shouldn't allow hyphens at the beginning or end of identifiers", function() {
+      // issue #222
+      expect(parse("-")).toBe(false);
+      expect(parse("(- -)")).toBe(false);
+      expect(parse("--")).toBe(false);
+      expect(parse("(-- --)")).toBe(false);
+      expect(parse("a- b")).toBe(false);
+      expect(parse("a -b")).toBe(false);
+      expect(parse("a- = b")).toBe(false);
+      expect(parse("-a = b")).toBe(false);
+
+      expect(parse("a-a")).not.toBe(false);
+      expect(parse("a-a-a")).not.toBe(false);
+      expect(parse("a--aa")).not.toBe(false);
+      expect(parse("aa--a")).not.toBe(false);
+    });
+
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
