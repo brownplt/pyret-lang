@@ -130,7 +130,9 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("provide-types { List :: List } end")).toBe(false);
     });
 
-    it("should parse angle brackets without whitespace as type instantiations", function() {
+    it("should parse angle brackets without whitespace only as type instantiations", function() {
+      expect(parse("map<A>")).not.toBe(false);
+      expect(parse("(map<A>)")).not.toBe(false);
       expect(parse("(map<A, B>)")).not.toBe(false);
       expect(parse("map<A, B>(id)")).not.toBe(false);
       expect(parse("(map < A, B > (id))")).toBe(false);
@@ -138,12 +140,19 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("map<A,\nB>(id)")).not.toBe(false);
     });
 
+    it("should parse angle brackets without whitespace in annotations only as type function application", function() {
+      expect(parse("a :: List < A > = a")).toBe(false);
+      expect(parse("a :: List < A, B > = a")).toBe(false);
+      expect(parse("a :: List<A> = a")).not.toBe(false);
+      expect(parse("a :: List<A, B> = a")).not.toBe(false);
+    });
+
     it("should parse angle brackets with whitespace as gt/lt", function() {
       expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
       expect(parse("1<\n2 or false, B > (id)")).toBe(false);
     });
 
-    it("should not care about whitespace and angle brackets in annotations", function() {
+    it("should not care about whitespace and angle brackets in declarations", function() {
       expect(parse("fun<A>print(): end")).not.toBe(false);
       expect(parse("fun< A>print(): end")).not.toBe(false);
       expect(parse("fun <A>print(): end")).not.toBe(false);
