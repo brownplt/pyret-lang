@@ -84,7 +84,7 @@ data Type:
   | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
   | t-var(id :: String)
   | t-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type)
-  | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % is-link)
+  | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % (is-link))
   | t-top
   | t-bot
 sharing:
