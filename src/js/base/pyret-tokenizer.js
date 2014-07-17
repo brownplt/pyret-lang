@@ -47,10 +47,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
     case "PARENSPACE":
-    case "PLUS": case "DASH": case "STAR": case "SLASH": case "LEQ": case "GEQ":
-    case "EQUALEQUAL": case "LT": case "GT":
+    case "PLUS": case "DASH": case "STAR": case "SLASH":
+    case "LT": case "GT":
       // Trim off whitespace
       pos = SrcLoc.make(pos.endRow, pos.endCol - 1, pos.endChar - 1, pos.endRow, pos.endCol, pos.endChar);
+      break;
+    case "EQUALEQUAL": case "NEQ": case "LEQ": case "GEQ": // they're longer tokens
+      // Trim off whitespace
+      pos = SrcLoc.make(pos.endRow, pos.endCol - 2, pos.endChar - 2, pos.endRow, pos.endCol, pos.endChar);
       break;
     default:
       break;
