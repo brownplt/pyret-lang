@@ -84,9 +84,11 @@ define(["../../../lib/jglr/jglr"], function(E) {
   }
 
 
+  const ws_after = "(?=\\s)";
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
+  function op(str) { return "^\\s+" + str + ws_after; }
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
@@ -117,21 +119,24 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);
-  const opplus = new RegExp("^\\s+\\+(?:\\s+)", STICKY_REGEXP);
-  const opminus = new RegExp("^\\s+-(?:\\s+)", STICKY_REGEXP);
-  const optimes = new RegExp("^\\s+\\*(?:\\s+)", STICKY_REGEXP);
-  const opdiv = new RegExp("^\\s+/(?:\\s+)", STICKY_REGEXP);
-  const opleq = new RegExp("^\\s+<=(?:\\s+)", STICKY_REGEXP);
-  const opgeq = new RegExp("^\\s+>=(?:\\s+)", STICKY_REGEXP);
-  const opeq = new RegExp("^\\s+==(?:\\s+)", STICKY_REGEXP);
-  const opneq = new RegExp("^\\s+<>(?:\\s+)", STICKY_REGEXP);
-  const oplt = new RegExp("^\\s+<(?:\\s+)", STICKY_REGEXP);
-  const opgt = new RegExp("^\\s+>(?:\\s+)", STICKY_REGEXP);
-  const opand = new RegExp("^and(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opor = new RegExp("^or(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opis = new RegExp("^is(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opsatisfies = new RegExp("^satisfies(?![-_a-zA-Z0-9])", STICKY_REGEXP);
-  const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
+
+  const opplus = new RegExp(op("\\+"), STICKY_REGEXP);
+  const opminus = new RegExp(op("-"), STICKY_REGEXP);
+  const optimes = new RegExp(op("\\*"), STICKY_REGEXP);
+  const opdiv = new RegExp(op("/"), STICKY_REGEXP);
+  const opleq = new RegExp(op("<="), STICKY_REGEXP);
+  const opgeq = new RegExp(op(">="), STICKY_REGEXP);
+  const opeq = new RegExp(op("=="), STICKY_REGEXP);
+  const opneq = new RegExp(op("<>"), STICKY_REGEXP);
+  const oplt = new RegExp(op("<"), STICKY_REGEXP);
+  const opgt = new RegExp(op(">"), STICKY_REGEXP);
+
+  // English ops don't require whitespace. That way it is possible to catch them in ID position
+  const opand = new RegExp(kw("and"), STICKY_REGEXP);
+  const opor = new RegExp(kw("or"), STICKY_REGEXP);
+  const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
+  const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
@@ -240,11 +245,12 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "NEQ", val: opneq, parenIsForExp: true},
     {name: "LT", val: oplt, parenIsForExp: true},
     {name: "GT", val: opgt, parenIsForExp: true},
-    {name: "AND", val: opand},
-    {name: "OR", val: opor},
-    {name: "IS", val: opis},
-    {name: "SATISFIES", val: opsatisfies},
-    {name: "RAISES", val: opraises},
+    {name: "AND", val: opand, parenIsForExp: true},
+    {name: "OR", val: opor, parenIsForExp: true},
+    {name: "IS", val: opis, parenIsForExp: true},
+    {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
+    {name: "RAISES", val: opraises, parenIsForExp: true},
+
     {name: "LBRACK", val: lbrack},
     {name: "RBRACK", val: rbrack},
     {name: "LBRACE", val: lbrace},
