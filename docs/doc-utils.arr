@@ -27,7 +27,7 @@ data SExp:
   | leaf(val :: String) with: tosource(self): PP.str(self.val) end
   | sexp(name :: String, kids :: List<SExp>) with:
     tosource(self):
-      kids = break-if-needed(leaf(self.name)^link(_, self.kids))
+      kids = break-if-needed(leaf(self.name) ^ link(_, self.kids))
       PP.parens(PP.nest(2, kids))
     end
   | comment(msg :: String) with: tosource(self): PP.str(";; " + self.msg) + PP.hardline end
@@ -130,11 +130,11 @@ fun lookup-value(value, bindings):
           | s-import(_, _, _) => v
           | s-import-types(_, _, _, _) => v
           | s-import-fields(_, _, _) => v
-          | s-id(_, id) => help(item^link(_, seen), id)
-          | s-id-letrec(_, id, _) => help(item^link(_, seen), id)
-          | s-id-var(_, id) => help(item^link(_, seen), id)
-          | s-type(_, id, ann) => help(item^link(_, seen), id)
-          | s-newtype(_, id, _) => help(item^link(_, seen), id)
+          | s-id(_, id) => help(item ^ link(_, seen), id)
+          | s-id-letrec(_, id, _) => help(item ^ link(_, seen), id)
+          | s-id-var(_, id) => help(item ^ link(_, seen), id)
+          | s-type(_, id, ann) => help(item ^ link(_, seen), id)
+          | s-newtype(_, id, _) => help(item ^ link(_, seen), id)
           | s-block(_, stmts) => help(seen, stmts.last())
           | s-user-block(_, body) => help(seen, body)
           | s-let-expr(_, _, body) => help(seen, body)
