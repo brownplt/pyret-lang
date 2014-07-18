@@ -192,12 +192,50 @@ end
 
 check "should work for lambda-bound annotations":
   run-str("fun f(x :: Number): x end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun f(x) -> Number: x end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun id(x): x end\n fun f(x) -> Number: id(x) end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x) -> Number: if true: x else: x end end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x) -> Number: cases(List) empty: | empty => x | link(_, _) => x end end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun id(x): x end\n fun f(x) -> Number: if true: id(x) else: id(x) end end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun id(x): x end\n fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end\n f('foo')") satisfies is-contract-error-str
 end
 
 check "should work for method-bound annotations":
   run-str("o = { m(self, x :: Number): x end }\n o.m('foo')") satisfies is-contract-error-str
   run-str("o = { m(self, x) -> Number: x end }\n o.m('foo')") satisfies is-contract-error-str
+  run-str(```
+    o = {
+      id(self, n): n end,
+      m(self, x) -> Number: self.id(x) end
+    }
+    o.m('foo')```) satisfies is-contract-error-str
+  run-str(```
+    o = {
+      m(self, x) -> Number: if true: x else: x end end
+    }
+    o.m('foo')```) satisfies is-contract-error-str
+  run-str(```
+    o = {
+      m(self, x) -> Number: cases(List) empty:
+        | empty => x
+        | link(_, _) => x
+      end end
+    }
+    o.m('foo')```) satisfies is-contract-error-str
+  run-str(```
+    o = {
+      id(self, n): n end,
+      m(self, x) -> Number: if true: self.id(x) else: self.id(x) end end
+    }
+    o.m('foo')```) satisfies is-contract-error-str
+  run-str(```
+    o = {
+      id(self, n): n end,
+      m(self, x) -> Number: cases(List) empty:
+        | empty => self.id(x)
+        | link(_, _) => self.id(x)
+      end end
+    }
+    o.m('foo')```) satisfies is-contract-error-str
 end
 
 
