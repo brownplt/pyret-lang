@@ -7,7 +7,7 @@ data ConcatList<a>:
     map(self, f): self end,
     each(self, f): nothing end,
     foldl(self, f, base): base end,
-    foldr(self, f, base): base end,
+    foldr(self, f, base): base end
   | concat-singleton(element) with:
     to-list-acc(self, rest): link(self.element, rest) end,
     map(self, f): concat-singleton(f(self.element)) end,
