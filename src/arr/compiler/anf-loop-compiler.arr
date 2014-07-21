@@ -353,7 +353,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   { new-cases: new-cases, new-label: cur-target }
 end
 
-fun compile-split-app(l, compiler, dest, f, args, body):
+fun compile-split-app(l, compiler, opt-dest, f, args, body):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
@@ -363,11 +363,17 @@ fun compile-split-app(l, compiler, dest, f, args, body):
   helper-label =
     block:
       lbl = compiler.make-label()
-      new-cases := concat-cons(
-        j-case(lbl, j-block(
-            j-var(js-id-of(dest.tostring()), j-id(ans))
-            ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
-        visited-helper.new-cases)
+      new-cases :=
+        cases(Option) opt-dest:
+          | some(dest) =>
+            concat-cons(
+              j-case(lbl, j-block(
+                  j-var(js-id-of(dest.tostring()), j-id(ans))
+                  ^ link(_, visited-helper.block.stmts))), # XXX Was this a type error before?
+              visited-helper.new-cases)
+          | none =>
+            concat-cons(j-case(lbl, visited-helper.block), visited-helper.new-cases)
+        end
       lbl
     end
   c-block(
@@ -381,7 +387,7 @@ fun compile-split-app(l, compiler, dest, f, args, body):
     new-cases)
 end
 
-fun compile-split-if(compiler, dest, cond, consq, alt, body):
+fun compile-split-if(compiler, opt-dest, cond, consq, alt, body):
   consq-label = compiler.make-label()
   alt-label = compiler.make-label()
   after-if-label = compiler.make-label()
@@ -393,10 +399,15 @@ fun compile-split-if(compiler, dest, cond, consq, alt, body):
   new-cases =
     concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
     + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
-    + concat-cons(j-case(after-if-label,
-      j-block(
-        j-var(js-id-of(dest.tostring()), j-id(ans))
-        ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+    + (cases(Option) opt-dest:
+      | some(dest) =>
+        concat-cons(j-case(after-if-label,
+            j-block(
+              j-var(js-id-of(dest.tostring()), j-id(ans))
+              ^ link(_, compiled-body.block.stmts))), compiled-body.new-cases)
+      | none =>
+        concat-cons(j-case(after-if-label, compiled-body.block), compiled-body.new-cases)
+    end)
   c-block(
     j-block([list: 
         j-if(rt-method("isPyretTrue", [list: cond.visit(compiler).exp]),
@@ -460,9 +471,9 @@ compiler-visitor = {
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
-        compile-split-app(l2, self, b.id, f, args, body)
+        compile-split-app(l2, self, some(b.id), f, args, body)
       | a-if(l2, cond, then, els) =>
-        compile-split-if(self, b.id, cond, then, els, body)
+        compile-split-if(self, some(b.id), cond, then, els, body)
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -514,9 +525,9 @@ compiler-visitor = {
     names = A.global-names
     cases(N.ALettable) e1:
       | a-app(l2, f, args) =>
-        compile-split-app(l2, self, names.make-atom("app_seq"), f, args, e2)
+        compile-split-app(l2, self, none, f, args, e2)
       | a-if(l2, cond, consq, alt) =>
-        compile-split-if(self, names.make-atom("if_seq"), cond, consq, alt, e2)
+        compile-split-if(self, none, cond, consq, alt, e2)
       | else =>
         e1-visit = e1.visit(self).exp
         e2-visit = e2.visit(self)
