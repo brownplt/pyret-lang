@@ -66,18 +66,49 @@ data TypeVariable:
 end
 
 data TypeMember:
-  | t-member(field-name :: String, typ :: Type)
+  | t-member(field-name :: String, typ :: Type) with:
+    tostring(self):
+      self.field-name + " : " + self.typ.tostring()
+    end
+end
+
+type TypeMembers = List<TypeMember>
+empty-type-members = empty
+
+fun type-members-lookup(type-members :: TypeMembers, field-name :: String) -> Option<TypeMember>:
+  fun same-field(tm):
+    tm.field-name == field-name
+  end
+  type-members.find(same-field)
 end
 
 data TypeVariant:
-  | t-variant(fields      :: List<TypeMember>,
-              with-fields :: List<TypeMember>)
+  | t-variant(
+      l           :: A.Loc,
+      name        :: String,
+      fields      :: TypeMembers,
+      with-fields :: TypeMembers
+    )
+  | t-singleton-variant(
+      l           :: A.Loc,
+      name        :: String,
+      with-fields :: TypeMembers
+    )
+end
+
+fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
+  cases(TypeVariant) tv:
+    | t-variant(_, _, variant-fields, with-fields) =>
+      variant-fields + with-fields
+    | t-singleton-variant(_, _, with-fields) =>
+      with-fields
+  end
 end
 
 data DataType:
   | t-datatype(params   :: List<TypeVariable>,
-               variants :: SD.StringDict<TypeVariant>,
-               fields   :: List<TypeMember>) # common (with-)fields, shared methods, etc
+               variants :: List<TypeVariant>,
+               fields   :: TypeMembers) # common (with-)fields, shared methods, etc
 end
 
 data Type:
@@ -87,6 +118,7 @@ data Type:
   | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % (is-link))
   | t-top
   | t-bot
+  | t-record(l :: A.Loc, fields :: TypeMembers)
 sharing:
   satisfies-type(self, other :: Type) -> Boolean:
     cases(Type) self:
@@ -114,6 +146,13 @@ sharing:
         end
       | t-top => is-t-top(other)
       | t-bot => true
+      | t-record(_, fields) =>
+        cases(Type) other:
+          | t-top => true
+          | t-record(_, other-fields) =>
+            fields-satisfy(fields, other-fields)
+          | else => false
+        end
     end
   end,
   tostring(self) -> String:
@@ -131,15 +170,22 @@ sharing:
         "Top"
       | t-bot =>
         "Bot"
+      | t-record(_, fields) =>
+        "{"
+          + for map(field from fields):
+              field.tostring()
+            end.join-str(", ")
+          + "}"
     end
   end,
   toloc(self) -> A.Loc:
     cases(Type) self:
-      | t-name(l, module-name, id) => l
-      | t-arrow(l, forall, args, ret) => l
+      | t-name(l, _, _) => l
+      | t-arrow(l, _, _, _) => l
       | t-var(_) => A.dummy-loc
       | t-top => A.dummy-loc
       | t-bot => A.dummy-loc
+      | t-record(l, _) => l
     end
   end,
   substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
@@ -221,10 +267,53 @@ sharing:
   end
 end
 
+fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers) -> Boolean:
+  fun shares-name(here :: TypeMember):
+    lam(there :: TypeMember):
+      here.field-name == there.field-name
+    end
+  end
+  for fold(good from true, b-field from b-fields):
+    pred = shares-name(b-field)
+    good and
+    cases(Option<TypeMember>) a-fields.find(pred):
+      | some(tm) =>
+        tm.typ.satisfies-type(b-field.typ)
+      | none     =>
+        false
+    end
+  end
+end
+
 t-number  = t-name(A.dummy-loc, none, "tglobal#Number")
 t-string  = t-name(A.dummy-loc, none, "tglobal#String")
 t-boolean = t-name(A.dummy-loc, none, "tglobal#Boolean")
 t-srcloc  = t-name(A.dummy-loc, none, "Loc")
+
+fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+  for fold(curr from empty, a-field from a-fields):
+    field-name = a-field.field-name
+    cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
+      | some(b-field) =>
+        link(t-member(field-name, least-upper-bound(a-field.typ, b-field.typ)), curr)
+      | none =>
+        curr
+    end
+  end
+end
+
+fun join-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+  for fold(curr from empty, a-field from a-fields):
+    field-name = a-field.field-name
+    cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
+      | some(b-field) =>
+        link(t-member(field-name, greatest-lower-bound(a-field.typ, b-field.typ)), curr)
+      | none =>
+        link(a-field, curr)
+        curr
+    end
+  end
+end
 
 fun least-upper-bound(s :: Type, t :: Type) -> Type:
   if s.satisfies-type(t):
@@ -243,6 +332,12 @@ fun least-upper-bound(s :: Type, t :: Type) -> Type:
             else:
               t-top
             end
+          | else => t-top
+        end
+      | t-record(_, s-fields) =>
+        cases(Type) t:
+          | t-record(_, t-fields) =>
+            t-record(A.dummy-loc, meet-fields(s-fields, t-fields))
           | else => t-top
         end
       | else => t-top
@@ -267,6 +362,12 @@ fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
             else:
               t-bot
             end
+          | else => t-bot
+        end
+      | t-record(_, s-fields) =>
+        cases(Type) t:
+          | t-record(_, t-fields) =>
+            t-record(A.dummy-loc, join-fields(s-fields, t-fields))
           | else => t-bot
         end
       | else => t-bot
