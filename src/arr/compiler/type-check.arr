@@ -282,7 +282,13 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> Option<Type>:
     | a-app(l, ann, args) =>
       raise("a-app not yet handled:" + torepr(in-ann))
     | a-pred(l, ann, exp) =>
-      raise("a-pred not yet handled:" + torepr(in-ann))
+      typ = to-type-std(ann, info)
+      expect-typ = t-arrow(l, empty, [list: typ], t-boolean)
+      cases(CheckingResult) checking(exp, expect-typ, info):
+        | checking-err(errs) => errs.map(info.errors.insert)
+        | else => nothing
+      end
+      some(typ)
     | a-dot(l, obj, field) =>
       some(t-name(l, some(obj.key()), field))
     | a-checked(checked, residual) =>
@@ -912,10 +918,17 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
 
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
+      print("Imports: " + torepr(imports))
       info = tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), errors)
-      cases(CheckingResult) checking(body, t-top, info):
+      tc-result = checking(body, t-top, info)
+      side-errs = errors.get()
+      cases(CheckingResult) tc-result:
         | checking-result(new-body) =>
-          C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
+          if is-empty(side-errs):
+            C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
+          else:
+            C.err(side-errs)
+          end
         | checking-err(err-list) =>
           C.err(err-list + errors.get())
       end
