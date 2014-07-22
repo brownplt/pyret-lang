@@ -75,6 +75,7 @@ map-synthesis             = TCS.map-synthesis
 foldl2-result             = TCS.foldl2-result
 foldr-result              = TCS.foldr-result
 map2-checking             = TCS.map2-checking
+map-checking              = TCS.map-checking
 map-result                = TCS.map-result
 
 shadow fold2 = lam(f, base, l1, l2):
@@ -517,7 +518,10 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
         end
       end
     | t-bot =>
-      pair(checking-map(args), t-bot)
+      new-args = for map-checking(arg from args):
+        checking(arg, t-top, info)
+      end
+      pair(new-args, t-bot)
     | else =>
       pair(checking-map-errors([list: C.apply-non-function(app-loc)]), t-top)
   end
