@@ -286,6 +286,22 @@ fun map2-checking(not-equal :: C.CompileError):
   helper
 end
 
+fun <B> map-checking(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
+  cases(List<B>) lst:
+    | link(first, rest) =>
+      cases(CheckingResult) f(first):
+        | checking-result(ast) =>
+          map-checking(f, rest)
+            .bind(lam(asts): checking-map(link(ast, asts));)
+        | checking-err(errors) =>
+          checking-map-errors(errors)
+      end
+    | empty =>
+      checking-map(empty)
+  end
+end
+
+
 
 
 fun <B,D> map-result(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
