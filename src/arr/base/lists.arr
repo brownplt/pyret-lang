@@ -5,15 +5,15 @@ provide-types *
 import option as O
 import either as E
 
-none = O.none
-is-none = O.is-none
-some = O.some
-is-some = O.is-some
-Option = O.Option
+type Option = O.Option
+none        = O.none
+is-none     = O.is-none
+some        = O.some
+is-some     = O.is-some
 
-left = E.left
-right = E.right
-Either = E.Either
+type Either = E.Either
+left        = E.left
+right       = E.right
 
 data List:
   | empty with:
