@@ -475,6 +475,8 @@ fun all2(f :: (Any, Any -> Boolean), lst1 :: List, lst2 :: List) -> Boolean:
   end
   help(lst1, lst2)
 where:
+  all2(lam(n, m): false end, [list: 1, 2, 3], empty) is false
+  all2(lam(n, m): true  end, [list: 1, 2, 3], empty) is false
   all2(lam(n, m): n > m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is true
   all2(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
   all2(lam(n, m): n < m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is false
@@ -482,6 +484,33 @@ where:
   all2(lam(_, _): false end, empty, empty) is true
 end
 
+fun <A, B> all2-strict(f :: (A, B -> Boolean), l1 :: List<A>, l2 :: List<B>) -> Boolean:
+  doc: ```
+        all2 returns false if any application of f returns false, or if the lengths differ.
+        his behavior is choosen to maintain the short-circuiting semantics. If one wants to
+        distinguish between lists of different lengths, and f returning false, use
+
+        map2-strict(f, l1, l2).and-then(all(identity, _))
+       ```
+  cases (List<A>) l1:
+    | empty => cases (List<B>) l2:
+        | empty       => true
+        | list(_, _)  => false
+      end
+    | list(a, ar) => cases (List<B>) l2:
+        | empty       => false
+        | list(b, br) => f(a, b) and all2-strict(a, b)
+      end
+  end
+where:
+  all2-strict(lam(n, m): false end, [list: 1, 2, 3], empty) is false
+  all2-strict(lam(n, m): true  end, [list: 1, 2, 3], empty) is false
+  all2-strict(lam(n, m): n > m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is true
+  all2-strict(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
+  all2-strict(lam(n, m): n < m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is false
+  all2-strict(lam(_, _): true  end, empty, empty) is true
+  all2-strict(lam(_, _): false end, empty, empty) is true
+end
 
 fun map(f, lst :: List):
   doc: "Returns a list made up of f(elem) for each elem in lst"
@@ -506,6 +535,21 @@ fun map2(f, l1 :: List, l2 :: List):
 where:
   map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
   map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
+end
+
+fun <A, B, R> map2-strict(f :: (A, B -> R), l1 :: List<A>, l2 :: List<B>) -> Option<List<R>>:
+  cases (List<A>) l1:
+    | empty => cases (List<B>) l2:
+        | empty       => some(empty)
+        | list(_, _)  => none
+      end
+    | list(a, ar) => cases (List<B>) l2:
+        | empty       => none
+        | list(b, br) => fold2-strict(f, ar, br).and-then(lam(rest :: List<R>):
+              some(link(f(a, b), rest))
+            end)
+      end
+  end
 end
 
 fun map3(f, l1 :: List, l2 :: List, l3 :: List):
@@ -717,6 +761,19 @@ fun fold2(f, base, l1 :: List, l2 :: List):
     base
   else:
     fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
+  end
+end
+
+fun <A, B, R> fold2-strict(f :: (R, A, B -> R), base :: R, l1 :: List<A>, l2 :: List<B>) -> Option<R>:
+  cases (List<A>) l1:
+    | empty => cases (List<B>) l2:
+        | empty       => some(base)
+        | list(_, _)  => none
+      end
+    | list(a, ar) => cases (List<B>) l2:
+        | empty       => none
+        | list(b, br) => fold2-strict(f, f(base, a, b), ar, br)
+      end
   end
 end
 
