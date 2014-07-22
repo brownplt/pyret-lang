@@ -96,6 +96,13 @@ data CompileError:
     tostring(self):
       "You tried to apply something that is not a function at line " + tostring(self.loc)
     end
+  | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
+    tostring(self):
+      "The object type " + self.obj
+        + " (defined at " + self.obj-loc.tostring()
+        + ") does not have the field \"" + self.field-name
+        + "\" (accessed at line " + self.access-loc.tostring() + ")"
+    end
 end
 
 data CompileTypeBinding:
