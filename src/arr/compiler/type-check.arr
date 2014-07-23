@@ -333,13 +333,19 @@ fun synthesis-fun(
                           info.typs.set(arg.id.key(), arg-typ)
                           link(arg-typ, base)
                         end, empty)
-  synthesis(body, info).bind(
-  lam(new-body, new-body-typ):
-    ret-typ  = ensure-satisfies(new-body-typ, ret-ann, info)
-    new-fun  = recreate(args, ret-ann, new-body)
-    fun-typ  = t-arrow(l, forall, arg-typs, ret-typ)
-    synthesis-result(new-fun, fun-typ)
-  end)
+
+  fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
+    arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
+    new-fun = recreate(args, ret-ann, new-body)
+    synthesis-result(new-fun, ret-typ)
+  end
+
+  cases(Option<Type>) to-type(ret-ann, info):
+    | some(ret-typ) =>
+      checking(body, ret-typ, info).synth-bind(process(_, ret-typ))
+    | none =>
+      synthesis(body, info).check-bind(process)
+  end
 end
 
 fun lookup-id(id, info :: TCInfo) -> Type:
@@ -598,16 +604,23 @@ fun check-fun(body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-
                    arg-typ
                  end
              end
-  ret-typ  = cases(Type) expect-typ:
-               | t-arrow(_, _, _, expect-ret) =>
-                 to-type(ret-ann, info).or-else(expect-ret)
-               | else =>
-                 to-type-std(ret-ann, info)
-             end
-  arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
-  for bind(new-body from checking(body, ret-typ, info)):
+  fun process(new-body :: A.Expr, ret-typ :: Type) -> CheckingResult:
+    arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
     new-fun = recreate(args, ret-ann, new-body)
     check-and-return(arrow-typ, expect-typ, new-fun, info)
+  end
+  cases(Option<Type>) to-type(ret-ann, info):
+    | some(ret-typ) =>
+      print("Correct path")
+      checking(body, ret-typ, info).bind(process(_, ret-typ))
+    | none =>
+      print("Bad path")
+      cases(Type) expect-typ:
+        | t-arrow(_, _, _, ret-typ) =>
+          checking(body, ret-typ, info).bind(process(_, ret-typ))
+        | else =>
+          synthesis(body, info).check-bind(process)
+      end
   end
 end
 
@@ -918,7 +931,6 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
 
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      print("Imports: " + torepr(imports))
       info = tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), errors)
       tc-result = checking(body, t-top, info)
       side-errs = errors.get()

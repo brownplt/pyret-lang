@@ -4,6 +4,7 @@ provide *
 provide-types *
 import ast as A
 import "compiler/desugar.arr" as D
+import "compiler/compile-structs.arr" as C
 
 mk-id = D.mk-id
 no-branches-exn = D.no-branches-exn
@@ -38,7 +39,7 @@ letrec desugar-visitor = A.default-map-visitor.{
              A.s-app(l, A.s-dot(l, val-id.id-e, "_match"), [list: cases-object, else-thunk])
            )
        end:
-         lam (program :: A.Program):
+         lam (program :: A.Program, compile-env :: C.CompileEnvironment):
            doc: ```
                  Desugar non-scope and non-check based constructs.
                  Preconditions on program:

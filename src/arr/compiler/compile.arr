@@ -57,7 +57,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
         | ok(tc-ast) =>
-          dp-ast = DP.desugar-post-tc(tc-ast)
+          dp-ast = DP.desugar-post-tc(tc-ast, libs)
           cleaned = dp-ast.visit(U.merge-nested-blocks)
                           .visit(U.flatten-single-blocks)
                           .visit(U.link-list-visitor(libs))
