@@ -36,6 +36,10 @@ check-stmts-visitor = A.default-map-visitor.{
     else:
       raise("Check test operator " + op + " not yet implemented at " + torepr(l))
     end
+  end,
+  s-check(self, l, name, body, keyword-check):
+    # collapse check blocks into top layer
+    body.visit(self)
   end
 }
 
@@ -94,6 +98,18 @@ fun make-lam(l, args, body):
 end
 
 no-checks-visitor = A.default-map-visitor.{
+  s-block(self, l, stmts):
+    A.s-block(l, stmts.map(_.visit(self)))
+  end,
+  s-fun(self, l, name, params, args, ann, doc, body, _):
+    A.s-fun(l, name, params, args, ann, doc, body, none)
+  end,
+  s-data(self, l, name, params, mixins, variants, shared-members, _):
+    A.s-data(l, name, params, mixins, variants, shared-members, none)
+  end,
+  s-lam(self, l, params, args, ann, doc, body, _):
+    A.s-lam(l, params, args, ann, doc, body, none)
+  end,
   s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name(l, "nothing"))
   end

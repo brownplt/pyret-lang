@@ -35,7 +35,7 @@ import format as F
 import string-dict as D
 import either as E
 format = F.format
-Either = E.Either
+type Either = E.Either
 left = E.left
 right = E.right
 
@@ -45,7 +45,7 @@ other-args = all-cmdline-params.rest
 
 data ParseParam:
   | read-number with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Number:
+    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
       n = string-tonumber(s)
       if is-nothing(n):
         right(format("~a expected a numeric argument, got ~a", [list: param-name, torepr(s)]))
@@ -54,7 +54,7 @@ data ParseParam:
     end,
     parse-string(self): "<number>" end
   | read-bool with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Boolean:
+    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:
@@ -63,7 +63,7 @@ data ParseParam:
     end,
     parse-string(self): "(true|false)" end
   | read-string with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> String:
+    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
       left(s)
     end,
     parse-string(self): "<string>" end

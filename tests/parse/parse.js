@@ -63,16 +63,16 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       // at https://github.com/brownplt/pyret-lang/pull/220#issuecomment-48685416
       // if this turns into a regression
 
-      const wss = [" ", " \n", "\n ", " \n "];
-      const ops = ["or", "and", "is", "satisfies", "raises"];
+      const wss = [" ", " \n", "\n ", " \n", " \n "];
+      const en_ops = ["or", "and", "is", "satisfies", "raises"];
 
-      for (var i = 0; i < wss.length; ++i) {
-        const op = ops[j];
+      for (var i = 0; i < en_ops.length; ++i) {
+        const op = en_ops[i];
 
         expect(parse(op + "=" + "false")).toBe(false);
 
-        for (var j = 0; j < ops.length; ++j) {
-          const ws = wss[i];
+        for (var j = 0; j < wss.length; ++j) {
+          const ws = wss[j];
 
           expect(parse("(" + op + ws + op + ws + op + ")")).toBe(false);
           expect(parse(op + ws + "="      + "false")).toBe(false);
@@ -82,12 +82,57 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       }
     });
 
+    it("shouldn't allow hyphens at the beginning or end of identifiers", function() {
+      // issue #222
+      expect(parse("-")).toBe(false);
+      expect(parse("(- -)")).toBe(false);
+      expect(parse("--")).toBe(false);
+      expect(parse("(-- --)")).toBe(false);
+      expect(parse("a- b")).toBe(false);
+      expect(parse("a -b")).toBe(false);
+      expect(parse("a- = b")).toBe(false);
+      expect(parse("-a = b")).toBe(false);
+
+      expect(parse("a-a")).not.toBe(false);
+      expect(parse("a-a-a")).not.toBe(false);
+      expect(parse("a--aa")).not.toBe(false);
+      expect(parse("aa--a")).not.toBe(false);
+    });
+
+    it("should allow English ops with all manner of surrounding whitespace and parens", function() {
+
+      const wss = [" ", " \n", "\n ", " \n", " \n "];
+      const en_ops = ["or", "and", "is", "satisfies", "raises"];
+
+      for (var i = 0; i < en_ops.length; ++i) {
+        const op = en_ops[i];
+
+        expect(parse("(false)" + op            )).toBe(false);
+        expect(parse(            op + "(false)")).toBe(false);
+
+        expect(parse("(false)" + op + "(false)")).not.toBe(false);
+
+        for (var j = 0; j < wss.length; ++j) {
+          const ws = wss[j];
+
+          expect(parse("(false)" + ws + op                 )).toBe(false);
+          expect(parse(                 op + ws + "(false)")).toBe(false);
+
+          expect(parse("(false)" + ws + op      + "(false)")).not.toBe(false);
+          expect(parse("(false)" +      op + ws + "(false)")).not.toBe(false);
+          expect(parse("(false)" + ws + op + ws + "(false)")).not.toBe(false);
+        }
+      }
+    });
+
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
     });
 
-    it("should parse angle brackets without whitespace as type instantiations", function() {
+    it("should parse angle brackets without whitespace only as type instantiations", function() {
+      expect(parse("map<A>")).not.toBe(false);
+      expect(parse("(map<A>)")).not.toBe(false);
       expect(parse("(map<A, B>)")).not.toBe(false);
       expect(parse("map<A, B>(id)")).not.toBe(false);
       expect(parse("(map < A, B > (id))")).toBe(false);
@@ -95,12 +140,19 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("map<A,\nB>(id)")).not.toBe(false);
     });
 
+    it("should parse angle brackets without whitespace in annotations only as type function application", function() {
+      expect(parse("a :: List < A > = a")).toBe(false);
+      expect(parse("a :: List < A, B > = a")).toBe(false);
+      expect(parse("a :: List<A> = a")).not.toBe(false);
+      expect(parse("a :: List<A, B> = a")).not.toBe(false);
+    });
+
     it("should parse angle brackets with whitespace as gt/lt", function() {
       expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
       expect(parse("1<\n2 or false, B > (id)")).toBe(false);
     });
 
-    it("should not care about whitespace and angle brackets in annotations", function() {
+    it("should not care about whitespace and angle brackets in declarations", function() {
       expect(parse("fun<A>print(): end")).not.toBe(false);
       expect(parse("fun< A>print(): end")).not.toBe(false);
       expect(parse("fun <A>print(): end")).not.toBe(false);

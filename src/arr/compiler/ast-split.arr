@@ -5,6 +5,7 @@ provide-types *
 import "compiler/ast-anf.arr" as N
 import ast as A
 import pprint as PP
+import "compiler/gensym.arr" as G
 
 names = A.global-names
 
@@ -90,7 +91,14 @@ fun ast-split-expr(expr :: N.AExpr) -> SplitResultInt:
       | a-app(l2, f, args) =>
         rest-split = ast-split-expr(body)
         fvs = N.freevars-ann-acc(b.ann, rest-split.freevars.remove(b.id))
-        h = helper(names.make-atom(b.id.toname()), link(b.id, fvs.to-list()), rest-split.body)
+        h = if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+          helper(names.make-atom(b.id.toname()), link(b.id, fvs.to-list()), rest-split.body)
+        else:
+          nonce = G.make-name("chk_" + b.id.toname())
+          nonce-name = names.make-atom(nonce)
+          ann-check = N.a-let(l, b, N.a-val(N.a-id(l, nonce-name)), rest-split.body)
+          helper(names.make-atom(b.id.toname()), link(nonce-name, fvs.to-list()), ann-check)
+        end
         split-result-int-e(
             concat-singleton(h) + rest-split.helpers,
             N.a-split-app(l, is-var, f, args, h.name, h.args.map(N.a-id(l, _))),

@@ -30,11 +30,11 @@ end
 fun no-branches-exn(l, typ):
   A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
 end
-fun make-message-exception(l, msg):
-  make-message-exception-e(l, A.s-str(l, msg))
+fun bool-exn(l, typ, val):
+  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
 end
-fun make-message-exception-e(l, msg-e):
-  A.s-prim-app(l, "throwMessageException", [list: msg-e])
+fun bool-op-exn(l, position, typ, val):
+  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
@@ -517,8 +517,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-let(_, _, _, _)        => raise("s-let should have already been desugared")
     | s-var(_, _, _)           => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _, _)      => A.s-str(l, "Checks should have been desugared")
-    | s-check-test(l, _, _, _) => make-message-exception(l, "Checks should have been desugared")
+    | s-check(l, _, _, _)      => raise("s-check should have already been desugared at " + torepr(l))
+    | s-check-test(l, _, _, _)      => raise("s-check-test should have already been desugared at " + torepr(l))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

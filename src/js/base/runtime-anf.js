@@ -1368,8 +1368,12 @@ function createMethodDict() {
       throw "Internal error: got invalid result from annotation check";
     }
 
+    function isCheapAnnotation(ann) {
+      return !(ann.refinement || ann instanceof PRecordAnn);
+    }
+
     function checkAnn(compilerLoc, ann, val, after) {
-      if(!ann.refinement) {
+      if(isCheapAnnotation(ann)) {
         return returnOrRaise(ann.check(compilerLoc, val), val, after);
       }
       else {
@@ -1382,7 +1386,7 @@ function createMethodDict() {
     }
 
     function _checkAnn(compilerLoc, ann, val) {
-      if (!ann.refinement) {
+      if (isCheapAnnotation(ann)) {
         var result = ann.check(compilerLoc, val);
         if(ffi.isOk(result)) { return val; }
         if(ffi.isFail(result)) { raiseJSJS(result); }
@@ -1399,7 +1403,7 @@ function createMethodDict() {
     }
 
     function safeCheckAnnArg(compilerLoc, ann, val, after) {
-      if(!ann.refinement) {
+      if(isCheapAnnotation(ann)) {
         return returnOrRaise(ann.check(compilerLoc, val), val, after);
       }
       else {
@@ -1481,7 +1485,7 @@ function createMethodDict() {
     }
     PPrimAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
-      if(!this.refinement) {
+      if(isCheapAnnotation(this)) {
         return this.checkOrFail(this.pred(val), val, compilerLoc);
       }
       else {
@@ -1605,7 +1609,7 @@ function createMethodDict() {
         return safeCall(function() {
           thisField = remainingFields.pop();
           var thisChecker = that.anns[thisField];
-          return thisChecker.check(that.locs[that.locs.length - remainingFields.ength], getColonField(val, thisField));
+          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField));
         }, function(result) {
           if(ffi.isOk(result)) {
             if(remainingFields.length === 0) { return ffi.contractOk; }
@@ -1616,7 +1620,8 @@ function createMethodDict() {
           }
         });
       }
-      return deepCheckFields(that.fields.slice());
+      if(that.fields.length === 0) { return ffi.contractOk; }
+      else { return deepCheckFields(that.fields.slice()); }
     }
 
     /********************
@@ -1926,7 +1931,10 @@ function createMethodDict() {
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
             }
             // console.log("The new stack height is ", theOneTrueStackHeight);
-            // console.log("theOneTrueStack = ", theOneTrueStack);
+            // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
+            //   if (f && f.from) { return f.from.toString(); }
+            //   else { return f; }
+            // }));
 
             if(isPause(e)) {
               thisThread.pause();

@@ -47,10 +47,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
     case "PARENSPACE":
-    case "PLUS": case "DASH": case "STAR": case "SLASH": case "LEQ": case "GEQ":
-    case "EQUALEQUAL": case "LT": case "GT":
+    case "PLUS": case "DASH": case "STAR": case "SLASH":
+    case "LT": case "GT":
       // Trim off whitespace
       pos = SrcLoc.make(pos.endRow, pos.endCol - 1, pos.endChar - 1, pos.endRow, pos.endCol, pos.endChar);
+      break;
+    case "EQUALEQUAL": case "NEQ": case "LEQ": case "GEQ": // they're longer tokens
+      // Trim off whitespace
+      pos = SrcLoc.make(pos.endRow, pos.endCol - 2, pos.endChar - 2, pos.endRow, pos.endCol, pos.endChar);
       break;
     default:
       break;
@@ -84,13 +88,13 @@ define(["../../../lib/jglr/jglr"], function(E) {
   }
 
 
-  const ws_after = "(?:\\s+)"
+  const ws_after = "(?=\\s)";
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
   function op(str) { return "^\\s+" + str + ws_after; }
 
-  const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
+  const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
   const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
@@ -130,11 +134,13 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
-  const opand = new RegExp(op("and"), STICKY_REGEXP);
-  const opor = new RegExp(op("or"), STICKY_REGEXP);
-  const opis = new RegExp(op("is"), STICKY_REGEXP);
-  const opsatisfies = new RegExp(op("satisfies"), STICKY_REGEXP);
-  const opraises = new RegExp(op("raises"), STICKY_REGEXP);
+
+  // English ops don't require whitespace. That way it is possible to catch them in ID position
+  const opand = new RegExp(kw("and"), STICKY_REGEXP);
+  const opor = new RegExp(kw("or"), STICKY_REGEXP);
+  const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
+  const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
