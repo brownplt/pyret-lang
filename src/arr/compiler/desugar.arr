@@ -119,8 +119,8 @@ end
 fun make-match(l, case-name, fields):
   call-match-case = mk-id(l, "call-" + case-name)
   self-id = mk-id(l, "self")
-  cases-id = mk-id(l, "cases-funs")
-  else-id = mk-id(l, "else-clause")
+  cases-id = mk-id-ann(l, "cases-funs", A.a-record(l, empty))
+  else-id = mk-id-ann(l, "else-clause", A.a-arrow(l, empty, A.a-any, true))
   args = for map(f from fields):
       cases(A.VariantMember) f:
         | s-variant-member(l2, mtype, bind) =>
@@ -173,46 +173,10 @@ end
 
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
-    | s-cases-branch(l2, name, args, body) =>  
-      desugar-member(
-        A.s-data-field(
-          l2,
-          name,
-          A.s-lam(l2, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
+    | s-cases-branch(l, name, args, body) =>
+      A.s-cases-branch(l, name, args.map(desugar-bind),
+                       desugar-expr(body))
   end
-end
-
-fun desugar-cases(l, ann, val, branches, else-block):
-  val-id = mk-id(l, "cases-val")
-  cases-object = A.s-obj(l, branches)
-  else-thunk = A.s-lam(l, [list: ], [list: ], A.a-blank, "", else-block, none)
-  A.s-let-expr(l, [list: 
-        A.s-let-bind(l, val-id.id-b, val)
-      ],
-      A.s-app(l, A.s-dot(l, val-id.id-e, "_match"), [list: cases-object, else-thunk])
-    )
-where:
-  d = A.dummy-loc
-  prog = desugar-cases(
-      d,
-      A.a-blank, 
-      A.s-num(d, 1),
-      [list:
-        A.s-data-field(d, "empty", A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
-      ],
-      A.s-num(d, 4)
-    )
-  id = prog.binds.first.b
-    
-  prog.visit(A.dummy-loc-visitor) is A.s-let-expr(d, [list: 
-      A.s-let-bind(d, id, A.s-num(d, 1))
-    ],
-    A.s-app(d, A.s-dot(d, A.s-id(d, id.id), "_match"), [list:
-        A.s-obj(d, [list:
-            A.s-data-field(d, "empty", A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 5), none))
-          ]),
-        A.s-lam(d, [list: ], [list: ], A.a-blank, "", A.s-num(d, 4), none)]))
-
 end
 
 fun desugar-variant-member(m):
@@ -446,10 +410,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-if-pipe-else(l, branches, _else) =>
       desugar-if(l, branches, _else)
     | s-cases(l, typ, val, branches) =>
-      desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
-        A.s-block(l, [list: no-branches-exn(l, "cases")]))
+      A.s-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch))
     | s-cases-else(l, typ, val, branches, _else) =>
-      desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
+      A.s-cases-else(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
+        desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))

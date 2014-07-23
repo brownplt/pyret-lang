@@ -11,6 +11,7 @@ import "compiler/well-formed.arr" as W
 import "compiler/ast-util.arr" as U
 import "compiler/resolve-scope.arr" as R
 import "compiler/desugar.arr" as D
+import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
 import "compiler/desugar-check.arr" as CH
 
@@ -56,7 +57,8 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
         | ok(tc-ast) =>
-          cleaned = tc-ast.visit(U.merge-nested-blocks)
+          dp-ast = DP.desugar-post-tc(tc-ast)
+          cleaned = dp-ast.visit(U.merge-nested-blocks)
                           .visit(U.flatten-single-blocks)
                           .visit(U.link-list-visitor(libs))
                           .visit(U.letrec-visitor)
