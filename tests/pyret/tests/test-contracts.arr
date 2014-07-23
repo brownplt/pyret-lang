@@ -140,7 +140,8 @@ check "should work for records":
   end
 
   non-errors = [list:
-    is-sorted + "o :: { l1 :: Any%(is-sorted), l2 :: Any%(is-sorted) } = { l1: lists.range(0, 100), l2: lists.range(0, 100) }"
+    is-sorted + "o :: { l1 :: Any%(is-sorted), l2 :: Any%(is-sorted) } = { l1: lists.range(0, 100), l2: lists.range(0, 100) }",
+    "x :: {} = { x : 'foo' }"
   ]
   for each(program from non-errors):
     result = run-str(program)
