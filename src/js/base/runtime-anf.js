@@ -1620,7 +1620,8 @@ function createMethodDict() {
           }
         });
       }
-      return deepCheckFields(that.fields.slice());
+      if(that.fields.length === 0) { return ffi.contractOk; }
+      else { return deepCheckFields(that.fields.slice()); }
     }
 
     /********************

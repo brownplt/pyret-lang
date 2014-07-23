@@ -9,7 +9,9 @@ before_install:
 language: node_js
 node_js:
   - "0.10"
-install: sudo ./setup.sh < setup_commands && make install
-before_script: make
-script: make test-all
+install:
+  - sudo ./setup.sh < setup_commands 
+  - make install
+before_script: make -j4
+script: make -j4 test-all
 

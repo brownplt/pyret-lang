@@ -36,6 +36,10 @@ check-stmts-visitor = A.default-map-visitor.{
     else:
       raise("Check test operator " + op + " not yet implemented at " + torepr(l))
     end
+  end,
+  s-check(self, l, name, body, keyword-check):
+    # collapse check blocks into top layer
+    body.visit(self)
   end
 }
 
