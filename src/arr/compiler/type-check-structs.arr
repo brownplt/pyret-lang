@@ -27,6 +27,10 @@ data SynthesisResult:
       a = synthesis-result(self.ast, f(self.typ))
       a
     end,
+    synth-bind(self, f) -> SynthesisResult:
+      a = f(self.ast, self.typ)
+      a
+    end,
     check-bind(self, f) -> CheckingResult:
       a = f(self.ast, self.typ)
       a
@@ -80,6 +84,10 @@ data SynthesisResult:
       a = self
       a
     end,
+    synth-bind(self, f) -> SynthesisResult:
+      a = self
+      a
+    end,
     check-bind(self, f) -> CheckingResult:
       a = checking-err(self.errors)
       a
@@ -117,6 +125,10 @@ data CheckingResult:
       a = checking-result(f(self.ast))
       a
     end,
+    check-bind(self, f) -> CheckingResult:
+      a = f(self.ast)
+      a
+    end,
     synth-bind(self, f) -> SynthesisResult:
       a = f(self.ast)
       a
@@ -131,6 +143,10 @@ data CheckingResult:
     end
   | checking-err(errors :: List<C.CompileError>) with:
     bind(self, f) -> CheckingResult:
+      a = self
+      a
+    end,
+    check-bind(self, f) -> CheckingResult:
       a = self
       a
     end,
