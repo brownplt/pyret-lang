@@ -121,6 +121,12 @@ data CompileError:
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ")
     end
+  | cant-match-on(type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The type specified " + self.type-name
+        + " at " + self.loc.tostring()
+        + " cannot be used in a cases expression."
+    end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
     tostring(self):
       "Incorrect number of bindings given to "

@@ -122,7 +122,7 @@ fun to-type-member(field :: A.Member, info :: TCInfo) -> FoldResult<Pair<A.Membe
   cases(A.Member) field:
     | s-data-field(l, name, value) =>
       if A.is-s-method(value) or A.is-s-lam(value): # TODO(cody): Type-check methods and lambdas.
-        fold-result(pair(A.s-data-field(l, name, value), t-member(name, t-bot)))
+        fold-result(pair(A.s-data-field(l, name, value), t-member(name, t-top)))
       else:
         synthesis(value, info).fold-bind(
         lam(new-value, value-typ):
@@ -166,6 +166,15 @@ fun to-type-variant(variant :: A.Variant, info :: TCInfo) -> FoldResult<Pair<A.V
   end
 end
 
+fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
+  key = typ.tostring()
+  if info.data-exprs.has-key(key):
+    some(info.data-exprs.get(key))
+  else:
+    none
+  end
+end
+
 fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
                 handle :: (A.Expr, Loc, List<TypeMember> -> SynthesisResult),
                 info :: TCInfo
@@ -175,11 +184,11 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
     | t-record(l, members) =>
       handle(obj, l, members)
     | t-name(l, module-name, id) =>
-      key = obj-typ.tostring()
-      if info.data-exprs.has-key(key):
-        handle(obj, l, info.data-exprs.get(key).fields)
-      else:
-        non-obj-err
+      cases(Option<DataType>) get-data-type(obj-typ, info):
+        | some(data-type) =>
+          handle(obj, l, data-type.fields)
+        | none =>
+          non-obj-err
       end
     | t-app(l, onto, args) =>
       raise("NYI(record-view): " + torepr(obj-typ))
@@ -234,7 +243,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
 
         # Save processed datatype
         brander-typ    = info.branders.get(namet.key())
-        type-datatype  = t-datatype(t-vars, variant-typs, variants-meet + split-fields.right)
+        type-datatype  = t-datatype(name, t-vars, variant-typs, variants-meet + split-fields.right)
         info.data-exprs.set(brander-typ.tostring(), type-datatype)
 
         new-data-expr  = A.s-data-expr(l, name, namet, params, mixins, variants, split-fields.left, _check)
@@ -337,16 +346,150 @@ fun synthesis-fun(
   fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
     arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
     new-fun = recreate(args, ret-ann, new-body)
-    synthesis-result(new-fun, ret-typ)
+    synthesis-result(new-fun, arrow-typ)
   end
 
   cases(Option<Type>) to-type(ret-ann, info):
     | some(ret-typ) =>
       checking(body, ret-typ, info).synth-bind(process(_, ret-typ))
     | none =>
-      synthesis(body, info).check-bind(process)
+      synthesis(body, info).bind(process)
   end
 end
+
+fun bind-arg(info :: TCInfo, arg :: A.Bind, tm :: TypeMember) -> FoldResult<TCInfo>:
+  typ = tm.typ
+  cases(Option<Type>) to-type(arg.ann, info):
+    | some(declared-typ) =>
+      if typ.satisfies-type(declared-typ):
+        info.typs.set(arg.id.key(), declared-typ)
+        fold-result(info)
+      else:
+        fold-errors([list: C.incorrect-type(declared-typ.tostring(), declared-typ.toloc(), typ.tostring(), typ.toloc())])
+      end
+    | none =>
+      info.typs.set(arg.id.key(), typ)
+      fold-result(info)
+  end
+end
+
+fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBranch,
+                  maybe-check :: Option<Type>, remove :: (String -> Any),
+                  info :: TCInfo
+) -> FoldResult<Pair<A.CasesBranch, Type>>:
+  cases(A.CasesBranch) branch:
+    | s-cases-branch(l, name, args, body) =>
+      fun process(new-body, typ):
+        new-branch = A.s-cases-branch(l, name, args, new-body)
+        fold-result(pair(new-branch, typ))
+      end
+      cases(Option<TypeMember>) data-type.lookup-variant(name):
+        | some(tm) =>
+          bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), tm.fields.length()))
+          for bind(new-info from bind-args(bind-arg, fold-result(info), args, tm.fields)):
+            remove(name)
+            cases(Option<Type>) maybe-check:
+              | some(expect-typ) =>
+                checking(body, expect-typ, new-info).fold-bind(process(_, expect-typ))
+              | none =>
+                synthesis(body, new-info).fold-bind(process)
+            end
+          end
+        | none =>
+          fold-errors([list: C.unneccesary-branch(name, l, data-type.name, cases-loc)])
+      end
+  end
+end
+
+fun meet-branch-typs(branch-typs :: List<Type>, info :: TCInfo) -> Type:
+  branch-typs.foldl(least-upper-bound, t-bot)
+end
+
+fun track-branches(data-type :: DataType) ->
+  { remove :: (String -> Set<String>), get :: (-> Set<String>) }:
+  var unhandled-branches = data-type.variants.foldl(lam(b, s): s.add(b.name);, [set:])
+  {
+    remove: lam(b-name :: String):
+      unhandled-branches := unhandled-branches.remove(b-name)
+    end,
+    get: lam() -> Set<String>:
+      unhandled-branches
+    end
+  }
+end
+
+fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
+                     maybe-else :: Option<A.Expr>, maybe-expect :: Option<Type>,
+                     info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
+                     has-else, no-else) -> B:
+  typ = to-type-std(ann, info)
+  cases(Option<DataType>) get-data-type(typ, info):
+    | some(data-type) =>
+      for bind-direction(new-val from checking(val, typ, info)):
+        branch-tracker = track-branches(data-type)
+        for bind-direction(result from map-result(handle-branch(data-type, l, _, maybe-expect, branch-tracker.remove, info), branches)):
+          split-result = split(result)
+          remaining-branches = branch-tracker.get().to-list()
+          cases(Option<A.Expr>) maybe-else:
+            | some(_else) =>
+              if is-empty(remaining-branches):
+                create-err([list: C.unneccesary-else-branch(data-type.name, l)])
+              else:
+                has-else(l, ann, new-val, split-result, _else, info)
+              end
+            | none =>
+              if is-empty(remaining-branches):
+                no-else(l, ann, new-val, split-result, info)
+              else:
+                create-err([list: C.non-exhaustive-pattern(remaining-branches, data-type.name, l)])
+              end
+          end
+        end
+      end
+    | none =>
+      create-err([list: C.cant-match-on(typ.tostring(), l)])
+  end
+
+end
+
+fun synthesis-cases-has-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, _else :: A.Expr, info :: TCInfo) -> SynthesisResult:
+  synthesis(_else, info).bind(
+    lam(new-else, else-typ):
+      branches-typ = meet-branch-typs(link(else-typ, split-result.right), info)
+      new-cases = A.s-cases-else(l, ann, new-val, split-result.left, new-else)
+      synthesis-result(new-cases, branches-typ)
+    end)
+end
+
+fun synthesis-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, info :: TCInfo) -> SynthesisResult:
+  branches-typ = meet-branch-typs(split-result.right, info)
+  new-cases = A.s-cases(l, ann, new-val, split-result.left)
+  synthesis-result(new-cases, branches-typ)
+end
+
+fun checking-cases-has-else(expect-typ :: Type):
+  lam(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, _else :: A.Expr, info :: TCInfo) -> CheckingResult:
+    for bind(new-else from checking(_else, expect-typ, info)):
+      new-cases = A.s-cases-else(l, ann, new-val, split-result.left, new-else)
+      checking-result(new-cases)
+    end
+  end
+end
+
+fun checking-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, info :: TCInfo) -> CheckingResult:
+  new-cases = A.s-cases(l, ann, new-val, split-result.left)
+  checking-result(new-cases)
+end
+
+fun synthesis-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, info :: TCInfo) -> SynthesisResult:
+  handle-cases(l, ann, val, branches, maybe-else, none, info, synth-bind, synthesis-err, synthesis-cases-has-else, synthesis-cases-no-else)
+end
+
+fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-typ :: Type, info :: TCInfo) -> SynthesisResult:
+  handle-cases(l, ann, val, branches, maybe-else, some(expect-typ), info, check-bind, checking-err, checking-cases-has-else(expect-typ), checking-cases-no-else)
+end
+
+
 
 fun lookup-id(id, info :: TCInfo) -> Type:
   id-key = if is-string(id):
@@ -459,9 +602,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         end)
       end)
     | s-cases(l, typ, val, branches) =>
-      raise("s-cases not yet handled")
+      synthesis-cases(l, typ, val, branches, none, info)
     | s-cases-else(l, typ, val, branches, _else) =>
-      raise("s-cases-else not yet handled")
+      synthesis-cases(l, typ, val, branches, some(_else), info)
     | s-try(l, body, id, _except) =>
       raise("s-try not yet handled")
     | s-op(l, op, left, right) =>
@@ -611,10 +754,8 @@ fun check-fun(body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-
   end
   cases(Option<Type>) to-type(ret-ann, info):
     | some(ret-typ) =>
-      print("Correct path")
       checking(body, ret-typ, info).bind(process(_, ret-typ))
     | none =>
-      print("Bad path")
       cases(Type) expect-typ:
         | t-arrow(_, _, _, ret-typ) =>
           checking(body, ret-typ, info).bind(process(_, ret-typ))
@@ -787,9 +928,9 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
         checking(_else, expect-typ, info).map(A.s-if-else(l, new-branches, _))
       end)
     | s-cases(l, typ, val, branches) =>
-      raise("s-cases not yet handled")
+      checking-cases(l, typ, val, branches, none, expect-typ, info)
     | s-cases-else(l, typ, val, branches, _else) =>
-      raise("s-cases-else not yet handled")
+      checking-cases(l, typ, val, branches, some(_else), expect-typ, info)
     | s-try(l, body, id, _except) =>
       raise("s-try not yet handled")
     | s-op(l, op, left, right) =>
