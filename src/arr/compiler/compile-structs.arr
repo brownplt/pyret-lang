@@ -103,6 +103,33 @@ data CompileError:
         + ") does not have the field \"" + self.field-name
         + "\" (accessed at line " + self.access-loc.tostring() + ")"
     end
+  | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
+    tostring(self):
+      "The branch " + self.branch-name
+        + " (defined at " + self.branch-loc.tostring()
+        + ") is not a variant of " + self.type-name
+        + " (declared at " + self.type-loc.tostring() + ")"
+    end
+  | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The else branch for the cases expression at " + self.loc.tostring()
+        + " is not needed since you have exhausted all variants of " + self.type-name
+    end
+  | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The cases expression at " + self.loc.tostring()
+        + " does not exhaust all variants of " + self.type-name
+        + ". It is missing: " + self.missing.join-str(", ")
+    end
+  | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
+    tostring(self):
+      "Incorrect number of bindings given to "
+        + "the variant " + self.variant-name
+        + " at " + self.loc.tostring() + ". "
+        + "Given " + num-tostring(self.given)
+        + ", but expected " + num-tostring(self.expected)
+        + "."
+    end
 end
 
 data CompileTypeBinding:
