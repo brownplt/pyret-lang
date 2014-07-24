@@ -125,7 +125,8 @@ data TypeVariant:
               with-fields :: TypeMembers)
   | t-singleton-variant(l           :: A.Loc,
                         name        :: String,
-                        with-fields :: TypeMembers)
+                        with-fields :: TypeMembers) with:
+    fields: empty-type-members
 end
 
 fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
@@ -136,9 +137,16 @@ fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
 end
 
 data DataType:
-  | t-datatype(params   :: List<TypeVariable>,
+  | t-datatype(name     :: String,
+               params   :: List<TypeVariable>,
                variants :: List<TypeVariant>,
-               fields   :: TypeMembers) # common (with-)fields, shared methods, etc
+               fields   :: TypeMembers) with: # common (with-)fields, shared methods, etc
+    lookup-variant(self, variant-name :: String) -> Option<TypeVariant>:
+      fun same-name(tv):
+        tv.name == variant-name
+      end
+      self.variants.find(same-name)
+    end
 end
 
 data Type:
