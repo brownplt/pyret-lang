@@ -81,27 +81,27 @@ data CompileError:
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     tostring(self):
       "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
-        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name
+        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + "."
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
     tostring(self):
       "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
-        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given)
+        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + "."
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
     tostring(self):
-      "Incorrect number of arguments given to function at line " + tostring(self.loc)
+      "Incorrect number of arguments given to function at line " + tostring(self.loc) + "."
     end
   | apply-non-function(loc :: A.Loc) with:
     tostring(self):
-      "You tried to apply something that is not a function at line " + tostring(self.loc)
+      "You tried to apply something that is not a function at line " + tostring(self.loc) + "."
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     tostring(self):
       "The object type " + self.obj
         + " (defined at " + self.obj-loc.tostring()
         + ") does not have the field \"" + self.field-name
-        + "\" (accessed at line " + self.access-loc.tostring() + ")"
+        + "\" (accessed at line " + self.access-loc.tostring() + ")."
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
     tostring(self):
@@ -113,13 +113,13 @@ data CompileError:
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     tostring(self):
       "The else branch for the cases expression at " + self.loc.tostring()
-        + " is not needed since you have exhausted all variants of " + self.type-name
+        + " is not needed since all variants of " + self.type-name + " have been exhausted."
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     tostring(self):
       "The cases expression at " + self.loc.tostring()
         + " does not exhaust all variants of " + self.type-name
-        + ". It is missing: " + self.missing.join-str(", ")
+        + ". It is missing: " + self.missing.join-str(", ") + "."
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     tostring(self):
