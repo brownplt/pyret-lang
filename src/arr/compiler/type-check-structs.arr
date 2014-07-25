@@ -39,22 +39,6 @@ data SynthesisResult:
       a = f(self.ast, self.typ)
       a
     end
-  | synthesis-if-result(lst :: List<A.IfCasesBranch>, typ :: Type) with:
-    bind(self, f) -> SynthesisResult:
-      a = f(self.lst, self.typ)
-      a
-    end,
-    map-expr(self, f) -> SynthesisResult:
-      raise("Cannot map expr on synthesis-if-result!")
-    end,
-    map-typ(self, f) -> SynthesisResult:
-      a = synthesis-if-result(self.lst, f(self.typ))
-      a
-    end,
-    check-bind(self, f) -> CheckingResult:
-      a = f(self.lst, self.typ)
-      a
-    end
   | synthesis-binding-result(let-bind, typ :: Type) with:
     bind(self, f) -> SynthesisResult:
       a = f(self.let-bind, self.typ)

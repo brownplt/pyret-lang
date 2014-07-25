@@ -57,7 +57,6 @@ type FoldResult           = TCS.FoldResult
 type CheckingMapResult    = TCS.CheckingMapResult
 
 synthesis-result          = TCS.synthesis-result
-synthesis-if-result       = TCS.synthesis-if-result
 synthesis-binding-result  = TCS.synthesis-binding-result
 synthesis-err             = TCS.synthesis-err
 checking-result           = TCS.checking-result
@@ -373,6 +372,17 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm :: TypeMember) -> FoldResult<TCIn
   end
 end
 
+
+fun handle-if-branch(branch :: A.IfBranch, info :: TCInfo) -> FoldResult<Pair<A.IfBranch,Type>>:
+  for fold-bind(new-test from checking(branch.test, t-boolean, info)):
+    synthesis(branch.body, info).fold-bind(
+      lam(new-body, body-typ):
+        new-branch = A.s-if-branch(branch.l, new-test, new-body)
+        fold-result(pair(new-branch, body-typ))
+      end)
+  end
+end
+
 fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBranch,
                   maybe-check :: Option<Type>, remove :: (String -> Any),
                   info :: TCInfo
@@ -582,25 +592,16 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
     | s-assign(l, id, value) =>
       raise("s-assign not yet handled")
     | s-if-else(l, branches, _else) =>
-      for fold(base from synthesis-if-result(empty, t-bot), branch from branches):
-        base.bind(lam(new-branches, meet-typ):
-          for synth-bind(new-test from checking(branch.test, t-boolean, info)):
-            synthesis(branch.body, info).bind(
-            lam(new-body, new-body-typ):
-              new-branch = A.s-if-branch(branch.l, new-test, new-body)
-              meet       = least-upper-bound(new-body-typ, meet-typ)
-              synthesis-if-result(link(new-branch, new-branches), meet)
-            end)
-          end
-        end)
-      end.bind(lam(new-branches, meet-typ):
+      for synth-bind(result from map-result(handle-if-branch(_, info), branches)):
         synthesis(_else, info).bind(
-        lam(new-else, new-else-typ):
-          if-else-typ  = least-upper-bound(meet-typ, new-else-typ)
-          new-if-else  = A.s-if-else(l, new-branches, new-else)
-          synthesis-result(new-if-else, if-else-typ)
-        end)
-      end)
+          lam(new-else, else-typ):
+            split-result = split(result)
+            new-branches = split-result.left
+            if-else-typ  = meet-branch-typs(link(else-typ, split-result.right), info)
+            new-if-else  = A.s-if-else(l, new-branches, new-else)
+            synthesis-result(new-if-else, if-else-typ)
+          end)
+      end
     | s-cases(l, typ, val, branches) =>
       synthesis-cases(l, typ, val, branches, none, info)
     | s-cases-else(l, typ, val, branches, _else) =>
