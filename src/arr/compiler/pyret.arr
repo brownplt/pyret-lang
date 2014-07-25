@@ -40,6 +40,8 @@ fun main(args):
       C.flag(C.once, "Skip checks"),
     allow-shadow:
       C.flag(C.once, "Run without checking for shadowed variables"),
+    type-check:
+      C.flag(C.once, "Type-check the program during compilation"),
     dialect:
         C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
           "Pyret", some("d"), C.once, "Dialect of Pyret to use when compiling")
@@ -64,6 +66,7 @@ fun main(args):
         else: CS.standard-builtins end
       module-dir = r.get("module-load-dir")
       check-all = r.has-key("check-all")
+      type-check = r.has-key("type-check")
       if not(is-empty(rest)):
         program-name = rest.first
         result = CM.compile-js(
@@ -76,6 +79,7 @@ fun main(args):
             check-mode : check-mode,
             allow-shadowed : allow-shadowed,
             collect-all: false,
+            type-check: type-check,
             ignore-unbound: false
           }
           ).result
@@ -109,6 +113,7 @@ fun main(args):
             libs,
             {
               check-mode : check-mode,
+              type-check : type-check,
               allow-shadowed : allow-shadowed
             }
             )
@@ -121,6 +126,7 @@ fun main(args):
             libs,
             {
               check-mode : check-mode,
+              type-check : type-check,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false

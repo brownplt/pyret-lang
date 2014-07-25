@@ -276,7 +276,10 @@ sharing:
       | t-var(a-id)                           => cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
-          | t-var(b-id) => a-id._comp(b-id)
+          | t-var(b-id) => 
+            if a-id < b-id: less-than
+            else if a-id > b-id: greater-than
+            else: equal;
           | t-arrow(_, _, _, _) => less-than
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than

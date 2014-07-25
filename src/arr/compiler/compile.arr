@@ -53,7 +53,9 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       named-errors = named-result.errors
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
-      type-checked = T.type-check(desugared, libs)
+      type-checked =
+        if options.type-check: T.type-check(desugared, libs)
+        else: C.ok(desugared);
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
         | ok(tc-ast) =>
