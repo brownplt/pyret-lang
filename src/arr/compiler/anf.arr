@@ -22,15 +22,15 @@ data ANFCont:
   | k-id(name :: A.Name) with:
     apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
-        | a-val(v) =>
-          name = mk-id(l, "cont_tail_app")
+        | a-val(l2, v) =>
+          name = mk-id(l2, "cont_tail_app")
           N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [list: v]),
-            N.a-lettable(N.a-val(name.id-e)))
+            N.a-lettable(l2, N.a-val(l2, name.id-e)))
         | else =>
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, e-name.id-b, expr,
-            N.a-lettable(N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e])))
+            N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e])))
       end
     end
 end
@@ -41,8 +41,8 @@ fun anf-term(e :: A.Expr) -> N.AExpr:
             # tail call
           | a-app(l, f, args) =>
             name = mk-id(l, "anf_tail_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(N.a-val(name.id-e)))
-          | else => N.a-lettable(x)
+            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
+          | else => N.a-lettable(x.l, x)
         end
       end)
     )
@@ -68,7 +68,7 @@ end
 fun anf-name(expr :: A.Expr, name-hint :: String, k :: (N.AVal -> N.AExpr)) -> N.AExpr:
   anf(expr, k-cont(lam(lettable):
         cases(N.ALettable) lettable:
-          | a-val(v) => k(v)
+          | a-val(_, v) => k(v)
           | else =>
             t = mk-id(expr.l, name-hint)
             N.a-let(expr.l, t.id-b, lettable, k(t.id-e))
@@ -145,16 +145,16 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 end)
             end)
         end)
-    | s-num(l, n) => k.apply(l, N.a-val(N.a-num(l, n)))
-    | s-frac(l, num, den) => k.apply(l, N.a-val(N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
-    | s-str(l, s) => k.apply(l, N.a-val(N.a-str(l, s)))
-    | s-undefined(l) => k.apply(l, N.a-val(N.a-undefined(l)))
-    | s-bool(l, b) => k.apply(l, N.a-val(N.a-bool(l, b)))
-    | s-id(l, id) => k.apply(l, N.a-val(N.a-id(l, id)))
-    | s-id-var(l, id) => k.apply(l, N.a-val(N.a-id-var(l, id)))
+    | s-num(l, n) => k.apply(l, N.a-val(l, N.a-num(l, n)))
+    | s-frac(l, num, den) => k.apply(l, N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
+    | s-str(l, s) => k.apply(l, N.a-val(l, N.a-str(l, s)))
+    | s-undefined(l) => k.apply(l, N.a-val(l, N.a-undefined(l)))
+    | s-bool(l, b) => k.apply(l, N.a-val(l, N.a-bool(l, b)))
+    | s-id(l, id) => k.apply(l, N.a-val(l, N.a-id(l, id)))
+    | s-id-var(l, id) => k.apply(l, N.a-val(l, N.a-id-var(l, id)))
     | s-id-letrec(l, id, safe) =>
-      k.apply(l, N.a-val(N.a-id-letrec(l, id, safe)))
-    | s-srcloc(l, loc) => k.apply(l, N.a-val(N.a-srcloc(l, loc)))
+      k.apply(l, N.a-val(l, N.a-id-letrec(l, id, safe)))
+    | s-srcloc(l, loc) => k.apply(l, N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body) =>
       cases(List) binds:
         | empty => anf(body, k)
@@ -175,14 +175,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             | s-var-bind(l2, b, val) =>
               if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
                 anf-name(val, "var", lam(new-val):
-                      N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(new-val),
+                      N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(new-val.l, new-val),
                         anf(A.s-let-expr(l, r, body), k))
                     end)
               else:
                 var-name = mk-id(l2, "var")
                 anf(val, k-cont(lam(lettable):
                       N.a-let(l2, var-name.id-b, lettable,
-                        N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(var-name.id-e),
+                        N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(l2, var-name.id-e),
                           anf(A.s-let-expr(l, r, body), k)))
                     end))
               end
@@ -257,18 +257,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-if-else(l, branches, _else) =>
-      # if-result = mk-id(l, "if_result")
-      # assign-to-result = lam(r): N.a-lettable(N.a-assign(l, if-result.id, r)) end
-      # anf-else = anf-name(_else, "else_result", assign-to-result)
-      # anf-if = for fold(acc from anf-else, branch from branches.reverse()):
-      #   anf-name(branch.test, "anf_if",
-      #     lam(test):
-      #       N.a-lettable(N.a-if(l, test, anf-name(branch.body, "branch_result", assign-to-result), acc))
-      #     end)
-      # end
-      # print("anf-if is ")
-      # anf-if.tosource().pretty(80).each(print)
-      # N.a-seq(l, anf-if, k.apply(l, anf-if.e))
       fun anf-if-branches(shadow k, shadow branches):
         cases(List) branches:
           | empty => raise("Empty branches")
@@ -286,16 +274,16 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                   "anf_if",
                   lam(test):
                     k.apply(l, N.a-if(l, test, anf-term(f.body),
-                        anf-if-branches(k-cont(lam(if-expr): N.a-lettable(if-expr) end), r)))
+                        anf-if-branches(k-cont(lam(if-expr): N.a-lettable(l, if-expr) end), r)))
                   end
                   )
             end
         end
       end
       anf-if-branches(k, branches)
-    #| s-cases-else(l, typ, val, branches, _else) =>
-    #  anf-name(val, "cases_val",
-    #    lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
+    | s-cases-else(l, typ, val, branches, _else) =>
+      anf-name(val, "cases_val",
+        lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
     | s-try(l, body, id, _except) =>
       N.a-try(l, anf-term(body), id, anf-term(_except))
 

@@ -136,14 +136,13 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
       function throwCasesArityError(branchLoc, arity, fields) {
         checkSrcloc(branchLoc);
         runtime.checkNumber(arity);
-        runtime.checkList(fields);
+        runtime.checkNumber(fields);
         raise(err("cases-arity-mismatch")(branchLoc, arity, fields));
       }
 
       function throwCasesArityErrorC(branchLoc, arity, fields) {
         var loc = runtime.makeSrcloc(branchLoc);
-        var fieldsPyret = makeList(Array.prototype.slice.call(fields, 0, fields.length));
-        throwCasesArityError(loc, arity, fieldsPyret);
+        throwCasesArityError(loc, arity, fields);
       }
 
 

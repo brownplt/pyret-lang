@@ -705,10 +705,11 @@ function createMethodDict() {
       return new PObject(dict, brands);
     }
 
-    function makeDataValue(dict, brands, $name, $fields) {
+    function makeDataValue(dict, brands, $name, $app_fields, $arity) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
-      ret.$fields = $fields;
+      ret.$app_fields = $app_fields;
+      ret.$arity = $arity;
       return ret;
     }
 

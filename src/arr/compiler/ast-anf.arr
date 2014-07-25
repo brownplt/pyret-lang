@@ -130,7 +130,7 @@ data AExpr:
     tosource(self):
       self.e1.tosource() + PP.hardline + self.e2.tosource()
     end
-  | a-lettable(e :: ALettable) with:
+  | a-lettable(l :: Loc, e :: ALettable) with:
     label(self): "a-lettable" end,
     tosource(self):
       self.e.tosource()
@@ -319,7 +319,7 @@ data ALettable:
   | a-method(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     label(self): "a-method" end,
     tosource(self): fun-method-pretty(PP.str("method"), self.args, self.body) end
-  | a-val(v :: AVal) with:
+  | a-val(l :: Loc, v :: AVal) with:
     label(self): "a-val" end,
     tosource(self): self.v.tosource() end
 sharing:
@@ -412,8 +412,8 @@ fun strip-loc-expr(expr :: AExpr):
       a-var(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-seq(_, e1, e2) =>
       a-seq(dummy-loc, strip-loc-lettable(e1), strip-loc-expr(e2))
-    | a-lettable(e) =>
-      a-lettable(strip-loc-lettable(e))
+    | a-lettable(_, e) =>
+      a-lettable(dummy-loc, strip-loc-lettable(e))
   end
 end
 
@@ -451,8 +451,8 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-lam(dummy-loc, args, ret, strip-loc-expr(body))
     | a-method(_, args, ret, body) =>
       a-method(dummy-loc, args, ret, strip-loc-expr(body))
-    | a-val(v) =>
-      a-val(strip-loc-val(v))
+    | a-val(_, v) =>
+      a-val(dummy-loc, strip-loc-val(v))
   end
 end
 
@@ -537,8 +537,8 @@ default-map-visitor = {
   a-if(self, l :: Loc, c :: AVal, t :: AExpr, e :: AExpr):
     a-if(l, c.visit(self), t.visit(self), e.visit(self))
   end,
-  a-lettable(self, e :: ALettable):
-    a-lettable(e.visit(self))
+  a-lettable(self, l, e :: ALettable):
+    a-lettable(l, e.visit(self))
   end,
   a-assign(self, l :: Loc, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
@@ -573,8 +573,8 @@ default-map-visitor = {
   a-method(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
     a-method(l, args.map(_.visit(self)), ret, body.visit(self))
   end,
-  a-val(self, v :: AVal):
-    a-val(v.visit(self))
+  a-val(self, l, v :: AVal):
+    a-val(l, v.visit(self))
   end,
   a-bind(self, l :: Loc, id :: A.Name, ann :: A.Ann):
     a-bind(l, id, ann)
@@ -656,7 +656,7 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
       freevars-l-acc(e1, from-e2)
-    | a-lettable(e) => freevars-l-acc(e, seen-so-far)
+    | a-lettable(_, e) => freevars-l-acc(e, seen-so-far)
   end
 end
 
@@ -668,8 +668,8 @@ where:
   x = n("x")
   y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, x, A.a-blank), a-val(a-num(d, 4)),
-        a-lettable(a-val(a-id(d, y))))).to-list() is [list: y]
+      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
+        a-lettable(d, a-val(d, a-id(d, y))))).to-list() is [list: y]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
@@ -688,13 +688,13 @@ end
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   for fold(acc from seen-so-far, b from branches):
     cases(ACasesBranch) b:
-      | a-cases-branch(_, _, args, body) =>
+      | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
         end
-      | a-singleton-cases-branch(_, _, body) =>
+      | a-singleton-cases-branch(_, _, _, body) =>
         freevars-e-acc(body, acc)
     end
   end
@@ -766,7 +766,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
     | a-dot(_, obj, _) => freevars-v-acc(obj, seen-so-far)
     | a-colon(_, obj, _) => freevars-v-acc(obj, seen-so-far)
     | a-get-bang(_, obj, _) => freevars-v-acc(obj, seen-so-far)
-    | a-val(v) => freevars-v-acc(v, seen-so-far)
+    | a-val(_, v) => freevars-v-acc(v, seen-so-far)
     | else => raise("Non-lettable in freevars-l " + torepr(e))
   end
 end

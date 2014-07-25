@@ -137,8 +137,8 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                   });
                 });
               });
-            });
-          });
+            }, "newRuntime making new namespace");
+          }, "exec load dialectsLib");
         }, function(r) {
         })
       });

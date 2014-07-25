@@ -78,10 +78,10 @@ end
 
 fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
   doc: ```
-  Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
-  to the top, turning them into a type-let-expression, and generate newtypes for all
-  data expressions.
-  ```
+       Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
+       to the top, turning them into a type-let-expression, and generate newtypes for all
+       data expressions.
+       ```
   var rev-type-binds = empty
   var rev-stmts = empty
   for lists.each(s from stmts):
