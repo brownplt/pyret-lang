@@ -215,7 +215,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
           | empty => results
           | link(first, more-args) =>
             if string-substring(first, 0, 2) == "--":
-              key-parts = string-split(string-substring(first, 2, string-length(first)), "=", false)
+              key-parts = string-split(string-substring(first, 2, string-length(first)), "=")
               key = key-parts.first
               if full-options.has-key(key):
                 cases(Param) full-options.get(key):
