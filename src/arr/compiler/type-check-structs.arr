@@ -158,6 +158,10 @@ data FoldResult<V>:
       a = f(self.v)
       a
     end,
+    map(self, f) -> FoldResult:
+      a = fold-result(f(self.v))
+      a
+    end,
     check-bind(self, f) -> CheckingResult:
       a = f(self.v)
       a
@@ -168,6 +172,10 @@ data FoldResult<V>:
     end
   | fold-errors(errors :: List<C.CompileError>) with:
     bind(self, f) -> FoldResult<V>:
+      a = self
+      a
+    end,
+    map(self, f) -> FoldResult:
       a = self
       a
     end,
@@ -205,6 +213,45 @@ fun foldl2-result(not-equal :: C.CompileError):
   end
   helper
 end
+
+fun foldr2-result(not-equal :: C.CompileError):
+  fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
+    cases(List<B>) lst-1:
+      | link(first-1, rest-1) =>
+        cases(List<D>) lst-2:
+          | link(first-2, rest-2) =>
+            for bind(result from helper(f, base, rest-1, rest-2)):
+              f(result, first-1, first-2)
+            end
+          | empty =>
+            fold-errors([list: not-equal])
+        end
+      | empty =>
+        cases(List<D>) lst-2:
+          | link(_, _) =>
+            fold-errors([list: not-equal])
+          | empty =>
+            base
+        end
+    end
+  end
+  helper
+end
+
+
+fun map2-result(not-equal :: C.CompileError):
+  fun <E,B,D> helper(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
+    fun process-and-prepend(lst :: List<E>, b :: B, d :: D) -> FoldResult<List<E>>:
+      for bind(result from f(b, d)):
+        fold-result(link(result, lst))
+      end
+    end
+    foldr2-result(not-equal)(process-and-prepend, fold-result(empty), lst-1, lst-2)
+  end
+  helper
+end
+
+
 
 fun <E,B,D> foldr-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
