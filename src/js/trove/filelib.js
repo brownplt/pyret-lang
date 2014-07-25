@@ -58,6 +58,13 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                 }),
               "close-input-file": RUNTIME.makeFunction(function(file) { 
                   ffi.checkArity(1, arguments, "close-input-file");
+                }),
+              "list-files": RUNTIME.makeFunction(function(directory) {
+                  ffi.checkArity(1, arguments, "list-files");
+                  RUNTIME.checkString(directory);
+                  var dir = RUNTIME.unwrap(directory);
+                  var contents = fs.readdirSync(dir)
+                  return ffi.makeList(Array.prototype.slice.call(contents, 0, contents.length))
                 })
             }),
           answer: NAMESPACE.get("nothing")
