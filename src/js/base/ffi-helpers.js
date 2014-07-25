@@ -132,6 +132,32 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwArityError(loc, arity, argsPyret);
       }
 
+
+      function throwCasesArityError(branchLoc, arity, fields) {
+        checkSrcloc(branchLoc);
+        runtime.checkNumber(arity);
+        runtime.checkList(fields);
+        raise(err("cases-arity-mismatch")(branchLoc, arity, fields));
+      }
+
+      function throwCasesArityErrorC(branchLoc, arity, fields) {
+        var loc = runtime.makeSrcloc(branchLoc);
+        var fieldsPyret = makeList(Array.prototype.slice.call(fields, 0, fields.length));
+        throwCasesArityError(loc, arity, fieldsPyret);
+      }
+
+
+      function throwCasesSingletonError(branchLoc, shouldBeSingleton) {
+        checkSrcloc(branchLoc);
+        runtime.checkBoolean(shouldBeSingleton);
+        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton));
+      }
+
+      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton) {
+        var loc = runtime.makeSrcloc(branchLoc);
+        throwCasesSingletonError(loc, shouldBeSingleton);
+      }
+
       function throwNonBooleanCondition(locArray, type, val) {
         runtime.checkString(type);
         runtime.checkPyretVal(val);
@@ -228,6 +254,10 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
         throwArityError: throwArityError,
         throwArityErrorC: throwArityErrorC,
+        throwCasesArityError: throwCasesArityError,
+        throwCasesArityErrorC: throwCasesArityErrorC,
+        throwCasesSingletonError: throwCasesSingletonError,
+        throwCasesSingletonErrorC: throwCasesSingletonErrorC,
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
         throwNoBranchesMatched: throwNoBranchesMatched,

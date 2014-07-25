@@ -702,8 +702,16 @@ function createMethodDict() {
     }
 
     function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
+      return new PObject(dict, brands);
     }
+
+    function makeDataValue(dict, brands, $name, $fields) {
+      var ret = new PObject(dict, brands);
+      ret.$name = $name;
+      ret.$fields = $fields;
+      return ret;
+    }
+
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -715,37 +723,6 @@ function createMethodDict() {
       return arr;
     }
 
-    PObject.prototype.updateDict = function(dict, keepBrands) {
-      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
-      return newObj;
-    }
-
-    /**Clones the object
-      @return {!PObject} With same dict
-    */
-    PObject.prototype.brand = function(b) { 
-        var newObj = makeObject(this.dict); 
-        return brandClone(newObj, this, b);
-    };
-
-    /**Tests whether an object is a PObject
-        @param {Object} obj the item to test
-        @return {!boolean} true if object is a PObject
-    */
-    function isObject(obj) { return obj instanceof PObject; }
-
-    /**Makes a PObject using the given dict
-
-      @param {!Object.<string, !PBase>} dict
-      @return {!PObject} with given dict
-    */
-    function makeObject(dict) {
-       return new PObject(dict, noBrands); 
-    }
-
-    function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
-    }
     
     /************************
           Type Checking
@@ -1405,7 +1382,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "checkAnn");
       }
     }
 
@@ -1422,7 +1400,8 @@ function createMethodDict() {
           if(ffi.isOk(result)) { return val; }
           if(ffi.isFail(result)) { raiseJSJS(result); }
           throw "Internal error: got invalid result from annotation check";
-        });
+        },
+        "_checkAnn");
       }
     }
 
@@ -1435,7 +1414,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "safeCheckAnnArg");
       }
     }
 
@@ -1448,7 +1428,8 @@ function createMethodDict() {
           raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
         }
         throw "Internal error: got invalid result from annotation check";
-      });
+      },
+      "checkAnnArg");
     }
 
     function _checkAnnArg(compilerLoc, ann, val) {
@@ -1517,7 +1498,8 @@ function createMethodDict() {
           return that.pred(val);
         }, function(passed) {
           return that.checkOrFail(passed, val, compilerLoc);
-        });
+        },
+        "PPrimAnn.check");
       }
     }
 
@@ -1553,12 +1535,14 @@ function createMethodDict() {
                 makeSrcloc(compilerLoc),
                 ffi.makePredicateFailure(val, that.predname));
             }
-          })
+          },
+          "PPredAnn.check (after the check)")
         }
         else {
           return result;
         }
-      });
+      },
+      "PPredAnn.check");
     }
 
     function makeBranderAnn(brander, name) {
@@ -1642,7 +1626,8 @@ function createMethodDict() {
           else if(ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
           }
-        });
+        },
+        "deepCheckFields");
       }
       if(that.fields.length === 0) { return ffi.contractOk; }
       else { return deepCheckFields(that.fields.slice()); }
@@ -2462,14 +2447,14 @@ function createMethodDict() {
       return makeString(resultStr);
     }
     var string_split_all = function(s, splitstr) {
-      thisRuntime.checkArity(2, arguments, "string-split");
+      thisRuntime.checkArity(2, arguments, "string-split-all");
       thisRuntime.checkString(s);
       thisRuntime.checkString(splitstr);
       
       return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_split = function(s, splitstr) {
-      thisRuntime.checkArity(2, arguments, "string-split-all");
+      thisRuntime.checkArity(2, arguments, "string-split");
       thisRuntime.checkString(s);
       thisRuntime.checkString(splitstr);
 
@@ -2481,7 +2466,7 @@ function createMethodDict() {
                              thisRuntime.makeString(s.slice(idx + splitstr.length))]);
     }
     var string_charat = function(s, n) {
-      thisRuntime.checkArity(2, arguments, "string-charat");
+      thisRuntime.checkArity(2, arguments, "string-char-at");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(n);
       
@@ -2641,7 +2626,7 @@ function createMethodDict() {
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
-      thisRuntime.checkArity(1, arguments, "num-expt");
+      thisRuntime.checkArity(2, arguments, "num-expt");
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(pow);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
@@ -2702,7 +2687,7 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        withModule);
+        withModule, "loadModule(" + modstring.substring(0, 70) + ")");
     }
     function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
@@ -2944,6 +2929,7 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
 
         'plus': plus,
