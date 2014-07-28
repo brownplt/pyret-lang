@@ -42,6 +42,12 @@ sharing:
   end
 end
 
+fun string-compare(a :: String, b :: String) -> Comparison:
+  if a < b: less-than
+  else if a > b: greater-than
+  else: equal;
+end
+
 fun <T> list-compare(a :: List<T>, b :: List<T>) -> Comparison:
   cases(List<T>) a:
     | empty => cases(List<T>) b:
@@ -263,10 +269,11 @@ sharing:
         end
       | t-name(a-l, a-module-name, a-id)      => cases(Type) other:
           | t-bot               => greater-than
-          | t-name(b-l, b-module-name, b-id) => fold-comparisons([list:
-                #a-l._comp(b-l),
-                a-module-name._comp(b-module-name)
-              ])
+          | t-name(b-l, b-module-name, b-id) =>
+            fold-comparisons([list:
+              string-compare(a-module-name.or-else(""), b-module-name.or-else("")),
+              string-compare(a-id, b-id)
+            ])
           | t-var(_)            => less-than
           | t-arrow(_, _, _, _) => less-than
           | t-app(_, _, _)      => less-than
