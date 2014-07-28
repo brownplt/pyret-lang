@@ -136,6 +136,13 @@ data CompileError:
         + ", but expected " + num-tostring(self.expected)
         + "."
     end
+  | given-parameters(data-type :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The data type " + self.data-type
+        + " does not take any parameters,"
+        + " but is given some at " + self.loc.tostring()
+        + "."
+    end
 end
 
 data CompileTypeBinding:
