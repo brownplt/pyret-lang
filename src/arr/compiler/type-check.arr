@@ -44,13 +44,13 @@ t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
 t-srcloc                  = TS.t-srcloc
 
-least-upper-bound         = TS.least-upper-bound
-greatest-lower-bound      = TS.greatest-lower-bound
-
 type TypeConstraint       = TC.TypeConstraint
 type TypeConstraints      = TC.TypeConstraints
 generate-constraints      = TC.generate-constraints
 empty-type-constraints    = TC.empty-type-constraints
+satisfies-type            = TC.satisfies-type
+least-upper-bound         = TC.least-upper-bound
+greatest-lower-bound      = TC.greatest-lower-bound
 
 type SynthesisResult      = TCS.SynthesisResult
 type CheckingResult       = TCS.CheckingResult
@@ -244,7 +244,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
           | empty => TS.empty-type-members
           | link(f, r) =>
             for fold(curr from TS.type-variant-fields(f), tv from r):
-              TS.meet-fields(curr, TS.type-variant-fields(tv))
+              TC.meet-fields(curr, TS.type-variant-fields(tv))
             end
         end
 
@@ -382,7 +382,7 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm :: TypeMember) -> FoldResult<TCIn
     typ = tm.typ
     cases(Option<Type>) maybe-declared:
       | some(declared-typ) =>
-        if typ.satisfies-type(declared-typ):
+        if satisfies-type(typ, declared-typ):
           info.typs.set(arg.id.key(), declared-typ)
           fold-result(info)
         else:
@@ -856,14 +856,14 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
 end
 
 fun <V> check-and-log(typ :: Type, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
-  when not(typ.satisfies-type(expect-typ)):
+  when not(satisfies-type(typ, expect-typ)):
     info.errors.insert(C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc()))
   end
   value
 end
 
 fun check-and-return(typ :: Type, expect-typ :: Type, value :: A.Expr, info :: TCInfo) -> CheckingResult:
-  if typ.satisfies-type(expect-typ):
+  if satisfies-type(typ, expect-typ):
     checking-result(value)
   else:
     checking-err([list: C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc())])

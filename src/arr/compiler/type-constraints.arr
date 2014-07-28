@@ -1,5 +1,9 @@
 provide { generate-constraints   : generate-constraints,
-          empty-type-constraints : empty-type-constraints } end
+          empty-type-constraints : empty-type-constraints,
+          satisfies-type         : satisfies-type,
+          least-upper-bound      : least-upper-bound,
+          greatest-lower-bound   : greatest-lower-bound,
+          meet-fields            : meet-fields } end
 
 provide-types { TypeConstraint  : TypeConstraint,
                 TypeConstraints : TypeConstraints }
@@ -7,25 +11,39 @@ provide-types { TypeConstraint  : TypeConstraint,
 import ast as A
 import string-dict as SD
 import "compiler/type-structs.arr" as TS
+import "compiler/list-aux.arr" as LA
 
-type Type            = TS.Type
+all2-strict  = LA.all2-strict
+map2-strict  = LA.map2-strict
+fold2-strict = LA.fold2-strict
+
 type Pair            = TS.Pair
 pair                 = TS.pair
+
+type Type            = TS.Type
 t-name               = TS.t-name
 t-var                = TS.t-var
 t-arrow              = TS.t-arrow
 t-top                = TS.t-top
 t-bot                = TS.t-bot
+t-app                = TS.t-app
+t-record             = TS.t-record
+
 t-number             = TS.t-number
 t-string             = TS.t-string
 t-boolean            = TS.t-boolean
 t-srcloc             = TS.t-srcloc
+
+type TypeMember      = TS.TypeMember
+type TypeMembers     = TS.TypeMembers
+empty-type-members   = TS.empty-type-members
+t-member             = TS.t-member
+type-members-lookup  = TS.type-members-lookup
+
 t-variable           = TS.t-variable
 is-t-top             = TS.is-t-top
 is-t-bot             = TS.is-t-bot
 is-t-var             = TS.is-t-var
-least-upper-bound    = TS.least-upper-bound
-greatest-lower-bound = TS.greatest-lower-bound
 
 example-t-var = t-var("A")
 example-a = t-var("A")
@@ -88,6 +106,176 @@ fun dict-to-string(dict :: SD.StringDict) -> String:
       end.join-str(", ")
     + "}"
 end
+
+fun satisfies-type(here :: Type, there :: Type) -> Boolean:
+  cases(Type) here:
+    | t-name(_, a-mod, a-id) =>
+      cases(Type) there:
+        | t-top => true
+        | t-name(_, b-mod, b-id) =>
+          (a-mod == b-mod) and (a-id == b-id)
+        | else => false
+      end
+    | t-var(a-id) =>
+      cases(Type) there:
+        | t-top => true
+        | t-var(b-id) => a-id == b-id
+        | else => false
+      end
+    | t-arrow(_, a-forall, a-args, a-ret) =>
+      cases(Type) there:
+        | t-top => true
+        | t-arrow(_, b-forall, b-args, b-ret) =>
+          all2-strict(_ == _, a-forall, b-forall)
+                # order is important because contravariance!
+            and all2-strict(lam(x, y): satisfies-type(x, y);, b-args, a-args)
+            and satisfies-type(a-ret, b-ret)
+        | else => false
+      end
+    | t-app(_, a-onto, a-args) =>
+      cases(Type) there:
+        | t-top => true
+        | t-app(_, b-onto, b-args) =>
+          (a-onto == b-onto) and all2-strict(_ == _, a-args, b-args)
+        | else => false
+      end
+    | t-top => is-t-top(there)
+    | t-bot => true
+    | t-record(_, fields) =>
+      cases(Type) there:
+        | t-top => true
+        | t-record(_, there-fields) =>
+          fields-satisfy(fields, there-fields)
+        | else => false
+      end
+  end
+end
+
+fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers) -> Boolean:
+  fun shares-name(here :: TypeMember):
+    lam(there :: TypeMember):
+      here.field-name == there.field-name
+    end
+  end
+  for fold(good from true, b-field from b-fields):
+    pred = shares-name(b-field)
+    good and
+    cases(Option<TypeMember>) a-fields.find(pred):
+      | some(tm) =>
+        satisfies-type(tm.typ, b-field.typ)
+      | none     =>
+        false
+    end
+  end
+end
+
+fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+  for fold(curr from empty, a-field from a-fields):
+    field-name = a-field.field-name
+    cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
+      | some(b-field) =>
+        link(t-member(field-name, least-upper-bound(a-field.typ, b-field.typ)), curr)
+      | none =>
+        curr
+    end
+  end
+end
+
+fun join-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+  for fold(curr from empty, a-field from a-fields):
+    field-name = a-field.field-name
+    cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
+      | some(b-field) =>
+        link(t-member(field-name, greatest-lower-bound(a-field.typ, b-field.typ)), curr)
+      | none =>
+        link(a-field, curr)
+        curr
+    end
+  end
+end
+
+fun least-upper-bound(s :: Type, t :: Type) -> Type:
+  if satisfies-type(s, t):
+    t
+  else if satisfies-type(t, s):
+    s
+  else:
+    cases(Type) s:
+      | t-arrow(_, s-forall, s-args, s-ret) =>
+        cases(Type) t:
+          | t-arrow(_, t-forall, t-args, t-ret) =>
+            if s-forall == t-forall:
+              cases (Option<List<Type>>) map2-strict(greatest-lower-bound, s-args, t-args):
+                | some(m-args) =>
+                  j-typ  = least-upper-bound(s-ret, t-ret)
+                  t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
+                | else => t-top
+              end
+            else:
+              t-top
+            end
+          | else => t-top
+        end
+      | t-app(_, s-onto, s-args) =>
+        cases(Type) t:
+          | t-app(_, t-onto, t-args) =>
+            if (s-onto == t-onto) and (s-args == t-args):
+              t-app(A.dummy-loc, s-onto, s-args)
+            else:
+              t-top
+            end
+          | else => t-top
+        end
+      | t-record(_, s-fields) =>
+        cases(Type) t:
+          | t-record(_, t-fields) =>
+            t-record(A.dummy-loc, meet-fields(s-fields, t-fields))
+          | else => t-top
+        end
+      | else => t-top
+    end
+  end
+end
+
+fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
+  if satisfies-type(s, t):
+    s
+  else if satisfies-type(t, s):
+    t
+  else: cases(Type) s:
+      | t-arrow(s-l, s-forall, s-args, s-ret) => cases(Type) t:
+          | t-arrow(_, t-forall, t-args, t-ret) =>
+            if s-forall == t-forall:
+              cases (Option<List<Type>>) map2-strict(least-upper-bound, s-args, t-args):
+                | some(m-args) =>
+                  j-typ  = greatest-lower-bound(s-ret, t-ret)
+                  t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
+                | else => t-bot
+              end
+            else:
+              t-bot
+            end
+          | else => t-bot
+        end
+      | t-app(_, s-onto, s-args) => cases(Type) t:
+          | t-app(_, t-onto, t-args) =>
+            if (s-onto == t-onto) and (s-args == t-args):
+              t-app(A.dummy-loc, s-onto, s-args)
+            else:
+              t-bot
+            end
+          | else => t-bot
+        end
+      | t-record(_, s-fields) => cases(Type) t:
+          | t-record(_, t-fields) =>
+            t-record(A.dummy-loc, join-fields(s-fields, t-fields))
+          | else => t-bot
+        end
+      | else => t-bot
+    end
+  end
+end
+
 
 fun free-vars(t :: Type) -> Set<Type>:
   cases(Type) t:
@@ -242,7 +430,7 @@ data TypeConstraint:
       (self.s == self.t) and is-rigid-under(self.s, binds)
     end,
     is-tight(self) -> Boolean:
-      self.s.satisfies-type(self.t) and self.t.satisfies-type(self.s)
+      satisfies-type(self.s, self.t) and satisfies-type(self.t, self.s)
     end
 sharing:
   meet(self, other :: TypeConstraint) -> Option<TypeConstraint>:
@@ -257,7 +445,7 @@ sharing:
               undefined
             end
           | Bounds(u, v) =>
-            if u.satisfies-type(s) and s.satisfies-type(v):
+            if satisfies-type(u, s) and satisfies-type(s, v):
               some(self)
             else:
               undefined
@@ -266,7 +454,7 @@ sharing:
       | Bounds(s, t) =>
         cases(TypeConstraint) other:
           | Equality(u) =>
-            if s.satisfies-type(u) and u.satisfies-type(t):
+            if satisfies-type(s, u) and satisfies-type(u, t):
               some(other)
             else:
               undefined
