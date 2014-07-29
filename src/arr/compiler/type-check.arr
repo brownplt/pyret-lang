@@ -242,7 +242,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
           | empty => TS.empty-type-members
           | link(f, r) =>
             for fold(curr from TS.type-variant-fields(f), tv from r):
-              TC.meet-fields(curr, TS.type-variant-fields(tv))
+              TC.meet-fields(curr, TS.type-variant-fields(tv), info)
             end
         end
 
@@ -380,7 +380,7 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm :: TypeMember) -> FoldResult<TCIn
     typ = tm.typ
     cases(Option<Type>) maybe-declared:
       | some(declared-typ) =>
-        if satisfies-type(typ, declared-typ):
+        if satisfies-type(typ, declared-typ, info):
           info.typs.set(arg.id.key(), declared-typ)
           fold-result(info)
         else:
@@ -433,7 +433,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
 end
 
 fun meet-branch-typs(branch-typs :: List<Type>, info :: TCInfo) -> Type:
-  branch-typs.foldl(least-upper-bound, t-bot)
+  branch-typs.foldl(least-upper-bound(_, _, info), t-bot)
 end
 
 fun track-branches(data-type :: DataType) ->
@@ -807,25 +807,24 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
                           t-var(x.id)
                         end
         unknowns-set  = sets.list-to-tree-set(unknowns-list)
-        binds = info.binds
         t-var-constraints = for fold2(current from empty-type-constraints,
                                      unknown from unknowns-list, x from forall):
-                              generate-constraints(unknown, x.upper-bound, binds, [set: ], unknowns-set).meet(current)
+                              generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info).meet(current, info)
                             end
         wrapped = for args-foldl2(curr from fold-result(empty-type-constraints),
                                   arg from args, arg-typ from arg-typs):
                     synthesis(arg, info).fold-bind(
                     lam(_, synthesis-typ):
-                      result = generate-constraints(synthesis-typ, arg-typ, binds, [set: ], unknowns-set)
-                      fold-result(curr.meet(result))
+                      result = generate-constraints(synthesis-typ, arg-typ, [set: ], unknowns-set, info)
+                      fold-result(curr.meet(result, info))
                     end)
                   end
         cases(FoldResult<TypeConstraints>) wrapped:
           | fold-result(args-constraints) =>
-            ret-constraints  = generate-constraints(ret-typ, expect-typ, binds, [set: ], unknowns-set)
-            constraints = t-var-constraints.meet(args-constraints.meet(ret-constraints))
+            ret-constraints  = generate-constraints(ret-typ, expect-typ, [set: ], unknowns-set, info)
+            constraints = t-var-constraints.meet(args-constraints.meet(ret-constraints, info), info)
             substitutions = for map(unknown from unknowns-list):
-                              pair(unknown, constraints.substitute(unknown, ret-typ, binds))
+                              pair(unknown, constraints.substitute(unknown, ret-typ, info))
                             end
             new-arg-typs  = for fold(curr from arg-typs, substitution from substitutions):
                               for map(arg-typ from curr):
@@ -854,14 +853,14 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
 end
 
 fun <V> check-and-log(typ :: Type, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
-  when not(satisfies-type(typ, expect-typ)):
+  when not(satisfies-type(typ, expect-typ, info)):
     info.errors.insert(C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc()))
   end
   value
 end
 
 fun check-and-return(typ :: Type, expect-typ :: Type, value :: A.Expr, info :: TCInfo) -> CheckingResult:
-  if satisfies-type(typ, expect-typ):
+  if satisfies-type(typ, expect-typ, info):
     checking-result(value)
   else:
     checking-err([list: C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc())])

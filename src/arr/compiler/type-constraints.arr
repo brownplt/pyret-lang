@@ -117,7 +117,7 @@ fun dict-to-string(dict :: SD.StringDict) -> String:
     + "}"
 end
 
-fun satisfies-type(here :: Type, there :: Type) -> Boolean:
+fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
   cases(Type) here:
     | t-name(_, a-mod, a-id) =>
       cases(Type) there:
@@ -138,8 +138,8 @@ fun satisfies-type(here :: Type, there :: Type) -> Boolean:
         | t-arrow(_, b-forall, b-args, b-ret) =>
           all2-strict(_ == _, a-forall, b-forall)
                 # order is important because contravariance!
-            and all2-strict(satisfies-type, b-args, a-args)
-            and satisfies-type(a-ret, b-ret)
+            and all2-strict(satisfies-type(_, _, info), b-args, a-args)
+            and satisfies-type(a-ret, b-ret, info)
         | else => false
       end
     | t-app(_, a-onto, a-args) =>
@@ -155,13 +155,13 @@ fun satisfies-type(here :: Type, there :: Type) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-record(_, there-fields) =>
-          fields-satisfy(fields, there-fields)
+          fields-satisfy(fields, there-fields, info)
         | else => false
       end
   end
 end
 
-fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers) -> Boolean:
+fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> Boolean:
   fun shares-name(here :: TypeMember):
     lam(there :: TypeMember):
       here.field-name == there.field-name
@@ -172,31 +172,31 @@ fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers) -> Boolean:
     good and
     cases(Option<TypeMember>) a-fields.find(pred):
       | some(tm) =>
-        satisfies-type(tm.typ, b-field.typ)
+        satisfies-type(tm.typ, b-field.typ, info)
       | none     =>
         false
     end
   end
 end
 
-fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> TypeMembers:
   for fold(curr from empty, a-field from a-fields):
     field-name = a-field.field-name
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
-        link(t-member(field-name, least-upper-bound(a-field.typ, b-field.typ)), curr)
+        link(t-member(field-name, least-upper-bound(a-field.typ, b-field.typ, info)), curr)
       | none =>
         curr
     end
   end
 end
 
-fun join-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers:
+fun join-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> TypeMembers:
   for fold(curr from empty, a-field from a-fields):
     field-name = a-field.field-name
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
-        link(t-member(field-name, greatest-lower-bound(a-field.typ, b-field.typ)), curr)
+        link(t-member(field-name, greatest-lower-bound(a-field.typ, b-field.typ, info)), curr)
       | none =>
         link(a-field, curr)
         curr
@@ -204,10 +204,10 @@ fun join-fields(a-fields :: TypeMembers, b-fields :: TypeMembers) -> TypeMembers
   end
 end
 
-fun least-upper-bound(s :: Type, t :: Type) -> Type:
-  if satisfies-type(s, t):
+fun least-upper-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
+  if satisfies-type(s, t, info):
     t
-  else if satisfies-type(t, s):
+  else if satisfies-type(t, s, info):
     s
   else:
     cases(Type) s:
@@ -215,9 +215,9 @@ fun least-upper-bound(s :: Type, t :: Type) -> Type:
         cases(Type) t:
           | t-arrow(_, t-forall, t-args, t-ret) =>
             if s-forall == t-forall:
-              cases (Option<List<Type>>) map2-strict(greatest-lower-bound, s-args, t-args):
+              cases (Option<List<Type>>) map2-strict(greatest-lower-bound(_, _, info), s-args, t-args):
                 | some(m-args) =>
-                  j-typ  = least-upper-bound(s-ret, t-ret)
+                  j-typ  = least-upper-bound(s-ret, t-ret, info)
                   t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
                 | else => t-top
               end
@@ -239,7 +239,7 @@ fun least-upper-bound(s :: Type, t :: Type) -> Type:
       | t-record(_, s-fields) =>
         cases(Type) t:
           | t-record(_, t-fields) =>
-            t-record(A.dummy-loc, meet-fields(s-fields, t-fields))
+            t-record(A.dummy-loc, meet-fields(s-fields, t-fields, info))
           | else => t-top
         end
       | else => t-top
@@ -247,18 +247,18 @@ fun least-upper-bound(s :: Type, t :: Type) -> Type:
   end
 end
 
-fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
-  if satisfies-type(s, t):
+fun greatest-lower-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
+  if satisfies-type(s, t, info):
     s
-  else if satisfies-type(t, s):
+  else if satisfies-type(t, s, info):
     t
   else: cases(Type) s:
       | t-arrow(s-l, s-forall, s-args, s-ret) => cases(Type) t:
           | t-arrow(_, t-forall, t-args, t-ret) =>
             if s-forall == t-forall:
-              cases (Option<List<Type>>) map2-strict(least-upper-bound, s-args, t-args):
+              cases (Option<List<Type>>) map2-strict(least-upper-bound(_, _, info), s-args, t-args):
                 | some(m-args) =>
-                  j-typ  = greatest-lower-bound(s-ret, t-ret)
+                  j-typ  = greatest-lower-bound(s-ret, t-ret, info)
                   t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
                 | else => t-bot
               end
@@ -278,7 +278,7 @@ fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
         end
       | t-record(_, s-fields) => cases(Type) t:
           | t-record(_, t-fields) =>
-            t-record(A.dummy-loc, join-fields(s-fields, t-fields))
+            t-record(A.dummy-loc, join-fields(s-fields, t-fields, info))
           | else => t-bot
         end
       | else => t-bot
@@ -442,19 +442,19 @@ data TypeConstraint:
   | Equality(t :: Type) with:
     max(self) -> Type: self.t end,
     min(self) -> Type: self.t end,
-    is-rigid(self, binds :: Bindings) -> Boolean: is-rigid-under(self.t, binds) end,
-    is-tight(self) -> Boolean: true end
+    is-rigid(self, info :: TCInfo) -> Boolean: is-rigid-under(self.t, info.binds) end,
+    is-tight(self, info :: TCInfo) -> Boolean: true end
   | Bounds(s :: Type, t :: Type) with:
     max(self) -> Type: self.t end,
     min(self) -> Type: self.s end,
-    is-rigid(self, binds :: Bindings) -> Boolean:
-      (self.s == self.t) and is-rigid-under(self.s, binds)
+    is-rigid(self, info :: TCInfo) -> Boolean:
+      (self.s == self.t) and is-rigid-under(self.s, info.binds)
     end,
-    is-tight(self) -> Boolean:
-      satisfies-type(self.s, self.t) and satisfies-type(self.t, self.s)
+    is-tight(self, info :: TCInfo) -> Boolean:
+      satisfies-type(self.s, self.t, info) and satisfies-type(self.t, self.s, info)
     end
 sharing:
-  meet(self, other :: TypeConstraint) -> Option<TypeConstraint>:
+  meet(self, other :: TypeConstraint, info :: TCInfo) -> Option<TypeConstraint>:
     undefined = none
     cases(TypeConstraint) self:
       | Equality(s) =>
@@ -466,7 +466,7 @@ sharing:
               undefined
             end
           | Bounds(u, v) =>
-            if satisfies-type(u, s) and satisfies-type(s, v):
+            if satisfies-type(u, s, info) and satisfies-type(s, v, info):
               some(self)
             else:
               undefined
@@ -475,14 +475,14 @@ sharing:
       | Bounds(s, t) =>
         cases(TypeConstraint) other:
           | Equality(u) =>
-            if satisfies-type(s, u) and satisfies-type(u, t):
+            if satisfies-type(s, u, info) and satisfies-type(u, t, info):
               some(other)
             else:
               undefined
             end
           | Bounds(u, v) =>
-            j = least-upper-bound(s, u)
-            m = greatest-lower-bound(t, v)
+            j = least-upper-bound(s, u, info)
+            m = greatest-lower-bound(t, v, info)
             some(Bounds(j, m))
         end
     end
@@ -669,17 +669,17 @@ end
 data TypeConstraints:
   | type-constraints(dict :: SD.StringDict<Option<TypeConstraint>>)
 sharing:
-  _insert(self, typ-str :: String, constraint :: TypeConstraint) -> TypeConstraints:
+  _insert(self, typ-str :: String, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     new-constraint = if self.dict.has-key(typ-str):
-                       self.dict.get(typ-str).and-then(_.meet(constraint))
+                       self.dict.get(typ-str).and-then(_.meet(constraint, info))
                      else:
                        some(constraint)
                      end
     type-constraints(self.dict.set(typ-str, new-constraint))
   end,
-  insert(self, typ :: Type, constraint :: TypeConstraint) -> TypeConstraints:
+  insert(self, typ :: Type, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     typ-str = typ.tostring()
-    self._insert(typ-str, constraint)
+    self._insert(typ-str, constraint, info)
   end,
   get(self, typ :: Type) -> Option<TypeConstraint>:
     typ-str = typ.tostring()
@@ -689,19 +689,19 @@ sharing:
       some(Bounds(t-bot, t-top))
     end
   end,
-  meet(self, other :: TypeConstraints) -> TypeConstraints:
+  meet(self, other :: TypeConstraints, info :: TCInfo) -> TypeConstraints:
     keys = other.dict.keys()
     for fold(curr from self, key from keys):
       cases(Option<TypeConstraint>) other.dict.get(key):
         | some(t) =>
-          curr._insert(key, t)
+          curr._insert(key, t, info)
         | none =>
           # TODO(cody): Don't blow up
           raise("Cannot meet two TypeConstraint sets!")
       end
     end
   end,
-  substitute(self, x :: Type % (is-t-var), r :: Type, binds :: Bindings) -> Type:
+  substitute(self, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> Type:
     constraint = cases(Option<TypeConstraint>) self.get(x):
                    | some(c) => c
                    | none    =>
@@ -712,9 +712,9 @@ sharing:
       constraint.min()
     else if is-contravariant(x, r):
       constraint.max()
-    else if is-invariant(x, r) and constraint.is-tight():
+    else if is-invariant(x, r) and constraint.is-tight(info):
       constraint.min()
-    else if is-rigid(x, r) and constraint.is-rigid(binds):
+    else if is-rigid(x, r) and constraint.is-rigid(info):
       constraint.min()
     else:
       raise("Substitution is undefined! x = " + torepr(x) + ", r = " + torepr(r) + ", constraint = " + torepr(constraint))
@@ -729,7 +729,8 @@ end
 
 empty-type-constraints = type-constraints(SD.immutable-string-dict())
 
-fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> TypeConstraints:
+fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> TypeConstraints:
+  binds = info.binds
   s-free  = free-vars(s, binds)
   s-str   = s.tostring()
   t-free  = free-vars(t, binds)
@@ -740,14 +741,14 @@ fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: S
     initial
   else if unknowns.member(s) and is-empty(t-free.intersect(unknowns).to-list()):
     r = greatest-subtype(t, binds, to-remove)
-    initial.insert(s, Bounds(t-bot, r))
+    initial.insert(s, Bounds(t-bot, r), info)
   else if unknowns.member(t) and is-empty(s-free.intersect(unknowns).to-list()):
     r = least-supertype(s, binds, to-remove)
-    initial.insert(t, Bounds(r, t-top))
+    initial.insert(t, Bounds(r, t-top), info)
   else if s._equal(t):
     initial
   else if binds.has-key(s-str):
-    generate-constraints(binds.get(s-str), t, binds, to-remove, unknowns)
+    generate-constraints(binds.get(s-str), t, to-remove, unknowns, info)
   else:
     cases(Type) s:
       | t-arrow(s-l, s-forall, s-args, s-ret) =>
@@ -766,24 +767,24 @@ fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: S
                                end
                       result = matching(s-f-b, t-f.upper-bound, binds, to-remove, unknowns)
                       new-ks = curr.left.set(key, result.left)
-                      new-ds = result.right.meet(curr.right)
+                      new-ds = result.right.meet(curr.right, info)
                       pair(new-ks, new-ds)
                     end
             introduced      = ks-ds.left
             for-constraints = ks-ds.right
-            new-binds       = for fold(curr from binds, y from introduced.keys()):
-                                curr.set(y, introduced.get(y))
+            new-info        = for fold(curr from info, y from introduced.keys()):
+                                TCS.add-binding(curr, y, introduced.get(y))
                               end
             new-to-remove   = for fold(curr from to-remove, f from s-forall + t-forall):
                                 curr.add(t-var(f.id))
                               end
             arg-constraints = for fold2(curr from empty-type-constraints,
                                         s-arg from s-args, t-arg from t-args):
-                                result = generate-constraints(t-arg, s-arg, new-binds, new-to-remove, unknowns)
-                                curr.meet(result)
+                                result = generate-constraints(t-arg, s-arg, new-to-remove, unknowns, new-info)
+                                curr.meet(result, info)
                               end
-            ret-constraints = generate-constraints(s-ret, t-ret, new-binds, new-to-remove, unknowns)
-            for-constraints.meet(arg-constraints.meet(ret-constraints))
+            ret-constraints = generate-constraints(s-ret, t-ret, new-to-remove, unknowns, new-info)
+            for-constraints.meet(arg-constraints.meet(ret-constraints, info), info)
           | else =>
             raise("What happens here?")
         end

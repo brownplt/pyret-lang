@@ -21,6 +21,15 @@ data TCInfo:
                             get    :: (-> List<C.CompileError>)})
 end
 
+fun add-binding(info :: TCInfo, id :: String, bound :: Type) -> TCInfo:
+  new-binds = info.binds.set(id, bound)
+  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
+end
+
+fun add-type-variable(info :: TCInfo, tv :: TS.TypeVariable) -> TCInfo:
+  add-binding(info, tv.id, tv.upper-bound)
+end
+
 fun bind(f, a): a.bind(f);
 fun map-bind(f, a): a.map-bind(f);
 fun check-bind(f, a): a.check-bind(f);
