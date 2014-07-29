@@ -163,6 +163,12 @@ data DataType:
         tv.name == variant-name
       end
       self.variants.find(same-name)
+    end,
+    introduce(self, args :: List<Type>) -> Option<DataType>:
+      for fold2-strict(curr from self, arg from args, param from self.params):
+        substitute = _.substitute(t-var(param.id), arg)
+        t-datatype(curr.name, empty, curr.variants.map(substitute), curr.fields.map(substitute))
+      end
     end
 end
 

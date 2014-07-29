@@ -7,6 +7,7 @@ import "compiler/type-structs.arr" as TS
 import "compiler/compile-structs.arr" as C
 
 type Type                  = TS.Type
+type DataType              = TS.DataType
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.immutable-string-dict()
 
@@ -28,6 +29,31 @@ end
 
 fun add-type-variable(info :: TCInfo, tv :: TS.TypeVariable) -> TCInfo:
   add-binding(info, tv.id, tv.upper-bound)
+end
+
+fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
+  cases(Type) typ:
+    | t-name(l, module-name, name) =>
+      key = typ.tostring()
+      if info.data-exprs.has-key(key):
+        some(info.data-exprs.get(key))
+      else:
+        none
+      end
+    | t-app(l, base-typ, args) =>
+      key = base-typ.tostring()
+      if info.data-exprs.has-key(key):
+        data-type = info.data-exprs.get(key).introduce(args)
+        cases(Option<DataType>) data-type:
+          | some(dt) => data-type
+          | none => raise("This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
+        end
+      else:
+        none
+      end
+    | else =>
+      none
+  end
 end
 
 fun bind(f, a): a.bind(f);

@@ -124,6 +124,13 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         | t-top => true
         | t-name(_, b-mod, b-id) =>
           (a-mod == b-mod) and (a-id == b-id)
+        | t-record(_, there-fields) =>
+          cases(Option<Type>) TCS.get-data-type(here, info):
+            | some(data-type) =>
+              fields-satisfy(data-type.fields, there-fields, info)
+            | none =>
+              false
+          end
         | else => false
       end
     | t-var(a-id) =>
@@ -147,6 +154,13 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         | t-top => true
         | t-app(_, b-onto, b-args) =>
           a-onto._equal(b-onto) and all2-strict(lam(a, b): a.equal(b);, a-args, b-args)
+        | t-record(_, there-fields) =>
+          cases(Option<Type>) TCS.get-data-type(here, info):
+            | some(data-type) =>
+              fields-satisfy(data-type.fields, there-fields, info)
+            | none =>
+              false
+          end
         | else => false
       end
     | t-top => is-t-top(there)

@@ -171,15 +171,6 @@ fun to-type-variant(variant :: A.Variant, info :: TCInfo) -> FoldResult<Pair<A.V
   end
 end
 
-fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
-  key = typ.tostring()
-  if info.data-exprs.has-key(key):
-    some(info.data-exprs.get(key))
-  else:
-    none
-  end
-end
-
 fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
                 handle :: (A.Expr, Loc, List<TypeMember> -> SynthesisResult),
                 info :: TCInfo
@@ -189,7 +180,7 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
     | t-record(l, members) =>
       handle(obj, l, members)
     | t-name(l, module-name, id) =>
-      cases(Option<DataType>) get-data-type(obj-typ, info):
+      cases(Option<DataType>) TCS.get-data-type(obj-typ, info):
         | some(data-type) =>
           handle(obj, l, data-type.fields)
         | none =>
@@ -454,7 +445,7 @@ fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A
                      info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
                      has-else, no-else) -> B:
   for bind-direction(typ from to-type-std(ann, info)):
-    cases(Option<DataType>) get-data-type(typ, info):
+    cases(Option<DataType>) TCS.get-data-type(typ, info):
       | some(data-type) =>
         for bind-direction(new-val from checking(val, typ, info)):
           branch-tracker = track-branches(data-type)
