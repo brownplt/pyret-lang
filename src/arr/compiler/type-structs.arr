@@ -104,6 +104,9 @@ data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
     tostring(self):
       self.field-name + " : " + self.typ.tostring()
+    end,
+    substitute(self, x :: Type, r :: Type):
+      t-member(self.field-name, self.typ.substitute(x, r))
     end
 sharing:
   _comp(a, b :: TypeMember) -> Comparison:
@@ -128,11 +131,19 @@ data TypeVariant:
   | t-variant(l           :: A.Loc,
               name        :: String,
               fields      :: TypeMembers,
-              with-fields :: TypeMembers)
+              with-fields :: TypeMembers) with:
+    substitute(self, x :: Type, r :: Type):
+      substitute = _.substitute(x, r)
+      t-variant(self.l, self.name, self.fields.map(substitute), self.with-fields.map(substitute))
+    end
   | t-singleton-variant(l           :: A.Loc,
                         name        :: String,
                         with-fields :: TypeMembers) with:
-    fields: empty-type-members
+    fields: empty-type-members,
+    substitute(self, x :: Type, r :: Type):
+      substitute = _.substitute(x, r)
+      t-singleton-variant(self.l, self.name, self.with-fields.map(substitute))
+    end
 end
 
 fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
