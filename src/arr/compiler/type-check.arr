@@ -52,6 +52,12 @@ satisfies-type            = TC.satisfies-type
 least-upper-bound         = TC.least-upper-bound
 greatest-lower-bound      = TC.greatest-lower-bound
 
+type TCInfo               = TCS.TCInfo
+tc-info                   = TCS.tc-info
+
+type Bindings             = TCS.Bindings
+empty-bindings            = TCS.empty-bindings
+
 type SynthesisResult      = TCS.SynthesisResult
 type CheckingResult       = TCS.CheckingResult
 type FoldResult           = TCS.FoldResult
@@ -115,14 +121,6 @@ fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
   ps.foldr(step, pair(empty, empty))
 end
 
-data TCInfo:
-  | tc-info(typs       :: SD.StringDict<Type>,
-            aliases    :: SD.StringDict<Type>,
-            data-exprs :: SD.StringDict<DataType>,
-            branders   :: SD.StringDict<Type>,
-            errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
-                            get    :: (-> List<C.CompileError>)})
-end
 
 fun to-type-member(field :: A.Member, info :: TCInfo) -> FoldResult<Pair<A.Member,TypeMember>>:
   cases(A.Member) field:
@@ -809,7 +807,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
                           t-var(x.id)
                         end
         unknowns-set  = sets.list-to-tree-set(unknowns-list)
-        binds = SD.immutable-string-dict()
+        binds = info.binds
         t-var-constraints = for fold2(current from empty-type-constraints,
                                      unknown from unknowns-list, x from forall):
                               generate-constraints(unknown, x.upper-bound, binds, [set: ], unknowns-set).meet(current)
@@ -1101,7 +1099,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
 
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), errors)
+      info = tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), empty-bindings, errors)
       tc-result = checking(body, t-top, info)
       side-errs = errors.get()
       cases(CheckingResult) tc-result:

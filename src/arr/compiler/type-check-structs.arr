@@ -2,10 +2,24 @@ provide *
 provide-types *
 
 import ast as A
+import string-dict as SD
 import "compiler/type-structs.arr" as TS
 import "compiler/compile-structs.arr" as C
 
-type Type                 = TS.Type
+type Type                  = TS.Type
+type Bindings              = SD.StringDict<TS.Type>
+empty-bindings :: Bindings = SD.immutable-string-dict()
+
+
+data TCInfo:
+  | tc-info(typs       :: SD.StringDict<TS.Type>,
+            aliases    :: SD.StringDict<TS.Type>,
+            data-exprs :: SD.StringDict<TS.DataType>,
+            branders   :: SD.StringDict<TS.Type>,
+            binds      :: Bindings,
+            errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
+                            get    :: (-> List<C.CompileError>)})
+end
 
 fun bind(f, a): a.bind(f);
 fun map-bind(f, a): a.map-bind(f);

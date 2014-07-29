@@ -11,6 +11,7 @@ provide-types { TypeConstraint  : TypeConstraint,
 import ast as A
 import string-dict as SD
 import "compiler/type-structs.arr" as TS
+import "compiler/type-check-structs.arr" as TCS
 import "compiler/list-aux.arr" as LA
 
 all2-strict  = LA.all2-strict
@@ -44,6 +45,15 @@ t-variable           = TS.t-variable
 is-t-top             = TS.is-t-top
 is-t-bot             = TS.is-t-bot
 is-t-var             = TS.is-t-var
+
+type TCInfo          = TCS.TCInfo
+tc-info              = TCS.tc-info
+
+type Bindings        = TCS.Bindings
+empty-bindings       = TCS.empty-bindings
+
+type KeyEliminator   = (Type, SD.StringDict<Type>, Set<String> -> Type)
+type DirectionInfo   = Pair<Type, KeyEliminator>
 
 example-t-var = t-var("A")
 example-a = t-var("A")
@@ -128,7 +138,7 @@ fun satisfies-type(here :: Type, there :: Type) -> Boolean:
         | t-arrow(_, b-forall, b-args, b-ret) =>
           all2-strict(_ == _, a-forall, b-forall)
                 # order is important because contravariance!
-            and all2-strict(lam(x, y): satisfies-type(x, y);, b-args, a-args)
+            and all2-strict(satisfies-type, b-args, a-args)
             and satisfies-type(a-ret, b-ret)
         | else => false
       end
@@ -136,7 +146,7 @@ fun satisfies-type(here :: Type, there :: Type) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-app(_, b-onto, b-args) =>
-          (a-onto == b-onto) and all2-strict(_ == _, a-args, b-args)
+          a-onto._equal(b-onto) and all2-strict(lam(a, b): a.equal(b);, a-args, b-args)
         | else => false
       end
     | t-top => is-t-top(there)
@@ -318,10 +328,6 @@ where:
   free-vars(example-o) satisfies [set: ]._equals
   free-vars(example-p) satisfies [set: ]._equals
 end
-
-type Bindings      = SD.StringDict<Type>
-type KeyEliminator = (Type, SD.StringDict<Type>, Set<String> -> Type)
-type DirectionInfo = Pair<Type, KeyEliminator>
 
 fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
                         _to :: DirectionInfo, _from :: DirectionInfo) -> Type:
