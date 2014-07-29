@@ -287,7 +287,18 @@ fun greatest-lower-bound(s :: Type, t :: Type) -> Type:
 end
 
 
-fun free-vars(t :: Type) -> Set<Type>:
+fun <B> union(a :: Set<B>, b :: Set<B>) -> Set<B>:
+  a.union(b)
+end
+
+fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
+  fun add-free-var(typ :: Type):
+    if binds.has-key(typ.tostring()):
+      [set: ]
+    else:
+      [set: typ]
+    end
+  end
   cases(Type) t:
     | t-name(l, module-name, id) =>
       cases(Option<String>) module-name:
@@ -297,36 +308,40 @@ fun free-vars(t :: Type) -> Set<Type>:
           [set: ]
       end
     | t-var(id) =>
-      [set: t]
+      add-free-var(t)
     | t-arrow(l, forall, args, ret) =>
-      free = for fold(base from free-vars(ret), arg from args):
-               base.union(free-vars(arg))
-             end
-      for fold(base from free, typ from forall):
-        base.remove(typ.id)
+      new-binds = for fold(base from binds, typ from forall):
+        binds.set(typ.id, typ.upper-bound)
       end
+      args
+        .map(free-vars(_, new-binds))
+        .foldl(union, free-vars(ret, new-binds))
+    | t-app(l, onto, args) =>
+      args
+        .map(free-vars(_, binds))
+        .foldl(union, free-vars(onto, binds))
     | t-top =>
       [set: ]
     | t-bot =>
       [set: ]
   end
 where:
-  free-vars(example-a) satisfies [set: example-a]._equals
-  free-vars(example-b) satisfies [set: example-b]._equals
-  free-vars(example-c) satisfies [set: example-a, example-b]._equals
-  free-vars(example-d) satisfies [set: example-a, example-b]._equals
-  free-vars(example-e) satisfies [set: example-a]._equals
-  free-vars(example-f) satisfies [set: example-a, example-b]._equals
-  free-vars(example-g) satisfies [set: example-a, example-b]._equals
-  free-vars(example-h) satisfies [set: example-a]._equals
-  free-vars(example-i) satisfies [set: example-a, example-b]._equals
-  free-vars(example-j) satisfies [set: example-b]._equals
-  free-vars(example-k) satisfies [set: example-a, example-b]._equals
-  free-vars(example-l) satisfies [set: example-a, example-b]._equals
-  free-vars(example-m) satisfies [set: example-a, example-b]._equals
-  free-vars(example-n) satisfies [set: ]._equals
-  free-vars(example-o) satisfies [set: ]._equals
-  free-vars(example-p) satisfies [set: ]._equals
+  free-vars(example-a, empty-bindings) satisfies [set: example-a]._equals
+  free-vars(example-b, empty-bindings) satisfies [set: example-b]._equals
+  free-vars(example-c, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-d, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-e, empty-bindings) satisfies [set: example-a]._equals
+  free-vars(example-f, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-g, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-h, empty-bindings) satisfies [set: example-a]._equals
+  free-vars(example-i, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-j, empty-bindings) satisfies [set: example-b]._equals
+  free-vars(example-k, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-l, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-m, empty-bindings) satisfies [set: example-a, example-b]._equals
+  free-vars(example-n, empty-bindings) satisfies [set: ]._equals
+  free-vars(example-o, empty-bindings) satisfies [set: ]._equals
+  free-vars(example-p, empty-bindings) satisfies [set: ]._equals
 end
 
 fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
@@ -345,7 +360,7 @@ fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
         typ
       | t-arrow(l, forall, args, ret) =>
         bounded-free = for fold(base from sets.empty-list-set, x from forall):
-                         free = free-vars(x.upper-bound)
+                         free = free-vars(x.upper-bound, binds)
                          base.union(free)
                        end
         intersection = bounded-free.intersect(to-remove)
@@ -715,9 +730,9 @@ end
 empty-type-constraints = type-constraints(SD.immutable-string-dict())
 
 fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> TypeConstraints:
-  s-free  = free-vars(s)
+  s-free  = free-vars(s, binds)
   s-str   = s.tostring()
-  t-free  = free-vars(t)
+  t-free  = free-vars(t, binds)
   initial = empty-type-constraints
   if is-t-top(t):
     initial
@@ -729,7 +744,7 @@ fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: S
   else if unknowns.member(t) and is-empty(s-free.intersect(unknowns).to-list()):
     r = least-supertype(s, binds, to-remove)
     initial.insert(t, Bounds(r, t-top))
-  else if s == t:
+  else if s._equal(t):
     initial
   else if binds.has-key(s-str):
     generate-constraints(binds.get(s-str), t, binds, to-remove, unknowns)
@@ -779,14 +794,14 @@ fun generate-constraints(s :: Type, t :: Type, binds :: Bindings, to-remove :: S
 end
 
 fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> Pair<Type,TypeConstraints>:
-  union = to-remove.union(unknowns)
+  ru-union = to-remove.union(unknowns)
   if is-t-top(s) and is-t-top(t):
     pair(t-top, empty-type-constraints)
   else if is-t-bot(s) and is-t-bot(t):
     pair(t-bot, empty-type-constraints)
-  else if unknowns.member(s) and is-empty(free-vars(t).intersect(union).to-list()):
+  else if unknowns.member(s) and is-empty(free-vars(t, binds).intersect(ru-union).to-list()):
     pair(t, empty-type-constraints.insert(s, Equality(t)))
-  else if unknowns.member(t) and is-empty(free-vars(s).intersect(union).to-list()):
+  else if unknowns.member(t) and is-empty(free-vars(s, binds).intersect(ru-union).to-list()):
     pair(s, empty-type-constraints.insert(t, Equality(s)))
   else if (s == t) and not(unknowns.member(s)):
     pair(s, empty-type-constraints)
