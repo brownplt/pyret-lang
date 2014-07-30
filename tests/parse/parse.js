@@ -17,6 +17,194 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       throw "Non-unique parse";
     }
   }
+  var toks = [];
+  var numToks = 0;
+  function lex(str) {
+    const tokenizer = T.Tokenizer;
+    tokenizer.tokenizeFrom(str);
+    numToks = 0;
+    while (tokenizer.hasNext())
+      toks[numToks++] = tokenizer.next();
+    return toks;
+  }
+  function test(actual, expected, testname, toks) {
+    if (actual === expected) {
+      return true;
+    } else {
+      var allToks = "Str was " + JSON.stringify(testname) + "\n";
+      for (var t = 0; t < toks.length; t++) {
+        if (t > 0) allToks += "\n";
+        allToks += "Tok[" + t + "] = " + toks[t].toString(true) 
+          + " at pos " + toks[t].pos.toString(true);
+      }
+      allToks += "Expected " + JSON.stringify(expected) + ", but got " + JSON.stringify(actual)
+        + " in " + JSON.stringify(testname);
+      expect(allToks).toBe("");
+      return false;
+    }
+  }
+  function testPos(tok, expected, str, toks) {
+    if (tok.pos.endChar - tok.pos.startChar == expected.length) {
+      return true;
+    } else {
+      test(str.slice(tok.pos.startChar, tok.pos.endChar), expected, str, toks);
+      return false;
+    }
+  }
+  describe("lexing", function() {
+    const tok_words = [
+      "an-ident", 
+      "import", "provide-types", "provide", "as", "newtype", "type-let", "type", "lazy",
+      "var", "letrec", "let", "fun", "lam", "true", "false", "method", "doc:", "check:", "check",
+      "try:", "except", "cases", "when", "ask:", "otherwise:", "if", "then:", "else:", "else if", "else",
+      "data", "with:", "sharing:", "shadow", "mutable", "cyclic", "graph:", "block:", "for", "from", "end",
+      "4/5", "-123/456", "01823.1225426", "-1.2", "1", "-2", "and", "or", "is", "satisfies", "raises",
+      "```a one line string```", "```a two\nline string```", "\"a string\"", "'a string'",
+    ];
+    const tok_opers = [
+      ".", "!", "%", ",", "->", "=>", ":=", "::", ":", "|", 
+      " ^ ", " + ", " - ", " * ", " / ", " <= ", " >= ", " == ", " <> ", " < ", " > ", "<", ">",
+      "[", "]", "{", "}", "(", ")", "=", ";", "\\"
+    ];
+    const compound_toks = {
+      "else if": true, // "else" + " " + "if"
+      "else:": true, // "else" + "" + ":"
+      "else:=": true, // "else:" + "" + "="
+      "else::": true, // "else:" + "" + ":"
+      "check:": true, // "check" + "" + ":"
+      "check:=": true, // "check:" + "" + ":"
+      "check::": true, // "check:" + "" + "::"
+      "::": true, // ":" + "" + ":"
+      "1.4/5": true, // "1" + "." + "4/5"
+      "-2.4/5": true, // "-2" + "." + "4/5"
+      "1.01823.1125426": true, // "1" + "." + "01823.1125426"
+      "1.1": true, // "1" + "." + "1"
+      "-2.01823.1125426": true, // "-2" + "." + "01823.1125426"
+      "-2.1": true, // "-2" + "." + "1"
+    };
+    const toks_needing_ws = {
+      "::": true,
+      "=>": true,
+      "^": true,
+      "+": true,
+      "-": true,
+      "*": true,
+      "/": true,
+      "<=": true,
+      ">=": true,
+      "<>": true,
+      "<": true,
+      ">": true
+    };
+    const trimmed_tok_words = tok_words.map(function(s) { return s.trim(); });
+    const trimmed_tok_opers = tok_opers.map(function(s) { return s.trim(); });
+    const all_toks = trimmed_tok_words.slice(0).push.apply(trimmed_tok_opers);
+    const ws = [ "", "   ", "\n", "# comment\n\n", "   \n", "  \n\n   ", "  \n  # comment  \n   \n   " ];
+    it("should have tight lexical extents for all tokens", function() {
+      lex("");
+      expect(numToks).toBe(1);
+      expect(toks[0].name).toBe("EOF");
+      for (var ws1 = 0; ws1 < ws.length; ws1++) {
+        for (var i = 0; i < all_toks.length; i++) {
+          for (var ws2 = 0; ws2 < ws.length; ws2++) {
+            var str = "" + ws[ws1] + all_toks[i] + ws[ws2]
+            lex(str);
+            test(numToks, 2, str, toks) &&
+              testPos(toks[0], all_toks[i], str, toks) &&
+              test(toks[1].name, "EOF", str, toks);
+          }
+        }
+      }
+      console.log("Finished single token tests");
+    });
+    xit("should have tight lexical extents for all pairs of tokens", function() {
+      for (var ws1 = 0; ws1 < ws.length; ws1++) {
+        for (var i = 0; i < tok_words.length; i++) {
+          for (var ws2 = 0; ws2 < ws.length; ws2++) {
+            for (var j = 0; j < tok_opers.length; j++) {
+              if (compound_toks[trimmed_tok_words[i] + trimmed_tok_opers[j]] === true) continue;
+              for (var ws3 = 0; ws3 < ws.length; ws3++) {
+                var str = "" + ws[ws1] + tok_words[i] + ws[ws2] + tok_opers[j] + ws[ws3];
+                lex(str);
+                test(numToks, 3, str, toks) &&
+                  testPos(toks[0], trimmed_tok_words[i], str, toks) &&
+                  testPos(toks[1], trimmed_tok_opers[j], str, toks) &&
+                  test(toks[2].name, "EOF", str, toks);
+              }
+            }
+            if (ws[ws2] === "") continue;
+            for (var j = 0; j < tok_words.length; j++) {
+              for (var ws3 = 0; ws3 < ws.length; ws3++) {
+                var str = "" + ws[ws1] + tok_words[i] + ws[ws2] + tok_words[j] + ws[ws3];
+                lex(str);
+                test(numToks, 3, str, toks) &&
+                  testPos(toks[0], trimmed_tok_words[i], str, toks) &&
+                  testPos(toks[1], trimmed_tok_words[j], str, toks) &&
+                  test(toks[2].name, "EOF", str, toks);
+              }
+            }
+          }
+        }
+        for (var i = 0; i < tok_opers.length; i++) {
+          for (var ws2 = 0; ws2 < ws.length; ws2++) {
+            if (!(toks_needing_ws[tok_opers[i]] && (ws[ws2] === ""))) {
+              for (var j = 0; j < tok_words.length; j++) {
+                for (var ws3 = 0; ws3 < ws.length; ws3++) {
+                  var str = "" + ws[ws1] + tok_opers[i] + ws[ws2] + tok_words[j] + ws[ws3];
+                  lex(str);
+                  test(numToks, 3, str, toks) &&
+                    testPos(toks[0], trimmed_tok_opers[i], str, toks) &&
+                    testPos(toks[1], trimmed_tok_words[j], str, toks) &&
+                    test(toks[2].name, "EOF", str, toks);
+                }
+              }
+            }
+            if (ws[ws2] !== "") {
+              for (var j = 0; j < tok_opers.length; j++) {
+                for (var ws3 = 0; ws3 < ws.length; ws3++) {
+                  var str = "" + ws[ws1] + tok_opers[i] + ws[ws2] + tok_opers[j] + ws[ws3];
+                  lex(str);
+                  test(numToks, 3, str, toks) &&
+                    testPos(toks[0], trimmed_tok_opers[i], str, toks) &&
+                    testPos(toks[1], trimmed_tok_opers[j], str, toks) &&
+                    test(toks[2].name, "EOF", str, toks);
+                }
+              }
+            }
+          }
+        }
+      }
+      console.log("Finished token-pair tests");
+    });
+    xit("should have tight lexical extents for all triples of tokens", function() {
+      for (var ws1 = 0; ws1 < 4; ws1++) { // deliberately skipping a lot of whitespaces
+        for (var i = 0; i < tok_words.length; i++) {
+          console.log(ws1 + "." + i + " out of " + ws.length + "." + tok_words.length);
+          for (var ws2 = 0; ws2 < 4; ws2++) { // deliberately skipping a lot of whitespaces
+            for (var j = 0; j < tok_opers.length; j++) {
+              if (compound_toks[trimmed_tok_words[i] + trimmed_tok_opers[j]] === true) continue;
+              for (var ws3 = 0; ws3 < 4; ws3++) { // deliberately skipping a lot of whitespaces
+                if (!(toks_needing_ws[tok_opers[j]] && (ws[ws3] === ""))) {
+                  for (var k = 0; k < tok_words.length; k++) {
+                    for (var ws4 = 0; ws4 < 4; ws4++) { // deliberately skipping a lot of whitespaces
+                      var str = ws[ws1] + tok_words[i] + ws[ws2] + tok_opers[j] + ws[ws3] + tok_words[k] + ws[ws4];
+                      lex(str);
+                      test(numToks, 4, str, toks) &&
+                        testPos(toks[0], trimmed_tok_words[i], str, toks) &&
+                        testPos(toks[1], trimmed_tok_opers[j], str, toks) &&
+                        testPos(toks[2], trimmed_tok_words[k], str, toks) &&
+                        test(toks[3].name, "EOF", str, toks);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      console.log("Finished token-triple tests");      
+    });
+  });
   describe("parsing", function() {
     it("should parse new-style imports with types", function() {
 //      expect(parse("import ast as A, AT")).not.toBe(false);
