@@ -686,14 +686,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'list-elt': function(node) {
               return tr(node.kids[0]);
             },
-            'bless-expr': function(node) {
-              return RUNTIME.getField(ast, 's-bless')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
-            },
-            'confirm-expr': function(node) {
-              return RUNTIME.getField(ast, 's-confirm')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
-            },
             'construct-expr': function(node) {
               return RUNTIME.getField(ast, 's-construct')
                 .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))

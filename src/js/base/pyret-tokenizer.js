@@ -179,8 +179,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
-    {name: "CONFIRM", val: new RegExp(kw("confirm"), STICKY_REGEXP)},
-    {name: "BLESS", val: new RegExp(kw("bless"), STICKY_REGEXP)},
     {name: "NEWTYPE", val: new RegExp(kw("newtype"), STICKY_REGEXP)},
     {name: "TYPE-LET", val: new RegExp(kw("type-let"), STICKY_REGEXP)},
     {name: "TYPE", val: new RegExp(kw("type"), STICKY_REGEXP)},

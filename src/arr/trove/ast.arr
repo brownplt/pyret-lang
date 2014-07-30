@@ -71,8 +71,6 @@ str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
 str-newtype = PP.str("type ")
 str-type = PP.str("type ")
-str-bless = PP.str("bless ")
-str-confirm = PP.str("confirm ")
 str-val = PP.str("val ")
 str-when = PP.str("when")
 str-where = PP.str("where:")
@@ -610,16 +608,6 @@ data Expr:
       else:
         PP.surround(INDENT, 0, prefix, PP.separate(PP.commabreak, self.values.map(_.tosource())), PP.rbrack)
       end
-    end
-  | s-confirm(l :: Loc, expr :: Expr, typ :: Name) with:
-    label(self): "s-confirm" end,
-    tosource(self):
-      PP.flow([list: str-confirm, self.expr.tosource(), str-as, self.typ.tosource()])
-    end
-  | s-bless(l :: Loc, expr :: Expr, typ :: Name) with:
-    label(self): "s-bless" end,
-    tosource(self):
-      PP.flow([list: str-bless, self.expr.tosource(), str-as, self.typ.tosource()])
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
@@ -1377,12 +1365,6 @@ default-map-visitor = {
   s-array(self, l :: Loc, values :: List<Expr>):
     s-array(l, values.map(_.visit(self)))
   end,
-  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
-    s-bless(l, expr.visit(self), typ.visit(self))
-  end,
-  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
-    s-confirm(l, expr.visit(self), typ.visit(self))
-  end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
@@ -1836,12 +1818,6 @@ default-iter-visitor = {
   s-array(self, l :: Loc, values :: List<Expr>):
     lists.all(_.visit(self), values)
   end,
-  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
-    expr.visit(self) and typ.visit(self)
-  end,
-  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
-    expr.visit(self) and typ.visit(self)
-  end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
@@ -2281,12 +2257,6 @@ dummy-loc-visitor = {
   end,
   s-array(self, l :: Loc, values :: List<Expr>):
     s-array(dummy-loc, values.map(_.visit(self)))
-  end,
-  s-bless(self, l :: Loc, expr :: Expr, typ :: Name):
-    s-bless(dummy-loc, expr.visit(self), typ.visit(self))
-  end,
-  s-confirm(self, l :: Loc, expr :: Expr, typ :: Name):
-    s-confirm(dummy-loc, expr.visit(self), typ.visit(self))
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))

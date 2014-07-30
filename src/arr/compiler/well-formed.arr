@@ -561,12 +561,6 @@ top-level-visitor = A.default-iter-visitor.{
   s-array(_, l :: Loc, values :: List<A.Expr>):
     well-formed-visitor.s-array(l, values)
   end,
-  s-bless(_, l :: Loc, expr :: A.Expr, typ :: A.Name):
-    well-formed-visitor.s-bless(l, expr, typ)
-  end,
-  s-confirm(_, l :: Loc, expr :: A.Expr, typ :: A.Name):
-    well-formed-visitor.s-confirm(l, expr, typ)
-  end,
   s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
     well-formed-visitor.s-construct(l, mod, constructor, values)
   end,
