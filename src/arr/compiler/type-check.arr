@@ -216,7 +216,7 @@ end
 
 fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check :: Option<A.Expr>, info :: TCInfo) -> SynthesisResult:
   for synth-bind(variants-result from map-result(to-type-variant(_, info), variants)):
-    for synth-bind(fields-result from map-result(to-type-member, fields)):
+    for synth-bind(fields-result from map-result(to-type-member(_, info), fields)):
       if info.branders.has-key(namet.key()):
         t-vars = for map(param from params):
           t-variable(param.l, param.key(), t-top)
@@ -1072,6 +1072,8 @@ default-typs.set(A.s-global("_times").key(), t-arrow(A.dummy-loc, empty, [list: 
 default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+print-variable = gensym("A")
+default-typs.set(A.s-global("print").key(), t-arrow(A.dummy-loc, [list: t-variable(A.dummy-loc, print-variable, t-top)], [list: t-var(print-variable)], t-var(print-variable)))
 
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
