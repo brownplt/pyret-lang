@@ -250,6 +250,33 @@ check "should work for data":
   run-str("data D: | var1 end x :: D = var1").success is true
 end
 
+check "should work with deep refinements":
+  long-is-even = "fun is-even(n): if n == 0: true else if n < 0: false else: is-even(n - 2) end end\n"
+  run-str(
+    long-is-even +
+    "x :: Number % (is-even) = 100000"
+  ).success is true
+  run-str(
+    long-is-even +
+    "x :: Number % (is-even) = 100000\n" +
+    "x2 :: Number % (is-even) = x + 1"
+  ) satisfies is-contract-error-str
+  run-str(
+    long-is-even +
+    "x :: Number % (is-even) = 100001"
+  ) satisfies is-contract-error-str
+  run-str(
+    long-is-even +
+    "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
+    "f(10000)"
+  ).success is true
+  run-str(
+    long-is-even +
+    "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
+    "f(\"nan\")"
+  ) satisfies is-contract-error-str
+end 
+
 
 check "should work with named refinements":
   data-def = ```
