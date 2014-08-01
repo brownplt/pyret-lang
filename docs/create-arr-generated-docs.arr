@@ -66,18 +66,24 @@ end
 fun process-module(file, fields, types, bindings, type-bindings):
   split-fields = process-fields(trim-path(file), fields, types, bindings, type-bindings)
   fun method-spec(data-name, meth):
-    sexp("method-spec",
-      [list: spair("name", "\"" + PP.str(meth.name).pretty(1000).first + "\""),
-        spair("arity", tostring(meth.args.length())),
-        spair("args", slist(meth.args.map(lam(b): leaf(torepr(b.id.toname())) end))),
-        spair("contract",
-          process-ann(
-            A.a-arrow(A.dummy-loc,
-              A.a-name(A.dummy-loc, A.s-name(A.dummy-loc, data-name)) ^ link(_, meth.args.rest.map(_.ann)),
-              meth.ann, false),
-            file, split-fields, bindings, type-bindings))
-      ]
-        + (if meth.doc == "": [list: ] else: [list: spair("doc", torepr(meth.doc))] end))
+    cases(A.Member) meth:
+      | s-method-field(_, name, args, ann, doc, _, _) =>
+        sexp("method-spec",
+          [list: spair("name", "\"" + PP.str(name).pretty(1000).first + "\""),
+            spair("arity", tostring(args.length())),
+            spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
+            spair("contract",
+              process-ann(
+                A.a-arrow(A.dummy-loc,
+                  A.a-name(A.dummy-loc, A.s-name(A.dummy-loc, data-name)) ^ link(_, args.rest.map(_.ann)),
+                  ann, false),
+                file, split-fields, bindings, type-bindings))
+          ]
+            + (if doc == "": [list: ] else: [list: spair("doc", torepr(doc))] end))
+      | s-data-field(_, name, value) =>
+        sexp("unknown-item",
+          spair("name", torepr(name)) ^ link(_, meth.tosource().pretty(70).map(comment)))
+    end
   end
   for map(field from fields):
     cases(A.Member) field:

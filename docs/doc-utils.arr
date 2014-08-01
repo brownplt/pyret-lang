@@ -349,7 +349,7 @@ fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, C
             cases(Option) opt-ann:
               | none => E.left(ann)
               | some(new-ann) =>
-                if A.is-Import(new-ann): ann
+                if A.is-Import(new-ann): E.left(ann)
                 else: lookup-ann(new-ann, type-bindings)
                 end
             end
