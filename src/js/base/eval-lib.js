@@ -46,6 +46,7 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
                         "check-mode": runtime.pyretTrue,
                         "allow-shadowed": runtime.pyretFalse,
                         "collect-all": runtime.pyretFalse,
+                        "type-check": runtime.pyretFalse,
                         "ignore-unbound": runtime.pyretFalse
                       })
                     );

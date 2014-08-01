@@ -27,13 +27,15 @@ data Comparison:
 sharing:
   _comp(self, other):
     cases(Comparision) other:
-      | less-than    => cases(Comparision) self:
+      | less-than    =>
+        cases(Comparison) self:
           | less-than    => equal
           | equal        => greater-than
           | greater-than => greater-than
         end
       | equal       => self
-      | greater-than => cases(Comparision) self:
+      | greater-than =>
+        cases(Comparison) self:
           | less-than    => less-than
           | equal        => less-than
           | greater-than => equal

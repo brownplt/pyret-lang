@@ -399,6 +399,15 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
                   maybe-check :: Option<Type>, remove :: (String -> Any),
                   info :: TCInfo
 ) -> FoldResult<Pair<A.CasesBranch, Type>>:
+  fun handle-body(name :: String, body :: A.Expr, process, new-info :: TCInfo):
+    remove(name)
+    cases(Option<Type>) maybe-check:
+      | some(expect-typ) =>
+        checking(body, expect-typ, new-info).fold-bind(process(_, expect-typ))
+      | none =>
+        synthesis(body, new-info).fold-bind(process)
+    end
+  end
   cases(A.CasesBranch) branch:
     | s-cases-branch(l, name, args, body) =>
       fun process(new-body, typ):
@@ -408,15 +417,8 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
       cases(Option<TypeMember>) data-type.lookup-variant(name):
         | some(tm) =>
           bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), tm.fields.length()))
-          for bind(new-info from bind-args(bind-arg, fold-result(info), args, tm.fields)):
-            remove(name)
-            cases(Option<Type>) maybe-check:
-              | some(expect-typ) =>
-                checking(body, expect-typ, new-info).fold-bind(process(_, expect-typ))
-              | none =>
-                synthesis(body, new-info).fold-bind(process)
-            end
-          end
+          bind-args(bind-arg, fold-result(info), args, tm.fields)
+            .bind(handle-body(name, body, process, _))
         | none =>
           fold-errors([list: C.unneccesary-branch(name, l, data-type.name, cases-loc)])
       end
@@ -507,7 +509,7 @@ fun synthesis-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.
   handle-cases(l, ann, val, branches, maybe-else, none, info, synth-bind, synthesis-err, synthesis-cases-has-else, synthesis-cases-no-else)
 end
 
-fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-typ :: Type, info :: TCInfo) -> SynthesisResult:
+fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   handle-cases(l, ann, val, branches, maybe-else, some(expect-typ), info, check-bind, checking-err, checking-cases-has-else(expect-typ), checking-cases-no-else)
 end
 
