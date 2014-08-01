@@ -58,12 +58,19 @@ check:
   string-replace("abcdabcd", "abcd", "") is ""
   string-replace("abc", "", "empty") is "emptyaemptybemptycempty"
 
-  string-split("abc", "") is [list: "a", "b", "c"]
-  string-split("abc", "b") is [list: "a", "c"]
-  string-split("sentence is a typical use case", " ") is [list: 
+  string-split-all("abc", "") is [list: "a", "b", "c"]
+  string-split-all("abc", "b") is [list: "a", "c"]
+  string-split-all("sentence is a typical use case", " ") is [list: 
       "sentence", "is", "a", "typical", "use", "case"
     ]
-  string-split("aabcb", "b") is [list: "aa", "c", ""]
+  string-split-all("aabcb", "b") is [list: "aa", "c", ""]
+
+  string-split("abc", "") is [list: "", "abc"]
+  string-split("abc", "b") is [list: "a", "c"]
+  string-split("sentence is a typical use case", " ") is [list: 
+      "sentence", "is a typical use case"
+    ]
+  string-split("aabcb", "b") is [list: "aa", "cb"]
 
 end
 

@@ -1,10 +1,11 @@
 provide *
 
 import error as E
+import either as Eth
 
 check:
   fun get-err(thunk):
-    cases(Either) run-task(thunk):
+    cases(Eth.Either) run-task(thunk):
       | left(v) => "not-error"
       | right(v) => v
     end

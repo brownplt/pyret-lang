@@ -5,7 +5,6 @@ provide-types *
 import "compiler/compile-structs.arr" as C
 import ast as A
 import "compiler/anf.arr" as N
-import "compiler/ast-split.arr" as AS
 import "compiler/anf-loop-compiler.arr" as AL
 import "compiler/desugar-check.arr" as CH
 import "compiler/desugar.arr" as D
@@ -38,7 +37,5 @@ fun trace-make-compiled-pyret(trace, phase, program-ast, env):
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
-  split = AS.ast-split(anfed.body)
-  ret := phase("Split", split, ret)
   phase("Generated JS", ccp(anfed.visit(AL.splitting-compiler(env))), ret)
 end

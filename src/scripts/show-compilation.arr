@@ -11,7 +11,6 @@ import "compiler/resolve-scope.arr" as R
 import "compiler/ast-util.arr" as U
 import "compiler/ast-anf.arr" as AN
 import "compiler/anf.arr" as N
-import "compiler/ast-split.arr" as AS
 import "compiler/js-of-pyret.arr" as JS
 import "compiler/desugar-check.arr" as CH
 import file as F
@@ -47,7 +46,6 @@ cases (C.ParsedArguments) parsed-options:
           print(phase.name + ":")
           if A.Program(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if AN.AProg(phase.result): each(print, phase.result.tosource().pretty(print-width))
-          else if AS.SplitResult(phase.result): each(print, phase.result.tosource().pretty(print-width))
           else if JS.CompiledCodePrinter(phase.result): print(phase.result.pyret-to-js-pretty(print-width))
           else if R.NameResolution(phase.result): each(print, phase.result.ast.tosource().pretty(print-width))
           else if CS.CompileResult(phase.result):

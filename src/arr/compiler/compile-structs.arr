@@ -150,6 +150,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "string-substring",
   "string-replace",
   "string-split",
+  "string-split-all",
   "string-char-at",
   "string-toupper",
   "string-tolower",

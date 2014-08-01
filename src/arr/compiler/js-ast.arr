@@ -232,6 +232,7 @@ data JBinop:
   | j-equals with: to-ugly-source(self): "==" end
   | j-neq with: to-ugly-source(self): "!==" end
   | j-nequals with: to-ugly-source(self): "!=" end
+  | j-instanceof with: to-ugly-source(self): "instanceof" end
 sharing:
   print-ugly-source(self, printer):
     printer(self.to-ugly-source())
