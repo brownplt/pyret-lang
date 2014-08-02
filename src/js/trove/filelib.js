@@ -64,7 +64,7 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                   RUNTIME.checkString(directory);
                   var dir = RUNTIME.unwrap(directory);
                   var contents = fs.readdirSync(dir)
-                  return ffi.makeList(Array.prototype.slice.call(contents, 0, contents.length))
+                  return ffi.makeList(contents.map(RUNTIME.makeString))
                 })
             }),
           answer: NAMESPACE.get("nothing")

@@ -10,7 +10,7 @@ data RuntimeError:
     end
   | no-branches-matched(loc, expression :: String) with:
     tostring(self):
-      "No branches matched in this `" + self.expression + "` expression"
+      "No branches matched in the `" + self.expression + "` expression at " + self.loc.format(true)
     end
   | internal-error(message, info-args) with:
     tostring(self):
@@ -47,6 +47,20 @@ data RuntimeError:
   | numeric-binop-error(val1, val2, opname, methodname) with:
     tostring(self):
       "Error: Invalid use of " + self.opname + ".  Either both arguments must be numbers, or the left operand must have a " + self.methodname + " method.  Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
+    end
+  | cases-arity-mismatch(branch-loc, num-args, actual-arity) with:
+    tostring(self):
+      "Error: The cases branch at " + self.branch-loc.format(true) + " expects " + tostring(self.num-args)
+        + " arguments, but the actual value has " + tostring(self.actual-arity)
+        + (if self.actual-arity == 1: " field" else: " fields" end)
+    end
+  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean) with:
+    tostring(self):
+      if self.should-be-singleton:
+        "Error: The cases branch at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
+      else:
+        "Error: The cases branch at " + self.branch-loc.format(true) + " expects the value being examined to be a singleton, but it actually has fields"
+      end
     end
   | arity-mismatch(fun-loc, expected-arity, args) with:
     tostring(self):

@@ -42,9 +42,6 @@ type-let-bind: type-bind | newtype-bind
 type-let-bind-elt: type-let-bind COMMA
 type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind COLON block end
 
-bless-expr: BLESS binop-expr AS NAME
-confirm-expr: CONFIRM binop-expr AS NAME
-
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN fun-header COLON doc-string block where-clause end
@@ -106,7 +103,6 @@ expr: paren-expr | id-expr | prim-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
     | type-let-expr
-    | bless-expr | confirm-expr
     | construct-expr
 
 bad-expr: UNTERMINATED-STRING | UNKNOWN

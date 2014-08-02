@@ -71,8 +71,8 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
           - contains no s-name (e.g. call resolve-names first)
         Postconditions on program:
           - in addition to preconditions,
-            contains no s-for, s-if, s-op, s-method-field,
-                        s-cases, s-not, s-when, s-if-pipe, s-paren
+            contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
+                        s-cases (will all be s-cases-else), s-not, s-when, s-if-pipe, s-paren
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
@@ -117,7 +117,7 @@ fun make-torepr(l, vname, fields, is-singleton):
 end
 
 fun make-match(l, case-name, fields):
-  call-match-case = mk-id(l, "call-" + case-name)
+  call-match-case = mk-id(l, "call_" + case-name)
   self-id = mk-id(l, "self")
   cases-id = mk-id-ann(l, "cases-funs", A.a-record(l, empty))
   else-id = mk-id-ann(l, "else-clause", A.a-arrow(l, empty, A.a-any, true))
@@ -131,7 +131,7 @@ fun make-match(l, case-name, fields):
       end
     end
   A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
-      A.s-if-else(l, [list: 
+      A.s-if-else(l, [list:
           A.s-if-branch(l,
               A.s-prim-app(
                   l,
@@ -173,9 +173,20 @@ end
 
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
-    | s-cases-branch(l, name, args, body) =>
-      A.s-cases-branch(l, name, args.map(desugar-bind),
-                       desugar-expr(body))
+    | s-cases-branch(l, pat-loc, name, args, body) =>
+      # desugar-member(
+      #   A.s-data-field(
+      #     pat-loc,
+      #     name,
+      #     A.s-lam(pat-loc, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
+      A.s-cases-branch(l, pat-loc, name, args.map(desugar-bind), desugar-expr(body))
+    | s-singleton-cases-branch(l, pat-loc, name, body) =>
+      # desugar-member(
+      #   A.s-data-field(
+      #     pat-loc,
+      #     name,
+      #     A.s-lam(pat-loc, [list: ], empty, A.a-blank, "", body, none)))
+      A.s-singleton-cases-branch(l, pat-loc, name, desugar-expr(body))
   end
 end
 
@@ -186,7 +197,7 @@ fun desugar-variant-member(m):
   end
 end
 
-fun desugar-member(f): 
+fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, args, ann, doc, body, _check) =>
       A.s-data-field(l, name, desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
@@ -204,7 +215,7 @@ end
 fun ds-curry-args(l, args):
   params-and-args = for fold(acc from pair([list: ], [list: ]), arg from args):
       if is-underscore(arg):
-        arg-id = mk-id(l, "arg-")
+        arg-id = mk-id(l, "arg_")
         pair(link(arg-id.id-b, acc.left), link(arg-id.id-e, acc.right))
       else:
         pair(acc.left, link(arg, acc.right))
@@ -215,7 +226,7 @@ end
 
 fun ds-curry-nullary(rebuild-node, l, obj, m):
   if is-underscore(obj):
-    curried-obj = mk-id(l, "recv-")
+    curried-obj = mk-id(l, "recv_")
     A.s-lam(l, [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none)
   else:
     rebuild-node(l, desugar-expr(obj), m)
@@ -250,7 +261,7 @@ fun ds-curry(l, f, args):
   cases(A.Expr) f:
     | s-dot(l2, obj, m) =>
       if is-underscore(obj):
-        curried-obj = mk-id(l, "recv-")
+        curried-obj = mk-id(l, "recv_")
         params-and-args = ds-curry-args(l, args)
         params = params-and-args.left
         A.s-lam(l, [list: ], link(curried-obj.id-b, params), A.a-blank, "",
@@ -284,22 +295,22 @@ where:
   ds-ed3 = ds-curry(
       d,
       id("f"),
-      [list: 
+      [list:
         id("x"),
         id("y")
       ]
     )
   ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
-    
+
   ds-ed4 = ds-curry(
       d,
       A.s-dot(d, under, "f"),
-      [list: 
+      [list:
         id("x")
       ])
   ds-ed4 satisfies A.is-s-lam
   ds-ed4.args.length() is 1
-        
+
 end
 
 fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
@@ -410,14 +421,17 @@ fun desugar-expr(expr :: A.Expr):
     | s-if-pipe-else(l, branches, _else) =>
       desugar-if(l, branches, _else)
     | s-cases(l, typ, val, branches) =>
-      A.s-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch))
+      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch))
+      # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
     | s-cases-else(l, typ, val, branches, _else) =>
-      A.s-cases-else(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
+      A.s-cases-else(l, desugar-ann(typ), desugar-expr(val),
+        branches.map(desugar-case-branch),
         desugar-expr(_else))
+      # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body) => 
+    | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
@@ -518,7 +532,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-var(_, _, _)           => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, _, _, _)      => raise("s-check should have already been desugared at " + torepr(l))
-    | s-check-test(l, _, _, _)      => raise("s-check-test should have already been desugared at " + torepr(l))
+    | s-check-test(l, _, _, _) => raise("s-check-test should have already been desugared at " + torepr(l))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
@@ -538,7 +552,7 @@ where:
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
   p(if-else) ^ pretty is if-else
   p(ask-otherwise) ^ pretty is ask-otherwise
-  
+
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
@@ -547,13 +561,13 @@ where:
 
   prog3 = p("for map(elt from l): elt + 1 end")
   ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
-  
+
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")
   #  ds(prog4) is p("builtins.equiv(5._plus(1), 6)._or(lam(): f(o) end)")
-  
+
   # ds(p("(5)")) is ds(p("5"))
-  
+
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
   # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
@@ -561,6 +575,5 @@ where:
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")
   # dsed5 is ds(p(compare))
-  
-end
 
+end

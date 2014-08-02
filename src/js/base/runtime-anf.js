@@ -702,8 +702,17 @@ function createMethodDict() {
     }
 
     function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
+      return new PObject(dict, brands);
     }
+
+    function makeDataValue(dict, brands, $name, $app_fields, $arity) {
+      var ret = new PObject(dict, brands);
+      ret.$name = $name;
+      ret.$app_fields = $app_fields;
+      ret.$arity = $arity;
+      return ret;
+    }
+
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -715,37 +724,6 @@ function createMethodDict() {
       return arr;
     }
 
-    PObject.prototype.updateDict = function(dict, keepBrands) {
-      var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
-      return newObj;
-    }
-
-    /**Clones the object
-      @return {!PObject} With same dict
-    */
-    PObject.prototype.brand = function(b) { 
-        var newObj = makeObject(this.dict); 
-        return brandClone(newObj, this, b);
-    };
-
-    /**Tests whether an object is a PObject
-        @param {Object} obj the item to test
-        @return {!boolean} true if object is a PObject
-    */
-    function isObject(obj) { return obj instanceof PObject; }
-
-    /**Makes a PObject using the given dict
-
-      @param {!Object.<string, !PBase>} dict
-      @return {!PObject} with given dict
-    */
-    function makeObject(dict) {
-       return new PObject(dict, noBrands); 
-    }
-
-    function makeBrandedObject(dict, brands) {
-        return new PObject(dict, brands);
-    }
     
     /************************
           Type Checking
@@ -798,7 +776,7 @@ function createMethodDict() {
         throw("MakeCheckType was called with the wrong number of arguments: expected 2, got " + arguments.length);
       }
       return function(val) { 
-        checkArity(1, arguments, "runtime");
+        thisRuntime.checkArity(1, arguments, "runtime");
         return checkType(val, test, typeName); 
       };
     }
@@ -825,7 +803,7 @@ function createMethodDict() {
     var AnyC = makePrimitiveAnn("Any", function() { return true; });
 
     function confirm(val, test) {
-      checkArity(2, arguments, "runtime");
+      thisRuntime.checkArity(2, arguments, "runtime");
       if(!test(val)) {
           throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
       }
@@ -851,9 +829,11 @@ function createMethodDict() {
       var thisBrandStr = mkBrandName(name);
       var brander = makeObject({
           'test': makeFunction(function(obj) {
+              thisRuntime.checkArity(1, arguments, "brander-test");
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
           'brand': makeFunction(function(obj) {
+              thisRuntime.checkArity(1, arguments, "brander-brand");
               return obj.brand(thisBrandStr);
             })
         });
@@ -866,6 +846,7 @@ function createMethodDict() {
       @return {!PBase}
     */
     function() {
+      thisRuntime.checkArity(0, arguments, "brander");
       return namedBrander("brander");
     }
     );
@@ -1033,8 +1014,12 @@ function createMethodDict() {
     }
 
     /**@type {PFunction} */
-    var torepr = makeFunction(function(val) {return makeString(toReprJS(val, "_torepr"));});
+    var torepr = makeFunction(function(val) {
+      thisRuntime.checkArity(1, arguments, "torepr");
+      return makeString(toReprJS(val, "_torepr"));
+    });
     var tostring = makeFunction(function(val) {
+        thisRuntime.checkArity(1, arguments, "tostring");
         if(isString(val)) {
           return makeString(val);
         }
@@ -1051,6 +1036,7 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
+        thisRuntime.checkArity(1, arguments, "print");
         display.app(val);
         theOutsideWorld.stdout("\n");
         return val;
@@ -1064,6 +1050,7 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
+        thisRuntime.checkArity(1, arguments, "display");
         if (isString(val)) {
           var repr = val;
         }
@@ -1082,6 +1069,7 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
+        thisRuntime.checkArity(1, arguments, "print-error");
         display_error.app(val);
         theOutsideWorld.stderr("\n");
         return val;
@@ -1095,6 +1083,7 @@ function createMethodDict() {
       @return {!PBase} the value given in
     */
        function(val){
+        thisRuntime.checkArity(1, arguments, "display-error");
         if (isString(val)) {
           var repr = val;
         }
@@ -1180,6 +1169,7 @@ function createMethodDict() {
         @param {!PBase} val the value to raise
       */
       function(val) { 
+        thisRuntime.checkArity(1, arguments, "raise");
         throw new PyretFailException(val); 
       };
     /** type {!PFunction} */
@@ -1194,6 +1184,7 @@ function createMethodDict() {
           @return {!PBase} 
         */
         function(obj, str) {
+          thisRuntime.checkArity(2, arguments, "has-field");
           checkString(str);
           return makeBoolean(hasProperty(obj.dict, str));
         }
@@ -1295,12 +1286,16 @@ function createMethodDict() {
 
     };
     // Pyret function from Pyret values to Pyret booleans
-    var samePyPy = makeFunction(function(v1, v2) { return makeBoolean(same(v1, v2)); });
+    var samePyPy = makeFunction(function(v1, v2) { 
+      thisRuntime.checkArity(2, arguments, "same");
+      return makeBoolean(same(v1, v2)); 
+    });
     // JS function from Pyret values to Pyret booleans
     var sameJSPy = function(v1, v2) { return makeBoolean(same(v1, v2)); };
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
+        thisRuntime.checkArity(1, arguments, "gensym");
         checkString(base);
         return makeString(unwrap(base) + String(gensymCounter++))
       });
@@ -1314,15 +1309,19 @@ function createMethodDict() {
     // implementation in Pyret that is used by the standard evaluator
     var nullChecker = makeObject({
       "run-checks": makeFunction(function(moduleName, checks) {
+        thisRuntime.checkArity(2, arguments, "run-checks");
         return nothing;
       }),
       "check-is": makeFunction(function(code, left, right, loc) {
+        thisRuntime.checkArity(4, arguments, "check-is");
         return nothing;
       }),
       "check-satisfies": makeFunction(function(code, left, pred, loc) {
+        thisRuntime.checkArity(4, arguments, "check-satisfies");
         return nothing;
       }),
       "results": makeFunction(function() {
+        thisRuntime.checkArity(0, arguments, "results");
         return nothing;
       })
     });
@@ -1334,6 +1333,7 @@ function createMethodDict() {
         'has-field': hasField,
         'equiv': samePyPy,
         'current-checker': makeFunction(function() {
+          thisRuntime.checkArity(0, arguments, "current-checker");
           return getParam("current-checker");
         })
       });
@@ -1359,7 +1359,9 @@ function createMethodDict() {
     }
 
     function mkPred(jsPred) {
-      return makeFunction(function(v) { return makeBoolean(jsPred(v)); });
+      return makeFunction(function(v) { 
+        return makeBoolean(jsPred(v)); 
+      });
     }
 
     function returnOrRaise(result, val, after) {
@@ -1381,7 +1383,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "checkAnn");
       }
     }
 
@@ -1398,7 +1401,8 @@ function createMethodDict() {
           if(ffi.isOk(result)) { return val; }
           if(ffi.isFail(result)) { raiseJSJS(result); }
           throw "Internal error: got invalid result from annotation check";
-        });
+        },
+        "_checkAnn");
       }
     }
 
@@ -1411,7 +1415,8 @@ function createMethodDict() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
-        });
+        },
+        "safeCheckAnnArg");
       }
     }
 
@@ -1424,7 +1429,8 @@ function createMethodDict() {
           raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
         }
         throw "Internal error: got invalid result from annotation check";
-      });
+      },
+      "checkAnnArg");
     }
 
     function _checkAnnArg(compilerLoc, ann, val) {
@@ -1493,7 +1499,8 @@ function createMethodDict() {
           return that.pred(val);
         }, function(passed) {
           return that.checkOrFail(passed, val, compilerLoc);
-        });
+        },
+        "PPrimAnn.check");
       }
     }
 
@@ -1529,12 +1536,14 @@ function createMethodDict() {
                 makeSrcloc(compilerLoc),
                 ffi.makePredicateFailure(val, that.predname));
             }
-          })
+          },
+          "PPredAnn.check (after the check)")
         }
         else {
           return result;
         }
-      });
+      },
+      "PPredAnn.check");
     }
 
     function makeBranderAnn(brander, name) {
@@ -1618,7 +1627,8 @@ function createMethodDict() {
           else if(ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
           }
-        });
+        },
+        "deepCheckFields");
       }
       if(that.fields.length === 0) { return ffi.contractOk; }
       else { return deepCheckFields(that.fields.slice()); }
@@ -2138,6 +2148,7 @@ function createMethodDict() {
     }
 
     var plus = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_plus");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeNumberBig(jsnums.add(l, r));
@@ -2154,6 +2165,7 @@ function createMethodDict() {
     };
 
     var minus = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_minus");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r)
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
@@ -2167,6 +2179,7 @@ function createMethodDict() {
     };
 
     var times = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_times");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
@@ -2180,6 +2193,7 @@ function createMethodDict() {
     };
 
     var divide = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_divide");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         if (jsnums.equals(0, r)) {
@@ -2196,6 +2210,7 @@ function createMethodDict() {
     };
 
     var lessthan = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_lessthan");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThan(l, r));
@@ -2212,6 +2227,7 @@ function createMethodDict() {
     };
 
     var greaterthan = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_greaterthan");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThan(l, r));
@@ -2228,6 +2244,7 @@ function createMethodDict() {
     };
 
     var lessequal = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_lessequal");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r));
@@ -2244,6 +2261,7 @@ function createMethodDict() {
     };
 
     var greaterequal = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "_greaterequal");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
         return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r));
@@ -2353,6 +2371,7 @@ function createMethodDict() {
     };
 
     var string_substring = function(s, min, max) {
+      thisRuntime.checkArity(3, arguments, "string-substring");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(min);
       thisRuntime.checkNumber(max);
@@ -2368,6 +2387,7 @@ function createMethodDict() {
       return thisRuntime.makeString(s.substring(jsnums.toFixnum(min), jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
+      thisRuntime.checkArity(3, arguments, "string-replace");
       thisRuntime.checkString(s);
       thisRuntime.checkString(find);
       thisRuntime.checkString(replace);
@@ -2376,31 +2396,37 @@ function createMethodDict() {
     }
 
     var string_equals = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "string-equals");
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(same(l, r));
     }
     var string_append = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "string-append");
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
       return thisRuntime.makeString(l.concat(r));
     }
     var string_contains = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "string-contains");
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
     var string_length = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-length");
       thisRuntime.checkString(s);
       return thisRuntime.makeNumber(s.length);
     }
     var string_isnumber = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-isnumber");
       checkString(s);
       var num = jsnums.fromString(s);
       if(num) { return true; }
       else { return false; }
     }
     var string_tonumber = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-tonumber");
       thisRuntime.checkString(s);
       var num = jsnums.fromString(s);
       if(num !== false) {
@@ -2411,6 +2437,7 @@ function createMethodDict() {
       }
     }
     var string_repeat = function(s, n) {
+      thisRuntime.checkArity(2, arguments, "string-repeat");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(n);
       var resultStr = "";
@@ -2420,13 +2447,27 @@ function createMethodDict() {
       }
       return makeString(resultStr);
     }
-    var string_split = function(s, splitstr) {
+    var string_split_all = function(s, splitstr) {
+      thisRuntime.checkArity(2, arguments, "string-split-all");
       thisRuntime.checkString(s);
       thisRuntime.checkString(splitstr);
       
       return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
+    var string_split = function(s, splitstr) {
+      thisRuntime.checkArity(2, arguments, "string-split");
+      thisRuntime.checkString(s);
+      thisRuntime.checkString(splitstr);
+
+      var idx = s.indexOf(splitstr);
+      if (idx === -1) 
+        return ffi.makeList([thisRuntime.makeString(s)]);
+      else
+        return ffi.makeList([thisRuntime.makeString(s.slice(0, idx)), 
+                             thisRuntime.makeString(s.slice(idx + splitstr.length))]);
+    }
     var string_charat = function(s, n) {
+      thisRuntime.checkArity(2, arguments, "string-char-at");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(n);
       
@@ -2434,82 +2475,98 @@ function createMethodDict() {
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
     }
     var string_toupper = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-toupper");
       thisRuntime.checkString(s);
       return thisRuntime.makeString(s.toUpperCase());
     }
     var string_tolower = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-tolower");
       thisRuntime.checkString(s);
       return thisRuntime.makeString(s.toLowerCase());
     }
     var string_explode = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-explode");
       thisRuntime.checkString(s);
       return ffi.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
+      thisRuntime.checkArity(2, arguments, "string-index-of");
       thisRuntime.checkString(s);
       thisRuntime.checkString(find);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
 
     var bool_not = function(l) {
-      checkArity(1, arguments, "not");
+      thisRuntime.checkArity(1, arguments, "not");
       thisRuntime.checkBoolean(l);
       return thisRuntime.makeBoolean(!l);
     }
 
     var num_equals = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       return thisRuntime.makeBoolean(same(l, r));
     }
     var num_max = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "num-max");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       if (jsnums.greaterThanOrEqual(l, r)) { return l; } else { return r; }
     }
 
     var num_min = function(l, r) {
+      thisRuntime.checkArity(2, arguments, "num-min");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       if (jsnums.lessThanOrEqual(l, r)) { return l; } else { return r; }
     }
 
     var num_abs = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-abs");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.abs(n));
     }
       
     var num_sin = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-sin");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sin(n));
     }
     var num_cos = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-cos");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.cos(n));
     }
     var num_tan = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-tan");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.tan(n));
     }
     var num_asin = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-asin");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.asin(n));
     }
     var num_acos = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-acos");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.acos(n));
     }
     var num_atan = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-atan");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.atan(n));
     }
 
-    var num_modulo = function(n, mod) { 
+    var num_modulo = function(n, mod) {
+      thisRuntime.checkArity(2, arguments, "num-modulo");
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(mod);
       return thisRuntime.makeNumberBig(jsnums.modulo(n, mod));
     }
-    var num_truncate = function(n) { 
+    var num_truncate = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-truncate");
       thisRuntime.checkNumber(n);
       if (isNaN(n)) {
         return n;
@@ -2519,23 +2576,28 @@ function createMethodDict() {
         return thisRuntime.makeNumberBig(jsnums.ceiling(n));
       }
     }
-    var num_sqrt = function(n) { 
+    var num_sqrt = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-sqrt");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
-    var num_sqr = function(n) { 
+    var num_sqr = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-sqr");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.sqr(n));
     }
-    var num_ceiling = function(n) { 
+    var num_ceiling = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-ceiling");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n));
     }
-    var num_floor = function(n) { 
+    var num_floor = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-floor");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.floor(n));
     }
     var num_log = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
       if (jsnums.greaterThan(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.log(n));
@@ -2545,33 +2607,38 @@ function createMethodDict() {
       }
     }
     var num_exp = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-exp");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.exp(n));
     }
     var num_exact = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-exact");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.toExact(n));
     }
     var num_is_integer = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-integer");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
     var num_is_fixnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-fixnum");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
+      thisRuntime.checkArity(2, arguments, "num-expt");
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(pow);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow));
     }
     var num_tostring = function(n) {
-      checkArity(1, arguments, "num-tostring");
+      thisRuntime.checkArity(1, arguments, "num-tostring");
       thisRuntime.checkNumber(n);
       return makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
-      checkArity(2, arguments, "num-tostring-digits");
+      thisRuntime.checkArity(2, arguments, "num-tostring-digits");
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
       var d = jsnums.toFixnum(digits);
@@ -2612,6 +2679,7 @@ function createMethodDict() {
       }
     }
     function random(max) {
+      thisRuntime.checkArity(1, arguments, "random");
       return makeNumber(jsnums.floor(jsnums.multiply(Math.random(), max)));
     }
 
@@ -2620,7 +2688,7 @@ function createMethodDict() {
       return thisRuntime.safeCall(function() {
           return module(thisRuntime, namespace);
         },
-        withModule);
+        withModule, "loadModule(" + modstring.substring(0, 70) + ")");
     }
     function loadJSModules(namespace, modules, withModules) {
       function loadModulesInt(toLoad, loaded) {
@@ -2760,6 +2828,7 @@ function createMethodDict() {
           'string-substring': makeFunction(string_substring),
           'string-replace': makeFunction(string_replace),
           'string-split': makeFunction(string_split),
+          'string-split-all': makeFunction(string_split_all),
           'string-char-at': makeFunction(string_charat),
           'string-toupper': makeFunction(string_toupper),
           'string-tolower': makeFunction(string_tolower),
@@ -2861,6 +2930,7 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
 
         'plus': plus,
@@ -2902,6 +2972,7 @@ function createMethodDict() {
         'string_substring': string_substring,
         'string_replace': string_replace,
         'string_split': string_split,
+        'string_split_all': string_split_all,
         'string_charat': string_charat,
         'string_toupper': string_toupper,
         'string_tolower': string_tolower,

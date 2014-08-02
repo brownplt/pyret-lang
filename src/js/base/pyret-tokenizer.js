@@ -46,9 +46,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
     switch(tok_type) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
-    case "PARENSPACE":
+    case "PARENSPACE": case "PARENNOSPACE":
     case "PLUS": case "DASH": case "STAR": case "SLASH":
-    case "LT": case "GT":
+    case "LT": case "GT": case "CARET":
       // Trim off whitespace
       pos = SrcLoc.make(pos.endRow, pos.endCol - 1, pos.endChar - 1, pos.endRow, pos.endCol, pos.endChar);
       break;
@@ -88,9 +88,10 @@ define(["../../../lib/jglr/jglr"], function(E) {
   }
 
 
-  const ws_after = "(?=\\s)";
+  const ws_after = "(?=\\s|$|#)"; // allow actual space, end-of-input, or comments
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
+  function colonKw(str) { return "^(?:" + str + ")"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
   function op(str) { return "^\\s+" + str + ws_after; }
 
@@ -178,8 +179,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
-    {name: "CONFIRM", val: new RegExp(kw("confirm"), STICKY_REGEXP)},
-    {name: "BLESS", val: new RegExp(kw("bless"), STICKY_REGEXP)},
     {name: "NEWTYPE", val: new RegExp(kw("newtype"), STICKY_REGEXP)},
     {name: "TYPE-LET", val: new RegExp(kw("type-let"), STICKY_REGEXP)},
     {name: "TYPE", val: new RegExp(kw("type"), STICKY_REGEXP)},
@@ -191,31 +190,31 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "TRUE", val: new RegExp(kw("true"), STICKY_REGEXP)},
     {name: "FALSE", val: new RegExp(kw("false"), STICKY_REGEXP)},
     {name: "METHOD", val: new RegExp(kw("method"), STICKY_REGEXP)},
-    {name: "DOC", val: new RegExp(kw("doc:"), STICKY_REGEXP)},
-    {name: "WHERE", val: new RegExp(kw("where:"), STICKY_REGEXP)},
-    {name: "CHECKCOLON", val: new RegExp(kw("check:"), STICKY_REGEXP)},
+    {name: "DOC", val: new RegExp(colonKw("doc:"), STICKY_REGEXP)},
+    {name: "WHERE", val: new RegExp(colonKw("where:"), STICKY_REGEXP)},
+    {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP)},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
-    {name: "TRY", val: new RegExp(kw("try:"), STICKY_REGEXP)},
+    {name: "TRY", val: new RegExp(colonKw("try:"), STICKY_REGEXP)},
     {name: "EXCEPT", val: new RegExp(kw("except"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
-    {name: "ASKCOLON", val: new RegExp(kw("ask:"), STICKY_REGEXP)},
-    {name: "OTHERWISECOLON", val: new RegExp(kw("otherwise:"), STICKY_REGEXP)},
+    {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP)},
+    {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP)},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
-    {name: "THENCOLON", val: new RegExp(kw("then:"), STICKY_REGEXP)},
-    {name: "ELSECOLON", val: new RegExp(kw("else:"), STICKY_REGEXP)},
+    {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP)},
+    {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP)},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
     {name: "ELSE", val: new RegExp(kw("else"), STICKY_REGEXP)},
     {name: "DATA", val: new RegExp(kw("data"), STICKY_REGEXP)},
-    {name: "WITH", val: new RegExp(kw("with:"), STICKY_REGEXP)},
-    {name: "SHARING", val: new RegExp(kw("sharing:"), STICKY_REGEXP)},
+    {name: "WITH", val: new RegExp(colonKw("with:"), STICKY_REGEXP)},
+    {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP)},
     {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
     {name: "MUTABLE", val: new RegExp(kw("mutable"), STICKY_REGEXP)},
     {name: "CYCLIC", val: new RegExp(kw("cyclic"), STICKY_REGEXP)},
     {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},
     {name: "WITHCONSTRUCTOR", val: new RegExp(kw("with constructor"), STICKY_REGEXP)},
-    {name: "GRAPH", val: new RegExp(kw("graph:"), STICKY_REGEXP)},
-    {name: "BLOCK", val: new RegExp(kw("block:"), STICKY_REGEXP)},
+    {name: "GRAPH", val: new RegExp(colonKw("graph:"), STICKY_REGEXP)},
+    {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP)},
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},

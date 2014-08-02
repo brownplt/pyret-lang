@@ -112,14 +112,26 @@ define([
           return aColor;
       };
 
+      var checkImagePred = function(val) {
+        return runtime.isOpaque(val) && image.isImage(val.val);
+      };
+      var checkImageType = runtime.makeCheckType(checkImagePred, "Image");
       var checkImage = function(val) {
-        runtime.makeCheckType(function(v) { return runtime.isOpaque(v) && image.isImage(v.val); }, "Image")(val);
+        checkImageType(val);
         return val.val;
       }
+      var checkImageOrScenePred = function(val) {
+        return runtime.isOpaque(val) && (image.isImage(val.val) || image.isScene(val.val));
+      };
+      var checkImageOrSceneType = runtime.makeCheckType(checkImageOrScenePred, "Image")
       var checkImageOrScene = function(val) {
-        runtime.makeCheckType(function(v) { return runtime.isOpaque(v) && (image.isImage(val.val) || image.isScene(val.val)); }, "Image")(val);
+        checkImageOrSceneType(val);
         return val.val;
       }
+
+      var checkScenePred = function(val) {
+        return runtime.isOpaque(val) && image.isScene(val.val);
+      };
 
       var checkFontFamily = p(isFontFamily, "Font Family");
 
@@ -189,8 +201,8 @@ define([
       return runtime.makeObject({
         "provide-plus-types": runtime.makeObject({
           types: {
-            "Image": runtime.makePrimitiveAnn("Image", image.isImage),
-            "Scene": runtime.makePrimitiveAnn("Scene", image.isScene)
+            "Image": runtime.makePrimitiveAnn("Image", checkImagePred),
+            "Scene": runtime.makePrimitiveAnn("Scene", checkScenePred)
           },
           values: runtime.makeObject({
             "circle": f(function(maybeRadius, maybeMode, maybeColor) {

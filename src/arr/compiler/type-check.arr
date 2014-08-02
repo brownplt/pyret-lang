@@ -409,9 +409,9 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
     end
   end
   cases(A.CasesBranch) branch:
-    | s-cases-branch(l, name, args, body) =>
+    | s-cases-branch(l, pat-loc, name, args, body) =>
       fun process(new-body, typ):
-        new-branch = A.s-cases-branch(l, name, args, new-body)
+        new-branch = A.s-cases-branch(l, pat-loc, name, args, new-body)
         fold-result(pair(new-branch, typ))
       end
       cases(Option<TypeMember>) data-type.lookup-variant(name):
@@ -422,6 +422,12 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
         | none =>
           fold-errors([list: C.unneccesary-branch(name, l, data-type.name, cases-loc)])
       end
+    | s-singleton-cases-branch(l, pat-loc, name, body) =>
+      fun process(new-body, typ):
+        new-branch = A.s-singleton-cases-branch(l, pat-loc, name, new-body)
+        fold-result(pair(new-branch, typ))
+      end
+      handle-body(name, body, process, info)
   end
 end
 

@@ -26,7 +26,7 @@ data Comparison:
   | greater-than
 sharing:
   _comp(self, other):
-    cases(Comparision) other:
+    cases(Comparison) other:
       | less-than    =>
         cases(Comparison) self:
           | less-than    => equal
