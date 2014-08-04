@@ -24,6 +24,10 @@ data RuntimeError:
     tostring(self):
       "Error at " + self.loc.format(true) + ": tried to look up field " + self.field + " on " + torepr(self.non-obj) + ", but it does not have fields"
     end
+  | extend-non-object(loc, non-obj) with:
+    tostring(self):
+      "Error at " + self.loc.format(true) + ": tried to extend a non-object " + torepr(self.non-obj)
+    end
   | non-boolean-condition(loc, typ, value) with:
     tostring(self):
       "Error: expected a Boolean for the condition of a " + self.typ + " at " + self.loc.format(true) + ", but got " + torepr(self.value)

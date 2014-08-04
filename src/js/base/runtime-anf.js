@@ -319,6 +319,11 @@ function getField(obj, field) {
   return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
 }
 
+function extendObj(loc, val, extension) {
+  if (!isObject(val)) { ffi.throwExtendNonObject(makeSrcloc(loc), val); }
+  return val.extendWith(extension);
+}
+
 
 /**
   Gets the field from an object of the given name
@@ -2893,6 +2898,7 @@ function createMethodDict() {
         'getFieldLoc'    : getFieldLoc,
         'getFields'    : getFields,
         'getColonField'    : getColonField,
+        'extendObj' : extendObj,
 
         'hasBrand' : hasBrand,
 

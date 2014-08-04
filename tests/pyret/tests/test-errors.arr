@@ -54,6 +54,20 @@ check:
     e3.non-obj is true 
     e3.loc satisfies S.is-srcloc
   end
+  
+  e4 = get-err(lam(): "x".{x : false};)
+  e4 satisfies E.is-extend-non-object
+  when E.is-extend-non-object(e4):
+    e4.non-obj is "x"
+    e4.loc satisfies S.is-srcloc
+  end
+
+  e5 = get-err(lam(): true.{x : false};)
+  e5 satisfies E.is-extend-non-object
+  when E.is-extend-non-object(e5):
+    e5.non-obj is true 
+    e5.loc satisfies S.is-srcloc
+  end
 
   e6 = get-err(lam(): "a" + 5;)
   e6 satisfies E.is-generic-type-mismatch

@@ -66,6 +66,11 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         runtime.checkString(field);
         raise(err("lookup-non-object")(loc, nonObject, runtime.makeString(field)));
       }
+      function throwExtendNonObject(loc, nonObject) {
+        checkSrcloc(loc);
+        runtime.checkPyretVal(nonObject);
+        raise(err("extend-non-object")(loc, nonObject));
+      }
 
       function throwMessageException(message) {
         runtime.checkString(message);
@@ -246,6 +251,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
+        throwExtendNonObject: throwExtendNonObject,
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,

@@ -747,7 +747,7 @@ compiler-visitor = {
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, visit-obj.other-stmts)
-    c-exp(j-method(visit-obj.exp, "extendWith", [list: j-obj(visit-fields.map(_.field))]),
+    c-exp(rt-method("extendObj", [list: self.get-loc(l), visit-obj.exp, j-obj(visit-fields.map(_.field))]),
       other-stmts)
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
