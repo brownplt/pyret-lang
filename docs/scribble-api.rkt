@@ -50,6 +50,9 @@
          ignore
          ignoremodule
          xref
+         init-doc-checker
+         append-gen-docs
+         curr-module-name
          )
 
 ;;;;;;;;; Parameters and Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,6 +63,8 @@
 (define curr-var-spec (make-parameter #f))
 (define curr-method-location (make-parameter #f))
 (define EMPTY-XREF-TABLE (make-hash))
+
+
 
 ;;;;;;;;;; API for generated module information ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -93,14 +98,14 @@
       (eprintf "WARNING in ~a: ~s~n" funname msg)
       (eprintf "WARNING: ~s~n" msg)))
 
+(define (read-mod mod)
+  (list (mod-name mod)
+        (make-hash
+         (map (lambda (spec)
+                (cons (get-defn-field 'name spec) #f))
+              (drop mod 3)))))
 (define (init-doc-checker read-docs)
-  (map (lambda (mod)
-         (list (mod-name mod)
-               (make-hash
-                (map (lambda (spec)
-                       (cons (get-defn-field 'name spec) #f))
-                     (drop mod 3)))))
-       read-docs))
+  (map read-mod read-docs))
 
 (define (set-documented! modname name)
   (let ([mod (assoc modname curr-doc-checks)])
@@ -143,7 +148,8 @@
 ;; finds module with given name within all files in docs/generated/arr/*
 ;; mname is string naming the module
 (define (find-module mname)
-  (let ([m (findf (lambda (mspec) (equal? (mod-name mspec) mname)) ALL-GEN-DOCS)])
+  (let ([m (findf (lambda (mspec)
+    (equal? (mod-name mspec) mname)) ALL-GEN-DOCS)])
     (unless m
       (error 'find-module (format "Module not found ~a~n" mname)))
     m))
@@ -483,3 +489,8 @@
      ans))
 
 (define ALL-GEN-DOCS (load-gen-docs))
+
+(define (append-gen-docs s-exp)
+  (define mod (read-mod s-exp))
+  (set! ALL-GEN-DOCS (cons s-exp ALL-GEN-DOCS)))
+
