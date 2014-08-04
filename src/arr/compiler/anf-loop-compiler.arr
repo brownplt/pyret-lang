@@ -103,15 +103,19 @@ fun compiler-name(id):
 end
 
 fun obj-of-loc(l):
-  j-list(false, [list: 
-    j-id("M"),
-    j-num(l.start-line),
-    j-num(l.start-column),
-    j-num(l.start-char),
-    j-num(l.end-line),
-    j-num(l.end-column),
-    j-num(l.end-char)
-  ])
+  cases(Loc) l:
+    | builtin(name) => j-list(false, [list: j-str(name)])
+    | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
+      j-list(false, [list: 
+          j-id("M"),
+          j-num(start-line),
+          j-num(start-col),
+          j-num(start-char),
+          j-num(end-line),
+          j-num(end-col),
+          j-num(end-char)
+        ])
+  end
 end
 
 fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):

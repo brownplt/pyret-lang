@@ -310,30 +310,33 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun wrap-env-imports(l, expr :: A.Expr, env :: C.CompileEnvironment):
+fun wrap-env-imports(expr :: A.Expr, env :: C.CompileEnvironment):
   cases(C.CompileEnvironment) env:
     | compile-env(compile-bindings, type-env) =>
       let-binds = for fold(lst from [list: ], b from compile-bindings):
-          cases(C.CompileBinding) b:
-            | module-bindings(mname, bindings) =>
-              lst + 
-                for map(name from bindings):
-                  A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank), A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
-                end
-            | else => lst
-          end
+        cases(C.CompileBinding) b:
+          | module-bindings(mname, bindings) =>
+            l = S.builtin(mname)
+            lst + 
+            for map(name from bindings):
+              A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
+                A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
+            end
+          | else => lst
         end
+      end
       type-binds = for fold(lst from [list: ], t from type-env):
         cases(C.CompileTypeBinding) t:
           | type-id(id) => lst
           | type-module-bindings(name, bindings) =>
+            l = S.builtin(name)
             lst +
-              for map(tname from bindings):
-                A.s-type-bind(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
-              end
+            for map(tname from bindings):
+              A.s-type-bind(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
+            end
         end
       end
-      A.s-type-let-expr(l, type-binds, A.s-block(l, let-binds + [list: expr]))
+      A.s-type-let-expr(A.dummy-loc, type-binds, A.s-block(A.dummy-loc, let-binds + [list: expr]))
   end
 end
 
@@ -390,7 +393,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           end
         | else => raise("Impossible")
       end
-      wrapped = wrap-env-imports(l, with-provides, compile-env)
+      wrapped = wrap-env-imports(with-provides, compile-env)
       full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
           A.s-import(l, A.s-const-import(l, k), A.s-name(l, k))
         end
