@@ -65,69 +65,54 @@ fun fold-bind(f, a): a.fold-bind(f);
 data SynthesisResult:
   | synthesis-result(ast :: A.Expr, typ :: Type) with:
     bind(self, f) -> SynthesisResult:
-      a = f(self.ast, self.typ)
-      a
+      f(self.ast, self.typ)
     end,
     map-expr(self, f) -> SynthesisResult:
-      a = synthesis-result(f(self.ast), self.typ)
-      a
+      synthesis-result(f(self.ast), self.typ)
     end,
     map-typ(self, f) -> SynthesisResult:
-      a = synthesis-result(self.ast, f(self.typ))
-      a
+      synthesis-result(self.ast, f(self.typ))
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = f(self.ast, self.typ)
-      a
+      f(self.ast, self.typ)
     end,
     check-bind(self, f) -> CheckingResult:
-      a = f(self.ast, self.typ)
-      a
+      f(self.ast, self.typ)
     end,
     fold-bind(self, f) -> FoldResult:
-      a = f(self.ast, self.typ)
-      a
+      f(self.ast, self.typ)
     end
   | synthesis-binding-result(let-bind, typ :: Type) with:
     bind(self, f) -> SynthesisResult:
-      a = f(self.let-bind, self.typ)
-      a
+      f(self.let-bind, self.typ)
     end,
     map-expr(self, f) -> SynthesisResult:
       raise("Cannot map expr on synthesis-binding-result!")
     end,
     map-typ(self, f) -> SynthesisResult:
-      a = synthesis-binding-result(self.let-bind, f(self.typ))
-      a
+      synthesis-binding-result(self.let-bind, f(self.typ))
     end,
     check-bind(self, f) -> CheckingResult:
-      a = f(self.let-bind, self.typ)
-      a
+      f(self.let-bind, self.typ)
     end
   | synthesis-err(errors :: List<C.CompileError>) with:
     bind(self, f) -> SynthesisResult:
-      a = self
-      a
+      self
     end,
     map-expr(self, f) -> SynthesisResult:
-      a = self
-      a
+      self
     end,
     map-typ(self, f) -> SynthesisResult:
-      a = self
-      a
+      self
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = self
-      a
+      self
     end,
     check-bind(self, f) -> CheckingResult:
-      a = checking-err(self.errors)
-      a
+      checking-err(self.errors)
     end,
     fold-bind(self, f) -> FoldResult:
-      a = fold-errors(self.errors)
-      a
+      fold-errors(self.errors)
     end
 end
 
@@ -151,90 +136,70 @@ end
 data CheckingResult:
   | checking-result(ast :: A.Expr) with:
     bind(self, f) -> CheckingResult:
-      a = f(self.ast)
-      a
+      f(self.ast)
     end,
     map(self, f) -> CheckingResult:
-      a = checking-result(f(self.ast))
-      a
+      checking-result(f(self.ast))
     end,
     check-bind(self, f) -> CheckingResult:
-      a = f(self.ast)
-      a
+      f(self.ast)
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = f(self.ast)
-      a
+      f(self.ast)
     end,
     fold-bind(self, f) -> FoldResult:
-      a = f(self.ast)
-      a
+      f(self.ast)
     end,
     map-bind(self, f) -> CheckingMapResult:
-      a = f(self.ast)
-      a
+      f(self.ast)
     end
   | checking-err(errors :: List<C.CompileError>) with:
     bind(self, f) -> CheckingResult:
-      a = self
-      a
+      self
     end,
     check-bind(self, f) -> CheckingResult:
-      a = self
-      a
+      self
     end,
     map(self, f) -> CheckingResult:
-      a = self
-      a
+      self
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = synthesis-err(self.errors)
-      a
+      synthesis-err(self.errors)
     end,
     fold-bind(self, f) -> FoldResult:
-      a = fold-errors(self.errors)
-      a
+      fold-errors(self.errors)
     end,
     map-bind(self, f) -> CheckingMapResult:
-      a = checking-map-errors(self.errors)
-      a
+      checking-map-errors(self.errors)
     end
 end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
     bind(self, f) -> FoldResult<V>:
-      a = f(self.v)
-      a
+      f(self.v)
     end,
     map(self, f) -> FoldResult:
-      a = fold-result(f(self.v))
-      a
+      fold-result(f(self.v))
     end,
     check-bind(self, f) -> CheckingResult:
-      a = f(self.v)
-      a
+      f(self.v)
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = f(self.v)
-      a
+      f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
     bind(self, f) -> FoldResult<V>:
-      a = self
-      a
+      self
     end,
     map(self, f) -> FoldResult:
-      a = self
-      a
+      self
     end,
     check-bind(self, f) -> CheckingResult:
-      a = checking-err(self.errors)
-      a
+      checking-err(self.errors)
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = synthesis-err(self.errors)
-      a
+      synthesis-err(self.errors)
     end
 end
 
@@ -319,37 +284,29 @@ end
 data CheckingMapResult:
   | checking-map(lst :: List<A.Expr>) with:
     bind(self, f) -> CheckingMapResult:
-      a = f(self.lst)
-      a
+      f(self.lst)
     end,
     check-bind(self, f) -> CheckingResult:
-      a = f(self.lst)
-      a
+      f(self.lst)
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = f(self.lst)
-      a
+      f(self.lst)
     end,
     prepend(self, ast :: A.Expr) -> CheckingMapResult:
-      a = checking-map(link(ast, self.lst))
-      a
+      checking-map(link(ast, self.lst))
     end
   | checking-map-errors(errors :: List<C.CompileError>) with:
     bind(self, f) -> CheckingMapResult:
-      a = self
-      a
+      self
     end,
     check-bind(self, f) -> CheckingResult:
-      a = checking-err(self.errors)
-      a
+      checking-err(self.errors)
     end,
     synth-bind(self, f) -> SynthesisResult:
-      a = synthesis-err(self.errors)
-      a
+      synthesis-err(self.errors)
     end,
     prepend(self, ast :: A.Expr) -> CheckingMapResult:
-      a = self
-      a
+      self
     end
 end
 
