@@ -404,5 +404,15 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
     });
 
+    it("should parse get-bang", function() {
+      expect(parse("o!x")).not.toBe(false);
+      expect(parse("y.x!x")).not.toBe(false);
+    });
+
+    it("should parse update", function() {
+      expect(parse("o!{x:5}")).not.toBe(false);
+      expect(parse("y!{x:5, y:10}")).not.toBe(false);
+    });
+
   });
 });
