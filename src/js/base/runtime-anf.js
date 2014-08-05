@@ -661,46 +661,69 @@ function createMethodDict() {
         }, meth);
     }
 
-    function PRef(ann) {
-      this.isSet = false;
-      this.isFrozen = false;
-      this.ann = ann;
+    var BARE = 1;
+    var ANNOT = 2;
+    var SET = 3;
+    var FROZEN = 4;
+    function PRef() {
+      this.state = BARE;
+      this.ann = undefined;
       this.value = undefined;
     }
 
+    function makeBareRef() {
+      return new PRef();
+    }
+    function makeRef(ann) {
+      var r = new PRef();
+      setRefAnn(r, ann);
+      return r;
+    }
     function isRef(val) {
       return val instanceof PRef;
     }
-    function makeRef(ann) {
-      return new PRef(ann);
+    function isRefBare(ref) {
+      return ref.state === BARE;
+    }
+    function isRefAnnotated(ref) {
+      return ref.state >= ANNOT;
     }
     function isRefSet(ref) {
-      return ref.isSet;
+      return ref.state >= SET;
     }
     function isRefFrozen(ref) {
-      return ref.isFrozen;
+      return ref.state >= FROZEN;
+    }
+    
+    function setRefAnn(ref, ann) {
+      if(ref.state !== BARE) {
+        ffi.throwMessageException("Attempted to annotate non-bare ref");
+      }
+      ref.ann = ann;
+      ref.state = ANNOT;
+      return ref;
     }
     function freezeRef(ref) {
-      if(ref.isSet) {
-        ref.isFrozen = true;
+      if(ref.state >= SET) {
+        ref.state = FROZEN;
         return ref;
       }
-      throw "Attempt to freeze an unset ref";
+      ffi.throwMessageException("Attempted to freeze an unset ref");
     }
     /* Not stack-safe */
     function setRef(ref, value) {
-      if(ref.isFrozen) {
-        throw "Attempt to set a frozen ref";
+      if(ref.state === ANNOT || ref.state === SET) {
+        return checkAnn(["builtin"], ref.ann, value, function(_) {
+          ref.value = value; 
+          ref.state = SET;
+          return ref;
+        });
       }
-      return checkAnn(["builtin"], ref.ann, value, function(_) {
-        ref.value = value; 
-        ref.isSet = true;
-        return ref;
-      });
+      ffi.throwMessageException("Attempted to set an unsettable ref");
     }
     function getRef(ref) {
-      if(ref.isSet) { return ref.value; }
-      throw "Attempt to get an unset ref";
+      if(ref.state >= SET) { return ref.value; }
+      ffi.throwMessageException("Attempt to get an unset ref");
     }
 
 
@@ -2981,14 +3004,18 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeBareRef' : makeBareRef,
         'makeRef' : makeRef,
         'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
 
+        'isRefBare' : isRefBare,
+        'isRefAnnotated' : isRefAnnotated,
         'isRefFrozen' : isRefFrozen,
         'isRefSet' : isRefSet,
         'setRef' : setRef,
         'getRef' : getRef,
+        'setRefAnn' : setRefAnn,
         'freezeRef' : freezeRef,
 
         'plus': plus,

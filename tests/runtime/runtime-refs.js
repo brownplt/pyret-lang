@@ -14,30 +14,54 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
           output += str;
       }
 
-      var r1;
+      var r1, r2;
       beforeEach(function(){
         output = "";
         rt = rtLib.makeRuntime({'stdout' : stdout});
-        r1 = rt.makeRef(rt.Number);
+        r1 = rt.makeBareRef();
+        r2 = rt.makeRef(rt.Number);
         addPyretMatchers(this, rt);
       });
 
       describe("References", function() {
         it("should create unset references", function() {
           expect(r1).toPassPredicate(rt.isRef);
+          expect(rt.isRefAnnotated(r1)).toBe(false);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(function() { rt.getRef(r1) }).toThrow();
         });
 
-        it("should allow setting references", function() {
+        it("should not allow setting references without ann", function() {
           expect(r1).toPassPredicate(rt.isRef);
+          expect(rt.isRefAnnotated(r1)).toBe(false);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(function() { rt.getRef(r1) }).toThrow();
 
           var ttwo = rt.makeNumber(22)
+          expect(function() { rt.setRef(r1, ttwo);}).toThrow();
+          expect(rt.isRefAnnotated(r1)).toBe(false);
+          expect(rt.isRefSet(r1)).toBe(false);
+          expect(rt.isRefFrozen(r1)).toBe(false);
+        });
+
+
+        it("should allow setting references", function() {
+          expect(r1).toPassPredicate(rt.isRef);
+          expect(rt.isRefAnnotated(r1)).toBe(false);
+          expect(rt.isRefSet(r1)).toBe(false);
+          expect(rt.isRefFrozen(r1)).toBe(false);
+          expect(function() { rt.getRef(r1) }).toThrow();
+
+          rt.setRefAnn(r1, rt.Number);
+          expect(rt.isRefAnnotated(r1)).toBe(true);
+          expect(rt.isRefSet(r1)).toBe(false);
+          expect(rt.isRefFrozen(r1)).toBe(false);
+
+          var ttwo = rt.makeNumber(22)
           rt.setRef(r1, ttwo);
+          expect(rt.isRefAnnotated(r1)).toBe(true);
           expect(rt.isRefSet(r1)).toBe(true);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(rt.getRef(r1)).toBe(ttwo);
@@ -53,43 +77,44 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
 
         it("should throw an error if the wrong value is set later", function() {
           var ttwo = rt.makeNumber(22)
-          rt.setRef(r1, ttwo);
+          rt.setRef(r2, ttwo);
           var str = rt.makeString("a");
-          expect(function() { rt.setRef(str); }).toThrow();
-          expect(rt.getRef(r1)).toBe(ttwo);
+          expect(function() { rt.setRef(r2, str); }).toThrow();
+          expect(rt.getRef(r2)).toBe(ttwo);
         });
 
         it("should still allow correct sets after a failed set", function() {
           var str = rt.makeString("a");
-          expect(function() { rt.setRef(str); }).toThrow();
-          expect(function() { rt.setRef(str); }).toThrow();
+          expect(function() { rt.setRef(r2, str); }).toThrow();
+          expect(function() { rt.setRef(r2, str); }).toThrow();
           var ttwo = rt.makeNumber(22)
-          rt.setRef(r1, ttwo);
-          expect(rt.getRef(r1)).toBe(ttwo);
+          rt.setRef(r2, ttwo);
+          expect(rt.getRef(r2)).toBe(ttwo);
         });
 
         it("should not allow freezing an unset ref", function() {
           expect(function() { rt.freezeRef(r1); }).toThrow();
+          expect(function() { rt.freezeRef(r2); }).toThrow();
         });
 
         it("should not allow any sets after a freeze", function() {
-          var ttwo = rt.makeNumber(22)
-          rt.setRef(r1, ttwo);
-          rt.freezeRef(r1);
-          expect(rt.isRefSet(r1)).toBe(true);
-          expect(rt.isRefFrozen(r1)).toBe(true);
-          expect(function() { rt.setRef(r1, ttwo); }).toThrow();
+          var ttwo = rt.makeNumber(22);
+          rt.setRef(r2, ttwo);
+          rt.freezeRef(r2);
+          expect(rt.isRefSet(r2)).toBe(true);
+          expect(rt.isRefFrozen(r2)).toBe(true);
+          expect(function() { rt.setRef(r2, ttwo); }).toThrow();
         });
 
         it("should allow refreezing a frozen reference", function() {
-          var ttwo = rt.makeNumber(22)
-          rt.setRef(r1, ttwo);
-          rt.freezeRef(r1);
-          expect(rt.isRefSet(r1)).toBe(true);
-          expect(rt.isRefFrozen(r1)).toBe(true);
-          rt.freezeRef(r1);
-          expect(rt.isRefSet(r1)).toBe(true);
-          expect(rt.isRefFrozen(r1)).toBe(true);
+          var ttwo = rt.makeNumber(22);
+          rt.setRef(r2, ttwo);
+          rt.freezeRef(r2);
+          expect(rt.isRefSet(r2)).toBe(true);
+          expect(rt.isRefFrozen(r2)).toBe(true);
+          rt.freezeRef(r2);
+          expect(rt.isRefSet(r2)).toBe(true);
+          expect(rt.isRefFrozen(r2)).toBe(true);
         });
         
       });
