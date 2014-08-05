@@ -497,6 +497,9 @@ top-level-visitor = A.default-iter-visitor.{
   s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
   end,
+  s-ref(_, l :: Loc, ann :: A.Ann):
+    well-formed-visitor.s-ref(l, ann)
+  end,
   s-graph(_, l :: Loc, bindings :: List<A.Expr%(is-s-let)>): # PROBLEM HERE
     well-formed-visitor.s-graph(l, bindings)
   end,

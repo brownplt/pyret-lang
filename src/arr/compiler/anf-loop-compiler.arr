@@ -157,7 +157,7 @@ data CaseResults:
   | c-block(block :: J.JBlock, new-cases :: ConcatList<J.JCase>)
 end
 
-fun compile-ann(ann :: A.Ann, visitor) -> CaseResults:
+fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n.tostring())), empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), empty)
@@ -543,7 +543,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       ^ concat-snoc(_, j-case(preamble-and-anns.ann-cases.new-label, actual-app)))
   end
 end
-  
+
 fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
@@ -597,7 +597,44 @@ fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List
         j-break]),
     new-cases)
 end
-  
+
+fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-obj = obj.visit(compiler).exp
+  compiled-field-vals = fields.map(lam(a): a.value.visit(compiler).exp end)
+  field-names = fields.map(lam(f): j-str(f.name) end)
+  field-locs = fields.map(lam(f): compiler.get-loc(f.l) end)
+  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  after-update-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+  new-cases =
+    cases(Option) opt-dest:
+      | some(dest) =>
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
+            concat-cons(
+              j-case(after-update-label, compiled-binding.block),
+              compiled-binding.new-cases)
+          | none => raise("Impossible: compile-split-update can't have a dest without a body")
+        end
+      | none =>
+        cases(Option) opt-compiled-body:
+          | some(compiled-body) =>
+            concat-cons(j-case(after-update-label, compiled-body.block), compiled-body.new-cases)
+          | none => concat-empty
+        end
+    end
+  c-block(
+    j-block([list:
+        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+        j-expr(j-assign(step, after-update-label)),
+        j-expr(j-assign(ans, rt-method("checkRefAnns", [list: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
+        j-break]),
+    new-cases)
+
+end
+
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
@@ -657,6 +694,8 @@ compiler-visitor = {
         compile-split-if(self, some(b), cond, then, els, some(body))
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, some(b), typ, val, branches, _else, some(body))
+      | a-update(l2, obj, fields) =>
+        compile-split-update(self, some(b), obj, fields, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -682,6 +721,8 @@ compiler-visitor = {
         compile-split-if(self, none, cond, consq, alt, some(e2))
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, none, typ, val, branches, _else, some(e2))
+      | a-update(l2, obj, fields) =>
+        compile-split-update(self, none, obj, fields, some(e2))
       | else =>
         e1-visit = e1.visit(self).exp
         e2-visit = e2.visit(self)
@@ -702,6 +743,9 @@ compiler-visitor = {
   a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr):
     raise("Impossible: a-cases directly in compiler-visitor should never happen")
   end,
+  a-update(self, l, obj, fields):
+    raise("Impossible: a-update directly in compiler-visitor should never happen")
+  end,
   a-lettable(self, _, e :: N.ALettable):
     cases(N.ALettable) e:
       | a-app(l, f, args) =>
@@ -710,6 +754,8 @@ compiler-visitor = {
         compile-split-if(self, none, cond, consq, alt, none)
       | a-cases(l, typ, val, branches, _else) =>
         compile-split-cases(self, none, typ, val, branches, _else, none)
+      | a-update(l, obj, fields) =>
+        compile-split-update(self, none, obj, fields, none)
       | else =>
          visit-e = e.visit(self)
          c-block(
@@ -742,6 +788,10 @@ compiler-visitor = {
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
     c-exp(rt-method("makeObject", [list: j-obj(visit-fields.map(_.field))]), other-stmts)
+  end,
+  a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
+    visit-obj = obj.visit(self)
+    c-exp(rt-method("getFieldRef", [list: visit-obj.exp, j-str(field), self.get-loc(l)]), visit-obj.other-stmts)
   end,
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
@@ -883,10 +933,24 @@ compiler-visitor = {
       for map3(n from member-names, m from members, id from member-ids):
         cases(N.AMemberType) m.member-type:
           | a-normal => j-expr(j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id))))
-          | a-mutable => raise("Cannot handle mutable fields yet")
+          | a-mutable =>
+            val-id = j-id(js-id-of(id))
+            is-ref = rt-method("isRef", [list: val-id])
+            ann-result = compile-ann(m.bind.ann, self)
+            j-block(ann-result.other-stmts + [list:
+              j-if(is-ref,
+                j-block([list:
+                  j-expr(rt-method("setRefAnn", [list: val-id, ann-result.exp])),
+                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), val-id))
+                ]),
+                j-block([list:
+                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), rt-method("makeUnsafeSetRef", [list: ann-result.exp, val-id])))
+                ])
+              )
+            ])
         end
       end +
-      [list: 
+      [list:
         j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-fields, j-num(members.length())]))
       ]
 

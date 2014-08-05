@@ -78,11 +78,14 @@ function extendWith(fields) {
     var allNewFields = true;
 
     for(var field in fields) {
-        if(allNewFields && hasProperty(this.dict, field)) {
-            allNewFields = false;
+      if(hasProperty(this.dict, field)) {
+        allNewFields = false;
+        if(isRef(this.dict[field])) {
+          ffi.throwMessageException("Cannot update ref field " + field);
         }
+      }
 
-        newDict[field] = fields[field];
+      newDict[field] = fields[field];
     } 
 
     var newObj = this.updateDict(newDict, allNewFields);
@@ -280,7 +283,7 @@ function isBase(obj) { return obj instanceof PBase; }
 
   @return {!PBase}
 **/
-function getFieldLoc(val, field, loc) {
+function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) { 
       if (ffi === undefined) {
         throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
@@ -299,20 +302,27 @@ function getFieldLoc(val, field, loc) {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }
     }
-    /*else if(isMutable(fieldVal)){
-        //TODO: Implement mutables then throw an error here
-    }*/
-    /*else if(isPlaceholder(fieldVal)){
-        //TODO: Implement placeholders then call get here
-        //Be wary of guards blowing up stack
-    }*/
+    else if(isRef(fieldVal)){
+      if(!isBang) {
+        ffi.throwMessageException("Got ref in dot lookup");
+      }
+      return getRef(fieldVal);
+    }
     else if(isMethod(fieldVal)){
-        var curried = fieldVal['meth'](val);
-        return makeFunctionArity(curried, fieldVal.arity - 1);
+      var curried = fieldVal['meth'](val);
+      return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
-        return fieldVal;
+      return fieldVal;
     }
+}
+
+function getFieldLoc(obj, field, loc) {
+  return getFieldLocInternal(obj, field, loc, false);
+}
+
+function getFieldRef(obj, field, loc) {
+  return getFieldLocInternal(obj, field, loc, true);
 }
 
 function getField(obj, field) {
@@ -679,6 +689,13 @@ function createMethodDict() {
       setRefAnn(r, ann);
       return r;
     }
+    function makeUnsafeSetRef(ann, value) {
+      var r = new PRef();
+      r.state = SET;
+      r.ann = ann;
+      r.value = value;
+      return r;
+    }
     function isRef(val) {
       return val instanceof PRef;
     }
@@ -695,6 +712,12 @@ function createMethodDict() {
       return ref.state >= FROZEN;
     }
     
+    function getRefAnn(ref) {
+      if(ref.state >= ANNOT) {
+        return ref.ann;
+      }
+      ffi.throwMessageException("Attempted to get ann of bare ref");
+    }
     function setRefAnn(ref, ann) {
       if(ref.state !== BARE) {
         ffi.throwMessageException("Attempted to annotate non-bare ref");
@@ -709,6 +732,14 @@ function createMethodDict() {
         return ref;
       }
       ffi.throwMessageException("Attempted to freeze an unset ref");
+    }
+    function unsafeSetRef(ref, value) {
+      if(ref.state === ANNOT || ref.state === SET) {
+        ref.value = value;
+        ref.state = SET;
+        return ref;
+      }
+      ffi.throwMessageException("Attempted to set an unsettable ref");
     }
     /* Not stack-safe */
     function setRef(ref, value) {
@@ -1192,7 +1223,7 @@ function createMethodDict() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
             var g = getField;
-            return s && hasField.app(s, "source") ? g(s, "source") +
+            return s && hasField(s, "source") ? g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
@@ -1248,7 +1279,7 @@ function createMethodDict() {
     var raisePyPy = makeFunction(raiseJSJS);
 
     /** type {!PFunction} */
-    var hasField = makeFunction(
+    var hasField =
         /**
           Checks if an object has a given field
           @param {!PBase} obj The object to test
@@ -1259,8 +1290,7 @@ function createMethodDict() {
           thisRuntime.checkArity(2, arguments, "has-field");
           checkString(str);
           return makeBoolean(hasProperty(obj.dict, str));
-        }
-      );
+        };
 
     function sameBrands(brands1, brands2) {
       if (brands1.brandCount !== brands2.brandCount) { return false; }
@@ -1402,7 +1432,7 @@ function createMethodDict() {
 
     /** type {!PBase} */
     var builtins = makeObject({
-        'has-field': hasField,
+        'has-field': makeFunction(hasField),
         'equiv': samePyPy,
         'current-checker': makeFunction(function() {
           thisRuntime.checkArity(0, arguments, "current-checker");
@@ -1537,6 +1567,40 @@ function createMethodDict() {
       return checkI(0);
     }
 
+    function checkRefAnns(obj, fields, vals, locs) {
+      if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
+      var anns = new Array(fields.length);
+      var refs = new Array(fields.length);
+      var field = null;
+      var ref = null;
+      for(var i = 0; i < vals.length; i++) {
+        field = fields[i];
+        if(hasField(obj, field)) {
+          ref = obj.dict[field];
+          if(isRef(ref)) {
+            if(isRefFrozen(ref)) {
+              ffi.throwMessageException("Update of frozen ref " + field);
+            }
+            anns[i] = getRefAnn(ref);
+            refs[i] = ref;
+          }
+          else {
+            ffi.throwMessageException("Update of non-ref field " + field);
+          }
+        }
+        else {
+          ffi.throwMessageException("Update of non-existent field " + field);
+        }
+      }
+      function afterCheck() {
+        for(var i = 0; i < refs.length; i++) {
+          unsafeSetRef(refs[i], vals[i]);
+        }
+        return obj;
+      }
+      return checkAnnArgs(anns, vals, locs, afterCheck);
+    }
+
     function getDotAnn(loc, name, ann, field) {
       checkString(name);
       checkString(field);
@@ -1641,7 +1705,7 @@ function createMethodDict() {
       var that = this;
       var missingFields = [];
       for(var i = 0; i < that.fields.length; i++) {
-        if(!hasField.app(val, that.fields[i])) {
+        if(!hasField(val, that.fields[i])) {
           var reason = ffi.makeMissingField(
             makeSrcloc(that.locs[i]),
             that.fields[i]
@@ -1680,7 +1744,7 @@ function createMethodDict() {
           );
       }
       for(var i = 0; i < that.fields.length; i++) {
-        if(!hasField.app(val, that.fields[i])) {
+        if(!hasField(val, that.fields[i])) {
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
@@ -2784,7 +2848,7 @@ function createMethodDict() {
       return loadJSModules(namespace, modules, function(/* args */) {
         var ms = Array.prototype.slice.call(arguments);
         function wrapMod(m) {
-          if (hasField.app(m, "provide-plus-types")) {
+          if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
           }
           else {
@@ -2961,11 +3025,12 @@ function createMethodDict() {
         'schedulePause'  : schedulePause,
         'breakAll' : breakAll,
 
-        'getField'    : getField,
-        'getFieldLoc'    : getFieldLoc,
-        'getFields'    : getFields,
-        'getColonField'    : getColonField,
-        'extendObj' : extendObj,
+        'getField'      : getField,
+        'getFieldLoc'   : getFieldLoc,
+        'getFieldRef'   : getFieldRef,
+        'getFields'     : getFields,
+        'getColonField' : getColonField,
+        'extendObj'     : extendObj,
 
         'hasBrand' : hasBrand,
 
@@ -3006,14 +3071,18 @@ function createMethodDict() {
         'makeBrandedObject'   : makeBrandedObject,
         'makeBareRef' : makeBareRef,
         'makeRef' : makeRef,
+        'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
+
+        'checkRefAnns' : checkRefAnns,
 
         'isRefBare' : isRefBare,
         'isRefAnnotated' : isRefAnnotated,
         'isRefFrozen' : isRefFrozen,
         'isRefSet' : isRefSet,
         'setRef' : setRef,
+        'unsafeSetRef' : unsafeSetRef,
         'getRef' : getRef,
         'setRefAnn' : setRefAnn,
         'freezeRef' : freezeRef,
@@ -3082,7 +3151,7 @@ function createMethodDict() {
         'undefined': undefined,
         'create': Object.create,
 
-        'hasField' : hasField.app,
+        'hasField' : hasField,
 
         'toReprJS' : toReprJS,
         'toRepr' : function(val) { return toReprJS(val, "_torepr"); },

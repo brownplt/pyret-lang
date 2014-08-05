@@ -437,6 +437,11 @@ data Expr:
           if self.keyword-val: str-val else: PP.mt-doc end
             + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
+  | s-ref(l :: Loc, ann :: Ann) with:
+    label(self): "s-ref" end,
+    tosource(self):
+      PP.group(PP.str("ref ") + self.ann.tosource())
+    end
   | s-graph(l :: Loc, bindings :: List<Expr%(is-s-let)>) with:
     label(self): "s-graph" end,
     tosource(self):
@@ -586,6 +591,11 @@ data Expr:
     end
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
+    tosource(self):
+      PP.group(self.supe.tosource() + str-bang
+          + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
+          PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
+    end
   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
@@ -1266,6 +1276,10 @@ default-map-visitor = {
     s-let(l, name.visit(self), value.visit(self), keyword-val) 
   end,
 
+  s-ref(self, l :: Loc, ann :: Ann):
+    s-ref(l, ann.visit(self))
+  end,
+
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
     s-graph(l, bindings.map(_.visit(self)))
   end,
@@ -1719,6 +1733,10 @@ default-iter-visitor = {
     name.visit(self) and value.visit(self)
   end,
   
+  s-ref(self, l :: Loc, ann :: Ann):
+    ann.visit(self)
+  end,
+
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
     lists.all(_.visit(self), bindings)
   end,
@@ -2159,6 +2177,10 @@ dummy-loc-visitor = {
 
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
     s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val) 
+  end,
+
+  s-ref(self, l :: Loc, ann :: Ann):
+    s-ref(self, dummy-loc, ann)
   end,
 
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):

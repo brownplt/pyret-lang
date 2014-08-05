@@ -10,4 +10,6 @@ import "./tests/test-array.arr" as _
 import "./tests/test-constructors.arr" as _
 import "./tests/test-contracts.arr" as _
 import "./tests/test-s-exp.arr" as _
+import "./tests/test-refs.arr" as _
+import "./tests/test-refined-refs.arr" as _
 

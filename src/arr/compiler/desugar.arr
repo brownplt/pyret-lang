@@ -124,10 +124,12 @@ fun make-match(l, case-name, fields):
   args = for map(f from fields):
       cases(A.VariantMember) f:
         | s-variant-member(l2, mtype, bind) =>
-          when mtype <> A.s-normal:
-            raise("Non-normal member in variant, NYI: " + torepr(f))
+          cases(A.MemberType) mtype:
+            | s-normal =>
+              A.s-dot(l2, self-id.id-e, bind.id.toname())
+            | s-mutable =>
+              A.s-get-bang(l2, self-id.id-e, bind.id.toname())
           end
-          A.s-dot(l2, self-id.id-e, bind.id.toname())
       end
     end
   A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
@@ -433,6 +435,8 @@ fun desugar-expr(expr :: A.Expr):
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
+    | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
+    | s-update(l, obj, fields) => A.s-update(l, desugar-expr(obj), fields.map(desugar-member))
     | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
@@ -523,6 +527,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
+    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>

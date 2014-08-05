@@ -307,6 +307,9 @@ data ALettable:
   | a-colon(l :: Loc, obj :: AVal, field :: String) with:
     label(self): "a-colon" end,
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
+  | a-ref(l :: Loc, ann :: A.Ann) with:
+    label(self): "a-ref" end,
+    tosource(self): PP.group(PP.str("ref ") + self.ann.tosource()) end
   | a-get-bang(l :: Loc, obj :: AVal, field :: String) with:
     label(self): "a-get-bang" end,
     tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end

@@ -332,6 +332,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end
       anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, fname)) end)
 
+    | s-ref(l, ann) => N.a-ref(l, ann)
+
     | s-get-bang(l, obj, field) =>
       anf-name(obj, "anf_get_bang", lam(t): k.apply(l, N.a-get-bang(l, t, field)) end)
 
@@ -346,6 +348,18 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               N.a-field(f.l, f.name, t)
             end
           k.apply(l, N.a-obj(l, new-fields))
+        end)
+
+    | s-update(l, obj, fields) =>
+      exprs = fields.map(_.value)
+
+      anf-name(obj, "anf_update", lam(o):
+          anf-name-rec(exprs, "anf_update", lam(ts):
+              new-fields = for map2(f from fields, t from ts):
+                  N.a-field(f.l, f.name, t)
+                end
+              k.apply(l, N.a-update(l, o, new-fields))
+            end)
         end)
 
     | s-extend(l, obj, fields) =>
