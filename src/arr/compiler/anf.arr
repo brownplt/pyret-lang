@@ -208,7 +208,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           | s-variant-member(l2, typ, b) =>
             a-type = cases(A.VariantMemberType) typ:
               | s-normal => N.a-normal
-              | s-cyclic => N.a-cyclic
               | s-mutable => N.a-mutable
             end
             new-bind = cases(A.Bind) b:

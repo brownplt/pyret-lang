@@ -883,7 +883,6 @@ compiler-visitor = {
       for map3(n from member-names, m from members, id from member-ids):
         cases(N.AMemberType) m.member-type:
           | a-normal => j-expr(j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id))))
-          | a-cyclic => raise("Cannot handle cyclic fields yet")
           | a-mutable => raise("Cannot handle mutable fields yet")
         end
       end +

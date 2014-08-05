@@ -324,12 +324,6 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     ann.visit(self) and value.visit(self)
   end,
-  s-once-field(self, l, name, ann, value):
-    when reserved-names.member(name):
-      reserved-name(l, name)
-    end
-    ann.visit(self) and value.visit(self)
-  end,
   s-method(self, l, args, ann, doc, body, _check):
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
@@ -616,9 +610,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
-  end,
-  s-once-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
-    well-formed-visitor.s-once-field(l, name, ann, value)
   end,
   s-method-field(_, l :: Loc, name :: A.Expr, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method-field(l, name, args, ann, doc, body, _check)
