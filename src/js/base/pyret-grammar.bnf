@@ -66,7 +66,7 @@ first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
 variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] RPAREN
 list-variant-member: variant-member COMMA
-variant-member: [MUTABLE|CYCLIC] binding
+variant-member: [REF] binding
 data-with: [WITH fields]
 data-sharing: [SHARING fields]
 
@@ -138,7 +138,7 @@ obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: list-obj-field* obj-field [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
-     | MUTABLE key [COLONCOLON ann] COLON binop-expr
+     | REF key [COLONCOLON ann] COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
 
 fields: list-field* field [COMMA]
