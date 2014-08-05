@@ -136,6 +136,15 @@ data CompileError:
         + ", but expected " + num-tostring(self.expected)
         + "."
     end
+  | cases-singleton-mismatch(branch-name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
+    tostring(self):
+      if self.should-be-singleton:
+        "The cases branch " + self.branch-name
+          + " at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
+      else:
+        "The cases branch at " + self.branch-loc.format(true) + " expects the value being examined to be a singleton, but it actually has fields"
+      end
+    end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     tostring(self):
       "The data type " + self.data-type

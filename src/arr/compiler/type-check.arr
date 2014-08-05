@@ -408,26 +408,36 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
         synthesis(body, new-info).fold-bind(process)
     end
   end
-  cases(A.CasesBranch) branch:
-    | s-cases-branch(l, pat-loc, name, args, body) =>
-      fun process(new-body, typ):
-        new-branch = A.s-cases-branch(l, pat-loc, name, args, new-body)
-        fold-result(pair(new-branch, typ))
+  cases(Option<TypeVariant>) data-type.lookup-variant(branch.name):
+    | some(tv) =>
+      cases(TypeVariant) tv:
+        | t-variant(_, _, fields, _) =>
+          cases(A.CasesBranch) branch:
+            | s-cases-branch(l, pat-loc, name, args, body) =>
+              fun process(new-body, typ):
+                new-branch = A.s-cases-branch(l, pat-loc, name, args, new-body)
+                fold-result(pair(new-branch, typ))
+              end
+              bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), fields.length()))
+              bind-args(bind-arg, fold-result(info), args, fields)
+                .bind(handle-body(name, body, process, _))
+            | s-singleton-cases-branch(l, _, name, _) =>
+              fold-errors([list: C.cases-singleton-mismatch(name, l, false)])
+          end
+        | t-singleton-variant(_, _, _) =>
+          cases(A.CasesBranch) branch:
+            | s-cases-branch(l, _, name, _, _) =>
+              fold-errors([list: C.cases-singleton-mismatch(name, l, true)])
+            | s-singleton-cases-branch(l, pat-loc, name, body) =>
+              fun process(new-body, typ):
+                new-branch = A.s-singleton-cases-branch(l, pat-loc, name, new-body)
+                fold-result(pair(new-branch, typ))
+              end
+              handle-body(name, body, process, info)
+          end
       end
-      cases(Option<TypeMember>) data-type.lookup-variant(name):
-        | some(tm) =>
-          bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), tm.fields.length()))
-          bind-args(bind-arg, fold-result(info), args, tm.fields)
-            .bind(handle-body(name, body, process, _))
-        | none =>
-          fold-errors([list: C.unneccesary-branch(name, l, data-type.name, cases-loc)])
-      end
-    | s-singleton-cases-branch(l, pat-loc, name, body) =>
-      fun process(new-body, typ):
-        new-branch = A.s-singleton-cases-branch(l, pat-loc, name, new-body)
-        fold-result(pair(new-branch, typ))
-      end
-      handle-body(name, body, process, info)
+    | none =>
+      fold-errors([list: C.unneccesary-branch(branch.name, branch.l, data-type.name, cases-loc)])
   end
 end
 
