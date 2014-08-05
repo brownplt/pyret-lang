@@ -661,6 +661,49 @@ function createMethodDict() {
         }, meth);
     }
 
+    function PRef(ann) {
+      this.isSet = false;
+      this.isFrozen = false;
+      this.ann = ann;
+      this.value = undefined;
+    }
+
+    function isRef(val) {
+      return val instanceof PRef;
+    }
+    function makeRef(ann) {
+      return new PRef(ann);
+    }
+    function isRefSet(ref) {
+      return ref.isSet;
+    }
+    function isRefFrozen(ref) {
+      return ref.isFrozen;
+    }
+    function freezeRef(ref) {
+      if(ref.isSet) {
+        ref.isFrozen = true;
+        return ref;
+      }
+      throw "Attempt to freeze an unset ref";
+    }
+    /* Not stack-safe */
+    function setRef(ref, value) {
+      if(ref.isFrozen) {
+        throw "Attempt to set a frozen ref";
+      }
+      return checkAnn(["builtin"], ref.ann, value, function(_) {
+        ref.value = value; 
+        ref.isSet = true;
+        return ref;
+      });
+    }
+    function getRef(ref) {
+      if(ref.isSet) { return ref.value; }
+      throw "Attempt to get an unset ref";
+    }
+
+
     /*********************
             Object
     **********************/
@@ -762,6 +805,7 @@ function createMethodDict() {
       else if (isObject(val) ||
                isFunction(val) ||
                isMethod(val) ||
+               isRef(val) ||
                isOpaque(val) ||
                isNothing(val)) {
         return true
@@ -2913,6 +2957,7 @@ function createMethodDict() {
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
         'isObject'    : isObject,
+        'isRef'       : isRef,
         'isOpaque'    : isOpaque,
         'isPyretVal'  : isPyretVal,
 
@@ -2936,8 +2981,15 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeRef' : makeRef,
         'makeDataValue': makeDataValue,
         'makeOpaque'   : makeOpaque,
+
+        'isRefFrozen' : isRefFrozen,
+        'isRefSet' : isRefSet,
+        'setRef' : setRef,
+        'getRef' : getRef,
+        'freezeRef' : freezeRef,
 
         'plus': plus,
         'minus': minus,
