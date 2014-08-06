@@ -7,6 +7,11 @@ check "basic boxes":
   b1!v is 5
   b1!{v : 10 }
   b1!v is 10
+
+  b1 is b1
+
+  b2 = box(5)
+  (b2 == b1) is false
 end
 
 check "bad lookups":
