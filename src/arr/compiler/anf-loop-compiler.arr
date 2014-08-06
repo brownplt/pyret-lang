@@ -122,6 +122,10 @@ fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
   j-app(get-field-loc, [list: obj, field, loc])
 end
 
+fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
+  rt-method("getFieldRef", [list: obj, field, loc])
+end
+
 fun raise-id-exn(loc, name):
   j-app(throw-uninitialized, [list: loc, j-str(name)])
 end
@@ -956,7 +960,7 @@ compiler-visitor = {
           | a-variant(_, _, _, members, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), 
                       members.map(lam(m):
-                          get-field(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
+                          get-field-ref(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
                         end)))]))
           | a-singleton-variant(_, _, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))
