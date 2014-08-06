@@ -575,24 +575,7 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
   field-locs = fields.map(lam(f): compiler.get-loc(f.l) end)
   opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   after-update-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-  new-cases =
-    cases(Option) opt-dest:
-      | some(dest) =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
-            concat-cons(
-              j-case(after-update-label, compiled-binding.block),
-              compiled-binding.new-cases)
-          | none => raise("Impossible: compile-split-update can't have a dest without a body")
-        end
-      | none =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            concat-cons(j-case(after-update-label, compiled-body.block), compiled-body.new-cases)
-          | none => concat-empty
-        end
-    end
+  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-update-label, ans)
   c-block(
     j-block([list:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
