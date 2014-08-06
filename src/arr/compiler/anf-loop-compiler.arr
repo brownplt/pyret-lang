@@ -738,6 +738,12 @@ compiler-visitor = {
     c-exp(rt-method(f, visit-args.map(_.exp)), other-stmts)
   end,
   
+  a-ref(self, l, maybe-ann):
+    cases(Option) maybe-ann:
+      | none => c-exp(rt-method("makeBareRef", empty), empty)
+      | some(ann) => raise("Cannot handle annotations in refs yet")
+    end
+  end,
   a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)

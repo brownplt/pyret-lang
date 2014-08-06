@@ -332,7 +332,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end
       anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, fname)) end)
 
-    | s-ref(l, ann) => N.a-ref(l, ann)
+    | s-ref(l, ann) =>
+      k.apply(l, N.a-ref(l, ann))
 
     | s-get-bang(l, obj, field) =>
       anf-name(obj, "anf_get_bang", lam(t): k.apply(l, N.a-get-bang(l, t, field)) end)

@@ -2978,7 +2978,10 @@ function createMethodDict() {
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
 
-          'not': makeFunction(bool_not)
+          'not': makeFunction(bool_not),
+
+          'ref-set' : makeFunction(setRef),
+          'ref-get' : makeFunction(getRef)
 
         }),
         'run': run,

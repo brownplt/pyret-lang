@@ -4,10 +4,11 @@ provide *
 provide-types *
 import ast as A
 import parse-pyret as PP
+import string-dict as SD
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 
-names = A.MakeName(0)
+names = A.global-names
 
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
@@ -323,11 +324,49 @@ fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
   end
 end
 
+fun desugar-graph(l, binds :: List<A.LetrecBind>, body :: A.Expr) -> A.Expr:
+  replacements = SD.string-dict()
+  new-names = for map(b from binds):
+    name = mk-id(l, b.b.id.toname())
+    replacements.set(b.b.id.key(), name.id)
+    name
+  end
+  print("Dict for " + torepr(l) + "\n\n")
+  for each(key from replacements.keys()):
+    print(key + " => " + torepr(replacements.get(key)))
+  end
+  renamer = U.make-renamer(replacements)
+  ref-let-binds = for map2(b from binds, n from new-names):
+    A.s-letrec-bind(b.l, n.id-b, A.s-ref(b.l, none))
+  end
+  original-let-binds = for map2(b from binds, n from new-names):
+    A.s-letrec-bind(b.l, b.b, b.value.visit(renamer))
+  end
+  set-refs = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: n.id-e, A.s-id-letrec(l, b.b.id, false)])
+  end
+  A.s-letrec(l,
+    ref-let-binds +
+    original-let-binds,
+    A.s-block(l, set-refs + [list: body])
+  )
+end
+
 fun desugar-bind(b :: A.Bind):
   cases(A.Bind) b:
     | s-bind(l, shadows, name, ann) =>
       A.s-bind(l, shadows, name, desugar-ann(ann))
     | else => raise("Non-bind given to desugar-bind: " + torepr(b))
+  end
+end
+
+fun desugar-letrec-binds(binds):
+  for map(bind from binds):
+    cases(A.LetrecBind) bind:
+      | s-letrec-bind(l2, b, val) =>
+        A.s-letrec-bind(l2, desugar-bind(b), desugar-expr(val))
+    end
   end
 end
 
@@ -370,13 +409,9 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-let-expr(l, new-binds, desugar-expr(body))
     | s-letrec(l, binds, body) =>
-      new-binds = for map(bind from binds):
-          cases(A.LetrecBind) bind:
-            | s-letrec-bind(l2, b, val) =>
-              A.s-letrec-bind(l2, desugar-bind(b), desugar-expr(val))
-          end
-        end
-      A.s-letrec(l, new-binds, desugar-expr(body))
+      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
+    | s-graph-expr(l, binds, body) =>
+      desugar-graph(l, desugar-letrec-binds(binds), desugar-expr(body))
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):

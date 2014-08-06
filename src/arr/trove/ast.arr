@@ -437,18 +437,30 @@ data Expr:
           if self.keyword-val: str-val else: PP.mt-doc end
             + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s-ref(l :: Loc, ann :: Ann) with:
+  | s-ref(l :: Loc, ann :: Option<Ann>) with:
     label(self): "s-ref" end,
     tosource(self):
-      PP.group(PP.str("ref ") + self.ann.tosource())
+      cases(Option) self.ann:
+        | none => PP.str("bare-ref")
+        | some(ann) =>
+          PP.group(PP.str("ref ") + ann.tosource())
+      end
     end
-  | s-graph(l :: Loc, bindings :: List<Expr%(is-s-let)>) with:
+  | s-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
     label(self): "s-graph" end,
     tosource(self):
-      PP.soft-surround(0, 1, # NOTE: Not indented
+      PP.surround(0, 1, # NOTE: Not indented
         str-graph,
-        PP.flow-map(PP.hardline, _.tosource(), self.bindings),
+        PP.flow-map(PP.hardline, _.tosource(), self.binds),
         str-end)
+    end
+  | s-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
+    label(self): "s-graph-expr" end,
+    tosource(self):
+      header = PP.surround-separate(2 * INDENT, 1, str-graph, str-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
+          self.binds.map(_.tosource()))
+          + str-colon
+      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-contract" end,
@@ -1276,12 +1288,16 @@ default-map-visitor = {
     s-let(l, name.visit(self), value.visit(self), keyword-val) 
   end,
 
-  s-ref(self, l :: Loc, ann :: Ann):
-    s-ref(l, ann.visit(self))
+  s-ref(self, l :: Loc, ann :: Option<Ann>):
+    s-ref(l, self.option(ann))
   end,
 
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
     s-graph(l, bindings.map(_.visit(self)))
+  end,
+
+  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
+    s-graph-expr(l, bindings.map(_.visit(self)), body.visit(self))
   end,
 
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -1733,12 +1749,16 @@ default-iter-visitor = {
     name.visit(self) and value.visit(self)
   end,
   
-  s-ref(self, l :: Loc, ann :: Ann):
-    ann.visit(self)
+  s-ref(self, l :: Loc, ann :: Option<Ann>):
+    self.option(ann)
   end,
 
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
     lists.all(_.visit(self), bindings)
+  end,
+
+  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
+    lists.all(_.visit(self), bindings) and body.visit(self)
   end,
   
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -2179,12 +2199,16 @@ dummy-loc-visitor = {
     s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val) 
   end,
 
-  s-ref(self, l :: Loc, ann :: Ann):
-    s-ref(self, dummy-loc, ann)
+  s-ref(self, l :: Loc, ann :: Option<Ann>):
+    s-ref(self, dummy-loc, self.option(ann))
   end,
 
   s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
     s-graph(dummy-loc, bindings.map(_.visit(self)))
+  end,
+
+  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
+    s-graph-expr(dummy-loc, bindings.map(_.visit(self)), body.visit(self))
   end,
 
   s-when(self, l :: Loc, test :: Expr, block :: Expr):

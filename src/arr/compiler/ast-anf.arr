@@ -285,6 +285,15 @@ data ALettable:
       PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
         self.values.map(_.tosource()))
     end
+  | a-ref(l :: Loc, ann :: Option<A.Ann>) with:
+    label(self): "a-ref" end,
+    tosource(self):
+      cases(Option) self.ann:
+        | none => PP.str("bare-ref")
+        | some(ann) =>
+          PP.group(PP.str("ref ") + ann.tosource())
+      end
+    end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
@@ -307,9 +316,6 @@ data ALettable:
   | a-colon(l :: Loc, obj :: AVal, field :: String) with:
     label(self): "a-colon" end,
     tosource(self): PP.infix(INDENT, 0, str-colon, self.obj.tosource(), PP.str(self.field)) end
-  | a-ref(l :: Loc, ann :: A.Ann) with:
-    label(self): "a-ref" end,
-    tosource(self): PP.group(PP.str("ref ") + self.ann.tosource()) end
   | a-get-bang(l :: Loc, obj :: AVal, field :: String) with:
     label(self): "a-get-bang" end,
     tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
@@ -436,6 +442,7 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
+    | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -548,6 +555,9 @@ default-map-visitor = {
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
     a-prim-app(l, f, args.map(_.visit(self)))
+  end,
+  a-ref(self, l :: Loc, ann :: Option<A.Ann>):
+    a-ref(l, ann)
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
@@ -741,6 +751,11 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
         freevars-ann-acc(a.ann, acc)
       end
       freevars-ann-acc(ret, from-args)
+    | a-ref(_, maybe-ann) =>
+      cases(Option) maybe-ann:
+        | none => seen-so-far
+        | some(a) => freevars-ann-acc(a, seen-so-far)
+      end
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)
