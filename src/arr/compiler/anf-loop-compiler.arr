@@ -415,31 +415,34 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: CaseResults%(is-c
   end
 end
 
+fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
+  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  cases(Option) opt-dest:
+    | some(dest) =>
+      cases(Option) opt-compiled-body:
+        | some(compiled-body) =>
+          compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
+          concat-cons(
+            j-case(after-label, compiled-binding.block),
+            compiled-binding.new-cases)
+        | none => raise("Impossible: compile-split-app can't have a dest without a body")
+      end
+    | none =>
+      cases(Option) opt-compiled-body:
+        | some(compiled-body) =>
+          concat-cons(j-case(after-label, compiled-body.block), compiled-body.new-cases)
+        | none => concat-empty
+      end
+  end
+end
+
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = args.map(lam(a): a.visit(compiler).exp end)
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-  new-cases =
-    cases(Option) opt-dest:
-      | some(dest) =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
-            concat-cons(
-              j-case(after-app-label, compiled-binding.block),
-              compiled-binding.new-cases)
-          | none => raise("Impossible: compile-split-app can't have a dest without a body")
-        end
-      | none =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            concat-cons(j-case(after-app-label, compiled-body.block), compiled-body.new-cases)
-          | none => concat-empty
-        end
-    end
+  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
   c-block(
     j-block([list:
         check-fun(compiler.get-loc(l), compiled-f),
@@ -456,30 +459,13 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   alt-label = compiler.make-label()
   after-if-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   ans = compiler.cur-ans
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   compiler-after-if = compiler.{cur-target: after-if-label}
   compiled-consq = consq.visit(compiler-after-if)
   compiled-alt = alt.visit(compiler-after-if)
   new-cases =
     concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
     + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
-    + (cases(Option) opt-dest:
-      | some(dest) =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
-            concat-cons(
-              j-case(after-if-label, compiled-binding.block),
-              compiled-binding.new-cases)
-          | none => raise("Impossible: compile-split-if can't have a dest without a body")
-        end
-      | none =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            concat-cons(j-case(after-if-label, compiled-body.block), compiled-body.new-cases)
-          | none => concat-empty
-        end
-    end)
+    + get-new-cases(compiler, opt-dest, opt-body, after-if-label, ans)
   c-block(
     j-block([list: 
         j-if(rt-method("isPyretTrue", [list: cond.visit(compiler).exp]),
@@ -548,7 +534,6 @@ fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
   compiled-else = _else.visit(compiler-after-cases)
   branch-labels = branches.map(lam(_): compiler.make-label() end)
@@ -567,24 +552,7 @@ fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List
   # NOTE: Ignoring typ for the moment!
   new-cases =
     branch-else-cases
-    + (cases(Option) opt-dest:
-      | some(dest) =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            compiled-binding = compile-annotated-let(compiler, dest,
-              c-exp(j-id(compiler.cur-ans), empty), compiled-body)
-            concat-cons(
-              j-case(after-cases-label, compiled-binding.block),
-              compiled-binding.new-cases)
-          | none => raise("Impossible: compile-split-cases can't have a dest without a body")
-        end
-      | none =>
-        cases(Option) opt-compiled-body:
-          | some(compiled-body) =>
-            concat-cons(j-case(after-cases-label, compiled-body.block), compiled-body.new-cases)
-          | none => concat-empty
-        end
-    end)
+    + get-new-cases(compiler, opt-dest, opt-body, after-cases-label, compiler.cur-ans)
   c-block(
     j-block([list:
         j-var(dispatch.id-s, dispatch-table),
