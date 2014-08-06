@@ -573,7 +573,6 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
   compiled-field-vals = fields.map(lam(a): a.value.visit(compiler).exp end)
   field-names = fields.map(lam(f): j-str(f.name) end)
   field-locs = fields.map(lam(f): compiler.get-loc(f.l) end)
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
   after-update-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   new-cases = get-new-cases(compiler, opt-dest, opt-body, after-update-label, ans)
   c-block(
