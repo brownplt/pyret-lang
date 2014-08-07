@@ -2110,16 +2110,23 @@ function createMethodDict() {
       resumer(pause);
     }
 
+    function getExnValue(v) {
+      if(!isOpaque(v) && !isPyretException(v.val)) {
+        ffi.throwMessageException("Got non-exception value in getExnVal");
+      }
+      return v.val.exn;
+    }
+
     function execThunk(thunk) {
       function wrapResult(res) {
         if(isSuccessResult(res)) {
           return ffi.makeLeft(res.result);
         } else if (isFailureResult(res)) {
           if(isPyretException(res.exn)) {
-            return ffi.makeRight(res.exn.exn);
+            return ffi.makeRight(makeOpaque(res.exn));
           }
           else {
-            return ffi.makeRight(makeMessageException(String(res.exn)));
+            return ffi.makeRight(makeOpaque(makeMessageException(String(res.exn))));
           }
         } else {
           console.error("Bad execThunk result: ", res);
@@ -2847,7 +2854,9 @@ function createMethodDict() {
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
 
-          'not': makeFunction(bool_not)
+          'not': makeFunction(bool_not),
+
+          'exn-unwrap': makeFunction(getExnValue)
 
         }),
         'run': run,

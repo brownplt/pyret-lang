@@ -36,7 +36,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "type Either = E.Either\n" +
 "cases(Either) run-task(lam(): raise('ahoy') end):\n" +
 "    | left(v) => 'fail'\n" +
-"    | right(exn) => exn\n" +
+"    | right(exn) => exn-unwrap(exn)\n" +
 "end";
         same(prog, rt.makeString('ahoy'));
 
@@ -50,7 +50,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "fun f(n):\n" +
 "  cases(Either) run-task(lam(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
 "      | left(v) => v\n" +
-"      | right(exn) => n + exn\n" +
+"      | right(exn) => n + exn-unwrap(exn)\n" +
 "  end\n" +
 "end\n" +
 "f(5)";

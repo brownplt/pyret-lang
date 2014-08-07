@@ -184,7 +184,8 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-of",
   "raw-array-length",
   "raw-array-to-list",
-  "raw-array-fold"
+  "raw-array-fold",
+  "exn-unwrap"
 ])
 
 no-builtins = compile-env([list: ], [list: ])
