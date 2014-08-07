@@ -121,6 +121,20 @@ fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
   ps.foldr(step, pair(empty, empty))
 end
 
+fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type) -> Type:
+  f-pairs = for map(f from forall):
+    new-id = gensym(f.id)
+    pair(f.id, t-variable(f.l, new-id, f.upper-bound))
+  end
+  new-forall = f-pairs.map(_.right)
+  new-args = for fold(curr from args, f-pair from f-pairs):
+    curr.map(_.substitute(t-var(f-pair.left), t-var(f-pair.right.id)))
+  end
+  new-ret = for fold(curr from ret, f-pair from f-pairs):
+    ret.substitute(t-var(f-pair.left), t-var(f-pair.right.id))
+  end
+  t-arrow(l, new-forall, new-args, new-ret)
+end
 
 fun to-type-member(field :: A.Member, info :: TCInfo) -> FoldResult<Pair<A.Member,TypeMember>>:
   cases(A.Member) field:
@@ -208,7 +222,7 @@ end
 fun mk-variant-constructor(variant :: TypeVariant, creates :: Type, params :: List<TypeVariable>) -> Type:
   cases(TypeVariant) variant:
     | t-variant(l, _, fields, _) =>
-      t-arrow(l, params, fields.map(_.typ), creates)
+      mk-arrow(l, params, fields.map(_.typ), creates)
     | t-singleton-variant(l, _, _) =>
       creates
   end
@@ -243,7 +257,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
         info.data-exprs.set(brander-typ.tostring(), type-datatype)
 
         new-data-expr  = A.s-data-expr(l, name, namet, params, mixins, variants, split-fields.left, _check)
-        brand-test-typ = t-arrow(_, empty, [list: t-top], t-boolean)
+        brand-test-typ = mk-arrow(_, empty, [list: t-top], t-boolean)
         data-fields    = link(t-member(name, brand-test-typ(l)),
         for map(variant from variant-typs):
           t-member(variant.name, mk-variant-constructor(variant, brander-typ, t-vars))
@@ -279,7 +293,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
       for bind(arg-typs from map-result(arg-to-type, args)):
         for bind(ret-typ from to-type(ret, info).map(_.or-else(t-top))):
           forall = empty
-          fold-result(some(t-arrow(l, forall, arg-typs, ret-typ)))
+          fold-result(some(mk-arrow(l, forall, arg-typs, ret-typ)))
         end
       end
     | a-method(l, args, ret) =>
@@ -295,7 +309,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
       raise("a-app not yet handled:" + torepr(in-ann))
     | a-pred(l, ann, exp) =>
       for bind(typ from to-type-std(ann, info)):
-      expect-typ = t-arrow(l, empty, [list: typ], t-boolean)
+        expect-typ = mk-arrow(l, empty, [list: typ], t-boolean)
         cases(CheckingResult) checking(exp, expect-typ, info):
           | checking-err(errs) => errs.map(info.errors.insert)
           | else => nothing
@@ -345,22 +359,23 @@ fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> SynthesisResult:
-  forall   = for map(param from params):
-               t-variable(A.dummy-loc, param.key(), t-top)
-             end
-  for synth-bind(arg-typs from map-result(process-binding(_, t-top, info), args)):
+  forall = for map(param from params):
+    t-variable(A.dummy-loc, param.key(), t-top)
+  end
+  new-info = forall.foldl(TCS.add-type-variable, info)
+  for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
     fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
-      arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
+      arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
       new-fun = recreate(args, ret-ann, new-body)
       synthesis-result(new-fun, arrow-typ)
     end
   
-    for synth-bind(maybe-ret from to-type(ret-ann, info)):
+    for synth-bind(maybe-ret from to-type(ret-ann, new-info)):
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, ret-typ, info).synth-bind(process(_, ret-typ))
+          checking(body, ret-typ, new-info).synth-bind(process(_, ret-typ))
         | none =>
-          synthesis(body, info).bind(process)
+          synthesis(body, new-info).bind(process)
       end
     end
   end
@@ -765,35 +780,36 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
 end
 
 fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
-  forall   = for map(param from params):
-               t-variable(A.dummy-loc, param.key(), t-top)
-             end
+  forall = for map(param from params):
+    t-variable(A.dummy-loc, param.key(), t-top)
+  end
+  new-info = forall.foldl(TCS.add-type-variable, info)
   maybe-arg-typs =
   cases(Type) expect-typ:
     | t-arrow(l, _, expect-args, _) =>
       expected = "a function with " + tostring(expect-args.length())
       found    = "a function with " + tostring(args.length())
       set-args = map2-result(C.incorrect-type(expected, fun-loc, found, l))
-      set-args(process-binding(_, _, info), args, expect-args)
+      set-args(process-binding(_, _, new-info), args, expect-args)
     | else =>
-      map-result(process-binding(_, t-top, info), args)
+      map-result(process-binding(_, t-top, new-info), args)
   end
   for check-bind(arg-typs from maybe-arg-typs):
-    for check-bind(maybe-ret from to-type(ret-ann, info)):
+    for check-bind(maybe-ret from to-type(ret-ann, new-info)):
       fun process(new-body :: A.Expr, ret-typ :: Type) -> CheckingResult:
-        arrow-typ = t-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
+        arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
         new-fun = recreate(args, ret-ann, new-body)
-        check-and-return(arrow-typ, expect-typ, new-fun, info)
+        check-and-return(arrow-typ, expect-typ, new-fun, new-info)
       end
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, ret-typ, info).bind(process(_, ret-typ))
+          checking(body, ret-typ, new-info).bind(process(_, ret-typ))
         | none =>
           cases(Type) expect-typ:
             | t-arrow(_, _, _, ret-typ) =>
-              checking(body, ret-typ, info).bind(process(_, ret-typ))
+              checking(body, ret-typ, new-info).bind(process(_, ret-typ))
             | else =>
-              synthesis(body, info).check-bind(process)
+              synthesis(body, new-info).check-bind(process)
           end
       end
     end
@@ -1120,7 +1136,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
             C.err(side-errs)
           end
         | checking-err(err-list) =>
-          C.err(err-list + errors.get())
+          C.err(err-list + side-errs)
       end
     | else => raise("Attempt to type-check non-program: " + torepr(program))
   end

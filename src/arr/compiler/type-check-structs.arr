@@ -22,13 +22,13 @@ data TCInfo:
                             get    :: (-> List<C.CompileError>)})
 end
 
-fun add-binding(info :: TCInfo, id :: String, bound :: Type) -> TCInfo:
+fun add-binding(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
   new-binds = info.binds.set(id, bound)
   tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
 end
 
-fun add-type-variable(info :: TCInfo, tv :: TS.TypeVariable) -> TCInfo:
-  add-binding(info, tv.id, tv.upper-bound)
+fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
+  add-binding(tv.id, tv.upper-bound, info)
 end
 
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:

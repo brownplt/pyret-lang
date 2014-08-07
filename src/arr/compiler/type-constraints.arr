@@ -787,7 +787,7 @@ fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns 
             introduced      = ks-ds.left
             for-constraints = ks-ds.right
             new-info        = for fold(curr from info, y from introduced.keys()):
-                                TCS.add-binding(curr, y, introduced.get(y))
+                                TCS.add-binding(y, introduced.get(y), curr)
                               end
             new-to-remove   = for fold(curr from to-remove, f from s-forall + t-forall):
                                 curr.add(t-var(f.id))
