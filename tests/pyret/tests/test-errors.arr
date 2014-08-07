@@ -19,7 +19,7 @@ check:
   fun get-err(thunk):
     cases(Eth.Either) run-task(thunk):
       | left(v) => "The given test produced no error"
-      | right(v) => v
+      | right(v) => exn-unwrap(v)
     end
   end
 

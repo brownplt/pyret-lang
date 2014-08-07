@@ -9,7 +9,12 @@ type Loc = SL.Srcloc
 type Either = E.Either
 
 data CheckBlockResult:
-  | check-block-result(name :: String, loc :: Loc, test-results :: List<TestResult>)
+  | check-block-result(
+      name :: String,
+      loc :: Loc,
+      test-results :: List<TestResult>,
+      maybe-err :: Option<Any>
+    )
 end
 
 data TestResult:
@@ -47,8 +52,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       when check-all or (module-name == main-module-name):
         for each(c from checks):
           reset-results()
-          c.run()
-          add-block-result(check-block-result(c.name, c.location, current-results))
+          result = run-task(c.run)
+          cases(Either) result:
+            | left(v) => add-block-result(check-block-result(c.name, c.location, current-results, none))
+            | right(err) => add-block-result(check-block-result(c.name, c.location, current-results, some(err)))
+          end
         end
       end
     end,
@@ -71,10 +79,10 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       cases(Either) result:
         | left(v) => add-result(failure-no-exn(loc, code, expected))
         | right(v) =>
-          if comparator(v, expected):
+          if comparator(exn-unwrap(v), expected):
             add-result(success(loc, code))
           else:
-            add-result(failure-wrong-exn(loc, code, expected, v))
+            add-result(failure-wrong-exn(loc, code, expected, exn-unwrap(v)))
           end
       end
     end,
@@ -96,6 +104,7 @@ end
 fun results-summary(block-results :: List<CheckBlockResult>):
   init = {
       message: "",
+      errored: 0,
       passed: 0,
       failed: 0,
       total: 0
@@ -117,20 +126,26 @@ fun results-summary(block-results :: List<CheckBlockResult>):
           }
       end
     end
+    ended-in-error = cases(Option) br.maybe-err:
+      | none => ""
+      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  " + tostring(err) + "\n\n"
+    end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+    with-error-notification = message + ended-in-error
     rest-of-message =
       if block-summary.failed == 0: ""
       else: block-summary.message
       end
     {
-      message: message + rest-of-message,
+      message: with-error-notification + rest-of-message,
+      errored: summary.errored + if is-some(br.maybe-err): 1 else: 0 end,
       passed: summary.passed + block-summary.passed,
       failed: summary.failed + block-summary.failed,
       total: summary.total + block-summary.total
     }
   end
   if complete-summary.total == 0: complete-summary.{message: "The program didn't define any tests."}
-  else if complete-summary.failed == 0:
+  else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
     happy-msg = if complete-summary.passed == 1:
         "Looks shipshape, your test passed, mate!"
       else:
@@ -140,7 +155,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
   else:
     c = complete-summary
     c.{
-      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Total: " + tostring(c.total) + "\n"
+      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
     }
   end
 end
