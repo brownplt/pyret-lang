@@ -113,7 +113,7 @@ data TypeMember:
 sharing:
   _comp(a, b :: TypeMember) -> Comparison:
     fold-comparisons([list:
-        a.field-name._comp(b.field-name),
+        string-compare(a.field-name, b.field-name),
         a.typ._comp(b.typ)
       ])
   end
@@ -182,6 +182,7 @@ data Type:
   | t-top
   | t-bot
   | t-record(l :: A.Loc, fields :: TypeMembers)
+  | t-forall(introduces :: List<TypeVariable>, onto :: Type)
 sharing:
   tostring(self) -> String:
     cases(Type) self:
@@ -195,10 +196,8 @@ sharing:
         "(<" + forall.map(_.tostring()).join-str(", ") + ">"
           +      args.map(_.tostring()).join-str(", ")
           + " -> " + ret.tostring() + ")"
-
       | t-app(_, onto, args) =>
         onto.tostring() + "<" + args.map(_.tostring()).join-str(", ") + ">"
-
       | t-top => "Top"
       | t-bot => "Bot"
       | t-record(_, fields) =>
@@ -207,6 +206,9 @@ sharing:
               field.tostring()
             end.join-str(", ")
           + "}"
+      | t-forall(introduces, onto) =>
+        "<" + introduces.map(_.tostring()).join-str(",") + ">"
+          + onto.tostring()
     end
   end,
   toloc(self) -> A.Loc:
@@ -218,6 +220,7 @@ sharing:
       | t-top               => A.dummy-loc
       | t-bot               => A.dummy-loc
       | t-record(l, _)      => l
+      | t-forall(_, _)      => A.dummy-loc
     end
   end,
   substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
@@ -228,11 +231,13 @@ sharing:
         | t-arrow(l, forall, args, ret) => t-arrow(l, forall,
             args.map(_.substitute(orig-typ, new-typ)),
             ret.substitute(orig-typ, new-typ))
-
-        | t-app(l, onto, args) => t-app(l,
-            onto.substitute(orig-typ, new-typ),
-            args.map(_.substitute(orig-typ, new-typ)))
-
+        | t-app(l, onto, args) =>
+          new-onto = onto.substitute(orig-typ, new-typ)
+          new-args = args.map(_.substitute(orig-typ, new-typ))
+          t-app(l, new-onto, new-args)
+        | t-forall(introduces, onto) =>
+          new-onto = onto.substitute(orig-typ, new-typ)
+          t-forall(introduces, new-onto)
         | else => self
       end
     end
@@ -244,11 +249,13 @@ sharing:
   _equal        (self, other :: Type) -> Boolean: self._comp(other) == equal        end,
   _comp(self, other :: Type) -> Comparison:
     cases(Type) self:
-      | t-bot                                 => cases(Type) other:
+      | t-bot =>
+        cases(Type) other:
           | t-bot => equal
           | else  => less-than
         end
-      | t-name(a-l, a-module-name, a-id)      => cases(Type) other:
+      | t-name(a-l, a-module-name, a-id) =>
+        cases(Type) other:
           | t-bot               => greater-than
           | t-name(b-l, b-module-name, b-id) =>
             fold-comparisons([list:
@@ -259,9 +266,11 @@ sharing:
           | t-arrow(_, _, _, _) => less-than
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than
+          | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-var(a-id)                           => cases(Type) other:
+      | t-var(a-id) =>
+        cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(b-id) => 
@@ -271,48 +280,68 @@ sharing:
           | t-arrow(_, _, _, _) => less-than
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than
+          | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
       | t-arrow(a-l, a-forall, a-args, a-ret) => cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(b-l, b-forall, b-args, b-ret) => fold-comparisons([list:
-                #a-l._comp(b-l),
-                old-list-compare(a-forall, b-forall),
-                old-list-compare(a-args, b-args),
-                a-ret._comp(b-ret)
-              ])
+          | t-arrow(b-l, b-forall, b-args, b-ret) =>
+            fold-comparisons([list:
+              old-list-compare(a-forall, b-forall),
+              old-list-compare(a-args, b-args),
+              a-ret._comp(b-ret)
+            ])
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than
+          | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-app(a-l, a-onto, a-args)            => cases(Type) other:
+      | t-app(a-l, a-onto, a-args) =>
+        cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
           | t-arrow(_, _, _, _) => greater-than
-          | t-app(b-l, b-onto, b-args) => fold-comparisons([list:
-                #a-l._comp(b-l),
-                old-list-compare(a-args, b-args),
-                a-onto._comp(b-onto)
-              ])
+          | t-app(b-l, b-onto, b-args) =>
+            fold-comparisons([list:
+              old-list-compare(a-args, b-args),
+              a-onto._comp(b-onto)
+            ])
           | t-record(_,_)       => less-than
+          | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-record(a-l, a-fields)               => cases(Type) other:
+      | t-record(a-l, a-fields) =>
+        cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
           | t-arrow(_, _, _, _) => greater-than
           | t-app(_, _, _)      => greater-than
-          | t-record(b-l, b-fields) => fold-comparisons([list:
-                #a-l._comp(b-l),
-                list-compare(a-fields, b-fields)
-              ])
+          | t-record(b-l, b-fields) =>
+            list-compare(a-fields, b-fields)
+          | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-top                                 => cases(Type) other:
+      | t-forall(a-introduces, a-onto) =>
+        cases(Type) other:
+          | t-bot               => greater-than
+          | t-name(_, _, _)     => greater-than
+          | t-var(_)            => greater-than
+          | t-arrow(_, _, _, _) => greater-than
+          | t-app(_, _, _)      => greater-than
+          | t-record(_, _)      => greater-than
+          | t-forall(b-introduces, b-onto) =>
+            fold-comparisons([list:
+              old-list-compare(a-introduces, b-introduces),
+              a-onto._comp(b-onto)
+            ])
+          | t-top               => less-than
+        end
+      | t-top =>
+        cases(Type) other:
           | t-top => equal
           | else  => greater-than
         end
