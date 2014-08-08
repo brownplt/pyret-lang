@@ -16,7 +16,7 @@ mlist = {
 }
 
 data MNumList:
-  | mnlink(ref first :: Number, ref rest)
+  | mnlink(first :: Number, ref rest)
   | mnempty
 end
 
@@ -84,3 +84,31 @@ check "using unset ref":
   ref-get(ref-get(L)) is L
 end
 
+check "more programmatic cycles":
+  graph:
+  OTTF = mnlink(1, mnlink(2, mnlink(3, mnlink(4, OTTF))))
+  end
+
+  OTTF.first is 1
+  OTTF!rest!rest.first is 3
+  OTTF!rest!rest!rest!rest is OTTF
+
+  fun make-num-cycle(n):
+    fun make-cycle(base-elt, m):
+      if m == (n + 1): base-elt
+      else:
+        mnlink(m, make-cycle(base-elt, m + 1))
+      end
+    end
+    graph:
+    BASE = make-cycle(BASE, 1)
+    end
+    BASE
+  end
+
+  OTTF2 = make-num-cycle(4)
+  OTTF2.first is 1
+  OTTF2!rest!rest.first is 3
+  OTTF2!rest!rest!rest!rest is OTTF2
+  
+end
