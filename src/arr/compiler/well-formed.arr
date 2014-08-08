@@ -285,13 +285,13 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-var(self, l, bind, val):
     when A.is-s-underscore(bind.id):
-      add-error(C.pointless-var(l))
+      add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
   s-var-bind(self, l, bind, val):
     when A.is-s-underscore(bind.id):
-      add-error(C.pointless-var(l))
+      add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,

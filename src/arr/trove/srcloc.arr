@@ -41,6 +41,36 @@ data Srcloc:
         | builtin(_) => true
         | else => self.start-char < other.start-char
       end
+    end,
+    at-start(self):
+      srcloc(self.source,
+        self.start-line, self.start-column, self.start-char,
+        self.start-line, self.start-column, self.start-char)
+    end,
+    at-end(self):
+      srcloc(self.source,
+        self.end-line, self.end-column, self.end-char,
+        self.end-line, self.end-column, self.end-char)
+    end,
+    _plus(self, other :: Srcloc%(is-srcloc)):
+      # Note: assumes that both locations are from same file
+      if self.start-char <= other.start-char:
+        if self.end-char >= other.end-char:
+          self
+        else:
+          srcloc(self.source,
+            self.start-line, self.start-column, self.start-char,
+            other.end-line, other.end-column, other.end-char)
+        end
+      else:
+        if self.end-char > other.end-char:
+          srcloc(self.source,
+            other.start-line, other.start-column, other.start-char,
+            self.end-line, self.end-column, self.end-char)
+        else:
+          other
+        end
+      end
     end
 sharing:
   tostring(self): self.format(true) end,

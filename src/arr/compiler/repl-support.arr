@@ -111,7 +111,7 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
         A.a-field(l, name.toname(), A.a-name(l, name))
       end
       safe-imports = make-safe-imports(imports)
-      ids = A.toplevel-ids(p)
+      ids = A.toplevel-ids(p).filter(lam(id): not(A.is-s-underscore(id)) end)
       ids-plus-import-names = safe-imports.map(_.name) + ids
       repl-provide = for map(id from ids-plus-import-names):
         df(id)
