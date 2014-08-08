@@ -7,6 +7,22 @@ import "compiler/type-structs.arr" as TS
 import "compiler/compile-structs.arr" as C
 
 type Type                  = TS.Type
+t-name                    = TS.t-name
+t-var                     = TS.t-var
+t-arrow                   = TS.t-arrow
+t-top                     = TS.t-top
+t-bot                     = TS.t-bot
+t-app                     = TS.t-app
+t-record                  = TS.t-record
+
+t-number                  = TS.t-number
+t-string                  = TS.t-string
+t-boolean                 = TS.t-boolean
+t-srcloc                  = TS.t-srcloc
+
+type TypeVariable         = TS.TypeVariable
+t-variable                = TS.t-variable
+
 type DataType              = TS.DataType
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.immutable-string-dict()
@@ -20,6 +36,41 @@ data TCInfo:
             binds      :: Bindings,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
+end
+
+default-typs = SD.string-dict()
+default-typs.set(A.s-global("nothing").key(), t-name(A.dummy-loc, none, "tglobal#Nothing"))
+default-typs.set("isBoolean", t-arrow(A.dummy-loc, empty, [list: t-top], t-boolean))
+default-typs.set(A.s-global("torepr").key(), t-arrow(A.dummy-loc, empty, [list: t-top], t-string))
+default-typs.set("throwNonBooleanCondition",
+                 t-arrow(A.dummy-loc, empty, [list: t-srcloc,
+                                                    t-string,
+                                                    t-top], t-bot))
+default-typs.set("throwNoBranchesMatched",
+                 t-arrow(A.dummy-loc, empty, [list: t-srcloc,
+                                                    t-string], t-bot))
+default-typs.set("equiv", t-arrow(A.dummy-loc, empty, [list: t-top, t-top], t-boolean))
+default-typs.set("hasField", t-arrow(A.dummy-loc, empty, [list: t-record(A.dummy-loc, empty), t-string], t-boolean))
+default-typs.set(A.s-global("_times").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, empty, [list: t-number, t-number], t-number))
+print-variable = gensym("A")
+default-typs.set(A.s-global("print").key(), t-arrow(A.dummy-loc, [list: t-variable(A.dummy-loc, print-variable, t-top)], [list: t-var(print-variable)], t-var(print-variable)))
+
+fun empty-tc-info() -> TCInfo:
+  errors = block:
+    var err-list = empty
+    {
+      insert: lam(err :: C.CompileError):
+        err-list := link(err, err-list)
+      end,
+      get: lam():
+        err-list
+      end
+    }
+  end
+  tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), empty-bindings, errors)
 end
 
 fun add-binding(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
