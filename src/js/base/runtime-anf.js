@@ -684,16 +684,17 @@ function createMethodDict() {
     function makeGraphableRef() {
       return new PRef();
     }
-    function makeRef(ann) {
+    function makeRef(ann, loc) {
+      var loc = typeof loc === "undefined" ? ["references"] : loc;
       var r = new PRef();
-      addRefAnn(r, ann);
+      addRefAnn(r, ann, loc);
       r.state = UNGRAPHABLE;
       return r;
     }
-    function makeUnsafeSetRef(ann, value) {
+    function makeUnsafeSetRef(ann, value, loc) {
       var r = new PRef();
       r.state = SET;
-      r.anns = makePAnnList([ann]);
+      r.anns = makePAnnList([{ann: ann, loc: loc}]);
       r.value = value;
       return r;
     }
@@ -722,19 +723,19 @@ function createMethodDict() {
       ref.state = UNGRAPHABLE;
       return ref;
     }
-    function addRefAnn(ref, ann) {
+    function addRefAnn(ref, ann, loc) {
       if(ref.state > UNGRAPHABLE) {
         ffi.throwMessageException("Attempted to annotate already-set ref");
       }
-      ref.anns.addAnn(ann);
+      ref.anns.addAnn(ann, loc);
       return ref;
     }
-    function addRefAnns(ref, anns) {
+    function addRefAnns(ref, anns, locs) {
       if(ref.state > UNGRAPHABLE) {
         ffi.throwMessageException("Attempted to annotate already-set ref");
       }
       for(var i = 0; i < anns.length; i++) {
-        ref.anns.addAnn(anns[i]);
+        ref.anns.addAnn(anns[i], locs[i]);
       }
       return ref;
     }
@@ -756,7 +757,7 @@ function createMethodDict() {
     /* Not stack-safe */
     function setRef(ref, value) {
       if(ref.state === UNGRAPHABLE || ref.state === SET) {
-        return checkAnn(["builtin"], ref.anns, value, function(_) {
+        return checkAnn(["references"], ref.anns, value, function(_) {
           ref.value = value; 
           ref.state = SET;
           return ref;
@@ -1688,9 +1689,9 @@ function createMethodDict() {
     function makePAnnList(anns) {
       return new PAnnList(anns);
     }
-    PAnnList.prototype.addAnn = function(ann) {
+    PAnnList.prototype.addAnn = function(ann, loc) {
 //      this.refinement = ann.refinement || this.refinement;
-      this.anns.push(ann);
+      this.anns.push({ ann: ann, loc: loc });
     }
 
     PAnnList.prototype.check = function(compilerLoc, val) {
@@ -1699,10 +1700,15 @@ function createMethodDict() {
         if(i >= that.anns.length) { return ffi.contractOk; }
         else {
           return safeCall(function() {
-            return that.anns[i].check(compilerLoc, val);
+            return that.anns[i].ann.check(compilerLoc, val);
           }, function(passed) {
             if(ffi.isOk(passed)) { return checkI(i + 1); }
-            else { return passed; }
+            else {
+              return ffi.contractFail(
+                getField(passed, "loc"),
+                ffi.makeRefInitFail(makeSrcloc(that.anns[i].loc), getField(passed, "reason"))
+              );
+            }
           });
         }
       }
@@ -2322,7 +2328,7 @@ function createMethodDict() {
             return ffi.makeRight(makeOpaque(res.exn));
           }
           else {
-            return ffi.makeRight(makeOpaque(makeMessageException(String(res.exn))));
+            return ffi.makeRight(makeOpaque(makePyretFailException(ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
           }
         } else {
           console.error("Bad execThunk result: ", res);

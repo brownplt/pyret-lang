@@ -30,6 +30,11 @@ data FieldFailure:
 end
 
 data FailureReason:
+  | ref-init(loc, reason :: FailureReason) with:
+    tostring(self):
+      "The annotation at " + self.loc.format(true) + " failed while initializing a graph because: " + 
+        self.reason.tostring()
+    end
   | type-mismatch(val, name :: String) with:
     tostring(self):
       "Expected " + self.name + ", but got " + torepr(self.val)

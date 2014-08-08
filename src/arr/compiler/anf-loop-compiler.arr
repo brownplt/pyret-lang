@@ -900,11 +900,11 @@ compiler-visitor = {
             j-block(ann-result.other-stmts + [list:
               j-if(is-ref,
                 j-block([list:
-                  j-expr(rt-method("addRefAnn", [list: val-id, ann-result.exp])),
+                  j-expr(rt-method("addRefAnn", [list: val-id, ann-result.exp, self.get-loc(A.ann-loc(m.bind.ann))])),
                   j-expr(j-bracket-assign(j-id("dict"), j-str(n), val-id))
                 ]),
                 j-block([list:
-                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), rt-method("makeUnsafeSetRef", [list: ann-result.exp, val-id])))
+                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), rt-method("makeUnsafeSetRef", [list: ann-result.exp, val-id, self.get-loc(A.ann-loc(m.bind.ann))])))
                 ])
               )
             ])

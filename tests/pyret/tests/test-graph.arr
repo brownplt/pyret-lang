@@ -16,7 +16,7 @@ mlist = {
 }
 
 data MNumList:
-  | mnlink(first :: Number, ref rest)
+  | mnlink(first :: Number, ref rest :: MNumList)
   | mnempty
 end
 
@@ -110,5 +110,18 @@ check "more programmatic cycles":
   OTTF2.first is 1
   OTTF2!rest!rest.first is 3
   OTTF2!rest!rest!rest!rest is OTTF2
-  
+
 end
+
+check "post-initialization type error":
+  fun f():
+    graph:
+      ONES = mnlink(1, NOT-ONES)
+      NOT-ONES = 42
+    end
+    ONES
+  end
+  f() raises "MNumList"
+
+end
+

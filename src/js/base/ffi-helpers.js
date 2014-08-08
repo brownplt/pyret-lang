@@ -221,6 +221,11 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("type-mismatch")(val, name);
       }
 
+      function makeRefInitFail(loc, reason) {
+        checkSrcloc(loc);
+        return contract("ref-init")(loc, reason);
+      }
+
       function makePredicateFailure(val, name) {
         runtime.checkString(name);
         runtime.checkPyretVal(val);
@@ -276,6 +281,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         makeFieldFailure: makeFieldFailure,
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
+        makeRefInitFail: makeRefInitFail,
         makePredicateFailure: makePredicateFailure,
         makeDotAnnNotPresent: makeDotAnnNotPresent,
         contractOk: gf(C, "ok"),

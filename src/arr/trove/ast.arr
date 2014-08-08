@@ -1030,6 +1030,12 @@ sharing:
   end
 end
 
+fun ann-loc(ann):
+  if is-a-blank(ann) or is-a-any(ann): dummy-loc
+  else: ann.l
+  end
+end
+
 data Ann:
   | a-blank with:
     label(self): "a-blank" end,
