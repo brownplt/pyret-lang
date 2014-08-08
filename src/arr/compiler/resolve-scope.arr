@@ -164,7 +164,7 @@ fun add-type-let-bind(bg :: BindingGroup, tlb :: A.TypeLetBind, stmts :: List<A.
   end
 end
 
-fun add-graph-binds(bg :: BindingGroup, gbs :: List<A.LetrecBind>, stmts :: List<A.Expr>) -> A.Expr:
+fun add-graph-binds(bg :: BindingGroup, gbs :: List<A.LetBind>, stmts :: List<A.Expr>) -> A.Expr:
   bind-wrap(bg, desugar-scope-block(stmts, graph-binds(gbs)))
 end
 
@@ -184,10 +184,10 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
         | s-var(l, bind, expr) =>
           add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
         | s-graph(l, lets) =>
-          lrbs = for map(lt from lets):
-            A.s-letrec-bind(lt.l, lt.name, lt.value)
+          gbs = for map(lt from lets):
+            A.s-let-bind(lt.l, lt.name, lt.value)
           end
-          add-graph-binds(binding-group, lrbs, rest-stmts)
+          add-graph-binds(binding-group, gbs, rest-stmts)
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
@@ -542,6 +542,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | global-bind(loc, _, _) => bindings.set(atom.key(), global-bind(loc, atom, expr))
     end
   end
+  fun resolve-graph-binds(visitor, binds):
+    bind-env-and-atoms = for fold(acc from { env: visitor.env, atoms: [list: ] }, b from binds):
+      atom-env = make-atom-for(b.b.id, b.b.shadows, acc.env, bindings, let-bind)
+      { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+    end
+    new-visitor = visitor.{env: bind-env-and-atoms.env}
+    visit-binds = for map2(b from binds, a from bind-env-and-atoms.atoms.reverse()):
+      cases(A.LetBind) b:
+        | s-let-bind(l2, bind, expr) =>
+          new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: bind-env-and-atoms.env}))
+          visit-expr = expr.visit(new-visitor)
+          update-binding-expr(a, some(visit-expr))
+          A.s-let-bind(l2, new-bind, visit-expr)
+      end
+    end
+    {
+      new-binds: visit-binds,
+      new-visitor: new-visitor
+    }
+  end
   fun resolve-letrec-binds(visitor, binds):
     bind-env-and-atoms = for fold(acc from { env: visitor.env, atoms: [list: ] }, b from binds):
       atom-env = make-atom-for(b.b.id, b.b.shadows, acc.env, bindings, letrec-bind)
@@ -665,7 +685,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-letrec(l, binds-and-visitor.new-binds, visit-body)
     end,
     s-graph-expr(self, l, binds, body):
-      binds-and-visitor = resolve-letrec-binds(self, binds)
+      binds-and-visitor = resolve-graph-binds(self, binds)
       visit-body = body.visit(binds-and-visitor.new-visitor)
       A.s-graph-expr(l, binds-and-visitor.new-binds, visit-body)
     end,

@@ -187,6 +187,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-fold",
   "ref-get",
   "ref-set",
+  "ref-freeze",
   "exn-unwrap"
 ])
 

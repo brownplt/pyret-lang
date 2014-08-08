@@ -324,32 +324,37 @@ fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
   end
 end
 
-fun desugar-graph(l, binds :: List<A.LetrecBind>, body :: A.Expr) -> A.Expr:
+fun desugar-immutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
   replacements = SD.string-dict()
   new-names = for map(b from binds):
     name = mk-id(l, b.b.id.toname())
     replacements.set(b.b.id.key(), name.id)
     name
   end
-  print("Dict for " + torepr(l) + "\n\n")
-  for each(key from replacements.keys()):
-    print(key + " => " + torepr(replacements.get(key)))
-  end
   renamer = U.make-renamer(replacements)
   ref-let-binds = for map2(b from binds, n from new-names):
-    A.s-letrec-bind(b.l, n.id-b, A.s-ref(b.l, none))
+    A.s-let-bind(b.l, n.id-b, A.s-ref(b.l, none))
   end
   original-let-binds = for map2(b from binds, n from new-names):
-    A.s-letrec-bind(b.l, b.b, b.value.visit(renamer))
+    A.s-let-bind(b.l, b.b, b.value.visit(renamer))
+  end
+  finish-graph = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-prim-app(l, "refEndGraph", [list: n.id-e])
   end
   set-refs = for map2(b from binds, n from new-names):
     shadow l = b.l
-    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: n.id-e, A.s-id-letrec(l, b.b.id, false)])
+    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: n.id-e, A.s-id(l, b.b.id)])
   end
-  A.s-letrec(l,
+  freeze-refs = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-prim-app(l, "freezeRef", [list: n.id-e])
+  end
+
+  A.s-let-expr(l,
     ref-let-binds +
     original-let-binds,
-    A.s-block(l, set-refs + [list: body])
+    A.s-block(l, finish-graph + set-refs + freeze-refs + [list: body])
   )
 end
 
@@ -358,6 +363,17 @@ fun desugar-bind(b :: A.Bind):
     | s-bind(l, shadows, name, ann) =>
       A.s-bind(l, shadows, name, desugar-ann(ann))
     | else => raise("Non-bind given to desugar-bind: " + torepr(b))
+  end
+end
+
+fun desugar-let-binds(binds):
+  for map(bind from binds):
+    cases(A.LetBind) bind:
+      | s-let-bind(l2, b, val) =>
+        A.s-let-bind(l2, desugar-bind(b), desugar-expr(val))
+      | s-var-bind(l2, b, val) =>
+        A.s-var-bind(l2, desugar-bind(b), desugar-expr(val))
+    end
   end
 end
 
@@ -399,19 +415,12 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
     | s-let-expr(l, binds, body) =>
-      new-binds = for map(bind from binds):
-        cases(A.LetBind) bind:
-          | s-let-bind(l2, b, val) =>
-            A.s-let-bind(l2, desugar-bind(b), desugar-expr(val))
-          | s-var-bind(l2, b, val) =>
-            A.s-var-bind(l2, desugar-bind(b), desugar-expr(val))
-        end
-      end
+      new-binds = desugar-let-binds(binds)
       A.s-let-expr(l, new-binds, desugar-expr(body))
     | s-letrec(l, binds, body) =>
       A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
     | s-graph-expr(l, binds, body) =>
-      desugar-graph(l, desugar-letrec-binds(binds), desugar-expr(body))
+      desugar-immutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):

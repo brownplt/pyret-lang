@@ -293,9 +293,6 @@ function getFieldLocInternal(val, field, loc, isBang) {
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
-        //TODO: Throw field not found error
-        //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
-        //reentrant errors (see commit 24ff13d9e9)
       if (ffi === undefined) {
         throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
       } else {
@@ -304,7 +301,10 @@ function getFieldLocInternal(val, field, loc, isBang) {
     }
     else if(isRef(fieldVal)){
       if(!isBang) {
-        ffi.throwMessageException("Got ref in dot lookup");
+        return fieldVal;
+        // NOTE(joe Aug 8 2014): This is a design decision whether we
+        // want this to be an error or not
+        // ffi.throwMessageException("Got ref in dot lookup");
       }
       return getRef(fieldVal);
     }
@@ -671,39 +671,40 @@ function createMethodDict() {
         }, meth);
     }
 
-    var BARE = 1;
-    var ANNOT = 2;
-    var SET = 3;
-    var FROZEN = 4;
+    var GRAPHABLE = 0;
+    var UNGRAPHABLE = 1;
+    var SET = 2;
+    var FROZEN = 3;
     function PRef() {
-      this.state = BARE;
-      this.ann = undefined;
+      this.state = GRAPHABLE;
+      this.anns = makePAnnList([]);
       this.value = undefined;
     }
 
-    function makeBareRef() {
+    function makeGraphableRef() {
       return new PRef();
     }
     function makeRef(ann) {
       var r = new PRef();
-      setRefAnn(r, ann);
+      addRefAnn(r, ann);
+      r.state = UNGRAPHABLE;
       return r;
     }
     function makeUnsafeSetRef(ann, value) {
       var r = new PRef();
       r.state = SET;
-      r.ann = ann;
+      r.anns = makePAnnList([ann]);
       r.value = value;
       return r;
     }
     function isRef(val) {
       return val instanceof PRef;
     }
-    function isRefBare(ref) {
-      return ref.state === BARE;
+    function isGraphableRef(ref) {
+      return isRef(ref) && isRefGraphable(ref);
     }
-    function isRefAnnotated(ref) {
-      return ref.state >= ANNOT;
+    function isRefGraphable(ref) {
+      return ref.state === GRAPHABLE;
     }
     function isRefSet(ref) {
       return ref.state >= SET;
@@ -711,19 +712,30 @@ function createMethodDict() {
     function isRefFrozen(ref) {
       return ref.state >= FROZEN;
     }
-    
-    function getRefAnn(ref) {
-      if(ref.state >= ANNOT) {
-        return ref.ann;
-      }
-      ffi.throwMessageException("Attempted to get ann of bare ref");
+    function getRefAnns(ref) {
+      return ref.anns;
     }
-    function setRefAnn(ref, ann) {
-      if(ref.state !== BARE) {
-        ffi.throwMessageException("Attempted to annotate non-bare ref");
+    function refEndGraph(ref) {
+      if(ref.state >= UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to end graphing of already-done with graph ref");
       }
-      ref.ann = ann;
-      ref.state = ANNOT;
+      ref.state = UNGRAPHABLE;
+      return ref;
+    }
+    function addRefAnn(ref, ann) {
+      if(ref.state > UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to annotate already-set ref");
+      }
+      ref.anns.addAnn(ann);
+      return ref;
+    }
+    function addRefAnns(ref, anns) {
+      if(ref.state > UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to annotate already-set ref");
+      }
+      for(var i = 0; i < anns.length; i++) {
+        ref.anns.addAnn(anns[i]);
+      }
       return ref;
     }
     function freezeRef(ref) {
@@ -734,7 +746,7 @@ function createMethodDict() {
       ffi.throwMessageException("Attempted to freeze an unset ref");
     }
     function unsafeSetRef(ref, value) {
-      if(ref.state === ANNOT || ref.state === SET) {
+      if(ref.state === UNGRAPHABLE || ref.state === SET) {
         ref.value = value;
         ref.state = SET;
         return ref;
@@ -743,8 +755,8 @@ function createMethodDict() {
     }
     /* Not stack-safe */
     function setRef(ref, value) {
-      if(ref.state === ANNOT || ref.state === SET) {
-        return checkAnn(["builtin"], ref.ann, value, function(_) {
+      if(ref.state === UNGRAPHABLE || ref.state === SET) {
+        return checkAnn(["builtin"], ref.anns, value, function(_) {
           ref.value = value; 
           ref.state = SET;
           return ref;
@@ -1036,6 +1048,12 @@ function createMethodDict() {
             } else if (isMethod(next)) {
               top.todo.pop();
               top.done.push("<method>");
+            } else if (isRef(next)) {
+              top.todo.pop();
+              top.done.push("<ref>");
+            } else if (typeof next === "object") {
+              top.todo.pop();
+              top.done.push(JSON.stringify(next, null, "  "));
             } else {
               top.todo.pop();
               top.done.push(String(next));
@@ -1567,6 +1585,20 @@ function createMethodDict() {
       return checkI(0);
     }
 
+    function checkConstructorArgs(anns, args, locs, after) {
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          if(isRefGraphable(args[i])) { return checkI(i + 1); }
+          else {
+            return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+              return checkI(i + 1);
+            });
+          }
+        }
+      }
+      return checkI(0);
+    }
     function checkRefAnns(obj, fields, vals, locs) {
       if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
       var anns = new Array(fields.length);
@@ -1581,7 +1613,7 @@ function createMethodDict() {
             if(isRefFrozen(ref)) {
               ffi.throwMessageException("Update of frozen ref " + field);
             }
-            anns[i] = getRefAnn(ref);
+            anns[i] = getRefAnns(ref);
             refs[i] = ref;
           }
           else {
@@ -1642,6 +1674,39 @@ function createMethodDict() {
 
     function makePrimitiveAnn(name, jsPred) {
       return new PPrimAnn(name, jsPred);
+    }
+
+    function PAnnList(anns) {
+      this.anns = anns;
+      var refinement = true;
+//      for(var i = 0; i < anns.length; i++) {
+//        if(anns[i].refinement) { refinement = true; }
+//      }
+      this.refinement = refinement;
+    }
+
+    function makePAnnList(anns) {
+      return new PAnnList(anns);
+    }
+    PAnnList.prototype.addAnn = function(ann) {
+//      this.refinement = ann.refinement || this.refinement;
+      this.anns.push(ann);
+    }
+
+    PAnnList.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      function checkI(i) {
+        if(i >= that.anns.length) { return ffi.contractOk; }
+        else {
+          return safeCall(function() {
+            return that.anns[i].check(compilerLoc, val);
+          }, function(passed) {
+            if(ffi.isOk(passed)) { return checkI(i + 1); }
+            else { return passed; }
+          });
+        }
+      }
+      return checkI(0);
     }
 
     function PPredAnn(ann, pred, predname) {
@@ -2987,8 +3052,10 @@ function createMethodDict() {
 
           'not': makeFunction(bool_not),
 
-          'ref-set' : makeFunction(setRef),
-          'ref-get' : makeFunction(getRef),
+          'ref-set'    : makeFunction(setRef),
+          'ref-get'    : makeFunction(getRef),
+          'ref-end-graph'   : makeFunction(refEndGraph),
+          'ref-freeze' : makeFunction(freezeRef),
 
           'exn-unwrap': makeFunction(getExnValue)
 
@@ -3011,6 +3078,7 @@ function createMethodDict() {
         '_checkAnn': _checkAnn,
         'checkAnnArg': checkAnnArg,
         'checkAnnArgs': checkAnnArgs,
+        'checkConstructorArgs': checkConstructorArgs,
         '_checkAnnArgs': _checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
@@ -3081,7 +3149,7 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
-        'makeBareRef' : makeBareRef,
+        'makeGraphableRef' : makeGraphableRef,
         'makeRef' : makeRef,
         'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
@@ -3089,14 +3157,16 @@ function createMethodDict() {
 
         'checkRefAnns' : checkRefAnns,
 
-        'isRefBare' : isRefBare,
-        'isRefAnnotated' : isRefAnnotated,
+        'isGraphableRef' : isGraphableRef,
+        'isRefGraphable' : isRefGraphable,
         'isRefFrozen' : isRefFrozen,
         'isRefSet' : isRefSet,
         'setRef' : setRef,
         'unsafeSetRef' : unsafeSetRef,
         'getRef' : getRef,
-        'setRefAnn' : setRefAnn,
+        'refEndGraph' : refEndGraph,
+        'addRefAnn' : addRefAnn,
+        'addRefAnns' : addRefAnns,
         'freezeRef' : freezeRef,
 
         'plus': plus,

@@ -5,7 +5,7 @@ data MList:
 end
 mlist = {
   make: lam(arr):
-    var sentinel = mlink(nothing, mempty)
+    var sentinel = mlink(mempty, mempty)
     initial = sentinel
     for raw-array-fold(mlist from mempty, elt from arr, i from 0):
       sentinel!{ rest: mlink(elt, mempty) }
@@ -15,8 +15,12 @@ mlist = {
   end
 }
 
-check:
+data MNumList:
+  | mnlink(ref first :: Number, ref rest)
+  | mnempty
+end
 
+check:
   graph:
     BOS = [mlist: WOR, PROV]
     PROV = [mlist: BOS]
@@ -40,8 +44,9 @@ check:
   (PROV == WOR) is false
 
   graph:
-    ONES = mlink(1, ONES)
+    ONES = mnlink(1, ONES)
   end
+
 
   # These all are equal because of eq
   ONES is ONES
@@ -74,6 +79,8 @@ check "using unset ref":
     end
     L1
   end
-  f() raises "unsettable"
+  L = f()
+  ref-get(L) is L
+  ref-get(ref-get(L)) is L
 end
 

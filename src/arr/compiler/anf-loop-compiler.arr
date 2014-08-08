@@ -740,7 +740,7 @@ compiler-visitor = {
   
   a-ref(self, l, maybe-ann):
     cases(Option) maybe-ann:
-      | none => c-exp(rt-method("makeBareRef", empty), empty)
+      | none => c-exp(rt-method("makeGraphableRef", empty), empty)
       | some(ann) => raise("Cannot handle annotations in refs yet")
     end
   end,
@@ -895,12 +895,12 @@ compiler-visitor = {
           | a-normal => j-expr(j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id))))
           | a-mutable =>
             val-id = j-id(js-id-of(id))
-            is-ref = rt-method("isRef", [list: val-id])
+            is-ref = rt-method("isGraphableRef", [list: val-id])
             ann-result = compile-ann(m.bind.ann, self)
             j-block(ann-result.other-stmts + [list:
               j-if(is-ref,
                 j-block([list:
-                  j-expr(rt-method("setRefAnn", [list: val-id, ann-result.exp])),
+                  j-expr(rt-method("addRefAnn", [list: val-id, ann-result.exp])),
                   j-expr(j-bracket-assign(j-id("dict"), j-str(n), val-id))
                 ]),
                 j-block([list:
@@ -940,7 +940,7 @@ compiler-visitor = {
                 ] +
                 compiled-anns.others.reverse() +
                 [list:
-                  j-return(rt-method("checkAnnArgs", [list:
+                  j-return(rt-method("checkConstructorArgs", [list:
                         j-list(false, compiled-anns.anns.reverse()),
                         j-list(false, compiled-vals),
                         j-list(false, compiled-locs),

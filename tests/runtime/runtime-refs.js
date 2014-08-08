@@ -18,7 +18,7 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
       beforeEach(function(){
         output = "";
         rt = rtLib.makeRuntime({'stdout' : stdout});
-        r1 = rt.makeBareRef();
+        r1 = rt.makeGraphableRef();
         r2 = rt.makeRef(rt.Number);
         addPyretMatchers(this, rt);
       });
@@ -26,42 +26,43 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
       describe("References", function() {
         it("should create unset references", function() {
           expect(r1).toPassPredicate(rt.isRef);
-          expect(rt.isRefAnnotated(r1)).toBe(false);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(function() { rt.getRef(r1) }).toThrow();
         });
 
-        it("should not allow setting references without ann", function() {
+        it("should not allow setting graphable refs", function() {
           expect(r1).toPassPredicate(rt.isRef);
-          expect(rt.isRefAnnotated(r1)).toBe(false);
+          expect(rt.isRefGraphable(r1)).toBe(true);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(function() { rt.getRef(r1) }).toThrow();
 
           var ttwo = rt.makeNumber(22)
           expect(function() { rt.setRef(r1, ttwo);}).toThrow();
-          expect(rt.isRefAnnotated(r1)).toBe(false);
+          expect(rt.isRefGraphable(r1)).toBe(true);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
         });
 
-
         it("should allow setting references", function() {
           expect(r1).toPassPredicate(rt.isRef);
-          expect(rt.isRefAnnotated(r1)).toBe(false);
+          expect(rt.isRefGraphable(r1)).toBe(true);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(function() { rt.getRef(r1) }).toThrow();
 
-          rt.setRefAnn(r1, rt.Number);
-          expect(rt.isRefAnnotated(r1)).toBe(true);
+          rt.addRefAnn(r1, rt.Number);
+          expect(rt.isRefSet(r1)).toBe(false);
+          expect(rt.isRefFrozen(r1)).toBe(false);
+
+          rt.refEndGraph(r1);
+          expect(rt.isRefGraphable(r1)).toBe(false);
           expect(rt.isRefSet(r1)).toBe(false);
           expect(rt.isRefFrozen(r1)).toBe(false);
 
           var ttwo = rt.makeNumber(22)
           rt.setRef(r1, ttwo);
-          expect(rt.isRefAnnotated(r1)).toBe(true);
           expect(rt.isRefSet(r1)).toBe(true);
           expect(rt.isRefFrozen(r1)).toBe(false);
           expect(rt.getRef(r1)).toBe(ttwo);

@@ -612,12 +612,8 @@ fun make-renamer(replacements :: SD.StringDict):
       a = A.s-atom(base, serial)
       k = a.key()
       if replacements.has-key(k):
-        print("Replacing " + k + " with " + torepr(replacements.get(k)))
         replacements.get(k)
       else:
-        when string-contains(k, "WOR") or string-contains(k, "BOS"):
-          print("Skipping replacement of " + k)
-        end
         a
       end
     end
