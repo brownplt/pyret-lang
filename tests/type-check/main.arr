@@ -9,12 +9,12 @@ exec-result = lam(result):
   str = result.code.pyret-to-js-runnable()
   X.exec(str, "test", ".", true, "Pyret", [list:])
 end
-compile-str = lam(str):
+compile-str = lam(filename, str):
   CM.compile-js(
           CM.start,
           "Pyret",
           str,
-          "test",
+          filename,
           CS.minimal-builtins,
           {
             check-mode : true,
@@ -38,9 +38,14 @@ check "These should all be good programs":
   base = "./tests/type-check/good/"
   good-progs = FL.list-files(base)
   for each(prog from good-progs):
-    prog-file = FL.open-input-file(base + prog)
+    filename  = base + prog
+    prog-file = FL.open-input-file(filename)
     prog-text = FL.read-file(prog-file)
-    compile-str(prog-text) satisfies CS.is-ok
+    result = compile-str(filename, prog-text)
+    result satisfies CS.is-ok
+    when CS.is-err(result):
+      "Should be okay: " is filename
+    end
     FL.close-output-file(prog-file)
   end
 end
@@ -49,9 +54,14 @@ check "These should all be bad programs":
   base = "./tests/type-check/bad/"
   bad-progs = FL.list-files(base)
   for each(prog from bad-progs):
-    prog-file = FL.open-input-file(base + prog)
+    filename  = base + prog
+    prog-file = FL.open-input-file(filename)
     prog-text = FL.read-file(prog-file)
-    compile-str(prog-text) satisfies CS.is-err
+    result    = compile-str(filename, prog-text)
+    result satisfies CS.is-err
+    when CS.is-ok(result):
+      "Should be error: " is filename
+    end
     FL.close-output-file(prog-file)
   end
 end
