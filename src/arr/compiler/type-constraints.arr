@@ -1,4 +1,5 @@
 provide { generate-constraints   : generate-constraints,
+          arrow-constraints      : arrow-constraints,
           empty-type-constraints : empty-type-constraints,
           satisfies-type         : satisfies-type,
           least-upper-bound      : least-upper-bound,
@@ -6,13 +7,15 @@ provide { generate-constraints   : generate-constraints,
           meet-fields            : meet-fields } end
 
 provide-types { TypeConstraint  : TypeConstraint,
-                TypeConstraints : TypeConstraints }
+                TypeConstraints : TypeConstraints,
+                Substitutions   : Substitutions }
 
 import ast as A
 import string-dict as SD
 import "compiler/type-structs.arr" as TS
 import "compiler/type-check-structs.arr" as TCS
 import "compiler/list-aux.arr" as LA
+import "compiler/compile-structs.arr" as C
 
 all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
@@ -29,6 +32,7 @@ t-top                = TS.t-top
 t-bot                = TS.t-bot
 t-app                = TS.t-app
 t-record             = TS.t-record
+t-forall             = TS.t-forall
 
 t-number             = TS.t-number
 t-string             = TS.t-string
@@ -41,6 +45,7 @@ empty-type-members   = TS.empty-type-members
 t-member             = TS.t-member
 type-members-lookup  = TS.type-members-lookup
 
+type TypeVariable    = TS.TypeVariable
 t-variable           = TS.t-variable
 is-t-top             = TS.is-t-top
 is-t-bot             = TS.is-t-bot
@@ -52,23 +57,32 @@ tc-info              = TCS.tc-info
 type Bindings        = TCS.Bindings
 empty-bindings       = TCS.empty-bindings
 
+type FoldResult      = TCS.FoldResult
+foldl2-result        = TCS.foldl2-result
+map-result           = TCS.map-result
+fold-result          = TCS.fold-result
+fold-errors          = TCS.fold-errors
+bind                 = TCS.bind
+
 type KeyEliminator   = (Type, SD.StringDict<Type>, Set<String> -> Type)
 type DirectionInfo   = Pair<Type, KeyEliminator>
+
+type Substitutions   = List<Pair<Type,Type>>
 
 example-t-var = t-var("A")
 example-a = t-var("A")
 example-b = t-var("B")
-example-c = t-arrow(A.dummy-loc, [list:], [list: example-b, example-a], example-b)
-example-d = t-arrow(A.dummy-loc, [list:], [list: example-b, example-b], example-a)
-example-e = t-arrow(A.dummy-loc, [list:], [list: example-a], example-a)
-example-f = t-arrow(A.dummy-loc, [list:], [list: example-e], example-b)
-example-g = t-arrow(A.dummy-loc, [list:], [list: example-b], example-e)
-example-h = t-arrow(A.dummy-loc, [list:], [list: example-e], example-e)
-example-i = t-arrow(A.dummy-loc, [list:], [list: example-b], example-d)
-example-j = t-arrow(A.dummy-loc, [list:], [list: example-b], example-b)
-example-k = t-arrow(A.dummy-loc, [list:], [list: example-c], example-b)
-example-l = t-arrow(A.dummy-loc, [list:], [list: example-b], example-c)
-example-m = t-arrow(A.dummy-loc, [list:], [list: example-d], example-b)
+example-c = t-arrow(A.dummy-loc, [list: example-b, example-a], example-b)
+example-d = t-arrow(A.dummy-loc, [list: example-b, example-b], example-a)
+example-e = t-arrow(A.dummy-loc, [list: example-a], example-a)
+example-f = t-arrow(A.dummy-loc, [list: example-e], example-b)
+example-g = t-arrow(A.dummy-loc, [list: example-b], example-e)
+example-h = t-arrow(A.dummy-loc, [list: example-e], example-e)
+example-i = t-arrow(A.dummy-loc, [list: example-b], example-d)
+example-j = t-arrow(A.dummy-loc, [list: example-b], example-b)
+example-k = t-arrow(A.dummy-loc, [list: example-c], example-b)
+example-l = t-arrow(A.dummy-loc, [list: example-b], example-c)
+example-m = t-arrow(A.dummy-loc, [list: example-d], example-b)
 example-n = t-name(A.dummy-loc, none, "Foo")
 example-o = t-top
 example-p = t-bot
@@ -79,28 +93,28 @@ example-a-promoted = t-top
 example-a-demoted  = t-bot
 example-b-promoted = example-b
 example-b-demoted  = example-b
-example-c-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted, example-a-demoted], example-b-promoted)
-example-c-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted, example-a-promoted], example-b-demoted)
-example-d-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted, example-b-demoted], example-a-promoted)
-example-d-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted, example-b-promoted], example-a-demoted)
-example-e-promoted = t-arrow(A.dummy-loc, [list:], [list: example-a-demoted], example-a-promoted)
-example-e-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-a-promoted], example-a-demoted)
-example-f-promoted = t-arrow(A.dummy-loc, [list:], [list: example-e-demoted], example-b-promoted)
-example-f-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-e-promoted], example-b-demoted)
-example-g-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-e-promoted)
-example-g-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-e-demoted)
-example-h-promoted = t-arrow(A.dummy-loc, [list:], [list: example-e-demoted], example-e-promoted)
-example-h-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-e-promoted], example-e-demoted)
-example-i-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-d-promoted)
-example-i-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-d-demoted)
-example-j-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-b-promoted)
-example-j-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-b-demoted)
-example-k-promoted = t-arrow(A.dummy-loc, [list:], [list: example-c-demoted], example-b-promoted)
-example-k-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-c-promoted], example-b-demoted)
-example-l-promoted = t-arrow(A.dummy-loc, [list:], [list: example-b-demoted], example-c-promoted)
-example-l-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-b-promoted], example-c-demoted)
-example-m-promoted = t-arrow(A.dummy-loc, [list:], [list: example-d-demoted], example-b-promoted)
-example-m-demoted  = t-arrow(A.dummy-loc, [list:], [list: example-d-promoted], example-b-demoted)
+example-c-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted, example-a-demoted], example-b-promoted)
+example-c-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted, example-a-promoted], example-b-demoted)
+example-d-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted, example-b-demoted], example-a-promoted)
+example-d-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted, example-b-promoted], example-a-demoted)
+example-e-promoted = t-arrow(A.dummy-loc, [list: example-a-demoted], example-a-promoted)
+example-e-demoted  = t-arrow(A.dummy-loc, [list: example-a-promoted], example-a-demoted)
+example-f-promoted = t-arrow(A.dummy-loc, [list: example-e-demoted], example-b-promoted)
+example-f-demoted  = t-arrow(A.dummy-loc, [list: example-e-promoted], example-b-demoted)
+example-g-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-e-promoted)
+example-g-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-e-demoted)
+example-h-promoted = t-arrow(A.dummy-loc, [list: example-e-demoted], example-e-promoted)
+example-h-demoted  = t-arrow(A.dummy-loc, [list: example-e-promoted], example-e-demoted)
+example-i-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-d-promoted)
+example-i-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-d-demoted)
+example-j-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-b-promoted)
+example-j-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-b-demoted)
+example-k-promoted = t-arrow(A.dummy-loc, [list: example-c-demoted], example-b-promoted)
+example-k-demoted  = t-arrow(A.dummy-loc, [list: example-c-promoted], example-b-demoted)
+example-l-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-c-promoted)
+example-l-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-c-demoted)
+example-m-promoted = t-arrow(A.dummy-loc, [list: example-d-demoted], example-b-promoted)
+example-m-demoted  = t-arrow(A.dummy-loc, [list: example-d-promoted], example-b-demoted)
 example-n-promoted = t-name(A.dummy-loc, none, "Foo")
 example-n-demoted  = t-name(A.dummy-loc, none, "Foo")
 example-o-promoted = t-top
@@ -115,6 +129,49 @@ fun dict-to-string(dict :: SD.StringDict) -> String:
         key + " => " + torepr(dict.get(key))
       end.join-str(", ")
     + "}"
+end
+
+fun create-substitutions(constraints :: TypeConstraints,
+                         unknowns :: List<Type % (is-t-var)>,
+                         r :: Type,
+                         info :: TCInfo) -> FoldResult<Substitutions>:
+  for map-result(unknown from unknowns):
+    constraints
+      .substitute(unknown, r, info)
+      .map(pair(unknown, _))
+  end
+end
+
+fun apply-substitutions(maybe-subs :: FoldResult<Substitutions>, typ :: Type):
+  for bind(substitutions from maybe-subs):
+    fold-result(for fold(curr from typ, substitution from substitutions):
+      curr.substitute(substitution.left, substitution.right)
+    end)
+  end
+end
+
+fun arrow-constraints(blame-loc :: A.Loc, a-forall :: List<TypeVariable>,
+                      a-args :: List<Type>, a-ret :: Type,
+                      b-args :: List<Type>, b-ret :: Type,
+                      info :: TCInfo) -> FoldResult<Substitutions>:
+  unknowns-list = for map(x from a-forall):
+    t-var(x.id)
+  end
+  unknowns-set = sets.list-to-list-set(unknowns-list)
+  ret-constraints = generate-constraints(a-ret, b-ret, [set: ], unknowns-set, info)
+  t-var-constraints = for fold2(wrapped from ret-constraints,
+                                unknown from unknowns-list, x from a-forall):
+    for bind(current from wrapped):
+      generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+        .map(_.meet(current, info))
+    end
+  end
+  handle-args = foldl2-result(C.incorrect-number-of-args(blame-loc))
+  for handle-args(curr from t-var-constraints,
+                  b-arg from b-args, a-arg from a-args):
+    generate-constraints(b-arg, a-arg, [set: ], unknowns-set, info)
+      .map(_.meet(curr, info))
+  end.bind(create-substitutions(_, unknowns-list, a-ret, info))
 end
 
 fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
@@ -139,15 +196,71 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         | t-var(b-id) => a-id == b-id
         | else => false
       end
-    | t-arrow(_, a-forall, a-args, a-ret) =>
+    | t-arrow(_, a-args, a-ret) =>
       cases(Type) there:
         | t-top => true
-        | t-arrow(_, b-forall, b-args, b-ret) =>
-          all2-strict(_ == _, a-forall, b-forall)
-                # order is important because contravariance!
-            and all2-strict(satisfies-type(_, _, info), b-args, a-args)
+        | t-arrow(_, b-args, b-ret) =>
+          # Order is important because contravariance!
+          all2-strict(satisfies-type(_, _, info), b-args, a-args)
             and satisfies-type(a-ret, b-ret, info)
         | else => false
+      end
+    | t-forall(a-introduces, a-onto) =>
+      fun process(maybe-subs :: FoldResult<Substitutions>, s :: Type, t :: Type):
+        cases(FoldResult<Type>) apply-substitutions(maybe-subs, s):
+          | fold-result(new-s) =>
+            satisfies-type(new-s, t, info)
+          | fold-errors(_) =>
+            false
+        end
+      end
+      cases(Type) a-onto:
+        | t-arrow(_, a-args, a-ret) =>
+          cases(Type) there:
+            | t-arrow(_, b-args, b-ret) =>
+              arrow-constraints(A.dummy-loc, a-introduces, a-args, a-ret, b-args, b-ret, info)
+                ^ process(_, a-onto, there)
+            | t-forall(b-introduces, b-onto) =>
+              cases(Type) b-onto:
+                | t-arrow(_, b-args, b-ret) =>
+                  arrow-constraints(A.dummy-loc, a-introduces, a-args, a-ret, b-args, b-ret, info)
+                    ^ process(_, a-onto, b-onto)
+                | else =>
+                  false # TODO(cody): Revisit this for more thought
+              end
+            | t-top => true
+            | else => false
+          end
+        | else =>
+          unknowns-list    = for map(x from a-introduces):
+            t-var(x.id)
+          end
+          unknowns-set     = sets.list-to-list-set(unknowns-list)
+          cases(Type) there:
+            | t-forall(b-introduces, b-onto) =>
+              onto-constraints = generate-constraints(a-onto, b-onto, [set: ], unknowns-set, info)
+              for fold2(wrapped from onto-constraints,
+                        unknown from unknowns-list, x from a-introduces):
+                for bind(current from wrapped):
+                  generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+                    .map(_.meet(current, info))
+                end
+              end
+                .bind(create-substitutions(_, unknowns-list, a-onto, info))
+                ^ process(_, a-onto, b-onto)
+            | t-top => true
+            | else =>
+              onto-constraints = generate-constraints(a-onto, there, [set: ], unknowns-set, info)
+              for fold2(wrapped from onto-constraints,
+                        unknown from unknowns-list, x from a-introduces):
+                for bind(current from wrapped):
+                  generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+                    .map(_.meet(current, info))
+                end
+              end
+                .bind(create-substitutions(_, unknowns-list, a-onto, info))
+                ^ process(_, a-onto, there)
+          end
       end
     | t-app(_, a-onto, a-args) =>
       cases(Type) there:
@@ -173,6 +286,16 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         | else => false
       end
   end
+where:
+  info = TCS.empty-tc-info()
+  a1 = t-var("A1")
+  forall-a = t-forall([list: t-variable(A.dummy-loc, "A1", t-top)],
+                      t-arrow(A.dummy-loc, [list: a1, a1], t-var("A1")))
+  forall-ab = t-forall([list: t-variable(A.dummy-loc, "A2", t-top),
+                              t-variable(A.dummy-loc, "B1", t-top)],
+                       t-arrow(A.dummy-loc, [list: t-var("A2"), t-var("B1")], t-var("A2")))
+  satisfies-type(forall-ab, forall-a, info) is true
+  satisfies-type(forall-a, forall-ab, info) is false
 end
 
 fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> Boolean:
@@ -185,8 +308,8 @@ fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCI
     pred = shares-name(b-field)
     good and
     cases(Option<TypeMember>) a-fields.find(pred):
-      | some(tm) =>
-        satisfies-type(tm.typ, b-field.typ, info)
+      | some(a-field) =>
+        satisfies-type(a-field.typ, b-field.typ, info)
       | none     =>
         false
     end
@@ -225,18 +348,14 @@ fun least-upper-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
     s
   else:
     cases(Type) s:
-      | t-arrow(_, s-forall, s-args, s-ret) =>
+      | t-arrow(_, s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(_, t-forall, t-args, t-ret) =>
-            if s-forall == t-forall:
-              cases (Option<List<Type>>) map2-strict(greatest-lower-bound(_, _, info), s-args, t-args):
-                | some(m-args) =>
-                  j-typ  = least-upper-bound(s-ret, t-ret, info)
-                  t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
-                | else => t-top
-              end
-            else:
-              t-top
+          | t-arrow(_, t-args, t-ret) =>
+            cases (Option<List<Type>>) map2-strict(greatest-lower-bound(_, _, info), s-args, t-args):
+              | some(m-args) =>
+                j-typ  = least-upper-bound(s-ret, t-ret, info)
+                t-arrow(A.dummy-loc, m-args, j-typ)
+              | else => t-top
             end
           | else => t-top
         end
@@ -267,17 +386,13 @@ fun greatest-lower-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
   else if satisfies-type(t, s, info):
     t
   else: cases(Type) s:
-      | t-arrow(s-l, s-forall, s-args, s-ret) => cases(Type) t:
-          | t-arrow(_, t-forall, t-args, t-ret) =>
-            if s-forall == t-forall:
-              cases (Option<List<Type>>) map2-strict(least-upper-bound(_, _, info), s-args, t-args):
-                | some(m-args) =>
-                  j-typ  = greatest-lower-bound(s-ret, t-ret, info)
-                  t-arrow(A.dummy-loc, s-forall, m-args, j-typ)
-                | else => t-bot
-              end
-            else:
-              t-bot
+      | t-arrow(s-l, s-args, s-ret) => cases(Type) t:
+          | t-arrow(_, t-args, t-ret) =>
+            cases (Option<List<Type>>) map2-strict(least-upper-bound(_, _, info), s-args, t-args):
+              | some(m-args) =>
+                j-typ  = greatest-lower-bound(s-ret, t-ret, info)
+                t-arrow(A.dummy-loc, m-args, j-typ)
+              | else => t-bot
             end
           | else => t-bot
         end
@@ -323,21 +438,28 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
       end
     | t-var(id) =>
       add-free-var(t)
-    | t-arrow(l, forall, args, ret) =>
-      new-binds = for fold(base from binds, typ from forall):
-        binds.set(typ.id, typ.upper-bound)
-      end
+    | t-arrow(l, args, ret) =>
       args
-        .map(free-vars(_, new-binds))
-        .foldl(union, free-vars(ret, new-binds))
+        .map(free-vars(_, binds))
+        .foldl(union, free-vars(ret, binds))
+    | t-forall(introduces, onto) =>
+      new-binds = for fold(base from binds, tv from introduces):
+        base.set(tv.id, tv.upper-bound)
+      end
+      free-vars(onto, new-binds)
     | t-app(l, onto, args) =>
       args
         .map(free-vars(_, binds))
         .foldl(union, free-vars(onto, binds))
+    | t-record(_, fields) =>
+      fields
+        .map(lam(field): free-vars(field.typ, binds);)
+        .foldl(union, [set: ])
     | t-top =>
       [set: ]
     | t-bot =>
       [set: ]
+    | else => raise("NYI(free-vars): " + torepr(t))
   end
 where:
   free-vars(example-a, empty-bindings) satisfies [set: example-a]._equals
@@ -372,20 +494,23 @@ fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
         typ
       | t-var(_) =>
         typ
-      | t-arrow(l, forall, args, ret) =>
-        bounded-free = for fold(base from sets.empty-list-set, x from forall):
-                         free = free-vars(x.upper-bound, binds)
-                         base.union(free)
-                       end
+      | t-arrow(l, args, ret) =>
+        new-args = args.map(there(_, binds, to-remove))
+        new-ret  = here(ret, binds, to-remove)
+        t-arrow(l, new-args, new-ret)
+      | t-forall(introduces, onto) =>
+        bounded-free = for fold(base from sets.empty-list-set, tv from introduces):
+          free = free-vars(tv.upper-bound, binds)
+          base.union(free)
+        end
         intersection = bounded-free.intersect(to-remove)
         set-is-empty = is-empty(intersection.to-list())
         if set-is-empty:
-          new-binds  = for fold(base from binds, x from forall):
-                         base.set(x.id, x.upper-bound)
-                       end
-          new-args = args.map(there(_, new-binds, to-remove))
-          new-ret  = here(ret, new-binds, to-remove)
-          t-arrow(l, forall, new-args, new-ret)
+          new-binds  = for fold(base from binds, x from introduces):
+            base.set(x.id, x.upper-bound)
+          end
+          new-onto   = here(onto, new-binds, to-remove)
+          t-forall(introduces, onto)
         else:
           to-typ
         end
@@ -497,7 +622,11 @@ sharing:
           | Bounds(u, v) =>
             j = least-upper-bound(s, u, info)
             m = greatest-lower-bound(t, v, info)
-            some(Bounds(j, m))
+            if satisfies-type(j, m, info):
+              some(Bounds(j, m))
+            else:
+              undefined
+            end
         end
     end
   end
@@ -509,7 +638,7 @@ fun is-constant(x :: Type % (is-t-var), r :: Type) -> Boolean:
     false
   else:
     cases(Type) r:
-      | t-arrow(l, forall, args, ret) =>
+      | t-arrow(l, args, ret) =>
         args-okay = for fold(base from true, arg from args):
                       base and is-constant(x, arg)
                     end
@@ -542,7 +671,7 @@ fun is-covariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
     true
   else:
     cases(Type) r:
-      | t-arrow(l, forall, args, ret) =>
+      | t-arrow(l, args, ret) =>
         var arg-is-contravariant = false
         args-okay = for fold(base from true, arg from args):
                       if is-constant(x, arg):
@@ -580,7 +709,7 @@ end
 
 fun is-contravariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
   cases(Type) r:
-    | t-arrow(l, forall, args, ret) =>
+    | t-arrow(l, args, ret) =>
       var arg-is-covariant = false
       args-okay = for fold(base from true, arg from args):
                     if is-constant(x, arg):
@@ -617,7 +746,7 @@ end
 
 fun is-invariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
   cases(Type) r:
-    | t-arrow(l, forall, args, ret) =>
+    | t-arrow(l, args, ret) =>
       var arg-is-invariant = false
       var arg-is-covariant = false
       for each(arg from args):
@@ -672,7 +801,7 @@ fun is-rigid-under(r :: Type, binds :: Bindings) -> Boolean:
                    end) or
   not(is-bottom-variable(r, binds)) or
   cases(Type) r:
-    | t-arrow(_, forall, arg-typs, ret) =>
+    | t-arrow(_, arg-typs, ret) =>
       # TODO(cody): Implement this
       raise("t-arrow not yet handled in is-rigid-under")
     | else =>
@@ -710,28 +839,27 @@ sharing:
         | some(t) =>
           curr._insert(key, t, info)
         | none =>
-          # TODO(cody): Don't blow up
-          raise("Cannot meet two TypeConstraint sets!")
+          type-constraints(curr.dict.set(key, none))
       end
     end
   end,
-  substitute(self, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> Type:
-    constraint = cases(Option<TypeConstraint>) self.get(x):
-                   | some(c) => c
-                   | none    =>
-                     # TODO(cody): Don't blow up
-                     raise("Can't satisfy constraints!")
-                 end
-    if is-constant(x, r) or is-covariant(x, r):
-      constraint.min()
-    else if is-contravariant(x, r):
-      constraint.max()
-    else if is-invariant(x, r) and constraint.is-tight(info):
-      constraint.min()
-    else if is-rigid(x, r) and constraint.is-rigid(info):
-      constraint.min()
-    else:
-      raise("Substitution is undefined! x = " + torepr(x) + ", r = " + torepr(r) + ", constraint = " + torepr(constraint))
+  substitute(self, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> FoldResult<Type>:
+    blame-loc = A.dummy-loc
+    cases(Option<TypeConstraint>) self.get(x):
+      | some(constraint) =>
+        if is-constant(x, r) or is-covariant(x, r):
+          fold-result(constraint.min())
+        else if is-contravariant(x, r):
+          fold-result(constraint.max())
+        else if is-invariant(x, r) and constraint.is-tight(info):
+          fold-result(constraint.min())
+        else if is-rigid(x, r) and constraint.is-rigid(info):
+          fold-result(constraint.min())
+        else:
+          fold-errors([list: C.unable-to-instantiate(blame-loc)])
+        end
+      | none    =>
+        fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
   tostring(self) -> String:
@@ -741,74 +869,102 @@ sharing:
   end
 end
 
-empty-type-constraints = type-constraints(SD.immutable-string-dict())
+# empty-type-constraints = type-constraints(SD.immutable-string-dict())
+# TODO(cody): Uncomment above and remove definitions in below functions below once `rec' keyword exists
 
-fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> TypeConstraints:
-  binds = info.binds
+fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<TypeVariable>, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo):
+  empty-type-constraints = type-constraints(SD.immutable-string-dict())
+  # TODO(cody): Check that foralls are the same
+  tmp-binds = for fold(curr from SD.immutable-string-dict(), y from s-introduces):
+    curr.set(y.id, y.upper-bound)
+  end
+  ks-ds = for fold(curr from pair(tmp-binds, empty-type-constraints), t-f from t-introduces):
+    key    = t-f.id
+    s-f-b  = if curr.left.has-key(key):
+               curr.left.get(key)
+             else:
+               t-f.upper-bound
+             end
+    result = matching(s-f-b, t-f.upper-bound, info.binds, to-remove, unknowns)
+    new-ks = curr.left.set(key, result.left)
+    new-ds = result.right.meet(curr.right, info)
+    pair(new-ks, new-ds)
+  end
+  introduced      = ks-ds.left
+  for-constraints = ks-ds.right
+  new-info        = for fold(curr from info, y from introduced.keys()):
+    TCS.add-binding(y, introduced.get(y), curr)
+  end
+  new-to-remove   = for fold(curr from to-remove, f from s-introduces + t-introduces):
+    curr.add(t-var(f.id))
+  end
+  {
+    introduced: introduced,
+    constraints: for-constraints,
+    info: new-info,
+    to-remove: new-to-remove
+  }
+end
+
+fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> FoldResult<TypeConstraints>:
+  empty-type-constraints = type-constraints(SD.immutable-string-dict())
+  binds   = info.binds
   s-free  = free-vars(s, binds)
   s-str   = s.tostring()
   t-free  = free-vars(t, binds)
   initial = empty-type-constraints
   if is-t-top(t):
-    initial
+    fold-result(initial)
   else if is-t-bot(s):
-    initial
+    fold-result(initial)
   else if unknowns.member(s) and is-empty(t-free.intersect(unknowns).to-list()):
     r = greatest-subtype(t, binds, to-remove)
-    initial.insert(s, Bounds(t-bot, r), info)
+    fold-result(initial.insert(s, Bounds(t-bot, r), info))
   else if unknowns.member(t) and is-empty(s-free.intersect(unknowns).to-list()):
     r = least-supertype(s, binds, to-remove)
-    initial.insert(t, Bounds(r, t-top), info)
+    fold-result(initial.insert(t, Bounds(r, t-top), info))
   else if s._equal(t):
-    initial
+    fold-result(initial)
   else if binds.has-key(s-str):
     generate-constraints(binds.get(s-str), t, to-remove, unknowns, info)
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-forall, s-args, s-ret) =>
+      | t-arrow(s-l, s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-forall, t-args, t-ret) =>
-            # TODO(cody): Check that foralls are the same
-            tmp-binds       = for fold(curr from SD.immutable-string-dict(), y from s-forall):
-                                curr.set(y.id, y.upper-bound)
-                              end
-            ks-ds = for fold(curr from pair(tmp-binds, empty-type-constraints), t-f from t-forall):
-                      key    = t-f.id
-                      s-f-b  = if curr.left.has-key(key):
-                                 curr.left.get(key)
-                               else:
-                                 t-f.upper-bound
-                               end
-                      result = matching(s-f-b, t-f.upper-bound, binds, to-remove, unknowns)
-                      new-ks = curr.left.set(key, result.left)
-                      new-ds = result.right.meet(curr.right, info)
-                      pair(new-ks, new-ds)
-                    end
-            introduced      = ks-ds.left
-            for-constraints = ks-ds.right
-            new-info        = for fold(curr from info, y from introduced.keys()):
-                                TCS.add-binding(y, introduced.get(y), curr)
-                              end
-            new-to-remove   = for fold(curr from to-remove, f from s-forall + t-forall):
-                                curr.add(t-var(f.id))
-                              end
-            arg-constraints = for fold2(curr from empty-type-constraints,
-                                        s-arg from s-args, t-arg from t-args):
-                                result = generate-constraints(t-arg, s-arg, new-to-remove, unknowns, new-info)
-                                curr.meet(result, info)
-                              end
-            ret-constraints = generate-constraints(s-ret, t-ret, new-to-remove, unknowns, new-info)
-            for-constraints.meet(arg-constraints.meet(ret-constraints, info), info)
+          | t-arrow(t-l, t-args, t-ret) =>
+            ret-constraints = generate-constraints(s-ret, t-ret, to-remove, unknowns, info)
+            args-fold = foldl2-result(C.incorrect-type(s.tostring(), s.toloc(), t.tostring(), t.toloc()))
+            for args-fold(curr from ret-constraints,
+                          s-arg from s-args, t-arg from t-args):
+              generate-constraints(t-arg, s-arg, to-remove, unknowns, info)
+                .map(_.meet(curr, info))
+            end
+          | t-forall(t-introduces, t-onto) =>
+            matched = handle-matching(empty, t-introduces, to-remove, unknowns, info)
+            generate-constraints(s, t-onto, matched.to-remove, unknowns, matched.info)
+              .map(_.meet(matched.constraints, info))
           | else =>
-            raise("What happens here?")
+            fold-errors([list: ]) # TODO(cody): Make CompileError for this
+        end
+      | t-forall(s-introduces, s-onto) =>
+        cases(Type) t:
+          | t-forall(t-introduces, t-onto) =>
+            matched = handle-matching(s-introduces, t-introduces, to-remove, unknowns, info)
+            generate-constraints(s-onto, t-onto, matched.to-remove, unknowns, matched.info)
+              .map(_.meet(matched.constraints, info))
+          | else =>
+            matched = handle-matching(s-introduces, empty, to-remove, unknowns, info)
+            generate-constraints(s-onto, t, matched.to-remove, unknowns, matched.info)
+              .map(_.meet(matched.constraints, info))
         end
       | else =>
-        raise("What happens here?")
+        fold-errors([list: ]) # TODO(cody): Make CompileError for this
     end
   end
 end
 
 fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> Pair<Type,TypeConstraints>:
+  empty-type-constraints = type-constraints(SD.immutable-string-dict())
   ru-union = to-remove.union(unknowns)
   if is-t-top(s) and is-t-top(t):
     pair(t-top, empty-type-constraints)
@@ -822,9 +978,17 @@ fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, un
     pair(s, empty-type-constraints)
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-forall, s-arg-typs, s-ret) =>
+      | t-arrow(s-l, s-arg-typs, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-forall, t-arg-typs, t-ret) =>
+          | t-arrow(t-l, t-arg-typs, t-ret) =>
+            # TODO(cody): Implement this section
+            raise("Not yet implemented")
+          | else =>
+            raise("The matching relationship should match everything")
+        end
+      | t-forall(s-introduces, s-onto) =>
+        cases(Type) t:
+          | t-forall(t-introduces, t-onto) =>
             # TODO(cody): Implement this section
             raise("Not yet implemented")
           | else =>
@@ -836,3 +1000,4 @@ fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, un
   end
 end
 
+empty-type-constraints = type-constraints(SD.immutable-string-dict())

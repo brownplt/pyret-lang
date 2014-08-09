@@ -152,6 +152,11 @@ data CompileError:
         + " but is given some at " + self.loc.tostring()
         + "."
     end
+  | unable-to-instantiate(loc :: A.Loc) with:
+    tostring(self):
+      "There is not enough information to instantiate the type at " + self.loc.tostring()
+         + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
+    end
 end
 
 data CompileTypeBinding:

@@ -21,6 +21,7 @@ t-top                     = TS.t-top
 t-bot                     = TS.t-bot
 t-app                     = TS.t-app
 t-record                  = TS.t-record
+t-forall                  = TS.t-forall
 
 type TypeVariable         = TS.TypeVariable
 t-variable                = TS.t-variable
@@ -122,18 +123,22 @@ fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
 end
 
 fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type) -> Type:
-  f-pairs = for map(f from forall):
-    new-id = gensym(f.id)
-    pair(f.id, t-variable(f.l, new-id, f.upper-bound))
+  if is-empty(forall):
+    t-arrow(l, args, ret)
+  else:
+    f-pairs = for map(f from forall):
+      new-id = gensym(f.id)
+      pair(f.id, t-variable(f.l, new-id, f.upper-bound))
+    end
+    new-forall = f-pairs.map(_.right)
+    new-args = for fold(curr from args, f-pair from f-pairs):
+      curr.map(_.substitute(t-var(f-pair.left), t-var(f-pair.right.id)))
+    end
+    new-ret = for fold(curr from ret, f-pair from f-pairs):
+      curr.substitute(t-var(f-pair.left), t-var(f-pair.right.id))
+    end
+    t-forall(new-forall, t-arrow(l, new-args, new-ret))
   end
-  new-forall = f-pairs.map(_.right)
-  new-args = for fold(curr from args, f-pair from f-pairs):
-    curr.map(_.substitute(t-var(f-pair.left), t-var(f-pair.right.id)))
-  end
-  new-ret = for fold(curr from ret, f-pair from f-pairs):
-    ret.substitute(t-var(f-pair.left), t-var(f-pair.right.id))
-  end
-  t-arrow(l, new-forall, new-args, new-ret)
 end
 
 fun to-type-member(field :: A.Member, info :: TCInfo) -> FoldResult<Pair<A.Member,TypeMember>>:
@@ -561,33 +566,35 @@ fun lookup-id(id, info :: TCInfo) -> Type:
   end
 end
 
-fun remove-foralls(l :: Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type, replacements :: List<Type>, info :: TCInfo) -> Type:
-  n = for fold2(curr from pair(args, ret), variable from forall, typ from replacements):
-        to-replace  = t-var(variable.id)
-        replacement = typ
-        upper       = variable.upper-bound
-        new-args    = curr.left.map(_.substitute(to-replace, replacement))
-        new-ret     = curr.right.substitute(to-replace, replacement)
-        check-and-log(typ, upper, pair(new-args, new-ret), info)
-      end
-  t-arrow(l, empty, n.left, n.right)
+fun remove-foralls(forall :: List<TypeVariable>, onto :: Type, replacements :: List<Type>, info :: TCInfo) -> Option<Type>:
+  for fold2-strict(curr from onto, variable from forall, replacement from replacements):
+    to-replace  = t-var(variable.id)
+    upper       = variable.upper-bound
+    new-curr    = curr.substitute(to-replace, replacement)
+    check-and-log(replacement, upper, new-curr, info)
+  end
 end
 
 fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, info :: TCInfo) -> SynthesisResult:
   synthesis(expr, info).bind(
   lam(new-expr, tmp-typ):
     cases(Type) tmp-typ:
-      | t-arrow(l2, forall, args, ret) =>
+      | t-forall(introduces, onto) =>
         for synth-bind(new-typs from map-result(to-type-std(_, info), params)):
-          new-typs-length = new-typs.length()
-          forall-length   = forall.length()
-          if new-typs-length == forall-length:
-            new-inst = A.s-instantiate(l, new-expr, params)
-            new-typ  = remove-foralls(l2, forall, args, ret, new-typs, info)
-            synthesis-result(new-inst, new-typ)
-          else:
-            synthesis-err([list: C.bad-type-instantiation(forall-length, new-typs-length, l)])
+          cases(Option<Type>) remove-foralls(introduces, onto, new-typs, info):
+            | some(new-typ) =>
+              new-inst = A.s-instantiate(l, new-expr, params)
+              synthesis-result(new-inst, new-typ)
+            | none =>
+              nt-l = new-typs.length()
+              i-l   = introduces.length()
+              synthesis-err([list: C.bad-type-instantiation(i-l, nt-l, l)])
           end
+        end
+      | t-bot =>
+        for synth-bind(new-typs from map-result(to-type-std(_, info), params)):
+          new-inst = A.s-instantiate(l, new-expr, params)
+          synthesis-result(new-inst, t-bot)
         end
       | else =>
         synthesis-err([list: C.incorrect-type(tmp-typ.tostring(), tmp-typ.toloc(), "a function", l)])
@@ -786,7 +793,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   new-info = forall.foldl(TCS.add-type-variable, info)
   maybe-arg-typs =
   cases(Type) expect-typ:
-    | t-arrow(l, _, expect-args, _) =>
+    | t-arrow(l, expect-args, _) =>
       expected = "a function with " + tostring(expect-args.length())
       found    = "a function with " + tostring(args.length())
       set-args = map2-result(C.incorrect-type(expected, fun-loc, found, l))
@@ -806,7 +813,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
           checking(body, ret-typ, new-info).bind(process(_, ret-typ))
         | none =>
           cases(Type) expect-typ:
-            | t-arrow(_, _, _, ret-typ) =>
+            | t-arrow(_, _, ret-typ) =>
               checking(body, ret-typ, new-info).bind(process(_, ret-typ))
             | else =>
               synthesis(body, new-info).check-bind(process)
@@ -817,55 +824,42 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
 end
 
 fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-typ :: Type, info :: TCInfo) -> Pair<CheckingMapResult,Type>:
+  bad-args    = C.incorrect-number-of-args(app-loc)
+  args-map2   = map2-checking(bad-args)
+  args-foldl2 = foldl2-result(bad-args)
   cases(Type) arrow-typ:
-    | t-arrow(_, forall, arg-typs, ret-typ) =>
-      bad-args    = C.incorrect-number-of-args(app-loc)
-      args-map2   = map2-checking(bad-args)
-      args-foldl2 = foldl2-result(bad-args)
-      if is-empty(forall):
-        new-args = for args-map2(arg from args, arg-typ from arg-typs):
-                     checking(arg, arg-typ, info)
-                   end
-        pair(new-args, ret-typ)
-      else:
-        unknowns-list = for map(x from forall):
-                          t-var(x.id)
-                        end
-        unknowns-set  = sets.list-to-tree-set(unknowns-list)
-        t-var-constraints = for fold2(current from empty-type-constraints,
-                                     unknown from unknowns-list, x from forall):
-                              generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info).meet(current, info)
-                            end
-        wrapped = for args-foldl2(curr from fold-result(empty-type-constraints),
-                                  arg from args, arg-typ from arg-typs):
-                    synthesis(arg, info).fold-bind(
-                    lam(_, synthesis-typ):
-                      result = generate-constraints(synthesis-typ, arg-typ, [set: ], unknowns-set, info)
-                      fold-result(curr.meet(result, info))
-                    end)
-                  end
-        cases(FoldResult<TypeConstraints>) wrapped:
-          | fold-result(args-constraints) =>
-            ret-constraints  = generate-constraints(ret-typ, expect-typ, [set: ], unknowns-set, info)
-            constraints = t-var-constraints.meet(args-constraints.meet(ret-constraints, info), info)
-            substitutions = for map(unknown from unknowns-list):
-                              pair(unknown, constraints.substitute(unknown, ret-typ, info))
-                            end
-            new-arg-typs  = for fold(curr from arg-typs, substitution from substitutions):
-                              for map(arg-typ from curr):
-                                arg-typ.substitute(substitution.left, substitution.right)
-                              end
-                            end
-            new-ret-typ   = for fold(curr from ret-typ, substitution from substitutions):
-                              curr.substitute(substitution.left, substitution.right)
-                            end
-            new-args      = for args-map2(arg from args, arg-typ from new-arg-typs):
-                              checking(arg, arg-typ, info)
-                            end
-            pair(new-args, new-ret-typ)
-          | fold-errors(errors) =>
-            pair(checking-map-errors(errors), t-top)
-        end
+    | t-arrow(_, arg-typs, ret-typ) =>
+      new-args = for args-map2(arg from args, arg-typ from arg-typs):
+        checking(arg, arg-typ, info)
+      end
+      pair(new-args, ret-typ)
+    | t-forall(introduces, onto) =>
+      cases(Type) onto:
+        | t-arrow(_, arg-typs, ret-typ) =>
+          fun process(arg :: A.Expr) -> FoldResult<Type>:
+            synthesis(arg, info).fold-bind(lam(_, typ): fold-result(typ);)
+          end
+          wrapped = map-result(process, args)
+                      .bind(TC.arrow-constraints(app-loc, introduces, arg-typs, ret-typ, _, expect-typ, info))
+          cases(FoldResult<Option<TC.Substitutions>>) wrapped:
+            | fold-result(substitutions) =>
+              new-arg-typs = for fold(curr from arg-typs, substitution from substitutions):
+                for map(arg-typ from curr):
+                  arg-typ.substitute(substitution.left, substitution.right)
+                end
+              end
+              new-ret-typ = for fold(curr from ret-typ, substitution from substitutions):
+                curr.substitute(substitution.left, substitution.right)
+              end
+              new-args = for args-map2(arg from args, arg-typ from new-arg-typs):
+                checking(arg, arg-typ, info)
+              end
+              pair(new-args, new-ret-typ)
+            | fold-errors(errors) =>
+              pair(checking-map-errors(errors), t-top)
+          end
+        | else =>
+          pair(checking-map-errors([list: C.apply-non-function(app-loc)]), t-top)
       end
     | t-bot =>
       new-args = for map-checking(arg from args):

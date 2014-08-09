@@ -177,7 +177,7 @@ end
 data Type:
   | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
   | t-var(id :: String)
-  | t-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type)
+  | t-arrow(l :: A.Loc, args :: List<Type>, ret :: Type)
   | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % (is-link))
   | t-top
   | t-bot
@@ -192,9 +192,9 @@ sharing:
         end
       | t-var(id) => id
 
-      | t-arrow(_, forall, args, ret) =>
-        "(<" + forall.map(_.tostring()).join-str(", ") + ">"
-          +      args.map(_.tostring()).join-str(", ")
+      | t-arrow(_, args, ret) =>
+        "("
+          + args.map(_.tostring()).join-str(", ")
           + " -> " + ret.tostring() + ")"
       | t-app(_, onto, args) =>
         onto.tostring() + "<" + args.map(_.tostring()).join-str(", ") + ">"
@@ -214,7 +214,7 @@ sharing:
   toloc(self) -> A.Loc:
     cases(Type) self:
       | t-name(l, _, _)     => l
-      | t-arrow(l, _, _, _) => l
+      | t-arrow(l, _, _)    => l
       | t-var(_)            => A.dummy-loc
       | t-app(l, _, _)      => l
       | t-top               => A.dummy-loc
@@ -228,9 +228,10 @@ sharing:
       new-typ
     else:
       cases(Type) self:
-        | t-arrow(l, forall, args, ret) => t-arrow(l, forall,
-            args.map(_.substitute(orig-typ, new-typ)),
-            ret.substitute(orig-typ, new-typ))
+        | t-arrow(l, args, ret) =>
+          new-args = args.map(_.substitute(orig-typ, new-typ))
+          new-ret  = ret.substitute(orig-typ, new-typ)
+          t-arrow(l, new-args, new-ret)
         | t-app(l, onto, args) =>
           new-onto = onto.substitute(orig-typ, new-typ)
           new-args = args.map(_.substitute(orig-typ, new-typ))
@@ -263,7 +264,7 @@ sharing:
               string-compare(a-id, b-id)
             ])
           | t-var(_)            => less-than
-          | t-arrow(_, _, _, _) => less-than
+          | t-arrow(_, _, _)    => less-than
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than
           | t-forall(_, _)      => less-than
@@ -277,19 +278,19 @@ sharing:
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
             else: equal;
-          | t-arrow(_, _, _, _) => less-than
+          | t-arrow(_, _, _)    => less-than
           | t-app(_, _, _)      => less-than
           | t-record(_,_)       => less-than
           | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-arrow(a-l, a-forall, a-args, a-ret) => cases(Type) other:
+      | t-arrow(a-l, a-args, a-ret) =>
+        cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(b-l, b-forall, b-args, b-ret) =>
+          | t-arrow(b-l, b-args, b-ret) =>
             fold-comparisons([list:
-              old-list-compare(a-forall, b-forall),
               old-list-compare(a-args, b-args),
               a-ret._comp(b-ret)
             ])
@@ -303,7 +304,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _, _) => greater-than
+          | t-arrow(_, _, _)    => greater-than
           | t-app(b-l, b-onto, b-args) =>
             fold-comparisons([list:
               old-list-compare(a-args, b-args),
@@ -318,7 +319,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _, _) => greater-than
+          | t-arrow(_, _, _)    => greater-than
           | t-app(_, _, _)      => greater-than
           | t-record(b-l, b-fields) =>
             list-compare(a-fields, b-fields)
@@ -330,7 +331,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _, _) => greater-than
+          | t-arrow(_, _, _)    => greater-than
           | t-app(_, _, _)      => greater-than
           | t-record(_, _)      => greater-than
           | t-forall(b-introduces, b-onto) =>
