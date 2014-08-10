@@ -21,40 +21,49 @@ data MNumList:
 end
 
 check:
-  graph:
+  m-graph:
     BOS = [mlist: WOR, PROV]
     PROV = [mlist: BOS]
     WOR = [mlist: BOS]
   end
 
-  graph:
+  m-graph:
     SF = [mlist: OAK, MV]
     MV = [mlist: SF]
     OAK = [mlist: SF]
   end
 
   SF is SF
-  SF!first!first is SF
-  SF!rest!first is MV
-  SF!rest!first!first is SF
-  SF!rest!first!first!first is OAK
+  ref-get(SF)!first!first is ref-get(SF)
+  ref-get(SF)!rest!first is ref-get(MV)
+  ref-get(SF)!rest!first!first is ref-get(SF)
+  ref-get(SF)!rest!first!first!first is ref-get(OAK)
 
-  # Succeed because isomorphic structurally
+  # Will never succeed because isomorphic structurally but == doesn't visit that
   (SF == BOS) is false
   (PROV == WOR) is false
 
-  # Should fail because frozen once initialized
-  SF!{first : PROV} raises "unsettable"
+  # Should eventually succeed when we have equal-now
+  # SF is[equal-now] BOS
+  # PROV is[equal-now] WOR
 
-  graph:
+  # Should succeed because settable later
+  ref-get(SF)!{first : ref-get(PROV)}
+  ref-get(SF)!first is ref-get(PROV)
+
+  # Should fail because PROV is a ref, not a MList itself
+  ref-get(SF)!{first : PROV} raises "MList"
+
+  m-graph:
     ONES = mnlink(1, ONES)
   end
 
 
   # These all are equal because of eq
   ONES is ONES
-  ONES!rest is ONES
-  ONES!rest!rest!rest!rest is ONES
+  ref-get(ONES)!rest is ref-get(ONES) # Lists inside are equal
+  ref-get(ONES).rest is ONES # Ref in the field is equal
+  ref-get(ONES)!rest!rest!rest!rest is ref-get(ONES)
 
 end
 
@@ -66,7 +75,7 @@ check "bogus refs":
       o!{x: 10}
     end
 
-    graph:
+    m-graph:
       R = f(R)
     end
     R
@@ -77,7 +86,7 @@ end
 
 check "using unset ref":
   fun f():
-    graph:
+    m-graph:
       L1 = L1
     end
     L1
@@ -88,13 +97,13 @@ check "using unset ref":
 end
 
 check "more programmatic cycles":
-  graph:
+  m-graph:
   OTTF = mnlink(1, mnlink(2, mnlink(3, mnlink(4, OTTF))))
   end
 
-  OTTF.first is 1
-  OTTF!rest!rest.first is 3
-  OTTF!rest!rest!rest!rest is OTTF
+  ref-get(OTTF).first is 1
+  ref-get(OTTF)!rest!rest.first is 3
+  ref-get(OTTF)!rest!rest!rest!rest is ref-get(OTTF)
 
   fun make-num-cycle(n):
     fun make-cycle(base-elt, m):
@@ -103,28 +112,27 @@ check "more programmatic cycles":
         mnlink(m, make-cycle(base-elt, m + 1))
       end
     end
-    graph:
+    m-graph:
     BASE = make-cycle(BASE, 1)
     end
     BASE
   end
 
   OTTF2 = make-num-cycle(4)
-  OTTF2.first is 1
-  OTTF2!rest!rest.first is 3
-  OTTF2!rest!rest!rest!rest is OTTF2
+  ref-get(OTTF2).first is 1
+  ref-get(OTTF2)!rest!rest.first is 3
+  ref-get(OTTF2)!rest!rest!rest!rest is ref-get(OTTF2)
 
 end
 
 check "post-initialization type error":
   fun f():
-    graph:
+    m-graph:
       ONES = mnlink(1, NOT-ONES)
       NOT-ONES = 42
     end
     ONES
   end
   f() raises "MNumList"
-
 end
 

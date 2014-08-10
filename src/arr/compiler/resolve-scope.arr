@@ -112,6 +112,7 @@ data BindingGroup:
   | letrec-binds(binds :: List<A.LetrecBind>)
   | type-let-binds(binds :: List<A.TypeLetBind>)
   | graph-binds(binds :: List<A.LetrecBind>)
+  | m-graph-binds(binds :: List<A.LetrecBind>)
 end
 
 fun bind-wrap(bg, expr) -> A.Expr:
@@ -125,10 +126,12 @@ fun bind-wrap(bg, expr) -> A.Expr:
           A.s-letrec(binds.first.l, binds.reverse(), expr)
         | type-let-binds(binds) =>
           A.s-type-let-expr(binds.first.l, binds.reverse(), expr)
-        | graph-binds(binds) =>
           # Graph bindings get appended in the right order because they
           # aren't accumulated in order the same way lets and letrecs are
+        | graph-binds(binds) =>
           A.s-graph-expr(binds.first.l, binds, expr)
+        | m-graph-binds(binds) =>
+          A.s-m-graph-expr(binds.first.l, binds, expr)
       end
   end
 end
@@ -168,6 +171,10 @@ fun add-graph-binds(bg :: BindingGroup, gbs :: List<A.LetBind>, stmts :: List<A.
   bind-wrap(bg, desugar-scope-block(stmts, graph-binds(gbs)))
 end
 
+fun add-m-graph-binds(bg :: BindingGroup, gbs :: List<A.LetBind>, stmts :: List<A.Expr>) -> A.Expr:
+  bind-wrap(bg, desugar-scope-block(stmts, m-graph-binds(gbs)))
+end
+
 fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) -> A.Expr:
   doc: ```
        Treating stmts as a block, resolve scope.
@@ -188,6 +195,11 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
             A.s-let-bind(lt.l, lt.name, lt.value)
           end
           add-graph-binds(binding-group, gbs, rest-stmts)
+        | s-m-graph(l, lets) =>
+          gbs = for map(lt from lets):
+            A.s-let-bind(lt.l, lt.name, lt.value)
+          end
+          add-m-graph-binds(binding-group, gbs, rest-stmts)
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
@@ -688,6 +700,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       binds-and-visitor = resolve-graph-binds(self, binds)
       visit-body = body.visit(binds-and-visitor.new-visitor)
       A.s-graph-expr(l, binds-and-visitor.new-binds, visit-body)
+    end,
+    s-m-graph-expr(self, l, binds, body):
+      binds-and-visitor = resolve-graph-binds(self, binds)
+      visit-body = body.visit(binds-and-visitor.new-visitor)
+      A.s-m-graph-expr(l, binds-and-visitor.new-binds, visit-body)
     end,
     s-for(self, l, iter, binds, ann, body):
       env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):

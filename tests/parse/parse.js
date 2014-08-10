@@ -434,6 +434,12 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("{ ref ref: 5 }")).toBe(false); 
     });
 
+    it("should parse mutable graph exprs", function() {
+      expect(parse("m-graph: WOR = 5 end")).not.toBe(false);
+      expect(parse("m-graph: WOR = [list: 1] BOS = [list: 3] end")).not.toBe(false);
+      expect(parse("m-graph: WOR = [list: 1] BOS = [list: 3] PVD = [list: BOS] end")).not.toBe(false);
+    });
+
 
   });
 });

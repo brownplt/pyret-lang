@@ -26,7 +26,7 @@ syn match delimeter '}'
 syn match delimeter ':'
 syn match delimeter '::'
 
-syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph: block: satisfies shadow lam type type-let provide-types newtype
+syn keyword basic var fun fun: end with: sharing: data import provide as try: except when for from check: where: doc: and or not else: if else cases is deriving raises mutable graph: m-graph: block: satisfies shadow lam type type-let provide-types newtype
 
 syn match op ' + '
 syn match op ' - '
