@@ -14,9 +14,9 @@ check "basic boxes":
   (b2 == b1) is false
 end
 
-check "bad lookups":
+check "alternative lookups":
   b = box(5)
-  b.v raises "ref"
+  ref-get(b.v) is 5
 
   b2 = { x: 5 }
   b2!x is 5
@@ -64,7 +64,7 @@ check "update multiple":
 
   m!{v1: "v1", v2: "v2", v3: "v3"}
   m!v1 is "v1"
-  m.v1 raises "ref in dot lookup"
+  ref-get(m.v1) is "v1"
   m!v2 is "v2"
   m!v3 is "v3"
   m.v4 is 4
