@@ -44,7 +44,7 @@ check:
   (PROV == WOR) is false
 
   # Should fail because frozen once initialized
-  SF!{first : PROV} raises "unsettable"
+  SF!{first : PROV} raises "frozen"
 
   graph:
     ONES = mnlink(1, ONES)
