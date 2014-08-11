@@ -911,7 +911,7 @@ compiler-visitor = {
         end
       end +
       [list:
-        j-return(rt-method("makeDataValue2", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length())]))
+        j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length())]))
       ]
 
       nonblank-anns = for filter(m from members):
@@ -998,7 +998,7 @@ compiler-visitor = {
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
           [list: 
             j-var(refl-fields-id, refl-fields),
-            j-var(refl-ref-fields-id, refl-fields),
+            j-var(refl-ref-fields-id, refl-ref-fields),
             j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field) + [list: match-field])),
             j-var(variant-brand-obj-id, variant-brands),
             j-expr(j-bracket-assign(
@@ -1022,7 +1022,7 @@ compiler-visitor = {
         | a-singleton-variant(_, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue2", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id), j-num(-1)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id), j-num(-1)])),
             predicate: predicate
           }
       end

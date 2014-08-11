@@ -847,10 +847,11 @@ function createMethodDict() {
       }
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $arity) {
+    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
+      ret.$app_fields_raw = $app_fields_raw;
       ret.$arity = $arity;
       return ret;
     }
@@ -859,7 +860,7 @@ function createMethodDict() {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
-      ret.$app_fields = $app_fields_raw;
+      ret.$app_fields_raw = $app_fields_raw;
       ret.$arity = $arity;
       return ret;
     }
@@ -1075,8 +1076,13 @@ function createMethodDict() {
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
               } else if(isDataValue(next)) {
-                if(!next.$app_fields_raw) { top.todo.pop(); top.todo.push(next.$name + "SKIP"); }
-                else{
+                if(!next.$app_fields_raw) {
+                  var vals = next.$app_fields(function(/* varargs */) {
+                    return Array.prototype.slice.call(arguments);   
+                  });
+                  stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
+                }
+                else {
                   var vals = next.$app_fields_raw(function(/* varargs */) {
                     return Array.prototype.slice.call(arguments);   
                   });
