@@ -460,11 +460,7 @@ fun desugar-expr(expr :: A.Expr):
             if lists.any(lam(s): s.name == "_match" end, shared): empty
             else: [list: A.s-data-field(l2, "_match", make-match(l2, vname, members))]
             end
-          do-torepr =
-            if lists.any(lam(s): s.name == "_torepr" end, shared): empty
-            else: [list: A.s-data-field(l2, "_torepr", make-torepr(l2, vname, members, is-singleton))]
-            end
-          do-match + do-torepr
+          do-match
         end
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>

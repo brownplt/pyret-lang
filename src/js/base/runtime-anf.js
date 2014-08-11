@@ -828,6 +828,9 @@ function createMethodDict() {
       return ret;
     }
 
+    function isDataValue(v) {
+      return hasProperty(v, "$name") && hasProperty(v, "$app_fields") && hasProperty(v, "$arity");
+    }
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -1034,6 +1037,11 @@ function createMethodDict() {
                 // the continuation stacklet will get the result value, and do the next two steps manually
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
+              } else if(isDataValue(next)) {
+                var vals = next.$app_fields(function(/* varargs */) {
+                  return Array.prototype.slice.call(arguments);   
+                });
+                stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];
@@ -1059,16 +1067,30 @@ function createMethodDict() {
               top.todo.pop();
               top.done.push(String(next));
             }
-          } else { // All fields of a nested object have been stringified; collapse
+          } else { // All fields of a nested object or data value have been stringified; collapse
             stack.pop();
             var prev = stack[stack.length - 1];
             prev.todo.pop();
-            var s = "{";
-            for (var i = 0; i < top.keys.length; i++) {
-              if (i > 0) { s += ", "; }
-              s += top.keys[i] + ": " + top.done[i];
+            var s = "";
+            if(hasProperty(top, "keys")) {
+              s += "{";
+              for (var i = 0; i < top.keys.length; i++) {
+                if (i > 0) { s += ", "; }
+                s += top.keys[i] + ": " + top.done[i];
+              }
+              s += "}";
+            } else if(hasProperty(top, "constructor")) {
+              s += top.constructor;
+              // Sentinel value for singleton constructors
+              if(top.arity !== -1) {
+                s += "(";
+                for(var i = top.done.length - 1; i >= 0; i--) {
+                  if(i < top.done.length - 1) { s += ", "; }
+                  s += top.done[i];
+                }
+                s += ")";
+              }
             }
-            s += "}";
             prev.done.push(s);
           }
         }
