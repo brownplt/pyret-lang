@@ -799,7 +799,7 @@ data Expr:
             self.body.tosource(), str-end)
         | some(name) => PP.surround(INDENT, 1,
             if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
-              + PP.dquote(name) + str-colon,
+              + PP.dquote(PP.str(name)) + str-colon,
             self.body.tosource(), str-end)
       end
     end

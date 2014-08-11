@@ -883,7 +883,7 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(l2, base-id, brands-id, vname, members, refl-name, refl-fields):
+    fun make-variant-constructor(l2, base-id, brands-id, vname, members, refl-name, refl-ref-fields, refl-fields):
       member-names = members.map(lam(m): m.bind.id.toname();)
       member-ids = members.map(lam(m): m.bind.id.tostring();)
 
@@ -911,7 +911,7 @@ compiler-visitor = {
         end
       end +
       [list:
-        j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-fields, j-num(members.length())]))
+        j-return(rt-method("makeDataValue2", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length())]))
       ]
 
       nonblank-anns = for filter(m from members):
@@ -960,14 +960,26 @@ compiler-visitor = {
         ])
       visit-with-fields = v.with-members.map(_.visit(self))
 
-      refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-name = j-str(vname)
-      refl-fields =
+      refl-ref-fields-id = js-id-of(compiler-name(vname + "_getfieldsref"))
+      refl-ref-fields =
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), 
                       members.map(lam(m):
                           get-field-ref(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
+                        end)))]))
+          | a-singleton-variant(_, _, _) =>
+            j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))
+        end
+
+      refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
+      refl-fields =
+        cases(N.AVariant) v:
+          | a-variant(_, _, _, members, _) =>
+            j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), 
+                      members.map(lam(m):
+                          get-field(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
                         end)))]))
           | a-singleton-variant(_, _, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))
@@ -986,9 +998,9 @@ compiler-visitor = {
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
           [list: 
             j-var(refl-fields-id, refl-fields),
+            j-var(refl-ref-fields-id, refl-fields),
             j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field) + [list: match-field])),
             j-var(variant-brand-obj-id, variant-brands),
-            j-var(refl-fields-id, refl-fields),
             j-expr(j-bracket-assign(
               j-id(variant-brand-obj-id),
               j-dot(external-brand, "_brand"),
@@ -1001,7 +1013,7 @@ compiler-visitor = {
           constr-vname = js-id-of(vname)
           compiled-constr =
             make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members,
-              refl-name, j-id(refl-fields-id))
+              refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id))
           {
             stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],
             constructor: j-field(vname, j-id(constr-vname)),
@@ -1010,7 +1022,7 @@ compiler-visitor = {
         | a-singleton-variant(_, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1)])),
+            constructor: j-field(vname, rt-method("makeDataValue2", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id), j-num(-1)])),
             predicate: predicate
           }
       end

@@ -855,6 +855,16 @@ function createMethodDict() {
       return ret;
     }
 
+    function makeDataValue2(dict, brands, $name, $app_fields, $app_fields_raw, $arity) {
+      var ret = new PObject(dict, brands);
+      ret.$name = $name;
+      ret.$app_fields = $app_fields;
+      ret.$app_fields = $app_fields_raw;
+      ret.$arity = $arity;
+      return ret;
+    }
+
+
     function isDataValue(v) {
       return hasProperty(v, "$name") && hasProperty(v, "$app_fields") && hasProperty(v, "$arity");
     }
@@ -1065,10 +1075,13 @@ function createMethodDict() {
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
               } else if(isDataValue(next)) {
-                var vals = next.$app_fields(function(/* varargs */) {
-                  return Array.prototype.slice.call(arguments);   
-                });
-                stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
+                if(!next.$app_fields_raw) { top.todo.pop(); top.todo.push(next.$name + "SKIP"); }
+                else{
+                  var vals = next.$app_fields_raw(function(/* varargs */) {
+                    return Array.prototype.slice.call(arguments);   
+                  });
+                  stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
+                }
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];
@@ -3208,6 +3221,7 @@ function createMethodDict() {
         'makeRef' : makeRef,
         'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
+        'makeDataValue2': makeDataValue2,
         'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
 
