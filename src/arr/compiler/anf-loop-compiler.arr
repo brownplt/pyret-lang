@@ -960,6 +960,7 @@ compiler-visitor = {
         ])
       visit-with-fields = v.with-members.map(_.visit(self))
 
+      refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-name = j-str(vname)
       refl-fields =
         cases(N.AVariant) v:
@@ -971,12 +972,23 @@ compiler-visitor = {
           | a-singleton-variant(_, _, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))
         end
+
+      fun member-count(shadow v):
+        cases(N.AVariant) v:
+          | a-variant(_, _, _, members, _) => members.length()
+          | a-singleton-variant(_, _, _) => 0
+        end
+      end
+
+      match-field = j-field("_match", rt-method("makeMatch", [list: j-id(refl-fields-id), refl-name, j-num(member-count(v))]))
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
           [list: 
-            j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field))),
+            j-var(refl-fields-id, refl-fields),
+            j-var(variant-base-id, j-obj(shared-fields + visit-with-fields.map(_.field) + [list: match-field])),
             j-var(variant-brand-obj-id, variant-brands),
+            j-var(refl-fields-id, refl-fields),
             j-expr(j-bracket-assign(
               j-id(variant-brand-obj-id),
               j-dot(external-brand, "_brand"),
@@ -989,7 +1001,7 @@ compiler-visitor = {
           constr-vname = js-id-of(vname)
           compiled-constr =
             make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members,
-              refl-name, refl-fields)
+              refl-name, j-id(refl-fields-id))
           {
             stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],
             constructor: j-field(vname, j-id(constr-vname)),
@@ -998,7 +1010,7 @@ compiler-visitor = {
         | a-singleton-variant(_, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, refl-fields, j-num(-1)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1)])),
             predicate: predicate
           }
       end

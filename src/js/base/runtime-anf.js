@@ -820,6 +820,32 @@ function createMethodDict() {
       return new PObject(dict, brands);
     }
 
+    function makeMatch(name, arity) {
+      var match;
+      var args = "";
+      var argBase = "x";
+      if(arity === -1) {
+        return makeMethod(function(self, handlers, els) {
+          if(hasField(handlers, $name)) {
+            return getField(handlers, $name).app();
+          }
+          else {
+            return 
+          }
+        }, { length: 3 });
+      }
+      else {
+        return makeMethod(function(self, handlers, els) {
+          if(hasField(handlers, $name)) {
+            return getField(handlers, $name).app.apply(null, self.$app_fields(function() { return arguments; }));
+          }
+          else {
+            return 
+          }
+        }, { length: 3 });
+      }
+    }
+
     function makeDataValue(dict, brands, $name, $app_fields, $arity) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
@@ -3181,6 +3207,7 @@ function createMethodDict() {
         'makeRef' : makeRef,
         'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
+        'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
 
         'checkRefAnns' : checkRefAnns,

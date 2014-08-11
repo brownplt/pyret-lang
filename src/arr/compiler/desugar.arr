@@ -456,11 +456,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         fun make-methods(l2, vname, members, is-singleton):
-          do-match =
-            if lists.any(lam(s): s.name == "_match" end, shared): empty
-            else: [list: A.s-data-field(l2, "_match", make-match(l2, vname, members))]
-            end
-          do-match
+          empty
         end
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
