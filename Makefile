@@ -378,9 +378,14 @@ release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR)/phase1
 release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
+test-release: release-gzip
+	cd $(RELEASE_DIR) && \
+	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
 else
 release-gzip:
 	$(error Cannot release from this platform)
 release:
+	$(error Cannot release from this platform)
+test-release: release-gzip
 	$(error Cannot release from this platform)
 endif
