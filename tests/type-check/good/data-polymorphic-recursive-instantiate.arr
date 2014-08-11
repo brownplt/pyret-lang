@@ -4,7 +4,7 @@ data Natural:
 end
 
 data My-List<A>:
-  | my-empty() # less clear what to do with non-thunk version
+  | my-empty()
   | my-link(first :: A, rest :: My-List<A>)
 end
 

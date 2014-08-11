@@ -5,4 +5,4 @@ sharing:
   description : "These are the natural numbers"
 end
 
-print(zero.description)
+a :: String = print(zero.description)

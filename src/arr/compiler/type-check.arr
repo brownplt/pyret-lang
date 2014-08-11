@@ -231,44 +231,76 @@ fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type, field-nam
   end, info)
 end
 
-fun mk-variant-constructor(variant :: TypeVariant, creates :: Type, params :: List<TypeVariable>) -> Type:
-  cases(TypeVariant) variant:
-    | t-variant(l, _, fields, _) =>
-      mk-arrow(l, params, fields.map(_.typ), creates)
-    | t-singleton-variant(l, _, _) =>
-      creates
+fun mk-variant-constructor(variant :: TypeVariant, brander-typ :: Type, params :: List<TypeVariable>) -> Type:
+  if is-empty(params):
+    cases(TypeVariant) variant:
+      | t-variant(l, _, fields, _) =>
+        mk-arrow(l, params, fields.map(_.typ), brander-typ)
+      | t-singleton-variant(l, _, _) =>
+        brander-typ
+    end
+  else:
+    creates = t-app(variant.l, brander-typ, params.map(lam(x): t-var(x.id);))
+    cases(TypeVariant) variant:
+      | t-variant(l, _, fields, _) =>
+        mk-arrow(l, params, fields.map(_.typ), creates)
+      | t-singleton-variant(l, _, _) =>
+        t-forall(params, creates)
+    end
   end
 end
 
 fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check :: Option<A.Expr>, info :: TCInfo) -> SynthesisResult:
-  for synth-bind(variants-result from map-result(to-type-variant(_, info), variants)):
-    for synth-bind(fields-result from map-result(to-type-member(_, info), fields)):
-      if info.branders.has-key(namet.key()):
-        t-vars = for map(param from params):
-          t-variable(param.l, param.key(), t-top, invariant)
-        end
+  if info.branders.has-key(namet.key()):
+    brander-typ    = info.branders.get(namet.key())
+    tmp-t-vars = for map(param from params):
+      t-variable(l, param.key(), t-top, bivariant)
+    end
 
+    fun save-datatype(variant-typs :: List<TypeVariant>,
+                      t-vars :: List<TypeVariable>,
+                      datatype-fields :: TS.TypeMembers
+    ) -> DataType:
+      tmp-datatype = t-datatype(name, t-vars, variant-typs, datatype-fields)
+      info.data-exprs.set(brander-typ.tostring(), tmp-datatype)
+      tmp-datatype
+    end
+
+    # Save datatype before processing variants
+    save-datatype(empty, tmp-t-vars, TS.empty-type-members)
+
+    for synth-bind(variants-result from map-result(to-type-variant(_, info), variants)):
+      split-variants = split(variants-result)
+      variant-typs   = split-variants.right
+      new-variants   = split-variants.left
+
+      t-vars = for map(tmp-t-var from tmp-t-vars):
+        variance = for fold(base from constant, variant-typ from variant-typs):
+          for fold(curr from base, field from variant-typ.fields):
+            TC.determine-variance(field.typ, tmp-t-var.id, info).join(curr)
+          end
+        end
+        t-variable(tmp-t-var.l, tmp-t-var.id, tmp-t-var.upper-bound, variance)
+      end
+
+      variants-meet  = cases(List<TypeMember>) variant-typs.map(TS.type-variant-fields):
+        | empty => TS.empty-type-members
+        | link(f, r) => r.foldl(TC.meet-fields(_, _, info), f)
+      end
+
+      # Save datatype with new variant info before processing shared fields
+      save-datatype(variant-typs, t-vars, variants-meet)
+
+      for synth-bind(fields-result from map-result(to-type-member(_, info), fields)):
         # TODO(cody): Handle mixins and _check
-        # TODO(cody): Join common fields in variants for type-datatype
-        split-variants = split(variants-result)
         split-fields   = split(fields-result)
 
-        variant-typs   = split-variants.right
+        # Save the final processed datatype
+        # TODO(cody): If there are any common fields between the two
+        # TypeMembers, then the lub should be calculated for that field
+        save-datatype(variant-typs, t-vars, variants-meet + split-fields.right)
 
-        variants-meet  = cases(List<TypeMember>) variant-typs:
-          | empty => TS.empty-type-members
-          | link(f, r) =>
-            for fold(curr from TS.type-variant-fields(f), tv from r):
-              TC.meet-fields(curr, TS.type-variant-fields(tv), info)
-            end
-        end
-
-        # Save processed datatype
-        brander-typ    = info.branders.get(namet.key())
-        type-datatype  = t-datatype(name, t-vars, variant-typs, variants-meet + split-fields.right)
-        info.data-exprs.set(brander-typ.tostring(), type-datatype)
-
-        new-data-expr  = A.s-data-expr(l, name, namet, params, mixins, variants, split-fields.left, _check)
+        new-data-expr  = A.s-data-expr(l, name, namet, params, mixins, new-variants, split-fields.left, _check)
         brand-test-typ = mk-arrow(_, empty, [list: t-top], t-boolean)
         data-fields    = link(t-member(name, brand-test-typ(l)),
         for map(variant from variant-typs):
@@ -281,10 +313,22 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
 
         # Return result of synthesis
         synthesis-result(new-data-expr, data-expr-typ)
-      else:
-        raise("Cannot find brander name in brander dictionary!")
       end
     end
+  else:
+    raise("Cannot find brander name in brander dictionary!")
+  end
+end
+
+fun instantiate(l :: A.Loc, base-typ :: Type, data-type :: DataType, args :: List<Type>, info :: TCInfo) -> FoldResult<Option<Type>>:
+  bound = for map2-strict(param from data-type.params, arg from args):
+    check-and-log(arg, param.upper-bound, arg, info)
+  end
+  cases(Option<List<Type>>) bound:
+    | some(lst) =>
+      fold-result(some(t-app(l, base-typ, lst)))
+    | none =>
+      fold-errors([list: C.bad-type-instantiation(data-type.params.length(), args.length(), l)])
   end
 end
 
@@ -318,7 +362,15 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         fold-result(some(t-record(l, new-fields)))
       end
     | a-app(l, ann, args) =>
-      raise("a-app not yet handled:" + torepr(in-ann))
+      for bind(base-typ from to-type-std(ann, info)):
+        cases(Option<DataType>) TCS.get-data-type(base-typ, info):
+          | some(data-type) =>
+            map-result(to-type-std(_, info), args)
+              .bind(instantiate(l, base-typ, data-type, _, info))
+          | none =>
+            fold-errors([list: C.given-parameters(base-typ.tostring(), l)])
+        end
+      end
     | a-pred(l, ann, exp) =>
       for bind(typ from to-type-std(ann, info)):
         expect-typ = mk-arrow(l, empty, [list: typ], t-boolean)
@@ -371,7 +423,7 @@ fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> SynthesisResult:
-  new-info = params.foldl(lam(param, tmp-info): TCS.add-binding(param.key(), t-top, tmp-info);, info)
+  new-info = params.map(_.key()).foldl(TCS.add-binding(_, t-top, _), info)
   for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
     fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
       tmp-arrow = t-arrow(l, arg-typs, ret-typ)
@@ -796,7 +848,7 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
 end
 
 fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
-  new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
+  new-info = params.map(_.key()).foldl(TCS.add-binding(_, t-top, _), info)
   maybe-arg-typs =
   cases(Type) expect-typ:
     | t-arrow(l, expect-args, _) =>
@@ -825,7 +877,17 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
         | none =>
           cases(Type) expect-typ:
             | t-arrow(_, _, ret-typ) =>
-              checking(body, ret-typ, new-info).bind(process(_, ret-typ))
+              cases(List<A.Name>) params:
+                | empty =>
+                  checking(body, ret-typ, new-info).bind(process(_, ret-typ))
+                | link(_, _) =>
+                  # If the programmer has not written a return type and this is
+                  # a polymorphic function, then the return type may have the
+                  # type of one of the type variables. In this case, we should
+                  # just synthesize the return type. For an example, see:
+                  #   tests/type-check/good/lam-forall-check.arr
+                  synthesis(body, new-info).check-bind(process)
+              end
             | else =>
               synthesis(body, new-info).check-bind(process)
           end
@@ -1092,7 +1154,6 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
     | s-paren(_, _)                 => raise("s-paren should have already been desugared")
   end
 end
-
 
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:

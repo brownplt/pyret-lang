@@ -13,6 +13,7 @@ provide-types { TypeConstraint  : TypeConstraint,
 
 import ast as A
 import string-dict as SD
+import srcloc as SL
 import "compiler/type-structs.arr" as TS
 import "compiler/type-check-structs.arr" as TCS
 import "compiler/list-aux.arr" as LA
@@ -69,6 +70,7 @@ empty-bindings       = TCS.empty-bindings
 
 type FoldResult      = TCS.FoldResult
 foldl2-result        = TCS.foldl2-result
+foldl3-result        = TCS.foldl3-result
 map-result           = TCS.map-result
 fold-result          = TCS.fold-result
 fold-errors          = TCS.fold-errors
@@ -96,6 +98,11 @@ example-m = t-arrow(A.dummy-loc, [list: example-d], example-b)
 example-n = t-name(A.dummy-loc, none, "Foo")
 example-o = t-top
 example-p = t-bot
+
+all-examples = [list: example-a, example-b, example-c, example-d, example-e,
+                      example-f, example-g, example-h, example-i, example-j,
+                      example-k, example-l, example-m, example-n, example-o,
+                      example-p]
 
 test-to-remove = [set: example-a]
 test-info      = TCS.add-binding(example-a.tostring(), t-top, TCS.empty-tc-info())
@@ -277,7 +284,31 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-app(_, b-onto, b-args) =>
-          a-onto._equal(b-onto) and all2-strict(lam(a, b): a.equal(b);, a-args, b-args)
+          a-onto._equal(b-onto) and
+          cases(Option<DataType>) TCS.get-data-type(a-onto, info):
+            | some(data-type) =>
+              params-length = data-type.params.length()
+              a-args-length = a-args.length()
+              b-args-length = b-args.length()
+              (params-length == a-args-length) and
+              (a-args-length == b-args-length) and
+              for fold3(base from true, param from data-type.params, a-arg from a-args, b-arg from b-args):
+                base and cases(Variance) param.variance:
+                  | constant      =>
+                    raise("Internal type-checking error: Please send this program to the developers.")
+                  | bivariant     =>
+                    satisfies-type(a-arg, b-arg, info) or satisfies-type(b-arg, a-arg, info)
+                  | covariant     =>
+                    satisfies-type(a-arg, b-arg, info)
+                  | contravariant =>
+                    satisfies-type(b-arg, a-arg, info)
+                  | invariant     =>
+                    satisfies-type(a-arg, b-arg, info) and satisfies-type(b-arg, a-arg, info)
+                end
+              end
+            | none =>
+              false
+          end
         | t-record(_, there-fields) =>
           cases(Option<Type>) TCS.get-data-type(here, info):
             | some(data-type) =>
@@ -305,8 +336,40 @@ where:
   forall-ab = t-forall([list: t-variable(A.dummy-loc, "A2", t-top, invariant),
                               t-variable(A.dummy-loc, "B1", t-top, contravariant)],
                        t-arrow(A.dummy-loc, [list: t-var("A2"), t-var("B1")], t-var("A2")))
+  num-fun = t-arrow(A.dummy-loc, [list: t-number, t-number], t-number)
   satisfies-type(forall-ab, forall-a, info) is true
   satisfies-type(forall-a, forall-ab, info) is false
+  satisfies-type(forall-ab, num-fun, info) is true
+  satisfies-type(forall-a, num-fun, info) is true
+  for map(example from all-examples):
+    example satisfies satisfies-type(_, t-top, info)
+  end
+  info.data-exprs.set("List",
+    TS.t-datatype("List",
+                 [list: t-variable(A.dummy-loc, "C", t-top, covariant)],
+                 empty, empty))
+  t-list = lam(x): t-app(A.dummy-loc, t-name(A.dummy-loc, none, "List"), [list: x]);
+  a = t-forall([list: t-variable(A.dummy-loc, "A", t-top, covariant)], t-list(t-var("A")))
+  b = t-forall([list: t-variable(A.dummy-loc, "B", t-top, covariant)], t-list(t-var("B")))
+  c = t-list(t-top)
+  d = t-list(t-number)
+  satisfies-type(a, b, info) is true
+  satisfies-type(a, c, info) is true
+  satisfies-type(b, c, info) is true
+  satisfies-type(b, a, info) is true
+  satisfies-type(c, a, info) is false
+  satisfies-type(c, b, info) is false
+  satisfies-type(a, a, info) is true
+  satisfies-type(b, b, info) is true
+  satisfies-type(c, c, info) is true
+
+  satisfies-type(d, b, info) is false
+  satisfies-type(d, c, info) is true
+  satisfies-type(b, d, info) is true
+  satisfies-type(d, a, info) is false
+  satisfies-type(c, d, info) is false
+  satisfies-type(a, d, info) is true
+  satisfies-type(d, d, info) is true
 end
 
 fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> Boolean:
@@ -524,6 +587,56 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
         else:
           to-typ
         end
+      | t-app(l, onto, args) =>
+        new-onto = here(onto, to-remove, info)
+        fun process-args(params :: List<TypeVariable>, typs :: List<Type>, new-args :: List<Type>) -> Type:
+          cases(List<TypeVariable>) params:
+            | link(param, params-rest) =>
+              cases(List<Type>) typs:
+                | link(arg-typ, typs-rest) =>
+                  fun process(t):
+                    process-args(params-rest, typs-rest, link(t, new-args))
+                  end
+                  cases(Variance) param.variance:
+                    | constant =>
+                      raise("Internal type-checking error: Please send this program to the developers")
+                    | covariant =>
+                      process(here(arg-typ, to-remove, info))
+                    | contravariant =>
+                      process(there(arg-typ, to-remove, info))
+                    | invariant =>
+                      arg-typ-free = free-vars(arg-typ, info.binds)
+                      intersection = arg-typ-free.intersect(to-remove)
+                      set-is-empty = is-empty(intersection.to-list())
+                      if set-is-empty:
+                        process(arg-typ)
+                      else:
+                        to-typ
+                      end
+                  end
+                | empty =>
+                  to-typ
+              end
+            | empty =>
+              cases(List<Type>) typs:
+                | link(_, _) =>
+                  to-typ
+                | empty =>
+                  t-app(l, new-onto, new-args.reverse())
+              end
+          end
+        end
+        cases(Option<DataType>) TCS.get-data-type(onto, info):
+          | some(data-type) =>
+            process-args(data-type.params, args, empty)
+          | none =>
+            to-typ
+        end
+      | t-record(l, fields) =>
+        new-fields = for map(field from fields):
+          t-member(field.field-name, here(field.typ, to-remove, info))
+        end
+        t-record(l, new-fields)
       | t-top =>
         t-top
       | t-bot =>
@@ -790,7 +903,7 @@ sharing:
         variance = determine-variance(r, x.id, info)
         if TS.is-constant(variance) or TS.is-covariant(variance):
           fold-result(constraint.min())
-        else if TS.is-contravariant(variance):
+        else if TS.is-bivariant(variance) or TS.is-contravariant(variance):
           fold-result(constraint.max())
         else if TS.is-invariant(variance) and constraint.is-tight(info):
           fold-result(constraint.min())
@@ -897,6 +1010,36 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
             matched = handle-matching(s-introduces, empty, to-remove, unknowns, info)
             generate-constraints(blame-loc, s-onto, t, matched.to-remove, unknowns, matched.info)
               .map(_.meet(matched.constraints, info))
+        end
+      | t-app(s-l, s-onto, s-args) =>
+        cases(Type) t:
+          | t-app(t-l, t-onto, t-args) =>
+            onto-constraints = generate-constraints(blame-loc, s-onto, t-onto, to-remove, unknowns, info)
+            cases(Option<DataType>) TCS.get-data-type(s-onto, info):
+              | some(data-type) =>
+                args-fold = foldl3-result(C.incorrect-type(s.tostring(), s-l, t.tostring(), t-l))
+                for args-fold(curr from onto-constraints,
+                              param from data-type.params,
+                              s-arg from s-args, t-arg from t-args):
+                  result-a = generate-constraints(blame-loc, s-arg, t-arg, to-remove, unknowns, info)
+                  result-b = generate-constraints(blame-loc, t-arg, s-arg, to-remove, unknowns, info)
+                  cases(Variance) param.variance:
+                    | constant =>
+                      raise("Internal type-checking error: Please send this program to the developers.")
+                    | bivariant     => result-a
+                    | covariant     => result-a
+                    | contravariant => result-b
+                    | invariant     =>
+                      for bind(unwrapped from result-a):
+                        result-b.map(_.meet(unwrapped, info))
+                      end
+                  end.map(_.meet(curr, info))
+                end
+              | none =>
+                fold-errors([list: C.unable-to-instantiate(blame-loc)])
+            end
+          | else =>
+            fold-errors([list: C.unable-to-instantiate(blame-loc)])
         end
       | else =>
         fold-errors([list: C.unable-to-instantiate(blame-loc)])

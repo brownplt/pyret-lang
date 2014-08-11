@@ -234,6 +234,9 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
+    tostring(self):
+      "fold-result(" + tostring(self.v) + ")"
+    end,
     bind(self, f) -> FoldResult<V>:
       f(self.v)
     end,
@@ -247,6 +250,9 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
+    tostring(self):
+      "fold-errors(" + tostring(self.errors) + ")"
+    end,
     bind(self, f) -> FoldResult<V>:
       self
     end,
