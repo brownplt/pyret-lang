@@ -53,6 +53,10 @@ data CompileError:
     tostring(self):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
+  | pointless-graph-id(loc :: Loc) with:
+    tostring(self):
+      "Anonymous bindings (such as the one at " + tostring(self.loc) + ") are not permitted in graphs, as they cannot be used"
+    end
   | pointless-shadow(loc :: Loc) with:
     tostring(self):
       "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
@@ -76,6 +80,11 @@ data CompileError:
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     tostring(self):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
+        + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
+    end
+  | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+    tostring(self):
+      "The field " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
 end

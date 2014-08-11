@@ -164,6 +164,12 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           expect(e.length).toEqual(2);
           return true;
         });
+        var prog4 = 
+"x = [list: 1, 2, 3]\n" +
+"for fold(shadow x from 0, elem from x):\n" +
+"  x + elem\n" +
+"end";
+        P.checkEvalsTo(prog4, rt.makeNumber(6));
         P.wait(done);
       });
     });

@@ -101,3 +101,26 @@ check:
   test-constructor(list-set)
   test-constructor(tree-set)
 end
+
+check "Different constructors should work well together":
+  fun canonicalize(s):
+    s.to-list().sort()
+  end
+  c = canonicalize
+  fun test-constructor(s-a, s-b):
+    [s-a: 1, 2].union([s-b: 2, 3]) is [s-a: 1, 2, 3]
+    [s-a: 1, 2].union([s-b: 4]) is [s-a: 1, 2, 4]
+    [s-a: 1, 2].intersect([s-b: 2, 3]) is [s-a: 2]
+    [s-a: 1, 2].intersect([s-b: 4]) is [s-a: ]
+    [s-a: 1, 2].difference([s-b: 2, 3]) is [s-a: 1]
+    [s-a: 1, 2].difference([s-b: 4]) is [s-a: 1, 2]
+    [s-a: 1, 2].symmetric_difference([s-b: 1, 2]) is [s-a: ]
+    c([s-a: 1, 2].symmetric_difference([s-b: 2, 3])) is c([s-a: 1, 3])
+    c([s-a: 1, 2].symmetric_difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
+    ([s-a: 1, 2.1, 3] <> [s-b: 1, 2.2, 3]) is true
+    c([s-a: 1, 2, 4]) is c([s-b: 2, 1, 4])
+  end
+
+  test-constructor(list-set, tree-set)
+  test-constructor(tree-set, list-set)
+end

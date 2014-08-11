@@ -712,7 +712,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind)
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
-            visit-val = val.visit(self.{env: acc.env})
+            visit-val = val.visit(self)
             update-binding-expr(atom-env.atom, some(visit-val))
             new-fb = A.s-for-bind(l2, new-bind, visit-val)
             { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
