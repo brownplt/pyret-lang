@@ -1076,18 +1076,10 @@ function createMethodDict() {
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
               } else if(isDataValue(next)) {
-                if(!next.$app_fields_raw) {
-                  var vals = next.$app_fields(function(/* varargs */) {
-                    return Array.prototype.slice.call(arguments);   
-                  });
-                  stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
-                }
-                else {
-                  var vals = next.$app_fields_raw(function(/* varargs */) {
-                    return Array.prototype.slice.call(arguments);   
-                  });
-                  stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
-                }
+                var vals = next.$app_fields_raw(function(/* varargs */) {
+                  return Array.prototype.slice.call(arguments);   
+                });
+                stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];

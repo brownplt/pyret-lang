@@ -21,28 +21,24 @@ data MNumList:
 end
 
 check:
-  print("Making first mgraph:")
   m-graph:
     BOS = [mlist: WOR, PROV]
     PROV = [mlist: BOS]
     WOR = [mlist: BOS]
   end
 
-  print("Making second mgraph:")
   m-graph:
     SF = [mlist: OAK, MV]
     MV = [mlist: SF]
     OAK = [mlist: SF]
   end
 
-  print("Starting tests")
   SF is SF
   ref-get(SF)!first!first is ref-get(SF)
   ref-get(SF)!rest!first is ref-get(MV)
   ref-get(SF)!rest!first!first is ref-get(SF)
   ref-get(SF)!rest!first!first!first is ref-get(OAK)
 
-  print("Equality tests")
   # Will never succeed because isomorphic structurally but == doesn't visit that
   (SF == BOS) is false
   (PROV == WOR) is false
@@ -51,23 +47,19 @@ check:
   # SF is[equal-now] BOS
   # PROV is[equal-now] WOR
 
-  print("Assignment tests")
   # Should succeed because settable later
   ref-get(SF)!{first : ref-get(PROV)}
   ref-get(SF)!first is ref-get(PROV)
 
-  print("Annot test")
   # Should fail because PROV is a ref, not a MList itself
   ref-get(SF)!{first : PROV} raises "MList"
 
-  print("Creating ONES")
 
   m-graph:
     ONES = mnlink(1, ONES)
   end
 
 
-  print("ONES test")
   # These all are equal because of eq
   ONES is ONES
   ref-get(ONES)!rest is ref-get(ONES) # Lists inside are equal
@@ -77,7 +69,6 @@ check:
 end
 
 check "bogus refs":
-  print("Bogus refs")
 
   fun g():
     fun f(r):
@@ -95,7 +86,6 @@ check "bogus refs":
 end
 
 check "using unset ref":
-  print("Loopref")
   fun f():
     m-graph:
       L1 = L1
@@ -108,7 +98,6 @@ check "using unset ref":
 end
 
 check "more programmatic cycles":
-  print("Programmatic")
   m-graph:
   OTTF = mnlink(1, mnlink(2, mnlink(3, mnlink(4, OTTF))))
   end
@@ -134,7 +123,6 @@ check "more programmatic cycles":
   ref-get(OTTF2).first is 1
   ref-get(OTTF2)!rest!rest.first is 3
   ref-get(OTTF2)!rest!rest!rest!rest is ref-get(OTTF2)
-  print("Done with programmatics")
 
 end
 

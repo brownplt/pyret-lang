@@ -455,24 +455,19 @@ fun desugar-expr(expr :: A.Expr):
       desugar-mutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
-        fun make-methods(l2, vname, members, is-singleton):
-          empty
-        end
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
-            methods = make-methods(l2, vname, members, false)
             A.s-variant(
               l2,
               constr-loc,
               vname,
               members.map(desugar-variant-member),
-              (methods + with-members).map(desugar-member))
+              with-members.map(desugar-member))
           | s-singleton-variant(l2, vname, with-members) =>
-            methods = make-methods(l2, vname, [list: ], true)
             A.s-singleton-variant(
               l2,
               vname,
-              (methods + with-members).map(desugar-member))
+              with-members.map(desugar-member))
         end
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
