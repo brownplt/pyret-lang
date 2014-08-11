@@ -980,7 +980,7 @@ compiler-visitor = {
         end
       end
 
-      match-field = j-field("_match", rt-method("makeMatch", [list: j-id(refl-fields-id), refl-name, j-num(member-count(v))]))
+      match-field = j-field("_match", rt-method("makeMatch", [list: refl-name, j-num(member-count(v))]))
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,

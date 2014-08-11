@@ -821,27 +821,28 @@ function createMethodDict() {
     }
 
     function makeMatch(name, arity) {
-      var match;
-      var args = "";
-      var argBase = "x";
       if(arity === -1) {
-        return makeMethod(function(self, handlers, els) {
-          if(hasField(handlers, $name)) {
-            return getField(handlers, $name).app();
-          }
-          else {
-            return 
-          }
+        return makeMethod(function(self) {
+          return function(handlers, els) {
+            if(hasField(handlers, name)) {
+              return getField(handlers, name).app();
+            }
+            else {
+              return els.app(self);
+            }
+          };
         }, { length: 3 });
       }
       else {
-        return makeMethod(function(self, handlers, els) {
-          if(hasField(handlers, $name)) {
-            return getField(handlers, $name).app.apply(null, self.$app_fields(function() { return arguments; }));
-          }
-          else {
-            return 
-          }
+        return makeMethod(function(self) {
+          return function(handlers, els) {
+            if(hasField(handlers, name)) {
+              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }));
+            }
+            else {
+              return els.app(self);
+            }
+          };
         }, { length: 3 });
       }
     }
