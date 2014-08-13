@@ -1,7 +1,7 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts"], function(util, listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib], function(L, O, E, ERR, S, C) {
+    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib], function(L, O, E, EQ, ERR, S, C) {
 
       function makeList(arr) {
         var lst = runtime.getField(L, "empty");
@@ -250,6 +250,18 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("is-fail-arg")(val);
       }
 
+      function isEqual(val) {
+        return gf(EQ, "is-Equal").app(val);
+      }
+
+      function isNotEqual(val) {
+        return gf(EQ, "is-NotEqual").app(val);
+      }
+
+      function isUnknown(val) {
+        return gf(EQ, "is-Unknown").app(val);
+      }
+
       return {
         throwPlusError: throwPlusError,
         throwNumericBinopError: throwNumericBinopError,
@@ -290,6 +302,13 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         isOk: isOk,
         isFail: isFail,
         isFailArg: isFailArg,
+
+        equal: gf(EQ, "Equal"),
+        notEqual: gf(EQ, "NotEqual"),
+        unknown: gf(EQ, "Unknown"),
+        isEqual: isEqual,
+        isNotEqual: isNotEqual,
+        isUnknown: isUnknown,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,

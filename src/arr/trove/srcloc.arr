@@ -73,7 +73,7 @@ data Srcloc:
       end
     end
 sharing:
-  tostring(self): self.format(true) end,
+  tostring(self, shadow tostring): self.format(true) end,
   after(self, other): other.before(self) end
 end
 

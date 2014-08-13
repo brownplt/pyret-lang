@@ -82,7 +82,7 @@ data Name:
     to-compiled-source(self): raise("Cannot compile underscores") end,
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
-    tostring(self): "_" end,
+    tostring(self, shadow tostring): "_" end,
     toname(self): raise("Cannot get name for underscore") end,
     key(self): "underscore#" end
 
@@ -90,7 +90,7 @@ data Name:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
-    tostring(self): self.s end,
+    tostring(self, shadow tostring): self.s end,
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
@@ -98,7 +98,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
-    tostring(self): self.s end,
+    tostring(self, shadow tostring): self.s end,
     toname(self): self.s end,
     key(self): "global#" + self.s end
 
@@ -106,7 +106,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): "$type$" + self.s end,
     tosource(self): PP.str(self.s) end,
-    tostring(self): "$type$" + self.s end,
+    tostring(self, shadow tostring): "$type$" + self.s end,
     toname(self): self.s end,
     key(self): "tglobal#" + self.s end
 
@@ -114,7 +114,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
     tosource(self): PP.str(self.to-compiled()) end,
-    tostring(self): self.to-compiled() end,
+    tostring(self, shadow tostring): self.to-compiled() end,
     toname(self): self.base end,
     key(self): "atom#" + self.base + tostring(self.serial) end
 sharing:

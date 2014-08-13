@@ -185,7 +185,7 @@ end
 
 data Set:
   | list-set(elems :: lists.List) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "[list-set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
@@ -194,7 +194,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self):
+    _torepr(self, shadow torepr):
       "[list-set: " + 
       self.elems.foldl(lam(elem, acc):
           if acc == "": torepr(elem)
@@ -263,7 +263,7 @@ data Set:
     
     
   | tree-set(elems :: AVLTree) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": tostring(elem)
@@ -272,7 +272,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self):
+    _torepr(self, shadow torepr):
       "[tree-set: " + 
       self.elems.fold(lam(acc, elem):
           if acc == "": torepr(elem)

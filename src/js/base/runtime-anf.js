@@ -847,20 +847,12 @@ function createMethodDict() {
       }
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity) {
+    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
       ret.$app_fields_raw = $app_fields_raw;
-      ret.$arity = $arity;
-      return ret;
-    }
-
-    function makeDataValue2(dict, brands, $name, $app_fields, $app_fields_raw, $arity) {
-      var ret = new PObject(dict, brands);
-      ret.$name = $name;
-      ret.$app_fields = $app_fields;
-      ret.$app_fields_raw = $app_fields_raw;
+      ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
       return ret;
     }
@@ -1046,7 +1038,44 @@ function createMethodDict() {
     };
 
     function toReprLoop(val, method) {
-      var stack = [{todo: [val], done: []}];
+      var stack = [];
+      var stackOfStacks = [];
+      var seen = [];
+      var needsGraph = false;
+      var seenFrozenRef = false;
+      var seenUnfrozenRef = false;
+      var gensymCount = 1;
+      function makeName() {
+        return "cyc_" + (gensymCount++) + "_";
+      }
+      function findSeen(obj) {
+        for (var i = 0; i < seen.length; i++) {
+          if (seen[i].obj === obj) {
+            seen[i].count++;
+            // console.log("Incrementing count for " + seen[i].asName + " => " + seen[i].count);
+            needsGraph = true;
+            seenFrozenRef = seenFrozenRef || isRefFrozen(obj);
+            seenUnfrozenRef = seenUnfrozenRef || !isRefFrozen(obj);
+            return seen[i].asName;
+          }
+        }
+        return undefined;
+      }
+      function addNewRef(obj) {
+        obj.seenIt = true;
+        var newObj = {count: 1, asName: makeName(), asDoc: "", obj: obj};
+        // console.log("Initializing count for " + newObj.asName + " => 1");
+        seen.push(newObj);
+        return newObj.asName;
+      }
+      function setRefDoc(obj, doc) {
+        for (var i = 0; i < seen.length; i++) {
+          if (seen[i].obj === obj) {
+            seen[i].asDoc = doc;
+            return seen[i].asName;
+          }
+        }
+      }
       function toReprHelp() {
         while (stack.length > 0 && stack[0].todo.length > 0) {
           var top = stack[stack.length - 1];
@@ -1071,15 +1100,16 @@ function createMethodDict() {
             } else if (isObject(next)) {
               if (next.dict[method]) {
                 // If this call fails
-                var s = getField(next, method).app();
+                var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
                 // the continuation stacklet will get the result value, and do the next two steps manually
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
               } else if(isDataValue(next)) {
                 var vals = next.$app_fields_raw(function(/* varargs */) {
-                  return Array.prototype.slice.call(arguments);   
+                  return Array.prototype.slice.call(arguments); // args are processed in reverse order...
                 });
-                stack.push({todo: vals, done: [], arity: next.$arity, constructor: next.$name});
+                stack.push({todo: vals, done: [], arity: next.$arity, 
+                            implicitRefs: next.$mut_fields_mask, constructor: next.$name});
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];
@@ -1096,8 +1126,22 @@ function createMethodDict() {
               top.todo.pop();
               top.done.push("<method>");
             } else if (isRef(next)) {
-              top.todo.pop();
-              top.done.push("<ref>");
+              var found = findSeen(next);
+              var implicitRef = hasProperty(top, "implicitRefs") && top.implicitRefs[top.todo.length - 1];
+              if (found) {
+                top.todo.pop();
+                if (implicitRef) {
+                  top.done.push(found);
+                } else {
+                  top.done.push("make-ref(" + found + ")");
+                }
+              } else {
+                var newName = addNewRef(next);
+                // Constructors implicitly wrap their mutable args in a reference if necessary
+                // So the constructor case above will use implicitRefs to indicate where 
+                // the refs were made implicitly, so they aren't printed.
+                stack.push({todo: [getRef(next)], done: [], theRef: next, wrapRef: !implicitRef});
+              }
             } else if (typeof next === "object") {
               top.todo.pop();
               top.done.push(JSON.stringify(next, null, "  "));
@@ -1117,13 +1161,23 @@ function createMethodDict() {
                 s += top.keys[i] + ": " + top.done[i];
               }
               s += "}";
+            } else if (hasProperty(top, "wrapRef")) {
+              var refName = setRefDoc(top.theRef, top.done[0]);
+              if (top.wrapRef === true && !isRefFrozen(top.theRef)) {
+                s += "make-ref(" + refName + ")";
+              } else {
+                s += refName;
+              }
             } else if(hasProperty(top, "constructor")) {
               s += top.constructor;
               // Sentinel value for singleton constructors
               if(top.arity !== -1) {
+                // console.log("Constructing " + top.constructor + ", implicitRefs = " + top.implicitRefs);
                 s += "(";
                 for(var i = top.done.length - 1; i >= 0; i--) {
                   if(i < top.done.length - 1) { s += ", "; }
+                  // console.log("  Field #" + i + ": implicitRef? " +
+                  //             top.implicitRefs[i] + ", and field: " + top.done[i]);
                   s += top.done[i];
                 }
                 s += ")";
@@ -1132,7 +1186,55 @@ function createMethodDict() {
             prev.done.push(s);
           }
         }
-        return stack[0].done[0];
+        var finalAns = stack[0].done[0];
+        var needsMutableGraph = false;
+        if (needsGraph) {
+          // console.log("FinalAns currently: " + finalAns);
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count > 1 && !isRefFrozen(seen[i].obj)) {
+              needsMutableGraph = true;
+              break;
+            }
+          }
+          if (needsMutableGraph) {
+            finalAns = "block:\n  m-graph:\n";
+          } else {
+            finalAns = "block:\n  graph:\n";
+          }
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count > 1 || isRefFrozen(seen[i].obj)) {
+              // console.log("Including " + seen[i].asName + " => " + seen[i].asDoc + " because "
+              //             + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
+              finalAns += "  " + seen[i].asName + " = " + seen[i].asDoc + "\n";
+            // } else {
+            //   console.log("Skipping  " + seen[i].asName + " => " + seen[i].asDoc + " because "
+            //               + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
+            }
+          }
+          finalAns += "  end\n"; 
+          if (needsMutableGraph) {
+            for (var i = 0; i < seen.length; i++) {
+              if (isRefFrozen(seen[i].obj)) {
+                finalAns += "  freeze-ref(" + seen[i].asName + ")\n";
+              }
+            }
+          }
+          finalAns += "  " + stack[0].done[0] + "\nend";
+        }
+        var replacementsNeeded = true;
+        while (replacementsNeeded) {
+          replacementsNeeded = false;
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count === 1 && !isRefFrozen(seen[i].obj)) {
+              var replaced = finalAns.replace(new RegExp(seen[i].asName + "(?! =)", "g"), seen[i].asDoc);
+              if (replaced !== finalAns) { 
+                replacementsNeeded = true; 
+              }
+              finalAns = replaced;
+            }
+          }
+        }
+        return finalAns; 
       }
       function toReprFun($ar) {
         var $step = 0;
@@ -1173,7 +1275,45 @@ function createMethodDict() {
           throw $e;
         }
       }
-      return toReprFun();
+      function reenterToReprFun(val) {
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord(val)) {
+            $step = val.step;
+            $ans = val.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              stackOfStacks.push(stack);
+              stack = [{todo: [val], done: [], implicitRefs: [true]}];
+              $step = 1;
+              $ans = toReprFun();
+              break;
+            case 1:
+              stack = stackOfStacks.pop();
+              return $ans;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr (reentrant)"],
+              reenterToReprFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["runtime torepr"]);
+          }
+          throw $e;
+        }
+      }
+      var toReprFunPy = makeFunction(reenterToReprFun);
+      stack.push({todo: [val], done: []});
+      return reenterToReprFun(val);
     }
       
     /**
@@ -2354,7 +2494,7 @@ function createMethodDict() {
       },
       resume: function(val) {
         if(this.errorVal !== null || this.breakFlag) {
-          throw "Cannot resume eith error or break requested";
+          throw "Cannot resume with error or break requested";
         }
         if(this.handlers !== null) {
           this.handlers.resume(val);
@@ -3219,7 +3359,6 @@ function createMethodDict() {
         'makeRef' : makeRef,
         'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
-        'makeDataValue2': makeDataValue2,
         'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
 

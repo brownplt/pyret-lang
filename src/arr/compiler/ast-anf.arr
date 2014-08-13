@@ -371,13 +371,13 @@ data AVal:
     tosource(self): PP.str("UNDEFINED") end
   | a-id(l :: Loc, id :: A.Name) with:
     label(self): "a-id" end,
-    tosource(self): PP.str(self.id.tostring()) end
+    tosource(self): PP.str(tostring(self.id)) end
   | a-id-var(l :: Loc, id :: A.Name) with:
     label(self): "a-id-var" end,
-    tosource(self): PP.str("!" + self.id.tostring()) end
+    tosource(self): PP.str("!" + tostring(self.id)) end
   | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
     label(self): "a-id-letrec" end,
-    tosource(self): PP.str("~" + self.id.tostring()) end
+    tosource(self): PP.str("~" + tostring(self.id)) end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

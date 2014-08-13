@@ -18,22 +18,22 @@ data DerivedStrings:
   | w-sing
   | w()
   | x-sing with:
-    tostring(self): "tostring-x-sing" end,
-    _torepr(self): "torepr-x-sing" end,
+    tostring(self, shadow tostring): "tostring-x-sing" end,
+    _torepr(self, shadow torepr): "torepr-x-sing" end,
   | x() with:
-    tostring(self): "tostring-x" end,
-    _torepr(self): "torepr-x" end,
+    tostring(self, shadow tostring): "tostring-x" end,
+    _torepr(self, shadow torepr): "torepr-x" end,
   | y-sing with:
-    tostring(self): "tostring-y-sing" end
+    tostring(self, shadow tostring): "tostring-y-sing" end
   | y() with:
-    tostring(self): "tostring-y" end
+    tostring(self, shadow tostring): "tostring-y" end
   | z-sing with:
-    _torepr(self): "torepr-z-sing" end
+    _torepr(self, shadow torepr): "torepr-z-sing" end
   | z() with:
-    _torepr(self): "torepr-z" end    
+    _torepr(self, shadow torepr): "torepr-z" end    
 sharing:
-  tostring(self): "tostring-shared" end,
-  _torepr(self): "torepr-shared" end
+  tostring(self, shadow tostring): "tostring-shared" end,
+  _torepr(self, shadow torepr): "torepr-shared" end
 end
 
 check "Should correctly derive tostring and torepr only when needed":

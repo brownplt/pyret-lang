@@ -192,7 +192,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "compiler/compile-struc
         function drawErrorToString(e) {
           return function() {
             runtime.safeCall(function() {
-              return get(e, "tostring").app()
+              return runtime.toReprJS(e, "tostring");
             }, function(s) {
               container.append($("<div>").addClass("compile-error").text(s));
             });
