@@ -10,8 +10,10 @@ end: END | SEMI
 
 prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 
-import-stmt: IMPORT (import-name | import-string) AS NAME
-import-stmt: IMPORT NAME (COMMA NAME)* FROM (import-name | import-string)
+import-stmt: IMPORT import-source AS NAME
+import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
+import-source: import-special | import-name | import-string 
+import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt end | PROVIDE STAR

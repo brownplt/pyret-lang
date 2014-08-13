@@ -270,6 +270,13 @@ end
   
   
 data ImportType:
+  | s-special-import(l :: Loc, kind :: String, args :: List<String>) with
+    label(self): "s-special-import" end,
+    tosource(self): 
+      PP.group(PP.str(self.kind),
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(PP.str)))))
+    end
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
     tosource(self): PP.str(torepr(self.file)) end

@@ -121,6 +121,18 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                   .app(pos(node.pos), makeList(names), tr(node.kids[node.kids.length - 1]));
               }
             },
+            'import-source': function(node) {
+              return tr(node);
+            },
+            // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
+            'import-special': function(node) {
+              var args = [];
+              for (var i = 1; i < node.kids.length - 1; i += 2) {
+                args.push(name(node.kids[i]));
+              }
+              return RUNTIME.getField(ast, 's-special-import')
+                .app(pos(node.pos), tr(node.kids[0]), makeList(args));
+            },
             'import-name': function(node) {
               // (import-name NAME)
               return RUNTIME.getField(ast, 's-const-import')
