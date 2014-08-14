@@ -82,6 +82,21 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.equal_now(a, b)).toBe(true);
         });
 
+        it("should distinguish arrays", function() {
+          var a1 = rt.makeArray([1,2,3]);
+          var a2 = rt.makeArray([1,2,3]);
+          var a3 = rt.makeArray([4,5,6]);
+          expect(rt.identical(a1, a1)).toBe(true);
+          expect(rt.identical(a1, a2)).toBe(false);
+          expect(rt.identical(a1, a3)).toBe(false);
+          expect(rt.equal_always(a1, a1)).toBe(true);
+          expect(rt.equal_always(a1, a2)).toBe(false);
+          expect(rt.equal_always(a1, a3)).toBe(false);
+          expect(rt.equal_now(a1, a1)).toBe(true);
+          expect(rt.equal_now(a1, a2)).toBe(true);
+          expect(rt.equal_now(a1, a3)).toBe(false);
+        });
+
         it("should throw on functions", function() {
           var f = rt.makeFunction(function() { return true; });
           expect(function() { rt.identical(f, f) }).toThrow();

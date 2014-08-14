@@ -1594,7 +1594,7 @@ function createMethodDict() {
                   });
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
-                if (curLeft.length !== curRight.length) {
+                if (alwaysFlag || (curLeft.length !== curRight.length)) {
                   curAns = ffi.notEqual.app(current.path);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
