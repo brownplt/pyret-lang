@@ -1130,7 +1130,7 @@ function createMethodDict() {
               var implicitRef = hasProperty(top, "implicitRefs") && top.implicitRefs[top.todo.length - 1];
               if (found) {
                 top.todo.pop();
-                if (implicitRef) {
+                if (implicitRef || isRefFrozen(next)) {
                   top.done.push(found);
                 } else {
                   top.done.push("make-ref(" + found + ")");
@@ -1163,7 +1163,7 @@ function createMethodDict() {
               s += "}";
             } else if (hasProperty(top, "wrapRef")) {
               var refName = setRefDoc(top.theRef, top.done[0]);
-              if (top.wrapRef === true && !isRefFrozen(top.theRef)) {
+              if (top.wrapRef && !isRefFrozen(top.theRef)) {
                 s += "make-ref(" + refName + ")";
               } else {
                 s += refName;
