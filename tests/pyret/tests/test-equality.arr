@@ -25,3 +25,18 @@ check:
   equal-now(Z, S(Z)) is false
   equal-now(S(Z), S(Z)) is true
 end
+
+data Box:
+  | box(ref v)
+end
+
+check:
+  x = box(5)
+  y = box(5)
+  identical(x, x) is true
+  identical(x, y) is false
+  equal-always(x, x) is true
+  equal-always(x, y) is false
+  equal-now(x, x) is true
+  equal-now(x, y) is true
+end
