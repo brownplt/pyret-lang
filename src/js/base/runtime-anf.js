@@ -1587,7 +1587,7 @@ function createMethodDict() {
                   } else {
                     newPath = "deref(" + newPath + ")";
                   }
-                  todo.push({
+                  toCompare.push({
                     left: getRef(curLeft),
                     right: getRef(curRight),
                     path: newPath
