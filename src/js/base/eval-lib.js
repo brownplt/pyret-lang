@@ -155,6 +155,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
             astAndNames.forEach(function(astAndName, i) {
               // Cached (or already visited in DAG), so don't reload
               if(astAndName === "loaded") {
+                moduleLoads[i].resolve("loaded");
                 return;
               }
               var newOptions = Object.create(options);
