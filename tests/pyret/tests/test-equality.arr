@@ -40,3 +40,92 @@ check:
   equal-now(x, x) is true
   equal-now(x, y) is true
 end
+
+data NLink:
+  | nlink(n, ref l)
+  | nempty
+end
+
+graph:
+  ones = nlink(1, ones)
+  other-ones = nlink(1, other-ones)
+  third-ones = nlink(1, ones)
+end
+
+check:
+  identical(ones, ones) is true
+  identical(ones, other-ones) is false
+  identical(ones, third-ones) is false
+  equal-always(ones, ones) is true
+  equal-always(ones, other-ones) is true
+  equal-always(ones, third-ones) is true
+  equal-now(ones, ones) is true
+  equal-now(ones, other-ones) is true
+  equal-now(ones, third-ones) is true
+end
+
+data MLink:
+  | mlink(ref n, ref l)
+  | mempty
+end
+
+block:
+  graph:
+    mt1 = mempty
+    BOS = mlink(PRO, rest1)
+    rest1 = mlink(WOR, mt1)
+    PRO = mlink(BOS, mt1)
+    WOR = mlink(BOS, mt1)
+  end
+
+  graph:
+    mt2 = mempty
+    CHI = mlink(CLE, mt2)
+    DEN = mlink(CLE, mt2)
+    CLE = mlink(CHI, rest2)
+    rest2 = mlink(DEN, mt2)
+  end
+
+  check:
+    identical(BOS, CLE) is false
+    identical(PRO, CHI) is false
+    identical(WOR, DEN) is false
+    equal-always(BOS, CLE) is true
+    equal-always(PRO, CHI) is true
+    equal-always(WOR, DEN) is true
+    equal-now(BOS, CLE) is true
+    equal-now(PRO, CHI) is true
+    equal-now(WOR, DEN) is true
+  end
+end
+
+block:
+  m-graph:
+    mt1 = mempty
+    BOS = mlink(PRO, rest1)
+    rest1 = mlink(WOR, mt1)
+    PRO = mlink(BOS, mt1)
+    WOR = mlink(BOS, mt1)
+  end
+
+  m-graph:
+    mt2 = mempty
+    CHI = mlink(CLE, mt2)
+    DEN = mlink(CLE, mt2)
+    CLE = mlink(CHI, rest2)
+    rest2 = mlink(DEN, mempty)
+  end
+
+  check:
+    identical(BOS, CLE) is false
+    identical(PRO, CHI) is false
+    identical(WOR, DEN) is false
+    equal-always(BOS, CLE) is false
+    equal-always(PRO, CHI) is false
+    equal-always(WOR, DEN) is false
+    equal-now(BOS, CLE) is true
+    equal-now(PRO, CHI) is true
+    equal-now(WOR, DEN) is true
+  end
+end
+
