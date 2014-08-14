@@ -1869,7 +1869,9 @@ function createMethodDict() {
 
     // JS function from Pyret values to Pyret equality answers
     function identical3(v1, v2) {
-      if (isFunction(v1) || isFunction(v2) || isMethod(v1) || isMethod(v2)) {
+      if (isFunction(v1) && isFunction(v2)) {
+        return ffi.unknown;
+      } else if (isMethod(v1) && isMethod(v2)) {
         return ffi.unknown;
       } else if (v1 === v2) {
         return ffi.equal;

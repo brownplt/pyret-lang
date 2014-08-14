@@ -23,6 +23,22 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
       });
 
       describe("Equality", function() {
+        it("should distinguish different tags", function() {
+          var zero = rt.makeNumber(0);
+          var f = rt.makeFunction(function() { return true; });
+          var t = rt.makeBoolean(true);
+
+          expect(rt.identical(zero, f)).toBe(false);
+          expect(rt.equal_always(zero, f)).toBe(false);
+          expect(rt.equal_now(zero, f)).toBe(false);
+          expect(rt.identical(zero, t)).toBe(false);
+          expect(rt.equal_always(zero, t)).toBe(false);
+          expect(rt.equal_now(zero, t)).toBe(false);
+          expect(rt.identical(f, t)).toBe(false);
+          expect(rt.equal_always(f, t)).toBe(false);
+          expect(rt.equal_now(f, t)).toBe(false);
+        });
+
         it("should distinguish numbers", function() {
           var zero = rt.makeNumber(0);
           var one = rt.makeNumber(1);
