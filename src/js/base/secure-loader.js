@@ -54,6 +54,7 @@ define(["require", "q"], function(rjs, Q) {
 
   function goodIdea(runtime, name, src) {
     var deferred = Q.defer();
+    require.undef(name);
     safeEval(src, { define: function(deps, body) {
         define(name, deps, body);
         function success(val) {

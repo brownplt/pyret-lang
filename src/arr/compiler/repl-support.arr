@@ -57,9 +57,21 @@ ok-imports = [list:
   "srcloc",
   "format"
 ]
+
+fun get-special-imports(program):
+  cases(A.Program) program:
+    | s-program(l, _, _, imports, _) =>
+      special-imps = for filter(i from imports):
+        A.is-s-special-import(i.file)
+      end
+      special-imps.map(_.file)
+  end
+end
+
 fun make-safe-imports(imps):
   imps.each(lam(i):
     cases(A.ImportType) i.file:
+      | s-special-import(_, _, _) => nothing
       | s-file-import(l, f) =>
         raise(E.module-load-failure([list: f]))
       | s-const-import(l, m) =>

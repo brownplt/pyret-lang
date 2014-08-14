@@ -1030,6 +1030,12 @@ fun compile-program(self, l, imports, prog, freevars, env):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
         | a-import-file(_, file) => file
+        | a-import-special(_, typ, args) =>
+          if typ == "gdrive":
+            "@gdrive-" + args.first
+          else if typ == "gdrive-id":
+            "@gdrive-id-" + args.first + "-" + args.rest.first
+          end
       end
     end)
   module-id = compiler-name(l.source)

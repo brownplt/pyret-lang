@@ -122,16 +122,19 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               }
             },
             'import-source': function(node) {
-              return tr(node);
+              return tr(node.kids[0]);
             },
             // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
             'import-special': function(node) {
               var args = [];
-              for (var i = 1; i < node.kids.length - 1; i += 2) {
-                args.push(name(node.kids[i]));
+              for (var i = 2; i < node.kids.length - 1; i += 2) {
+                args.push(string(node.kids[i]));
               }
-              return RUNTIME.getField(ast, 's-special-import')
-                .app(pos(node.pos), tr(node.kids[0]), makeList(args));
+              var pyArgs = makeList(args);
+              var thePos = pos(node.pos);
+              var kind = symbol(node.kids[0]);
+              var makeImp = RUNTIME.getField(ast, 's-special-import');
+              return makeImp.app(thePos, kind, pyArgs);
             },
             'import-name': function(node) {
               // (import-name NAME)
@@ -946,38 +949,43 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         }
 
         function parseDataRaw(dialect, data, fileName) {
-          const toks = dialects.dialects[dialect].Tokenizer;
-          const grammar = dialects.dialects[dialect].Grammar;
-          toks.tokenizeFrom(data);
-          // while (toks.hasNext())
-          //   console.log(toks.next().toString(true));
-          var parsed = grammar.parse(toks);
-          //console.log("Result:");
-          var countParses = grammar.countAllParses(parsed);
-          if (countParses == 0) {
-            var nextTok = toks.curTok; 
-            console.error("There were " + countParses + " potential parses.\n" +
-                          "Parse failed, next token is " + nextTok.toString(true) +
-                          " at " + nextTok.pos.toString(true));
-            console.log(nextTok);
-            if (toks.isEOF(nextTok))
-              RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
-            else
-              RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
-          }
-          //console.log("There were " + countParses + " potential parses");
-          if (countParses === 1) {
-            var ast = grammar.constructUniqueParse(parsed);
-            //          console.log(ast.toString());
-            return translate(ast, fileName);
-          } else {
-            var asts = grammar.constructAllParses(parsed);
-            throw "Non-unique parse";
-            for (var i = 0; i < asts.length; i++) {
-              //console.log("Parse " + i + ": " + asts[i].toString());
-              //            console.log(("" + asts[i]) === ("" + asts2[i]));
+          try {
+            const toks = dialects.dialects[dialect].Tokenizer;
+            const grammar = dialects.dialects[dialect].Grammar;
+            toks.tokenizeFrom(data);
+            // while (toks.hasNext())
+            //   console.log(toks.next().toString(true));
+            var parsed = grammar.parse(toks);
+            //console.log("Result:");
+            var countParses = grammar.countAllParses(parsed);
+            if (countParses == 0) {
+              var nextTok = toks.curTok; 
+              console.error("There were " + countParses + " potential parses.\n" +
+                            "Parse failed, next token is " + nextTok.toString(true) +
+                            " at " + nextTok.pos.toString(true));
+              console.log(nextTok);
+              if (toks.isEOF(nextTok))
+                RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
+              else
+                RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
             }
-            return translate(ast, fileName);
+            //console.log("There were " + countParses + " potential parses");
+            if (countParses === 1) {
+              var ast = grammar.constructUniqueParse(parsed);
+              //          console.log(ast.toString());
+              return translate(ast, fileName);
+            } else {
+              var asts = grammar.constructAllParses(parsed);
+              throw "Non-unique parse";
+              for (var i = 0; i < asts.length; i++) {
+                //console.log("Parse " + i + ": " + asts[i].toString());
+                //            console.log(("" + asts[i]) === ("" + asts2[i]));
+              }
+              return translate(ast, fileName);
+            }
+          } catch(e) {
+            console.error("Fatal error in parsing: ", e);
+            throw e;
           }
         }
         
