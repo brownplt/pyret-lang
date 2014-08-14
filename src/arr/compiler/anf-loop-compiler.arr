@@ -488,9 +488,8 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   step = js-id-of(compiler-name("step"))
   compiled-branch-fun =
     compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-  preamble-and-anns = cases(N.CasesBranch) branch:
+  preamble = cases(N.CasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
-      ann-cases = compile-anns(compiler, compiler.cur-step, args, compiler.make-label())
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
       checker = j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
@@ -502,16 +501,14 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
         j-block([list:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
                 [list: compiler.get-loc(pat-loc), j-true]))]))
-      { preamble: [list: checker],
-        ann-cases: ann-cases }
+      [list: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block([list:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
                   [list: compiler.get-loc(pat-loc), j-false]))]))
-      { preamble: [list: checker],
-        ann-cases: { new-cases: concat-empty, new-label: compiler.make-label() } }
+      [list: checker]
   end
   actual-app =
     [list:
@@ -521,17 +518,9 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [list: j-id(temp-branch)]))),
       j-break]
 
-  if CL.is-concat-empty(preamble-and-anns.ann-cases.new-cases):
-    c-block(
-      j-block(preamble-and-anns.preamble + actual-app),
-      concat-empty)
-  else:
-    first-label = preamble-and-anns.ann-cases.new-cases.getFirst().exp
-    c-block(
-      j-block(preamble-and-anns.preamble + [list: j-expr(j-assign(compiler.cur-step, first-label)), j-break]),
-      preamble-and-anns.ann-cases.new-cases
-      ^ concat-snoc(_, j-case(preamble-and-anns.ann-cases.new-label, actual-app)))
-  end
+  c-block(
+    j-block(preamble + actual-app),
+    concat-empty)
 end
 
 fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
