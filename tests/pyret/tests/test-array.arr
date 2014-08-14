@@ -3,8 +3,6 @@
 
 fun negate(f): lam(x): not(f(x));;
 
-identical = (_ == _)
-
 check:
   a1 = [array: 1, 2, 3]
 
