@@ -1276,6 +1276,7 @@ function createMethodDict() {
         }
       }
       function reenterToReprFun(val) {
+        // arity check
         var $step = 0;
         var $ans = undefined;
         try {
@@ -1312,7 +1313,6 @@ function createMethodDict() {
         }
       }
       var toReprFunPy = makeFunction(reenterToReprFun);
-      stack.push({todo: [val], done: []});
       return reenterToReprFun(val);
     }
       
@@ -1518,6 +1518,252 @@ function createMethodDict() {
       }
       return true;
     }
+
+
+    function combineEquality(e1, e2) {
+      if (ffi.isEqual(e1)) { return e2; }
+      else if (ffi.isNotEqual(e1)) { return e1; }
+      else if (ffi.isNotEqual(e2)) { return e2; }
+      else return e1;
+    }
+    // JS function from Pyret values to Pyret equality answers
+    function equal3(left, right, alwaysFlag) {
+      var isIdentical = identical3(left, right);
+      if (!ffi.isNotEqual(ans)) { return isIdentical; } // if Equal or Unknown...
+      
+      var stackOfToCompare = [];
+      var toCompare = [];
+      var current, curLeft, curRight, curAns, cache;
+      curAns = ffi.equal;
+      cache = {left: [], right: []};
+      function findPair(obj1, obj2) {
+        for (var i = 0; i < cache.length; i++) {
+          if (cache.left[i] === obj1 && cache.right[i] === obj2)
+            return true;
+        }
+        return false;
+      }
+      function cachePair(obj1, obj2) {
+        cache.left.push(obj1);
+        cache.right.push(obj2);
+      }
+      function equalHelp() {
+        while (toCompare.length > 0 && !ffi.isNotEqual(curAns)) {
+          current = toCompare.pop();
+          curLeft = current.left;
+          curRight = current.right;
+          
+          if (ffi.isEqual(identical3(curLeft, curRight))) {
+            continue;
+          } else if (isNumber(curLeft) && isNumber(curRight)) {
+            if (jsnums.equals(curLeft, curRight)) {
+              continue;
+            } else {
+              curAns = ffi.notEqual.app(current.path);
+            }
+          } else if (isFunction(curLeft) && isFunction(curRight)) {
+            curAns = ffi.unknown;
+          } else if (isMethod(curLeft) && isMethod(curRight)) {
+            curAns = ffi.unknown;
+          } else if (isOpaque(curLeft) && isOpaque(curRight)) {
+            if (curLeft.equals(curLeft.val, curRight.val)) {
+              continue;
+            } else {
+              curAns = ffi.notEqual.app(current.path);
+            }
+          } else {
+            if (findPair(curLeft, curRight)) {
+              continue; // Already checked this pair of objects
+            } else {
+              cachePair(curLeft, curRight);
+              if (isRef(curLeft) && isRef(curRight)) {
+                if (alwaysFlag) { // In equal-always, non-identical refs are not equal
+                  curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                } else { // In equal-now, we walk through the refs
+                  var newPath = current.path;
+                  var lastDot = newPath.lastIndexOf(".");
+                  if (lastDot > -1) {
+                    newPath = newPath.substr(0, lastDot) + "!" + newPath.substr(lastDot + 1);
+                  } else {
+                    newPath = "deref(" + newPath + ")";
+                  }
+                  todo.push({
+                    left: getRef(curLeft),
+                    right: getRef(curRight),
+                    path: newPath
+                  });
+                }
+              } else if (isArray(curLeft) && isArray(curRight)) {
+                if (curLeft.length !== curRight.length) {
+                  curAns = ffi.notEqual.app(current.path);
+                } else {
+                  for (var i = 0; i < curLeft.length; i++) {
+                    toCompare.push({
+                      left: curLeft[i],
+                      right: curRight[i],
+                      path: "raw-array-get(" + current.path + ", " + i + ")"
+                    });
+                  }
+                }
+              } else if (isObject(curLeft) && isObject(curRight)) {
+                if (curLeft.dict["_equals"]) {
+                  // If this call fails,
+                  var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
+                  // the continuation stacklet will get the result, and comine them manually
+                  curAns = combineEquality(curAns, newAns);
+                } else {
+                  var dictLeft = curLeft.dict;
+                  var dictRight = curRight.dict;
+                  var fieldsLeft;
+                  var fieldsRight;
+                  // Fast case, for objects that get extended with similar patterns
+                  // (e.g. variants of data have same proto), just check own props
+                  if(getProto(dictLeft) === getProto(dictRight)) {
+                    fieldsLeft = Object.keys(dictLeft);
+                    fieldsRight = Object.keys(dictRight);
+                    if(fieldsLeft.length !== fieldsRight.length) { 
+                      curAns = ffi.notEqual.app(current.path); 
+                    } else {
+                      for(var k = 0; k < fieldsLeft.length; k++) {
+                        toCompare.push({
+                          left: curLeft.dict[fieldsLeft[k]],
+                          right: curRight.dict[fieldsLeft[k]],
+                          path: current.path + "." + fieldsLeft[k]
+                        });
+                      }
+                    }
+                  }
+                  // Slower case, just iterate all fields, all the way down to the bottom
+                  else {
+                    fieldsLeft = getFields(curLeft);
+                    fieldsRight = getFields(curRight);
+                    if(fieldsLeft.length !== fieldsRight.length) { return false; }
+                    for(var k = 0; k < fieldsLeft.length; k++) {
+                      toCompare.push({
+                        left: curLeft.dict[fieldsLeft[k]],
+                        right: curRight.dict[fieldsLeft[k]],
+                        path: current.path + "." + fieldsLeft[k]
+                      });
+                    }
+                  }
+                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                    curAns = ffi.notEqual.app(current.path);
+                  }
+                }
+              } else {
+                curAns = ffi.notEqual.app(current.path);
+              }
+            }
+          }
+        }
+        return curAns;
+      }
+      var stackFrameDesc = [alwaysFlag ? "runtime equal-always" : "runtime equal-now"];
+      function equalFun($ar) {
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            $step = $ar.step;
+            $ans = $ar.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              $step = 1;
+              return equalHelp();
+            case 1:
+              curAns = combineEquality(curAns, $ans);
+              $step = 0;
+              break;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              stackFrameDesc;
+              equalFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(stackFrameDesc);
+          }
+          throw $e;
+        }
+      }
+      function reenterEqualFun(left, right) {
+        // arity check
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord(val)) {
+            $step = val.step;
+            $ans = val.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              stackOfToCompare.push(toCompare);
+              toCompare = [{left: left, right: right, path: "the-value"}];
+              $step = 1;
+              $ans = equalFun();
+              break;
+            case 1:
+              stack = stackOfToCompare.pop();
+              return $ans;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              stackFrameDesc,
+              reenterEqualFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(stackFrameDesc);
+          }
+          throw $e;
+        }
+      }
+      var equalFunPy = makeFunction(reenterEqualFun);
+      return reenterEqualFun(left, right);
+    }
+        
+
+    }
+    // Pyret function from Pyret values to Pyret equality answers
+    var equalAlways3Py = makeFunction(function(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-always3");
+      return equal3(left, right, true);
+    });
+    // Pyret function from Pyret values to booleans (or throws)
+    var equalAlwaysPy = makeFunction(function(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-always");
+      var ans = equal3(v1, v2, true);
+      if (ffi.isEqual(ans)) { return true; }
+      else if (ffi.isNotEqual(ans)) { return false; }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+    });
+    // Pyret function from Pyret values to Pyret equality answers
+    var equalNow3Py = makeFunction(function(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-now3");
+      return equal3(left, right, false);
+    });
+    // Pyret function from Pyret values to booleans (or throws)
+    var equalNowPy = makeFunction(function(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-now");
+      var ans = equal3(v1, v2, false);
+      if (ffi.isEqual(ans)) { return true; }
+      else if (ffi.isNotEqual(ans)) { return false; }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+    });
+  
+
     // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
@@ -1613,6 +1859,30 @@ function createMethodDict() {
     });
     // JS function from Pyret values to Pyret booleans
     var sameJSPy = function(v1, v2) { return makeBoolean(same(v1, v2)); };
+
+    // JS function from Pyret values to Pyret equality answers
+    function identical3(v1, v2) {
+      if (isFunction(v1) || isFunction(v2) || isMethod(v1) || isMethod(v2)) {
+        return ffi.unknown;
+      } else if (v1 === v2) {
+        return ffi.equal;
+      } else {
+        return ffi.notEqual.app("");
+      }
+    };
+    // Pyret function from Pyret values to Pyret equality answers
+    var identical3Py = makeFunction(function(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "identical3");
+      return identical3(v1, v2);
+    });
+    // Pyret function from Pyret values to booleans (or throws)
+    var identicalPy = makeFunction(function(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "identical");
+      var ans = identical3(v1, v2);
+      if (ffi.isEqual(ans)) { return true; }
+      else if (ffi.isNotEqual(ans)) { return false; }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with identical"); }
+    });
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
@@ -3432,6 +3702,12 @@ function createMethodDict() {
         'not': bool_not,
 
         'equiv': sameJSPy,
+        'identical3': identical3Py,
+        'identical': identicalPy,
+        'equal-now3': equalNow3Py,
+        'equal-now': equalNowPy,
+        'equal-always3': equalAlways3Py,
+        'equal-always': equalAlwaysPy,
         'raise': raiseJSJS,
 
         'pyretTrue': pyretTrue,
