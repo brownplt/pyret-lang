@@ -26,13 +26,19 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
         it("should distinguish numbers", function() {
           var zero = rt.makeNumber(0);
           var one = rt.makeNumber(1);
-          var f = rt.makeFunction(function() { return true; });
           expect(rt.identical(zero, zero)).toBe(true);
           expect(rt.identical(zero, one)).toBe(false);
           expect(rt.equal_always(zero, zero)).toBe(true);
           expect(rt.equal_always(zero, one)).toBe(false);
           expect(rt.equal_now(zero, zero)).toBe(true);
           expect(rt.equal_now(zero, one)).toBe(false);
+        });
+
+        it("should throw on functions", function() {
+          var f = rt.makeFunction(function() { return true; });
+          expect(function() { rt.identical(f, f) }).toThrow();
+          expect(function() { rt.equal_always(f, f) }).toThrow();
+          expect(function() { rt.equal_now(f, f) }).toThrow();
         });
       });
 
