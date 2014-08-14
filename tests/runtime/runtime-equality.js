@@ -43,6 +43,25 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.equal_now(f, t)).toBe(false);
         });
 
+        it("should distinguish booleans", function() {
+          var t = rt.makeBoolean(true);
+          var f = rt.makeBoolean(false);
+          expect(rt.identical(t, t)).toBe(true);
+          expect(rt.identical(f, f)).toBe(true);
+          expect(rt.identical(t, f)).toBe(false);
+          expect(rt.identical(f, t)).toBe(false);
+
+          expect(rt.equal_always(t, t)).toBe(true);
+          expect(rt.equal_always(f, f)).toBe(true);
+          expect(rt.equal_always(t, f)).toBe(false);
+          expect(rt.equal_always(f, t)).toBe(false);
+
+          expect(rt.equal_now(t, t)).toBe(true);
+          expect(rt.equal_now(f, f)).toBe(true);
+          expect(rt.equal_now(t, f)).toBe(false);
+          expect(rt.equal_now(f, t)).toBe(false);
+        });
+
         it("should distinguish numbers", function() {
           var zero = rt.makeNumber(0);
           var one = rt.makeNumber(1);
@@ -100,6 +119,9 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
         it("should distinguish objects (no _equals)", function() {
           var r1 = rt.makeRef(rt.Number);
           var r2 = rt.makeRef(rt.Number);
+          function z(a) { return rt.makeNumber(0); };
+          function z_curry(a) { return function() { return rt.makeNumber(0); } ; };
+
           var o1 = rt.makeObject({});
           var o2 = rt.makeObject({});
           var o3 = rt.makeObject({s: rt.makeString("foo")});
@@ -108,6 +130,11 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           var o6 = rt.makeObject({t: rt.makeString("bar")});
           var o7 = rt.makeObject({r: r1});
           var o8 = rt.makeObject({r: r2});
+          var o9 = rt.makeObject({s: rt.makeMethod(z_curry, z)});
+          var o10 = rt.makeObject({s: rt.makeMethod(z_curry, z)});
+          var o11 = o9.extendWith({t: rt.makeString("bar")});
+          var o12 = o9.extendWith({t: rt.makeString("bar")});
+          var o13 = o9.extendWith({t: rt.makeString("baz")});
 
           rt.setRef(r1, rt.makeNumber(0));
           rt.setRef(r2, rt.makeNumber(0));
@@ -119,6 +146,11 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.identical(o3, o5)).toBe(false);
           expect(rt.identical(o3, o6)).toBe(false);
           expect(rt.identical(o7, o8)).toBe(false);
+          expect(rt.identical(o9, o10)).toBe(false);
+          expect(rt.identical(o10, o11)).toBe(false);
+          expect(rt.identical(o9, o11)).toBe(false);
+          expect(rt.identical(o11, o12)).toBe(false);
+          expect(rt.identical(o11, o13)).toBe(false);
 
           expect(rt.equal_always(o1, o1)).toBe(true);
           expect(rt.equal_always(o1, o2)).toBe(true);
@@ -127,6 +159,11 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.equal_always(o3, o5)).toBe(false);
           expect(rt.equal_always(o3, o6)).toBe(false);
           expect(rt.equal_always(o7, o8)).toBe(false);
+          expect(function () { return rt.equal_always(o9, o10); }).toThrow();
+          expect(rt.equal_always(o10, o11)).toBe(false);
+          expect(rt.equal_always(o9, o11)).toBe(false);
+          expect(function () { return rt.equal_always(o11, o12); }).toThrow();
+          expect(rt.equal_always(o11, o13)).toBe(false);
 
           expect(rt.equal_now(o1, o1)).toBe(true);
           expect(rt.equal_now(o1, o2)).toBe(true);
@@ -135,6 +172,11 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.equal_now(o3, o5)).toBe(false);
           expect(rt.equal_now(o3, o6)).toBe(false);
           expect(rt.equal_now(o7, o8)).toBe(true);
+          expect(function () { return rt.equal_now(o9, o10); }).toThrow();
+          expect(rt.equal_now(o10, o11)).toBe(false);
+          expect(rt.equal_now(o9, o11)).toBe(false);
+          expect(function () { return rt.equal_now(o11, o12); }).toThrow();
+          expect(rt.equal_now(o11, o13)).toBe(false);
         });
 
         it("should throw on functions", function() {
