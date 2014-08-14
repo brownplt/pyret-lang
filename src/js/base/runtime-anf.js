@@ -1618,26 +1618,26 @@ function createMethodDict() {
                   var fieldsRight;
                   // Fast case, for objects that get extended with similar patterns
                   // (e.g. variants of data have same proto), just check own props
-                  if(getProto(dictLeft) === getProto(dictRight)) {
-                    fieldsLeft = Object.keys(dictLeft);
-                    fieldsRight = Object.keys(dictRight);
-                    if(fieldsLeft.length !== fieldsRight.length) { 
-                      curAns = ffi.notEqual.app(current.path); 
-                    } else {
-                      for(var k = 0; k < fieldsLeft.length; k++) {
-                        toCompare.push({
-                          left: curLeft.dict[fieldsLeft[k]],
-                          right: curRight.dict[fieldsLeft[k]],
-                          path: current.path + "." + fieldsLeft[k]
-                        });
-                      }
-                    }
-                  }
+                  // if(getProto(dictLeft) === getProto(dictRight)) {
+                  //   fieldsLeft = Object.keys(dictLeft);
+                  //   fieldsRight = Object.keys(dictRight);
+                  //   if(fieldsLeft.length !== fieldsRight.length) { 
+                  //     curAns = ffi.notEqual.app(current.path); 
+                  //   } else {
+                  //     for(var k = 0; k < fieldsLeft.length; k++) {
+                  //       toCompare.push({
+                  //         left: curLeft.dict[fieldsLeft[k]],
+                  //         right: curRight.dict[fieldsLeft[k]],
+                  //         path: current.path + "." + fieldsLeft[k]
+                  //       });
+                  //     }
+                  //   }
+                  // }
                   // Slower case, just iterate all fields, all the way down to the bottom
-                  else {
+                  // else {
                     fieldsLeft = getFields(curLeft);
                     fieldsRight = getFields(curRight);
-                    if(fieldsLeft.length !== fieldsRight.length) { return false; }
+                    if(fieldsLeft.length !== fieldsRight.length) { return ffi.notEqual.app(current.path); }
                     for(var k = 0; k < fieldsLeft.length; k++) {
                       toCompare.push({
                         left: curLeft.dict[fieldsLeft[k]],
@@ -1645,7 +1645,7 @@ function createMethodDict() {
                         path: current.path + "." + fieldsLeft[k]
                       });
                     }
-                  }
+                  // }
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                     curAns = ffi.notEqual.app(current.path);
                   }
@@ -1746,7 +1746,7 @@ function createMethodDict() {
       var ans = equal3(v1, v2, true);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always" + JSON.stringify(ans,null,"  ")); }
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalAlwaysPy = makeFunction(function(left, right) {
