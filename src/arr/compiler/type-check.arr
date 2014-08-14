@@ -23,6 +23,13 @@ t-app                     = TS.t-app
 t-record                  = TS.t-record
 t-forall                  = TS.t-forall
 
+type Variance             = TS.Variance
+constant                  = TS.constant
+bivariant                 = TS.bivariant
+invariant                 = TS.invariant
+covariant                 = TS.covariant
+contravariant             = TS.contravariant
+
 type TypeVariable         = TS.TypeVariable
 t-variable                = TS.t-variable
 
@@ -128,7 +135,7 @@ fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :
   else:
     f-pairs = for map(f from forall):
       new-id = gensym(f.id)
-      pair(f.id, t-variable(f.l, new-id, f.upper-bound))
+      pair(f.id, t-variable(f.l, new-id, f.upper-bound, f.variance))
     end
     new-forall = f-pairs.map(_.right)
     new-args = for fold(curr from args, f-pair from f-pairs):
@@ -238,7 +245,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
     for synth-bind(fields-result from map-result(to-type-member(_, info), fields)):
       if info.branders.has-key(namet.key()):
         t-vars = for map(param from params):
-          t-variable(param.l, param.key(), t-top)
+          t-variable(param.l, param.key(), t-top, invariant)
         end
 
         # TODO(cody): Handle mixins and _check
@@ -364,12 +371,14 @@ fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> SynthesisResult:
-  forall = for map(param from params):
-    t-variable(A.dummy-loc, param.key(), t-top)
-  end
-  new-info = forall.foldl(TCS.add-type-variable, info)
+  new-info = params.foldl(lam(param, tmp-info): TCS.add-binding(param.key(), t-top, tmp-info);, info)
   for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
     fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
+      tmp-arrow = t-arrow(l, arg-typs, ret-typ)
+      forall = for map(param from params):
+        id = param.key()
+        t-variable(A.dummy-loc, id, t-top, TC.determine-variance(tmp-arrow, id, new-info))
+      end
       arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
       new-fun = recreate(args, ret-ann, new-body)
       synthesis-result(new-fun, arrow-typ)
@@ -787,10 +796,7 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
 end
 
 fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
-  forall = for map(param from params):
-    t-variable(A.dummy-loc, param.key(), t-top)
-  end
-  new-info = forall.foldl(TCS.add-type-variable, info)
+  new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   maybe-arg-typs =
   cases(Type) expect-typ:
     | t-arrow(l, expect-args, _) =>
@@ -804,6 +810,11 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   for check-bind(arg-typs from maybe-arg-typs):
     for check-bind(maybe-ret from to-type(ret-ann, new-info)):
       fun process(new-body :: A.Expr, ret-typ :: Type) -> CheckingResult:
+        tmp-arrow = t-arrow(fun-loc, arg-typs, ret-typ)
+        forall = for map(param from params):
+          id = param.key()
+          t-variable(A.dummy-loc, id, t-top, TC.determine-variance(tmp-arrow, id, new-info))
+        end
         arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
         new-fun = recreate(args, ret-ann, new-body)
         check-and-return(arrow-typ, expect-typ, new-fun, new-info)

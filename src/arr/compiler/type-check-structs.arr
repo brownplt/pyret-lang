@@ -21,6 +21,12 @@ t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
 t-srcloc                  = TS.t-srcloc
 
+type Variance             = TS.Variance
+constant                  = TS.constant
+invariant                 = TS.invariant
+covariant                 = TS.covariant
+contravariant             = TS.contravariant
+
 type TypeVariable         = TS.TypeVariable
 t-variable                = TS.t-variable
 
@@ -57,7 +63,7 @@ default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, [list: t-numbe
 default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
 print-variable = gensym("A")
-default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top)], t-arrow(A.dummy-loc, [list: t-var(print-variable)], t-var(print-variable))))
+default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow(A.dummy-loc, [list: t-var(print-variable)], t-var(print-variable))))
 
 fun empty-tc-info() -> TCInfo:
   errors = block:

@@ -94,8 +94,61 @@ fun fold-comparisons(l :: List<Comparison>) -> Comparison:
   end
 end
 
+data Variance:
+  | constant with:
+    join(self, other :: Variance):
+      other
+    end,
+    flip(self):
+      constant
+    end
+  | bivariant with:
+    join(self, other :: Variance):
+      cases(Variance) other:
+        | constant => bivariant
+        | else => other
+      end
+    end,
+    flip(self):
+      bivariant
+    end
+  | covariant with:
+    join(self, other :: Variance):
+      cases(Variance) other:
+        | constant      => covariant
+        | bivariant     => covariant
+        | covariant     => covariant
+        | contravariant => invariant
+        | invariant     => invariant
+      end
+    end,
+    flip(self):
+      contravariant
+    end
+  | contravariant with:
+    join(self, other :: Variance):
+      cases(Variance) other:
+        | constant      => contravariant
+        | bivariant     => contravariant
+        | covariant     => invariant
+        | contravariant => contravariant
+        | invariant     => invariant
+      end
+    end,
+    flip(self):
+      covariant
+    end
+  | invariant with:
+    join(self, other :: Variance):
+      invariant
+    end,
+    flip(self):
+      invariant
+    end
+end
+
 data TypeVariable:
-  | t-variable(l :: A.Loc, id :: String, upper-bound :: Type) # bound = Top is effectively unbounded
+  | t-variable(l :: A.Loc, id :: String, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
   tostring(self) -> String:
     self.id + " <: " + self.upper-bound.tostring()

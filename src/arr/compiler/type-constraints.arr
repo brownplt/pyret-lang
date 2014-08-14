@@ -2,6 +2,7 @@ provide { generate-constraints   : generate-constraints,
           arrow-constraints      : arrow-constraints,
           empty-type-constraints : empty-type-constraints,
           satisfies-type         : satisfies-type,
+          determine-variance     : determine-variance,
           least-upper-bound      : least-upper-bound,
           greatest-lower-bound   : greatest-lower-bound,
           meet-fields            : meet-fields } end
@@ -45,11 +46,20 @@ empty-type-members   = TS.empty-type-members
 t-member             = TS.t-member
 type-members-lookup  = TS.type-members-lookup
 
+type Variance        = TS.Variance
+constant             = TS.constant
+bivariant            = TS.bivariant
+invariant            = TS.invariant
+covariant            = TS.covariant
+contravariant        = TS.contravariant
+
 type TypeVariable    = TS.TypeVariable
 t-variable           = TS.t-variable
 is-t-top             = TS.is-t-top
 is-t-bot             = TS.is-t-bot
 is-t-var             = TS.is-t-var
+
+type DataType        = TS.DataType
 
 type TCInfo          = TCS.TCInfo
 tc-info              = TCS.tc-info
@@ -289,10 +299,10 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
 where:
   info = TCS.empty-tc-info()
   a1 = t-var("A1")
-  forall-a = t-forall([list: t-variable(A.dummy-loc, "A1", t-top)],
+  forall-a = t-forall([list: t-variable(A.dummy-loc, "A1", t-top, covariant)],
                       t-arrow(A.dummy-loc, [list: a1, a1], t-var("A1")))
-  forall-ab = t-forall([list: t-variable(A.dummy-loc, "A2", t-top),
-                              t-variable(A.dummy-loc, "B1", t-top)],
+  forall-ab = t-forall([list: t-variable(A.dummy-loc, "A2", t-top, invariant),
+                              t-variable(A.dummy-loc, "B1", t-top, contravariant)],
                        t-arrow(A.dummy-loc, [list: t-var("A2"), t-var("B1")], t-var("A2")))
   satisfies-type(forall-ab, forall-a, info) is true
   satisfies-type(forall-a, forall-ab, info) is false
@@ -632,154 +642,89 @@ sharing:
   end
 end
 
-
-fun is-constant(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  if x == r:
-    false
-  else:
-    cases(Type) r:
-      | t-arrow(l, args, ret) =>
-        args-okay = for fold(base from true, arg from args):
-                      base and is-constant(x, arg)
-                    end
-        args-okay and is-constant(x, ret)
-      | else =>
-        true
-    end
-  end
-where:
-  is-constant(example-a, example-a) is false
-  is-constant(example-a, example-b) is true
-  is-constant(example-a, example-c) is false
-  is-constant(example-a, example-d) is false
-  is-constant(example-a, example-e) is false
-  is-constant(example-a, example-f) is false
-  is-constant(example-a, example-g) is false
-  is-constant(example-a, example-h) is false
-  is-constant(example-a, example-i) is false
-  is-constant(example-a, example-j) is true
-  is-constant(example-a, example-k) is false
-  is-constant(example-a, example-l) is false
-  is-constant(example-a, example-m) is false
-  is-constant(example-a, example-n) is true
-  is-constant(example-a, example-o) is true
-  is-constant(example-a, example-p) is true
-end
-
-fun is-covariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  if x == r:
-    true
-  else:
-    cases(Type) r:
-      | t-arrow(l, args, ret) =>
-        var arg-is-contravariant = false
-        args-okay = for fold(base from true, arg from args):
-                      if is-constant(x, arg):
-                        base
-                      else if is-contravariant(x, arg):
-                        arg-is-contravariant := true
-                        base
-                      else:
-                        false
-                      end
-                    end
-        args-okay and (is-covariant(x, ret) or (arg-is-contravariant and is-constant(x, ret)))
-      | else =>
-        false
-    end
-  end
-where:
-  is-covariant(example-a, example-a) is true
-  is-covariant(example-a, example-b) is false
-  is-covariant(example-a, example-c) is false
-  is-covariant(example-a, example-d) is true
-  is-covariant(example-a, example-e) is false
-  is-covariant(example-a, example-f) is false
-  is-covariant(example-a, example-g) is false
-  is-covariant(example-a, example-h) is false
-  is-covariant(example-a, example-i) is true
-  is-covariant(example-a, example-j) is false
-  is-covariant(example-a, example-k) is true
-  is-covariant(example-a, example-l) is false
-  is-covariant(example-a, example-m) is false
-  is-covariant(example-a, example-n) is false
-  is-covariant(example-a, example-o) is false
-  is-covariant(example-a, example-p) is false
-end
-
-fun is-contravariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  cases(Type) r:
-    | t-arrow(l, args, ret) =>
-      var arg-is-covariant = false
-      args-okay = for fold(base from true, arg from args):
-                    if is-constant(x, arg):
-                      base
-                    else if is-covariant(x, arg):
-                      arg-is-covariant := true
-                      base
-                    else:
-                      false
-                    end
-                  end
-      args-okay and (is-contravariant(x, ret) or (arg-is-covariant and is-constant(x, ret)))
-    | else =>
-      false
-  end
-where:
-  is-contravariant(example-a, example-a) is false
-  is-contravariant(example-a, example-b) is false
-  is-contravariant(example-a, example-c) is true
-  is-contravariant(example-a, example-d) is false
-  is-contravariant(example-a, example-e) is false
-  is-contravariant(example-a, example-f) is false
-  is-contravariant(example-a, example-g) is false
-  is-contravariant(example-a, example-h) is false
-  is-contravariant(example-a, example-i) is false
-  is-contravariant(example-a, example-j) is false
-  is-contravariant(example-a, example-k) is false
-  is-contravariant(example-a, example-l) is true
-  is-contravariant(example-a, example-m) is true
-  is-contravariant(example-a, example-n) is false
-  is-contravariant(example-a, example-o) is false
-  is-contravariant(example-a, example-p) is false
-end
-
-fun is-invariant(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  cases(Type) r:
-    | t-arrow(l, args, ret) =>
-      var arg-is-invariant = false
-      var arg-is-covariant = false
-      for each(arg from args):
-        if is-covariant(x, arg):
-          arg-is-covariant := true
-        else if is-invariant(x, arg):
-          arg-is-invariant := true
-        else:
-          nothing
-        end
+fun determine-variance(typ, var-id :: String, info :: TCInfo) -> Variance:
+  cases(Type) typ:
+    | t-name(l, module-name, id) =>
+      constant
+    | t-var(id) =>
+      if id == var-id:
+        covariant
+      else:
+        constant
       end
-      (arg-is-covariant and is-covariant(x, ret)) or arg-is-invariant or is-invariant(x, ret)
-    | else =>
-      false
+    | t-arrow(l, args, ret) =>
+      for fold(base from constant, arg from args):
+        base.join(determine-variance(arg, var-id, info))
+      end.flip().join(determine-variance(ret, var-id, info))
+    | t-app(l, onto, args) =>
+      cases(Option<DataType>) TCS.get-data-type(onto, info):
+        | some(data-type) =>
+          result = for fold2-strict(base from constant, param from data-type.params, arg from args):
+            cases(Variance) param.variance:
+              | constant      =>
+                if arg == t-var(var-id):
+                  constant
+                else:
+                  determine-variance(arg, var-id, info)
+                end
+              | bivariant     =>
+                if arg == t-var(var-id):
+                  bivariant
+                else:
+                  determine-variance(arg, var-id, info)
+                end
+              | covariant     =>
+                determine-variance(arg, var-id, info)
+              | contravariant =>
+                determine-variance(arg, var-id, info).flip()
+              | invariant     =>
+                cases(Variance) determine-variance(arg, var-id, info):
+                  | constant => constant
+                  | else => invariant
+                end
+            end.join(base)
+          end
+          cases(Option<Variance>) result:
+            | some(v) => v
+            | none => raise("Internal type-checking error: Please send this program to the developers.")
+          end
+        | none =>
+          raise("internal type-checking error. This shouldn't ever happen. " + tostring(typ) + " isn't actually a data type! Available data types are: " + dict-to-string(info.data-exprs))
+      end
+    | t-top =>
+      constant
+    | t-bot =>
+      constant
+    | t-record(l, fields) =>
+      for fold(base from constant, tm from fields):
+        base.join(determine-variance(tm.typ, var-id, info))
+      end
+    | t-forall(introduces, onto) =>
+      # TODO(cody): Rename all introduces in onto to avoid conflict.
+      determine-variance(onto, var-id, info)
   end
 where:
-  is-invariant(example-a, example-a) is false
-  is-invariant(example-a, example-b) is false
-  is-invariant(example-a, example-c) is false
-  is-invariant(example-a, example-d) is false
-  is-invariant(example-a, example-e) is true
-  is-invariant(example-a, example-f) is true
-  is-invariant(example-a, example-g) is true
-  is-invariant(example-a, example-h) is true
-  is-invariant(example-a, example-i) is false
-  is-invariant(example-a, example-j) is false
-  is-invariant(example-a, example-k) is false
-  is-invariant(example-a, example-l) is false
-  is-invariant(example-a, example-m) is false
-  is-invariant(example-a, example-n) is false
-  is-invariant(example-a, example-o) is false
-  is-invariant(example-a, example-p) is false
+  info = TCS.empty-tc-info()
+  determine-variance(example-a, "A", info) is covariant
+  determine-variance(example-b, "A", info) is constant
+  determine-variance(example-c, "A", info) is contravariant
+  determine-variance(example-d, "A", info) is covariant
+  determine-variance(example-e, "A", info) is invariant
+  determine-variance(example-f, "A", info) is invariant
+  determine-variance(example-g, "A", info) is invariant
+  determine-variance(example-h, "A", info) is invariant
+  determine-variance(example-i, "A", info) is covariant
+  determine-variance(example-j, "A", info) is constant
+  determine-variance(example-k, "A", info) is covariant
+  determine-variance(example-l, "A", info) is contravariant
+  determine-variance(example-m, "A", info) is contravariant
+  determine-variance(example-n, "A", info) is constant
+  determine-variance(example-o, "A", info) is constant
+  determine-variance(example-p, "A", info) is constant
 end
+
+
+
 
 
 fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
@@ -790,8 +735,8 @@ fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
   end
 end
 
-fun is-rigid(x :: Type % (is-t-var), r :: Type) -> Boolean:
-  is-invariant(x, r) # This should be fine for now.
+fun is-rigid(v :: Variance) -> Boolean:
+  TS.is-invariant(v) # This should be fine for now.
 end
 
 fun is-rigid-under(r :: Type, binds :: Bindings) -> Boolean:
@@ -847,13 +792,14 @@ sharing:
     blame-loc = A.dummy-loc
     cases(Option<TypeConstraint>) self.get(x):
       | some(constraint) =>
-        if is-constant(x, r) or is-covariant(x, r):
+        variance = determine-variance(r, x.id, info)
+        if TS.is-constant(variance) or TS.is-covariant(variance):
           fold-result(constraint.min())
-        else if is-contravariant(x, r):
+        else if TS.is-contravariant(variance):
           fold-result(constraint.max())
-        else if is-invariant(x, r) and constraint.is-tight(info):
+        else if TS.is-invariant(variance) and constraint.is-tight(info):
           fold-result(constraint.min())
-        else if is-rigid(x, r) and constraint.is-rigid(info):
+        else if is-rigid(variance) and constraint.is-rigid(info):
           fold-result(constraint.min())
         else:
           fold-errors([list: C.unable-to-instantiate(blame-loc)])
