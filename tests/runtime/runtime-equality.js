@@ -97,11 +97,70 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.equal_now(a1, a3)).toBe(false);
         });
 
+        it("should distinguish objects (no _equals)", function() {
+          var r1 = rt.makeRef(rt.Number);
+          var r2 = rt.makeRef(rt.Number);
+          var o1 = rt.makeObject({});
+          var o2 = rt.makeObject({});
+          var o3 = rt.makeObject({s: rt.makeString("foo")});
+          var o4 = rt.makeObject({s: rt.makeString("foo")});
+          var o5 = rt.makeObject({s: rt.makeString("bar")});
+          var o6 = rt.makeObject({t: rt.makeString("bar")});
+          var o7 = rt.makeObject({r: r1});
+          var o8 = rt.makeObject({r: r2});
+
+          rt.setRef(r1, rt.makeNumber(0));
+          rt.setRef(r2, rt.makeNumber(0));
+
+          expect(rt.identical(o1, o1)).toBe(true);
+          expect(rt.identical(o1, o2)).toBe(false);
+          expect(rt.identical(o1, o3)).toBe(false);
+          expect(rt.identical(o3, o4)).toBe(false);
+          expect(rt.identical(o3, o5)).toBe(false);
+          expect(rt.identical(o3, o6)).toBe(false);
+          expect(rt.identical(o7, o8)).toBe(false);
+
+          expect(rt.equal_always(o1, o1)).toBe(true);
+          expect(rt.equal_always(o1, o2)).toBe(true);
+          expect(rt.equal_always(o1, o3)).toBe(false);
+          expect(rt.equal_always(o3, o4)).toBe(true);
+          expect(rt.equal_always(o3, o5)).toBe(false);
+          expect(rt.equal_always(o3, o6)).toBe(false);
+          expect(rt.equal_always(o7, o8)).toBe(false);
+
+          expect(rt.equal_now(o1, o1)).toBe(true);
+          expect(rt.equal_now(o1, o2)).toBe(true);
+          expect(rt.equal_now(o1, o3)).toBe(false);
+          expect(rt.equal_now(o3, o4)).toBe(true);
+          expect(rt.equal_now(o3, o5)).toBe(false);
+          expect(rt.equal_now(o3, o6)).toBe(false);
+          expect(rt.equal_now(o7, o8)).toBe(true);
+        });
+
         it("should throw on functions", function() {
           var f = rt.makeFunction(function() { return true; });
+          var g = rt.makeFunction(function() { return true; });
           expect(function() { rt.identical(f, f) }).toThrow();
           expect(function() { rt.equal_always(f, f) }).toThrow();
           expect(function() { rt.equal_now(f, f) }).toThrow();
+          expect(function() { rt.identical(f, g) }).toThrow();
+          expect(function() { rt.equal_always(f, g) }).toThrow();
+          expect(function() { rt.equal_now(f, g) }).toThrow();
+        });
+
+        it("should throw on methods", function() {
+          function y(a) { return makeNumber(0); };
+          function y_curry(a) { return function() { return makeNumber(0); } };
+          function z(a) { return makeNumber(0); };
+          function z_curry(a) { return function() { return makeNumber(0); } };
+          var m = rt.makeMethod(y_curry, y);
+          var n = rt.makeMethod(z_curry, z);
+          expect(function() { rt.identical(m, m) }).toThrow();
+          expect(function() { rt.equal_always(m, m) }).toThrow();
+          expect(function() { rt.equal_now(m, m) }).toThrow();
+          expect(function() { rt.identical(m, n) }).toThrow();
+          expect(function() { rt.equal_always(m, n) }).toThrow();
+          expect(function() { rt.equal_now(m, n) }).toThrow();
         });
       });
 
