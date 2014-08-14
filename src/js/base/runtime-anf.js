@@ -847,13 +847,14 @@ function createMethodDict() {
       }
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask) {
+    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
       ret.$app_fields_raw = $app_fields_raw;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
+      ret.$constructor = constructor
       return ret;
     }
 
@@ -1106,7 +1107,7 @@ function createMethodDict() {
                 top.done.push(thisRuntime.unwrap(s));
               } else if(isDataValue(next)) {
                 var vals = next.$app_fields_raw(function(/* varargs */) {
-                  return Array.prototype.slice.call(arguments); // args are processed in reverse order...
+                  return Array.prototype.slice.call(arguments);
                 });
                 stack.push({todo: vals, done: [], arity: next.$arity, 
                             implicitRefs: next.$mut_fields_mask, constructor: next.$name});
@@ -1582,7 +1583,8 @@ function createMethodDict() {
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
-                  if (lastDot > -1) {
+                  var lastParen = newPath.lastIndexOf(")");
+                  if (lastDot > -1 && lastDot > lastParen) {
                     newPath = newPath.substr(0, lastDot) + "!" + newPath.substr(lastDot + 1);
                   } else {
                     newPath = "deref(" + newPath + ")";
@@ -1611,41 +1613,42 @@ function createMethodDict() {
                   var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
                   // the continuation stacklet will get the result, and comine them manually
                   curAns = combineEquality(curAns, newAns);
+                } else if (isDataValue(curLeft) && isDataValue(curRight)) {
+                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                    curAns = ffi.notEqual.app(current.path);
+                  } else {
+                    var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                      return Array.prototype.slice.call(arguments);
+                    });
+                    if (fieldsLeft.length > 0) {
+                      var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
+                        return Array.prototype.slice.call(arguments);
+                      });
+                      var fieldNames = curLeft.$constructor.$fieldNames;
+                      for (var k = 0; k < fieldsLeft.length; k++) {
+                        toCompare.push({ 
+                          left: fieldsLeft[k],
+                          right: fieldsRight[k],
+                          path: current.path + "." + fieldNames[k]
+                        });
+                      }
+                    }
+                  }
                 } else {
                   var dictLeft = curLeft.dict;
                   var dictRight = curRight.dict;
                   var fieldsLeft;
                   var fieldsRight;
-                  // Fast case, for objects that get extended with similar patterns
-                  // (e.g. variants of data have same proto), just check own props
-                  // if(getProto(dictLeft) === getProto(dictRight)) {
-                  //   fieldsLeft = Object.keys(dictLeft);
-                  //   fieldsRight = Object.keys(dictRight);
-                  //   if(fieldsLeft.length !== fieldsRight.length) { 
-                  //     curAns = ffi.notEqual.app(current.path); 
-                  //   } else {
-                  //     for(var k = 0; k < fieldsLeft.length; k++) {
-                  //       toCompare.push({
-                  //         left: curLeft.dict[fieldsLeft[k]],
-                  //         right: curRight.dict[fieldsLeft[k]],
-                  //         path: current.path + "." + fieldsLeft[k]
-                  //       });
-                  //     }
-                  //   }
-                  // }
-                  // Slower case, just iterate all fields, all the way down to the bottom
-                  // else {
-                    fieldsLeft = getFields(curLeft);
-                    fieldsRight = getFields(curRight);
-                    if(fieldsLeft.length !== fieldsRight.length) { return ffi.notEqual.app(current.path); }
-                    for(var k = 0; k < fieldsLeft.length; k++) {
-                      toCompare.push({
-                        left: curLeft.dict[fieldsLeft[k]],
-                        right: curRight.dict[fieldsLeft[k]],
-                        path: current.path + "." + fieldsLeft[k]
-                      });
-                    }
-                  // }
+                  fieldsLeft = getFields(curLeft);
+                  fieldsRight = getFields(curRight);
+                  if(fieldsLeft.length !== fieldsRight.length) { return false; }
+                  for(var k = 0; k < fieldsLeft.length; k++) {
+                    toCompare.push({
+                      left: curLeft.dict[fieldsLeft[k]],
+                      right: curRight.dict[fieldsLeft[k]],
+                      path: current.path + "." + fieldsLeft[k]
+                    });
+                  }
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                     curAns = ffi.notEqual.app(current.path);
                   }
@@ -1746,7 +1749,7 @@ function createMethodDict() {
       var ans = equal3(v1, v2, true);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always" + JSON.stringify(ans,null,"  ")); }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalAlwaysPy = makeFunction(function(left, right) {
