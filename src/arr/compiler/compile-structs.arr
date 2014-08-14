@@ -197,6 +197,12 @@ runtime-builtins = lists.map(builtin-id, [list:
   "ref-get",
   "ref-set",
   "ref-freeze",
+  "equal-always",
+  "equal-always3",
+  "equal-now",
+  "equal-now3",
+  "identical",
+  "identical3",
   "exn-unwrap"
 ])
 

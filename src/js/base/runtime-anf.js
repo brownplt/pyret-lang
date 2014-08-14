@@ -1529,7 +1529,7 @@ function createMethodDict() {
     // JS function from Pyret values to Pyret equality answers
     function equal3(left, right, alwaysFlag) {
       var isIdentical = identical3(left, right);
-      if (!ffi.isNotEqual(ans)) { return isIdentical; } // if Equal or Unknown...
+      if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
       
       var stackOfToCompare = [];
       var toCompare = [];
@@ -1698,7 +1698,7 @@ function createMethodDict() {
         var $step = 0;
         var $ans = undefined;
         try {
-          if (thisRuntime.isActivationRecord(val)) {
+          if (thisRuntime.isActivationRecord(left)) {
             $step = val.step;
             $ans = val.ans;
           }
@@ -1711,7 +1711,7 @@ function createMethodDict() {
               $ans = equalFun();
               break;
             case 1:
-              stack = stackOfToCompare.pop();
+              toCompare = stackOfToCompare.pop();
               return $ans;
             }
           }
@@ -1735,31 +1735,39 @@ function createMethodDict() {
     }
         
 
-    // Pyret function from Pyret values to Pyret equality answers
-    var equalAlways3Py = makeFunction(function(left, right) {
+    // JS function from Pyret values to Pyret equality answers
+    function equalAlways3(left, right) {
       thisRuntime.checkArity(2, arguments, "equal-always3");
       return equal3(left, right, true);
-    });
-    // Pyret function from Pyret values to booleans (or throws)
-    var equalAlwaysPy = makeFunction(function(left, right) {
+    };
+    // JS function from Pyret values to JS booleans (or throws)
+    function equalAlways(v1, v2) {
       thisRuntime.checkArity(2, arguments, "equal-always");
       var ans = equal3(v1, v2, true);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
       else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var equalAlwaysPy = makeFunction(function(left, right) {
+        return makeBoolean(equalAlways(left, right));
     });
-    // Pyret function from Pyret values to Pyret equality answers
-    var equalNow3Py = makeFunction(function(left, right) {
+    // JS function from Pyret values to Pyret equality answers
+    function equalNow3(left, right) {
       thisRuntime.checkArity(2, arguments, "equal-now3");
       return equal3(left, right, false);
-    });
-    // Pyret function from Pyret values to booleans (or throws)
-    var equalNowPy = makeFunction(function(left, right) {
+    };
+    // JS function from Pyret values to JS booleans (or throws)
+    function equalNow(v1, v2) {
       thisRuntime.checkArity(2, arguments, "equal-now");
       var ans = equal3(v1, v2, false);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
       else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var equalNowPy = makeFunction(function(left, right) {
+        return makeBoolean(equalNow(left, right));
     });
   
 
@@ -1874,13 +1882,17 @@ function createMethodDict() {
       thisRuntime.checkArity(2, arguments, "identical3");
       return identical3(v1, v2);
     });
-    // Pyret function from Pyret values to booleans (or throws)
-    var identicalPy = makeFunction(function(v1, v2) {
+    // JS function from Pyret values to JS true/false or throws
+    function identical(v1, v2) {
       thisRuntime.checkArity(2, arguments, "identical");
       var ans = identical3(v1, v2);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
       else { ffi.throwMessageException("Attempted to compare functions or methods with identical"); }
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var identicalPy = makeFunction(function(v1, v2) {
+        return makeBoolean(identical(v1, v2));
     });
 
     var gensymCounter = Math.floor(Math.random() * 1000);
@@ -3532,6 +3544,13 @@ function createMethodDict() {
           'ref-end-graph'   : makeFunction(refEndGraph),
           'ref-freeze' : makeFunction(freezeRef),
 
+          'identical3': identical3Py,
+          'identical': identicalPy,
+          'equal-now3': makeFunction(equalNow3),
+          'equal-now': equalNowPy,
+          'equal-always3': makeFunction(equalAlways3),
+          'equal-always': equalAlwaysPy,
+
           'exn-unwrap': makeFunction(getExnValue)
 
         }),
@@ -3701,12 +3720,12 @@ function createMethodDict() {
         'not': bool_not,
 
         'equiv': sameJSPy,
-        'identical3': identical3Py,
-        'identical': identicalPy,
-        'equal-now3': equalNow3Py,
-        'equal-now': equalNowPy,
-        'equal-always3': equalAlways3Py,
-        'equal-always': equalAlwaysPy,
+        'identical3': identical3,
+        'identical': identical,
+        'equal_now3': equalNow3,
+        'equal_now': equalNow,
+        'equal_always3': equalAlways3,
+        'equal_always': equalAlways,
         'raise': raiseJSJS,
 
         'pyretTrue': pyretTrue,
