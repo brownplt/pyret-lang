@@ -203,7 +203,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
       }, function(result) {
         console.log("Finished compiling parsed py", options);
         if(runtime.isFailureResult(result)) {
-          restarter.resume(result.exn);
+          restarter.error(result.exn);
           return;
         }
         if (typeof result.result !== 'string') {
