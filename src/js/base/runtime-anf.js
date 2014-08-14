@@ -1538,7 +1538,7 @@ function createMethodDict() {
       curAns = ffi.equal;
       cache = {left: [], right: []};
       function findPair(obj1, obj2) {
-        for (var i = 0; i < cache.length; i++) {
+        for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
             return true;
         }
@@ -1578,7 +1578,7 @@ function createMethodDict() {
             } else {
               cachePair(curLeft, curRight);
               if (isRef(curLeft) && isRef(curRight)) {
-                if (alwaysFlag) { // In equal-always, non-identical refs are not equal
+                if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
