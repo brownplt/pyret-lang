@@ -1681,7 +1681,7 @@ function createMethodDict() {
         } catch($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc;
+              stackFrameDesc,
               equalFun,
               $step,
               [],
@@ -1735,7 +1735,6 @@ function createMethodDict() {
     }
         
 
-    }
     // Pyret function from Pyret values to Pyret equality answers
     var equalAlways3Py = makeFunction(function(left, right) {
       thisRuntime.checkArity(2, arguments, "equal-always3");
