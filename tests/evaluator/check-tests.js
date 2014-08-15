@@ -59,6 +59,8 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
         test("check: 2 is-not 2 end",           checkMessage("not different"));
         test("check: 2 is%(_ < _) -891 end",    checkMessage("not equal (using custom equality)"));
         test("check: 2 is-not%(_ < _) 891 end", checkMessage("not different (using custom equality)"));
+        test("check: 2 is%(_ + _) 3 end",       checkMessage("boolean"));
+        test("check: 2 is-not%(_ + _) 3 end",   checkMessage("boolean"));
         P.wait(done);
       });
     });
