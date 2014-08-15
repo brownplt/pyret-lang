@@ -14,6 +14,7 @@ console.log("Starting evaluator tests");
 r([
     "../constants",
     "../conditionals",
+    "../check-tests",
     "../data",
     "../errors",
     "../well-formed",
@@ -22,6 +23,7 @@ r([
     ], function (
       constants,
       conditionals,
+      check_tests,
       data,
       errors,
       well_formed,
@@ -30,6 +32,7 @@ r([
     ) {
   constants.performTest();
   conditionals.performTest();
+  check_tests.performTest();
   data.performTest();
   errors.performTest();
   well_formed.performTest();

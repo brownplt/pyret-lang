@@ -316,12 +316,23 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     name.visit(self) and ann.visit(self)
   end,
-  s-check-test(self, l, op, left, right):
+  s-check-test(self, l, op, refinement, left, right):
     when not(in-check-block):
-      if  (op == "opis"):
-        wf-error("Cannot use `is` outside of a `check` or `where` block", l)
-      else:
-        wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
+      op-name = op.tosource().pretty(80).join-str("\n")
+      wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
+    end
+    when is-some(refinement):
+      cases(A.CheckOp) op:
+        | s-op-is            => nothing
+        | s-op-is-not        => nothing
+        | s-op-raises        =>
+          wf-error("Cannot use refinement syntax `%(...)` with `raises`.", l)
+        | s-op-satisfies     =>
+          wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
+              + "Consider changing the predicate instead.", l)
+        | s-op-satisfies-not =>
+          wf-error("Cannot use refinement syntax `%(...)` with `dissatisfies`. "
+              + "Consider changing the predicate instead.", l)
       end
     end
     left.visit(self) and right.visit(self)
@@ -588,8 +599,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,
-  s-check-test(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
-    well-formed-visitor.s-check-test(l, op, left, right)
+  s-check-test(_, l :: Loc, op :: String, refinement :: Option<A.Expr>, left :: A.Expr, right :: A.Expr):
+    well-formed-visitor.s-check-test(l, op, refinement, left, right)
   end,
   s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)

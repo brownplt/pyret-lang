@@ -1664,7 +1664,9 @@ function createMethodDict() {
                   var fieldsRight;
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
-                  if(fieldsLeft.length !== fieldsRight.length) { return false; }
+                  if(fieldsLeft.length !== fieldsRight.length) { 
+                    curAns = ffi.notEqual.app(current.path); 
+                  }
                   for(var k = 0; k < fieldsLeft.length; k++) {
                     toCompare.push({
                       left: curLeft.dict[fieldsLeft[k]],

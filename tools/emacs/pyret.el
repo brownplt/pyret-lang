@@ -92,15 +92,17 @@
      "and" "or" "is" "raises" "satisfies" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
-  '("provide-types" "type-let"))
+  '("provide-types" "type-let" "is-not" "satisfies-not"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
+(defconst pyret-keywords-percent
+   '("is"))
 (defconst pyret-paragraph-starters
   '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
 
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
-                "." "!" "\\" ";" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
+                "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
@@ -131,6 +133,7 @@
   (defconst pyret-keywords-regex (regexp-opt pyret-keywords))
   (defconst pyret-keywords-hyphen-regex (regexp-opt pyret-keywords-hyphen))
   (defconst pyret-keywords-colon-regex (regexp-opt pyret-keywords-colon))
+  (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
   (defconst pyret-font-lock-keywords-1
     (list
      `("\\(```[^`]\\(?:\\\\[`\\\\]\\|[^`\\\\]\\|`[^`]\\|``[^`]\\)*```\\)" 
@@ -139,6 +142,11 @@
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-colon-regex
          "\\)\\(:\\)") 
+       (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-percent-regex
+         "\\)\\(%\\)") 
        (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("

@@ -13,28 +13,41 @@ end
 
 
 check-stmts-visitor = A.default-map-visitor.{
-  s-check-test(self, l, op, left, right):
+  s-check-test(self, l, op, refinement, left, right):
+    src-str = A.s-str(l, A.s-check-test(l, op, refinement, left, right).tosource().pretty(80).join-str("\n"))
+    src-loc = A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: 
-          A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
-          left,
-          right,
-          A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
-        ])
+        [list: src-str, left, right, src-loc])
     end
-    if op == "opis": check-op("check-is")
-    else if op == "opsatisfies": check-op("check-satisfies")
-    else if op == "opraises":
-      A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-        [list: 
-          A.s-str(l, A.s-check-test(l, op, left, right).tosource().pretty(80).join-str("\n")),
-          A.s-lam(l, [list: ], [list: ], A.a-blank, "", left, none),
-          right,
-          A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
-        ])
-    else:
-      raise("Check test operator " + op + " not yet implemented at " + torepr(l))
+    fun check-refinement(shadow refinement, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: src-str, refinement, left, right, src-loc])
+    end
+    cases(A.CheckOp) op:
+      | s-op-is            =>
+        cases(Option) refinement:
+          | none                    => check-op("check-is")
+          | some(shadow refinement) => check-refinement(refinement, "check-is-refinement")
+        end
+      | s-op-is-not        =>
+        cases(Option) refinement:
+          | none                    => check-op("check-is-not")
+          | some(shadow refinement) => check-refinement(refinement, "check-is-not-refinement")
+        end
+      | s-op-satisfies     =>
+        check-op("check-satisfies")
+      | s-op-satisfies-not =>
+        check-op("check-satisfies-not")
+      | s-op-raises        =>
+        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
+          [list: 
+            A.s-str(l, A.s-check-test(l, op, refinement, left, right).tosource().pretty(80).join-str("\n")),
+            A.s-lam(l, [list: ], [list: ], A.a-blank, "", left, none),
+            right,
+            A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+          ])
+      | else => raise("Check test operator " + op + " not yet implemented at " + torepr(l))
     end
   end,
   s-check(self, l, name, body, keyword-check):
