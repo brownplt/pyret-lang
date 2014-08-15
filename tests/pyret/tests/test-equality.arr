@@ -1,6 +1,6 @@
 #lang pyret
 
-check:
+check "numbers":
   identical(1, 1) is true
   identical(1, 2) is false
   equal-always(1, 1) is true
@@ -14,7 +14,7 @@ data Nat:
   | S(n)
 end
 
-check:
+check "datatypes (no ref)":
   identical(Z, Z) is true
   identical(Z, S(Z)) is false
   identical(S(Z), S(Z)) is false
@@ -30,7 +30,7 @@ data Box:
   | box(ref v)
 end
 
-check:
+check "datatypes (with ref)":
   x = box(5)
   y = box(5)
   identical(x, x) is true
@@ -52,7 +52,7 @@ graph:
   third-ones = nlink(1, ones)
 end
 
-check:
+check "immutable cyclic lists":
   identical(ones, ones) is true
   identical(ones, other-ones) is false
   identical(ones, third-ones) is false
@@ -86,7 +86,7 @@ block:
     rest2 = mlink(DEN, mt2)
   end
 
-  check:
+  check "general immutable graphs":
     identical(BOS, CLE) is false
     identical(PRO, CHI) is false
     identical(WOR, DEN) is false
@@ -116,7 +116,7 @@ block:
     rest2 = mlink(DEN, mempty)
   end
 
-  check:
+  check "general mutable graphs":
     identical(BOS, CLE) is false
     identical(PRO, CHI) is false
     identical(WOR, DEN) is false
@@ -129,3 +129,32 @@ block:
   end
 end
 
+# Sets
+# Lists
+# Trees
+
+# check "sets":
+#   s1 = [tree-set: 1, 2, 3]
+#   s2 = [tree-set: 2, 1, 3]
+#   s3 = [tree-set: 1, 2, 5]
+
+#   identical(s1, s2) is false
+#   identical(s1, s3) is false
+#   equal-always(s1, s2) is true
+#   equal-always(s1, s3) is false
+#   equal-now(s1, s2) is true
+#   equal-now(s1, s3) is false
+# end
+
+# check "lists":
+#   l1 = [list: 1, 2, 3]
+#   l2 = [list: 1, 2, 3]
+#   l3 = [list: 3, 1, 2]
+
+#   identical(l1, l2) is false
+#   identical(l1, l3) is false
+#   equal-always(l1, l2) is true
+#   equal-always(l1, l3) is false
+#   equal-now(l1, l2) is true
+#   equal-now(l1, l3) is false
+# end
