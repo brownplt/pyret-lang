@@ -1042,6 +1042,7 @@ function createMethodDict() {
       var stack = [];
       var stackOfStacks = [];
       var seen = [];
+      var referents = []
       var needsGraph = false;
       var seenFrozenRef = false;
       var seenUnfrozenRef = false;
@@ -1062,11 +1063,20 @@ function createMethodDict() {
         }
         return undefined;
       }
+      function findReferent(obj) {
+        for (var i = 0; i < referents.length; i++) {
+          if (referents[i].obj === obj) {
+            return referents[i].from;
+          }
+        }
+        return undefined;
+      }
       function addNewRef(obj) {
-        obj.seenIt = true;
         var newObj = {count: 1, asName: makeName(), asDoc: "", obj: obj};
         // console.log("Initializing count for " + newObj.asName + " => 1");
         seen.push(newObj);
+        var referent = {obj: getRef(obj), from: newObj};
+        referents.push(referent);
         return newObj.asName;
       }
       function setRefDoc(obj, doc) {
@@ -1212,15 +1222,28 @@ function createMethodDict() {
             //               + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
             }
           }
+          var mentioned = findReferent(stack[0].root);
+          if (needsMutableGraph && (mentioned === undefined)) {
+            finalAns += "  __ANS__ = " + stack[0].done[0] + "\n";
+            stack[0].done[0] = "ref-get(__ANS__)";
+          }
           finalAns += "  end\n"; 
           if (needsMutableGraph) {
             for (var i = 0; i < seen.length; i++) {
               if (isRefFrozen(seen[i].obj)) {
-                finalAns += "  freeze-ref(" + seen[i].asName + ")\n";
+                finalAns += "  ref-freeze(" + seen[i].asName + ")\n";
               }
             }
           }
-          finalAns += "  " + stack[0].done[0] + "\nend";
+          if (mentioned !== undefined) {
+            if (!needsMutableGraph) {
+              finalAns += "  " + mentioned.asName + "\nend";
+            } else {
+              finalAns += "  ref-get(" + mentioned.asName + ")\nend";
+            }
+          } else {
+            finalAns += "  " + stack[0].done[0] + "\nend";
+          }
         }
         var replacementsNeeded = true;
         while (replacementsNeeded) {
@@ -1289,7 +1312,7 @@ function createMethodDict() {
             switch($step) {
             case 0:
               stackOfStacks.push(stack);
-              stack = [{todo: [val], done: [], implicitRefs: [true]}];
+              stack = [{todo: [val], done: [], implicitRefs: [true], root: val}];
               $step = 1;
               $ans = toReprFun();
               break;
