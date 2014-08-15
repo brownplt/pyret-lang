@@ -513,13 +513,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 return RUNTIME.getField(ast, 's-variant-member')
                   .app(pos(node.pos), RUNTIME.getField(ast, "s-normal"), tr(node.kids[0]));
               } else {
-                if (node.kids[0].name === "MUTABLE") {
-                  return RUNTIME.getField(ast, 's-variant-member')
-                    .app(pos(node.pos), RUNTIME.getField(ast, "s-mutable"), tr(node.kids[1]));
-                } else {
-                  return RUNTIME.getField(ast, 's-variant-member')
-                    .app(pos(node.pos), RUNTIME.getField(ast, "s-cyclic"), tr(node.kids[1]));
-                }
+                return RUNTIME.getField(ast, 's-variant-member')
+                  .app(pos(node.pos), RUNTIME.getField(ast, "s-mutable"), tr(node.kids[1]));
               }
             },
             'variant-members': function(node) {

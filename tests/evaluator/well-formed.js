@@ -52,6 +52,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkEvalsTo("fun f(x):\n  f\n  # a comment\n  (x)\nend\n10", rt.makeNumber(10));
         P.wait(done);
       });
+      it("anonymous bindings", function(done) {
+        P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
+        P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
+        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "Anonymous bindings");
+        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
+        P.wait(done);
+      });
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 

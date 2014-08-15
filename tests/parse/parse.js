@@ -404,5 +404,36 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
     });
 
+    it("should parse get-bang", function() {
+      expect(parse("o!x")).not.toBe(false);
+      expect(parse("y.x!x")).not.toBe(false);
+    });
+
+    it("should parse update", function() {
+      expect(parse("o!{x:5}")).not.toBe(false);
+      expect(parse("y!{x:5, y:10}")).not.toBe(false);
+    });
+
+    it("should parse ref fields in data definitions", function() {
+      expect(parse("data D: d(ref x) end")).not.toBe(false);
+      expect(parse("data D: d(ref x :: Number % (is-odd)) end")).not.toBe(false);
+      expect(parse("data D: d(ref x, ref y :: Number) end")).not.toBe(false);
+      expect(parse("data D: | d(ref x :: Boolean, ref y) end")).not.toBe(false);
+    });
+
+    it("should parse ref fields in object literals", function() {
+      expect(parse("{ref x :: Number: 22}")).not.toBe(false);
+      expect(parse("{ref x: 22}")).not.toBe(false);
+      expect(parse("{ref x: 22, y: \"a\"}")).not.toBe(false);
+      expect(parse("{ref x: 22, ref y: \"a\"}")).not.toBe(false);
+      expect(parse("{ref x: 22, ref y :: String: \"a\"}")).not.toBe(false);
+      expect(parse("{ref x :: { z :: Number}: 22, ref y :: String: \"a\"}")).not.toBe(false);
+
+      expect(parse("{x :: Number: 5}")).toBe(false);
+      expect(parse("{ ref ref y :: String: 5 }")).toBe(false); 
+      expect(parse("{ ref ref: 5 }")).toBe(false); 
+    });
+
+
   });
 });

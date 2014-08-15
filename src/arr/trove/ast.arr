@@ -836,8 +836,6 @@ data Member:
       name-part = PP.str(self.name)
       PP.nest(INDENT, str-mutable + name-part + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource())
     end,
-  | s-once-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
-    label(self): "s-once-field" end
   | s-method-field(
       l :: Loc,
       name :: String,
@@ -875,9 +873,6 @@ data VariantMemberType:
   | s-normal with:
     label(self): "s-normal" end,
     tosource(self): PP.mt-doc end
-  | s-cyclic with:
-    label(self): "s-cyclic" end,
-    tosource(self): PP.str("cyclic ") end    
   | s-mutable with:
     label(self): "s-mutable" end,
     tosource(self): PP.str("mutable ") end
@@ -1526,9 +1521,6 @@ default-map-visitor = {
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(l, name, ann.visit(self), value.visit(self))
   end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    s-once-field(l, name, ann.visit(self), value.visit(self))
-  end,
   s-method-field(
       self,
       l :: Loc,
@@ -1973,9 +1965,6 @@ default-iter-visitor = {
     value.visit(self)
   end,
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    ann.visit(self) and value.visit(self)
-  end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     ann.visit(self) and value.visit(self)
   end,
   s-method-field(
@@ -2426,9 +2415,6 @@ dummy-loc-visitor = {
   end,
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(dummy-loc, name, ann.visit(self), value.visit(self))
-  end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    s-once-field(dummy-loc, name, ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,

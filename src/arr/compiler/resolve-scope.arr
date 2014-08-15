@@ -107,70 +107,79 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
   end
 end
 
+data BindingGroup:
+  | let-binds(binds :: List<A.LetBind>)
+  | letrec-binds(binds :: List<A.LetrecBind>)
+  | type-let-binds(binds :: List<A.TypeLetBind>)
+end
 
-fun desugar-scope-block(stmts, let-binds, letrec-binds, type-let-binds) -> List<A.Expr>:
+fun bind-wrap(bg, expr) -> A.Expr:
+  cases(List) bg.binds:
+    | empty => expr
+    | else =>
+      cases(BindingGroup) bg:
+        | let-binds(binds) =>
+          A.s-let-expr(binds.first.l, binds.reverse(), expr)
+        | letrec-binds(binds) =>
+          A.s-letrec(binds.first.l, binds.reverse(), expr)
+        | type-let-binds(binds) =>
+          A.s-type-let-expr(binds.first.l, binds.reverse(), expr)
+      end
+  end
+end
+
+fun add-letrec-bind(bg :: BindingGroup, lrb :: A.LetrecBind, stmts :: List<A.Expr>) -> A.Expr:
+  add-letrec-binds(bg, [list: lrb], stmts)
+end
+
+fun add-letrec-binds(bg :: BindingGroup, lrbs :: List<A.LetrecBind>, stmts :: List<A.Expr>) -> A.Expr:
+  cases(BindingGroup) bg:
+    | letrec-binds(binds) =>
+      desugar-scope-block(stmts, letrec-binds(lrbs + binds))
+    | else =>
+      bind-wrap(bg, desugar-scope-block(stmts, letrec-binds(lrbs)))
+  end
+end
+
+fun add-let-bind(bg :: BindingGroup, lb :: A.LetBind, stmts :: List<A.Expr>) -> A.Expr:
+  cases(BindingGroup) bg:
+    | let-binds(binds) =>
+      desugar-scope-block(stmts, let-binds(link(lb, binds)))
+    | else =>
+      bind-wrap(bg, desugar-scope-block(stmts, let-binds(link(lb, empty))))
+  end
+end
+
+fun add-type-let-bind(bg :: BindingGroup, tlb :: A.TypeLetBind, stmts :: List<A.Expr>) -> A.Expr:
+  cases(BindingGroup) bg:
+    | type-let-binds(binds) =>
+      desugar-scope-block(stmts, type-let-binds(link(tlb, binds)))
+    | else =>
+      bind-wrap(bg, desugar-scope-block(stmts, type-let-binds(link(tlb, empty))))
+  end
+end
+
+fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) -> A.Expr:
   doc: ```
        Treating stmts as a block, resolve scope.
        There should be no blocks left after this stage of the compiler pipeline.
        ```
   cases(List) stmts:
-    | empty => empty
+    | empty => raise("Should not get an empty block in desugar-scope-block")
     | link(f, rest-stmts) =>
-      fun wrap-letrecs(expr):
-        A.s-letrec(letrec-binds.first.l, letrec-binds.reverse(), expr)
-      end
-      fun wrap-lets(expr):
-        A.s-let-expr(let-binds.first.l, let-binds.reverse(), expr)
-      end
-      fun wrap-type-lets(expr):
-        A.s-type-let-expr(type-let-binds.first.l, type-let-binds.reverse(), expr)
-      end
-      fun handle-let-bind(l, new-bind):
-        new-binds = link(new-bind, let-binds)
-        resolved-inner = desugar-scope-block(rest-stmts, new-binds, [list: ], [list: ])
-        if not(is-empty(letrec-binds)):
-          [list: wrap-letrecs(A.s-block(l, resolved-inner))]
-        else if not(is-empty(type-let-binds)):
-          [list: wrap-type-lets(A.s-block(l, resolved-inner))]
-        else:
-          resolved-inner
-        end
-      end
-      wrapper = 
-        if is-link(let-binds): wrap-lets
-        else if is-link(letrec-binds): wrap-letrecs
-        else if is-link(type-let-binds): wrap-type-lets
-        else: lam(e): e;
-        end
       cases(A.Expr) f:
         | s-type(l, name, ann) =>
-          new-type-lets = link(A.s-type-bind(l, name, ann), type-let-binds)
-          resolved-inner = desugar-scope-block(rest-stmts, [list: ], [list: ], new-type-lets)
-          if not(is-empty(let-binds)):
-            [list: wrap-lets(A.s-block(l, resolved-inner))]
-          else if not(is-empty(letrec-binds)):
-            [list: wrap-letrecs(A.s-block(l, resolved-inner))]
-          else:
-            resolved-inner
-          end
+          add-type-let-bind(binding-group, A.s-type-bind(l, name, ann), rest-stmts)
         | s-let(l, bind, expr, _) =>
-          handle-let-bind(l, A.s-let-bind(l, bind, expr))
+          add-let-bind(binding-group, A.s-let-bind(l, bind, expr), rest-stmts)
         | s-var(l, bind, expr) =>
-          handle-let-bind(l, A.s-var-bind(l, bind, expr))
+          add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
-          new-letrecs = link(A.s-letrec-bind(
+          add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
               A.s-lam(l, params, args, ann, doc, body, _check)
-            ), letrec-binds)
-          resolved-inner = desugar-scope-block(rest-stmts, [list: ], new-letrecs, [list: ])
-          if not(is-empty(let-binds)):
-            [list: wrap-lets(A.s-block(l, resolved-inner))]
-          else if not(is-empty(type-let-binds)):
-            [list: wrap-type-lets(A.s-block(l, resolved-inner))]
-          else:
-            resolved-inner
-          end
+            ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
           fun variant-binds(data-blob-id, v):
@@ -190,35 +199,31 @@ fun desugar-scope-block(stmts, let-binds, letrec-binds, type-let-binds) -> List<
           all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
             variant-binds(A.s-id(l, A.s-name(l, blob-id)), v) + acc
           end
-
-          if is-empty(letrec-binds):
-            [list: wrapper(A.s-block(l, desugar-scope-block(rest-stmts, [list: ], all-binds, [list: ])))]
-          else:
-            desugar-scope-block(rest-stmts, [list: ], all-binds + letrec-binds, [list: ])
-          end
+          add-letrec-binds(binding-group, all-binds, rest-stmts)
         | s-contract(l, name, ann) =>
-          desugar-scope-block(rest-stmts, let-binds, letrec-binds, type-let-binds)
+          desugar-scope-block(rest-stmts, binding-group)
         | else =>
           cases(List) rest-stmts:
-            | empty => [list: wrapper(f)]
+            | empty => bind-wrap(binding-group, f)
             | link(_, _) =>
-              if not(is-link(let-binds) or is-link(letrec-binds) or is-link(type-let-binds)):
-                link(f, desugar-scope-block(rest-stmts, [list: ], [list: ], [list: ]))
-              else:
-                [list: wrapper(A.s-block(f.l,
-                  link(f, desugar-scope-block(rest-stmts, [list: ], [list: ], [list: ]))))]
+              rest-stmt = desugar-scope-block(rest-stmts, let-binds(empty))
+              shadow rest-stmts = cases(A.Expr) rest-stmt:
+                | s-block(_, shadow stmts) => link(f, stmts)
+                | else => [list: f, rest-stmt]
               end
+              bind-wrap(binding-group, A.s-block(f.l, rest-stmts))
           end
       end
   end
 where:
+  dsb = desugar-scope-block(_, let-binds(empty))
   p = lam(str): PP.surface-parse(str, "test").block;
   d = A.dummy-loc
   b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
   id = lam(s): A.s-id(d, A.s-name(d, s));
   bk = lam(e): A.s-block(d, [list: e]) end
   bs = lam(str):
-    A.s-block(d, desugar-scope-block(p(str).stmts, [list: ], [list: ], [list: ])).visit(A.dummy-loc-visitor)
+    dsb(p(str).stmts).visit(A.dummy-loc-visitor)
   end
   n = none
   thunk = lam(e): A.s-lam(d, [list: ], [list: ], A.a-blank, "", bk(e), n) end
@@ -227,29 +232,27 @@ where:
   compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
                                       A.s-let-bind(d, b("y"), A.s-num(d, 10))],
                         id("y"))
-  desugar-scope-block(p("x = 15 y = 10 y").stmts, empty, empty, empty).first.visit(A.dummy-loc-visitor)
+  dsb(p("x = 15 y = 10 y").stmts).visit(A.dummy-loc-visitor)
     is compare1
 
-  desugar-scope-block(p("x = 55 var y = 10 y").stmts, empty, empty, empty).first.visit(A.dummy-loc-visitor)
+  dsb(p("x = 55 var y = 10 y").stmts).visit(A.dummy-loc-visitor)
     is A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
       A.s-var-bind(d, b("y"), A.s-num(d, 10))], id("y"))
 
-  bs("x = 7 print(2) var y = 10 y") is A.s-block(d,
-    [list: A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
+  bs("x = 7 print(2) var y = 10 y") is
+    A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
         A.s-block(d, [list:
             A.s-app(d, id("print"), [list:A.s-num(d, 2)]),
             A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10))],
               id("y"))
-        ]))])
+        ]))
 
   prog = bs("fun f(): 4 end fun g(): 5 end f()")
-  prog is A.s-block(d,
-    [list: A.s-letrec(d, [list:
-          A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
-          A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
-        ],
-        A.s-app(d, id("f"), [list: ]))
-    ])
+  prog is A.s-letrec(d, [list:
+            A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
+            A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
+          ],
+          A.s-app(d, id("f"), [list: ]))
 
   p-s = lam(e): A.s-app(d, id("print"), [list: e]);
   pretty = lam(e): e.tosource().pretty(80).join-str("\n");
@@ -262,12 +265,11 @@ where:
           A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5))),
           A.s-letrec-bind(d, b("h"), thunk(A.s-num(d, 6)))
         ],
-        A.s-block(d, [list:
-            A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 3))], p-s(id("x")))
-        ]))])
+        A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 3))], p-s(id("x")))
+        )])
 
-  desugar-scope-block([list: prog2], [list: ], [list: ], [list: ]).first is prog2
-  for each2(p1 from desugar-scope-block(prog2.stmts, [list: ], [list: ], [list: ]), p2 from prog2.stmts):
+  dsb([list: prog2]) is prog2
+  for each2(p1 from dsb(prog2.stmts).stmts, p2 from prog2.stmts):
     p1.visit(A.dummy-loc-visitor) is p2
   end
 
@@ -280,20 +282,19 @@ where:
     ])
   
   prog4 = bs("var x = 10 fun f(): 4 end f()")
-  prog4 is A.s-block(d, [list:
+  prog4 is
       A.s-let-expr(d, [list:
           A.s-var-bind(d, b("x"), A.s-num(d, 10))
         ],
-        A.s-block(d, [list:
-            A.s-letrec(d, [list:
-                A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4)))
-              ],
-              A.s-app(d, id("f"), [list: ]))
-        ]))])
+        A.s-letrec(d, [list:
+            A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4)))
+          ],
+          A.s-app(d, id("f"), [list: ]))
+        )
 
   #prog5 = bs("data List: empty | link(f, r) end empty")
   #prog5.stmts.length() is 1
-  #the-let = prog5.stmts.first
+  #the-let = prog5.stmts
   #the-let satisfies A.is-s-let-expr
   #the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
   #the-let.binds.take(3).map(_.value) satisfies lists.all(lam(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
@@ -306,14 +307,14 @@ end
 
 desugar-scope-visitor = A.default-map-visitor.{
   s-block(self, l, stmts):
-    A.s-block(l, desugar-scope-block(stmts.map(_.visit(self)), [list: ], [list: ], [list: ]))
+    desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty))
   end
 }
 
 fun wrap-env-imports(expr :: A.Expr, env :: C.CompileEnvironment):
   cases(C.CompileEnvironment) env:
     | compile-env(compile-bindings, type-env) =>
-      let-binds = for fold(lst from [list: ], b from compile-bindings):
+      shadow let-binds = for fold(lst from [list: ], b from compile-bindings):
         cases(C.CompileBinding) b:
           | module-bindings(mname, bindings) =>
             l = S.builtin(mname)
@@ -411,14 +412,10 @@ where:
   ds = lam(prog): desugar-scope(prog, C.minimal-builtins).visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
       A.s-type-let-expr(d, [list:],
-        A.s-block(d, [list:
-          A.s-block(d, [list:
-            A.s-let-expr(d, [list:
-                A.s-let-bind(d, b("x"), A.s-num(d, 10))
-              ],
-              A.s-module(d, id("nothing"), id("x"), [list:], checks))
-          ])
-        ])
+        A.s-let-expr(d, [list:
+            A.s-let-bind(d, b("x"), A.s-num(d, 10))
+          ],
+          A.s-module(d, id("nothing"), id("x"), [list:], checks))
       ))
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
@@ -428,14 +425,10 @@ where:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
       A.s-type-let-expr(d, [list:],
-        A.s-block(d, [list:
-          A.s-block(d, [list:
-            A.s-let-expr(d, [list: 
-                A.s-let-bind(d, b("x"), A.s-num(d, 10))
-              ],
-              A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
-          ])
-        ])
+        A.s-let-expr(d, [list: 
+            A.s-let-bind(d, b("x"), A.s-num(d, 10))
+          ],
+          A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
       ))
   ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) is compare2
 end
@@ -655,7 +648,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind)
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
-            visit-val = val.visit(self.{env: acc.env})
+            visit-val = val.visit(self)
             update-binding-expr(atom-env.atom, some(visit-val))
             new-fb = A.s-for-bind(l2, new-bind, visit-val)
             { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
