@@ -536,11 +536,11 @@ fun desugar-expr(expr :: A.Expr):
     | s-paren(l, e) => desugar-expr(e)
 
     # NOTE(john): see preconditions; desugar-scope should have already happened
-    | s-let(_, _, _, _)        => raise("s-let should have already been desugared")
-    | s-var(_, _, _)           => raise("s-var should have already been desugared")
+    | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
+    | s-var(_, _, _)              => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _, _)      => raise("s-check should have already been desugared at " + torepr(l))
-    | s-check-test(l, _, _, _) => raise("s-check-test should have already been desugared at " + torepr(l))
+    | s-check(l, _, _, _)         => raise("s-check should have already been desugared at " + torepr(l))
+    | s-check-test(l, _, _, _, _) => raise("s-check-test should have already been desugared at " + torepr(l))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

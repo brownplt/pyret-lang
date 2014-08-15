@@ -368,13 +368,21 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               }
             },
             'check-test': function(node) {
-              if (node.kids.length === 1) {
+              var kids = node.kids;
+              if (kids.length === 1) {
                 // (check-test e)
-                return tr(node.kids[0]);
-              } else {
+                return tr(kids[0]);
+              } else if (kids.length === 3) {
                 // (check-test left op right)
+                //             0    1  2
                 return RUNTIME.getField(ast, 's-check-test')
-                  .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2])); // Op comes first
+                  .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), tr(kids[2]));
+              }
+              else {
+                // (check-test left op PERCENT LPAREN refinement RPAREN right)
+                //             0    1                 4                 6
+                return RUNTIME.getField(ast, 's-check-test')
+                  .app(pos(node.pos), tr(kids[1]), F.makeSome(tr(kids[4])), tr(kids[0]), tr(kids[6]));
               }
             },
             'binop-expr': function(node) {
@@ -933,9 +941,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           "<>": RUNTIME.makeString("op<>"),
           "and": RUNTIME.makeString("opand"),
           "or": RUNTIME.makeString("opor"),
-          "is": RUNTIME.makeString("opis"),
-          "raises": RUNTIME.makeString("opraises"),
-          "satisfies": RUNTIME.makeString("opsatisfies"),
+          "is":            RUNTIME.getField(ast, "s-op-is"),
+          "is-not":        RUNTIME.getField(ast, "s-op-is-not"),
+          "satisfies":     RUNTIME.getField(ast, "s-op-satisfies"),
+          "satisfies-not": RUNTIME.getField(ast, "s-op-satisfies-not"),
+          "raises":        RUNTIME.getField(ast, "s-op-raises"),
         }
 
         function parseDataRaw(dialect, data, fileName) {

@@ -1,7 +1,8 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts"], function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
+       function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib, checkerLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib], function(L, O, E, ERR, S, C) {
+    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, O, E, ERR, S, CON, CH) {
 
       function makeList(arr) {
         var lst = runtime.getField(L, "empty");
@@ -38,9 +39,25 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
 
       var checkArity = runtime.checkArity;
 
+      function checkResultsSummary(checkResults) {
+        return runtime.safeCall(
+          function() {
+            return gf(CH, "results-summary").app(checkResults);
+          },
+          function(pySummary) {
+            return {
+              message: gf(pySummary, "message"),
+              passed: gf(pySummary, "passed"),
+              failed: gf(pySummary, "failed"),
+              total: gf(pySummary, "total")
+            };
+          },
+          "results-summary");
+      };
+
 
       function err(str) { return gf(ERR, str).app; }
-      function contract(str) { return gf(C, str).app; }
+      function contract(str) { return gf(CON, str).app; }
       function errPred(str) {
         return function(val) {
           return runtime.unwrap(gf(ERR, str).app(val));
@@ -278,7 +295,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         makeTypeMismatch: makeTypeMismatch,
         makePredicateFailure: makePredicateFailure,
         makeDotAnnNotPresent: makeDotAnnNotPresent,
-        contractOk: gf(C, "ok"),
+        contractOk: gf(CON, "ok"),
         contractFail: contract("fail"),
         contractFailArg: contract("fail-arg"),
         isOk: isOk,
@@ -296,6 +313,8 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         cases: cases,
 
         checkArity: checkArity,
+
+        checkResultsSummary: checkResultsSummary,
 
         makeList: makeList,
         makeNone: function() { return runtime.getField(O, "none"); },
