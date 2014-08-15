@@ -94,8 +94,8 @@ sharing:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
-  _equals(self, other):
-    AVLTree(other) and (self.inorder() == other.inorder())
+  _equals(self, other, eq):
+    AVLTree(other) and eq(self.inorder(), other.inorder())
   end
 end
 
@@ -346,8 +346,8 @@ sharing:
     self.union(other).difference(self.intersect(other))
   end,
   
-  _equals(self, other):
-    Set(other) and (self.to-list().sort() == other.to-list().sort())
+  _equals(self, other, eq):
+    Set(other) and eq(self.to-list().sort(), other.to-list().sort())
   end
   
 end
