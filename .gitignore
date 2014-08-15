@@ -26,4 +26,5 @@ node_modules/
 *#
 pyret.plt
 tests/pyret/tests/*.arr.js
+tests/pyret/regression/*.arr.js
 tests/pyret/bootstrap-tests/*.arr.js

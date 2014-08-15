@@ -483,10 +483,9 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     end
   step = js-id-of(compiler-name("step"))
   compiled-branch-fun =
-    compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, false)
-  preamble-and-anns = cases(N.CasesBranch) branch:
+    compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
+  preamble = cases(N.CasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
-      ann-cases = compile-anns(compiler, compiler.cur-step, args, compiler.make-label())
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
       checker = j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
@@ -498,16 +497,14 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
         j-block([list:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
                 [list: compiler.get-loc(pat-loc), j-true]))]))
-      { preamble: [list: checker],
-        ann-cases: ann-cases }
+      [list: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block([list:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
                   [list: compiler.get-loc(pat-loc), j-false]))]))
-      { preamble: [list: checker],
-        ann-cases: { new-cases: concat-empty, new-label: compiler.make-label() } }
+      [list: checker]
   end
   actual-app =
     [list:
@@ -517,20 +514,12 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [list: j-id(temp-branch)]))),
       j-break]
 
-  if CL.is-concat-empty(preamble-and-anns.ann-cases.new-cases):
-    c-block(
-      j-block(preamble-and-anns.preamble + actual-app),
-      concat-empty)
-  else:
-    first-label = preamble-and-anns.ann-cases.new-cases.getFirst().exp
-    c-block(
-      j-block(preamble-and-anns.preamble + [list: j-expr(j-assign(compiler.cur-step, first-label)), j-break]),
-      preamble-and-anns.ann-cases.new-cases
-      ^ concat-snoc(_, j-case(preamble-and-anns.ann-cases.new-label, actual-app)))
-  end
+  c-block(
+    j-block(preamble + actual-app),
+    concat-empty)
 end
   
-fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
+fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
@@ -560,6 +549,7 @@ fun compile-split-cases(compiler, opt-dest, typ, val :: N.AVal, branches :: List
         #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
         #       j-str("val is "), compiled-val,
         #       j-str("dispatch is "), dispatch.id-j])),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(cases-loc))),
         j-expr(j-assign(compiler.cur-step,
             j-binop(j-bracket(dispatch.id-j, j-dot(compiled-val, "$name")), J.j-or, else-label))),
         j-break]),
@@ -624,7 +614,7 @@ compiler-visitor = {
       | a-if(l2, cond, then, els) =>
         compile-split-if(self, some(b), cond, then, els, some(body))
       | a-cases(l2, typ, val, branches, _else) =>
-        compile-split-cases(self, some(b), typ, val, branches, _else, some(body))
+        compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -649,7 +639,7 @@ compiler-visitor = {
       | a-if(l2, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, some(e2))
       | a-cases(l2, typ, val, branches, _else) =>
-        compile-split-cases(self, none, typ, val, branches, _else, some(e2))
+        compile-split-cases(self, l2, none, typ, val, branches, _else, some(e2))
       | else =>
         e1-visit = e1.visit(self).exp
         e2-visit = e2.visit(self)
@@ -677,7 +667,7 @@ compiler-visitor = {
       | a-if(l, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, none)
       | a-cases(l, typ, val, branches, _else) =>
-        compile-split-cases(self, none, typ, val, branches, _else, none)
+        compile-split-cases(self, l, none, typ, val, branches, _else, none)
       | else =>
          visit-e = e.visit(self)
          c-block(

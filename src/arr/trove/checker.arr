@@ -19,13 +19,29 @@ end
 
 data TestResult:
   | success(loc :: Loc, code :: String)
-  | failure-not-equal(loc :: Loc, code :: String, left, right) with:
+  | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
     reason(self):
-      "Values not equal:\n" + torepr(self.left) + "\n" + torepr(self.right)
+      var msg = cases(Option) self.refinement:
+        | none    => "Values not equal:"
+        | some(_) => "Values not equal (using custom equality):"
+      end
+      msg + "\n" + torepr(self.left) + "\n" + torepr(self.right)
+    end
+  | failure-not-different(loc :: Loc, code :: String, refinement, left, right) with:
+    reason(self):
+      var msg = cases(Option) self.refinement:
+        | none    => "Values not different:"
+        | some(_) => "Values not different (using custom equality):"
+      end
+      msg + "\n" + torepr(self.left) + "\n" + torepr(self.right)
     end
   | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
     reason(self):
       "Predicate failed for value: " + torepr(self.val)
+    end
+  | failure-not-dissatisfied(loc :: Loc, code :: String, val, pred) with:
+    reason(self):
+      "Predicate succeeded for value (it should have failed): " + torepr(self.val)
     end
   | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
     reason(self):
@@ -46,6 +62,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun add-result(t :: TestResult):
     current-results := [list: t] + current-results
   end
+  fun check-bool(loc, code, test-result, on-failure):
+    if test-result:
+      add-result(success(loc, code))
+    else:
+      add-result(on-failure())
+    end
+  end
   fun reset-results(): current-results := [list: ];
   {
     run-checks(self, module-name, checks):
@@ -61,18 +84,34 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
     end,
     check-is(self, code, left, right, loc):
-      if left == right:
-        add-result(success(loc, code))
-      else:
-        add-result(failure-not-equal(loc, code, left, right))
-      end
+      check-bool(loc, code,
+        left == right,
+        lam(): failure-not-equal(loc, code, none, left, right);)
+    end,
+    check-is-not(self, code, left, right, loc):
+      check-bool(loc, code,
+        left <> right,
+        lam(): failure-not-different(loc, code, none, left, right);)
+    end,
+    check-is-refinement(self, code, refinement, left, right, loc):
+      check-bool(loc, code,
+        refinement(left, right),
+        lam(): failure-not-equal(loc, code, some(refinement), left, right);)
+    end,
+    check-is-not-refinement(self, code, refinement, left, right, loc):
+      check-bool(loc, code,
+        not(refinement(left, right)),
+        lam(): failure-not-different(loc, code, some(refinement), left, right);)
     end,
     check-satisfies(self, code, left, pred, loc):
-      if pred(left):
-        add-result(success(loc, code))
-      else:
-        add-result(failure-not-satisfied(loc, code, left, pred))
-      end
+      check-bool(loc, code,
+        pred(left),
+        lam(): failure-not-satisfied(loc, code, left, pred);)
+    end,
+    check-satisfies-not(self, code, left, pred, loc):
+      check-bool(loc, code,
+        not(pred(left)),
+        lam(): failure-not-dissatisfied(loc, code, left, pred);)
     end,
     check-raises(self, code, thunk, expected, comparator, loc):
       result = run-task(thunk)

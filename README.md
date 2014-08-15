@@ -5,9 +5,6 @@
 
 A scripting language.
 
-*Note: We're going to finalize a number of the links on this page in early June
-2014, so some of the information here is out of date or provisional*
-
 To program in Pyret, visit [code.pyret.org](https://code.pyret.org).
 
 To learn about the language, visit [pyret.org](http://pyret.org).
