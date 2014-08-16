@@ -286,6 +286,41 @@ fun foldl2-result(not-equal :: C.CompileError):
   helper
 end
 
+fun foldl3-result(not-equal :: C.CompileError):
+  fun <E,B,F,D> helper(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
+    cases(List<B>) lst-1:
+      | link(first-1, rest-1) =>
+        cases(List<F>) lst-2:
+          | link(first-2, rest-2) =>
+            cases(List<D>) lst-3:
+              | link(first-3, rest-3) =>
+                for bind(v from base):
+                  new-base = f(v, first-1, first-2, first-3)
+                  helper(f, new-base, rest-1, rest-2, rest-3)
+                end
+              | empty =>
+                fold-errors([list: not-equal])
+            end
+          | empty =>
+            fold-errors([list: not-equal])
+        end
+      | empty =>
+        cases(List<F>) lst-2:
+          | link(_, _) =>
+            fold-errors([list: not-equal])
+          | empty =>
+            cases(List<D>) lst-3:
+              | link(_, _) =>
+                fold-errors([list: not-equal])
+              | empty =>
+                base
+            end
+        end
+    end
+  end
+  helper
+end
+
 fun foldr2-result(not-equal :: C.CompileError):
   fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
