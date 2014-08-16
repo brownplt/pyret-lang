@@ -1585,6 +1585,8 @@ function createMethodDict() {
             } else {
               curAns = ffi.notEqual.app(current.path);
             }
+          } else if (isNothing(curLeft) && isNothing(curRight)) {
+            continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
             curAns = ffi.unknown;
           } else if (isMethod(curLeft) && isMethod(curRight)) {

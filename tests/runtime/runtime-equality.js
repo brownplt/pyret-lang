@@ -28,6 +28,7 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           var f = rt.makeFunction(function() { return true; });
           var t = rt.makeBoolean(true);
           var a = rt.makeString("a");
+          var n = rt.makeNothing();
 
           expect(rt.identical(zero, f)).toBe(false);
           expect(rt.equal_always(zero, f)).toBe(false);
@@ -41,6 +42,17 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
           expect(rt.identical(f, t)).toBe(false);
           expect(rt.equal_always(f, t)).toBe(false);
           expect(rt.equal_now(f, t)).toBe(false);
+          expect(rt.identical(zero, n)).toBe(false);
+          expect(rt.equal_always(zero, n)).toBe(false);
+          expect(rt.equal_now(zero, n)).toBe(false);
+        });
+
+        it("should (not) distinguish nothing", function() {
+          var n1 = rt.makeNothing();
+          var n2 = rt.makeNothing();
+          expect(rt.identical(n1, n2)).toBe(false);
+          expect(rt.equal_always(n1, n2)).toBe(true);
+          expect(rt.equal_now(n1, n2)).toBe(true);
         });
 
         it("should distinguish booleans", function() {
