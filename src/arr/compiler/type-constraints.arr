@@ -98,7 +98,7 @@ example-o = t-top
 example-p = t-bot
 
 test-to-remove = [set: example-a]
-test-binds     = SD.immutable-string-dict().set(example-a.tostring(), t-top)
+test-info      = TCS.add-binding(example-a.tostring(), t-top, TCS.empty-tc-info())
 example-a-promoted = t-top
 example-a-demoted  = t-bot
 example-b-promoted = example-b
@@ -490,14 +490,15 @@ where:
   free-vars(example-p, empty-bindings) satisfies [set: ]._equals
 end
 
-fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
-                        _to :: DirectionInfo, _from :: DirectionInfo) -> Type:
-  here  = eliminate-variables(_, _, _, _to, _from)
-  there = eliminate-variables(_, _, _, _from, _to)
+fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
+                        _to :: DirectionInfo, _from :: DirectionInfo, info :: TCInfo
+) -> Type:
+  here  = eliminate-variables(_, _, _to, _from, _)
+  there = eliminate-variables(_, _, _from, _to, _)
   to-typ = _to.left
   to-typ-move = _to.right
   if to-remove.member(typ):
-    to-typ-move(typ, binds, to-remove)
+    to-typ-move(typ, to-remove, info)
   else:
     cases(Type) typ:
       | t-name(_, _, _) =>
@@ -505,21 +506,19 @@ fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
       | t-var(_) =>
         typ
       | t-arrow(l, args, ret) =>
-        new-args = args.map(there(_, binds, to-remove))
-        new-ret  = here(ret, binds, to-remove)
+        new-args = args.map(there(_, to-remove, info))
+        new-ret  = here(ret, to-remove, info)
         t-arrow(l, new-args, new-ret)
       | t-forall(introduces, onto) =>
         bounded-free = for fold(base from sets.empty-list-set, tv from introduces):
-          free = free-vars(tv.upper-bound, binds)
+          free = free-vars(tv.upper-bound, info.binds)
           base.union(free)
         end
         intersection = bounded-free.intersect(to-remove)
         set-is-empty = is-empty(intersection.to-list())
         if set-is-empty:
-          new-binds  = for fold(base from binds, x from introduces):
-            base.set(x.id, x.upper-bound)
-          end
-          new-onto   = here(onto, new-binds, to-remove)
+          new-info = introduces.foldl(TCS.add-type-variable, info)
+          new-onto = here(onto, to-remove, new-info)
           t-forall(introduces, onto)
         else:
           to-typ
@@ -532,59 +531,59 @@ fun eliminate-variables(typ :: Type, binds :: Bindings, to-remove :: Set<Type>,
   end
 end
 
-fun move-up(typ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
+fun move-up(typ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
   key = typ.tostring()
-  if binds.has-key(key):
-    least-supertype(binds.get(key), binds, to-remove)
+  if info.binds.has-key(key):
+    least-supertype(info.binds.get(key), to-remove, info)
   else:
-    raise("Couldn't find the key " + key + " in binds dictionary, so variable can't be eliminated! Existing keys: " + torepr(binds.keys()))
+    raise("Couldn't find the key " + key + " in binds dictionary, so variable can't be eliminated! Existing keys: " + torepr(info.binds.keys()))
   end
 end
 
-fun move-down(_ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
+fun move-down(_ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
   t-bot
 end
 
-fun least-supertype(typ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
-  eliminate-variables(typ, binds, to-remove, pair(t-top, move-up), pair(t-bot, move-down))
+fun least-supertype(typ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
+  eliminate-variables(typ, to-remove, pair(t-top, move-up), pair(t-bot, move-down), info)
 where:
-  least-supertype(example-a, test-binds, test-to-remove) is example-a-promoted
-  least-supertype(example-b, test-binds, test-to-remove) is example-b-promoted
-  least-supertype(example-c, test-binds, test-to-remove) is example-c-promoted
-  least-supertype(example-d, test-binds, test-to-remove) is example-d-promoted
-  least-supertype(example-e, test-binds, test-to-remove) is example-e-promoted
-  least-supertype(example-f, test-binds, test-to-remove) is example-f-promoted
-  least-supertype(example-g, test-binds, test-to-remove) is example-g-promoted
-  least-supertype(example-h, test-binds, test-to-remove) is example-h-promoted
-  least-supertype(example-i, test-binds, test-to-remove) is example-i-promoted
-  least-supertype(example-j, test-binds, test-to-remove) is example-j-promoted
-  least-supertype(example-k, test-binds, test-to-remove) is example-k-promoted
-  least-supertype(example-l, test-binds, test-to-remove) is example-l-promoted
-  least-supertype(example-m, test-binds, test-to-remove) is example-m-promoted
-  least-supertype(example-n, test-binds, test-to-remove) is example-n-promoted
-  least-supertype(example-o, test-binds, test-to-remove) is example-o-promoted
-  least-supertype(example-p, test-binds, test-to-remove) is example-p-promoted
+  least-supertype(example-a, test-to-remove, test-info) is example-a-promoted
+  least-supertype(example-b, test-to-remove, test-info) is example-b-promoted
+  least-supertype(example-c, test-to-remove, test-info) is example-c-promoted
+  least-supertype(example-d, test-to-remove, test-info) is example-d-promoted
+  least-supertype(example-e, test-to-remove, test-info) is example-e-promoted
+  least-supertype(example-f, test-to-remove, test-info) is example-f-promoted
+  least-supertype(example-g, test-to-remove, test-info) is example-g-promoted
+  least-supertype(example-h, test-to-remove, test-info) is example-h-promoted
+  least-supertype(example-i, test-to-remove, test-info) is example-i-promoted
+  least-supertype(example-j, test-to-remove, test-info) is example-j-promoted
+  least-supertype(example-k, test-to-remove, test-info) is example-k-promoted
+  least-supertype(example-l, test-to-remove, test-info) is example-l-promoted
+  least-supertype(example-m, test-to-remove, test-info) is example-m-promoted
+  least-supertype(example-n, test-to-remove, test-info) is example-n-promoted
+  least-supertype(example-o, test-to-remove, test-info) is example-o-promoted
+  least-supertype(example-p, test-to-remove, test-info) is example-p-promoted
 end
 
-fun greatest-subtype(typ :: Type, binds :: Bindings, to-remove :: Set<Type>) -> Type:
-  eliminate-variables(typ, binds, to-remove, pair(t-bot, move-down), pair(t-top, move-up))
+fun greatest-subtype(typ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
+  eliminate-variables(typ, to-remove, pair(t-bot, move-down), pair(t-top, move-up), info)
 where:
-  greatest-subtype(example-a, test-binds, test-to-remove) is example-a-demoted
-  greatest-subtype(example-b, test-binds, test-to-remove) is example-b-demoted
-  greatest-subtype(example-c, test-binds, test-to-remove) is example-c-demoted
-  greatest-subtype(example-d, test-binds, test-to-remove) is example-d-demoted
-  greatest-subtype(example-e, test-binds, test-to-remove) is example-e-demoted
-  greatest-subtype(example-f, test-binds, test-to-remove) is example-f-demoted
-  greatest-subtype(example-g, test-binds, test-to-remove) is example-g-demoted
-  greatest-subtype(example-h, test-binds, test-to-remove) is example-h-demoted
-  greatest-subtype(example-i, test-binds, test-to-remove) is example-i-demoted
-  greatest-subtype(example-j, test-binds, test-to-remove) is example-j-demoted
-  greatest-subtype(example-k, test-binds, test-to-remove) is example-k-demoted
-  greatest-subtype(example-l, test-binds, test-to-remove) is example-l-demoted
-  greatest-subtype(example-m, test-binds, test-to-remove) is example-m-demoted
-  greatest-subtype(example-n, test-binds, test-to-remove) is example-n-demoted
-  greatest-subtype(example-o, test-binds, test-to-remove) is example-o-demoted
-  greatest-subtype(example-p, test-binds, test-to-remove) is example-p-demoted
+  greatest-subtype(example-a, test-to-remove, test-info) is example-a-demoted
+  greatest-subtype(example-b, test-to-remove, test-info) is example-b-demoted
+  greatest-subtype(example-c, test-to-remove, test-info) is example-c-demoted
+  greatest-subtype(example-d, test-to-remove, test-info) is example-d-demoted
+  greatest-subtype(example-e, test-to-remove, test-info) is example-e-demoted
+  greatest-subtype(example-f, test-to-remove, test-info) is example-f-demoted
+  greatest-subtype(example-g, test-to-remove, test-info) is example-g-demoted
+  greatest-subtype(example-h, test-to-remove, test-info) is example-h-demoted
+  greatest-subtype(example-i, test-to-remove, test-info) is example-i-demoted
+  greatest-subtype(example-j, test-to-remove, test-info) is example-j-demoted
+  greatest-subtype(example-k, test-to-remove, test-info) is example-k-demoted
+  greatest-subtype(example-l, test-to-remove, test-info) is example-l-demoted
+  greatest-subtype(example-m, test-to-remove, test-info) is example-m-demoted
+  greatest-subtype(example-n, test-to-remove, test-info) is example-n-demoted
+  greatest-subtype(example-o, test-to-remove, test-info) is example-o-demoted
+  greatest-subtype(example-p, test-to-remove, test-info) is example-p-demoted
 end
 
 data TypeConstraint:
@@ -864,10 +863,10 @@ fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns 
   else if is-t-bot(s):
     fold-result(initial)
   else if unknowns.member(s) and is-empty(t-free.intersect(unknowns).to-list()):
-    r = greatest-subtype(t, binds, to-remove)
+    r = greatest-subtype(t, to-remove, info)
     fold-result(initial.insert(s, Bounds(t-bot, r), info))
   else if unknowns.member(t) and is-empty(s-free.intersect(unknowns).to-list()):
-    r = least-supertype(s, binds, to-remove)
+    r = least-supertype(s, to-remove, info)
     fold-result(initial.insert(t, Bounds(r, t-top), info))
   else if s._equal(t):
     fold-result(initial)
