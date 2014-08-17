@@ -96,6 +96,13 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
         P.wait(done);
       });
     });
+    describe("errors", function() {
+      it("should not report success when errors happen", function(done) {
+        test("check: x :: String = 3\n  1 is 1 end", checkMessage("Ended in Error: 1"));
+        test("fun f(x :: String): x end\n check: f(3) is 'oops' end", checkMessage("Ended in Error: 1"));
+        P.wait(done);
+      });
+    });
   }
   return { performTest: performTest };
 });

@@ -179,7 +179,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     end
     ended-in-error = cases(Option) br.maybe-err:
       | none => ""
-      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  " + tostring(err) + "\n\n"
+      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  " + tostring(exn-unwrap(err)) + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     with-error-notification = message + ended-in-error
@@ -195,7 +195,8 @@ fun results-summary(block-results :: List<CheckBlockResult>):
       total: summary.total + block-summary.total
     }
   end
-  if complete-summary.total == 0: complete-summary.{message: "The program didn't define any tests."}
+  if (complete-summary.total == 0) and (complete-summary.errored == 0):
+    complete-summary.{message: "The program didn't define any tests."}
   else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
     happy-msg = if complete-summary.passed == 1:
         "Looks shipshape, your test passed, mate!"
