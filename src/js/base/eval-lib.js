@@ -121,7 +121,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
       return parsePyret(runtime, src, options);
     },
     function(answer) {
-      return evalParsedPyret(runtime, parsed.result, options);
+      return evalParsedPyret(runtime, answer, options);
     });
   }
 
@@ -139,18 +139,14 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     return runtime.loadModules(runtime.namespace, [replLib], function(repl) {
       var getImports = runtime.getField(repl, "get-special-imports");
       return runtime.safeCall(function() {
-        console.log("Loading specials");
         return getImports.app(ast);
       }, function(imports) {
         var jsImports = runtime.ffi.toArray(imports);
-        console.log("Loading specials: ", jsImports);
         runtime.pauseStack(function(restarter) {
-          console.log("Stack paused ", restarter);
           var allImports = q.all(jsImports.map(function(i) { return options.getSpecialImport(runtime, i); }));
           var moduleLoads = [];
           for(var i = 0; i < jsImports.length; i++) { moduleLoads[i] = q.defer(); }
           var loaded = q.all(moduleLoads.map(function(ml) { return ml.promise; }));
-          console.log("Loading: ", moduleLoads);
           allImports.then(function(astAndNames) {
             astAndNames.forEach(function(astAndName, i) {
               // Cached (or already visited in DAG), so don't reload
@@ -175,11 +171,12 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
           });
           q.timeout(loaded, TIMEOUT_MS);
           loaded.then(function(v) {
-            console.log("Done: ", v);
             restarter.resume(v);
           });
           loaded.fail(function(err) {
-            console.log("Module load failed: ", v);
+            restarter.error(err);
+          });
+          allImports.fail(function(err) {
             restarter.error(err);
           });
         });
@@ -192,17 +189,13 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     var modname = options.name;
     var namespace = options.namespace || runtime.namespace;
     runtime.pauseStack(function(restarter) {
-      console.log("Loading parsed py", restarter);
       runtime.runThunk(function() {
         return runtime.safeCall(function() {
-          console.log("Loading special imports", options);
           return loadSpecialImports(runtime, ast, options);
         }, function(_) {
-          console.log("Compiling parsed py", options);
           return compilePyret(runtime, ast, options);
         });
       }, function(result) {
-        console.log("Finished compiling parsed py", options);
         if(runtime.isFailureResult(result)) {
           restarter.error(result.exn);
           return;

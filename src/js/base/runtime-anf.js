@@ -1701,7 +1701,15 @@ function createMethodDict() {
     Cont.prototype.toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ? 
-        stack.map(function(s) { return s && s.from ? s.from.join(",") : "<blank frame>"; }).join("\n") : "<no stack trace>";
+        stack.map(function(s) {
+          if(!s && s.from) { return "<blank frame>"; }
+          else {
+            if(typeof s.from === "string") { return s; }
+            else {
+              return s.from.join(",");
+            }
+          }
+        }).join("\n") : "<no stack trace>";
       return stackStr;
     }
 
@@ -1753,7 +1761,7 @@ function createMethodDict() {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
             thisRuntime.makeActivationRecord(
-              "safeCall2 for " + stackFrame,
+              "safeCall for " + stackFrame,
               safeCall,
               $step,
               [ fun, after, stackFrame ],

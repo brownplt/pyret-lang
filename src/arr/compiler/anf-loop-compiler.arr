@@ -1021,10 +1021,12 @@ fun compile-program(self, l, imports, prog, freevars, env):
         | a-import-builtin(_, name) => "trove/" + name
         | a-import-file(_, file) => file
         | a-import-special(_, typ, args) =>
-          if typ == "gdrive":
-            "@gdrive-" + args.first
-          else if typ == "gdrive-id":
-            "@gdrive-id-" + args.first + "-" + args.rest.first
+          if typ == "my-gdrive":
+            "@my-gdrive-" + args.first
+          else if typ == "shared-gdrive":
+            "@shared-gdrive-" + args.first + "-" + args.rest.first
+          else:
+            raise("Should have been caught earlier: unhandled import-special-type")
           end
       end
     end)
