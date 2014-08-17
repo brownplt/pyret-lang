@@ -75,6 +75,12 @@ str-val = PP.str("val ")
 str-when = PP.str("when")
 str-where = PP.str("where:")
 str-with = PP.str("with:")
+str-is = PP.str("is")
+str-is-not = PP.str("is-not")
+str-satisfies = PP.str("satisfies")
+str-satisfies-not = PP.str("satisfies-not")
+str-raises = PP.str("raises")
+str-percent = PP.str("%")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -545,8 +551,20 @@ data Expr:
           end
       end
     end
-  | s-check-test(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
-    tosource(self): PP.infix(INDENT, 1, PP.str(string-substring(self.op, 2, string-length(self.op))), self.left.tosource(), self.right.tosource()) end
+  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr) with:
+    # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
+    label(self): "s-check-test" end,
+    tosource(self):
+      cases(Option) self.refinement:
+        | none =>
+          PP.infix(INDENT, 1, self.op.tosource(), self.left.tosource(), self.right.tosource())
+        | some(refinement) =>
+          PP.infix(INDENT, 1,
+            PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(refinement.tosource())),
+            self.left.tosource(),
+            self.right.tosource())
+      end
+    end
   | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
     label(self): "s-check-expr" end,
     tosource(self):
@@ -823,8 +841,6 @@ data Member:
       name-part = PP.str(self.name)
       PP.nest(INDENT, str-mutable + name-part + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource())
     end,
-  | s-once-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
-    label(self): "s-once-field" end
   | s-method-field(
       l :: Loc,
       name :: String,
@@ -862,9 +878,6 @@ data VariantMemberType:
   | s-normal with:
     label(self): "s-normal" end,
     tosource(self): PP.mt-doc end
-  | s-cyclic with:
-    label(self): "s-cyclic" end,
-    tosource(self): PP.str("cyclic ") end    
   | s-mutable with:
     label(self): "s-mutable" end,
     tosource(self): PP.str("mutable ") end
@@ -1012,6 +1025,29 @@ data CasesBranch:
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
+data CheckOp:
+  | s-op-is with:
+    label(self): "s-op-is" end,
+    tosource(self): str-is end
+  | s-op-is-not with:
+    label(self): "s-op-is-not" end,
+    tosource(self): str-is-not end
+  | s-op-satisfies with:
+    label(self): "s-op-satisfies" end,
+    tosource(self): str-satisfies end
+  | s-op-satisfies-not with:
+    label(self): "s-op-satisfies-not" end,
+    tosource(self): str-satisfies-not end
+  | s-op-raises with:
+    label(self): "s-op-raises" end,
+    tosource(self): str-raises end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1343,10 +1379,10 @@ default-map-visitor = {
     s-op(l, op, left.visit(self), right.visit(self))
   end,
 
-  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-check-test(l, op, left.visit(self), right.visit(self))
+  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
+    s-check-test(l, op, self.option(refinement), left.visit(self), right.visit(self))
   end,
-
+  
   s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
@@ -1495,9 +1531,6 @@ default-map-visitor = {
   end,
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(l, name, ann.visit(self), value.visit(self))
-  end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    s-once-field(l, name, ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,
@@ -1800,8 +1833,8 @@ default-iter-visitor = {
     left.visit(self) and right.visit(self)
   end,
   
-  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    left.visit(self) and right.visit(self)
+  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
+    self.option(refinement) and left.visit(self) and right.visit(self)
   end,
   
   s-paren(self, l :: Loc, expr :: Expr):
@@ -1944,9 +1977,6 @@ default-iter-visitor = {
     value.visit(self)
   end,
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    ann.visit(self) and value.visit(self)
-  end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     ann.visit(self) and value.visit(self)
   end,
   s-method-field(
@@ -2248,8 +2278,8 @@ dummy-loc-visitor = {
     s-op(dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
-  s-check-test(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-check-test(dummy-loc, op, left.visit(self), right.visit(self))
+  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
+    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), right.visit(self))
   end,
 
   s-paren(self, l :: Loc, expr :: Expr):
@@ -2400,9 +2430,6 @@ dummy-loc-visitor = {
   end,
   s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(dummy-loc, name, ann.visit(self), value.visit(self))
-  end,
-  s-once-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
-    s-once-field(dummy-loc, name, ann.visit(self), value.visit(self))
   end,
   s-method-field(
       self,

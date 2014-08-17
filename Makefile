@@ -299,7 +299,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test type-check-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test
 
 .PHONY : test-all
 test-all: test bootstrap-test docs-test
@@ -321,12 +321,21 @@ parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
+REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
 tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PHASE1)/phase1.built
 	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PHASE1)/phase1.built
+	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
 tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PHASE1)/phase1.built
 	$(NODE) $(PHASE1)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
+
+.PHONY : regression-test
+regression-test: $(PHASE1)/phase1.built $(REGRESSION_TEST_JS)
+	$(NODE) $(PHASE1)/main-wrapper.js \
+    --module-load-dir tests/pyret \
+    -check-all tests/pyret/regression.arr
 
 .PHONY : pyret-test
 pyret-test: $(PHASE1)/phase1.built $(TEST_JS)

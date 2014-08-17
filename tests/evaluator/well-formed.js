@@ -52,6 +52,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkEvalsTo("fun f(x):\n  f\n  # a comment\n  (x)\nend\n10", rt.makeNumber(10));
         P.wait(done);
       });
+      it("anonymous bindings", function(done) {
+        P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
+        P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
+        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "Anonymous bindings");
+        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
+        P.wait(done);
+      });
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 
@@ -76,7 +83,12 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
 
         P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("lam(): 1 raises 2 end", "Cannot use a check-test form outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 1 raises 2 end", "Cannot use `raises` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("check: 1 raises%(2) 3 end",
+                               "Cannot use refinement syntax `%(...)` with `raises`.");
+        P.checkCompileErrorMsg("check: 1 satisfies%(2) 3 end",
+                               "Cannot use refinement syntax `%(...)` with `satisfies`. Consider changing the predicate instead.");
+
 
         P.checkCompileErrorMsg("lam():\n" + 
                                "  data D:\n" + 

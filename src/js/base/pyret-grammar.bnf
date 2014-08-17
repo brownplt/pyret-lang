@@ -57,7 +57,8 @@ where-clause: [WHERE block]
 
 check-expr: CHECK STRING COLON block end
 check-expr: CHECKCOLON block end
-check-test: binop-expr check-op binop-expr | binop-expr
+check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr | binop-expr
+
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
 data-mixins: [DERIVING mixins]
@@ -66,7 +67,7 @@ first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
 variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] RPAREN
 list-variant-member: variant-member COMMA
-variant-member: [MUTABLE|CYCLIC] binding
+variant-member: [REF] binding
 data-with: [WITH fields]
 data-sharing: [SHARING fields]
 
@@ -90,7 +91,7 @@ binop-expr: expr (binop expr)*
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
      | NEQ  | LT  | GT | AND | OR | CARET
 
-check-op: IS | RAISES | SATISFIES
+check-op: IS | ISNOT | RAISES | SATISFIES | SATISFIESNOT
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
@@ -138,7 +139,7 @@ obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: list-obj-field* obj-field [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
-     | MUTABLE key [COLONCOLON ann] COLON binop-expr
+     | REF key [COLONCOLON ann] COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
 
 fields: list-field* field [COMMA]

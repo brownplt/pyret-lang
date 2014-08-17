@@ -108,14 +108,15 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
         | s-cases-branch(l, pat-loc, name, args, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
             | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
-            | none => ensure-unique-cases(rest)
+            | none => nothing
           end
         | s-singleton-cases-branch(l, pat-loc, name, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
             | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
-            | none => ensure-unique-cases(rest)
+            | none => nothing
           end
       end
+      ensure-unique-cases(rest)
   end
 end
 
@@ -129,13 +130,13 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
           else:
             elt = lists.find(lam(b): b.id == id end, rest)
             cases(Option) elt:
-              | some(found) => wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
-              | none => ensure-unique-ids(rest)
-              | else => 
-                print("Elt was: " + torepr(elt))
+              | some(found) =>
+                wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+              | none => nothing
             end
           end
       end
+      ensure-unique-ids(rest)
   end
 end
 
@@ -153,13 +154,25 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           else:
             cases(Option) lists.find(lam(b): b.id == id end, rest):
               | some(found) => duplicate-id(tostring(id), l, found.l)
-              | none => ensure-unique-bindings(rest)
+              | none => nothing
             end
           end
       end
+      ensure-unique-bindings(rest)
   end
 end
 
+fun ensure-unique-fields(rev-fields):
+  cases(List) rev-fields:
+    | empty => nothing
+    | link(f, rest) =>
+      cases(Option) lists.find(lam(f2): f2.name == f.name end, rest):
+        | some(found) => add-error(C.duplicate-field(f.name, f.l, found.l))
+        | none => nothing
+      end
+      ensure-unique-fields(rest)
+  end
+end
 
 fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
   cases(List) stmts:
@@ -270,6 +283,18 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     body.visit(self)
   end,
+  s-var(self, l, bind, val):
+    when A.is-s-underscore(bind.id):
+      add-error(C.pointless-var(l.at-start() + bind.l))
+    end
+    bind.visit(self) and val.visit(self)
+  end,
+  s-var-bind(self, l, bind, val):
+    when A.is-s-underscore(bind.id):
+      add-error(C.pointless-var(l.at-start() + bind.l))
+    end
+    bind.visit(self) and val.visit(self)
+  end,
   s-block(self, l, stmts):
     if is-empty(stmts):
       wf-error("Empty block", l)
@@ -286,14 +311,28 @@ well-formed-visitor = A.default-iter-visitor.{
     when (reserved-names.member(tostring(name))):
       reserved-name(l, tostring(name))
     end
-    true
+    when shadows and A.is-s-underscore(name):
+      add-error(C.pointless-shadow(l))
+    end
+    name.visit(self) and ann.visit(self)
   end,
-  s-check-test(self, l, op, left, right):
+  s-check-test(self, l, op, refinement, left, right):
     when not(in-check-block):
-      if  (op == "opis"):
-        wf-error("Cannot use `is` outside of a `check` or `where` block", l)
-      else:
-        wf-error("Cannot use a check-test form outside of a `check` or `where` block", l)
+      op-name = op.tosource().pretty(80).join-str("\n")
+      wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
+    end
+    when is-some(refinement):
+      cases(A.CheckOp) op:
+        | s-op-is            => nothing
+        | s-op-is-not        => nothing
+        | s-op-raises        =>
+          wf-error("Cannot use refinement syntax `%(...)` with `raises`.", l)
+        | s-op-satisfies     =>
+          wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
+              + "Consider changing the predicate instead.", l)
+        | s-op-satisfies-not =>
+          wf-error("Cannot use refinement syntax `%(...)` with `dissatisfies`. "
+              + "Consider changing the predicate instead.", l)
       end
     end
     left.visit(self) and right.visit(self)
@@ -319,12 +358,6 @@ well-formed-visitor = A.default-iter-visitor.{
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
-    when reserved-names.member(name):
-      reserved-name(l, name)
-    end
-    ann.visit(self) and value.visit(self)
-  end,
-  s-once-field(self, l, name, ann, value):
     when reserved-names.member(name):
       reserved-name(l, name)
     end
@@ -357,6 +390,18 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-ids(args)
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+  end,
+  s-obj(self, l, fields):
+    ensure-unique-fields(fields.reverse())
+    lists.all(_.visit(self), fields)
+  end,
+  s-graph(self, l, bindings):
+    for each(binding from bindings):
+      when A.is-s-underscore(binding.name.id):
+        add-error(C.pointless-graph-id(binding.l))
+      end
+    end
+    lists.all(_.visit(self), bindings)
   end,
   s-check(self, l, name, body, keyword-check):
     wrap-visit-check(self, some(body))
@@ -551,8 +596,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,
-  s-check-test(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
-    well-formed-visitor.s-check-test(l, op, left, right)
+  s-check-test(_, l :: Loc, op :: String, refinement :: Option<A.Expr>, left :: A.Expr, right :: A.Expr):
+    well-formed-visitor.s-check-test(l, op, refinement, left, right)
   end,
   s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
@@ -616,9 +661,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
-  end,
-  s-once-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
-    well-formed-visitor.s-once-field(l, name, ann, value)
   end,
   s-method-field(_, l :: Loc, name :: A.Expr, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method-field(l, name, args, ann, doc, body, _check)

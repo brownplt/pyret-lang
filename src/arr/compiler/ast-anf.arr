@@ -182,9 +182,6 @@ data AMemberType:
   | a-normal with:
     label(self): "a-normal" end,
     tosource(self): PP.str("") end
-  | a-cyclic with:
-    label(self): "a-cyclic" end,
-    tosource(self): PP.str("cyclic ") end
   | a-mutable with:
     label(self): "a-mutable" end,
     tosource(self): PP.str("mutable ") end

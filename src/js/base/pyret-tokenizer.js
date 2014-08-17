@@ -140,7 +140,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
   const opor = new RegExp(kw("or"), STICKY_REGEXP);
   const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opisnot = new RegExp(kw("is-not"), STICKY_REGEXP);
   const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
+  const opsatisfiesnot = new RegExp(kw("satisfies-not"), STICKY_REGEXP);
   const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
@@ -209,8 +211,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "WITH", val: new RegExp(colonKw("with:"), STICKY_REGEXP)},
     {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP)},
     {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
-    {name: "MUTABLE", val: new RegExp(kw("mutable"), STICKY_REGEXP)},
-    {name: "CYCLIC", val: new RegExp(kw("cyclic"), STICKY_REGEXP)},
+    {name: "REF", val: new RegExp(kw("ref"), STICKY_REGEXP)},
     {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},
     {name: "WITHCONSTRUCTOR", val: new RegExp(kw("with constructor"), STICKY_REGEXP)},
     {name: "GRAPH", val: new RegExp(colonKw("graph:"), STICKY_REGEXP)},
@@ -250,7 +251,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "GT", val: opgt, parenIsForExp: true},
     {name: "AND", val: opand, parenIsForExp: true},
     {name: "OR", val: opor, parenIsForExp: true},
+    {name: "ISNOT", val: opisnot, parenIsForExp: true},
     {name: "IS", val: opis, parenIsForExp: true},
+    {name: "SATISFIESNOT", val: opsatisfiesnot, parenIsForExp: true},
     {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
     {name: "RAISES", val: opraises, parenIsForExp: true},
 

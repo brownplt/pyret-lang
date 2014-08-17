@@ -203,6 +203,10 @@ data Set:
         end, "") +
       "]"
     end,
+
+    fold(self, f :: (Any, Any -> Any), base :: Any):
+      fold(f, base, self.elems)
+    end,
     
     member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
@@ -230,9 +234,9 @@ data Set:
 
     union(self :: Set, other :: Set) -> Set:
       doc: 'Compute the union of this set and another set.'
-      for fold(u from self, elem from other.elems):
+      other.fold(lam(u, elem):
         u.add(elem)
-      end
+      end, self)
     end,
     
     intersect(self :: Set, other :: Set) -> Set:
@@ -277,6 +281,10 @@ data Set:
         end, "") +
       "]"
     end,
+
+    fold(self, f :: (Any -> Any), base :: Any):
+      tree-fold(f, base, self.elems)
+    end,
     
     member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
@@ -300,9 +308,9 @@ data Set:
     
     union(self, other):
       new-elems =
-        for tree-fold(elems from self.elems, elem from other.elems):
+        other.fold(lam(elems, elem):
           elems.insert(elem)
-        end
+        end, self.elems)
       tree-set(new-elems)
     end,
     
@@ -320,13 +328,13 @@ data Set:
     
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
-      new-elems = for tree-fold(elems from self.elems, elem from other.elems):
+      new-elems = other.fold(lam(elems, elem):
         if self.member(elem):
           elems.remove(elem)
         else:
           elems
         end
-      end
+      end, self.elems)
       tree-set(new-elems)
     end
     

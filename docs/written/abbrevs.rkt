@@ -1,7 +1,8 @@
 #lang racket/base
 (require "../scribble-api.rkt")
-(provide N No B S RA RA-of L L-of O-of)
+(provide A N No B S RA RA-of L L-of O-of)
 
+(define A (a-id "Any" (xref "<global>" "Any")))
 (define N (a-id "Number" (xref "<global>" "Number")))
 (define No (a-id "Nothing" (xref "<global>" "Nothing")))
 (define B (a-id "Boolean" (xref "<global>" "Boolean")))
