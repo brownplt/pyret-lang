@@ -88,7 +88,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     return runtime.safeCall(function() {
       return parsePyret(runtime, src, options);
     }, function(answer) {
-      return compilePyret(runtime. answer, options);
+      return compilePyret(runtime, answer, options);
     });
   }
 
