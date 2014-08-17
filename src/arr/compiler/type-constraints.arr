@@ -132,7 +132,6 @@ example-o-demoted  = t-top
 example-p-promoted = t-bot
 example-p-demoted  = t-bot
 
-
 fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
     + for map(key from dict.keys()):
@@ -141,13 +140,14 @@ fun dict-to-string(dict :: SD.StringDict) -> String:
     + "}"
 end
 
-fun create-substitutions(constraints :: TypeConstraints,
+fun create-substitutions(blame-loc :: A.Loc,
+                         constraints :: TypeConstraints,
                          unknowns :: List<Type % (is-t-var)>,
                          r :: Type,
                          info :: TCInfo) -> FoldResult<Substitutions>:
   for map-result(unknown from unknowns):
     constraints
-      .substitute(unknown, r, info)
+      .substitute(blame-loc, unknown, r, info)
       .map(pair(unknown, _))
   end
 end
@@ -168,20 +168,20 @@ fun arrow-constraints(blame-loc :: A.Loc, a-forall :: List<TypeVariable>,
     t-var(x.id)
   end
   unknowns-set = sets.list-to-list-set(unknowns-list)
-  ret-constraints = generate-constraints(a-ret, b-ret, [set: ], unknowns-set, info)
+  ret-constraints = generate-constraints(blame-loc, a-ret, b-ret, [set: ], unknowns-set, info)
   t-var-constraints = for fold2(wrapped from ret-constraints,
                                 unknown from unknowns-list, x from a-forall):
     for bind(current from wrapped):
-      generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+      generate-constraints(blame-loc, unknown, x.upper-bound, [set: ], unknowns-set, info)
         .map(_.meet(current, info))
     end
   end
   handle-args = foldl2-result(C.incorrect-number-of-args(blame-loc))
   for handle-args(curr from t-var-constraints,
                   b-arg from b-args, a-arg from a-args):
-    generate-constraints(b-arg, a-arg, [set: ], unknowns-set, info)
+    generate-constraints(blame-loc, b-arg, a-arg, [set: ], unknowns-set, info)
       .map(_.meet(curr, info))
-  end.bind(create-substitutions(_, unknowns-list, a-ret, info))
+  end.bind(create-substitutions(blame-loc, _, unknowns-list, a-ret, info))
 end
 
 fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
@@ -246,29 +246,30 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
             t-var(x.id)
           end
           unknowns-set     = sets.list-to-list-set(unknowns-list)
+          blame-loc = A.dummy-loc
           cases(Type) there:
             | t-forall(b-introduces, b-onto) =>
-              onto-constraints = generate-constraints(a-onto, b-onto, [set: ], unknowns-set, info)
+              onto-constraints = generate-constraints(blame-loc, a-onto, b-onto, [set: ], unknowns-set, info)
               for fold2(wrapped from onto-constraints,
                         unknown from unknowns-list, x from a-introduces):
                 for bind(current from wrapped):
-                  generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+                  generate-constraints(blame-loc, unknown, x.upper-bound, [set: ], unknowns-set, info)
                     .map(_.meet(current, info))
                 end
               end
-                .bind(create-substitutions(_, unknowns-list, a-onto, info))
+                .bind(create-substitutions(blame-loc, _, unknowns-list, a-onto, info))
                 ^ process(_, a-onto, b-onto)
             | t-top => true
             | else =>
-              onto-constraints = generate-constraints(a-onto, there, [set: ], unknowns-set, info)
+              onto-constraints = generate-constraints(blame-loc, a-onto, there, [set: ], unknowns-set, info)
               for fold2(wrapped from onto-constraints,
                         unknown from unknowns-list, x from a-introduces):
                 for bind(current from wrapped):
-                  generate-constraints(unknown, x.upper-bound, [set: ], unknowns-set, info)
+                  generate-constraints(blame-loc, unknown, x.upper-bound, [set: ], unknowns-set, info)
                     .map(_.meet(current, info))
                 end
               end
-                .bind(create-substitutions(_, unknowns-list, a-onto, info))
+                .bind(create-substitutions(blame-loc, _, unknowns-list, a-onto, info))
                 ^ process(_, a-onto, there)
           end
       end
@@ -722,10 +723,6 @@ where:
   determine-variance(example-p, "A", info) is constant
 end
 
-
-
-
-
 fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
   key = x.tostring()
   binds.has-key(key) and
@@ -787,8 +784,7 @@ sharing:
       end
     end
   end,
-  substitute(self, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> FoldResult<Type>:
-    blame-loc = A.dummy-loc
+  substitute(self, blame-loc :: A.Loc, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> FoldResult<Type>:
     cases(Option<TypeConstraint>) self.get(x):
       | some(constraint) =>
         variance = determine-variance(r, x.id, info)
@@ -851,7 +847,7 @@ fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<Typ
   }
 end
 
-fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> FoldResult<TypeConstraints>:
+fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> FoldResult<TypeConstraints>:
   empty-type-constraints = type-constraints(SD.immutable-string-dict())
   binds   = info.binds
   s-free  = free-vars(s, binds)
@@ -871,39 +867,39 @@ fun generate-constraints(s :: Type, t :: Type, to-remove :: Set<Type>, unknowns 
   else if s._equal(t):
     fold-result(initial)
   else if binds.has-key(s-str):
-    generate-constraints(binds.get(s-str), t, to-remove, unknowns, info)
+    generate-constraints(blame-loc, binds.get(s-str), t, to-remove, unknowns, info)
   else:
     cases(Type) s:
       | t-arrow(s-l, s-args, s-ret) =>
         cases(Type) t:
           | t-arrow(t-l, t-args, t-ret) =>
-            ret-constraints = generate-constraints(s-ret, t-ret, to-remove, unknowns, info)
+            ret-constraints = generate-constraints(blame-loc, s-ret, t-ret, to-remove, unknowns, info)
             args-fold = foldl2-result(C.incorrect-type(s.tostring(), s.toloc(), t.tostring(), t.toloc()))
             for args-fold(curr from ret-constraints,
                           s-arg from s-args, t-arg from t-args):
-              generate-constraints(t-arg, s-arg, to-remove, unknowns, info)
+              generate-constraints(blame-loc, t-arg, s-arg, to-remove, unknowns, info)
                 .map(_.meet(curr, info))
             end
           | t-forall(t-introduces, t-onto) =>
             matched = handle-matching(empty, t-introduces, to-remove, unknowns, info)
-            generate-constraints(s, t-onto, matched.to-remove, unknowns, matched.info)
+            generate-constraints(blame-loc, s, t-onto, matched.to-remove, unknowns, matched.info)
               .map(_.meet(matched.constraints, info))
           | else =>
-            fold-errors([list: ]) # TODO(cody): Make CompileError for this
+            fold-errors([list: C.unable-to-instantiate(blame-loc)])
         end
       | t-forall(s-introduces, s-onto) =>
         cases(Type) t:
           | t-forall(t-introduces, t-onto) =>
             matched = handle-matching(s-introduces, t-introduces, to-remove, unknowns, info)
-            generate-constraints(s-onto, t-onto, matched.to-remove, unknowns, matched.info)
+            generate-constraints(blame-loc, s-onto, t-onto, matched.to-remove, unknowns, matched.info)
               .map(_.meet(matched.constraints, info))
           | else =>
             matched = handle-matching(s-introduces, empty, to-remove, unknowns, info)
-            generate-constraints(s-onto, t, matched.to-remove, unknowns, matched.info)
+            generate-constraints(blame-loc, s-onto, t, matched.to-remove, unknowns, matched.info)
               .map(_.meet(matched.constraints, info))
         end
       | else =>
-        fold-errors([list: ]) # TODO(cody): Make CompileError for this
+        fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end
 end
