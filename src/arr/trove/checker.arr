@@ -51,6 +51,10 @@ data TestResult:
     reason(self):
       "No exception raised, expected " + torepr(self.exn-expected)
     end
+  | failure-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
+    reason(self):
+      "The custom equality function must return a boolean, but instead it returned: " + torepr(self.test-result)
+    end
 end
 
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
@@ -94,14 +98,22 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         lam(): failure-not-different(loc, code, none, left, right);)
     end,
     check-is-refinement(self, code, refinement, left, right, loc):
-      check-bool(loc, code,
-        refinement(left, right),
-        lam(): failure-not-equal(loc, code, some(refinement), left, right);)
+      test-result = refinement(left, right)
+      if not(is-boolean(test-result)):
+        add-result(failure-not-boolean(loc, code, refinement, left, right, test-result))
+      else:
+        check-bool(loc, code, test-result,
+          lam(): failure-not-equal(loc, code, some(refinement), left, right);)
+      end
     end,
     check-is-not-refinement(self, code, refinement, left, right, loc):
-      check-bool(loc, code,
-        not(refinement(left, right)),
-        lam(): failure-not-different(loc, code, some(refinement), left, right);)
+      test-result = refinement(left, right)
+      if not(is-boolean(test-result)):
+        add-result(failure-not-boolean(loc, code, refinement, left, right, test-result))
+      else:
+        check-bool(loc, code, not(test-result),
+          lam(): failure-not-different(loc, code, some(refinement), left, right);)
+      end
     end,
     check-satisfies(self, code, left, pred, loc):
       check-bool(loc, code,
@@ -183,7 +195,8 @@ fun results-summary(block-results :: List<CheckBlockResult>):
       total: summary.total + block-summary.total
     }
   end
-  if complete-summary.total == 0: complete-summary.{message: "The program didn't define any tests."}
+  if (complete-summary.total == 0) and (complete-summary.errored == 0):
+    complete-summary.{message: "The program didn't define any tests."}
   else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
     happy-msg = if complete-summary.passed == 1:
         "Looks shipshape, your test passed, mate!"
