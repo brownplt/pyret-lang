@@ -857,7 +857,7 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
   end
 end
 
-fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
+fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-loc :: A.Loc, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
   new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   maybe-arg-typs =
   cases(Type) expect-typ:
@@ -878,7 +878,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
         end
         arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
         new-fun = recreate(args, ret-ann, new-body)
-        check-and-return(arrow-typ, expect-typ, new-fun, new-info)
+        check-and-return(fun-loc, arrow-typ, expect-loc, expect-typ, new-fun, new-info)
       end
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
@@ -960,15 +960,16 @@ fun <V> check-and-log(typ :: Type, expect-typ :: Type, value :: V, info :: TCInf
   value
 end
 
-fun check-and-return(typ :: Type, expect-typ :: Type, value :: A.Expr, info :: TCInfo) -> CheckingResult:
+fun check-and-return(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: A.Expr, info :: TCInfo) -> CheckingResult:
   if satisfies-type(typ, expect-typ, info):
     checking-result(value)
   else:
-    checking-err([list: C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc())])
+    checking-err([list: C.incorrect-type(typ.tostring(), typ-loc, expect-typ.tostring(), expect-loc)])
   end
 end
 
 fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
+  expect-loc = expect-typ.toloc()
   cases(A.Expr) e:
     | s-module(l, answer, provides, types, checks) =>
       checking(answer, expect-typ, info)
@@ -1009,7 +1010,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
     | s-instantiate(l, expr, params) =>
       synthesis-instantiation(l, expr, params, info).check-bind(
       lam(result, result-typ):
-        check-and-return(result-typ, expect-typ, result, info)
+        check-and-return(l, result-typ, expect-loc, expect-typ, result, info)
       end)
     | s-block(l, stmts) =>
       fun mk-thunk(stmt, next, required):
@@ -1067,12 +1068,12 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
           args, # Value parameters
           ann, # return type
           doc, body, _check) =>
-      check-fun(l, body, params, args, ann, expect-typ, A.s-lam(l, params, _, _, doc, _, _check), info)
+      check-fun(l, body, params, args, ann, expect-loc, expect-typ, A.s-lam(l, params, _, _, doc, _, _check), info)
     | s-method(l,
         args, # Value parameters
         ann, # return type
         doc, body, _check) =>
-      check-fun(l, body, empty, args, ann, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
+      check-fun(l, body, empty, args, ann, expect-loc, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
       raise("s-extend not yet handled")
     | s-update(l, supe, fields) =>
@@ -1084,7 +1085,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
         field-typs   = split-fields.right
         new-obj      = A.s-obj(l, new-fields)
         obj-typ      = t-record(l, field-typs)
-        check-and-return(obj-typ, expect-typ, new-obj, info)
+        check-and-return(l, obj-typ, expect-loc, expect-typ, new-obj, info)
       end
     | s-array(l, values) =>
       raise("s-array not yet handled")
@@ -1100,7 +1101,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
         result = check-app(l, args, new-fun-typ, expect-typ, info)
         for check-bind(new-args from result.left):
           ast = A.s-app(l, new-fun, new-args)
-          check-and-return(result.right, expect-typ, ast, info)
+          check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
         end
       end)
     | s-prim-app(l, _fun, args) =>
@@ -1108,32 +1109,32 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
       result = check-app(l, args, arrow-typ, expect-typ, info)
       for check-bind(new-args from result.left):
         ast = A.s-prim-app(l, _fun, new-args)
-        check-and-return(result.right, expect-typ, ast, info)
+        check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
       end
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      check-and-return(lookup-id(id, info), expect-typ, e, info)
+      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
     | s-id-var(l, id) =>
-      check-and-return(lookup-id(id, info), expect-typ, e, info)
+      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
     | s-id-letrec(l, id, safe) =>
-      check-and-return(lookup-id(id, info), expect-typ, e, info)
+      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
-      check-and-return(t-srcloc, expect-typ, e, info)
+      check-and-return(l, t-srcloc, expect-loc, expect-typ, e, info)
     | s-num(l, n) =>
-      check-and-return(t-number, expect-typ, e, info)
+      check-and-return(l, t-number, expect-loc, expect-typ, e, info)
     | s-frac(l, num, den) =>
-      check-and-return(t-number, expect-typ, e, info)
+      check-and-return(l, t-number, expect-loc, expect-typ, e, info)
     | s-bool(l, b) =>
-      check-and-return(t-boolean, expect-typ, e, info)
+      check-and-return(l, t-boolean, expect-loc, expect-typ, e, info)
     | s-str(l, s) =>
-      check-and-return(t-string, expect-typ, e, info)
+      check-and-return(l, t-string, expect-loc, expect-typ, e, info)
     | s-dot(l, obj, field-name) =>
       synthesis(obj, info).bind(synthesis-field(l, _, _, field-name, info)).check-bind(
       lam(new-s-dot, s-dot-typ):
-        check-and-return(s-dot-typ, expect-typ, new-s-dot, info)
+        check-and-return(l, s-dot-typ, expect-loc, expect-typ, new-s-dot, info)
       end)
     | s-get-bang(l, obj, field) =>
       raise("s-get-bang not yet handled")
@@ -1146,7 +1147,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
         mixins, variants, shared-members, _check) =>
       synthesis-datatype(l, name, namet, params, mixins, variants, shared-members, _check, info).check-bind(
       lam(new-s-data-expr, s-data-expr-typ):
-        check-and-return(s-data-expr-typ, expect-typ, new-s-data-expr, info)
+        check-and-return(l, s-data-expr-typ, expect-loc, expect-typ, new-s-data-expr, info)
       end)
     | s-data(_, _, _, _, _, _, _)   => raise("s-data should have been desugared")
     | s-check(_, _, _, _)           => raise("s-check should have been desugared")
