@@ -59,6 +59,8 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
         test("check: 2 is-not 2 end",           checkMessage("not different"));
         test("check: 2 is%(_ < _) -891 end",    checkMessage("not equal (using custom equality)"));
         test("check: 2 is-not%(_ < _) 891 end", checkMessage("not different (using custom equality)"));
+        test("check: 2 is%(_ + _) 3 end",       checkMessage("boolean"));
+        test("check: 2 is-not%(_ + _) 3 end",   checkMessage("boolean"));
         P.wait(done);
       });
     });
@@ -91,6 +93,13 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
       it("should give good error messages", function(done) {
         test("check: raise('oops') raises 'po' end", checkMessage("unexpected exception"));
         test("check: 'oops'        raises 'op' end", checkMessage("No exception raised"));
+        P.wait(done);
+      });
+    });
+    describe("errors", function() {
+      it("should not report success when errors happen", function(done) {
+        test("check: x :: String = 3\n  1 is 1 end", checkMessage("Ended in Error: 1"));
+        test("fun f(x :: String): x end\n check: f(3) is 'oops' end", checkMessage("Ended in Error: 1"));
         P.wait(done);
       });
     });
