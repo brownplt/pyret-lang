@@ -11,6 +11,8 @@ import "compiler/type-check-structs.arr" as TCS
 import "compiler/type-constraints.arr" as TC
 import "compiler/list-aux.arr" as LA
 
+type Name                 = A.Name
+
 type Loc                  = SL.Srcloc
 
 type Type                 = TS.Type
@@ -129,12 +131,21 @@ fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
   ps.foldr(step, pair(empty, empty))
 end
 
+fun rename-name(name :: Name) -> Name:
+  cases(Name) name:
+    | s-atom(base, serial) =>
+      A.s-atom(gensym(base), serial)
+    | else =>
+      raise("NYI(rename-name): " + torepr(name))
+  end
+end
+
 fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type) -> Type:
   if is-empty(forall):
     t-arrow(l, args, ret)
   else:
     f-pairs = for map(f from forall):
-      new-id = gensym(f.id)
+      new-id = rename-name(f.id)
       pair(f.id, t-variable(f.l, new-id, f.upper-bound, f.variance))
     end
     new-forall = f-pairs.map(_.right)
@@ -254,7 +265,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
   if info.branders.has-key(namet.key()):
     brander-typ    = info.branders.get(namet.key())
     tmp-t-vars = for map(param from params):
-      t-variable(l, param.key(), t-top, bivariant)
+      t-variable(l, param, t-top, bivariant)
     end
 
     fun save-datatype(variant-typs :: List<TypeVariant>,
@@ -262,7 +273,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
                       datatype-fields :: TS.TypeMembers
     ) -> DataType:
       tmp-datatype = t-datatype(name, t-vars, variant-typs, datatype-fields)
-      info.data-exprs.set(brander-typ.tostring(), tmp-datatype)
+      info.data-exprs.set(brander-typ.key(), tmp-datatype)
       tmp-datatype
     end
 
@@ -339,9 +350,9 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
     | a-any =>
       fold-result(some(t-top))
     | a-name(l, id) =>
-      fold-result(some(t-name(l, none, id.key())))
+      fold-result(some(t-name(l, none, id)))
     | a-type-var(l, id) =>
-      fold-result(some(t-var(id.key())))
+      fold-result(some(t-var(id)))
     | a-arrow(l, args, ret, use-parens) =>
       fun arg-to-type(x):
         to-type(x, info).map(_.or-else(t-bot))
@@ -381,7 +392,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         fold-result(some(typ))
       end
     | a-dot(l, obj, field) =>
-      fold-result(some(t-name(l, some(obj.key()), field)))
+      fold-result(some(t-name(l, some(obj), field)))
     | a-checked(checked, residual) =>
       raise("a-checked should not be appearing before type checking!")
   end
@@ -400,7 +411,7 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
           fold-result(typ)
         end
       | s-newtype-bind(l, name, namet) =>
-        typ = t-name(l, none, name.key())
+        typ = t-name(l, none, name)
         info.branders.set(namet.key(), typ)
         fold-result(typ)
     end
@@ -423,13 +434,12 @@ fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
 ) -> SynthesisResult:
-  new-info = params.map(_.key()).foldl(TCS.add-binding(_, t-top, _), info)
+  new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
     fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
       tmp-arrow = t-arrow(l, arg-typs, ret-typ)
       forall = for map(param from params):
-        id = param.key()
-        t-variable(A.dummy-loc, id, t-top, TC.determine-variance(tmp-arrow, id, new-info))
+        t-variable(A.dummy-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
       end
       arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
       new-fun = recreate(args, ret-ann, new-body)
@@ -848,7 +858,7 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
 end
 
 fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo) -> CheckingResult:
-  new-info = params.map(_.key()).foldl(TCS.add-binding(_, t-top, _), info)
+  new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   maybe-arg-typs =
   cases(Type) expect-typ:
     | t-arrow(l, expect-args, _) =>
@@ -864,8 +874,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
       fun process(new-body :: A.Expr, ret-typ :: Type) -> CheckingResult:
         tmp-arrow = t-arrow(fun-loc, arg-typs, ret-typ)
         forall = for map(param from params):
-          id = param.key()
-          t-variable(A.dummy-loc, id, t-top, TC.determine-variance(tmp-arrow, id, new-info))
+          t-variable(A.dummy-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
         end
         arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
         new-fun = recreate(args, ret-ann, new-body)

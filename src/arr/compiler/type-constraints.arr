@@ -23,6 +23,8 @@ all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
 fold2-strict = LA.fold2-strict
 
+type Name            = A.Name
+
 type Pair            = TS.Pair
 pair                 = TS.pair
 
@@ -81,9 +83,11 @@ type DirectionInfo   = Pair<Type, KeyEliminator>
 
 type Substitutions   = List<Pair<Type,Type>>
 
-example-t-var = t-var("A")
-example-a = t-var("A")
-example-b = t-var("B")
+foo-name  = A.s-type-global("Foo")
+
+example-name = A.s-atom("A", 1)
+example-a = t-var(example-name)
+example-b = t-var(A.s-atom("B", 2))
 example-c = t-arrow(A.dummy-loc, [list: example-b, example-a], example-b)
 example-d = t-arrow(A.dummy-loc, [list: example-b, example-b], example-a)
 example-e = t-arrow(A.dummy-loc, [list: example-a], example-a)
@@ -95,7 +99,7 @@ example-j = t-arrow(A.dummy-loc, [list: example-b], example-b)
 example-k = t-arrow(A.dummy-loc, [list: example-c], example-b)
 example-l = t-arrow(A.dummy-loc, [list: example-b], example-c)
 example-m = t-arrow(A.dummy-loc, [list: example-d], example-b)
-example-n = t-name(A.dummy-loc, none, "Foo")
+example-n = t-name(A.dummy-loc, none, foo-name)
 example-o = t-top
 example-p = t-bot
 
@@ -105,7 +109,7 @@ all-examples = [list: example-a, example-b, example-c, example-d, example-e,
                       example-p]
 
 test-to-remove = [set: example-a]
-test-info      = TCS.add-binding(example-a.tostring(), t-top, TCS.empty-tc-info())
+test-info      = TCS.add-binding(example-a.id, t-top, TCS.empty-tc-info())
 example-a-promoted = t-top
 example-a-demoted  = t-bot
 example-b-promoted = example-b
@@ -132,8 +136,8 @@ example-l-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-c-p
 example-l-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-c-demoted)
 example-m-promoted = t-arrow(A.dummy-loc, [list: example-d-demoted], example-b-promoted)
 example-m-demoted  = t-arrow(A.dummy-loc, [list: example-d-promoted], example-b-demoted)
-example-n-promoted = t-name(A.dummy-loc, none, "Foo")
-example-n-demoted  = t-name(A.dummy-loc, none, "Foo")
+example-n-promoted = t-name(A.dummy-loc, none, foo-name)
+example-n-demoted  = t-name(A.dummy-loc, none, foo-name)
 example-o-promoted = t-top
 example-o-demoted  = t-top
 example-p-promoted = t-bot
@@ -330,12 +334,17 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
   end
 where:
   info = TCS.empty-tc-info()
-  a1 = t-var("A1")
-  forall-a = t-forall([list: t-variable(A.dummy-loc, "A1", t-top, covariant)],
-                      t-arrow(A.dummy-loc, [list: a1, a1], t-var("A1")))
-  forall-ab = t-forall([list: t-variable(A.dummy-loc, "A2", t-top, invariant),
-                              t-variable(A.dummy-loc, "B1", t-top, contravariant)],
-                       t-arrow(A.dummy-loc, [list: t-var("A2"), t-var("B1")], t-var("A2")))
+  a1 = A.s-atom(gensym("A"), 3)
+  a1-t = t-var(a1)
+  a2 = A.s-atom(gensym("A"), 4)
+  a2-t = t-var(a2)
+  b1 = A.s-atom(gensym("B"), 5)
+  b1-t = t-var(b1)
+  forall-a = t-forall([list: t-variable(A.dummy-loc, a1, t-top, covariant)],
+                      t-arrow(A.dummy-loc, [list: a1-t, a1-t], a1-t))
+  forall-ab = t-forall([list: t-variable(A.dummy-loc, a2, t-top, invariant),
+                              t-variable(A.dummy-loc, b1, t-top, contravariant)],
+                       t-arrow(A.dummy-loc, [list: a2-t, b1-t], a2-t))
   num-fun = t-arrow(A.dummy-loc, [list: t-number, t-number], t-number)
   satisfies-type(forall-ab, forall-a, info) is true
   satisfies-type(forall-a, forall-ab, info) is false
@@ -344,13 +353,14 @@ where:
   for map(example from all-examples):
     example satisfies satisfies-type(_, t-top, info)
   end
-  info.data-exprs.set("List",
-    TS.t-datatype("List",
-                 [list: t-variable(A.dummy-loc, "C", t-top, covariant)],
+  list-name = A.s-type-global("List")
+  info.data-exprs.set(list-name.key(),
+    TS.t-datatype(list-name.key(),
+                 [list: t-variable(A.dummy-loc, A.s-atom("C", 6), t-top, covariant)],
                  empty, empty))
-  t-list = lam(x): t-app(A.dummy-loc, t-name(A.dummy-loc, none, "List"), [list: x]);
-  a = t-forall([list: t-variable(A.dummy-loc, "A", t-top, covariant)], t-list(t-var("A")))
-  b = t-forall([list: t-variable(A.dummy-loc, "B", t-top, covariant)], t-list(t-var("B")))
+  t-list = lam(x): t-app(A.dummy-loc, t-name(A.dummy-loc, none, list-name), [list: x]);
+  a = t-forall([list: t-variable(A.dummy-loc, a1, t-top, covariant)], t-list(a1-t))
+  b = t-forall([list: t-variable(A.dummy-loc, b1, t-top, covariant)], t-list(b1-t))
   c = t-list(t-top)
   d = t-list(t-number)
   satisfies-type(a, b, info) is true
@@ -496,7 +506,7 @@ end
 
 fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
   fun add-free-var(typ :: Type):
-    if binds.has-key(typ.tostring()):
+    if binds.has-key(typ.key()):
       [set: ]
     else:
       [set: typ]
@@ -518,7 +528,7 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
         .foldl(union, free-vars(ret, binds))
     | t-forall(introduces, onto) =>
       new-binds = for fold(base from binds, tv from introduces):
-        base.set(tv.id, tv.upper-bound)
+        base.set(tv.id.key(), tv.upper-bound)
       end
       free-vars(onto, new-binds)
     | t-app(l, onto, args) =>
@@ -646,7 +656,7 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
 end
 
 fun move-up(typ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
-  key = typ.tostring()
+  key = typ.key()
   if info.binds.has-key(key):
     least-supertype(info.binds.get(key), to-remove, info)
   else:
@@ -755,12 +765,12 @@ sharing:
   end
 end
 
-fun determine-variance(typ, var-id :: String, info :: TCInfo) -> Variance:
+fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
   cases(Type) typ:
     | t-name(l, module-name, id) =>
       constant
     | t-var(id) =>
-      if id == var-id:
+      if id.key() == var-id.key():
         covariant
       else:
         constant
@@ -818,26 +828,26 @@ fun determine-variance(typ, var-id :: String, info :: TCInfo) -> Variance:
   end
 where:
   info = TCS.empty-tc-info()
-  determine-variance(example-a, "A", info) is covariant
-  determine-variance(example-b, "A", info) is constant
-  determine-variance(example-c, "A", info) is contravariant
-  determine-variance(example-d, "A", info) is covariant
-  determine-variance(example-e, "A", info) is invariant
-  determine-variance(example-f, "A", info) is invariant
-  determine-variance(example-g, "A", info) is invariant
-  determine-variance(example-h, "A", info) is invariant
-  determine-variance(example-i, "A", info) is covariant
-  determine-variance(example-j, "A", info) is constant
-  determine-variance(example-k, "A", info) is covariant
-  determine-variance(example-l, "A", info) is contravariant
-  determine-variance(example-m, "A", info) is contravariant
-  determine-variance(example-n, "A", info) is constant
-  determine-variance(example-o, "A", info) is constant
-  determine-variance(example-p, "A", info) is constant
+  determine-variance(example-a, example-name, info) is covariant
+  determine-variance(example-b, example-name, info) is constant
+  determine-variance(example-c, example-name, info) is contravariant
+  determine-variance(example-d, example-name, info) is covariant
+  determine-variance(example-e, example-name, info) is invariant
+  determine-variance(example-f, example-name, info) is invariant
+  determine-variance(example-g, example-name, info) is invariant
+  determine-variance(example-h, example-name, info) is invariant
+  determine-variance(example-i, example-name, info) is covariant
+  determine-variance(example-j, example-name, info) is constant
+  determine-variance(example-k, example-name, info) is covariant
+  determine-variance(example-l, example-name, info) is contravariant
+  determine-variance(example-m, example-name, info) is contravariant
+  determine-variance(example-n, example-name, info) is constant
+  determine-variance(example-o, example-name, info) is constant
+  determine-variance(example-p, example-name, info) is constant
 end
 
 fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
-  key = x.tostring()
+  key = x.key()
   binds.has-key(key) and
   let bound = binds.get(key):
     is-t-bot(bound) or is-bottom-variable(bound, binds)
@@ -875,11 +885,11 @@ sharing:
     type-constraints(self.dict.set(typ-str, new-constraint))
   end,
   insert(self, typ :: Type, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
-    typ-str = typ.tostring()
+    typ-str = typ.key()
     self._insert(typ-str, constraint, info)
   end,
   get(self, typ :: Type) -> Option<TypeConstraint>:
-    typ-str = typ.tostring()
+    typ-str = typ.key()
     if self.dict.has-key(typ-str):
       self.dict.get(typ-str)
     else:
@@ -964,7 +974,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
   empty-type-constraints = type-constraints(SD.immutable-string-dict())
   binds   = info.binds
   s-free  = free-vars(s, binds)
-  s-str   = s.tostring()
+  s-str   = s.key()
   t-free  = free-vars(t, binds)
   initial = empty-type-constraints
   if is-t-top(t):

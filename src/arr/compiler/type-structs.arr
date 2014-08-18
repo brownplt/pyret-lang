@@ -9,6 +9,8 @@ all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
 fold2-strict = LA.fold2-strict
 
+type Name = A.Name
+
 data Pair<L,R>:
   | pair(left :: L, right :: R)
 sharing:
@@ -44,7 +46,7 @@ sharing:
   end
 end
 
-fun string-compare(a :: String, b :: String) -> Comparison:
+fun std-compare(a, b) -> Comparison:
   if a < b: less-than
   else if a > b: greater-than
   else: equal;
@@ -148,10 +150,13 @@ data Variance:
 end
 
 data TypeVariable:
-  | t-variable(l :: A.Loc, id :: String, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
+  | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
   tostring(self) -> String:
-    self.id + " <: " + self.upper-bound.tostring()
+    self.id.toname() + " <: " + self.upper-bound.tostring()
+  end,
+  key(self) -> String:
+    self.id.key() + " <: " + self.upper-bound.key()
   end
 end
 
@@ -160,13 +165,16 @@ data TypeMember:
     tostring(self):
       self.field-name + " : " + self.typ.tostring()
     end,
+    key(self):
+      self.field-name + " : " + self.typ.key()
+    end,
     substitute(self, x :: Type, r :: Type):
       t-member(self.field-name, self.typ.substitute(x, r))
     end
 sharing:
   _comp(a, b :: TypeMember) -> Comparison:
     fold-comparisons([list:
-        string-compare(a.field-name, b.field-name),
+        std-compare(a.field-name, b.field-name),
         a.typ._comp(b.typ)
       ])
   end
@@ -228,8 +236,8 @@ data DataType:
 end
 
 data Type:
-  | t-name(l :: A.Loc, module-name :: Option<String>, id :: String)
-  | t-var(id :: String)
+  | t-name(l :: A.Loc, module-name :: Option<Name>, id :: Name)
+  | t-var(id :: Name)
   | t-arrow(l :: A.Loc, args :: List<Type>, ret :: Type)
   | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % (is-link))
   | t-top
@@ -240,11 +248,10 @@ sharing:
   tostring(self) -> String:
     cases(Type) self:
       | t-name(_, module-name, id) => cases(Option<String>) module-name:
-          | none    => id
-          | some(m) => m + "." + id
+          | none    => id.toname()
+          | some(m) => m.toname() + "." + id.toname()
         end
-      | t-var(id) => id
-
+      | t-var(id) => id.toname()
       | t-arrow(_, args, ret) =>
         "("
           + args.map(_.tostring()).join-str(", ")
@@ -264,6 +271,33 @@ sharing:
           + onto.tostring()
     end
   end,
+  key(self) -> String:
+    cases(Type) self:
+      | t-name(_, module-name, id) => cases(Option<String>) module-name:
+          | none    => id.key()
+          | some(m) => m.key() + "." + id.key()
+        end
+      | t-var(id) => id.key()
+      | t-arrow(_, args, ret) =>
+        "("
+          + args.map(_.key()).join-str(", ")
+          + " -> " + ret.key() + ")"
+      | t-app(_, onto, args) =>
+        onto.key() + "<" + args.map(_.key()).join-str(", ") + ">"
+      | t-top => "Top"
+      | t-bot => "Bot"
+      | t-record(_, fields) =>
+        "{"
+          + for map(field from fields):
+              field.key()
+            end.join-str(", ")
+          + "}"
+      | t-forall(introduces, onto) =>
+        "<" + introduces.map(_.key()).join-str(",") + ">"
+          + onto.key()
+    end
+  end,
+
   toloc(self) -> A.Loc:
     cases(Type) self:
       | t-name(l, _, _)     => l
@@ -313,8 +347,8 @@ sharing:
           | t-bot               => greater-than
           | t-name(b-l, b-module-name, b-id) =>
             fold-comparisons([list:
-              string-compare(a-module-name.or-else(""), b-module-name.or-else("")),
-              string-compare(a-id, b-id)
+              std-compare(a-module-name.or-else(""), b-module-name.or-else("")),
+              std-compare(a-id, b-id)
             ])
           | t-var(_)            => less-than
           | t-arrow(_, _, _)    => less-than
@@ -403,7 +437,7 @@ sharing:
   end
 end
 
-t-number  = t-name(A.dummy-loc, none, "tglobal#Number")
-t-string  = t-name(A.dummy-loc, none, "tglobal#String")
-t-boolean = t-name(A.dummy-loc, none, "tglobal#Boolean")
-t-srcloc  = t-name(A.dummy-loc, none, "Loc")
+t-number  = t-name(A.dummy-loc, none, A.s-type-global("Number"))
+t-string  = t-name(A.dummy-loc, none, A.s-type-global("String"))
+t-boolean = t-name(A.dummy-loc, none, A.s-type-global("Boolean"))
+t-srcloc  = t-name(A.dummy-loc, none, A.s-global("Loc"))

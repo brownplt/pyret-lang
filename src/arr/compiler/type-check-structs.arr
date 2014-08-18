@@ -6,7 +6,9 @@ import string-dict as SD
 import "compiler/type-structs.arr" as TS
 import "compiler/compile-structs.arr" as C
 
-type Type                  = TS.Type
+type Name                 = A.Name
+
+type Type                 = TS.Type
 t-name                    = TS.t-name
 t-var                     = TS.t-var
 t-arrow                   = TS.t-arrow
@@ -46,7 +48,7 @@ data TCInfo:
 end
 
 default-typs = SD.string-dict()
-default-typs.set(A.s-global("nothing").key(), t-name(A.dummy-loc, none, "tglobal#Nothing"))
+default-typs.set(A.s-global("nothing").key(), t-name(A.dummy-loc, none, A.s-type-global("Nothing")))
 default-typs.set("isBoolean", t-arrow(A.dummy-loc, [list: t-top], t-boolean))
 default-typs.set(A.s-global("torepr").key(), t-arrow(A.dummy-loc, [list: t-top], t-string))
 default-typs.set("throwNonBooleanCondition",
@@ -62,7 +64,7 @@ default-typs.set(A.s-global("_times").key(), t-arrow(A.dummy-loc, [list: t-numbe
 default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
-print-variable = gensym("A")
+print-variable = A.s-atom(gensym("A"), 1)
 default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow(A.dummy-loc, [list: t-var(print-variable)], t-var(print-variable))))
 
 fun empty-tc-info() -> TCInfo:
@@ -80,8 +82,8 @@ fun empty-tc-info() -> TCInfo:
   tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), empty-bindings, errors)
 end
 
-fun add-binding(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
-  new-binds = info.binds.set(id, bound)
+fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
+  new-binds = info.binds.set(id.key(), bound)
   tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
 end
 
@@ -92,14 +94,14 @@ end
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   cases(Type) typ:
     | t-name(l, module-name, name) =>
-      key = typ.tostring()
+      key = typ.key()
       if info.data-exprs.has-key(key):
         some(info.data-exprs.get(key))
       else:
         none
       end
     | t-app(l, base-typ, args) =>
-      key = base-typ.tostring()
+      key = base-typ.key()
       if info.data-exprs.has-key(key):
         data-type = info.data-exprs.get(key).introduce(args)
         cases(Option<DataType>) data-type:
