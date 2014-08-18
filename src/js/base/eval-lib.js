@@ -159,7 +159,13 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
               // NOTE(joe):
               // Calling this for side effect of loading, and failures will propagate
               // on their own via the timeout on loaded below
-              runtime.runThunk(function() { loadParsedPyret(runtime, astAndName.ast, newOptions); }, function(result) {
+              runtime.runThunk(function() {
+                return runtime.safeCall(function() {
+                  return runtime.getField(repl, "wrap-for-special-import").app(astAndName.ast);
+                }, function(safeAst) {
+                  loadParsedPyret(runtime, safeAst, newOptions);
+                });
+              }, function(result) {
                 if(runtime.isSuccessResult(result)) {
                   moduleLoads[i].resolve(result.result);
                 }

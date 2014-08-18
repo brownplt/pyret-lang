@@ -83,6 +83,14 @@ fun make-safe-imports(imps):
   imps
 end
 
+fun wrap-for-special-import(p :: A.Program):
+  cases(A.Program) p:
+    | s-program(l, _, _, imports, _) =>
+      make-safe-imports(imports)
+      p
+  end
+end
+
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
