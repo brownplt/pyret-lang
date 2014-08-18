@@ -385,7 +385,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
     | a-pred(l, ann, exp) =>
       for bind(typ from to-type-std(ann, info)):
         expect-typ = mk-arrow(l, empty, [list: typ], t-boolean)
-        cases(CheckingResult) checking(exp, expect-typ, info):
+        cases(CheckingResult) checking(exp, l, expect-typ, info):
           | checking-err(errs) => errs.map(info.errors.insert)
           | else => nothing
         end
@@ -449,7 +449,7 @@ fun synthesis-fun(
     for synth-bind(maybe-ret from to-type(ret-ann, new-info)):
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, ret-typ, new-info).synth-bind(process(_, ret-typ))
+          checking(body, l, ret-typ, new-info).synth-bind(process(_, ret-typ))
         | none =>
           synthesis(body, new-info).bind(process)
       end
@@ -477,7 +477,7 @@ end
 
 
 fun handle-if-branch(branch :: A.IfBranch, info :: TCInfo) -> FoldResult<Pair<A.IfBranch,Type>>:
-  for fold-bind(new-test from checking(branch.test, t-boolean, info)):
+  for fold-bind(new-test from checking(branch.test, branch.l, t-boolean, info)):
     synthesis(branch.body, info).fold-bind(
       lam(new-body, body-typ):
         new-branch = A.s-if-branch(branch.l, new-test, new-body)
@@ -487,14 +487,14 @@ fun handle-if-branch(branch :: A.IfBranch, info :: TCInfo) -> FoldResult<Pair<A.
 end
 
 fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBranch,
-                  maybe-check :: Option<Type>, remove :: (String -> Any),
-                  info :: TCInfo
+                  expect-loc :: A.Loc, maybe-check :: Option<Type>,
+                  remove :: (String -> Any), info :: TCInfo
 ) -> FoldResult<Pair<A.CasesBranch, Type>>:
   fun handle-body(name :: String, body :: A.Expr, process, new-info :: TCInfo):
     remove(name)
     cases(Option<Type>) maybe-check:
       | some(expect-typ) =>
-        checking(body, expect-typ, new-info).fold-bind(process(_, expect-typ))
+        checking(body, expect-loc, expect-typ, new-info).fold-bind(process(_, expect-typ))
       | none =>
         synthesis(body, new-info).fold-bind(process)
     end
@@ -550,15 +550,15 @@ fun track-branches(data-type :: DataType) ->
 end
 
 fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
-                     maybe-else :: Option<A.Expr>, maybe-expect :: Option<Type>,
+                     maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, maybe-expect :: Option<Type>,
                      info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
                      has-else, no-else) -> B:
   for bind-direction(typ from to-type-std(ann, info)):
     cases(Option<DataType>) TCS.get-data-type(typ, info):
       | some(data-type) =>
-        for bind-direction(new-val from checking(val, typ, info)):
+        for bind-direction(new-val from checking(val, l, typ, info)):
           branch-tracker = track-branches(data-type)
-          for bind-direction(result from map-result(handle-branch(data-type, l, _, maybe-expect, branch-tracker.remove, info), branches)):
+          for bind-direction(result from map-result(handle-branch(data-type, l, _, expect-loc, maybe-expect, branch-tracker.remove, info), branches)):
             split-result = split(result)
             remaining-branches = branch-tracker.get().to-list()
             cases(Option<A.Expr>) maybe-else:
@@ -598,9 +598,9 @@ fun synthesis-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-r
   synthesis-result(new-cases, branches-typ)
 end
 
-fun checking-cases-has-else(expect-typ :: Type):
+fun checking-cases-has-else(expect-loc :: A.Loc, expect-typ :: Type):
   lam(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, _else :: A.Expr, info :: TCInfo) -> CheckingResult:
-    for bind(new-else from checking(_else, expect-typ, info)):
+    for bind(new-else from checking(_else, expect-loc, expect-typ, info)):
       new-cases = A.s-cases-else(l, ann, new-val, split-result.left, new-else)
       checking-result(new-cases)
     end
@@ -613,11 +613,11 @@ fun checking-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-re
 end
 
 fun synthesis-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, info :: TCInfo) -> SynthesisResult:
-  handle-cases(l, ann, val, branches, maybe-else, none, info, synth-bind, synthesis-err, synthesis-cases-has-else, synthesis-cases-no-else)
+  handle-cases(l, ann, val, branches, maybe-else, A.dummy-loc, none, info, synth-bind, synthesis-err, synthesis-cases-has-else, synthesis-cases-no-else)
 end
 
-fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
-  handle-cases(l, ann, val, branches, maybe-else, some(expect-typ), info, check-bind, checking-err, checking-cases-has-else(expect-typ), checking-cases-no-else)
+fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
+  handle-cases(l, ann, val, branches, maybe-else, expect-loc, some(expect-typ), info, check-bind, checking-err, checking-cases-has-else(expect-loc, expect-typ), checking-cases-no-else)
 end
 
 
@@ -842,7 +842,7 @@ fun synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A
       | none =>
         synthesis(value, info)
       | some(t) =>
-        checking(value, t, info)
+        checking(value, binding.l, t, info)
           .synth-bind(synthesis-result(_, t))
     end.bind(process-value)
   end
@@ -882,13 +882,13 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
       end
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, ret-typ, new-info).bind(process(_, ret-typ))
+          checking(body, fun-loc, ret-typ, new-info).bind(process(_, ret-typ))
         | none =>
           cases(Type) expect-typ:
             | t-arrow(_, _, ret-typ) =>
               cases(List<A.Name>) params:
                 | empty =>
-                  checking(body, ret-typ, new-info).bind(process(_, ret-typ))
+                  checking(body, expect-loc, ret-typ, new-info).bind(process(_, ret-typ))
                 | link(_, _) =>
                   # If the programmer has not written a return type and this is
                   # a polymorphic function, then the return type may have the
@@ -912,7 +912,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
   cases(Type) arrow-typ:
     | t-arrow(_, arg-typs, ret-typ) =>
       new-args = for args-map2(arg from args, arg-typ from arg-typs):
-        checking(arg, arg-typ, info)
+        checking(arg, app-loc, arg-typ, info)
       end
       pair(new-args, ret-typ)
     | t-forall(introduces, onto) =>
@@ -934,7 +934,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
                 curr.substitute(substitution.left, substitution.right)
               end
               new-args = for args-map2(arg from args, arg-typ from new-arg-typs):
-                checking(arg, arg-typ, info)
+                checking(arg, app-loc, arg-typ, info)
               end
               pair(new-args, new-ret-typ)
             | fold-errors(errors) =>
@@ -945,7 +945,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
       end
     | t-bot =>
       new-args = for map-checking(arg from args):
-        checking(arg, t-top, info)
+        checking(arg, app-loc, t-top, info)
       end
       pair(new-args, t-bot)
     | else =>
@@ -968,21 +968,20 @@ fun check-and-return(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-
   end
 end
 
-fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
-  expect-loc = expect-typ.toloc()
+fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   cases(A.Expr) e:
     | s-module(l, answer, provides, types, checks) =>
-      checking(answer, expect-typ, info)
+      checking(answer, expect-loc, expect-typ, info)
         .map(A.s-module(l, _, provides, types, checks))
     | s-type-let-expr(l, binds, body) =>
       for check-bind(_ from handle-type-let-binds(binds, info)):
-        checking(body, expect-typ, info)
+        checking(body, expect-loc, expect-typ, info)
           .map(A.s-type-let-expr(l, binds, _))
       end
     | s-let-expr(l, bindings, body) =>
       action = synthesis-let-bind(_, info)
       for check-bind(new-bindings from map-synthesis(action, bindings)):
-        checking(body, expect-typ, info)
+        checking(body, expect-loc, expect-typ, info)
           .map(A.s-let-expr(l, new-bindings, _))
       end
     | s-letrec(l, bindings, body) =>
@@ -1000,7 +999,7 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
       for check-bind(_ from map-result(process-letrec-binding(_, t-bot, info), bindings)):
         for check-bind(tmp-bindings from traverse(bindings)): # Traverse once to determine each one's correct type.
           for check-bind(new-bindings from traverse(tmp-bindings)): # Traverse again to check recursive references.
-            checking(body, expect-typ, info)
+            checking(body, expect-loc, expect-typ, info)
               .map(A.s-letrec(l, new-bindings, _))
           end
         end
@@ -1015,7 +1014,9 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
     | s-block(l, stmts) =>
       fun mk-thunk(stmt, next, required):
         lam():
-          for map-bind(ast from checking(stmt, required, info)):
+          # We can use expect-loc every time, since it will always be either
+          # Any or expect-typ
+          for map-bind(ast from checking(stmt, expect-loc, required, info)):
             next().prepend(ast)
           end
         end
@@ -1046,19 +1047,19 @@ fun checking(e :: A.Expr, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
       raise("s-assign not yet handled")
     | s-if-else(l, branches, _else) =>
       for map-result(branch from branches):
-        for fold-bind(new-test from checking(branch.test, t-boolean, info)):
-          for fold-bind(new-body from checking(branch.body, expect-typ, info)):
+        for fold-bind(new-test from checking(branch.test, branch.l, t-boolean, info)):
+          for fold-bind(new-body from checking(branch.body, expect-loc, expect-typ, info)):
             fold-result(A.s-if-branch(branch.l, new-test, new-body))
           end
         end
       end.check-bind(
       lam(new-branches):
-        checking(_else, expect-typ, info).map(A.s-if-else(l, new-branches, _))
+        checking(_else, expect-loc, expect-typ, info).map(A.s-if-else(l, new-branches, _))
       end)
     | s-cases(l, typ, val, branches) =>
-      checking-cases(l, typ, val, branches, none, expect-typ, info)
+      checking-cases(l, typ, val, branches, none, expect-loc, expect-typ, info)
     | s-cases-else(l, typ, val, branches, _else) =>
-      checking-cases(l, typ, val, branches, some(_else), expect-typ, info)
+      checking-cases(l, typ, val, branches, some(_else), expect-loc, expect-typ, info)
     | s-try(l, body, id, _except) =>
       raise("s-try not yet handled")
     | s-op(l, op, left, right) =>
@@ -1170,7 +1171,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
       info = TCS.empty-tc-info()
-      tc-result = checking(body, t-top, info)
+      tc-result = checking(body, A.dummy-loc, t-top, info)
       side-errs = info.errors.get()
       cases(CheckingResult) tc-result:
         | checking-result(new-body) =>

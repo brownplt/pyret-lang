@@ -997,7 +997,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
         cases(Type) t:
           | t-arrow(t-l, t-args, t-ret) =>
             ret-constraints = generate-constraints(blame-loc, s-ret, t-ret, to-remove, unknowns, info)
-            args-fold = foldl2-result(C.incorrect-type(s.tostring(), s.toloc(), t.tostring(), t.toloc()))
+            args-fold = foldl2-result(C.incorrect-type(s.tostring(), blame-loc, t.tostring(), blame-loc))
             for args-fold(curr from ret-constraints,
                           s-arg from s-args, t-arg from t-args):
               generate-constraints(blame-loc, t-arg, s-arg, to-remove, unknowns, info)
