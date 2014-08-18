@@ -297,19 +297,6 @@ sharing:
           + onto.key()
     end
   end,
-
-  toloc(self) -> A.Loc:
-    cases(Type) self:
-      | t-name(l, _, _)     => l
-      | t-arrow(l, _, _)    => l
-      | t-var(_)            => A.dummy-loc
-      | t-app(l, _, _)      => l
-      | t-top               => A.dummy-loc
-      | t-bot               => A.dummy-loc
-      | t-record(l, _)      => l
-      | t-forall(_, _)      => A.dummy-loc
-    end
-  end,
   substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
     if self == orig-typ:
       new-typ

@@ -166,7 +166,7 @@ fun to-type-member(field :: A.Member, info :: TCInfo) -> FoldResult<Pair<A.Membe
         fold-result(pair(A.s-data-field(l, name, value), t-member(name, t-top)))
       else:
         synthesis(value, info).fold-bind(
-        lam(new-value, value-typ):
+        lam(new-value, value-loc, value-typ):
           fold-result(pair(A.s-data-field(l, name, new-value), t-member(name, value-typ)))
         end)
       end
@@ -208,11 +208,11 @@ fun to-type-variant(variant :: A.Variant, info :: TCInfo) -> FoldResult<Pair<A.V
   end
 end
 
-fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
+fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type,
                 handle :: (A.Expr, Loc, List<TypeMember> -> SynthesisResult),
                 info :: TCInfo
 ) -> SynthesisResult:
-  non-obj-err = synthesis-err([list: C.incorrect-type(obj-typ.tostring(), obj-typ.toloc(), "an object type", access-loc)])
+  non-obj-err = synthesis-err([list: C.incorrect-type(obj-typ.tostring(), obj-typ-loc, "an object type", access-loc)])
   cases(Type) obj-typ:
     | t-record(l, members) =>
       handle(obj, l, members)
@@ -230,12 +230,12 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type,
   end
 end
 
-fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ :: Type, field-name :: String, info :: TCInfo) -> SynthesisResult:
-  record-view(access-loc, obj, obj-typ,
+fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type, field-name :: String, info :: TCInfo) -> SynthesisResult:
+  record-view(access-loc, obj, obj-typ-loc, obj-typ,
   lam(new-obj, l, obj-fields):
     cases(Option<TypeMember>) TS.type-members-lookup(obj-fields, field-name):
       | some(tm) =>
-        synthesis-result(A.s-dot(l, new-obj, field-name), tm.typ)
+        synthesis-result(A.s-dot(l, new-obj, field-name), l, tm.typ)
       | none =>
         synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(_.tostring()).join-str(", ") + "}", l, access-loc)])
     end
@@ -323,7 +323,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
         data-expr-typ  = t-record(l, data-fields)
 
         # Return result of synthesis
-        synthesis-result(new-data-expr, data-expr-typ)
+        synthesis-result(new-data-expr, l, data-expr-typ)
       end
     end
   else:
@@ -333,13 +333,29 @@ end
 
 fun instantiate(l :: A.Loc, base-typ :: Type, data-type :: DataType, args :: List<Type>, info :: TCInfo) -> FoldResult<Option<Type>>:
   bound = for map2-strict(param from data-type.params, arg from args):
-    check-and-log(arg, param.upper-bound, arg, info)
+    check-and-log(l, arg, param.l, param.upper-bound, arg, info)
   end
   cases(Option<List<Type>>) bound:
     | some(lst) =>
       fold-result(some(t-app(l, base-typ, lst)))
     | none =>
       fold-errors([list: C.bad-type-instantiation(data-type.params.length(), args.length(), l)])
+  end
+end
+
+fun ann-loc(in-ann :: A.Ann, default :: A.Loc) -> A.Loc:
+  cases(A.Ann) in-ann:
+    | a-blank                => default
+    | a-any                  => default
+    | a-name(l, _)           => l
+    | a-type-var(l, _)       => l
+    | a-arrow(l, _, _, _)    => l
+    | a-method(l, _, _)      => l
+    | a-record(l, _)         => l
+    | a-app(l, _, _)         => l
+    | a-pred(l, _, _)        => l
+    | a-dot(l, _, _)         => l
+    | a-checked(_, residual) => ann-loc(residual, default)
   end
 end
 
@@ -436,20 +452,21 @@ fun synthesis-fun(
 ) -> SynthesisResult:
   new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
-    fun process(new-body :: A.Expr, ret-typ :: Type) -> SynthesisResult:
+    fun process(new-body :: A.Expr, _ :: A.Loc, ret-typ :: Type) -> SynthesisResult:
       tmp-arrow = t-arrow(l, arg-typs, ret-typ)
       forall = for map(param from params):
         t-variable(A.dummy-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
       end
-      arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
+      arrow-typ = mk-arrow(l, forall, arg-typs, ret-typ)
       new-fun = recreate(args, ret-ann, new-body)
-      synthesis-result(new-fun, arrow-typ)
+      synthesis-result(new-fun, l, arrow-typ)
     end
   
     for synth-bind(maybe-ret from to-type(ret-ann, new-info)):
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, l, ret-typ, new-info).synth-bind(process(_, ret-typ))
+          ret-loc = ann-loc(ret-ann, l)
+          checking(body, ret-loc, ret-typ, new-info).synth-bind(process(_, ret-loc, ret-typ))
         | none =>
           synthesis(body, new-info).bind(process)
       end
@@ -457,16 +474,17 @@ fun synthesis-fun(
   end
 end
 
-fun bind-arg(info :: TCInfo, arg :: A.Bind, tm :: TypeMember) -> FoldResult<TCInfo>:
+fun bind-arg(info :: TCInfo, arg :: A.Bind, tm-loc :: A.Loc, tm :: TypeMember) -> FoldResult<TCInfo>:
   for bind(maybe-declared from to-type(arg.ann, info)):
     typ = tm.typ
     cases(Option<Type>) maybe-declared:
       | some(declared-typ) =>
+        declared-loc = ann-loc(arg.ann, A.dummy-loc)
         if satisfies-type(typ, declared-typ, info):
           info.typs.set(arg.id.key(), declared-typ)
           fold-result(info)
         else:
-          fold-errors([list: C.incorrect-type(declared-typ.tostring(), declared-typ.toloc(), typ.tostring(), typ.toloc())])
+          fold-errors([list: C.incorrect-type(declared-typ.tostring(), declared-loc, typ.tostring(), tm-loc)])
         end
       | none =>
         info.typs.set(arg.id.key(), typ)
@@ -479,7 +497,7 @@ end
 fun handle-if-branch(branch :: A.IfBranch, info :: TCInfo) -> FoldResult<Pair<A.IfBranch,Type>>:
   for fold-bind(new-test from checking(branch.test, branch.l, t-boolean, info)):
     synthesis(branch.body, info).fold-bind(
-      lam(new-body, body-typ):
+      lam(new-body, _, body-typ):
         new-branch = A.s-if-branch(branch.l, new-test, new-body)
         fold-result(pair(new-branch, body-typ))
       end)
@@ -494,7 +512,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
     remove(name)
     cases(Option<Type>) maybe-check:
       | some(expect-typ) =>
-        checking(body, expect-loc, expect-typ, new-info).fold-bind(process(_, expect-typ))
+        checking(body, expect-loc, expect-typ, new-info).fold-bind(process(_, expect-loc, expect-typ))
       | none =>
         synthesis(body, new-info).fold-bind(process)
     end
@@ -502,15 +520,15 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
   cases(Option<TypeVariant>) data-type.lookup-variant(branch.name):
     | some(tv) =>
       cases(TypeVariant) tv:
-        | t-variant(_, _, fields, _) =>
+        | t-variant(variant-loc, _, fields, _) =>
           cases(A.CasesBranch) branch:
             | s-cases-branch(l, pat-loc, name, args, body) =>
-              fun process(new-body, typ):
+              fun process(new-body, _, typ):
                 new-branch = A.s-cases-branch(l, pat-loc, name, args, new-body)
                 fold-result(pair(new-branch, typ))
               end
               bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), fields.length()))
-              bind-args(bind-arg, fold-result(info), args, fields)
+              bind-args(bind-arg(_, _, variant-loc, _), fold-result(info), args, fields)
                 .bind(handle-body(name, body, process, _))
             | s-singleton-cases-branch(l, _, name, _) =>
               fold-errors([list: C.cases-singleton-mismatch(name, l, false)])
@@ -520,7 +538,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
             | s-cases-branch(l, _, name, _, _) =>
               fold-errors([list: C.cases-singleton-mismatch(name, l, true)])
             | s-singleton-cases-branch(l, pat-loc, name, body) =>
-              fun process(new-body, typ):
+              fun process(new-body, _, typ):
                 new-branch = A.s-singleton-cases-branch(l, pat-loc, name, new-body)
                 fold-result(pair(new-branch, typ))
               end
@@ -585,17 +603,17 @@ end
 
 fun synthesis-cases-has-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, _else :: A.Expr, info :: TCInfo) -> SynthesisResult:
   synthesis(_else, info).bind(
-    lam(new-else, else-typ):
+    lam(new-else, _, else-typ):
       branches-typ = meet-branch-typs(link(else-typ, split-result.right), info)
       new-cases = A.s-cases-else(l, ann, new-val, split-result.left, new-else)
-      synthesis-result(new-cases, branches-typ)
+      synthesis-result(new-cases, l, branches-typ)
     end)
 end
 
 fun synthesis-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, info :: TCInfo) -> SynthesisResult:
   branches-typ = meet-branch-typs(split-result.right, info)
   new-cases = A.s-cases(l, ann, new-val, split-result.left)
-  synthesis-result(new-cases, branches-typ)
+  synthesis-result(new-cases, l, branches-typ)
 end
 
 fun checking-cases-has-else(expect-loc :: A.Loc, expect-typ :: Type):
@@ -637,25 +655,25 @@ fun lookup-id(id, info :: TCInfo) -> Type:
   end
 end
 
-fun remove-foralls(forall :: List<TypeVariable>, onto :: Type, replacements :: List<Type>, info :: TCInfo) -> Option<Type>:
+fun remove-foralls(l :: A.Loc, forall :: List<TypeVariable>, onto :: Type, replacements :: List<Type>, info :: TCInfo) -> Option<Type>:
   for fold2-strict(curr from onto, variable from forall, replacement from replacements):
     to-replace  = t-var(variable.id)
     upper       = variable.upper-bound
     new-curr    = curr.substitute(to-replace, replacement)
-    check-and-log(replacement, upper, new-curr, info)
+    check-and-log(l, replacement, variable.l, upper, new-curr, info)
   end
 end
 
 fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, info :: TCInfo) -> SynthesisResult:
   synthesis(expr, info).bind(
-  lam(new-expr, tmp-typ):
+  lam(new-expr, tmp-typ-loc, tmp-typ):
     cases(Type) tmp-typ:
       | t-forall(introduces, onto) =>
         for synth-bind(new-typs from map-result(to-type-std(_, info), params)):
-          cases(Option<Type>) remove-foralls(introduces, onto, new-typs, info):
+          cases(Option<Type>) remove-foralls(l, introduces, onto, new-typs, info):
             | some(new-typ) =>
               new-inst = A.s-instantiate(l, new-expr, params)
-              synthesis-result(new-inst, new-typ)
+              synthesis-result(new-inst, l, new-typ)
             | none =>
               nt-l = new-typs.length()
               i-l   = introduces.length()
@@ -665,10 +683,10 @@ fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, inf
       | t-bot =>
         for synth-bind(new-typs from map-result(to-type-std(_, info), params)):
           new-inst = A.s-instantiate(l, new-expr, params)
-          synthesis-result(new-inst, t-bot)
+          synthesis-result(new-inst, l, t-bot)
         end
       | else =>
-        synthesis-err([list: C.incorrect-type(tmp-typ.tostring(), tmp-typ.toloc(), "a function", l)])
+        synthesis-err([list: C.incorrect-type(tmp-typ.tostring(), tmp-typ-loc, "a function", l)])
     end
   end)
 end
@@ -696,15 +714,17 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-instantiation(l, expr, params, info)
     | s-block(l, stmts) =>
       var typ = t-top
-      fun process-result(stmt-typ):
-        typ := stmt-typ
-      end
+      var loc = A.dummy-loc
       fun build-ret-pair(new-stmts):
-        synthesis-result(A.s-block(l, new-stmts), typ)
+        synthesis-result(A.s-block(l, new-stmts), loc, typ)
       end
       for map-synthesis(stmt from stmts):
-        synthesis(stmt, info)
-          .map-typ(process-result)
+        synthesis(stmt, info).bind(
+          lam(stmt-expr, stmt-loc, stmt-typ):
+            typ := stmt-typ
+            loc := stmt-loc
+            synthesis-result(stmt-expr, stmt-loc, stmt-typ)
+          end)
       end.synth-bind(build-ret-pair)
     | s-type(l, name, ann) =>
       raise("s-type not yet handled")
@@ -719,12 +739,12 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
     | s-if-else(l, branches, _else) =>
       for synth-bind(result from map-result(handle-if-branch(_, info), branches)):
         synthesis(_else, info).bind(
-          lam(new-else, else-typ):
+          lam(new-else, _, else-typ):
             split-result = split(result)
             new-branches = split-result.left
             if-else-typ  = meet-branch-typs(link(else-typ, split-result.right), info)
             new-if-else  = A.s-if-else(l, new-branches, new-else)
-            synthesis-result(new-if-else, if-else-typ)
+            synthesis-result(new-if-else, l, if-else-typ)
           end)
       end
     | s-cases(l, typ, val, branches) =>
@@ -757,7 +777,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         field-typs   = split-fields.right
         new-obj      = A.s-obj(l, new-fields)
         obj-typ      = t-record(l, field-typs)
-        synthesis-result(new-obj, obj-typ)
+        synthesis-result(new-obj, l, obj-typ)
       end
     | s-array(l, values) =>
       raise("s-array not yet handled")
@@ -769,11 +789,11 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
       synthesis(_fun, info).bind(
-      lam(new-fun, arrow-typ):
+      lam(new-fun, arrow-typ-loc, arrow-typ):
         result = check-app(l, args, arrow-typ, t-top, info)
         for synth-bind(new-args from result.left):
           ast = A.s-app(l, new-fun, new-args)
-          synthesis-result(ast, result.right)
+          synthesis-result(ast, l, result.right)
         end
       end)
     | s-prim-app(l, _fun, args) =>
@@ -781,30 +801,30 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       result = check-app(l, args, arrow-typ, t-top, info)
       for synth-bind(new-args from result.left):
         ast = A.s-prim-app(l, _fun, new-args)
-        synthesis-result(ast, result.right)
+        synthesis-result(ast, l, result.right)
       end
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      synthesis-result(e, lookup-id(id, info))
+      synthesis-result(e, l, lookup-id(id, info))
     | s-id-var(l, id) =>
-      synthesis-result(e, lookup-id(id, info))
+      synthesis-result(e, l, lookup-id(id, info))
     | s-id-letrec(l, id, safe) =>
-      synthesis-result(e, lookup-id(id, info))
+      synthesis-result(e, l, lookup-id(id, info))
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
       raise("s-srcloc not yet handled")
     | s-num(l, n) =>
-      synthesis-result(e, t-number)
+      synthesis-result(e, l, t-number)
     | s-frac(l, num, den) =>
-      synthesis-result(e, t-number)
+      synthesis-result(e, l, t-number)
     | s-bool(l, b) =>
-      synthesis-result(e, t-boolean)
+      synthesis-result(e, l, t-boolean)
     | s-str(l, s) =>
-      synthesis-result(e, t-string)
+      synthesis-result(e, l, t-string)
     | s-dot(l, obj, field-name) =>
-      synthesis(obj, info).bind(synthesis-field(l, _, _, field-name, info))
+      synthesis(obj, info).bind(synthesis-field(l, _, _, _, field-name, info))
     | s-get-bang(l, obj, field) =>
       raise("s-get-bang not yet handled")
     | s-bracket(l, obj, field) =>
@@ -833,7 +853,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
 end
 
 fun synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A.Expr -> A.LetBind), info :: TCInfo) -> SynthesisResult:
-  fun process-value(expr, typ):
+  fun process-value(expr, typ-loc, typ):
     info.typs.set(binding.id.key(), typ)
     synthesis-binding-result(recreate(binding, expr), typ)
   end
@@ -843,7 +863,7 @@ fun synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A
         synthesis(value, info)
       | some(t) =>
         checking(value, binding.l, t, info)
-          .synth-bind(synthesis-result(_, t))
+          .synth-bind(synthesis-result(_, binding.l, t))
     end.bind(process-value)
   end
 end
@@ -871,24 +891,25 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   end
   for check-bind(arg-typs from maybe-arg-typs):
     for check-bind(maybe-ret from to-type(ret-ann, new-info)):
-      fun process(new-body :: A.Expr, ret-typ :: Type) -> CheckingResult:
+      fun process(new-body :: A.Expr, ret-loc :: A.Loc, ret-typ :: Type) -> CheckingResult:
         tmp-arrow = t-arrow(fun-loc, arg-typs, ret-typ)
         forall = for map(param from params):
-          t-variable(A.dummy-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
+          t-variable(fun-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
         end
-        arrow-typ = mk-arrow(A.dummy-loc, forall, arg-typs, ret-typ)
+        arrow-typ = mk-arrow(fun-loc, forall, arg-typs, ret-typ)
         new-fun = recreate(args, ret-ann, new-body)
         check-and-return(fun-loc, arrow-typ, expect-loc, expect-typ, new-fun, new-info)
       end
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
-          checking(body, fun-loc, ret-typ, new-info).bind(process(_, ret-typ))
+          ret-loc = ann-loc(ret-ann, fun-loc)
+          checking(body, ret-loc, ret-typ, new-info).bind(process(_, ret-loc, ret-typ))
         | none =>
           cases(Type) expect-typ:
             | t-arrow(_, _, ret-typ) =>
               cases(List<A.Name>) params:
                 | empty =>
-                  checking(body, expect-loc, ret-typ, new-info).bind(process(_, ret-typ))
+                  checking(body, expect-loc, ret-typ, new-info).bind(process(_, expect-loc, ret-typ))
                 | link(_, _) =>
                   # If the programmer has not written a return type and this is
                   # a polymorphic function, then the return type may have the
@@ -919,7 +940,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
       cases(Type) onto:
         | t-arrow(_, arg-typs, ret-typ) =>
           fun process(arg :: A.Expr) -> FoldResult<Type>:
-            synthesis(arg, info).fold-bind(lam(_, typ): fold-result(typ);)
+            synthesis(arg, info).fold-bind(lam(_, _, typ): fold-result(typ);)
           end
           wrapped = map-result(process, args)
                       .bind(TC.arrow-constraints(app-loc, introduces, arg-typs, ret-typ, _, expect-typ, info))
@@ -953,9 +974,9 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
   end
 end
 
-fun <V> check-and-log(typ :: Type, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
+fun <V> check-and-log(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
   when not(satisfies-type(typ, expect-typ, info)):
-    info.errors.insert(C.incorrect-type(typ.tostring(), typ.toloc(), expect-typ.tostring(), expect-typ.toloc()))
+    info.errors.insert(C.incorrect-type(typ.tostring(), typ-loc, expect-typ.tostring(), expect-loc))
   end
   value
 end
@@ -1008,7 +1029,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       raise("s-hint-exp not yet handled")
     | s-instantiate(l, expr, params) =>
       synthesis-instantiation(l, expr, params, info).check-bind(
-      lam(result, result-typ):
+      lam(result, result-loc, result-typ):
         check-and-return(l, result-typ, expect-loc, expect-typ, result, info)
       end)
     | s-block(l, stmts) =>
@@ -1098,7 +1119,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       raise("s-bless not yet handled")
     | s-app(l, _fun, args) =>
       synthesis(_fun, info).check-bind(
-      lam(new-fun, new-fun-typ):
+      lam(new-fun, new-fun-loc, new-fun-typ):
         result = check-app(l, args, new-fun-typ, expect-typ, info)
         for check-bind(new-args from result.left):
           ast = A.s-app(l, new-fun, new-args)
@@ -1133,9 +1154,9 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
     | s-str(l, s) =>
       check-and-return(l, t-string, expect-loc, expect-typ, e, info)
     | s-dot(l, obj, field-name) =>
-      synthesis(obj, info).bind(synthesis-field(l, _, _, field-name, info)).check-bind(
-      lam(new-s-dot, s-dot-typ):
-        check-and-return(l, s-dot-typ, expect-loc, expect-typ, new-s-dot, info)
+      synthesis(obj, info).bind(synthesis-field(l, _, _, _, field-name, info)).check-bind(
+      lam(new-s-dot, s-dot-loc, s-dot-typ):
+        check-and-return(s-dot-loc, s-dot-typ, expect-loc, expect-typ, new-s-dot, info)
       end)
     | s-get-bang(l, obj, field) =>
       raise("s-get-bang not yet handled")
@@ -1147,8 +1168,8 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         params, # type params
         mixins, variants, shared-members, _check) =>
       synthesis-datatype(l, name, namet, params, mixins, variants, shared-members, _check, info).check-bind(
-      lam(new-s-data-expr, s-data-expr-typ):
-        check-and-return(l, s-data-expr-typ, expect-loc, expect-typ, new-s-data-expr, info)
+      lam(new-s-data-expr, s-data-expr-loc, s-data-expr-typ):
+        check-and-return(s-data-expr-loc, s-data-expr-typ, expect-loc, expect-typ, new-s-data-expr, info)
       end)
     | s-data(_, _, _, _, _, _, _)   => raise("s-data should have been desugared")
     | s-check(_, _, _, _)           => raise("s-check should have been desugared")
