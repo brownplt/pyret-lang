@@ -123,24 +123,24 @@ fun synth-bind(f, a): a.synth-bind(f);
 fun fold-bind(f, a): a.fold-bind(f);
 
 data SynthesisResult:
-  | synthesis-result(ast :: A.Expr, typ :: Type) with:
+  | synthesis-result(ast :: A.Expr, loc :: A.Loc, typ :: Type) with:
     bind(self, f) -> SynthesisResult:
-      f(self.ast, self.typ)
+      f(self.ast, self.loc, self.typ)
     end,
     map-expr(self, f) -> SynthesisResult:
-      synthesis-result(f(self.ast), self.typ)
+      synthesis-result(f(self.ast), self.loc, self.typ)
     end,
     map-typ(self, f) -> SynthesisResult:
-      synthesis-result(self.ast, f(self.typ))
+      synthesis-result(self.ast, self.loc, f(self.typ))
     end,
     synth-bind(self, f) -> SynthesisResult:
-      f(self.ast, self.typ)
+      f(self.ast, self.loc, self.typ)
     end,
     check-bind(self, f) -> CheckingResult:
-      f(self.ast, self.typ)
+      f(self.ast, self.loc, self.typ)
     end,
     fold-bind(self, f) -> FoldResult:
-      f(self.ast, self.typ)
+      f(self.ast, self.loc, self.typ)
     end
   | synthesis-binding-result(let-bind, typ :: Type) with:
     bind(self, f) -> SynthesisResult:
@@ -180,7 +180,7 @@ fun <B> map-synthesis(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult
   cases(List<A>) lst:
     | link(first, rest) =>
       cases(SynthesisResult) f(first):
-        | synthesis-result(ast, typ) =>
+        | synthesis-result(ast, loc, typ) =>
           map-synthesis(f, rest).bind(lam(asts): fold-result(link(ast, asts));)
         | synthesis-binding-result(binding, typ) =>
           map-synthesis(f, rest).bind(lam(asts): fold-result(link(binding, asts));)
