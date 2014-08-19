@@ -236,31 +236,31 @@ data DataType:
 end
 
 data Type:
-  | t-name(l :: A.Loc, module-name :: Option<Name>, id :: Name)
+  | t-name(module-name :: Option<Name>, id :: Name)
   | t-var(id :: Name)
-  | t-arrow(l :: A.Loc, args :: List<Type>, ret :: Type)
-  | t-app(l :: A.Loc, onto :: Type % (is-t-name), args :: List<Type> % (is-link))
+  | t-arrow(args :: List<Type>, ret :: Type)
+  | t-app(onto :: Type % (is-t-name), args :: List<Type> % (is-link))
   | t-top
   | t-bot
-  | t-record(l :: A.Loc, fields :: TypeMembers)
+  | t-record(fields :: TypeMembers)
   | t-forall(introduces :: List<TypeVariable>, onto :: Type)
 sharing:
   tostring(self) -> String:
     cases(Type) self:
-      | t-name(_, module-name, id) => cases(Option<String>) module-name:
+      | t-name(module-name, id) => cases(Option<String>) module-name:
           | none    => id.toname()
           | some(m) => m.toname() + "." + id.toname()
         end
       | t-var(id) => id.toname()
-      | t-arrow(_, args, ret) =>
+      | t-arrow(args, ret) =>
         "("
           + args.map(_.tostring()).join-str(", ")
           + " -> " + ret.tostring() + ")"
-      | t-app(_, onto, args) =>
+      | t-app(onto, args) =>
         onto.tostring() + "<" + args.map(_.tostring()).join-str(", ") + ">"
       | t-top => "Top"
       | t-bot => "Bot"
-      | t-record(_, fields) =>
+      | t-record(fields) =>
         "{"
           + for map(field from fields):
               field.tostring()
@@ -273,20 +273,20 @@ sharing:
   end,
   key(self) -> String:
     cases(Type) self:
-      | t-name(_, module-name, id) => cases(Option<String>) module-name:
+      | t-name(module-name, id) => cases(Option<String>) module-name:
           | none    => id.key()
           | some(m) => m.key() + "." + id.key()
         end
       | t-var(id) => id.key()
-      | t-arrow(_, args, ret) =>
+      | t-arrow(args, ret) =>
         "("
           + args.map(_.key()).join-str(", ")
           + " -> " + ret.key() + ")"
-      | t-app(_, onto, args) =>
+      | t-app(onto, args) =>
         onto.key() + "<" + args.map(_.key()).join-str(", ") + ">"
       | t-top => "Top"
       | t-bot => "Bot"
-      | t-record(_, fields) =>
+      | t-record(fields) =>
         "{"
           + for map(field from fields):
               field.key()
@@ -302,14 +302,14 @@ sharing:
       new-typ
     else:
       cases(Type) self:
-        | t-arrow(l, args, ret) =>
+        | t-arrow(args, ret) =>
           new-args = args.map(_.substitute(orig-typ, new-typ))
           new-ret  = ret.substitute(orig-typ, new-typ)
-          t-arrow(l, new-args, new-ret)
-        | t-app(l, onto, args) =>
+          t-arrow(new-args, new-ret)
+        | t-app(onto, args) =>
           new-onto = onto.substitute(orig-typ, new-typ)
           new-args = args.map(_.substitute(orig-typ, new-typ))
-          t-app(l, new-onto, new-args)
+          t-app(new-onto, new-args)
         | t-forall(introduces, onto) =>
           new-onto = onto.substitute(orig-typ, new-typ)
           t-forall(introduces, new-onto)
@@ -329,73 +329,73 @@ sharing:
           | t-bot => equal
           | else  => less-than
         end
-      | t-name(a-l, a-module-name, a-id) =>
+      | t-name(a-module-name, a-id) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(b-l, b-module-name, b-id) =>
+          | t-name(b-module-name, b-id) =>
             fold-comparisons([list:
               std-compare(a-module-name.or-else(""), b-module-name.or-else("")),
               std-compare(a-id, b-id)
             ])
           | t-var(_)            => less-than
-          | t-arrow(_, _, _)    => less-than
-          | t-app(_, _, _)      => less-than
-          | t-record(_,_)       => less-than
+          | t-arrow(_, _)    => less-than
+          | t-app(_, _)      => less-than
+          | t-record(_)       => less-than
           | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
       | t-var(a-id) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(_, _, _)     => greater-than
+          | t-name(_, _)     => greater-than
           | t-var(b-id) => 
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
             else: equal;
-          | t-arrow(_, _, _)    => less-than
-          | t-app(_, _, _)      => less-than
-          | t-record(_,_)       => less-than
+          | t-arrow(_, _)    => less-than
+          | t-app(_, _)      => less-than
+          | t-record(_)       => less-than
           | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-arrow(a-l, a-args, a-ret) =>
+      | t-arrow(a-args, a-ret) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(_, _, _)     => greater-than
+          | t-name(_, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(b-l, b-args, b-ret) =>
+          | t-arrow(b-args, b-ret) =>
             fold-comparisons([list:
               old-list-compare(a-args, b-args),
               a-ret._comp(b-ret)
             ])
-          | t-app(_, _, _)      => less-than
-          | t-record(_,_)       => less-than
+          | t-app(_, _)      => less-than
+          | t-record(_)       => less-than
           | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-app(a-l, a-onto, a-args) =>
+      | t-app(a-onto, a-args) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(_, _, _)     => greater-than
+          | t-name(_, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _)    => greater-than
-          | t-app(b-l, b-onto, b-args) =>
+          | t-arrow(_, _)    => greater-than
+          | t-app(b-onto, b-args) =>
             fold-comparisons([list:
               old-list-compare(a-args, b-args),
               a-onto._comp(b-onto)
             ])
-          | t-record(_,_)       => less-than
+          | t-record(_)       => less-than
           | t-forall(_, _)      => less-than
           | t-top               => less-than
         end
-      | t-record(a-l, a-fields) =>
+      | t-record(a-fields) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(_, _, _)     => greater-than
+          | t-name(_, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _)    => greater-than
-          | t-app(_, _, _)      => greater-than
-          | t-record(b-l, b-fields) =>
+          | t-arrow(_, _)    => greater-than
+          | t-app(_, _)      => greater-than
+          | t-record(b-fields) =>
             list-compare(a-fields, b-fields)
           | t-forall(_, _)      => less-than
           | t-top               => less-than
@@ -403,11 +403,11 @@ sharing:
       | t-forall(a-introduces, a-onto) =>
         cases(Type) other:
           | t-bot               => greater-than
-          | t-name(_, _, _)     => greater-than
+          | t-name(_, _)     => greater-than
           | t-var(_)            => greater-than
-          | t-arrow(_, _, _)    => greater-than
-          | t-app(_, _, _)      => greater-than
-          | t-record(_, _)      => greater-than
+          | t-arrow(_, _)    => greater-than
+          | t-app(_, _)      => greater-than
+          | t-record(_)      => greater-than
           | t-forall(b-introduces, b-onto) =>
             fold-comparisons([list:
               old-list-compare(a-introduces, b-introduces),
@@ -424,7 +424,7 @@ sharing:
   end
 end
 
-t-number  = t-name(A.dummy-loc, none, A.s-type-global("Number"))
-t-string  = t-name(A.dummy-loc, none, A.s-type-global("String"))
-t-boolean = t-name(A.dummy-loc, none, A.s-type-global("Boolean"))
-t-srcloc  = t-name(A.dummy-loc, none, A.s-global("Loc"))
+t-number  = t-name(none, A.s-type-global("Number"))
+t-string  = t-name(none, A.s-type-global("String"))
+t-boolean = t-name(none, A.s-type-global("Boolean"))
+t-srcloc  = t-name(none, A.s-global("Loc"))

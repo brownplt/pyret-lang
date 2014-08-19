@@ -48,24 +48,19 @@ data TCInfo:
 end
 
 default-typs = SD.string-dict()
-default-typs.set(A.s-global("nothing").key(), t-name(A.dummy-loc, none, A.s-type-global("Nothing")))
-default-typs.set("isBoolean", t-arrow(A.dummy-loc, [list: t-top], t-boolean))
-default-typs.set(A.s-global("torepr").key(), t-arrow(A.dummy-loc, [list: t-top], t-string))
-default-typs.set("throwNonBooleanCondition",
-                 t-arrow(A.dummy-loc, [list: t-srcloc,
-                                             t-string,
-                                             t-top], t-bot))
-default-typs.set("throwNoBranchesMatched",
-                 t-arrow(A.dummy-loc, [list: t-srcloc,
-                                                    t-string], t-bot))
-default-typs.set("equiv", t-arrow(A.dummy-loc, [list: t-top, t-top], t-boolean))
-default-typs.set("hasField", t-arrow(A.dummy-loc, [list: t-record(A.dummy-loc, empty), t-string], t-boolean))
-default-typs.set(A.s-global("_times").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
-default-typs.set(A.s-global("_minus").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
-default-typs.set(A.s-global("_divide").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
-default-typs.set(A.s-global("_plus").key(), t-arrow(A.dummy-loc, [list: t-number, t-number], t-number))
+default-typs.set(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
+default-typs.set("isBoolean", t-arrow([list: t-top], t-boolean))
+default-typs.set(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
+default-typs.set("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
+default-typs.set("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
+default-typs.set("equiv", t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
+default-typs.set(A.s-global("_times").key(), t-arrow([list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_minus").key(), t-arrow([list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_divide").key(), t-arrow([list: t-number, t-number], t-number))
+default-typs.set(A.s-global("_plus").key(), t-arrow([list: t-number, t-number], t-number))
 print-variable = A.s-atom(gensym("A"), 1)
-default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow(A.dummy-loc, [list: t-var(print-variable)], t-var(print-variable))))
+default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
 
 fun empty-tc-info() -> TCInfo:
   errors = block:
@@ -93,14 +88,14 @@ end
 
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   cases(Type) typ:
-    | t-name(l, module-name, name) =>
+    | t-name(module-name, name) =>
       key = typ.key()
       if info.data-exprs.has-key(key):
         some(info.data-exprs.get(key))
       else:
         none
       end
-    | t-app(l, base-typ, args) =>
+    | t-app(base-typ, args) =>
       key = base-typ.key()
       if info.data-exprs.has-key(key):
         data-type = info.data-exprs.get(key).introduce(args)

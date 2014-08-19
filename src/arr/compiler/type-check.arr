@@ -142,7 +142,7 @@ end
 
 fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :: Type) -> Type:
   if is-empty(forall):
-    t-arrow(l, args, ret)
+    t-arrow(args, ret)
   else:
     f-pairs = for map(f from forall):
       new-id = rename-name(f.id)
@@ -155,7 +155,7 @@ fun mk-arrow(l :: A.Loc, forall :: List<TypeVariable>, args :: List<Type>, ret :
     new-ret = for fold(curr from ret, f-pair from f-pairs):
       curr.substitute(t-var(f-pair.left), t-var(f-pair.right.id))
     end
-    t-forall(new-forall, t-arrow(l, new-args, new-ret))
+    t-forall(new-forall, t-arrow(new-args, new-ret))
   end
 end
 
@@ -214,16 +214,16 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ 
 ) -> SynthesisResult:
   non-obj-err = synthesis-err([list: C.incorrect-type(obj-typ.tostring(), obj-typ-loc, "an object type", access-loc)])
   cases(Type) obj-typ:
-    | t-record(l, members) =>
-      handle(obj, l, members)
-    | t-name(l, module-name, id) =>
+    | t-record(members) =>
+      handle(obj, obj-typ-loc, members)
+    | t-name(module-name, id) =>
       cases(Option<DataType>) TCS.get-data-type(obj-typ, info):
         | some(data-type) =>
-          handle(obj, l, data-type.fields)
+          handle(obj, obj-typ-loc, data-type.fields)
         | none =>
           non-obj-err
       end
-    | t-app(l, onto, args) =>
+    | t-app(onto, args) =>
       raise("NYI(record-view): " + torepr(obj-typ))
     | else =>
       non-obj-err
@@ -251,7 +251,7 @@ fun mk-variant-constructor(variant :: TypeVariant, brander-typ :: Type, params :
         brander-typ
     end
   else:
-    creates = t-app(variant.l, brander-typ, params.map(lam(x): t-var(x.id);))
+    creates = t-app(brander-typ, params.map(lam(x): t-var(x.id);))
     cases(TypeVariant) variant:
       | t-variant(l, _, fields, _) =>
         mk-arrow(l, params, fields.map(_.typ), creates)
@@ -320,7 +320,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
         for map(variant from variant-typs):
           t-member("is-" + variant.name, brand-test-typ(variant.l))
         end)
-        data-expr-typ  = t-record(l, data-fields)
+        data-expr-typ  = t-record(data-fields)
 
         # Return result of synthesis
         synthesis-result(new-data-expr, l, data-expr-typ)
@@ -337,7 +337,7 @@ fun instantiate(l :: A.Loc, base-typ :: Type, data-type :: DataType, args :: Lis
   end
   cases(Option<List<Type>>) bound:
     | some(lst) =>
-      fold-result(some(t-app(l, base-typ, lst)))
+      fold-result(some(t-app(base-typ, lst)))
     | none =>
       fold-errors([list: C.bad-type-instantiation(data-type.params.length(), args.length(), l)])
   end
@@ -366,7 +366,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
     | a-any =>
       fold-result(some(t-top))
     | a-name(l, id) =>
-      fold-result(some(t-name(l, none, id)))
+      fold-result(some(t-name(none, id)))
     | a-type-var(l, id) =>
       fold-result(some(t-var(id)))
     | a-arrow(l, args, ret, use-parens) =>
@@ -386,7 +386,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         to-type-std(field.ann, info).map(t-member(field.name, _))
       end
       for bind(new-fields from map-result(field-to-type, fields)):
-        fold-result(some(t-record(l, new-fields)))
+        fold-result(some(t-record(new-fields)))
       end
     | a-app(l, ann, args) =>
       for bind(base-typ from to-type-std(ann, info)):
@@ -408,7 +408,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         fold-result(some(typ))
       end
     | a-dot(l, obj, field) =>
-      fold-result(some(t-name(l, some(obj), field)))
+      fold-result(some(t-name(some(obj), A.s-global(field))))
     | a-checked(checked, residual) =>
       raise("a-checked should not be appearing before type checking!")
   end
@@ -427,7 +427,7 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
           fold-result(typ)
         end
       | s-newtype-bind(l, name, namet) =>
-        typ = t-name(l, none, name)
+        typ = t-name(none, name)
         info.branders.set(namet.key(), typ)
         fold-result(typ)
     end
@@ -453,7 +453,7 @@ fun synthesis-fun(
   new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   for synth-bind(arg-typs from map-result(process-binding(_, t-top, new-info), args)):
     fun process(new-body :: A.Expr, _ :: A.Loc, ret-typ :: Type) -> SynthesisResult:
-      tmp-arrow = t-arrow(l, arg-typs, ret-typ)
+      tmp-arrow = t-arrow(arg-typs, ret-typ)
       forall = for map(param from params):
         t-variable(A.dummy-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
       end
@@ -776,7 +776,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         new-fields   = split-fields.left
         field-typs   = split-fields.right
         new-obj      = A.s-obj(l, new-fields)
-        obj-typ      = t-record(l, field-typs)
+        obj-typ      = t-record(field-typs)
         synthesis-result(new-obj, l, obj-typ)
       end
     | s-array(l, values) =>
@@ -881,10 +881,10 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   new-info = params.foldl(TCS.add-binding(_, t-top, _), info)
   maybe-arg-typs =
   cases(Type) expect-typ:
-    | t-arrow(l, expect-args, _) =>
-      expected = "a function with " + tostring(expect-args.length())
-      found    = "a function with " + tostring(args.length())
-      set-args = map2-result(C.incorrect-type(expected, fun-loc, found, l))
+    | t-arrow(expect-args, _) =>
+      expected = "a function with " + tostring(expect-args.length()) + " arguments"
+      found    = "a function with " + tostring(args.length()) + " arguments"
+      set-args = map2-result(C.incorrect-type(expected, fun-loc, found, expect-loc))
       set-args(process-binding(_, _, new-info), args, expect-args)
     | else =>
       map-result(process-binding(_, t-top, new-info), args)
@@ -892,7 +892,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   for check-bind(arg-typs from maybe-arg-typs):
     for check-bind(maybe-ret from to-type(ret-ann, new-info)):
       fun process(new-body :: A.Expr, ret-loc :: A.Loc, ret-typ :: Type) -> CheckingResult:
-        tmp-arrow = t-arrow(fun-loc, arg-typs, ret-typ)
+        tmp-arrow = t-arrow(arg-typs, ret-typ)
         forall = for map(param from params):
           t-variable(fun-loc, param, t-top, TC.determine-variance(tmp-arrow, param, new-info))
         end
@@ -906,7 +906,7 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
           checking(body, ret-loc, ret-typ, new-info).bind(process(_, ret-loc, ret-typ))
         | none =>
           cases(Type) expect-typ:
-            | t-arrow(_, _, ret-typ) =>
+            | t-arrow(_, ret-typ) =>
               cases(List<A.Name>) params:
                 | empty =>
                   checking(body, expect-loc, ret-typ, new-info).bind(process(_, expect-loc, ret-typ))
@@ -931,14 +931,14 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
   args-map2   = map2-checking(bad-args)
   args-foldl2 = foldl2-result(bad-args)
   cases(Type) arrow-typ:
-    | t-arrow(_, arg-typs, ret-typ) =>
+    | t-arrow(arg-typs, ret-typ) =>
       new-args = for args-map2(arg from args, arg-typ from arg-typs):
         checking(arg, app-loc, arg-typ, info)
       end
       pair(new-args, ret-typ)
     | t-forall(introduces, onto) =>
       cases(Type) onto:
-        | t-arrow(_, arg-typs, ret-typ) =>
+        | t-arrow(arg-typs, ret-typ) =>
           fun process(arg :: A.Expr) -> FoldResult<Type>:
             synthesis(arg, info).fold-bind(lam(_, _, typ): fold-result(typ);)
           end
@@ -1106,7 +1106,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         new-fields   = split-fields.left
         field-typs   = split-fields.right
         new-obj      = A.s-obj(l, new-fields)
-        obj-typ      = t-record(l, field-typs)
+        obj-typ      = t-record(field-typs)
         check-and-return(l, obj-typ, expect-loc, expect-typ, new-obj, info)
       end
     | s-array(l, values) =>
@@ -1191,6 +1191,7 @@ end
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
+      print(torepr(imports))
       info = TCS.empty-tc-info()
       tc-result = checking(body, A.dummy-loc, t-top, info)
       side-errs = info.errors.get()

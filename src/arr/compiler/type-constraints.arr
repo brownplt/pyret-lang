@@ -88,18 +88,18 @@ foo-name  = A.s-type-global("Foo")
 example-name = A.s-atom("A", 1)
 example-a = t-var(example-name)
 example-b = t-var(A.s-atom("B", 2))
-example-c = t-arrow(A.dummy-loc, [list: example-b, example-a], example-b)
-example-d = t-arrow(A.dummy-loc, [list: example-b, example-b], example-a)
-example-e = t-arrow(A.dummy-loc, [list: example-a], example-a)
-example-f = t-arrow(A.dummy-loc, [list: example-e], example-b)
-example-g = t-arrow(A.dummy-loc, [list: example-b], example-e)
-example-h = t-arrow(A.dummy-loc, [list: example-e], example-e)
-example-i = t-arrow(A.dummy-loc, [list: example-b], example-d)
-example-j = t-arrow(A.dummy-loc, [list: example-b], example-b)
-example-k = t-arrow(A.dummy-loc, [list: example-c], example-b)
-example-l = t-arrow(A.dummy-loc, [list: example-b], example-c)
-example-m = t-arrow(A.dummy-loc, [list: example-d], example-b)
-example-n = t-name(A.dummy-loc, none, foo-name)
+example-c = t-arrow([list: example-b, example-a], example-b)
+example-d = t-arrow([list: example-b, example-b], example-a)
+example-e = t-arrow([list: example-a], example-a)
+example-f = t-arrow([list: example-e], example-b)
+example-g = t-arrow([list: example-b], example-e)
+example-h = t-arrow([list: example-e], example-e)
+example-i = t-arrow([list: example-b], example-d)
+example-j = t-arrow([list: example-b], example-b)
+example-k = t-arrow([list: example-c], example-b)
+example-l = t-arrow([list: example-b], example-c)
+example-m = t-arrow([list: example-d], example-b)
+example-n = t-name(none, foo-name)
 example-o = t-top
 example-p = t-bot
 
@@ -114,30 +114,30 @@ example-a-promoted = t-top
 example-a-demoted  = t-bot
 example-b-promoted = example-b
 example-b-demoted  = example-b
-example-c-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted, example-a-demoted], example-b-promoted)
-example-c-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted, example-a-promoted], example-b-demoted)
-example-d-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted, example-b-demoted], example-a-promoted)
-example-d-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted, example-b-promoted], example-a-demoted)
-example-e-promoted = t-arrow(A.dummy-loc, [list: example-a-demoted], example-a-promoted)
-example-e-demoted  = t-arrow(A.dummy-loc, [list: example-a-promoted], example-a-demoted)
-example-f-promoted = t-arrow(A.dummy-loc, [list: example-e-demoted], example-b-promoted)
-example-f-demoted  = t-arrow(A.dummy-loc, [list: example-e-promoted], example-b-demoted)
-example-g-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-e-promoted)
-example-g-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-e-demoted)
-example-h-promoted = t-arrow(A.dummy-loc, [list: example-e-demoted], example-e-promoted)
-example-h-demoted  = t-arrow(A.dummy-loc, [list: example-e-promoted], example-e-demoted)
-example-i-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-d-promoted)
-example-i-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-d-demoted)
-example-j-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-b-promoted)
-example-j-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-b-demoted)
-example-k-promoted = t-arrow(A.dummy-loc, [list: example-c-demoted], example-b-promoted)
-example-k-demoted  = t-arrow(A.dummy-loc, [list: example-c-promoted], example-b-demoted)
-example-l-promoted = t-arrow(A.dummy-loc, [list: example-b-demoted], example-c-promoted)
-example-l-demoted  = t-arrow(A.dummy-loc, [list: example-b-promoted], example-c-demoted)
-example-m-promoted = t-arrow(A.dummy-loc, [list: example-d-demoted], example-b-promoted)
-example-m-demoted  = t-arrow(A.dummy-loc, [list: example-d-promoted], example-b-demoted)
-example-n-promoted = t-name(A.dummy-loc, none, foo-name)
-example-n-demoted  = t-name(A.dummy-loc, none, foo-name)
+example-c-promoted = t-arrow([list: example-b-demoted, example-a-demoted], example-b-promoted)
+example-c-demoted  = t-arrow([list: example-b-promoted, example-a-promoted], example-b-demoted)
+example-d-promoted = t-arrow([list: example-b-demoted, example-b-demoted], example-a-promoted)
+example-d-demoted  = t-arrow([list: example-b-promoted, example-b-promoted], example-a-demoted)
+example-e-promoted = t-arrow([list: example-a-demoted], example-a-promoted)
+example-e-demoted  = t-arrow([list: example-a-promoted], example-a-demoted)
+example-f-promoted = t-arrow([list: example-e-demoted], example-b-promoted)
+example-f-demoted  = t-arrow([list: example-e-promoted], example-b-demoted)
+example-g-promoted = t-arrow([list: example-b-demoted], example-e-promoted)
+example-g-demoted  = t-arrow([list: example-b-promoted], example-e-demoted)
+example-h-promoted = t-arrow([list: example-e-demoted], example-e-promoted)
+example-h-demoted  = t-arrow([list: example-e-promoted], example-e-demoted)
+example-i-promoted = t-arrow([list: example-b-demoted], example-d-promoted)
+example-i-demoted  = t-arrow([list: example-b-promoted], example-d-demoted)
+example-j-promoted = t-arrow([list: example-b-demoted], example-b-promoted)
+example-j-demoted  = t-arrow([list: example-b-promoted], example-b-demoted)
+example-k-promoted = t-arrow([list: example-c-demoted], example-b-promoted)
+example-k-demoted  = t-arrow([list: example-c-promoted], example-b-demoted)
+example-l-promoted = t-arrow([list: example-b-demoted], example-c-promoted)
+example-l-demoted  = t-arrow([list: example-b-promoted], example-c-demoted)
+example-m-promoted = t-arrow([list: example-d-demoted], example-b-promoted)
+example-m-demoted  = t-arrow([list: example-d-promoted], example-b-demoted)
+example-n-promoted = t-name(none, foo-name)
+example-n-demoted  = t-name(none, foo-name)
 example-o-promoted = t-top
 example-o-demoted  = t-top
 example-p-promoted = t-bot
@@ -197,12 +197,12 @@ end
 
 fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
   cases(Type) here:
-    | t-name(_, a-mod, a-id) =>
+    | t-name(a-mod, a-id) =>
       cases(Type) there:
         | t-top => true
-        | t-name(_, b-mod, b-id) =>
+        | t-name(b-mod, b-id) =>
           (a-mod == b-mod) and (a-id == b-id)
-        | t-record(_, there-fields) =>
+        | t-record(there-fields) =>
           cases(Option<Type>) TCS.get-data-type(here, info):
             | some(data-type) =>
               fields-satisfy(data-type.fields, there-fields, info)
@@ -217,10 +217,10 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         | t-var(b-id) => a-id == b-id
         | else => false
       end
-    | t-arrow(_, a-args, a-ret) =>
+    | t-arrow(a-args, a-ret) =>
       cases(Type) there:
         | t-top => true
-        | t-arrow(_, b-args, b-ret) =>
+        | t-arrow(b-args, b-ret) =>
           # Order is important because contravariance!
           all2-strict(satisfies-type(_, _, info), b-args, a-args)
             and satisfies-type(a-ret, b-ret, info)
@@ -236,14 +236,14 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
         end
       end
       cases(Type) a-onto:
-        | t-arrow(_, a-args, a-ret) =>
+        | t-arrow(a-args, a-ret) =>
           cases(Type) there:
-            | t-arrow(_, b-args, b-ret) =>
+            | t-arrow(b-args, b-ret) =>
               arrow-constraints(A.dummy-loc, a-introduces, a-args, a-ret, b-args, b-ret, info)
                 ^ process(_, a-onto, there)
             | t-forall(b-introduces, b-onto) =>
               cases(Type) b-onto:
-                | t-arrow(_, b-args, b-ret) =>
+                | t-arrow(b-args, b-ret) =>
                   arrow-constraints(A.dummy-loc, a-introduces, a-args, a-ret, b-args, b-ret, info)
                     ^ process(_, a-onto, b-onto)
                 | else =>
@@ -284,10 +284,10 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
                 ^ process(_, a-onto, there)
           end
       end
-    | t-app(_, a-onto, a-args) =>
+    | t-app(a-onto, a-args) =>
       cases(Type) there:
         | t-top => true
-        | t-app(_, b-onto, b-args) =>
+        | t-app(b-onto, b-args) =>
           a-onto._equal(b-onto) and
           cases(Option<DataType>) TCS.get-data-type(a-onto, info):
             | some(data-type) =>
@@ -313,7 +313,7 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
             | none =>
               false
           end
-        | t-record(_, there-fields) =>
+        | t-record(there-fields) =>
           cases(Option<Type>) TCS.get-data-type(here, info):
             | some(data-type) =>
               fields-satisfy(data-type.fields, there-fields, info)
@@ -324,10 +324,10 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       end
     | t-top => is-t-top(there)
     | t-bot => true
-    | t-record(_, fields) =>
+    | t-record(fields) =>
       cases(Type) there:
         | t-top => true
-        | t-record(_, there-fields) =>
+        | t-record(there-fields) =>
           fields-satisfy(fields, there-fields, info)
         | else => false
       end
@@ -341,11 +341,11 @@ where:
   b1 = A.s-atom(gensym("B"), 5)
   b1-t = t-var(b1)
   forall-a = t-forall([list: t-variable(A.dummy-loc, a1, t-top, covariant)],
-                      t-arrow(A.dummy-loc, [list: a1-t, a1-t], a1-t))
+                      t-arrow([list: a1-t, a1-t], a1-t))
   forall-ab = t-forall([list: t-variable(A.dummy-loc, a2, t-top, invariant),
                               t-variable(A.dummy-loc, b1, t-top, contravariant)],
-                       t-arrow(A.dummy-loc, [list: a2-t, b1-t], a2-t))
-  num-fun = t-arrow(A.dummy-loc, [list: t-number, t-number], t-number)
+                       t-arrow([list: a2-t, b1-t], a2-t))
+  num-fun = t-arrow([list: t-number, t-number], t-number)
   satisfies-type(forall-ab, forall-a, info) is true
   satisfies-type(forall-a, forall-ab, info) is false
   satisfies-type(forall-ab, num-fun, info) is true
@@ -358,7 +358,7 @@ where:
     TS.t-datatype(list-name.key(),
                  [list: t-variable(A.dummy-loc, A.s-atom("C", 6), t-top, covariant)],
                  empty, empty))
-  t-list = lam(x): t-app(A.dummy-loc, t-name(A.dummy-loc, none, list-name), [list: x]);
+  t-list = lam(x): t-app(t-name(none, list-name), [list: x]);
   a = t-forall([list: t-variable(A.dummy-loc, a1, t-top, covariant)], t-list(a1-t))
   b = t-forall([list: t-variable(A.dummy-loc, b1, t-top, covariant)], t-list(b1-t))
   c = t-list(t-top)
@@ -432,31 +432,31 @@ fun least-upper-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
     s
   else:
     cases(Type) s:
-      | t-arrow(_, s-args, s-ret) =>
+      | t-arrow(s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(_, t-args, t-ret) =>
+          | t-arrow(t-args, t-ret) =>
             cases (Option<List<Type>>) map2-strict(greatest-lower-bound(_, _, info), s-args, t-args):
               | some(m-args) =>
                 j-typ  = least-upper-bound(s-ret, t-ret, info)
-                t-arrow(A.dummy-loc, m-args, j-typ)
+                t-arrow(m-args, j-typ)
               | else => t-top
             end
           | else => t-top
         end
-      | t-app(_, s-onto, s-args) =>
+      | t-app(s-onto, s-args) =>
         cases(Type) t:
-          | t-app(_, t-onto, t-args) =>
+          | t-app(t-onto, t-args) =>
             if (s-onto == t-onto) and (s-args == t-args):
-              t-app(A.dummy-loc, s-onto, s-args)
+              t-app(s-onto, s-args)
             else:
               t-top
             end
           | else => t-top
         end
-      | t-record(_, s-fields) =>
+      | t-record(s-fields) =>
         cases(Type) t:
-          | t-record(_, t-fields) =>
-            t-record(A.dummy-loc, meet-fields(s-fields, t-fields, info))
+          | t-record(t-fields) =>
+            t-record(meet-fields(s-fields, t-fields, info))
           | else => t-top
         end
       | else => t-top
@@ -470,28 +470,28 @@ fun greatest-lower-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
   else if satisfies-type(t, s, info):
     t
   else: cases(Type) s:
-      | t-arrow(s-l, s-args, s-ret) => cases(Type) t:
-          | t-arrow(_, t-args, t-ret) =>
+      | t-arrow(s-args, s-ret) => cases(Type) t:
+          | t-arrow(t-args, t-ret) =>
             cases (Option<List<Type>>) map2-strict(least-upper-bound(_, _, info), s-args, t-args):
               | some(m-args) =>
                 j-typ  = greatest-lower-bound(s-ret, t-ret, info)
-                t-arrow(A.dummy-loc, m-args, j-typ)
+                t-arrow(m-args, j-typ)
               | else => t-bot
             end
           | else => t-bot
         end
-      | t-app(_, s-onto, s-args) => cases(Type) t:
-          | t-app(_, t-onto, t-args) =>
+      | t-app(s-onto, s-args) => cases(Type) t:
+          | t-app(t-onto, t-args) =>
             if (s-onto == t-onto) and (s-args == t-args):
-              t-app(A.dummy-loc, s-onto, s-args)
+              t-app(s-onto, s-args)
             else:
               t-bot
             end
           | else => t-bot
         end
-      | t-record(_, s-fields) => cases(Type) t:
-          | t-record(_, t-fields) =>
-            t-record(A.dummy-loc, join-fields(s-fields, t-fields, info))
+      | t-record(s-fields) => cases(Type) t:
+          | t-record(t-fields) =>
+            t-record(join-fields(s-fields, t-fields, info))
           | else => t-bot
         end
       | else => t-bot
@@ -513,7 +513,7 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
     end
   end
   cases(Type) t:
-    | t-name(l, module-name, id) =>
+    | t-name(module-name, id) =>
       cases(Option<String>) module-name:
         | none =>
           [set: ]
@@ -522,7 +522,7 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
       end
     | t-var(id) =>
       add-free-var(t)
-    | t-arrow(l, args, ret) =>
+    | t-arrow(args, ret) =>
       args
         .map(free-vars(_, binds))
         .foldl(union, free-vars(ret, binds))
@@ -531,11 +531,11 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
         base.set(tv.id.key(), tv.upper-bound)
       end
       free-vars(onto, new-binds)
-    | t-app(l, onto, args) =>
+    | t-app(onto, args) =>
       args
         .map(free-vars(_, binds))
         .foldl(union, free-vars(onto, binds))
-    | t-record(_, fields) =>
+    | t-record(fields) =>
       fields
         .map(lam(field): free-vars(field.typ, binds);)
         .foldl(union, [set: ])
@@ -575,14 +575,14 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
     to-typ-move(typ, to-remove, info)
   else:
     cases(Type) typ:
-      | t-name(_, _, _) =>
+      | t-name(_, _) =>
         typ
       | t-var(_) =>
         typ
-      | t-arrow(l, args, ret) =>
+      | t-arrow(args, ret) =>
         new-args = args.map(there(_, to-remove, info))
         new-ret  = here(ret, to-remove, info)
-        t-arrow(l, new-args, new-ret)
+        t-arrow(new-args, new-ret)
       | t-forall(introduces, onto) =>
         bounded-free = for fold(base from sets.empty-list-set, tv from introduces):
           free = free-vars(tv.upper-bound, info.binds)
@@ -597,7 +597,7 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
         else:
           to-typ
         end
-      | t-app(l, onto, args) =>
+      | t-app(onto, args) =>
         new-onto = here(onto, to-remove, info)
         fun process-args(params :: List<TypeVariable>, typs :: List<Type>, new-args :: List<Type>) -> Type:
           cases(List<TypeVariable>) params:
@@ -632,7 +632,7 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
                 | link(_, _) =>
                   to-typ
                 | empty =>
-                  t-app(l, new-onto, new-args.reverse())
+                  t-app(new-onto, new-args.reverse())
               end
           end
         end
@@ -642,11 +642,11 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
           | none =>
             to-typ
         end
-      | t-record(l, fields) =>
+      | t-record(fields) =>
         new-fields = for map(field from fields):
           t-member(field.field-name, here(field.typ, to-remove, info))
         end
-        t-record(l, new-fields)
+        t-record(new-fields)
       | t-top =>
         t-top
       | t-bot =>
@@ -767,7 +767,7 @@ end
 
 fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
   cases(Type) typ:
-    | t-name(l, module-name, id) =>
+    | t-name(module-name, id) =>
       constant
     | t-var(id) =>
       if id.key() == var-id.key():
@@ -775,11 +775,11 @@ fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
       else:
         constant
       end
-    | t-arrow(l, args, ret) =>
+    | t-arrow(args, ret) =>
       for fold(base from constant, arg from args):
         base.join(determine-variance(arg, var-id, info))
       end.flip().join(determine-variance(ret, var-id, info))
-    | t-app(l, onto, args) =>
+    | t-app(onto, args) =>
       cases(Option<DataType>) TCS.get-data-type(onto, info):
         | some(data-type) =>
           result = for fold2-strict(base from constant, param from data-type.params, arg from args):
@@ -818,7 +818,7 @@ fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
       constant
     | t-bot =>
       constant
-    | t-record(l, fields) =>
+    | t-record(fields) =>
       for fold(base from constant, tm from fields):
         base.join(determine-variance(tm.typ, var-id, info))
       end
@@ -865,7 +865,7 @@ fun is-rigid-under(r :: Type, binds :: Bindings) -> Boolean:
                    end) or
   not(is-bottom-variable(r, binds)) or
   cases(Type) r:
-    | t-arrow(_, arg-typs, ret) =>
+    | t-arrow(arg-typs, ret) =>
       # TODO(cody): Implement this
       raise("t-arrow not yet handled in is-rigid-under")
     | else =>
@@ -993,9 +993,9 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
     generate-constraints(blame-loc, binds.get(s-str), t, to-remove, unknowns, info)
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-args, s-ret) =>
+      | t-arrow(s-args, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-args, t-ret) =>
+          | t-arrow(t-args, t-ret) =>
             ret-constraints = generate-constraints(blame-loc, s-ret, t-ret, to-remove, unknowns, info)
             args-fold = foldl2-result(C.incorrect-type(s.tostring(), blame-loc, t.tostring(), blame-loc))
             for args-fold(curr from ret-constraints,
@@ -1021,13 +1021,13 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
             generate-constraints(blame-loc, s-onto, t, matched.to-remove, unknowns, matched.info)
               .map(_.meet(matched.constraints, info))
         end
-      | t-app(s-l, s-onto, s-args) =>
+      | t-app(s-onto, s-args) =>
         cases(Type) t:
-          | t-app(t-l, t-onto, t-args) =>
+          | t-app(t-onto, t-args) =>
             onto-constraints = generate-constraints(blame-loc, s-onto, t-onto, to-remove, unknowns, info)
             cases(Option<DataType>) TCS.get-data-type(s-onto, info):
               | some(data-type) =>
-                args-fold = foldl3-result(C.incorrect-type(s.tostring(), s-l, t.tostring(), t-l))
+                args-fold = foldl3-result(C.incorrect-type(s.tostring(), blame-loc, t.tostring(), blame-loc))
                 for args-fold(curr from onto-constraints,
                               param from data-type.params,
                               s-arg from s-args, t-arg from t-args):
@@ -1072,9 +1072,9 @@ fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, un
     pair(s, empty-type-constraints)
   else:
     cases(Type) s:
-      | t-arrow(s-l, s-arg-typs, s-ret) =>
+      | t-arrow(s-arg-typs, s-ret) =>
         cases(Type) t:
-          | t-arrow(t-l, t-arg-typs, t-ret) =>
+          | t-arrow(t-arg-typs, t-ret) =>
             # TODO(cody): Implement this section
             raise("Not yet implemented")
           | else =>
