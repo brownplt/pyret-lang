@@ -216,17 +216,15 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ 
   cases(Type) obj-typ:
     | t-record(members) =>
       handle(obj, obj-typ-loc, members)
-    | t-name(module-name, id) =>
+    | t-bot =>
+      raise("NYI(record-view): Cannot currently handle record views of the bottom type")
+    | else =>
       cases(Option<DataType>) TCS.get-data-type(obj-typ, info):
         | some(data-type) =>
           handle(obj, obj-typ-loc, data-type.fields)
         | none =>
           non-obj-err
       end
-    | t-app(onto, args) =>
-      raise("NYI(record-view): " + torepr(obj-typ))
-    | else =>
-      non-obj-err
   end
 end
 
@@ -1191,7 +1189,6 @@ end
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      print(torepr(imports))
       info = TCS.empty-tc-info()
       tc-result = checking(body, A.dummy-loc, t-top, info)
       side-errs = info.errors.get()
