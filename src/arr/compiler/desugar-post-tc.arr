@@ -16,6 +16,9 @@ desugar-visitor = A.default-map-visitor.{
   end,
   s-instantiate(self, l, body, args):
     body.visit(self)
+  end,
+  s-check(self, l, name, body, keyword-check):
+    A.s-id(l, A.s-global("nothing"))
   end
 }
 

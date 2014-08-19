@@ -148,18 +148,6 @@ check-visitor = A.default-map-visitor.{
             ]
         )
     end
-  end,
-  s-fun(self, l, name, params, args, ann, doc, body, _):
-    A.s-fun(l, name, params, args, ann, doc, body, none)
-  end,
-  s-data(self, l, name, params, mixins, variants, shared-members, _):
-    A.s-data(l, name, params, mixins, variants, shared-members, none)
-  end,
-  s-lam(self, l, params, args, ann, doc, body, _):
-    A.s-lam(l, params, args, ann, doc, body, none)
-  end,
-  s-check(self, l, name, body, keyword-check):
-    A.s-id(l, A.s-name(l, "nothing"))
   end
 }
 
