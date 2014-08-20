@@ -30,7 +30,8 @@ type-expr: TYPE NAME EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
-toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
+toplevel-binding: binding 
+# toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
