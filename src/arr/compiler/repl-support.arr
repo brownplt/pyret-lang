@@ -1,6 +1,7 @@
 #;lang pyret
 
 provide *
+import srcloc as S
 import "compiler/compile-structs.arr" as C
 import ast as A
 import error as E
@@ -149,8 +150,11 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       env-provide = for fold(flds from repl-provide, elt from compile-env.bindings):
         cases(C.CompileBinding) elt:
-          | builtin-id(name) => link(df(l, A.s-name(l, name)), flds)
+          | builtin-id(name) =>
+            shadow l = S.builtin(name)
+            link(df(l, A.s-name(l, name)), flds)
           | module-bindings(name, fields) =>
+            shadow l = S.builtin(name)
             [list: df(l, A.s-name(l, name))] +
               for map(f from fields):
                 df(l, A.s-name(l, f))
@@ -160,8 +164,11 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
       end
       env-type-provide = for fold(flds from repl-type-provide, elt from compile-env.types):
         cases(C.CompileTypeBinding) elt:
-          | type-id(name) => link(af(l, A.s-name(l, name)), flds)
+          | type-id(name) =>
+            shadow l = S.builtin(name)
+            link(af(l, A.s-name(l, name)), flds)
           | type-module-bindings(name, fields) =>
+            shadow l = S.builtin(name)
             [list: af(l, A.s-name(l, name))] +
               for map(f from fields):
                 af(l, A.s-name(l, f))
