@@ -1,4 +1,4 @@
-#lang pyret
+#;lang pyret
 
 provide *
 import "compiler/compile-structs.arr" as C
@@ -91,31 +91,51 @@ fun wrap-for-special-import(p :: A.Program):
   end
 end
 
+fun get-defined-ids(p, imports, body):
+  ids = A.toplevel-ids(p).filter(lam(id): not(A.is-s-underscore(id)) end)
+  safe-imports = make-safe-imports(imports)
+  import-names = for fold(names from empty, imp from safe-imports):
+    cases(A.Import) imp:
+      | s-import(_, _, name) => link(name, names)
+      | s-import-fields(_, imp-names, _) => names + imp-names
+      | else => raise("Unknown import type: " + torepr(imp))
+    end
+  end
+  ids-plus-import-names = import-names + ids
+  type-ids = A.block-type-ids(body)
+  import-type-names = for fold(names from empty, imp from safe-imports):
+    cases(A.Import) imp:
+      | s-import(_, _, name) => link(name, names)
+      | s-import-fields(_, imp-names, _) => names
+      | else => raise("Unknown import type: " + torepr(imp))
+    end
+  end
+  type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
+  {
+    imports: safe-imports,
+    ids: ids-plus-import-names,
+    type-ids: type-ids-plus-import-names
+  }
+end
+
+fun df(l, name):
+  A.s-data-field(l, name.toname(), A.s-id(l, name))
+end
+
+fun af(l,  name):
+  A.a-field(l, name.toname(), A.a-name(l, name))
+end
+
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
-      fun df(name):
-        A.s-data-field(l, name.toname(), A.s-id(l, name))
-      end
-      fun af(name):
-        A.a-field(l, name.toname(), A.a-name(l, name))
-      end
-      ids = A.toplevel-ids(p)
-      safe-imports = make-safe-imports(imports)
-      ids-plus-import-names = safe-imports.map(_.name) + ids
-      repl-provide = for map(id from ids-plus-import-names):
-        df(id)
-      end
-      type-ids = A.block-type-ids(body)
-      type-ids-plus-import-names = safe-imports.map(_.name) + type-ids.map(_.name)
-      repl-type-provide = for map(id from type-ids-plus-import-names):
-        af(id)
-      end
-      
+      defined-ids = get-defined-ids(p, imports, body)
+      repl-provide = for map(n from defined-ids.ids): df(l, n) end
+      repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          safe-imports,
+          defined-ids.imports,
           body)
   end
 end
@@ -124,50 +144,35 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
-      fun df(name):
-        A.s-data-field(l, name.toname(), A.s-id(l, name))
-      end
-      fun af(name):
-        A.a-field(l, name.toname(), A.a-name(l, name))
-      end
-      safe-imports = make-safe-imports(imports)
-      ids = A.toplevel-ids(p).filter(lam(id): not(A.is-s-underscore(id)) end)
-      ids-plus-import-names = safe-imports.map(_.name) + ids
-      repl-provide = for map(id from ids-plus-import-names):
-        df(id)
-      end
+      defined-ids = get-defined-ids(p, imports, body)
+      repl-provide = for map(n from defined-ids.ids): df(l, n) end
+      repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       env-provide = for fold(flds from repl-provide, elt from compile-env.bindings):
         cases(C.CompileBinding) elt:
-          | builtin-id(name) => link(df(A.s-name(l, name)), flds)
+          | builtin-id(name) => link(df(l, A.s-name(l, name)), flds)
           | module-bindings(name, fields) =>
-            [list: df(A.s-name(l, name))] +
+            [list: df(l, A.s-name(l, name))] +
               for map(f from fields):
-                df(A.s-name(l, f))
+                df(l, A.s-name(l, f))
               end +
               flds
         end
-      end
-      type-ids = A.block-type-ids(body)
-      type-ids-plus-import-names = safe-imports.map(_.name) + type-ids.map(_.name)
-      repl-type-provide = for map(id from type-ids-plus-import-names):
-        af(id)
       end
       env-type-provide = for fold(flds from repl-type-provide, elt from compile-env.types):
         cases(C.CompileTypeBinding) elt:
-          | type-id(name) => link(af(A.s-name(l, name)), flds)
+          | type-id(name) => link(af(l, A.s-name(l, name)), flds)
           | type-module-bindings(name, fields) =>
-            [list: af(A.s-name(l, name))] +
+            [list: af(l, A.s-name(l, name))] +
               for map(f from fields):
-                af(A.s-name(l, f))
+                af(l, A.s-name(l, f))
               end +
               flds
         end
       end
-      
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
           A.s-provide-types(l, env-type-provide),
-          safe-imports,
+          defined-ids.imports,
           body)
   end
 end
