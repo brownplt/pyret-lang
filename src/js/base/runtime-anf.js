@@ -1634,9 +1634,9 @@ function createMethodDict() {
                 }
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (curLeft.dict["_equals"]) {
-                  // If this call fails,
+                  // If this call stack-throws,
                   var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
-                  // the continuation stacklet will get the result, and comine them manually
+                  // the continuation stacklet will get the result, and combine them manually
                   curAns = combineEquality(curAns, newAns);
                 } else if (isDataValue(curLeft) && isDataValue(curRight)) {
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
