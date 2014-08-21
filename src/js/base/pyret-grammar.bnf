@@ -60,7 +60,9 @@ where-clause: [WHERE block]
 
 check-expr: CHECK STRING COLON block end
 check-expr: CHECKCOLON block end
-check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr | binop-expr
+check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
+          | binop-expr check-op-postfix
+          | binop-expr
 
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
@@ -94,7 +96,9 @@ binop-expr: expr (binop expr)*
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
      | NEQ  | LT  | GT | AND | OR | CARET
 
-check-op: IS | ISNOT | RAISES | SATISFIES | SATISFIESNOT
+check-op: IS | ISNOT | RAISES | RAISESOTHER | SATISFIES | SATISFIESNOT
+
+check-op-postfix: RAISESNOT
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
