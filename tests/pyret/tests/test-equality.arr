@@ -174,12 +174,18 @@ check "identical pre-check overrides method in true case, but not in false case"
   equal-now(eq-none, eq-none) is true
   
   identical(eq-all, eq-none) is false
+  eq-all is-not<=> eq-none
   identical(eq-none, eq-all) is false
+  eq-all is-not<=> eq-none
   
   equal-always(eq-all, eq-none) is true
+  eq-all is== eq-none
   equal-always(eq-none, eq-all) is false
+  eq-none is-not== eq-all
   equal-now(eq-all, eq-none) is true
+  eq-all is=~ eq-none
   equal-now(eq-none, eq-all) is false
+  eq-none is-not=~ eq-all
 end                                                                                                                    
 
 f-err = "compare functions or methods"
@@ -209,18 +215,24 @@ check "error (and non-error) on nested fun and meth":
   equal-now(o2, o1) raises f-err
   
   equal-always(o1, o3) is false
+  o1 is-not== o3
   equal-always(o3, o1) is false
+  o3 is-not== o1
   
   equal-now(o1, o3) is false
+  o1 is-not=~ o3
   equal-now(o3, o1) is false
+  o3 is-not=~ o1
   
   o4 = { subobj: eq-none, f: f }
   o5 = { subobj: eq-all, f: f }
   
   equal-always(o4, o5) is false
+  o4 is-not== o5
   equal-always(o5, o4) raises f-err
   
   equal-now(o4, o5) is false
+  o4 is-not=~ o5
   equal-now(o5, o4) raises f-err
 end
 

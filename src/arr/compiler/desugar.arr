@@ -528,11 +528,15 @@ fun desugar-expr(expr :: A.Expr):
           collect-ors = collect-op("opor", _)
           collect-ands = collect-op("opand", _)
           collect-carets = collect-op("op^", _)
-          if op == "op==":
+          fun eq-op(fun-name):
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-prim-app(l, "equiv", [list: e1, e2])
+                A.s-app(l, gid(l, fun-name), [list: e1, e2])
               end)
+          end
+          if op == "op==": eq-op("equal-always")
+          else if op == "op=~": eq-op("equal-now")
+          else if op == "op<=>": eq-op("identical")
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):

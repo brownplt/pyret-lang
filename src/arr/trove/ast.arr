@@ -1078,13 +1078,28 @@ fun ann-loc(ann):
   end
 end
 
+fun get-op-fun-name(opname):
+  ask:
+    | opname == "op==" then: "equal-always"
+    | opname == "op=~" then: "equal-now"
+    | opname == "op<=>" then: "identical"
+    | otherwise: raise("Unknown op: " + opname)
+  end
+end
+
 data CheckOp:
   | s-op-is with:
     label(self): "s-op-is" end,
     tosource(self): str-is end
+  | s-op-is-op(op :: String) with:
+    label(self): "s-op-is-op" end,
+    tosource(self): str-is + PP.str(self.op) end
   | s-op-is-not with:
     label(self): "s-op-is-not" end,
     tosource(self): str-is-not end
+  | s-op-is-not-op(op :: String) with:
+    label(self): "s-op-is-not-op" end,
+    tosource(self): str-is-not + PP.str(self.op) end
   | s-op-satisfies with:
     label(self): "s-op-satisfies" end,
     tosource(self): str-satisfies end
