@@ -446,6 +446,27 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('import gdrive() as G')).toBe(false);
     });
 
+    it("should parse new equality operators", function() {
+      expect(parse('o <=> o2')).not.toBe(false);
+      expect(parse('o <= > o2')).toBe(false);
+      expect(parse('o < = > o2')).toBe(false);
+      expect(parse('o < => o2')).toBe(false);
+      expect(parse('o =~ o2')).not.toBe(false);
+      expect(parse('o == o2')).not.toBe(false);
 
+      expect(parse('check: o is== o2;')).not.toBe(false);
+      expect(parse('check: o is == o2;')).toBe(false);
+      expect(parse('check: o is=~ o2;')).not.toBe(false);
+      expect(parse('check: o is =~ o2;')).toBe(false);
+      expect(parse('check: o is<=> o2;')).not.toBe(false);
+      expect(parse('check: o is <=> o2;')).toBe(false);
+      
+      expect(parse('check: o is-not== o2;')).not.toBe(false);
+      expect(parse('check: o is-not == o2;')).toBe(false);
+      expect(parse('check: o is-not=~ o2;')).not.toBe(false);
+      expect(parse('check: o is-not =~ o2;')).toBe(false);
+      expect(parse('check: o is-not<=> o2;')).not.toBe(false);
+      expect(parse('check: o is-not <=> o2;')).toBe(false);
+    });
   });
 });

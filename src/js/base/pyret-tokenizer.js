@@ -131,7 +131,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opdiv = new RegExp(op("/"), STICKY_REGEXP);
   const opleq = new RegExp(op("<="), STICKY_REGEXP);
   const opgeq = new RegExp(op(">="), STICKY_REGEXP);
+  const opidentical = new RegExp(op("<=>"), STICKY_REGEXP);
   const opeq = new RegExp(op("=="), STICKY_REGEXP);
+  const opeqnow = new RegExp(op("=~"), STICKY_REGEXP);
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
@@ -139,7 +141,13 @@ define(["../../../lib/jglr/jglr"], function(E) {
   // English ops don't require whitespace. That way it is possible to catch them in ID position
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
   const opor = new RegExp(kw("or"), STICKY_REGEXP);
+  const opiseq = new RegExp(kw("is=="), STICKY_REGEXP);
+  const opiseqnow = new RegExp(kw("is=~"), STICKY_REGEXP);
+  const opisidentical = new RegExp(kw("is<=>"), STICKY_REGEXP);
   const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opisnoteq = new RegExp(kw("is-not=="), STICKY_REGEXP);
+  const opisnoteqnow = new RegExp(kw("is-not=~"), STICKY_REGEXP);
+  const opisnotidentical = new RegExp(kw("is-not<=>"), STICKY_REGEXP);
   const opisnot = new RegExp(kw("is-not"), STICKY_REGEXP);
   const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
   const opsatisfiesnot = new RegExp(kw("satisfies-not"), STICKY_REGEXP);
@@ -244,15 +252,23 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "DASH", val: opminus, parenIsForExp: true},
     {name: "STAR", val: optimes, parenIsForExp: true},
     {name: "SLASH", val: opdiv, parenIsForExp: true},
+    {name: "SPACESHIP", val: opidentical, parenIsForExp: true},
     {name: "LEQ", val: opleq, parenIsForExp: true},
     {name: "GEQ", val: opgeq, parenIsForExp: true},
     {name: "EQUALEQUAL", val: opeq, parenIsForExp: true},
+    {name: "EQUALTILDE", val: opeqnow, parenIsForExp: true},
     {name: "NEQ", val: opneq, parenIsForExp: true},
     {name: "LT", val: oplt, parenIsForExp: true},
     {name: "GT", val: opgt, parenIsForExp: true},
     {name: "AND", val: opand, parenIsForExp: true},
     {name: "OR", val: opor, parenIsForExp: true},
+    {name: "ISNOTEQUALEQUAL", val: opisnoteq, parenIsForExp: true},
+    {name: "ISNOTEQUALTILDE", val: opisnoteqnow, parenIsForExp: true},
+    {name: "ISNOTSPACESHIP", val: opisnotidentical, parenIsForExp: true},
     {name: "ISNOT", val: opisnot, parenIsForExp: true},
+    {name: "ISEQUALEQUAL", val: opiseq, parenIsForExp: true},
+    {name: "ISEQUALTILDE", val: opiseqnow, parenIsForExp: true},
+    {name: "ISSPACESHIP", val: opisidentical, parenIsForExp: true},
     {name: "IS", val: opis, parenIsForExp: true},
     {name: "SATISFIESNOT", val: opsatisfiesnot, parenIsForExp: true},
     {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},

@@ -91,10 +91,12 @@ when-expr: WHEN binop-expr COLON block end
 
 binop-expr: expr (binop expr)*
 
-binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL
+binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL | SPACESHIP | EQUALTILDE
      | NEQ  | LT  | GT | AND | OR | CARET
 
-check-op: IS | ISNOT | RAISES | SATISFIES | SATISFIESNOT
+check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP
+        | ISNOT | ISNOTEQUALEQUAL | ISNOTEQUALTILDE | ISNOTSPACESHIP
+        | RAISES | SATISFIES | SATISFIESNOT
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
