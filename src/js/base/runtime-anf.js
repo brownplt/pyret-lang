@@ -1198,6 +1198,7 @@ function createMethodDict() {
           }
         }
         var finalAns = stack[0].done[0];
+        if(stackOfStacks.length > 1) { return finalAns; }
         var needsMutableGraph = false;
         if (needsGraph) {
           // console.log("FinalAns currently: " + finalAns);
