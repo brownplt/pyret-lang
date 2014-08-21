@@ -21,6 +21,7 @@ import lists as lists
 import error as error
 import option as option
 import arrays as arrays
+import equality as equality
 
 List = lists.List
 empty = lists.empty
@@ -95,7 +96,11 @@ sharing:
     self.inorder()
   end,
   _equals(self, other, eq):
-    AVLTree(other) and eq(self.inorder(), other.inorder())
+    if not(AVLTree(other)):
+      equality.NotEqual("Non-AVLTree")
+    else:
+      eq(self.inorder(), other.inorder())
+    end
   end
 end
 
@@ -337,8 +342,7 @@ data Set:
       end, self.elems)
       tree-set(new-elems)
     end
-    
-    
+
 sharing:
   
   symmetric_difference(self :: Set, other :: Set) -> Set:
@@ -347,7 +351,11 @@ sharing:
   end,
   
   _equals(self, other, eq):
-    Set(other) and eq(self.to-list().sort(), other.to-list().sort())
+    if not(Set(other)):
+      equality.NotEqual("Non-Set")
+    else:
+      eq(self.to-list().sort(), other.to-list().sort())
+    end
   end
   
 end

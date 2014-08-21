@@ -1,5 +1,7 @@
 #lang pyret
 
+import equality as E
+
 check "numbers":
   identical(1, 1) is true
   identical(1, 2) is false
@@ -120,6 +122,10 @@ block:
     identical(BOS, CLE) is false
     identical(PRO, CHI) is false
     identical(WOR, DEN) is false
+
+    equal-always(ref-get(PRO), ref-get(WOR)) is true
+    equal-always(ref-get(DEN), ref-get(CHI)) is true
+
     equal-always(BOS, CLE) is false
     equal-always(PRO, CHI) is false
     equal-always(WOR, DEN) is false
@@ -133,28 +139,88 @@ end
 # Lists
 # Trees
 
-# check "sets":
-#   s1 = [tree-set: 1, 2, 3]
-#   s2 = [tree-set: 2, 1, 3]
-#   s3 = [tree-set: 1, 2, 5]
+check "sets":
+  s1 = [tree-set: 1, 2, 3]
+  s2 = [tree-set: 2, 1, 3]
+  s3 = [tree-set: 1, 2, 5]
 
-#   identical(s1, s2) is false
-#   identical(s1, s3) is false
-#   equal-always(s1, s2) is true
-#   equal-always(s1, s3) is false
-#   equal-now(s1, s2) is true
-#   equal-now(s1, s3) is false
-# end
+  identical(s1, s2) is false
+  identical(s1, s3) is false
+  equal-always(s1, s2) is true
+  equal-always(s1, s3) is false
+  equal-now(s1, s2) is true
+  equal-now(s1, s3) is false
+end
 
-# check "lists":
-#   l1 = [list: 1, 2, 3]
-#   l2 = [list: 1, 2, 3]
-#   l3 = [list: 3, 1, 2]
+check "lists":
+  l1 = [list: 1, 2, 3]
+  l2 = [list: 1, 2, 3]
+  l3 = [list: 3, 1, 2]
 
-#   identical(l1, l2) is false
-#   identical(l1, l3) is false
-#   equal-always(l1, l2) is true
-#   equal-always(l1, l3) is false
-#   equal-now(l1, l2) is true
-#   equal-now(l1, l3) is false
-# end
+  identical(l1, l2) is false
+  identical(l1, l3) is false
+  equal-always(l1, l2) is true
+  equal-always(l1, l3) is false
+  equal-now(l1, l2) is true
+  equal-now(l1, l3) is false
+end
+
+eq-all = { _equals(_, _, _): E.Equal end }
+eq-none = { _equals(_, _, _): E.NotEqual("just because") end }
+
+check "identical pre-check overrides method in true case, but not in false case":
+  identical(eq-none, eq-none) is true
+  equal-always(eq-none, eq-none) is true
+  equal-now(eq-none, eq-none) is true
+  
+  identical(eq-all, eq-none) is false
+  identical(eq-none, eq-all) is false
+  
+  equal-always(eq-all, eq-none) is true
+  equal-always(eq-none, eq-all) is false
+  equal-now(eq-all, eq-none) is true
+  equal-now(eq-none, eq-all) is false
+end                                                                                                                    
+
+f-err = "compare functions or methods"
+f = lam(): "no-op" end
+m = method(self): "no-op" end
+
+check "error on bare fun and meth":
+  identical(f, f) raises f-err
+  equal-always(f, f) raises f-err
+  equal-now(f, f) raises f-err
+
+
+  identical(m, m) raises f-err
+  equal-always(f, f) raises f-err
+  equal-now(f, f) raises f-err
+end
+
+check "error (and non-error) on nested fun and meth":
+  o1 = {f: f, x: 5}
+  o2 = {f: f, x: 5}
+  o3 = {f: f, x: 6}
+  
+  equal-always(o1, o2) raises f-err
+  equal-always(o2, o1) raises f-err
+
+  equal-now(o1, o2) raises f-err
+  equal-now(o2, o1) raises f-err
+  
+  equal-always(o1, o3) is false
+  equal-always(o3, o1) is false
+  
+  equal-now(o1, o3) is false
+  equal-now(o3, o1) is false
+  
+  o4 = { subobj: eq-none, f: f }
+  o5 = { subobj: eq-all, f: f }
+  
+  equal-always(o4, o5) is false
+  equal-always(o5, o4) raises f-err
+  
+  equal-now(o4, o5) is false
+  equal-now(o5, o4) raises f-err
+end
+

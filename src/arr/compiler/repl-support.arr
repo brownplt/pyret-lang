@@ -55,7 +55,8 @@ ok-imports = [list:
   "s-exp",
   "pprint",
   "srcloc",
-  "format"
+  "format",
+  "equality"
 ]
 fun make-safe-imports(imps):
   imps.each(lam(i):
