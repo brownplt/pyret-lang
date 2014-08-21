@@ -21,7 +21,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function evaluate(toEval) {
         if (toEval.beforeRun) { toEval.beforeRun(); }
         var envToUse = toEval.isMain ? mainCompileEnv : replCompileEnv;
-        eval.evalParsedPyret(runtime, toEval.ast, { sync: false, name: toEval.name, namespace: namespace, compileEnv: envToUse }, 
+        eval.runEvalParsedPyret(runtime, toEval.ast, { sync: false, name: toEval.name, namespace: namespace, compileEnv: envToUse, getSpecialImport: options.getSpecialImport }, 
           function(result) {
             if(runtime.isSuccessResult(result)) {
               var provided = get(get(result.result, "provide-plus-types"), "values");
@@ -58,7 +58,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function restartInteractions(code) {
         var deferred = Q.defer();
         toRun = [];
-        eval.parsePyret(runtime, code, { name: mainName, dialect: dialect }, function(astResult) {
+        eval.runParsePyret(runtime, code, { name: mainName, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runImmediate(function() {
               return get(replSupport, "make-provide-for-repl-main").app(astResult.result, initialCompileEnv);
@@ -89,7 +89,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function run(code, name) {
         var deferred = Q.defer();
         if (typeof name === "undefined") { name = "interactions "; }
-        eval.parsePyret(runtime, code, { name: name, dialect: dialect }, function(astResult) {
+        eval.runParsePyret(runtime, code, { name: name, dialect: dialect }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runImmediate(function() {
               return get(replSupport, "make-provide-for-repl").app(astResult.result);

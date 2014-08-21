@@ -1,13 +1,15 @@
 define([
+    "q",
     "js/secure-loader",
     "js/runtime-anf",
     "js/dialects-lib",
     "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
+    "compiler/repl-support.arr",
     "trove/parse-pyret",
     "trove/checker"],
-function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, checkerLib) {
+function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib) {
   if(requirejs.isBrowser) {
     var r = requirejs;
     var define = window.define;
@@ -20,7 +22,14 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
     return "anon" + Math.floor(Math.random() * 10000000);
   }
 
-  function compilePyret(runtime, ast, options, ondone) {
+  // How long to wait for all modules to load in milliseconds
+  var TIMEOUT_MS = 10000;
+
+  function runCompilePyret(runtime, ast, options, ondone) {
+    runtime.runThunk(function() { return compilePyret(runtime, ast, options); }, ondone);
+  }
+
+  function compilePyret(runtime, ast, options) {
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
@@ -31,130 +40,218 @@ function(loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, parseLib, ch
         return dialectsLib(runtime, runtime.namespace);
       },
       function(dialects) {
-        runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
+        return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
           var name = options.name || randomName();
           var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
+          return runtime.safeCall(function() {
+              return gf(comp, "compile-js-ast").app(
+                  gf(comp, "start"),
+                  ast,
+                  s(name),
+                  compileEnv,
+                  runtime.makeObject({
+                    "check-mode": runtime.pyretTrue,
+                    "allow-shadowed": runtime.pyretFalse,
+                    "collect-all": runtime.pyretFalse,
+                    "ignore-unbound": runtime.pyretFalse
+                  })
+                );
+            },
+            function(compPhase) {
+              var compiled = gf(compPhase, "result");
+              return runtime.safeTail(function() {
+                  if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                    return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
+                  }
+                  else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                    throw ffi.toArray(gf(compiled, "problems"));
+                  }
+                  else {
+                    throw new Error("Unknown result type while compiling: ", compiled);
+                  }  
+                });
 
-          runtime.run(function(_, namespace) {
-              return runtime.safeCall(function() {
-                  return gf(comp, "compile-js-ast").app(
-                      gf(comp, "start"),
-                      ast,
-                      s(name),
-                      compileEnv,
-                      runtime.makeObject({
-                        "check-mode": runtime.pyretTrue,
-                        "allow-shadowed": runtime.pyretFalse,
-                        "collect-all": runtime.pyretFalse,
-                        "ignore-unbound": runtime.pyretFalse
-                      })
-                    );
-                },
-                function(compPhase) {
-                  var compiled = gf(compPhase, "result");
-                  return runtime.safeTail(function() {
-                      if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                        return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
-                      }
-                      else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                        throw ffi.toArray(gf(compiled, "problems"));
-                      }
-                      else {
-                        throw new Error("Unknown result type while compiling: ", compiled);
-                      }
-                    });
-
-                },
-                "compiling JS ast");
-              },
-              runtime.namespace,
-              { sync: ('sync' in options) ? options.sync : true },
-              ondone)
+            },
+            "compiling JS ast");
         });
-        
       },
       "loading dialects");
     },
     "loading ffi-helpers library");
   }
 
-  function compileSrcPyret(runtime, src, options, ondone) {
-    parsePyret(runtime, src, options, function(parsed) {
-      if(runtime.isSuccessResult(parsed)) {
-        compilePyret(runtime, parsed.result, options, ondone);
-      } else {
-        ondone(parsed);
-      }
+  function runCompileSrcPyret(runtime, src, options, ondone) {
+    runtime.runThunk(function() { return compileSrcPyret(runtime, src, options); }, ondone);
+  }
+
+  function compileSrcPyret(runtime, src, options) {
+    return runtime.safeCall(function() {
+      return parsePyret(runtime, src, options);
+    }, function(answer) {
+      return compilePyret(runtime, answer, options);
     });
   }
 
-  function parsePyret(runtime, src, options, ondone) {
-    return runtime.runThunk(function() {
-      return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
-        var pp = runtime.getField(parseLib, "values");
-        return runtime.safeCall(function() {
-          return dialectsLib(runtime, runtime.namespace);
-        }, function(dialects) {
-          if (!options.name) { options.name = randomName(); }
-            return runtime.getField(pp, "parse-dialect").app(
-                      runtime.makeString(options.dialect || dialects.defaultDialect), 
-                      runtime.makeString(src), 
-                      runtime.makeString(options.name));
-        },
-        "loading dialects to parse Pyret");
-      });
+  function runParsePyret(runtime, src, options, ondone) {
+    runtime.runThunk(function() { return parsePyret(runtime, src, options); }, ondone);
+  }
+
+  function parsePyret(runtime, src, options) {
+    return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
+      var pp = runtime.getField(parseLib, "values");
+      return runtime.safeCall(function() {
+        return dialectsLib(runtime, runtime.namespace);
+      }, function(dialects) {
+        if (!options.name) { options.name = randomName(); }
+          return runtime.getField(pp, "parse-dialect").app(
+                    runtime.makeString(options.dialect || dialects.defaultDialect), 
+                    runtime.makeString(src), 
+                    runtime.makeString(options.name));
+      },
+      "loading dialects to parse Pyret");
+    });
+  }
+
+  function runEvalPyret(runtime, src, options, ondone) {
+    runtime.runThunk(function() { return evalPyret(runtime, src, options); }, ondone);
+  }
+
+  function evalPyret(runtime, src, options) {
+    return runtime.safeCall(function() {
+      return parsePyret(runtime, src, options);
+    },
+    function(answer) {
+      return evalParsedPyret(runtime, answer, options);
+    });
+  }
+
+  function runLoadSpecialImports(runtime, ast, options, ondone) {
+    runtime.runThunk(function() {
+      return loadSpecialImports(runtime, ast, options);
     }, ondone);
   }
 
-  function evalPyret(runtime, src, options, ondone) {
-    parsePyret(runtime, src, options, function(parsed) {
-      if(runtime.isSuccessResult(parsed)) {
-        evalParsedPyret(runtime, parsed.result, options, ondone);
-      } else {
-        ondone(parsed);
-      }
+  function loadSpecialImports(runtime, ast, options) {
+    // NOTE(joe):
+    // We're about to do something async (request getSpecialImport), so stash
+    // the stack so we don't lose our place in the middle of module loading.
+    // Note the lack of returns -- the return value flows out through restarter.resume()
+    return runtime.loadModules(runtime.namespace, [replLib], function(repl) {
+      var getImports = runtime.getField(repl, "get-special-imports");
+      return runtime.safeCall(function() {
+        return getImports.app(ast);
+      }, function(imports) {
+        var jsImports = runtime.ffi.toArray(imports);
+        runtime.pauseStack(function(restarter) {
+          var allImports = q.all(jsImports.map(function(i) { return options.getSpecialImport(runtime, i); }));
+          var moduleLoads = [];
+          for(var i = 0; i < jsImports.length; i++) { moduleLoads[i] = q.defer(); }
+          var loaded = q.all(moduleLoads.map(function(ml) { return ml.promise; }));
+          allImports.then(function(astAndNames) {
+            astAndNames.forEach(function(astAndName, i) {
+              // Cached (or already visited in DAG), so don't reload
+              if(astAndName === "loaded") {
+                moduleLoads[i].resolve("loaded");
+                return;
+              }
+              var newOptions = Object.create(options);
+              newOptions.name = astAndName.name;
+              // NOTE(joe):
+              // Calling this for side effect of loading, and failures will propagate
+              // on their own via the timeout on loaded below
+              runtime.runThunk(function() {
+                return runtime.safeCall(function() {
+                  return runtime.getField(repl, "wrap-for-special-import").app(astAndName.ast);
+                }, function(safeAst) {
+                  loadParsedPyret(runtime, safeAst, newOptions);
+                });
+              }, function(result) {
+                if(runtime.isSuccessResult(result)) {
+                  moduleLoads[i].resolve(result.result);
+                }
+                else {
+                  moduleLoads[i].reject(result.exn);
+                }
+              });
+            });
+          });
+          q.timeout(loaded, TIMEOUT_MS);
+          loaded.then(function(v) {
+            restarter.resume(v);
+          });
+          loaded.fail(function(err) {
+            restarter.error(err);
+          });
+          allImports.fail(function(err) {
+            restarter.error(err);
+          });
+        });
+      });
     });
   }
 
-  function evalParsedPyret(runtime, ast, options, ondone) {
-    if (!options.name) { options.name = randomName(); }
-    var modname = randomName();
+  function loadParsedPyret(runtime, ast, options) {
+    if (!options.hasOwnProperty("name")) { options.name = randomName(); }
+    var modname = options.name;
     var namespace = options.namespace || runtime.namespace;
-    runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
-      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
-      runtime.setParam("current-checker", currentChecker);
+    runtime.pauseStack(function(restarter) {
+      runtime.runThunk(function() {
+        return runtime.safeCall(function() {
+          return loadSpecialImports(runtime, ast, options);
+        }, function(_) {
+          return compilePyret(runtime, ast, options);
+        });
+      }, function(result) {
+        if(runtime.isFailureResult(result)) {
+          restarter.error(result.exn);
+          return;
+        }
+        if (typeof result.result !== 'string') {
+          throw new Error("Non-string result from compilation: " + result.result);
+        }
+        var compiledModule = loader.goodIdea(runtime, modname, result.result);
+        compiledModule.then(function(mod) { restarter.resume(mod) });
+        compiledModule.fail(function(err) { restarter.error(err) });
+      });
+    });
+  }
 
-      compilePyret(
-          runtime,
-          ast,
-          options,
-          function(result) {
-            if(runtime.isFailureResult(result)) {
-              ondone(result);
-            }
+  function runEvalParsedPyret(runtime, ast, options, ondone) {
+    runtime.runThunk(function() { evalParsedPyret(runtime, ast, options); }, ondone);
+  }
+
+  function evalParsedPyret(runtime, ast, options) {
+    if (!options.name) { options.name = randomName(); }
+    return runtime.safeCall(function() {
+      return loadParsedPyret(runtime, ast, options);
+    }, function(mod) {
+      return runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
+        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
+        runtime.setParam("current-checker", currentChecker);
+        var sync = false;
+        var namespace = options.namespace || runtime.namespace;
+        runtime.pauseStack(function(restarter) {
+          runtime.run(mod, namespace, {}, function(result) {
+            if(runtime.isSuccessResult(result)) { restarter.resume(result.result); }
             else {
-              if (typeof result.result !== 'string') {
-                throw new Error("Non-string result from compilation: " + result.result);
-              }
-              var compiledModule = loader.goodIdea(runtime, modname, result.result);
-              compiledModule.then(function(mod) {
-                var sync = false;
-                runtime.run(mod, namespace, {sync: sync}, ondone);
-              });
-              compiledModule.fail(function(err) {
-                ondone(runtime.makeFailureResult(err));
-              });
+              restarter.error(result.exn);
             }
-          }
-        );
+          });
+        });
+      });
     });
   }
 
   return {
+    runCompilePyret: runCompilePyret,
     compilePyret: compilePyret,
+    runEvalPyret: runEvalPyret,
     evalPyret: evalPyret,
+    runParsePyret: runParsePyret,
     parsePyret: parsePyret,
+    runCompileSrcPyret: runCompileSrcPyret,
     compileSrcPyret: compileSrcPyret,
+    runEvalParsedPyret: runEvalParsedPyret,
     evalParsedPyret: evalParsedPyret
   };
   

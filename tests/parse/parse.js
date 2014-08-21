@@ -206,9 +206,6 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     });
   });
   describe("parsing", function() {
-    it("should parse new-style imports with types", function() {
-//      expect(parse("import ast as A, AT")).not.toBe(false);
-    });
     it("should parse lets and letrecs", function() {
       expect(parse("let: 10 end")).toBe(false);
       expect(parse("letrec: 10 end")).toBe(false);
@@ -438,6 +435,15 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("m-graph: WOR = 5 end")).not.toBe(false);
       expect(parse("m-graph: WOR = [list: 1] BOS = [list: 3] end")).not.toBe(false);
       expect(parse("m-graph: WOR = [list: 1] BOS = [list: 3] PVD = [list: BOS] end")).not.toBe(false);
+    });
+
+    it("should parse imports", function() {
+      expect(parse('import modname as G')).not.toBe(false);
+      expect(parse('import "modname.arr" as G')).not.toBe(false);
+      expect(parse('import gdrive(a) as G')).toBe(false);
+      expect(parse('import gdrive("a") as G')).not.toBe(false);
+      expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
+      expect(parse('import gdrive() as G')).toBe(false);
     });
 
 

@@ -60,6 +60,12 @@ data AImportType:
     tosource(self): PP.str(self.lib) end
   | a-import-file(l :: Loc, file :: String) with:
     tosource(self): PP.dquote(PP.str(self.file)) end
+  | a-import-special(l :: Loc, kind :: String, args :: List<String>) with:
+    tosource(self): 
+      PP.group(PP.str(self.kind)
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(PP.str)))))
+    end
 end
 
 data AImport:

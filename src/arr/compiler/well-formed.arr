@@ -242,10 +242,23 @@ end
 
 
 
-
 well-formed-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
+  end,
+  s-special-import(self, l, kind, args):
+    if kind == "my-gdrive":
+      when args.length() <> 1:
+        wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+      end
+    else if kind == "shared-gdrive":
+      when args.length() <> 2:
+        wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+      end
+    else:
+      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
+    end
+    true
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     wf-error("Cannot define a data expression except at the top level of a file", l)
