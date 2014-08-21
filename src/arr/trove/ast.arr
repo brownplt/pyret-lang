@@ -1190,6 +1190,7 @@ fun binding-ids(stmt) -> List<Name>:
     | s-var(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
+    | s-m-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
     | else => [list: ]
