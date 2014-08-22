@@ -460,7 +460,12 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
         end
       | s-newtype-bind(l, name, namet) =>
         typ = t-name(none, name)
-        info.branders.set(namet.key(), typ)
+        namet-key = namet.key()
+        info.branders.set(namet-key, typ)
+        info.typs.set(namet-key, t-record([list:
+          t-member("test", t-arrow([list: t-top], t-boolean)),
+          t-member("brand", t-arrow([list: t-top], typ))
+        ]))
         fold-result(typ)
     end
   end
