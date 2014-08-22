@@ -192,6 +192,28 @@ f-err = "compare functions or methods"
 f = lam(): "no-op" end
 m = method(self): "no-op" end
 
+check "eq-all is equal to everything always":
+  eq-all is== f
+  eq-all is== m
+  eq-all is== 0
+  eq-all is== "a"
+  eq-all is== nothing
+  eq-all is== true
+  eq-all is== [list: 1, 2, 3]
+  eq-all is== eq-none
+end
+
+check "eq-none is equal nothing never always":
+  eq-none is-not== f
+  eq-none is-not== m
+  eq-none is-not== 0
+  eq-none is-not== "a"
+  eq-none is-not== nothing
+  eq-none is-not== true
+  eq-none is-not== [list: 1, 2, 3]
+  eq-none is-not== eq-all
+end
+
 check "error on bare fun and meth":
   identical(f, f) raises f-err
   equal-always(f, f) raises f-err
