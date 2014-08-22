@@ -115,7 +115,7 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
         data-type = info.data-exprs.get(key).introduce(args)
         cases(Option<DataType>) data-type:
           | some(dt) => data-type
-          | none => raise("This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
+          | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
         end
       else:
         none
@@ -375,7 +375,17 @@ fun map2-result(not-equal :: C.CompileError):
   helper
 end
 
-
+fun <E,B,D> foldl-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
+  cases(List<B>) lst-1:
+    | link(first, rest) =>
+      for bind(v from base):
+        result = f(v, first)
+        foldr-result(f, result, rest)
+      end
+    | empty =>
+      base
+  end
+end
 
 fun <E,B,D> foldr-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
