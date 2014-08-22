@@ -498,7 +498,7 @@ fun synthesis-fun(
       new-fun = recreate(args, ret-ann, new-body)
       synthesis-result(new-fun, l, arrow-typ)
     end
-  
+
     for synth-bind(maybe-ret from to-type(ret-ann, new-info)):
       cases(Option<Type>) maybe-ret:
         | some(ret-typ) =>
@@ -735,6 +735,16 @@ fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, inf
   end)
 end
 
+fun letrec-traverse(curr-bindings :: List<A.LetrecBind>, info :: TCInfo) -> FoldResult<List<A.Expr>>:
+  for map-synthesis(binding from curr-bindings):
+    cases(A.LetrecBind) binding:
+      | s-letrec-bind(l2, b, value) =>
+        recreate = A.s-letrec-bind(l2, _, _)
+        synthesis-binding(b, value, recreate, info)
+    end
+  end
+end
+
 fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
   cases(A.Expr) e:
     | s-module(l, answer, provides, types, checks) =>
@@ -753,18 +763,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       end
     | s-letrec(l, bindings, body) =>
       # Collect initial annotations. If we don't have any, make them t-bot
-      fun traverse(curr-bindings :: List<A.LetrecBind>) -> FoldResult<List<A.Expr>>:
-        for map-synthesis(binding from curr-bindings):
-          cases(A.LetrecBind) binding:
-            | s-letrec-bind(l2, b, value) =>
-              recreate = A.s-letrec-bind(l2, _, _)
-              synthesis-binding(b, value, recreate, info)
-          end
-        end
-      end
       for synth-bind(_ from map-result(process-letrec-binding(_, t-bot, info), bindings)):
-        for synth-bind(tmp-bindings from traverse(bindings)): # Traverse once to determine each one's correct type.
-          for synth-bind(new-bindings from traverse(tmp-bindings)): # Traverse again to check recursive references.
+        for synth-bind(tmp-bindings from letrec-traverse(bindings, info)): # Traverse once to determine each one's correct type.
+          for synth-bind(new-bindings from letrec-traverse(tmp-bindings, info)): # Traverse again to check recursive references.
             synthesis(body, info)
               .map-expr(A.s-letrec(l, new-bindings, _))
           end
@@ -1127,18 +1128,9 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       end
     | s-letrec(l, bindings, body) =>
       # Collect initial annotations. If we don't have any, make them t-bot
-      fun traverse(curr-bindings :: List<A.LetrecBind>) -> FoldResult<List<A.Expr>>:
-        for map-synthesis(binding from curr-bindings):
-          cases(A.LetrecBind) binding:
-            | s-letrec-bind(l2, b, value) =>
-              recreate = A.s-letrec-bind(l2, _, _)
-              synthesis-binding(b, value, recreate, info)
-          end
-        end
-      end
       for check-bind(_ from map-result(process-letrec-binding(_, t-bot, info), bindings)):
-        for check-bind(tmp-bindings from traverse(bindings)): # Traverse once to determine each one's correct type.
-          for check-bind(new-bindings from traverse(tmp-bindings)): # Traverse again to check recursive references.
+        for check-bind(tmp-bindings from letrec-traverse(bindings, info)): # Traverse once to determine each one's correct type.
+          for check-bind(new-bindings from letrec-traverse(tmp-bindings, info)): # Traverse again to check recursive references.
             checking(body, expect-loc, expect-typ, info)
               .map(A.s-letrec(l, new-bindings, _))
           end
