@@ -25,6 +25,8 @@ t-app                     = TS.t-app
 t-record                  = TS.t-record
 t-forall                  = TS.t-forall
 
+is-t-record               = TS.is-t-record
+
 type Variance             = TS.Variance
 constant                  = TS.constant
 bivariant                 = TS.bivariant
@@ -118,7 +120,39 @@ shadow map2 = lam(f, l1, l2):
                  end
                end
 
+t-num-binop = t-arrow([list: t-number, t-number], t-number)
+t-num-cmp   = t-arrow([list: t-number, t-number], t-boolean)
+t-str-binop = t-arrow([list: t-string, t-string], t-string)
+t-str-cmp   = t-arrow([list: t-string, t-string], t-boolean)
+t-method-binop = lam(field-name :: String):
+  t-forall(
+    [list:
+      t-variable(A.dummy-loc, A.s-atom("B", 1), t-top, invariant),
+      t-variable(A.dummy-loc, A.s-atom("C", 1), t-top, invariant)
+    ],
+    t-arrow(
+      [list:
+        t-record([list:
+          t-member(field-name, t-arrow([list: t-var(A.s-atom("B", 1))], t-var(A.s-atom("C", 1))))
+        ]),
+        t-var(A.s-atom("B",1))
+      ],
+      t-var(A.s-atom("C", 1))
+    )
+  )
+end
 
+# Math operators
+t-plus-method   = t-method-binop("_plus")
+t-minus-method  = t-method-binop("_minus")
+t-divide-method = t-method-binop("_divide")
+t-times-method  = t-method-binop("_times")
+
+# Comparison operators
+t-lt-method     = t-method-binop("_lessthan")
+t-lte-method    = t-method-binop("_lessequal")
+t-gt-method     = t-method-binop("_greaterthan")
+t-gte-method    = t-method-binop("_greaterequal")
 
 fun <B> identity(b :: B) -> B:
   b
@@ -807,7 +841,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
     | s-construct(l, modifier, constructor, values) =>
       synthesis-err([list: C.unsupported("s-construct is currently unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
-      synthesis(_fun, info).bind(
+      synthesis-app-fun(l, _fun, args, info).bind(
       lam(new-fun, arrow-typ-loc, arrow-typ):
         result = check-app(l, args, arrow-typ, t-top, info)
         for synth-bind(new-args from result.left):
@@ -949,6 +983,61 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
           end
       end
     end
+  end
+end
+
+fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info :: TCInfo) -> SynthesisResult:
+  cases(A.Expr) _fun:
+    | s-id(fun-loc, id) =>
+      result = synthesis-result(_fun, _, _)
+      fun pick2(num-typ :: Type, rec-typ :: Type):
+        cases(List<A.Expr>) args:
+          | empty      =>
+            synthesis-err([list: raise("fixme")])
+          | link(f, r) =>
+            synthesis(f, info).bind(
+              lam(_, l, f-typ):
+                ask:
+                  | f-typ == t-number  then: result(l, num-typ)
+                  | is-t-record(f-typ) then: result(l, rec-typ)
+                  | otherwise: synthesis-err([list:
+                      C.incorrect-type(tostring(f-typ), l, "Number or an object with the field " + id.toname(), app-loc)])
+                end
+              end)
+        end
+      end
+      fun pick3(num-typ :: Type, str-typ :: Type, rec-typ :: Type):
+        cases(List<A.Expr>) args:
+          | empty      =>
+            synthesis-err([list: raise("fixme")])
+          | link(f, r) =>
+            synthesis(f, info).bind(
+              lam(_, l, f-typ):
+                ask:
+                  | f-typ == t-number  then: result(l, num-typ)
+                  | f-typ == t-string  then: result(l, str-typ)
+                  | is-t-record(f-typ) then: result(l, rec-typ)
+                  | otherwise: synthesis-err([list:
+                    C.incorrect-type(tostring(f-typ), l, "Number, String or an object with the field " + id.toname(), app-loc)])
+                end
+              end)
+        end
+      end
+      ask:
+        # Math operations
+        | id == A.s-global("_plus")   then: pick3(t-num-binop, t-str-binop, t-plus-method)
+        | id == A.s-global("_times")  then: pick2(t-num-binop, t-times-method)
+        | id == A.s-global("_divide") then: pick2(t-num-binop, t-divide-method)
+        | id == A.s-global("_minus")  then: pick2(t-num-binop, t-minus-method)
+        # Comparison operations
+        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp, t-str-cmp, t-lt-method)
+        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
+        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
+        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
+        | otherwise: synthesis(_fun, info)
+      end
+    | else =>
+      synthesis(_fun, info)
   end
 end
 
@@ -1139,7 +1228,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
     | s-construct(l, modifier, constructor, values) =>
       checking-err([list: C.unsupported("s-construct is unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
-      synthesis(_fun, info).check-bind(
+      synthesis-app-fun(l, _fun, args, info).check-bind(
       lam(new-fun, new-fun-loc, new-fun-typ):
         result = check-app(l, args, new-fun-typ, expect-typ, info)
         for check-bind(new-args from result.left):
