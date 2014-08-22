@@ -4,6 +4,7 @@ provide *
 provide-types *
 import option as O
 import either as E
+import equality as equality
 
 none = O.none
 is-none = O.is-none
@@ -763,6 +764,47 @@ where:
   fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
                0, true, [list: false, true, false])
     is true
+end
+
+fun<a> member-with(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
+  ask:
+    | is-empty(lst) then: equality.NotEqual("list")
+    | is-link(lst) then:
+      f = lst.first
+      r = lst.rest
+      first-elt-equal = eq(f, elt)
+      cases(equality.EqualityResult) first-elt-equal:
+        | Equal => equality.Equal
+        | else => equality.equal-or(first-elt-equal, member-with(r, elt, eq))
+      end
+  end
+end
+
+fun<a> member3(lst :: List, elt :: a) -> equality.EqualityResult:
+  member-with(lst, elt, equal-always3)
+end
+
+fun<a> member(lst :: List, elt :: a) -> Boolean:
+  equality.to-boolean(member3(lst, elt))
+end
+
+member-always3 = member3
+member-always = member
+
+fun<a> member-now3(lst :: List, elt :: a) -> equality.EqualityResult:
+  member-with(lst, elt, equal-now3)
+end
+
+fun<a> member-now(lst :: List, elt :: a) -> Boolean:
+  equality.to-boolean(member-now3(lst, elt))
+end
+
+fun<a> member-identical3(lst :: List, elt :: a) -> equality.EqualityResult:
+  member-with(lst, elt, identical3)
+end
+
+fun<a> member-identical(lst :: List, elt :: a) -> Boolean:
+  equality.to-boolean(member-identical3(lst, elt))
 end
 
 index = get-help

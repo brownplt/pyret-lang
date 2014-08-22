@@ -1559,7 +1559,6 @@ function createMethodDict() {
       var stackOfToCompare = [];
       var toCompare = [];
       var current, curLeft, curRight, curAns, cache;
-      curAns = ffi.equal;
       cache = {left: [], right: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
@@ -1573,6 +1572,7 @@ function createMethodDict() {
         cache.right.push(obj2);
       }
       function equalHelp() {
+        curAns = ffi.equal;
         while (toCompare.length > 0 && !ffi.isNotEqual(curAns)) {
           current = toCompare.pop();
           curLeft = current.left;

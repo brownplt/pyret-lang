@@ -354,10 +354,18 @@ sharing:
     if not(Set(other)):
       equality.NotEqual("Non-Set")
     else:
-      eq(self.to-list().sort(), other.to-list().sort())
+      self-list = self.to-list()
+      other-list = other.to-list()
+      if not(other-list.length() == self-list.length()):
+        equality.NotEqual("set size")
+      else:
+        for fold(result from equality.Equal, elt from self-list):
+          result-for-elt = lists.member-with(other-list, elt, eq)
+          equality.equal-and(result, result-for-elt)
+        end
+      end
     end
   end
-  
 end
 
 fun list-to-set(lst :: lists.List, base-set :: Set) -> Set:

@@ -236,3 +236,41 @@ check "error (and non-error) on nested fun and meth":
   equal-now(o5, o4) raises f-err
 end
 
+block:
+  m-graph:
+    mt1 = mempty
+    BOS = mlink(PRO, rest1)
+    rest1 = mlink(WOR, mt1)
+    PRO = mlink(BOS, mt1)
+    WOR = mlink(BOS, mt1)
+  end
+
+  m-graph:
+    mt2 = mempty
+    CHI = mlink(CLE, mt2)
+    DEN = mlink(CLE, mt2)
+    CLE = mlink(CHI, rest2)
+    rest2 = mlink(DEN, mt2)
+  end
+
+  check "nesting cyclic within user-defined":
+    [list-set: PRO, WOR] is=~ [list-set: PRO, WOR]
+    [list-set: PRO, DEN] is=~ [list-set: CHI, WOR]
+    [list-set: CHI, DEN] is=~ [list-set: PRO, WOR]
+    [list-set: CHI, DEN] is=~ [list-set: PRO, WOR]
+
+    [list-set: PRO, WOR] is== [list-set: PRO, WOR]
+    [list-set: PRO, DEN] is-not== [list-set: CHI, WOR]
+    [list-set: CHI, DEN] is-not== [list-set: PRO, WOR]
+    [list-set: CHI, DEN] is-not== [list-set: PRO, WOR]
+
+    for each(r from [list: mt1, BOS, rest1, PRO, WOR, mt2, CHI, DEN, CLE, rest2]):
+      ref-freeze(r)
+    end
+
+    [list-set: PRO, WOR] is== [list-set: PRO, WOR]
+    [list-set: PRO, DEN] is== [list-set: CHI, WOR]
+    [list-set: CHI, DEN] is== [list-set: PRO, WOR]
+    [list-set: CHI, DEN] is== [list-set: PRO, WOR]
+  end
+end
