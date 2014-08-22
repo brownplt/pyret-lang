@@ -1,6 +1,8 @@
 provide { generate-constraints   : generate-constraints,
           arrow-constraints      : arrow-constraints,
           empty-type-constraints : empty-type-constraints,
+          Equality               : Equality,
+          Bounds                 : Bounds,
           satisfies-type         : satisfies-type,
           determine-variance     : determine-variance,
           least-upper-bound      : least-upper-bound,
@@ -888,13 +890,15 @@ sharing:
     typ-str = typ.key()
     self._insert(typ-str, constraint, info)
   end,
-  get(self, typ :: Type) -> Option<TypeConstraint>:
-    typ-str = typ.key()
+  _get(self, typ-str :: String) -> Option<TypeConstraint>:
     if self.dict.has-key(typ-str):
       self.dict.get(typ-str)
     else:
       some(Bounds(t-bot, t-top))
     end
+  end,
+  get(self, typ :: Type) -> Option<TypeConstraint>:
+    self._get(typ.key())
   end,
   meet(self, other :: TypeConstraints, info :: TCInfo) -> TypeConstraints:
     keys = other.dict.keys()

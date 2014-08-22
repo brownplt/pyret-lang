@@ -13,6 +13,7 @@ import "compiler/resolve-scope.arr" as R
 import "compiler/desugar.arr" as D
 import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
+import "compiler/check-infer.arr" as CI
 import "compiler/desugar-check.arr" as CH
 
 data CompilationPhase:
@@ -54,7 +55,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
       type-checked =
-        if options.type-check: T.type-check(desugared, libs)
+        if options.type-check: T.type-check(desugared, CI.check-infer(desugared), libs)
         else: C.ok(desugared);
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:

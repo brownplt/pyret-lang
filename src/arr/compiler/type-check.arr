@@ -1186,7 +1186,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
 end
 
 
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, hints :: TypeConstraints, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
       info = TCS.empty-tc-info()
