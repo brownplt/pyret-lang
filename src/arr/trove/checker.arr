@@ -47,11 +47,21 @@ data TestResult:
     reason(self):
       "Got unexpected exception " + torepr(self.actual-exn) + ", when expecting " + torepr(self.exn-expected)
     end
+  | failure-right-exn(loc :: Loc, code :: String, exn-not-expected, actual-exn) with:
+    reason(self):
+      "Got exception " + torepr(self.actual-exn) + " and expected it not to contain " + torepr(self.exn-not-expected)
+    end
+  | failure-exn(loc :: Loc, code :: String, actual-exn) with:
+    reason(self):
+      "Got unexpected exception " + torepr(self.actual-exn)
+    end
   | failure-no-exn(loc :: Loc, code :: String, exn-expected) with:
     reason(self):
       "No exception raised, expected " + torepr(self.exn-expected)
     end
-  | failure-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
+  # This is not so much a test result as an error in a test case:
+  # Maybe pull it out in the future?
+  | error-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
     reason(self):
       "The custom equality function must return a boolean, but instead it returned: " + torepr(self.test-result)
     end
@@ -100,7 +110,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     check-is-refinement(self, code, refinement, left, right, loc):
       test-result = refinement(left, right)
       if not(is-boolean(test-result)):
-        add-result(failure-not-boolean(loc, code, refinement, left, right, test-result))
+        add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
       else:
         check-bool(loc, code, test-result,
           lam(): failure-not-equal(loc, code, some(refinement), left, right);)
@@ -109,7 +119,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     check-is-not-refinement(self, code, refinement, left, right, loc):
       test-result = refinement(left, right)
       if not(is-boolean(test-result)):
-        add-result(failure-not-boolean(loc, code, refinement, left, right, test-result))
+        add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
       else:
         check-bool(loc, code, not(test-result),
           lam(): failure-not-different(loc, code, some(refinement), left, right);)
@@ -125,7 +135,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         not(pred(left)),
         lam(): failure-not-dissatisfied(loc, code, left, pred);)
     end,
-    check-raises(self, code, thunk, expected, comparator, loc):
+    check-raises(self, code, thunk, expected, comparator, on-failure, loc):
       result = run-task(thunk)
       cases(Either) result:
         | left(v) => add-result(failure-no-exn(loc, code, expected))
@@ -133,12 +143,28 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           if comparator(exn-unwrap(v), expected):
             add-result(success(loc, code))
           else:
-            add-result(failure-wrong-exn(loc, code, expected, exn-unwrap(v)))
+            add-result(on-failure(exn-unwrap(v)))
           end
       end
     end,
     check-raises-str(self, code, thunk, str, loc):
-      self.check-raises(code, thunk, str, lam(exn, s): string-contains(torepr(exn), s) end, loc)
+      self.check-raises(code, thunk, str,
+        lam(exn, s): string-contains(torepr(exn), s) end,
+        lam(exn): failure-wrong-exn(loc, code, str, exn) end,
+        loc)
+    end,
+    check-raises-other-str(self, code, thunk, str, loc):
+      self.check-raises(code, thunk, str,
+        lam(exn, s): not(string-contains(torepr(exn), s)) end,
+        lam(exn): failure-right-exn(loc, code, str, exn) end,
+        loc)
+    end,
+    check-raises-not(self, code, thunk, loc):
+      result = run-task(thunk)
+      cases(Either) run-task(thunk):
+        | left(v)  => add-result(success(loc, code))
+        | right(v) => add-result(failure-exn(loc, code, exn-unwrap(v)))
+      end
     end,
     summary(self):
       results-summary(block-results)

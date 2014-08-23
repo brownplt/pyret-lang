@@ -39,68 +39,98 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
       };
     });
 
-    describe("is", function() {
-      it("should check equality correctly", function(done) {
+    function testGroup(label, thunk) {
+      it(label, function(done) {
+        thunk();
+        P.wait(done);
+      });
+    }
+
+    describe("is/is-not", function() {
+      testGroup("should check equality correctly", function() {
         test("check: 2 is 2 end",     checkPassed);
         test("check: 2 is 3 end",     checkFailed);
         test("check: 2 is-not 2 end", checkFailed);
         test("check: 2 is-not 3 end", checkPassed);
-        P.wait(done);
       });
-      it("should use refinements correctly", function(done) {
+      testGroup("should use refinements correctly", function() {
         test("check: 2 is%(_ < _) 2 end",     checkFailed);
         test("check: 2 is%(_ < _) 3 end",     checkPassed);
         test("check: 2 is-not%(_ < _) 2 end", checkPassed);
         test("check: 2 is-not%(_ < _) 3 end", checkFailed);
-        P.wait(done);
       });
-      it("should give good error messages", function(done) {
+      testGroup("should give good error messages", function() {
         test("check: 2 is 891 end",             checkMessage("not equal"));
         test("check: 2 is-not 2 end",           checkMessage("not different"));
         test("check: 2 is%(_ < _) -891 end",    checkMessage("not equal (using custom equality)"));
         test("check: 2 is-not%(_ < _) 891 end", checkMessage("not different (using custom equality)"));
         test("check: 2 is%(_ + _) 3 end",       checkMessage("boolean"));
         test("check: 2 is-not%(_ + _) 3 end",   checkMessage("boolean"));
-        P.wait(done);
       });
     });
 
-    describe("satisfies", function() {
-      it("should use its predicate", function(done) {
-        test("check: 2 satisfies      _ < 3 end", checkPassed);
-        test("check: 2 satisfies      _ < 2 end", checkFailed);
-        test("check: 2 satisfies-not  _ < 3 end", checkFailed);
-        test("check: 2 satisfies-not  _ < 2 end", checkPassed);
-        P.wait(done);
+    describe("satisfies/violates", function() {
+      testGroup("should use its predicate", function() {
+        test("check: 2 satisfies _ < 3 end", checkPassed);
+        test("check: 2 satisfies _ < 2 end", checkFailed);
+        test("check: 2 violates  _ < 3 end", checkFailed);
+        test("check: 2 violates  _ < 2 end", checkPassed);
       });
-      it("should give good error messages", function(done) {
-        test("check: 2 satisfies      _ < 2 end", checkMessage("Predicate failed"));
-        test("check: 2 satisfies-not  _ < 3 end", checkMessage("Predicate succeeded"));
-        P.wait(done);
+      testGroup("should give good error messages", function() {
+        test("check: 2 satisfies _ < 2 end", checkMessage("Predicate failed"));
+        test("check: 2 violates  _ < 3 end", checkMessage("Predicate succeeded"));
       });
     });
 
     describe("raises", function() {
-      it("should catch exceptions", function(done) {
+      testGroup("should succeed on the given exception", function() {
         test("check: raise('oops') raises 'op' end", checkPassed);
+      });
+      testGroup("should fail on different exception", function() {
         test("check: raise('oops') raises 'po' end", checkFailed);
-        P.wait(done);
       });
-      it("should fail when no exception is raised", function(done) {
+      testGroup("should fail on no exception", function() {
         test("check: 'oops' raises 'op' end", checkFailed);
-        P.wait(done);
       });
-      it("should give good error messages", function(done) {
+      testGroup("should give good error messages", function() {
         test("check: raise('oops') raises 'po' end", checkMessage("unexpected exception"));
         test("check: 'oops'        raises 'op' end", checkMessage("No exception raised"));
-        P.wait(done);
       });
     });
+
+    describe("raises-other-than", function() {
+      testGroup("should succeed on different exception", function() {
+        test("check: raise('spoo') raises-other-than 'op' end", checkPassed);
+      });
+      testGroup("should fail on the given exception", function() {
+        test("check: raise('oops') raises-other-than 'op' end", checkFailed);
+      });
+      testGroup("should fail on no exception", function() {
+        test("check: 'oops' raises-other-than 'op' end", checkFailed);
+      });
+      testGroup("should give good error messages", function() {
+        test("check: raise('oops') raises-other-than 'op' end", checkMessage("expected it not to contain \"op\""));
+        test("check: 'oops' raises-other-than 'op' end", checkMessage("No exception raised"));
+      });
+    });
+
+    describe("does-not-raise", function() {
+      testGroup("should succeed on no exception", function() {
+        test("check: 3         does-not-raise end", checkPassed);
+        test("check: 'raise'   does-not-raise end", checkPassed);
+      });
+      testGroup("should fail when an exception is raised", function() {
+        test("check: raise('') does-not-raise end", checkFailed);
+      });
+      testGroup("should give good error messages", function() {
+        test("check: raise('oops') does-not-raise end", checkMessage("unexpected exception"));
+      });
+    });
+
     describe("errors", function() {
-      it("should not report success when errors happen", function(done) {
+      testGroup("should not report success when errors happen", function() {
         test("check: x :: String = 3\n  1 is 1 end", checkMessage("Ended in Error: 1"));
         test("fun f(x :: String): x end\n check: f(3) is 'oops' end", checkMessage("Ended in Error: 1"));
-        P.wait(done);
       });
     });
   }

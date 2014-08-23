@@ -79,8 +79,10 @@ str-with = PP.str("with:")
 str-is = PP.str("is")
 str-is-not = PP.str("is-not")
 str-satisfies = PP.str("satisfies")
-str-satisfies-not = PP.str("satisfies-not")
+str-satisfies-not = PP.str("violates")
 str-raises = PP.str("raises")
+str-raises-other = PP.str("raises-other-than")
+str-raises-not = PP.str("does-not-raise")
 str-percent = PP.str("%")
 
 data Name:
@@ -592,18 +594,24 @@ data Expr:
           end
       end
     end
-  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr) with:
+  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>) with:
     # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
+    # Only 's-op-raises-not' can lack a RHS. (Guaranteed by parsing; maintain this invariant!)
     label(self): "s-check-test" end,
     tosource(self):
+      fun option-tosource(opt):
+        cases(Option) opt:
+          | none     => PP.mt-doc
+          | some(ast) => ast.tosource()
+        end
+      end
       cases(Option) self.refinement:
         | none =>
-          PP.infix(INDENT, 1, self.op.tosource(), self.left.tosource(), self.right.tosource())
+          PP.infix(INDENT, 1, self.op.tosource(), self.left.tosource(), option-tosource(self.right))
         | some(refinement) =>
           PP.infix(INDENT, 1,
             PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(refinement.tosource())),
-            self.left.tosource(),
-            self.right.tosource())
+            self.left.tosource(), option-tosource(self.right))
       end
     end
   | s-paren(l :: Loc, expr :: Expr) with:
@@ -1109,6 +1117,12 @@ data CheckOp:
   | s-op-raises with:
     label(self): "s-op-raises" end,
     tosource(self): str-raises end
+  | s-op-raises-other with:
+    label(self): "s-op-raises-other" end,
+    tosource(self): str-raises-other end
+  | s-op-raises-not with:
+    label(self): "s-op-raises-not" end,
+    tosource(self): str-raises-not end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1455,7 +1469,7 @@ default-map-visitor = {
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
-    s-check-test(l, op, self.option(refinement), left.visit(self), right.visit(self))
+    s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
   s-paren(self, l :: Loc, expr :: Expr):
@@ -1927,7 +1941,7 @@ default-iter-visitor = {
   end,
   
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
-    self.option(refinement) and left.visit(self) and right.visit(self)
+    self.option(refinement) and left.visit(self) and self.option(right)
   end,
   
   s-paren(self, l :: Loc, expr :: Expr):
@@ -2388,7 +2402,7 @@ dummy-loc-visitor = {
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Expr):
-    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), right.visit(self))
+    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
   s-paren(self, l :: Loc, expr :: Expr):

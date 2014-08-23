@@ -30,7 +30,8 @@ type-expr: TYPE NAME EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
-toplevel-binding: binding | [SHADOW] NAME COLONCOLON noparen-arrow-ann
+toplevel-binding: binding 
+# toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
@@ -59,7 +60,9 @@ where-clause: [WHERE block]
 
 check-expr: CHECK STRING COLON block end
 check-expr: CHECKCOLON block end
-check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr | binop-expr
+check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
+          | binop-expr check-op-postfix
+          | binop-expr
 
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
@@ -96,7 +99,10 @@ binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL | SPACESHIP | EQUALTI
 
 check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP
         | ISNOT | ISNOTEQUALEQUAL | ISNOTEQUALTILDE | ISNOTSPACESHIP
-        | RAISES | SATISFIES | SATISFIESNOT
+        | RAISES | RAISESOTHER
+        | SATISFIES | SATISFIESNOT
+
+check-op-postfix: RAISESNOT
 
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr

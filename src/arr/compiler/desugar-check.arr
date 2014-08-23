@@ -12,17 +12,28 @@ data CheckInfo:
 end
 
 
+fun ast-pretty(ast):
+  A.s-str(ast.l, ast.tosource().pretty(80).join-str("\n"))
+end
+
+fun ast-lam(ast):
+  A.s-lam(ast.l, [list: ], [list: ], A.a-blank, "", ast, none)
+end
+
+fun ast-srcloc(l):
+  A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+end
+
 check-stmts-visitor = A.default-map-visitor.{
   s-check-test(self, l, op, refinement, left, right):
-    src-str = A.s-str(l, A.s-check-test(l, op, refinement, left, right).tosource().pretty(80).join-str("\n"))
-    src-loc = A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+    term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: src-str, left, right, src-loc])
+        [list: ast-pretty(term), left, right.value, ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: src-str, refinement, left, right, src-loc])
+        [list: ast-pretty(term), refinement, left, right.value, ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
       | s-op-is            =>
@@ -45,12 +56,13 @@ check-stmts-visitor = A.default-map-visitor.{
         check-op("check-satisfies-not")
       | s-op-raises        =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-          [list: 
-            A.s-str(l, A.s-check-test(l, op, refinement, left, right).tosource().pretty(80).join-str("\n")),
-            A.s-lam(l, [list: ], [list: ], A.a-blank, "", left, none),
-            right,
-            A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
-          ])
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l) ])
+      | s-op-raises-not    =>
+        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
+          [list: ast-pretty(term), ast-lam(left), ast-srcloc(l) ])
+      | s-op-raises-other  =>
+        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l) ])
       | else => raise("Check test operator " + op + " not yet implemented at " + torepr(l))
     end
   end,

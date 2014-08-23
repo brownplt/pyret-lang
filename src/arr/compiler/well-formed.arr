@@ -338,17 +338,22 @@ well-formed-visitor = A.default-iter-visitor.{
       cases(A.CheckOp) op:
         | s-op-is            => nothing
         | s-op-is-not        => nothing
-        | s-op-raises        =>
-          wf-error("Cannot use refinement syntax `%(...)` with `raises`.", l)
         | s-op-satisfies     =>
           wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
               + "Consider changing the predicate instead.", l)
         | s-op-satisfies-not =>
-          wf-error("Cannot use refinement syntax `%(...)` with `dissatisfies`. "
+          wf-error("Cannot use refinement syntax `%(...)` with `violates`. "
               + "Consider changing the predicate instead.", l)
+        | else               =>
+          op-name = op.tosource().pretty(80).join-str("\n")
+          wf-error("Cannot use refinement syntax `%(...)` with `" + op-name + "`.", l)
       end
     end
-    left.visit(self) and right.visit(self)
+    left.visit(self)
+    cases(Option) right:
+      | none => true
+      | some(shadow right) => right.visit(self)
+    end
   end,
   s-method-field(self, l, name, args, ann, doc, body, _check):
     when reserved-names.member(name):
