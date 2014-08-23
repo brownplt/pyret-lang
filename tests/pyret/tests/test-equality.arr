@@ -296,3 +296,28 @@ block:
     [list-set: CHI, DEN] is== [list-set: PRO, WOR]
   end
 end
+
+check:
+  h = lam(): "no-op" end
+  
+  var called = false
+  var long-equals = {}
+  long-equals := {
+    _equals(_, _, eq):
+      for each(i from range(0, 10000)):
+        i + i 
+      end
+      if called:
+        E.Equal
+      else:
+        called := true
+        eq([list: h, long-equals], [list: h, {}])
+      end
+    end
+  }
+  
+  s1 = [list: 1, long-equals, 3, 4]
+  s2 = [list: 1, {}, 3, 4]
+  
+  equal-always(s1, s2) raises "functions"
+end
