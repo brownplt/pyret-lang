@@ -1557,8 +1557,8 @@ function createMethodDict() {
       if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
       
       var stackOfToCompare = [];
-      var toCompare = [];
-      var current, curLeft, curRight, curAns, cache;
+      var toCompare = { stack: [], curAns: ffi.equal };
+      var current, curLeft, curRight, cache;
       cache = {left: [], right: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
@@ -1572,9 +1572,8 @@ function createMethodDict() {
         cache.right.push(obj2);
       }
       function equalHelp() {
-        curAns = ffi.equal;
-        while (toCompare.length > 0 && !ffi.isNotEqual(curAns)) {
-          current = toCompare.pop();
+        while (toCompare.stack.length > 0 && !ffi.isNotEqual(toCompare.curAns)) {
+          current = toCompare.stack.pop();
           curLeft = current.left;
           curRight = current.right;
           
@@ -1584,19 +1583,19 @@ function createMethodDict() {
             if (jsnums.equals(curLeft, curRight)) {
               continue;
             } else {
-              curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path);
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
-            curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown;
           } else if (isMethod(curLeft) && isMethod(curRight)) {
-            curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown;
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
             } else {
-              curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path);
             }
           } else {
             if (findPair(curLeft, curRight)) {
@@ -1605,7 +1604,7 @@ function createMethodDict() {
               cachePair(curLeft, curRight);
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
-                  curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                  toCompare.curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
@@ -1615,7 +1614,7 @@ function createMethodDict() {
                   } else {
                     newPath = "deref(" + newPath + ")";
                   }
-                  toCompare.push({
+                  toCompare.stack.push({
                     left: getRef(curLeft),
                     right: getRef(curRight),
                     path: newPath
@@ -1623,10 +1622,10 @@ function createMethodDict() {
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
-                  curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
-                    toCompare.push({
+                    toCompare.stack.push({
                       left: curLeft[i],
                       right: curRight[i],
                       path: "raw-array-get(" + current.path + ", " + i + ")"
@@ -1637,11 +1636,11 @@ function createMethodDict() {
                 // If this call stack-throws,
                 var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
                 // the continuation stacklet will get the result, and combine them manually
-                curAns = combineEquality(curAns, newAns);
+                toCompare.curAns = combineEquality(toCompare.curAns, newAns);
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (isDataValue(curLeft) && isDataValue(curRight)) {
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    curAns = ffi.notEqual.app(current.path);
+                    toCompare.curAns = ffi.notEqual.app(current.path);
                   } else {
                     var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
                       return Array.prototype.slice.call(arguments);
@@ -1652,7 +1651,7 @@ function createMethodDict() {
                       });
                       var fieldNames = curLeft.$constructor.$fieldNames;
                       for (var k = 0; k < fieldsLeft.length; k++) {
-                        toCompare.push({ 
+                        toCompare.stack.push({ 
                           left: fieldsLeft[k],
                           right: fieldsRight[k],
                           path: current.path + "." + fieldNames[k]
@@ -1668,26 +1667,26 @@ function createMethodDict() {
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
                   if(fieldsLeft.length !== fieldsRight.length) { 
-                    curAns = ffi.notEqual.app(current.path); 
+                    toCompare.curAns = ffi.notEqual.app(current.path); 
                   }
                   for(var k = 0; k < fieldsLeft.length; k++) {
-                    toCompare.push({
+                    toCompare.stack.push({
                       left: curLeft.dict[fieldsLeft[k]],
                       right: curRight.dict[fieldsLeft[k]],
                       path: current.path + "." + fieldsLeft[k]
                     });
                   }
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    curAns = ffi.notEqual.app(current.path);
+                    toCompare.curAns = ffi.notEqual.app(current.path);
                   }
                 }
               } else {
-                curAns = ffi.notEqual.app(current.path);
+                toCompare.curAns = ffi.notEqual.app(current.path);
               }
             }
           }
         }
-        return curAns;
+        return toCompare.curAns;
       }
       var stackFrameDesc = [alwaysFlag ? "runtime equal-always" : "runtime equal-now"];
       function equalFun($ar) {
@@ -1704,7 +1703,7 @@ function createMethodDict() {
               $step = 1;
               return equalHelp();
             case 1:
-              curAns = combineEquality(curAns, $ans);
+              toCompare.curAns = combineEquality(toCompare.curAns, $ans);
               $step = 0;
               break;
             }
@@ -1730,14 +1729,14 @@ function createMethodDict() {
         var $ans = undefined;
         try {
           if (thisRuntime.isActivationRecord(left)) {
-            $step = val.step;
-            $ans = val.ans;
+            $step = left.step;
+            $ans = left.ans;
           }
           while(true) {
             switch($step) {
             case 0:
               stackOfToCompare.push(toCompare);
-              toCompare = [{left: left, right: right, path: "the-value"}];
+              toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: ffi.equal};
               $step = 1;
               $ans = equalFun();
               break;
@@ -1774,10 +1773,13 @@ function createMethodDict() {
     // JS function from Pyret values to JS booleans (or throws)
     function equalAlways(v1, v2) {
       thisRuntime.checkArity(2, arguments, "equal-always");
-      var ans = equal3(v1, v2, true);
-      if (ffi.isEqual(ans)) { return true; }
-      else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+      return safeCall(function() {
+        return equal3(v1, v2, true);
+      }, function(ans) {
+        if (ffi.isEqual(ans)) { return true; }
+        else if (ffi.isNotEqual(ans)) { return false; }
+        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+      });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalAlwaysPy = makeFunction(function(left, right) {
@@ -1791,10 +1793,13 @@ function createMethodDict() {
     // JS function from Pyret values to JS booleans (or throws)
     function equalNow(v1, v2) {
       thisRuntime.checkArity(2, arguments, "equal-now");
-      var ans = equal3(v1, v2, false);
-      if (ffi.isEqual(ans)) { return true; }
-      else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+      return safeCall(function() {
+        return equal3(v1, v2, false);
+      }, function(ans) {
+        if (ffi.isEqual(ans)) { return true; }
+        else if (ffi.isNotEqual(ans)) { return false; }
+        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+      });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalNowPy = makeFunction(function(left, right) {
