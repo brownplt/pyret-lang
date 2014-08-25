@@ -722,13 +722,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args):
+      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args.map(_.bind)):
         atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind)
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
-        cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann) => A.s-bind(l2, false, at, ann.visit(self.{env: env-and-atoms.env}))
+        cases(A.CasesBind) a:
+          | s-cases-bind(l2, typ, binding) =>
+            cases(A.Bind) binding:
+              | s-bind(l3, shadows, id, ann) =>
+                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env-and-atoms.env})))
+            end
         end
       end
       new-body = body.visit(self.{env: env-and-atoms.env})

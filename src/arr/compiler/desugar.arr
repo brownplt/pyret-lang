@@ -175,6 +175,12 @@ fun desugar-if(l, branches, _else :: A.Expr):
   end
 end
 
+fun desugar-cases-bind(cb):
+  cases(A.CasesBind) cb:
+    | s-cases-bind(l, typ, bind) => A.s-cases-bind(l, typ, desugar-bind(bind))
+  end
+end
+
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
     | s-cases-branch(l, pat-loc, name, args, body) =>
@@ -183,7 +189,7 @@ fun desugar-case-branch(c):
       #     pat-loc,
       #     name,
       #     A.s-lam(pat-loc, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
-      A.s-cases-branch(l, pat-loc, name, args.map(desugar-bind), desugar-expr(body))
+      A.s-cases-branch(l, pat-loc, name, args.map(desugar-cases-bind), desugar-expr(body))
     | s-singleton-cases-branch(l, pat-loc, name, body) =>
       # desugar-member(
       #   A.s-data-field(

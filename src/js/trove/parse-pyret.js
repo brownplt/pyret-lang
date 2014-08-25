@@ -662,6 +662,29 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               // (app-arg-elt e COMMA)
               return tr(node.kids[0]);
             },
+            'cases-args': function(node) {
+              if (node.kids.length === 2) {
+                // (cases-args LPAREN RPAREN)
+                return makeList([]);
+              } else {
+                // (cases-args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
+                return makeList(node.kids.slice(1, -1).map(tr));
+              }
+            },
+            'list-cases-arg-elt': function(node) {
+              // (list-cases-arg-elt arg COMMA)
+              return tr(node.kids[0]);
+            },
+            'cases-binding': function(node) {
+              if(node.kids.length === 2) {
+                return RUNTIME.getField(ast, 's-cases-bind')
+                  .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-ref'), tr(node.kids[1]));
+              }
+              else {
+                return RUNTIME.getField(ast, 's-cases-bind')
+                  .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-normal'), tr(node.kids[0]));
+              }
+            },
             'cases-branch': function(node) {
               if (node.kids.length === 4) {
                 // (singleton-cases-branch PIPE NAME THICKARROW body)

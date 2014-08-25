@@ -56,10 +56,16 @@ fun anf-bind(b):
   end
 end
 
+fun anf-cases-bind(cb :: A.CasesBind):
+  cases(A.CasesBind) cb:
+    | s-cases-bind(l, typ, b) => N.a-cases-bind(l, typ, anf-bind(b))
+  end
+end
+
 fun anf-cases-branch(branch):
   cases(A.CasesBranch) branch:
     | s-cases-branch(l, pat-loc, name, args, body) =>
-      N.a-cases-branch(l, pat-loc, name, args.map(anf-bind), anf-term(body))
+      N.a-cases-branch(l, pat-loc, name, args.map(anf-cases-bind), anf-term(body))
     | s-singleton-cases-branch(l, pat-loc, name, body) =>
       N.a-singleton-cases-branch(l, pat-loc, name, anf-term(body))
   end

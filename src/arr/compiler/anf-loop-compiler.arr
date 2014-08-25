@@ -482,7 +482,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
   temp-branch = js-id-of(compiler-name("temp_branch"))
   branch-args =
-    if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args
+    if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(_.bind)
     else: [list: N.a-bind(branch.body.l, A.s-name(branch.body.l, compiler-name("resumer")), A.a-blank)]
     end
   step = js-id-of(compiler-name("step"))

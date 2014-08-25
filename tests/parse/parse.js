@@ -468,5 +468,18 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('check: o is-not<=> o2;')).not.toBe(false);
       expect(parse('check: o is-not <=> o2;')).toBe(false);
     });
+
+    it("should parse ref cases bindings", function() {
+      expect(parse('cases(List) l: | link(ref first, rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first, ref rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(first, ref rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, rest :: Number) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(first :: Number, ref rest :: Number) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, ref rest :: Number) => 5 end')).not.toBe(false);
+
+      expect(parse('cases(List) l: link(ref ref) => 5 end')).toBe(false);
+    });
   });
+
 });

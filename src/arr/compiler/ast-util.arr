@@ -249,7 +249,7 @@ fun <a, c> default-env-map-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       A.s-cases-branch(l, pat-loc, name, new-args, body.visit(self.{env: args-env}))
@@ -366,7 +366,7 @@ fun <a, c> default-env-iter-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       visit-args = lists.all(_.visit(self), args)
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       visit-args

@@ -209,6 +209,19 @@ sharing:
   end
 end
 
+data ACasesBind:
+  | a-cases-bind(l :: Loc, field-type :: A.CasesBindType, bind :: ABind) with:
+    label(self): "s-cases-bind" end,
+    tosource(self):
+      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
 data ACasesBranch:
   | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
     label(self): "a-cases-branch" end,
@@ -529,6 +542,9 @@ default-map-visitor = {
     # NOTE: Not visiting the annotation yet
     a-cases(l, typ, val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
+  a-cases-bind(self, l, typ, bind):
+    a-cases-bind(l, typ, bind.visit(self))
+  end,
   a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
     a-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
@@ -706,6 +722,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.N
     cases(ACasesBranch) b:
       | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
+        shadow args = args.map(_.bind)
         without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)

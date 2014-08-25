@@ -176,8 +176,11 @@ else-if: ELSEIF binop-expr COLON block
 if-pipe-expr: ASKCOLON if-pipe-branch* [BAR OTHERWISECOLON block] end
 if-pipe-branch: BAR binop-expr THENCOLON block
 
+cases-binding: [REF] binding
+list-cases-arg-elt: cases-binding COMMA
+cases-args: (PARENSPACE|PARENNOSPACE) [list-cases-arg-elt* cases-binding] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN expr COLON cases-branch* [BAR ELSE THICKARROW block] end
-cases-branch: BAR NAME [args] THICKARROW block
+cases-branch: BAR NAME [cases-args] THICKARROW block
 
 for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA

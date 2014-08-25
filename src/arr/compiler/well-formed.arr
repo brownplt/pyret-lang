@@ -287,7 +287,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
     end
-    ensure-unique-ids(args)
+    ensure-unique-ids(args.map(_.bind))
     lists.all(_.visit(self), args) and body.visit(self)
   end,
   s-singleton-cases-branch(self, l, pat-loc, name, body):
@@ -599,7 +599,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr):
     well-formed-visitor.s-if-pipe-else(l, branches, _else)
   end,
-  s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.Bind>, body :: A.Expr):
+  s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.CasesBind>, body :: A.Expr):
     well-formed-visitor.s-cases-branch(l, pat-loc, name, args, body)
   end,
   s-singleton-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, body :: A.Expr):

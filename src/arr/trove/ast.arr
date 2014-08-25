@@ -1058,8 +1058,29 @@ sharing:
   end
 end
 
+data CasesBindType:
+  | s-cases-bind-ref with:
+    label(self): "s-cases-bind-ref" end,
+    tosource(self): PP.str("ref") end
+  | s-cases-bind-normal with:
+    label(self): "s-cases-bind-normal" end,
+    tosource(self): PP.str("") end
+end
+
+data CasesBind:
+  | s-cases-bind(l :: Loc, field-type :: CasesBindType, bind :: Bind) with:
+    label(self): "s-cases-bind" end,
+    tosource(self):
+      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data CasesBranch:
-  | s-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr) with:
+  | s-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr) with:
     label(self): "s-cases-branch" end,
     tosource(self):
       PP.nest(INDENT,
@@ -1445,6 +1466,9 @@ default-map-visitor = {
     s-if-pipe-else(l, branches.map(_.visit(self)), _else.visit(self))
   end,
 
+  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+    s-cases-bind(l, typ, bind.visit(self))
+  end,
   s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     s-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
@@ -1917,6 +1941,9 @@ default-iter-visitor = {
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
+  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+    bind.visit(self)
+  end,
   s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     lists.all(_.visit(self), args) and body.visit(self)
   end,
@@ -2378,6 +2405,9 @@ dummy-loc-visitor = {
     s-if-pipe-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
   end,
 
+  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+    s-cases-bind(dummy-loc, l, typ, bind.visit(self))
+  end,
   s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     s-cases-branch(dummy-loc, dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
