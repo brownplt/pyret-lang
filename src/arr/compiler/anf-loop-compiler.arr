@@ -75,6 +75,9 @@ throw-uninitialized = j-id("U")
 source-name = j-id("M")
 undefined = j-id("D")
 
+j-bool = lam(b):
+  if b: j-true else: j-false end
+end
 
 
 js-id-of = block:
@@ -116,6 +119,10 @@ fun obj-of-loc(l):
           j-num(end-char)
         ])
   end
+end
+
+fun get-dict-field(obj, field):
+  j-bracket(j-dot(obj, "dict"), field)
 end
 
 fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -486,6 +493,13 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     else: [list: N.a-bind(branch.body.l, A.s-name(branch.body.l, compiler-name("resumer")), A.a-blank)]
     end
   step = js-id-of(compiler-name("step"))
+  ref-binds-mask = if N.is-a-cases-branch(branch):
+    j-list(false, for map(cb from branch.args):
+      j-bool(A.is-s-cases-bind-ref(cb.field-type))
+    end)
+  else:
+    j-list(false, [list:])
+  end
   compiled-branch-fun =
     compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
   preamble = cases(N.CasesBranch) branch:
@@ -510,12 +524,13 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
                   [list: compiler.get-loc(pat-loc), j-false]))]))
       [list: checker]
   end
+  deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [list: j-id(temp-branch), ref-binds-mask])))
   actual-app =
     [list:
       j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
       j-var(temp-branch,
         j-fun(branch-args.map(lam(arg): js-id-of(tostring(arg.id)) end), compiled-branch-fun)),
-      j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [list: j-id(temp-branch)]))),
+      deref-fields,
       j-break]
 
   c-block(
@@ -964,10 +979,12 @@ compiler-visitor = {
       refl-ref-fields =
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
-            j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), 
-                      members.map(lam(m):
-                          get-field-ref(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
-                        end)))]))
+            j-fun([list: "f", "refmask"], j-block([list: j-return(j-app(j-id("f"), 
+                for map_n(n from 0, m from members):
+                  field = get-dict-field(j-id("this"), j-str(m.bind.id.toname()))
+                  mask = j-bracket(j-id("refmask"), j-num(n))
+                  rt-method("derefField", [list: field, j-bool(N.is-a-mutable(m.member-type)), mask])
+                end))]))
           | a-singleton-variant(_, _, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))
         end
@@ -986,7 +1003,7 @@ compiler-visitor = {
           | a-variant(_, _, _, members, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), 
                       members.map(lam(m):
-                          get-field(j-id("this"), j-str(m.bind.id.toname()), self.get-loc(m.l))
+                          get-dict-field(j-id("this"), j-str(m.bind.id.toname()))
                         end)))]))
           | a-singleton-variant(_, _, _) =>
             j-fun([list: "f"], j-block([list: j-return(j-app(j-id("f"), empty))]))

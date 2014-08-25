@@ -29,25 +29,25 @@ end
 check "cases":
   bx = box(5)
   contents = cases(Box) bx:
-    | box(x) => x
+    | box(ref x) => x
   end
   contents is 5
 
   bx!{v:10}
   contents2 = cases(Box) bx:
-    | box(x) => x
+    | box(ref x) => x
   end
   contents2 is 10
 
   mb = mbox(1, 2, 3, 4)
   contents3 = cases(MultiBox) mb:
-    | mbox(a, b, c, d) => [list: a, b, c, d]
+    | mbox(ref a, ref b, ref c, d) => [list: a, b, c, d]
   end
   contents3 is [list: 1, 2, 3, 4]
 
   mb!{v1: "v1"}
   contents4 = cases(MultiBox) mb:
-    | mbox(a, b, c, d) => [list: a, b, c, d]
+    | mbox(ref a, ref b, ref c, d) => [list: a, b, c, d]
   end
   contents4 is [list: "v1", 2, 3, 4]
 

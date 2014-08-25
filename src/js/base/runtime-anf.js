@@ -837,7 +837,7 @@ function createMethodDict() {
         return makeMethod(function(self) {
           return function(handlers, els) {
             if(hasField(handlers, name)) {
-              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }));
+              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }, self.$mut_fields_mask));
             }
             else {
               return els.app(self);
@@ -861,6 +861,30 @@ function createMethodDict() {
 
     function isDataValue(v) {
       return hasProperty(v, "$name") && hasProperty(v, "$app_fields") && hasProperty(v, "$arity");
+    }
+
+    function derefField(value, fieldIsRef, lookupIsRef) {
+      if(isRef(value)) {
+        if(lookupIsRef) {
+          // ref keyword in cases and either kind of field
+          // Update fields in place with deref
+          return getRef(value);
+          fields[i] = getRef(fields[i]);
+        } else if(fieldIsRef) { 
+          ffi.throwMessageException("Cases on ref field needs to use ref"); 
+        }
+        else {
+          return value;
+        }
+      }
+      else {
+        if(lookupIsRef) {
+          ffi.throwMessageException("Cannot use ref in cases to access non-ref field");
+        }
+        else {
+          return value;
+        }
+      }
     }
 
     /**The representation of an array
@@ -3712,6 +3736,8 @@ function createMethodDict() {
         'makeDataValue': makeDataValue,
         'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
+
+        'derefField': derefField,
 
         'checkRefAnns' : checkRefAnns,
 

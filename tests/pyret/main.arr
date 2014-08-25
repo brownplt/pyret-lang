@@ -17,3 +17,4 @@ import "./tests/test-graph.arr" as _
 import "./tests/test-m-graph.arr" as _
 import "./tests/test-match.arr" as _
 import "./tests/test-lists.arr" as _
+import "./tests/test-cases.arr" as _
