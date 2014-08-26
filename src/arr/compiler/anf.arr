@@ -36,16 +36,16 @@ data ANFCont:
 end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, k-cont(lam(x):
-        cases(N.ALettable) x:
-            # tail call
-          | a-app(l, f, args) =>
-            name = mk-id(l, "anf_tail_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
-          | else => N.a-lettable(x.l, x)
-        end
-      end)
-    )
+  anf(e, k-cont(lam(x): N.a-lettable(x.l, x) end))
+    #     cases(N.ALettable) x:
+    #         # tail call
+    #       | a-app(l, f, args) =>
+    #         name = mk-id(l, "anf_tail_app")
+    #         N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
+    #       | else => N.a-lettable(x.l, x)
+    #     end
+    #   end)
+    # )
 end
 
 fun bind(l, id): N.a-bind(l, id, A.a-blank);
@@ -298,18 +298,25 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann_check_temp")
-      k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
-                  anf-term(A.s-let-expr(l,
-                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                    A.s-id(l, name.id)))))
+      if A.is-a-blank(ret) or A.is-a-any(ret):
+        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+      else:
+        name = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+            anf-term(A.s-let-expr(l,
+                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                A.s-id(l, name.id)))))
+      end
     | s-method(l, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann_check_temp")
-      k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
-                  anf-term(A.s-let-expr(l,
-                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                    A.s-id(l, name.id)))))
-
+      if A.is-a-blank(ret) or A.is-a-any(ret):
+        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+      else:
+        name = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+            anf-term(A.s-let-expr(l,
+                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                A.s-id(l, name.id)))))
+      end
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):
         k.apply(l, N.a-array(l, vs))
