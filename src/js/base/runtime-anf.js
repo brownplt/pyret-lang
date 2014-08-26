@@ -1984,8 +1984,7 @@ function createMethodDict() {
 
     /** type {!PBase} */
     var builtins = makeObject({
-        'has-field': makeFunction(hasField),
-        'equiv': samePyPy,
+        'has-field': hasField,
         'current-checker': makeFunction(function() {
           thisRuntime.checkArity(0, arguments, "current-checker");
           return getParam("current-checker");
@@ -3185,7 +3184,7 @@ function createMethodDict() {
       thisRuntime.checkArity(2, arguments, "string-equals");
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
-      return thisRuntime.makeBoolean(same(l, r));
+      return thisRuntime.makeBoolean(l === r);
     }
     var string_append = function(l, r) {
       thisRuntime.checkArity(2, arguments, "string-append");
@@ -3292,7 +3291,7 @@ function createMethodDict() {
       thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
-      return thisRuntime.makeBoolean(same(l, r));
+      return thisRuntime.makeBoolean(jsnums.equals(l, r));
     }
     var num_max = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-max");
@@ -3820,6 +3819,7 @@ function createMethodDict() {
         'equal_now': equalNow,
         'equal_always3': equalAlways3,
         'equal_always': equalAlways,
+
         'raise': raiseJSJS,
 
         'pyretTrue': pyretTrue,
@@ -3833,7 +3833,6 @@ function createMethodDict() {
         'toReprJS' : toReprJS,
         'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
 
-        'same' : same,
         'wrap' : wrap,
         'unwrap' : unwrap,
 

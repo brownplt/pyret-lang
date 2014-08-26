@@ -24,7 +24,7 @@ define(["js/js-numbers"], function (jsnums) {
                 this.message = function() {
                   return ["Custom expectation: " + rt.toReprJS(this.actual) + " to equal " + rt.toReprJS(expect)];
                 };
-                return rt.same(this.actual, expect);
+                return rt.equal_always(this.actual, expect);
             },
             toBigEqual : function(expect) {
                 return jsnums['equals'](this.actual, jsnums.fromFixnum(expect));
