@@ -334,3 +334,30 @@ check:
   
   equal-always(s1, s2) raises "functions"
 end
+
+check "uninitialized refs should be different":
+  fun test-uninit-refs(x, y):
+    x is x
+    y is y
+    x is<=> x
+    y is<=> y
+    x is=~ x
+    y is=~ y
+
+    x is-not=~ y
+    x is-not y
+
+    [list: x] is-not [list: y]
+    [list-set: x] is-not [list-set: y]
+    nothing
+  end
+  ref-graph:
+  x = x
+  y = y
+  foo = test-uninit-refs(x, y)
+  end
+  ref-get(x) is ref-get(ref-get(x))
+
+
+
+end

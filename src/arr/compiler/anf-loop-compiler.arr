@@ -945,10 +945,13 @@ compiler-visitor = {
                 ] +
                 compiled-anns.others.reverse() +
                 [list:
-                  j-return(rt-method("checkConstructorArgs", [list:
+                  j-return(rt-method("checkConstructorArgs2", [list:
                         j-list(false, compiled-anns.anns.reverse()),
                         j-list(false, compiled-vals),
                         j-list(false, compiled-locs),
+                        j-list(false, for map(m from members):
+                          j-bool(N.is-a-mutable(m.member-type))
+                        end),
                         j-fun(empty, j-block(constr-body))
                       ]))
               ]))]),

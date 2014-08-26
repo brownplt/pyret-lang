@@ -211,6 +211,7 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
     | s-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
+    | s-m-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
     | else => nothing
   end
 end

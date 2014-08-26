@@ -1170,6 +1170,9 @@ function createMethodDict() {
                 } else {
                   top.done.push("make-ref(" + found + ")");
                 }
+              } else if(!isRefSet(next)) {
+                top.todo.pop();
+                top.done.push("<uninitialized reference>");
               } else {
                 var newName = addNewRef(next);
                 // Constructors implicitly wrap their mutable args in a reference if necessary
@@ -1232,11 +1235,7 @@ function createMethodDict() {
               break;
             }
           }
-          if (needsMutableGraph) {
-            finalAns = "block:\n  m-graph:\n";
-          } else {
-            finalAns = "block:\n  graph:\n";
-          }
+          finalAns = "<graph>\n";
           for (var i = 0; i < seen.length; i++) {
             if (seen[i].count > 1 || isRefFrozen(seen[i].obj)) {
               // console.log("Including " + seen[i].asName + " => " + seen[i].asDoc + " because "
@@ -1252,20 +1251,9 @@ function createMethodDict() {
             finalAns += "  __ANS__ = " + stack[0].done[0] + "\n";
             stack[0].done[0] = "ref-get(__ANS__)";
           }
-          finalAns += "  end\n"; 
-          if (needsMutableGraph) {
-            for (var i = 0; i < seen.length; i++) {
-              if (isRefFrozen(seen[i].obj)) {
-                finalAns += "  ref-freeze(" + seen[i].asName + ")\n";
-              }
-            }
-          }
+          finalAns += "<in>\n"; 
           if (mentioned !== undefined) {
-            if (!needsMutableGraph) {
-              finalAns += "  " + mentioned.asName + "\nend";
-            } else {
-              finalAns += "  ref-get(" + mentioned.asName + ")\nend";
-            }
+            finalAns += "  " + mentioned.asName + "\nend";
           } else {
             finalAns += "  " + stack[0].done[0] + "\nend";
           }
@@ -1629,6 +1617,8 @@ function createMethodDict() {
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
+                  toCompare.curAns = ffi.notEqual.app(current.path);
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
@@ -2128,12 +2118,26 @@ function createMethodDict() {
       }
       return checkI(0);
     }
-
     function checkConstructorArgs(anns, args, locs, after) {
       function checkI(i) {
         if(i >= args.length) { return after(); }
         else {
           if(isRefGraphable(args[i])) { return checkI(i + 1); }
+          else {
+            return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+              return checkI(i + 1);
+            });
+          }
+        }
+      }
+      return checkI(0);
+    }
+
+    function checkConstructorArgs2(anns, args, locs, mutMask, after) {
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          if(isRefGraphable(args[i]) && mutMask[i]) { return checkI(i + 1); }
           else {
             return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
               return checkI(i + 1);
@@ -3660,6 +3664,7 @@ function createMethodDict() {
         'checkAnnArg': checkAnnArg,
         'checkAnnArgs': checkAnnArgs,
         'checkConstructorArgs': checkConstructorArgs,
+        'checkConstructorArgs2': checkConstructorArgs2,
         '_checkAnnArgs': _checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,

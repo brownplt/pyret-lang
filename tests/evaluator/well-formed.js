@@ -114,6 +114,15 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  end\n" + 
                                "end",
                                "graph expressions");
+        P.checkCompileErrorMsg("lam():\n" + 
+                               "  y = 10\n" + 
+                               "  x = 5\n" + 
+                               "  fun f(): nothing end\n" + 
+                               "  ref-graph:\n" + 
+                               "  z = 5\n" + 
+                               "  end\n" + 
+                               "end",
+                               "end a block with a graph");
         P.checkCompileErrorMsg("block:\n" + 
                                "  x = 5\n" + 
                                "  y = 10\n" + 
