@@ -48,7 +48,7 @@ str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
 str-graph = PP.str("graph:")
-str-m-graph = PP.str("m-graph:")
+str-m-graph = PP.str("ref-graph:")
 str-if = PP.str("if ")
 str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
@@ -479,17 +479,17 @@ data Expr:
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-m-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
-    label(self): "s-m-graph" end,
+    label(self): "s-ref-graph" end,
     tosource(self):
       PP.surround(0, 1, # NOTE: Not indented
-        str-graph,
+        str-m-graph,
         PP.flow-map(PP.hardline, _.tosource(), self.binds),
         str-end)
     end
   | s-m-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
     label(self): "s-m-graph-expr" end,
     tosource(self):
-      header = PP.surround-separate(2 * INDENT, 1, str-graph, str-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
+      header = PP.surround-separate(2 * INDENT, 1, str-m-graph, str-m-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
           + str-colon
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)

@@ -48,11 +48,14 @@ data NLink:
   | nempty
 end
 
-graph:
+ref-graph:
   ones = nlink(1, ones)
   other-ones = nlink(1, other-ones)
   third-ones = nlink(1, ones)
 end
+ref-freeze(ones)
+ref-freeze(other-ones)
+ref-freeze(third-ones)
 
 check "immutable cyclic lists":
   identical(ones, ones) is true
@@ -72,21 +75,31 @@ data MLink:
 end
 
 block:
-  graph:
+  ref-graph:
     mt1 = mempty
     BOS = mlink(PRO, rest1)
     rest1 = mlink(WOR, mt1)
     PRO = mlink(BOS, mt1)
     WOR = mlink(BOS, mt1)
   end
+  ref-freeze(mt1)
+  ref-freeze(BOS)
+  ref-freeze(rest1)
+  ref-freeze(PRO)
+  ref-freeze(WOR)
 
-  graph:
+  ref-graph:
     mt2 = mempty
     CHI = mlink(CLE, mt2)
     DEN = mlink(CLE, mt2)
     CLE = mlink(CHI, rest2)
     rest2 = mlink(DEN, mt2)
   end
+  ref-freeze(mt2)
+  ref-freeze(CHI)
+  ref-freeze(DEN)
+  ref-freeze(CLE)
+  ref-freeze(rest2)
 
   check "general immutable graphs":
     identical(BOS, CLE) is false
@@ -102,7 +115,7 @@ block:
 end
 
 block:
-  m-graph:
+  ref-graph:
     mt1 = mempty
     BOS = mlink(PRO, rest1)
     rest1 = mlink(WOR, mt1)
@@ -110,7 +123,7 @@ block:
     WOR = mlink(BOS, mt1)
   end
 
-  m-graph:
+  ref-graph:
     mt2 = mempty
     CHI = mlink(CLE, mt2)
     DEN = mlink(CLE, mt2)
@@ -259,7 +272,7 @@ check "error (and non-error) on nested fun and meth":
 end
 
 block:
-  m-graph:
+  ref-graph:
     mt1 = mempty
     BOS = mlink(PRO, rest1)
     rest1 = mlink(WOR, mt1)
@@ -267,7 +280,7 @@ block:
     WOR = mlink(BOS, mt1)
   end
 
-  m-graph:
+  ref-graph:
     mt2 = mempty
     CHI = mlink(CLE, mt2)
     DEN = mlink(CLE, mt2)

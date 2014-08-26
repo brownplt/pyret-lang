@@ -413,13 +413,17 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-fields(fields.reverse())
     lists.all(_.visit(self), fields)
   end,
-  s-graph(self, l, bindings):
+  s-m-graph(self, l, bindings):
     for each(binding from bindings):
       when A.is-s-underscore(binding.name.id):
         add-error(C.pointless-graph-id(binding.l))
       end
     end
     lists.all(_.visit(self), bindings)
+  end,
+  s-graph(self, l, bindings):
+    add-error(C.wf-err("graph expressions are not yet supported", l))
+    false
   end,
   s-check(self, l, name, body, keyword-check):
     wrap-visit-check(self, some(body))

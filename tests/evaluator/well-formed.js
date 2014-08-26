@@ -55,7 +55,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("anonymous bindings", function(done) {
         P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
         P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
-        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "Anonymous bindings");
+        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "graph expressions");
         P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
         P.wait(done);
       });
@@ -113,7 +113,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  z = 5\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a graph definition");
+                               "graph expressions");
         P.checkCompileErrorMsg("block:\n" + 
                                "  x = 5\n" + 
                                "  y = 10\n" + 
@@ -123,7 +123,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  x = 5\n" + 
                                "  graph: y = 10 end\n" + 
                                "end",
-                               "Cannot end a block with a graph definition");
+                               "graph expressions");
         P.checkCompileErrorMsg("if x < y:\n" + 
                                "  print('x less than y')\n" + 
                                "end",

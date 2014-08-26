@@ -21,13 +21,13 @@ data MNumList:
 end
 
 check:
-  m-graph:
+  ref-graph:
     BOS = [mlist: WOR, PROV]
     PROV = [mlist: BOS]
     WOR = [mlist: BOS]
   end
 
-  m-graph:
+  ref-graph:
     SF = [mlist: OAK, MV]
     MV = [mlist: SF]
     OAK = [mlist: SF]
@@ -55,7 +55,7 @@ check:
   ref-get(SF)!{first : PROV} raises "MList"
 
 
-  m-graph:
+  ref-graph:
     ONES = mnlink(1, ONES)
   end
 
@@ -76,7 +76,7 @@ check "bogus refs":
       o!{x: 10}
     end
 
-    m-graph:
+    ref-graph:
       R = f(R)
     end
     R
@@ -87,7 +87,7 @@ end
 
 check "using unset ref":
   fun f():
-    m-graph:
+    ref-graph:
       L1 = L1
     end
     L1
@@ -98,7 +98,7 @@ check "using unset ref":
 end
 
 check "more programmatic cycles":
-  m-graph:
+  ref-graph:
   OTTF = mnlink(1, mnlink(2, mnlink(3, mnlink(4, OTTF))))
   end
 
@@ -113,7 +113,7 @@ check "more programmatic cycles":
         mnlink(m, make-cycle(base-elt, m + 1))
       end
     end
-    m-graph:
+    ref-graph:
     BASE = make-cycle(BASE, 1)
     end
     BASE
@@ -128,7 +128,7 @@ end
 
 check "post-initialization type error":
   fun f():
-    m-graph:
+    ref-graph:
       ONES = mnlink(1, NOT-ONES)
       NOT-ONES = 42
     end

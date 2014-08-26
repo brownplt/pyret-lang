@@ -22,7 +22,7 @@ check:
   end raises "non-ref field"
 
 
-  m-graph:
+  ref-graph:
     r = r
   end
   ref-set(r, "b")
