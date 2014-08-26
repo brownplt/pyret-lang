@@ -505,8 +505,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
-    | s-update(l, obj, fields) => A.s-update(l, desugar-expr(obj), fields.map(desugar-member))
-    | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
+    | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, desugar-expr(obj), fields.map(desugar-member))
+    | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, desugar-expr(obj), fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)

@@ -94,7 +94,7 @@ fun wrap-for-special-import(p :: A.Program):
 end
 
 fun get-defined-ids(p, imports, body):
-  ids = A.toplevel-ids(p).filter(lam(id): not(A.is-s-underscore(id)) end)
+  ids = A.toplevel-ids(p)
   safe-imports = make-safe-imports(imports)
   import-names = for fold(names from empty, imp from safe-imports):
     cases(A.Import) imp:
@@ -114,9 +114,9 @@ fun get-defined-ids(p, imports, body):
   end
   type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
   {
-    imports: safe-imports,
-    ids: ids-plus-import-names,
-    type-ids: type-ids-plus-import-names
+    imports: safe-imports.filter(lam(id): not(A.is-s-underscore(id)) end),
+    ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
+    type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
 end
 

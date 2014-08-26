@@ -257,7 +257,12 @@ local-bound-vars-visitor = {
   j-case(self, exp, body): exp.visit(self).union(body.visit(self)) end,
   j-default(self, body): body.visit(self) end,
   j-block(self, stmts): stmts.foldl(lam(s, base): base.union(s.visit(self)) end, sets.empty-tree-set) end,
-  j-var(self, name, rhs): [tree-set: name].union(rhs.visit(self)) end,
+  j-var(self, name, rhs):
+    # Ignore all variables named $underscore#####
+    if string-contains(name, "$underscore"): rhs.visit(self)
+    else: [tree-set: name].union(rhs.visit(self))
+    end
+  end,
   j-if1(self, cond, consq): cond.visit(self).union(consq.visit(self)) end,
   j-if(self, cond, consq, alt): cond.visit(self).union(consq.visit(self)).union(alt.visit(self)) end,
   j-return(self, exp): exp.visit(self) end,
@@ -292,6 +297,18 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   ^ concat-snoc(_, j-default(j-block([list:
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
               j-str(" in " + fun-name)))])))
+  # fun check-no-dups(seen, kases):
+  #   cases(List) kases:
+  #     | empty => nothing
+  #     | link(hd, tl) =>
+  #       lbl = if J.is-j-case(hd): hd.exp.label.get() else: -1 end
+  #       when seen.member(lbl):
+  #         raise("Duplicate case found: " + hd.to-ugly-source())
+  #       end
+  #       check-no-dups(seen.add(lbl), tl)
+  #   end
+  # end        
+  # check-no-dups(Sets.empty-tree-set, switch-cases.to-list())
   # Initialize the case numbers, for more legible output...
   switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
   vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from switch-cases):

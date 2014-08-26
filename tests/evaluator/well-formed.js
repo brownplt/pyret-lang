@@ -307,8 +307,23 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("import shared-gdrive('a') as D", "two arguments");
         P.wait(done);
       });
+      it("underscores", function(done) {
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
+        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ foo(self): _ end }", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ fieldname: _ }", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ ref fieldname: _ }", "Cannot use underscore");
+        P.checkCompileErrorMsg("method(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("lam(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("fun foo(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("check: _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("provide _ end", "Cannot use underscore");
+        P.wait(done);
+      });
     });
-
   }
   return { performTest: performTest };
 });
