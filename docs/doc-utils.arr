@@ -231,6 +231,7 @@ end
 
 fun process-ann(ann, file, fields, bindings, type-bindings):
   cases(A.Ann) ann:
+    | a-type-var(_, n) => leaf(torepr(n.toname()))
     | a-name(l, name) =>
       looked-up = lookup-ann(ann, type-bindings)
       cases(E.Either<A.Ann, CrossRef>) looked-up:
