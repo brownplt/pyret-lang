@@ -48,6 +48,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var torepr = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
+          runtime.checkArity(2, arguments, "torepr");
           var keys = Object.keys(underlyingDict);
           var elts = [];
           function combine(elts) {
@@ -73,6 +74,15 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             }
           }
           return toreprElts();
+        });
+
+        var equals = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
+          runtime.checkArity(3, arguments, "torepr");
+          if(!brandMutable.test.app(other)) { return runtime.ffi.NotEqual(""); }
+          else {
+            // Here recursiveEquality is a 2-place callback for checking
+            // equality of elements
+          }
         });
 
         var NYI = runtime.makeMethodFromFun(function(self) {

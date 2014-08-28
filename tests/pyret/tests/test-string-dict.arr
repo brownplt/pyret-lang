@@ -41,7 +41,6 @@ check "basics":
   sd2.has-key("a") raises "Not yet implemented"
 
   (sd1 == sd2) raises "Not yet implemented"
-  #torepr(sd1) raises "Not yet implemented"
 
 end
 
