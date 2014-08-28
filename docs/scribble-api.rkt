@@ -487,7 +487,6 @@
              (set! 'doc-xrefs (cons (list name processing-module)
                                     (get 'doc-xrefs '())))
              (define name-tt (if is-method (tt "." name) (seclink (xref processing-module name) (tt name))))
-             (printf "Processing: ~a\n" (xref processing-module name))
              (define name-elt (toc-target-element code-style (list name-tt) part-tag))
 ;             (define name-elt (seclink (xref processing-module name) name-target))
              (define header-part
