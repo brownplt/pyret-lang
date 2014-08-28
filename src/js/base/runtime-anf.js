@@ -7,7 +7,7 @@ var Bignum;
 
 
 define(["js/namespace", "js/js-numbers"],
-       function (Namespace, jsnumsIn) {
+       function (Namespace, jsnums) {
   if(requirejs.isBrowser) {
     var require = requirejs;
   }
@@ -16,48 +16,13 @@ define(["js/namespace", "js/js-numbers"],
   }
 
 
-
-  //var Namespace = require('./namespace.js').Namespace;
-
-  /**
-    @type {{
-        fromFixnum : function(number) : Bignum,
-        fromString : function(string) : (Bignum|boolean),
-        toFixnum : function() : number,
-
-        isSchemeNumber : function(Object) : boolean,
-
-        equals : function(Bignum, Bignum) : boolean,
-        lessThan : function(Bignum, Bignum) : boolean,
-        greaterThan : function(Bignum, Bignum) : boolean,
-        lessThanOrEqual : function(Bignum, Bignum) : boolean,
-        greaterThanOrEqual : function(Bignum, Bignum) : boolean,
-
-        add : function(Bignum, Bignum) : Bignum,
-        subtract : function(Bignum, Bignum) : Bignum,
-        multiply : function(Bignum, Bignum) : Bignum,
-        divide : function(Bignum, Bignum) : Bignum,
-
-        sin : function(Bignum) : Bignum,
-        cos : function(Bignum) : Bignum,
-        tan : function(Bignum) : Bignum,
-        asin : function(Bignum) : Bignum,
-        acos : function(Bignum) : Bignum,
-        atan : function(Bignum) : Bignum
-          }}
-   */
-  var jsnums = jsnumsIn;
-
-
-
 /**
 Creates a Pyret runtime
-@param {{stdout : function(string), initialGas : number}} theOutsideWorld contains the hooks
-into the environment
-
+@param {{stdout : function(string), initialGas : number}}
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
+
 /**
     Extends an object with the new fields in fields
     If all the fields are new, the brands are kept,
@@ -132,8 +97,7 @@ function extendWith(fields) {
   @param {Function} from the class that sub will subclass
   */
 function inherits(sub, from) {
-    sub.prototype = new from();
-    //sub.prototype = Object.create(from.prototype);
+  sub.prototype = Object.create(from.prototype);
 }
 
 //Set up heirarchy
@@ -152,7 +116,7 @@ inherits(POpaque, PBase);
     @return {boolean} true if obj has property p, false otherwise
 */
 function hasProperty(obj, p) {
-    return p in obj;
+  return p in obj;
 }
 
 /**
@@ -165,7 +129,7 @@ function hasProperty(obj, p) {
     @return {boolean} true if obj has property p, false otherwise
 */
 function hasOwnProperty(obj, p) {
-    return Object.prototype.hasOwnProperty.call(obj, p);
+  return Object.prototype.hasOwnProperty.call(obj, p);
 }
 
 var parameters = Object.create(null);
@@ -214,52 +178,7 @@ function getFields(obj) {
   return fields;
 }
 
-/**
-    Fold a function over the fields of an object (key and value)
-
-    @param {!PBase} obj the object to fold over
-    @param {Function} f the folding function takes the accumulator, then the
-                        field name, then the value
-    @param {!Object} init the initial value to fold over
-*/
-function foldFields(obj, f, init) {
-  var fields = getFields(obj);
-  var acc = init;
-  fields.forEach(function(fld) {
-      acc = f(acc, fld, obj.dict[fld]);
-    });
-  return acc;
-}
-
-
-/**
-  Makes a copy of a dictionary
-  Use this when cloning an object
-  Not a deep copy, field values are merely references and are shared between the copies
-
-  @param {!Object.<string, !PBase>} dict the dictionary to clone
-  @return {!Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
-*/
-function copyDict(dict) {
-    return Object.create(dict);
-}
-
-/**
-  @param {Array.<number>} brands
-  @return Array.<number>
-*/
-function copyBrands(brands) {
-  return brands;
-}
-
 var emptyDict = Object.create(null);
-
-/** Creates a truly empty dictonary, with no inherit fields 
-    @return {!Object} an empty object
- **/
-function makeEmptyDict() {
-    return Object.create(null);
-}
 
 /**Tests whether an object is a PBase
     @param {Object} obj the item to test
@@ -368,13 +287,6 @@ function POpaque(val, equals) {
 }
 POpaque.prototype = Object.create(PBase.prototype);
 
-POpaque.prototype.extendWith = function() {
-  ffi.throwInternalError("Cannot extend opaque values", ffi.makeList([this]));
-};
-POpaque.prototype.updateDict = function(dict, keepBrands) {
-  ffi.throwInternalError("Cannot clone opaque values", ffi.makeList([this]));
-};
-
 function makeOpaque(val, equals) { return new POpaque(val, equals); }
 function isOpaque(val) { return val instanceof POpaque; }
 
@@ -393,17 +305,6 @@ function PNothing() {
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 }
-PNothing.prototype = Object.create(PBase.prototype);
-
-/**Clones the nothing
-  @return {!PNothing} With same dict
-*/
-PNothing.prototype.updateDict = function(dict, keepBrands) { 
-    var newNoth = makeNothing(); 
-    newNoth.dict = dict;
-    newNoth.brands = keepBrands ? this.brands : noBrands;
-    return newNoth;
-};
 
 /**Clones the nothing
   @param {!String} b The brand
@@ -453,7 +354,7 @@ function makeNumberBig(n) {
 function makeNumber(n) {
   return jsnums.fromFixnum(n);
 }
-//TODO: for BIG numbers, we'll need to compile them in as strings and use jsnums.fromString(_) to get the value
+
 /**Makes a PNumber using the given string
 
   @param {string} s 
@@ -538,22 +439,11 @@ function PFunction(fun, arity) {
     this.arity = arity || fun.length;
 
     /**@type {!Object.<string, !PBase>}*/
-    this.dict = createFunctionDict(); 
+    this.dict = emptyDict;
 
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 }
-//PFunction.prototype = Object.create(PBase.prototype); 
-
-/**Clones the function
-  @return {!PFunction} With same app and dict
-*/
-PFunction.prototype.updateDict = function(dict, keepBrands) { 
-    var newFun = makeFunction(this.app); 
-    newFun.dict = dict;
-    newFun.brands = keepBrands ? this.brands : noBrands;
-    return newFun;
-};
 
 /**Clones the function
   @param {!string} b The brand to add
@@ -569,13 +459,6 @@ PFunction.prototype.brand = function(b) {
     @return {boolean} true if object is a PFunction
 */
 function isFunction(obj) {return obj instanceof PFunction; }
-
-/**Creates a copy of the common dictionary all function have
-  @return {!Object.<string, !PBase>} the dictionary for a function
-*/
-function createFunctionDict() {
-    return emptyDict;
-}
 
 /**Makes a PFunction using the given n
 
@@ -611,23 +494,12 @@ function PMethod(meth, full_meth) {
     this.arity = full_meth.length;
 
     /**@type {!Object.<string, !PBase>}*/
-    this.dict = createMethodDict(); 
+    this.dict = emptyDict;
 
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 
 }
-//PMethod.prototype = Object.create(PBase.prototype); 
-
-/**Clones the method
-  @return {!PMethod} With same meth and dict
-*/
-PMethod.prototype.updateDict = function(dict, keepBrands) { 
-    var newMeth = makeMethod(this['meth'], this['full_meth']); 
-    newMeth.dict = dict;
-    newMeth.brands = keepBrands ? this.brands : noBrands;
-    return newMeth;
-};
 
 /**Clones the method
   @param {!string} b The brand to add
@@ -643,13 +515,6 @@ PMethod.prototype.brand = function(b) {
     @return {boolean} true if object is a PMethod
 */
 function isMethod(obj) { return obj instanceof PMethod; }
-
-/**Creates a copy of the common dictionary all function have
-  @return {!Object.<string, !PBase>} the dictionary for a method
-*/
-function createMethodDict() {
-    return emptyDict;
-}
 
 /**Makes a PMethod using the given function
   The function first argument should be self
@@ -901,20 +766,6 @@ function createMethodDict() {
     /************************
           Type Checking
     ************************/
-    /**
-      Checks if value is ___
-      @param {!PBase} val the value to test
-      @param {!function(!PBase) : boolean} test
-
-      @return {!boolean} true if val passes test
-    */
-    function checkIf(val, test) {
-        if(!test(val)) {
-            throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
-        }
-        return true;
-    }
-
     function checkType(val, test, typeName) {
       if(!test(val)) { ffi.throwTypeMismatch(val, typeName) }
       return true;
@@ -2071,28 +1922,6 @@ function createMethodDict() {
         },
         "safeCheckAnnArg");
       }
-    }
-
-    function checkAnnArg(compilerLoc, ann, val) {
-      return safeCall(function() {
-        return ann.check(compilerLoc, val);
-      }, function(result) {
-        if(ffi.isOk(result)) { return val; }
-        if(ffi.isFail(result)) {
-          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
-        }
-        throw "Internal error: got invalid result from annotation check";
-      },
-      "checkAnnArg");
-    }
-
-    function _checkAnnArg(compilerLoc, ann, val) {
-      var result = ann.check(compilerLoc, val);
-      if(ffi.isOk(result)) { return val; }
-      if(ffi.isFail(result)) {
-        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
-      }
-      throw "Internal error: got invalid result from annotation check";
     }
 
     function checkAnnArgs(anns, args, locs, after) {
@@ -3660,11 +3489,9 @@ function createMethodDict() {
 
         'checkAnn': checkAnn,
         '_checkAnn': _checkAnn,
-        'checkAnnArg': checkAnnArg,
         'checkAnnArgs': checkAnnArgs,
         'checkConstructorArgs': checkConstructorArgs,
         'checkConstructorArgs2': checkConstructorArgs2,
-        '_checkAnnArgs': _checkAnnArgs,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
         'makePrimitiveAnn': makePrimitiveAnn,
@@ -3847,7 +3674,6 @@ function createMethodDict() {
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'makeCheckType' : makeCheckType,
-        'checkIf'      : checkIf,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),
