@@ -59,6 +59,40 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
         P.wait(done);
       });
+      it("malformed check-tests", function(done) {
+        // toplevel
+        P.checkCompileErrorMsg("5 is 5", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is-not 5", "Cannot use `is-not` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is== 5", "Cannot use `is==` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is=~ 5", "Cannot use `is=~` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is<=> 5", "Cannot use `is<=>` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 satisfies 5", "Cannot use `satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 violates 5", "Cannot use `violates` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises 5", "Cannot use `raises` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 does-not-raise", "Cannot use `does-not-raise` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises-other-than 5", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        // nested but still not in check-blocks
+        P.checkCompileErrorMsg("lam(): 5 is 5 end", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is-not 5 end", "Cannot use `is-not` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is== 5 end", "Cannot use `is==` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is=~ 5 end", "Cannot use `is=~` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is<=> 5 end", "Cannot use `is<=>` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 satisfies 5 end", "Cannot use `satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 violates 5 end", "Cannot use `violates` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises 5 end", "Cannot use `raises` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 does-not-raise end", "Cannot use `does-not-raise` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises-other-than 5 end", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        // bad refinements
+        P.checkCompileErrorMsg("check: 5 satisfies%(5) 5 end", "Cannot use refinement syntax `%(...)` with `satisfies`");
+        P.checkCompileErrorMsg("check: 5 violates%(5) 5 end", "Cannot use refinement syntax `%(...)` with `violates`");
+        P.checkCompileErrorMsg("check: 5 is==%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is==`");
+        P.checkCompileErrorMsg("check: 5 is=~%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is=~`");
+        P.checkCompileErrorMsg("check: 5 is<=>%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is<=>`");
+        P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
+        P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
+        P.wait(done);
+      });
+        
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 
@@ -80,14 +114,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): x = 5\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): var x = 5\n y = 4\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
-
-
-        P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("lam(): 1 raises 2 end", "Cannot use `raises` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("check: 1 raises%(2) 3 end",
-                               "Cannot use refinement syntax `%(...)` with `raises`.");
-        P.checkCompileErrorMsg("check: 1 satisfies%(2) 3 end",
-                               "Cannot use refinement syntax `%(...)` with `satisfies`. Consider changing the predicate instead.");
 
 
         P.checkCompileErrorMsg("lam():\n" + 

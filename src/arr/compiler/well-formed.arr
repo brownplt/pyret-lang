@@ -661,7 +661,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,
-  s-check-test(_, l :: Loc, op :: String, refinement :: Option<A.Expr>, left :: A.Expr, right :: A.Expr):
+  s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
     well-formed-visitor.s-check-test(l, op, refinement, left, right)
   end,
   s-paren(_, l :: Loc, expr :: A.Expr):
