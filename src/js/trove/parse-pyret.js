@@ -973,6 +973,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           "raises":            RUNTIME.getField(ast, "s-op-raises"),
           "raises-other-than": RUNTIME.getField(ast, "s-op-raises-other"),
           "does-not-raise":    RUNTIME.getField(ast, "s-op-raises-not"),
+          "raises-satisfies":  RUNTIME.getField(ast, "s-op-raises-satisfies"),
+          "raises-violates":   RUNTIME.getField(ast, "s-op-raises-violates"),
         }
 
         function parseDataRaw(dialect, data, fileName) {

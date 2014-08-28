@@ -82,6 +82,8 @@ str-satisfies-not = PP.str("violates")
 str-raises = PP.str("raises")
 str-raises-other = PP.str("raises-other-than")
 str-raises-not = PP.str("does-not-raise")
+str-raises-satisfies = PP.str("raises-satisfies")
+str-raises-violates = PP.str("raises-violates")
 str-percent = PP.str("%")
 
 data Name:
@@ -1064,6 +1066,12 @@ data CheckOp:
   | s-op-raises-not with:
     label(self): "s-op-raises-not" end,
     tosource(self): str-raises-not end
+  | s-op-raises-satisfies with:
+    label(self): "s-op-raises-satisfies" end,
+    tosource(self): str-raises-satisfies end
+  | s-op-raises-violates with:
+    label(self): "s-op-raises-violates" end,
+    tosource(self): str-raises-violates end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

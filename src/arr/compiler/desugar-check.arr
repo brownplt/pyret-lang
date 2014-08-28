@@ -46,20 +46,26 @@ check-stmts-visitor = A.default-map-visitor.{
           | none                    => check-op("check-is-not")
           | some(shadow refinement) => check-refinement(refinement, "check-is-not-refinement")
         end
-      | s-op-satisfies     =>
+      | s-op-satisfies        =>
         check-op("check-satisfies")
-      | s-op-satisfies-not =>
+      | s-op-satisfies-not    =>
         check-op("check-satisfies-not")
-      | s-op-raises        =>
+      | s-op-raises           =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l) ])
-      | s-op-raises-not    =>
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-not       =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
-          [list: ast-pretty(term), ast-lam(left), ast-srcloc(l) ])
-      | s-op-raises-other  =>
+          [list: ast-pretty(term), ast-lam(left), ast-srcloc(l)])
+      | s-op-raises-other     =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l) ])
-      | else => raise("Check test operator " + op + " not yet implemented at " + torepr(l))
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-satisfies =>
+        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-satisfies"),
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-violates  =>
+        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-violates"),
+          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+      | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))
     end
   end,
   s-check(self, l, name, body, keyword-check):
