@@ -16,6 +16,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       function applyBrand(brand, val) {
         return get(brand, "brand").app(val);
       }
+      function hasBrand(brand, val) {
+        return get(brand, "test").app(val);
+      }
 
       // Prepend a space to avoid conflicting with built-in names
       function mutableKey(s) {
@@ -78,8 +81,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         var equals = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "torepr");
-          if(!brandMutable.test.app(other)) { return runtime.ffi.NotEqual(""); }
+          if(!hasBrand(brandMutable, other)) { return runtime.ffi.NotEqual(""); }
           else {
+            runtime.ffi.throwMessageException("Not yet implemented");
             // Here recursiveEquality is a 2-place callback for checking
             // equality of elements
           }
@@ -95,7 +99,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           remove: NYI,
           keys: NYI,
           "has-key": NYI,
-          _equals: NYI,
+          _equals: equals,
           _torepr: torepr
         });
         return applyBrand(brandMutable, obj);
