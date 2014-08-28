@@ -39,6 +39,7 @@
          a-compound
          a-id
          a-arrow
+         a-named-arrow
          a-record
          a-field
          a-app
@@ -187,6 +188,8 @@
 (define (pre-style name)
   (make-style name (cons (make-alt-tag "pre") css-js-additions)))
 
+(define code-style (make-style "pyret-code" (cons (make-alt-tag "span") css-js-additions)))
+
 (define (span-style name)
   (make-style name (cons (make-alt-tag "span") css-js-additions)))
 
@@ -194,11 +197,11 @@
 (define (anchored-elem-style anchor)
   (make-style "anchor" (list (make-alt-tag "span") (url-anchor anchor))))
 
-(define dl-style (make-style "dl" (list (make-alt-tag "dl"))))
-(define dt-style (make-style "dt" (list (make-alt-tag "dt"))))
-(define dd-style (make-style "dd" (list (make-alt-tag "dd"))))
+(define (dl-style name) (make-style name (list (make-alt-tag "dl"))))
+(define (dt-style name) (make-style name (list (make-alt-tag "dt"))))
+(define (dd-style name) (make-style name (list (make-alt-tag "dd"))))
 
-(define (pyret-block . body) (para #:style (pre-style "pyret") body))
+(define (pyret-block . body) (nested #:style (pre-style "pyret-highlight") (nested #:style 'smaller  body)))
 (define pyret tt)
 
 ;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -237,11 +240,14 @@
 
 ; generates dt for use in dl-style itemizations
 (define (dt . args)
-  (elem #:style dt-style args))
+  (elem #:style (dt-style "") args))
+; generates dt for use in dl-style itemizations
+(define (dt-indent . args)
+  (elem #:style (dt-style "indent-arg") args))
 
 ; generates dd for use in dl-style itemizations
 (define (dd . args)
-  (elem #:style dd-style args))
+  (elem #:style (dd-style "") args))
 
 ;; docmodule is a macro so that we can parameterize the
 ;; module name before processing functions defined within
@@ -297,8 +303,7 @@
    (let ([processing-module (curr-module-name)])
      (interleave-parbreaks/all
       (list (drop-anchor name)
-            (subsection name)
-            (nested #:style (div-style "data-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
+            (subsubsub*section #:tag (tag-name (curr-module-name) name))
             (traverse-block ; use this to build xrefs on an early pass through docs
              (lambda (get set!)
                (set! 'doc-xrefs (cons (list name processing-module)
@@ -308,6 +313,7 @@
 @(define (method-spec name
                       #:params (params #f)
                       #:contract (contract #f)
+                      #:return (return #f)
                       #:args (args #f)
                       #:alt-docstrings (alt-docstrings #f)
                       #:examples (examples '())
@@ -317,8 +323,8 @@
           [spec (find-defn 'name name methods)])
      (render-fun-helper
       spec name
-      (target-element #f (list name) (list 'part (tag-name (curr-module-name) var-name name)))
-      contract args alt-docstrings examples body)))
+      (list 'part (tag-name (curr-module-name) var-name name))
+      contract return args alt-docstrings examples body)))
 @(define (member-spec name #:contract (contract-in #f) . body)
    (let* ([members (get-defn-field 'members (curr-var-spec))]
           [member (if (list? members) (assoc name members) #f)]
@@ -336,10 +342,10 @@
             contents)))]))
 @(define (singleton-spec-internal name #:private (private #f) . body)
    (if private
-       (list (subsubsection name) body)
+       (list (subsubsub*section name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
+         (list (subsubsub*section #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define-syntax (constr-spec stx)
    (syntax-case stx ()
@@ -351,10 +357,10 @@
             contents)))]))
 @(define (constr-spec-internal name #:params (params #f) #:private (private #f) . body)
    (if private
-       (list (subsubsection name) body)
+       (list (subsubsub*section name) body)
        (begin
          (when (not private) (set-documented! (curr-module-name) name))
-         (list (subsubsection #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
+         (list (subsubsub*section #:tag (list (tag-name (curr-module-name) name) (tag-name (curr-module-name) (string-append "is-" name))) name) body))))
 
 @(define (with-members . members)
    (if (empty? members) 
@@ -363,7 +369,7 @@
 @(define (members . mems)
    (if (empty? mems)
        empty
-       (list "Fields" (para #:style dl-style mems))))
+       (list "Fields" (para #:style (dl-style "fields") mems))))
 @(define (a-id name . args)
    (if (cons? args) (seclink (first args) name) name))
 @(define (a-compound typ . args)
@@ -376,6 +382,21 @@
    (list base "." field))
 @(define (a-arrow . typs)
    (append (list "(") (add-between typs ", " #:before-last " -> ") (list ")")))
+@(define (every-other lst)
+  (cond
+    [(empty? lst) empty]
+    [(cons? lst)
+      (define r (rest lst))
+      (cond
+        [(empty? r) lst]
+        [(cons? r) (cons (first lst) (every-other (rest (rest lst))))])]))
+@(define (a-named-arrow . names-and-typs)
+   (define all-but-last (take names-and-typs (- (length names-and-typs) 1)))
+   (define last (first (drop names-and-typs (- (length names-and-typs) 1))))
+   (define names (every-other all-but-last))
+   (define typs (every-other (rest all-but-last)))
+   (define pairs (map (λ (n t) (list n " :: " t)) names typs))
+   (append (list "(") (add-between (append pairs (list last)) ", " #:before-last " -> ") (list ")")))
 @(define (a-record . fields)
    (append (list "{") (add-between fields ", ") (list "}")))
 @(define (a-field name type . desc)
@@ -414,9 +435,32 @@
      [#t an-exp]))
 
 
+@(define (render-multiline-args names types descrs)
+   (map (lambda (name type descr)
+          (cond [(and name type descr)
+                 (list (dt-indent (tt name " :: " type))
+                       (dd descr))]
+                [(and name type)
+                 (list (dt-indent (tt name " :: " type))
+                       (dd ""))]
+                [(and name descr)
+                 (list (dt-indent (tt name)) (dd descr))]
+                [else (list (dt-indent (tt name)) (dd ""))]))
+        names types descrs))
+
+@(define (render-singleline-args names types)
+  (define args
+   (map (lambda (name type)
+          (cond [(and name type)
+                 (list (tt name " :: " type))]
+                [else (list (tt name))]))
+        names types))
+  (add-between args ", "))
+
 ;; render documentation for a function
-@(define (render-fun-helper spec name anchor contract-in args alt-docstrings examples contents)
+@(define (render-fun-helper spec name part-tag contract-in return-in args alt-docstrings examples contents)
    (let* ([contract (or contract-in (interp (get-defn-field 'contract spec)))] 
+          [return (or return-in (interp (get-defn-field 'return spec)))] 
           [argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
           [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
@@ -434,46 +478,53 @@
      ;; render the scribble
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
+     (define is-method (symbol=? (first spec) 'method-spec))
      (let ([processing-module (curr-module-name)])
        (interleave-parbreaks/all
         (list ;;(drop-anchor name)
-              anchor
-              (traverse-block ; use this to build xrefs on an early pass through docs
-               (lambda (get set!)
-                 (set! 'doc-xrefs (cons (list name processing-module)
-                                        (get 'doc-xrefs '())))
-                 (nested #:style (div-style "function")
-                         (interleave-parbreaks/all
-                          (list
-                           (nested #:style (div-style "signature")
-                                   (interleave-parbreaks/all
-                                    (append
-                                     (list
-                                      (nested #:style (pre-style "code") name " :: " contract)
-                                      (para #:style dl-style
-                                            (map (lambda (name type descr)
-                                                   (cond [(and name type descr)
-                                                          (list (dt (tt name " :: " type))
-                                                                (dd descr))]
-                                                         [(and name type)
-                                                          (list (dt (tt name " :: " type))
-                                                                (dd ""))]
-                                                         [(and name descr)
-                                                          (list (dt (tt name)) (dd descr))]
-                                                         [else (list (dt (tt name)) (dd ""))]))
-                                                 argnames input-types input-descr))
-                                      )
-                                     (if doc (list doc) (list)))))
-                           (nested #:style (div-style "description") contents)
-                           (if (andmap whitespace? examples)
-                             (nested #:style (div-style "examples") "")
-                             (nested #:style (div-style "examples")
-                                     (para (bold "Examples:"))
-                                     (pyret-block examples)))))))))))
-     ))
+          (traverse-block ; use this to build xrefs on an early pass through docs
+           (lambda (get set!)
+             (set! 'doc-xrefs (cons (list name processing-module)
+                                    (get 'doc-xrefs '())))
+             (define name-tt (if is-method (tt "." name) (seclink (xref processing-module name) (tt name))))
+             (printf "Processing: ~a\n" (xref processing-module name))
+             (define name-elt (toc-target-element code-style (list name-tt) part-tag))
+;             (define name-elt (seclink (xref processing-module name) name-target))
+             (define header-part
+               (cond
+                [(and (< (length argnames) 3) (ormap (lambda (v) (false? v)) input-descr))
+                 (apply para #:style (div-style "boxed")
+                   (append
+                    (list (tt name-elt " :: " "("))
+                    (render-singleline-args argnames input-types)
+                    (if return
+                      (list (tt ")" " -> " return))
+                      (list (tt ")")))))] 
+                [else 
+                 (nested #:style (div-style "boxed")
+                 (apply para #:style (dl-style "multiline-args")
+                   (append
+                    (list (dt name-elt " :: " "("))
+                    (render-multiline-args argnames input-types input-descr)
+                    (if return
+                      (list (dt (tt ")")) (dt (tt "-> " return)))
+                      (list (dt (tt ")")))))))]))
+             (nested #:style (div-style "function")
+                     (cons
+                       header-part
+                       (interleave-parbreaks/all
+                        (append
+                          (if doc (list doc) (list))
+                          (list (nested #:style (div-style "description") contents))
+                          (list (if (andmap whitespace? examples)
+                            (nested #:style (div-style "examples") "")
+                            (nested #:style (div-style "examples")
+                                    (para (bold "Examples:"))
+                                    (pyret-block examples)))))))))))))))
 
 @(define (function name
                    #:contract (contract #f)
+                   #:return (return #f)
                    #:args (args #f)
                    #:alt-docstrings (alt-docstrings #f)
                    #:examples (examples '())
@@ -482,8 +533,8 @@
    (let ([ans
           (render-fun-helper
            (find-doc (curr-module-name) name) name
-           (nested #:style (div-style "function-name") (target-element #f (list name) (list 'part (tag-name (curr-module-name) name))))
-           contract args alt-docstrings examples contents)])
+           (list 'part (tag-name (curr-module-name) name))
+           contract return args alt-docstrings examples contents)])
           ; error checking complete, record name as documented
      (set-documented! (curr-module-name) name)
      ans))
